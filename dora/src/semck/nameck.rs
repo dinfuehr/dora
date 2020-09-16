@@ -13,7 +13,7 @@ use crate::sym::TermSym::{
     SymClassConstructor, SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
     SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
-use crate::sym::TypeSym::{SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct};
+use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTypeParam};
 use crate::ty::BuiltinType;
 
 pub fn check<'ast>(vm: &VM<'ast>) {
@@ -55,7 +55,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.add_hidden_parameter_self();
         }
 
-        if let FctParent::Class(cls_id) = self.fct.parent {
+        let cls_type_params_count = if let FctParent::Class(cls_id) = self.fct.parent {
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
 
@@ -63,16 +63,20 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 self.vm
                     .sym
                     .lock()
-                    .insert_type(tp.name, SymClassTypeParam(tpid.into()));
+                    .insert_type(tp.name, SymTypeParam(tpid.into()));
             }
-        }
+
+            cls.type_params.len()
+        } else {
+            0
+        };
 
         if let Some(ref type_params) = self.fct.ast.type_params {
             for (tpid, tp) in type_params.iter().enumerate() {
                 self.vm
                     .sym
                     .lock()
-                    .insert_type(tp.name, SymFctTypeParam(tpid.into()));
+                    .insert_type(tp.name, SymTypeParam((cls_type_params_count + tpid).into()));
             }
         }
 
@@ -228,15 +232,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 self.src.map_idents.insert(ident.id, IdentType::Class(id));
             }
 
-            (None, Some(SymFctTypeParam(id))) => {
-                let ty = BuiltinType::FctTypeParam(id);
-                self.src
-                    .map_idents
-                    .insert(ident.id, IdentType::TypeParam(ty))
-            }
-
-            (None, Some(SymClassTypeParam(id))) => {
-                let ty = BuiltinType::ClassTypeParam(id);
+            (None, Some(SymTypeParam(id))) => {
+                let ty = BuiltinType::TypeParam(id);
                 self.src
                     .map_idents
                     .insert(ident.id, IdentType::TypeParam(ty))

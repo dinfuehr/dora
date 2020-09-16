@@ -89,7 +89,7 @@ impl Class {
 
     pub fn type_param_ty(&self, ty: BuiltinType) -> &TypeParam {
         let id = match ty {
-            BuiltinType::ClassTypeParam(id) => id,
+            BuiltinType::TypeParam(id) => id,
             _ => unimplemented!(),
         };
 
@@ -231,14 +231,14 @@ pub fn find_field_in_class(
                 return Some((
                     class,
                     field.id,
-                    replace_type_param(vm, field.ty, type_list.len(), &type_list, None),
+                    replace_type_param(vm, field.ty, &type_list, None),
                 ));
             }
         }
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = parent_class.type_params(vm);
-            class = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
+            class = replace_type_param(vm, parent_class, &type_list, None);
         } else {
             return None;
         }
@@ -266,7 +266,7 @@ pub fn find_method_in_class(
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = parent_class.type_params(vm);
-            class = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
+            class = replace_type_param(vm, parent_class, &type_list, None);
         } else {
             return None;
         }
@@ -306,7 +306,7 @@ pub fn find_methods_in_class(
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = class_type.type_params(vm);
-            class_type = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
+            class_type = replace_type_param(vm, parent_class, &type_list, None);
         } else {
             break;
         }
@@ -363,7 +363,7 @@ pub fn find_methods_in_class(
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = class_type.type_params(vm);
-            class_type = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
+            class_type = replace_type_param(vm, parent_class, &type_list, None);
         } else {
             break;
         }

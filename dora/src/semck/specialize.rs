@@ -13,13 +13,8 @@ use crate::vm::{
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
-pub fn specialize_type(
-    vm: &VM,
-    ty: BuiltinType,
-    cls_type_params_count: usize,
-    type_params: &TypeList,
-) -> BuiltinType {
-    replace_type_param(vm, ty, cls_type_params_count, type_params, None)
+pub fn specialize_type(vm: &VM, ty: BuiltinType, type_params: &TypeList) -> BuiltinType {
+    replace_type_param(vm, ty, type_params, None)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -79,7 +74,7 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
     let mut ref_fields = Vec::new();
 
     for f in &struc.fields {
-        let ty = specialize_type(vm, f.ty, type_params.len(), &type_params);
+        let ty = specialize_type(vm, f.ty, &type_params);
         debug_assert!(!ty.contains_type_param(vm));
 
         let field_size = ty.size(vm);
@@ -182,13 +177,7 @@ fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &TypeList) -> bool {
 
     none_variant.types.len() == 0
         && some_variant.types.len() == 1
-        && specialize_type(
-            vm,
-            *some_variant.types.first().unwrap(),
-            type_params.len(),
-            type_params,
-        )
-        .reference_type()
+        && specialize_type(vm, *some_variant.types.first().unwrap(), type_params).reference_type()
 }
 
 pub fn specialize_class_id(vm: &VM, cls_id: ClassId) -> ClassDefId {
@@ -291,7 +280,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         let mut csize;
 
         if let Some(parent_class) = cls.parent_class {
-            let parent_class = specialize_type(vm, parent_class, type_params.len(), type_params);
+            let parent_class = specialize_type(vm, parent_class, type_params);
             let id = specialize_class_ty(vm, parent_class);
             let cls_def = vm.class_defs.idx(id);
             let cls_def = cls_def.read();
@@ -311,7 +300,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         };
 
         for f in &cls.fields {
-            let ty = specialize_type(vm, f.ty, type_params.len(), &type_params);
+            let ty = specialize_type(vm, f.ty, &type_params);
             debug_assert!(!ty.contains_type_param(vm));
 
             let field_size = ty.size(vm);
@@ -425,14 +414,10 @@ fn ensure_display<'ast>(vm: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
 pub fn replace_type_param(
     vm: &VM,
     ty: BuiltinType,
-    cls_type_params_count: usize,
     type_params: &TypeList,
     self_ty: Option<BuiltinType>,
 ) -> BuiltinType {
     match ty {
-        BuiltinType::ClassTypeParam(tpid) => type_params[tpid.to_usize()],
-        BuiltinType::FctTypeParam(tpid) => type_params[tpid.to_usize() + cls_type_params_count],
-
         BuiltinType::TypeParam(tpid) => type_params[tpid.to_usize()],
 
         BuiltinType::Class(cls_id, list_id) => {
@@ -441,7 +426,7 @@ pub fn replace_type_param(
             let params = TypeList::with(
                 params
                     .iter()
-                    .map(|p| replace_type_param(vm, p, cls_type_params_count, type_params, self_ty))
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty))
                     .collect::<Vec<_>>(),
             );
 
@@ -467,7 +452,7 @@ pub fn replace_type_param(
 
             let new_subtypes = subtypes
                 .iter()
-                .map(|&t| replace_type_param(vm, t, cls_type_params_count, type_params, self_ty))
+                .map(|&t| replace_type_param(vm, t, type_params, self_ty))
                 .collect::<Vec<_>>();
 
             let tuple_id = ensure_tuple(vm, new_subtypes);

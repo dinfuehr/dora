@@ -72,16 +72,6 @@ pub struct Fct<'ast> {
 }
 
 impl<'ast> Fct<'ast> {
-    pub fn cls_type_params_count(&self, vm: &VM) -> usize {
-        if let Some(cls_id) = self.parent_cls_id() {
-            let cls = vm.classes.idx(cls_id);
-            let cls = cls.read();
-            cls.type_params.len()
-        } else {
-            0
-        }
-    }
-
     pub fn type_param(&self, id: TypeListId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
@@ -93,17 +83,8 @@ impl<'ast> Fct<'ast> {
         callback: F,
     ) -> R {
         match ty {
-            BuiltinType::FctTypeParam(id) => callback(self.type_param(id), id),
-
-            BuiltinType::ClassTypeParam(id) => {
-                let cls_id = self.parent_cls_id().expect("not a method");
-                let cls = vm.classes.idx(cls_id);
-                let cls = cls.read();
-                callback(cls.type_param(id), id)
-            }
-
             BuiltinType::TypeParam(id) => {
-                let id = if let Some(cls_id) = self.parent_cls_id() {
+                let fct_id = if let Some(cls_id) = self.parent_cls_id() {
                     let cls = vm.classes.idx(cls_id);
                     let cls = cls.read();
                     let len = cls.type_params.len();
@@ -117,7 +98,7 @@ impl<'ast> Fct<'ast> {
                     id
                 };
 
-                callback(self.type_param(id), id)
+                callback(self.type_param(fct_id), id)
             }
 
             _ => unreachable!(),

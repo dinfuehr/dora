@@ -155,29 +155,16 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Opti
                 .report(fct.file, fct.pos(), SemError::MethodNotOverridable(name));
         }
 
-        let cls_type_params = super_type.type_params(vm);
+        let type_params = super_type.type_params(vm);
 
         let super_method_params: Vec<_> = super_method
             .params_without_self()
             .iter()
-            .map(|&param_type| {
-                replace_type_param(
-                    vm,
-                    param_type,
-                    cls_type_params.len(),
-                    &cls_type_params,
-                    None,
-                )
-            })
+            .map(|&param_type| replace_type_param(vm, param_type, &type_params, None))
             .collect();
 
-        let super_method_return_type = replace_type_param(
-            vm,
-            super_method.return_type,
-            cls_type_params.len(),
-            &cls_type_params,
-            None,
-        );
+        let super_method_return_type =
+            replace_type_param(vm, super_method.return_type, &type_params, None);
 
         if super_method_params != fct.params_without_self()
             || super_method_return_type != fct.return_type

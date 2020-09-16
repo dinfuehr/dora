@@ -25,6 +25,8 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
         vm.sym.lock().push_level();
 
+        let mut cls_type_params_count = 0;
+
         match fct.parent {
             FctParent::Class(owner_class) => {
                 let cls = vm.classes.idx(owner_class);
@@ -32,7 +34,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 let mut type_param_id = 0;
 
                 for param in &cls.type_params {
-                    let sym = TypeSym::SymClassTypeParam(type_param_id.into());
+                    let sym = TypeSym::SymTypeParam(type_param_id.into());
                     vm.sym.lock().insert_type(param.name, sym);
                     type_param_id += 1;
                 }
@@ -40,6 +42,8 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 if fct.has_self() {
                     fct.param_types.push(cls.ty);
                 }
+
+                cls_type_params_count = type_param_id;
             }
 
             FctParent::Impl(impl_id) => {
@@ -107,7 +111,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                         }
                     }
 
-                    let sym = TypeSym::SymFctTypeParam(type_param_id.into());
+                    let sym = TypeSym::SymTypeParam((cls_type_params_count + type_param_id).into());
                     vm.sym.lock().insert_type(type_param.name, sym);
                     type_param_id += 1;
                 }

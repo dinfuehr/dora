@@ -764,13 +764,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 let class_type_params = cls_ty.type_params(self.vm);
 
-                let fty = replace_type_param(
-                    self.vm,
-                    field.ty,
-                    class_type_params.len(),
-                    &class_type_params,
-                    None,
-                );
+                let fty = replace_type_param(self.vm, field.ty, &class_type_params, None);
 
                 if !e.initializer && !field.reassignable {
                     self.vm
@@ -1296,7 +1290,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.map_calls.insert(e.id, Arc::new(call_type));
 
         let return_type =
-            replace_type_param(self.vm, fct.return_type, 0, &TypeList::empty(), Some(tp));
+            replace_type_param(self.vm, fct.return_type, &TypeList::empty(), Some(tp));
 
         self.src.set_ty(e.id, return_type);
 
@@ -1365,8 +1359,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         arg_types: &[BuiltinType],
     ) -> BuiltinType {
         let cls_id = object_type.cls_id(self.vm).unwrap();
-        let cls_type_params = object_type.type_params(self.vm);
-        assert_eq!(cls_type_params.len(), 0);
+        assert_eq!(object_type.type_params(self.vm).len(), 0);
 
         let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
@@ -1925,13 +1918,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 let field = &cls.fields[field_id];
                 let class_type_params = cls_ty.type_params(self.vm);
-                let fty = replace_type_param(
-                    self.vm,
-                    field.ty,
-                    class_type_params.len(),
-                    &class_type_params,
-                    None,
-                );
+                let fty = replace_type_param(self.vm, field.ty, &class_type_params, None);
 
                 self.src.set_ty(e.id, fty);
                 return fty;
@@ -2292,7 +2279,6 @@ pub fn args_compatible<'ast>(
     self_ty: Option<BuiltinType>,
 ) -> bool {
     let def_args = callee.params_without_self();
-    let cls_type_params_count = callee.cls_type_params_count(vm);
 
     let right_number_of_arguments = if callee.variadic_arguments {
         def_args.len() - 1 <= args.len()
@@ -2311,7 +2297,7 @@ pub fn args_compatible<'ast>(
     };
 
     for (ind, &def_arg) in def.iter().enumerate() {
-        let def_arg = replace_type_param(vm, def_arg, cls_type_params_count, &type_params, self_ty);
+        let def_arg = replace_type_param(vm, def_arg, &type_params, self_ty);
 
         if !arg_allows(vm, def_arg, args[ind], self_ty) {
             return false;
@@ -2320,7 +2306,7 @@ pub fn args_compatible<'ast>(
 
     if let Some(rest_ty) = rest_ty {
         let ind = def.len();
-        let rest_ty = replace_type_param(vm, rest_ty, cls_type_params_count, &type_params, self_ty);
+        let rest_ty = replace_type_param(vm, rest_ty, &type_params, self_ty);
 
         for &expr_ty in &args[ind..] {
             if !arg_allows(vm, rest_ty, expr_ty, self_ty) {
@@ -2354,8 +2340,7 @@ fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<Built
         }
         BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
 
-        BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => def == arg,
-        BuiltinType::TypeParam(_) => unimplemented!(),
+        BuiltinType::TypeParam(_) => def == arg,
 
         BuiltinType::Class(cls_id, list_id) => {
             if def == arg || arg.is_nil() {
@@ -2564,13 +2549,8 @@ pub fn lookup_method<'ast>(
 
             if args_compatible(vm, &*method, args, &type_params, None) {
                 let combined_type_params = cls_type_params.append(fct_tps);
-                let cmp_type = replace_type_param(
-                    vm,
-                    method.return_type,
-                    cls_type_params.len(),
-                    &combined_type_params,
-                    None,
-                );
+                let cmp_type =
+                    replace_type_param(vm, method.return_type, &combined_type_params, None);
 
                 if return_type.is_none() || return_type.unwrap() == cmp_type {
                     return Some((cls_id, candidate, cmp_type));

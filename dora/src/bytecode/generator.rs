@@ -916,8 +916,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
             CallType::TraitStatic(list_id, trait_id, trait_fct_id) => {
-                let ty =
-                    self.type_params[list_id.to_usize() + self.fct.cls_type_params_count(self.vm)];
+                let ty = self.type_params[list_id.to_usize()];
                 let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
 
                 let cls = self.vm.classes.idx(cls_id);
@@ -2678,33 +2677,33 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ty = match *call_type {
             CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
                 let type_params = cls_type_params.append(fct_type_params);
-                specialize_type(self.vm, ty, cls_type_params.len(), &type_params)
+                specialize_type(self.vm, ty, &type_params)
             }
 
             CallType::Method(cls_ty, _, ref fct_type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
                 let type_params = cls_type_params.append(fct_type_params);
-                specialize_type(self.vm, ty, cls_type_params.len(), &type_params)
+                specialize_type(self.vm, ty, &type_params)
             }
 
             CallType::ModuleMethod(cls_ty, _, ref fct_type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
                 let type_params = cls_type_params.append(fct_type_params);
-                specialize_type(self.vm, ty, cls_type_params.len(), &type_params)
+                specialize_type(self.vm, ty, &type_params)
             }
 
             CallType::CtorParent(cls_ty, _) | CallType::Ctor(cls_ty, _) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
-                specialize_type(self.vm, ty, cls_type_params.len(), &cls_type_params)
+                specialize_type(self.vm, ty, &cls_type_params)
             }
 
             CallType::Expr(object_ty, _) => {
                 let type_params = object_ty.type_params(self.vm);
-                specialize_type(self.vm, ty, type_params.len(), &type_params)
+                specialize_type(self.vm, ty, &type_params)
             }
 
             CallType::Trait(_, _) => unimplemented!(),
-            CallType::TraitStatic(_, _, _) => specialize_type(self.vm, ty, 0, &TypeList::empty()),
+            CallType::TraitStatic(_, _, _) => specialize_type(self.vm, ty, &TypeList::empty()),
             CallType::Intrinsic(_) => unreachable!(),
         };
 
@@ -2712,12 +2711,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        specialize_type(
-            self.vm,
-            ty,
-            self.fct.cls_type_params_count(self.vm),
-            self.type_params,
-        )
+        specialize_type(self.vm, ty, self.type_params)
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {

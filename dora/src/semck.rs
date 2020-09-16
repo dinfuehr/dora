@@ -1,8 +1,6 @@
 use crate::error::msg::SemError;
 use crate::mem;
-use crate::sym::TypeSym::{
-    SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct, SymTrait,
-};
+use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait, SymTypeParam};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
 use crate::vm::{ensure_tuple, ClassId, FileId, NodeMap, VM};
@@ -270,22 +268,13 @@ fn read_type_basic<'ast>(
             Some(BuiltinType::Enum(enum_id, list_id))
         }
 
-        SymClassTypeParam(type_param_id) => {
+        SymTypeParam(type_param_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
                 vm.diag.lock().report(file, basic.pos, msg);
             }
 
-            Some(BuiltinType::ClassTypeParam(type_param_id))
-        }
-
-        SymFctTypeParam(type_param_id) => {
-            if basic.params.len() > 0 {
-                let msg = SemError::NoTypeParamsExpected;
-                vm.diag.lock().report(file, basic.pos, msg);
-            }
-
-            Some(BuiltinType::FctTypeParam(type_param_id))
+            Some(BuiltinType::TypeParam(type_param_id))
         }
     }
 }

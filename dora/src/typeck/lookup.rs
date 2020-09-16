@@ -304,7 +304,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             }
             _ => {
                 let type_list = cls_tps.append(&fct_tps);
-                replace_type_param(self.vm, fct.return_type, cls_tps.len(), &type_list, None)
+                replace_type_param(self.vm, fct.return_type, &type_list, None)
             }
         };
 

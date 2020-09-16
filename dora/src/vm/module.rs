@@ -92,7 +92,7 @@ pub fn find_methods_in_module(
 
         if let Some(parent_class) = module.parent_class {
             let type_list = module_type.type_params(vm);
-            module_type = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
+            module_type = replace_type_param(vm, parent_class, &type_list, None);
         } else {
             break;
         }

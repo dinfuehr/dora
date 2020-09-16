@@ -1883,15 +1883,8 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        // handling of class and function type parameters has to implemented
-        let cls_type_params = fct_def.type_params.clone();
-
-        let fct_return_type = specialize_type(
-            self.vm,
-            fct.return_type,
-            cls_type_params.len(),
-            &cls_type_params,
-        );
+        let type_params = fct_def.type_params.clone();
+        let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
 
         let result_register = match fct_return_type {
             BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
@@ -1916,7 +1909,7 @@ where
             position,
             gcpoint,
             ty,
-            cls_type_params,
+            type_params,
             reg,
         );
 
@@ -1957,12 +1950,7 @@ where
 
         let type_params = fct_def.type_params.clone();
 
-        let fct_return_type = specialize_type(
-            self.vm,
-            fct.return_type,
-            fct.cls_type_params_count(self.vm),
-            &type_params,
-        );
+        let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
 
         let result_register = match fct_return_type {
             BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
@@ -2008,12 +1996,7 @@ where
 
         let type_params = fct_def.type_params.clone();
 
-        let fct_return_type = specialize_type(
-            self.vm,
-            fct.return_type,
-            fct.cls_type_params_count(self.vm),
-            &type_params,
-        );
+        let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
 
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
             self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic)
@@ -2314,12 +2297,7 @@ where
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        specialize_type(
-            self.vm,
-            ty,
-            self.fct.cls_type_params_count(self.vm),
-            self.type_params,
-        )
+        specialize_type(self.vm, ty, self.type_params)
     }
 
     fn register_offset(&self, reg: Register) -> i32 {

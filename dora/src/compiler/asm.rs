@@ -495,11 +495,11 @@ where
         pos: Position,
         gcpoint: GcPoint,
         return_type: BuiltinType,
-        cls_type_params: TypeList,
+        type_params: TypeList,
         dest: AnyReg,
     ) {
         self.masm
-            .indirect_call(pos, vtable_index, self_index, cls_type_params);
+            .indirect_call(pos, vtable_index, self_index, type_params);
         self.call_epilog(pos, return_type, dest, gcpoint);
     }
 
