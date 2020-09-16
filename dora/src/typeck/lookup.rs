@@ -273,7 +273,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             return false;
         }
 
-        if !args_compatible(self.vm, &*fct, args, &cls_tps, &fct_tps, None) {
+        let type_params = cls_tps.append(&fct_tps);
+        if !args_compatible(self.vm, &*fct, args, &type_params, None) {
             if !self.report_errors {
                 return false;
             }

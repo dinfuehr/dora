@@ -1277,14 +1277,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        if !args_compatible(
-            self.vm,
-            &*fct,
-            arg_types,
-            &TypeList::empty(),
-            &TypeList::empty(),
-            Some(tp),
-        ) {
+        if !args_compatible(self.vm, &*fct, arg_types, &TypeList::empty(), Some(tp)) {
             let fct_name = self.vm.interner.str(name).to_string();
             let fct_params = fct
                 .params_without_self()
@@ -1704,14 +1697,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             let parent_class_type_params = parent_class.type_params(self.vm);
 
-            if args_compatible(
-                self.vm,
-                &*ctor,
-                &arg_types,
-                &parent_class_type_params,
-                &TypeList::empty(),
-                None,
-            ) {
+            if args_compatible(self.vm, &*ctor, &arg_types, &parent_class_type_params, None) {
                 self.src.map_tys.insert(e.id, parent_class);
 
                 let cls_ty = self.vm.cls_with_type_list(cls_id, parent_class_type_params);
@@ -2302,11 +2288,11 @@ pub fn args_compatible<'ast>(
     vm: &VM<'ast>,
     callee: &Fct<'ast>,
     args: &[BuiltinType],
-    cls_tps: &TypeList,
-    fct_tps: &TypeList,
+    type_params: &TypeList,
     self_ty: Option<BuiltinType>,
 ) -> bool {
     let def_args = callee.params_without_self();
+    let cls_type_params_count = callee.cls_type_params_count(vm);
 
     let right_number_of_arguments = if callee.variadic_arguments {
         def_args.len() - 1 <= args.len()
@@ -2324,17 +2310,20 @@ pub fn args_compatible<'ast>(
         (&def_args, None)
     };
 
-    for (ind, &arg) in def.iter().enumerate() {
-        if !arg_allows(vm, arg, args[ind], cls_tps, fct_tps, self_ty) {
+    for (ind, &def_arg) in def.iter().enumerate() {
+        let def_arg = replace_type_param(vm, def_arg, cls_type_params_count, &type_params, self_ty);
+
+        if !arg_allows(vm, def_arg, args[ind], self_ty) {
             return false;
         }
     }
 
     if let Some(rest_ty) = rest_ty {
         let ind = def.len();
+        let rest_ty = replace_type_param(vm, rest_ty, cls_type_params_count, &type_params, self_ty);
 
         for &expr_ty in &args[ind..] {
-            if !arg_allows(vm, rest_ty, expr_ty, cls_tps, fct_tps, self_ty) {
+            if !arg_allows(vm, rest_ty, expr_ty, self_ty) {
                 return false;
             }
         }
@@ -2343,14 +2332,7 @@ pub fn args_compatible<'ast>(
     true
 }
 
-fn arg_allows(
-    vm: &VM,
-    def: BuiltinType,
-    arg: BuiltinType,
-    cls_tps: &TypeList,
-    fct_tps: &TypeList,
-    self_ty: Option<BuiltinType>,
-) -> bool {
+fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<BuiltinType>) -> bool {
     match def {
         BuiltinType::Error | BuiltinType::Any => unreachable!(),
         BuiltinType::Unit
@@ -2368,38 +2350,11 @@ fn arg_allows(
         BuiltinType::This => {
             let real = self_ty.expect("no Self type expected.");
 
-            arg_allows(vm, real, arg, cls_tps, fct_tps, self_ty)
+            arg_allows(vm, real, arg, self_ty)
         }
         BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
 
-        BuiltinType::ClassTypeParam(tpid) => {
-            if cls_tps.len() == 0 {
-                def == arg
-            } else {
-                arg_allows(
-                    vm,
-                    cls_tps[tpid.to_usize()],
-                    arg,
-                    &TypeList::empty(),
-                    &TypeList::empty(),
-                    None,
-                )
-            }
-        }
-        BuiltinType::FctTypeParam(tpid) => {
-            if fct_tps.len() == 0 {
-                def == arg
-            } else {
-                arg_allows(
-                    vm,
-                    fct_tps[tpid.to_usize()],
-                    arg,
-                    &TypeList::empty(),
-                    &TypeList::empty(),
-                    None,
-                )
-            }
-        }
+        BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => def == arg,
         BuiltinType::TypeParam(_) => unimplemented!(),
 
         BuiltinType::Class(cls_id, list_id) => {
@@ -2433,7 +2388,7 @@ fn arg_allows(
             }
 
             for (tp, op) in params.iter().zip(other_params.iter()) {
-                if !arg_allows(vm, tp, op, cls_tps, fct_tps, self_ty) {
+                if !arg_allows(vm, tp, op, self_ty) {
                     return false;
                 }
             }
@@ -2460,7 +2415,7 @@ fn arg_allows(
                     let ty = subtypes[idx];
                     let other_ty = other_subtypes[idx];
 
-                    if !arg_allows(vm, ty, other_ty, cls_tps, fct_tps, self_ty) {
+                    if !arg_allows(vm, ty, other_ty, self_ty) {
                         return false;
                     }
                 }
@@ -2605,8 +2560,9 @@ pub fn lookup_method<'ast>(
             };
 
             let cls_type_params = object_type.type_params(vm);
+            let type_params = cls_type_params.append(fct_tps);
 
-            if args_compatible(vm, &*method, args, &cls_type_params, fct_tps, None) {
+            if args_compatible(vm, &*method, args, &type_params, None) {
                 let combined_type_params = cls_type_params.append(fct_tps);
                 let cmp_type = replace_type_param(
                     vm,
