@@ -13,12 +13,9 @@ pub(super) fn compile<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
     fct: &Fct<'ast>,
     src: &'a FctSrc,
-    cls_type_params: &TypeList,
-    fct_type_params: &TypeList,
     type_params: &TypeList,
 ) -> Code {
-    let bytecode_fct =
-        bytecode::generate(vm, fct, src, cls_type_params, fct_type_params, type_params);
+    let bytecode_fct = bytecode::generate(vm, fct, src, type_params);
 
     if should_emit_bytecode(vm, fct) {
         bytecode::dump(vm, &bytecode_fct);
@@ -37,8 +34,6 @@ pub(super) fn compile<'a, 'ast: 'a>(
         None,
         None,
         None,
-        cls_type_params,
-        fct_type_params,
         type_params,
     )
     .generate()

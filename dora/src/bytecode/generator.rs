@@ -26,34 +26,19 @@ impl LoopLabels {
     }
 }
 
-pub fn generate_fct<'ast>(
-    vm: &VM<'ast>,
-    id: FctId,
-    cls_type_params: &TypeList,
-    fct_type_params: &TypeList,
-    type_params: &TypeList,
-) -> BytecodeFunction {
+pub fn generate_fct<'ast>(vm: &VM<'ast>, id: FctId, type_params: &TypeList) -> BytecodeFunction {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
     let mut src = src.write();
 
-    generate(
-        vm,
-        &fct,
-        &mut src,
-        cls_type_params,
-        fct_type_params,
-        type_params,
-    )
+    generate(vm, &fct, &mut src, type_params)
 }
 
 pub fn generate<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
     src: &FctSrc,
-    cls_type_params: &TypeList,
-    fct_type_params: &TypeList,
     type_params: &TypeList,
 ) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
@@ -62,8 +47,6 @@ pub fn generate<'ast>(
         ast: fct.ast,
         src,
 
-        cls_type_params,
-        fct_type_params,
         type_params,
 
         gen: BytecodeBuilder::new(&vm.args),
@@ -79,8 +62,6 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
     ast: &'ast Function,
     src: &'a FctSrc,
 
-    cls_type_params: &'a TypeList,
-    fct_type_params: &'a TypeList,
     type_params: &'a TypeList,
 
     gen: BytecodeBuilder,
@@ -359,13 +340,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let iterator_reg = self.alloc_var(BytecodeType::Ptr);
             self.gen.emit_invoke_direct(
                 iterator_reg,
-                FctDef::fct_id_types(
-                    self.vm,
-                    make_iterator,
-                    object_type_params.clone(),
-                    TypeList::empty(),
-                    object_type_params,
-                ),
+                FctDef::fct_id_types(self.vm, make_iterator, object_type_params),
                 stmt.expr.pos(),
             );
             iterator_reg
@@ -390,8 +365,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.vm,
                 for_type_info.has_next,
                 iterator_type_params.clone(),
-                TypeList::empty(),
-                iterator_type_params.clone(),
             ),
             stmt.expr.pos(),
         );
@@ -404,13 +377,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if next_ty.is_unit() {
             self.gen.emit_push_register(iterator_reg);
             self.gen.emit_invoke_direct_void(
-                FctDef::fct_id_types(
-                    self.vm,
-                    for_type_info.next,
-                    iterator_type_params.clone(),
-                    TypeList::empty(),
-                    iterator_type_params,
-                ),
+                FctDef::fct_id_types(self.vm, for_type_info.next, iterator_type_params),
                 stmt.expr.pos(),
             );
         } else {
@@ -421,13 +388,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.emit_invoke_direct(
                 next_ty,
                 next_reg,
-                FctDef::fct_id_types(
-                    self.vm,
-                    for_type_info.next,
-                    iterator_type_params.clone(),
-                    TypeList::empty(),
-                    iterator_type_params,
-                ),
+                FctDef::fct_id_types(self.vm, for_type_info.next, iterator_type_params),
                 stmt.expr.pos(),
             );
 
@@ -955,7 +916,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
             CallType::TraitStatic(list_id, trait_id, trait_fct_id) => {
-                let ty = self.fct_type_params[list_id.to_usize()];
+                let ty =
+                    self.type_params[list_id.to_usize() + self.fct.cls_type_params_count(self.vm)];
                 let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
 
                 let cls = self.vm.classes.idx(cls_id);
@@ -2412,13 +2374,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             let type_params = obj_ty.type_params(self.vm);
 
-            let callee_id = FctDef::fct_id_types(
-                self.vm,
-                fct_id,
-                type_params.clone(),
-                TypeList::empty(),
-                type_params,
-            );
+            let callee_id = FctDef::fct_id_types(self.vm, fct_id, type_params);
             self.gen.emit_invoke_direct_void(callee_id, expr.pos);
 
             self.free_if_temp(obj_reg);
@@ -2667,126 +2623,88 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn determine_call_type_params(&self, call_type: &CallType) -> (TypeList, TypeList, TypeList) {
-        let cls_type_params: TypeList;
-        let fct_type_params: TypeList;
-        let combined_type_params: TypeList;
-
+    fn determine_call_type_params(&self, call_type: &CallType) -> TypeList {
         match *call_type {
-            CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => {
-                cls_type_params = ty.type_params(self.vm);
-                fct_type_params = TypeList::empty();
-                combined_type_params = cls_type_params.clone();
-            }
+            CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => ty.type_params(self.vm),
 
-            CallType::Method(ty, _, ref type_params) => {
+            CallType::Method(ty, _, ref fct_type_params) => {
                 let ty = self.specialize_type(ty);
 
-                cls_type_params = ty.type_params(self.vm);
-                fct_type_params = type_params.clone();
-                combined_type_params = cls_type_params.append(&fct_type_params);
+                let cls_type_params = ty.type_params(self.vm);
+                cls_type_params.append(fct_type_params)
             }
 
-            CallType::ModuleMethod(ty, _, ref type_params) => {
+            CallType::ModuleMethod(ty, _, ref fct_type_params) => {
                 let ty = self.specialize_type(ty);
 
-                cls_type_params = ty.type_params(self.vm);
-                fct_type_params = type_params.clone();
-                combined_type_params = cls_type_params.append(&fct_type_params);
+                let cls_type_params = ty.type_params(self.vm);
+                cls_type_params.append(fct_type_params)
             }
 
             CallType::Fct(_, ref cls_tps, ref fct_tps) => {
-                cls_type_params = cls_tps.clone();
-                fct_type_params = fct_tps.clone();
-                combined_type_params = cls_type_params.append(&fct_type_params);
+                let cls_type_params = cls_tps.clone();
+                let fct_type_params = fct_tps.clone();
+                cls_type_params.append(&fct_type_params)
             }
 
             CallType::Expr(ty, _) => {
                 let ty = self.specialize_type(ty);
 
-                cls_type_params = ty.type_params(self.vm);
-                fct_type_params = TypeList::empty();
-                combined_type_params = cls_type_params.clone();
+                ty.type_params(self.vm)
             }
 
             CallType::Trait(_, _) => unimplemented!(),
 
-            CallType::TraitStatic(_, _, _) => {
-                cls_type_params = TypeList::empty();
-                fct_type_params = TypeList::empty();
-                combined_type_params = TypeList::empty();
-            }
+            CallType::TraitStatic(_, _, _) => TypeList::empty(),
 
             CallType::Intrinsic(_) => unreachable!(),
         }
-
-        (cls_type_params, fct_type_params, combined_type_params)
     }
 
     fn specialize_call(&self, fct: &Fct, call_type: &CallType) -> FctDefId {
-        let (cls_type_params, fct_type_params, combined_type_params) =
-            self.determine_call_type_params(call_type);
+        let type_params = self.determine_call_type_params(call_type);
 
-        let cls_type_params = TypeList::with(
-            cls_type_params
+        let type_params = TypeList::with(
+            type_params
                 .iter()
                 .map(|ty| self.specialize_type(ty))
                 .collect::<Vec<_>>(),
         );
 
-        let fct_type_params = TypeList::with(
-            fct_type_params
-                .iter()
-                .map(|ty| self.specialize_type(ty))
-                .collect::<Vec<_>>(),
-        );
-
-        let combined_type_params = TypeList::with(
-            combined_type_params
-                .iter()
-                .map(|ty| self.specialize_type(ty))
-                .collect::<Vec<_>>(),
-        );
-
-        FctDef::with(
-            self.vm,
-            fct,
-            cls_type_params,
-            fct_type_params,
-            combined_type_params,
-        )
+        FctDef::with(self.vm, fct, type_params)
     }
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {
         let ty = match *call_type {
             CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
-                specialize_type(self.vm, ty, cls_type_params, fct_type_params)
+                let type_params = cls_type_params.append(fct_type_params);
+                specialize_type(self.vm, ty, cls_type_params.len(), &type_params)
             }
 
-            CallType::Method(cls_ty, _, ref type_params) => {
+            CallType::Method(cls_ty, _, ref fct_type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
-                specialize_type(self.vm, ty, &cls_type_params, type_params)
+                let type_params = cls_type_params.append(fct_type_params);
+                specialize_type(self.vm, ty, cls_type_params.len(), &type_params)
             }
 
-            CallType::ModuleMethod(cls_ty, _, ref type_params) => {
+            CallType::ModuleMethod(cls_ty, _, ref fct_type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
-                specialize_type(self.vm, ty, &cls_type_params, type_params)
+                let type_params = cls_type_params.append(fct_type_params);
+                specialize_type(self.vm, ty, cls_type_params.len(), &type_params)
             }
 
             CallType::CtorParent(cls_ty, _) | CallType::Ctor(cls_ty, _) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
-                specialize_type(self.vm, ty, &cls_type_params, &TypeList::empty())
+                specialize_type(self.vm, ty, cls_type_params.len(), &cls_type_params)
             }
 
             CallType::Expr(object_ty, _) => {
                 let type_params = object_ty.type_params(self.vm);
-                specialize_type(self.vm, ty, &type_params, &TypeList::empty())
+                specialize_type(self.vm, ty, type_params.len(), &type_params)
             }
 
             CallType::Trait(_, _) => unimplemented!(),
-            CallType::TraitStatic(_, _, _) => {
-                specialize_type(self.vm, ty, &TypeList::empty(), &TypeList::empty())
-            }
+            CallType::TraitStatic(_, _, _) => specialize_type(self.vm, ty, 0, &TypeList::empty()),
             CallType::Intrinsic(_) => unreachable!(),
         };
 
@@ -2794,7 +2712,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        specialize_type(self.vm, ty, self.cls_type_params, self.fct_type_params)
+        specialize_type(
+            self.vm,
+            ty,
+            self.fct.cls_type_params_count(self.vm),
+            self.type_params,
+        )
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {

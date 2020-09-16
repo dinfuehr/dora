@@ -767,8 +767,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let fty = replace_type_param(
                     self.vm,
                     field.ty,
+                    class_type_params.len(),
                     &class_type_params,
-                    &TypeList::empty(),
                     None,
                 );
 
@@ -1302,13 +1302,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_type = CallType::TraitStatic(tp_id, trait_id, fct_id);
         self.src.map_calls.insert(e.id, Arc::new(call_type));
 
-        let return_type = replace_type_param(
-            self.vm,
-            fct.return_type,
-            &TypeList::empty(),
-            &TypeList::empty(),
-            Some(tp),
-        );
+        let return_type =
+            replace_type_param(self.vm, fct.return_type, 0, &TypeList::empty(), Some(tp));
 
         self.src.set_ty(e.id, return_type);
 
@@ -1947,8 +1942,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let fty = replace_type_param(
                     self.vm,
                     field.ty,
+                    class_type_params.len(),
                     &class_type_params,
-                    &TypeList::empty(),
                     None,
                 );
 
@@ -2612,8 +2607,14 @@ pub fn lookup_method<'ast>(
             let cls_type_params = object_type.type_params(vm);
 
             if args_compatible(vm, &*method, args, &cls_type_params, fct_tps, None) {
-                let cmp_type =
-                    replace_type_param(vm, method.return_type, &cls_type_params, fct_tps, None);
+                let combined_type_params = cls_type_params.append(fct_tps);
+                let cmp_type = replace_type_param(
+                    vm,
+                    method.return_type,
+                    cls_type_params.len(),
+                    &combined_type_params,
+                    None,
+                );
 
                 if return_type.is_none() || return_type.unwrap() == cmp_type {
                     return Some((cls_id, candidate, cmp_type));

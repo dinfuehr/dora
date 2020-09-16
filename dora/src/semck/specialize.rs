@@ -8,22 +8,18 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
-    ensure_tuple, CallType, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId,
-    EnumId, EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM,
+    ensure_tuple, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId, EnumId,
+    EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
 pub fn specialize_type(
     vm: &VM,
     ty: BuiltinType,
-    cls_type_params: &TypeList,
-    fct_type_params: &TypeList,
+    cls_type_params_count: usize,
+    type_params: &TypeList,
 ) -> BuiltinType {
-    replace_type_param(vm, ty, cls_type_params, fct_type_params, None)
-}
-
-pub fn specialize_type2(vm: &VM, ty: BuiltinType, type_params: &TypeList) -> BuiltinType {
-    replace_type_param2(vm, ty, type_params, None)
+    replace_type_param(vm, ty, cls_type_params_count, type_params, None)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -83,7 +79,7 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
     let mut ref_fields = Vec::new();
 
     for f in &struc.fields {
-        let ty = specialize_type(vm, f.ty, &type_params, &TypeList::empty());
+        let ty = specialize_type(vm, f.ty, type_params.len(), &type_params);
         debug_assert!(!ty.contains_type_param(vm));
 
         let field_size = ty.size(vm);
@@ -189,8 +185,8 @@ fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &TypeList) -> bool {
         && specialize_type(
             vm,
             *some_variant.types.first().unwrap(),
+            type_params.len(),
             type_params,
-            &TypeList::empty(),
         )
         .reference_type()
 }
@@ -295,7 +291,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         let mut csize;
 
         if let Some(parent_class) = cls.parent_class {
-            let parent_class = specialize_type(vm, parent_class, type_params, &TypeList::empty());
+            let parent_class = specialize_type(vm, parent_class, type_params.len(), type_params);
             let id = specialize_class_ty(vm, parent_class);
             let cls_def = vm.class_defs.idx(id);
             let cls_def = cls_def.read();
@@ -315,7 +311,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         };
 
         for f in &cls.fields {
-            let ty = specialize_type(vm, f.ty, &type_params, &TypeList::empty());
+            let ty = specialize_type(vm, f.ty, type_params.len(), &type_params);
             debug_assert!(!ty.contains_type_param(vm));
 
             let field_size = ty.size(vm);
@@ -429,65 +425,14 @@ fn ensure_display<'ast>(vm: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
 pub fn replace_type_param(
     vm: &VM,
     ty: BuiltinType,
-    cls_tp: &TypeList,
-    fct_tp: &TypeList,
-    self_ty: Option<BuiltinType>,
-) -> BuiltinType {
-    match ty {
-        BuiltinType::ClassTypeParam(tpid) => cls_tp[tpid.to_usize()],
-        BuiltinType::FctTypeParam(tpid) => fct_tp[tpid.to_usize()],
-
-        BuiltinType::Class(cls_id, list_id) => {
-            let params = vm.lists.lock().get(list_id);
-
-            let params = TypeList::with(
-                params
-                    .iter()
-                    .map(|p| replace_type_param(vm, p, cls_tp, fct_tp, self_ty))
-                    .collect::<Vec<_>>(),
-            );
-
-            let list_id = vm.lists.lock().insert(params);
-            BuiltinType::Class(cls_id, list_id)
-        }
-
-        BuiltinType::This => self_ty.expect("no type for Self given"),
-
-        BuiltinType::Lambda(_) => unimplemented!(),
-
-        BuiltinType::Tuple(tuple_id) => {
-            let subtypes = {
-                let tuples = vm.tuples.lock();
-                let tuple = tuples.get_tuple(tuple_id);
-
-                if tuple.is_concrete_type() {
-                    return ty;
-                }
-
-                tuple.args()
-            };
-
-            let new_subtypes = subtypes
-                .iter()
-                .map(|&t| replace_type_param(vm, t, cls_tp, fct_tp, self_ty))
-                .collect::<Vec<_>>();
-
-            let tuple_id = ensure_tuple(vm, new_subtypes);
-            BuiltinType::Tuple(tuple_id)
-        }
-
-        _ => ty,
-    }
-}
-
-pub fn replace_type_param2(
-    vm: &VM,
-    ty: BuiltinType,
+    cls_type_params_count: usize,
     type_params: &TypeList,
     self_ty: Option<BuiltinType>,
 ) -> BuiltinType {
     match ty {
-        BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => unimplemented!(),
+        BuiltinType::ClassTypeParam(tpid) => type_params[tpid.to_usize()],
+        BuiltinType::FctTypeParam(tpid) => type_params[tpid.to_usize() + cls_type_params_count],
+
         BuiltinType::TypeParam(tpid) => type_params[tpid.to_usize()],
 
         BuiltinType::Class(cls_id, list_id) => {
@@ -496,7 +441,7 @@ pub fn replace_type_param2(
             let params = TypeList::with(
                 params
                     .iter()
-                    .map(|p| replace_type_param2(vm, p, type_params, self_ty))
+                    .map(|p| replace_type_param(vm, p, cls_type_params_count, type_params, self_ty))
                     .collect::<Vec<_>>(),
             );
 
@@ -522,7 +467,7 @@ pub fn replace_type_param2(
 
             let new_subtypes = subtypes
                 .iter()
-                .map(|&t| replace_type_param2(vm, t, type_params, self_ty))
+                .map(|&t| replace_type_param(vm, t, cls_type_params_count, type_params, self_ty))
                 .collect::<Vec<_>>();
 
             let tuple_id = ensure_tuple(vm, new_subtypes);
@@ -530,47 +475,5 @@ pub fn replace_type_param2(
         }
 
         _ => ty,
-    }
-}
-
-pub fn specialize_for_call_type(call_type: &CallType, ty: BuiltinType, vm: &VM) -> BuiltinType {
-    match *call_type {
-        CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
-            specialize_type(vm, ty, cls_type_params, fct_type_params)
-        }
-
-        CallType::Method(cls_ty, _, ref fct_type_params) => match cls_ty {
-            BuiltinType::Class(_, list_id) => {
-                let cls_type_params = vm.lists.lock().get(list_id);
-                specialize_type(vm, ty, &cls_type_params, fct_type_params)
-            }
-
-            _ => ty,
-        },
-
-        CallType::ModuleMethod(mod_ty, _, ref fct_type_params) => {
-            let cls_type_params = mod_ty.type_params(vm);
-            specialize_type(vm, ty, &cls_type_params, fct_type_params)
-        }
-
-        CallType::Expr(ty, _) => {
-            let cls_type_params = ty.type_params(vm);
-            specialize_type(vm, ty, &cls_type_params, &TypeList::empty())
-        }
-
-        CallType::CtorParent(cls_ty, _) | CallType::Ctor(cls_ty, _) => {
-            let cls_type_params = cls_ty.type_params(vm);
-            specialize_type(vm, ty, &cls_type_params, &TypeList::empty())
-        }
-
-        CallType::Trait(_, _) => unimplemented!(),
-
-        CallType::Intrinsic(_) => unimplemented!(),
-
-        CallType::TraitStatic(_, _, _) => {
-            assert_ne!(ty, BuiltinType::This);
-
-            ty
-        }
     }
 }

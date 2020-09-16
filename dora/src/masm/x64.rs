@@ -87,14 +87,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn direct_call(
-        &mut self,
-        fct_id: FctId,
-        ptr: *const u8,
-        cls_tps: TypeList,
-        fct_tps: TypeList,
-        type_params: TypeList,
-    ) {
+    pub fn direct_call(&mut self, fct_id: FctId, ptr: *const u8, type_params: TypeList) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -105,8 +98,6 @@ impl MacroAssembler {
         self.emit_lazy_compilation_site(LazyCompilationSite::Compile(
             fct_id,
             disp + pos,
-            cls_tps,
-            fct_tps,
             type_params,
         ));
     }
@@ -124,7 +115,7 @@ impl MacroAssembler {
         pos: Position,
         vtable_index: u32,
         self_index: u32,
-        cls_type_params: TypeList,
+        type_params: TypeList,
     ) {
         let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(pos, obj, Trap::NIL);
@@ -147,9 +138,7 @@ impl MacroAssembler {
         self.emit_lazy_compilation_site(LazyCompilationSite::VirtCompile(
             self_index == 0,
             vtable_index,
-            cls_type_params.clone(),
-            TypeList::empty(),
-            cls_type_params,
+            type_params,
         ));
     }
 

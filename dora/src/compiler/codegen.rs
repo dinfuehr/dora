@@ -15,43 +15,22 @@ use crate::ty::{MachineMode, TypeList};
 use crate::vm::VM;
 use crate::vm::{Fct, FctId, FctSrc};
 
-pub fn generate<'ast>(
-    vm: &VM<'ast>,
-    id: FctId,
-    cls_type_params: &TypeList,
-    fct_type_params: &TypeList,
-    type_params: &TypeList,
-) -> Address {
+pub fn generate<'ast>(vm: &VM<'ast>, id: FctId, type_params: &TypeList) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
     let src = src.write();
 
-    generate_fct(
-        vm,
-        &fct,
-        &src,
-        cls_type_params,
-        fct_type_params,
-        type_params,
-    )
+    generate_fct(vm, &fct, &src, type_params)
 }
 
 pub fn generate_fct<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
     src: &FctSrc,
-    cls_type_params: &TypeList,
-    fct_type_params: &TypeList,
     type_params: &TypeList,
 ) -> Address {
-    debug_assert!(cls_type_params
-        .iter()
-        .all(|ty| !ty.contains_type_param(vm),));
-    debug_assert!(fct_type_params
-        .iter()
-        .all(|ty| !ty.contains_type_param(vm),));
-    debug_assert_eq!(&cls_type_params.append(&fct_type_params), type_params);
+    debug_assert!(type_params.iter().all(|ty| !ty.contains_type_param(vm)));
 
     {
         let specials = src.specializations.read();
@@ -71,17 +50,8 @@ pub fn generate_fct<'ast>(
     };
 
     let code = match bc {
-        CompilerName::Cannon => cannon::compile(
-            vm,
-            &fct,
-            src,
-            cls_type_params,
-            fct_type_params,
-            &type_params,
-        ),
-        CompilerName::Boots => {
-            boots::compile(vm, &fct, src, cls_type_params, fct_type_params, type_params)
-        }
+        CompilerName::Cannon => cannon::compile(vm, &fct, src, &type_params),
+        CompilerName::Boots => boots::compile(vm, &fct, src, type_params),
     };
 
     if vm.args.flag_enable_perf {

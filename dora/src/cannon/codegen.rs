@@ -78,8 +78,6 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
     active_upper: Option<usize>,
 
-    cls_type_params: &'a TypeList,
-    fct_type_params: &'a TypeList,
     type_params: &'a TypeList,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
@@ -112,8 +110,6 @@ where
         lbl_return: Option<Label>,
         active_loop: Option<usize>,
         active_upper: Option<usize>,
-        cls_type_params: &'a TypeList,
-        fct_type_params: &'a TypeList,
         type_params: &'a TypeList,
     ) -> CannonCodeGen<'a, 'ast> {
         CannonCodeGen {
@@ -130,8 +126,6 @@ where
             active_upper,
             active_loop,
             lbl_return,
-            cls_type_params,
-            fct_type_params,
             type_params,
             offset_to_address: HashMap::new(),
             forward_jumps: Vec::new(),
@@ -1890,13 +1884,13 @@ where
         let fct = fct.read();
 
         // handling of class and function type parameters has to implemented
-        let cls_type_params = fct_def.cls_type_params.clone();
+        let cls_type_params = fct_def.type_params.clone();
 
         let fct_return_type = specialize_type(
             self.vm,
             fct.return_type,
+            cls_type_params.len(),
             &cls_type_params,
-            &TypeList::empty(),
         );
 
         let result_register = match fct_return_type {
@@ -1961,12 +1955,14 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let cls_type_params = fct_def.cls_type_params.clone();
-        let fct_type_params = fct_def.fct_type_params.clone();
-        let type_params = cls_type_params.append(&fct_type_params);
+        let type_params = fct_def.type_params.clone();
 
-        let fct_return_type =
-            specialize_type(self.vm, fct.return_type, &cls_type_params, &fct_type_params);
+        let fct_return_type = specialize_type(
+            self.vm,
+            fct.return_type,
+            fct.cls_type_params_count(self.vm),
+            &type_params,
+        );
 
         let result_register = match fct_return_type {
             BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
@@ -1986,8 +1982,6 @@ where
         self.asm.direct_call(
             fct_id,
             ptr.to_ptr(),
-            cls_type_params.clone(),
-            fct_type_params.clone(),
             type_params,
             position,
             gcpoint,
@@ -2012,12 +2006,14 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let cls_type_params = fct_def.cls_type_params.clone();
-        let fct_type_params = fct_def.fct_type_params.clone();
-        let type_params = cls_type_params.append(&fct_type_params);
+        let type_params = fct_def.type_params.clone();
 
-        let fct_return_type =
-            specialize_type(self.vm, fct.return_type, &cls_type_params, &fct_type_params);
+        let fct_return_type = specialize_type(
+            self.vm,
+            fct.return_type,
+            fct.cls_type_params_count(self.vm),
+            &type_params,
+        );
 
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
             self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic)
@@ -2049,8 +2045,6 @@ where
             self.asm.direct_call(
                 fct_id,
                 ptr.to_ptr(),
-                cls_type_params,
-                fct_type_params,
                 type_params,
                 position,
                 gcpoint,
@@ -2320,7 +2314,12 @@ where
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        specialize_type(self.vm, ty, self.cls_type_params, self.fct_type_params)
+        specialize_type(
+            self.vm,
+            ty,
+            self.fct.cls_type_params_count(self.vm),
+            self.type_params,
+        )
     }
 
     fn register_offset(&self, reg: Register) -> i32 {

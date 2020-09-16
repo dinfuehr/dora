@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
-use crate::ty::TypeList;
 use crate::vm::{find_method_in_class, Class, ClassId, Fct, FctId, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
@@ -95,65 +94,6 @@ fn determine_vtable<'ast>(vm: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mut 
     lens.insert(cls.id);
 }
 
-// fn determine_struct_sizes<'ast>(vm: &SemContext<'ast>) {
-//     let mut path = Vec::new();
-//     let mut sizes = HashMap::new();
-
-//     for struc in vm.structs.iter() {
-//         let mut struc = struc.borrow_mut();
-//         determine_struct_size(vm, &mut path, &mut sizes, &mut *struc);
-//     }
-// }
-
-// fn determine_struct_size<'ast>(
-//     vm: &SemContext<'ast>,
-//     path: &mut Vec<StructId>,
-//     sizes: &mut HashMap<StructId, (i32, i32)>,
-//     struc: &mut StructData,
-// ) -> (i32, i32) {
-//     let mut size = 0;
-//     let mut align = 0;
-
-//     path.push(struc.id);
-
-//     for field in &mut struc.fields {
-//         let (field_size, field_align) = if let BuiltinType::Struct(id, _) = field.ty {
-//             if let Some(&(size, align)) = sizes.get(&id) {
-//                 (size, align)
-//             } else {
-//                 if path.iter().find(|&&x| x == id).is_some() {
-//                     vm.diag
-//                         .borrow_mut()
-//                         .report(field.pos, SemError::RecursiveStructure);
-//                     return (0, 0);
-//                 }
-
-//                 let mut struc = vm.structs[id].borrow_mut();
-//                 determine_struct_size(vm, path, sizes, &mut *struc)
-//             }
-//         } else {
-//             let ty = field.ty;
-
-//             (ty.size(vm), ty.align(vm))
-//         };
-
-//         field.offset = mem::align_i32(size, field_align);
-
-//         size = field.offset + field_size;
-//         align = max(align, field_align);
-//     }
-
-//     size = mem::align_i32(size, align);
-
-//     // struc.size = size;
-//     // struc.align = align;
-
-//     sizes.insert(struc.id, (size, align));
-//     path.pop();
-
-//     (size, align)
-// }
-
 pub fn check_override<'ast>(vm: &VM<'ast>) {
     for cls in vm.classes.iter() {
         let cls = cls.read();
@@ -221,15 +161,21 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Opti
             .params_without_self()
             .iter()
             .map(|&param_type| {
-                replace_type_param(vm, param_type, &cls_type_params, &TypeList::empty(), None)
+                replace_type_param(
+                    vm,
+                    param_type,
+                    cls_type_params.len(),
+                    &cls_type_params,
+                    None,
+                )
             })
             .collect();
 
         let super_method_return_type = replace_type_param(
             vm,
             super_method.return_type,
+            cls_type_params.len(),
             &cls_type_params,
-            &TypeList::empty(),
             None,
         );
 

@@ -72,6 +72,16 @@ pub struct Fct<'ast> {
 }
 
 impl<'ast> Fct<'ast> {
+    pub fn cls_type_params_count(&self, vm: &VM) -> usize {
+        if let Some(cls_id) = self.parent_cls_id() {
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+            cls.type_params.len()
+        } else {
+            0
+        }
+    }
+
     pub fn type_param(&self, id: TypeListId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
@@ -634,30 +644,16 @@ impl<'ast> GrowableVec<RwLock<FctDef>> {
 pub struct FctDef {
     pub id: FctDefId,
     pub fct_id: FctId,
-    pub cls_type_params: TypeList,
-    pub fct_type_params: TypeList,
     pub type_params: TypeList,
 }
 
 impl FctDef {
     pub fn fct(vm: &VM, fct: &Fct) -> FctDefId {
-        FctDef::with(
-            vm,
-            fct,
-            TypeList::empty(),
-            TypeList::empty(),
-            TypeList::empty(),
-        )
+        FctDef::with(vm, fct, TypeList::empty())
     }
 
-    pub fn fct_types(
-        vm: &VM,
-        fct: &Fct,
-        cls_type_params: TypeList,
-        fct_type_params: TypeList,
-        type_params: TypeList,
-    ) -> FctDefId {
-        FctDef::with(vm, fct, cls_type_params, fct_type_params, type_params)
+    pub fn fct_types(vm: &VM, fct: &Fct, type_params: TypeList) -> FctDefId {
+        FctDef::with(vm, fct, type_params)
     }
 
     pub fn fct_id(vm: &VM, fct_id: FctId) -> FctDefId {
@@ -667,29 +663,15 @@ impl FctDef {
         FctDef::fct(vm, &*fct)
     }
 
-    pub fn fct_id_types(
-        vm: &VM,
-        fct_id: FctId,
-        cls_type_params: TypeList,
-        fct_type_params: TypeList,
-        type_params: TypeList,
-    ) -> FctDefId {
+    pub fn fct_id_types(vm: &VM, fct_id: FctId, type_params: TypeList) -> FctDefId {
         let fct = vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        FctDef::fct_types(vm, &*fct, cls_type_params, fct_type_params, type_params)
+        FctDef::fct_types(vm, &*fct, type_params)
     }
 
-    pub fn with(
-        vm: &VM,
-        fct: &Fct,
-        cls_type_params: TypeList,
-        fct_type_params: TypeList,
-        type_params: TypeList,
-    ) -> FctDefId {
-        debug_assert!(cls_type_params.iter().all(|ty| ty.is_concrete_type(vm)));
-        debug_assert!(fct_type_params.iter().all(|ty| ty.is_concrete_type(vm)));
-        debug_assert_eq!(cls_type_params.append(&fct_type_params), type_params);
+    pub fn with(vm: &VM, fct: &Fct, type_params: TypeList) -> FctDefId {
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
 
         let mut specializations = fct.specializations.write();
 
@@ -697,14 +679,10 @@ impl FctDef {
             return id;
         }
 
-        let combined_type_params = cls_type_params.append(&fct_type_params);
-
         let fct_def_id = vm.add_fct_def(FctDef {
             id: FctDefId(0),
             fct_id: fct.id,
-            cls_type_params: cls_type_params.clone(),
-            fct_type_params: fct_type_params.clone(),
-            type_params: combined_type_params,
+            type_params: type_params.clone(),
         });
 
         let old = specializations.insert(type_params, fct_def_id);

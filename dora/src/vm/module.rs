@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
 use crate::vm::{FctId, Field, FieldDef, FileId, TraitId, VM};
 
@@ -92,8 +92,7 @@ pub fn find_methods_in_module(
 
         if let Some(parent_class) = module.parent_class {
             let type_list = module_type.type_params(vm);
-            module_type =
-                replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+            module_type = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
         } else {
             break;
         }

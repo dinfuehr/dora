@@ -224,25 +224,21 @@ pub fn find_field_in_class(
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
+        let type_list = class.type_params(vm);
+
         for field in &cls.fields {
             if field.name == name {
                 return Some((
                     class,
                     field.id,
-                    replace_type_param(
-                        vm,
-                        field.ty,
-                        &class.type_params(vm),
-                        &TypeList::empty(),
-                        None,
-                    ),
+                    replace_type_param(vm, field.ty, type_list.len(), &type_list, None),
                 ));
             }
         }
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = parent_class.type_params(vm);
-            class = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+            class = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
         } else {
             return None;
         }
@@ -270,7 +266,7 @@ pub fn find_method_in_class(
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = parent_class.type_params(vm);
-            class = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+            class = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
         } else {
             return None;
         }
@@ -310,7 +306,7 @@ pub fn find_methods_in_class(
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = class_type.type_params(vm);
-            class_type = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+            class_type = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
         } else {
             break;
         }
@@ -367,7 +363,7 @@ pub fn find_methods_in_class(
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = class_type.type_params(vm);
-            class_type = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+            class_type = replace_type_param(vm, parent_class, type_list.len(), &type_list, None);
         } else {
             break;
         }

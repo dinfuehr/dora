@@ -264,9 +264,9 @@ impl<'ast> VM<'ast> {
         let type_params = TypeList::empty();
 
         THREAD.with(|thread| {
-            thread.borrow().use_dtn(&mut dtn, || {
-                compiler::generate(self, fct_id, &type_params, &type_params, &type_params)
-            })
+            thread
+                .borrow()
+                .use_dtn(&mut dtn, || compiler::generate(self, fct_id, &type_params))
         })
     }
 

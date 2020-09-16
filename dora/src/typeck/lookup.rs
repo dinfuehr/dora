@@ -301,7 +301,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 let list_id = self.vm.lists.lock().insert(cls_tps);
                 BuiltinType::Class(cls_id, list_id)
             }
-            _ => replace_type_param(self.vm, fct.return_type, &cls_tps, &fct_tps, None),
+            _ => {
+                let type_list = cls_tps.append(&fct_tps);
+                replace_type_param(self.vm, fct.return_type, cls_tps.len(), &type_list, None)
+            }
         };
 
         if self.ret.is_none() || self.ret.unwrap() == cmp_type {

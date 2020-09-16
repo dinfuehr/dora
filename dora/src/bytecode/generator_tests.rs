@@ -14,7 +14,7 @@ fn code(code: &'static str) -> Vec<Bytecode> {
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp);
         build(&fct)
     })
 }
@@ -23,7 +23,7 @@ fn position(code: &'static str) -> Vec<(u32, Position)> {
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp);
         fct.positions().to_vec()
     })
 }
@@ -38,7 +38,7 @@ fn code_method_with_class_name(code: &'static str, class_name: &'static str) -> 
             .cls_method_by_name(class_name, "f", false)
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp);
         build(&fct)
     })
 }
@@ -50,7 +50,7 @@ where
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp);
         let code = build(&fct);
 
         testfct(vm, code);
@@ -64,7 +64,7 @@ where
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp);
         let code = build(&fct);
 
         testfct(vm, code, fct);
@@ -3030,13 +3030,7 @@ fn gen_vec_load() {
         "fun f(x: Vec[Int32], idx: Int64) -> Int32 { x(idx) }",
         |vm, code| {
             let fct_id = vm.cls_method_by_name("Vec", "get", false).unwrap();
-            let fct_def_id = FctDef::fct_id_types(
-                vm,
-                fct_id,
-                TypeList::single(BuiltinType::Int32),
-                TypeList::empty(),
-                TypeList::single(BuiltinType::Int32),
-            );
+            let fct_def_id = FctDef::fct_id_types(vm, fct_id, TypeList::single(BuiltinType::Int32));
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
@@ -3054,13 +3048,7 @@ fn gen_vec_store() {
         "fun f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }",
         |vm, code| {
             let fct_id = vm.cls_method_by_name("Vec", "set", false).unwrap();
-            let fct_def_id = FctDef::fct_id_types(
-                vm,
-                fct_id,
-                TypeList::single(BuiltinType::Int32),
-                TypeList::empty(),
-                TypeList::single(BuiltinType::Int32),
-            );
+            let fct_def_id = FctDef::fct_id_types(vm, fct_id, TypeList::single(BuiltinType::Int32));
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
