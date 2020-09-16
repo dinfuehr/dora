@@ -31,7 +31,7 @@ pub struct ExtensionData {
     pub file: FileId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
-    pub class_ty: BuiltinType,
+    pub ty: BuiltinType,
     pub methods: Vec<FctId>,
     pub instance_names: HashMap<Name, FctId>,
     pub static_names: HashMap<Name, FctId>,

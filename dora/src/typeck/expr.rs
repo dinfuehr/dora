@@ -1999,7 +1999,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             FctParent::Extension(extension_id) => {
                 let extension = self.vm.extensions[extension_id].read();
-                let ty = extension.class_ty;
+                let ty = extension.ty;
                 self.src.set_ty(e.id, ty);
 
                 ty

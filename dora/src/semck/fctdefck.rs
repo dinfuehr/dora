@@ -39,11 +39,11 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                     type_param_id += 1;
                 }
 
+                cls_type_params_count = type_param_id;
+
                 if fct.has_self() {
                     fct.param_types.push(cls.ty);
                 }
-
-                cls_type_params_count = type_param_id;
             }
 
             FctParent::Impl(impl_id) => {
@@ -58,9 +58,18 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
             FctParent::Extension(extension_id) => {
                 let extension = vm.extensions[extension_id].read();
+                let mut type_param_id = 0;
+
+                for param in &extension.type_params {
+                    let sym = TypeSym::SymTypeParam(type_param_id.into());
+                    vm.sym.lock().insert_type(param.name, sym);
+                    type_param_id += 1;
+                }
+
+                cls_type_params_count = type_param_id;
 
                 if fct.has_self() {
-                    fct.param_types.push(extension.class_ty);
+                    fct.param_types.push(extension.ty);
                 }
             }
 

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::{ExtensionId, FctId, FileId, TypeParam, VM};
 
@@ -40,6 +40,12 @@ pub struct EnumData {
     pub name_to_value: HashMap<Name, u32>,
     pub extensions: Vec<ExtensionId>,
     pub specializations: RwLock<HashMap<TypeList, EnumDefId>>,
+}
+
+impl EnumData {
+    pub fn type_param(&self, id: TypeListId) -> &TypeParam {
+        &self.type_params[id.to_usize()]
+    }
 }
 
 #[derive(Debug)]
@@ -95,7 +101,7 @@ pub fn find_methods_in_enum(
     for &extension_id in &xenum.extensions {
         let extension = vm.extensions[extension_id].read();
 
-        if extension.class_ty.type_params(vm) != object_type.type_params(vm) {
+        if extension.ty.type_params(vm) != object_type.type_params(vm) {
             continue;
         }
 
@@ -106,7 +112,7 @@ pub fn find_methods_in_enum(
         };
 
         if let Some(&fct_id) = table.get(&name) {
-            return vec![(extension.class_ty, fct_id)];
+            return vec![(extension.ty, fct_id)];
         }
     }
 

@@ -118,7 +118,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             FctParent::Extension(extension_id) => {
                 let extension = self.vm.extensions[extension_id].read();
-                extension.class_ty
+                extension.ty
             }
 
             _ => unreachable!(),

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use crate::error::msg::SemError;
 use crate::semck;
+use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::BuiltinType;
 use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
 
@@ -48,17 +49,17 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
             self.check_type_params(self.extension_id.unwrap(), type_params);
         }
 
-        if let Some(class_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
-            self.extension_ty = class_ty;
+        if let Some(extension_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
+            self.extension_ty = extension_ty;
 
-            match class_ty {
+            match extension_ty {
                 BuiltinType::Enum(enum_id, _) => {
                     let mut xenum = self.vm.enums[enum_id].write();
                     xenum.extensions.push(self.extension_id.unwrap());
                 }
 
                 _ => {
-                    let cls_id = class_ty.cls_id(self.vm).unwrap();
+                    let cls_id = extension_ty.cls_id(self.vm).unwrap();
                     let cls = self.vm.classes.idx(cls_id);
                     let mut cls = cls.write();
                     cls.extensions.push(self.extension_id.unwrap());
@@ -66,7 +67,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
             }
 
             let mut extension = self.vm.extensions[self.extension_id.unwrap()].write();
-            extension.class_ty = class_ty;
+            extension.ty = extension_ty;
         }
 
         visit::walk_impl(self, i);
@@ -77,10 +78,14 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
 
     fn check_type_params(
         &mut self,
-        _extension_id: ExtensionId,
+        extension_id: ExtensionId,
         _type_params: &'ast [ast::TypeParam],
     ) {
-        unimplemented!();
+        let extension = &self.vm.extensions[extension_id];
+        let extension = extension.read();
+
+        let error = ErrorReporting::Yes(self.file_id.into(), extension.pos);
+        typeparamck::check_enum(self.vm, extension.ty, error);
     }
 
     fn check_in_enum(&self, f: &ast::Function, enum_id: EnumId) -> bool {
@@ -124,7 +129,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
     fn check_extension(&self, f: &ast::Function, extension_id: ExtensionId) -> bool {
         let extension = self.vm.extensions[extension_id].read();
 
-        if extension.class_ty.type_params(self.vm) != self.extension_ty.type_params(self.vm) {
+        if extension.ty.type_params(self.vm) != self.extension_ty.type_params(self.vm) {
             return true;
         }
 

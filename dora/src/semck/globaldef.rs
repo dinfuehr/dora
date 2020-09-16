@@ -141,7 +141,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 file: self.file_id.into(),
                 pos: i.pos,
                 type_params: Vec::new(),
-                class_ty: BuiltinType::Error,
+                ty: BuiltinType::Error,
                 methods: Vec::new(),
                 instance_names: HashMap::new(),
                 static_names: HashMap::new(),

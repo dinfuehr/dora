@@ -1,5 +1,5 @@
 use dora_parser::ast::visit::{walk_file, Visitor};
-use dora_parser::ast::{Ast, Enum, File};
+use dora_parser::ast::{Ast, Enum, File, TypeParam};
 
 use crate::error::msg::SemError;
 use crate::semck;
@@ -28,6 +28,10 @@ impl<'x, 'ast> EnumCheck<'x, 'ast> {
     fn check(&mut self) {
         self.visit_ast(self.ast);
     }
+
+    fn check_type_params(&mut self, _e: &'ast Enum, _type_params: &'ast [TypeParam]) {
+        unimplemented!();
+    }
 }
 
 impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
@@ -39,7 +43,13 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
     fn visit_enum(&mut self, e: &'ast Enum) {
         let enum_id = *self.map_enum_defs.get(e.id).unwrap();
 
-        let mut xenum = self.vm.enums[enum_id].write();
+        if let Some(ref type_params) = e.type_params {
+            self.check_type_params(e, type_params);
+        }
+
+        let xenum = &self.vm.enums[enum_id];
+        let mut xenum = xenum.write();
+
         let mut next_variant_id: u32 = 0;
 
         for value in &e.variants {

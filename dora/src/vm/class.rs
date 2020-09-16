@@ -321,7 +321,7 @@ pub fn find_methods_in_class(
         for &extension_id in &cls.extensions {
             let extension = vm.extensions[extension_id].read();
 
-            if extension.class_ty.type_params(vm) != object_type.type_params(vm) {
+            if extension.ty.type_params(vm) != object_type.type_params(vm) {
                 continue;
             }
 
@@ -332,7 +332,7 @@ pub fn find_methods_in_class(
             };
 
             if let Some(&fct_id) = table.get(&name) {
-                return vec![(extension.class_ty, fct_id)];
+                return vec![(extension.ty, fct_id)];
             }
         }
     }
