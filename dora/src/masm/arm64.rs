@@ -204,8 +204,6 @@ impl MacroAssembler {
         self.emit_lazy_compilation_site(LazyCompilationSite::VirtCompile(
             self_index == 0,
             vtable_index,
-            type_params.clone(),
-            TypeList::empty(),
             type_params,
         ));
     }
