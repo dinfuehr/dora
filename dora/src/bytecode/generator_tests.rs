@@ -91,6 +91,13 @@ fn gen_generic_identity() {
 }
 
 #[test]
+fn gen_generic_static_trait() {
+    let result = gcode("trait Foo { @static fun baz(); } fun f[T: Foo]() { T::baz() }");
+    let expected = vec![InvokeGenericVoid(FctDefId(0)), RetVoid, RetVoid];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_load_field_uint8() {
     gen(
         "class Foo(let bar: UInt8) fun f(a: Foo) -> UInt8 { return a.bar; }",
@@ -3346,6 +3353,9 @@ pub enum Bytecode {
     InvokeStaticVoid(FctDefId),
     InvokeStatic(Register, FctDefId),
 
+    InvokeGenericVoid(FctDefId),
+    InvokeGeneric(Register, FctDefId),
+
     NewObject(Register, ClassDefId),
     NewArray(Register, ClassDefId, Register),
     NewTuple(Register, TupleId),
@@ -3974,6 +3984,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_invoke_static(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit(Bytecode::InvokeStatic(dest, fctdef));
+    }
+
+    fn visit_invoke_generic_void(&mut self, fctdef: FctDefId) {
+        self.emit(Bytecode::InvokeGenericVoid(fctdef));
+    }
+    fn visit_invoke_generic(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit(Bytecode::InvokeGeneric(dest, fctdef));
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

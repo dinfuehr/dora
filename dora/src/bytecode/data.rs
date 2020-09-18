@@ -352,6 +352,9 @@ pub enum BytecodeOpcode {
     InvokeStaticVoid,
     InvokeStatic,
 
+    InvokeGenericVoid,
+    InvokeGeneric,
+
     NewObject,
     NewArray,
     NewTuple,
@@ -401,6 +404,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeStaticVoid
             | BytecodeOpcode::InvokeStatic
+            | BytecodeOpcode::InvokeGenericVoid
+            | BytecodeOpcode::InvokeGeneric
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::NilCheck

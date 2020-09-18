@@ -798,6 +798,13 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_fct("InvokeStatic", dest, fctdef);
     }
 
+    fn visit_invoke_generic_void(&mut self, fctdef: FctDefId) {
+        self.emit_fct_void("InvokeGenericVoid", fctdef);
+    }
+    fn visit_invoke_generic(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeGeneric", dest, fctdef);
+    }
+
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit_new_object("NewObject", dest, cls);
     }

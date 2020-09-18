@@ -733,6 +733,14 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeStatic, dest, fid);
     }
 
+    pub fn emit_invoke_generic_void(&mut self, fid: FctDefId) {
+        self.emit_fct_void(BytecodeOpcode::InvokeGenericVoid, fid);
+    }
+
+    pub fn emit_invoke_generic(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeGeneric, dest, fid);
+    }
+
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
         self.emit_new(BytecodeOpcode::NewObject, dest, cls_id);
     }

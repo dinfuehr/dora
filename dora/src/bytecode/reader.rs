@@ -932,6 +932,16 @@ where
                 self.visitor.visit_invoke_static(dest, fct);
             }
 
+            BytecodeOpcode::InvokeGenericVoid => {
+                let fct = self.read_fct(wide);
+                self.visitor.visit_invoke_generic_void(fct);
+            }
+            BytecodeOpcode::InvokeGeneric => {
+                let dest = self.read_register(wide);
+                let fct = self.read_fct(wide);
+                self.visitor.visit_invoke_generic(dest, fct);
+            }
+
             BytecodeOpcode::NewObject => {
                 let dest = self.read_register(wide);
                 let cls = self.read_class(wide);
@@ -1698,6 +1708,13 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_invoke_static(&mut self, _dest: Register, _fctdef: FctDefId) {
+        unimplemented!();
+    }
+
+    fn visit_invoke_generic_void(&mut self, _fctdef: FctDefId) {
+        unimplemented!();
+    }
+    fn visit_invoke_generic(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
 

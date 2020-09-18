@@ -946,33 +946,37 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
             CallType::TraitStatic(list_id, trait_id, trait_fct_id) => {
-                let ty = self.type_params[list_id.to_usize()];
-                let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
+                if self.generic_mode {
+                    trait_fct_id
+                } else {
+                    let ty = self.type_params[list_id.to_usize()];
+                    let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
 
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
 
-                let mut impl_fct_id: Option<FctId> = None;
+                    let mut impl_fct_id: Option<FctId> = None;
 
-                for &impl_id in &cls.impls {
-                    let ximpl = self.vm.impls[impl_id].read();
+                    for &impl_id in &cls.impls {
+                        let ximpl = self.vm.impls[impl_id].read();
 
-                    if ximpl.trait_id != Some(trait_id) {
-                        continue;
-                    }
+                        if ximpl.trait_id != Some(trait_id) {
+                            continue;
+                        }
 
-                    for &fid in &ximpl.methods {
-                        let method = self.vm.fcts.idx(fid);
-                        let method = method.read();
+                        for &fid in &ximpl.methods {
+                            let method = self.vm.fcts.idx(fid);
+                            let method = method.read();
 
-                        if method.impl_for == Some(trait_fct_id) {
-                            impl_fct_id = Some(fid);
-                            break;
+                            if method.impl_for == Some(trait_fct_id) {
+                                impl_fct_id = Some(fid);
+                                break;
+                            }
                         }
                     }
-                }
 
-                impl_fct_id.expect("no impl_fct_id found")
+                    impl_fct_id.expect("no impl_fct_id found")
+                }
             }
             _ => call_type.fct_id().unwrap(),
         }
@@ -1200,7 +1204,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             CallType::Trait(_, _) => unimplemented!(),
             CallType::TraitStatic(_, _, _) => {
-                self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
+                if self.generic_mode {
+                    self.emit_invoke_generic(return_type, return_reg, fct_def_id, pos);
+                } else {
+                    self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
+                }
             }
             CallType::Intrinsic(_) => unreachable!(),
         }
@@ -1315,6 +1323,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.gen.emit_invoke_static_void(callee_id, pos);
         } else {
             self.gen.emit_invoke_static(return_reg, callee_id, pos);
+        }
+    }
+
+    fn emit_invoke_generic(
+        &mut self,
+        return_type: BuiltinType,
+        return_reg: Register,
+        callee_id: FctDefId,
+        pos: Position,
+    ) {
+        if return_type.is_unit() {
+            self.gen.emit_invoke_generic_void(callee_id, pos);
+        } else {
+            self.gen.emit_invoke_generic(return_reg, callee_id, pos);
         }
     }
 
