@@ -13,6 +13,6 @@ mod tests;
 pub use builder::*;
 pub use data::*;
 pub use dumper::dump;
-pub use generator::{generate, generate_fct};
+pub use generator::{generate, generate_fct, generate_generic, generate_generic_fct};
 pub use reader::*;
 pub use writer::*;

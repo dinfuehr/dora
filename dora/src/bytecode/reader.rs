@@ -478,6 +478,11 @@ where
                 let tuple = self.read_tuple(wide);
                 self.visitor.visit_mov_tuple(dest, src, tuple);
             }
+            BytecodeOpcode::MovGeneric => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_mov_generic(dest, src);
+            }
 
             BytecodeOpcode::LoadTupleElement => {
                 let dest = self.read_register(wide);
@@ -1409,6 +1414,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_mov_tuple(&mut self, _dest: Register, _src: Register, _tuple_id: TupleId) {
+        unimplemented!();
+    }
+    fn visit_mov_generic(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 

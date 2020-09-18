@@ -531,6 +531,9 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
         self.emit_reg2_tuple("MovTuple", dest, src, tuple_id);
     }
+    fn visit_mov_generic(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("MovGeneric", dest, src);
+    }
 
     fn visit_load_tuple_element(
         &mut self,

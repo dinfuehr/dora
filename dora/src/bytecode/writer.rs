@@ -497,6 +497,10 @@ impl BytecodeWriter {
         self.emit_reg2_tuple(BytecodeOpcode::MovTuple, dest, src, tuple_id);
     }
 
+    pub fn emit_mov_generic(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::MovGeneric, dest, src);
+    }
+
     pub fn emit_load_tuple_element(
         &mut self,
         dest: Register,

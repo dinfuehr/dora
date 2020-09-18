@@ -534,6 +534,11 @@ impl BytecodeBuilder {
         self.writer.emit_mov_tuple(dest, src, tuple_id);
     }
 
+    pub fn emit_mov_generic(&mut self, dest: Register, src: Register) {
+        assert!(self.def(dest) && self.used(src));
+        self.writer.emit_mov_generic(dest, src);
+    }
+
     pub fn emit_load_tuple_element(
         &mut self,
         dest: Register,

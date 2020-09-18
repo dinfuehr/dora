@@ -42,6 +42,7 @@ pub enum BytecodeType {
     Float64,
     Ptr,
     Tuple(TupleId),
+    TypeParam(u32),
 }
 
 impl BytecodeType {
@@ -59,6 +60,7 @@ impl BytecodeType {
                 let vm = get_vm();
                 vm.tuples.lock().get_tuple(tuple_id).size()
             }
+            BytecodeType::TypeParam(_) => unreachable!(),
         }
     }
 
@@ -73,6 +75,7 @@ impl BytecodeType {
             BytecodeType::Float64 => BytecodeTypeKind::Float64,
             BytecodeType::Ptr => BytecodeTypeKind::Ptr,
             BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
+            BytecodeType::TypeParam(_) => unreachable!(),
         }
     }
 
@@ -87,6 +90,7 @@ impl BytecodeType {
             BytecodeType::Float64 => MachineMode::Float64,
             BytecodeType::Ptr => MachineMode::Ptr,
             BytecodeType::Tuple(_) => unreachable!(),
+            BytecodeType::TypeParam(_) => unreachable!(),
         }
     }
 
@@ -118,6 +122,7 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::Class(_, _) => BytecodeType::Ptr,
             BuiltinType::Enum(_, _) => BytecodeType::Int32,
             BuiltinType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
+            BuiltinType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
         }
     }
@@ -135,6 +140,7 @@ impl From<BytecodeType> for BuiltinType {
             BytecodeType::Float64 => BuiltinType::Float64,
             BytecodeType::Ptr => BuiltinType::Ptr,
             BytecodeType::Tuple(tuple_id) => BuiltinType::Tuple(tuple_id),
+            BytecodeType::TypeParam(_) => unreachable!(),
         }
     }
 }
@@ -242,6 +248,7 @@ pub enum BytecodeOpcode {
     MovFloat64,
     MovPtr,
     MovTuple,
+    MovGeneric,
 
     LoadTupleElement,
     StoreTupleElement,

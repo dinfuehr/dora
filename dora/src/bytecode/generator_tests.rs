@@ -19,6 +19,14 @@ fn code(code: &'static str) -> Vec<Bytecode> {
     })
 }
 
+fn gcode(code: &'static str) -> Vec<Bytecode> {
+    test::parse(code, |vm| {
+        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
+        let fct = bytecode::generate_generic_fct(vm, fct_id);
+        build(&fct)
+    })
+}
+
 fn position(code: &'static str) -> Vec<(u32, Position)> {
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
@@ -69,6 +77,17 @@ where
 
         testfct(vm, code, fct);
     })
+}
+
+#[test]
+fn gen_generic_identity() {
+    let result = gcode("fun f[T](x: T) -> T { x }");
+    let expected = vec![Ret(r(0))];
+    assert_eq!(expected, result);
+
+    let result = gcode("fun f[T](x: T) -> T { let y = x; y }");
+    let expected = vec![MovGeneric(r(1), r(0)), Ret(r(1))];
+    assert_eq!(expected, result);
 }
 
 #[test]
@@ -3231,6 +3250,7 @@ pub enum Bytecode {
     MovFloat64(Register, Register),
     MovPtr(Register, Register),
     MovTuple(Register, Register, TupleId),
+    MovGeneric(Register, Register),
 
     LoadTupleElement(Register, Register, TupleId, u32),
 
@@ -3660,6 +3680,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
         self.emit(Bytecode::MovTuple(dest, src, tuple_id))
+    }
+    fn visit_mov_generic(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::MovGeneric(dest, src));
     }
 
     fn visit_load_tuple_element(

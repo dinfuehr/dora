@@ -30,9 +30,9 @@ pub fn generate_fct<'ast>(vm: &VM<'ast>, id: FctId, type_params: &TypeList) -> B
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
-    let mut src = src.write();
+    let src = src.read();
 
-    generate(vm, &fct, &mut src, type_params)
+    generate(vm, &fct, &src, type_params)
 }
 
 pub fn generate<'ast>(
@@ -52,6 +52,33 @@ pub fn generate<'ast>(
         gen: BytecodeBuilder::new(&vm.args),
         loops: Vec::new(),
         var_registers: HashMap::new(),
+        generic_mode: false,
+    };
+    ast_bytecode_generator.generate()
+}
+
+pub fn generate_generic_fct<'ast>(vm: &VM<'ast>, id: FctId) -> BytecodeFunction {
+    let fct = vm.fcts.idx(id);
+    let fct = fct.read();
+    let src = fct.src();
+    let src = src.read();
+
+    generate_generic(vm, &fct, &src)
+}
+
+pub fn generate_generic<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>, src: &FctSrc) -> BytecodeFunction {
+    let ast_bytecode_generator = AstBytecodeGen {
+        vm,
+        fct,
+        ast: fct.ast,
+        src,
+
+        type_params: &TypeList::empty(),
+
+        gen: BytecodeBuilder::new(&vm.args),
+        loops: Vec::new(),
+        var_registers: HashMap::new(),
+        generic_mode: true,
     };
     ast_bytecode_generator.generate()
 }
@@ -67,6 +94,9 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
     gen: BytecodeBuilder,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
+
+    // true when generic bytecode should be generated
+    generic_mode: bool,
 }
 
 impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
@@ -1213,6 +1243,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Int64 => self.gen.emit_mov_int64(dest, src),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
             BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, src, tuple_id),
+            BytecodeType::TypeParam(_) => unreachable!(),
         }
     }
 
@@ -1234,6 +1265,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float64 => self.gen.emit_load_array_float64(dest, arr, idx, pos),
             BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
+            BytecodeType::TypeParam(_) => unreachable!(),
         }
     }
 
@@ -1366,6 +1398,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Int64 => self.gen.emit_mov_int64(dest, var_reg),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
             BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, var_reg, tuple_id),
+            BytecodeType::TypeParam(_) => unreachable!(),
         }
         dest
     }
@@ -1716,6 +1749,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         BytecodeType::Float64 => self.gen.emit_const_float64(dest, 0.0),
                         BytecodeType::Ptr => self.gen.emit_const_nil(dest),
                         BytecodeType::Tuple(_) => unimplemented!(),
+                        BytecodeType::TypeParam(_) => unreachable!(),
                     }
 
                     dest
@@ -1921,6 +1955,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float64 => self.gen.emit_store_array_float64(src, arr, idx, pos),
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_store_array_tuple(src, arr, idx, pos),
+            BytecodeType::TypeParam(_) => unreachable!(),
         }
     }
 
@@ -2130,6 +2165,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     BytecodeType::Float64 => self.gen.emit_load_array_float64(dest, arr, idx, pos),
                     BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
                     BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
+                    BytecodeType::TypeParam(_) => unreachable!(),
                 }
 
                 self.free_if_temp(arr);
@@ -2577,6 +2613,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Float64 => self.gen.emit_mov_float64(dest, var_reg),
                 BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
                 BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, var_reg, tuple_id),
+                BytecodeType::TypeParam(_) => self.gen.emit_mov_generic(dest, var_reg),
             }
         }
 
@@ -2711,7 +2748,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        specialize_type(self.vm, ty, self.type_params)
+        if self.generic_mode {
+            ty
+        } else {
+            specialize_type(self.vm, ty, self.type_params)
+        }
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
