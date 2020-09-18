@@ -1233,6 +1233,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn emit_mov(&mut self, ty: BytecodeType, dest: Register, src: Register) {
+        if dest == src {
+            return;
+        }
+
         match ty {
             BytecodeType::Bool => self.gen.emit_mov_bool(dest, src),
             BytecodeType::UInt8 => self.gen.emit_mov_uint8(dest, src),
@@ -1243,7 +1247,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Int64 => self.gen.emit_mov_int64(dest, src),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
             BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, src, tuple_id),
-            BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::TypeParam(_) => {
+                assert!(self.generic_mode);
+                self.gen.emit_mov_generic(dest, src)
+            }
         }
     }
 
@@ -1388,18 +1395,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let dest = dest.reg();
         let ty: BytecodeType = self.src.var_self().ty.into();
 
-        match ty {
-            BytecodeType::Bool => self.gen.emit_mov_bool(dest, var_reg),
-            BytecodeType::UInt8 => self.gen.emit_mov_uint8(dest, var_reg),
-            BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
-            BytecodeType::Float64 => self.gen.emit_mov_float64(dest, var_reg),
-            BytecodeType::Float32 => self.gen.emit_mov_float32(dest, var_reg),
-            BytecodeType::Int32 => self.gen.emit_mov_int32(dest, var_reg),
-            BytecodeType::Int64 => self.gen.emit_mov_int64(dest, var_reg),
-            BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
-            BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, var_reg, tuple_id),
-            BytecodeType::TypeParam(_) => unreachable!(),
-        }
+        self.emit_mov(ty, dest, var_reg);
+
         dest
     }
 
@@ -2601,21 +2598,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         let dest = dest.reg();
-
-        if dest != var_reg {
-            match ty {
-                BytecodeType::Bool => self.gen.emit_mov_bool(dest, var_reg),
-                BytecodeType::UInt8 => self.gen.emit_mov_uint8(dest, var_reg),
-                BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
-                BytecodeType::Int32 => self.gen.emit_mov_int32(dest, var_reg),
-                BytecodeType::Int64 => self.gen.emit_mov_int64(dest, var_reg),
-                BytecodeType::Float32 => self.gen.emit_mov_float32(dest, var_reg),
-                BytecodeType::Float64 => self.gen.emit_mov_float64(dest, var_reg),
-                BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
-                BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, var_reg, tuple_id),
-                BytecodeType::TypeParam(_) => self.gen.emit_mov_generic(dest, var_reg),
-            }
-        }
+        self.emit_mov(ty, dest, var_reg);
 
         dest
     }
