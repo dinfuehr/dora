@@ -619,6 +619,20 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ne_ptr(dest, lhs, rhs);
             }
+
+            BytecodeOpcode::TestEqGeneric => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_eq_generic(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestNeGeneric => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_ne_generic(dest, lhs, rhs);
+            }
+
             BytecodeOpcode::TestEqBool => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -1547,6 +1561,14 @@ pub trait BytecodeVisitor {
     fn visit_test_ne_ptr(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+
+    fn visit_test_eq_generic(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_generic(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
     fn visit_test_eq_bool(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }

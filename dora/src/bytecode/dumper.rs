@@ -620,6 +620,14 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestNePtr", dest, lhs, rhs);
     }
+
+    fn visit_test_eq_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestEqGeneric", dest, lhs, rhs);
+    }
+    fn visit_test_ne_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestNeGeneric", dest, lhs, rhs);
+    }
+
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestEqBool", dest, lhs, rhs);
     }

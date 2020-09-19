@@ -281,6 +281,9 @@ pub enum BytecodeOpcode {
     TestEqPtr,
     TestNePtr,
 
+    TestEqGeneric,
+    TestNeGeneric,
+
     TestEqBool,
     TestNeBool,
 

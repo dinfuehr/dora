@@ -8,7 +8,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::bytecode::BytecodeType;
+use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::ty::{BuiltinType, TypeListId};
 use crate::utils::GrowableVec;
@@ -36,7 +36,6 @@ impl<'ast> GrowableVec<RwLock<Fct<'ast>>> {
     }
 }
 
-#[derive(Debug)]
 pub struct Fct<'ast> {
     pub id: FctId,
     pub ast: &'ast ast::Function,
@@ -67,6 +66,7 @@ pub struct Fct<'ast> {
 
     pub type_params: Vec<TypeParam>,
     pub kind: FctKind,
+    pub bytecode: Option<BytecodeFunction>,
 
     pub specializations: RwLock<HashMap<TypeList, FctDefId>>,
 }
@@ -652,8 +652,6 @@ impl FctDef {
     }
 
     pub fn with(vm: &VM, fct: &Fct, type_params: TypeList) -> FctDefId {
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
-
         let mut specializations = fct.specializations.write();
 
         if let Some(&id) = specializations.get(&type_params) {

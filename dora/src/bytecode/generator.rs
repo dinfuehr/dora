@@ -624,6 +624,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
                     self.visit_expr(part, DataDest::Reg(part_register));
+                } else if ty.is_type_param() && self.generic_mode {
+                    unimplemented!();
                 } else {
                     let expr_register = self.visit_expr(part, DataDest::Alloc);
                     self.gen.emit_push_register(expr_register);
@@ -1852,6 +1854,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Int32 => self.gen.emit_test_eq_int32(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Int64 => self.gen.emit_test_eq_int64(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Ptr => self.gen.emit_test_eq_ptr(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::TypeParam(_) => {
+                    self.gen
+                        .emit_test_eq_generic(dest, cmp_lhs_reg, cmp_rhs_reg)
+                }
                 _ => unreachable!(),
             }
         } else {
@@ -1862,6 +1868,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Int32 => self.gen.emit_test_ne_int32(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Int64 => self.gen.emit_test_ne_int64(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Ptr => self.gen.emit_test_ne_ptr(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::TypeParam(_) => {
+                    self.gen
+                        .emit_test_ne_generic(dest, cmp_lhs_reg, cmp_rhs_reg)
+                }
                 _ => unreachable!(),
             }
         }

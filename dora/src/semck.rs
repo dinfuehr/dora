@@ -129,6 +129,9 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
 
     // initialize addresses for global variables
     init_global_addresses(vm);
+
+    // generate bytecode
+    // fctdefck::generate_bytecode(vm);
 }
 
 fn internalck<'ast>(vm: &VM<'ast>) {

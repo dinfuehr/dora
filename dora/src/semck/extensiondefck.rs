@@ -217,6 +217,7 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
 
             type_params: Vec::new(),
             kind,
+            bytecode: None,
 
             specializations: RwLock::new(HashMap::new()),
         };

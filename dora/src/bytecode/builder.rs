@@ -605,6 +605,11 @@ impl BytecodeBuilder {
         self.writer.emit_test_eq_ptr(dest, lhs, rhs);
     }
 
+    pub fn emit_test_eq_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_test_eq_generic(dest, lhs, rhs);
+    }
+
     pub fn emit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_test_ne_bool(dest, lhs, rhs);
@@ -648,6 +653,11 @@ impl BytecodeBuilder {
     pub fn emit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_test_ne_ptr(dest, lhs, rhs);
+    }
+
+    pub fn emit_test_ne_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_test_ne_generic(dest, lhs, rhs);
     }
 
     pub fn emit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {

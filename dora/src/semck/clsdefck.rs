@@ -283,6 +283,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
             type_params: Vec::new(),
             kind,
+            bytecode: None,
 
             specializations: RwLock::new(HashMap::new()),
         };
@@ -336,6 +337,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
             type_params: Vec::new(),
             kind,
+            bytecode: None,
 
             specializations: RwLock::new(HashMap::new()),
         };

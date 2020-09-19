@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::bytecode;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::TypeSym;
@@ -230,6 +231,25 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
     }
 
     debug_assert!(vm.sym.lock().levels() == 1);
+}
+
+pub fn generate_bytecode<'a, 'ast>(vm: &VM<'ast>) {
+    for fct in vm.fcts.iter() {
+        let mut fct = fct.write();
+
+        if !fct.is_src() {
+            continue;
+        }
+
+        let bc = {
+            let src = fct.src();
+            let src = src.read();
+
+            bytecode::generate_generic(vm, &*fct, &*src)
+        };
+
+        fct.bytecode = Some(bc);
+    }
 }
 
 fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
