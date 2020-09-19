@@ -824,15 +824,26 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_static(dest, fid);
     }
 
-    pub fn emit_invoke_generic_void(&mut self, fid: FctDefId, pos: Position) {
+    pub fn emit_invoke_generic_static_void(&mut self, fid: FctDefId, pos: Position) {
         self.writer.set_position(pos);
-        self.writer.emit_invoke_generic_void(fid);
+        self.writer.emit_invoke_generic_static_void(fid);
     }
 
-    pub fn emit_invoke_generic(&mut self, dest: Register, fid: FctDefId, pos: Position) {
+    pub fn emit_invoke_generic_static(&mut self, dest: Register, fid: FctDefId, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
-        self.writer.emit_invoke_generic(dest, fid);
+        self.writer.emit_invoke_generic_static(dest, fid);
+    }
+
+    pub fn emit_invoke_generic_direct_void(&mut self, fid: FctDefId, pos: Position) {
+        self.writer.set_position(pos);
+        self.writer.emit_invoke_generic_direct_void(fid);
+    }
+
+    pub fn emit_invoke_generic_direct(&mut self, dest: Register, fid: FctDefId, pos: Position) {
+        assert!(self.def(dest));
+        self.writer.set_position(pos);
+        self.writer.emit_invoke_generic_direct(dest, fid);
     }
 
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId, pos: Position) {

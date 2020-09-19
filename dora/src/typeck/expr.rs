@@ -1565,8 +1565,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src.set_ty(e.id, return_type);
 
-            // let call_type = CallType::GenericMethod(id, fct.trait_id(), fid);
-            let call_type = CallType::Method(object_type, fid, TypeList::empty());
+            let call_type = CallType::GenericMethod(_id, fct.trait_id(), fid);
             self.src.map_calls.insert(e.id, Arc::new(call_type));
 
             return_type
