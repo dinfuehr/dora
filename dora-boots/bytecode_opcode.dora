@@ -180,17 +180,19 @@ const BC_LOAD_ARRAY_FLOAT32: Int32 = 176I;
 const BC_LOAD_ARRAY_FLOAT64: Int32 = 177I;
 const BC_LOAD_ARRAY_PTR: Int32 = 178I;
 const BC_LOAD_ARRAY_TUPLE: Int32 = 179I;
-const BC_STORE_ARRAY_BOOL: Int32 = 180I;
-const BC_STORE_ARRAY_UINT8: Int32 = 181I;
-const BC_STORE_ARRAY_CHAR: Int32 = 182I;
-const BC_STORE_ARRAY_INT32: Int32 = 183I;
-const BC_STORE_ARRAY_INT64: Int32 = 184I;
-const BC_STORE_ARRAY_FLOAT32: Int32 = 185I;
-const BC_STORE_ARRAY_FLOAT64: Int32 = 186I;
-const BC_STORE_ARRAY_PTR: Int32 = 187I;
-const BC_STORE_ARRAY_TUPLE: Int32 = 188I;
-const BC_RET_VOID: Int32 = 189I;
-const BC_RET: Int32 = 190I;
+const BC_LOAD_ARRAY_GENERIC: Int32 = 180I;
+const BC_STORE_ARRAY_BOOL: Int32 = 181I;
+const BC_STORE_ARRAY_UINT8: Int32 = 182I;
+const BC_STORE_ARRAY_CHAR: Int32 = 183I;
+const BC_STORE_ARRAY_INT32: Int32 = 184I;
+const BC_STORE_ARRAY_INT64: Int32 = 185I;
+const BC_STORE_ARRAY_FLOAT32: Int32 = 186I;
+const BC_STORE_ARRAY_FLOAT64: Int32 = 187I;
+const BC_STORE_ARRAY_PTR: Int32 = 188I;
+const BC_STORE_ARRAY_TUPLE: Int32 = 189I;
+const BC_STORE_ARRAY_GENERIC: Int32 = 190I;
+const BC_RET_VOID: Int32 = 191I;
+const BC_RET: Int32 = 192I;
 
 const BC_TYPE_BOOL: Int32 = 0I;
 const BC_TYPE_U_INT8: Int32 = 1I;
@@ -390,6 +392,7 @@ fun bytecodeName(opcode: Int32) -> String {
   if opcode == BC_LOAD_ARRAY_FLOAT64 { return "LoadArrayFloat64"; }
   if opcode == BC_LOAD_ARRAY_PTR { return "LoadArrayPtr"; }
   if opcode == BC_LOAD_ARRAY_TUPLE { return "LoadArrayTuple"; }
+  if opcode == BC_LOAD_ARRAY_GENERIC { return "LoadArrayGeneric"; }
   if opcode == BC_STORE_ARRAY_BOOL { return "StoreArrayBool"; }
   if opcode == BC_STORE_ARRAY_UINT8 { return "StoreArrayUInt8"; }
   if opcode == BC_STORE_ARRAY_CHAR { return "StoreArrayChar"; }
@@ -399,6 +402,7 @@ fun bytecodeName(opcode: Int32) -> String {
   if opcode == BC_STORE_ARRAY_FLOAT64 { return "StoreArrayFloat64"; }
   if opcode == BC_STORE_ARRAY_PTR { return "StoreArrayPtr"; }
   if opcode == BC_STORE_ARRAY_TUPLE { return "StoreArrayTuple"; }
+  if opcode == BC_STORE_ARRAY_GENERIC { return "StoreArrayGeneric"; }
   if opcode == BC_RET_VOID { return "RetVoid"; }
   if opcode == BC_RET { return "Ret"; }
   "UNKNOWN(${opcode})"
