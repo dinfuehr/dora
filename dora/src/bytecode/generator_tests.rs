@@ -2952,7 +2952,7 @@ fn gen_bool_to_string() {
         let fct_id = vm
             .cls_method_def_by_name("Bool", "toString", false)
             .expect("Bool::toString not found");
-        let expected = vec![PushRegister(r(0)), InvokeStatic(r(1), fct_id), Ret(r(1))];
+        let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
         assert_eq!(expected, code);
     });
 }

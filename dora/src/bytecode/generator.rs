@@ -1172,14 +1172,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 } else if fct.is_virtual() {
                     self.emit_invoke_virtual(return_type, return_reg, fct_def_id, pos);
-                } else if arg_bytecode_types[0] != BytecodeType::Ptr {
-                    self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 }
             }
             CallType::ModuleMethod(_, _, _) => {
-                if arg_bytecode_types.is_empty() || arg_bytecode_types[0] != BytecodeType::Ptr {
+                if arg_bytecode_types.is_empty() {
                     self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
@@ -1191,8 +1189,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::Expr(_, _) => {
                 if fct.is_virtual() {
                     self.emit_invoke_virtual(return_type, return_reg, fct_def_id, pos);
-                } else if arg_bytecode_types[0] != BytecodeType::Ptr {
-                    self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 }
@@ -1201,8 +1197,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::GenericMethod(_, _, _) => {
                 if self.generic_mode {
                     self.emit_invoke_generic_direct(return_type, return_reg, fct_def_id, pos);
-                } else if arg_bytecode_types[0] != BytecodeType::Ptr {
-                    self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 }
@@ -1620,12 +1614,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let dest = self.ensure_register(dest, function_return_type_bc);
 
         self.gen.emit_push_register(opnd);
-
-        if function_return_type_bc == BytecodeType::Ptr {
-            self.emit_invoke_direct(function_return_type, dest, callee_def_id, expr.pos);
-        } else {
-            self.emit_invoke_static(function_return_type, dest, callee_def_id, expr.pos);
-        }
+        self.emit_invoke_direct(function_return_type, dest, callee_def_id, expr.pos);
 
         self.free_if_temp(opnd);
 
@@ -1649,8 +1638,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_bin_method(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
-        let lhs_type: BytecodeType = self.ty(expr.lhs.id()).into();
-
         let lhs = self.visit_expr(&expr.lhs, DataDest::Alloc);
         let rhs = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
@@ -1684,11 +1671,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.emit_push_register(lhs);
         self.gen.emit_push_register(rhs);
 
-        if lhs_type == BytecodeType::Ptr {
-            self.emit_invoke_direct(function_return_type, result, callee_def_id, expr.pos);
-        } else {
-            self.emit_invoke_static(function_return_type, result, callee_def_id, expr.pos);
-        }
+        self.emit_invoke_direct(function_return_type, result, callee_def_id, expr.pos);
 
         self.free_if_temp(lhs);
         self.free_if_temp(rhs);

@@ -1934,12 +1934,13 @@ where
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
-        assert_eq!(bytecode_type_self, BytecodeType::Ptr);
 
-        self.emit_load_register(self_register, REG_RESULT.into());
+        if bytecode_type_self.is_ptr() {
+            self.emit_load_register(self_register, REG_RESULT.into());
 
-        self.asm
-            .test_if_nil_bailout(position, REG_RESULT.into(), Trap::NIL);
+            self.asm
+                .test_if_nil_bailout(position, REG_RESULT.into(), Trap::NIL);
+        }
 
         let fct_def = self.vm.fct_defs.idx(fct_def_id);
         let fct_def = fct_def.read();
