@@ -1286,7 +1286,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        let call_type = CallType::TraitStatic(tp_id, trait_id, fct_id);
+        let call_type = CallType::GenericStaticMethod(tp_id, trait_id, fct_id);
         self.src.map_calls.insert(e.id, Arc::new(call_type));
 
         let return_type =
@@ -1418,8 +1418,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let fct_id = lookup.found_fct_id().unwrap();
             let return_type = lookup.found_ret().unwrap();
 
-            let call_type = if let BuiltinType::Trait(trait_id) = object_type {
-                CallType::Trait(trait_id, fct_id)
+            let call_type = if let BuiltinType::TraitObject(trait_id) = object_type {
+                CallType::TraitObjectMethod(trait_id, fct_id)
             } else {
                 let method_type = lookup.found_class_type().unwrap();
                 if method_type.is_module() {
@@ -2338,7 +2338,7 @@ fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<Built
 
             arg_allows(vm, real, arg, self_ty)
         }
-        BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
+        BuiltinType::TraitObject(_) => panic!("trait should not occur in fct definition."),
 
         BuiltinType::TypeParam(_) => def == arg,
 

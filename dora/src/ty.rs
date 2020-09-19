@@ -49,7 +49,7 @@ pub enum BuiltinType {
     Tuple(TupleId),
 
     // some trait object
-    Trait(TraitId),
+    TraitObject(TraitId),
 
     // some module
     Module(ModuleId),
@@ -222,7 +222,7 @@ impl BuiltinType {
         match *self {
             BuiltinType::Ptr => true,
             BuiltinType::Class(_, _) => true,
-            BuiltinType::Trait(_) => true,
+            BuiltinType::TraitObject(_) => true,
             _ => false,
         }
     }
@@ -337,7 +337,7 @@ impl BuiltinType {
 
                 _ => false,
             },
-            BuiltinType::Trait(_) => unimplemented!(),
+            BuiltinType::TraitObject(_) => unimplemented!(),
             BuiltinType::Module(_) => *self == other,
             BuiltinType::Enum(_, _) => *self == other,
 
@@ -397,7 +397,7 @@ impl BuiltinType {
 
                 struc.size
             }
-            BuiltinType::Trait(_) => mem::ptr_width(),
+            BuiltinType::TraitObject(_) => mem::ptr_width(),
             BuiltinType::TypeParam(_) => panic!("no size for type variable."),
             BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).size(),
         }
@@ -440,7 +440,7 @@ impl BuiltinType {
 
                 struc.align
             }
-            BuiltinType::Trait(_) => mem::ptr_width(),
+            BuiltinType::TraitObject(_) => mem::ptr_width(),
             BuiltinType::TypeParam(_) => panic!("no alignment for type variable."),
             BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).align(),
         }
@@ -466,7 +466,7 @@ impl BuiltinType {
             | BuiltinType::Lambda(_)
             | BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),
-            BuiltinType::Trait(_) => MachineMode::Ptr,
+            BuiltinType::TraitObject(_) => MachineMode::Ptr,
             BuiltinType::TypeParam(_) => panic!("no machine mode for type variable."),
             BuiltinType::Tuple(_) => unimplemented!(),
         }
@@ -489,7 +489,7 @@ impl BuiltinType {
             | BuiltinType::Float64
             | BuiltinType::Enum(_, _)
             | BuiltinType::Module(_)
-            | BuiltinType::Trait(_)
+            | BuiltinType::TraitObject(_)
             | BuiltinType::Lambda(_)
             | BuiltinType::TypeParam(_) => true,
             BuiltinType::Class(_, list_id) | BuiltinType::Struct(_, list_id) => {
@@ -531,7 +531,7 @@ impl BuiltinType {
             | BuiltinType::Enum(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Ptr
-            | BuiltinType::Trait(_)
+            | BuiltinType::TraitObject(_)
             | BuiltinType::Nil => true,
             BuiltinType::Class(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
@@ -868,7 +868,7 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                     format!("{}[{}]", name, params)
                 }
             }
-            BuiltinType::Trait(tid) => {
+            BuiltinType::TraitObject(tid) => {
                 let xtrait = self.vm.traits[tid].read();
                 self.vm.interner.str(xtrait.name).to_string()
             }

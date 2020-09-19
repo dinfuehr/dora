@@ -945,7 +945,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     fct_id
                 }
             }
-            CallType::TraitStatic(list_id, trait_id, trait_fct_id) => {
+            CallType::GenericStaticMethod(list_id, trait_id, trait_fct_id) => {
                 if self.generic_mode {
                     trait_fct_id
                 } else {
@@ -1202,8 +1202,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 }
             }
-            CallType::Trait(_, _) => unimplemented!(),
-            CallType::TraitStatic(_, _, _) => {
+            CallType::TraitObjectMethod(_, _) => unimplemented!(),
+            CallType::GenericMethod(_, _, _) => unimplemented!(),
+            CallType::GenericStaticMethod(_, _, _) => {
                 if self.generic_mode {
                     self.emit_invoke_generic(return_type, return_reg, fct_def_id, pos);
                 } else {
@@ -2694,9 +2695,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 ty.type_params(self.vm)
             }
 
-            CallType::Trait(_, _) => unimplemented!(),
-
-            CallType::TraitStatic(_, _, _) => TypeList::empty(),
+            CallType::TraitObjectMethod(_, _) => TypeList::empty(),
+            CallType::GenericMethod(_, _, _) => TypeList::empty(),
+            CallType::GenericStaticMethod(_, _, _) => TypeList::empty(),
 
             CallType::Intrinsic(_) => unreachable!(),
         }
@@ -2744,8 +2745,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 specialize_type(self.vm, ty, &type_params)
             }
 
-            CallType::Trait(_, _) => unimplemented!(),
-            CallType::TraitStatic(_, _, _) => specialize_type(self.vm, ty, &TypeList::empty()),
+            CallType::TraitObjectMethod(_, _) => unimplemented!(),
+            CallType::GenericMethod(_, _, _) => unimplemented!(),
+            CallType::GenericStaticMethod(_, _, _) => {
+                specialize_type(self.vm, ty, &TypeList::empty())
+            }
             CallType::Intrinsic(_) => unreachable!(),
         };
 

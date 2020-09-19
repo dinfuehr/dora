@@ -245,7 +245,7 @@ fn read_type_basic<'ast>(
                 vm.diag.lock().report(file, basic.pos, msg);
             }
 
-            Some(BuiltinType::Trait(trait_id))
+            Some(BuiltinType::TraitObject(trait_id))
         }
 
         SymStruct(struct_id) => {

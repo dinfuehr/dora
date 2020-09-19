@@ -102,7 +102,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                         let ty = semck::read_type(vm, fct.file, bound);
 
                         match ty {
-                            Some(BuiltinType::Trait(trait_id)) => {
+                            Some(BuiltinType::TraitObject(trait_id)) => {
                                 if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = SemError::DuplicateTraitBound;
                                     vm.diag.lock().report(fct.file, type_param.pos, msg);

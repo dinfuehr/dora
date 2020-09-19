@@ -80,7 +80,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             Some(LookupKind::Method(obj))
         } else if let Some(_) = obj.module_id() {
             Some(LookupKind::Method(obj))
-        } else if let BuiltinType::Trait(trait_id) = obj {
+        } else if let BuiltinType::TraitObject(trait_id) = obj {
             Some(LookupKind::Trait(trait_id))
         } else if obj.is_nil() {
             Some(LookupKind::Method(obj))

@@ -271,10 +271,13 @@ pub enum CallType {
     Expr(BuiltinType, FctId),
 
     // Invoke method on trait object
-    Trait(TraitId, FctId),
+    TraitObjectMethod(TraitId, FctId),
+
+    // Invoke trait method on type param, e.g. (T: SomeTrait).method()
+    GenericMethod(TypeListId, TraitId, FctId),
 
     // Invoke static trait method on type param, e.g. T::method()
-    TraitStatic(TypeListId, TraitId, FctId),
+    GenericStaticMethod(TypeListId, TraitId, FctId),
 
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),
@@ -324,8 +327,9 @@ impl CallType {
             CallType::Ctor(_, fctid) => Some(fctid),
             CallType::CtorParent(_, fctid) => Some(fctid),
             CallType::Expr(_, fctid) => Some(fctid),
-            CallType::Trait(_, fctid) => Some(fctid),
-            CallType::TraitStatic(_, _, fctid) => Some(fctid),
+            CallType::TraitObjectMethod(_, fctid) => Some(fctid),
+            CallType::GenericMethod(_, _, fctid) => Some(fctid),
+            CallType::GenericStaticMethod(_, _, fctid) => Some(fctid),
             CallType::Intrinsic(_) => None,
         }
     }

@@ -83,7 +83,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                     let ty = semck::read_type(self.vm, cls.file, bound);
 
                     match ty {
-                        Some(BuiltinType::Trait(trait_id)) => {
+                        Some(BuiltinType::TraitObject(trait_id)) => {
                             if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                 let msg = SemError::DuplicateTraitBound;
                                 self.vm.diag.lock().report(cls.file, type_param.pos, msg);
