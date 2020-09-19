@@ -927,22 +927,27 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn determine_callee(&mut self, call_type: &CallType) -> FctId {
         match *call_type {
-            CallType::Method(_, fct_id, _) => {
+            CallType::Method(object_type, fct_id, _) => {
                 let fct = self.vm.fcts.idx(fct_id);
                 let fct = fct.read();
 
                 if fct.parent.is_trait() {
                     // This happens for calls like (T: SomeTrait).method()
                     // Find the exact method that is called
-                    let trait_id = fct.trait_id();
-                    let object_type = match *call_type {
-                        CallType::Method(ty, _, _) => ty,
-                        _ => unreachable!(),
-                    };
                     let object_type = self.specialize_type(object_type);
-                    self.find_trait_impl(fct_id, trait_id, object_type)
+                    self.find_trait_impl(fct_id, fct.trait_id(), object_type)
                 } else {
                     fct_id
+                }
+            }
+            CallType::GenericMethod(id, trait_id, trait_fct_id) => {
+                if self.generic_mode {
+                    trait_fct_id
+                } else {
+                    // This happens for calls like (T: SomeTrait).method()
+                    // Find the exact method that is called
+                    let object_type = self.specialize_type(BuiltinType::TypeParam(id));
+                    self.find_trait_impl(trait_fct_id, trait_id, object_type)
                 }
             }
             CallType::GenericStaticMethod(list_id, trait_id, trait_fct_id) => {
@@ -1203,7 +1208,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
             CallType::TraitObjectMethod(_, _) => unimplemented!(),
-            CallType::GenericMethod(_, _, _) => unimplemented!(),
+            CallType::GenericMethod(_, _, _) => {
+                if self.generic_mode {
+                    self.emit_invoke_generic(return_type, return_reg, fct_def_id, pos);
+                } else if arg_bytecode_types[0] != BytecodeType::Ptr {
+                    self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
+                } else {
+                    self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
+                }
+            }
             CallType::GenericStaticMethod(_, _, _) => {
                 if self.generic_mode {
                     self.emit_invoke_generic(return_type, return_reg, fct_def_id, pos);
@@ -2746,7 +2759,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             CallType::TraitObjectMethod(_, _) => unimplemented!(),
-            CallType::GenericMethod(_, _, _) => unimplemented!(),
+            CallType::GenericMethod(id, _, _) => {
+                debug_assert!(ty.is_concrete_type(self.vm) || ty.is_self());
+                if ty.is_self() {
+                    BuiltinType::TypeParam(id)
+                } else {
+                    ty
+                }
+            }
             CallType::GenericStaticMethod(_, _, _) => {
                 specialize_type(self.vm, ty, &TypeList::empty())
             }

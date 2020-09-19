@@ -86,6 +86,13 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_self(&self) -> bool {
+        match *self {
+            BuiltinType::This => true,
+            _ => false,
+        }
+    }
+
     pub fn is_nil(&self) -> bool {
         match *self {
             BuiltinType::Nil => true,

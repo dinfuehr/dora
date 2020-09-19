@@ -8,7 +8,7 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns};
 use crate::sym::TypeSym::SymClass;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
@@ -1532,8 +1532,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         name: Name,
         arg_types: &[BuiltinType],
     ) -> BuiltinType {
-        self.fct.type_param_ty(self.vm, object_type, |tp, _| {
-            self.check_expr_call_generic_type_param(e, object_type, tp, name, arg_types)
+        self.fct.type_param_ty(self.vm, object_type, |tp, id| {
+            self.check_expr_call_generic_type_param(e, object_type, id, tp, name, arg_types)
         })
     }
 
@@ -1541,6 +1541,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprCallType,
         object_type: BuiltinType,
+        _id: TypeListId,
         tp: &vm::TypeParam,
         name: Name,
         args: &[BuiltinType],
@@ -1557,14 +1558,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if found_fcts.len() == 1 {
             let fid = found_fcts[0];
-            let call_type = CallType::Method(object_type, fid, TypeList::empty());
-            self.src.map_calls.insert(e.id, Arc::new(call_type));
 
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
             let return_type = fct.return_type;
 
             self.src.set_ty(e.id, return_type);
+
+            // let call_type = CallType::GenericMethod(id, fct.trait_id(), fid);
+            let call_type = CallType::Method(object_type, fid, TypeList::empty());
+            self.src.map_calls.insert(e.id, Arc::new(call_type));
 
             return_type
         } else {
