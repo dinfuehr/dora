@@ -993,6 +993,17 @@ impl BytecodeBuilder {
         self.writer.set_position(pos);
         self.writer.emit_store_array_tuple(src, array, index);
     }
+    pub fn emit_store_array_generic(
+        &mut self,
+        src: Register,
+        array: Register,
+        index: Register,
+        pos: Position,
+    ) {
+        assert!(self.used(src) && self.used(array) && self.used(index));
+        self.writer.set_position(pos);
+        self.writer.emit_store_array_generic(src, array, index);
+    }
 
     pub fn emit_load_array_uint8(
         &mut self,
@@ -1092,6 +1103,17 @@ impl BytecodeBuilder {
         assert!(self.def(dest) && self.used(array) && self.used(index));
         self.writer.set_position(pos);
         self.writer.emit_load_array_tuple(dest, array, index);
+    }
+    pub fn emit_load_array_generic(
+        &mut self,
+        dest: Register,
+        array: Register,
+        index: Register,
+        pos: Position,
+    ) {
+        assert!(self.def(dest) && self.used(array) && self.used(index));
+        self.writer.set_position(pos);
+        self.writer.emit_load_array_generic(dest, array, index);
     }
 
     pub fn generate(self, vm: &VM) -> BytecodeFunction {

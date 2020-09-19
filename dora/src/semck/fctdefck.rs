@@ -235,19 +235,20 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
 pub fn generate_bytecode<'a, 'ast>(vm: &VM<'ast>) {
     for fct in vm.fcts.iter() {
-        let mut fct = fct.write();
-
-        if !fct.is_src() {
-            continue;
-        }
-
         let bc = {
+            let fct = fct.read();
+
+            if !fct.is_src() {
+                continue;
+            }
+
             let src = fct.src();
             let src = src.read();
 
             bytecode::generate_generic(vm, &*fct, &*src)
         };
 
+        let mut fct = fct.write();
         fct.bytecode = Some(bc);
     }
 }

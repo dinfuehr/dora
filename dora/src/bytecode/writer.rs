@@ -806,6 +806,9 @@ impl BytecodeWriter {
     pub fn emit_store_array_tuple(&mut self, src: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArrayTuple, src, array, index);
     }
+    pub fn emit_store_array_generic(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayGeneric, src, array, index);
+    }
 
     pub fn emit_load_array_uint8(&mut self, dest: Register, array: Register, idx: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayUInt8, dest, array, idx);
@@ -833,6 +836,9 @@ impl BytecodeWriter {
     }
     pub fn emit_load_array_tuple(&mut self, dest: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayTuple, dest, array, index);
+    }
+    pub fn emit_load_array_generic(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayGeneric, dest, array, index);
     }
 
     pub fn generate(mut self) -> BytecodeFunction {

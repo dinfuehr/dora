@@ -861,6 +861,9 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_load_array_tuple(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArrayTuple", dest, arr, idx);
     }
+    fn visit_load_array_generic(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayGeneric", dest, arr, idx);
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayBool", src, arr, idx);
@@ -888,6 +891,9 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     }
     fn visit_store_array_tuple(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayTuple", src, arr, idx);
+    }
+    fn visit_store_array_generic(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayGeneric", src, arr, idx);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

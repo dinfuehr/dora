@@ -625,7 +625,24 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
                     self.visit_expr(part, DataDest::Reg(part_register));
                 } else if ty.is_type_param() && self.generic_mode {
-                    unimplemented!();
+                    let expr_register = self.visit_expr(part, DataDest::Alloc);
+                    self.gen.emit_push_register(expr_register);
+
+                    // build toString() call
+                    let name = self.vm.interner.intern("toString");
+                    let trait_id = self.vm.vips.stringable_trait;
+                    let xtrait = self.vm.traits[trait_id].read();
+                    let to_string_id = xtrait
+                        .find_method(self.vm, name, false)
+                        .expect("Stringable::toString() not found");
+
+                    self.gen.emit_invoke_generic_direct(
+                        part_register,
+                        FctDef::fct_id(self.vm, to_string_id),
+                        part.pos(),
+                    );
+
+                    self.free_if_temp(expr_register);
                 } else {
                     let expr_register = self.visit_expr(part, DataDest::Alloc);
                     self.gen.emit_push_register(expr_register);
@@ -1979,7 +1996,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float64 => self.gen.emit_store_array_float64(src, arr, idx, pos),
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_store_array_tuple(src, arr, idx, pos),
-            BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::TypeParam(_) => self.gen.emit_store_array_generic(src, arr, idx, pos),
         }
     }
 
@@ -2189,7 +2206,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     BytecodeType::Float64 => self.gen.emit_load_array_float64(dest, arr, idx, pos),
                     BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
                     BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
-                    BytecodeType::TypeParam(_) => unreachable!(),
+                    BytecodeType::TypeParam(_) => {
+                        self.gen.emit_load_array_generic(dest, arr, idx, pos)
+                    }
                 }
 
                 self.free_if_temp(arr);
@@ -2242,6 +2261,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_uint8(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_uint8(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_uint8(dest, lhs_reg, rhs_reg),
+                None => self.gen.emit_const_int32(dest, 0),
                 _ => unreachable!(),
             },
             Intrinsic::CharEq => match op {
@@ -2314,6 +2334,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Ge)) => {
                     self.gen.emit_test_ge_float32(dest, lhs_reg, rhs_reg)
                 }
+                None => self.gen.emit_const_int32(dest, 0),
                 _ => unreachable!(),
             },
             Intrinsic::Float64Eq => match op {
@@ -2339,6 +2360,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Ge)) => {
                     self.gen.emit_test_ge_float64(dest, lhs_reg, rhs_reg)
                 }
+                None => self.gen.emit_const_int32(dest, 0),
+
                 _ => unreachable!(),
             },
             Intrinsic::Int32Add => self.gen.emit_add_int32(dest, lhs_reg, rhs_reg),
