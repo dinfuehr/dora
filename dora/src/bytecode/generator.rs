@@ -639,19 +639,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
                         .expect("toString() method not found");
 
-                    if ty.reference_type() {
-                        self.gen.emit_invoke_direct(
-                            part_register,
-                            FctDef::fct_id(self.vm, to_string_id),
-                            part.pos(),
-                        );
-                    } else {
-                        self.gen.emit_invoke_static(
-                            part_register,
-                            FctDef::fct_id(self.vm, to_string_id),
-                            part.pos(),
-                        );
-                    }
+                    self.gen.emit_invoke_direct(
+                        part_register,
+                        FctDef::fct_id(self.vm, to_string_id),
+                        part.pos(),
+                    );
 
                     self.free_if_temp(expr_register);
                 }
