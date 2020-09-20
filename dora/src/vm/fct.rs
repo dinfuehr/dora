@@ -1,6 +1,4 @@
-use crate::ty::TypeList;
 use parking_lot::RwLock;
-use std::collections::HashMap;
 
 use std::sync::Arc;
 
@@ -67,8 +65,6 @@ pub struct Fct<'ast> {
     pub type_params: Vec<TypeParam>,
     pub kind: FctKind,
     pub bytecode: Option<BytecodeFunction>,
-
-    pub specializations: RwLock<HashMap<TypeList, FctDefId>>,
 }
 
 impl<'ast> Fct<'ast> {
@@ -597,76 +593,5 @@ impl Intrinsic {
             }
             _ => panic!("no return type for {:?}", self),
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct FctDefId(pub usize);
-
-impl FctDefId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for FctDefId {
-    fn from(data: usize) -> FctDefId {
-        FctDefId(data)
-    }
-}
-
-impl<'ast> GrowableVec<RwLock<FctDef>> {
-    pub fn idx(&self, index: FctDefId) -> Arc<RwLock<FctDef>> {
-        self.idx_usize(index.0)
-    }
-}
-
-#[derive(Debug)]
-pub struct FctDef {
-    pub id: FctDefId,
-    pub fct_id: FctId,
-    pub type_params: TypeList,
-}
-
-impl FctDef {
-    pub fn fct(vm: &VM, fct: &Fct) -> FctDefId {
-        FctDef::with(vm, fct, TypeList::empty())
-    }
-
-    pub fn fct_types(vm: &VM, fct: &Fct, type_params: TypeList) -> FctDefId {
-        FctDef::with(vm, fct, type_params)
-    }
-
-    pub fn fct_id(vm: &VM, fct_id: FctId) -> FctDefId {
-        let fct = vm.fcts.idx(fct_id);
-        let fct = fct.read();
-
-        FctDef::fct(vm, &*fct)
-    }
-
-    pub fn fct_id_types(vm: &VM, fct_id: FctId, type_params: TypeList) -> FctDefId {
-        let fct = vm.fcts.idx(fct_id);
-        let fct = fct.read();
-
-        FctDef::fct_types(vm, &*fct, type_params)
-    }
-
-    pub fn with(vm: &VM, fct: &Fct, type_params: TypeList) -> FctDefId {
-        let mut specializations = fct.specializations.write();
-
-        if let Some(&id) = specializations.get(&type_params) {
-            return id;
-        }
-
-        let fct_def_id = vm.add_fct_def(FctDef {
-            id: FctDefId(0),
-            fct_id: fct.id,
-            type_params: type_params.clone(),
-        });
-
-        let old = specializations.insert(type_params, fct_def_id);
-        assert!(old.is_none());
-
-        fct_def_id
     }
 }

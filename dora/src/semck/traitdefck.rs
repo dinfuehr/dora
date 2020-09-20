@@ -1,6 +1,3 @@
-use parking_lot::RwLock;
-use std::collections::HashMap;
-
 use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
@@ -91,8 +88,6 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             type_params: Vec::new(),
             kind: FctKind::Definition,
             bytecode: None,
-
-            specializations: RwLock::new(HashMap::new()),
         };
 
         let fctid = self.vm.add_fct(fct);

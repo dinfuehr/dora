@@ -23,8 +23,7 @@ use crate::semck::specialize::specialize_type;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{
-    ClassDefId, Fct, FctDefId, FctId, FctKind, FctSrc, FieldId, GlobalId, Intrinsic, Trap, TupleId,
-    VM,
+    ClassDefId, Fct, FctId, FctKind, FctSrc, FieldId, GlobalId, Intrinsic, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -1923,22 +1922,21 @@ where
         }
     }
 
-    fn emit_invoke_direct(&mut self, dest: Option<Register>, fct_def_id: FctDefId) {
+    fn emit_invoke_direct(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+        let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+
         let bytecode_type = if let Some(dest) = dest {
             Some(self.bytecode.register_type(dest))
         } else {
             None
         };
 
-        let fct_def = self.vm.fct_defs.idx(fct_def_id);
-        let fct_def = fct_def.read();
-
-        let fct_id = fct_def.fct_id;
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
         assert!(fct.has_self());
-
-        let type_params = fct_def.type_params.clone();
 
         let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
 
@@ -3217,11 +3215,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.visit_jump(offset as u32);
     }
 
-    fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
+    fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeDirectVoid {}", fctdef.to_usize()));
         self.emit_invoke_direct(None, fctdef)
     }
-    fn visit_invoke_direct(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeDirect {}", fctdef.to_usize()));
         self.emit_invoke_direct(Some(dest), fctdef);
     }

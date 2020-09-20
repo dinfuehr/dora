@@ -1,5 +1,4 @@
 use parking_lot::RwLock;
-use std::collections::HashMap;
 
 use crate::semck;
 use crate::ty::BuiltinType;
@@ -74,8 +73,6 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
                 type_params: Vec::new(),
                 kind: FctKind::Source(RwLock::new(FctSrc::new())),
                 bytecode: None,
-
-                specializations: RwLock::new(HashMap::new()),
             };
 
             let fct_id = self.vm.add_fct(fct);

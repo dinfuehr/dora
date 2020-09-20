@@ -1,5 +1,5 @@
 use parking_lot::RwLock;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck;
@@ -284,8 +284,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             type_params: Vec::new(),
             kind,
             bytecode: None,
-
-            specializations: RwLock::new(HashMap::new()),
         };
 
         let fctid = self.vm.add_fct(fct);
@@ -338,8 +336,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             type_params: Vec::new(),
             kind,
             bytecode: None,
-
-            specializations: RwLock::new(HashMap::new()),
         };
 
         let fctid = self.vm.add_fct(fct);

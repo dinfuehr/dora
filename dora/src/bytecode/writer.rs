@@ -6,7 +6,7 @@ use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
     Register,
 };
-use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId};
+use crate::vm::{ClassDefId, FieldId, GlobalId, TupleId};
 
 use dora_parser::lexer::position::Position;
 
@@ -717,44 +717,44 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::PushRegister, src);
     }
 
-    pub fn emit_invoke_direct_void(&mut self, fid: FctDefId) {
+    pub fn emit_invoke_direct_void(&mut self, fid: ConstPoolIdx) {
         self.emit_fct_void(BytecodeOpcode::InvokeDirectVoid, fid);
     }
 
-    pub fn emit_invoke_direct(&mut self, dest: Register, fid: FctDefId) {
+    pub fn emit_invoke_direct(&mut self, dest: Register, fid: ConstPoolIdx) {
         self.emit_fct(BytecodeOpcode::InvokeDirect, dest, fid);
     }
 
     pub fn emit_invoke_virtual_void(&mut self, idx: ConstPoolIdx) {
-        self.emit_fct_const_void(BytecodeOpcode::InvokeVirtualVoid, idx);
+        self.emit_fct_void(BytecodeOpcode::InvokeVirtualVoid, idx);
     }
 
     pub fn emit_invoke_virtual(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_fct_const(BytecodeOpcode::InvokeVirtual, dest, idx);
+        self.emit_fct(BytecodeOpcode::InvokeVirtual, dest, idx);
     }
 
     pub fn emit_invoke_static_void(&mut self, idx: ConstPoolIdx) {
-        self.emit_fct_const_void(BytecodeOpcode::InvokeStaticVoid, idx);
+        self.emit_fct_void(BytecodeOpcode::InvokeStaticVoid, idx);
     }
 
     pub fn emit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_fct_const(BytecodeOpcode::InvokeStatic, dest, idx);
+        self.emit_fct(BytecodeOpcode::InvokeStatic, dest, idx);
     }
 
     pub fn emit_invoke_generic_static_void(&mut self, idx: ConstPoolIdx) {
-        self.emit_fct_const_void(BytecodeOpcode::InvokeGenericStaticVoid, idx);
+        self.emit_fct_void(BytecodeOpcode::InvokeGenericStaticVoid, idx);
     }
 
     pub fn emit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_fct_const(BytecodeOpcode::InvokeGenericStatic, dest, idx);
+        self.emit_fct(BytecodeOpcode::InvokeGenericStatic, dest, idx);
     }
 
     pub fn emit_invoke_generic_direct_void(&mut self, idx: ConstPoolIdx) {
-        self.emit_fct_const_void(BytecodeOpcode::InvokeGenericDirectVoid, idx);
+        self.emit_fct_void(BytecodeOpcode::InvokeGenericDirectVoid, idx);
     }
 
     pub fn emit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_fct_const(BytecodeOpcode::InvokeGenericDirect, dest, idx);
+        self.emit_fct(BytecodeOpcode::InvokeGenericDirect, dest, idx);
     }
 
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
@@ -992,22 +992,12 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_fct_void(&mut self, inst: BytecodeOpcode, fid: FctDefId) {
-        let values = [fid.to_usize() as u32];
-        self.emit_values(inst, &values);
-    }
-
-    fn emit_fct(&mut self, inst: BytecodeOpcode, r1: Register, fid: FctDefId) {
-        let values = [r1.to_usize() as u32, fid.to_usize() as u32];
-        self.emit_values(inst, &values);
-    }
-
-    fn emit_fct_const_void(&mut self, inst: BytecodeOpcode, idx: ConstPoolIdx) {
+    fn emit_fct_void(&mut self, inst: BytecodeOpcode, idx: ConstPoolIdx) {
         let values = [idx.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 
-    fn emit_fct_const(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
+    fn emit_fct(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
         let values = [r1.to_usize() as u32, idx.to_usize() as u32];
         self.emit_values(inst, &values);
     }

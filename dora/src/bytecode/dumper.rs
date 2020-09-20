@@ -4,7 +4,7 @@ use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::ty::BuiltinType;
-use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId, VM};
+use crate::vm::{ClassDefId, FieldId, GlobalId, TupleId, VM};
 
 pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
@@ -235,22 +235,12 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
             .expect("write! failed");
     }
 
-    fn emit_fct_void(&mut self, name: &str, fid: FctDefId) {
-        self.emit_start(name);
-        writeln!(self.w, " FctDefId({})", fid.to_usize()).expect("write! failed");
-    }
-
-    fn emit_fct(&mut self, name: &str, r1: Register, fid: FctDefId) {
-        self.emit_start(name);
-        writeln!(self.w, " {}, FctDefId({})", r1, fid.to_usize()).expect("write! failed");
-    }
-
-    fn emit_fct_const_void(&mut self, name: &str, fid: ConstPoolIdx) {
+    fn emit_fct_void(&mut self, name: &str, fid: ConstPoolIdx) {
         self.emit_start(name);
         writeln!(self.w, " ConstPoolIdx({})", fid.to_usize()).expect("write! failed");
     }
 
-    fn emit_fct_const(&mut self, name: &str, r1: Register, fid: ConstPoolIdx) {
+    fn emit_fct(&mut self, name: &str, r1: Register, fid: ConstPoolIdx) {
         self.emit_start(name);
         writeln!(self.w, " {}, ConstPoolIdx({})", r1, fid.to_usize()).expect("write! failed");
     }
@@ -814,39 +804,39 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_jump_const("JumpConst", idx);
     }
 
-    fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
+    fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {
         self.emit_fct_void("InvokeDirectVoid", fctdef);
     }
-    fn visit_invoke_direct(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         self.emit_fct("InvokeDirect", dest, fctdef);
     }
 
     fn visit_invoke_virtual_void(&mut self, fct: ConstPoolIdx) {
-        self.emit_fct_const_void("InvokeVirtualVoid", fct);
+        self.emit_fct_void("InvokeVirtualVoid", fct);
     }
     fn visit_invoke_virtual(&mut self, dest: Register, fct: ConstPoolIdx) {
-        self.emit_fct_const("InvokeVirtual", dest, fct);
+        self.emit_fct("InvokeVirtual", dest, fct);
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {
-        self.emit_fct_const_void("InvokeStaticVoid", fctdef);
+        self.emit_fct_void("InvokeStaticVoid", fctdef);
     }
     fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        self.emit_fct_const("InvokeStatic", dest, fctdef);
+        self.emit_fct("InvokeStatic", dest, fctdef);
     }
 
     fn visit_invoke_generic_static_void(&mut self, fct: ConstPoolIdx) {
-        self.emit_fct_const_void("InvokeGenericStaticVoid", fct);
+        self.emit_fct_void("InvokeGenericStaticVoid", fct);
     }
     fn visit_invoke_generic_static(&mut self, dest: Register, fct: ConstPoolIdx) {
-        self.emit_fct_const("InvokeGenericStatic", dest, fct);
+        self.emit_fct("InvokeGenericStatic", dest, fct);
     }
 
     fn visit_invoke_generic_direct_void(&mut self, fct: ConstPoolIdx) {
-        self.emit_fct_const_void("InvokeGenericDirectVoid", fct);
+        self.emit_fct_void("InvokeGenericDirectVoid", fct);
     }
     fn visit_invoke_generic_direct(&mut self, dest: Register, fct: ConstPoolIdx) {
-        self.emit_fct_const("InvokeGenericDirect", dest, fct);
+        self.emit_fct("InvokeGenericDirect", dest, fct);
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

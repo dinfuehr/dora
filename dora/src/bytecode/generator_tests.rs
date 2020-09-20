@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ensure_tuple, ClassDefId, FctDef, FctDefId, FieldId, GlobalId, TupleId, VM};
+use crate::vm::{ensure_tuple, ClassDefId, FieldId, GlobalId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -1079,12 +1079,12 @@ fn gen_fct_call_void_with_1_arg() {
             let expected = vec![
                 ConstInt32(r(0), 1),
                 PushRegister(r(0)),
-                InvokeStaticVoid(ConstPoolIdx(1)),
+                InvokeStaticVoid(ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
             assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
+                fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(fct_id, TypeList::empty())
             );
         },
@@ -1107,12 +1107,12 @@ fn gen_fct_call_void_with_3_args() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
-                InvokeStaticVoid(ConstPoolIdx(3)),
+                InvokeStaticVoid(ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
             assert_eq!(
-                fct.const_pool(ConstPoolIdx(3)),
+                fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(fct_id, TypeList::empty())
             );
         },
@@ -1131,12 +1131,12 @@ fn gen_fct_call_int_with_1_arg() {
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(1)),
-                InvokeStatic(r(0), ConstPoolIdx(1)),
+                InvokeStatic(r(0), ConstPoolIdx(0)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
+                fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(fct_id, TypeList::empty())
             );
         },
@@ -1159,12 +1159,12 @@ fn gen_fct_call_int_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeStatic(r(0), ConstPoolIdx(3)),
+                InvokeStatic(r(0), ConstPoolIdx(0)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
-                fct.const_pool(ConstPoolIdx(3)),
+                fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(fct_id, TypeList::empty())
             );
         },
@@ -1173,79 +1173,99 @@ fn gen_fct_call_int_with_3_args() {
 
 #[test]
 fn gen_method_call_void_check_correct_self() {
-    gen(
+    gen_fct(
         "
             fun f(i: Int32, foo: Foo) { foo.g(); }
             class Foo {
                 fun g() { }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(1)), InvokeDirectVoid(fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(1)),
+                InvokeDirectVoid(ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_void_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() { }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirectVoid(fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirectVoid(ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_void_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(1); }
             class Foo {
                 fun g(a: Int32) { }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirectVoid(fct_id),
+                InvokeDirectVoid(ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_void_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(1, 2, 3); }
             class Foo {
                 fun g(a: Int32, b: Int32, c: Int32) { }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
@@ -1255,89 +1275,113 @@ fn gen_method_call_void_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeDirectVoid(fct_id),
+                InvokeDirectVoid(ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_bool_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Bool { return foo.g(); }
             class Foo {
                 fun g() -> Bool { return true; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_bool_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() -> Bool { return true; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_bool_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Bool { return foo.g(true); }
             class Foo {
                 fun g(a: Bool) -> Bool { return true; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstTrue(r(2)),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_bool_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Bool { return foo.g(true, false, true); }
             class Foo {
                 fun g(a: Bool, b: Bool, c: Bool) -> Bool { return true; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstTrue(r(2)),
@@ -1347,89 +1391,113 @@ fn gen_method_call_bool_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_byte_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> UInt8 { return foo.g(); }
             class Foo {
                 fun g() -> UInt8 { return 1Y; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_byte_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() -> UInt8 { return 1Y; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_byte_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> UInt8 { return foo.g(1Y); }
             class Foo {
                 fun g(a: UInt8) -> UInt8 { return 1Y; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstUInt8(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_byte_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> UInt8 { return foo.g(1Y, 2Y, 3Y); }
             class Foo {
                 fun g(a: UInt8, b: UInt8, c: UInt8) -> UInt8 { return 1Y; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstUInt8(r(2), 1),
@@ -1439,89 +1507,113 @@ fn gen_method_call_byte_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_char_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Char { return foo.g(); }
             class Foo {
                 fun g() -> Char { return '1'; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_char_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() -> Char { return '1'; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_char_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Char { return foo.g('1'); }
             class Foo {
                 fun g(a: Char) -> Char { return '1'; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstChar(r(2), '1'),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_char_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Char { return foo.g('1', '2', '3'); }
             class Foo {
                 fun g(a: Char, b: Char, c: Char) -> Char { return '1'; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstChar(r(2), '1'),
@@ -1531,89 +1623,113 @@ fn gen_method_call_char_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_int_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Int32 { return foo.g(); }
             class Foo {
                 fun g() -> Int32 { return 1; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_int_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() -> Int32 { return 1; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_int_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Int32 { return foo.g(1); }
             class Foo {
                 fun g(a: Int32) -> Int32 { return 1; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt32(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_int_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Int32 { return foo.g(1, 2, 3); }
             class Foo {
                 fun g(a: Int32, b: Int32, c: Int32) -> Int32 { return 1; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt32(r(2), 1),
@@ -1623,89 +1739,113 @@ fn gen_method_call_int_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_int64_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Int64 { return foo.g(); }
             class Foo {
                 fun g() -> Int64 { return 1L; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_int64_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() -> Int64 { return 1L; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_int64_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Int64 { return foo.g(1L); }
             class Foo {
                 fun g(a: Int64) -> Int64 { return 1L; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt64(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_int64_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Int64 { return foo.g(1L, 2L, 3L); }
             class Foo {
                 fun g(a: Int64, b: Int64, c: Int64) -> Int64 { return 1L; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt64(r(2), 1),
@@ -1715,89 +1855,113 @@ fn gen_method_call_int64_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_float32_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Float32 { return foo.g(); }
             class Foo {
                 fun g() -> Float32 { return 1F; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_float32_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() -> Float32 { return 1F; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_float32_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Float32 { return foo.g(1F); }
             class Foo {
                 fun g(a: Float32) -> Float32 { return 1F; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstFloat32(r(2), 1_f32),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_float32_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Float32 { return foo.g(1F, 2F, 3F); }
             class Foo {
                 fun g(a: Float32, b: Float32, c: Float32) -> Float32 { return 1F; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstFloat32(r(2), 1_f32),
@@ -1807,89 +1971,113 @@ fn gen_method_call_float32_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_float64_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Float64 { return foo.g(); }
             class Foo {
                 fun g() -> Float64 { return 1D; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_float64_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() -> Float64 { return 1D; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_float64_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Float64 { return foo.g(1D); }
             class Foo {
                 fun g(a: Float64) -> Float64 { return 1D; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstFloat64(r(2), 1_f64),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_float64_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> Float64 { return foo.g(1D, 2D, 3D); }
             class Foo {
                 fun g(a: Float64, b: Float64, c: Float64) -> Float64 { return 1D; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstFloat64(r(2), 1_f64),
@@ -1899,89 +2087,113 @@ fn gen_method_call_float64_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_ptr_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> String { return foo.g(); }
             class Foo {
                 fun g() -> String { return \"1\"; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_ptr_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
                 fun g() -> String { return \"1\"; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_ptr_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> String { return foo.g(\"1\"); }
             class Foo {
                 fun g(a: String) -> String { return \"1\"; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstString(r(2), "1".to_string()),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_method_call_ptr_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) -> String { return foo.g(\"1\", \"2\", \"3\"); }
             class Foo {
                 fun g(a: String, b: String, c: String) -> String { return \"1\"; }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstString(r(2), "1".to_string()),
@@ -1991,10 +2203,14 @@ fn gen_method_call_ptr_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirect(r(1), fct_id),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
@@ -2079,12 +2295,12 @@ fn gen_virtual_method_call_void_with_1_arg() {
                 ConstInt32(r(1), 1),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeVirtualVoid(ConstPoolIdx(1)),
+                InvokeVirtualVoid(ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
             assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
+                fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(fct_id, TypeList::empty())
             );
         },
@@ -2115,12 +2331,12 @@ fn gen_virtual_method_call_void_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeVirtualVoid(ConstPoolIdx(3)),
+                InvokeVirtualVoid(ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
             assert_eq!(
-                fct.const_pool(ConstPoolIdx(3)),
+                fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(fct_id, TypeList::empty())
             );
         },
@@ -2177,12 +2393,12 @@ fn gen_virtual_method_call_int_with_1_arg() {
                 ConstInt32(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeVirtual(r(1), ConstPoolIdx(1)),
+                InvokeVirtual(r(1), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
             assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
+                fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(fct_id, TypeList::empty())
             );
         },
@@ -2213,12 +2429,12 @@ fn gen_virtual_method_call_int_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeVirtual(r(1), ConstPoolIdx(3)),
+                InvokeVirtual(r(1), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
             assert_eq!(
-                fct.const_pool(ConstPoolIdx(3)),
+                fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(fct_id, TypeList::empty())
             );
         },
@@ -2227,34 +2443,42 @@ fn gen_virtual_method_call_int_with_3_args() {
 
 #[test]
 fn gen_new_object() {
-    gen("fun f() -> Object { return Object(); }", |vm, code| {
+    gen_fct("fun f() -> Object { return Object(); }", |vm, code, fct| {
         let cls_id = vm.cls_def_by_name("Object");
-        let ctor_id = vm.ctor_def_by_name("Object");
+        let ctor_id = vm.ctor_by_name("Object");
         let expected = vec![
             NewObject(r(0), cls_id),
             PushRegister(r(0)),
-            InvokeDirectVoid(ctor_id),
+            InvokeDirectVoid(ConstPoolIdx(0)),
             Ret(r(0)),
         ];
         assert_eq!(expected, code);
+        assert_eq!(
+            fct.const_pool(ConstPoolIdx(0)),
+            &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
+        );
     });
 }
 
 #[test]
 fn gen_new_object_assign_to_var() {
-    gen(
+    gen_fct(
         "fun f() -> Object { let obj = Object(); return obj; }",
-        |vm, code| {
+        |vm, code, fct| {
             let cls_id = vm.cls_def_by_name("Object");
-            let ctor_id = vm.ctor_def_by_name("Object");
+            let ctor_id = vm.ctor_by_name("Object");
             let expected = vec![
                 NewObject(r(1), cls_id),
                 PushRegister(r(1)),
-                InvokeDirectVoid(ctor_id),
+                InvokeDirectVoid(ConstPoolIdx(0)),
                 MovPtr(r(0), r(1)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
+            );
         },
     );
 }
@@ -2564,14 +2788,14 @@ fn gen_position_store_array_ptr() {
 
 #[test]
 fn gen_new_object_with_multiple_args() {
-    gen(
+    gen_fct(
         "
             class Foo(a: Int32, b: Int32, c: Int32)
             fun f() -> Foo { return Foo(1, 2, 3); }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let cls_id = vm.cls_def_by_name("Foo");
-            let ctor_id = vm.ctor_def_by_name("Foo");
+            let ctor_id = vm.ctor_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
@@ -2581,10 +2805,14 @@ fn gen_new_object_with_multiple_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeDirectVoid(ctor_id),
+                InvokeDirectVoid(ConstPoolIdx(0)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
+            );
         },
     );
 }
@@ -2977,71 +3205,94 @@ fn gen_array_set_method() {
 
 #[test]
 fn gen_string_concat() {
-    gen(
+    gen_fct(
         "fun f(a: String, b: String) -> String { a + b }",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("String", "plus", false)
+                .cls_method_by_name("String", "plus", false)
                 .expect("String::plus not found");
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirect(r(2), fct_id),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_string_equals() {
-    gen(
+    gen_fct(
         "fun f(a: String, b: String) -> Bool { a != b }",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("String", "equals", false)
+                .cls_method_by_name("String", "equals", false)
                 .expect("String::equals not found");
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirect(r(2), fct_id),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
                 NotBool(r(2), r(2)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_bool_to_string() {
-    gen("fun f(a: Bool) -> String { a.toString() }", |vm, code| {
-        let fct_id = vm
-            .cls_method_def_by_name("Bool", "toString", false)
-            .expect("Bool::toString not found");
-        let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
-        assert_eq!(expected, code);
-    });
+    gen_fct(
+        "fun f(a: Bool) -> String { a.toString() }",
+        |vm, code, fct| {
+            let fct_id = vm
+                .cls_method_by_name("Bool", "toString", false)
+                .expect("Bool::toString not found");
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_cmp_strings() {
-    gen(
+    gen_fct(
         "fun f(a: String, b: String) -> Bool { a < b }",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("String", "compareTo", false)
+                .cls_method_by_name("String", "compareTo", false)
                 .expect("String::compareTo not found");
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirect(r(3), fct_id),
+                InvokeDirect(r(3), ConstPoolIdx(0)),
                 ConstInt32(r(4), 0),
                 TestLtInt32(r(2), r(3), r(4)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
@@ -3132,37 +3383,43 @@ fn gen_while_with_break() {
 
 #[test]
 fn gen_vec_load() {
-    gen(
+    gen_fct(
         "fun f(x: Vec[Int32], idx: Int64) -> Int32 { x(idx) }",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm.cls_method_by_name("Vec", "get", false).unwrap();
-            let fct_def_id = FctDef::fct_id_types(vm, fct_id, TypeList::single(BuiltinType::Int32));
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirect(r(2), fct_def_id),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::single(BuiltinType::Int32))
+            );
         },
     );
 }
 
 #[test]
 fn gen_vec_store() {
-    gen(
+    gen_fct(
         "fun f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm.cls_method_by_name("Vec", "set", false).unwrap();
-            let fct_def_id = FctDef::fct_id_types(vm, fct_id, TypeList::single(BuiltinType::Int32));
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
-                InvokeDirectVoid(fct_def_id),
+                InvokeDirectVoid(ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::single(BuiltinType::Int32))
+            );
         },
     );
 }
@@ -3424,8 +3681,8 @@ pub enum Bytecode {
     JumpIfFalse(Register, usize),
     JumpIfTrue(Register, usize),
 
-    InvokeDirectVoid(FctDefId),
-    InvokeDirect(Register, FctDefId),
+    InvokeDirectVoid(ConstPoolIdx),
+    InvokeDirect(Register, ConstPoolIdx),
 
     InvokeVirtualVoid(ConstPoolIdx),
     InvokeVirtual(Register, ConstPoolIdx),
@@ -4048,10 +4305,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.visit_jump(value as u32);
     }
 
-    fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
+    fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {
         self.emit(Bytecode::InvokeDirectVoid(fctdef));
     }
-    fn visit_invoke_direct(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         self.emit(Bytecode::InvokeDirect(dest, fctdef));
     }
 
