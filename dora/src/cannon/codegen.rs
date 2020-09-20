@@ -1094,7 +1094,11 @@ where
         idx: u32,
     ) {
         let dest_type = self.bytecode.register_type(dest);
-        let (_ty, offset) = self.vm.tuples.lock().get_at(tuple_id, idx as usize);
+        let (_ty, offset) = self
+            .vm
+            .tuples
+            .lock()
+            .get_ty_and_offset(tuple_id, idx as usize);
         let src_offset = self.register_offset(src);
 
         if let Some(dest_tuple_id) = dest_type.tuple_id() {

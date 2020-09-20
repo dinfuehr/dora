@@ -175,7 +175,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
 
                 for (idx, part) in tuple.parts.iter().enumerate() {
-                    let (ty, _) = self.vm.tuples.lock().get_at(tuple_id, idx);
+                    let ty = self.vm.tuples.lock().get_ty(tuple_id, idx);
                     self.check_stmt_let_pattern(part, ty);
                 }
             }

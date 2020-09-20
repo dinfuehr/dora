@@ -87,11 +87,20 @@ impl Tuples {
         }
     }
 
-    pub fn get_at(&self, id: TupleId, idx: usize) -> (BuiltinType, i32) {
+    pub fn get_ty(&self, id: TupleId, idx: usize) -> BuiltinType {
+        let tuple = self.get_tuple(id);
+        tuple.args[idx]
+    }
+
+    pub fn get_ty_and_offset(&self, id: TupleId, idx: usize) -> (BuiltinType, i32) {
         let tuple = self.get_tuple(id);
         (
             tuple.args[idx],
-            tuple.concrete.as_ref().unwrap().offsets[idx],
+            tuple
+                .concrete
+                .as_ref()
+                .expect("should be concrete tuple")
+                .offsets[idx],
         )
     }
 
