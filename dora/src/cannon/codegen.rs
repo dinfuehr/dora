@@ -924,10 +924,18 @@ where
         &mut self,
         dest: Register,
         src: Register,
-        cls_id: ClassDefId,
+        cls_idx: ConstPoolIdx,
         instanceof: bool,
     ) {
-        let cls = self.vm.class_defs.idx(cls_id);
+        let const_pool_entry = self.bytecode.const_pool(cls_idx);
+
+        let (cls_id, type_params) = match const_pool_entry {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+            _ => unreachable!(),
+        };
+
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
+        let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
 
         let vtable: &VTable = cls.vtable.as_ref().unwrap();
@@ -2615,34 +2623,42 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_demote_float64(dest, src);
     }
 
-    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
+    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
         comment!(self, {
-            let cls = self.vm.class_defs.idx(cls_id);
+            let (cls_id, type_params) = match self.bytecode.const_pool(cls_idx) {
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+                _ => unreachable!(),
+            };
+            let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name(self.vm);
+            let cname = cls.name_with_params(self.vm, type_params);
             format!(
-                "InstanceOf {}, {}, ClassDefId({}) # {}",
+                "InstanceOf {}, {}, ConstPoolIdx({}) # {}",
                 dest,
                 src,
-                cls_id.to_usize(),
+                cls_idx.to_usize(),
                 cname
             )
         });
-        self.emit_instanceof(dest, src, cls_id, true);
+        self.emit_instanceof(dest, src, cls_idx, true);
     }
-    fn visit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
+    fn visit_checked_cast(&mut self, src: Register, cls_idx: ConstPoolIdx) {
         comment!(self, {
-            let cls = self.vm.class_defs.idx(cls_id);
+            let (cls_id, type_params) = match self.bytecode.const_pool(cls_idx) {
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+                _ => unreachable!(),
+            };
+            let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name(self.vm);
+            let cname = cls.name_with_params(self.vm, type_params);
             format!(
-                "CheckedCast {}, ClassDefId({}) # {}",
+                "CheckedCast {}, ConstPoolIdx({}) # {}",
                 src,
-                cls_id.to_usize(),
+                cls_idx.to_usize(),
                 cname
             )
         });
-        self.emit_instanceof(Register::invalid(), src, cls_id, false);
+        self.emit_instanceof(Register::invalid(), src, cls_idx, false);
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

@@ -3141,38 +3141,54 @@ fn gen_truncate_float64_to_int64() {
 
 #[test]
 fn gen_instanceof() {
-    gen(
+    gen_fct(
         "@open class A class B: A fun f(a: A) -> Bool { a is B }",
-        |vm, code| {
-            let cls_id = vm.cls_def_by_name("B");
-            let expected = vec![InstanceOf(r(1), r(0), cls_id), Ret(r(1))];
+        |vm, code, fct| {
+            let cls_id = vm.cls_by_name("B");
+            let expected = vec![InstanceOf(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_checked_cast() {
-    gen(
+    gen_fct(
         "@open class A class B: A fun f(a: A) -> B { a as B }",
-        |vm, code| {
-            let cls_id = vm.cls_def_by_name("B");
-            let expected = vec![CheckedCast(r(0), cls_id), Ret(r(0))];
+        |vm, code, fct| {
+            let cls_id = vm.cls_by_name("B");
+            let expected = vec![CheckedCast(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_checked_cast_effect() {
-    gen(
+    gen_fct(
         "@open class A
         class B: A
         fun f(a: A) -> B { let b = a as B; b }",
-        |vm, code| {
-            let cls_id = vm.cls_def_by_name("B");
-            let expected = vec![MovPtr(r(1), r(0)), CheckedCast(r(1), cls_id), Ret(r(1))];
+        |vm, code, fct| {
+            let cls_id = vm.cls_by_name("B");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                CheckedCast(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+            );
         },
     );
 }
@@ -3599,8 +3615,8 @@ pub enum Bytecode {
     TruncateFloat64ToInt32(Register, Register),
     TruncateFloat64ToInt64(Register, Register),
 
-    InstanceOf(Register, Register, ClassDefId),
-    CheckedCast(Register, ClassDefId),
+    InstanceOf(Register, Register, ConstPoolIdx),
+    CheckedCast(Register, ConstPoolIdx),
 
     MovBool(Register, Register),
     MovUInt8(Register, Register),
@@ -4014,11 +4030,11 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::TruncateFloat64ToInt64(dest, src));
     }
 
-    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
-        self.emit(Bytecode::InstanceOf(dest, src, cls_id));
+    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
+        self.emit(Bytecode::InstanceOf(dest, src, cls_idx));
     }
-    fn visit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
-        self.emit(Bytecode::CheckedCast(src, cls_id));
+    fn visit_checked_cast(&mut self, src: Register, cls_idx: ConstPoolIdx) {
+        self.emit(Bytecode::CheckedCast(src, cls_idx));
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

@@ -485,15 +485,15 @@ impl BytecodeBuilder {
         self.writer.emit_demote_float64_to_float32(dest, src);
     }
 
-    pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
+    pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
         assert!(self.def(dest) && self.used(src));
-        self.writer.emit_instance_of(dest, src, cls_id);
+        self.writer.emit_instance_of(dest, src, cls_idx);
     }
 
-    pub fn emit_checked_cast(&mut self, src: Register, cls_id: ClassDefId, pos: Position) {
+    pub fn emit_checked_cast(&mut self, src: Register, cls_idx: ConstPoolIdx, pos: Position) {
         assert!(self.used(src));
         self.writer.set_position(pos);
-        self.writer.emit_checked_cast(src, cls_id);
+        self.writer.emit_checked_cast(src, cls_idx);
     }
 
     pub fn emit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {

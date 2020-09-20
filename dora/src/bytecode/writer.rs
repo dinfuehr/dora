@@ -437,12 +437,12 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::DemoteFloat64ToFloat32, dest, src);
     }
 
-    pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
-        self.emit_reg2_cls(BytecodeOpcode::InstanceOf, dest, src, cls_id);
+    pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
+        self.emit_reg2_cls(BytecodeOpcode::InstanceOf, dest, src, cls_idx);
     }
 
-    pub fn emit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
-        self.emit_reg1_cls(BytecodeOpcode::CheckedCast, src, cls_id);
+    pub fn emit_checked_cast(&mut self, src: Register, cls_idx: ConstPoolIdx) {
+        self.emit_reg1_cls(BytecodeOpcode::CheckedCast, src, cls_idx);
     }
 
     pub fn emit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -941,12 +941,12 @@ impl BytecodeWriter {
         inst: BytecodeOpcode,
         r1: Register,
         r2: Register,
-        cls_id: ClassDefId,
+        cls_idx: ConstPoolIdx,
     ) {
         let values = [
             r1.to_usize() as u32,
             r2.to_usize() as u32,
-            cls_id.to_usize() as u32,
+            cls_idx.to_usize() as u32,
         ];
         self.emit_values(inst, &values);
     }
@@ -956,8 +956,8 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_reg1_cls(&mut self, inst: BytecodeOpcode, r1: Register, cls_id: ClassDefId) {
-        let values = [r1.to_usize() as u32, cls_id.to_usize() as u32];
+    fn emit_reg1_cls(&mut self, inst: BytecodeOpcode, r1: Register, cls_idx: ConstPoolIdx) {
+        let values = [r1.to_usize() as u32, cls_idx.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 

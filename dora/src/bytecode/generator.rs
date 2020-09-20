@@ -692,12 +692,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn visit_expr_conv(&mut self, expr: &ExprConvType, dest: DataDest) -> Register {
         let conv = *self.src.map_convs.get(expr.id).unwrap();
         let ty = self.specialize_type(conv.check_type);
-        let cls_def_id = specialize_class_ty(self.vm, ty);
+        let cls_id = ty.cls_id(self.vm).expect("class expected");
+        let type_params = ty.type_params(self.vm);
+        let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
         if expr.is {
             let object = self.visit_expr(&expr.object, DataDest::Alloc);
             let result = self.ensure_register(dest, BytecodeType::Bool);
-            self.gen.emit_instance_of(result, object, cls_def_id);
+            self.gen.emit_instance_of(result, object, cls_idx);
 
             result
         } else {
@@ -708,7 +710,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             };
 
             let object = self.visit_expr(&expr.object, dest);
-            self.gen.emit_checked_cast(object, cls_def_id, expr.pos);
+            self.gen.emit_checked_cast(object, cls_idx, expr.pos);
             object
         }
     }

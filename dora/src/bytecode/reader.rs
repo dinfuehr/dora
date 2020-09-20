@@ -423,12 +423,12 @@ where
             BytecodeOpcode::InstanceOf => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                let cls_id = self.read_class(wide);
+                let cls_id = self.read_const_pool_idx(wide);
                 self.visitor.visit_instance_of(dest, src, cls_id);
             }
             BytecodeOpcode::CheckedCast => {
                 let src = self.read_register(wide);
-                let cls_id = self.read_class(wide);
+                let cls_id = self.read_const_pool_idx(wide);
                 self.visitor.visit_checked_cast(src, cls_id);
             }
 
@@ -1423,11 +1423,11 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_instance_of(&mut self, _dest: Register, _src: Register, _cls_id: ClassDefId) {
+    fn visit_instance_of(&mut self, _dest: Register, _src: Register, _cls_id: ConstPoolIdx) {
         unimplemented!();
     }
 
-    fn visit_checked_cast(&mut self, _src: Register, _cls_id: ClassDefId) {
+    fn visit_checked_cast(&mut self, _src: Register, _cls_id: ConstPoolIdx) {
         unimplemented!();
     }
 

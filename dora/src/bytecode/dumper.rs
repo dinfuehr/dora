@@ -103,17 +103,21 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
             .expect("write! failed");
     }
 
-    fn emit_reg2_cls(&mut self, name: &str, r1: Register, r2: Register, cls_id: ClassDefId) {
+    fn emit_reg2_cls(&mut self, name: &str, r1: Register, r2: Register, cls_idx: ConstPoolIdx) {
         self.emit_start(name);
-        let cls = self.vm.class_defs.idx(cls_id);
+        let (cls_id, type_params) = match self.bc.const_pool(cls_idx) {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name(self.vm);
+        let cname = cls.name_with_params(self.vm, &type_params);
         writeln!(
             self.w,
-            " {}, {}, ClassDefId({}) # {}",
+            " {}, {}, ConstPoolIdx({}) # {}",
             r1,
             r2,
-            cls_id.to_usize(),
+            cls_idx.to_usize(),
             cname,
         )
         .expect("write! failed");
@@ -124,16 +128,20 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
         writeln!(self.w, " {}", r1).expect("write! failed");
     }
 
-    fn emit_reg1_cls(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {
+    fn emit_reg1_cls(&mut self, name: &str, r1: Register, cls_idx: ConstPoolIdx) {
         self.emit_start(name);
-        let cls = self.vm.class_defs.idx(cls_id);
+        let (cls_id, type_params) = match self.bc.const_pool(cls_idx) {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name(self.vm);
+        let cname = cls.name_with_params(self.vm, &type_params);
         writeln!(
             self.w,
-            " {}, ClassDefId({}) # {}",
+            " {}, ConstPoolIdx({}) # {}",
             r1,
-            cls_id.to_usize(),
+            cls_idx.to_usize(),
             cname
         )
         .expect("write! failed");
@@ -524,10 +532,10 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_reg2("TruncateFloat64ToFloat32", dest, src);
     }
 
-    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
+    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ConstPoolIdx) {
         self.emit_reg2_cls("InstanceOf", dest, src, cls_id);
     }
-    fn visit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
+    fn visit_checked_cast(&mut self, src: Register, cls_id: ConstPoolIdx) {
         self.emit_reg1_cls("CheckedCast", src, cls_id);
     }
 
