@@ -277,6 +277,7 @@ pub enum BytecodeOpcode {
     ConstFloat32,
     ConstFloat64,
     ConstString,
+    ConstGenericDefault,
 
     TestEqPtr,
     TestNePtr,

@@ -655,6 +655,9 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_const_string(&mut self, dest: Register, value: ConstPoolIdx) {
         self.emit_reg1_idx("ConstString", dest, value);
     }
+    fn visit_const_generic_default(&mut self, dest: Register) {
+        self.emit_reg1("ConstGenericDefault", dest);
+    }
 
     fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestEqPtr", dest, lhs, rhs);

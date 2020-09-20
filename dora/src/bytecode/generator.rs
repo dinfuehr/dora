@@ -1273,7 +1273,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float64 => self.gen.emit_load_array_float64(dest, arr, idx, pos),
             BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
-            BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::TypeParam(_) => self.gen.emit_load_array_generic(dest, arr, idx, pos),
         }
     }
 
@@ -1766,7 +1766,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         BytecodeType::Float64 => self.gen.emit_const_float64(dest, 0.0),
                         BytecodeType::Ptr => self.gen.emit_const_nil(dest),
                         BytecodeType::Tuple(_) => unimplemented!(),
-                        BytecodeType::TypeParam(_) => unreachable!(),
+                        BytecodeType::TypeParam(_) => self.gen.emit_const_generic_default(dest),
                     }
 
                     dest
@@ -2765,8 +2765,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     ty
                 }
             }
-            CallType::GenericStaticMethod(_, _, _) => {
-                specialize_type(self.vm, ty, &TypeList::empty())
+            CallType::GenericStaticMethod(id, _, _) => {
+                debug_assert!(ty.is_concrete_type(self.vm) || ty.is_self());
+                if ty.is_self() {
+                    BuiltinType::TypeParam(id)
+                } else {
+                    ty
+                }
             }
             CallType::Intrinsic(_) => unreachable!(),
         };

@@ -245,6 +245,11 @@ impl BytecodeBuilder {
         self.writer.emit_const_false(dest);
     }
 
+    pub fn emit_const_generic_default(&mut self, dest: Register) {
+        assert!(self.def(dest));
+        self.writer.emit_const_generic_default(dest);
+    }
+
     pub fn emit_not_bool(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
         self.writer.emit_not_bool(dest, src);
