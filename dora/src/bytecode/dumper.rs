@@ -32,6 +32,25 @@ pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
             ConstPoolEntry::Float32(ref value) => println!(" {} => Float32 {}", idx, value),
             ConstPoolEntry::Float64(ref value) => println!(" {} => Float64 {}", idx, value),
             ConstPoolEntry::Char(ref value) => println!(" {} => Char {}", idx, value),
+            ConstPoolEntry::Class(cls_id, type_params) => {
+                let cls = vm.classes.idx(*cls_id);
+                let cls = cls.read();
+                println!(
+                    " {} => Class {}",
+                    idx,
+                    cls.name_with_params(vm, type_params)
+                )
+            }
+            ConstPoolEntry::Fct(fct_id, type_params) => {
+                let fct = vm.fcts.idx(*fct_id);
+                let fct = fct.read();
+                let type_params = type_params
+                    .iter()
+                    .map(|n| n.name(vm))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                println!(" {} => Fct {} with {}", idx, fct.full_name(vm), type_params)
+            }
         }
     }
 

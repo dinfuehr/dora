@@ -902,7 +902,7 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                 let module = module.read();
                 self.vm.interner.str(module.name).to_string()
             }
-            BuiltinType::TypeParam(_) => {
+            BuiltinType::TypeParam(idx) => {
                 if let Some(fct) = self.use_fct {
                     fct.type_param_ty(self.vm, ty, |tp, _| {
                         self.vm.interner.str(tp.name).to_string()
@@ -910,7 +910,7 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                 } else if let Some(cls) = self.use_class {
                     self.vm.interner.str(cls.type_param_ty(ty).name).to_string()
                 } else {
-                    unreachable!()
+                    format!("TypeParam({})", idx.to_usize())
                 }
             }
 

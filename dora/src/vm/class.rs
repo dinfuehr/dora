@@ -123,6 +123,22 @@ impl Class {
         }
     }
 
+    pub fn name_with_params(&self, vm: &VM, type_list: &TypeList) -> String {
+        let name = vm.interner.str(self.name);
+
+        if type_list.len() > 0 {
+            let type_list = type_list
+                .iter()
+                .map(|p| p.name(vm))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            format!("{}[{}]", name, type_list)
+        } else {
+            name.to_string()
+        }
+    }
+
     pub fn find_impl_for_trait(&self, vm: &VM, trait_id: TraitId) -> Option<ImplId> {
         for &impl_id in &self.impls {
             let ximpl = vm.impls[impl_id].read();
