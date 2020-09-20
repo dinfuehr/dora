@@ -1929,56 +1929,63 @@ where
             None
         };
 
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
-        let self_register = arguments[0];
-
-        let bytecode_type_self = self.bytecode.register_type(self_register);
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
-
-        if bytecode_type_self.is_ptr() {
-            self.emit_load_register(self_register, REG_RESULT.into());
-
-            self.asm
-                .test_if_nil_bailout(position, REG_RESULT.into(), Trap::NIL);
-        }
-
         let fct_def = self.vm.fct_defs.idx(fct_def_id);
         let fct_def = fct_def.read();
 
         let fct_id = fct_def.fct_id;
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
+        assert!(fct.has_self());
 
         let type_params = fct_def.type_params.clone();
 
         let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
 
-        let result_register = match fct_return_type {
-            BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
-            _ => None,
+        let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
+            self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic)
+        } else {
+            let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+            let self_register = arguments[0];
+
+            let bytecode_type_self = self.bytecode.register_type(self_register);
+            let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+            if bytecode_type_self.is_ptr() {
+                self.emit_load_register(self_register, REG_RESULT.into());
+
+                self.asm
+                    .test_if_nil_bailout(position, REG_RESULT.into(), Trap::NIL);
+            }
+
+            let result_register = match fct_return_type {
+                BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+                _ => None,
+            };
+
+            let argsize = self.emit_invoke_arguments(result_register, arguments);
+
+            let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
+            let gcpoint = self.create_gcpoint();
+
+            let (reg, ty) = match bytecode_type {
+                Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), BuiltinType::Unit),
+                Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
+                None => (REG_RESULT.into(), BuiltinType::Unit),
+            };
+            self.asm.direct_call(
+                fct_id,
+                ptr.to_ptr(),
+                type_params,
+                position,
+                gcpoint,
+                ty,
+                reg,
+            );
+
+            self.asm.decrease_stack_frame(argsize);
+
+            reg
         };
-
-        let argsize = self.emit_invoke_arguments(result_register, arguments);
-
-        let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
-        let gcpoint = self.create_gcpoint();
-
-        let (reg, ty) = match bytecode_type {
-            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), BuiltinType::Unit),
-            Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
-            None => (REG_RESULT.into(), BuiltinType::Unit),
-        };
-        self.asm.direct_call(
-            fct_id,
-            ptr.to_ptr(),
-            type_params,
-            position,
-            gcpoint,
-            ty,
-            reg,
-        );
-
-        self.asm.decrease_stack_frame(argsize);
 
         if let Some(dest) = dest {
             if !fct_return_type.is_tuple() {
@@ -1994,6 +2001,7 @@ where
         let fct_id = fct_def.fct_id;
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
+        assert!(!fct.has_self());
 
         let type_params = fct_def.type_params.clone();
 

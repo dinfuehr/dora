@@ -681,7 +681,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let fct_id = self.vm.vips.fct.string_buffer_to_string;
         self.gen.emit_push_register(buffer_register);
         self.gen
-            .emit_invoke_static(buffer_register, FctDef::fct_id(self.vm, fct_id), expr.pos);
+            .emit_invoke_direct(buffer_register, FctDef::fct_id(self.vm, fct_id), expr.pos);
 
         buffer_register
     }
@@ -1164,7 +1164,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         expr: &ExprCallType,
         fct: &Fct,
         call_type: &CallType,
-        arg_bytecode_types: &[BytecodeType],
+        _arg_bytecode_types: &[BytecodeType],
         return_type: BuiltinType,
         pos: Position,
         fct_def_id: FctDefId,
@@ -1190,14 +1190,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 }
             }
-            CallType::ModuleMethod(_, _, _) => {
-                if arg_bytecode_types.is_empty() {
-                    self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
-                } else {
-                    self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
-                }
-            }
-            CallType::Fct(_, _, _) => {
+            CallType::ModuleMethod(_, _, _) | CallType::Fct(_, _, _) => {
                 self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
             }
             CallType::Expr(_, _) => {
@@ -2099,7 +2092,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             Intrinsic::Float32Sqrt => {
                 self.gen.emit_push_register(src);
-                self.gen.emit_invoke_static(
+                self.gen.emit_invoke_direct(
                     dest,
                     FctDef::fct_id(self.vm, info.fct_id.unwrap()),
                     opnd.pos(),
@@ -2107,7 +2100,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             Intrinsic::Float64Sqrt => {
                 self.gen.emit_push_register(src);
-                self.gen.emit_invoke_static(
+                self.gen.emit_invoke_direct(
                     dest,
                     FctDef::fct_id(self.vm, info.fct_id.unwrap()),
                     opnd.pos(),
@@ -2120,7 +2113,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::Int32CountOneBitsLeading
             | Intrinsic::Int32CountOneBitsTrailing => {
                 self.gen.emit_push_register(src);
-                self.gen.emit_invoke_static(
+                self.gen.emit_invoke_direct(
                     dest,
                     FctDef::fct_id(self.vm, info.fct_id.unwrap()),
                     opnd.pos(),
@@ -2133,7 +2126,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::Int64CountOneBitsLeading
             | Intrinsic::Int64CountOneBitsTrailing => {
                 self.gen.emit_push_register(src);
-                self.gen.emit_invoke_static(
+                self.gen.emit_invoke_direct(
                     dest,
                     FctDef::fct_id(self.vm, info.fct_id.unwrap()),
                     opnd.pos(),
