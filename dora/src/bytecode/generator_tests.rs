@@ -2001,7 +2001,7 @@ fn gen_method_call_ptr_with_3_args() {
 
 #[test]
 fn gen_virtual_method_call_void_check_correct_self() {
-    gen(
+    gen_fct(
         "
             fun f(i: Int32, foo: Foo) { foo.g(); }
             @open @abstract class Bar {
@@ -2011,19 +2011,27 @@ fn gen_virtual_method_call_void_check_correct_self() {
                 @override fun g() {}
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(1)), InvokeVirtualVoid(fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(1)),
+                InvokeVirtualVoid(ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_virtual_method_call_void_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             @open @abstract class Bar {
@@ -2033,19 +2041,27 @@ fn gen_virtual_method_call_void_with_0_args() {
                 @override fun g() {}
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeVirtualVoid(fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeVirtualVoid(ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_virtual_method_call_void_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(1); }
             @open @abstract class Bar {
@@ -2055,25 +2071,29 @@ fn gen_virtual_method_call_void_with_1_arg() {
                 @override fun g(a: Int32) {}
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeVirtualVoid(fct_id),
+                InvokeVirtualVoid(ConstPoolIdx(1)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_virtual_method_call_void_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(1, 2, 3); }
             @open @abstract class Bar {
@@ -2083,9 +2103,9 @@ fn gen_virtual_method_call_void_with_3_args() {
                 @override fun g(a: Int32, b: Int32, c: Int32) {}
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
@@ -2095,17 +2115,21 @@ fn gen_virtual_method_call_void_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeVirtualVoid(fct_id),
+                InvokeVirtualVoid(ConstPoolIdx(3)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(3)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_virtual_method_call_int_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(); }
             @open @abstract class Bar {
@@ -2115,19 +2139,27 @@ fn gen_virtual_method_call_int_with_0_args() {
                 @override fun g() -> Int32 { 1 }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeVirtual(r(1), fct_id), RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeVirtual(r(1), ConstPoolIdx(0)),
+                RetVoid,
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_virtual_method_call_int_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(1); }
             @open @abstract class Bar {
@@ -2137,25 +2169,29 @@ fn gen_virtual_method_call_int_with_1_arg() {
                 @override fun g(a: Int32) -> Int32 { 1 }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt32(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeVirtual(r(1), fct_id),
+                InvokeVirtual(r(1), ConstPoolIdx(1)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_virtual_method_call_int_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f(foo: Foo) { foo.g(1, 2, 3); }
             @open @abstract class Bar {
@@ -2165,9 +2201,9 @@ fn gen_virtual_method_call_int_with_3_args() {
                 @override fun g(a: Int32, b: Int32, c: Int32) -> Int32 { 1 }
             }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
+                .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 ConstInt32(r(2), 1),
@@ -2177,10 +2213,14 @@ fn gen_virtual_method_call_int_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeVirtual(r(1), fct_id),
+                InvokeVirtual(r(1), ConstPoolIdx(3)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(3)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
@@ -3387,8 +3427,8 @@ pub enum Bytecode {
     InvokeDirectVoid(FctDefId),
     InvokeDirect(Register, FctDefId),
 
-    InvokeVirtualVoid(FctDefId),
-    InvokeVirtual(Register, FctDefId),
+    InvokeVirtualVoid(ConstPoolIdx),
+    InvokeVirtual(Register, ConstPoolIdx),
 
     InvokeStaticVoid(ConstPoolIdx),
     InvokeStatic(Register, ConstPoolIdx),
@@ -4015,11 +4055,11 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::InvokeDirect(dest, fctdef));
     }
 
-    fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualVoid(fctdef));
+    fn visit_invoke_virtual_void(&mut self, fct_idx: ConstPoolIdx) {
+        self.emit(Bytecode::InvokeVirtualVoid(fct_idx));
     }
-    fn visit_invoke_virtual(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtual(dest, fctdef));
+    fn visit_invoke_virtual(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
+        self.emit(Bytecode::InvokeVirtual(dest, fct_idx));
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {

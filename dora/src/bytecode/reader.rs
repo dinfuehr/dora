@@ -927,12 +927,12 @@ where
             }
 
             BytecodeOpcode::InvokeVirtualVoid => {
-                let fct = self.read_fct(wide);
+                let fct = self.read_const_pool_idx(wide);
                 self.visitor.visit_invoke_virtual_void(fct);
             }
             BytecodeOpcode::InvokeVirtual => {
                 let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
+                let fct = self.read_const_pool_idx(wide);
                 self.visitor.visit_invoke_virtual(dest, fct);
             }
 
@@ -1741,10 +1741,10 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_virtual_void(&mut self, _fctdef: FctDefId) {
+    fn visit_invoke_virtual_void(&mut self, _fct: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_invoke_virtual(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_virtual(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }
 

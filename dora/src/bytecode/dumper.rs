@@ -821,11 +821,11 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_fct("InvokeDirect", dest, fctdef);
     }
 
-    fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
-        self.emit_fct_void("InvokeVirtualVoid", fctdef);
+    fn visit_invoke_virtual_void(&mut self, fct: ConstPoolIdx) {
+        self.emit_fct_const_void("InvokeVirtualVoid", fct);
     }
-    fn visit_invoke_virtual(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtual", dest, fctdef);
+    fn visit_invoke_virtual(&mut self, dest: Register, fct: ConstPoolIdx) {
+        self.emit_fct_const("InvokeVirtual", dest, fct);
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {

@@ -1863,7 +1863,12 @@ where
         }
     }
 
-    fn emit_invoke_virtual(&mut self, dest: Option<Register>, fct_def_id: FctDefId) {
+    fn emit_invoke_virtual(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+        let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+
         let bytecode_type = if let Some(dest) = dest {
             Some(self.bytecode.register_type(dest))
         } else {
@@ -1877,14 +1882,9 @@ where
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
         assert_eq!(bytecode_type_self, BytecodeType::Ptr);
 
-        let fct_def = self.vm.fct_defs.idx(fct_def_id);
-        let fct_def = fct_def.read();
-
-        let fct_id = fct_def.fct_id;
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let type_params = fct_def.type_params.clone();
         let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
 
         let result_register = match fct_return_type {
@@ -3226,11 +3226,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_invoke_direct(Some(dest), fctdef);
     }
 
-    fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
+    fn visit_invoke_virtual_void(&mut self, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeVirtualVoid {}", fctdef.to_usize()));
         self.emit_invoke_virtual(None, fctdef);
     }
-    fn visit_invoke_virtual(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_virtual(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeVirtual {}", fctdef.to_usize()));
         self.emit_invoke_virtual(Some(dest), fctdef);
     }

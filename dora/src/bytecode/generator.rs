@@ -1186,7 +1186,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 if is_super_call {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 } else if fct.is_virtual() {
-                    self.emit_invoke_virtual(return_type, return_reg, fct_def_id, pos);
+                    let callee_idx = self.gen.add_const_fct_types(fct.id, fct_type_params);
+                    self.emit_invoke_virtual(return_type, return_reg, callee_idx, pos);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 }
@@ -1197,7 +1198,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             CallType::Expr(_, _) => {
                 if fct.is_virtual() {
-                    self.emit_invoke_virtual(return_type, return_reg, fct_def_id, pos);
+                    let callee_idx = self.gen.add_const_fct_types(fct.id, fct_type_params);
+                    self.emit_invoke_virtual(return_type, return_reg, callee_idx, pos);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 }
@@ -1297,7 +1299,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         return_type: BuiltinType,
         return_reg: Register,
-        callee_id: FctDefId,
+        callee_id: ConstPoolIdx,
         pos: Position,
     ) {
         if return_type.is_unit() {
