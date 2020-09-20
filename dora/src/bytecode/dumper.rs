@@ -245,6 +245,16 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
         writeln!(self.w, " {}, FctDefId({})", r1, fid.to_usize()).expect("write! failed");
     }
 
+    fn emit_fct_const_void(&mut self, name: &str, fid: ConstPoolIdx) {
+        self.emit_start(name);
+        writeln!(self.w, " ConstPoolIdx({})", fid.to_usize()).expect("write! failed");
+    }
+
+    fn emit_fct_const(&mut self, name: &str, r1: Register, fid: ConstPoolIdx) {
+        self.emit_start(name);
+        writeln!(self.w, " {}, ConstPoolIdx({})", r1, fid.to_usize()).expect("write! failed");
+    }
+
     fn emit_new_object(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {
         self.emit_start(name);
         let cls = self.vm.class_defs.idx(cls_id);
@@ -825,18 +835,18 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_fct("InvokeStatic", dest, fctdef);
     }
 
-    fn visit_invoke_generic_static_void(&mut self, fctdef: FctDefId) {
-        self.emit_fct_void("InvokeGenericStaticVoid", fctdef);
+    fn visit_invoke_generic_static_void(&mut self, fct: ConstPoolIdx) {
+        self.emit_fct_const_void("InvokeGenericStaticVoid", fct);
     }
-    fn visit_invoke_generic_static(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeGenericStatic", dest, fctdef);
+    fn visit_invoke_generic_static(&mut self, dest: Register, fct: ConstPoolIdx) {
+        self.emit_fct_const("InvokeGenericStatic", dest, fct);
     }
 
-    fn visit_invoke_generic_direct_void(&mut self, fctdef: FctDefId) {
-        self.emit_fct_void("InvokeGenericDirectVoid", fctdef);
+    fn visit_invoke_generic_direct_void(&mut self, fct: ConstPoolIdx) {
+        self.emit_fct_const_void("InvokeGenericDirectVoid", fct);
     }
-    fn visit_invoke_generic_direct(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeGenericDirect", dest, fctdef);
+    fn visit_invoke_generic_direct(&mut self, dest: Register, fct: ConstPoolIdx) {
+        self.emit_fct_const("InvokeGenericDirect", dest, fct);
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

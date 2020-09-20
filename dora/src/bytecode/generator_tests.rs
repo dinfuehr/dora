@@ -93,7 +93,7 @@ fn gen_generic_identity() {
 #[test]
 fn gen_generic_static_trait() {
     let result = gcode("trait Foo { @static fun baz(); } fun f[T: Foo]() { T::baz() }");
-    let expected = vec![InvokeGenericStaticVoid(FctDefId(0)), RetVoid, RetVoid];
+    let expected = vec![InvokeGenericStaticVoid(ConstPoolIdx(0)), RetVoid, RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -102,7 +102,7 @@ fn gen_generic_direct_trait() {
     let result = gcode("trait Foo { fun baz(); } fun f[T: Foo](obj: T) { obj.baz() }");
     let expected = vec![
         PushRegister(r(0)),
-        InvokeGenericDirectVoid(FctDefId(0)),
+        InvokeGenericDirectVoid(ConstPoolIdx(0)),
         RetVoid,
         RetVoid,
     ];
@@ -3365,11 +3365,11 @@ pub enum Bytecode {
     InvokeStaticVoid(FctDefId),
     InvokeStatic(Register, FctDefId),
 
-    InvokeGenericStaticVoid(FctDefId),
-    InvokeGenericStatic(Register, FctDefId),
+    InvokeGenericStaticVoid(ConstPoolIdx),
+    InvokeGenericStatic(Register, ConstPoolIdx),
 
-    InvokeGenericDirectVoid(FctDefId),
-    InvokeGenericDirect(Register, FctDefId),
+    InvokeGenericDirectVoid(ConstPoolIdx),
+    InvokeGenericDirect(Register, ConstPoolIdx),
 
     NewObject(Register, ClassDefId),
     NewArray(Register, ClassDefId, Register),
@@ -4001,18 +4001,18 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::InvokeStatic(dest, fctdef));
     }
 
-    fn visit_invoke_generic_static_void(&mut self, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeGenericStaticVoid(fctdef));
+    fn visit_invoke_generic_static_void(&mut self, fct_idx: ConstPoolIdx) {
+        self.emit(Bytecode::InvokeGenericStaticVoid(fct_idx));
     }
-    fn visit_invoke_generic_static(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeGenericStatic(dest, fctdef));
+    fn visit_invoke_generic_static(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
+        self.emit(Bytecode::InvokeGenericStatic(dest, fct_idx));
     }
 
-    fn visit_invoke_generic_direct_void(&mut self, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeGenericDirectVoid(fctdef));
+    fn visit_invoke_generic_direct_void(&mut self, fct_idx: ConstPoolIdx) {
+        self.emit(Bytecode::InvokeGenericDirectVoid(fct_idx));
     }
-    fn visit_invoke_generic_direct(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeGenericDirect(dest, fctdef));
+    fn visit_invoke_generic_direct(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
+        self.emit(Bytecode::InvokeGenericDirect(dest, fct_idx));
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

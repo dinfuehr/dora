@@ -947,22 +947,22 @@ where
             }
 
             BytecodeOpcode::InvokeGenericStaticVoid => {
-                let fct = self.read_fct(wide);
+                let fct = self.read_const_pool_idx(wide);
                 self.visitor.visit_invoke_generic_static_void(fct);
             }
             BytecodeOpcode::InvokeGenericStatic => {
                 let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
+                let fct = self.read_const_pool_idx(wide);
                 self.visitor.visit_invoke_generic_static(dest, fct);
             }
 
             BytecodeOpcode::InvokeGenericDirectVoid => {
-                let fct = self.read_fct(wide);
+                let fct = self.read_const_pool_idx(wide);
                 self.visitor.visit_invoke_generic_direct_void(fct);
             }
             BytecodeOpcode::InvokeGenericDirect => {
                 let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
+                let fct = self.read_const_pool_idx(wide);
                 self.visitor.visit_invoke_generic_direct(dest, fct);
             }
 
@@ -1755,17 +1755,17 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_generic_static_void(&mut self, _fctdef: FctDefId) {
+    fn visit_invoke_generic_static_void(&mut self, _fct: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_invoke_generic_static(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_generic_static(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }
 
-    fn visit_invoke_generic_direct_void(&mut self, _fctdef: FctDefId) {
+    fn visit_invoke_generic_direct_void(&mut self, _fct: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_invoke_generic_direct(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_generic_direct(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }
 

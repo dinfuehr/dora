@@ -741,20 +741,20 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeStatic, dest, fid);
     }
 
-    pub fn emit_invoke_generic_static_void(&mut self, fid: FctDefId) {
-        self.emit_fct_void(BytecodeOpcode::InvokeGenericStaticVoid, fid);
+    pub fn emit_invoke_generic_static_void(&mut self, idx: ConstPoolIdx) {
+        self.emit_fct_const_void(BytecodeOpcode::InvokeGenericStaticVoid, idx);
     }
 
-    pub fn emit_invoke_generic_static(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeGenericStatic, dest, fid);
+    pub fn emit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_fct_const(BytecodeOpcode::InvokeGenericStatic, dest, idx);
     }
 
-    pub fn emit_invoke_generic_direct_void(&mut self, fid: FctDefId) {
-        self.emit_fct_void(BytecodeOpcode::InvokeGenericDirectVoid, fid);
+    pub fn emit_invoke_generic_direct_void(&mut self, idx: ConstPoolIdx) {
+        self.emit_fct_const_void(BytecodeOpcode::InvokeGenericDirectVoid, idx);
     }
 
-    pub fn emit_invoke_generic_direct(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeGenericDirect, dest, fid);
+    pub fn emit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_fct_const(BytecodeOpcode::InvokeGenericDirect, dest, idx);
     }
 
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
@@ -972,7 +972,7 @@ impl BytecodeWriter {
         self.emit_u8(value);
     }
 
-    fn add_const(&mut self, value: ConstPoolEntry) -> ConstPoolIdx {
+    pub fn add_const(&mut self, value: ConstPoolEntry) -> ConstPoolIdx {
         let idx = self.const_pool.len();
         self.const_pool.push(value);
         idx.into()
@@ -999,6 +999,16 @@ impl BytecodeWriter {
 
     fn emit_fct(&mut self, inst: BytecodeOpcode, r1: Register, fid: FctDefId) {
         let values = [r1.to_usize() as u32, fid.to_usize() as u32];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_fct_const_void(&mut self, inst: BytecodeOpcode, idx: ConstPoolIdx) {
+        let values = [idx.to_usize() as u32];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_fct_const(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
+        let values = [r1.to_usize() as u32, idx.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 

@@ -2,9 +2,13 @@ use std::collections::{HashMap, HashSet};
 
 use dora_parser::lexer::position::Position;
 
-use crate::bytecode::{dump, BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
+use crate::bytecode::{
+    dump, BytecodeFunction, BytecodeType, BytecodeWriter, ConstPoolEntry, ConstPoolIdx, Label,
+    Register,
+};
 use crate::driver::cmd::Args;
-use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId, VM};
+use crate::ty::TypeList;
+use crate::vm::{ClassDefId, FctDefId, FctId, FieldId, GlobalId, TupleId, VM};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -35,6 +39,19 @@ impl BytecodeBuilder {
 
     pub fn set_arguments(&mut self, arguments: u32) {
         self.writer.set_arguments(arguments)
+    }
+
+    pub fn add_const(&mut self, entry: ConstPoolEntry) -> ConstPoolIdx {
+        self.writer.add_const(entry)
+    }
+
+    pub fn add_const_fct(&mut self, id: FctId) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::Fct(id, TypeList::empty()))
+    }
+
+    pub fn add_const_fct_types(&mut self, id: FctId, type_params: TypeList) -> ConstPoolIdx {
+        self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
     }
 
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -834,26 +851,26 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_static(dest, fid);
     }
 
-    pub fn emit_invoke_generic_static_void(&mut self, fid: FctDefId, pos: Position) {
+    pub fn emit_invoke_generic_static_void(&mut self, idx: ConstPoolIdx, pos: Position) {
         self.writer.set_position(pos);
-        self.writer.emit_invoke_generic_static_void(fid);
+        self.writer.emit_invoke_generic_static_void(idx);
     }
 
-    pub fn emit_invoke_generic_static(&mut self, dest: Register, fid: FctDefId, pos: Position) {
+    pub fn emit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
-        self.writer.emit_invoke_generic_static(dest, fid);
+        self.writer.emit_invoke_generic_static(dest, idx);
     }
 
-    pub fn emit_invoke_generic_direct_void(&mut self, fid: FctDefId, pos: Position) {
+    pub fn emit_invoke_generic_direct_void(&mut self, idx: ConstPoolIdx, pos: Position) {
         self.writer.set_position(pos);
-        self.writer.emit_invoke_generic_direct_void(fid);
+        self.writer.emit_invoke_generic_direct_void(idx);
     }
 
-    pub fn emit_invoke_generic_direct(&mut self, dest: Register, fid: FctDefId, pos: Position) {
+    pub fn emit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
-        self.writer.emit_invoke_generic_direct(dest, fid);
+        self.writer.emit_invoke_generic_direct(dest, idx);
     }
 
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId, pos: Position) {

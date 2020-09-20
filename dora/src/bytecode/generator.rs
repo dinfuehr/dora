@@ -5,7 +5,9 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
-use crate::bytecode::{BytecodeBuilder, BytecodeFunction, BytecodeType, Label, Register};
+use crate::bytecode::{
+    BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
+};
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::size::InstanceSize;
@@ -636,11 +638,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         .find_method(self.vm, name, false)
                         .expect("Stringable::toString() not found");
 
-                    self.gen.emit_invoke_generic_direct(
-                        part_register,
-                        FctDef::fct_id(self.vm, to_string_id),
-                        part.pos(),
-                    );
+                    let fct_idx = self.gen.add_const_fct(to_string_id);
+
+                    self.gen
+                        .emit_invoke_generic_direct(part_register, fct_idx, part.pos());
 
                     self.free_if_temp(expr_register);
                 } else {
@@ -879,7 +880,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let callee = callee.read();
 
         // Create FctDefId for this Fct
-        let callee_def_id = self.specialize_call(&callee, &call_type);
+        let (callee_def_id, callee_type_params) = self.specialize_call(&callee, &call_type);
 
         // Determine types for arguments and return values
         let (arg_types, arg_bytecode_types, return_type) =
@@ -917,6 +918,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return_type,
             expr.pos,
             callee_def_id,
+            callee_type_params,
             return_reg,
         );
 
@@ -1166,6 +1168,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         return_type: BuiltinType,
         pos: Position,
         fct_def_id: FctDefId,
+        fct_type_params: TypeList,
         return_reg: Register,
     ) {
         match *call_type {
@@ -1207,14 +1210,16 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::TraitObjectMethod(_, _) => unimplemented!(),
             CallType::GenericMethod(_, _, _) => {
                 if self.generic_mode {
-                    self.emit_invoke_generic_direct(return_type, return_reg, fct_def_id, pos);
+                    let callee_idx = self.gen.add_const_fct_types(fct.id, fct_type_params);
+                    self.emit_invoke_generic_direct(return_type, return_reg, callee_idx, pos);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id, pos);
                 }
             }
             CallType::GenericStaticMethod(_, _, _) => {
                 if self.generic_mode {
-                    self.emit_invoke_generic_static(return_type, return_reg, fct_def_id, pos);
+                    let callee_idx = self.gen.add_const_fct_types(fct.id, fct_type_params);
+                    self.emit_invoke_generic_static(return_type, return_reg, callee_idx, pos);
                 } else {
                     self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
                 }
@@ -1339,7 +1344,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         return_type: BuiltinType,
         return_reg: Register,
-        callee_id: FctDefId,
+        callee_id: ConstPoolIdx,
         pos: Position,
     ) {
         if return_type.is_unit() {
@@ -1354,7 +1359,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         return_type: BuiltinType,
         return_reg: Register,
-        callee_id: FctDefId,
+        callee_id: ConstPoolIdx,
         pos: Position,
     ) {
         if return_type.is_unit() {
@@ -1374,7 +1379,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let callee = self.vm.fcts.idx(callee_id);
         let callee = callee.read();
 
-        let fct_def_id = self.specialize_call(&callee, &call_type);
+        let (fct_def_id, _) = self.specialize_call(&callee, &call_type);
 
         assert!(callee.return_type.is_unit());
         let arg_types = callee
@@ -1615,7 +1620,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let callee = callee.read();
 
         // Create FctDefId for this callee
-        let callee_def_id = self.specialize_call(&callee, &call_type);
+        let (callee_def_id, _) = self.specialize_call(&callee, &call_type);
 
         let function_return_type: BuiltinType =
             self.specialize_type_for_call(call_type, callee.return_type);
@@ -1659,7 +1664,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let callee = callee.read();
 
         // Create FctDefId for this callee
-        let callee_def_id = self.specialize_call(&callee, &call_type);
+        let (callee_def_id, _) = self.specialize_call(&callee, &call_type);
 
         let function_return_type: BuiltinType =
             self.specialize_type_for_call(call_type, callee.return_type);
@@ -2730,7 +2735,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn specialize_call(&self, fct: &Fct, call_type: &CallType) -> FctDefId {
+    fn specialize_call(&self, fct: &Fct, call_type: &CallType) -> (FctDefId, TypeList) {
         let type_params = self.determine_call_type_params(call_type);
 
         let type_params = TypeList::with(
@@ -2740,7 +2745,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 .collect::<Vec<_>>(),
         );
 
-        FctDef::with(self.vm, fct, type_params)
+        (FctDef::with(self.vm, fct, type_params.clone()), type_params)
     }
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {
