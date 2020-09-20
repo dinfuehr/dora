@@ -937,12 +937,12 @@ where
             }
 
             BytecodeOpcode::InvokeStaticVoid => {
-                let fct = self.read_fct(wide);
+                let fct = self.read_const_pool_idx(wide);
                 self.visitor.visit_invoke_static_void(fct);
             }
             BytecodeOpcode::InvokeStatic => {
                 let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
+                let fct = self.read_const_pool_idx(wide);
                 self.visitor.visit_invoke_static(dest, fct);
             }
 
@@ -1748,10 +1748,10 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_static_void(&mut self, _fctdef: FctDefId) {
+    fn visit_invoke_static_void(&mut self, _fct: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_invoke_static(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_static(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }
 

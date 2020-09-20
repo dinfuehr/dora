@@ -2,7 +2,8 @@ use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 
 use crate::bytecode::{
-    self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolIdx, Register,
+    self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolEntry,
+    ConstPoolIdx, Register,
 };
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
@@ -22,8 +23,8 @@ use crate::semck::specialize::specialize_type;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{
-    ClassDefId, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, FieldId, GlobalId, Intrinsic, Trap,
-    TupleId, VM,
+    ClassDefId, Fct, FctDefId, FctId, FctKind, FctSrc, FieldId, GlobalId, Intrinsic, Trap, TupleId,
+    VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -1942,7 +1943,7 @@ where
         let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
 
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic)
+            self.emit_invoke_intrinsic(&*fct, intrinsic)
         } else {
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
             let self_register = arguments[0];
@@ -1994,21 +1995,20 @@ where
         }
     }
 
-    fn emit_invoke_static(&mut self, dest: Option<Register>, fct_def_id: FctDefId) {
-        let fct_def = self.vm.fct_defs.idx(fct_def_id);
-        let fct_def = fct_def.read();
+    fn emit_invoke_static(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+        let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
 
-        let fct_id = fct_def.fct_id;
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
         assert!(!fct.has_self());
 
-        let type_params = fct_def.type_params.clone();
-
         let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
 
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic)
+            self.emit_invoke_intrinsic(&*fct, intrinsic)
         } else {
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -2056,12 +2056,7 @@ where
         }
     }
 
-    fn emit_invoke_intrinsic(
-        &mut self,
-        _fct: &Fct,
-        _fct_def: &FctDef,
-        intrinsic: Intrinsic,
-    ) -> AnyReg {
+    fn emit_invoke_intrinsic(&mut self, _fct: &Fct, intrinsic: Intrinsic) -> AnyReg {
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         match intrinsic {
@@ -3240,11 +3235,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_invoke_virtual(Some(dest), fctdef);
     }
 
-    fn visit_invoke_static_void(&mut self, fctdef: FctDefId) {
+    fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeStaticVoid {}", fctdef.to_usize()));
         self.emit_invoke_static(None, fctdef)
     }
-    fn visit_invoke_static(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeStatic {}", fctdef.to_usize()));
         self.emit_invoke_static(Some(dest), fctdef);
     }

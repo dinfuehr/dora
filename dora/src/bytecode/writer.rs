@@ -733,12 +733,12 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeVirtual, dest, fid);
     }
 
-    pub fn emit_invoke_static_void(&mut self, fid: FctDefId) {
-        self.emit_fct_void(BytecodeOpcode::InvokeStaticVoid, fid);
+    pub fn emit_invoke_static_void(&mut self, idx: ConstPoolIdx) {
+        self.emit_fct_const_void(BytecodeOpcode::InvokeStaticVoid, idx);
     }
 
-    pub fn emit_invoke_static(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeStatic, dest, fid);
+    pub fn emit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_fct_const(BytecodeOpcode::InvokeStatic, dest, idx);
     }
 
     pub fn emit_invoke_generic_static_void(&mut self, idx: ConstPoolIdx) {

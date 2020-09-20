@@ -3,7 +3,7 @@ use std::mem;
 
 use self::Bytecode::*;
 use crate::bytecode::{
-    self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolIdx, Register,
+    self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::test;
 use crate::ty::{BuiltinType, TypeList};
@@ -1012,78 +1012,94 @@ fn gen_side_effect() {
 
 #[test]
 fn gen_fct_call_void_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f() { g(); }
             fun g() { }
             ",
-        |vm, code| {
-            let fct_id = vm.fct_def_by_name("g").expect("g not found");
-            let expected = vec![InvokeStaticVoid(fct_id), RetVoid];
+        |vm, code, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let expected = vec![InvokeStaticVoid(ConstPoolIdx(0)), RetVoid];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_fct_call_int_with_0_args() {
-    gen(
+    gen_fct(
         "
             fun f() -> Int32 { return g(); }
             fun g() -> Int32 { return 1; }
             ",
-        |vm, code| {
-            let fct_id = vm.fct_def_by_name("g").expect("g not found");
-            let expected = vec![InvokeStatic(r(0), fct_id), Ret(r(0))];
+        |vm, code, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_fct_call_int_with_0_args_and_unused_result() {
-    gen(
+    gen_fct(
         "
             fun f() { g(); }
             fun g() -> Int32 { return 1; }
             ",
-        |vm, code| {
-            let fct_id = vm.fct_def_by_name("g").expect("g not found");
-            let expected = vec![InvokeStatic(r(0), fct_id), RetVoid];
+        |vm, code, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), RetVoid];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_fct_call_void_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f() { g(1); }
             fun g(a: Int32) { }
             ",
-        |vm, code| {
-            let fct_id = vm.fct_def_by_name("g").expect("g not found");
+        |vm, code, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(0), 1),
                 PushRegister(r(0)),
-                InvokeStaticVoid(fct_id),
+                InvokeStaticVoid(ConstPoolIdx(1)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_fct_call_void_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f() { g(1, 2, 3); }
             fun g(a: Int32, b: Int32, c: Int32) { }
             ",
-        |vm, code| {
-            let fct_id = vm.fct_def_by_name("g").expect("g not found");
+        |vm, code, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(0), 1),
                 ConstInt32(r(1), 2),
@@ -1091,43 +1107,51 @@ fn gen_fct_call_void_with_3_args() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
-                InvokeStaticVoid(fct_id),
+                InvokeStaticVoid(ConstPoolIdx(3)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(3)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_fct_call_int_with_1_arg() {
-    gen(
+    gen_fct(
         "
             fun f() -> Int32 { return g(1); }
             fun g(a: Int32) -> Int32 { return a; }
             ",
-        |vm, code| {
-            let fct_id = vm.fct_def_by_name("g").expect("g not found");
+        |vm, code, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(1)),
-                InvokeStatic(r(0), fct_id),
+                InvokeStatic(r(0), ConstPoolIdx(1)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
 
 #[test]
 fn gen_fct_call_int_with_3_args() {
-    gen(
+    gen_fct(
         "
             fun f() -> Int32 { return g(1, 2, 3); }
             fun g(a: Int32, b: Int32, c: Int32) -> Int32 { return 1; }
             ",
-        |vm, code| {
-            let fct_id = vm.fct_def_by_name("g").expect("g not found");
+        |vm, code, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
@@ -1135,10 +1159,14 @@ fn gen_fct_call_int_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeStatic(r(0), fct_id),
+                InvokeStatic(r(0), ConstPoolIdx(3)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(3)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
         },
     );
 }
@@ -3362,8 +3390,8 @@ pub enum Bytecode {
     InvokeVirtualVoid(FctDefId),
     InvokeVirtual(Register, FctDefId),
 
-    InvokeStaticVoid(FctDefId),
-    InvokeStatic(Register, FctDefId),
+    InvokeStaticVoid(ConstPoolIdx),
+    InvokeStatic(Register, ConstPoolIdx),
 
     InvokeGenericStaticVoid(ConstPoolIdx),
     InvokeGenericStatic(Register, ConstPoolIdx),
@@ -3994,10 +4022,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::InvokeVirtual(dest, fctdef));
     }
 
-    fn visit_invoke_static_void(&mut self, fctdef: FctDefId) {
+    fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {
         self.emit(Bytecode::InvokeStaticVoid(fctdef));
     }
-    fn visit_invoke_static(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         self.emit(Bytecode::InvokeStatic(dest, fctdef));
     }
 

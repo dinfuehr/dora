@@ -612,8 +612,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         // build StringBuffer::empty() call
         let fct_id = self.vm.vips.fct.string_buffer_empty;
+        let fct_idx = self.gen.add_const_fct(fct_id);
         self.gen
-            .emit_invoke_static(buffer_register, FctDef::fct_id(self.vm, fct_id), expr.pos);
+            .emit_invoke_static(buffer_register, fct_idx, expr.pos);
 
         let part_register = self.alloc_temp(BytecodeType::Ptr);
 
@@ -1191,7 +1192,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
             CallType::ModuleMethod(_, _, _) | CallType::Fct(_, _, _) => {
-                self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
+                let callee_idx = self.gen.add_const_fct_types(fct.id, fct_type_params);
+                self.emit_invoke_static(return_type, return_reg, callee_idx, pos);
             }
             CallType::Expr(_, _) => {
                 if fct.is_virtual() {
@@ -1210,11 +1212,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
             CallType::GenericStaticMethod(_, _, _) => {
+                let callee_idx = self.gen.add_const_fct_types(fct.id, fct_type_params);
                 if self.generic_mode {
-                    let callee_idx = self.gen.add_const_fct_types(fct.id, fct_type_params);
                     self.emit_invoke_generic_static(return_type, return_reg, callee_idx, pos);
                 } else {
-                    self.emit_invoke_static(return_type, return_reg, fct_def_id, pos);
+                    self.emit_invoke_static(return_type, return_reg, callee_idx, pos);
                 }
             }
             CallType::Intrinsic(_) => unreachable!(),
@@ -1323,7 +1325,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         return_type: BuiltinType,
         return_reg: Register,
-        callee_id: FctDefId,
+        callee_id: ConstPoolIdx,
         pos: Position,
     ) {
         if return_type.is_unit() {

@@ -550,6 +550,7 @@ pub enum ConstPoolOpcode {
     Char,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum ConstPoolEntry {
     String(String),
     Float32(f32),

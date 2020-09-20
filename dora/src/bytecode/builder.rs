@@ -840,15 +840,15 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_virtual(dest, fid);
     }
 
-    pub fn emit_invoke_static_void(&mut self, fid: FctDefId, pos: Position) {
+    pub fn emit_invoke_static_void(&mut self, idx: ConstPoolIdx, pos: Position) {
         self.writer.set_position(pos);
-        self.writer.emit_invoke_static_void(fid);
+        self.writer.emit_invoke_static_void(idx);
     }
 
-    pub fn emit_invoke_static(&mut self, dest: Register, fid: FctDefId, pos: Position) {
+    pub fn emit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
-        self.writer.emit_invoke_static(dest, fid);
+        self.writer.emit_invoke_static(dest, idx);
     }
 
     pub fn emit_invoke_generic_static_void(&mut self, idx: ConstPoolIdx, pos: Position) {
