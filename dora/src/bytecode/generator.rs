@@ -2757,15 +2757,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             CallType::TraitObjectMethod(_, _) => unimplemented!(),
-            CallType::GenericMethod(id, _, _) => {
-                debug_assert!(ty.is_concrete_type(self.vm) || ty.is_self());
-                if ty.is_self() {
-                    BuiltinType::TypeParam(id)
-                } else {
-                    ty
-                }
-            }
-            CallType::GenericStaticMethod(id, _, _) => {
+            CallType::GenericMethod(id, _, _) | CallType::GenericStaticMethod(id, _, _) => {
                 debug_assert!(ty.is_concrete_type(self.vm) || ty.is_self());
                 if ty.is_self() {
                     BuiltinType::TypeParam(id)
