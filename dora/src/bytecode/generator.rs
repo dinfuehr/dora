@@ -10,7 +10,6 @@ use crate::bytecode::{
 };
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
 use crate::semck::{expr_always_returns, expr_block_always_returns};
-use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
     CallType, ConstId, Fct, FctId, FctKind, FctSrc, GlobalId, IdentType, Intrinsic, TraitId,
@@ -1127,20 +1126,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         match *call_type {
             CallType::Ctor(_, _) => {
                 let ty = arg_types.first().cloned().unwrap();
-                let object_reg = object_reg.unwrap();
-                let cls_def_id = specialize_class_ty(self.vm, ty);
 
-                let cls = self.vm.class_defs.idx(cls_def_id);
-                let cls = cls.read();
+                let cls_id = ty.cls_id(self.vm).expect("should be class");
+                let type_params = ty.type_params(self.vm);
 
-                match cls.size {
-                    InstanceSize::Fixed(_) => {
-                        self.gen.emit_new_object(object_reg, cls_def_id, pos);
-                    }
-                    _ => {
-                        panic!("unimplemented size {:?}", cls.size);
-                    }
-                }
+                let idx = self.gen.add_const_cls_types(cls_id, type_params);
+                self.gen
+                    .emit_new_object(object_reg.expect("reg missing"), idx, pos);
             }
             _ => {}
         }

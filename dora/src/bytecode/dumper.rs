@@ -245,16 +245,20 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
         writeln!(self.w, " {}, ConstPoolIdx({})", r1, fid.to_usize()).expect("write! failed");
     }
 
-    fn emit_new_object(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {
+    fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        let cls = self.vm.class_defs.idx(cls_id);
+        let (cls_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name(self.vm);
+        let cname = cls.name_with_params(self.vm, &type_params);
         writeln!(
             self.w,
-            " {}, ClassDefId({}) # {}",
+            " {}, ConstPoolIdx({}) # {}",
             r1,
-            cls_id.to_usize(),
+            idx.to_usize(),
             cname
         )
         .expect("write! failed");
@@ -839,8 +843,8 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_fct("InvokeGenericDirect", dest, fct);
     }
 
-    fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
-        self.emit_new_object("NewObject", dest, cls);
+    fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new_object("NewObject", dest, idx);
     }
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
         self.emit_new_array("NewArray", dest, cls, length);

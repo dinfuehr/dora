@@ -2444,15 +2444,19 @@ fn gen_virtual_method_call_int_with_3_args() {
 #[test]
 fn gen_new_object() {
     gen_fct("fun f() -> Object { return Object(); }", |vm, code, fct| {
-        let cls_id = vm.cls_def_by_name("Object");
+        let cls_id = vm.cls_by_name("Object");
         let ctor_id = vm.ctor_by_name("Object");
         let expected = vec![
-            NewObject(r(0), cls_id),
+            NewObject(r(0), ConstPoolIdx(1)),
             PushRegister(r(0)),
             InvokeDirectVoid(ConstPoolIdx(0)),
             Ret(r(0)),
         ];
         assert_eq!(expected, code);
+        assert_eq!(
+            fct.const_pool(ConstPoolIdx(1)),
+            &ConstPoolEntry::Class(cls_id, TypeList::empty())
+        );
         assert_eq!(
             fct.const_pool(ConstPoolIdx(0)),
             &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
@@ -2465,16 +2469,20 @@ fn gen_new_object_assign_to_var() {
     gen_fct(
         "fun f() -> Object { let obj = Object(); return obj; }",
         |vm, code, fct| {
-            let cls_id = vm.cls_def_by_name("Object");
+            let cls_id = vm.cls_by_name("Object");
             let ctor_id = vm.ctor_by_name("Object");
             let expected = vec![
-                NewObject(r(1), cls_id),
+                NewObject(r(1), ConstPoolIdx(1)),
                 PushRegister(r(1)),
                 InvokeDirectVoid(ConstPoolIdx(0)),
                 MovPtr(r(0), r(1)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+            );
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
@@ -2794,13 +2802,13 @@ fn gen_new_object_with_multiple_args() {
             fun f() -> Foo { return Foo(1, 2, 3); }
             ",
         |vm, code, fct| {
-            let cls_id = vm.cls_def_by_name("Foo");
+            let cls_id = vm.cls_by_name("Foo");
             let ctor_id = vm.ctor_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
                 ConstInt32(r(3), 3),
-                NewObject(r(0), cls_id),
+                NewObject(r(0), ConstPoolIdx(4)),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
@@ -2809,6 +2817,10 @@ fn gen_new_object_with_multiple_args() {
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(4)),
+                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+            );
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
@@ -3696,7 +3708,7 @@ pub enum Bytecode {
     InvokeGenericDirectVoid(ConstPoolIdx),
     InvokeGenericDirect(Register, ConstPoolIdx),
 
-    NewObject(Register, ClassDefId),
+    NewObject(Register, ConstPoolIdx),
     NewArray(Register, ClassDefId, Register),
     NewTuple(Register, TupleId),
 
@@ -4340,7 +4352,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::InvokeGenericDirect(dest, fct_idx));
     }
 
-    fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
+    fn visit_new_object(&mut self, dest: Register, cls: ConstPoolIdx) {
         self.emit(Bytecode::NewObject(dest, cls));
     }
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {

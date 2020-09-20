@@ -8,7 +8,7 @@ use crate::bytecode::{
 };
 use crate::driver::cmd::Args;
 use crate::ty::TypeList;
-use crate::vm::{ClassDefId, FctId, FieldId, GlobalId, TupleId, VM};
+use crate::vm::{ClassDefId, ClassId, FctId, FieldId, GlobalId, TupleId, VM};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -52,6 +52,16 @@ impl BytecodeBuilder {
 
     pub fn add_const_fct_types(&mut self, id: FctId, type_params: TypeList) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
+    }
+
+    pub fn add_const_cls(&mut self, id: ClassId) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::Class(id, TypeList::empty()))
+    }
+
+    pub fn add_const_cls_types(&mut self, id: ClassId, type_params: TypeList) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::Class(id, type_params))
     }
 
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -873,10 +883,10 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_generic_direct(dest, idx);
     }
 
-    pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId, pos: Position) {
+    pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
-        self.writer.emit_new_object(dest, cls_id);
+        self.writer.emit_new_object(dest, idx);
     }
     pub fn emit_new_array(
         &mut self,

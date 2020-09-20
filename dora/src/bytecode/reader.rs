@@ -968,7 +968,7 @@ where
 
             BytecodeOpcode::NewObject => {
                 let dest = self.read_register(wide);
-                let cls = self.read_class(wide);
+                let cls = self.read_const_pool_idx(wide);
                 self.visitor.visit_new_object(dest, cls);
             }
             BytecodeOpcode::NewArray => {
@@ -1765,7 +1765,7 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_new_object(&mut self, _dest: Register, _cls: ClassDefId) {
+    fn visit_new_object(&mut self, _dest: Register, _cls: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_new_array(&mut self, _dest: Register, _cls: ClassDefId, _length: Register) {

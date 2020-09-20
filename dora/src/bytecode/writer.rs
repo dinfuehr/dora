@@ -757,8 +757,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeGenericDirect, dest, idx);
     }
 
-    pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
-        self.emit_new(BytecodeOpcode::NewObject, dest, cls_id);
+    pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new(BytecodeOpcode::NewObject, dest, idx);
     }
     pub fn emit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
@@ -978,8 +978,8 @@ impl BytecodeWriter {
         idx.into()
     }
 
-    fn emit_new(&mut self, inst: BytecodeOpcode, r1: Register, cid: ClassDefId) {
-        let values = [r1.to_usize() as u32, cid.to_usize() as u32];
+    fn emit_new(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
+        let values = [r1.to_usize() as u32, idx.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 

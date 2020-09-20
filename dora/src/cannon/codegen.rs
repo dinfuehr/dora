@@ -19,7 +19,7 @@ use crate::gc::Address;
 use crate::masm::*;
 use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
-use crate::semck::specialize::specialize_type;
+use crate::semck::specialize::{specialize_class_id_params, specialize_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{
@@ -1505,8 +1505,17 @@ where
         }
     }
 
-    fn emit_new_object(&mut self, dest: Register, class_def_id: ClassDefId) {
+    fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
+
+        let const_pool_entry = self.bytecode.const_pool(idx);
+
+        let (cls_id, type_params) = match const_pool_entry {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+            _ => unreachable!(),
+        };
+
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
 
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
@@ -3242,19 +3251,23 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_invoke_static(Some(dest), fctdef);
     }
 
-    fn visit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
+    fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let cls = self.vm.class_defs.idx(cls_id);
+            let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
+                _ => unreachable!(),
+            };
+            let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name(self.vm);
+            let cname = cls.name_with_params(self.vm, &type_params);
             format!(
-                "NewObject {}, ClassDefId({}) # {}",
+                "NewObject {}, ConstPoolIdx({}) # {}",
                 dest,
-                cls_id.to_usize(),
+                idx.to_usize(),
                 cname
             )
         });
-        self.emit_new_object(dest, cls_id)
+        self.emit_new_object(dest, idx)
     }
     fn visit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
         comment!(self, {
