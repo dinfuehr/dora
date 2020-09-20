@@ -1562,9 +1562,18 @@ where
         }
     }
 
-    fn emit_new_array(&mut self, dest: Register, class_def_id: ClassDefId, length: Register) {
+    fn emit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
         assert_eq!(self.bytecode.register_type(length), BytecodeType::Int64);
+
+        let const_pool_entry = self.bytecode.const_pool(idx);
+
+        let (cls_id, type_params) = match const_pool_entry {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+            _ => unreachable!(),
+        };
+
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
 
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
@@ -3254,12 +3263,12 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
                 _ => unreachable!(),
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params(self.vm, &type_params);
+            let cname = cls.name_with_params(self.vm, type_params);
             format!(
                 "NewObject {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -3269,20 +3278,24 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         });
         self.emit_new_object(dest, idx)
     }
-    fn visit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
+    fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         comment!(self, {
-            let cls = self.vm.class_defs.idx(cls_id);
+            let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+                _ => unreachable!(),
+            };
+            let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name(self.vm);
+            let cname = cls.name_with_params(self.vm, type_params);
             format!(
-                "NewArray {}, ClassDefId({}), {} # {}",
+                "NewArray {}, ConstPoolIdx({}), {} # {}",
                 dest,
-                cls_id.to_usize(),
+                idx.to_usize(),
                 length,
                 cname
             )
         });
-        self.emit_new_array(dest, cls_id, length);
+        self.emit_new_array(dest, idx, length);
     }
     fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         comment!(self, {

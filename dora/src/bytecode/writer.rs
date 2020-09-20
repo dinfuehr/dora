@@ -760,7 +760,7 @@ impl BytecodeWriter {
     pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new(BytecodeOpcode::NewObject, dest, idx);
     }
-    pub fn emit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
+    pub fn emit_new_array(&mut self, dest: Register, cls_id: ConstPoolIdx, length: Register) {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
     }
     pub fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
@@ -983,10 +983,16 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_new_arr(&mut self, inst: BytecodeOpcode, r1: Register, cid: ClassDefId, lth: Register) {
+    fn emit_new_arr(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        idx: ConstPoolIdx,
+        lth: Register,
+    ) {
         let values = [
             r1.to_usize() as u32,
-            cid.to_usize() as u32,
+            idx.to_usize() as u32,
             lth.to_usize() as u32,
         ];
         self.emit_values(inst, &values);

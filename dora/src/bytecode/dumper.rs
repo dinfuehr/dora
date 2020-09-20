@@ -264,16 +264,20 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
         .expect("write! failed");
     }
 
-    fn emit_new_array(&mut self, name: &str, r1: Register, cls_id: ClassDefId, length: Register) {
+    fn emit_new_array(&mut self, name: &str, r1: Register, idx: ConstPoolIdx, length: Register) {
         self.emit_start(name);
-        let cls = self.vm.class_defs.idx(cls_id);
+        let (cls_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+            _ => unreachable!(),
+        };
+        let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name(self.vm);
+        let cname = cls.name_with_params(self.vm, type_params);
         writeln!(
             self.w,
-            " {}, ClassDefId({}), {} # {}",
+            " {}, ConstPoolIdx({}), {} # {}",
             r1,
-            cls_id.to_usize(),
+            idx.to_usize(),
             length,
             cname,
         )
@@ -846,8 +850,8 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_object("NewObject", dest, idx);
     }
-    fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
-        self.emit_new_array("NewArray", dest, cls, length);
+    fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
+        self.emit_new_array("NewArray", dest, idx, length);
     }
     fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         self.emit_new_tuple("NewTuple", dest, tuple_id);

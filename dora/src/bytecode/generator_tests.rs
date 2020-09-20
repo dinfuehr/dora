@@ -2500,15 +2500,20 @@ fn gen_position_new_object() {
 
 #[test]
 fn gen_new_array() {
-    gen(
+    gen_fct(
         "fun f() -> Array[Int32] { return Array::ofSizeUnsafe[Int32](1L); }",
-        |vm, code| {
-            let cls_id = vm.cls_def_by_name_with_type_params(
-                "Array",
-                TypeList::with(vec![BuiltinType::Int32]),
-            );
-            let expected = vec![ConstInt64(r(1), 1), NewArray(r(0), cls_id, r(1)), Ret(r(0))];
+        |vm, code, fct| {
+            let cls_id = vm.cls_by_name("Array");
+            let expected = vec![
+                ConstInt64(r(1), 1),
+                NewArray(r(0), ConstPoolIdx(0), r(1)),
+                Ret(r(0)),
+            ];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Class(cls_id, TypeList::single(BuiltinType::Int32))
+            );
         },
     );
 }
@@ -3709,7 +3714,7 @@ pub enum Bytecode {
     InvokeGenericDirect(Register, ConstPoolIdx),
 
     NewObject(Register, ConstPoolIdx),
-    NewArray(Register, ClassDefId, Register),
+    NewArray(Register, ConstPoolIdx, Register),
     NewTuple(Register, TupleId),
 
     NilCheck(Register),
@@ -4355,7 +4360,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_new_object(&mut self, dest: Register, cls: ConstPoolIdx) {
         self.emit(Bytecode::NewObject(dest, cls));
     }
-    fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
+    fn visit_new_array(&mut self, dest: Register, cls: ConstPoolIdx, length: Register) {
         self.emit(Bytecode::NewArray(dest, cls, length));
     }
     fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {

@@ -1079,7 +1079,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         // We need array of elements
         let element_ty = arg_types.last().cloned().unwrap();
         let ty = self.vm.vips.array_ty(self.vm, element_ty);
-        let cls_def_id = specialize_class_ty(self.vm, ty);
+        let cls_id = ty.cls_id(self.vm).expect("class expected");
+        let type_params = ty.type_params(self.vm);
+        let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
         // Store length in a register
         let length_reg = self.alloc_temp(BytecodeType::Int64);
@@ -1089,7 +1091,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         // Allocate array of given length
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
         self.gen
-            .emit_new_array(array_reg, cls_def_id, length_reg, expr.pos);
+            .emit_new_array(array_reg, cls_idx, length_reg, expr.pos);
 
         if element_ty.is_unit() {
             // Evaluate rest arguments
@@ -1769,13 +1771,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn emit_intrinsic_new_array(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
         // We need array of elements
         let element_ty = self.ty(expr.id);
-        let cls_def_id = specialize_class_ty(self.vm, element_ty);
+        let cls_id = element_ty.cls_id(self.vm).expect("class expected");
+        let type_params = element_ty.type_params(self.vm);
+        let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
         let length_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
 
         self.gen
-            .emit_new_array(array_reg, cls_def_id, length_reg, expr.pos);
+            .emit_new_array(array_reg, cls_idx, length_reg, expr.pos);
 
         self.free_if_temp(length_reg);
 

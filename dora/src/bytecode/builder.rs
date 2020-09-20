@@ -891,13 +891,13 @@ impl BytecodeBuilder {
     pub fn emit_new_array(
         &mut self,
         dest: Register,
-        cls_id: ClassDefId,
+        cls_idx: ConstPoolIdx,
         length: Register,
         pos: Position,
     ) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
-        self.writer.emit_new_array(dest, cls_id, length);
+        self.writer.emit_new_array(dest, cls_idx, length);
     }
     pub fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         assert!(self.def(dest));
