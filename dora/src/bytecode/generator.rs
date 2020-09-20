@@ -799,17 +799,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let type_params = cls_ty.type_params(self.vm);
         let field_idx = self
             .gen
-            .add_const_field_types(cls_id, type_params, field_id);
-
-        let cls_def_id = specialize_class_ty(self.vm, cls_ty);
+            .add_const_field_types(cls_id, type_params.clone(), field_id);
 
         let field_ty = {
-            let cls = self.vm.class_defs.idx(cls_def_id);
+            let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
 
             let field = &cls.fields[field_id.idx()];
             field.ty
         };
+
+        let field_ty = specialize_type(self.vm, field_ty, &type_params);
+        let field_ty = self.specialize_type(field_ty);
 
         if field_ty.is_unit() {
             assert!(dest.is_unit());
