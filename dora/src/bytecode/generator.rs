@@ -8,7 +8,7 @@ use dora_parser::ast::*;
 use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
 };
-use crate::semck::specialize::{specialize_class_ty, specialize_type};
+use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
@@ -2454,22 +2454,25 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let type_params = cls_ty.type_params(self.vm);
         let field_idx = self
             .gen
-            .add_const_field_types(cls_id, type_params, field_id);
+            .add_const_field_types(cls_id, type_params.clone(), field_id);
 
-        let cls_id = specialize_class_ty(self.vm, cls_ty);
-        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
         let field = &cls.fields[field_id.idx()];
-        let ty: Option<BytecodeType> = if field.ty.is_unit() {
+        let field_ty = field.ty;
+        let field_ty = specialize_type(self.vm, field_ty, &type_params);
+        let field_ty = self.specialize_type(field_ty);
+
+        let field_ty: Option<BytecodeType> = if field_ty.is_unit() {
             None
         } else {
-            Some(field.ty.into())
+            Some(field_ty.into())
         };
 
         let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
         let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
-        if ty.is_none() {
+        if field_ty.is_none() {
             self.gen.emit_nil_check(obj, expr.pos);
             return;
         }
