@@ -4,7 +4,7 @@ use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::ty::BuiltinType;
-use crate::vm::{ClassDefId, FieldId, GlobalId, TupleId, VM};
+use crate::vm::{GlobalId, TupleId, VM};
 
 pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
@@ -39,6 +39,18 @@ pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
                     " {} => Class {}",
                     idx,
                     cls.name_with_params(vm, type_params)
+                )
+            }
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                let cls = vm.classes.idx(*cls_id);
+                let cls = cls.read();
+                let field = &cls.fields[field_id.idx()];
+                let fname = vm.interner.str(field.name);
+                println!(
+                    " {} => Field {}.{}",
+                    idx,
+                    cls.name_with_params(vm, type_params),
+                    fname,
                 )
             }
             ConstPoolEntry::Fct(fct_id, type_params) => {
@@ -203,31 +215,26 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
         .expect("write! failed");
     }
 
-    fn emit_field(
-        &mut self,
-        name: &str,
-        r1: Register,
-        r2: Register,
-        cid: ClassDefId,
-        fid: FieldId,
-    ) {
+    fn emit_field(&mut self, name: &str, r1: Register, r2: Register, field_idx: ConstPoolIdx) {
         self.emit_start(name);
-        let cls = self.vm.class_defs.idx(cid);
-        let cls = cls.read();
-        let cname = cls.name(self.vm);
-
-        let cls_id = cls.cls_id.expect("no corresponding class");
+        let (cls_id, type_params, field_id) = match self.bc.const_pool(field_idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                (*cls_id, type_params, *field_id)
+            }
+            _ => unreachable!(),
+        };
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
-        let field = &cls.fields[fid.idx()];
+        let cname = cls.name_with_params(self.vm, type_params);
+
+        let field = &cls.fields[field_id.idx()];
         let fname = self.vm.interner.str(field.name);
         writeln!(
             self.w,
-            " {}, {}, ClassDefId({}.FieldId({}) # {}.{}",
+            " {}, {}, ConstPoolIdx({}) # {}.{}",
             r1,
             r2,
-            cid.to_usize(),
-            fid.to_usize(),
+            field_idx.to_usize(),
             cname,
             fname,
         )
@@ -580,12 +587,12 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_tuple_load("LoadTupleElement", dest, src, tuple_id, element);
     }
 
-    fn visit_load_field(&mut self, dest: Register, obj: Register, cls: ClassDefId, field: FieldId) {
-        self.emit_field("LoadField", dest, obj, cls, field);
+    fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        self.emit_field("LoadField", dest, obj, field_idx);
     }
 
-    fn visit_store_field(&mut self, src: Register, obj: Register, cls: ClassDefId, field: FieldId) {
-        self.emit_field("StoreField", src, obj, cls, field);
+    fn visit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
+        self.emit_field("StoreField", src, obj, field_idx);
     }
 
     fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {

@@ -138,6 +138,7 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
             }
             &ConstPoolEntry::Fct(_, _) => unimplemented!(),
             &ConstPoolEntry::Class(_, _) => unimplemented!(),
+            &ConstPoolEntry::Field(_, _, _) => unimplemented!(),
         }
     }
 

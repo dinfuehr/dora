@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::mem::ptr_width;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
-use crate::vm::{get_vm, ClassId, FctId, TupleId};
+use crate::vm::{get_vm, ClassId, FctId, FieldId, TupleId};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -559,6 +559,7 @@ pub enum ConstPoolEntry {
     Int64(i64),
     Char(char),
     Class(ClassId, TypeList),
+    Field(ClassId, TypeList, FieldId),
     Fct(FctId, TypeList),
 }
 

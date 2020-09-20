@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ensure_tuple, ClassDefId, FieldId, GlobalId, TupleId, VM};
+use crate::vm::{ensure_tuple, GlobalId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -111,12 +111,16 @@ fn gen_generic_direct_trait() {
 
 #[test]
 fn gen_load_field_uint8() {
-    gen(
+    gen_fct(
         "class Foo(let bar: UInt8) fun f(a: Foo) -> UInt8 { return a.bar; }",
-        |vm, code| {
+        |vm, code, fct| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadField(r(1), r(0), cls, field), Ret(r(1))];
+            let expected = vec![LoadField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Field(cls, TypeList::empty(), field)
+            );
         },
     );
 }
@@ -130,12 +134,16 @@ fn gen_position_load_field_uint8() {
 
 #[test]
 fn gen_store_field_uint8() {
-    gen(
+    gen_fct(
         "class Foo(var bar: UInt8) fun f(a: Foo, b: UInt8) { a.bar = b; }",
-        |vm, code| {
+        |vm, code, fct| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreField(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreField(r(1), r(0), ConstPoolIdx(0)), RetVoid];
             assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Field(cls, TypeList::empty(), field)
+            );
         },
     );
 }
@@ -3631,8 +3639,8 @@ pub enum Bytecode {
 
     LoadTupleElement(Register, Register, TupleId, u32),
 
-    LoadField(Register, Register, ClassDefId, FieldId),
-    StoreField(Register, Register, ClassDefId, FieldId),
+    LoadField(Register, Register, ConstPoolIdx),
+    StoreField(Register, Register, ConstPoolIdx),
 
     LoadGlobal(Register, GlobalId),
     StoreGlobal(Register, GlobalId),
@@ -4078,12 +4086,12 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::LoadTupleElement(src, dest, tuple_id, element));
     }
 
-    fn visit_load_field(&mut self, dest: Register, obj: Register, cls: ClassDefId, field: FieldId) {
-        self.emit(Bytecode::LoadField(dest, obj, cls, field));
+    fn visit_load_field(&mut self, dest: Register, obj: Register, field: ConstPoolIdx) {
+        self.emit(Bytecode::LoadField(dest, obj, field));
     }
 
-    fn visit_store_field(&mut self, src: Register, obj: Register, cls: ClassDefId, field: FieldId) {
-        self.emit(Bytecode::StoreField(src, obj, cls, field));
+    fn visit_store_field(&mut self, src: Register, obj: Register, field: ConstPoolIdx) {
+        self.emit(Bytecode::StoreField(src, obj, field));
     }
 
     fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {

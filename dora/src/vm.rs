@@ -380,9 +380,7 @@ impl<'ast> VM<'ast> {
         &self,
         class_name: &'static str,
         field_name: &'static str,
-    ) -> (ClassDefId, FieldId) {
-        use crate::semck::specialize;
-
+    ) -> (ClassId, FieldId) {
         let class_name = self.interner.intern(class_name);
         let field_name = self.interner.intern(field_name);
 
@@ -394,7 +392,6 @@ impl<'ast> VM<'ast> {
         let cls = self.classes.idx(cls_id);
         let cls = cls.read();
         let field_id = cls.field_by_name(field_name);
-        let cls_id = specialize::specialize_class_ty(self, cls.ty);
 
         (cls_id, field_id)
     }

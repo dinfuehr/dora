@@ -22,9 +22,7 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::{specialize_class_id_params, specialize_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
-use crate::vm::{
-    ClassDefId, Fct, FctId, FctKind, FctSrc, FieldId, GlobalId, Intrinsic, Trap, TupleId, VM,
-};
+use crate::vm::{Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, Trap, TupleId, VM};
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
 macro_rules! comment {
@@ -1172,17 +1170,19 @@ where
         }
     }
 
-    fn emit_load_field(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        class_def_id: ClassDefId,
-        field_id: FieldId,
-    ) {
+    fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
+        let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                (*cls_id, type_params, *field_id)
+            }
+            _ => unreachable!(),
+        };
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
+
         let field = &cls.fields[field_id.idx()];
 
         assert_eq!(self.bytecode.register_type(dest), field.ty.into());
@@ -1213,17 +1213,19 @@ where
         }
     }
 
-    fn emit_store_field(
-        &mut self,
-        src: Register,
-        obj: Register,
-        class_def_id: ClassDefId,
-        field_id: FieldId,
-    ) {
+    fn emit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
+        let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                (*cls_id, type_params, *field_id)
+            }
+            _ => unreachable!(),
+        };
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
+
         let field = &cls.fields[field_id.idx()];
 
         assert_eq!(self.bytecode.register_type(src), field.ty.into());
@@ -2731,66 +2733,58 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_load_tuple_element(dest, src, tuple_id, idx);
     }
 
-    fn visit_load_field(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls_id: ClassDefId,
-        field_id: FieldId,
-    ) {
+    fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
-            let cls = self.vm.class_defs.idx(cls_id);
+            let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+                ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                    (*cls_id, type_params, *field_id)
+                }
+                _ => unreachable!(),
+            };
+            let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name(self.vm);
+            let cname = cls.name_with_params(self.vm, type_params);
 
-            let cls_src_id = cls.cls_id.expect("no corresponding class");
-            let cls = self.vm.classes.idx(cls_src_id);
-            let cls = cls.read();
             let field = &cls.fields[field_id.idx()];
             let fname = self.vm.interner.str(field.name);
 
             format!(
-                "LoadField {}, {}, ClassDefId({}).FieldId({}) # {}.{}",
+                "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
                 dest,
                 obj,
-                cls_id.to_usize(),
-                field_id.to_usize(),
+                field_idx.to_usize(),
                 cname,
                 fname
             )
         });
-        self.emit_load_field(dest, obj, cls_id, field_id);
+        self.emit_load_field(dest, obj, field_idx);
     }
 
-    fn visit_store_field(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls_id: ClassDefId,
-        field_id: FieldId,
-    ) {
+    fn visit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
-            let cls = self.vm.class_defs.idx(cls_id);
+            let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+                ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                    (*cls_id, type_params, *field_id)
+                }
+                _ => unreachable!(),
+            };
+            let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name(self.vm);
+            let cname = cls.name_with_params(self.vm, type_params);
 
-            let cls_src_id = cls.cls_id.expect("no corresponding class");
-            let cls = self.vm.classes.idx(cls_src_id);
-            let cls = cls.read();
             let field = &cls.fields[field_id.idx()];
             let fname = self.vm.interner.str(field.name);
 
             format!(
-                "StoreField {}, {}, ClassDefId({}).FieldId({}) # {}.{}",
+                "StoreField {}, {}, ConstPoolIdx({}) # {}.{}",
                 src,
                 obj,
-                cls_id.to_usize(),
-                field_id.to_usize(),
+                field_idx.to_usize(),
                 cname,
                 fname
             )
         });
-        self.emit_store_field(src, obj, cls_id, field_id);
+        self.emit_store_field(src, obj, field_idx);
     }
 
     fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {

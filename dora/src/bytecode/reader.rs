@@ -505,17 +505,15 @@ where
             BytecodeOpcode::LoadField => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field(dest, obj, cls, field);
+                let field = self.read_const_pool_idx(wide);
+                self.visitor.visit_load_field(dest, obj, field);
             }
 
             BytecodeOpcode::StoreField => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field(src, obj, cls, field);
+                let field = self.read_const_pool_idx(wide);
+                self.visitor.visit_store_field(src, obj, field);
             }
 
             BytecodeOpcode::LoadGlobal => {
@@ -1482,23 +1480,11 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_field(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
+    fn visit_load_field(&mut self, _dest: Register, _obj: Register, _field: ConstPoolIdx) {
         unimplemented!();
     }
 
-    fn visit_store_field(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
+    fn visit_store_field(&mut self, _src: Register, _obj: Register, _field: ConstPoolIdx) {
         unimplemented!();
     }
 

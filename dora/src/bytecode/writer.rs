@@ -6,7 +6,7 @@ use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
     Register,
 };
-use crate::vm::{ClassDefId, FieldId, GlobalId, TupleId};
+use crate::vm::{GlobalId, TupleId};
 
 use dora_parser::lexer::position::Position;
 
@@ -137,24 +137,12 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::DivFloat64, dest, lhs, rhs);
     }
 
-    pub fn emit_load_field(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadField, dest, obj, cls, field);
+    pub fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        self.emit_access_field(BytecodeOpcode::LoadField, dest, obj, field_idx);
     }
 
-    pub fn emit_store_field(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreField, src, obj, cls, field);
+    pub fn emit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
+        self.emit_access_field(BytecodeOpcode::StoreField, src, obj, field_idx);
     }
 
     pub fn emit_const_nil(&mut self, dest: Register) {
@@ -1013,14 +1001,12 @@ impl BytecodeWriter {
         inst: BytecodeOpcode,
         r1: Register,
         r2: Register,
-        cid: ClassDefId,
-        fid: FieldId,
+        field_idx: ConstPoolIdx,
     ) {
         let values = [
             r1.to_usize() as u32,
             r2.to_usize() as u32,
-            cid.to_usize() as u32,
-            fid.to_usize() as u32,
+            field_idx.to_usize() as u32,
         ];
         self.emit_values(inst, &values);
     }

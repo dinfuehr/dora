@@ -794,6 +794,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         };
 
         let cls_ty = self.specialize_type(cls_ty);
+
+        let cls_id = cls_ty.cls_id(self.vm).expect("class expected");
+        let type_params = cls_ty.type_params(self.vm);
+        let field_idx = self
+            .gen
+            .add_const_field_types(cls_id, type_params, field_id);
+
         let cls_def_id = specialize_class_ty(self.vm, cls_ty);
 
         let field_ty = {
@@ -817,8 +824,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let dest = self.ensure_register(dest, field_bc_ty);
         let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
 
-        self.gen
-            .emit_load_field(dest, obj, cls_def_id, field_id, expr.pos);
+        self.gen.emit_load_field(dest, obj, field_idx, expr.pos);
         self.free_if_temp(obj);
 
         dest
@@ -2433,15 +2439,23 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_assign_dot(&mut self, expr: &ExprBinType, dot: &ExprDotType) {
-        let (class, field_id) = {
+        let (cls_ty, field_id) = {
             let ident_type = self.src.map_idents.get(dot.id).unwrap();
             match ident_type {
                 &IdentType::Field(class, field) => (class, field),
                 _ => unreachable!(),
             }
         };
-        let class = self.specialize_type(class);
-        let cls_id = specialize_class_ty(self.vm, class);
+
+        let cls_ty = self.specialize_type(cls_ty);
+
+        let cls_id = cls_ty.cls_id(self.vm).expect("class expected");
+        let type_params = cls_ty.type_params(self.vm);
+        let field_idx = self
+            .gen
+            .add_const_field_types(cls_id, type_params, field_id);
+
+        let cls_id = specialize_class_ty(self.vm, cls_ty);
         let cls = self.vm.class_defs.idx(cls_id);
         let cls = cls.read();
         let field = &cls.fields[field_id.idx()];
@@ -2459,8 +2473,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return;
         }
 
-        self.gen
-            .emit_store_field(src, obj, cls_id, field_id, expr.pos);
+        self.gen.emit_store_field(src, obj, field_idx, expr.pos);
 
         self.free_if_temp(obj);
         self.free_if_temp(src);
