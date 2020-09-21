@@ -60,6 +60,7 @@ Options:
     --compiler=<name>       Switch default compiler. Possible values: cannon [default: cannon].
     --test-filter=<name>    Filter tests.
     --clear-regs            Clear register when freeing.
+    --generic-bytecode      Generate generic bytecode.
 
     --disable-tlab          Disable tlab allocation.
     --disable-barrier       Disable barriers.
@@ -118,6 +119,7 @@ pub struct Args {
     pub flag_boots: Option<String>,
     pub flag_test_filter: Option<String>,
     pub flag_clear_regs: bool,
+    pub flag_generic_bytecode: bool,
 
     pub cmd_test: bool,
 }
@@ -223,6 +225,7 @@ impl Default for Args {
             flag_boots: None,
             flag_test_filter: None,
             flag_clear_regs: false,
+            flag_generic_bytecode: false,
 
             cmd_test: false,
         }

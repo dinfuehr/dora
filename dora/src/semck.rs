@@ -129,9 +129,28 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
 
     // initialize addresses for global variables
     init_global_addresses(vm);
+}
 
-    // generate bytecode
-    // fctdefck::generate_bytecode(vm);
+pub fn bytecode<'ast>(vm: &VM<'ast>) {
+    use crate::bytecode;
+
+    for fct in vm.fcts.iter() {
+        let bc = {
+            let fct = fct.read();
+
+            if !fct.is_src() {
+                continue;
+            }
+
+            let src = fct.src();
+            let src = src.read();
+
+            bytecode::generate_generic(vm, &*fct, &*src)
+        };
+
+        let mut fct = fct.write();
+        fct.bytecode = Some(bc);
+    }
 }
 
 fn internalck<'ast>(vm: &VM<'ast>) {

@@ -54,28 +54,6 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
 
-    // stores all active finally blocks
-    active_finallys: Vec<&'ast Stmt>,
-
-    // label to jump instead of emitting epilog for return
-    // needed for return's in finally blocks
-    // return in finally needs to execute to next finally block and not
-    // leave the current function
-    lbl_return: Option<Label>,
-
-    // length of active_finallys in last loop
-    // default: 0
-    // break/continue need to emit finally blocks up to the last loop
-    // see tests/finally/break-while.dora
-    active_loop: Option<usize>,
-
-    // upper length of active_finallys in emitting finally-blocks for break/continue
-    // default: active_finallys.len()
-    // break/continue needs to execute finally-blocks in loop, return in these blocks
-    // would dump all active_finally-entries from the loop but we need an upper bound.
-    // see emit_finallys_within_loop and tests/finally/continue-return.dora
-    active_upper: Option<usize>,
-
     type_params: &'a TypeList,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
@@ -98,32 +76,20 @@ where
     pub fn new(
         vm: &'a VM<'ast>,
         fct: &'a Fct<'ast>,
-        ast: &'ast Function,
-        asm: BaselineAssembler<'a, 'ast>,
         src: &'a FctSrc,
         bytecode: &'a BytecodeFunction,
-        lbl_break: Option<Label>,
-        lbl_continue: Option<Label>,
-        active_finallys: Vec<&'ast Stmt>,
-        lbl_return: Option<Label>,
-        active_loop: Option<usize>,
-        active_upper: Option<usize>,
         type_params: &'a TypeList,
     ) -> CannonCodeGen<'a, 'ast> {
         CannonCodeGen {
             vm,
             fct,
-            ast,
-            asm,
+            ast: fct.ast,
+            asm: BaselineAssembler::new(vm),
             src,
             bytecode,
             should_emit_asm: should_emit_asm(vm, fct),
-            lbl_break,
-            lbl_continue,
-            active_finallys,
-            active_upper,
-            active_loop,
-            lbl_return,
+            lbl_break: None,
+            lbl_continue: None,
             type_params,
             offset_to_address: HashMap::new(),
             forward_jumps: Vec::new(),

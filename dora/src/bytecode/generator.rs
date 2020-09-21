@@ -108,10 +108,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if self.fct.has_self() {
             let var_self = self.src.var_self();
             let var_ty = self.specialize_type(var_self.ty);
-            let var_id = var_self.id;
-            let reg = self.alloc_var(var_ty.into());
-            self.var_registers.insert(var_id, reg);
-            arguments += 1;
+
+            if !var_ty.is_unit() {
+                let var_id = var_self.id;
+                let reg = self.alloc_var(var_ty.into());
+                self.var_registers.insert(var_id, reg);
+                arguments += 1;
+            }
         }
 
         for param in &self.ast.params {
