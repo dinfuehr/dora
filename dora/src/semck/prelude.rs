@@ -14,52 +14,54 @@ use crate::vm::{ClassDef, ClassDefId, ClassId, FctId, FctKind, Intrinsic, TraitI
 use crate::vtable::VTableBox;
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
-    vm.vips.unit_class = internal_class(vm, "Unit", Some(BuiltinType::Unit));
-    vm.vips.bool_class = internal_class(vm, "Bool", Some(BuiltinType::Bool));
+    vm.known.classes.unit = internal_class(vm, "Unit", Some(BuiltinType::Unit));
+    vm.known.classes.bool = internal_class(vm, "Bool", Some(BuiltinType::Bool));
 
-    vm.vips.uint8_class = internal_class(vm, "UInt8", Some(BuiltinType::UInt8));
-    vm.vips.char_class = internal_class(vm, "Char", Some(BuiltinType::Char));
-    vm.vips.int32_class = internal_class(vm, "Int32", Some(BuiltinType::Int32));
-    vm.vips.int64_class = internal_class(vm, "Int64", Some(BuiltinType::Int64));
+    vm.known.classes.uint8 = internal_class(vm, "UInt8", Some(BuiltinType::UInt8));
+    vm.known.classes.char = internal_class(vm, "Char", Some(BuiltinType::Char));
+    vm.known.classes.int32 = internal_class(vm, "Int32", Some(BuiltinType::Int32));
+    vm.known.classes.int64 = internal_class(vm, "Int64", Some(BuiltinType::Int64));
 
-    vm.vips.float32_class = internal_class(vm, "Float32", Some(BuiltinType::Float32));
-    vm.vips.float64_class = internal_class(vm, "Float64", Some(BuiltinType::Float64));
+    vm.known.classes.float32 = internal_class(vm, "Float32", Some(BuiltinType::Float32));
+    vm.known.classes.float64 = internal_class(vm, "Float64", Some(BuiltinType::Float64));
 
-    vm.vips.object_class = internal_class(vm, "Object", None);
-    vm.vips.string_class = internal_class(vm, "String", None);
-    vm.vips.string_module = internal_module(vm, "String", None);
+    vm.known.classes.object = internal_class(vm, "Object", None);
+    vm.known.classes.string = internal_class(vm, "String", None);
+    vm.known.modules.string = internal_module(vm, "String", None);
 
-    vm.vips.cls.string_buffer = internal_class(vm, "StringBuffer", None);
-    vm.vips.mods.string_buffer = internal_module(vm, "StringBuffer", None);
+    vm.known.classes.string_buffer = internal_class(vm, "StringBuffer", None);
+    vm.known.modules.string_buffer = internal_module(vm, "StringBuffer", None);
 
-    let cls = vm.classes.idx(vm.vips.string_class);
+    let cls = vm.classes.idx(vm.known.classes.string);
     let mut cls = cls.write();
     cls.is_str = true;
 
-    vm.vips.array_class = internal_class(vm, "Array", None);
-    vm.vips.array_module = internal_module(vm, "Array", None);
+    vm.known.classes.array = internal_class(vm, "Array", None);
+    vm.known.modules.array = internal_module(vm, "Array", None);
 
-    let cls = vm.classes.idx(vm.vips.array_class);
+    let cls = vm.classes.idx(vm.known.classes.array);
     let mut cls = cls.write();
     cls.is_array = true;
 
-    vm.vips.testing_class = internal_class(vm, "Testing", None);
+    vm.known.classes.testing = internal_class(vm, "Testing", None);
 
-    vm.vips.stacktrace_class = internal_class(vm, "Stacktrace", None);
-    vm.vips.stacktrace_element_class = internal_class(vm, "StacktraceElement", None);
+    vm.known.classes.stacktrace = internal_class(vm, "Stacktrace", None);
+    vm.known.classes.stacktrace_element = internal_class(vm, "StacktraceElement", None);
 
-    vm.vips.stringable_trait = find_trait(vm, "Stringable");
-    vm.vips.zero_trait = find_trait(vm, "Zero");
-    *vm.vips.iterator_trait.lock() = Some(find_trait(vm, "Iterator"));
+    vm.known.traits.stringable = find_trait(vm, "Stringable");
+    vm.known.traits.zero = find_trait(vm, "Zero");
+    vm.known.traits.iterator = find_trait(vm, "Iterator");
 
     internal_free_classes(vm);
 }
 
 pub fn known_methods<'ast>(vm: &mut VM<'ast>) {
-    vm.vips.fct.string_buffer_empty = find_module_method(vm, vm.vips.mods.string_buffer, "empty");
-    vm.vips.fct.string_buffer_append = find_class_method(vm, vm.vips.cls.string_buffer, "append");
-    vm.vips.fct.string_buffer_to_string =
-        find_class_method(vm, vm.vips.cls.string_buffer, "toString");
+    vm.known.functions.string_buffer_empty =
+        find_module_method(vm, vm.known.modules.string_buffer, "empty");
+    vm.known.functions.string_buffer_append =
+        find_class_method(vm, vm.known.classes.string_buffer, "append");
+    vm.known.functions.string_buffer_to_string =
+        find_class_method(vm, vm.known.classes.string_buffer, "toString");
 }
 
 fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
@@ -112,8 +114,8 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
         }
     }
 
-    vm.vips.free_object_class_def = free_object;
-    vm.vips.free_array_class_def = free_array;
+    vm.known.free_object_class_def = free_object;
+    vm.known.free_array_class_def = free_array;
 }
 
 fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<BuiltinType>) -> ClassId {
@@ -197,7 +199,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     intrinsic_fct(vm, "defaultValue", Intrinsic::DefaultValue);
 
-    let clsid = vm.vips.uint8_class;
+    let clsid = vm.known.classes.uint8;
     native_class_method(vm, clsid, "toString", stdlib::uint8_to_string as *const u8);
 
     intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::ByteToInt64);
@@ -208,7 +210,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::ByteCmp);
     intrinsic_class_method(vm, clsid, "not", Intrinsic::ByteNot);
 
-    let clsid = vm.vips.char_class;
+    let clsid = vm.known.classes.char;
     native_class_method(vm, clsid, "toString", stdlib::char_to_string as *const u8);
 
     intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::CharToInt64);
@@ -217,7 +219,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "equals", Intrinsic::CharEq);
     intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::CharCmp);
 
-    let clsid = vm.vips.int32_class;
+    let clsid = vm.known.classes.int32;
     native_class_method(vm, clsid, "toString", stdlib::int32_to_string as *const u8);
 
     intrinsic_class_method(vm, clsid, "toUInt8", Intrinsic::Int32ToByte);
@@ -253,7 +255,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::Int32Neg);
     intrinsic_class_method(vm, clsid, "not", Intrinsic::Int32Not);
 
-    let clsid = vm.vips.int64_class;
+    let clsid = vm.known.classes.int64;
     native_class_method(vm, clsid, "toString", stdlib::int64_to_string as *const u8);
 
     intrinsic_class_method(vm, clsid, "toCharUnchecked", Intrinsic::Int64ToChar);
@@ -289,13 +291,13 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::Int64Neg);
     intrinsic_class_method(vm, clsid, "not", Intrinsic::Int64Not);
 
-    let clsid = vm.vips.bool_class;
+    let clsid = vm.known.classes.bool;
     intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::BoolToInt32);
     intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::BoolToInt64);
     intrinsic_class_method(vm, clsid, "equals", Intrinsic::BoolEq);
     intrinsic_class_method(vm, clsid, "not", Intrinsic::BoolNot);
 
-    let clsid = vm.vips.string_class;
+    let clsid = vm.known.classes.string;
     native_class_method(vm, clsid, "compareTo", stdlib::strcmp as *const u8);
     native_class_method(
         vm,
@@ -327,7 +329,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "getByte", Intrinsic::StrGet);
     native_class_method(vm, clsid, "clone", stdlib::str_clone as *const u8);
 
-    let clsid = vm.vips.float32_class;
+    let clsid = vm.known.classes.float32;
     native_class_method(
         vm,
         clsid,
@@ -354,7 +356,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "isNan", Intrinsic::Float32IsNan);
     intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float32Sqrt);
 
-    let clsid = vm.vips.float64_class;
+    let clsid = vm.known.classes.float64;
     native_class_method(
         vm,
         clsid,
@@ -381,7 +383,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "isNan", Intrinsic::Float64IsNan);
     intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float64Sqrt);
 
-    let module_id = vm.vips.string_module;
+    let module_id = vm.known.modules.string;
     native_module_method(
         vm,
         module_id,
@@ -395,16 +397,16 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
         stdlib::str_from_bytes as *const u8,
     );
 
-    let clsid = vm.vips.array_class;
+    let clsid = vm.known.classes.array;
     intrinsic_ctor(vm, clsid, Intrinsic::ArrayWithValues);
     intrinsic_class_method(vm, clsid, "size", Intrinsic::ArrayLen);
     intrinsic_class_method(vm, clsid, "get", Intrinsic::ArrayGet);
     intrinsic_class_method(vm, clsid, "set", Intrinsic::ArraySet);
 
-    let module_id = vm.vips.array_module;
+    let module_id = vm.known.modules.array;
     intrinsic_module_method(vm, module_id, "ofSizeUnsafe", Intrinsic::ArrayNewOfSize);
 
-    let clsid = vm.vips.stacktrace_class;
+    let clsid = vm.known.classes.stacktrace;
     native_class_method(
         vm,
         clsid,
@@ -615,7 +617,7 @@ fn internal_impl<'ast>(vm: &mut VM<'ast>, clsid: ClassId, tid: TraitId, name: &s
 }
 
 pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
-    let clsid = vm.vips.int32_class;
+    let clsid = vm.known.classes.int32;
     if has_popcnt() {
         intrinsic_class_method(vm, clsid, "countZeroBits", Intrinsic::Int32CountZeroBits);
         intrinsic_class_method(vm, clsid, "countOneBits", Intrinsic::Int32CountOneBits);
@@ -649,7 +651,7 @@ pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
         );
     }
 
-    let clsid = vm.vips.int64_class;
+    let clsid = vm.known.classes.int64;
     if has_popcnt() {
         intrinsic_class_method(vm, clsid, "countZeroBits", Intrinsic::Int64CountZeroBits);
         intrinsic_class_method(vm, clsid, "countOneBits", Intrinsic::Int64CountOneBits);

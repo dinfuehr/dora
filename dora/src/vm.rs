@@ -41,13 +41,13 @@ pub use self::fct::{Fct, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
 pub use self::global::{GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
+pub use self::known::{KnownClasses, KnownElements, KnownFunctions, KnownModules, KnownTraits};
 pub use self::src::{CallType, ConvInfo, FctSrc, ForTypeInfo, IdentType, NodeMap, Var, VarId};
 pub use self::strct::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,
 };
 pub use self::traits::{TraitData, TraitId};
 pub use self::tuple::{ensure_tuple, TupleId, Tuples};
-pub use self::vip::{KnownClasses, KnownElements, KnownFunctions, KnownModules};
 
 pub mod class;
 mod cnst;
@@ -57,12 +57,12 @@ mod fct;
 mod field;
 mod global;
 mod impls;
+mod known;
 pub mod module;
 mod src;
 mod strct;
 mod traits;
 mod tuple;
-mod vip;
 
 static mut VM_GLOBAL: *const u8 = ptr::null();
 
@@ -92,7 +92,7 @@ pub struct VM<'ast> {
     pub files: Vec<File>,
     pub diag: Mutex<Diagnostic>,
     pub sym: Mutex<SymTable>,
-    pub vips: KnownElements,
+    pub known: KnownElements,
     pub consts: GrowableVec<Mutex<ConstData>>, // stores all const definitions
     pub structs: GrowableVec<Mutex<StructData>>, // stores all struct source definitions
     pub struct_defs: GrowableVec<Mutex<StructDef>>, // stores all struct definitions
@@ -148,46 +148,44 @@ impl<'ast> VM<'ast> {
             impls: Vec::new(),
             globals: GrowableVec::new(),
             interner: Interner::new(),
-            vips: KnownElements {
-                unit_class: empty_class_id,
-                bool_class: empty_class_id,
-                uint8_class: empty_class_id,
-                char_class: empty_class_id,
-                int32_class: empty_class_id,
-                int64_class: empty_class_id,
-                float32_class: empty_class_id,
-                float64_class: empty_class_id,
-                object_class: empty_class_id,
-
-                string_class: empty_class_id,
-                string_module: empty_module_id,
-
-                array_class: empty_class_id,
-                array_module: empty_module_id,
-
-                cls: KnownClasses {
+            known: KnownElements {
+                classes: KnownClasses {
+                    unit: empty_class_id,
+                    bool: empty_class_id,
+                    uint8: empty_class_id,
+                    char: empty_class_id,
+                    int32: empty_class_id,
+                    int64: empty_class_id,
+                    float32: empty_class_id,
+                    float64: empty_class_id,
+                    object: empty_class_id,
+                    array: empty_class_id,
+                    string: empty_class_id,
                     string_buffer: empty_class_id,
+                    testing: empty_class_id,
+                    stacktrace: empty_class_id,
+                    stacktrace_element: empty_class_id,
                 },
 
-                mods: KnownModules {
+                modules: KnownModules {
+                    string: empty_module_id,
+                    array: empty_module_id,
                     string_buffer: empty_module_id,
                 },
 
-                fct: KnownFunctions {
+                functions: KnownFunctions {
                     string_buffer_empty: empty_fct_id,
                     string_buffer_append: empty_fct_id,
                     string_buffer_to_string: empty_fct_id,
                 },
 
-                testing_class: empty_class_id,
-                stacktrace_class: empty_class_id,
-                stacktrace_element_class: empty_class_id,
-
-                equals_trait: empty_trait_id,
-                comparable_trait: empty_trait_id,
-                stringable_trait: empty_trait_id,
-                iterator_trait: Mutex::new(None),
-                zero_trait: empty_trait_id,
+                traits: KnownTraits {
+                    equals: empty_trait_id,
+                    comparable: empty_trait_id,
+                    stringable: empty_trait_id,
+                    iterator: empty_trait_id,
+                    zero: empty_trait_id,
+                },
 
                 byte_array_def: Mutex::new(None),
                 int_array_def: Mutex::new(None),

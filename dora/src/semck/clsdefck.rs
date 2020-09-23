@@ -160,7 +160,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     }
 
     fn use_object_class_as_parent(&mut self) {
-        let object_cls = self.vm.vips.object_class;
+        let object_cls = self.vm.known.classes.object;
         let cls_id = self.cls_id.unwrap();
 
         if cls_id != object_cls {

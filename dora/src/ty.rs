@@ -153,14 +153,14 @@ impl BuiltinType {
     pub fn cls_id(&self, vm: &VM) -> Option<ClassId> {
         match *self {
             BuiltinType::Class(cls_id, _) => Some(cls_id),
-            BuiltinType::Unit => Some(vm.vips.unit_class),
-            BuiltinType::Bool => Some(vm.vips.bool_class),
-            BuiltinType::UInt8 => Some(vm.vips.uint8_class),
-            BuiltinType::Char => Some(vm.vips.char_class),
-            BuiltinType::Int32 => Some(vm.vips.int32_class),
-            BuiltinType::Int64 => Some(vm.vips.int64_class),
-            BuiltinType::Float32 => Some(vm.vips.float32_class),
-            BuiltinType::Float64 => Some(vm.vips.float64_class),
+            BuiltinType::Unit => Some(vm.known.classes.unit),
+            BuiltinType::Bool => Some(vm.known.classes.bool),
+            BuiltinType::UInt8 => Some(vm.known.classes.uint8),
+            BuiltinType::Char => Some(vm.known.classes.char),
+            BuiltinType::Int32 => Some(vm.known.classes.int32),
+            BuiltinType::Int64 => Some(vm.known.classes.int64),
+            BuiltinType::Float32 => Some(vm.known.classes.float32),
+            BuiltinType::Float64 => Some(vm.known.classes.float64),
             _ => None,
         }
     }
