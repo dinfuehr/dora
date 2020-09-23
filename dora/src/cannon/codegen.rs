@@ -133,10 +133,25 @@ where
             0
         };
 
-        let registers = self.bytecode.registers();
-        let (offsets, stacksize) = determine_offsets(registers, self.register_start_offset);
+        let (offsets, stacksize) = self.determine_offsets(self.register_start_offset);
         self.offsets = offsets;
         self.stacksize = stacksize;
+    }
+
+    fn determine_offsets(&self, start: i32) -> (Vec<i32>, i32) {
+        let len = self.bytecode.registers().len();
+        let mut offset: Vec<i32> = vec![0; len];
+        let mut stacksize: i32 = start;
+
+        for (index, &ty) in self.bytecode.registers().iter().enumerate() {
+            let ty = self.specialize_bytecode_type(ty);
+            stacksize = align_i32(stacksize + ty.size(), ty.size());
+            offset[index] = -stacksize;
+        }
+
+        stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
+
+        (offset, stacksize)
     }
 
     fn clear_registers(&mut self) {
@@ -209,7 +224,7 @@ where
             } else if param_ty.is_unit() {
                 continue;
             } else {
-                assert_eq!(self.bytecode.register_type(dest), param_ty.into());
+                assert_eq!(self.specialize_register_type(dest), param_ty.into());
                 param_ty
             };
 
@@ -1028,7 +1043,7 @@ where
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(src);
+        let bytecode_type = self.specialize_register_type(src);
         let reg = result_reg(bytecode_type);
 
         self.emit_load_register(src, reg.into());
@@ -1452,6 +1467,7 @@ where
 
     fn emit_return_generic(&mut self, src: Register) {
         let bytecode_type = self.bytecode.register_type(src);
+        let bytecode_type = self.specialize_bytecode_type(bytecode_type);
 
         if let Some(tuple_id) = bytecode_type.tuple_id() {
             let src_offset = self.register_offset(src);
@@ -2304,6 +2320,21 @@ where
         let Register(idx) = reg;
         self.offsets[idx]
     }
+
+    fn specialize_register_type(&self, reg: Register) -> BytecodeType {
+        let ty = self.bytecode.register_type(reg);
+        self.specialize_bytecode_type(ty)
+    }
+
+    fn specialize_bytecode_type(&self, ty: BytecodeType) -> BytecodeType {
+        match ty {
+            BytecodeType::TypeParam(id) => {
+                assert!(self.vm.args.flag_generic_bytecode);
+                self.type_params[id as usize].into()
+            }
+            _ => ty,
+        }
+    }
 }
 
 impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
@@ -2679,6 +2710,10 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         });
 
         self.emit_mov_tuple(dest, src, tuple_id);
+    }
+    fn visit_mov_generic(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("MovGeneric {}, {}", dest, src));
+        self.emit_mov_generic(dest, src);
     }
 
     fn visit_load_tuple_element(
@@ -3413,19 +3448,6 @@ fn ensure_jit_or_stub_ptr<'ast>(src: &FctSrc, vm: &VM, type_params: TypeList) ->
     }
 
     vm.compile_stub()
-}
-
-fn determine_offsets(registers: &[BytecodeType], start: i32) -> (Vec<i32>, i32) {
-    let mut offset: Vec<i32> = vec![0; registers.len()];
-    let mut stacksize: i32 = start;
-    for (index, ty) in registers.iter().enumerate() {
-        stacksize = align_i32(stacksize + ty.size(), ty.size());
-        offset[index] = -stacksize;
-    }
-
-    stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
-
-    (offset, stacksize)
 }
 
 enum RegOrOffset {
