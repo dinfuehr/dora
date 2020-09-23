@@ -1166,7 +1166,7 @@ impl BytecodeBuilder {
         let bc = self.writer.generate_with_registers(self.registers.all());
 
         if used {
-            dump(vm, &bc);
+            dump(vm, None, &bc);
             panic!("all registers should be freed.");
         }
 

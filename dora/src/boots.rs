@@ -22,7 +22,7 @@ pub fn compile<'a, 'ast: 'a>(
     let bytecode_fct = bytecode::generate(vm, fct, src, type_params);
 
     if should_emit_bytecode(vm, fct) {
-        bytecode::dump(vm, &bytecode_fct);
+        bytecode::dump(vm, Some(fct), &bytecode_fct);
     }
 
     let compile_fct_id = vm.fct_by_name("compile").expect("compile()-method missing");
@@ -70,7 +70,7 @@ pub fn bytecode(vm: &VM, name: &str) -> Ref<Obj> {
     let bytecode_fct = bytecode::generate(vm, &*fct, &*src, &TypeList::empty());
 
     if should_emit_bytecode(vm, &*fct) {
-        bytecode::dump(vm, &bytecode_fct);
+        bytecode::dump(vm, Some(&*fct), &bytecode_fct);
     }
 
     allocate_compilation_info(vm, &bytecode_fct)

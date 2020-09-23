@@ -4,10 +4,13 @@ use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::ty::BuiltinType;
-use crate::vm::{GlobalId, TupleId, VM};
+use crate::vm::{Fct, GlobalId, TupleId, VM};
 
-pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
+pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
+    if let Some(fct) = fct {
+        println!("{}", fct.full_name(vm));
+    }
     let mut visitor = BytecodeDumper {
         bc,
         pos: BytecodeOffset(0),
@@ -15,28 +18,35 @@ pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
         vm,
     };
     read(bc.code(), &mut visitor);
-    print!("Registers:");
+
+    let align = "   ";
+
+    println!();
+    println!("  Registers:");
 
     for (idx, ty) in bc.registers().iter().enumerate() {
-        print!(" r{}={:?}", idx, ty);
+        println!("{}{}={:?}", align, idx, ty);
     }
 
     println!();
-    println!("Constants:");
+    println!("  Constants:");
 
     for (idx, entry) in bc.const_pool_entries().iter().enumerate() {
         match entry {
-            ConstPoolEntry::String(ref value) => println!(" {} => String {}", idx, value),
-            ConstPoolEntry::Int32(ref value) => println!(" {} => Int32 {}", idx, value),
-            ConstPoolEntry::Int64(ref value) => println!(" {} => Int64 {}", idx, value),
-            ConstPoolEntry::Float32(ref value) => println!(" {} => Float32 {}", idx, value),
-            ConstPoolEntry::Float64(ref value) => println!(" {} => Float64 {}", idx, value),
-            ConstPoolEntry::Char(ref value) => println!(" {} => Char {}", idx, value),
+            ConstPoolEntry::String(ref value) => {
+                println!("{}{} => String \"{}\"", align, idx, value)
+            }
+            ConstPoolEntry::Int32(ref value) => println!("{}{} => Int32 {}", align, idx, value),
+            ConstPoolEntry::Int64(ref value) => println!("{}{} => Int64 {}", align, idx, value),
+            ConstPoolEntry::Float32(ref value) => println!("{}{} => Float32 {}", align, idx, value),
+            ConstPoolEntry::Float64(ref value) => println!("{}{} => Float64 {}", align, idx, value),
+            ConstPoolEntry::Char(ref value) => println!("{}{} => Char {}", align, idx, value),
             ConstPoolEntry::Class(cls_id, type_params) => {
                 let cls = vm.classes.idx(*cls_id);
                 let cls = cls.read();
                 println!(
-                    " {} => Class {}",
+                    "{}{} => Class {}",
+                    align,
                     idx,
                     cls.name_with_params(vm, type_params)
                 )
@@ -47,7 +57,8 @@ pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
                 let field = &cls.fields[field_id.idx()];
                 let fname = vm.interner.str(field.name);
                 println!(
-                    " {} => Field {}.{}",
+                    "{}{} => Field {}.{}",
+                    align,
                     idx,
                     cls.name_with_params(vm, type_params),
                     fname,
@@ -56,20 +67,31 @@ pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
             ConstPoolEntry::Fct(fct_id, type_params) => {
                 let fct = vm.fcts.idx(*fct_id);
                 let fct = fct.read();
-                let type_params = type_params
-                    .iter()
-                    .map(|n| n.name(vm))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                println!(" {} => Fct {} with {}", idx, fct.full_name(vm), type_params)
+
+                if type_params.len() > 0 {
+                    let type_params = type_params
+                        .iter()
+                        .map(|n| n.name(vm))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    println!(
+                        "{}{} => Fct {} with [{}]",
+                        align,
+                        idx,
+                        fct.full_name(vm),
+                        type_params
+                    );
+                } else {
+                    println!("{}{} => Fct {}", align, idx, fct.full_name(vm));
+                }
             }
         }
     }
 
     println!();
-    println!("Positions:");
+    println!("  Positions:");
     for (bc_offset, pos) in bc.positions().iter() {
-        println!(" offset {} => {}", bc_offset, pos);
+        println!("{}{} => {}", align, bc_offset, pos);
     }
     println!();
 }

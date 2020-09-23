@@ -31,7 +31,7 @@ fn compile_from_bytecode<'a, 'ast: 'a>(
     bytecode_fct: &BytecodeFunction,
 ) -> Code {
     if should_emit_bytecode(vm, fct) {
-        bytecode::dump(vm, bytecode_fct);
+        bytecode::dump(vm, Some(fct), bytecode_fct);
     }
 
     CannonCodeGen::new(vm, fct, src, bytecode_fct, type_params).generate()
