@@ -1,0 +1,16 @@
+//= vm-args --generic-bytecode
+
+fun main() {
+    assert(1 == identity[Int32](1));
+    assert(42.5F == identity[Float32](42.5F));
+    assert("abc" == identity[String]("abc"));
+    assert(!identity[Bool](false));
+    identity[()](());
+    let (x, y) = identity[(Int32, Bool)]((12, false));
+    assert(x == 12 && !y);
+}
+
+fun identity[T](val: T) -> T {
+    let tmp = val;
+    tmp
+}

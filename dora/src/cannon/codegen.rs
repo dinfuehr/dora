@@ -144,9 +144,10 @@ where
         let mut stacksize: i32 = start;
 
         for (index, &ty) in self.bytecode.registers().iter().enumerate() {
-            let ty = self.specialize_bytecode_type(ty);
-            stacksize = align_i32(stacksize + ty.size(), ty.size());
-            offset[index] = -stacksize;
+            if let Some(ty) = self.specialize_bytecode_type_unit(ty) {
+                stacksize = align_i32(stacksize + ty.size(), ty.size());
+                offset[index] = -stacksize;
+            }
         }
 
         stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
@@ -308,14 +309,14 @@ where
     }
 
     fn emit_load_register(&mut self, src: Register, dest: AnyReg) {
-        let bytecode_type = self.bytecode.register_type(src);
+        let bytecode_type = self.specialize_register_type(src);
         let offset = self.register_offset(src);
         self.asm
             .load_mem(bytecode_type.mode(), dest, Mem::Local(offset));
     }
 
     fn emit_store_register(&mut self, src: AnyReg, dest: Register) {
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
         let offset = self.register_offset(dest);
         self.asm
             .store_mem(bytecode_type.mode(), Mem::Local(offset), src);
@@ -1043,12 +1044,20 @@ where
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.specialize_register_type(src);
-        let reg = result_reg(bytecode_type);
+        if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
+            match bytecode_type {
+                BytecodeType::Tuple(tuple_id) => {
+                    self.emit_mov_tuple(dest, src, tuple_id);
+                }
 
-        self.emit_load_register(src, reg.into());
+                _ => {
+                    let reg = result_reg(bytecode_type);
 
-        self.emit_store_register(reg.into(), dest);
+                    self.emit_load_register(src, reg.into());
+                    self.emit_store_register(reg.into(), dest);
+                }
+            }
+        }
     }
 
     fn emit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
@@ -1466,26 +1475,25 @@ where
     }
 
     fn emit_return_generic(&mut self, src: Register) {
-        let bytecode_type = self.bytecode.register_type(src);
-        let bytecode_type = self.specialize_bytecode_type(bytecode_type);
+        if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
+            if let Some(tuple_id) = bytecode_type.tuple_id() {
+                let src_offset = self.register_offset(src);
 
-        if let Some(tuple_id) = bytecode_type.tuple_id() {
-            let src_offset = self.register_offset(src);
+                self.asm.load_mem(
+                    MachineMode::Ptr,
+                    REG_TMP1.into(),
+                    Mem::Local(result_address_offset()),
+                );
 
-            self.asm.load_mem(
-                MachineMode::Ptr,
-                REG_TMP1.into(),
-                Mem::Local(result_address_offset()),
-            );
-
-            self.copy_tuple(
-                tuple_id,
-                RegOrOffset::Reg(REG_TMP1),
-                RegOrOffset::Offset(src_offset),
-            );
-        } else {
-            let reg = result_reg(bytecode_type);
-            self.emit_load_register(src, reg.into());
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::Reg(REG_TMP1),
+                    RegOrOffset::Offset(src_offset),
+                );
+            } else {
+                let reg = result_reg(bytecode_type);
+                self.emit_load_register(src, reg.into());
+            }
         }
 
         self.emit_epilog();
@@ -2326,6 +2334,11 @@ where
         self.specialize_bytecode_type(ty)
     }
 
+    fn specialize_register_type_unit(&self, reg: Register) -> Option<BytecodeType> {
+        let ty = self.bytecode.register_type(reg);
+        self.specialize_bytecode_type_unit(ty)
+    }
+
     fn specialize_bytecode_type(&self, ty: BytecodeType) -> BytecodeType {
         match ty {
             BytecodeType::TypeParam(id) => {
@@ -2333,6 +2346,22 @@ where
                 self.type_params[id as usize].into()
             }
             _ => ty,
+        }
+    }
+
+    fn specialize_bytecode_type_unit(&self, ty: BytecodeType) -> Option<BytecodeType> {
+        match ty {
+            BytecodeType::TypeParam(id) => {
+                assert!(self.vm.args.flag_generic_bytecode);
+                let ty = self.type_params[id as usize];
+
+                if ty.is_unit() {
+                    None
+                } else {
+                    Some(ty.into())
+                }
+            }
+            _ => Some(ty),
         }
     }
 }
