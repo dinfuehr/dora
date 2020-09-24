@@ -2093,7 +2093,12 @@ where
         }
     }
 
-    fn emit_invoke_generic_static(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_generic(
+        &mut self,
+        dest: Option<Register>,
+        fct_idx: ConstPoolIdx,
+        is_static: bool,
+    ) {
         let (id, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Generic(id, fct_id, type_params) => (*id, *fct_id, type_params.clone()),
             _ => unreachable!(),
@@ -2107,27 +2112,12 @@ where
 
         let ty = self.type_params[id.to_usize()];
         let callee_id = self.find_trait_impl(trait_fct_id, trait_id, ty);
-        self.emit_invoke_static_inner(dest, callee_id, type_params);
-    }
 
-    fn emit_invoke_generic_direct(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
-        let (id, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::Generic(id, fct_id, type_params) => (*id, *fct_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-
-        let fct = self.vm.fcts.idx(trait_fct_id);
-        let fct = fct.read();
-
-        let trait_id = fct.trait_id();
-        assert!(self.fct.type_param(id).trait_bounds.contains(&trait_id));
-
-        // This happens for calls like (T: SomeTrait).method()
-        // Find the exact method that is called
-        let object_type = self.type_params[id.to_usize()];
-        let callee_id = self.find_trait_impl(trait_fct_id, trait_id, object_type);
-
-        self.emit_invoke_direct_inner(dest, callee_id, type_params);
+        if is_static {
+            self.emit_invoke_static_inner(dest, callee_id, type_params);
+        } else {
+            self.emit_invoke_direct_inner(dest, callee_id, type_params);
+        }
     }
 
     fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
@@ -3397,14 +3387,14 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             self,
             format!("InvokeGenericDirectVoid {}", fctdef.to_usize())
         );
-        self.emit_invoke_generic_direct(None, fctdef);
+        self.emit_invoke_generic(None, fctdef, false);
     }
     fn visit_invoke_generic_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,
             format!("InvokeGenericDirect {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_generic_direct(Some(dest), fctdef);
+        self.emit_invoke_generic(Some(dest), fctdef, false);
     }
 
     fn visit_invoke_generic_static_void(&mut self, fctdef: ConstPoolIdx) {
@@ -3412,14 +3402,14 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             self,
             format!("InvokeGenericStaticVoid {}", fctdef.to_usize())
         );
-        self.emit_invoke_generic_static(None, fctdef);
+        self.emit_invoke_generic(None, fctdef, true);
     }
     fn visit_invoke_generic_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,
             format!("InvokeGenericStatic {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_generic_static(Some(dest), fctdef);
+        self.emit_invoke_generic(Some(dest), fctdef, true);
     }
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
