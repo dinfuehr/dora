@@ -7,7 +7,7 @@ use crate::bytecode::{
     Register,
 };
 use crate::driver::cmd::Args;
-use crate::ty::TypeList;
+use crate::ty::{TypeList, TypeListId};
 use crate::vm::{ClassId, FctId, FieldId, GlobalId, TupleId, VM};
 
 pub struct BytecodeBuilder {
@@ -52,6 +52,16 @@ impl BytecodeBuilder {
 
     pub fn add_const_fct_types(&mut self, id: FctId, type_params: TypeList) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
+    }
+
+    pub fn add_const_generic_static_method(
+        &mut self,
+        id: TypeListId,
+        fct_id: FctId,
+        type_params: TypeList,
+    ) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::GenericStaticMethod(id, fct_id, type_params))
     }
 
     pub fn add_const_field_types(

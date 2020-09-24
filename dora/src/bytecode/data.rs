@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::mem::ptr_width;
-use crate::ty::{BuiltinType, MachineMode, TypeList};
+use crate::ty::{BuiltinType, MachineMode, TypeList, TypeListId};
 use crate::vm::{get_vm, ClassId, FctId, FieldId, TupleId};
 use dora_parser::lexer::position::Position;
 
@@ -562,6 +562,7 @@ pub enum ConstPoolEntry {
     Class(ClassId, TypeList),
     Field(ClassId, TypeList, FieldId),
     Fct(FctId, TypeList),
+    GenericStaticMethod(TypeListId, FctId, TypeList),
 }
 
 impl ConstPoolEntry {

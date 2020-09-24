@@ -2727,7 +2727,17 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 .collect::<Vec<_>>(),
         );
 
-        self.gen.add_const_fct_types(fct.id, type_params)
+        match *call_type {
+            CallType::GenericStaticMethod(id, _, _) => {
+                if self.generic_mode {
+                    self.gen
+                        .add_const_generic_static_method(id, fct.id, type_params)
+                } else {
+                    self.gen.add_const_fct_types(fct.id, type_params)
+                }
+            }
+            _ => self.gen.add_const_fct_types(fct.id, type_params),
+        }
     }
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {

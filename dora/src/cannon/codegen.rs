@@ -2020,7 +2020,15 @@ where
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
+        self.emit_invoke_static_inner(dest, fct_id, type_params)
+    }
 
+    fn emit_invoke_static_inner(
+        &mut self,
+        dest: Option<Register>,
+        fct_id: FctId,
+        type_params: TypeList,
+    ) {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
         assert!(!fct.has_self());
@@ -2074,6 +2082,52 @@ where
                 self.emit_store_register(reg, dest);
             }
         }
+    }
+
+    fn emit_invoke_generic_static(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+        let (id, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::GenericStaticMethod(id, fct_id, type_params) => {
+                (*id, *fct_id, type_params.clone())
+            }
+            _ => unreachable!(),
+        };
+
+        let fct = self.vm.fcts.idx(trait_fct_id);
+        let fct = fct.read();
+
+        let trait_id = fct.trait_id();
+
+        assert!(self.fct.type_param(id).trait_bounds.contains(&trait_id));
+
+        let ty = self.type_params[id.to_usize()];
+        let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
+
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        let mut impl_fct_id: Option<FctId> = None;
+
+        for &impl_id in &cls.impls {
+            let ximpl = self.vm.impls[impl_id].read();
+
+            if ximpl.trait_id != Some(trait_id) {
+                continue;
+            }
+
+            for &fid in &ximpl.methods {
+                let method = self.vm.fcts.idx(fid);
+                let method = method.read();
+
+                if method.impl_for == Some(trait_fct_id) {
+                    impl_fct_id = Some(fid);
+                    break;
+                }
+            }
+        }
+
+        let callee_id = impl_fct_id.expect("no impl_fct_id found");
+
+        self.emit_invoke_static_inner(dest, callee_id, type_params)
     }
 
     fn emit_invoke_intrinsic(&mut self, _fct: &Fct, intrinsic: Intrinsic) -> AnyReg {
@@ -3282,7 +3336,10 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_invoke_direct(None, fctdef)
     }
     fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        comment!(self, format!("InvokeDirect {}", fctdef.to_usize()));
+        comment!(
+            self,
+            format!("InvokeDirect {}, {}", dest, fctdef.to_usize())
+        );
         self.emit_invoke_direct(Some(dest), fctdef);
     }
 
@@ -3291,7 +3348,10 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_invoke_virtual(None, fctdef);
     }
     fn visit_invoke_virtual(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        comment!(self, format!("InvokeVirtual {}", fctdef.to_usize()));
+        comment!(
+            self,
+            format!("InvokeVirtual {}, {}", dest, fctdef.to_usize())
+        );
         self.emit_invoke_virtual(Some(dest), fctdef);
     }
 
@@ -3300,8 +3360,26 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_invoke_static(None, fctdef)
     }
     fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        comment!(self, format!("InvokeStatic {}", fctdef.to_usize()));
+        comment!(
+            self,
+            format!("InvokeStatic {}, {}", dest, fctdef.to_usize())
+        );
         self.emit_invoke_static(Some(dest), fctdef);
+    }
+
+    fn visit_invoke_generic_static_void(&mut self, fctdef: ConstPoolIdx) {
+        comment!(
+            self,
+            format!("InvokeGenericStaticVoid {}", fctdef.to_usize())
+        );
+        self.emit_invoke_generic_static(None, fctdef);
+    }
+    fn visit_invoke_generic_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
+        comment!(
+            self,
+            format!("InvokeGenericStatic {}, {}", dest, fctdef.to_usize())
+        );
+        self.emit_invoke_generic_static(Some(dest), fctdef);
     }
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {

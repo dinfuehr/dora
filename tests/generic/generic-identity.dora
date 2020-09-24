@@ -6,8 +6,8 @@ fun main() {
     assert("abc" == identity[String]("abc"));
     assert(!identity[Bool](false));
     identity[()](());
-    let (x, y) = identity[(Int32, Bool)]((12, false));
-    assert(x == 12 && !y);
+    let (x, y, z) = identity[(Int32, Bool, String)]((12, false, "foo"));
+    assert(x == 12 && !y && z == "foo");
 }
 
 fun identity[T](val: T) -> T {

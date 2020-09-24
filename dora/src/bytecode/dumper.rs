@@ -25,7 +25,7 @@ pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction)
     println!("  Registers:");
 
     for (idx, ty) in bc.registers().iter().enumerate() {
-        println!("{}{}={:?}", align, idx, ty);
+        println!("{}{} => {:?}", align, idx, ty);
     }
 
     println!();
@@ -83,6 +83,34 @@ pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction)
                     );
                 } else {
                     println!("{}{} => Fct {}", align, idx, fct.full_name(vm));
+                }
+            }
+            ConstPoolEntry::GenericStaticMethod(id, fct_id, type_params) => {
+                let fct = vm.fcts.idx(*fct_id);
+                let fct = fct.read();
+
+                if type_params.len() > 0 {
+                    let type_params = type_params
+                        .iter()
+                        .map(|n| n.name(vm))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    println!(
+                        "{}{} => TypeParam({}) Static Method {} with [{}]",
+                        align,
+                        idx,
+                        id.to_usize(),
+                        fct.full_name(vm),
+                        type_params
+                    );
+                } else {
+                    println!(
+                        "{}{} => TypeParam({}) Static Method {}",
+                        align,
+                        idx,
+                        id.to_usize(),
+                        fct.full_name(vm)
+                    );
                 }
             }
         }
@@ -656,26 +684,59 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_const_zero_float64(&mut self, dest: Register) {
         self.emit_reg1("ConstZeroFloat64", dest);
     }
-    fn visit_const_char(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstChar", dest, value);
+    fn visit_const_char(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_start("ConstChar");
+        let value = self.bc.const_pool(idx).to_char().expect("char expected");
+        writeln!(
+            self.w,
+            " {}, @{} # '{}' 0x{:x}",
+            dest,
+            idx.to_usize(),
+            value,
+            value as u32
+        )
+        .expect("write! failed");
     }
     fn visit_const_uint8(&mut self, dest: Register, value: u8) {
-        self.emit_reg1_u32("ConstUInt8", dest, value as u32);
+        self.emit_start("ConstUInt8");
+        writeln!(self.w, " {}, {}", dest, value).expect("write! failed");
     }
-    fn visit_const_int32(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstInt32", dest, value);
+    fn visit_const_int32(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_start("ConstInt32");
+        let value = self.bc.const_pool(idx).to_int32().expect("int32 expected");
+        writeln!(self.w, " {}, @{} # {}", dest, idx.to_usize(), value).expect("write! failed");
     }
-    fn visit_const_int64(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstInt64", dest, value);
+    fn visit_const_int64(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_start("ConstInt64");
+        let value = self.bc.const_pool(idx).to_int64().expect("int64 expected");
+        writeln!(self.w, " {}, @{} # {}", dest, idx.to_usize(), value).expect("write! failed");
     }
-    fn visit_const_float32(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstFloat32", dest, value);
+    fn visit_const_float32(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_start("ConstFloat32");
+        let value = self
+            .bc
+            .const_pool(idx)
+            .to_float32()
+            .expect("float32 expected");
+        writeln!(self.w, " {}, @{} # {}", dest, idx.to_usize(), value).expect("write! failed");
     }
-    fn visit_const_float64(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstFloat64", dest, value);
+    fn visit_const_float64(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_start("ConstFloat64");
+        let value = self
+            .bc
+            .const_pool(idx)
+            .to_float64()
+            .expect("float64 expected");
+        writeln!(self.w, " {}, @{} # {}", dest, idx.to_usize(), value).expect("write! failed");
     }
-    fn visit_const_string(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstString", dest, value);
+    fn visit_const_string(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_start("ConstString");
+        let value = self
+            .bc
+            .const_pool(idx)
+            .to_string()
+            .expect("string expected");
+        writeln!(self.w, " {}, @{} # \"{}\"", dest, idx.to_usize(), value).expect("write! failed");
     }
     fn visit_const_generic_default(&mut self, dest: Register) {
         self.emit_reg1("ConstGenericDefault", dest);

@@ -1,0 +1,26 @@
+//= vm-args --generic-bytecode
+
+fun main() {
+    assert(17 == bar[SomeClass]());
+    assert(42 == bar[OtherClass]());
+}
+
+fun bar[T: Foo]() -> Int32 {
+    T::baz()
+}
+
+trait Foo {
+    @static fun baz() -> Int32;
+}
+
+class SomeClass
+
+impl Foo for SomeClass {
+    @static fun baz() -> Int32 { 17 }
+}
+
+class OtherClass
+
+impl Foo for OtherClass {
+    @static fun baz() -> Int32 { 42 }
+}
