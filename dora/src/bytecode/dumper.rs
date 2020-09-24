@@ -85,7 +85,7 @@ pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction)
                     println!("{}{} => Fct {}", align, idx, fct.full_name(vm));
                 }
             }
-            ConstPoolEntry::GenericStaticMethod(id, fct_id, type_params) => {
+            ConstPoolEntry::Generic(id, fct_id, type_params) => {
                 let fct = vm.fcts.idx(*fct_id);
                 let fct = fct.read();
 

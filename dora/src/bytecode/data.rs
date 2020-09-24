@@ -562,7 +562,7 @@ pub enum ConstPoolEntry {
     Class(ClassId, TypeList),
     Field(ClassId, TypeList, FieldId),
     Fct(FctId, TypeList),
-    GenericStaticMethod(TypeListId, FctId, TypeList),
+    Generic(TypeListId, FctId, TypeList),
 }
 
 impl ConstPoolEntry {

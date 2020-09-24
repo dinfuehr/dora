@@ -2728,10 +2728,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         );
 
         match *call_type {
-            CallType::GenericStaticMethod(id, _, _) => {
+            CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
                 if self.generic_mode {
-                    self.gen
-                        .add_const_generic_static_method(id, fct.id, type_params)
+                    self.gen.add_const_generic(id, fct.id, type_params)
                 } else {
                     self.gen.add_const_fct_types(fct.id, type_params)
                 }

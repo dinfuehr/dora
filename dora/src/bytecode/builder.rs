@@ -54,14 +54,14 @@ impl BytecodeBuilder {
         self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
     }
 
-    pub fn add_const_generic_static_method(
+    pub fn add_const_generic(
         &mut self,
         id: TypeListId,
         fct_id: FctId,
         type_params: TypeList,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::GenericStaticMethod(id, fct_id, type_params))
+            .add_const(ConstPoolEntry::Generic(id, fct_id, type_params))
     }
 
     pub fn add_const_field_types(

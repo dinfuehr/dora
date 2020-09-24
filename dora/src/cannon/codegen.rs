@@ -22,7 +22,7 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::{specialize_class_id_params, specialize_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
-use crate::vm::{Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, Trap, TupleId, VM};
+use crate::vm::{Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM};
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
 macro_rules! comment {
@@ -1950,6 +1950,15 @@ where
             _ => unreachable!(),
         };
 
+        self.emit_invoke_direct_inner(dest, fct_id, type_params)
+    }
+
+    fn emit_invoke_direct_inner(
+        &mut self,
+        dest: Option<Register>,
+        fct_id: FctId,
+        type_params: TypeList,
+    ) {
         let bytecode_type = if let Some(dest) = dest {
             Some(self.bytecode.register_type(dest))
         } else {
@@ -2086,9 +2095,7 @@ where
 
     fn emit_invoke_generic_static(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
         let (id, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::GenericStaticMethod(id, fct_id, type_params) => {
-                (*id, *fct_id, type_params.clone())
-            }
+            ConstPoolEntry::Generic(id, fct_id, type_params) => (*id, *fct_id, type_params.clone()),
             _ => unreachable!(),
         };
 
@@ -2128,6 +2135,50 @@ where
         let callee_id = impl_fct_id.expect("no impl_fct_id found");
 
         self.emit_invoke_static_inner(dest, callee_id, type_params)
+    }
+
+    fn emit_invoke_generic_direct(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+        let (id, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::Generic(id, fct_id, type_params) => (*id, *fct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+
+        let fct = self.vm.fcts.idx(trait_fct_id);
+        let fct = fct.read();
+
+        let trait_id = fct.trait_id();
+
+        // This happens for calls like (T: SomeTrait).method()
+        // Find the exact method that is called
+        let object_type = self.specialize_type(BuiltinType::TypeParam(id));
+        let callee_id = self.find_trait_impl(trait_fct_id, trait_id, object_type);
+
+        self.emit_invoke_direct_inner(dest, callee_id, type_params)
+    }
+
+    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
+        let cls_id = object_type.cls_id(self.vm).unwrap();
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &impl_id in &cls.impls {
+            let ximpl = self.vm.impls[impl_id].read();
+
+            if ximpl.trait_id() != trait_id {
+                continue;
+            }
+
+            for &mtd_id in &ximpl.methods {
+                let mtd = self.vm.fcts.idx(mtd_id);
+                let mtd = mtd.read();
+
+                if mtd.impl_for == Some(fct_id) {
+                    return mtd_id;
+                }
+            }
+        }
+
+        panic!("no impl found for generic trait call")
     }
 
     fn emit_invoke_intrinsic(&mut self, _fct: &Fct, intrinsic: Intrinsic) -> AnyReg {
@@ -2255,7 +2306,7 @@ where
         }
 
         for src in arguments {
-            let bytecode_type = self.bytecode.register_type(src);
+            let bytecode_type = self.specialize_register_type(src);
             let offset = self.register_offset(src);
 
             match bytecode_type {
@@ -3365,6 +3416,21 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             format!("InvokeStatic {}, {}", dest, fctdef.to_usize())
         );
         self.emit_invoke_static(Some(dest), fctdef);
+    }
+
+    fn visit_invoke_generic_direct_void(&mut self, fctdef: ConstPoolIdx) {
+        comment!(
+            self,
+            format!("InvokeGenericDirectVoid {}", fctdef.to_usize())
+        );
+        self.emit_invoke_generic_direct(None, fctdef);
+    }
+    fn visit_invoke_generic_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
+        comment!(
+            self,
+            format!("InvokeGenericDirect {}, {}", dest, fctdef.to_usize())
+        );
+        self.emit_invoke_generic_direct(Some(dest), fctdef);
     }
 
     fn visit_invoke_generic_static_void(&mut self, fctdef: ConstPoolIdx) {

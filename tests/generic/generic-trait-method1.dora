@@ -1,0 +1,26 @@
+//= vm-args --generic-bytecode
+
+fun main() {
+    assert(17 == bar[SomeClass](SomeClass()));
+    assert(42 == bar[OtherClass](OtherClass()));
+}
+
+fun bar[T: Foo](obj: T) -> Int32 {
+    obj.baz()
+}
+
+trait Foo {
+    fun baz() -> Int32;
+}
+
+class SomeClass
+
+impl Foo for SomeClass {
+    fun baz() -> Int32 { 17 }
+}
+
+class OtherClass
+
+impl Foo for OtherClass {
+    fun baz() -> Int32 { 42 }
+}
