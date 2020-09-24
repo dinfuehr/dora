@@ -2103,38 +2103,11 @@ where
         let fct = fct.read();
 
         let trait_id = fct.trait_id();
-
         assert!(self.fct.type_param(id).trait_bounds.contains(&trait_id));
 
         let ty = self.type_params[id.to_usize()];
-        let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
-
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
-
-        let mut impl_fct_id: Option<FctId> = None;
-
-        for &impl_id in &cls.impls {
-            let ximpl = self.vm.impls[impl_id].read();
-
-            if ximpl.trait_id != Some(trait_id) {
-                continue;
-            }
-
-            for &fid in &ximpl.methods {
-                let method = self.vm.fcts.idx(fid);
-                let method = method.read();
-
-                if method.impl_for == Some(trait_fct_id) {
-                    impl_fct_id = Some(fid);
-                    break;
-                }
-            }
-        }
-
-        let callee_id = impl_fct_id.expect("no impl_fct_id found");
-
-        self.emit_invoke_static_inner(dest, callee_id, type_params)
+        let callee_id = self.find_trait_impl(trait_fct_id, trait_id, ty);
+        self.emit_invoke_static_inner(dest, callee_id, type_params);
     }
 
     fn emit_invoke_generic_direct(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
@@ -2147,13 +2120,14 @@ where
         let fct = fct.read();
 
         let trait_id = fct.trait_id();
+        assert!(self.fct.type_param(id).trait_bounds.contains(&trait_id));
 
         // This happens for calls like (T: SomeTrait).method()
         // Find the exact method that is called
-        let object_type = self.specialize_type(BuiltinType::TypeParam(id));
+        let object_type = self.type_params[id.to_usize()];
         let callee_id = self.find_trait_impl(trait_fct_id, trait_id, object_type);
 
-        self.emit_invoke_direct_inner(dest, callee_id, type_params)
+        self.emit_invoke_direct_inner(dest, callee_id, type_params);
     }
 
     fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
