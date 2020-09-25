@@ -2,8 +2,8 @@
 //= vm-args --generic-bytecode
 
 fun main() {
-    assert(0 == bar[Int32]().size());
-    assert(0 == bar[()]().size());
+    assert(0L == newArray[Int32]().size());
+    assert(0L == newArray[()]().size());
 }
 
 fun newArray[T]() -> Array[T] {
