@@ -1,0 +1,11 @@
+//= ignore
+//= vm-args --generic-bytecode
+
+fun main() {
+    assert(0 == bar[Int32]().size());
+    assert(0 == bar[()]().size());
+}
+
+fun newArray[T]() -> Array[T] {
+    Array::empty[T]()
+}
