@@ -1,31 +1,31 @@
 class Text(let value: String, let locale: Locale) {
 
-  fun plus(rhs: Text) -> Text {
+  fun plus(rhs: Text): Text {
     if self.locale != rhs.locale {
       fatalError("locales different");
     }
     return Text(self.value + rhs.value, self.locale);
   }
 
-  fun asString() -> String = self.value;
+  fun asString(): String = self.value;
 
-  fun toString() -> String = "Text(" + self.value + ", " + self.locale.toString() + ")";
+  fun toString(): String = "Text(" + self.value + ", " + self.locale.toString() + ")";
 
-  fun asBytes() -> Array[UInt8] {
+  fun asBytes(): Array[UInt8] {
     unimplemented();
     return Array::empty[UInt8]();
   }
 
-  fun isEmpty() -> Bool = self.value.isEmpty();
+  fun isEmpty(): Bool = self.value.isEmpty();
 
-  fun codePoints() -> CodepointIterator = CodepointIterator(self.value, 0L);
+  fun codePoints(): CodepointIterator = CodepointIterator(self.value, 0L);
 
-  fun toUpperCase() -> Text {
+  fun toUpperCase(): Text {
     unimplemented();
     return self;
   }
 
-  fun toLowerCase() -> Text {
+  fun toLowerCase(): Text {
     unimplemented();
     return self;
   }

@@ -24,7 +24,7 @@ class Queue[T] {
     self.count = self.count + 1L;
   }
 
-  @pub fun dequeue() -> T {
+  @pub fun dequeue(): T {
     assert(self.count > 0L);
 
     let value = self.elements.get(self.front);
@@ -36,7 +36,7 @@ class Queue[T] {
     return value;
   }
 
-  fun moveFront() -> Int64 {
+  fun moveFront(): Int64 {
     self.front = self.front + 1L;
 
     if self.front == self.elements.size() {
@@ -46,7 +46,7 @@ class Queue[T] {
     return self.front;
   }
 
-  fun getEnd() -> Int64 {
+  fun getEnd(): Int64 {
     let end = self.front + self.count;
 
     if end < self.elements.size() {
@@ -56,11 +56,11 @@ class Queue[T] {
     }
   }
 
-  @pub fun size() -> Int64 {
+  @pub fun size(): Int64 {
     return self.count;
   }
 
-  @pub fun isEmpty() -> Bool {
+  @pub fun isEmpty(): Bool {
     return self.count == 0L;
   }
 }

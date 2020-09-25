@@ -41,7 +41,7 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
         }
     }
 
-    fun contains(key: K) -> Bool {
+    fun contains(key: K): Bool {
         assert(self.entries <= self.cap);
 
         if self.entries == 0L {
@@ -68,7 +68,7 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
         false
     }
 
-    fun get(key: K) -> Option[V] {
+    fun get(key: K): Option[V] {
         assert(self.entries <= self.cap);
 
         if self.entries == 0L {
@@ -95,7 +95,7 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
         return Option::none[V]();
     }
 
-    fun remove(key: K) -> Option[V] {
+    fun remove(key: K): Option[V] {
         self.shrink();
 
         var hash = key.hash();
@@ -190,24 +190,24 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
         self.cap = new_capacity;
     }
 
-    fun isLive(idx: Int64) -> Bool {
+    fun isLive(idx: Int64): Bool {
         return self.inserted_and_deleted.contains(2L * idx) &&
                !self.inserted_and_deleted.contains(2L * idx + 1L);
     }
 
-    fun size() -> Int64 {
+    fun size(): Int64 {
         return self.entries;
     }
 
-    fun isEmpty() -> Bool {
+    fun isEmpty(): Bool {
         return self.entries == 0L;
     }
 
-    fun capacity() -> Int64 {
+    fun capacity(): Int64 {
         return self.cap;
     }
 
-    fun makeIterator() -> HashMapIter[K, V] {
+    fun makeIterator(): HashMapIter[K, V] {
         HashMapIter[K, V](self)
     }
 }
@@ -215,7 +215,7 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
 class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
     var idx: Int64 = 0L;
 
-    fun hasNext() -> Bool {
+    fun hasNext(): Bool {
         while self.idx < self.map.capacity() {
             if self.map.isLive(self.idx) {
                 return true;
@@ -227,7 +227,7 @@ class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
         false
     }
 
-    fun next() -> (K, V) {
+    fun next(): (K, V) {
         assert(self.map.isLive(self.idx));
         let key = self.map.keys.get(self.idx);
         let value = self.map.values.get(self.idx);

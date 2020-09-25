@@ -1,15 +1,15 @@
 module Locale {
-  fun de() -> Locale = Locale("de");
-  fun en() -> Locale = Locale("en");
-  fun fr() -> Locale = Locale("fr");
+  fun de(): Locale = Locale("de");
+  fun en(): Locale = Locale("en");
+  fun fr(): Locale = Locale("fr");
 }
 
 class Locale(let value: String) {}
 
 impl Equals for Locale {
-  fun equals(rhs: Locale) -> Bool = self.value == rhs.value;
+  fun equals(rhs: Locale): Bool = self.value == rhs.value;
 }
 
 impl Stringable for Locale {
-  fun toString() -> String = "Locale(" + self.value + ")";
+  fun toString(): String = "Locale(" + self.value + ")";
 }

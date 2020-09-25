@@ -1,22 +1,22 @@
 @internal class UInt8 {
-  @internal fun toChar() -> Char;
-  @internal fun toInt32() -> Int32;
-  @internal fun toInt64() -> Int64;
-  @internal fun toString() -> String;
+  @internal fun toChar(): Char;
+  @internal fun toInt32(): Int32;
+  @internal fun toInt64(): Int64;
+  @internal fun toString(): String;
 
-  fun toStringBinary() -> String = String::binary(self.toInt64());
-  fun toStringHex() -> String = String::hex(self.toInt64());
+  fun toStringBinary(): String = String::binary(self.toInt64());
+  fun toStringHex(): String = String::hex(self.toInt64());
 
-  @internal fun equals(rhs: UInt8) -> Bool;
-  @internal fun compareTo(rhs: UInt8) -> Int32;
+  @internal fun equals(rhs: UInt8): Bool;
+  @internal fun compareTo(rhs: UInt8): Int32;
 
-  fun hash() -> Int32 = self.toInt32();
+  fun hash(): Int32 = self.toInt32();
 }
 
 module UInt8 {
-  fun bits() -> Int32 = 8;
-  fun bytes() -> Int32 = 1;
+  fun bits(): Int32 = 8;
+  fun bytes(): Int32 = 1;
 
-  fun maxValue() -> UInt8 = 255Y;
-  fun minValue() -> UInt8 = 0Y;
+  fun maxValue(): UInt8 = 255Y;
+  fun minValue(): UInt8 = 0Y;
 }

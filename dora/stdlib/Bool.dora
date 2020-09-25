@@ -1,12 +1,12 @@
 @internal class Bool {
-  @internal fun toInt32() -> Int32;
+  @internal fun toInt32(): Int32;
 
-  fun hash() -> Int32 = self.toInt32();
+  fun hash(): Int32 = self.toInt32();
 
-  fun toString() -> String = if self { "true" } else { "false" };
-  fun toStringBinary() -> String = if self { "1" } else { "0" };
-  fun toStringHex() -> String = if self { "1" } else { "0" };
+  fun toString(): String = if self { "true" } else { "false" };
+  fun toStringBinary(): String = if self { "1" } else { "0" };
+  fun toStringHex(): String = if self { "1" } else { "0" };
 
-  @internal fun equals(rhs: Bool) -> Bool;
-  @internal fun not() -> Bool;
+  @internal fun equals(rhs: Bool): Bool;
+  @internal fun not(): Bool;
 }

@@ -1,42 +1,42 @@
 @open @abstract class Option[T] {
-  @open @abstract fun isSome() -> Bool;
-  @open @abstract fun isNone() -> Bool;
+  @open @abstract fun isSome(): Bool;
+  @open @abstract fun isNone(): Bool;
 
-  @open @abstract fun has(rhs: T) -> Bool;
-  @open @abstract fun unwrap() -> T;
+  @open @abstract fun has(rhs: T): Bool;
+  @open @abstract fun unwrap(): T;
   @open @abstract fun unwrapNone();
-  @open @abstract fun unwrapOr(value: T) -> T;
+  @open @abstract fun unwrapOr(value: T): T;
 }
 
 class Some[T](let wrapped: T): Option[T] {
-  @override fun isSome() -> Bool = true;
-  @override fun isNone() -> Bool = false;
+  @override fun isSome(): Bool = true;
+  @override fun isNone(): Bool = false;
 
-  @override fun has(rhs: T) -> Bool = self.wrapped === rhs;
-  @override fun unwrap() -> T { self.wrapped }
+  @override fun has(rhs: T): Bool = self.wrapped === rhs;
+  @override fun unwrap(): T { self.wrapped }
   @override fun unwrapNone() { fatalError("cannot unwrap Some."); }
-  @override fun unwrapOr(value: T) -> T { self.wrapped }
+  @override fun unwrapOr(value: T): T { self.wrapped }
 }
 
 class None[T]: Option[T] {
-  @override fun isSome() -> Bool = false;
-  @override fun isNone() -> Bool = true;
+  @override fun isSome(): Bool = false;
+  @override fun isNone(): Bool = true;
 
-  @override fun has(rhs: T) -> Bool = false;
-  @override fun unwrap() -> T {
+  @override fun has(rhs: T): Bool = false;
+  @override fun unwrap(): T {
     fatalError("cannot unwrap None.");
     defaultValue[T]()
   }
   @override fun unwrapNone() {}
-  @override fun unwrapOr(value: T) -> T { value }
+  @override fun unwrapOr(value: T): T { value }
 }
 
 module Option {
-  fun none[T]() -> Option[T] = None[T]();
-  fun some[T](wrapped: T) -> Option[T] = Some[T](wrapped);
+  fun none[T](): Option[T] = None[T]();
+  fun some[T](wrapped: T): Option[T] = Some[T](wrapped);
 }
 
-fun optionContains[T: Equals](lhs: Option[T], rhs: T) -> Bool {
+fun optionContains[T: Equals](lhs: Option[T], rhs: T): Bool {
   if lhs.isSome() {
     let lhs = lhs.unwrap();
     lhs === rhs || lhs.equals(rhs)
@@ -45,7 +45,7 @@ fun optionContains[T: Equals](lhs: Option[T], rhs: T) -> Bool {
   }
 }
 
-fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]) -> Bool {
+fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]): Bool {
   if lhs.isSome() {
     if rhs.isSome() {
       let lhs = lhs.unwrap();
@@ -59,7 +59,7 @@ fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]) -> Bool {
   }
 }
 
-fun optionToString[T: Stringable](lhs: Option[T]) -> String {
+fun optionToString[T: Stringable](lhs: Option[T]): String {
   if lhs.isSome() {
     "Some(${lhs.unwrap()})"
   } else {
