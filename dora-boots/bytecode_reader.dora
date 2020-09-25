@@ -1394,11 +1394,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readRegister(wide: Bool) -> BytecodeRegister {
+    fun readRegister(wide: Bool): BytecodeRegister {
         BytecodeRegister(self.readIndex(wide))
     }
 
-    fun hasWideOperands() -> Bool {
+    fun hasWideOperands(): Bool {
         let data = self.data;
         let value = data(self.pos.toInt64());
 
@@ -1410,7 +1410,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readOpcode() -> Int32 {
+    fun readOpcode(): Int32 {
         let first = self.readByte();
 
         if first == 255 {
@@ -1421,31 +1421,31 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readClassDefId(wide: Bool) -> ClassDefId {
+    fun readClassDefId(wide: Bool): ClassDefId {
         ClassDefId(self.readIndex(wide))
     }
 
-    fun readGlobalId(wide: Bool) -> GlobalId {
+    fun readGlobalId(wide: Bool): GlobalId {
         GlobalId(self.readIndex(wide))
     }
 
-    fun readFieldId(wide: Bool) -> FieldId {
+    fun readFieldId(wide: Bool): FieldId {
         FieldId(self.readIndex(wide))
     }
 
-    fun readFctId(wide: Bool) -> FctId {
+    fun readFctId(wide: Bool): FctId {
         FctId(self.readIndex(wide))
     }
 
-    fun readConstPoolId(wide: Bool) -> ConstPoolId {
+    fun readConstPoolId(wide: Bool): ConstPoolId {
         ConstPoolId(self.readIndex(wide))
     }
 
-    fun readOffset(wide: Bool) -> Int32 {
+    fun readOffset(wide: Bool): Int32 {
         self.readIndex(wide)
     }
 
-    fun readIndex(wide: Bool) -> Int32 {
+    fun readIndex(wide: Bool): Int32 {
         if wide {
             self.readInt32()
         } else {
@@ -1453,7 +1453,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readByte() -> Int32 {
+    fun readByte(): Int32 {
         let data = self.data;
         let value = data(self.pos.toInt64());
         self.pos = self.pos + 1;
@@ -1461,7 +1461,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         value.toInt32()
     }
 
-    fun readInt32() -> Int32 {
+    fun readInt32(): Int32 {
         let by1 = self.readByte();
         let by2 = self.readByte();
         let by3 = self.readByte();

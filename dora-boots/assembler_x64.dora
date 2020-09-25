@@ -35,11 +35,11 @@ let XMM14: XmmRegister = XmmRegister(14);
 let XMM15: XmmRegister = XmmRegister(15);
 
 class XmmRegister(let value: Int32) {
-    fun lowBits() -> Int32 {
+    fun lowBits(): Int32 {
         self.value & 0b111
     }
 
-    fun needsRexBit() -> Bool {
+    fun needsRexBit(): Bool {
         self.value > 7
     }
 }
@@ -53,7 +53,7 @@ class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
     let jumps: Vec[(Int64, Label, JumpDistance)] = Vec[(Int64, Label, JumpDistance)]();
 
-    fun createLabel() -> Label {
+    fun createLabel(): Label {
         self.buffer.createLabel()
     }
 
@@ -61,7 +61,7 @@ class AssemblerX64: Assembler {
         self.buffer.bindLabel(lbl);
     }
 
-    fun createAndBindLabel() -> Label {
+    fun createAndBindLabel(): Label {
         self.buffer.createAndBindLabel()
     }
 
@@ -1239,16 +1239,16 @@ class AssemblerX64: Assembler {
         self.jumps.push((pc, lbl, kind));
     }
 
-    fun size() -> Int64 {
+    fun size(): Int64 {
         self.buffer.size()
     }
 
-    fun finalize() -> Array[UInt8] {
+    fun finalize(): Array[UInt8] {
         self.resolveJumps();
         self.buffer.toArray()
     }
 
-    fun finalizeTesting() -> MachineCode {
+    fun finalizeTesting(): MachineCode {
         self.resolveJumps();
         MachineCode(self.buffer.toArray())
     }
@@ -1305,7 +1305,7 @@ enum Condition {
 }
 
 impl Condition {
-    fun toInt32() -> Int32 {
+    fun toInt32(): Int32 {
         if self == Condition::Overflow {
             0b0000
         } else if self == Condition::NoOverflow {
@@ -1370,34 +1370,34 @@ impl Condition {
 }
 
 class Immediate(let value: Int64) {
-    fun isInt8() -> Bool {
+    fun isInt8(): Bool {
         let limit = 1L << 7;
         -limit <= self.value && self.value < limit
     }
 
-    fun isUInt8() -> Bool {
+    fun isUInt8(): Bool {
         0L <= self.value && self.value < 256L
     }
 
-    fun isInt32() -> Bool {
+    fun isInt32(): Bool {
         let limit = 1L << 32;
         -limit <= self.value && self.value < limit
     }
 
-    fun isUInt32() -> Bool {
+    fun isUInt32(): Bool {
         let limit = 1L << 32;
         0L <= self.value && self.value < limit
     }
 
-    fun toUInt8() -> UInt8 {
+    fun toUInt8(): UInt8 {
         self.value.toUInt8()
     }
 
-    fun toInt32() -> Int32 {
+    fun toInt32(): Int32 {
         self.value.toInt32()
     }
 
-    fun toInt64() -> Int64 {
+    fun toInt64(): Int64 {
         self.value
     }
 }
@@ -1410,7 +1410,7 @@ enum ScaleFactor {
 }
 
 impl ScaleFactor {
-    fun value() -> Int32 {
+    fun value(): Int32 {
         if self == ScaleFactor::One {
             0
         } else if self == ScaleFactor::Two {
@@ -1475,7 +1475,7 @@ class Address {
 }
 
 module Address {
-    fun offset(base: Register, offset: Int32) -> Address {
+    fun offset(base: Register, offset: Int32): Address {
         let address = Address();
 
         let mode = if offset == 0 && base != RBP {
@@ -1505,7 +1505,7 @@ module Address {
         address
     }
 
-    fun index(index: Register, factor: ScaleFactor, disp: Int32) -> Address {
+    fun index(index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address();
 
         address.set_modrm(0b00, RSP);
@@ -1517,7 +1517,7 @@ module Address {
         address
     }
 
-    fun array(base: Register, index: Register, factor: ScaleFactor, disp: Int32) -> Address {
+    fun array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address();
 
         let mode = if disp == 0 && base != RBP {
@@ -1546,7 +1546,7 @@ module Address {
         address
     }
 
-    fun rip(disp: Int32) -> Address {
+    fun rip(disp: Int32): Address {
         let address = Address();
 
         address.set_modrm(0b00, RBP);
@@ -1604,11 +1604,11 @@ module Address {
 }
 
 impl Register {
-    fun lowBits() -> Int32 {
+    fun lowBits(): Int32 {
         self.value & 0b111
     }
 
-    fun needsRexBit() -> Bool {
+    fun needsRexBit(): Bool {
         self.value > 7
     }
 }

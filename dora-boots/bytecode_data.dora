@@ -1,13 +1,13 @@
 class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int32) {
-    fun constPool(idx: ConstPoolId) -> ConstPoolEntry {
+    fun constPool(idx: ConstPoolId): ConstPoolEntry {
         self.const_pool(idx.value.toInt64())
     }
 
-    fun codeAt(idx: Int32) -> Int32 {
+    fun codeAt(idx: Int32): Int32 {
         self.code(idx.toInt64()).toInt32()
     }
 
-    fun codeInt32At(idx: Int32) -> Int32 {
+    fun codeInt32At(idx: Int32): Int32 {
         let byte1 = self.codeAt(idx);
         let byte2 = self.codeAt(idx+1);
         let byte3 = self.codeAt(idx+2);
@@ -18,7 +18,7 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
 }
 
 @open @abstract class ConstPoolEntry {
-    fun toInt32() -> Option[Int32] {
+    fun toInt32(): Option[Int32] {
         if self is ConstPoolInt32 {
             Option::some[Int32]((self as ConstPoolInt32).value)
         } else {
@@ -26,7 +26,7 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
         }
     }
 
-    fun toInt64() -> Option[Int64] {
+    fun toInt64(): Option[Int64] {
         if self is ConstPoolInt64 {
             Option::some[Int64]((self as ConstPoolInt64).value)
         } else {
@@ -34,7 +34,7 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
         }
     }
 
-    fun toFloat32() -> Option[Float32] {
+    fun toFloat32(): Option[Float32] {
         if self is ConstPoolFloat32 {
             Option::some[Float32]((self as ConstPoolFloat32).value)
         } else {
@@ -42,7 +42,7 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
         }
     }
 
-    fun toFloat64() -> Option[Float64] {
+    fun toFloat64(): Option[Float64] {
         if self is ConstPoolFloat64 {
             Option::some[Float64]((self as ConstPoolFloat64).value)
         } else {
@@ -50,60 +50,60 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
         }
     }
 
-    @abstract fun toString() -> String;
+    @abstract fun toString(): String;
 }
 
 class ConstPoolInt32(let value: Int32): ConstPoolEntry {
-    @override fun toString() -> String { "Int32 ${self.value}" }
+    @override fun toString(): String { "Int32 ${self.value}" }
 }
 
 class ConstPoolInt64(let value: Int64): ConstPoolEntry {
-    @override fun toString() -> String { "Int64 ${self.value}" }
+    @override fun toString(): String { "Int64 ${self.value}" }
 }
 
 class ConstPoolFloat32(let value: Float32): ConstPoolEntry {
-    @override fun toString() -> String { "Float32 ${self.value}" }
+    @override fun toString(): String { "Float32 ${self.value}" }
 }
 
 class ConstPoolFloat64(let value: Float64): ConstPoolEntry {
-    @override fun toString() -> String { "Float64 ${self.value}" }
+    @override fun toString(): String { "Float64 ${self.value}" }
 }
 
 class ConstPoolString(let value: String): ConstPoolEntry {
-    @override fun toString() -> String { "String '${self.value}'" }
+    @override fun toString(): String { "String '${self.value}'" }
 }
 
 class ConstPoolChar(let value: Char): ConstPoolEntry {
-    @override fun toString() -> String { "Char '${self.value}' ${self.value.toInt32()}" }
+    @override fun toString(): String { "Char '${self.value}' ${self.value.toInt32()}" }
 }
 
 class BytecodeRegister(let value: Int32) {
-    fun equals(rhs: BytecodeRegister) -> Bool {
+    fun equals(rhs: BytecodeRegister): Bool {
         self.value == rhs.value
     }
 }
 
 impl Equals for BytecodeRegister {
-    fun equals(other: BytecodeRegister) -> Bool {
+    fun equals(other: BytecodeRegister): Bool {
         self.value == other.value
     }
 }
 
 impl Hash for BytecodeRegister {
-    fun hash() -> Int32 {
+    fun hash(): Int32 {
         self.value
     }
 }
 
 impl Stringable for BytecodeRegister {
-    fun toString() -> String = "r${self.value}";
+    fun toString(): String = "r${self.value}";
 }
 
 class ClassDefId(let value: Int32)
 class FieldId(let value: Int32)
 class GlobalId(let value: Int32)
 class ConstPoolId(let value: Int32) {
-    fun equals(rhs: ConstPoolId) -> Bool {
+    fun equals(rhs: ConstPoolId): Bool {
         self.value == rhs.value
     }
 }
@@ -111,27 +111,27 @@ class ConstPoolId(let value: Int32) {
 class FctId(let value: Int32)
 
 class BytecodeType(let value: Int32) {
-    fun isBool() -> Bool = self.value == BC_TYPE_BOOL;
-    fun isUInt8() -> Bool = self.value == BC_TYPE_U_INT8;
-    fun isChar() -> Bool = self.value == BC_TYPE_CHAR;
-    fun isInt32() -> Bool = self.value == BC_TYPE_INT32;
-    fun isInt64() -> Bool = self.value == BC_TYPE_INT64;
-    fun isFloat32() -> Bool = self.value == BC_TYPE_FLOAT32;
-    fun isFloat64() -> Bool = self.value == BC_TYPE_FLOAT64;
-    fun isPtr() -> Bool = self.value == BC_TYPE_PTR;
+    fun isBool(): Bool = self.value == BC_TYPE_BOOL;
+    fun isUInt8(): Bool = self.value == BC_TYPE_U_INT8;
+    fun isChar(): Bool = self.value == BC_TYPE_CHAR;
+    fun isInt32(): Bool = self.value == BC_TYPE_INT32;
+    fun isInt64(): Bool = self.value == BC_TYPE_INT64;
+    fun isFloat32(): Bool = self.value == BC_TYPE_FLOAT32;
+    fun isFloat64(): Bool = self.value == BC_TYPE_FLOAT64;
+    fun isPtr(): Bool = self.value == BC_TYPE_PTR;
 }
 
 module BytecodeType {
-    fun bool() -> BytecodeType = BytecodeType(BC_TYPE_BOOL);
-    fun uint8() -> BytecodeType = BytecodeType(BC_TYPE_U_INT8);
-    fun char() -> BytecodeType = BytecodeType(BC_TYPE_CHAR);
-    fun int32() -> BytecodeType = BytecodeType(BC_TYPE_INT32);
-    fun int64() -> BytecodeType = BytecodeType(BC_TYPE_INT64);
-    fun float32() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT32);
-    fun float64() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT64);
-    fun ptr() -> BytecodeType = BytecodeType(BC_TYPE_PTR);
+    fun bool(): BytecodeType = BytecodeType(BC_TYPE_BOOL);
+    fun uint8(): BytecodeType = BytecodeType(BC_TYPE_U_INT8);
+    fun char(): BytecodeType = BytecodeType(BC_TYPE_CHAR);
+    fun int32(): BytecodeType = BytecodeType(BC_TYPE_INT32);
+    fun int64(): BytecodeType = BytecodeType(BC_TYPE_INT64);
+    fun float32(): BytecodeType = BytecodeType(BC_TYPE_FLOAT32);
+    fun float64(): BytecodeType = BytecodeType(BC_TYPE_FLOAT64);
+    fun ptr(): BytecodeType = BytecodeType(BC_TYPE_PTR);
 }
 
 impl Stringable for BytecodeType {
-    fun toString() -> String { bytecodeTypeName(self.value) }
+    fun toString(): String { bytecodeTypeName(self.value) }
 }

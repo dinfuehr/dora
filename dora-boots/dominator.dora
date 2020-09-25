@@ -146,7 +146,7 @@ fun computeDominators(graph: Graph) {
     }
 }
 
-fun updateDominator(block: Block, successor: Block) -> Bool {
+fun updateDominator(block: Block, successor: Block): Bool {
     let old_dominator = successor.getDominator().unwrap();
     let new_dominator = commonDominator(old_dominator, block);
 
@@ -158,7 +158,7 @@ fun updateDominator(block: Block, successor: Block) -> Bool {
     }
 }
 
-fun commonDominator(b1: Block, b2: Block) -> Block {
+fun commonDominator(b1: Block, b2: Block): Block {
     var finger1 = b1;
     var finger2 = b2;
 

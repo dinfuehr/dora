@@ -60,25 +60,25 @@ class AssemblerArm64: Assembler {
         self.buffer.emitInt32(inst);
     }
 
-    fun finalize() -> Array[UInt8] {
+    fun finalize(): Array[UInt8] {
         self.buffer.toArray()
     }
 }
 
 impl Register {
-    fun isGpr() -> Bool {
+    fun isGpr(): Bool {
         self.value <= 30
     }
 
-    fun isGprOrZero() -> Bool {
+    fun isGprOrZero(): Bool {
         self.isGpr() || self == REG_ZERO
     }
 
-    fun isGprOrSp() -> Bool {
+    fun isGprOrSp(): Bool {
         self.isGpr() || self == REG_SP
     }
 
-    fun int32() -> Int32 {
+    fun int32(): Int32 {
         if self == REG_ZERO || self == REG_SP {
             31
         } else {
@@ -88,7 +88,7 @@ impl Register {
     }
 }
 
-fun clsUncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32) -> Int32 {
+fun clsUncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
     assert(fitsUnsigned(opc, 4));
     assert(fitsUnsigned(op2, 5));
     assert(fitsUnsigned(op3, 6));
@@ -98,7 +98,7 @@ fun clsUncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: In
     0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.int32() << 5 | op4
 }
 
-fun fitsUnsigned(value: Int32, bits: Int32) -> Bool {
+fun fitsUnsigned(value: Int32, bits: Int32): Bool {
     assert(bits < 32);
     value >= 0 && value < (1 << bits)
 }

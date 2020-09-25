@@ -5,16 +5,16 @@ class BytecodeWriter {
     let unresolvedJumps: Vec[UnresolvedJump] = Vec[UnresolvedJump]();
     var arguments: Int32 = 0;
 
-    fun addRegister(ty: BytecodeType) -> BytecodeRegister {
+    fun addRegister(ty: BytecodeType): BytecodeRegister {
         self.registers.push(ty);
         BytecodeRegister(self.registers.size().toInt32() - 1)
     }
 
-    fun createLabel() -> BytecodeLabel {
+    fun createLabel(): BytecodeLabel {
         BytecodeLabel()
     }
 
-    fun defineLabel() -> BytecodeLabel {
+    fun defineLabel(): BytecodeLabel {
         BytecodeLabel().bindTo(self.code.size().toInt32())
     }
 
@@ -641,7 +641,7 @@ class BytecodeWriter {
         self.emitReg1(BC_RET, opnd);
     }
 
-    fun generate() -> BytecodeFunction {
+    fun generate(): BytecodeFunction {
         self.resolveJumps();
         let code = self.code.toArray();
         let constPool = self.constPool.toArray();
@@ -731,7 +731,7 @@ class BytecodeWriter {
         self.emitVal1(inst);
     }
 
-    fun addConst(entry: ConstPoolEntry) -> ConstPoolId {
+    fun addConst(entry: ConstPoolEntry): ConstPoolId {
         self.constPool.push(entry);
         ConstPoolId(self.constPool.size().toInt32() - 1)
     }
@@ -876,24 +876,24 @@ class BytecodeWriter {
     }
 }
 
-fun isWide(val: Int32) -> Bool {
+fun isWide(val: Int32): Bool {
     val > 255
 }
 
 class BytecodeLabel {
     var off: Int32 = -1;
 
-    fun bindTo(offset: Int32) -> BytecodeLabel {
+    fun bindTo(offset: Int32): BytecodeLabel {
         assert(offset >= 0);
         self.off = offset;
         self
     }
 
-    fun isBound() -> Bool {
+    fun isBound(): Bool {
         self.off >= 0
     }
 
-    fun offset() -> Int32 {
+    fun offset(): Int32 {
         assert(self.isBound());
         self.off
     }

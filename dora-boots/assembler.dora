@@ -28,19 +28,19 @@ class AssemblerBuffer {
         self.buffer(offset + 3L) = ((value >>> 24) & 0xFFI).toUInt8();
     }
 
-    fun size() -> Int64 {
+    fun size(): Int64 {
         self.buffer.size()
     }
 
-    fun capacity() -> Int64 {
+    fun capacity(): Int64 {
         self.buffer.capacity()
     }
 
-    fun toArray() -> Array[UInt8] {
+    fun toArray(): Array[UInt8] {
         self.buffer.toArray()
     }
 
-    fun createLabel() -> Label {
+    fun createLabel(): Label {
         Label()
     }
 
@@ -48,7 +48,7 @@ class AssemblerBuffer {
         lbl.bindTo(self.size());
     }
 
-    fun createAndBindLabel() -> Label {
+    fun createAndBindLabel(): Label {
         let lbl = self.createLabel();
         self.bindLabel(lbl);
 
@@ -64,7 +64,7 @@ class Label {
         self.offset = pos;
     }
 
-    fun isBound() -> Bool {
+    fun isBound(): Bool {
         self.offset >= 0L
     }
 }
@@ -94,7 +94,7 @@ class Label {
 @open @abstract class Assembler
 
 class Register(let value: Int32) {
-    fun equals(rhs: Register) -> Bool {
+    fun equals(rhs: Register): Bool {
         self.value == rhs.value
     }
 }
