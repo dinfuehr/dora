@@ -67,9 +67,7 @@ pub fn start(content: Option<&str>) -> i32 {
 
     semck::prelude::install_conditional_intrinsics(&mut vm);
 
-    if vm.args.flag_generic_bytecode {
-        semck::bytecode(&vm);
-    }
+    semck::bytecode(&vm);
 
     if !vm.args.cmd_test && main.is_none() {
         println!("error: no `main` function found in the program");

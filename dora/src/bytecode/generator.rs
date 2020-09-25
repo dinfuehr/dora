@@ -53,7 +53,6 @@ pub fn generate<'ast>(
         gen: BytecodeBuilder::new(&vm.args),
         loops: Vec::new(),
         var_registers: HashMap::new(),
-        generic_mode: false,
     };
     ast_bytecode_generator.generate()
 }
@@ -79,7 +78,6 @@ pub fn generate_generic<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>, src: &FctSrc) -> B
         gen: BytecodeBuilder::new(&vm.args),
         loops: Vec::new(),
         var_registers: HashMap::new(),
-        generic_mode: true,
     };
     ast_bytecode_generator.generate()
 }
@@ -95,9 +93,6 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
     gen: BytecodeBuilder,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
-
-    // true when generic bytecode should be generated
-    generic_mode: bool,
 }
 
 impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
@@ -619,7 +614,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
                     self.visit_expr(part, DataDest::Reg(part_register));
-                } else if ty.is_type_param() && self.generic_mode {
+                } else if ty.is_type_param() {
                     let type_list_id = match ty {
                         BuiltinType::TypeParam(id) => id,
                         _ => unreachable!(),
@@ -944,52 +939,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn determine_callee(&mut self, call_type: &CallType) -> FctId {
-        match *call_type {
-            CallType::GenericMethod(id, trait_id, trait_fct_id) => {
-                if self.generic_mode {
-                    trait_fct_id
-                } else {
-                    // This happens for calls like (T: SomeTrait).method()
-                    // Find the exact method that is called
-                    let object_type = self.specialize_type(BuiltinType::TypeParam(id));
-                    self.find_trait_impl(trait_fct_id, trait_id, object_type)
-                }
-            }
-            CallType::GenericStaticMethod(list_id, trait_id, trait_fct_id) => {
-                if self.generic_mode {
-                    trait_fct_id
-                } else {
-                    let ty = self.type_params[list_id.to_usize()];
-                    let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
-
-                    let cls = self.vm.classes.idx(cls_id);
-                    let cls = cls.read();
-
-                    let mut impl_fct_id: Option<FctId> = None;
-
-                    for &impl_id in &cls.impls {
-                        let ximpl = self.vm.impls[impl_id].read();
-
-                        if ximpl.trait_id != Some(trait_id) {
-                            continue;
-                        }
-
-                        for &fid in &ximpl.methods {
-                            let method = self.vm.fcts.idx(fid);
-                            let method = method.read();
-
-                            if method.impl_for == Some(trait_fct_id) {
-                                impl_fct_id = Some(fid);
-                                break;
-                            }
-                        }
-                    }
-
-                    impl_fct_id.expect("no impl_fct_id found")
-                }
-            }
-            _ => call_type.fct_id().unwrap(),
-        }
+        call_type.fct_id().expect("FctId missing")
     }
 
     fn determine_callee_types(
@@ -1200,18 +1150,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             CallType::TraitObjectMethod(_, _) => unimplemented!(),
             CallType::GenericMethod(_, _, _) => {
-                if self.generic_mode {
-                    self.emit_invoke_generic_direct(return_type, return_reg, callee_idx, pos);
-                } else {
-                    self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
-                }
+                self.emit_invoke_generic_direct(return_type, return_reg, callee_idx, pos);
             }
             CallType::GenericStaticMethod(_, _, _) => {
-                if self.generic_mode {
-                    self.emit_invoke_generic_static(return_type, return_reg, callee_idx, pos);
-                } else {
-                    self.emit_invoke_static(return_type, return_reg, callee_idx, pos);
-                }
+                self.emit_invoke_generic_static(return_type, return_reg, callee_idx, pos);
             }
             CallType::Intrinsic(_) => unreachable!(),
         }
@@ -1258,10 +1200,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Int64 => self.gen.emit_mov_int64(dest, src),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
             BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, src, tuple_id),
-            BytecodeType::TypeParam(_) => {
-                assert!(self.generic_mode);
-                self.gen.emit_mov_generic(dest, src)
-            }
+            BytecodeType::TypeParam(_) => self.gen.emit_mov_generic(dest, src),
         }
     }
 
@@ -2736,11 +2675,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         match *call_type {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
-                if self.generic_mode {
-                    self.gen.add_const_generic(id, fct.id, type_params)
-                } else {
-                    self.gen.add_const_fct_types(fct.id, type_params)
-                }
+                self.gen.add_const_generic(id, fct.id, type_params)
             }
             _ => self.gen.add_const_fct_types(fct.id, type_params),
         }
@@ -2791,11 +2726,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        if self.generic_mode {
-            ty
-        } else {
-            specialize_type(self.vm, ty, self.type_params)
-        }
+        ty
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {

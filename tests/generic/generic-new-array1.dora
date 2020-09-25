@@ -1,5 +1,3 @@
-//= vm-args --generic-bytecode
-
 fun main() {
     assert(0L == newArray[Int32]().size());
     assert(0L == newArray[()]().size());

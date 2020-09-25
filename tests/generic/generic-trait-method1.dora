@@ -1,4 +1,4 @@
-//= vm-args --generic-bytecode --gc=copy --gc-stress --gc-verify
+//= vm-args --gc=copy --gc-stress --gc-verify
 
 fun main() {
     assert(17 * 17 == bar[SomeClass](SomeClass(17)));

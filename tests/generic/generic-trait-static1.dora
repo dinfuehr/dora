@@ -1,5 +1,3 @@
-//= vm-args --generic-bytecode
-
 fun main() {
     assert(17 == bar[SomeClass]());
     assert(42 == bar[OtherClass]());

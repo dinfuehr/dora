@@ -2581,10 +2581,7 @@ where
 
     fn specialize_bytecode_type(&self, ty: BytecodeType) -> BytecodeType {
         match ty {
-            BytecodeType::TypeParam(id) => {
-                assert!(self.vm.args.flag_generic_bytecode);
-                self.type_params[id as usize].into()
-            }
+            BytecodeType::TypeParam(id) => self.type_params[id as usize].into(),
             _ => ty,
         }
     }
@@ -2592,7 +2589,6 @@ where
     fn specialize_bytecode_type_unit(&self, ty: BytecodeType) -> Option<BytecodeType> {
         match ty {
             BytecodeType::TypeParam(id) => {
-                assert!(self.vm.args.flag_generic_bytecode);
                 let ty = self.type_params[id as usize];
 
                 if ty.is_unit() {
