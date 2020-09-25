@@ -94,6 +94,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn is_any_float(&self) -> bool {
+        match self {
+            BytecodeType::Float32 | BytecodeType::Float64 => true,
+            _ => false,
+        }
+    }
+
     pub fn is_ptr(&self) -> bool {
         match self {
             BytecodeType::Ptr => true,

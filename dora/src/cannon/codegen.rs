@@ -1485,6 +1485,54 @@ where
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
+    fn emit_test_generic_eqeqeq(&mut self, dest: Register, lhs: Register, rhs: Register, eq: bool) {
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(rhs)
+        );
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Bool);
+
+        let op = if eq {
+            CondCode::Equal
+        } else {
+            CondCode::NotEqual
+        };
+
+        if let Some(bytecode_type) = self.specialize_register_type_unit(lhs) {
+            if let BytecodeType::Tuple(_tuple_id) = bytecode_type {
+                unimplemented!()
+            } else if bytecode_type.is_any_float() {
+                let mode = match bytecode_type {
+                    BytecodeType::Float32 => MachineMode::Int32,
+                    BytecodeType::Float64 => MachineMode::Int64,
+                    _ => unreachable!(),
+                };
+
+                let offset = self.register_offset(lhs);
+                self.asm
+                    .load_mem(mode, REG_RESULT.into(), Mem::Local(offset));
+
+                let offset = self.register_offset(rhs);
+                self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+
+                self.asm.cmp_reg(mode, REG_RESULT, REG_TMP1);
+                self.asm.set(REG_RESULT, op);
+
+                self.emit_store_register(REG_RESULT.into(), dest);
+            } else {
+                self.emit_load_register(lhs, REG_RESULT.into());
+                self.emit_load_register(rhs, REG_TMP1.into());
+
+                self.asm.cmp_reg(bytecode_type.mode(), REG_RESULT, REG_TMP1);
+                self.asm.set(REG_RESULT, op);
+
+                self.emit_store_register(REG_RESULT.into(), dest);
+            }
+        } else {
+            self.emit_const_bool(dest, true);
+        }
+    }
+
     fn emit_test_float(&mut self, dest: Register, lhs: Register, rhs: Register, op: CondCode) {
         assert_eq!(
             self.bytecode.register_type(lhs),
@@ -1981,7 +2029,7 @@ where
         };
 
         let bytecode_type = if let Some(dest) = dest {
-            Some(self.bytecode.register_type(dest))
+            self.specialize_register_type_unit(dest)
         } else {
             None
         };
@@ -1991,12 +2039,14 @@ where
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
-        assert_eq!(bytecode_type_self, BytecodeType::Ptr);
+        assert!(bytecode_type_self.is_ptr());
 
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
+        let fct_return_type =
+            self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
+        assert!(fct_return_type.is_concrete_type(self.vm));
 
         let result_register = match fct_return_type {
             BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
@@ -2014,6 +2064,11 @@ where
             None => (REG_RESULT.into(), BuiltinType::Unit),
         };
 
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
         let self_index = if result_register.is_some() { 1 } else { 0 };
         self.asm.indirect_call(
             vtable_index,
@@ -2028,7 +2083,7 @@ where
         self.asm.decrease_stack_frame(argsize);
 
         if let Some(dest) = dest {
-            if !fct_return_type.is_tuple() {
+            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
                 self.emit_store_register(reg, dest);
             }
         }
@@ -2059,7 +2114,9 @@ where
         let fct = fct.read();
         assert!(fct.has_self());
 
-        let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
+        let fct_return_type =
+            self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
+        assert!(fct_return_type.is_concrete_type(self.vm));
 
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
             self.emit_invoke_intrinsic(&*fct, intrinsic)
@@ -2114,7 +2171,7 @@ where
         };
 
         if let Some(dest) = dest {
-            if !fct_return_type.is_tuple() {
+            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
                 self.emit_store_register(reg, dest);
             }
         }
@@ -2138,7 +2195,9 @@ where
         let fct = fct.read();
         assert!(!fct.has_self());
 
-        let fct_return_type = specialize_type(self.vm, fct.return_type, &type_params);
+        let fct_return_type =
+            self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
+        assert!(fct_return_type.is_concrete_type(self.vm));
 
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
             self.emit_invoke_intrinsic(&*fct, intrinsic)
@@ -2146,7 +2205,7 @@ where
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
             let bytecode_type = if let Some(dest) = dest {
-                Some(self.bytecode.register_type(dest))
+                self.specialize_register_type_unit(dest)
             } else {
                 None
             };
@@ -2375,54 +2434,61 @@ where
         }
 
         for src in arguments {
-            let bytecode_type = self.specialize_register_type(src);
-            let offset = self.register_offset(src);
+            if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
+                let offset = self.register_offset(src);
 
-            match bytecode_type {
-                BytecodeType::Tuple(_tuple_id) => {
-                    if reg_idx < REG_PARAMS.len() {
-                        let reg = REG_PARAMS[reg_idx];
-                        self.asm.lea(reg, Mem::Local(offset));
-                        reg_idx += 1;
-                    } else {
-                        self.asm.lea(REG_TMP1, Mem::Local(offset));
-                        self.asm.store_mem(
-                            MachineMode::Ptr,
-                            Mem::Base(REG_SP, sp_offset),
-                            REG_TMP1.into(),
-                        );
+                match bytecode_type {
+                    BytecodeType::Tuple(_tuple_id) => {
+                        if reg_idx < REG_PARAMS.len() {
+                            let reg = REG_PARAMS[reg_idx];
+                            self.asm.lea(reg, Mem::Local(offset));
+                            reg_idx += 1;
+                        } else {
+                            self.asm.lea(REG_TMP1, Mem::Local(offset));
+                            self.asm.store_mem(
+                                MachineMode::Ptr,
+                                Mem::Base(REG_SP, sp_offset),
+                                REG_TMP1.into(),
+                            );
 
-                        sp_offset += 8;
+                            sp_offset += 8;
+                        }
                     }
-                }
-                BytecodeType::Float32 | BytecodeType::Float64 => {
-                    let mode = bytecode_type.mode();
+                    BytecodeType::Float32 | BytecodeType::Float64 => {
+                        let mode = bytecode_type.mode();
 
-                    if freg_idx < FREG_PARAMS.len() {
-                        self.asm
-                            .load_mem(mode, FREG_PARAMS[freg_idx].into(), Mem::Local(offset));
-                        freg_idx += 1;
-                    } else {
-                        self.asm
-                            .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
-                        self.asm
-                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), FREG_TMP1.into());
+                        if freg_idx < FREG_PARAMS.len() {
+                            self.asm.load_mem(
+                                mode,
+                                FREG_PARAMS[freg_idx].into(),
+                                Mem::Local(offset),
+                            );
+                            freg_idx += 1;
+                        } else {
+                            self.asm
+                                .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
+                            self.asm.store_mem(
+                                mode,
+                                Mem::Base(REG_SP, sp_offset),
+                                FREG_TMP1.into(),
+                            );
 
-                        sp_offset += 8;
+                            sp_offset += 8;
+                        }
                     }
-                }
-                _ => {
-                    let mode = bytecode_type.mode();
+                    _ => {
+                        let mode = bytecode_type.mode();
 
-                    if reg_idx < REG_PARAMS.len() {
-                        self.asm
-                            .load_mem(mode, REG_PARAMS[reg_idx].into(), Mem::Local(offset));
-                        reg_idx += 1;
-                    } else {
-                        self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
-                        self.asm
-                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), REG_TMP1.into());
-                        sp_offset += 8;
+                        if reg_idx < REG_PARAMS.len() {
+                            self.asm
+                                .load_mem(mode, REG_PARAMS[reg_idx].into(), Mem::Local(offset));
+                            reg_idx += 1;
+                        } else {
+                            self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+                            self.asm
+                                .store_mem(mode, Mem::Base(REG_SP, sp_offset), REG_TMP1.into());
+                            sp_offset += 8;
+                        }
                     }
                 }
             }
@@ -3185,6 +3251,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("TestNePtr {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+    }
+
+    fn visit_test_eq_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqGeneric {}, {}, {}", dest, lhs, rhs));
+        self.emit_test_generic_eqeqeq(dest, lhs, rhs, true);
+    }
+    fn visit_test_ne_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeGeneric {}, {}, {}", dest, lhs, rhs));
+        self.emit_test_generic_eqeqeq(dest, lhs, rhs, false);
     }
 
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {

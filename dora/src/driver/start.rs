@@ -46,12 +46,6 @@ pub fn start(content: Option<&str>) -> i32 {
 
     semck::check(&mut vm);
 
-    semck::prelude::install_conditional_intrinsics(&mut vm);
-
-    if vm.args.flag_generic_bytecode {
-        semck::bytecode(&vm);
-    }
-
     let main = if vm.args.cmd_test {
         None
     } else {
@@ -69,6 +63,12 @@ pub fn start(content: Option<&str>) -> i32 {
         }
 
         return 1;
+    }
+
+    semck::prelude::install_conditional_intrinsics(&mut vm);
+
+    if vm.args.flag_generic_bytecode {
+        semck::bytecode(&vm);
     }
 
     if !vm.args.cmd_test && main.is_none() {
