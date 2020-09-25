@@ -1,5 +1,5 @@
 //= vm-args "--gc=copy --gc-stress --disable-tlab"
-//= stdout "0: b() -> Stacktrace: 19\n1: a() -> Stacktrace: 15\n2: main(): 5\n"
+//= stdout "0: b(): Stacktrace: 19\n1: a(): Stacktrace: 15\n2: main(): 5\n"
 
 fun main() {
   let e = a();

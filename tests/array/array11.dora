@@ -1,5 +1,5 @@
 //= error nil
-//= stderr "nil check failed\n2: first(Array[Int32]) -> Int32: 9\n1: main(): 5\n"
+//= stderr "nil check failed\n2: first(Array[Int32]): Int32: 9\n1: main(): 5\n"
 
 fun main() {
     first(nil);

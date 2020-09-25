@@ -1,5 +1,5 @@
 //= error cast
-//= stderr "cast failed\n2: asb(A) -> B: 11\n1: main(): 7\n"
+//= stderr "cast failed\n2: asb(A): B: 11\n1: main(): 7\n"
 
 fun main() {
   let a = A();
