@@ -19,7 +19,9 @@ use crate::gc::Address;
 use crate::masm::*;
 use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
-use crate::semck::specialize::{specialize_class_id_params, specialize_type};
+use crate::semck::specialize::{
+    specialize_class_id_params, specialize_tuple, specialize_type, specialize_type_list,
+};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM};
@@ -1086,7 +1088,7 @@ where
         tuple_id: TupleId,
         idx: u32,
     ) {
-        let dest_type = self.bytecode.register_type(dest);
+        let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
         let (_ty, offset) = self
             .vm
             .tuples
@@ -1094,20 +1096,22 @@ where
             .get_ty_and_offset(tuple_id, idx as usize);
         let src_offset = self.register_offset(src);
 
-        if let Some(dest_tuple_id) = dest_type.tuple_id() {
-            let dest_offset = self.register_offset(dest);
+        if let Some(dest_type) = self.specialize_register_type_unit(dest) {
+            if let Some(dest_tuple_id) = dest_type.tuple_id() {
+                let dest_offset = self.register_offset(dest);
 
-            self.copy_tuple(
-                dest_tuple_id,
-                RegOrOffset::Offset(dest_offset),
-                RegOrOffset::Offset(src_offset + offset),
-            );
-        } else {
-            let reg = result_reg(dest_type);
-            self.asm
-                .load_mem(dest_type.mode(), reg, Mem::Local(src_offset + offset));
+                self.copy_tuple(
+                    dest_tuple_id,
+                    RegOrOffset::Offset(dest_offset),
+                    RegOrOffset::Offset(src_offset + offset),
+                );
+            } else {
+                let reg = result_reg(dest_type);
+                self.asm
+                    .load_mem(dest_type.mode(), reg, Mem::Local(src_offset + offset));
 
-            self.emit_store_register(reg.into(), dest);
+                self.emit_store_register(reg.into(), dest);
+            }
         }
     }
 
@@ -1167,6 +1171,44 @@ where
         }
     }
 
+    fn zero_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset) {
+        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let offsets = self
+            .vm
+            .tuples
+            .lock()
+            .get_tuple(tuple_id)
+            .offsets()
+            .to_owned();
+
+        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+            if let Some(tuple_id) = subtype.tuple_id() {
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => {
+                        RegOrOffset::Offset(tuple_offset + subtype_offset)
+                    }
+                };
+                self.zero_tuple(tuple_id, dest);
+            } else if subtype.is_unit() {
+                // nothing
+            } else {
+                let mode = subtype.mode();
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        Mem::Base(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+                };
+                self.asm.store_zero(mode, dest);
+            }
+        }
+    }
+
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
@@ -1176,37 +1218,42 @@ where
             }
             _ => unreachable!(),
         };
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
+
+        let type_params = specialize_type_list(self.vm, type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
 
         let field = &cls.fields[field_id.idx()];
 
-        assert_eq!(self.bytecode.register_type(dest), field.ty.into());
         assert!(self.bytecode.register_type(obj).is_ptr());
-
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
 
-        let bytecode_type = self.bytecode.register_type(dest);
-
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
-
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
-        if let Some(tuple_id) = bytecode_type.tuple_id() {
-            let dest_offset = self.register_offset(dest);
-            self.copy_tuple(
-                tuple_id,
-                RegOrOffset::Offset(dest_offset),
-                RegOrOffset::RegWithOffset(obj_reg, field.offset),
-            );
-        } else {
-            let dest_reg = result_reg(bytecode_type);
-            self.asm
-                .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
+        if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
+            assert_eq!(bytecode_type, field.ty.into());
 
-            self.emit_store_register(dest_reg.into(), dest);
+            if let Some(tuple_id) = bytecode_type.tuple_id() {
+                let dest_offset = self.register_offset(dest);
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::Offset(dest_offset),
+                    RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                );
+            } else {
+                let dest_reg = result_reg(bytecode_type);
+                self.asm
+                    .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
+
+                self.emit_store_register(dest_reg.into(), dest);
+            }
         }
     }
 
@@ -1219,50 +1266,55 @@ where
             }
             _ => unreachable!(),
         };
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
+
+        let type_params = specialize_type_list(self.vm, type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
 
         let field = &cls.fields[field_id.idx()];
 
-        assert_eq!(self.bytecode.register_type(src), field.ty.into());
-
-        let bytecode_type = self.bytecode.register_type(src);
-
         assert!(self.bytecode.register_type(obj).is_ptr());
-
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
-        let needs_write_barrier = if let Some(tuple_id) = bytecode_type.tuple_id() {
-            let src_offset = self.register_offset(src);
-            self.copy_tuple(
-                tuple_id,
-                RegOrOffset::RegWithOffset(obj_reg, field.offset),
-                RegOrOffset::Offset(src_offset),
-            );
+        if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
+            assert_eq!(bytecode_type, field.ty.into());
 
-            self.vm
-                .tuples
-                .lock()
-                .get_tuple(tuple_id)
-                .contains_references()
-        } else {
-            let value = result_reg(bytecode_type);
+            let needs_write_barrier = if let Some(tuple_id) = bytecode_type.tuple_id() {
+                let src_offset = self.register_offset(src);
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                    RegOrOffset::Offset(src_offset),
+                );
 
-            self.emit_load_register(src, value.into());
-            self.asm
-                .store_mem(field.ty.mode(), Mem::Base(obj_reg, field.offset), value);
+                self.vm
+                    .tuples
+                    .lock()
+                    .get_tuple(tuple_id)
+                    .contains_references()
+            } else {
+                let value = result_reg(bytecode_type);
 
-            field.ty.reference_type()
-        };
+                self.emit_load_register(src, value.into());
+                self.asm
+                    .store_mem(field.ty.mode(), Mem::Base(obj_reg, field.offset), value);
 
-        if self.vm.gc.needs_write_barrier() && needs_write_barrier {
-            let card_table_offset = self.vm.gc.card_table_offset();
-            self.asm.emit_barrier(obj_reg, card_table_offset);
+                field.ty.reference_type()
+            };
+
+            if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                let card_table_offset = self.vm.gc.card_table_offset();
+                self.asm.emit_barrier(obj_reg, card_table_offset);
+            }
         }
     }
 
@@ -1342,10 +1394,8 @@ where
     }
 
     fn emit_const_nil(&mut self, dest: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
-
+        assert!(self.specialize_register_type(dest).is_ptr());
         self.asm.load_nil(REG_RESULT);
-
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
@@ -1361,14 +1411,14 @@ where
     }
 
     fn emit_const_int(&mut self, dest: Register, int_const: i64) {
-        assert!(
-            self.bytecode.register_type(dest) == BytecodeType::Char
-                || self.bytecode.register_type(dest) == BytecodeType::UInt8
-                || self.bytecode.register_type(dest) == BytecodeType::Int32
-                || self.bytecode.register_type(dest) == BytecodeType::Int64
-        );
+        let bytecode_type = self.specialize_register_type(dest);
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        assert!(
+            bytecode_type == BytecodeType::Char
+                || bytecode_type == BytecodeType::UInt8
+                || bytecode_type == BytecodeType::Int32
+                || bytecode_type == BytecodeType::Int64
+        );
 
         self.asm
             .load_int_const(bytecode_type.mode(), REG_RESULT, int_const);
@@ -1377,12 +1427,8 @@ where
     }
 
     fn emit_const_float(&mut self, dest: Register, float_const: f64) {
-        assert!(
-            self.bytecode.register_type(dest) == BytecodeType::Float32
-                || self.bytecode.register_type(dest) == BytecodeType::Float64
-        );
-
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Float32 || bytecode_type == BytecodeType::Float64);
 
         self.asm
             .load_float_const(bytecode_type.mode(), FREG_RESULT, float_const);
@@ -1391,7 +1437,8 @@ where
     }
 
     fn emit_const_string(&mut self, dest: Register, lit_value: &str) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
+        let bytecode_type = self.specialize_register_type(dest);
+        assert_eq!(bytecode_type, BytecodeType::Ptr);
 
         let handle = Str::from_buffer_in_perm(self.vm, lit_value.as_bytes());
         let disp = self.asm.add_addr(handle.raw() as *const u8);
@@ -1400,6 +1447,24 @@ where
         self.asm.load_constpool(REG_RESULT, disp + pos);
 
         self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
+    fn emit_const_generic_default(&mut self, dest: Register) {
+        if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
+            match bytecode_type {
+                BytecodeType::Tuple(_) => unreachable!(),
+                BytecodeType::Bool => self.emit_const_bool(dest, false),
+                BytecodeType::UInt8
+                | BytecodeType::Char
+                | BytecodeType::Int32
+                | BytecodeType::Int64 => self.emit_const_int(dest, 0),
+                BytecodeType::Ptr => self.emit_const_nil(dest),
+                BytecodeType::Float32 | BytecodeType::Float64 => {
+                    self.emit_const_float(dest, 0_f64);
+                }
+                BytecodeType::TypeParam(_) => unreachable!(),
+            }
+        }
     }
 
     fn emit_test_generic(&mut self, dest: Register, lhs: Register, rhs: Register, op: CondCode) {
@@ -1522,7 +1587,12 @@ where
             _ => unreachable!(),
         };
 
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
+        let type_params = specialize_type_list(self.vm, type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
 
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
@@ -1580,7 +1650,9 @@ where
             _ => unreachable!(),
         };
 
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+
+        let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
 
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
@@ -1679,6 +1751,7 @@ where
     }
 
     fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+        let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
         let subtypes = self.vm.tuples.lock().get(tuple_id);
         let offsets = self
             .vm
@@ -1705,7 +1778,7 @@ where
                 // nothing
             } else {
                 let subtype_reg = arguments[arg_idx];
-                let dest_type = self.bytecode.register_type(subtype_reg);
+                let dest_type = self.specialize_register_type(subtype_reg);
                 let tmp = result_reg(dest_type);
 
                 self.emit_load_register(arguments[arg_idx], tmp);
@@ -1785,7 +1858,14 @@ where
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
 
-        let src_type = self.bytecode.register_type(src);
+        let src_type = self.specialize_register_type_unit(src);
+
+        if src_type.is_none() {
+            // nothing to do for the unit type
+            return;
+        }
+
+        let src_type = src_type.unwrap();
 
         if let Some(tuple_id) = src_type.tuple_id() {
             let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
@@ -1866,7 +1946,14 @@ where
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
 
-        let dest_type = self.bytecode.register_type(dest);
+        let dest_type = self.specialize_register_type_unit(dest);
+
+        if dest_type.is_none() {
+            // nothing to do for the unit type
+            return;
+        }
+
+        let dest_type = dest_type.unwrap();
 
         if let Some(tuple_id) = dest_type.tuple_id() {
             let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
@@ -1963,7 +2050,7 @@ where
         type_params: TypeList,
     ) {
         let bytecode_type = if let Some(dest) = dest {
-            Some(self.bytecode.register_type(dest))
+            self.specialize_register_type_unit(dest)
         } else {
             None
         };
@@ -2005,6 +2092,12 @@ where
                 Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
                 None => (REG_RESULT.into(), BuiltinType::Unit),
             };
+
+            let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+            debug_assert!(type_params
+                .iter()
+                .all(|ty| !ty.contains_type_param(self.vm)));
+
             self.asm.direct_call(
                 fct_id,
                 ptr.to_ptr(),
@@ -2074,6 +2167,12 @@ where
                 Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
                 None => (REG_RESULT.into(), BuiltinType::Unit),
             };
+
+            let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+            debug_assert!(type_params
+                .iter()
+                .all(|ty| !ty.contains_type_param(self.vm)));
+
             self.asm.direct_call(
                 fct_id,
                 ptr.to_ptr(),
@@ -2111,7 +2210,10 @@ where
         let fct = fct.read();
 
         let trait_id = fct.trait_id();
-        assert!(self.fct.type_param(id).trait_bounds.contains(&trait_id));
+
+        assert!(self
+            .fct
+            .type_param_id(self.vm, id, |tp, _| tp.trait_bounds.contains(&trait_id)));
 
         let ty = self.type_params[id.to_usize()];
         let callee_id = self.find_trait_impl(trait_fct_id, trait_id, ty);
@@ -2433,6 +2535,11 @@ where
                     Some(ty.into())
                 }
             }
+            BytecodeType::Tuple(tuple_id) => Some(BytecodeType::Tuple(specialize_tuple(
+                self.vm,
+                tuple_id,
+                self.type_params,
+            ))),
             _ => Some(ty),
         }
     }
@@ -3066,6 +3173,10 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         );
         self.emit_const_string(dest, value);
     }
+    fn visit_const_generic_default(&mut self, dest: Register) {
+        comment!(self, format!("ConstGenericDefault {}", dest));
+        self.emit_const_generic_default(dest);
+    }
 
     fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("TestEqPtr {}, {}, {}", dest, lhs, rhs));
@@ -3515,6 +3626,10 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         comment!(self, format!("LoadArrayTuple {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
+    fn visit_load_array_generic(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayGeneric {}, {}, {}", dest, arr, idx));
+        self.emit_load_array(dest, arr, idx);
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArrayBool {}, {}, {}", src, arr, idx));
@@ -3550,6 +3665,10 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_store_array_tuple(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArrayTuple {}, {}, {}", src, arr, idx));
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_generic(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayGeneric {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
 

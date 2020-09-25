@@ -9,12 +9,30 @@ use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
     ensure_tuple, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId, EnumId,
-    EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM,
+    EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, TupleId,
+    VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
 pub fn specialize_type(vm: &VM, ty: BuiltinType, type_params: &TypeList) -> BuiltinType {
     replace_type_param(vm, ty, type_params, None)
+}
+
+pub fn specialize_type_list(vm: &VM, list: &TypeList, type_params: &TypeList) -> TypeList {
+    let types = list.types();
+
+    if types.is_empty() {
+        return TypeList::empty();
+    }
+
+    let mut specialized_types = Vec::with_capacity(types.len());
+
+    for &ty in types {
+        let ty = replace_type_param(vm, ty, type_params, None);
+        specialized_types.push(ty);
+    }
+
+    TypeList::with(specialized_types)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -409,6 +427,26 @@ fn ensure_display<'ast>(vm: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
 
         0
     }
+}
+
+pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &TypeList) -> TupleId {
+    let subtypes = {
+        let tuples = vm.tuples.lock();
+        let tuple = tuples.get_tuple(tuple_id);
+
+        if tuple.is_concrete_type() {
+            return tuple_id;
+        }
+
+        tuple.args()
+    };
+
+    let new_subtypes = subtypes
+        .iter()
+        .map(|&t| specialize_type(vm, t, type_params))
+        .collect::<Vec<_>>();
+
+    ensure_tuple(vm, new_subtypes)
 }
 
 pub fn replace_type_param(

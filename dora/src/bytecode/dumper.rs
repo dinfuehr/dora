@@ -96,7 +96,7 @@ pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction)
                         .collect::<Vec<_>>()
                         .join(", ");
                     println!(
-                        "{}{} => TypeParam({}) Static Method {} with [{}]",
+                        "{}{} => TypeParam({}) Method {} with [{}]",
                         align,
                         idx,
                         id.to_usize(),
@@ -105,7 +105,7 @@ pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction)
                     );
                 } else {
                     println!(
-                        "{}{} => TypeParam({}) Static Method {}",
+                        "{}{} => TypeParam({}) Method {}",
                         align,
                         idx,
                         id.to_usize(),

@@ -620,6 +620,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
                     self.visit_expr(part, DataDest::Reg(part_register));
                 } else if ty.is_type_param() && self.generic_mode {
+                    let type_list_id = match ty {
+                        BuiltinType::TypeParam(id) => id,
+                        _ => unreachable!(),
+                    };
+
                     let expr_register = self.visit_expr(part, DataDest::Alloc);
                     self.gen.emit_push_register(expr_register);
 
@@ -631,7 +636,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         .find_method(self.vm, name, false)
                         .expect("Stringable::toString() not found");
 
-                    let fct_idx = self.gen.add_const_fct(to_string_id);
+                    let fct_idx =
+                        self.gen
+                            .add_const_generic(type_list_id, to_string_id, TypeList::empty());
 
                     self.gen
                         .emit_invoke_generic_direct(part_register, fct_idx, part.pos());

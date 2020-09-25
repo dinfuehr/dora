@@ -1,4 +1,3 @@
-//= ignore
 //= vm-args --generic-bytecode
 
 fun main() {

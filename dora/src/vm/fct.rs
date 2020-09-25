@@ -72,6 +72,15 @@ impl<'ast> Fct<'ast> {
         &self.type_params[id.to_usize()]
     }
 
+    pub fn type_param_id<F: FnOnce(&TypeParam, TypeListId) -> R, R>(
+        &self,
+        vm: &VM,
+        id: TypeListId,
+        callback: F,
+    ) -> R {
+        self.type_param_ty(vm, BuiltinType::TypeParam(id), callback)
+    }
+
     pub fn type_param_ty<F: FnOnce(&TypeParam, TypeListId) -> R, R>(
         &self,
         vm: &VM,
