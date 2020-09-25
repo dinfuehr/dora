@@ -7,7 +7,7 @@ require 'open3'
 require 'timeout'
 
 $config = {
-  cannon: '--compiler=cannon',
+  default: '',
 }
 
 $ARGS = ARGV.clone
@@ -94,7 +94,7 @@ class TestCase
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
-    self.configs = [:cannon]
+    self.configs = [:default]
     self.results = {}
     self.args = self.vm_args = ""
     self.timeout = 60
@@ -466,9 +466,6 @@ def parse_test_file(file)
 
       when "vm-args"
         test_case.vm_args = arguments[1..-1].join(" ")
-
-      when "cannon-only"
-        test_case.configs = [:cannon]
 
       when "boots"
         test_case.args += '--boots=dora-boots --gc-verify'
