@@ -1,5 +1,5 @@
 //= error nil
-//= stderr "nil check failed\n2: foo(TupleClass) -> (Int64, Int64): 13\n1: main(): 9\n"
+//= stderr "nil check failed\n2: foo(TupleClass): (Int64, Int64): 13\n1: main(): 9\n"
 
 class TupleClass {
     var value: (Int64, Int64);

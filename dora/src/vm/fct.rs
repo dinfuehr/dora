@@ -226,7 +226,7 @@ impl<'ast> Fct<'ast> {
         repr.push_str(")");
 
         if self.return_type != BuiltinType::Unit {
-            repr.push_str(" -> ");
+            repr.push_str(": ");
 
             let name = self.return_type.name_fct(vm, self);
             repr.push_str(&name);
