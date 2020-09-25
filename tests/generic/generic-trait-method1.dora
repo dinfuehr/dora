@@ -1,26 +1,28 @@
-//= vm-args --generic-bytecode
+//= vm-args --generic-bytecode --gc=copy --gc-stress --gc-verify
 
 fun main() {
-    assert(17 == bar[SomeClass](SomeClass()));
-    assert(42 == bar[OtherClass](OtherClass()));
+    assert(17 * 17 == bar[SomeClass](SomeClass(17)));
+    assert(42 * 42 == bar[OtherClass](OtherClass(42)));
 }
 
 fun bar[T: Foo](obj: T) -> Int32 {
-    obj.baz()
+    let tmp = obj;
+    forceCollect();
+    tmp.baz() * obj.baz()
 }
 
 trait Foo {
     fun baz() -> Int32;
 }
 
-class SomeClass
+class SomeClass(let value: Int32)
 
 impl Foo for SomeClass {
-    fun baz() -> Int32 { 17 }
+    fun baz() -> Int32 { self.value }
 }
 
-class OtherClass
+class OtherClass(let value: Int32)
 
 impl Foo for OtherClass {
-    fun baz() -> Int32 { 42 }
+    fun baz() -> Int32 { self.value }
 }

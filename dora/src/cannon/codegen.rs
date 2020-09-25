@@ -64,7 +64,7 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
 
     references: Vec<i32>,
 
-    offsets: Vec<i32>,
+    offsets: Vec<Option<i32>>,
     stacksize: i32,
     register_start_offset: i32,
 }
@@ -138,15 +138,15 @@ where
         self.stacksize = stacksize;
     }
 
-    fn determine_offsets(&self, start: i32) -> (Vec<i32>, i32) {
+    fn determine_offsets(&self, start: i32) -> (Vec<Option<i32>>, i32) {
         let len = self.bytecode.registers().len();
-        let mut offset: Vec<i32> = vec![0; len];
+        let mut offset: Vec<Option<i32>> = vec![None; len];
         let mut stacksize: i32 = start;
 
         for (index, &ty) in self.bytecode.registers().iter().enumerate() {
             if let Some(ty) = self.specialize_bytecode_type_unit(ty) {
                 stacksize = align_i32(stacksize + ty.size(), ty.size());
-                offset[index] = -stacksize;
+                offset[index] = Some(-stacksize);
             }
         }
 
@@ -176,14 +176,17 @@ where
     fn initialize_references(&mut self) {
         assert!(self.references.is_empty());
         for (idx, &ty) in self.bytecode.registers().iter().enumerate() {
-            if ty.is_ptr() {
-                let offset = self.register_offset(Register(idx));
-                self.references.push(offset);
-            } else if let Some(tuple_id) = ty.tuple_id() {
-                let offset = self.register_offset(Register(idx));
-                let tuples = self.vm.tuples.lock();
-                for &ref_offset in tuples.get_tuple(tuple_id).references() {
-                    self.references.push(offset + ref_offset);
+            if let Some(ty) = self.specialize_bytecode_type_unit(ty) {
+                assert!(!ty.is_type_param());
+                if ty.is_ptr() {
+                    let offset = self.register_offset(Register(idx));
+                    self.references.push(offset);
+                } else if let Some(tuple_id) = ty.tuple_id() {
+                    let offset = self.register_offset(Register(idx));
+                    let tuples = self.vm.tuples.lock();
+                    for &ref_offset in tuples.get_tuple(tuple_id).references() {
+                        self.references.push(offset + ref_offset);
+                    }
                 }
             }
         }
@@ -2395,7 +2398,7 @@ where
 
     fn register_offset(&self, reg: Register) -> i32 {
         let Register(idx) = reg;
-        self.offsets[idx]
+        self.offsets[idx].expect("offset missing")
     }
 
     fn specialize_register_type(&self, reg: Register) -> BytecodeType {

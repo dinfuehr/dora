@@ -101,6 +101,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn is_type_param(&self) -> bool {
+        match self {
+            BytecodeType::TypeParam(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn tuple_id(&self) -> Option<TupleId> {
         match *self {
             BytecodeType::Tuple(tuple_id) => Some(tuple_id),
