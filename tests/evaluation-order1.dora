@@ -9,7 +9,7 @@ fun main() {
   Foo().bar(someInt())
 }
 
-fun someInt() -> Int32 {
+fun someInt(): Int32 {
   println("someInt");
   return 1;
 }

@@ -10,8 +10,8 @@ fun main() {
 }
 
 class Foo(var a: Int32) {
-  fun a1() -> Int32 { return self.a; }
-  fun a2() -> Int32 { return self.a; }
+  fun a1(): Int32 { return self.a; }
+  fun a2(): Int32 { return self.a; }
 
   fun setA(a: Int32) { self.a = a; }
 }

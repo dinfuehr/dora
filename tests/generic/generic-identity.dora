@@ -8,7 +8,7 @@ fun main() {
     assert(x == 12 && !y && z == "foo");
 }
 
-fun identity[T](val: T) -> T {
+fun identity[T](val: T): T {
     let tmp = val;
     tmp
 }

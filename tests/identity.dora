@@ -48,6 +48,6 @@ fun main() {
 
 class Foo(i: Int32) {}
 
-fun bar[T](a: T, b: T) -> Bool {
+fun bar[T](a: T, b: T): Bool {
     return a === b;
 }

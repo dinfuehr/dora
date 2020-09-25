@@ -1,11 +1,11 @@
 trait Adder {
-    fun add_me(other: Self) -> Self;
+    fun add_me(other: Self): Self;
 }
 
 class A(let a: Int32)
 
 impl Adder for A {
-    fun add_me(other: A) -> A {
+    fun add_me(other: A): A {
         return A(self.a + other.a);
     }
 }

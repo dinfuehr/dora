@@ -11,6 +11,6 @@ fun main() {
     };
 }
 
-fun createFoo() -> Foo {
+fun createFoo(): Foo {
     Foo(1)
 }

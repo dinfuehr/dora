@@ -2,6 +2,6 @@ fun main() {
     let result: () = tpl[()](());
 }
 
-fun tpl[T](value: T) -> T {
+fun tpl[T](value: T): T {
     value
 }

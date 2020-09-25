@@ -1,20 +1,20 @@
 module Foo {
-  fun foo() -> String = "module";
-  fun bar() -> String = Foo().foo();
-  fun baz() -> String = Foo::foo();
+  fun foo(): String = "module";
+  fun bar(): String = Foo().foo();
+  fun baz(): String = Foo::foo();
 }
 
 
 class Foo() {
-  fun foo() -> String = "class";
+  fun foo(): String = "class";
 }
 
 module Qux {
-  fun qux() -> String = "plain_module";
+  fun qux(): String = "plain_module";
 }
 
 class Qux[T]() {
-  fun qux() -> String = "generic_class";
+  fun qux(): String = "generic_class";
 }
 
 fun main() {

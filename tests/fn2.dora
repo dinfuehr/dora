@@ -9,7 +9,7 @@ fun main() {
   assert(result == 6);
 }
 
-fun fact(x: Int32) -> Int32 {
+fun fact(x: Int32): Int32 {
   if x <= 1 {
     return 1;
   } else {

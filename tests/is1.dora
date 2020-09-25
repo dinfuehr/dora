@@ -5,11 +5,11 @@ fun main() {
   assert(isa(B()));
 }
 
-fun isb(a: A) -> Bool {
+fun isb(a: A): Bool {
   return a is B;
 }
 
-fun isa(b: B) -> Bool {
+fun isa(b: B): Bool {
   return b is A;
 }
 

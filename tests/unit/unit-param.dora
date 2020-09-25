@@ -3,6 +3,6 @@ fun main() {
     foo(x);
 }
 
-fun foo(x: ()) -> () {
+fun foo(x: ()): () {
     x
 }

@@ -1,11 +1,11 @@
 class MyOwnType
 
 impl Equals for MyOwnType {
-    fun equals(other: MyOwnType) -> Bool = true;
+    fun equals(other: MyOwnType): Bool = true;
 }
 
 impl Hash for MyOwnType {
-    fun hash() -> Int32 = 0;
+    fun hash(): Int32 = 0;
 }
 
 class Foo {

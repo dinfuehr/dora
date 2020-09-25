@@ -3,7 +3,7 @@ fun main() {
   assert(asl7(l7) === l7);
 }
 
-fun asl7(a: L1) -> L7 {
+fun asl7(a: L1): L7 {
   return a as L7;
 }
 

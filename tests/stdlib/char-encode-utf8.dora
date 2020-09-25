@@ -22,7 +22,7 @@ fun main() {
     assert(buffer(4L) == 0Y);
 }
 
-fun write(ch: Char) -> Array[UInt8] {
+fun write(ch: Char): Array[UInt8] {
     let buffer = Array::ofSizeUnsafe[UInt8](5L);
     ch.encodeUtf8(buffer, 0L);
     return buffer;

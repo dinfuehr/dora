@@ -6,7 +6,7 @@ fun main() {
 }
 
 @open class A {
-  @open fun foo(a: Int32) -> Int32 {
+  @open fun foo(a: Int32): Int32 {
     return a;
   }
 }
@@ -14,7 +14,7 @@ fun main() {
 @open class B: A {}
 
 class C: B {
-  @override fun foo(a: Int32) -> Int32 {
+  @override fun foo(a: Int32): Int32 {
     return super.foo(a) + 1;
   }
 }

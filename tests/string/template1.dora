@@ -16,7 +16,7 @@ fun main() {
 class Foo(let i: Int32)
 
 impl Stringable for Foo {
-    fun toString() -> String {
+    fun toString(): String {
         forceCollect();
         return self.i.toString();
     }

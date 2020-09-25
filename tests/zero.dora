@@ -2,4 +2,4 @@ fun main() {
   assert(zero() == 0);
 }
 
-fun zero() -> Int32 { return 0; }
+fun zero(): Int32 { return 0; }

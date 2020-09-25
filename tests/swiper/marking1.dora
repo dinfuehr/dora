@@ -16,7 +16,7 @@ fun main() {
     forceCollect();
 }
 
-fun tree(depth: Int32) -> Foo {
+fun tree(depth: Int32): Foo {
     if depth == 0 {
         return Foo(nil, nil, nil, nil, nil);
     }

@@ -10,7 +10,7 @@ fun f(x: Foo) {
   assert(id(x).y == 1);
 }
 
-fun id(x: Foo) -> Foo {
+fun id(x: Foo): Foo {
   return x;
 }
 

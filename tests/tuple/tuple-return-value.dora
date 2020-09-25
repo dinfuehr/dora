@@ -6,19 +6,19 @@ fun main() {
     assert(sumtpl2() == 3);
 }
 
-fun tpl1() -> (Int32) {
+fun tpl1(): (Int32) {
     return (1,);
 }
 
-fun tpl1WithoutReturn() -> (Int32) {
+fun tpl1WithoutReturn(): (Int32) {
     (1,)
 }
 
-fun sumtpl2() -> Int32 {
+fun sumtpl2(): Int32 {
     let x = tpl2();
     x.0 + x.1
 }
 
-fun tpl2() -> (Int32, Int32) {
+fun tpl2(): (Int32, Int32) {
     return (1, 2);
 }

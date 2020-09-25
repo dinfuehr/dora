@@ -3,4 +3,4 @@ fun main() {
 }
 
 fun f(a: Int32) { assert(a == 1); }
-fun g() -> Int32 { return 1; }
+fun g(): Int32 { return 1; }

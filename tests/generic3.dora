@@ -4,11 +4,11 @@ fun main() {
   assert(get_x_or_default(A[Int32](9), 10) == 9);
 }
 
-fun is_nil(a: A[Int32]) -> Bool {
+fun is_nil(a: A[Int32]): Bool {
   return a === nil;
 }
 
-fun get_x_or_default(a: A[Int32], val: Int32) -> Int32 {
+fun get_x_or_default(a: A[Int32], val: Int32): Int32 {
   if a === nil {
     return val;
   } else {

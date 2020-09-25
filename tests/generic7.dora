@@ -4,4 +4,4 @@ fun main() {
     assert("hel" + "lo" == foo[String]("hello"));
 }
 
-fun foo[T](val: T) -> T { return val; }
+fun foo[T](val: T): T { return val; }

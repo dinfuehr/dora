@@ -4,7 +4,7 @@ fun main() {
     assert(slowLength(Array[Int32](1, 2)) == 2L);
 }
 
-fun slowLength(x: Array[Int32]) -> Int64 {
+fun slowLength(x: Array[Int32]): Int64 {
     var entries = 0L;
     for val in x {
         entries = entries + 1L;

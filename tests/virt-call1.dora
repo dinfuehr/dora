@@ -1,14 +1,14 @@
 @open @abstract class Foo {
-    @open @abstract fun test() -> Int32;
+    @open @abstract fun test(): Int32;
 }
 
 class Bar: Foo {
-    @override fun test() -> Int32 {
+    @override fun test(): Int32 {
         17
     }
 }
 
-fun test(foo: Foo) -> Int32 {
+fun test(foo: Foo): Int32 {
     foo.test()
 }
 

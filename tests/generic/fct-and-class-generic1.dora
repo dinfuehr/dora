@@ -1,13 +1,13 @@
 class A[X] {
-    fun t1[Y](x: X, y: Y) -> Y { return y; }
-    fun t2[Y](x: X, y: Y) -> X { return x; }
+    fun t1[Y](x: X, y: Y): Y { return y; }
+    fun t2[Y](x: X, y: Y): X { return x; }
 }
 
-fun t1(a: A[Int32]) -> String {
+fun t1(a: A[Int32]): String {
     return a.t1[String](1, "bla");
 }
 
-fun t2(a: A[Int32]) -> Int32 {
+fun t2(a: A[Int32]): Int32 {
     return a.t2[String](1, "bla");
 }
 

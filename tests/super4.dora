@@ -6,19 +6,19 @@ fun main() {
 }
 
 @open class A {
-  @open fun foo(a: Int32) -> Int32 {
+  @open fun foo(a: Int32): Int32 {
     return a;
   }
 }
 
 @open class B: A {
-  @open @override fun foo(a: Int32) -> Int32 {
+  @open @override fun foo(a: Int32): Int32 {
     return super.foo(a) * 2;
   }
 }
 
 class C: B {
-  @override fun foo(a: Int32) -> Int32 {
+  @override fun foo(a: Int32): Int32 {
     return super.foo(a) + 1;
   }
 }

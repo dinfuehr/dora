@@ -45,78 +45,78 @@ fun main() {
     assert(!gt(5L, 20L));
 }
 
-@cannon fun not(x: Int64) -> Int64 {
+@cannon fun not(x: Int64): Int64 {
     return !x;
 }
 
-@cannon fun add(x: Int64, y: Int64) -> Int64 {
+@cannon fun add(x: Int64, y: Int64): Int64 {
     return x+y;
 }
 
-@cannon fun sub(x: Int64, y: Int64) -> Int64 {
+@cannon fun sub(x: Int64, y: Int64): Int64 {
     return x-y;
 }
 
-@cannon fun mul(x: Int64, y: Int64) -> Int64 {
+@cannon fun mul(x: Int64, y: Int64): Int64 {
     return x*y;
 }
 
-@cannon fun div(x: Int64, y: Int64) -> Int64 {
+@cannon fun div(x: Int64, y: Int64): Int64 {
     return x/y;
 }
 
-@cannon fun mod(y: Int64, z: Int64) -> Int64 {
+@cannon fun mod(y: Int64, z: Int64): Int64 {
     return y%z;
 }
 
-@cannon fun or(x: Int64, y: Int64) -> Int64 {
+@cannon fun or(x: Int64, y: Int64): Int64 {
     return x | y;
 }
 
-@cannon fun xor(x: Int64, y: Int64) -> Int64 {
+@cannon fun xor(x: Int64, y: Int64): Int64 {
     return x ^ y;
 }
 
-@cannon fun and(x: Int64, y: Int64) -> Int64 {
+@cannon fun and(x: Int64, y: Int64): Int64 {
     return x & y;
 }
 
-@cannon fun shl(x: Int64, y: Int32) -> Int64 {
+@cannon fun shl(x: Int64, y: Int32): Int64 {
     return x << y;
 }
 
-@cannon fun shr(x: Int64, y: Int32) -> Int64 {
+@cannon fun shr(x: Int64, y: Int32): Int64 {
     return x >>> y;
 }
 
-@cannon fun sar(x: Int64, y: Int32) -> Int64 {
+@cannon fun sar(x: Int64, y: Int32): Int64 {
     return x >> y;
 }
 
-@cannon fun eq(x: Int64, y: Int64) -> Bool {
+@cannon fun eq(x: Int64, y: Int64): Bool {
     return x == y;
 }
 
-@cannon fun ne(x: Int64, y: Int64) -> Bool {
+@cannon fun ne(x: Int64, y: Int64): Bool {
     return x != y;
 }
 
-@cannon fun lt(x: Int64, y: Int64) -> Bool {
+@cannon fun lt(x: Int64, y: Int64): Bool {
     return x < y;
 }
 
-@cannon fun le(x: Int64, y: Int64) -> Bool {
+@cannon fun le(x: Int64, y: Int64): Bool {
     return x <= y;
 }
 
-@cannon fun ge(x: Int64, y: Int64) -> Bool {
+@cannon fun ge(x: Int64, y: Int64): Bool {
     return x >= y;
 }
 
-@cannon fun gt(x: Int64, y: Int64) -> Bool {
+@cannon fun gt(x: Int64, y: Int64): Bool {
     return x > y;
 }
 
-@cannon fun neg(x: Int64) -> Int64 {
+@cannon fun neg(x: Int64): Int64 {
     return -x;
 }

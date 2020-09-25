@@ -11,20 +11,20 @@ fun main() {
     assert(foo.testSelf() === foo);
 }
 
-@cannon fun testInt32(x: Int32) -> Int32 {
+@cannon fun testInt32(x: Int32): Int32 {
     return x;
 }
 
-@cannon fun testFloat32(x: Float32) -> Float32 {
+@cannon fun testFloat32(x: Float32): Float32 {
     return x;
 }
 
-@cannon fun testPtr(x: Foo) -> Foo {
+@cannon fun testPtr(x: Foo): Foo {
     return x;
 }
 
 class Foo() {
-    @cannon fun testSelf() -> Foo {
+    @cannon fun testSelf(): Foo {
         return self;
     }
 }

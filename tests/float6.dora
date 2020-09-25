@@ -6,10 +6,10 @@ fun main() {
     assert(y == 1D);
 }
 
-fun fone() -> Float32 {
+fun fone(): Float32 {
     return 1F;
 }
 
-fun done() -> Float64 {
+fun done(): Float64 {
     return 1D;
 }

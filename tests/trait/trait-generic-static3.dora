@@ -4,15 +4,15 @@ fun main() {
 }
 
 trait X {
-    @static fun foo() -> Self;
-    @static fun makeString(x: Self) -> String;
+    @static fun foo(): Self;
+    @static fun makeString(x: Self): String;
 }
 
-fun f[T: X]() -> String {
+fun f[T: X](): String {
     return T::makeString(T::foo());
 }
 
-fun g[T: X]() -> String {
+fun g[T: X](): String {
     let value: T = T::foo();
     return T::makeString(value);
 }
@@ -20,11 +20,11 @@ fun g[T: X]() -> String {
 class Bar(let x: Int32)
 
 impl X for Bar {
-    @static fun foo() -> Bar {
+    @static fun foo(): Bar {
         return Bar(1);
     }
 
-    @static fun makeString(value: Bar) -> String {
+    @static fun makeString(value: Bar): String {
         return "BAR${value.x}";
     }
 }
@@ -32,11 +32,11 @@ impl X for Bar {
 class Baz(let x: Int32)
 
 impl X for Baz {
-    @static fun foo() -> Baz {
+    @static fun foo(): Baz {
         return Baz(2);
     }
 
-    @static fun makeString(value: Baz) -> String {
+    @static fun makeString(value: Baz): String {
         return "BAZ${value.x}";        
     }
 }

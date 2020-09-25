@@ -11,25 +11,25 @@ fun main() {
     assert(tplsum() == 6);
 }
 
-fun tpl1() -> Int32 {
+fun tpl1(): Int32 {
     let x = (Foo(1), Foo(2), Foo(3));
     forceCollect();
     x.0.value
 }
 
-fun tpl2() -> Int32 {
+fun tpl2(): Int32 {
     let x = (Foo(1), Foo(2), Foo(3));
     forceCollect();
     x.1.value
 }
 
-fun tpl3() -> Int32 {
+fun tpl3(): Int32 {
     let x = (Foo(1), Foo(2), Foo(3));
     forceCollect();
     x.2.value
 }
 
-fun tplsum() -> Int32 {
+fun tplsum(): Int32 {
     let x = (Foo(1), Foo(2), Foo(3));
     forceCollect();
     x.0.value + x.1.value + x.2.value

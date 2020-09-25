@@ -10,38 +10,38 @@ fun main() {
     assert(abi_9(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 9F);
 }
 
-@cannon fun abi_1(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_1(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return x;
 }
 
-@cannon fun abi_2(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_2(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return y;
 }
 
-@cannon fun abi_3(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_3(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return z;
 }
 
-@cannon fun abi_4(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_4(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return a;
 }
 
-@cannon fun abi_5(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_5(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return b;
 }
 
-@cannon fun abi_6(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_6(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return c;
 }
 
-@cannon fun abi_7(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_7(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return i;
 }
 
-@cannon fun abi_8(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_8(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return j;
 }
 
-@cannon fun abi_9(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32) -> Float32 {
+@cannon fun abi_9(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
     return k;
 }

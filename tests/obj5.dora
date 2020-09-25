@@ -2,7 +2,7 @@ fun main() {
   foo();
 }
 
-fun foo() -> Foo {
+fun foo(): Foo {
   return Foo();
 }
 

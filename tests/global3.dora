@@ -9,7 +9,7 @@ fun main() {
     assert(a.val == 10);
 }
 
-fun create() -> A {
+fun create(): A {
     return A(10);
 }
 

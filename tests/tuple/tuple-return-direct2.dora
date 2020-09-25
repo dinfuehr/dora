@@ -5,12 +5,12 @@ fun main() {
     let x = bar(nil);
 }
 
-fun bar(x: Bar) -> (Int32, Foo) {
+fun bar(x: Bar): (Int32, Foo) {
     x.tpl1()
 }
 
 class Bar(let value: Int32) {
-    fun tpl1() -> (Int32, Foo) {
+    fun tpl1(): (Int32, Foo) {
         (1, Foo(17))
     }
 }

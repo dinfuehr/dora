@@ -10,7 +10,7 @@ fun main() {
     println("after");
 }
 
-fun foo() -> Int32 {
+fun foo(): Int32 {
     println("foo");
     17
 }

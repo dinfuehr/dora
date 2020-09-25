@@ -48,27 +48,27 @@ fun main() {
   assert(foo_array_len(x) == 1L);
 }
 
-fun int32_array_len(x: Array[Int32]) -> Int64 {
+fun int32_array_len(x: Array[Int32]): Int64 {
   return x.size();
 }
 
-fun int64_array_len(x: Array[Int64]) -> Int64 {
+fun int64_array_len(x: Array[Int64]): Int64 {
   return x.size();
 }
 
-fun float_array_len(x: Array[Float32]) -> Int64 {
+fun float_array_len(x: Array[Float32]): Int64 {
   return x.size();
 }
 
-fun double_array_len(x: Array[Float64]) -> Int64 {
+fun double_array_len(x: Array[Float64]): Int64 {
   return x.size();
 }
 
-fun str_array_len(x: Array[String]) -> Int64 {
+fun str_array_len(x: Array[String]): Int64 {
   return x.size();
 }
 
-fun foo_array_len(x: Array[Foo]) -> Int64 {
+fun foo_array_len(x: Array[Foo]): Int64 {
   return x.size();
 }
 

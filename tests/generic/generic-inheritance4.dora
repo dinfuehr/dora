@@ -1,13 +1,13 @@
 @open @abstract class Foo[A] {
-    @open fun test(x: A) -> A { x }
+    @open fun test(x: A): A { x }
 }
 
 class Bar[A](let bar: A): Foo[A] {
-    @override fun test(x: A) -> A { self.bar }
+    @override fun test(x: A): A { self.bar }
 }
 
 class Baz[A](let baz: A): Foo[Int32] {
-    @override fun test(x: Int32) -> Int32 { x+x }
+    @override fun test(x: Int32): Int32 { x+x }
 }
 
 fun main() {

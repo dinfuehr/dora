@@ -7,7 +7,7 @@ fun main() {
   assert(asb(a) === a);
 }
 
-fun asb(a: A) -> B {
+fun asb(a: A): B {
   return a as B;
 }
 

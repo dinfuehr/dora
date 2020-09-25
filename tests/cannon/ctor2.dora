@@ -1,7 +1,7 @@
 @cannon @open class Y(let a: Int32) {}
 @cannon class X(let b: Int32, a: Int32) : Y(a) {}
 
-@cannon fun cannonMain() -> X {
+@cannon fun cannonMain(): X {
     return X(2, 4);
 }
 

@@ -4,7 +4,7 @@ fun main() {
     assert(sum_args((0, 1)) == 1);
 }
 
-fun sum_args(x: (Int32, Int32)...) -> Int32 {
+fun sum_args(x: (Int32, Int32)...): Int32 {
     var result = 0;
     var idx = 0L;
 

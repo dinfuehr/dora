@@ -9,6 +9,6 @@ fun main() {
     assert(!(x < y));
 }
 
-fun id(val: Int64) -> Int64 {
+fun id(val: Int64): Int64 {
     return val;
 }

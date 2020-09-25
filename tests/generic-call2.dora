@@ -1,17 +1,17 @@
 //= stdout "world\n"
 
 trait Foo {
-    fun bar() -> Int32;
+    fun bar(): Int32;
 }
 
-fun foo[T: Foo](t: T) -> Int32 {
+fun foo[T: Foo](t: T): Int32 {
     return t.bar();
 }
 
 class X
 
 impl Foo for X {
-    fun bar() -> Int32 {
+    fun bar(): Int32 {
         println("world");
 
         return 4;

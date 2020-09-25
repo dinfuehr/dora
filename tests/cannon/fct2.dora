@@ -9,70 +9,70 @@ fun main() {
   assert(foo_string() == "33");
 }
 
-@cannon fun foo_bool() -> Bool {
+@cannon fun foo_bool(): Bool {
   return bar_bool(true);
 }
-fun bar_bool(a: Bool) -> Bool {
+fun bar_bool(a: Bool): Bool {
   assert(a == true);
   return !a;
 }
 
-@cannon fun foo_byte() -> UInt8 {
+@cannon fun foo_byte(): UInt8 {
   return bar_byte(3Y);
 }
-fun bar_byte(a: UInt8) -> UInt8 {
+fun bar_byte(a: UInt8): UInt8 {
   assert(a == 3Y);
   return (3+a.toInt32()).toUInt8();
 }
 
-@cannon fun foo_char() -> Char {
+@cannon fun foo_char(): Char {
   return bar_char('3');
 }
-fun bar_char(a: Char) -> Char {
+fun bar_char(a: Char): Char {
   assert(a == '3');
   return (3+a.toInt32()).toChar().unwrap();
 }
 
-@cannon fun foo_int32() -> Int32 {
+@cannon fun foo_int32(): Int32 {
   return bar_int32(3);
 }
-fun bar_int32(a: Int32) -> Int32 {
+fun bar_int32(a: Int32): Int32 {
   assert(a == 3);
   return 3+a;
 }
 
-@cannon fun foo_long() -> Int64 {
+@cannon fun foo_long(): Int64 {
   return bar_long(3L);
 }
 
-fun bar_long(a: Int64) -> Int64 {
+fun bar_long(a: Int64): Int64 {
   assert(a == 3L);
   return 3L+a;
 }
 
-@cannon fun foo_float() -> Float32 {
+@cannon fun foo_float(): Float32 {
   return bar_float(3F);
 }
 
-fun bar_float(a: Float32) -> Float32 {
+fun bar_float(a: Float32): Float32 {
   assert(a == 3F);
   return 3F+a;
 }
 
-@cannon fun foo_double() -> Float64 {
+@cannon fun foo_double(): Float64 {
   return bar_double(3D);
 }
 
-fun bar_double(a: Float64) -> Float64 {
+fun bar_double(a: Float64): Float64 {
   assert(a == 3D);
   return 3D+a;
 }
 
-@cannon fun foo_string() -> String {
+@cannon fun foo_string(): String {
   return bar_string("3");
 }
 
-fun bar_string(a: String) -> String {
+fun bar_string(a: String): String {
   assert(a == "3");
   return "3"+a;
 }

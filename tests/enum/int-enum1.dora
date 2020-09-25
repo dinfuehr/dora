@@ -9,10 +9,10 @@ fun main() {
     assert(Foo::B != myid(Foo::A));
 }
 
-fun is_a(foo: Foo) -> Bool {
+fun is_a(foo: Foo): Bool {
     return foo == Foo::A;
 }
 
-fun myid(foo: Foo) -> Foo {
+fun myid(foo: Foo): Foo {
     return foo;
 }
