@@ -1,12 +1,12 @@
-fun compile(info: EncodedCompilationInfo) -> Array[UInt8] {
+fun compile(info: EncodedCompilationInfo): Array[UInt8] {
     let info = CompilationInfo(info);
     // bytecodeDump(info.bc);
     CodeGen(info).generate()
 }
 
-@internal fun encodedBytecode(fct: String) -> EncodedCompilationInfo;
+@internal fun encodedBytecode(fct: String): EncodedCompilationInfo;
 
-fun bytecode(fct: String) -> BytecodeFunction {
+fun bytecode(fct: String): BytecodeFunction {
     let encoded = encodedBytecode(fct);
     BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), encoded.arguments)
 }
@@ -22,7 +22,7 @@ class EncodedCompilationInfo {
     let arguments: Int32 = 0;
 }
 
-fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
+fun decodeRegisters(registers: Array[Int32]): Array[BytecodeType] {
     var i = 0L;
     let result = Array::fill[BytecodeType](registers.size(), BytecodeType::bool());
 
@@ -57,7 +57,7 @@ fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
     result
 }
 
-fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
+fun decodeConstPool(constpool: Array[UInt8]): Array[ConstPoolEntry] {
     let constPool = Vec[ConstPoolEntry]();
     let reader = ByteReader(constpool);
 
@@ -97,17 +97,17 @@ fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
 class ByteReader(let array: Array[UInt8]) {
     var idx: Int64 = 0L;
 
-    fun moreBytes() -> Bool {
+    fun moreBytes(): Bool {
         self.idx < self.array.size()
     }
 
-    fun readUInt8() -> UInt8 {
+    fun readUInt8(): UInt8 {
         let value = self.array(self.idx);
         self.idx = self.idx + 1L;
         value
     }
 
-    fun readInt32() -> Int32 {
+    fun readInt32(): Int32 {
         let by1 = self.readUInt8().toInt32();
         let by2 = self.readUInt8().toInt32();
         let by3 = self.readUInt8().toInt32();
@@ -116,7 +116,7 @@ class ByteReader(let array: Array[UInt8]) {
         (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 
-    fun readInt64() -> Int64 {
+    fun readInt64(): Int64 {
         let by1 = self.readUInt8().toInt64();
         let by2 = self.readUInt8().toInt64();
         let by3 = self.readUInt8().toInt64();
@@ -129,7 +129,7 @@ class ByteReader(let array: Array[UInt8]) {
         (by8 << 56) | (by7 << 48) | (by6 << 40) | (by5 << 32) | (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 
-    fun offset() -> Int64 {
+    fun offset(): Int64 {
         self.idx
     }
 

@@ -1,4 +1,4 @@
-fun createGraph(bc: BytecodeFunction) -> Graph {
+fun createGraph(bc: BytecodeFunction): Graph {
     let graph = Graph();
 
     let blockBuilder = BlockBuilder(graph, bc);
@@ -65,7 +65,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.currentDef(register.value.toInt64()).insert(block, value);
     }
 
-    fun readVariable(register: BytecodeRegister, block: Block) -> Inst {
+    fun readVariable(register: BytecodeRegister, block: Block): Inst {
         if self.currentDef(register.value.toInt64()).contains(block) {
             self.currentDef(register.value.toInt64())(block).unwrap()
         } else {
@@ -73,7 +73,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         }
     }
 
-    fun readVariableRecursive(register: BytecodeRegister, block: Block) -> Inst {
+    fun readVariableRecursive(register: BytecodeRegister, block: Block): Inst {
         let value: Inst = if !self.sealedBlocks.contains(block.id.toInt64()) {
             // While all blocks are created with predecessors and successors before
             // this pass in BlockBuilder already, we still need to handle unsealed blocks.
@@ -106,7 +106,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         value
     }
 
-    fun addPhiOperands(register: BytecodeRegister, phi: PhiInst) -> Inst {
+    fun addPhiOperands(register: BytecodeRegister, phi: PhiInst): Inst {
         for pred in phi.block.unwrap().predecessors {
             let inst = self.readVariable(register, pred.from);
             phi.addInput(inst);
@@ -115,7 +115,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.tryRemoveTrivialPhi(phi)
     }
 
-    fun tryRemoveTrivialPhi(phi: PhiInst) -> Inst {
+    fun tryRemoveTrivialPhi(phi: PhiInst): Inst {
         var same = Option::none[Inst]();
 
         for inp in phi.inputs {

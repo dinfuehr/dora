@@ -10,31 +10,31 @@ let typePtr: Type = Type(TypeKind::Ptr);
 
 
 class Type(let kind: TypeKind) {
-    fun isUnit() -> Bool { return self.kind == TypeKind::Unit; }
-    fun isUInt8() -> Bool { return self.kind == TypeKind::UInt8; }
-    fun isInt32() -> Bool { return self.kind == TypeKind::Int32; }
-    fun isInt64() -> Bool { return self.kind == TypeKind::Int64; }
-    fun isFloat32() -> Bool { return self.kind == TypeKind::Float32; }
-    fun isFloat64() -> Bool { return self.kind == TypeKind::Float64; }
-    fun isPtr() -> Bool { return self.kind == TypeKind::Ptr; }
+    fun isUnit(): Bool { return self.kind == TypeKind::Unit; }
+    fun isUInt8(): Bool { return self.kind == TypeKind::UInt8; }
+    fun isInt32(): Bool { return self.kind == TypeKind::Int32; }
+    fun isInt64(): Bool { return self.kind == TypeKind::Int64; }
+    fun isFloat32(): Bool { return self.kind == TypeKind::Float32; }
+    fun isFloat64(): Bool { return self.kind == TypeKind::Float64; }
+    fun isPtr(): Bool { return self.kind == TypeKind::Ptr; }
 
-    fun isAnyFloat() -> Bool {
+    fun isAnyFloat(): Bool {
         return self.kind == TypeKind::Float32 || self.kind == TypeKind::Float64;
     }
 }
 
 module Type {
-    fun unit() -> Type { return typeUnit; }
-    fun bool() -> Type { return typeBool; }
-    fun uint8() -> Type { return typeUInt8; }
-    fun char() -> Type { return typeChar; }
-    fun int32() -> Type { return typeInt32; }
-    fun int64() -> Type { return typeInt64; }
-    fun float32() -> Type { return typeFloat32; }
-    fun float64() -> Type { return typeFloat64; }
-    fun ptr() -> Type { return typePtr; }
+    fun unit(): Type { return typeUnit; }
+    fun bool(): Type { return typeBool; }
+    fun uint8(): Type { return typeUInt8; }
+    fun char(): Type { return typeChar; }
+    fun int32(): Type { return typeInt32; }
+    fun int64(): Type { return typeInt64; }
+    fun float32(): Type { return typeFloat32; }
+    fun float64(): Type { return typeFloat64; }
+    fun ptr(): Type { return typePtr; }
 
-    fun fromBytecodeType(ty: BytecodeType) -> Type {
+    fun fromBytecodeType(ty: BytecodeType): Type {
         if ty.isBool() {
             Type::bool()
         } else if ty.isUInt8() {
@@ -59,7 +59,7 @@ module Type {
 }
 
 impl Stringable for Type {
-    fun toString() -> String {
+    fun toString(): String {
         self.kind.toString()
     }
 }
@@ -69,7 +69,7 @@ enum TypeKind {
 }
 
 impl TypeKind {
-    fun toString() -> String {
+    fun toString(): String {
         if self == TypeKind::Unit {
             "Unit"
         } else if self == TypeKind::Bool {

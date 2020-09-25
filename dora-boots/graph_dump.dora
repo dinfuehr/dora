@@ -1,11 +1,11 @@
-fun dumpGraph(graph: Graph) -> String {
+fun dumpGraph(graph: Graph): String {
     GraphDumper(graph).dump()
 }
 
 class GraphDumper(let graph: Graph) {
     let buffer: StringBuffer = StringBuffer();
 
-    fun dump() -> String {
+    fun dump(): String {
         for block in self.graph.insertionOrderIterator() {
             self.dumpBlock(block);
         }
@@ -129,7 +129,7 @@ fun assertGraph(graph: Graph, output: String) {
     }
 }
 
-fun compareStrings(lhs: String, rhs: String) -> Bool {
+fun compareStrings(lhs: String, rhs: String): Bool {
     var lhsIterator = lhs.codePoints();
     var rhsIterator = rhs.codePoints();
 
@@ -178,6 +178,6 @@ fun skipWhite(it: CodepointIterator) {
     }
 }
 
-fun isWhite(ch: Char) -> Bool {
+fun isWhite(ch: Char): Bool {
     ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
 }
