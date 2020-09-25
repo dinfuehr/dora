@@ -283,11 +283,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             let fct_params = fct
                 .params_without_self()
                 .iter()
-                .map(|a| a.name_fct(self.vm, self.caller))
+                .map(|a| a.name_fct(self.vm, &*fct))
                 .collect::<Vec<_>>();
             let call_types = args
                 .iter()
-                .map(|a| a.name_fct(self.vm, self.caller))
+                .map(|a| a.name_fct(self.vm, &*fct))
                 .collect::<Vec<_>>();
             let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
             self.vm
