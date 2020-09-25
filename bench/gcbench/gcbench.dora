@@ -5,7 +5,7 @@ class Node(left: Node, right: Node) {
     var right: Node = right;
 }
 module Node {
-    fun leaf() -> Node = Node(nil, nil);
+    fun leaf(): Node = Node(nil, nil);
 }
 
 var stretchTreeDepth: Int32;
@@ -14,11 +14,11 @@ const kArraySize: Int32 = 500000;
 const kMinTreeDepth: Int32 = 4;
 const kMaxTreeDepth: Int32 = 16;
 
-fun treeSize (i: Int32) -> Int32 {
+fun treeSize (i: Int32): Int32 {
     return (1 << (i + 1)) - 1;
 }
 
-fun numIters(i: Int32) -> Int32 {
+fun numIters(i: Int32): Int32 {
     return 4 * treeSize(stretchTreeDepth) / treeSize(i);
 }
 
@@ -35,7 +35,7 @@ fun populate(depth: Int32, thisNode: Node) {
     }
 }
 
-fun makeTree(iDepth: Int32) -> Node {
+fun makeTree(iDepth: Int32): Node {
     if iDepth <= 0 {
         return Node::leaf();
     } else {

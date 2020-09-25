@@ -20,23 +20,23 @@ class Scene {
         self.view = view;
     }
 
-    fun getView() -> View {
+    fun getView(): View {
         return self.view;
     }
 
-    fun getLight(number: Int) -> Light {
+    fun getLight(number: Int): Light {
         return self.lights[number];
     }
 
-    fun getObject(number: Int) -> Primitive {
+    fun getObject(number: Int): Primitive {
         return self.objects[number];
     }
 
-    fun getLights() -> Int {
+    fun getLights(): Int {
         return self.lights.size();
     }
 
-    fun getObjects() -> Int {
+    fun getObjects(): Int {
         return self.objects.size();
     }
 

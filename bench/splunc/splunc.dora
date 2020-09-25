@@ -36,7 +36,7 @@
 }
 
 module Node {
-    fun splay(tree: Node, node: Node) -> Node {
+    fun splay(tree: Node, node: Node): Node {
         var tree = tree;
         if tree === nil {
             return tree;
@@ -103,7 +103,7 @@ module Node {
         return tree;
     }
 
-    fun insert(tree: Node, node: Node) -> Node {
+    fun insert(tree: Node, node: Node): Node {
         var tree = tree;
         if tree === nil {
             return node;
@@ -152,7 +152,7 @@ module Node {
         }
     }
 
-    fun countNodes(node: Node) -> Int32 {
+    fun countNodes(node: Node): Int32 {
         if node === nil {
             return 0;
         }

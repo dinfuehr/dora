@@ -25,7 +25,7 @@ var promoteRate: Int32;
 var ptrMutRate: Int32;
 var steps: Int32;
 
-fun height(t: TreeNode) -> Int32 {
+fun height(t: TreeNode): Int32 {
     if t === nil {
         return 0;
     } else {
@@ -33,7 +33,7 @@ fun height(t: TreeNode) -> Int32 {
     }
 }
 
-fun shortestPath(t: TreeNode) -> Int32 {
+fun shortestPath(t: TreeNode): Int32 {
     if t === nil {
         return 0;
     } else {
@@ -41,7 +41,7 @@ fun shortestPath(t: TreeNode) -> Int32 {
     }
 }
 
-fun heightToNodes(h: Int32) -> Int64 {
+fun heightToNodes(h: Int32): Int64 {
     var h = h;
     if (h == 0) {
         return 0L;
@@ -57,11 +57,11 @@ fun heightToNodes(h: Int32) -> Int64 {
     return n + n - 1L;
 }
 
-fun heightToBytes(h: Int32) -> Int64 {
+fun heightToBytes(h: Int32): Int64 {
     return BYTES_PER_NODE.toInt64() * heightToNodes(h);
 }
 
-fun nodesToHeight(nnodes: Int64) -> Int32 {
+fun nodesToHeight(nnodes: Int64): Int32 {
     var h = 1;
     var n = 1L;
 
@@ -73,11 +73,11 @@ fun nodesToHeight(nnodes: Int64) -> Int32 {
     return h - 1;
 }
 
-fun bytesToHeight(bytes: Int64) -> Int32 {
+fun bytesToHeight(bytes: Int64): Int32 {
     return nodesToHeight(bytes / BYTES_PER_NODE.toInt64());
 }
 
-fun makeTree(h: Int32) -> TreeNode {
+fun makeTree(h: Int32): TreeNode {
     if h == 0 {
         return nil;
     }
