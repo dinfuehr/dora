@@ -113,7 +113,7 @@ class Scheduler() {
         }
     }
 
-    fun release(id: Int32) -> Option[TaskControlBlock] {        
+    fun release(id: Int32): Option[TaskControlBlock] {
         let blockTcb = self.blocks.get(id.toInt64());
         if blockTcb.isNone() {   
             return Option::none[TaskControlBlock]();
@@ -127,20 +127,20 @@ class Scheduler() {
         }
     }
 
-    fun holdCurrent() -> Option[TaskControlBlock] {
+    fun holdCurrent(): Option[TaskControlBlock] {
         let tcb = self.currentTcb.unwrap();
         self.holdCount = self.holdCount + 1;
         tcb.markAsHeld();
         return tcb.link;
     }
 
-    fun suspendCurrent() -> Option[TaskControlBlock] {
+    fun suspendCurrent(): Option[TaskControlBlock] {
         let tcb = self.currentTcb.unwrap();
         tcb.markAsSuspended();
         return Option::some[TaskControlBlock](tcb);
     }
 
-    fun queue(packet: Packet) -> Option[TaskControlBlock] {
+    fun queue(packet: Packet): Option[TaskControlBlock] {
         let t = self.blocks.get(packet.id.toInt64());
         if t.isNone() {
             return Option::none[TaskControlBlock]();
@@ -164,11 +164,11 @@ class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let pr
     fun setRunning() { self.state = STATE_RUNNING; }
     fun markAsNotHeld() { self.state = self.state & STATE_NOT_HELD; }
     fun markAsHeld() { self.state = self.state | STATE_HELD; }
-    fun isHeldOrSuspended() -> Bool { return (self.state & STATE_HELD) != 0 || (self.state == STATE_SUSPENDED); }
+    fun isHeldOrSuspended(): Bool { return (self.state & STATE_HELD) != 0 || (self.state == STATE_SUSPENDED); }
     fun markAsSuspended() { self.state = self.state | STATE_SUSPENDED; }
     fun markAsRunnable() { self.state = self.state | STATE_RUNNABLE; }
 
-    fun run() -> Option[TaskControlBlock] {
+    fun run(): Option[TaskControlBlock] {
         var packet: Option[Packet] = Option::none[Packet]();
         if self.state == STATE_SUSPENDED_RUNNABLE {
             packet = self.queue;
@@ -182,7 +182,7 @@ class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let pr
         return self.task.run(packet);
     }
 
-    fun checkPriorityAdd(task: TaskControlBlock, packet: Packet) -> TaskControlBlock {
+    fun checkPriorityAdd(task: TaskControlBlock, packet: Packet): TaskControlBlock {
         if self.queue.isNone() {
             self.queue = Option::some[Packet](packet);
             self.markAsRunnable();
@@ -197,13 +197,13 @@ class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let pr
 }
 
 impl Stringable for TaskControlBlock {
-    fun toString() -> String {
+    fun toString(): String {
         return "tcb { ${self.task.toString()}@${self.state} }";
     }
 }
 
 module TaskControlBlock {
-    fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task) -> TaskControlBlock {
+    fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
         if queue.isNone() {
             return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
         } else {
@@ -213,12 +213,12 @@ module TaskControlBlock {
 }
 
 @open @abstract class Task {
-    @abstract fun run(packet: Option[Packet]) -> Option[TaskControlBlock];
-    @abstract fun toString() -> String;
+    @abstract fun run(packet: Option[Packet]): Option[TaskControlBlock];
+    @abstract fun toString(): String;
 }
 
 class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32): Task {
-    @override fun run(packet: Option[Packet]) -> Option[TaskControlBlock] {        
+    @override fun run(packet: Option[Packet]): Option[TaskControlBlock] {
         self.count = self.count - 1;
         if self.count == 0 {
             return self.scheduler.holdCurrent();
@@ -232,7 +232,7 @@ class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32): Tas
         }
     }
 
-    @override fun toString() -> String {
+    @override fun toString(): String {
         return "IdleTask";
     }
 }
@@ -240,7 +240,7 @@ class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32): Tas
 class DeviceTask(let scheduler: Scheduler): Task {
     var seed: Option[Packet] = Option::none[Packet]();
 
-    @override fun run(packet: Option[Packet]) -> Option[TaskControlBlock] {
+    @override fun run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isNone() {
             if self.seed.isNone() {
                 return self.scheduler.suspendCurrent();
@@ -254,13 +254,13 @@ class DeviceTask(let scheduler: Scheduler): Task {
         }
     }
 
-    @override fun toString() -> String {
+    @override fun toString(): String {
         return "DeviceTask";
     }
 }
 
 class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32): Task {
-    @override fun run(packet: Option[Packet]) -> Option[TaskControlBlock] {
+    @override fun run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isNone() {
             return self.scheduler.suspendCurrent();
         } else {
@@ -284,7 +284,7 @@ class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32): Task {
         }
     }
 
-    @override fun toString() -> String {
+    @override fun toString(): String {
         return "WorkerTask";
     }
 }
@@ -293,7 +293,7 @@ class HandlerTask(let scheduler: Scheduler): Task {
     var v1: Option[Packet] = Option::none[Packet]();
     var v2: Option[Packet] = Option::none[Packet]();
 
-    @override fun run(packet: Option[Packet]) -> Option[TaskControlBlock] {
+    @override fun run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isSome() {
             let p = packet.unwrap();
             if p.kind == KIND_WORK {
@@ -321,7 +321,7 @@ class HandlerTask(let scheduler: Scheduler): Task {
         return self.scheduler.suspendCurrent();
     }
 
-    @override fun toString() -> String {
+    @override fun toString(): String {
         return "HandlerTask";
     }
 }
@@ -329,7 +329,7 @@ class HandlerTask(let scheduler: Scheduler): Task {
 var DATA_SIZE: Int32 = 4;
 
 class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: Int32, let a2: Array[Int32]) {
-    fun addTo(queue: Option[Packet]) -> Packet {
+    fun addTo(queue: Option[Packet]): Packet {
         self.link = Option::none[Packet]();
         if queue.isNone() {
             return self;
@@ -349,7 +349,7 @@ class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: I
 }
 
 module Packet {
-    fun new(link: Option[Packet], id: Int32, kind: Int32) -> Packet {
+    fun new(link: Option[Packet], id: Int32, kind: Int32): Packet {
         let array: Array[Int32] = Array::new[Int32](DATA_SIZE.toInt64());
         return Packet(link, id, kind, 0, array);
     }

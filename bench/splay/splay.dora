@@ -97,7 +97,7 @@ class Benchmark {
         self.updateStats(timestamp());
     }
 
-    fun insertNewNode() -> Int32 {
+    fun insertNewNode(): Int32 {
         var key: Int32 = 0;
 
         while true {
@@ -114,7 +114,7 @@ class Benchmark {
         return key;
     }
 
-    fun generateKey() -> Int32 {
+    fun generateKey(): Int32 {
         return rnd.nextInt32();
     }
 
@@ -126,7 +126,7 @@ class Benchmark {
     }
 }
 
-fun generatePayloadTree(depth: Int32, tag: String) -> PayloadNode {
+fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
     if depth == 0 {
         let arr = Array::ofSizeUnsafe[Int32](10L);
         var i = 0;
@@ -151,7 +151,7 @@ fun generatePayloadTree(depth: Int32, tag: String) -> PayloadNode {
 class SplayTree {
     var root: SplayNode;
 
-    fun isEmpty() -> Bool {
+    fun isEmpty(): Bool {
         return self.root === nil;
     }
 
@@ -183,7 +183,7 @@ class SplayTree {
         self.root = node;
     }
 
-    fun remove(key: Int32) -> SplayNode {
+    fun remove(key: Int32): SplayNode {
         if self.isEmpty() {
             return nil;
         }
@@ -208,7 +208,7 @@ class SplayTree {
         return removed;
     }
 
-    fun find(key: Int32) -> SplayNode {
+    fun find(key: Int32): SplayNode {
         if self.isEmpty() {
             return nil;
         }
@@ -222,7 +222,7 @@ class SplayTree {
         }
     }
 
-    fun findMax(startNode: SplayNode) -> SplayNode {
+    fun findMax(startNode: SplayNode): SplayNode {
         if self.isEmpty() {
             return nil;
         }
@@ -240,7 +240,7 @@ class SplayTree {
         return current;
     }
 
-    fun findGreatestLessThan(key: Int32) -> SplayNode {
+    fun findGreatestLessThan(key: Int32): SplayNode {
         if self.isEmpty() {
             return nil;
         }
@@ -256,7 +256,7 @@ class SplayTree {
         }
     }
 
-    fun exportKeys() -> Vec[Int32] {
+    fun exportKeys(): Vec[Int32] {
         let keys = Vec[Int32]();
         exportKeysTraverse(keys, self.root);
         return keys;

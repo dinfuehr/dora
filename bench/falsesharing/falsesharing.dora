@@ -17,7 +17,7 @@ fun main() {
     }
 }
 
-fun construct(size: Int64) -> Array[Foo] {
+fun construct(size: Int64): Array[Foo] {
     let objects: Array[Foo] = Array::ofSizeUnsafe[Foo](size);
 
     var i = 0L;

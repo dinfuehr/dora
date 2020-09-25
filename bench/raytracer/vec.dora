@@ -73,29 +73,29 @@ class Vec3 {
         return len;
     }
 
-    fun toString() -> String = "<" + x.toString() + "," + y.toString() + "," + z.toString() + ">";
+    fun toString(): String = "<" + x.toString() + "," + y.toString() + "," + z.toString() + ">";
 }
 
 module Vec3 {
-    adds(s: Float64, a: Vec3, b: Vec3) -> Vec {
+    adds(s: Float64, a: Vec3, b: Vec3): Vec {
         return Vec3(s * a.x + b.x, s * a.y + b.y, s * a.z + b.z);
     }
 
-    fun mult(a: Vec3, b: Vec3) -> Vec3 {
+    fun mult(a: Vec3, b: Vec3): Vec3 {
         return Vec3(a.x * b.x, a.y * b.y, a.z * b.z);
     }
 
-    fun cross(a: Vec3, b: Vec3) -> Vec3 {
+    fun cross(a: Vec3, b: Vec3): Vec3 {
         return Vec3(a.y * b.z - a.z * b.y,
                     a.z * b.x - a.x * b.z,
                     a.x * b.y - a.y * b.x);
     }
 
-    fun dot(a: Vec3, b: Vec3) -> Float64 {
+    fun dot(a: Vec3, b: Vec3): Float64 {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    fun com(a: Float64, av: Vec3, b: Float64, bv: Vec3) -> Vec3 {
+    fun com(a: Float64, av: Vec3, b: Float64, bv: Vec3): Vec3 {
         return Vec3(
             a * av.x + b * bv.x,
             a * av.y + b * bv.y,

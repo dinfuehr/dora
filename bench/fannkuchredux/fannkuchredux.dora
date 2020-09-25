@@ -4,7 +4,7 @@ fun main() {
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
 
-fun fannkuch(n: Int32) -> Int32 {
+fun fannkuch(n: Int32): Int32 {
   let perm = Array::fill[Int32](n.toInt64(), 0);
   let perm1 = Array::fill[Int32](n.toInt64(), 0);
   let count = Array::fill[Int32](n.toInt64(), 0);
