@@ -8,10 +8,10 @@ fun main() {
     assert(rotateRight(-12, -1) == -23);
 }
 
-@cannon fun rotateLeft(x: Int32, y: Int32) -> Int32 {
+@cannon fun rotateLeft(x: Int32, y: Int32): Int32 {
     return x.rotateLeft(y);
 }
 
-@cannon fun rotateRight(x: Int32, y: Int32) -> Int32 {
+@cannon fun rotateRight(x: Int32, y: Int32): Int32 {
     return x.rotateRight(y);
 }

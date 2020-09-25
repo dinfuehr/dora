@@ -3,23 +3,23 @@ fun main() {
 }
 
 trait X {
-    @static fun foo() -> Self;
+    @static fun foo(): Self;
 }
 
-fun f[T: X + Stringable]() -> String {
+fun f[T: X + Stringable](): String {
     return T::foo().toString();
 }
 
 class Bar(let x: Int32)
 
 impl Stringable for Bar {
-    fun toString() -> String {
+    fun toString(): String {
         return "BAR${self.x}";
     }
 }
 
 impl X for Bar {
-    @static fun foo() -> Bar {
+    @static fun foo(): Bar {
         return Bar(1);
     }
 }
@@ -27,13 +27,13 @@ impl X for Bar {
 class Baz(let x: Int32)
 
 impl Stringable for Baz {
-    fun toString() -> String {
+    fun toString(): String {
         return "BAZ${self.x}";
     }
 }
 
 impl X for Baz {
-    @static fun foo() -> Baz {
+    @static fun foo(): Baz {
         return Baz(2);
     }
 }

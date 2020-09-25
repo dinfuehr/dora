@@ -6,4 +6,4 @@ fun main() {
 
 class A(var value: ())
 
-fun foo(a: A) -> () { a.value }
+fun foo(a: A): () { a.value }

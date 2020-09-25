@@ -4,6 +4,6 @@ fun main() {
     assert(result.1);
 }
 
-fun tpl[T](value: T) -> (T, Bool) {
+fun tpl[T](value: T): (T, Bool) {
     (value, true)
 }

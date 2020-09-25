@@ -5,6 +5,6 @@ fun main() {
     foo();
 }
 
-fun foo() -> () {
+fun foo(): () {
     x
 }

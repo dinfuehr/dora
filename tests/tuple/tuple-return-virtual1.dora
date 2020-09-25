@@ -5,7 +5,7 @@ fun main() {
 }
 
 @open class Bar(let value: Int32) {
-    @open fun tpl1() -> (Int32, Foo) {
+    @open fun tpl1(): (Int32, Foo) {
         assert(self.value == 42);
         (1, Foo(17))
     }

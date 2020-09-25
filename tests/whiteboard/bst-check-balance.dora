@@ -1,7 +1,7 @@
 class Node(let val: Int32, var left: Node, var right: Node) {}
 
 module Node {
-  fun val(val: Int32) -> Node = Node(val, nil, nil);
+  fun val(val: Int32): Node = Node(val, nil, nil);
 }
 
 fun main() {
@@ -45,11 +45,11 @@ fun dumpTree(root: Node, depth: Int32) {
   dumpTree(root.left, depth+1);
 }
 
-fun isBalanced(root: Node) -> Bool {
+fun isBalanced(root: Node): Bool {
   return height(root) >= 0;
 }
 
-fun height(node: Node) -> Int32 {
+fun height(node: Node): Int32 {
   if node === nil {
     return 0;
   }
@@ -66,7 +66,7 @@ fun height(node: Node) -> Int32 {
   }
 }
 
-fun max(left: Int32, right: Int32) -> Int32 {
+fun max(left: Int32, right: Int32): Int32 {
   if left >= right {
     return left;
   } else {

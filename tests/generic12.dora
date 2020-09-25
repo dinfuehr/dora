@@ -7,9 +7,9 @@ fun main() {
 }
 
 class Foo[T](let x: T) {
-  fun getx() -> T {
+  fun getx(): T {
     return id[T](self.x);
   }
 }
 
-fun id[T](val: T) -> T { return val; }
+fun id[T](val: T): T { return val; }

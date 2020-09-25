@@ -8,14 +8,14 @@ class Bar(var a: Int32) {
     assert(self.a == 100);
   }
 
-  fun f() -> Int32 {
+  fun f(): Int32 {
     assert(self.a == 1);
     self.a = 10;
 
     return self.a;
   }
 
-  fun g() -> Int32 {
+  fun g(): Int32 {
     assert(self.a == 10);
     self.a = 100;
 

@@ -5,6 +5,6 @@ fun main() {
     divide(0L);
 }
 
-fun divide(x: Int64) -> Int64 {
+fun divide(x: Int64): Int64 {
     4711L / x
 }

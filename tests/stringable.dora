@@ -8,4 +8,4 @@ fun main() {
   str[Float64](1D);
 }
 
-fun str[T : Stringable](val: T) -> String = val.toString();
+fun str[T : Stringable](val: T): String = val.toString();

@@ -3,6 +3,6 @@ fun main() {
     assert(0L == newArray[()]().size());
 }
 
-fun newArray[T]() -> Array[T] {
+fun newArray[T](): Array[T] {
     Array::empty[T]()
 }

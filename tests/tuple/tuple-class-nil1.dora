@@ -9,6 +9,6 @@ fun main() {
     foo(nil);
 }
 
-fun foo(x: TupleClass) -> (Int64, Int64) {
+fun foo(x: TupleClass): (Int64, Int64) {
     x.value
 }

@@ -6,13 +6,13 @@ fun main() {
 }
 
 @open class A {
-  @open fun foo(a: Int32) -> Int32 {
+  @open fun foo(a: Int32): Int32 {
     return a;
   }
 }
 
 class B: A {
-  @override fun foo(a: Int32) -> Int32 {
+  @override fun foo(a: Int32): Int32 {
     return super.foo(a) + 1;
   }
 }

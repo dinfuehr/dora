@@ -9,5 +9,5 @@ class X(something: Int32) {
 }
 
 module X {
-  fun empty() -> X = X(2);
+  fun empty(): X = X(2);
 }

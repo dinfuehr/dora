@@ -4,7 +4,7 @@ fun main() {
     assert(mysum(Array[Int32](1, 2, 3, 4, 5)) == 15);
 }
 
-fun mysum(x: Array[Int32]) -> Int32 {
+fun mysum(x: Array[Int32]): Int32 {
     var entries = 0;
     for val in x {
         entries = entries + val;

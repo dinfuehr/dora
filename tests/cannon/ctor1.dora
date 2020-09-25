@@ -3,7 +3,7 @@
 @cannon class X(let msg: String) {
 }
 
-@cannon fun cannonMain() -> X {
+@cannon fun cannonMain(): X {
     return X("xyz");
 }
 

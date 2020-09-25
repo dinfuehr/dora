@@ -9,4 +9,4 @@ fun main() {
 
 class Foo(let value: Int32)
 
-fun id[T](x: T) -> T { x }
+fun id[T](x: T): T { x }

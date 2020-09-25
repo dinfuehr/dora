@@ -6,5 +6,5 @@ fun main() {
 }
 
 class Foo {
-  fun me() -> Foo { return self; }
+  fun me(): Foo { return self; }
 }

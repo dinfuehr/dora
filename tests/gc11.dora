@@ -5,7 +5,7 @@ fun main() {
 
 class A(let x: Int32)
 
-fun test(a: A) -> Int32 {
+fun test(a: A): Int32 {
     forceCollect();
     return a.x;
 }

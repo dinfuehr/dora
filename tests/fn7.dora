@@ -2,6 +2,6 @@ fun main() {
   assert(f(1) == 2);
 }
 
-fun f(a: Int32) -> Int32 {
+fun f(a: Int32): Int32 {
   return a + 1;
 }

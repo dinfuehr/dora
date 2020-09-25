@@ -12,5 +12,5 @@ class X(a: Int32, b: Int32) {
 }
 
 module X {
-    fun empty() -> X = X(3, 1);
+    fun empty(): X = X(3, 1);
 }

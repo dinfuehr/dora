@@ -14,4 +14,4 @@ fun main() {
     assert(myid[Float64](1.0) == 1.0);
 }
 
-fun myid[T](x: T) -> T { x }
+fun myid[T](x: T): T { x }

@@ -7,11 +7,11 @@ fun main() {
 }
 
 class A[T](let x: T) {
-    fun getx() -> T {
+    fun getx(): T {
         return self.x;
     }
 }
 
-fun foo(a: Int32) -> String {
+fun foo(a: Int32): String {
   return "hello" + a.toString();
 }

@@ -9,34 +9,34 @@ fun main() {
     assert(45 == tpl8(1, 2, 3, 4, 5, 6, 7, (8, 9)));
 }
 
-fun tpl1(x: (Int32, Int32)) -> Int32 {
+fun tpl1(x: (Int32, Int32)): Int32 {
     x.0 + x.1
 }
 
-fun tpl2(a0: Int32, x: (Int32, Int32)) -> Int32 {
+fun tpl2(a0: Int32, x: (Int32, Int32)): Int32 {
     a0 + x.0 + x.1
 }
 
-fun tpl3(a0: Int32, a1: Int32, x: (Int32, Int32)) -> Int32 {
+fun tpl3(a0: Int32, a1: Int32, x: (Int32, Int32)): Int32 {
     a0 + a1 + x.0 + x.1
 }
 
-fun tpl4(a0: Int32, a1: Int32, a2: Int32, x: (Int32, Int32)) -> Int32 {
+fun tpl4(a0: Int32, a1: Int32, a2: Int32, x: (Int32, Int32)): Int32 {
     a0 + a1 + a2 + x.0 + x.1
 }
 
-fun tpl5(a0: Int32, a1: Int32, a2: Int32, a3: Int32, x: (Int32, Int32)) -> Int32 {
+fun tpl5(a0: Int32, a1: Int32, a2: Int32, a3: Int32, x: (Int32, Int32)): Int32 {
     a0 + a1 + a2 + a3 + x.0 + x.1
 }
 
-fun tpl6(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, x: (Int32, Int32)) -> Int32 {
+fun tpl6(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, x: (Int32, Int32)): Int32 {
     a0 + a1 + a2 + a3 + a4 + x.0 + x.1
 }
 
-fun tpl7(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, a5: Int32, x: (Int32, Int32)) -> Int32 {
+fun tpl7(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, a5: Int32, x: (Int32, Int32)): Int32 {
     a0 + a1 + a2 + a3 + a4 + a5 + x.0 + x.1
 }
 
-fun tpl8(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, a5: Int32, a6: Int32, x: (Int32, Int32)) -> Int32 {
+fun tpl8(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, a5: Int32, a6: Int32, x: (Int32, Int32)): Int32 {
     a0 + a1 + a2 + a3 + a4 + a5 + a6 + x.0 + x.1
 }

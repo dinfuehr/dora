@@ -13,49 +13,49 @@ fun main() {
     assert(tplsum() == "(17, 19, Foo(42), 2.5, 5, true, text)");
 }
 
-fun tpl1() -> Int32 {
+fun tpl1(): Int32 {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.0
 }
 
-fun tpl2() -> Int64 {
+fun tpl2(): Int64 {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.1
 }
 
-fun tpl3() -> Int32 {
+fun tpl3(): Int32 {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.2.value
 }
 
-fun tpl4() -> Float32 {
+fun tpl4(): Float32 {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.3
 }
 
-fun tpl5() -> Float64 {
+fun tpl5(): Float64 {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.4
 }
 
-fun tpl6() -> Bool {
+fun tpl6(): Bool {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.5
 }
 
-fun tpl7() -> String {
+fun tpl7(): String {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.6
 }
 
-fun tplsum() -> String {
+fun tplsum(): String {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     "(${x.0}, ${x.1}, Foo(${x.2.value}), ${x.3}, ${x.4}, ${x.5}, ${x.6})"

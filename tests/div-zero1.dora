@@ -5,6 +5,6 @@ fun main() {
     divide(0);
 }
 
-fun divide(x: Int32) -> Int32 {
+fun divide(x: Int32): Int32 {
     4711 / x
 }

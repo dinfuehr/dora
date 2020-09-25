@@ -5,6 +5,6 @@ fun main() {
     first(nil);
 }
 
-fun first(f: Array[Int32]) -> Int32 {
+fun first(f: Array[Int32]): Int32 {
     return f(0L);
 }

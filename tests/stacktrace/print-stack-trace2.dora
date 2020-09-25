@@ -11,10 +11,10 @@ fun main() {
   e.printStacktrace();
 }
 
-fun a() -> Stacktrace {
+fun a(): Stacktrace {
   return b();
 }
 
-fun b() -> Stacktrace {
+fun b(): Stacktrace {
   return Stacktrace();
 }

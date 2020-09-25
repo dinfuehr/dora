@@ -10,6 +10,6 @@ fun main() {
     assert(getx() == 10.0);
 }
 
-fun getx() -> Float64 {
+fun getx(): Float64 {
     return x * 2.0;
 }

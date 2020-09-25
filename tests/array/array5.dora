@@ -6,13 +6,13 @@ fun main() {
 }
 
 class A {
-  fun get(index: String) -> Int32 {
+  fun get(index: String): Int32 {
     return 1;
   }
 }
 
 class B {
-  fun get(index: Bool) -> Bool {
+  fun get(index: Bool): Bool {
     return index;
   }
 }

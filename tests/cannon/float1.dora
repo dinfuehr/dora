@@ -33,51 +33,51 @@ fun main() {
     assert(!gt(5F, 20F));
 }
 
-fun test_with_epsilon(expected: Float32, value: Float32) -> Bool {
+fun test_with_epsilon(expected: Float32, value: Float32): Bool {
     let epsilon = 0.01F;
     return value >= (expected-epsilon) && value <= (expected+epsilon);
 }
 
-@cannon fun add(x: Float32, y: Float32, z: Float32) -> Float32 {
+@cannon fun add(x: Float32, y: Float32, z: Float32): Float32 {
     return x+y+z;
 }
 
-@cannon fun sub(x: Float32, y: Float32, z: Float32) -> Float32 {
+@cannon fun sub(x: Float32, y: Float32, z: Float32): Float32 {
     return x-y-z;
 }
 
-@cannon fun mul(x: Float32, y: Float32, z: Float32) -> Float32 {
+@cannon fun mul(x: Float32, y: Float32, z: Float32): Float32 {
     return x*y*z;
 }
 
-@cannon fun div(x: Float32, y: Float32, z: Float32) -> Float32 {
+@cannon fun div(x: Float32, y: Float32, z: Float32): Float32 {
     return x/y/z;
 }
 
-@cannon fun eq(x: Float32, y: Float32) -> Bool {
+@cannon fun eq(x: Float32, y: Float32): Bool {
     return x == y;
 }
 
-@cannon fun ne(x: Float32, y: Float32) -> Bool {
+@cannon fun ne(x: Float32, y: Float32): Bool {
     return x != y;
 }
 
-@cannon fun lt(x: Float32, y: Float32) -> Bool {
+@cannon fun lt(x: Float32, y: Float32): Bool {
     return x < y;
 }
 
-@cannon fun le(x: Float32, y: Float32) -> Bool {
+@cannon fun le(x: Float32, y: Float32): Bool {
     return x <= y;
 }
 
-@cannon fun ge(x: Float32, y: Float32) -> Bool {
+@cannon fun ge(x: Float32, y: Float32): Bool {
     return x >= y;
 }
 
-@cannon fun gt(x: Float32, y: Float32) -> Bool {
+@cannon fun gt(x: Float32, y: Float32): Bool {
     return x > y;
 }
 
-@cannon fun neg(x: Float32) -> Float32 {
+@cannon fun neg(x: Float32): Float32 {
     return -x;
 }

@@ -2,6 +2,6 @@ fun main() {
     assert(three().toInt32() == 3);
 }
 
-fun three() -> Int64 {
+fun three(): Int64 {
     return 3L;
 }

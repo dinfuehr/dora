@@ -4,5 +4,5 @@ fun main() {
 }
 
 module Foo {
-  fun id[T](val: T) -> T = val;
+  fun id[T](val: T): T = val;
 }

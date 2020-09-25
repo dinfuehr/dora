@@ -10,7 +10,7 @@ fun main() {
     }
 }
 
-fun sieve(limit: Int64) -> Vec[Int64] {
+fun sieve(limit: Int64): Vec[Int64] {
     let primes = Vec[Int64]();
 
     if limit >= 2L {

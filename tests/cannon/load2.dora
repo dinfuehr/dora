@@ -35,31 +35,31 @@ fun init_globs() {
     glob_obj = Foo();  
 }
 
-@cannon fun loadGlobalBool() -> Bool {
+@cannon fun loadGlobalBool(): Bool {
     return glob_bool;
 }
-@cannon fun loadGlobalByte() -> UInt8 {
+@cannon fun loadGlobalByte(): UInt8 {
     return glob_byte;
 }
-@cannon fun loadGlobalChar() -> Char {
+@cannon fun loadGlobalChar(): Char {
     return glob_char;
 }
-@cannon fun loadGlobalInt32() -> Int32 {
+@cannon fun loadGlobalInt32(): Int32 {
     return glob_int;
 }
-@cannon fun loadGlobalInt64() -> Int64 {
+@cannon fun loadGlobalInt64(): Int64 {
     return glob_long;
 }
-@cannon fun loadGlobalFloat32() -> Float32 {
+@cannon fun loadGlobalFloat32(): Float32 {
     return glob_float;
 }
-@cannon fun loadGlobalFloat64() -> Float64 {
+@cannon fun loadGlobalFloat64(): Float64 {
     return glob_double;
 }
-@cannon fun loadGlobalString() -> String {
+@cannon fun loadGlobalString(): String {
     return glob_string;
 }
-@cannon fun loadGlobalPtr() -> Foo {
+@cannon fun loadGlobalPtr(): Foo {
     return glob_obj;
 }
 

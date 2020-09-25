@@ -1,5 +1,5 @@
 class A[X: Stringable](let x: X) {
-    fun msg[Y: Stringable](y: Y) -> String { return "x${self.x}x${y}x"; }
+    fun msg[Y: Stringable](y: Y): String { return "x${self.x}x${y}x"; }
 }
 
 fun main() {

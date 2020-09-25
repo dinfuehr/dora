@@ -9,34 +9,34 @@ fun main() {
     assert(returnString() == "5");
 }
 
-@cannon fun returnBool() -> Bool {
+@cannon fun returnBool(): Bool {
     return true;
 }
 
-@cannon fun returnChar() -> Char {
+@cannon fun returnChar(): Char {
     return '5';
 }
 
-@cannon fun returnByte() -> UInt8 {
+@cannon fun returnByte(): UInt8 {
     return 5Y;
 }
 
-@cannon fun returnInt32() -> Int32 {
+@cannon fun returnInt32(): Int32 {
     return 5;
 }
 
-@cannon fun returnInt64() -> Int64 {
+@cannon fun returnInt64(): Int64 {
     return 5L;
 }
 
-@cannon fun returnFloat32() -> Float32 {
+@cannon fun returnFloat32(): Float32 {
     return 5F;
 }
 
-@cannon fun returnFloat64() -> Float64 {
+@cannon fun returnFloat64(): Float64 {
     return 5D;
 }
 
-@cannon fun returnString() -> String {
+@cannon fun returnString(): String {
     return "5";
 }

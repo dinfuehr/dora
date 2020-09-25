@@ -6,7 +6,7 @@ fun main() {
   assert(asl7(l1) === l1);
 }
 
-fun asl7(a: L1) -> L7 {
+fun asl7(a: L1): L7 {
   return a as L7;
 }
 

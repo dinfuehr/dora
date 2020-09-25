@@ -9,14 +9,14 @@ fun main() {
 }
 
 @open @abstract class A {
- @abstract fun printSpecial() -> Int32;
- fun printBase() -> Int32 {
+ @abstract fun printSpecial(): Int32;
+ fun printBase(): Int32 {
    return 2;
  }
 }
 
 @open class B : A {
- @override fun printSpecial() -> Int32 {
+ @override fun printSpecial(): Int32 {
    return 1;
  }
 }

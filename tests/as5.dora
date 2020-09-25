@@ -3,7 +3,7 @@ fun main() {
     assert(!test(B(0)));
 }
 
-fun test(a: A) -> Bool {
+fun test(a: A): Bool {
     let a = a as B;
     return a.x != 0;
 }
