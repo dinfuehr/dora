@@ -20,5 +20,5 @@
 
 // @restricted / @internal
 trait Zero {
-  @static fun zero() -> Self; // should be `let` instead of `fun`
+  @static fun zero(): Self; // should be `let` instead of `fun`
 }

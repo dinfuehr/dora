@@ -1,7 +1,7 @@
 class CodepointIterator(let value: String, var start: Int64) {
-    fun hasNext() -> Bool = self.start < self.value.size();
+    fun hasNext(): Bool = self.start < self.value.size();
 
-    fun next() -> Char {
+    fun next(): Char {
         var ch = self.value.getByte(self.start);
 
         if ch <= 0x7FY {
@@ -40,7 +40,7 @@ class CodepointIterator(let value: String, var start: Int64) {
         return '\0';
     }
 
-    fun peek() -> Char {
+    fun peek(): Char {
         var ch = self.value.getByte(self.start);
 
         if ch <= 0x7FY {
@@ -75,7 +75,7 @@ class CodepointIterator(let value: String, var start: Int64) {
         return '\0';
     }
 
-    fun size() -> Int64 {
+    fun size(): Int64 {
         var i = 0L;
 
         while self.hasNext() {
@@ -86,5 +86,5 @@ class CodepointIterator(let value: String, var start: Int64) {
         return i;
     }
 
-    fun toString() -> String = String::fromStringPart(self.value, self.start, self.value.size() - self.start).unwrap();
+    fun toString(): String = String::fromStringPart(self.value, self.start, self.value.size() - self.start).unwrap();
 }

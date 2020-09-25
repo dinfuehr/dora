@@ -1,14 +1,14 @@
 @internal class Float64 {
-  @internal fun toInt32() -> Int32;
-  @internal fun toInt64() -> Int64;
-  @internal fun toFloat32() -> Float32;
-  @internal fun toString() -> String;
+  @internal fun toInt32(): Int32;
+  @internal fun toInt64(): Int64;
+  @internal fun toFloat32(): Float32;
+  @internal fun toString(): String;
 
-  @internal fun asInt64() -> Int64;
+  @internal fun asInt64(): Int64;
 
-  @internal fun equals(rhs: Float64) -> Bool;
-  @internal fun compareTo(rhs: Float64) -> Int32;
-  fun sortsAs(rhs: Float64) -> Int32 {
+  @internal fun equals(rhs: Float64): Bool;
+  @internal fun compareTo(rhs: Float64): Int32;
+  fun sortsAs(rhs: Float64): Int32 {
     var ix = self.asInt64();
     var iy = rhs.asInt64();
 
@@ -23,21 +23,21 @@
     return 1;
   }
 
-  @internal fun plus(rhs: Float64) -> Float64;
-  @internal fun minus(rhs: Float64) -> Float64;
-  @internal fun times(rhs: Float64) -> Float64;
-  @internal fun div(rhs: Float64) -> Float64;
+  @internal fun plus(rhs: Float64): Float64;
+  @internal fun minus(rhs: Float64): Float64;
+  @internal fun times(rhs: Float64): Float64;
+  @internal fun div(rhs: Float64): Float64;
 
-  @internal fun unaryPlus() -> Float64;
-  @internal fun unaryMinus() -> Float64;
+  @internal fun unaryPlus(): Float64;
+  @internal fun unaryMinus(): Float64;
 
-  @internal fun isNan() -> Bool;
-  @internal fun sqrt() -> Float64;
+  @internal fun isNan(): Bool;
+  @internal fun sqrt(): Float64;
 
-  fun hash() -> Int32 = self.asInt64().toInt32();
+  fun hash(): Int32 = self.asInt64().toInt32();
 }
 
 module Float64 {
-  fun bits() -> Int32 = 64;
-  fun bytes() -> Int32 = 8;
+  fun bits(): Int32 = 64;
+  fun bytes(): Int32 = 8;
 }

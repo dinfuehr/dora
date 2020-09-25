@@ -1,12 +1,12 @@
 @internal class Char {
-  @internal fun toInt32() -> Int32;
-  @internal fun toInt64() -> Int64;
-  @internal fun toString() -> String;
+  @internal fun toInt32(): Int32;
+  @internal fun toInt64(): Int64;
+  @internal fun toString(): String;
 
-  @internal fun equals(rhs: Char) -> Bool;
-  @internal fun compareTo(rhs: Char) -> Int32;
+  @internal fun equals(rhs: Char): Bool;
+  @internal fun compareTo(rhs: Char): Int32;
 
-  fun hash() -> Int32 = self.toInt32();
+  fun hash(): Int32 = self.toInt32();
 
   fun encodeUtf8(bytes: Array[UInt8], offset: Int64) {
     let val = self.toInt32();
@@ -28,7 +28,7 @@
     }
   }
 
-  fun lenUtf8() -> Int32 {
+  fun lenUtf8(): Int32 {
     let val = self.toInt32();
 
     if val < 0x80 {

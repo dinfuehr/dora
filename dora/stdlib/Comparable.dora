@@ -1,36 +1,36 @@
 /* partial order */
 trait Comparable {
-  fun compareTo(other: Self) -> Int32;
-  // fun <  (other: Self) -> Int32;
-  // fun <= (other: Self) -> Int32;
-  // fun >  (other: Self) -> Int32;
-  // fun >= (other: Self) -> Int32;
+  fun compareTo(other: Self): Int32;
+  // fun <  (other: Self): Int32;
+  // fun <= (other: Self): Int32;
+  // fun >  (other: Self): Int32;
+  // fun >= (other: Self): Int32;
 }
 
 impl Comparable for Bool {
-  fun compareTo(other: Bool) -> Int32 = self.compareTo(other);
+  fun compareTo(other: Bool): Int32 = self.compareTo(other);
 }
 
 impl Comparable for UInt8 {
-  fun compareTo(other: UInt8) -> Int32 = self.compareTo(other);
+  fun compareTo(other: UInt8): Int32 = self.compareTo(other);
 }
 
 impl Comparable for Int32 {
-  fun compareTo(other: Int32) -> Int32 = self.compareTo(other);
+  fun compareTo(other: Int32): Int32 = self.compareTo(other);
 }
 
 impl Comparable for Int64 {
-  fun compareTo(other: Int64) -> Int32 = self.compareTo(other);
+  fun compareTo(other: Int64): Int32 = self.compareTo(other);
 }
 
 impl Comparable for Float32 {
-  fun compareTo(other: Float32) -> Int32 = self.compareTo(other);
+  fun compareTo(other: Float32): Int32 = self.compareTo(other);
 }
 
 impl Comparable for Float64 {
-  fun compareTo(other: Float64) -> Int32 = self.compareTo(other);
+  fun compareTo(other: Float64): Int32 = self.compareTo(other);
 }
 
 impl Comparable for String {
-  fun compareTo(other: String) -> Int32 = self.compareTo(other);
+  fun compareTo(other: String): Int32 = self.compareTo(other);
 }

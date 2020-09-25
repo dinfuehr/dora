@@ -11,14 +11,14 @@ fun unimplemented() = fatalError("not yet implemented");
 @internal fun println(text: String);
 @internal fun assert(val: Bool);
 @internal fun debug();
-@internal fun argc() -> Int32;
-@internal fun argv(idx: Int32) -> String;
+@internal fun argc(): Int32;
+@internal fun argv(idx: Int32): String;
 @internal fun forceCollect();
 @internal fun forceMinorCollect();
 
 @internal fun call(fct: String);
 
-@internal fun timestamp() -> Int64;
+@internal fun timestamp(): Int64;
 
 class Object
 
@@ -45,7 +45,7 @@ fun bubbleSort[T: Comparable](array: Array[T]) {
   }
 }
 
-fun isValidUtf8(data: Array[UInt8]) -> Bool {
+fun isValidUtf8(data: Array[UInt8]): Bool {
   var i = 0L;
 
   while i < data.size() {
@@ -109,6 +109,6 @@ fun isValidUtf8(data: Array[UInt8]) -> Bool {
   return true;
 }
 
-@internal fun defaultValue[T]() -> T;
+@internal fun defaultValue[T](): T;
 
 @internal fun sleep(seconds: Int32);

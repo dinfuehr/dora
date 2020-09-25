@@ -1,7 +1,7 @@
 class BitVec {
     var data: Array[Int32] = Array::empty[Int32]();
 
-    fun contains(idx: Int64) -> Bool {
+    fun contains(idx: Int64): Bool {
         if idx < 0L {
             fatalError("index out of bounds");
         }
@@ -63,7 +63,7 @@ class BitVec {
         self.data = newarray;
     }
 
-    fun capacity() -> Int64 {
+    fun capacity(): Int64 {
         self.data.size() * 32L
     }
 }

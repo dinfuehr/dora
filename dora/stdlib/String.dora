@@ -1,5 +1,5 @@
 @internal class String {
-  fun equals(rhs: String) -> Bool {
+  fun equals(rhs: String): Bool {
     var i = 0L;
 
     if self.size() != rhs.size() {
@@ -19,19 +19,19 @@
     return true;
   }
 
-  fun toString() -> String = self;
+  fun toString(): String = self;
 
-  @internal fun compareTo(rhs: String) -> Int32;
+  @internal fun compareTo(rhs: String): Int32;
 
-  @internal fun size() -> Int64;
+  @internal fun size(): Int64;
 
-  @internal fun toInt32Success() -> Bool;
-  @internal fun toInt64Success() -> Bool;
+  @internal fun toInt32Success(): Bool;
+  @internal fun toInt64Success(): Bool;
 
-  @internal fun toInt32OrZero() -> Int32;
-  @internal fun toInt64OrZero() -> Int64;
+  @internal fun toInt32OrZero(): Int32;
+  @internal fun toInt64OrZero(): Int64;
 
-  fun toInt32() -> Option[Int32] {
+  fun toInt32(): Option[Int32] {
     if self.toInt32Success() {
       Option::some[Int32](self.toInt32OrZero())
     } else {
@@ -39,7 +39,7 @@
     }
   }
 
-  fun toInt64() -> Option[Int64] {
+  fun toInt64(): Option[Int64] {
     if self.toInt64Success() {
       Option::some[Int64](self.toInt64OrZero())
     } else {
@@ -47,21 +47,21 @@
     }
   }
 
-  @internal fun plus(rhs: String) -> String;
+  @internal fun plus(rhs: String): String;
 
-  @internal fun getByte(idx: Int64) -> UInt8;
-  @internal fun clone() -> String;
+  @internal fun getByte(idx: Int64): UInt8;
+  @internal fun clone(): String;
 
-  fun isEmpty() -> Bool = self.size() == 0L;
+  fun isEmpty(): Bool = self.size() == 0L;
 
-  fun codePoints() -> CodepointIterator = CodepointIterator(self, 0L);
+  fun codePoints(): CodepointIterator = CodepointIterator(self, 0L);
 }
 
 module String {
-  @internal fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64) -> String;
-  @internal fun fromStringPartOrNull(val: String, offset: Int64, len: Int64) -> String;
+  @internal fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64): String;
+  @internal fun fromStringPartOrNull(val: String, offset: Int64, len: Int64): String;
 
-  fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64) -> Option[String] {
+  fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] {
     let value = String::fromBytesPartOrNull(val, offset, len);
 
     if value === nil {
@@ -71,7 +71,7 @@ module String {
     }
   }
 
-  fun fromBytes(val: Array[UInt8]) -> Option[String] {
+  fun fromBytes(val: Array[UInt8]): Option[String] {
     let value = String::fromBytesPartOrNull(val, 0L, val.size());
   
     if value === nil {
@@ -81,7 +81,7 @@ module String {
     }
   }
 
-  fun fromStringPart(val: String, offset: Int64, len: Int64) -> Option[String] {
+  fun fromStringPart(val: String, offset: Int64, len: Int64): Option[String] {
     let value = String::fromStringPartOrNull(val, offset, len);
 
     if value === nil {
@@ -91,9 +91,9 @@ module String {
     }
   }
 
-  fun fromString(val: String) -> String = val.clone();
+  fun fromString(val: String): String = val.clone();
 
-  fun binary(data: Int64) -> String {
+  fun binary(data: Int64): String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array::zero[UInt8](64L);
@@ -106,7 +106,7 @@ module String {
     return String::fromBytesPart(array, at, array.size() - at + 1L).unwrap();
   }
 
-  fun hex(data: Int64) -> String {
+  fun hex(data: Int64): String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array::zero[UInt8](16L);

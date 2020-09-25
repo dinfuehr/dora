@@ -4,7 +4,7 @@ class Stacktrace() {
 
   self.retrieveStacktrace();
 
-  fun getStacktrace() -> Array[StacktraceElement] {
+  fun getStacktrace(): Array[StacktraceElement] {
     if self.elements !== nil {
       return self.elements;
     }
@@ -37,9 +37,9 @@ class Stacktrace() {
   }
 
   @internal fun retrieveStacktrace();
-  @internal fun getStacktraceElement(idx: Int64) -> StacktraceElement;
+  @internal fun getStacktraceElement(idx: Int64): StacktraceElement;
 }
 
 class StacktraceElement(let name: String, let line: Int32) {
-  fun toString() -> String = self.name + ": " + self.line.toString();
+  fun toString(): String = self.name + ": " + self.line.toString();
 }

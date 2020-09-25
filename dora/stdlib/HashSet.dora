@@ -8,21 +8,21 @@ class HashSet[K: Hash + Equals](keys: K...) {
         self.map.insert(key, ());
     }
 
-    fun contains(key: K) -> Bool {
+    fun contains(key: K): Bool {
         self.map.contains(key)
     }
 
-    fun remove(key: K) -> Bool = self.map.remove(key).isSome();
+    fun remove(key: K): Bool = self.map.remove(key).isSome();
 
-    fun size() -> Int64 {
+    fun size(): Int64 {
         self.map.size()
     }
 
-    fun isEmpty() -> Bool {
+    fun isEmpty(): Bool {
         self.map.isEmpty()
     }
 
-    fun capacity() -> Int64 {
+    fun capacity(): Int64 {
         self.map.capacity()
     }
 }

@@ -1,42 +1,42 @@
 trait Default {
-  @static fun default() -> Self;
+  @static fun default(): Self;
 }
 
 impl Default for Bool {
-  @static fun default() -> Bool = false;
+  @static fun default(): Bool = false;
 }
 
 impl Default for UInt8 {
-  @static fun default() -> UInt8 = 0Y;
+  @static fun default(): UInt8 = 0Y;
 }
 
 impl Default for Char {
-  @static fun default() -> Char = '\0';
+  @static fun default(): Char = '\0';
 }
 
 impl Default for Int32 {
-  @static fun default() -> Int32 = 0;
+  @static fun default(): Int32 = 0;
 }
 
 impl Default for Int64 {
-  @static fun default() -> Int64 = 0L;
+  @static fun default(): Int64 = 0L;
 }
 
 impl Default for Float32 {
-  @static fun default() -> Float32 = 0.0F;
+  @static fun default(): Float32 = 0.0F;
 }
 
 impl Default for Float64 {
-  @static fun default() -> Float64 = 0.0;
+  @static fun default(): Float64 = 0.0;
 }
 
 impl Default for String {
-  @static fun default() -> String = "";
+  @static fun default(): String = "";
 }
 
 // feature not implemented yet
 /*
 impl Default for Option[T] {
-  @static fun default() -> Option[T] = ...;
+  @static fun default(): Option[T] = ...;
 }
 */

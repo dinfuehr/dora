@@ -1,12 +1,12 @@
 @internal class Array[T](values: T...) {
 
-  @internal fun size() -> Int64;
-  @internal fun get(idx: Int64) -> T;
+  @internal fun size(): Int64;
+  @internal fun get(idx: Int64): T;
   @internal fun set(idx: Int64, val: T);
 
-  fun isEmpty() -> Bool = self.size() == 0L;
+  fun isEmpty(): Bool = self.size() == 0L;
 
-  fun enumerate() -> ArrayEnumerator[T] {
+  fun enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T](self)
   }
 }
@@ -14,11 +14,11 @@
 class ArrayEnumerator[T](let array: Array[T]) {
   var idx: Int64 = 0L;
 
-  fun hasNext() -> Bool {
+  fun hasNext(): Bool {
     self.idx < self.array.size()
   }
 
-  fun next() -> (Int64, T) {
+  fun next(): (Int64, T) {
     let current_idx = self.idx;
     self.idx = self.idx + 1L;
     (current_idx, self.array(current_idx))
@@ -27,11 +27,11 @@ class ArrayEnumerator[T](let array: Array[T]) {
 
 // The next two functions should be instance functions, but we cannot properly encode the fact that they put additional
 // constraints on the existing class-level `T` of `Array`, not introduce a new function-level `T` on `contains`:
-// fun contains[T : Identity + Equals](value: T) -> Bool /// wrong
+// fun contains[T : Identity + Equals](value: T): Bool /// wrong
 // Some languages use the workaround to define a "fake" new generic parameter that subtypes the old one, like
 // `[S <: T : Identity + Equals]`. I hope that a better solution can be found.
 
-fun arrayContains[T : Identity + Equals](array: Array[T], value: T) -> Bool {
+fun arrayContains[T : Identity + Equals](array: Array[T], value: T): Bool {
   var i = 0L;
 
   while i < array.size() {
@@ -45,7 +45,7 @@ fun arrayContains[T : Identity + Equals](array: Array[T], value: T) -> Bool {
   return false;
 }
 
-fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
+fun arrayHas[T : Identity](array: Array[T], value: T): Bool {
   var i = 0L;
 
   while i < array.size() {
@@ -59,12 +59,12 @@ fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
 }
 
 module Array {
-  fun empty[T]() -> Array[T] = Array::ofSizeUnsafe[T](0L);
+  fun empty[T](): Array[T] = Array::ofSizeUnsafe[T](0L);
 
   @internal
-  fun ofSizeUnsafe[T](size: Int64) -> Array[T];
+  fun ofSizeUnsafe[T](size: Int64): Array[T];
 
-  fun fill[T](len: Int64, value: T) -> Array[T] {
+  fun fill[T](len: Int64, value: T): Array[T] {
     let array = Array::ofSizeUnsafe[T](len);
     var i = 0L;
 
@@ -76,7 +76,7 @@ module Array {
     return array;
   }
 
-  fun new[T: Default](len: Int64) -> Array[T] {
+  fun new[T: Default](len: Int64): Array[T] {
     let array = Array::ofSizeUnsafe[T](len);
     var i = 0L;
     let value = T::default();
@@ -89,7 +89,7 @@ module Array {
     return array;
   }
 
-  fun zero[T: Zero](len: Int64) -> Array[T] = return Array::ofSizeUnsafe[T](len);
+  fun zero[T: Zero](len: Int64): Array[T] = return Array::ofSizeUnsafe[T](len);
 
   fun copy[T](src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
     var i = 0L;

@@ -1,21 +1,21 @@
 class IntRange(let lower: Int32, let upper: Int32) {
-  fun makeIterator() -> IntRangeIter {
+  fun makeIterator(): IntRangeIter {
     return IntRangeIter(self);
   }
 }
 
-fun range(lower: Int32, upper: Int32) -> IntRange = IntRange(lower, upper);
+fun range(lower: Int32, upper: Int32): IntRange = IntRange(lower, upper);
 
 class IntRangeIter(let range: IntRange) {
   var value: Int32 = range.lower;
 }
 
 impl Iterator for IntRangeIter {
-  fun hasNext() -> Bool {
+  fun hasNext(): Bool {
     return self.value < self.range.upper;
   }
 
-  fun next() -> Int32 {
+  fun next(): Int32 {
     let cur = self.value;
     self.value = cur + 1;
     return cur;

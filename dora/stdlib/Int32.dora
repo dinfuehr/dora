@@ -1,50 +1,50 @@
 @internal class Int32 {
-  @internal fun toUInt8() -> UInt8;
-  fun toChar() -> Option[Char] {
+  @internal fun toUInt8(): UInt8;
+  fun toChar(): Option[Char] {
     if self >= 0 && self <= 0x10FFFFI && (self < 0xD800 || self > 0xDFFFI) {
       Option::some[Char](self.toCharUnchecked())
     } else {
       Option::none[Char]()
     }
   }
-  @internal fun toCharUnchecked() -> Char;
-  @internal fun toInt64() -> Int64;
-  @internal fun toString() -> String;
+  @internal fun toCharUnchecked(): Char;
+  @internal fun toInt64(): Int64;
+  @internal fun toString(): String;
 
-  fun toStringBinary() -> String = String::binary(self.toInt64() & 0xFFFFFFFFL);
-  fun toStringHex() -> String = String::hex(self.toInt64() & 0xFFFFFFFFL);
+  fun toStringBinary(): String = String::binary(self.toInt64() & 0xFFFFFFFFL);
+  fun toStringHex(): String = String::hex(self.toInt64() & 0xFFFFFFFFL);
 
-  @internal fun toFloat32() -> Float32;
-  @internal fun toFloat64() -> Float64;
+  @internal fun toFloat32(): Float32;
+  @internal fun toFloat64(): Float64;
 
-  @internal fun asFloat32() -> Float32;
+  @internal fun asFloat32(): Float32;
 
-  @internal fun equals(rhs: Int32) -> Bool;
-  @internal fun compareTo(rhs: Int32) -> Int32;
+  @internal fun equals(rhs: Int32): Bool;
+  @internal fun compareTo(rhs: Int32): Int32;
 
-  @internal fun plus(rhs: Int32) -> Int32;
-  @internal fun minus(rhs: Int32) -> Int32;
-  @internal fun times(rhs: Int32) -> Int32;
-  @internal fun div(rhs: Int32) -> Int32;
-  @internal fun mod(rhs: Int32) -> Int32;
+  @internal fun plus(rhs: Int32): Int32;
+  @internal fun minus(rhs: Int32): Int32;
+  @internal fun times(rhs: Int32): Int32;
+  @internal fun div(rhs: Int32): Int32;
+  @internal fun mod(rhs: Int32): Int32;
 
-  @internal fun bitwiseOr(rhs: Int32) -> Int32;
-  @internal fun bitwiseAnd(rhs: Int32) -> Int32;
-  @internal fun bitwiseXor(rhs: Int32) -> Int32;
+  @internal fun bitwiseOr(rhs: Int32): Int32;
+  @internal fun bitwiseAnd(rhs: Int32): Int32;
+  @internal fun bitwiseXor(rhs: Int32): Int32;
 
-  @internal fun shiftLeft(by: Int32) -> Int32;
-  @internal fun shiftRightSigned(by: Int32) -> Int32;
-  @internal fun shiftRight(by: Int32) -> Int32;
+  @internal fun shiftLeft(by: Int32): Int32;
+  @internal fun shiftRightSigned(by: Int32): Int32;
+  @internal fun shiftRight(by: Int32): Int32;
 
-  @internal fun rotateLeft(by: Int32) -> Int32;
-  @internal fun rotateRight(by: Int32) -> Int32;
+  @internal fun rotateLeft(by: Int32): Int32;
+  @internal fun rotateRight(by: Int32): Int32;
 
-  @internal fun unaryPlus() -> Int32;
-  @internal fun unaryMinus() -> Int32;
-  @internal fun not() -> Int32;
+  @internal fun unaryPlus(): Int32;
+  @internal fun unaryMinus(): Int32;
+  @internal fun not(): Int32;
 
-  @internal fun countZeroBits() -> Int32 = self.not().countOneBits();
-  @internal fun countOneBits() -> Int32 {
+  @internal fun countZeroBits(): Int32 = self.not().countOneBits();
+  @internal fun countOneBits(): Int32 {
     var x = self;
     var c = 0;
     while (x != 0) {
@@ -53,7 +53,7 @@
     }
     return c;
   }
-  @internal fun countZeroBitsLeading() -> Int32 {
+  @internal fun countZeroBitsLeading(): Int32 {
     if self == 0 {
       return Int32::bits();
     }
@@ -65,8 +65,8 @@
     }
     return r;
   }
-  @internal fun countOneBitsLeading() -> Int32 = self.not().countZeroBitsLeading();
-  @internal fun countZeroBitsTrailing() -> Int32 {
+  @internal fun countOneBitsLeading(): Int32 = self.not().countZeroBitsLeading();
+  @internal fun countZeroBitsTrailing(): Int32 {
     if self == 0 {
       return Int32::bits();
     }
@@ -78,20 +78,20 @@
     }
     return r;
   }
-  @internal fun countOneBitsTrailing() -> Int32 = self.not().countZeroBitsTrailing();
+  @internal fun countOneBitsTrailing(): Int32 = self.not().countZeroBitsTrailing();
 
-  fun hash() -> Int32 = self;
+  fun hash(): Int32 = self;
 
-  fun abs() -> Int32 = if self >= 0 { self } else { -self };
+  fun abs(): Int32 = if self >= 0 { self } else { -self };
 }
 
 module Int32 {
-  fun bits() -> Int32 = 32;
-  fun bytes() -> Int32 = 4;
+  fun bits(): Int32 = 32;
+  fun bytes(): Int32 = 4;
 
-  fun maxValue() -> Int32 = 2147483647;
-  fun minValue() -> Int32 = -2147483648;
+  fun maxValue(): Int32 = 2147483647;
+  fun minValue(): Int32 = -2147483648;
 
-  fun min(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { lhs } else { rhs };
-  fun max(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { rhs } else { lhs };
+  fun min(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { lhs } else { rhs };
+  fun max(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { rhs } else { lhs };
 }

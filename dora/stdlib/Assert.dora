@@ -20,35 +20,35 @@ module Assert {
     }
   }
 
-  fun string(actual: String) -> StringAssert = StringAssert(actual);
-  fun list[T](actual: Vec[T]) -> ListAssert[T] = ListAssert[T](actual);
-  fun set[T : Equals + Hash](actual: HashSet[T]) -> SetAssert[T] = SetAssert[T](actual);
-  fun map[K : Equals + Hash, V](actual: HashMap[K, V]) -> MapAssert[K, V] = MapAssert[K, V](actual);
+  fun string(actual: String): StringAssert = StringAssert(actual);
+  fun list[T](actual: Vec[T]): ListAssert[T] = ListAssert[T](actual);
+  fun set[T : Equals + Hash](actual: HashSet[T]): SetAssert[T] = SetAssert[T](actual);
+  fun map[K : Equals + Hash, V](actual: HashMap[K, V]): MapAssert[K, V] = MapAssert[K, V](actual);
 }
 
 class StringAssert(let value: String) {
   /*
-  fun contains(expected: String) -> StringAssert {
+  fun contains(expected: String): StringAssert {
     assert(self.value.contains(expected));
     return self;
   }
   */
 
-  fun hasSize(expected: Int64) -> StringAssert {
+  fun hasSize(expected: Int64): StringAssert {
     if self.value.size() != expected {
       fatalError("unexpected string size (actual: ${self.value.size()}, expected: ${expected})");
     }
     return self;
   }
 
-  fun isEmpty() -> StringAssert {
+  fun isEmpty(): StringAssert {
     if self.value.isEmpty().not() {
       fatalError("string not empty (is \"${self.value}\")");
     }
     return self;
   }
 
-  fun isNotEmpty() -> StringAssert {
+  fun isNotEmpty(): StringAssert {
     if self.value.isEmpty() {
       fatalError("string is empty");
     }
@@ -57,19 +57,19 @@ class StringAssert(let value: String) {
 }
 
 class ListAssert[T](let value: Vec[T]) {
-  fun hasSize(expected: Int64) -> ListAssert[T] {
+  fun hasSize(expected: Int64): ListAssert[T] {
     assert(self.value.size() == expected);
     return self;
   }
 
-  fun isEmpty() -> ListAssert[T] {
+  fun isEmpty(): ListAssert[T] {
     if self.value.isEmpty().not() {
       fatalError("list is not empty");
     }
     return self;
   }
 
-  fun isNotEmpty() -> ListAssert[T] {
+  fun isNotEmpty(): ListAssert[T] {
     if self.value.isEmpty() {
       fatalError("list is empty");
     }
@@ -78,31 +78,31 @@ class ListAssert[T](let value: Vec[T]) {
 }
 
 class SetAssert[T : Equals + Hash](let value: HashSet[T]) {
-  fun contains(expected: T) -> SetAssert[T] {
+  fun contains(expected: T): SetAssert[T] {
     assert(self.value.contains(expected));
     return self;
   }
 
-  fun containsAll(expected: T...) -> SetAssert[T] {
+  fun containsAll(expected: T...): SetAssert[T] {
     for value in expected {
       assert(self.value.contains(value));
     }
     return self;
   }
 
-  fun hasSize(expected: Int64) -> SetAssert[T] {
+  fun hasSize(expected: Int64): SetAssert[T] {
     assert(self.value.size() == expected);
     return self;
   }
 
-  fun isEmpty() -> SetAssert[T] {
+  fun isEmpty(): SetAssert[T] {
     if self.value.isEmpty().not() {
       fatalError("set is not empty");
     }
     return self;
   }
 
-  fun isNotEmpty() -> SetAssert[T] {
+  fun isNotEmpty(): SetAssert[T] {
     if self.value.isEmpty() {
       fatalError("set is empty");
     }
@@ -111,31 +111,31 @@ class SetAssert[T : Equals + Hash](let value: HashSet[T]) {
 }
 
 class MapAssert[K : Equals + Hash, V](let value: HashMap[K, V]) {
-  fun contains(expected: K) -> MapAssert[K, V] {
+  fun contains(expected: K): MapAssert[K, V] {
     assert(self.value.contains(expected));
     return self;
   }
 
-  fun containsAll(expected: K...) -> MapAssert[K, V] {
+  fun containsAll(expected: K...): MapAssert[K, V] {
     for value in expected {
       assert(self.value.contains(value));
     }
     return self;
   }
 
-  fun hasSize(expected: Int64) -> MapAssert[K, V] {
+  fun hasSize(expected: Int64): MapAssert[K, V] {
     assert(self.value.size() == expected);
     return self;
   }
 
-  fun isEmpty() -> MapAssert[K, V] {
+  fun isEmpty(): MapAssert[K, V] {
     if self.value.isEmpty().not() {
       fatalError("set is not empty");
     }
     return self;
   }
 
-  fun isNotEmpty() -> MapAssert[K, V] {
+  fun isNotEmpty(): MapAssert[K, V] {
     if self.value.isEmpty() {
       fatalError("set is empty");
     }
