@@ -217,7 +217,7 @@ module TaskControlBlock {
     @abstract fun toString(): String;
 }
 
-class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32): Task {
+class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32) extends Task {
     @override fun run(packet: Option[Packet]): Option[TaskControlBlock] {
         self.count = self.count - 1;
         if self.count == 0 {
@@ -237,7 +237,7 @@ class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32): Tas
     }
 }
 
-class DeviceTask(let scheduler: Scheduler): Task {
+class DeviceTask(let scheduler: Scheduler) extends Task {
     var seed: Option[Packet] = Option::none[Packet]();
 
     @override fun run(packet: Option[Packet]): Option[TaskControlBlock] {
@@ -259,7 +259,7 @@ class DeviceTask(let scheduler: Scheduler): Task {
     }
 }
 
-class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32): Task {
+class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32) extends Task {
     @override fun run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isNone() {
             return self.scheduler.suspendCurrent();
@@ -289,7 +289,7 @@ class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32): Task {
     }
 }
 
-class HandlerTask(let scheduler: Scheduler): Task {
+class HandlerTask(let scheduler: Scheduler) extends Task {
     var v1: Option[Packet] = Option::none[Packet]();
     var v2: Option[Packet] = Option::none[Packet]();
 

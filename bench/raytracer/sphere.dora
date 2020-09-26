@@ -1,4 +1,4 @@
-class Sphere: Primitive {
+class Sphere extends Primitive {
     var c: Vec3;
     var r: Float64;
     var r2: Float64;
