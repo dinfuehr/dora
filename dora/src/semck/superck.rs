@@ -251,8 +251,8 @@ mod tests {
     // #[test]
     // fn test_super_size() {
     //     ok_with_test("@open class A { var a: int; }
-    //         open class B: A { var b1: int; var b2: int; }
-    //         class C: B { var c: String; }",
+    //         open class B extends A { var b1: int; var b2: int; }
+    //         class C extends B { var c: String; }",
     //                  |vm| {
     //         check_class(vm, "A", mem::ptr_width(), Some("Object"));
     //         check_field(vm, "A", "a", Header::size());
@@ -274,10 +274,10 @@ mod tests {
     #[test]
     fn test_cycle() {
         errors(
-            "@open class A: B @open class B: A",
+            "@open class A extends B @open class B extends A",
             &[
                 (pos(1, 7), SemError::CycleInHierarchy),
-                (pos(1, 24), SemError::CycleInHierarchy),
+                (pos(1, 31), SemError::CycleInHierarchy),
             ],
         );
     }
@@ -290,18 +290,18 @@ mod tests {
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { } class A: B { @override fun f() {} }",
-            pos(1, 42),
+            "@open class B { } class A extends B { @override fun f() {} }",
+            pos(1, 49),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { fun g() {} } class A: B { @override fun f() {} }",
-            pos(1, 53),
+            "@open class B { fun g() {} } class A extends B { @override fun f() {} }",
+            pos(1, 60),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { @open fun f(a: Int32) {} } class A: B { @override fun f() {} }",
-            pos(1, 67),
+            "@open class B { @open fun f(a: Int32) {} } class A extends B { @override fun f() {} }",
+            pos(1, 74),
             SemError::OverrideMismatch,
         );
     }
@@ -309,24 +309,24 @@ mod tests {
     #[test]
     fn test_override() {
         err(
-            "@open class A { fun f() {} } class B: A { @override fun f() {} }",
-            pos(1, 53),
+            "@open class A { fun f() {} } class B extends A { @override fun f() {} }",
+            pos(1, 60),
             SemError::MethodNotOverridable("f".into()),
         );
-        ok("@open class A { @open fun f() {} } class B: A { @override fun f() {} }");
+        ok("@open class A { @open fun f() {} } class B extends A { @override fun f() {} }");
         ok("@open class A { @open fun f() {} }
-            @open class B: A { @override fun f() {} }
-            @open class C: B { @override fun f() {} }");
+            @open class B extends A { @override fun f() {} }
+            @open class C extends B { @override fun f() {} }");
         err(
-            "@open class A { @open fun f() {} } class B: A { fun f() {} }",
-            pos(1, 49),
+            "@open class A { @open fun f() {} } class B extends A { fun f() {} }",
+            pos(1, 56),
             SemError::MissingOverride("f".into()),
         );
         err(
             "@open class A { @open fun f() {} }
-             @open class B: A { @final @override fun f() {} }
-             class C: B { @override fun f() {} }",
-            pos(3, 37),
+             @open class B extends A { @final @override fun f() {} }
+             class C extends B { @override fun f() {} }",
+            pos(3, 44),
             SemError::MethodNotOverridable("f".into()),
         );
     }
@@ -335,23 +335,23 @@ mod tests {
     fn test_overload_method_in_super_class() {
         errors(
             "@open class A { @open fun f() {} }
-            class B: A { fun f(a: Int32) {} }",
+            class B extends A { fun f(a: Int32) {} }",
             &[
-                (pos(2, 26), SemError::MissingOverride("f".into())),
-                (pos(2, 26), SemError::OverrideMismatch),
+                (pos(2, 33), SemError::MissingOverride("f".into())),
+                (pos(2, 33), SemError::OverrideMismatch),
             ],
         );
 
         ok("@open class A { @static fun f() {} }
-            class B: A { @static fun f(a: Int32) {} }");
+            class B extends A { @static fun f(a: Int32) {} }");
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
         err(
             "@open class A { @open fun f() {} }
-             class B: A { @override fun f(): Int32 { return 1; } }",
-            pos(2, 37),
+             class B extends A { @override fun f(): Int32 { return 1; } }",
+            pos(2, 44),
             SemError::OverrideMismatch,
         );
     }
@@ -364,7 +364,7 @@ mod tests {
             @open fun test(x: Int32): Int32 { x * 2 }
         }
 
-        class Bar: Foo {
+        class Bar extends Foo {
             @override fun test(x: String): Int32 { 0 }
         }
     ",
@@ -410,7 +410,7 @@ mod tests {
 
         ok_with_test(
             "@open class A { @open fun f() {} }
-                      @open class B: A { @override fun f() {}
+                      @open class B extends A { @override fun f() {}
                                         @open fun g() {} }",
             |vm| {
                 let cls_id = vm.cls_by_name("A");
@@ -436,8 +436,8 @@ mod tests {
 
     // #[test]
     // fn test_depth_with_multiple_levels() {
-    //     ok_with_test("@open class A { } open class B: A { }
-    //                   class C: B { }",
+    //     ok_with_test("@open class A { } open class B extends A { }
+    //                   class C extends B { }",
     //                  |vm| {
     //         assert_eq!(vtable_by_name(vm, "A", |f| f.subtype_depth), 1);
     //         assert_eq!(vtable_by_name(vm, "B", |f| f.subtype_depth), 2);
@@ -560,7 +560,7 @@ mod tests {
     //         assert_eq!(vec![header, header + pw], cls.ref_fields);
     //     });
 
-    //     ok_with_test("class A(let x: Data, d: Data): B(d)
+    //     ok_with_test("class A(let x: Data, d: Data) extends B(d)
     //                   @open class B(let y: Data)
     //                   class Data(let data: int)",
     //                  |vm| {

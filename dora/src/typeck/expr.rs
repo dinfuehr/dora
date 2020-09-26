@@ -2096,7 +2096,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let mut valid = false;
 
         if object_type.subclass_from(self.vm, check_type) {
-            // open class A { } class B: A { }
+            // open class A { } class B extends A { }
             // (b is A) is valid
 
             valid = true;

@@ -3161,7 +3161,7 @@ mod tests {
 
     #[test]
     fn parse_class_with_parent_class() {
-        let (prog, interner) = parse("class Foo : Bar");
+        let (prog, interner) = parse("class Foo extends Bar");
         let class = prog.cls0();
 
         assert_eq!(
@@ -3290,7 +3290,7 @@ mod tests {
 
     #[test]
     fn parse_parent_class_params() {
-        let (prog, _) = parse("class A: B(1, 2)");
+        let (prog, _) = parse("class A extends B(1, 2)");
         let cls = prog.cls0();
 
         let parent_class = cls.parent_class.as_ref().unwrap();
@@ -3641,7 +3641,7 @@ mod tests {
 
     #[test]
     fn parse_generic_super_class() {
-        let (prog, _) = parse("class A: B[SomeType, SomeOtherType]");
+        let (prog, _) = parse("class A extends B[SomeType, SomeOtherType]");
         let cls = prog.cls0();
 
         let parent = cls.parent_class.as_ref().unwrap();
@@ -3650,7 +3650,7 @@ mod tests {
 
     #[test]
     fn parse_generic_super_class_with_nested_type_definition() {
-        let (prog, _) = parse("class A: B[SomeType[SomeOtherType[Int]]]");
+        let (prog, _) = parse("class A extends B[SomeType[SomeOtherType[Int]]]");
         let cls = prog.cls0();
 
         let parent = cls.parent_class.as_ref().unwrap();
