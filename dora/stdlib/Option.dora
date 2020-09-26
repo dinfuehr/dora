@@ -8,7 +8,7 @@
   @open @abstract fun unwrapOr(value: T): T;
 }
 
-class Some[T](let wrapped: T): Option[T] {
+class Some[T](let wrapped: T) extends Option[T] {
   @override fun isSome(): Bool = true;
   @override fun isNone(): Bool = false;
 
@@ -18,7 +18,7 @@ class Some[T](let wrapped: T): Option[T] {
   @override fun unwrapOr(value: T): T { self.wrapped }
 }
 
-class None[T]: Option[T] {
+class None[T] extends Option[T] {
   @override fun isSome(): Bool = false;
   @override fun isNone(): Bool = true;
 
