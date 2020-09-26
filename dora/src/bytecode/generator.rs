@@ -598,7 +598,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let buffer_register = self.ensure_register(dest, BytecodeType::Ptr);
 
         // build StringBuffer::empty() call
-        let fct_id = self.vm.vips.fct.string_buffer_empty;
+        let fct_id = self.vm.known.functions.string_buffer_empty;
         let fct_idx = self.gen.add_const_fct(fct_id);
         self.gen
             .emit_invoke_static(buffer_register, fct_idx, expr.pos);
@@ -612,7 +612,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             } else {
                 let ty = self.ty(part.id());
 
-                if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
+                if ty.cls_id(self.vm) == Some(self.vm.known.classes.string) {
                     self.visit_expr(part, DataDest::Reg(part_register));
                 } else if ty.is_type_param() {
                     let type_list_id = match ty {
@@ -625,7 +625,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                     // build toString() call
                     let name = self.vm.interner.intern("toString");
-                    let trait_id = self.vm.vips.stringable_trait;
+                    let trait_id = self.vm.known.traits.stringable;
                     let xtrait = self.vm.traits[trait_id].read();
                     let to_string_id = xtrait
                         .find_method(self.vm, name, false)
@@ -649,7 +649,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let cls = cls.read();
                     let name = self.vm.interner.intern("toString");
                     let to_string_id = cls
-                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
+                        .find_trait_method(self.vm, self.vm.known.traits.stringable, name, false)
                         .expect("toString() method not found");
 
                     let fct_idx = self.gen.add_const_fct(to_string_id);
@@ -661,7 +661,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             // build StringBuffer::append() call
-            let fct_id = self.vm.vips.fct.string_buffer_append;
+            let fct_id = self.vm.known.functions.string_buffer_append;
             let fct_idx = self.gen.add_const_fct(fct_id);
             self.gen.emit_push_register(buffer_register);
             self.gen.emit_push_register(part_register);
@@ -671,7 +671,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.free_temp(part_register);
 
         // build StringBuffer::toString() call
-        let fct_id = self.vm.vips.fct.string_buffer_to_string;
+        let fct_id = self.vm.known.functions.string_buffer_to_string;
         let fct_idx = self.gen.add_const_fct(fct_id);
         self.gen.emit_push_register(buffer_register);
         self.gen
@@ -1047,7 +1047,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         // We need array of elements
         let element_ty = arg_types.last().cloned().unwrap();
-        let ty = self.vm.vips.array_ty(self.vm, element_ty);
+        let ty = self.vm.known.array_ty(self.vm, element_ty);
         let cls_id = ty.cls_id(self.vm).expect("class expected");
         let type_params = ty.type_params(self.vm);
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
@@ -2088,7 +2088,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::ArrayGet | Intrinsic::StrGet => {
                 let ty = self.ty(lhs.id());
                 let ty: Option<BytecodeType> =
-                    if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
+                    if ty.cls_id(self.vm) == Some(self.vm.known.classes.string) {
                         Some(BytecodeType::UInt8)
                     } else {
                         let ty = ty.type_params(self.vm);

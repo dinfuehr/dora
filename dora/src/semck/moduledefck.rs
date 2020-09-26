@@ -120,7 +120,7 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
     }
 
     fn use_object_class_as_parent(&mut self) {
-        let object_cls = self.vm.vips.object_class;
+        let object_cls = self.vm.known.classes.object;
         let module_id = self.module_id.unwrap();
 
         let module = self.vm.modules.idx(module_id);

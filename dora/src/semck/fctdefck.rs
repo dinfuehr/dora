@@ -158,7 +158,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 // is this last argument of function with variadic arguments?
                 let ty = if fct.variadic_arguments && ind == ast.params.len() - 1 {
                     // type of variable is Array[T]
-                    vm.vips.array_ty(vm, ty)
+                    vm.known.array_ty(vm, ty)
                 } else {
                     ty
                 };

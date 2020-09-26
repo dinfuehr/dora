@@ -7,33 +7,10 @@ use crate::vm::{ClassDefId, ClassId, FctId, TraitId, VM};
 
 #[derive(Debug)]
 pub struct KnownElements {
-    pub unit_class: ClassId,
-    pub bool_class: ClassId,
-    pub uint8_class: ClassId,
-    pub char_class: ClassId,
-    pub int32_class: ClassId,
-    pub int64_class: ClassId,
-    pub float32_class: ClassId,
-    pub float64_class: ClassId,
-    pub object_class: ClassId,
-    pub string_class: ClassId,
-    pub string_module: ModuleId,
-    pub array_class: ClassId,
-    pub array_module: ModuleId,
-
-    pub cls: KnownClasses,
-    pub mods: KnownModules,
-    pub fct: KnownFunctions,
-
-    pub testing_class: ClassId,
-    pub stacktrace_class: ClassId,
-    pub stacktrace_element_class: ClassId,
-
-    pub equals_trait: TraitId,
-    pub comparable_trait: TraitId,
-    pub stringable_trait: TraitId,
-    pub iterator_trait: Mutex<Option<TraitId>>,
-    pub zero_trait: TraitId,
+    pub classes: KnownClasses,
+    pub modules: KnownModules,
+    pub traits: KnownTraits,
+    pub functions: KnownFunctions,
 
     pub byte_array_def: Mutex<Option<ClassDefId>>,
     pub int_array_def: Mutex<Option<ClassDefId>>,
@@ -48,12 +25,37 @@ pub struct KnownElements {
 
 #[derive(Debug)]
 pub struct KnownClasses {
+    pub unit: ClassId,
+    pub bool: ClassId,
+    pub uint8: ClassId,
+    pub char: ClassId,
+    pub int32: ClassId,
+    pub int64: ClassId,
+    pub float32: ClassId,
+    pub float64: ClassId,
+    pub object: ClassId,
+    pub array: ClassId,
+    pub string: ClassId,
     pub string_buffer: ClassId,
+    pub testing: ClassId,
+    pub stacktrace: ClassId,
+    pub stacktrace_element: ClassId,
 }
 
 #[derive(Debug)]
 pub struct KnownModules {
+    pub array: ModuleId,
+    pub string: ModuleId,
     pub string_buffer: ModuleId,
+}
+
+#[derive(Debug)]
+pub struct KnownTraits {
+    pub equals: TraitId,
+    pub comparable: TraitId,
+    pub stringable: TraitId,
+    pub iterator: TraitId,
+    pub zero: TraitId,
 }
 
 #[derive(Debug)]
@@ -64,14 +66,10 @@ pub struct KnownFunctions {
 }
 
 impl KnownElements {
-    pub fn iterator(&self) -> TraitId {
-        self.iterator_trait.lock().expect("iterator trait not set")
-    }
-
     pub fn array_ty(&self, vm: &VM, element: BuiltinType) -> BuiltinType {
         let list = TypeList::single(element);
         let list_id = vm.lists.lock().insert(list);
-        BuiltinType::Class(self.array_class, list_id)
+        BuiltinType::Class(self.classes.array, list_id)
     }
 
     pub fn byte_array(&self, vm: &VM) -> ClassDefId {
@@ -81,7 +79,7 @@ impl KnownElements {
             cls_id
         } else {
             let type_args = TypeList::single(BuiltinType::UInt8);
-            let cls_id = specialize_class_id_params(vm, self.array_class, &type_args);
+            let cls_id = specialize_class_id_params(vm, self.classes.array, &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
         }
@@ -94,7 +92,7 @@ impl KnownElements {
             cls_id
         } else {
             let type_args = TypeList::single(BuiltinType::Int32);
-            let cls_id = specialize_class_id_params(vm, self.array_class, &type_args);
+            let cls_id = specialize_class_id_params(vm, self.classes.array, &type_args);
             *int_array_def = Some(cls_id);
             cls_id
         }
@@ -106,7 +104,7 @@ impl KnownElements {
         if let Some(cls_id) = *str_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(vm, self.string_class);
+            let cls_id = specialize_class_id(vm, self.classes.string);
             *str_class_def = Some(cls_id);
             cls_id
         }
@@ -118,7 +116,7 @@ impl KnownElements {
         if let Some(cls_id) = *obj_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(vm, self.object_class);
+            let cls_id = specialize_class_id(vm, self.classes.object);
             *obj_class_def = Some(cls_id);
             cls_id
         }
@@ -130,7 +128,7 @@ impl KnownElements {
         if let Some(cls_id) = *ste_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(vm, self.stacktrace_element_class);
+            let cls_id = specialize_class_id(vm, self.classes.stacktrace_element);
             *ste_class_def = Some(cls_id);
             cls_id
         }
@@ -138,13 +136,13 @@ impl KnownElements {
 
     pub fn find_class(&self, ty: BuiltinType) -> Option<ClassId> {
         match ty {
-            BuiltinType::Bool => Some(self.bool_class),
-            BuiltinType::UInt8 => Some(self.uint8_class),
-            BuiltinType::Char => Some(self.char_class),
-            BuiltinType::Int32 => Some(self.int32_class),
-            BuiltinType::Int64 => Some(self.int64_class),
-            BuiltinType::Float32 => Some(self.float32_class),
-            BuiltinType::Float64 => Some(self.float64_class),
+            BuiltinType::Bool => Some(self.classes.bool),
+            BuiltinType::UInt8 => Some(self.classes.uint8),
+            BuiltinType::Char => Some(self.classes.char),
+            BuiltinType::Int32 => Some(self.classes.int32),
+            BuiltinType::Int64 => Some(self.classes.int64),
+            BuiltinType::Float32 => Some(self.classes.float32),
+            BuiltinType::Float64 => Some(self.classes.float64),
             _ => None,
         }
     }

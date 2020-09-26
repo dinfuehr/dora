@@ -173,7 +173,7 @@ fn run_tests<'ast>(vm: &VM<'ast>) -> i32 {
 }
 
 fn run_test<'ast>(vm: &VM<'ast>, fct: FctId) -> bool {
-    let testing_class = vm.vips.testing_class;
+    let testing_class = vm.known.classes.testing;
     let testing_class = specialize_class_id(vm, testing_class);
     let testing = object::alloc(vm, testing_class).cast();
     vm.run_test(fct, testing);
@@ -188,7 +188,7 @@ fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     }
 
     // parameter needs to be of type Testing
-    let testing_cls = vm.cls(vm.vips.testing_class);
+    let testing_cls = vm.cls(vm.known.classes.testing);
     if fct.param_types[0] != testing_cls {
         return false;
     }

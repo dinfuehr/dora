@@ -193,7 +193,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         if let Some(cls_id) = object_type.cls_id(self.vm) {
-            if cls_id == self.vm.vips.array_class {
+            if cls_id == self.vm.known.classes.array {
                 let type_list = object_type.type_params(self.vm);
                 let var_ty = type_list[0];
 
@@ -2155,7 +2155,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprLitStrType,
         _expected_ty: BuiltinType,
     ) -> BuiltinType {
-        let str_ty = self.vm.cls(self.vm.vips.string_class);
+        let str_ty = self.vm.cls(self.vm.known.classes.string);
         self.src.set_ty(e.id, str_ty);
 
         str_ty
@@ -2186,7 +2186,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprTemplateType,
         _expected_ty: BuiltinType,
     ) -> BuiltinType {
-        let stringable_trait = self.vm.vips.stringable_trait;
+        let stringable_trait = self.vm.known.traits.stringable;
 
         for (idx, part) in e.parts.iter().enumerate() {
             if idx % 2 != 0 {
@@ -2214,7 +2214,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
-        let str_ty = self.vm.cls(self.vm.vips.string_class);
+        let str_ty = self.vm.cls(self.vm.known.classes.string);
         self.src.set_ty(e.id, str_ty);
 
         str_ty
