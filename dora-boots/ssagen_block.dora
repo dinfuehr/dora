@@ -1,4 +1,4 @@
-class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVisitor {
+class BlockBuilder(let graph: Graph, let bc: BytecodeFunction) extends EmptyBytecodeVisitor {
     var offset: Int32 = 0;
     var currentBlock: Block;
     var blockTerminated: Bool = false;
@@ -102,7 +102,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
     }
 }
 
-class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks: HashMap[Int32, Block]): EmptyBytecodeVisitor {
+class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks: HashMap[Int32, Block]) extends EmptyBytecodeVisitor {
     var offset: Int32 = 0;
     var nextInstructionIsBlockStart: Bool = false;
 

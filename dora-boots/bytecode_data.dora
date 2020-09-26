@@ -53,27 +53,27 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
     @abstract fun toString(): String;
 }
 
-class ConstPoolInt32(let value: Int32): ConstPoolEntry {
+class ConstPoolInt32(let value: Int32) extends ConstPoolEntry {
     @override fun toString(): String { "Int32 ${self.value}" }
 }
 
-class ConstPoolInt64(let value: Int64): ConstPoolEntry {
+class ConstPoolInt64(let value: Int64) extends ConstPoolEntry {
     @override fun toString(): String { "Int64 ${self.value}" }
 }
 
-class ConstPoolFloat32(let value: Float32): ConstPoolEntry {
+class ConstPoolFloat32(let value: Float32) extends ConstPoolEntry {
     @override fun toString(): String { "Float32 ${self.value}" }
 }
 
-class ConstPoolFloat64(let value: Float64): ConstPoolEntry {
+class ConstPoolFloat64(let value: Float64) extends ConstPoolEntry {
     @override fun toString(): String { "Float64 ${self.value}" }
 }
 
-class ConstPoolString(let value: String): ConstPoolEntry {
+class ConstPoolString(let value: String) extends ConstPoolEntry {
     @override fun toString(): String { "String '${self.value}'" }
 }
 
-class ConstPoolChar(let value: Char): ConstPoolEntry {
+class ConstPoolChar(let value: Char) extends ConstPoolEntry {
     @override fun toString(): String { "Char '${self.value}' ${self.value.toInt32()}" }
 }
 
