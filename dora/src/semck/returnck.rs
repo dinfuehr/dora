@@ -132,9 +132,9 @@ mod tests {
     fn always_returns() {
         test_always_returns("fun f() {}", false);
         test_always_returns("fun f() { return; }", true);
-        test_always_returns("fun f() -> Int32 { return 1; }", true);
+        test_always_returns("fun f(): Int32 { return 1; }", true);
         test_always_returns(
-            "fun f() -> Int32 { if true { return 1; } else { return 2; } }",
+            "fun f(): Int32 { if true { return 1; } else { return 2; } }",
             true,
         );
     }
@@ -142,26 +142,26 @@ mod tests {
     #[test]
     fn returns_int() {
         err(
-            "fun f() -> Int32 { }",
-            pos(1, 18),
+            "fun f(): Int32 { }",
+            pos(1, 16),
             SemError::ReturnType("Int32".into(), "()".into()),
         );
         err(
-            "fun f() -> Int32 { if true { return 1; } }",
-            pos(1, 18),
+            "fun f(): Int32 { if true { return 1; } }",
+            pos(1, 16),
             SemError::ReturnType("Int32".into(), "()".into()),
         );
         err(
-            "fun f() -> Int32 { if true { } else { return 1; } }",
-            pos(1, 18),
+            "fun f(): Int32 { if true { } else { return 1; } }",
+            pos(1, 16),
             SemError::ReturnType("Int32".into(), "()".into()),
         );
         err(
-            "fun f() -> Int32 { while true { return 1; } }",
-            pos(1, 18),
+            "fun f(): Int32 { while true { return 1; } }",
+            pos(1, 16),
             SemError::ReturnType("Int32".into(), "()".into()),
         );
-        ok("fun f() -> Int32 { if true { return 1; } else { return 2; } }");
-        ok("fun f() -> Int32 { return 1; 1+2; }");
+        ok("fun f(): Int32 { if true { return 1; } else { return 2; } }");
+        ok("fun f(): Int32 { return 1; 1+2; }");
     }
 }

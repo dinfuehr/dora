@@ -130,13 +130,13 @@ mod tests {
     #[test]
     fn method_returning_self() {
         ok("trait Foo {
-                fun foo() -> Self;
+                fun foo(): Self;
             }
 
             class A
 
             impl Foo for A {
-                fun foo() -> A { return A(); }
+                fun foo(): A { return A(); }
             }");
     }
 
@@ -172,15 +172,15 @@ mod tests {
     fn method_return_type_check() {
         err(
             "trait X {
-                fun m() -> Bool;
-                fun n() -> Bool;
+                fun m(): Bool;
+                fun n(): Bool;
               }
               
               class CX
               
               impl X for CX {
-                fun m() -> Int32 = 0;
-                fun n() -> Bool = true;
+                fun m(): Int32 = 0;
+                fun n(): Bool = true;
               }",
             pos(9, 17),
             SemError::ReturnTypeMismatch("Int32".into(), "Bool".into()),

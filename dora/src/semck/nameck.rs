@@ -466,18 +466,18 @@ mod tests {
     #[test]
     fn variable_outside_of_scope() {
         err(
-            "fun f() -> Int32 { { let a = 1; } return a; }",
-            pos(1, 42),
+            "fun f(): Int32 { { let a = 1; } return a; }",
+            pos(1, 40),
             SemError::UnknownIdentifier("a".into()),
         );
 
-        ok("fun f() -> Int32 { let a = 1; { let a = 2; } return a; }");
+        ok("fun f(): Int32 { let a = 1; { let a = 2; } return a; }");
     }
 
     #[test]
     fn const_value() {
         ok("const one: Int32 = 1;
-            fun f() -> Int32 { return one; }");
+            fun f(): Int32 { return one; }");
     }
 
     #[test]

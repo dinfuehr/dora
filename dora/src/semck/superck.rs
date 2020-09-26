@@ -350,7 +350,7 @@ mod tests {
     fn test_override_with_wrong_return_type() {
         err(
             "@open class A { @open fun f() {} }
-             class B: A { @override fun f() -> Int32 { return 1; } }",
+             class B: A { @override fun f(): Int32 { return 1; } }",
             pos(2, 37),
             SemError::OverrideMismatch,
         );
@@ -361,11 +361,11 @@ mod tests {
         err(
             "
         @open @abstract class Foo {
-            @open fun test(x: Int32) -> Int32 { x * 2 }
+            @open fun test(x: Int32): Int32 { x * 2 }
         }
 
         class Bar: Foo {
-            @override fun test(x: String) -> Int32 { 0 }
+            @override fun test(x: String): Int32 { 0 }
         }
     ",
             pos(7, 23),
