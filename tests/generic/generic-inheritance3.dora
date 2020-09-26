@@ -9,8 +9,8 @@ fun main() {
 }
 
 @open @abstract class Foo[A](var value: A)
-@open class Bar[A]: Foo[Int32](10)
-class Baz[A]: Bar[A] {
+@open class Bar[A] extends Foo[Int32](10)
+class Baz[A] extends Bar[A] {
     fun test(): Int32 { self.value }
     fun assignMe() { self.value = 20; }
 }

@@ -4,7 +4,7 @@ fun main() { }
 
 @open class A { }
 
-class B: A {
+class B extends A {
   fun foo() {
     super.bar();
   }

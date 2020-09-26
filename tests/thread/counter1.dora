@@ -1,6 +1,6 @@
 //= stdout "done\n"
 
-class MyThread(var executed: Bool) : Thread {
+class MyThread(var executed: Bool) extends Thread {
     @override fun run() {
         f(self);
     }

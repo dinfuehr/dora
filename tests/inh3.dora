@@ -6,7 +6,7 @@ fun main() {
   assert(a.y.data == 20);
 }
 
-class A(let x: Data, d: Data): B(d)
+class A(let x: Data, d: Data) extends B(d)
 @open class B(let y: Data)
 
 class Data(let data: Int32)

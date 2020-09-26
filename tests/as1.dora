@@ -16,4 +16,4 @@ fun asa(b: B): A {
 }
 
 @open class A {}
-class B: A {}
+class B extends A {}

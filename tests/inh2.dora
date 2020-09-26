@@ -5,7 +5,7 @@ fun main() {
   assert(a.y == 20);
 }
 
-class A(x1: Int32): B(x1*2) {
+class A(x1: Int32) extends B(x1*2) {
   let x: Int32 = x1;
 }
 

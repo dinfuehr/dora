@@ -1,8 +1,8 @@
 //= stdout "ABC"
 
 @open class A { @open fun foo() { print("A"); } }
-class B: A { @override fun foo() { print("B"); } }
-class C: A { @override fun foo() { print("C"); } }
+class B extends A { @override fun foo() { print("B"); } }
+class C extends A { @override fun foo() { print("C"); } }
 
 fun main() {
   test(A());

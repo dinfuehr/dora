@@ -6,4 +6,4 @@ fun main() {
 }
 
 @open class Y(let a: Int32) {}
-class X(let b: Int32, a: Int32) : Y(a) {}
+class X(let b: Int32, a: Int32) extends Y(a) {}

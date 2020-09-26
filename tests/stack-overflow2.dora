@@ -5,7 +5,7 @@ fun main() {
     thread.start();
 }
 
-class MyThread : Thread {
+class MyThread extends Thread {
     @override fun run() {
         g();
     }

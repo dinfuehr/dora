@@ -4,5 +4,5 @@ fun main() {
   assert(a.y == 20);
 }
 
-class A(let x: Int32): B(x*2)
+class A(let x: Int32) extends B(x*2)
 @open class B(let y: Int32)

@@ -15,12 +15,12 @@ fun main() {
  }
 }
 
-@open class B : A {
+@open class B extends A {
  @override fun printSpecial(): Int32 {
    return 1;
  }
 }
 
-class C : B {
+class C extends B {
 
 }
