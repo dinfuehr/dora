@@ -48,7 +48,7 @@ fun construct(size: Int64): Array[Foo] {
     return objects;
 }
 
-class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let objects: Array[Foo]) : Thread {
+class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let objects: Array[Foo]) extends Thread {
   @override fun run() {
 	let size = self.objects.size();
 	let objects_per_thread = size / self.threads;

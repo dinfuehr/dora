@@ -10,7 +10,7 @@ fun main() {
     }
 }
 
-class MyThread() : Thread {
+class MyThread() extends Thread {
     @override fun run() {
         allocator();
     }
