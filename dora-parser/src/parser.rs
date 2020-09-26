@@ -442,7 +442,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_class_parent(&mut self) -> Result<Option<ParentClass>, ParseErrorAndPos> {
-        if self.token.is(TokenKind::Colon) {
+        if self.token.is(TokenKind::Colon) || self.token.is(TokenKind::Extends) {
             self.advance_token()?;
 
             let start = self.token.span.start();
