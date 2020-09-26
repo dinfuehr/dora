@@ -965,7 +965,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function_type(&mut self) -> Result<Option<Type>, ParseErrorAndPos> {
-        if self.token.is(TokenKind::Arrow) || self.token.is(TokenKind::Colon) {
+        if self.token.is(TokenKind::Colon) {
             self.advance_token()?;
             let ty = self.parse_type()?;
 
