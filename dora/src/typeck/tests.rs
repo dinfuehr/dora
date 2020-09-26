@@ -2210,12 +2210,6 @@ fn check_no_type_params_with_generic_type() {
 }
 
 #[test]
-#[ignore]
-fn enum_with_type_param() {
-    ok("enum MyOption[T: SomeTrait] { None, Some(T) }");
-}
-
-#[test]
 fn check_wrong_number_type_params() {
     err(
         "

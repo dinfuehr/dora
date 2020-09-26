@@ -1,8 +1,11 @@
+use std::collections::HashSet;
+
 use dora_parser::ast::visit::{walk_file, Visitor};
 use dora_parser::ast::{Ast, Enum, File, TypeParam};
 
 use crate::error::msg::SemError;
 use crate::semck;
+use crate::sym::TypeSym;
 use crate::ty::BuiltinType;
 use crate::vm::{EnumId, EnumVariant, NodeMap, VM};
 
@@ -12,6 +15,8 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<En
         ast,
         map_enum_defs,
         file_id: 0,
+
+        enum_id: None,
     };
 
     enumck.check();
@@ -22,6 +27,8 @@ struct EnumCheck<'x, 'ast: 'x> {
     ast: &'ast Ast,
     map_enum_defs: &'x NodeMap<EnumId>,
     file_id: u32,
+
+    enum_id: Option<EnumId>,
 }
 
 impl<'x, 'ast> EnumCheck<'x, 'ast> {
@@ -29,8 +36,58 @@ impl<'x, 'ast> EnumCheck<'x, 'ast> {
         self.visit_ast(self.ast);
     }
 
-    fn check_type_params(&mut self, _e: &'ast Enum, _type_params: &'ast [TypeParam]) {
-        unimplemented!();
+    fn check_type_params(&mut self, ast: &'ast Enum, type_params: &'ast [TypeParam]) {
+        let enum_id = self.enum_id.expect("missing enum_id");
+        let xenum = &self.vm.enums[enum_id];
+        let mut xenum = xenum.write();
+
+        if type_params.len() > 0 {
+            let mut names = HashSet::new();
+            let mut type_param_id = 0;
+            let mut params = Vec::new();
+
+            for type_param in type_params {
+                if !names.insert(type_param.name) {
+                    let name = self.vm.interner.str(type_param.name).to_string();
+                    let msg = SemError::TypeParamNameNotUnique(name);
+                    self.vm.diag.lock().report(xenum.file, type_param.pos, msg);
+                }
+
+                params.push(BuiltinType::TypeParam(type_param_id.into()));
+
+                for bound in &type_param.bounds {
+                    let ty = semck::read_type(self.vm, xenum.file, bound);
+
+                    match ty {
+                        Some(BuiltinType::TraitObject(trait_id)) => {
+                            if !xenum.type_params[type_param_id]
+                                .trait_bounds
+                                .insert(trait_id)
+                            {
+                                let msg = SemError::DuplicateTraitBound;
+                                self.vm.diag.lock().report(xenum.file, type_param.pos, msg);
+                            }
+                        }
+
+                        None => {
+                            // unknown type, error is already thrown
+                        }
+
+                        _ => {
+                            let msg = SemError::BoundExpected;
+                            self.vm.diag.lock().report(xenum.file, bound.pos(), msg);
+                        }
+                    }
+                }
+
+                let sym = TypeSym::SymTypeParam(type_param_id.into());
+                self.vm.sym.lock().insert_type(type_param.name, sym);
+                type_param_id += 1;
+            }
+        } else {
+            let msg = SemError::TypeParamsExpected;
+            self.vm.diag.lock().report(xenum.file, ast.pos, msg);
+        }
     }
 }
 
@@ -42,6 +99,7 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
 
     fn visit_enum(&mut self, e: &'ast Enum) {
         let enum_id = *self.map_enum_defs.get(e.id).unwrap();
+        self.enum_id = Some(enum_id);
 
         if let Some(ref type_params) = e.type_params {
             self.check_type_params(e, type_params);
@@ -87,6 +145,8 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
                 .lock()
                 .report(xenum.file, e.pos, SemError::NoEnumValue);
         }
+
+        self.enum_id = None;
     }
 }
 
@@ -197,5 +257,10 @@ mod tests {
         ok("
             enum Foo[T] { One(T), Two }
         ");
+    }
+
+    #[test]
+    fn enum_with_type_param() {
+        ok("trait SomeTrait {} enum MyOption[T: SomeTrait] { None, Some(T) }");
     }
 }

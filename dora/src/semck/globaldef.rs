@@ -371,7 +371,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
     fn visit_enum(&mut self, e: &'ast Enum) {
         let id: EnumId = self.vm.enums.len().into();
-        let xenum = EnumData {
+        let mut xenum = EnumData {
             id,
             file: self.file_id.into(),
             pos: e.pos,
@@ -382,6 +382,12 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             extensions: Vec::new(),
             specializations: RwLock::new(HashMap::new()),
         };
+
+        if let Some(ref type_params) = e.type_params {
+            for param in type_params {
+                xenum.type_params.push(TypeParam::new(param.name));
+            }
+        }
 
         self.vm.enums.push(RwLock::new(xenum));
         self.map_enum_defs.insert(e.id, id);
