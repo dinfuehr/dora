@@ -1,4 +1,4 @@
-class TestRetVoidVisitor: BytecodeVisitor {
+class TestRetVoidVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitRetVoid() {
@@ -17,7 +17,7 @@ class TestRetVoidVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestRetIntVisitor: BytecodeVisitor {
+class TestRetIntVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitRet(opnd: BytecodeRegister) {
@@ -38,7 +38,7 @@ class TestRetIntVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestRetWideVisitor: BytecodeVisitor {
+class TestRetWideVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitRet(opnd: BytecodeRegister) {
@@ -60,7 +60,7 @@ class TestRetWideVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestMovVisitor: BytecodeVisitor {
+class TestMovVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -83,7 +83,7 @@ class TestMovVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestMovWideVisitor: BytecodeVisitor {
+class TestMovWideVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -107,7 +107,7 @@ class TestMovWideVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestConstByteVisitor: BytecodeVisitor {
+class TestConstByteVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) {
@@ -130,7 +130,7 @@ class TestConstByteVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestConstByteWideVisitor: BytecodeVisitor {
+class TestConstByteWideVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) {
@@ -154,7 +154,7 @@ class TestConstByteWideVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestConstStringVisitor: BytecodeVisitor {
+class TestConstStringVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) {
@@ -177,7 +177,7 @@ class TestConstStringVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestSubFloat32Visitor: BytecodeVisitor {
+class TestSubFloat32Visitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -202,7 +202,7 @@ class TestSubFloat32Visitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestJumpBackVisitor: BytecodeVisitor {
+class TestJumpBackVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitJumpLoop(offset: Int32) {
@@ -224,7 +224,7 @@ class TestJumpBackVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestJumpBackWideVisitor: BytecodeVisitor {
+class TestJumpBackWideVisitor extends BytecodeVisitor {
     var found: Int32 = 0;
 
     @override fun visitJumpLoop(offset: Int32) {
@@ -258,7 +258,7 @@ class TestJumpBackWideVisitor: BytecodeVisitor {
     assert(visitor.found == 257);
 }
 
-class TestJumpVisitor: BytecodeVisitor {
+class TestJumpVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitJump(offset: Int32) {
@@ -281,7 +281,7 @@ class TestJumpVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestJumpFarVisitor: BytecodeVisitor {
+class TestJumpFarVisitor extends BytecodeVisitor {
     var found: Int32 = 0;
 
     @override fun visitJumpConst(idx: ConstPoolId) {
@@ -314,7 +314,7 @@ class TestJumpFarVisitor: BytecodeVisitor {
     assert(visitor.found == 257);
 }
 
-class TestCondJumpVisitor: BytecodeVisitor {
+class TestCondJumpVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
@@ -339,7 +339,7 @@ class TestCondJumpVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestCondJumpFarVisitor: BytecodeVisitor {
+class TestCondJumpFarVisitor extends BytecodeVisitor {
     var found: Int32 = 0;
 
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
@@ -375,7 +375,7 @@ class TestCondJumpFarVisitor: BytecodeVisitor {
     assert(visitor.found == 257);
 }
 
-class TestCondJumpWideVisitor: BytecodeVisitor {
+class TestCondJumpWideVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {

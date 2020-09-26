@@ -225,7 +225,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitRet(opnd: BytecodeRegister) { unimplemented(); }
 }
 
-@open @abstract class EmptyBytecodeVisitor: BytecodeVisitor {
+@open @abstract class EmptyBytecodeVisitor extends BytecodeVisitor {
     @override fun visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}

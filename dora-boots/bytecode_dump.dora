@@ -16,7 +16,7 @@ fun bytecodeDump(bc: BytecodeFunction) {
     }
 }
 
-class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
+class BytecodeDumper(let bc: BytecodeFunction) extends BytecodeVisitor {
     var pos: Int32 = 0;
 
     fun emitInst(name: String) {

@@ -10,7 +10,7 @@ fun createGraph(bc: BytecodeFunction): Graph {
     graph
 }
 
-class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: BlockBuilder): BytecodeVisitor {
+class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: BlockBuilder) extends BytecodeVisitor {
     var currentBlock: Block;
     var offset: Int32 = 0;
     var currentDef: Array[HashMap[Block, Inst]];

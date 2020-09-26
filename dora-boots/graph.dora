@@ -422,35 +422,35 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     @open @abstract fun dumpName(): String;
 }
 
-@abstract @open class Const: Inst
+@abstract @open class Const extends Inst
 
-class NullConst(let value: UInt8): Const {
+class NullConst(let value: UInt8) extends Const {
     @override fun dumpName(): String { "Null" }
 }
 
-class Int32Const(let value: Int32): Const {
+class Int32Const(let value: Int32) extends Const {
     @override fun dumpName(): String { "Int32(${self.value})" }
 }
 
-class Int64Const(let value: Int64): Const {
+class Int64Const(let value: Int64) extends Const {
     @override fun dumpName(): String { "Int64(${self.value})" }
 }
 
-class Float32Const(let value: Float32): Const {
+class Float32Const(let value: Float32) extends Const {
     @override fun dumpName(): String { "Float32(${self.value})" }
 }
 
-class Float64Const(let value: Float64): Const {
+class Float64Const(let value: Float64) extends Const {
     @override fun dumpName(): String { "Float64(${self.value})" }
 }
 
-class LoadGlobalInst(ty: Type, let global: GlobalId): Inst {
+class LoadGlobalInst(ty: Type, let global: GlobalId) extends Inst {
     self.ty = ty;
 
     @override fun dumpName(): String { "LoadGlobal.${self.ty}(${self.global.value})" }
 }
 
-class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst): Inst {
+class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst) extends Inst {
     self.addInput(value);
     self.ty = ty;
 
@@ -458,14 +458,14 @@ class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst): Inst {
 }
 
 
-class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst): Inst {
+class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst) extends Inst {
     self.addInput(opnd);
     self.ty = ty;
 
     @override fun dumpName(): String { "${unOpName(self.op)}.${self.ty}" }
 }
 
-class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst) extends Inst {
     self.addInput(lhs);
     self.addInput(rhs);
     self.ty = ty;
@@ -473,7 +473,7 @@ class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
     @override fun dumpName(): String { "${binOpName(self.op)}.${self.ty}" }
 }
 
-class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst) extends Inst {
     self.addInput(lhs);
     self.addInput(rhs);
     self.ty = ty;
@@ -481,29 +481,29 @@ class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
     @override fun dumpName(): String { "${self.op.name()}.${self.ty}" }
 }
 
-class UndefInst: Inst {
+class UndefInst extends Inst {
     @override fun dumpName(): String { "Undef" }
 }
 
-class PhiInst: Inst {
+class PhiInst extends Inst {
     @override fun dumpName(): String { "Phi" }
 }
 
-class BoundsCheck(let index: Inst, let length: Inst): Inst {
+class BoundsCheck(let index: Inst, let length: Inst) extends Inst {
     self.addInput(index);
     self.addInput(length);
 
     @override fun dumpName(): String { "BoundsCheck" }
 }
 
-class ArrayGet(let array: Inst, let index: Inst): Inst {
+class ArrayGet(let array: Inst, let index: Inst) extends Inst {
     self.addInput(array);
     self.addInput(index);
 
     @override fun dumpName(): String { "ArrayGet" }
 }
 
-class ArraySet(let array: Inst, let index: Inst, let value: Inst): Inst {
+class ArraySet(let array: Inst, let index: Inst, let value: Inst) extends Inst {
     self.addInput(array);
     self.addInput(index);
     self.addInput(value);
@@ -511,36 +511,36 @@ class ArraySet(let array: Inst, let index: Inst, let value: Inst): Inst {
     @override fun dumpName(): String { "ArraySet" }
 }
 
-class ArrayLength(let array: Inst): Inst {
+class ArrayLength(let array: Inst) extends Inst {
     self.addInput(array);
 
     @override fun dumpName(): String { "ArrayLength" }
 }
 
-class ArgInst(let index: Int32, ty: Type): Inst {
+class ArgInst(let index: Int32, ty: Type) extends Inst {
     self.ty = ty;
 
     @override fun dumpName(): String { "Arg.${self.ty}(${self.index})" }
 }
 
-class ReturnInst(let value: Inst, ty: Type): Inst {
+class ReturnInst(let value: Inst, ty: Type) extends Inst {
     self.ty = ty;
     self.addInput(value);
 
     @override fun dumpName(): String { "Ret.${self.ty}" }
 }
 
-class ReturnVoidInst: Inst {
+class ReturnVoidInst extends Inst {
     @override fun dumpName(): String { "Ret.Void" }
 }
 
-class IfInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {
+class IfInst(let cond: Inst, let true_block: Block, let false_block: Block) extends Inst {
     self.addInput(cond);
 
     @override fun dumpName(): String { "If(${self.true_block.id}, ${self.false_block.id})" }
 }
 
-class GotoInst(let block: Block): Inst {
+class GotoInst(let block: Block) extends Inst {
     @override fun dumpName(): String { "Goto(${self.block.id})" }
 }
 
