@@ -110,9 +110,9 @@ mod tests {
     fn enum_with_argument() {
         ok("
             enum Foo { A(Int32), B(Float32), C}
-            fun give_me_a() -> Foo { Foo::A(1) }
-            fun give_me_b() -> Foo { Foo::B(2.0F) }
-            fun give_me_c() -> Foo { Foo::C }
+            fun give_me_a(): Foo { Foo::A(1) }
+            fun give_me_b(): Foo { Foo::B(2.0F) }
+            fun give_me_c(): Foo { Foo::C }
 
         ");
     }
@@ -122,10 +122,10 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fun give_me_a() -> Foo { Foo::A(2.0F) }
+            fun give_me_a(): Foo { Foo::A(2.0F) }
 
         ",
-            pos(3, 44),
+            pos(3, 42),
             SemError::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -140,10 +140,10 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fun give_me_a() -> Foo { Foo::A }
+            fun give_me_a(): Foo { Foo::A }
 
         ",
-            pos(3, 41),
+            pos(3, 39),
             SemError::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -158,10 +158,10 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fun give_me_c() -> Foo { Foo::C(12.0F) }
+            fun give_me_c(): Foo { Foo::C(12.0F) }
 
         ",
-            pos(3, 44),
+            pos(3, 42),
             SemError::EnumArgsIncompatible(
                 "Foo".into(),
                 "C".into(),
@@ -176,9 +176,9 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fun give_me_c() -> Foo { Foo::C() }
+            fun give_me_c(): Foo { Foo::C() }
         ",
-            pos(3, 44),
+            pos(3, 42),
             SemError::EnumArgsNoParens("Foo".into(), "C".into()),
         );
     }
@@ -187,7 +187,7 @@ mod tests {
     fn enum_copy() {
         ok("
             enum Foo { A(Int32), B(Float32), C}
-            fun foo_test(y: Foo) -> Foo { let x: Foo = y; x }
+            fun foo_test(y: Foo): Foo { let x: Foo = y; x }
         ");
     }
 

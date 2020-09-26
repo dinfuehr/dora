@@ -3040,8 +3040,8 @@ mod tests {
     fn parse_method() {
         let (prog, interner) = parse(
             "class Foo {
-            fun zero() -> int { return 0; }
-            fun id(a: String) -> String { return a; }
+            fun zero(): int { return 0; }
+            fun id(a: String): String { return a; }
         }",
         );
 

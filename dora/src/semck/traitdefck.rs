@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn trait_method_with_body() {
         err(
-            "trait Foo { fun foo() -> Int32 { return 1; } }",
+            "trait Foo { fun foo(): Int32 { return 1; } }",
             pos(1, 13),
             SemError::TraitMethodWithBody,
         );
@@ -114,19 +114,19 @@ mod tests {
     #[test]
     fn trait_definitions() {
         ok("trait Foo {}");
-        ok("trait Foo { fun toBool() -> Bool; }");
+        ok("trait Foo { fun toBool(): Bool; }");
         ok("trait Foo {
-                fun toFloat32() -> Float32;
-                fun toFloat64() -> Float64;
+                fun toFloat32(): Float32;
+                fun toFloat64(): Float64;
             }");
 
         err(
-            "trait Bar { fun foo() -> Unknown; }",
-            pos(1, 26),
+            "trait Bar { fun foo(): Unknown; }",
+            pos(1, 24),
             SemError::UnknownType("Unknown".into()),
         );
         err(
-            "trait Foo { fun foo(); fun foo() -> Int32; }",
+            "trait Foo { fun foo(); fun foo(): Int32; }",
             pos(1, 24),
             SemError::MethodExists("foo".into(), pos(1, 13)),
         );
@@ -142,8 +142,8 @@ mod tests {
     fn trait_with_self() {
         err(
             "trait Foo {
-            fun foo() -> Int32;
-            fun foo() -> Self;
+            fun foo(): Int32;
+            fun foo(): Self;
         }",
             pos(3, 13),
             SemError::MethodExists("foo".into(), pos(2, 13)),

@@ -542,7 +542,7 @@ mod tests {
 
     #[test]
     fn test_module_with_fun() {
-        ok("module Foo { fun bar() -> Int32 = 0; }");
+        ok("module Foo { fun bar(): Int32 = 0; }");
     }
 
     #[test]

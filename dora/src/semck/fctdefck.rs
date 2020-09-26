@@ -343,8 +343,8 @@ mod tests {
     #[test]
     fn self_return_type() {
         err(
-            "fun foo() -> Self {}",
-            pos(1, 14),
+            "fun foo(): Self {}",
+            pos(1, 12),
             SemError::SelfTypeUnavailable,
         );
     }

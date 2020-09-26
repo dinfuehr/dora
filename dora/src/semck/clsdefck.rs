@@ -485,7 +485,7 @@ mod tests {
             SemError::UnknownField("a".into(), "Foo".into()),
         );
 
-        ok("class Foo(a: Int32) fun foo() -> Foo { return Foo(1); } ");
+        ok("class Foo(a: Int32) fun foo(): Foo { return Foo(1); } ");
     }
 
     #[test]

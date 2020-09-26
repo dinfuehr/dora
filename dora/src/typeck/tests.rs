@@ -4,22 +4,22 @@ use crate::vm::ConstValue;
 
 #[test]
 fn type_method_len() {
-    ok("fun f(a: String) -> Int64 { return a.size(); }");
-    ok("fun f(a: String) -> Int64 { return \"abc\".size(); }");
+    ok("fun f(a: String): Int64 { return a.size(); }");
+    ok("fun f(a: String): Int64 { return \"abc\".size(); }");
 }
 
 #[test]
 fn type_object_field() {
-    ok("class Foo(let a:Int32) fun f(x: Foo) -> Int32 { return x.a; }");
-    ok("class Foo(let a:String) fun f(x: Foo) -> String { return x.a; }");
+    ok("class Foo(let a:Int32) fun f(x: Foo): Int32 { return x.a; }");
+    ok("class Foo(let a:String) fun f(x: Foo): String { return x.a; }");
     err(
-        "class Foo(let a:Int32) fun f(x: Foo) -> Bool { return x.a; }",
-        pos(1, 48),
+        "class Foo(let a:Int32) fun f(x: Foo): Bool { return x.a; }",
+        pos(1, 46),
         SemError::ReturnType("Bool".into(), "Int32".into()),
     );
     err(
-        "class Foo(let a:Int32) fun f(x: Foo) -> Int32 { return x.b; }",
-        pos(1, 57),
+        "class Foo(let a:Int32) fun f(x: Foo): Int32 { return x.b; }",
+        pos(1, 55),
         SemError::UnknownField("b".into(), "Foo".into()),
     );
 }
@@ -37,8 +37,8 @@ fn type_object_set_field() {
 #[test]
 fn type_object_field_without_self() {
     err(
-        "class Foo(let a: Int32) { fun f() -> Int32 { return a; } }",
-        pos(1, 53),
+        "class Foo(let a: Int32) { fun f(): Int32 { return a; } }",
+        pos(1, 51),
         SemError::UnknownIdentifier("a".into()),
     );
     err(
@@ -52,19 +52,19 @@ fn type_object_field_without_self() {
 fn type_class_method_call() {
     ok("class Foo {
                 fun bar() {}
-                fun baz() -> Int32 { return 1; }
+                fun baz(): Int32 { return 1; }
             }
 
             fun f(x: Foo) { x.bar(); }
-            fun g(x: Foo) -> Int32 { return x.baz(); }");
+            fun g(x: Foo): Int32 { return x.baz(); }");
 
     err(
         "class Foo {
-                 fun bar() -> Int32 { return 0; }
+                 fun bar(): Int32 { return 0; }
              }
 
-             fun f(x: Foo) -> String { return x.bar(); }",
-        pos(5, 40),
+             fun f(x: Foo): String { return x.bar(); }",
+        pos(5, 38),
         SemError::ReturnType("String".into(), "Int32".into()),
     );
 }
@@ -73,8 +73,8 @@ fn type_class_method_call() {
 fn type_module_method_call() {
     ok("module Foo {
                 fun bar() {}
-                fun baz() -> Int32 { return 1; }
-                fun foo() -> Foo = Foo();
+                fun baz(): Int32 { return 1; }
+                fun foo(): Foo = Foo();
                 fun foz() {
                   let foo = Foo();
                   foo.x();
@@ -84,40 +84,40 @@ fn type_module_method_call() {
             }
 
             class Foo() {
-              fun x() -> Int32 = 1;
+              fun x(): Int32 = 1;
               let y: Int32 = 2;
               var z: Int32 = 3;
             }
 
             fun f2() { Foo::bar(); }
-            fun g() -> Int32 { return Foo::baz(); }");
+            fun g(): Int32 { return Foo::baz(); }");
 
     ok("module Foo {
-                fun bar[T : Equals + Hash](t: T) -> T = t;
+                fun bar[T : Equals + Hash](t: T): T = t;
             }
 
             fun foo() { Foo::bar[Int32](1); }");
 
     err(
         "module Foo {
-                 fun foo() -> Bar = Bar();
+                 fun foo(): Bar = Bar();
                }
                class Bar[T]",
-        pos(2, 31),
+        pos(2, 29),
         SemError::WrongNumberTypeParams(1, 0),
     );
 
     err(
         "module Foo {
-                 fun foo[T]() -> Bar = Bar[T]();
+                 fun foo[T](): Bar = Bar[T]();
                }
                class Bar[T]",
-        pos(2, 34),
+        pos(2, 32),
         SemError::WrongNumberTypeParams(1, 0),
     );
 
     ok("module Foo {
-                 fun foo[T]() -> Bar[T] = Bar[T]();
+                 fun foo[T](): Bar[T] = Bar[T]();
                }
                class Bar[T]
 
@@ -127,11 +127,11 @@ fn type_module_method_call() {
 
     err(
         "module Foo {
-                 fun bar() -> Int32 { return 0; }
+                 fun bar(): Int32 { return 0; }
              }
 
-             fun f() -> String { return Foo::bar(); }",
-        pos(5, 34),
+             fun f(): String { return Foo::bar(); }",
+        pos(5, 32),
         SemError::ReturnType("String".into(), "Int32".into()),
     );
 }
@@ -150,7 +150,7 @@ fn type_method_defined_twice() {
     err(
         "class Foo {
                  fun bar() {}
-                 fun bar() -> Int32 {}
+                 fun bar(): Int32 {}
              }",
         pos(3, 18),
         SemError::MethodExists("bar".into(), pos(2, 18)),
@@ -159,7 +159,7 @@ fn type_method_defined_twice() {
     err(
         "class Foo {
                  fun bar(a: Int32) {}
-                 fun bar(a: Int32) -> Int32 {}
+                 fun bar(a: Int32): Int32 {}
              }",
         pos(3, 18),
         SemError::MethodExists("bar".into(), pos(2, 18)),
@@ -177,7 +177,7 @@ fn type_method_defined_twice() {
 
 #[test]
 fn type_self() {
-    ok("class Foo { fun me() -> Foo { return self; } }");
+    ok("class Foo { fun me(): Foo { return self; } }");
     err(
         "class Foo fun me() { return self; }",
         pos(1, 29),
@@ -185,7 +185,7 @@ fn type_self() {
     );
 
     ok("class Foo(let a: Int32, let b: Int32) {
-            fun bar() -> Int32 { return self.a + self.b; }
+            fun bar(): Int32 { return self.a + self.b; }
         }");
 
     ok("class Foo(var a: Int32) {
@@ -193,8 +193,8 @@ fn type_self() {
         }");
 
     ok("class Foo {
-            fun zero() -> Int32 { return 0; }
-            fun other() -> Int32 { return self.zero(); }
+            fun zero(): Int32 { return 0; }
+            fun other(): Int32 { return self.zero(); }
         }");
 
     ok("class Foo {
@@ -224,21 +224,21 @@ fn type_unknown_method() {
 
 #[test]
 fn type_ctor() {
-    ok("class Foo fun f() -> Foo { return Foo(); }");
-    ok("class Foo(let a: Int32) fun f() -> Foo { return Foo(1); }");
+    ok("class Foo fun f(): Foo { return Foo(); }");
+    ok("class Foo(let a: Int32) fun f(): Foo { return Foo(1); }");
     err(
-        "class Foo fun f() -> Foo { return 1; }",
-        pos(1, 28),
+        "class Foo fun f(): Foo { return 1; }",
+        pos(1, 26),
         SemError::ReturnType("Foo".into(), "Int32".into()),
     );
 }
 
 #[test]
 fn type_def_for_return_type() {
-    ok("fun a() -> Int32 { return 1; }");
+    ok("fun a(): Int32 { return 1; }");
     err(
-        "fun a() -> unknown {}",
-        pos(1, 12),
+        "fun a(): unknown {}",
+        pos(1, 10),
         SemError::UnknownType("unknown".into()),
     );
 }
@@ -324,20 +324,20 @@ fn type_return_unit() {
 
 #[test]
 fn type_return() {
-    ok("fun f() -> Int32 { let a = 1; return a; }");
-    ok("fun f() -> Int32 { return 1; }");
+    ok("fun f(): Int32 { let a = 1; return a; }");
+    ok("fun f(): Int32 { return 1; }");
     err(
-        "fun f() -> Int32 { return; }",
-        pos(1, 20),
+        "fun f(): Int32 { return; }",
+        pos(1, 18),
         SemError::ReturnType("Int32".into(), "()".into()),
     );
 
-    ok("fun f() -> Int32 { return 0; }
-            fun g() -> Int32 { return f(); }");
+    ok("fun f(): Int32 { return 0; }
+            fun g(): Int32 { return f(); }");
     err(
         "fun f() { }
-             fun g() -> Int32 { return f(); }",
-        pos(2, 33),
+             fun g(): Int32 { return f(); }",
+        pos(2, 31),
         SemError::ReturnType("Int32".into(), "()".into()),
     );
 }
@@ -349,7 +349,7 @@ fn type_variable() {
 
 #[test]
 fn type_let() {
-    ok("fun f(value: (Int32, Int32)) -> Int32 { let (a, b) = value; a+b }");
+    ok("fun f(value: (Int32, Int32)): Int32 { let (a, b) = value; a+b }");
     err(
         "fun f() { let (a, b) = true; }",
         pos(1, 15),
@@ -379,7 +379,7 @@ fn type_let() {
         SemError::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 0),
     );
 
-    ok("fun f(value: (Int32, (Int32, Int32))) -> Int32 { let (a, (b, c)) = value; a+b+c }");
+    ok("fun f(value: (Int32, (Int32, Int32))): Int32 { let (a, (b, c)) = value; a+b+c }");
 }
 
 #[test]
@@ -461,9 +461,9 @@ fn type_bin_op() {
 
 #[test]
 fn type_function_return_type() {
-    ok("fun foo() -> Int32 { return 1; }\nfun f() { let i: Int32 = foo(); }");
+    ok("fun foo(): Int32 { return 1; }\nfun f() { let i: Int32 = foo(); }");
     err(
-        "fun foo() -> Int32 { return 1; }\nfun f() { let i: Bool = foo(); }",
+        "fun foo(): Int32 { return 1; }\nfun f() { let i: Bool = foo(); }",
         pos(2, 11),
         SemError::AssignType("i".into(), "Bool".into(), "Int32".into()),
     );
@@ -508,11 +508,11 @@ fn type_function_params() {
 
 #[test]
 fn type_return_nil() {
-    ok("fun foo() -> String { return nil; }");
-    ok("class Bar fun foo() -> Bar { return nil; }");
+    ok("fun foo(): String { return nil; }");
+    ok("class Bar fun foo(): Bar { return nil; }");
     err(
-        "fun foo() -> Int32 { return nil; }",
-        pos(1, 22),
+        "fun foo(): Int32 { return nil; }",
+        pos(1, 20),
         SemError::IncompatibleWithNil("Int32".into()),
     );
 }
@@ -580,10 +580,10 @@ fn type_nil_as_method_argument() {
 
 #[test]
 fn type_array() {
-    ok("fun f(a: Array[Int32]) -> Int32 { return a(1L); }");
+    ok("fun f(a: Array[Int32]): Int32 { return a(1L); }");
     err(
-        "fun f(a: Array[Int32]) -> String { return a(1L); }",
-        pos(1, 36),
+        "fun f(a: Array[Int32]): String { return a(1L); }",
+        pos(1, 34),
         SemError::ReturnType("String".into(), "Int32".into()),
     );
 }
@@ -591,8 +591,8 @@ fn type_array() {
 #[test]
 fn type_array_assign() {
     err(
-        "fun f(a: Array[Int32]) -> Int32 { return a(3L) = 4; }",
-        pos(1, 35),
+        "fun f(a: Array[Int32]): Int32 { return a(3L) = 4; }",
+        pos(1, 33),
         SemError::ReturnType("Int32".into(), "()".into()),
     );
     err(
@@ -610,7 +610,7 @@ fn type_array_assign() {
 fn type_array_field() {
     ok("
         class Foo(let x: Array[Int32])
-        fun f(a: Foo) -> Int32 { return a.x(1L); }
+        fun f(a: Foo): Int32 { return a.x(1L); }
     ");
 }
 
@@ -694,55 +694,55 @@ fn access_super_class_field() {
 fn same_names() {
     ok("class Foo { var Foo: Foo = Foo(); }");
     ok("class Foo fun foo() { let Foo: Int32 = 1; }");
-    ok("class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo() -> Foo = nil; }");
-    ok("class Foo { fun Foo() -> Foo { Foo::Foo(); return Foo(); } } module Foo { fun Foo() -> Foo = nil; }");
-    ok("class Foo { fun Far() -> Foo = Foo::bar(); } module Foo { fun bar() -> Foo = Foo(); }");
-    ok("module Foo { fun Foo() -> Foo = nil; } class Foo { var Foo: Foo = Foo(); }");
-    ok("module Foo { fun Foo() -> Foo = nil; } class Foo { fun Foo() -> Foo { Foo::Foo(); return Foo(); } }");
-    ok("module Foo { fun bar() -> Foo = Foo(); } class Foo { fun Far() -> Foo = Foo::bar(); }");
+    ok("class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo(): Foo = nil; }");
+    ok("class Foo { fun Foo(): Foo { Foo::Foo(); return Foo(); } } module Foo { fun Foo(): Foo = nil; }");
+    ok("class Foo { fun Far(): Foo = Foo::bar(); } module Foo { fun bar(): Foo = Foo(); }");
+    ok("module Foo { fun Foo(): Foo = nil; } class Foo { var Foo: Foo = Foo(); }");
+    ok("module Foo { fun Foo(): Foo = nil; } class Foo { fun Foo(): Foo { Foo::Foo(); return Foo(); } }");
+    ok("module Foo { fun bar(): Foo = Foo(); } class Foo { fun Far(): Foo = Foo::bar(); }");
 }
 
 #[test]
 fn check_is() {
     ok("@open class A class B: A
-            fun f(a: A) -> Bool { return a is B; }");
+            fun f(a: A): Bool { return a is B; }");
     ok("@open class A class B: A
-            fun f(b: B) -> Bool { return b is A; }");
+            fun f(b: B): Bool { return b is A; }");
     ok("class A
-            fun f(a: A) -> Bool { return a is A; }");
+            fun f(a: A): Bool { return a is A; }");
     err(
         "@open class A class B: A
-             fun f(a: A) -> Bool { return a is String; }",
-        pos(2, 45),
+             fun f(a: A): Bool { return a is String; }",
+        pos(2, 43),
         SemError::TypesIncompatible("A".into(), "String".into()),
     );
     err(
         "@open class A class B: A class C
-             fun f(a: A) -> Bool { return a is C; }",
-        pos(2, 45),
+             fun f(a: A): Bool { return a is C; }",
+        pos(2, 43),
         SemError::TypesIncompatible("A".into(), "C".into()),
     );
 
-    ok("@open class A() class B(): A() fun f() -> A { return B(); }");
+    ok("@open class A() class B(): A() fun f(): A { return B(); }");
     ok("@open class A() class B(): A() fun f() { let a: A = B(); }");
 }
 
 #[test]
 fn check_as() {
     ok("@open class A class B: A
-            fun f(a: A) -> B { return a as B; }");
+            fun f(a: A): B { return a as B; }");
     ok("class A
-            fun f(a: A) -> A { return a as A; }");
+            fun f(a: A): A { return a as A; }");
     err(
         "@open class A class B: A
-             fun f(a: A) -> String { return a as String; }",
-        pos(2, 47),
+             fun f(a: A): String { return a as String; }",
+        pos(2, 45),
         SemError::TypesIncompatible("A".into(), "String".into()),
     );
     err(
         "@open class A class B: A class C
-             fun f(a: A) -> C { return a as C; }",
-        pos(2, 42),
+             fun f(a: A): C { return a as C; }",
+        pos(2, 40),
         SemError::TypesIncompatible("A".into(), "C".into()),
     );
 }
@@ -750,7 +750,7 @@ fn check_as() {
 #[test]
 fn check_upcast() {
     ok("@open class A class B: A
-            fun f(b: B) -> A {
+            fun f(b: B): A {
                 let a: A = b;
                 return a;
                 //g(b);
@@ -782,8 +782,8 @@ fn super_delegation() {
 
 #[test]
 fn super_method_call() {
-    ok("@open class A { @open fun f() -> Int32 { return 1; } }
-            class B: A { @override fun f() -> Int32 { return super.f() + 1; } }");
+    ok("@open class A { @open fun f(): Int32 { return 1; } }
+            class B: A { @override fun f(): Int32 { return super.f() + 1; } }");
 }
 
 #[test]
@@ -798,7 +798,7 @@ fn super_as_normal_expression() {
 
 #[test]
 fn struct_lit() {
-    ok("struct Foo {} fun foo() -> Foo { return Foo; }");
+    ok("struct Foo {} fun foo(): Foo { return Foo; }");
     ok("struct Foo {} fun foo() { let x = Foo; }");
     ok("struct Foo {} fun foo() { let x: Foo = Foo; }");
     err(
@@ -807,132 +807,132 @@ fn struct_lit() {
         SemError::AssignType("x".into(), "Int32".into(), "Foo".into()),
     );
     err(
-        "struct Foo {} fun foo() -> Int32 { return Foo; }",
-        pos(1, 36),
+        "struct Foo {} fun foo(): Int32 { return Foo; }",
+        pos(1, 34),
         SemError::ReturnType("Int32".into(), "Foo".into()),
     );
 }
 
 #[test]
 fn lit_int64() {
-    ok("fun f() -> Int64 { return 1L; }");
-    ok("fun f() -> Int32 { return 1; }");
+    ok("fun f(): Int64 { return 1L; }");
+    ok("fun f(): Int32 { return 1; }");
 
     let ret = SemError::ReturnType("Int32".into(), "Int64".into());
-    err("fun f() -> Int32 { return 1L; }", pos(1, 20), ret);
+    err("fun f(): Int32 { return 1L; }", pos(1, 18), ret);
 
     let ret = SemError::ReturnType("Int64".into(), "Int32".into());
-    err("fun f() -> Int64 { return 1; }", pos(1, 20), ret);
+    err("fun f(): Int64 { return 1; }", pos(1, 18), ret);
 }
 
 #[test]
 fn overload_plus() {
-    ok("class A { fun plus(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() + A(); }");
+    ok("class A { fun plus(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() + A(); }");
 }
 
 #[test]
 fn overload_minus() {
-    ok("class A { fun minus(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() - A(); }");
+    ok("class A { fun minus(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() - A(); }");
 }
 
 #[test]
 fn overload_times() {
-    ok("class A { fun times(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() * A(); }");
+    ok("class A { fun times(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() * A(); }");
 }
 
 #[test]
 fn overload_div() {
-    ok("class A { fun div(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() / A(); }");
+    ok("class A { fun div(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() / A(); }");
 }
 
 #[test]
 fn overload_mod() {
-    ok("class A { fun mod(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() % A(); }");
+    ok("class A { fun mod(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() % A(); }");
 }
 
 #[test]
 fn overload_bitwise_or() {
-    ok("class A { fun bitwiseOr(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() | A(); }");
+    ok("class A { fun bitwiseOr(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() | A(); }");
 }
 
 #[test]
 fn overload_bitwise_and() {
-    ok("class A { fun bitwiseAnd(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() & A(); }");
+    ok("class A { fun bitwiseAnd(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() & A(); }");
 }
 
 #[test]
 fn overload_bitwise_xor() {
-    ok("class A { fun bitwiseXor(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() ^ A(); }");
+    ok("class A { fun bitwiseXor(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() ^ A(); }");
 }
 
 #[test]
 fn overload_shl() {
-    ok("class A { fun shiftLeft(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() << A(); }");
+    ok("class A { fun shiftLeft(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() << A(); }");
 }
 
 #[test]
 fn overload_sar() {
     ok(
-        "class A { fun shiftRightSigned(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() >> A(); }",
+        "class A { fun shiftRightSigned(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() >> A(); }",
     );
 }
 
 #[test]
 fn overload_shr() {
-    ok("class A { fun shiftRight(rhs: A) -> Int32 { return 0; } }
-            fun f() -> Int32 { return A() >>> A(); }");
+    ok("class A { fun shiftRight(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() >>> A(); }");
 }
 
 #[test]
 fn overload_equals() {
-    ok("class A { fun equals(rhs: A) -> Bool { return true; } }
-            fun f1() -> Bool { return A() == A(); }
-            fun f2() -> Bool { return A() != A(); }");
+    ok("class A { fun equals(rhs: A): Bool { return true; } }
+            fun f1(): Bool { return A() == A(); }
+            fun f2(): Bool { return A() != A(); }");
 }
 
 #[test]
 fn overload_compare_to() {
-    ok("class A { fun compareTo(rhs: A) -> Int32 { return 0; } }
-            fun f1() -> Bool { return A() < A(); }
-            fun f2() -> Bool { return A() <= A(); }
-            fun f3() -> Bool { return A() > A(); }
-            fun f4() -> Bool { return A() >= A(); }");
+    ok("class A { fun compareTo(rhs: A): Int32 { return 0; } }
+            fun f1(): Bool { return A() < A(); }
+            fun f2(): Bool { return A() <= A(); }
+            fun f3(): Bool { return A() > A(); }
+            fun f4(): Bool { return A() >= A(); }");
 }
 
 #[test]
 fn int64_operations() {
-    ok("fun f(a: Int64, b: Int64) -> Int64 { return a + b; }");
-    ok("fun f(a: Int64, b: Int64) -> Int64 { return a - b; }");
-    ok("fun f(a: Int64, b: Int64) -> Int64 { return a * b; }");
-    ok("fun f(a: Int64, b: Int64) -> Int64 { return a / b; }");
-    ok("fun f(a: Int64, b: Int64) -> Int64 { return a % b; }");
-    ok("fun f(a: Int64, b: Int64) -> Int64 { return a | b; }");
-    ok("fun f(a: Int64, b: Int64) -> Int64 { return a & b; }");
-    ok("fun f(a: Int64, b: Int64) -> Int64 { return a ^ b; }");
-    ok("fun f(a: Int64, b: Int32) -> Int64 { return a << b; }");
-    ok("fun f(a: Int64, b: Int32)  -> Int64 { return a >> b; }");
-    ok("fun f(a: Int64, b: Int32)  -> Int64 { return a >>> b; }");
-    ok("fun f(a: Int64, b: Int64) -> Bool { return a == b; }");
-    ok("fun f(a: Int64, b: Int64) -> Bool { return a != b; }");
-    ok("fun f(a: Int64, b: Int64) -> Bool { return a === b; }");
-    ok("fun f(a: Int64, b: Int64) -> Bool { return a !== b; }");
-    ok("fun f(a: Int64, b: Int64) -> Bool { return a < b; }");
-    ok("fun f(a: Int64, b: Int64) -> Bool { return a <= b; }");
-    ok("fun f(a: Int64, b: Int64) -> Bool { return a > b; }");
-    ok("fun f(a: Int64, b: Int64) -> Bool { return a >= b; }");
-    ok("fun f(a: Int64) -> Int64 { return !a; }");
-    ok("fun f(a: Int64) -> Int64 { return -a; }");
-    ok("fun f(a: Int64) -> Int64 { return +a; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a + b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a - b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a * b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a / b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a % b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a | b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a & b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a ^ b; }");
+    ok("fun f(a: Int64, b: Int32): Int64 { return a << b; }");
+    ok("fun f(a: Int64, b: Int32): Int64 { return a >> b; }");
+    ok("fun f(a: Int64, b: Int32): Int64 { return a >>> b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a == b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a != b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a === b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a !== b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a < b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a <= b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a > b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a >= b; }");
+    ok("fun f(a: Int64): Int64 { return !a; }");
+    ok("fun f(a: Int64): Int64 { return -a; }");
+    ok("fun f(a: Int64): Int64 { return +a; }");
 }
 
 #[test]
@@ -1005,16 +1005,16 @@ fn test_literal_float_overflow() {
 
 #[test]
 fn test_char() {
-    ok("fun foo() -> Char { return 'c'; }");
-    ok("fun foo(a: Char) -> Char { return a; }");
+    ok("fun foo(): Char { return 'c'; }");
+    ok("fun foo(a: Char): Char { return a; }");
     err(
-        "fun foo() -> Char { return false; }",
-        pos(1, 21),
+        "fun foo(): Char { return false; }",
+        pos(1, 19),
         SemError::ReturnType("Char".into(), "Bool".into()),
     );
     err(
-        "fun foo() -> Char { return 10; }",
-        pos(1, 21),
+        "fun foo(): Char { return 10; }",
+        pos(1, 19),
         SemError::ReturnType("Char".into(), "Int32".into()),
     );
 }
@@ -1093,8 +1093,8 @@ fn test_fct_with_type_params() {
 fn test_const_check() {
     err(
         "const one: Int32 = 1;
-            fun f() -> Int64 { return one; }",
-        pos(2, 32),
+            fun f(): Int64 { return one; }",
+        pos(2, 30),
         SemError::ReturnType("Int64".into(), "Int32".into()),
     );
 
@@ -1196,14 +1196,14 @@ fn test_generic_trait_bounds() {
             class X
             impl Foo for X {}
             class A[T: Foo]
-            fun f() -> A[X] { return nil; }");
+            fun f(): A[X] { return nil; }");
 
     err(
         "trait Foo {}
             class X
             class A[T: Foo]
-            fun f() -> A[X] { return nil; }",
-        pos(4, 24),
+            fun f(): A[X] { return nil; }",
+        pos(4, 22),
         SemError::TraitBoundNotSatisfied("X".into(), "Foo".into()),
     );
 
@@ -1253,15 +1253,15 @@ fn test_find_class_method_precedence() {
 fn test_invoke_abstract_class_ctor() {
     err(
         "@abstract class A
-            fun test() -> A { return A(); }",
-        pos(2, 39),
+            fun test(): A { return A(); }",
+        pos(2, 37),
         SemError::NewAbstractClass,
     );
 }
 
 #[test]
 fn test_global_get() {
-    ok("var x: Int32; fun foo() -> Int32 { return x; }");
+    ok("var x: Int32; fun foo(): Int32 { return x; }");
 }
 
 #[test]
@@ -1344,20 +1344,20 @@ fn test_for_supports_make_iterator() {
 
     err(
         "
-            class Foo() { fun makeIterator() -> Bool { return true; } }
+            class Foo() { fun makeIterator(): Bool { return true; } }
             fun f() { for i in Foo() {} }",
         pos(3, 35),
         SemError::TypeNotUsableInForIn("Foo".into()),
     );
 
     ok(
-        "class Foo { fun makeIterator() -> FooIter { return FooIter(); } }
+        "class Foo { fun makeIterator(): FooIter { return FooIter(); } }
             class FooIter
             impl Iterator for FooIter {
-                fun hasNext() -> Bool { return false; }
-                fun next() -> Int32 { return 0; }
+                fun hasNext(): Bool { return false; }
+                fun next(): Int32 { return 0; }
             }
-            fun f() -> Int32 { for i in Foo() { return i; } return 0; }",
+            fun f(): Int32 { for i in Foo() { return i; } return 0; }",
     );
 }
 
@@ -1541,7 +1541,7 @@ fn test_new_call_method_generic_error_multiple() {
 
 #[test]
 fn test_array_syntax_get() {
-    ok("fun f(t: Array[Int32]) -> Int32 { return t(0L); }");
+    ok("fun f(t: Array[Int32]): Int32 { return t(0L); }");
 }
 
 #[test]
@@ -1577,23 +1577,23 @@ fn test_array_syntax_set_wrong_index() {
 
 #[test]
 fn test_template() {
-    ok("fun f(x: Int32) -> String { return \"x = ${x}\"; }");
+    ok("fun f(x: Int32): String { return \"x = ${x}\"; }");
     err(
-        "class Foo fun f(x: Foo) -> String { return \"x = ${x}\"; }",
-        pos(1, 51),
+        "class Foo fun f(x: Foo): String { return \"x = ${x}\"; }",
+        pos(1, 49),
         SemError::ExpectedStringable("Foo".into()),
     );
-    ok("fun f[T: Stringable](x: T) -> String { return \"${x}\"; }");
+    ok("fun f[T: Stringable](x: T): String { return \"${x}\"; }");
 }
 
 #[test]
 fn test_trait_object_as_argument() {
-    ok("trait Foo { fun bar() -> Int32; }
-        fun f(x: Foo) -> Int32 { return x.bar(); }");
+    ok("trait Foo { fun bar(): Int32; }
+        fun f(x: Foo): Int32 { return x.bar(); }");
     err(
         "trait Foo { fun baz(); }
-        fun f(x: Foo) -> String { return x.baz(); }",
-        pos(2, 35),
+        fun f(x: Foo): String { return x.baz(); }",
+        pos(2, 33),
         SemError::ReturnType("String".into(), "()".into()),
     );
 }
@@ -1601,16 +1601,16 @@ fn test_trait_object_as_argument() {
 #[test]
 fn test_type_param_used_as_value() {
     err(
-        "fun f[T]() -> Int32 { return T; }",
-        pos(1, 30),
+        "fun f[T](): Int32 { return T; }",
+        pos(1, 28),
         SemError::TypeParamUsedAsIdentifier,
     );
 
     err(
         "class SomeClass[T] {
-            fun f() -> Int32 { return T; }
+            fun f(): Int32 { return T; }
         }",
-        pos(2, 39),
+        pos(2, 37),
         SemError::TypeParamUsedAsIdentifier,
     );
 }
@@ -1635,14 +1635,14 @@ fn test_assign_to_type_param() {
 #[test]
 fn test_type_param_with_name_but_no_call() {
     err(
-        "trait X { fun foo() -> Int32; }
+        "trait X { fun foo(): Int32; }
         fun f[T: X]() { T::foo; }",
         pos(2, 26),
         SemError::FctUsedAsIdentifier,
     );
 
     err(
-        "trait X { fun foo() -> Int32; }
+        "trait X { fun foo(): Int32; }
         class SomeClass[T: X] {
             fun f() { T::foo; }
         }",
@@ -1654,14 +1654,14 @@ fn test_type_param_with_name_but_no_call() {
 #[test]
 fn test_type_param_call() {
     err(
-        "trait X { fun foo() -> Int32; }
+        "trait X { fun foo(): Int32; }
         fun f[T: X]() { T(); }",
         pos(2, 25),
         SemError::TypeParamUsedAsCallee,
     );
 
     err(
-        "trait X { fun foo() -> Int32; }
+        "trait X { fun foo(): Int32; }
         class SomeClass[T: X] {
             fun f() { T(); }
         }",
@@ -1673,34 +1673,34 @@ fn test_type_param_call() {
 #[test]
 fn test_static_method_call_with_type_param() {
     err(
-        "trait X { @static fun bar() -> Int32; }
+        "trait X { @static fun bar(): Int32; }
         fun f[T: X]() { T::foo(); }",
         pos(2, 31),
         SemError::UnknownStaticMethodWithTypeParam,
     );
 
     err(
-        "trait X { @static fun foo() -> Int32; }
-        trait Y { @static fun foo() -> String; }
+        "trait X { @static fun foo(): Int32; }
+        trait Y { @static fun foo(): String; }
         fun f[T: X + Y]() { T::foo(); }",
         pos(3, 35),
         SemError::MultipleCandidatesForStaticMethodWithTypeParam,
     );
 
     err(
-        "trait X { @static fun foo() -> Int32; }
-        fun f[T: X]() -> Int32 { return T::foo(1); }",
-        pos(2, 47),
+        "trait X { @static fun foo(): Int32; }
+        fun f[T: X](): Int32 { return T::foo(1); }",
+        pos(2, 45),
         SemError::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
-    ok("trait X { @static fun foo() -> Int32; }
-        fun f[T: X]() -> Int32 { return T::foo(); }");
+    ok("trait X { @static fun foo(): Int32; }
+        fun f[T: X](): Int32 { return T::foo(); }");
 }
 
 #[test]
 fn test_type_param_with_let() {
-    ok("fun myid[T](val: T) -> T {
+    ok("fun myid[T](val: T): T {
         let tmp: T = val;
         return tmp;
     }");
@@ -1713,15 +1713,15 @@ fn test_fct_and_class_type_params() {
     }");
 
     ok("class A[X] {
-        fun t1[Y](x: X, y: Y) -> Y { return y; }
-        fun t2[Y](x: X, y: Y) -> X { return x; }
+        fun t1[Y](x: X, y: Y): Y { return y; }
+        fun t2[Y](x: X, y: Y): X { return x; }
     }
 
-    fun t1(a: A[Int32]) -> String {
+    fun t1(a: A[Int32]): String {
         return a.t1[String](1, \"bla\");
     }
 
-    fun t2(a: A[Int32]) -> Int32 {
+    fun t2(a: A[Int32]): Int32 {
         return a.t2[String](1, \"bla\");
     }
     ");
@@ -1741,15 +1741,15 @@ fn test_subtyping() {
 #[test]
 fn test_enum() {
     ok("enum A { V1, V2 }");
-    ok("enum A { V1, V2 } fun f(a: A) -> A { return a; }");
-    ok("enum A { V1, V2 } fun f() -> A { return A::V1; }");
+    ok("enum A { V1, V2 } fun f(a: A): A { return a; }");
+    ok("enum A { V1, V2 } fun f(): A { return A::V1; }");
 
-    ok("enum A { V1, V2 } fun f() -> Bool { return A::V1 == A::V2; }");
-    ok("enum A { V1, V2 } fun f() -> Bool { return A::V1 != A::V2; }");
+    ok("enum A { V1, V2 } fun f(): Bool { return A::V1 == A::V2; }");
+    ok("enum A { V1, V2 } fun f(): Bool { return A::V1 != A::V2; }");
 
     err(
-        "enum A { V1 } fun f() -> A { return A; }",
-        pos(1, 37),
+        "enum A { V1 } fun f(): A { return A; }",
+        pos(1, 35),
         SemError::EnumUsedAsIdentifier,
     );
 
@@ -1760,57 +1760,57 @@ fn test_enum() {
     );
 
     err(
-        "enum A { V1, V2 } fun f() -> A { return A::V3; }",
-        pos(1, 42),
+        "enum A { V1, V2 } fun f(): A { return A::V3; }",
+        pos(1, 40),
         SemError::UnknownEnumValue("V3".into()),
     );
 }
 
 #[test]
 fn test_block_value() {
-    ok("fun f() -> Int32 { 1 }");
+    ok("fun f(): Int32 { 1 }");
     ok("fun f() { let x = { 1 }; }");
-    ok("fun g() -> Int32 { return 1; } fun f() { let x: Int32 = { g() }; }");
-    ok("fun g() -> Int32 { return 1; } fun f() { let x: Int32 = { g(); 1 }; }");
+    ok("fun g(): Int32 { return 1; } fun f() { let x: Int32 = { g() }; }");
+    ok("fun g(): Int32 { return 1; } fun f() { let x: Int32 = { g(); 1 }; }");
 }
 
 #[test]
 fn test_if_expression() {
-    ok("fun f() -> Int32 { if true { 1 } else { 2 } }");
-    ok("fun f() -> Float32 { if true { 1.0F } else { 2.0F } }");
-    ok("fun f() -> Float64 { if true { 1.0 } else { 2.0 } }");
+    ok("fun f(): Int32 { if true { 1 } else { 2 } }");
+    ok("fun f(): Float32 { if true { 1.0F } else { 2.0F } }");
+    ok("fun f(): Float64 { if true { 1.0 } else { 2.0 } }");
 
-    ok("fun f() -> Int32 { 4 * if true { 1 } else { 2 } }");
+    ok("fun f(): Int32 { 4 * if true { 1 } else { 2 } }");
 }
 
 #[test]
 fn test_tuple() {
     ok("fun f(a: (Int32, Bool)) {}");
-    ok("fun f(a: (Int32, Bool)) -> (Int32, Bool) { return a; }");
-    ok("fun f(a: (Int32, Bool)) -> (Int32, Bool) {
+    ok("fun f(a: (Int32, Bool)): (Int32, Bool) { return a; }");
+    ok("fun f(a: (Int32, Bool)): (Int32, Bool) {
             let tmp = a;
             return tmp;
         }");
     err(
-        "fun f(a: (Int32, Bool)) -> (Int32) { return a; }",
-        pos(1, 38),
+        "fun f(a: (Int32, Bool)): (Int32) { return a; }",
+        pos(1, 36),
         SemError::ReturnType("(Int32)".into(), "(Int32, Bool)".into()),
     );
     err(
-        "fun f(a: (Int32, Bool)) -> (Int32, Float32) { return a; }",
-        pos(1, 47),
+        "fun f(a: (Int32, Bool)): (Int32, Float32) { return a; }",
+        pos(1, 45),
         SemError::ReturnType("(Int32, Float32)".into(), "(Int32, Bool)".into()),
     );
 }
 
 #[test]
 fn test_tuple_literal() {
-    ok("fun f() -> (Int32, Bool) {
+    ok("fun f(): (Int32, Bool) {
         return (1, false);
     }");
 
     err(
-        "fun f() -> (Int32) {
+        "fun f(): (Int32) {
         return (1);
     }",
         pos(2, 9),
@@ -1818,7 +1818,7 @@ fn test_tuple_literal() {
     );
 
     err(
-        "fun f() -> (Int32, Int32) {
+        "fun f(): (Int32, Int32) {
         return (1, false);
     }",
         pos(2, 9),
@@ -1839,20 +1839,20 @@ fn test_tuple_in_call() {
 #[test]
 fn test_tuple_element() {
     ok("
-        fun f(a: (Int32, Bool)) -> Int32 {
+        fun f(a: (Int32, Bool)): Int32 {
             return a.0;
         }
     ");
 
     ok("
-        fun f(a: (Int32, Bool)) -> Bool {
+        fun f(a: (Int32, Bool)): Bool {
             return a.1;
         }
     ");
 
     err(
         "
-        fun f(a: (Int32, Bool)) -> String {
+        fun f(a: (Int32, Bool)): String {
             return a.1;
         }
     ",
@@ -1889,7 +1889,7 @@ fn test_fields_with_generics() {
         @open @abstract class Foo[A](var a: A)
         @open class Bar[A]: Foo[Int32](10)
         class Baz[A]: Bar[A] {
-            fun test() -> Int32 { self.a }
+            fun test(): Int32 { self.a }
             fun assignMe() { self.a = 10; }
         }
     ");
@@ -1899,29 +1899,29 @@ fn test_fields_with_generics() {
 fn test_methods_with_generics() {
     ok("
         @open @abstract class Foo[A] {
-            @abstract fun test() -> A;
+            @abstract fun test(): A;
         }
 
         class Bar[A](let bar: A): Foo[A] {
-            @override fun test() -> A { self.bar }
+            @override fun test(): A { self.bar }
         }
 
         class Baz[A](let baz: A): Foo[Int32] {
-            @override fun test() -> Int32 { 0 }
+            @override fun test(): Int32 { 0 }
         }
     ");
 
     ok("
         @open @abstract class Foo[A] {
-            @open fun test(x: A) -> A { x }
+            @open fun test(x: A): A { x }
         }
 
         class Bar[A](let bar: A): Foo[A] {
-            @override fun test(x: A) -> A { self.bar }
+            @override fun test(x: A): A { self.bar }
         }
 
         class Baz[A](let baz: A): Foo[Int32] {
-            @override fun test(x: Int32) -> Int32 { x+x }
+            @override fun test(x: Int32): Int32 { x+x }
         }
     ");
 }
@@ -1932,7 +1932,7 @@ fn test_is_types() {
         "
         trait SomeTrait {}
         class Foo[A: SomeTrait] {}
-        fun test(f: Object) -> Bool {
+        fun test(f: Object): Bool {
             return f is Foo[Int32];
         }
     ",
@@ -1988,7 +1988,7 @@ fn test_type_make_iterator_not_implementing_iterator() {
     err(
         "
         class Foo {
-            fun makeIterator() -> Int32 { 0 }
+            fun makeIterator(): Int32 { 0 }
         }
         fun bar(x: Foo) {
             for i in x {
@@ -2006,7 +2006,7 @@ fn test_incompatible_branches() {
     err(
         "
         class Foo
-        fun bar() -> Int32 {
+        fun bar(): Int32 {
             if true { 1 } else { Foo(1) }
         }
     ",
@@ -2033,8 +2033,8 @@ fn zero_trait_err() {
 fn extension_method_call() {
     ok("
         class Foo(let value: Int32)
-        impl Foo { fun foo() -> Int32 { self.value } }
-        fun bar(x: Foo) -> Int32 { x.foo() }
+        impl Foo { fun foo(): Int32 { self.value } }
+        fun bar(x: Foo): Int32 { x.foo() }
     ");
 }
 
@@ -2072,11 +2072,11 @@ fn method_on_enum() {
 
 #[test]
 fn literal_without_suffix_byte() {
-    ok("fun f() -> UInt8 { 1 }");
+    ok("fun f(): UInt8 { 1 }");
     // ok("fun f(val: UInt8) {} fun g() { f(1); }");
     err(
-        "fun f() -> UInt8 { 256 }",
-        pos(1, 20),
+        "fun f(): UInt8 { 256 }",
+        pos(1, 18),
         SemError::NumberOverflow("UInt8".into()),
     );
     ok("fun f() { let x: UInt8 = 1; }");
@@ -2084,14 +2084,14 @@ fn literal_without_suffix_byte() {
 
 #[test]
 fn literal_without_suffix_long() {
-    ok("fun f() -> Int64 { 1 }");
+    ok("fun f(): Int64 { 1 }");
     ok("fun f() { let x: Int64 = 1; }");
 }
 
 #[test]
 fn variadic_parameter() {
     ok("
-        fun f(x: Int32...) -> Int64 {
+        fun f(x: Int32...): Int64 {
             x.size()
         }
         fun g() {
@@ -2146,7 +2146,7 @@ fn variadic_parameter() {
 
 #[test]
 fn for_with_array() {
-    ok("fun f(x: Array[Int32]) -> Int32 {
+    ok("fun f(x: Array[Int32]): Int32 {
         var result = 0;
         for i in x {
             result = result + i;
@@ -2154,7 +2154,7 @@ fn for_with_array() {
         result
     }");
 
-    ok("fun f(x: Array[Float32]) -> Float32 {
+    ok("fun f(x: Array[Float32]): Float32 {
         var result = 0.0F;
         for i in x {
             result = result + i;
@@ -2165,7 +2165,7 @@ fn for_with_array() {
 
 #[test]
 fn for_with_vec() {
-    ok("fun f(x: Vec[Int32]) -> Int32 {
+    ok("fun f(x: Vec[Int32]): Int32 {
         var result = 0;
         for i in x.makeIterator() {
             result = result + i;
@@ -2173,7 +2173,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fun f(x: Vec[Int32]) -> Int32 {
+    ok("fun f(x: Vec[Int32]): Int32 {
         var result = 0;
         for i in x {
             result = result + i;
@@ -2181,7 +2181,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fun f(x: Vec[Float32]) -> Float32 {
+    ok("fun f(x: Vec[Float32]): Float32 {
         var result = 0.0F;
         for i in x.makeReverseIterator() {
             result = result + i;
@@ -2189,7 +2189,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fun f(x: Vec[Float32]) -> Float32 {
+    ok("fun f(x: Vec[Float32]): Float32 {
         var result = 0.0F;
         for i in x {
             result = result + i;
@@ -2201,8 +2201,8 @@ fn for_with_vec() {
 #[test]
 fn check_no_type_params_with_generic_type() {
     err(
-        "class Bar[T] fun f() -> Bar { nil }",
-        pos(1, 25),
+        "class Bar[T] fun f(): Bar { nil }",
+        pos(1, 23),
         SemError::WrongNumberTypeParams(1, 0),
     );
 }
