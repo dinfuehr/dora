@@ -263,4 +263,25 @@ mod tests {
     fn enum_with_type_param() {
         ok("trait SomeTrait {} enum MyOption[T: SomeTrait] { None, Some(T) }");
     }
+
+    #[test]
+    fn enum_generic_with_failures() {
+        err(
+            "enum MyOption[] { A, B }",
+            pos(1, 1),
+            SemError::TypeParamsExpected,
+        );
+
+        err(
+            "enum MyOption[X, X] { A, B }",
+            pos(1, 18),
+            SemError::TypeParamNameNotUnique("X".into()),
+        );
+
+        err(
+            "enum MyOption[X: NonExistingTrait] { A, B }",
+            pos(1, 18),
+            SemError::UnknownType("NonExistingTrait".into()),
+        );
+    }
 }
