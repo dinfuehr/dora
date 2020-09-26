@@ -3,5 +3,5 @@ fun main() {
 }
 
 @open @abstract class Foo[A]
-class Bar: Foo[Int32]
+class Bar extends Foo[Int32]
 

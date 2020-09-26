@@ -1,6 +1,6 @@
-//= error at 6:34
+//= error at 6:41
 
 fun main() {}
 
 @open class X(let a: Int32)
-class Y(let b: Int32, a: Int32): X {}
+class Y(let b: Int32, a: Int32) extends X {}

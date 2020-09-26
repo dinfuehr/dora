@@ -11,7 +11,7 @@ fun main() {
   }
 }
 
-class B: A {
+class B extends A {
   @override fun foo(a: Int32): Int32 {
     return super.foo(a) + 1;
   }

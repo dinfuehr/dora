@@ -12,4 +12,4 @@ fun asb(a: A): B {
 }
 
 @open class A {}
-class B: A {}
+class B extends A {}

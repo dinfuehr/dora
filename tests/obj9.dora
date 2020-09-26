@@ -9,4 +9,4 @@ fun t(o: Object) {}
 
 class A
 @open class B
-class C: B
+class C extends B

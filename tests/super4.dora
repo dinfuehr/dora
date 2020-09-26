@@ -11,13 +11,13 @@ fun main() {
   }
 }
 
-@open class B: A {
+@open class B extends A {
   @open @override fun foo(a: Int32): Int32 {
     return super.foo(a) * 2;
   }
 }
 
-class C: B {
+class C extends B {
   @override fun foo(a: Int32): Int32 {
     return super.foo(a) + 1;
   }

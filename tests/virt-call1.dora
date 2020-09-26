@@ -2,7 +2,7 @@
     @open @abstract fun test(): Int32;
 }
 
-class Bar: Foo {
+class Bar extends Foo {
     @override fun test(): Int32 {
         17
     }

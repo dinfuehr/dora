@@ -1,6 +1,6 @@
 //= stdout "one\ntwo\n"
 
-class MyThread() : Thread {
+class MyThread() extends Thread {
     @override fun run() {
         sleep(2);
         println("two");

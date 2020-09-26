@@ -1,7 +1,7 @@
 //= stdout "done\ndone\n"
 //= vm-args "--gc-young-size=64M --max-heap-size=128M --gc-verify"
 
-class MyThread() : Thread {
+class MyThread() extends Thread {
     @override fun run() {
         allocator();
         println("done");

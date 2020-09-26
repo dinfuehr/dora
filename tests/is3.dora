@@ -14,12 +14,12 @@ fun isl7(a: L1): Bool {
 }
 
 @open class L1 {}
-@open class L2: L1 {}
-@open class L3: L2 {}
-@open class L4: L3 {}
-@open class L5: L4 {}
-@open class L6: L5 {}
-@open class L7: L6 {}
-@open class L8: L7 {}
-@open class L9: L8 {}
-class L10: L9 {}
+@open class L2 extends L1 {}
+@open class L3 extends L2 {}
+@open class L4 extends L3 {}
+@open class L5 extends L4 {}
+@open class L6 extends L5 {}
+@open class L7 extends L6 {}
+@open class L8 extends L7 {}
+@open class L9 extends L8 {}
+class L10 extends L9 {}
