@@ -1,0 +1,19 @@
+@abstract @open
+class Bar() {
+  @abstract
+  fun foo(): Int32;
+}
+
+annotation derive[T]
+
+annotation flurbs[S, T](x: Int, y: Double)
+
+class Boo() extends Bar {
+  @override
+  fun foo(): Int32 = 1;
+
+  @static @pub
+  fun goo(): Int32 = 1;
+}
+
+fun main() {}
