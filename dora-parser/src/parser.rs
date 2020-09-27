@@ -417,6 +417,7 @@ impl<'a> Parser<'a> {
             is_abstract,
             has_constructor: false,
             parent_class: None,
+            direct_trait_impls: Vec::new(),
             constructor: None,
             fields: Vec::new(),
             methods: Vec::new(),
@@ -430,6 +431,8 @@ impl<'a> Parser<'a> {
         let use_cannon = modifiers.contains(Modifier::Cannon);
 
         cls.parent_class = self.parse_class_parent()?;
+
+        cls.direct_trait_impls = self.parse_direct_trait_impls()?;
 
         self.parse_class_body(&mut cls)?;
         let span = self.span_from(start);
@@ -469,6 +472,19 @@ impl<'a> Parser<'a> {
         Ok(types)
     }
 
+    // Name is placeholder
+    fn parse_direct_trait_impls(&mut self) -> Result<Vec<Name>, ParseErrorAndPos> {
+        if self.token.is(TokenKind::Implements) {
+            self.advance_token()?;
+            let impls = self.parse_list_0(TokenKind::Comma, TokenKind::LBrace, false, |p| {
+                p.expect_identifier()
+            })?;
+            Ok(impls)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
     fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ParseErrorAndPos> {
         let internal = modifiers.contains(Modifier::Internal);
 
@@ -479,6 +495,7 @@ impl<'a> Parser<'a> {
             name: ident,
             pos: pos,
             parent_class: None,
+            direct_trait_impls: Vec::new(),
             internal: internal,
             has_constructor: false,
             constructor: None,
@@ -503,6 +520,8 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
+
+        module.direct_trait_impls = self.parse_direct_trait_impls()?;
 
         self.parse_module_body(&mut module)?;
         self.in_class_or_module = false;
@@ -904,6 +923,19 @@ impl<'a> Parser<'a> {
         &mut self,
         sep: TokenKind,
         stop: TokenKind,
+        parse: F,
+    ) -> Result<Vec<R>, ParseErrorAndPos>
+    where
+        F: FnMut(&mut Parser) -> Result<R, ParseErrorAndPos>,
+    {
+        self.parse_list_0(sep, stop, true, parse)
+    }
+
+    fn parse_list_0<F, R>(
+        &mut self,
+        sep: TokenKind,
+        stop: TokenKind,
+        consume_stop: bool,
         mut parse: F,
     ) -> Result<Vec<R>, ParseErrorAndPos>
     where
@@ -929,7 +961,9 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect_token(stop)?;
+        if consume_stop {
+            self.expect_token(stop)?;
+        }
 
         Ok(data)
     }
@@ -3183,6 +3217,62 @@ mod tests {
     }
 
     #[test]
+    fn parse_class_with_direct_trait_impl() {
+        let (prog, interner) = parse("class Foo implements Qux");
+        let class = prog.cls0();
+
+        assert_eq!(
+            true,
+            class.direct_trait_impls.contains(&interner.intern("Qux"))
+        );
+    }
+
+    #[test]
+    fn parse_class_with_parent_class_and_direct_trait_impl() {
+        let (prog, interner) = parse("class Foo extends Bar implements Qux");
+        let class = prog.cls0();
+
+        assert_eq!(
+            "Bar",
+            interner
+                .str(class.parent_class.as_ref().unwrap().name)
+                .to_string()
+        );
+
+        assert_eq!(
+            true,
+            class.direct_trait_impls.contains(&interner.intern("Qux"))
+        );
+    }
+
+    #[test]
+    fn parse_class_with_parent_class_and_direct_trait_impls() {
+        let (prog, interner) = parse("class Foo extends Bar implements Qux1, Qux2, Qux3 {}");
+        let class = prog.cls0();
+
+        assert_eq!(
+            "Bar",
+            interner
+                .str(class.parent_class.as_ref().unwrap().name)
+                .to_string()
+        );
+
+        assert_eq!(3, class.direct_trait_impls.len());
+        assert_eq!(
+            true,
+            class.direct_trait_impls.contains(&interner.intern("Qux1"))
+        );
+        assert_eq!(
+            true,
+            class.direct_trait_impls.contains(&interner.intern("Qux2"))
+        );
+        assert_eq!(
+            true,
+            class.direct_trait_impls.contains(&interner.intern("Qux3"))
+        );
+    }
+
+    #[test]
     fn parse_class_with_open() {
         let (prog, _) = parse("@open class Foo");
         let class = prog.cls0();
@@ -3665,6 +3755,30 @@ mod tests {
 
         let parent = cls.parent_class.as_ref().unwrap();
         assert_eq!(1, parent.type_params.len());
+    }
+
+    #[test]
+    fn parse_class_with_impls() {
+        let (prog, interner) = parse("class A implements Foo");
+        let cls = prog.cls0();
+
+        let impls = &cls.direct_trait_impls;
+
+        assert_eq!(1, impls.len());
+        assert_eq!("Foo", *interner.str(impls[0]));
+    }
+
+    #[test]
+    fn parse_class_with_generic_super_class_and_impls() {
+        let (prog, interner) =
+            parse("class A extends B[SomeType[SomeOtherType[Int]]] implements Foo, Bar");
+        let cls = prog.cls0();
+
+        let impls = &cls.direct_trait_impls;
+
+        assert_eq!(2, impls.len());
+        assert_eq!("Foo", *interner.str(impls[0]));
+        assert_eq!("Bar", *interner.str(impls[1]));
     }
 
     #[test]

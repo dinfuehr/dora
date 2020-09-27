@@ -484,6 +484,7 @@ pub struct Class {
     pub pos: Position,
     pub span: Span,
     pub parent_class: Option<ParentClass>,
+    pub direct_trait_impls: Vec<Name>,
     pub has_open: bool,
     pub is_abstract: bool,
     pub internal: bool,
@@ -502,6 +503,7 @@ pub struct Module {
     pub name: Name,
     pub pos: Position,
     pub parent_class: Option<ParentClass>,
+    pub direct_trait_impls: Vec<Name>,
     pub internal: bool,
     pub has_constructor: bool,
 
