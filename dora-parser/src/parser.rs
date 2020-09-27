@@ -93,7 +93,7 @@ impl<'a> Parser<'a> {
         &mut self,
         elements: &mut Vec<Elem>,
     ) -> Result<(), ParseErrorAndPos> {
-        let modifiers = self.parse_annotations()?;
+        let modifiers = self.parse_annotation_usages()?;
 
         match self.token.kind {
             TokenKind::Fun => {
@@ -146,6 +146,11 @@ impl<'a> Parser<'a> {
                 self.ban_modifiers(&modifiers)?;
                 let module = self.parse_module(&modifiers)?;
                 elements.push(ElemModule(module));
+            }
+
+            TokenKind::Annotation => {
+                let annotation = self.parse_annotation(&modifiers)?;
+                elements.push(ElemAnnotation(annotation));
             }
 
             TokenKind::Alias => {
@@ -267,7 +272,7 @@ impl<'a> Parser<'a> {
         let mut methods = Vec::new();
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_annotations()?;
+            let modifiers = self.parse_annotation_usages()?;
             let mods = &[Modifier::Static, Modifier::Internal, Modifier::Cannon];
             self.restrict_modifiers(&modifiers, mods)?;
 
@@ -339,7 +344,7 @@ impl<'a> Parser<'a> {
         let mut methods = Vec::new();
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_annotations()?;
+            let modifiers = self.parse_annotation_usages()?;
             let mods = &[Modifier::Static];
             self.restrict_modifiers(&modifiers, mods)?;
 
@@ -509,6 +514,66 @@ impl<'a> Parser<'a> {
         Ok(module)
     }
 
+    fn parse_annotation(&mut self, modifiers: &Modifiers) -> Result<Annotation, ParseErrorAndPos> {
+        let internal = modifiers.contains(Modifier::Internal);
+
+        let pos = self.expect_token(TokenKind::Annotation)?.position;
+        let ident = self.expect_identifier()?;
+        let internal = if internal {
+            Modifier::find(&self.interner.str(ident))
+        } else {
+            None
+        };
+        let type_params = self.parse_type_params()?;
+        let term_params = self.parse_annotation_params()?;
+        let annotation = Annotation {
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            // use method argument after signature has been adapted
+            annotation_usages: AnnotationUsages::new(),
+            internal: internal,
+            type_params: type_params,
+            term_params: term_params,
+        };
+
+        Ok(annotation)
+    }
+
+    fn parse_annotation_params(
+        &mut self,
+    ) -> Result<Option<Vec<AnnotationParam>>, ParseErrorAndPos> {
+        if !self.token.is(TokenKind::LParen) {
+            return Ok(None);
+        }
+
+        self.expect_token(TokenKind::LParen)?;
+
+        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+            p.parse_annotation_param()
+        })?;
+
+        Ok(Some(params))
+    }
+
+    fn parse_annotation_param(&mut self) -> Result<AnnotationParam, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.token.position;
+        let name = self.expect_identifier()?;
+
+        self.expect_token(TokenKind::Colon)?;
+        let data_type = self.parse_type()?;
+
+        let span = self.span_from(start);
+
+        Ok(AnnotationParam {
+            name,
+            pos,
+            span,
+            data_type,
+        })
+    }
+
     fn parse_alias(&mut self) -> Result<Alias, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Alias)?.position;
@@ -667,7 +732,7 @@ impl<'a> Parser<'a> {
         self.advance_token()?;
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_annotations()?;
+            let modifiers = self.parse_annotation_usages()?;
 
             match self.token.kind {
                 TokenKind::Fun => {
@@ -713,7 +778,7 @@ impl<'a> Parser<'a> {
         self.advance_token()?;
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_annotations()?;
+            let modifiers = self.parse_annotation_usages()?;
 
             match self.token.kind {
                 TokenKind::Fun => {
@@ -750,7 +815,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_annotations(&mut self) -> Result<Modifiers, ParseErrorAndPos> {
+    fn parse_annotation_usages(&mut self) -> Result<Modifiers, ParseErrorAndPos> {
         let mut modifiers = Modifiers::new();
         loop {
             if !self.token.is(TokenKind::At) {
