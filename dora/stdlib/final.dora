@@ -1,0 +1,2 @@
+/** A method marked as @final cannot be @overridden. **/
+annotation final
