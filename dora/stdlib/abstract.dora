@@ -1,0 +1,2 @@
+/** Marks classes that contain unimplemented functions. **/
+annotation abstract
