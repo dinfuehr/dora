@@ -101,7 +101,6 @@ impl<'a> Parser<'a> {
                     &modifiers,
                     &[
                         Modifier::Internal,
-                        Modifier::Optimize,
                         Modifier::OptimizeImmediately,
                         Modifier::Test,
                         Modifier::Cannon,
@@ -767,7 +766,6 @@ impl<'a> Parser<'a> {
                 "internal" => Modifier::Internal,
                 "pub" => Modifier::Pub,
                 "static" => Modifier::Static,
-                "optimize" => Modifier::Optimize,
                 "test" => Modifier::Test,
                 "cannon" => Modifier::Cannon,
                 "optimize_immediately" => Modifier::OptimizeImmediately,
@@ -871,7 +869,6 @@ impl<'a> Parser<'a> {
             has_open: modifiers.contains(Modifier::Open),
             has_override: modifiers.contains(Modifier::Override),
             has_final: modifiers.contains(Modifier::Final),
-            has_optimize: modifiers.contains(Modifier::Optimize),
             has_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
             is_pub: modifiers.contains(Modifier::Pub),
             is_static: modifiers.contains(Modifier::Static),
