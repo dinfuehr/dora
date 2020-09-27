@@ -90,6 +90,13 @@ impl Ast {
     }
 
     #[cfg(test)]
+    pub fn ann0(&self) -> &Annotation {
+        self.files.last().unwrap().elements[0]
+            .to_annotation()
+            .unwrap()
+    }
+
+    #[cfg(test)]
     pub fn global0(&self) -> &Global {
         self.files.last().unwrap().elements[0].to_global().unwrap()
     }
@@ -123,6 +130,7 @@ pub enum Elem {
     ElemTrait(Trait),
     ElemImpl(Impl),
     ElemModule(Module),
+    ElemAnnotation(Annotation),
     ElemGlobal(Global),
     ElemConst(Const),
     ElemEnum(Enum),
@@ -132,12 +140,13 @@ pub enum Elem {
 impl Elem {
     pub fn id(&self) -> NodeId {
         match self {
-            &ElemFunction(ref fct) => fct.id,
-            &ElemClass(ref class) => class.id,
+            &ElemFunction(ref f) => f.id,
+            &ElemClass(ref c) => c.id,
             &ElemStruct(ref s) => s.id,
             &ElemTrait(ref t) => t.id,
             &ElemImpl(ref i) => i.id,
             &ElemModule(ref m) => m.id,
+            &ElemAnnotation(ref a) => a.id,
             &ElemGlobal(ref g) => g.id,
             &ElemConst(ref c) => c.id,
             &ElemEnum(ref e) => e.id,
@@ -197,6 +206,13 @@ impl Elem {
     pub fn to_module(&self) -> Option<&Module> {
         match self {
             &ElemModule(ref module) => Some(module),
+            _ => None,
+        }
+    }
+
+    pub fn to_annotation(&self) -> Option<&Annotation> {
+        match self {
+            &ElemAnnotation(ref annotation) => Some(annotation),
             _ => None,
         }
     }
@@ -512,6 +528,18 @@ pub struct Module {
 }
 
 #[derive(Clone, Debug)]
+pub struct Annotation {
+    pub id: NodeId,
+    pub name: Name,
+    pub pos: Position,
+    pub annotation_usages: AnnotationUsages,
+    pub internal: Option<Modifier>,
+
+    pub type_params: Option<Vec<TypeParam>>,
+    pub term_params: Option<Vec<AnnotationParam>>,
+}
+
+#[derive(Clone, Debug)]
 pub struct TypeParam {
     pub name: Name,
     pub pos: Position,
@@ -528,6 +556,14 @@ pub struct ConstructorParam {
     pub field: bool,
     pub reassignable: bool,
     pub variadic: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct AnnotationParam {
+    pub name: Name,
+    pub pos: Position,
+    pub span: Span,
+    pub data_type: Type,
 }
 
 #[derive(Clone, Debug)]
@@ -602,9 +638,11 @@ impl Function {
     }
 }
 
+//remove in next step
 #[derive(Clone, Debug)]
 pub struct Modifiers(Vec<ModifierElement>);
 
+// remove in next step
 impl Modifiers {
     pub fn new() -> Modifiers {
         Modifiers(Vec::new())
@@ -627,6 +665,7 @@ impl Modifiers {
     }
 }
 
+// remove in next step
 #[derive(Clone, Debug)]
 pub struct ModifierElement {
     pub value: Modifier,
@@ -634,6 +673,37 @@ pub struct ModifierElement {
     pub span: Span,
 }
 
+#[derive(Clone, Debug)]
+pub struct AnnotationUsages(Vec<AnnotationUsage>);
+
+impl AnnotationUsages {
+    pub fn new() -> AnnotationUsages {
+        AnnotationUsages(Vec::new())
+    }
+
+    pub fn contains(&self, name: Name) -> bool {
+        self.0.iter().find(|el| el.name == name).is_some()
+    }
+
+    pub fn add(&mut self, annotation_usage: AnnotationUsage) {
+        self.0.push(annotation_usage);
+    }
+
+    pub fn iter(&self) -> Iter<AnnotationUsage> {
+        self.0.iter()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AnnotationUsage {
+    pub name: Name,
+    pub pos: Position,
+    pub span: Span,
+    pub type_args: Vec<Type>,
+    pub term_args: Vec<Box<Expr>>,
+}
+
+// rename to InternalAnnotation in next step
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Modifier {
     Abstract,
@@ -650,6 +720,23 @@ pub enum Modifier {
 }
 
 impl Modifier {
+    pub fn find(name: &str) -> Option<Modifier> {
+        match name {
+            "abstract" => Some(Modifier::Abstract),
+            "open" => Some(Modifier::Open),
+            "override" => Some(Modifier::Override),
+            "final" => Some(Modifier::Final),
+            "internal" => Some(Modifier::Internal),
+            "optimize" => Some(Modifier::Optimize),
+            "pub" => Some(Modifier::Pub),
+            "static" => Some(Modifier::Static),
+            "test" => Some(Modifier::Test),
+            "cannon" => Some(Modifier::Cannon),
+            "optimize_immediately" => Some(Modifier::OptimizeImmediately),
+            _ => None,
+        }
+    }
+
     pub fn name(&self) -> &'static str {
         match *self {
             Modifier::Abstract => "abstract",
@@ -662,7 +749,7 @@ impl Modifier {
             Modifier::Static => "static",
             Modifier::Test => "test",
             Modifier::Cannon => "cannon",
-            Modifier::OptimizeImmediately => "optimize_immediately",
+            Modifier::OptimizeImmediately => "optimize_imediately",
         }
     }
 }

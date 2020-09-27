@@ -37,6 +37,10 @@ pub trait Visitor<'v>: Sized {
         walk_struct(self, s);
     }
 
+    fn visit_annotation(&mut self, a: &'v Annotation) {
+        walk_annotation(self, a);
+    }
+
     fn visit_const(&mut self, c: &'v Const) {
         walk_const(self, c);
     }
@@ -101,6 +105,7 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
             ElemTrait(ref t) => v.visit_trait(t),
             ElemImpl(ref i) => v.visit_impl(i),
             ElemModule(ref m) => v.visit_module(m),
+            ElemAnnotation(ref a) => v.visit_annotation(a),
             ElemGlobal(ref g) => v.visit_global(g),
             ElemConst(ref c) => v.visit_const(c),
             ElemEnum(ref e) => v.visit_enum(e),
@@ -156,6 +161,8 @@ pub fn walk_module<'v, V: Visitor<'v>>(v: &mut V, m: &'v Module) {
         v.visit_method(m);
     }
 }
+
+pub fn walk_annotation<'v, V: Visitor<'v>>(_v: &mut V, _a: &'v Annotation) {}
 
 pub fn walk_const<'v, V: Visitor<'v>>(v: &mut V, c: &'v Const) {
     v.visit_type(&c.data_type);
