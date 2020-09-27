@@ -729,7 +729,7 @@ impl Modifier {
             "static" => Some(Modifier::Static),
             "test" => Some(Modifier::Test),
             "cannon" => Some(Modifier::Cannon),
-            "optimize_immediately" => Some(Modifier::OptimizeImmediately),
+            "optimizeImmediately" => Some(Modifier::OptimizeImmediately),
             _ => None,
         }
     }
@@ -745,7 +745,7 @@ impl Modifier {
             Modifier::Static => "static",
             Modifier::Test => "test",
             Modifier::Cannon => "cannon",
-            Modifier::OptimizeImmediately => "optimize_imediately",
+            Modifier::OptimizeImmediately => "optimizeImmediately",
         }
     }
 }

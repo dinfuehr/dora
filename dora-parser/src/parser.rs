@@ -768,7 +768,7 @@ impl<'a> Parser<'a> {
                 "static" => Modifier::Static,
                 "test" => Modifier::Test,
                 "cannon" => Modifier::Cannon,
-                "optimize_immediately" => Modifier::OptimizeImmediately,
+                "optimizeImmediately" => Modifier::OptimizeImmediately,
                 annotation => {
                     return Err(ParseErrorAndPos::new(
                         self.token.position,
