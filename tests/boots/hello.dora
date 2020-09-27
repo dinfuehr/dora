@@ -5,5 +5,5 @@ fun main() {
     // assert(g() == 17);
 }
 
-@optimize_immediately fun f() {}
-@optimize_immediately fun g(): Int32 { 17 }
+@optimizeImmediately fun f() {}
+@optimizeImmediately fun g(): Int32 { 17 }
