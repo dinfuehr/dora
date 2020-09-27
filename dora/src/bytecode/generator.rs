@@ -2475,7 +2475,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             &IdentType::Struct(_) => unimplemented!(),
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
 
-            &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => unreachable!(),
+            &IdentType::Enum(_) | &IdentType::EnumType(_, _) | &IdentType::EnumValue(_, _) => {
+                unreachable!()
+            }
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Module(_) => unreachable!(),

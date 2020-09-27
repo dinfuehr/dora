@@ -193,6 +193,10 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         let bound = self.vm.traits[trait_id].read();
         let name = if let Some(fct) = self.use_fct {
             ty.name_fct(self.vm, fct)
+        } else if let Some(enum_id) = self.use_enum_id {
+            let xenum = &self.vm.enums[enum_id];
+            let xenum = xenum.read();
+            ty.name_enum(self.vm, &*xenum)
         } else {
             let cls = self
                 .vm

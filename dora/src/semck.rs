@@ -3,7 +3,7 @@ use crate::mem;
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait, SymTypeParam};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
-use crate::vm::{ensure_tuple, ClassId, FileId, NodeMap, VM};
+use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{
     Expr, ExprBlockType, Stmt, Type, TypeBasicType, TypeLambdaType, TypeTupleType,
@@ -280,15 +280,7 @@ fn read_type_basic<'ast>(
             Some(BuiltinType::Struct(struct_id, list_id))
         }
 
-        SymEnum(enum_id) => {
-            if basic.params.len() > 0 {
-                let msg = SemError::NoTypeParamsExpected;
-                vm.diag.lock().report(file, basic.pos, msg);
-            }
-
-            let list_id = vm.lists.lock().insert(TypeList::empty());
-            Some(BuiltinType::Enum(enum_id, list_id))
-        }
+        SymEnum(enum_id) => read_type_enum(vm, file, basic, enum_id),
 
         SymTypeParam(type_param_id) => {
             if basic.params.len() > 0 {
@@ -299,6 +291,57 @@ fn read_type_basic<'ast>(
             Some(BuiltinType::TypeParam(type_param_id))
         }
     }
+}
+
+fn read_type_enum<'ast>(
+    vm: &VM<'ast>,
+    file: FileId,
+    basic: &'ast TypeBasicType,
+    enum_id: EnumId,
+) -> Option<BuiltinType> {
+    let mut type_params = Vec::new();
+
+    for param in &basic.params {
+        let param = read_type(vm, file, param);
+
+        if let Some(param) = param {
+            type_params.push(param);
+        } else {
+            return None;
+        }
+    }
+
+    let xenum = &vm.enums[enum_id];
+    let xenum = xenum.read();
+
+    if xenum.type_params.len() != type_params.len() {
+        let msg = SemError::WrongNumberTypeParams(xenum.type_params.len(), type_params.len());
+        vm.diag.lock().report(file, basic.pos, msg);
+        return None;
+    }
+
+    let mut failed = false;
+
+    for (tp, ty) in xenum.type_params.iter().zip(type_params.iter()) {
+        for &trait_bound in &tp.trait_bounds {
+            if !ty.implements_trait(vm, trait_bound) {
+                let bound = vm.traits[trait_bound].read();
+                let trait_name = vm.interner.str(bound.name).to_string();
+                let name = ty.name(vm);
+                let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+                vm.diag.lock().report(file, basic.pos, msg);
+                failed = true;
+            }
+        }
+    }
+
+    if failed {
+        return None;
+    }
+
+    let list = TypeList::with(type_params);
+    let list_id = vm.lists.lock().insert(list);
+    Some(BuiltinType::Enum(xenum.id, list_id))
 }
 
 fn read_type_class<'ast>(

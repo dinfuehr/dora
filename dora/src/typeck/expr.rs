@@ -557,6 +557,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::EnumValue(_, _) => unreachable!(),
+            &IdentType::EnumType(_, _) => unreachable!(),
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
@@ -672,7 +673,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return;
             }
 
-            &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => {
+            &IdentType::Enum(_) | &IdentType::EnumType(_, _) | &IdentType::EnumValue(_, _) => {
                 self.vm
                     .diag
                     .lock()
@@ -1157,8 +1158,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 BuiltinType::Error
             }
 
-            Some(IdentType::EnumValue(enum_id, variant_id)) => {
-                self.check_expr_call_enum(e, enum_id, variant_id, &arg_types)
+            Some(IdentType::EnumValue(enum_ty, variant_id)) => {
+                self.check_expr_call_enum(e, enum_ty, variant_id, &arg_types)
             }
 
             _ => {
@@ -1175,10 +1176,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_enum(
         &mut self,
         e: &'ast ExprCallType,
-        enum_id: EnumId,
+        enum_ty: BuiltinType,
         variant_id: u32,
         arg_types: &[BuiltinType],
     ) -> BuiltinType {
+        let enum_id = enum_ty.enum_id().expect("enum expected");
         let xenum = self.vm.enums[enum_id].read();
         let variant = &xenum.variants[variant_id as usize];
 
@@ -1729,8 +1731,25 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         BuiltinType::Error
     }
 
-    fn check_expr_path(&mut self, e: &'ast ExprPathType, _expected_ty: BuiltinType) -> BuiltinType {
-        let ident_type = self.src.map_idents.get(e.lhs.id());
+    fn check_expr_path(&mut self, e: &'ast ExprPathType, expected_ty: BuiltinType) -> BuiltinType {
+        let (ident_type, type_params) = if e.lhs.is_ident() {
+            (self.src.map_idents.get(e.lhs.id()).cloned(), None)
+        } else if let Some(tp) = e.lhs.to_type_param() {
+            if tp.callee.is_ident() {
+                let type_params: Vec<BuiltinType> =
+                    tp.args.iter().map(|p| self.src.ty(p.id())).collect();
+                let type_params: TypeList = TypeList::with(type_params);
+
+                (
+                    self.src.map_idents.get(tp.callee.id()).cloned(),
+                    Some(type_params),
+                )
+            } else {
+                (None, None)
+            }
+        } else {
+            (None, None)
+        };
 
         let name = if let Some(ident) = e.rhs.to_ident() {
             ident.name
@@ -1741,68 +1760,28 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         let ident_type = match ident_type {
-            Some(&IdentType::Class(cls_id)) => {
+            Some(IdentType::Class(cls_id)) if type_params.is_none() => {
                 let list = self.vm.lists.lock().insert(TypeList::empty());
                 let cls_ty = BuiltinType::Class(cls_id, list);
 
                 IdentType::StaticMethod(cls_ty, name)
             }
 
-            Some(&IdentType::Module(module_id))
-            | Some(&IdentType::ClassAndModule(_, module_id)) => {
+            Some(IdentType::Module(module_id)) | Some(IdentType::ClassAndModule(_, module_id))
+                if type_params.is_none() =>
+            {
                 let module_ty = BuiltinType::Module(module_id);
 
                 IdentType::Method(module_ty, name)
             }
 
-            Some(&IdentType::ClassType(cls_id, ref type_params)) => {
-                let list = self.vm.lists.lock().insert(type_params.clone());
-                let cls_ty = BuiltinType::Class(cls_id, list);
-
-                IdentType::StaticMethod(cls_ty, name)
+            Some(IdentType::TypeParam(ty)) if type_params.is_none() => {
+                IdentType::TypeParamStaticMethod(ty, name)
             }
 
-            Some(&IdentType::TypeParam(ty)) => IdentType::TypeParamStaticMethod(ty, name),
-
-            Some(&IdentType::Enum(id)) => {
-                let xenum = self.vm.enums[id].read();
-
-                if let Some(&value) = xenum.name_to_value.get(&name) {
-                    let variant = &xenum.variants[value as usize];
-
-                    if !self.used_in_call.contains(&e.id) && !variant.types.is_empty() {
-                        let enum_name = self.vm.interner.str(xenum.name).to_string();
-                        let variant_name = self.vm.interner.str(variant.name).to_string();
-                        let variant_types = variant
-                            .types
-                            .iter()
-                            .map(|a| a.name_fct(self.vm, self.fct))
-                            .collect::<Vec<_>>();
-                        let arg_types = Vec::new();
-                        let msg = SemError::EnumArgsIncompatible(
-                            enum_name,
-                            variant_name,
-                            variant_types,
-                            arg_types,
-                        );
-                        self.vm.diag.lock().report(self.file, e.pos, msg);
-                    }
-
-                    self.src
-                        .map_idents
-                        .insert(e.id, IdentType::EnumValue(id, value));
-                } else {
-                    let name = self.vm.interner.str(name).to_string();
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file, e.pos, SemError::UnknownEnumValue(name));
-                }
-
-                let list_id = self.vm.lists.lock().insert(TypeList::empty());
-                let ty = BuiltinType::Enum(id, list_id);
-                self.src.set_ty(e.id, ty);
-                return ty;
+            Some(IdentType::Enum(id)) => {
+                let type_params = type_params.unwrap_or_else(|| TypeList::empty());
+                return self.check_expr_path_enum(e, expected_ty, id, type_params, name);
             }
 
             _ => {
@@ -1825,6 +1804,56 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .report(self.file, e.pos, SemError::FctUsedAsIdentifier);
 
         BuiltinType::Error
+    }
+
+    fn check_expr_path_enum(
+        &mut self,
+        e: &'ast ExprPathType,
+        _expected_ty: BuiltinType,
+        id: EnumId,
+        type_params: TypeList,
+        name: Name,
+    ) -> BuiltinType {
+        let xenum = self.vm.enums[id].read();
+
+        let list_id = self.vm.lists.lock().insert(type_params);
+        let ty = BuiltinType::Enum(id, list_id);
+        typeparamck::check_enum(self.vm, ty, ErrorReporting::Yes(self.file, e.pos));
+
+        if let Some(&value) = xenum.name_to_value.get(&name) {
+            let variant = &xenum.variants[value as usize];
+
+            if !self.used_in_call.contains(&e.id) && !variant.types.is_empty() {
+                let enum_name = self.vm.interner.str(xenum.name).to_string();
+                let variant_name = self.vm.interner.str(variant.name).to_string();
+                let variant_types = variant
+                    .types
+                    .iter()
+                    .map(|a| a.name_fct(self.vm, self.fct))
+                    .collect::<Vec<_>>();
+                let arg_types = Vec::new();
+                let msg = SemError::EnumArgsIncompatible(
+                    enum_name,
+                    variant_name,
+                    variant_types,
+                    arg_types,
+                );
+                self.vm.diag.lock().report(self.file, e.pos, msg);
+            }
+
+            self.src
+                .map_idents
+                .insert(e.id, IdentType::EnumValue(ty, value));
+        } else {
+            let name = self.vm.interner.str(name).to_string();
+            self.vm
+                .diag
+                .lock()
+                .report(self.file, e.pos, SemError::UnknownEnumValue(name));
+        }
+
+        self.src.set_ty(e.id, ty);
+        ty
     }
 
     fn check_expr_type_param(
@@ -1865,6 +1894,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src
                     .map_idents
                     .insert(e.id, IdentType::StaticMethodType(cls_ty, name, type_params));
+            }
+
+            Some(IdentType::Enum(id)) => {
+                self.src
+                    .map_idents
+                    .insert(e.id, IdentType::EnumType(id, type_params));
             }
 
             _ => {

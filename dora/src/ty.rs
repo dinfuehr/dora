@@ -6,7 +6,7 @@ use crate::mem;
 use crate::semck;
 use crate::vm::module::ModuleId;
 use crate::vm::VM;
-use crate::vm::{Class, ClassId, EnumId, EnumLayout, Fct, StructId, TraitId, TupleId};
+use crate::vm::{Class, ClassId, EnumData, EnumId, EnumLayout, Fct, StructId, TraitId, TupleId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -266,6 +266,7 @@ impl BuiltinType {
             vm,
             use_fct: None,
             use_class: None,
+            use_enum: None,
         };
 
         writer.name(*self)
@@ -276,6 +277,7 @@ impl BuiltinType {
             vm,
             use_fct: Some(fct),
             use_class: None,
+            use_enum: None,
         };
 
         writer.name(*self)
@@ -286,6 +288,18 @@ impl BuiltinType {
             vm,
             use_fct: None,
             use_class: Some(cls),
+            use_enum: None,
+        };
+
+        writer.name(*self)
+    }
+
+    pub fn name_enum(&self, vm: &VM, xenum: &EnumData) -> String {
+        let writer = BuiltinTypePrinter {
+            vm,
+            use_fct: None,
+            use_class: None,
+            use_enum: Some(xenum),
         };
 
         writer.name(*self)
@@ -819,6 +833,7 @@ struct BuiltinTypePrinter<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
     use_fct: Option<&'a Fct<'ast>>,
     use_class: Option<&'a Class>,
+    use_enum: Option<&'a EnumData>,
 }
 
 impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
@@ -909,6 +924,8 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                     })
                 } else if let Some(cls) = self.use_class {
                     self.vm.interner.str(cls.type_param_ty(ty).name).to_string()
+                } else if let Some(xenum) = self.use_enum {
+                    self.vm.interner.str(xenum.type_param(idx).name).to_string()
                 } else {
                     format!("TypeParam({})", idx.to_usize())
                 }

@@ -284,4 +284,57 @@ mod tests {
             SemError::UnknownType("NonExistingTrait".into()),
         );
     }
+
+    #[test]
+    fn check_enum_type() {
+        err(
+            "
+                enum MyOption[X] { A, B }
+                fun foo(v: MyOption) {}
+            ",
+            pos(3, 28),
+            SemError::WrongNumberTypeParams(1, 0),
+        );
+    }
+
+    #[test]
+    fn check_enum_value() {
+        ok("
+            enum Foo { A(Int32), B }
+            fun foo(): Foo { Foo::A(1) }
+            fun bar(): Foo { Foo::B }
+        ");
+
+        err(
+            "
+            enum Foo { A(Int32), B }
+            fun foo(): Foo { Foo::A(true) }
+        ",
+            pos(3, 36),
+            SemError::EnumArgsIncompatible(
+                "Foo".into(),
+                "A".into(),
+                vec!["Int32".into()],
+                vec!["Bool".into()],
+            ),
+        );
+    }
+
+    #[test]
+    fn check_enum_value_generic() {
+        ok("
+            enum Foo[T] { A, B }
+            fun foo() { let tmp = Foo[String]::B; }
+        ");
+
+        err(
+            "
+            trait SomeTrait {}
+            enum Foo[T: SomeTrait] { A, B }
+            fun foo() { let tmp = Foo[String]::B; }
+        ",
+            pos(4, 46),
+            SemError::TraitBoundNotSatisfied("String".into(), "SomeTrait".into()),
+        );
+    }
 }

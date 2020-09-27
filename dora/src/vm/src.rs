@@ -192,8 +192,11 @@ pub enum IdentType {
     // name of enum
     Enum(EnumId),
 
+    // name of enum with type params
+    EnumType(EnumId, TypeList),
+
     // specific value in enum
-    EnumValue(EnumId, u32),
+    EnumValue(BuiltinType, u32),
 }
 
 impl IdentType {
