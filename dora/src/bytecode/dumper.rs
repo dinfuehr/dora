@@ -152,6 +152,26 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
         writeln!(self.w, " {}, {}, {}", r1, r2, r3).expect("write! failed");
     }
 
+    fn emit_reg3_idx(
+        &mut self,
+        name: &str,
+        r1: Register,
+        r2: Register,
+        r3: Register,
+        idx: ConstPoolIdx,
+    ) {
+        self.emit_start(name);
+        writeln!(
+            self.w,
+            " {}, {}, {}, ConstPoolIdx({})",
+            r1,
+            r2,
+            r3,
+            idx.to_usize()
+        )
+        .expect("write! failed");
+    }
+
     fn emit_reg2(&mut self, name: &str, r1: Register, r2: Register) {
         self.emit_start(name);
         writeln!(self.w, " {}, {}", r1, r2).expect("write! failed");
@@ -1002,6 +1022,15 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_load_array_generic(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArrayGeneric", dest, arr, idx);
     }
+    fn visit_load_array_enum(
+        &mut self,
+        dest: Register,
+        arr: Register,
+        idx: Register,
+        enum_idx: ConstPoolIdx,
+    ) {
+        self.emit_reg3_idx("LoadArrayEnum", dest, arr, idx, enum_idx);
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayBool", src, arr, idx);
@@ -1032,6 +1061,15 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     }
     fn visit_store_array_generic(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayGeneric", src, arr, idx);
+    }
+    fn visit_store_array_enum(
+        &mut self,
+        src: Register,
+        arr: Register,
+        idx: Register,
+        enum_idx: ConstPoolIdx,
+    ) {
+        self.emit_reg3_idx("StoreArrayEnum", src, arr, idx, enum_idx);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

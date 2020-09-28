@@ -1229,7 +1229,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
             BytecodeType::TypeParam(_) => self.gen.emit_load_array_generic(dest, arr, idx, pos),
-            BytecodeType::Enum(_, _) => unimplemented!(),
+            BytecodeType::Enum(enum_id, type_params) => {
+                let enum_idx = self.gen.add_const_enum(enum_id, type_params);
+                self.gen.emit_load_array_enum(dest, arr, idx, enum_idx, pos)
+            }
         }
     }
 
@@ -1948,7 +1951,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_store_array_tuple(src, arr, idx, pos),
             BytecodeType::TypeParam(_) => self.gen.emit_store_array_generic(src, arr, idx, pos),
-            BytecodeType::Enum(_, _) => unimplemented!(),
+            BytecodeType::Enum(enum_id, type_params) => {
+                let enum_idx = self.gen.add_const_enum(enum_id, type_params);
+                self.gen.emit_store_array_enum(src, arr, idx, enum_idx, pos)
+            }
         }
     }
 

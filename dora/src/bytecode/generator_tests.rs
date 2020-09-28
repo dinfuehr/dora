@@ -3211,6 +3211,27 @@ fn gen_enum_mov_generic() {
 }
 
 #[test]
+fn gen_enum_array() {
+    let result = code(
+        "enum MyEnum { A(Int32), B }
+        fun f(arr: Array[MyEnum], idx: Int64): MyEnum {
+            arr(idx)
+        }",
+    );
+    let expected = vec![LoadArrayEnum(r(2), r(0), r(1), ConstPoolIdx(0)), Ret(r(2))];
+    assert_eq!(expected, result);
+
+    let result = code(
+        "enum MyEnum { A(Int32), B }
+        fun f(arr: Array[MyEnum], idx: Int64, value: MyEnum) {
+            arr(idx) = value;
+        }",
+    );
+    let expected = vec![StoreArrayEnum(r(2), r(0), r(1), ConstPoolIdx(0)), RetVoid];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_string_length() {
     let result = code("fun f(x: String): Int64 { x.size() }");
     let expected = vec![ArrayLength(r(1), r(0)), Ret(r(1))];
@@ -3757,6 +3778,8 @@ pub enum Bytecode {
     LoadArrayFloat32(Register, Register, Register),
     LoadArrayFloat64(Register, Register, Register),
     LoadArrayPtr(Register, Register, Register),
+    LoadArrayGeneric(Register, Register, Register),
+    LoadArrayEnum(Register, Register, Register, ConstPoolIdx),
 
     StoreArrayBool(Register, Register, Register),
     StoreArrayUInt8(Register, Register, Register),
@@ -3766,6 +3789,8 @@ pub enum Bytecode {
     StoreArrayFloat32(Register, Register, Register),
     StoreArrayFloat64(Register, Register, Register),
     StoreArrayPtr(Register, Register, Register),
+    StoreArrayGeneric(Register, Register, Register),
+    StoreArrayEnum(Register, Register, Register, ConstPoolIdx),
 
     RetVoid,
     Ret(Register),
@@ -4432,6 +4457,18 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::LoadArrayPtr(dest, arr, idx));
     }
+    fn visit_load_array_generic(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayGeneric(dest, arr, idx));
+    }
+    fn visit_load_array_enum(
+        &mut self,
+        dest: Register,
+        arr: Register,
+        idx: Register,
+        enum_idx: ConstPoolIdx,
+    ) {
+        self.emit(Bytecode::LoadArrayEnum(dest, arr, idx, enum_idx));
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::StoreArrayBool(src, arr, idx));
@@ -4456,6 +4493,18 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::StoreArrayPtr(src, arr, idx));
+    }
+    fn visit_store_array_generic(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayGeneric(dest, arr, idx));
+    }
+    fn visit_store_array_enum(
+        &mut self,
+        dest: Register,
+        arr: Register,
+        idx: Register,
+        enum_idx: ConstPoolIdx,
+    ) {
+        self.emit(Bytecode::StoreArrayEnum(dest, arr, idx, enum_idx));
     }
 
     fn visit_ret_void(&mut self) {

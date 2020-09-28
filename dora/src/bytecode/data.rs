@@ -393,6 +393,7 @@ pub enum BytecodeOpcode {
     LoadArrayPtr,
     LoadArrayTuple,
     LoadArrayGeneric,
+    LoadArrayEnum,
 
     StoreArrayBool,
     StoreArrayUInt8,
@@ -404,6 +405,7 @@ pub enum BytecodeOpcode {
     StoreArrayPtr,
     StoreArrayTuple,
     StoreArrayGeneric,
+    StoreArrayEnum,
 
     RetVoid,
     Ret,
@@ -444,6 +446,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadArrayPtr
             | BytecodeOpcode::LoadArrayTuple
             | BytecodeOpcode::LoadArrayGeneric
+            | BytecodeOpcode::LoadArrayEnum
             | BytecodeOpcode::StoreArrayBool
             | BytecodeOpcode::StoreArrayUInt8
             | BytecodeOpcode::StoreArrayChar
@@ -454,6 +457,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArrayPtr
             | BytecodeOpcode::StoreArrayTuple
             | BytecodeOpcode::StoreArrayGeneric
+            | BytecodeOpcode::StoreArrayEnum
             | BytecodeOpcode::Assert => true,
             _ => false,
         }

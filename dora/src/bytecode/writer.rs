@@ -805,6 +805,15 @@ impl BytecodeWriter {
     pub fn emit_store_array_generic(&mut self, src: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArrayGeneric, src, array, index);
     }
+    pub fn emit_store_array_enum(
+        &mut self,
+        src: Register,
+        array: Register,
+        index: Register,
+        enum_idx: ConstPoolIdx,
+    ) {
+        self.emit_reg3_idx(BytecodeOpcode::StoreArrayEnum, src, array, index, enum_idx);
+    }
 
     pub fn emit_load_array_uint8(&mut self, dest: Register, array: Register, idx: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayUInt8, dest, array, idx);
@@ -835,6 +844,15 @@ impl BytecodeWriter {
     }
     pub fn emit_load_array_generic(&mut self, dest: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayGeneric, dest, array, index);
+    }
+    pub fn emit_load_array_enum(
+        &mut self,
+        dest: Register,
+        array: Register,
+        index: Register,
+        enum_idx: ConstPoolIdx,
+    ) {
+        self.emit_reg3_idx(BytecodeOpcode::LoadArrayEnum, dest, array, index, enum_idx);
     }
 
     pub fn generate(mut self) -> BytecodeFunction {
@@ -908,6 +926,23 @@ impl BytecodeWriter {
             r1.to_usize() as u32,
             r2.to_usize() as u32,
             r3.to_usize() as u32,
+        ];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_reg3_idx(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        r2: Register,
+        r3: Register,
+        idx: ConstPoolIdx,
+    ) {
+        let values = [
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            r3.to_usize() as u32,
+            idx.to_usize() as u32,
         ];
         self.emit_values(inst, &values);
     }
