@@ -1155,6 +1155,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::GenericStaticMethod(_, _, _) => {
                 self.emit_invoke_generic_static(return_type, return_reg, callee_idx, pos);
             }
+            CallType::Enum(_, _) => unimplemented!(),
             CallType::Intrinsic(_) => unreachable!(),
         }
     }
@@ -1201,6 +1202,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
             BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, src, tuple_id),
             BytecodeType::TypeParam(_) => self.gen.emit_mov_generic(dest, src),
+            BytecodeType::Enum(_) => unimplemented!(),
         }
     }
 
@@ -1223,6 +1225,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
             BytecodeType::TypeParam(_) => self.gen.emit_load_array_generic(dest, arr, idx, pos),
+            BytecodeType::Enum(_) => unimplemented!(),
         }
     }
 
@@ -1716,6 +1719,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         BytecodeType::Ptr => self.gen.emit_const_nil(dest),
                         BytecodeType::Tuple(_) => unimplemented!(),
                         BytecodeType::TypeParam(_) => self.gen.emit_const_generic_default(dest),
+                        BytecodeType::Enum(_) => unimplemented!(),
                     }
 
                     dest
@@ -1932,6 +1936,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_store_array_tuple(src, arr, idx, pos),
             BytecodeType::TypeParam(_) => self.gen.emit_store_array_generic(src, arr, idx, pos),
+            BytecodeType::Enum(_) => unimplemented!(),
         }
     }
 
@@ -2119,20 +2124,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 let ty = ty.unwrap();
                 let dest = dest.unwrap();
 
-                match ty {
-                    BytecodeType::UInt8 => self.gen.emit_load_array_uint8(dest, arr, idx, pos),
-                    BytecodeType::Bool => self.gen.emit_load_array_bool(dest, arr, idx, pos),
-                    BytecodeType::Char => self.gen.emit_load_array_char(dest, arr, idx, pos),
-                    BytecodeType::Int32 => self.gen.emit_load_array_int32(dest, arr, idx, pos),
-                    BytecodeType::Int64 => self.gen.emit_load_array_int64(dest, arr, idx, pos),
-                    BytecodeType::Float32 => self.gen.emit_load_array_float32(dest, arr, idx, pos),
-                    BytecodeType::Float64 => self.gen.emit_load_array_float64(dest, arr, idx, pos),
-                    BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
-                    BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
-                    BytecodeType::TypeParam(_) => {
-                        self.gen.emit_load_array_generic(dest, arr, idx, pos)
-                    }
-                }
+                self.emit_load_array(ty, dest, arr, idx, pos);
 
                 self.free_if_temp(arr);
                 self.free_if_temp(idx);
@@ -2661,6 +2653,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::GenericMethod(_, _, _) => TypeList::empty(),
             CallType::GenericStaticMethod(_, _, _) => TypeList::empty(),
 
+            CallType::Enum(_, _) => unimplemented!(),
             CallType::Intrinsic(_) => unreachable!(),
         }
     }
@@ -2721,6 +2714,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     ty
                 }
             }
+
+            CallType::Enum(_, _) => unimplemented!(),
             CallType::Intrinsic(_) => unreachable!(),
         };
 

@@ -471,7 +471,9 @@ where
         let ptr = ensure_native_stub(self.vm, None, internal_fct);
 
         self.masm.raw_call(ptr.to_ptr());
-        self.call_epilog(pos, ty, dest, gcpoint);
+
+        let mode = if ty.is_unit() { None } else { Some(ty.mode()) };
+        self.call_epilog(pos, mode, dest, gcpoint);
     }
 
     pub fn direct_call(
@@ -481,11 +483,11 @@ where
         type_params: TypeList,
         pos: Position,
         gcpoint: GcPoint,
-        ty: BuiltinType,
+        return_mode: Option<MachineMode>,
         dest: AnyReg,
     ) {
         self.masm.direct_call(fct_id, ptr, type_params);
-        self.call_epilog(pos, ty, dest, gcpoint);
+        self.call_epilog(pos, return_mode, dest, gcpoint);
     }
 
     pub fn indirect_call(
@@ -494,36 +496,40 @@ where
         self_index: u32,
         pos: Position,
         gcpoint: GcPoint,
-        return_type: BuiltinType,
+        return_mode: Option<MachineMode>,
         type_params: TypeList,
         dest: AnyReg,
     ) {
         self.masm
             .indirect_call(pos, vtable_index, self_index, type_params);
-        self.call_epilog(pos, return_type, dest, gcpoint);
+        self.call_epilog(pos, return_mode, dest, gcpoint);
     }
 
-    fn call_epilog(&mut self, pos: Position, ty: BuiltinType, dest: AnyReg, gcpoint: GcPoint) {
+    fn call_epilog(
+        &mut self,
+        pos: Position,
+        mode: Option<MachineMode>,
+        dest: AnyReg,
+        gcpoint: GcPoint,
+    ) {
         self.masm.emit_position(pos);
         self.masm.emit_gcpoint(gcpoint);
-        self.copy_result(ty, dest);
+        self.copy_result(mode, dest);
     }
 
-    fn copy_result(&mut self, ty: BuiltinType, dest: AnyReg) {
-        if ty.is_unit() {
-            return;
-        }
-
-        match dest {
-            AnyReg::Reg(dest) => {
-                if dest != REG_RESULT {
-                    self.masm.copy_reg(ty.mode(), dest, REG_RESULT);
+    fn copy_result(&mut self, mode: Option<MachineMode>, dest: AnyReg) {
+        if let Some(mode) = mode {
+            match dest {
+                AnyReg::Reg(dest) => {
+                    if dest != REG_RESULT {
+                        self.masm.copy_reg(mode, dest, REG_RESULT);
+                    }
                 }
-            }
 
-            AnyReg::FReg(dest) => {
-                if dest != FREG_RESULT {
-                    self.masm.copy_freg(ty.mode(), dest, FREG_RESULT);
+                AnyReg::FReg(dest) => {
+                    if dest != FREG_RESULT {
+                        self.masm.copy_freg(mode, dest, FREG_RESULT);
+                    }
                 }
             }
         }
@@ -798,7 +804,7 @@ where
             TypeList::empty(),
             pos,
             gcpoint,
-            BuiltinType::Unit,
+            None,
             REG_RESULT.into(),
         );
         self.masm.jump(lbl_return);

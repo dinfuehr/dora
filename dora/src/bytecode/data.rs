@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::mem::ptr_width;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeListId};
-use crate::vm::{get_vm, ClassId, FctId, FieldId, TupleId};
+use crate::vm::{get_vm, ClassId, EnumDefId, EnumLayout, FctId, FieldId, TupleId};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -29,6 +29,7 @@ pub enum BytecodeTypeKind {
     Float64,
     Ptr,
     Tuple,
+    Enum,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -43,6 +44,7 @@ pub enum BytecodeType {
     Ptr,
     Tuple(TupleId),
     TypeParam(u32),
+    Enum(EnumDefId),
 }
 
 impl BytecodeType {
@@ -61,6 +63,16 @@ impl BytecodeType {
                 vm.tuples.lock().get_tuple(tuple_id).size()
             }
             BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::Enum(enum_id) => {
+                let vm = get_vm();
+                let xenum = vm.enum_defs.idx(enum_id);
+                let xenum = xenum.read();
+
+                match xenum.layout {
+                    EnumLayout::Int => BytecodeType::Int32.size(),
+                    EnumLayout::Ptr | EnumLayout::Tagged => ptr_width(),
+                }
+            }
         }
     }
 
@@ -76,6 +88,7 @@ impl BytecodeType {
             BytecodeType::Ptr => BytecodeTypeKind::Ptr,
             BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
             BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::Enum(_) => BytecodeTypeKind::Enum,
         }
     }
 
@@ -91,6 +104,16 @@ impl BytecodeType {
             BytecodeType::Ptr => MachineMode::Ptr,
             BytecodeType::Tuple(_) => unreachable!(),
             BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::Enum(enum_id) => {
+                let vm = get_vm();
+                let xenum = vm.enum_defs.idx(*enum_id);
+                let xenum = xenum.read();
+
+                match xenum.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                }
+            }
         }
     }
 
@@ -138,23 +161,6 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
             BuiltinType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
-        }
-    }
-}
-
-impl From<BytecodeType> for BuiltinType {
-    fn from(ty: BytecodeType) -> BuiltinType {
-        match ty {
-            BytecodeType::Bool => BuiltinType::Bool,
-            BytecodeType::UInt8 => BuiltinType::UInt8,
-            BytecodeType::Char => BuiltinType::Char,
-            BytecodeType::Int32 => BuiltinType::Int32,
-            BytecodeType::Int64 => BuiltinType::Int64,
-            BytecodeType::Float32 => BuiltinType::Float32,
-            BytecodeType::Float64 => BuiltinType::Float64,
-            BytecodeType::Ptr => BuiltinType::Ptr,
-            BytecodeType::Tuple(tuple_id) => BuiltinType::Tuple(tuple_id),
-            BytecodeType::TypeParam(_) => unreachable!(),
         }
     }
 }

@@ -3206,6 +3206,20 @@ fn gen_enum_value() {
 }
 
 #[test]
+#[ignore]
+fn gen_enum_mov_generic() {
+    let result = code(
+        "enum MyEnum { A(Int32), B }
+        fun f(x: MyEnum): MyEnum {
+            let tmp = x;
+            tmp
+        }",
+    );
+    let expected = vec![ConstInt32(r(0), 0), Ret(r(0))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_string_length() {
     let result = code("fun f(x: String): Int64 { x.size() }");
     let expected = vec![ArrayLength(r(1), r(0)), Ret(r(1))];

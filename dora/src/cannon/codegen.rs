@@ -1463,6 +1463,7 @@ where
                     self.emit_const_float(dest, 0_f64);
                 }
                 BytecodeType::TypeParam(_) => unreachable!(),
+                BytecodeType::Enum(_enum_id) => unimplemented!(),
             }
         }
     }
@@ -2059,9 +2060,9 @@ where
         let gcpoint = self.create_gcpoint();
 
         let (reg, ty) = match bytecode_type {
-            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), BuiltinType::Unit),
-            Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
-            None => (REG_RESULT.into(), BuiltinType::Unit),
+            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
+            Some(bytecode_type) => (result_reg(bytecode_type), Some(bytecode_type.mode())),
+            None => (REG_RESULT.into(), None),
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
@@ -2144,10 +2145,10 @@ where
             let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
             let gcpoint = self.create_gcpoint();
 
-            let (reg, ty) = match bytecode_type {
-                Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), BuiltinType::Unit),
-                Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
-                None => (REG_RESULT.into(), BuiltinType::Unit),
+            let (reg, mode) = match bytecode_type {
+                Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
+                Some(bytecode_type) => (result_reg(bytecode_type), Some(bytecode_type.mode())),
+                None => (REG_RESULT.into(), None),
             };
 
             let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
@@ -2161,7 +2162,7 @@ where
                 type_params,
                 position,
                 gcpoint,
-                ty,
+                mode,
                 reg,
             );
 
@@ -2221,10 +2222,10 @@ where
             let gcpoint = self.create_gcpoint();
             let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
-            let (reg, ty) = match bytecode_type {
-                Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), BuiltinType::Unit),
-                Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
-                None => (REG_RESULT.into(), BuiltinType::Unit),
+            let (reg, mode) = match bytecode_type {
+                Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
+                Some(bytecode_type) => (result_reg(bytecode_type), Some(bytecode_type.mode())),
+                None => (REG_RESULT.into(), None),
             };
 
             let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
@@ -2238,7 +2239,7 @@ where
                 type_params,
                 position,
                 gcpoint,
-                ty,
+                mode,
                 reg,
             );
 

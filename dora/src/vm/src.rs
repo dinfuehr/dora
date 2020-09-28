@@ -282,6 +282,9 @@ pub enum CallType {
     // Invoke static trait method on type param, e.g. T::method()
     GenericStaticMethod(TypeListId, TraitId, FctId),
 
+    // Construct enum value
+    Enum(BuiltinType, usize),
+
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),
 }
@@ -334,6 +337,7 @@ impl CallType {
             CallType::GenericMethod(_, _, fctid) => Some(fctid),
             CallType::GenericStaticMethod(_, _, fctid) => Some(fctid),
             CallType::Intrinsic(_) => None,
+            CallType::Enum(_, _) => None,
         }
     }
 }
