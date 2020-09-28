@@ -1159,7 +1159,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             Some(IdentType::EnumValue(enum_ty, variant_id)) => {
-                self.check_expr_call_enum(e, enum_ty, variant_id, &arg_types)
+                self.check_expr_call_enum(e, enum_ty, variant_id, &arg_types);
+
+                enum_ty
             }
 
             _ => {
@@ -1179,18 +1181,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         enum_ty: BuiltinType,
         variant_id: u32,
         arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+    ) {
         let enum_id = enum_ty.enum_id().expect("enum expected");
         let xenum = self.vm.enums[enum_id].read();
         let variant = &xenum.variants[variant_id as usize];
 
-        if !self.check_expr_call_enum_args(variant, arg_types) {
+        if !self.check_expr_call_enum_args(enum_ty, variant, arg_types) {
             let enum_name = self.vm.interner.str(xenum.name).to_string();
             let variant_name = self.vm.interner.str(variant.name).to_string();
             let variant_types = variant
                 .types
                 .iter()
-                .map(|a| a.name_fct(self.vm, self.fct))
+                .map(|a| a.name_enum(self.vm, &*xenum))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
@@ -1206,14 +1208,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        let list_id = self.vm.lists.lock().insert(TypeList::empty());
-        let ty = BuiltinType::Enum(enum_id, list_id);
-        self.src.set_ty(e.id, ty);
-        return ty;
+        self.src.set_ty(e.id, enum_ty);
     }
 
     fn check_expr_call_enum_args(
         &mut self,
+        enum_ty: BuiltinType,
         variant: &vm::EnumVariant,
         arg_types: &[BuiltinType],
     ) -> bool {
@@ -1221,7 +1221,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return false;
         }
 
-        for (def_ty, &arg_ty) in variant.types.iter().zip(arg_types) {
+        let type_params = enum_ty.type_params(self.vm);
+
+        for (&def_ty, &arg_ty) in variant.types.iter().zip(arg_types) {
+            let def_ty = replace_type_param(self.vm, def_ty, &type_params, None);
+
             if !def_ty.allows(self.vm, arg_ty) {
                 return false;
             }

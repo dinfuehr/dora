@@ -252,7 +252,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn enum_generic() {
         ok("
             enum Foo[T] { One(T), Two }
@@ -335,6 +334,45 @@ mod tests {
         ",
             pos(4, 46),
             SemError::TraitBoundNotSatisfied("String".into(), "SomeTrait".into()),
+        );
+    }
+
+    #[test]
+    fn enum_with_generic_argument() {
+        ok("
+            enum Foo[T] { A(T), B }
+            fun foo() { let tmp = Foo[Int32]::A(0); }
+        ");
+
+        err(
+            "
+            enum Foo[T] { A(T), B }
+            fun foo() { let tmp = Foo[Int32]::A(true); }
+        ",
+            pos(3, 48),
+            SemError::EnumArgsIncompatible(
+                "Foo".into(),
+                "A".into(),
+                vec!["T".into()],
+                vec!["Bool".into()],
+            ),
+        );
+    }
+
+    #[test]
+    fn enum_move_generic() {
+        ok("
+            enum Foo[T] { A(T), B }
+            fun foo(x: Foo[Int32]): Foo[Int32] { x }
+        ");
+
+        err(
+            "
+            enum Foo[T] { A(T), B }
+            fun foo(x: Foo[Int32]): Foo[Float32] { x }
+        ",
+            pos(3, 50),
+            SemError::ReturnType("Foo[Float32]".into(), "Foo[Int32]".into()),
         );
     }
 }
