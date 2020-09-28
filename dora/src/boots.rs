@@ -93,7 +93,7 @@ fn allocate_compilation_info(vm: &VM, bytecode_fct: &BytecodeFunction) -> Ref<Ob
 fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<Int32Array> {
     let mut array = int_array_alloc_heap(vm, fct.registers().len());
 
-    for (idx, &ty) in fct.registers().iter().enumerate() {
+    for (idx, ty) in fct.registers().iter().enumerate() {
         array.set_at(idx, ty.kind() as u32 as i32);
     }
 
@@ -140,6 +140,7 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
             &ConstPoolEntry::Generic(_, _, _) => unimplemented!(),
             &ConstPoolEntry::Class(_, _) => unimplemented!(),
             &ConstPoolEntry::Field(_, _, _) => unimplemented!(),
+            &ConstPoolEntry::Enum(_, _) => unimplemented!(),
         }
     }
 

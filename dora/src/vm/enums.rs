@@ -46,6 +46,22 @@ impl EnumData {
     pub fn type_param(&self, id: TypeListId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
+
+    pub fn name_with_params(&self, vm: &VM, type_list: &TypeList) -> String {
+        let name = vm.interner.str(self.name);
+
+        if type_list.len() > 0 {
+            let type_list = type_list
+                .iter()
+                .map(|p| p.name_enum(vm, self))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            format!("{}[{}]", name, type_list)
+        } else {
+            name.to_string()
+        }
+    }
 }
 
 #[derive(Debug)]

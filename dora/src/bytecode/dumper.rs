@@ -51,6 +51,16 @@ pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction)
                     cls.name_with_params(vm, type_params)
                 )
             }
+            ConstPoolEntry::Enum(cls_id, type_params) => {
+                let xenum = &vm.enums[*cls_id];
+                let xenum = xenum.read();
+                println!(
+                    "{}{} => Enum {}",
+                    align,
+                    idx,
+                    xenum.name_with_params(vm, type_params)
+                )
+            }
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let cls = vm.classes.idx(*cls_id);
                 let cls = cls.read();

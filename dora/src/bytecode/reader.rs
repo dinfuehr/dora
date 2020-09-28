@@ -483,6 +483,12 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_generic(dest, src);
             }
+            BytecodeOpcode::MovEnum => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                self.visitor.visit_mov_enum(dest, src, idx);
+            }
 
             BytecodeOpcode::LoadTupleElement => {
                 let dest = self.read_register(wide);
@@ -1461,6 +1467,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_mov_generic(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_mov_enum(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 

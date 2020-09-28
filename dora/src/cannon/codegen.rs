@@ -145,8 +145,8 @@ where
         let mut offset: Vec<Option<i32>> = vec![None; len];
         let mut stacksize: i32 = start;
 
-        for (index, &ty) in self.bytecode.registers().iter().enumerate() {
-            if let Some(ty) = self.specialize_bytecode_type_unit(ty) {
+        for (index, ty) in self.bytecode.registers().iter().enumerate() {
+            if let Some(ty) = self.specialize_bytecode_type_unit(ty.clone()) {
                 stacksize = align_i32(stacksize + ty.size(), ty.size());
                 offset[index] = Some(-stacksize);
             }
@@ -177,8 +177,8 @@ where
 
     fn initialize_references(&mut self) {
         assert!(self.references.is_empty());
-        for (idx, &ty) in self.bytecode.registers().iter().enumerate() {
-            if let Some(ty) = self.specialize_bytecode_type_unit(ty) {
+        for (idx, ty) in self.bytecode.registers().iter().enumerate() {
+            if let Some(ty) = self.specialize_bytecode_type_unit(ty.clone()) {
                 assert!(!ty.is_type_param());
                 if ty.is_ptr() {
                     let offset = self.register_offset(Register(idx));
@@ -230,7 +230,10 @@ where
             } else if param_ty.is_unit() {
                 continue;
             } else {
-                assert_eq!(self.specialize_register_type(dest), param_ty.into());
+                assert_eq!(
+                    self.specialize_register_type(dest),
+                    BytecodeType::from_ty(self.vm, param_ty)
+                );
                 param_ty
             };
 
@@ -745,11 +748,11 @@ where
         );
 
         let src_type = self.bytecode.register_type(src);
-        let src_register = result_reg(src_type);
+        let src_register = result_reg(src_type.clone());
         self.emit_load_register(src, src_register.into());
 
         let dest_type = self.bytecode.register_type(dest);
-        let dest_register = result_reg(dest_type);
+        let dest_register = result_reg(dest_type.clone());
 
         match dest_type {
             BytecodeType::Int32 => {
@@ -1106,7 +1109,7 @@ where
                     RegOrOffset::Offset(src_offset + offset),
                 );
             } else {
-                let reg = result_reg(dest_type);
+                let reg = result_reg(dest_type.clone());
                 self.asm
                     .load_mem(dest_type.mode(), reg, Mem::Local(src_offset + offset));
 
@@ -1238,7 +1241,7 @@ where
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
         if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
-            assert_eq!(bytecode_type, field.ty.into());
+            assert_eq!(bytecode_type, BytecodeType::from_ty(self.vm, field.ty));
 
             if let Some(tuple_id) = bytecode_type.tuple_id() {
                 let dest_offset = self.register_offset(dest);
@@ -1286,7 +1289,7 @@ where
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
         if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
-            assert_eq!(bytecode_type, field.ty.into());
+            assert_eq!(bytecode_type, BytecodeType::from_ty(self.vm, field.ty));
 
             let needs_write_barrier = if let Some(tuple_id) = bytecode_type.tuple_id() {
                 let src_offset = self.register_offset(src);
@@ -1322,7 +1325,10 @@ where
         let glob = self.vm.globals.idx(global_id);
         let glob = glob.read();
 
-        assert_eq!(self.bytecode.register_type(dest), glob.ty.into());
+        assert_eq!(
+            self.bytecode.register_type(dest),
+            BytecodeType::from_ty(self.vm, glob.ty)
+        );
 
         if glob.needs_initialization() {
             let fid = glob.initializer.unwrap();
@@ -1358,7 +1364,10 @@ where
         let glob = self.vm.globals.idx(global_id);
         let glob = glob.read();
 
-        assert_eq!(self.bytecode.register_type(src), glob.ty.into());
+        assert_eq!(
+            self.bytecode.register_type(src),
+            BytecodeType::from_ty(self.vm, glob.ty)
+        );
 
         let disp = self.asm.add_addr(glob.address_value.to_ptr());
         let pos = self.asm.pos() as i32;
@@ -1463,7 +1472,7 @@ where
                     self.emit_const_float(dest, 0_f64);
                 }
                 BytecodeType::TypeParam(_) => unreachable!(),
-                BytecodeType::Enum(_enum_id) => unimplemented!(),
+                BytecodeType::Enum(_, _) => unimplemented!(),
             }
         }
     }
@@ -1828,7 +1837,7 @@ where
             } else {
                 let subtype_reg = arguments[arg_idx];
                 let dest_type = self.specialize_register_type(subtype_reg);
-                let tmp = result_reg(dest_type);
+                let tmp = result_reg(dest_type.clone());
 
                 self.emit_load_register(arguments[arg_idx], tmp);
 
@@ -2016,7 +2025,7 @@ where
                 RegOrOffset::Reg(REG_TMP1),
             );
         } else {
-            let register = result_reg(dest_type);
+            let register = result_reg(dest_type.clone());
             self.asm
                 .load_array_elem(dest_type.mode(), register, REG_RESULT, REG_TMP1);
             self.emit_store_register(register, dest);
@@ -2061,7 +2070,10 @@ where
 
         let (reg, ty) = match bytecode_type {
             Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
-            Some(bytecode_type) => (result_reg(bytecode_type), Some(bytecode_type.mode())),
+            Some(bytecode_type) => (
+                result_reg(bytecode_type.clone()),
+                Some(bytecode_type.mode()),
+            ),
             None => (REG_RESULT.into(), None),
         };
 
@@ -2147,7 +2159,10 @@ where
 
             let (reg, mode) = match bytecode_type {
                 Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
-                Some(bytecode_type) => (result_reg(bytecode_type), Some(bytecode_type.mode())),
+                Some(bytecode_type) => (
+                    result_reg(bytecode_type.clone()),
+                    Some(bytecode_type.mode()),
+                ),
                 None => (REG_RESULT.into(), None),
             };
 
@@ -2224,7 +2239,10 @@ where
 
             let (reg, mode) = match bytecode_type {
                 Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
-                Some(bytecode_type) => (result_reg(bytecode_type), Some(bytecode_type.mode())),
+                Some(bytecode_type) => (
+                    result_reg(bytecode_type.clone()),
+                    Some(bytecode_type.mode()),
+                ),
                 None => (REG_RESULT.into(), None),
             };
 
@@ -2582,7 +2600,10 @@ where
 
     fn specialize_bytecode_type(&self, ty: BytecodeType) -> BytecodeType {
         match ty {
-            BytecodeType::TypeParam(id) => self.type_params[id as usize].into(),
+            BytecodeType::TypeParam(id) => {
+                let ty = self.type_params[id as usize];
+                BytecodeType::from_ty(self.vm, ty)
+            }
             _ => ty,
         }
     }
@@ -2595,7 +2616,7 @@ where
                 if ty.is_unit() {
                     None
                 } else {
-                    Some(ty.into())
+                    Some(BytecodeType::from_ty(self.vm, ty))
                 }
             }
             BytecodeType::Tuple(tuple_id) => Some(BytecodeType::Tuple(specialize_tuple(

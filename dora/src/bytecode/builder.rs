@@ -8,7 +8,7 @@ use crate::bytecode::{
 };
 use crate::driver::cmd::Args;
 use crate::ty::{TypeList, TypeListId};
-use crate::vm::{ClassId, FctId, FieldId, GlobalId, TupleId, VM};
+use crate::vm::{ClassId, EnumId, FctId, FieldId, GlobalId, TupleId, VM};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -48,6 +48,10 @@ impl BytecodeBuilder {
     pub fn add_const_fct(&mut self, id: FctId) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Fct(id, TypeList::empty()))
+    }
+
+    pub fn add_const_enum(&mut self, id: EnumId, type_params: TypeList) -> ConstPoolIdx {
+        self.writer.add_const(ConstPoolEntry::Enum(id, type_params))
     }
 
     pub fn add_const_fct_types(&mut self, id: FctId, type_params: TypeList) -> ConstPoolIdx {
@@ -587,6 +591,11 @@ impl BytecodeBuilder {
     pub fn emit_mov_generic(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
         self.writer.emit_mov_generic(dest, src);
+    }
+
+    pub fn emit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        assert!(self.def(dest) && self.used(src));
+        self.writer.emit_mov_enum(dest, src, idx);
     }
 
     pub fn emit_load_tuple_element(
@@ -1256,7 +1265,7 @@ impl Registers {
         let scope = self.scopes.pop().expect("missing scope");
 
         for reg in scope.0 {
-            let ty = self.all[reg.0];
+            let ty = self.all[reg.0].clone();
             self.unused.entry(ty).or_insert(Vec::new()).push(reg);
             assert!(self.used.remove(&reg));
         }
@@ -1278,7 +1287,7 @@ impl Registers {
 
     fn free_temp(&mut self, reg: Register) {
         assert!(self.temps.remove(&reg));
-        let ty = self.all[reg.0];
+        let ty = self.all[reg.0].clone();
         self.unused.entry(ty).or_insert(Vec::new()).push(reg);
         assert!(self.used.remove(&reg));
     }

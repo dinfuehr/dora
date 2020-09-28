@@ -493,6 +493,10 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::MovGeneric, dest, src);
     }
 
+    pub fn emit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_reg2_idx(BytecodeOpcode::MovEnum, dest, src, idx);
+    }
+
     pub fn emit_load_tuple_element(
         &mut self,
         dest: Register,
@@ -910,6 +914,21 @@ impl BytecodeWriter {
 
     fn emit_reg2(&mut self, inst: BytecodeOpcode, r1: Register, r2: Register) {
         let values = [r1.to_usize() as u32, r2.to_usize() as u32];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_reg2_idx(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        r2: Register,
+        idx: ConstPoolIdx,
+    ) {
+        let values = [
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            idx.to_usize() as u32,
+        ];
         self.emit_values(inst, &values);
     }
 

@@ -106,7 +106,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             if !var_ty.is_unit() {
                 let var_id = var_self.id;
-                let reg = self.alloc_var(var_ty.into());
+                let bty = BytecodeType::from_ty(self.vm, var_ty);
+                let reg = self.alloc_var(bty);
                 self.var_registers.insert(var_id, reg);
                 arguments += 1;
             }
@@ -119,8 +120,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             if ty.is_unit() {
                 // no register needed for unit
             } else {
-                let ty: BytecodeType = ty.into();
-                let reg = self.alloc_var(ty);
+                let bty = BytecodeType::from_ty(self.vm, ty);
+                let reg = self.alloc_var(bty);
                 self.var_registers.insert(var_id, reg);
                 arguments += 1;
             }
@@ -230,8 +231,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 let var_ty = self.var_ty(for_var_id);
 
                 if !var_ty.is_unit() {
-                    let var_ty: BytecodeType = var_ty.into();
-                    let var_reg = self.alloc_var(var_ty);
+                    let bty: BytecodeType = BytecodeType::from_ty(self.vm, var_ty);
+                    let var_reg = self.alloc_var(bty);
                     self.var_registers.insert(for_var_id, var_reg);
                 }
             }
@@ -259,7 +260,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 let var_ty = self.var_ty(var_id);
 
                 if !var_ty.is_unit() {
-                    let var_ty: BytecodeType = var_ty.into();
+                    let var_ty: BytecodeType = BytecodeType::from_ty(self.vm, var_ty);
                     let var_reg = self.var_reg(var_id);
                     self.emit_load_array(var_ty, var_reg, array_reg, index_reg, ident.pos);
                 }
@@ -271,8 +272,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             LetPattern::Tuple(ref tuple) => {
                 if tuple.parts.len() > 0 {
-                    let bytecode_ty: BytecodeType = ty.into();
-                    let tuple_reg = self.alloc_temp(bytecode_ty);
+                    let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+                    let tuple_reg = self.alloc_temp(bytecode_ty.clone());
                     self.emit_load_array(bytecode_ty, tuple_reg, array_reg, index_reg, tuple.pos);
                     self.destruct_tuple_pattern(tuple, tuple_reg, ty);
                     self.free_temp(tuple_reg);
@@ -293,7 +294,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 let var_ty = self.var_ty(var_id);
 
                 if !var_ty.is_unit() {
-                    let var_ty: BytecodeType = var_ty.into();
+                    let var_ty: BytecodeType = BytecodeType::from_ty(self.vm, var_ty);
                     let var_reg = self.var_reg(var_id);
                     self.emit_mov(var_ty.into(), var_reg, next_reg)
                 }
@@ -325,7 +326,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let ty = self.var_ty(var_id);
 
                     if !ty.is_unit() {
-                        let bytecode_ty: BytecodeType = ty.into();
+                        let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
                         let var_reg = self.alloc_var(bytecode_ty);
                         self.var_registers.insert(var_id, var_reg);
 
@@ -342,7 +343,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let ty = self.vm.tuples.lock().get_ty(tuple_id, idx);
 
                     if !ty.is_unit() {
-                        let temp_reg = self.alloc_temp(ty.into());
+                        let temp_reg = self.alloc_temp(BytecodeType::from_ty(self.vm, ty));
                         self.gen
                             .emit_load_tuple_element(temp_reg, tuple_reg, tuple_id, idx as u32);
                         self.destruct_tuple_pattern(tuple, temp_reg, ty);
@@ -405,7 +406,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.gen.emit_push_register(iterator_reg);
             self.gen.emit_invoke_direct_void(fct_idx, stmt.expr.pos());
         } else {
-            let next_bytecode_ty: BytecodeType = next_ty.into();
+            let next_bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, next_ty);
             let next_reg = self.alloc_var(next_bytecode_ty);
 
             self.gen.emit_push_register(iterator_reg);
@@ -450,7 +451,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let dest = if ty.is_unit() {
             DataDest::Effect
         } else {
-            let ty: BytecodeType = ty.into();
+            let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
             let var_reg = self.alloc_var(ty);
 
             self.var_registers.insert(var_id, var_reg);
@@ -492,8 +493,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             match &**part {
                 LetPattern::Ident(ref ident) => {
                     let var_id = *self.src.map_vars.get(ident.id).unwrap();
-                    let ty = self.var_ty(var_id).into();
-                    let var_reg = self.alloc_var(ty);
+                    let ty: BytecodeType = BytecodeType::from_ty(self.vm, self.var_ty(var_id));
+                    let var_reg = self.alloc_var(ty.clone());
                     self.var_registers.insert(var_id, var_reg);
 
                     if ty.is_ptr() {
@@ -727,7 +728,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let dest = if ty.is_unit() {
                 Register::invalid()
             } else {
-                self.ensure_register(dest, ty.into())
+                self.ensure_register(dest, BytecodeType::from_ty(self.vm, ty))
             };
 
             let else_lbl = self.gen.create_label();
@@ -825,7 +826,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return Register::invalid();
         }
 
-        let field_bc_ty: BytecodeType = field_ty.into();
+        let field_bc_ty: BytecodeType = BytecodeType::from_ty(self.vm, field_ty);
 
         let dest = self.ensure_register(dest, field_bc_ty);
         let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
@@ -853,7 +854,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return Register::invalid();
         }
 
-        let ty: BytecodeType = ty.into();
+        let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
         let dest = self.ensure_register(dest, ty);
         self.gen.emit_load_tuple_element(dest, tuple, tuple_id, idx);
 
@@ -892,7 +893,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let return_reg = if return_type.is_unit() {
             Register::invalid()
         } else {
-            self.ensure_register(dest, return_type.into())
+            self.ensure_register(dest, BytecodeType::from_ty(self.vm, return_type))
         };
 
         // Evaluate object/self argument
@@ -958,7 +959,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let arg_bytecode_types = arg_types
             .iter()
             .filter(|ty| !ty.is_unit())
-            .map(|&ty| ty.into())
+            .map(|&ty| BytecodeType::from_ty(self.vm, ty))
             .collect::<Vec<BytecodeType>>();
 
         (arg_types, arg_bytecode_types, return_type)
@@ -1068,14 +1069,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.visit_expr(arg, DataDest::Effect);
             }
         } else {
-            let bytecode_ty: BytecodeType = element_ty.into();
+            let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, element_ty);
             let index_reg = self.alloc_temp(BytecodeType::Int64);
 
             // Evaluate rest arguments and store them in array
             for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
                 let arg_reg = self.visit_expr(arg, DataDest::Alloc);
                 self.gen.emit_const_int64(index_reg, idx as i64);
-                self.emit_store_array(bytecode_ty, array_reg, index_reg, arg_reg, expr.pos);
+                self.emit_store_array(bytecode_ty.clone(), array_reg, index_reg, arg_reg, expr.pos);
                 self.free_if_temp(arg_reg);
             }
 
@@ -1155,7 +1156,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::GenericStaticMethod(_, _, _) => {
                 self.emit_invoke_generic_static(return_type, return_reg, callee_idx, pos);
             }
-            CallType::Enum(_, _) => unimplemented!(),
+            CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
         }
     }
@@ -1202,7 +1203,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
             BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, src, tuple_id),
             BytecodeType::TypeParam(_) => self.gen.emit_mov_generic(dest, src),
-            BytecodeType::Enum(_) => unimplemented!(),
+            BytecodeType::Enum(enum_id, type_params) => {
+                let idx = self.gen.add_const_enum(enum_id, type_params);
+                self.gen.emit_mov_enum(dest, src, idx)
+            }
         }
     }
 
@@ -1225,7 +1229,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
             BytecodeType::TypeParam(_) => self.gen.emit_load_array_generic(dest, arr, idx, pos),
-            BytecodeType::Enum(_) => unimplemented!(),
+            BytecodeType::Enum(_, _) => unimplemented!(),
         }
     }
 
@@ -1316,7 +1320,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let arg_types = callee
             .params_with_self()
             .iter()
-            .map(|&arg| self.specialize_type_for_call(&call_type, arg).into())
+            .map(|&arg| {
+                BytecodeType::from_ty(self.vm, self.specialize_type_for_call(&call_type, arg))
+            })
             .collect::<Vec<BytecodeType>>();
         let num_args = arg_types.len();
 
@@ -1376,7 +1382,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         let dest = dest.reg();
-        let ty: BytecodeType = self.src.var_self().ty.into();
+        let ty: BytecodeType = BytecodeType::from_ty(self.vm, self.src.var_self().ty);
 
         self.emit_mov(ty, dest, var_reg);
 
@@ -1409,7 +1415,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             _ => unreachable!(),
         };
 
-        let dest = self.ensure_register(dest, ty);
+        let dest = self.ensure_register(dest, ty.clone());
 
         if lit.value == 0 {
             match ty {
@@ -1449,7 +1455,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             _ => unreachable!(),
         };
 
-        let dest = self.ensure_register(dest, ty);
+        let dest = self.ensure_register(dest, ty.clone());
 
         if lit.value == 0_f64 {
             match ty {
@@ -1556,7 +1562,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let function_return_type: BuiltinType =
             self.specialize_type_for_call(call_type, callee.return_type);
 
-        let function_return_type_bc: BytecodeType = function_return_type.into();
+        let function_return_type_bc: BytecodeType =
+            BytecodeType::from_ty(self.vm, function_return_type);
 
         let dest = self.ensure_register(dest, function_return_type_bc);
 
@@ -1600,14 +1607,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let function_return_type: BuiltinType =
             self.specialize_type_for_call(call_type, callee.return_type);
 
-        let function_return_type_bc: BytecodeType = function_return_type.into();
+        let function_return_type_bc: BytecodeType =
+            BytecodeType::from_ty(self.vm, function_return_type);
 
         let return_type = match expr.op {
             BinOp::Cmp(_) => BytecodeType::Bool,
-            _ => function_return_type_bc,
+            _ => function_return_type_bc.clone(),
         };
 
-        let dest = self.ensure_register(dest, return_type);
+        let dest = self.ensure_register(dest, return_type.clone());
 
         let result = if function_return_type_bc == return_type {
             dest
@@ -1705,8 +1713,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         return Register::invalid();
                     }
 
-                    let ty: BytecodeType = ty.into();
-                    let dest = self.ensure_register(dest, ty);
+                    let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+                    let dest = self.ensure_register(dest, ty.clone());
 
                     match ty {
                         BytecodeType::Bool => self.gen.emit_const_false(dest),
@@ -1719,7 +1727,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         BytecodeType::Ptr => self.gen.emit_const_nil(dest),
                         BytecodeType::Tuple(_) => unimplemented!(),
                         BytecodeType::TypeParam(_) => self.gen.emit_const_generic_default(dest),
-                        BytecodeType::Enum(_) => unimplemented!(),
+                        BytecodeType::Enum(_, _) => unimplemented!(),
                     }
 
                     dest
@@ -1765,15 +1773,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BuiltinType::Nil => BytecodeType::Ptr,
             BuiltinType::Float32 => BytecodeType::Int32,
             BuiltinType::Float64 => BytecodeType::Int64,
-            _ => builtin_type.into(),
+            _ => BytecodeType::from_ty(self.vm, builtin_type),
         };
 
         let cmp_lhs_reg;
         let cmp_rhs_reg;
 
         if builtin_type.is_float() {
-            cmp_lhs_reg = self.alloc_temp(cmp_ty);
-            cmp_rhs_reg = self.alloc_temp(cmp_ty);
+            cmp_lhs_reg = self.alloc_temp(cmp_ty.clone());
+            cmp_rhs_reg = self.alloc_temp(cmp_ty.clone());
 
             if cmp_ty == BytecodeType::Int32 {
                 self.gen
@@ -1891,7 +1899,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ty = self.ty(arr.id());
         let ty = ty.type_params(self.vm);
         let ty = ty[0];
-        let ty: Option<BytecodeType> = if ty.is_unit() { None } else { Some(ty.into()) };
+        let ty: Option<BytecodeType> = if ty.is_unit() {
+            None
+        } else {
+            Some(BytecodeType::from_ty(self.vm, ty))
+        };
 
         let arr = self.visit_expr(arr, DataDest::Alloc);
         let idx = self.visit_expr(idx, DataDest::Alloc);
@@ -1936,7 +1948,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx, pos),
             BytecodeType::Tuple(_) => self.gen.emit_store_array_tuple(src, arr, idx, pos),
             BytecodeType::TypeParam(_) => self.gen.emit_store_array_generic(src, arr, idx, pos),
-            BytecodeType::Enum(_) => unimplemented!(),
+            BytecodeType::Enum(_, _) => unimplemented!(),
         }
     }
 
@@ -2103,11 +2115,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                             assert!(dest.is_unit());
                             None
                         } else {
-                            Some(ty.into())
+                            Some(BytecodeType::from_ty(self.vm, ty))
                         }
                     };
 
-                let dest = ty.map(|ty| self.ensure_register(dest, ty));
+                let dest = if let Some(ref ty) = ty {
+                    Some(self.ensure_register(dest, ty.clone()))
+                } else {
+                    None
+                };
 
                 let arr = self.visit_expr(lhs, DataDest::Alloc);
                 let idx = self.visit_expr(rhs, DataDest::Alloc);
@@ -2407,7 +2423,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let field_ty: Option<BytecodeType> = if field_ty.is_unit() {
             None
         } else {
-            Some(field_ty.into())
+            Some(BytecodeType::from_ty(self.vm, field_ty))
         };
 
         let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
@@ -2491,7 +2507,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let xconst = xconst.lock();
         let ty = xconst.ty;
 
-        let dest = self.ensure_register(dest, ty.into());
+        let dest = self.ensure_register(dest, BytecodeType::from_ty(self.vm, ty));
 
         match ty {
             BuiltinType::Bool => {
@@ -2547,7 +2563,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return Register::invalid();
         }
 
-        let ty: BytecodeType = glob.ty.into();
+        let ty: BytecodeType = BytecodeType::from_ty(self.vm, glob.ty);
         let dest = self.ensure_register(dest, ty);
 
         self.gen.emit_load_global(dest, gid);
@@ -2568,7 +2584,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         let var_reg = self.var_reg(var_id);
-        let ty: BytecodeType = self.specialize_type(ty).into();
+        let ty: BytecodeType = BytecodeType::from_ty(self.vm, self.specialize_type(ty));
 
         if dest.is_alloc() {
             return var_reg;

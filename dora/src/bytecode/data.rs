@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::mem::ptr_width;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeListId};
-use crate::vm::{get_vm, ClassId, EnumDefId, EnumLayout, FctId, FieldId, TupleId};
+use crate::vm::{get_vm, ClassId, EnumId, FctId, FieldId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -32,7 +32,7 @@ pub enum BytecodeTypeKind {
     Enum,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BytecodeType {
     Bool,
     UInt8,
@@ -44,7 +44,7 @@ pub enum BytecodeType {
     Ptr,
     Tuple(TupleId),
     TypeParam(u32),
-    Enum(EnumDefId),
+    Enum(EnumId, TypeList),
 }
 
 impl BytecodeType {
@@ -63,16 +63,7 @@ impl BytecodeType {
                 vm.tuples.lock().get_tuple(tuple_id).size()
             }
             BytecodeType::TypeParam(_) => unreachable!(),
-            BytecodeType::Enum(enum_id) => {
-                let vm = get_vm();
-                let xenum = vm.enum_defs.idx(enum_id);
-                let xenum = xenum.read();
-
-                match xenum.layout {
-                    EnumLayout::Int => BytecodeType::Int32.size(),
-                    EnumLayout::Ptr | EnumLayout::Tagged => ptr_width(),
-                }
-            }
+            BytecodeType::Enum(_, _) => unimplemented!(),
         }
     }
 
@@ -88,7 +79,7 @@ impl BytecodeType {
             BytecodeType::Ptr => BytecodeTypeKind::Ptr,
             BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
             BytecodeType::TypeParam(_) => unreachable!(),
-            BytecodeType::Enum(_) => BytecodeTypeKind::Enum,
+            BytecodeType::Enum(_, _) => BytecodeTypeKind::Enum,
         }
     }
 
@@ -104,16 +95,7 @@ impl BytecodeType {
             BytecodeType::Ptr => MachineMode::Ptr,
             BytecodeType::Tuple(_) => unreachable!(),
             BytecodeType::TypeParam(_) => unreachable!(),
-            BytecodeType::Enum(enum_id) => {
-                let vm = get_vm();
-                let xenum = vm.enum_defs.idx(*enum_id);
-                let xenum = xenum.read();
-
-                match xenum.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                }
-            }
+            BytecodeType::Enum(_, _) => unimplemented!(),
         }
     }
 
@@ -144,10 +126,8 @@ impl BytecodeType {
             _ => None,
         }
     }
-}
 
-impl From<BuiltinType> for BytecodeType {
-    fn from(ty: BuiltinType) -> Self {
+    pub fn from_ty(vm: &VM, ty: BuiltinType) -> BytecodeType {
         match ty {
             BuiltinType::Bool => BytecodeType::Bool,
             BuiltinType::UInt8 => BytecodeType::UInt8,
@@ -157,7 +137,18 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::Float32 => BytecodeType::Float32,
             BuiltinType::Float64 => BytecodeType::Float64,
             BuiltinType::Class(_, _) => BytecodeType::Ptr,
-            BuiltinType::Enum(_, _) => BytecodeType::Int32,
+            BuiltinType::Enum(id, list_id) => {
+                let xenum = vm.enums[id].read();
+
+                for variant in &xenum.variants {
+                    if !variant.types.is_empty() {
+                        let type_params = vm.lists.lock().get(list_id);
+                        return BytecodeType::Enum(id, type_params);
+                    }
+                }
+
+                BytecodeType::Int32
+            }
             BuiltinType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
             BuiltinType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
@@ -269,6 +260,7 @@ pub enum BytecodeOpcode {
     MovPtr,
     MovTuple,
     MovGeneric,
+    MovEnum,
 
     LoadTupleElement,
     StoreTupleElement,
@@ -536,7 +528,10 @@ impl BytecodeFunction {
     }
 
     pub fn register_type(&self, register: Register) -> BytecodeType {
-        *self.registers.get(register.0).expect("register not found")
+        self.registers
+            .get(register.0)
+            .expect("register not found")
+            .clone()
     }
 
     pub fn arguments(&self) -> u32 {
@@ -583,6 +578,7 @@ pub enum ConstPoolEntry {
     Field(ClassId, TypeList, FieldId),
     Fct(FctId, TypeList),
     Generic(TypeListId, FctId, TypeList),
+    Enum(EnumId, TypeList),
 }
 
 impl ConstPoolEntry {

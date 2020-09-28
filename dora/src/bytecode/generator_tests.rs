@@ -19,14 +19,6 @@ fn code(code: &'static str) -> Vec<Bytecode> {
     })
 }
 
-fn gcode(code: &'static str) -> Vec<Bytecode> {
-    test::parse(code, |vm| {
-        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
-        let fct = bytecode::generate_generic_fct(vm, fct_id);
-        build(&fct)
-    })
-}
-
 fn position(code: &'static str) -> Vec<(u32, Position)> {
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
@@ -81,25 +73,25 @@ where
 
 #[test]
 fn gen_generic_identity() {
-    let result = gcode("fun f[T](x: T): T { x }");
+    let result = code("fun f[T](x: T): T { x }");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 
-    let result = gcode("fun f[T](x: T): T { let y = x; y }");
+    let result = code("fun f[T](x: T): T { let y = x; y }");
     let expected = vec![MovGeneric(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_generic_static_trait() {
-    let result = gcode("trait Foo { @static fun baz(); } fun f[T: Foo]() { T::baz() }");
+    let result = code("trait Foo { @static fun baz(); } fun f[T: Foo]() { T::baz() }");
     let expected = vec![InvokeGenericStaticVoid(ConstPoolIdx(0)), RetVoid, RetVoid];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_generic_direct_trait() {
-    let result = gcode("trait Foo { fun baz(); } fun f[T: Foo](obj: T) { obj.baz() }");
+    let result = code("trait Foo { fun baz(); } fun f[T: Foo](obj: T) { obj.baz() }");
     let expected = vec![
         PushRegister(r(0)),
         InvokeGenericDirectVoid(ConstPoolIdx(0)),
@@ -3206,7 +3198,6 @@ fn gen_enum_value() {
 }
 
 #[test]
-#[ignore]
 fn gen_enum_mov_generic() {
     let result = code(
         "enum MyEnum { A(Int32), B }
@@ -3215,7 +3206,7 @@ fn gen_enum_mov_generic() {
             tmp
         }",
     );
-    let expected = vec![ConstInt32(r(0), 0), Ret(r(0))];
+    let expected = vec![MovEnum(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3647,6 +3638,7 @@ pub enum Bytecode {
     MovPtr(Register, Register),
     MovTuple(Register, Register, TupleId),
     MovGeneric(Register, Register),
+    MovEnum(Register, Register, ConstPoolIdx),
 
     LoadTupleElement(Register, Register, TupleId, u32),
 
@@ -4085,6 +4077,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_mov_generic(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::MovGeneric(dest, src));
+    }
+    fn visit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::MovEnum(dest, src, idx));
     }
 
     fn visit_load_tuple_element(
