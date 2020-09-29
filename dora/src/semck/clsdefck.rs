@@ -59,6 +59,35 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         cls.table.insert_term(name, TermSym::SymField(fid));
     }
 
+    fn check_annotation_usages(&mut self, annotation_usages: &ast::AnnotationUsages) {
+        for annotation in annotation_usages.iter() {
+            let sym = self.vm.sym.lock().get_type(annotation.name);
+            match sym {
+                Some(TypeSym::SymAnnotation(_id)) => {
+                    // todo more checks
+                }
+                Some(_) => {
+                    self.vm.diag.lock().report(
+                        self.file_id.into(),
+                        annotation.pos,
+                        SemError::SymbolIsNotAnAnnotation(
+                            self.vm.interner.str(annotation.name).to_string(),
+                        ),
+                    );
+                }
+                None => {
+                    self.vm.diag.lock().report(
+                        self.file_id.into(),
+                        annotation.pos,
+                        SemError::UnknownAnnotation(
+                            self.vm.interner.str(annotation.name).to_string(),
+                        ),
+                    );
+                }
+            }
+        }
+    }
+
     fn check_type_params(&mut self, c: &'ast ast::Class, type_params: &'ast [ast::TypeParam]) {
         let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
@@ -211,6 +240,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         self.vm.sym.lock().push_level();
 
+        self.check_annotation_usages(&c.annotation_usages);
+
         if let Some(ref type_params) = c.type_params {
             self.check_type_params(c, type_params);
         }
@@ -272,6 +303,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         if self.cls_id.is_none() {
             return;
         }
+
+        self.check_annotation_usages(&f.annotation_usages);
 
         let kind = if f.block.is_some() {
             FctKind::Source(RwLock::new(FctSrc::new()))

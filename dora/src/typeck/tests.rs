@@ -2130,3 +2130,18 @@ fn check_wrong_number_type_params() {
         SemError::ParamTypesIncompatible("bar".into(), vec!["T".into()], vec!["Bool".into()]),
     );
 }
+
+#[test]
+fn check_unknown_annotations_use() {
+    err(
+        "@qurx class Bar() { fun bar() {} }",
+        pos(1, 7),
+        SemError::UnknownAnnotation("qurx".into()),
+    );
+
+    err(
+        "class Bar() { @qurx fun bar() {} }",
+        pos(1, 21),
+        SemError::UnknownAnnotation("qurx".into()),
+    );
+}
