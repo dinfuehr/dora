@@ -331,6 +331,14 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), src);
     }
 
+    fn emit_push(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+
+    fn emit_pop(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+
     fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
@@ -2778,6 +2786,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_instruction(&mut self, offset: BytecodeOffset) {
         self.offset_to_address.insert(offset, self.asm.pos());
         self.current_offset = offset;
+    }
+
+    fn visit_push(&mut self, opnd: Register) {
+        comment!(self, format!("Push {}", opnd));
+        self.emit_push(opnd);
+    }
+    fn visit_pop(&mut self, dest: Register) {
+        comment!(self, format!("Pop {}", dest));
+        self.emit_pop(dest);
     }
 
     fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {

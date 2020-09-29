@@ -41,6 +41,16 @@ where
         match inst {
             BytecodeOpcode::Wide => unreachable!(),
 
+            BytecodeOpcode::Push => {
+                let opnd = self.read_register(wide);
+                self.visitor.visit_push(opnd);
+            }
+
+            BytecodeOpcode::Pop => {
+                let opnd = self.read_register(wide);
+                self.visitor.visit_pop(opnd);
+            }
+
             BytecodeOpcode::AddInt32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -1172,6 +1182,13 @@ where
 
 pub trait BytecodeVisitor {
     fn visit_instruction(&mut self, _offset: BytecodeOffset) {}
+
+    fn visit_push(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_pop(&mut self, _dest: Register) {
+        unimplemented!();
+    }
 
     fn visit_add_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();

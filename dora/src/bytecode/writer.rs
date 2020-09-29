@@ -81,6 +81,14 @@ impl BytecodeWriter {
         self.arguments = arguments;
     }
 
+    pub fn emit_push(&mut self, opnd: Register) {
+        self.emit_reg1(BytecodeOpcode::Push, opnd);
+    }
+
+    pub fn emit_pop(&mut self, dest: Register) {
+        self.emit_reg1(BytecodeOpcode::Pop, dest);
+    }
+
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::AddInt32, dest, lhs, rhs);
     }
