@@ -392,19 +392,6 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::CastInt64ToInt32, dest, src);
     }
 
-    pub fn emit_convert_int32_to_float32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ConvertInt32ToFloat32, dest, src);
-    }
-    pub fn emit_convert_int32_to_float64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ConvertInt32ToFloat64, dest, src);
-    }
-    pub fn emit_convert_int64_to_float32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ConvertInt64ToFloat32, dest, src);
-    }
-    pub fn emit_convert_int64_to_float64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ConvertInt64ToFloat64, dest, src);
-    }
-
     pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
         self.emit_reg2_cls(BytecodeOpcode::InstanceOf, dest, src, cls_idx);
     }

@@ -2496,6 +2496,30 @@ where
                 REG_RESULT.into()
             }
 
+            Intrinsic::Int32ToFloat32
+            | Intrinsic::Int32ToFloat64
+            | Intrinsic::Int64ToFloat32
+            | Intrinsic::Int64ToFloat64 => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+
+                self.emit_load_register(src_reg, REG_RESULT.into());
+                let (src_mode, dest_mode) = match intrinsic {
+                    Intrinsic::Int32ToFloat32 => (MachineMode::Int32, MachineMode::Float32),
+                    Intrinsic::Int32ToFloat64 => (MachineMode::Int32, MachineMode::Float64),
+                    Intrinsic::Int64ToFloat32 => (MachineMode::Int64, MachineMode::Float32),
+                    Intrinsic::Int64ToFloat64 => (MachineMode::Int64, MachineMode::Float64),
+                    _ => unreachable!(),
+                };
+                self.asm
+                    .int_to_float(dest_mode, FREG_RESULT, src_mode, REG_RESULT);
+                self.emit_store_register(FREG_RESULT.into(), dest_reg);
+
+                *dest = None;
+                REG_RESULT.into()
+            }
+
             Intrinsic::KillRefs => {
                 assert_eq!(1, type_params.len());
                 assert_eq!(2, arguments.len());
@@ -2994,23 +3018,6 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_cast_int64_to_int32(&mut self, dest: Register, src: Register) {
         comment!(self, format!("CastInt64ToInt32 {}, {}", dest, src));
         self.emit_int64_to_int(dest, src);
-    }
-
-    fn visit_convert_int32_to_float32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ConvertInt32ToFloat32 {}, {}", dest, src));
-        self.emit_int_to_float(dest, src);
-    }
-    fn visit_convert_int32_to_float64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ConvertInt32ToFloat64 {}, {}", dest, src));
-        self.emit_int_to_float(dest, src);
-    }
-    fn visit_convert_int64_to_float32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ConvertInt64ToFloat32 {}, {}", dest, src));
-        self.emit_int_to_float(dest, src);
-    }
-    fn visit_convert_int64_to_float64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ConvertInt64ToFloat64 {}, {}", dest, src));
-        self.emit_int_to_float(dest, src);
     }
 
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {

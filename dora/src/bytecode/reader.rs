@@ -367,27 +367,6 @@ where
                 self.visitor.visit_cast_int64_to_int32(dest, src);
             }
 
-            BytecodeOpcode::ConvertInt32ToFloat32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_convert_int32_to_float32(dest, src);
-            }
-            BytecodeOpcode::ConvertInt32ToFloat64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_convert_int32_to_float64(dest, src);
-            }
-            BytecodeOpcode::ConvertInt64ToFloat32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_convert_int64_to_float32(dest, src);
-            }
-            BytecodeOpcode::ConvertInt64ToFloat64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_convert_int64_to_float64(dest, src);
-            }
-
             BytecodeOpcode::InstanceOf => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1375,19 +1354,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_cast_int64_to_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-
-    fn visit_convert_int32_to_float32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_convert_int32_to_float64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_convert_int64_to_float32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_convert_int64_to_float64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 

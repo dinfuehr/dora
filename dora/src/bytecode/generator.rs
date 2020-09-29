@@ -2009,10 +2009,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::Int64ToInt32 => self.gen.emit_cast_int64_to_int32(dest, src),
             Intrinsic::Float32IsNan => self.gen.emit_test_ne_float32(dest, src, src),
             Intrinsic::Float64IsNan => self.gen.emit_test_ne_float64(dest, src, src),
-            Intrinsic::Int32ToFloat32 => self.gen.emit_convert_int32_to_float32(dest, src),
-            Intrinsic::Int32ToFloat64 => self.gen.emit_convert_int32_to_float64(dest, src),
-            Intrinsic::Int64ToFloat32 => self.gen.emit_convert_int64_to_float32(dest, src),
-            Intrinsic::Int64ToFloat64 => self.gen.emit_convert_int64_to_float64(dest, src),
             _ => {
                 panic!("unimplemented intrinsic {:?}", intrinsic);
             }

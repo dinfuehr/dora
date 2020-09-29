@@ -3074,38 +3074,90 @@ fn gen_extend_int_to_int64() {
 }
 
 #[test]
-fn gen_cast_int64_to_int() {
+fn gen_cast_int64_to_int32() {
     let result = code("fun f(a: Int64): Int32 { a.toInt32() }");
     let expected = vec![CastInt64ToInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_convert_int_to_float32() {
-    let result = code("fun f(a: Int32): Float32 { a.toFloat32() }");
-    let expected = vec![ConvertInt32ToFloat32(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+fn gen_convert_int32_to_float32() {
+    gen_fct(
+        "fun f(a: Int32): Float32 { a.toFloat32() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Int32", "toFloat32", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
-fn gen_convert_int_to_float64() {
-    let result = code("fun f(a: Int32): Float64 { a.toFloat64() }");
-    let expected = vec![ConvertInt32ToFloat64(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+fn gen_convert_int32_to_float64() {
+    gen_fct(
+        "fun f(a: Int32): Float64 { a.toFloat64() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Int32", "toFloat64", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_convert_int64_to_float32() {
-    let result = code("fun f(a: Int64): Float32 { a.toFloat32() }");
-    let expected = vec![ConvertInt64ToFloat32(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Int64): Float32 { a.toFloat32() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Int64", "toFloat32", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_convert_int64_to_float64() {
-    let result = code("fun f(a: Int64): Float64 { a.toFloat64() }");
-    let expected = vec![ConvertInt64ToFloat64(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Int64): Float64 { a.toFloat64() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Int64", "toFloat64", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
@@ -3729,11 +3781,6 @@ pub enum Bytecode {
     CastInt64ToChar(Register, Register),
     CastInt64ToInt32(Register, Register),
 
-    ConvertInt32ToFloat32(Register, Register),
-    ConvertInt32ToFloat64(Register, Register),
-    ConvertInt64ToFloat32(Register, Register),
-    ConvertInt64ToFloat64(Register, Register),
-
     TruncateFloat32ToInt32(Register, Register),
     TruncateFloat32ToInt64(Register, Register),
     TruncateFloat64ToInt32(Register, Register),
@@ -4131,19 +4178,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_cast_int64_to_int32(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::CastInt64ToInt32(dest, src));
-    }
-
-    fn visit_convert_int32_to_float32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ConvertInt32ToFloat32(dest, src));
-    }
-    fn visit_convert_int32_to_float64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ConvertInt32ToFloat64(dest, src));
-    }
-    fn visit_convert_int64_to_float32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ConvertInt64ToFloat32(dest, src));
-    }
-    fn visit_convert_int64_to_float64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ConvertInt64ToFloat64(dest, src));
     }
 
     fn visit_truncate_float32_to_int32(&mut self, dest: Register, src: Register) {
