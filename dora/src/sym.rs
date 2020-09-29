@@ -7,6 +7,7 @@ use crate::sym::TermSym::{
     SymStructConstructorAndModule, SymVar,
 };
 use crate::ty::TypeListId;
+use crate::vm::annotation::AnnotationId;
 use crate::vm::module::ModuleId;
 use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, StructId, TraitId, VarId};
 use dora_parser::interner::Name;
@@ -71,6 +72,10 @@ impl SymTable {
 
     pub fn get_struct(&self, name: Name) -> Option<StructId> {
         self.get_type(name).and_then(|n| n.to_struct())
+    }
+
+    pub fn get_annotation(&self, name: Name) -> Option<AnnotationId> {
+        self.get_type(name).and_then(|n| n.to_annotation())
     }
 
     pub fn get_trait(&self, name: Name) -> Option<TraitId> {
@@ -149,6 +154,7 @@ pub enum TypeSym {
     SymTrait(TraitId),
     SymTypeParam(TypeListId),
     SymEnum(EnumId),
+    SymAnnotation(AnnotationId),
 }
 
 #[derive(Debug, Clone)]
@@ -204,6 +210,20 @@ impl TypeSym {
     pub fn to_trait(&self) -> Option<TraitId> {
         match *self {
             SymTrait(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_annotation(&self) -> bool {
+        match *self {
+            SymAnnotation(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_annotation(&self) -> Option<AnnotationId> {
+        match *self {
+            SymAnnotation(id) => Some(id),
             _ => None,
         }
     }

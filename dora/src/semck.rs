@@ -1,6 +1,6 @@
 use crate::error::msg::SemError;
 use crate::mem;
-use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait, SymTypeParam};
+use crate::sym::TypeSym::{SymAnnotation, SymClass, SymEnum, SymStruct, SymTrait, SymTypeParam};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
 use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, NodeMap, VM};
@@ -292,6 +292,8 @@ fn read_type_basic<'ast>(
 
             Some(BuiltinType::TypeParam(type_param_id))
         }
+
+        SymAnnotation(_) => None,
     }
 }
 
