@@ -83,7 +83,7 @@ impl Fct {
         ast: &Arc<ast::Function>,
         parent: FctParent,
     ) -> Fct {
-        let annotations = ast::AnnotationUsages::new();
+        let annotations = &ast.annotation_usages;
         Fct {
             id: FctId(0),
             file_id,

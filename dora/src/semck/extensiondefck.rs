@@ -127,7 +127,14 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        if f.block.is_none() && !f.internal {
+        let internal = f.annotation_usages.contains(
+            self.vm
+                .annotations
+                .idx(self.vm.known.annotations.internal)
+                .read()
+                .name,
+        );
+        if f.block.is_none() && !internal {
             self.vm
                 .diag
                 .lock()
@@ -141,6 +148,7 @@ impl<'x> ExtensionCheck<'x> {
             f,
             FctParent::Extension(self.extension_id),
         );
+        let is_static = fct.is_static;
 
         let fct_id = self.vm.add_fct(fct);
 
@@ -174,7 +182,7 @@ impl<'x> ExtensionCheck<'x> {
         let mut extension = self.vm.extensions[self.extension_id].write();
         extension.methods.push(fct_id);
 
-        let table = if f.is_static {
+        let table = if is_static {
             &mut extension.static_names
         } else {
             &mut extension.instance_names
@@ -233,7 +241,14 @@ impl<'x> ExtensionCheck<'x> {
             let method = self.vm.fcts.idx(method);
             let method = method.read();
 
-            if method.name == f.name && method.is_static == f.is_static {
+            let is_static = f.annotation_usages.contains(
+                self.vm
+                    .annotations
+                    .idx(self.vm.known.annotations.static_)
+                    .read()
+                    .name,
+            );
+            if method.name == f.name && method.is_static == is_static {
                 let method_name = self.vm.interner.str(method.name).to_string();
                 let msg = SemError::MethodExists(method_name, method.pos);
                 self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
@@ -257,7 +272,14 @@ impl<'x> ExtensionCheck<'x> {
             return true;
         }
 
-        let table = if f.is_static {
+        let is_static = f.annotation_usages.contains(
+            self.vm
+                .annotations
+                .idx(self.vm.known.annotations.static_)
+                .read()
+                .name,
+        );
+        let table = if is_static {
             &extension.static_names
         } else {
             &extension.instance_names

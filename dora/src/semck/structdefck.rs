@@ -148,12 +148,19 @@ impl<'x> StructCheck<'x> {
             return;
         }
 
+        let annotations = &f.annotation_usages;
         let field = StructFieldData {
             id,
             pos: f.pos,
             name: f.name,
             ty,
-            is_pub: f.is_pub,
+            is_pub: annotations.contains(
+                self.vm
+                    .annotations
+                    .idx(self.vm.known.annotations.pub_)
+                    .read()
+                    .name,
+            ),
         };
 
         xstruct.fields.push(field);

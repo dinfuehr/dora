@@ -81,6 +81,7 @@ impl<'x> TraitCheck<'x> {
             node,
             FctParent::Trait(self.trait_id),
         );
+        let is_static = fct.is_static;
 
         fct.vtable_index = Some(self.vtable_index);
         self.vtable_index += 1;
@@ -89,7 +90,7 @@ impl<'x> TraitCheck<'x> {
 
         self.xtrait.methods.push(fctid);
 
-        let table = if node.is_static {
+        let table = if is_static {
             &mut self.xtrait.static_names
         } else {
             &mut self.xtrait.instance_names

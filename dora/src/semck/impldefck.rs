@@ -153,11 +153,18 @@ impl<'x> ImplCheck<'x> {
 
         self.sym.pop_level();
 
+        let static_name = self
+            .vm
+            .annotations
+            .idx(self.vm.known.annotations.static_)
+            .read()
+            .name;
+
         for method in &self.ast.methods {
             let method_id = self.visit_method(method);
             ximpl.methods.push(method_id);
 
-            let table = if method.is_static {
+            let table = if method.annotation_usages.contains(static_name) {
                 &mut ximpl.static_names
             } else {
                 &mut ximpl.instance_names
@@ -184,7 +191,14 @@ impl<'x> ImplCheck<'x> {
     }
 
     fn visit_method(&mut self, method: &Arc<ast::Function>) -> FctId {
-        if method.block.is_none() && !method.internal {
+        let internal = method.annotation_usages.contains(
+            self.vm
+                .annotations
+                .idx(self.vm.known.annotations.internal)
+                .read()
+                .name,
+        );
+        if method.block.is_none() && !internal {
             self.vm
                 .diag
                 .lock()
@@ -193,7 +207,13 @@ impl<'x> ImplCheck<'x> {
 
         let parent = FctParent::Impl(self.impl_id);
 
-        let fct = Fct::new(self.vm, self.file_id.into(), self.namespace_id, method, parent);
+        let fct = Fct::new(
+            self.vm,
+            self.file_id.into(),
+            self.namespace_id,
+            method,
+            parent,
+        );
         self.vm.add_fct(fct)
     }
 }

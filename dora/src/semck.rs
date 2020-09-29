@@ -42,6 +42,8 @@ macro_rules! return_on_error {
 }
 
 pub fn check(vm: &mut VM) -> bool {
+    stdlib::resolve_internal_annotations(vm);
+
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
     if let Err(_) = globaldef::check(vm) {

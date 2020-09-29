@@ -7,10 +7,10 @@ use std::sync::Arc;
 use crate::error::msg::SemError;
 use crate::gc::Address;
 use crate::semck::report_sym_shadow;
-use crate::sym::{Sym, SymTable};
+use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
-    self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
+    Class, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
     Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData, Module, ModuleId,
     NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId, TypeParam,
     TypeParamDefinition, VM,
@@ -211,7 +211,14 @@ struct GlobalDef<'x> {
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let id = NamespaceData::new(self.vm, self.namespace_id, node.name, node.is_pub);
+        let is_pub = node.annotation_usages.contains(
+            self.vm
+                .annotations
+                .idx(self.vm.known.annotations.pub_)
+                .read()
+                .name,
+        );
+        let id = NamespaceData::new(self.vm, self.namespace_id, node.name, is_pub);
 
         let sym = Sym::Namespace(id);
         if let Some(sym) = self.insert(node.name, sym) {
@@ -230,12 +237,19 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
         let id: TraitId = (self.vm.traits.len() as u32).into();
+        let annotations = &node.annotation_usages;
         let xtrait = TraitData {
             id,
             file_id: self.file_id,
             ast: node.clone(),
             namespace_id: self.namespace_id,
-            is_pub: node.is_pub,
+            is_pub: annotations.contains(
+                self.vm
+                    .annotations
+                    .idx(self.vm.known.annotations.pub_)
+                    .read()
+                    .name,
+            ),
             pos: node.pos,
             name: node.name,
             type_params: Vec::new(),
@@ -268,6 +282,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id = {
             let mut globals = self.vm.globals.lock();
             let id: GlobalId = (globals.len() as u32).into();
+            let annotations = &node.annotation_usages;
             let global = GlobalData {
                 id,
                 file_id: self.file_id,
@@ -275,7 +290,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 namespace_id: self.namespace_id,
                 pos: node.pos,
                 name: node.name,
-                is_pub: node.is_pub,
+                is_pub: annotations.contains(
+                    self.vm
+                        .annotations
+                        .idx(self.vm.known.annotations.pub_)
+                        .read()
+                        .name,
+                ),
                 ty: SourceType::Unit,
                 mutable: node.mutable,
                 initializer: None,
@@ -345,8 +366,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
         let id = {
             let mut modules = self.vm.modules.lock();
-
             let id: ModuleId = modules.len().into();
+            let annotations = &node.annotation_usages;
             let module = Module {
                 id: id,
                 name: node.name,
@@ -359,8 +380,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 internal: node.internal,
                 internal_resolved: false,
                 has_constructor: node.has_constructor,
-                is_pub: node.is_pub,
-
+                is_pub: annotations.contains(
+                    self.vm
+                        .annotations
+                        .idx(self.vm.known.annotations.pub_)
+                        .read()
+                        .name,
+                ),
                 constructor: None,
                 fields: Vec::new(),
                 methods: Vec::new(),
@@ -384,6 +410,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id = {
             let mut consts = self.vm.consts.lock();
             let id: ConstId = consts.len().into();
+            let annotations = &node.annotation_usages;
             let xconst = ConstData {
                 id,
                 file_id: self.file_id,
@@ -391,7 +418,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 namespace_id: self.namespace_id,
                 pos: node.pos,
                 name: node.name,
-                is_pub: node.is_pub,
+                is_pub: annotations.contains(
+                    self.vm
+                        .annotations
+                        .idx(self.vm.known.annotations.pub_)
+                        .read()
+                        .name,
+                ),
                 ty: SourceType::Error,
                 expr: node.expr.clone(),
                 value: ConstValue::None,
@@ -413,46 +446,14 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let mut classes = self.vm.classes.lock();
 
             let id: ClassId = classes.len().into();
-            let mut cls = vm::Class {
+            let cls = Class::new(
+                self.vm,
                 id,
-                name: node.name,
-                ast: node.clone(),
-                file_id: self.file_id,
-                namespace_id: self.namespace_id,
-                pos: node.pos,
-                primitive_type: None,
-                ty: None,
-                parent_class: None,
-                has_open: node.has_open,
-                is_abstract: node.is_abstract,
-                internal: node.internal,
-                internal_resolved: false,
-                has_constructor: node.has_constructor,
-                table: SymTable::new(),
-                is_pub: node.is_pub,
-
-                constructor: None,
-                fields: Vec::new(),
-                methods: Vec::new(),
-                virtual_fcts: Vec::new(),
-
-                impls: Vec::new(),
-                extensions: Vec::new(),
-
-                type_params: Vec::new(),
-                type_params2: TypeParamDefinition::new(),
-                specializations: RwLock::new(HashMap::new()),
-
-                is_array: false,
-                is_str: false,
-            };
-
-            if let Some(ref type_params) = node.type_params {
-                for param in type_params {
-                    cls.type_params.push(TypeParam::new(param.name));
-                }
-            }
-
+                self.file_id.into(),
+                node.clone(),
+                self.namespace_id,
+                node.has_constructor,
+            );
             classes.push(Arc::new(RwLock::new(cls)));
 
             id
@@ -469,16 +470,29 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id = {
             let mut structs = self.vm.structs.lock();
             let id: StructId = (structs.len() as u32).into();
+            let annotations = &node.annotation_usages;
             let mut xstruct = StructData {
                 id,
                 file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
                 primitive_ty: None,
-                is_pub: node.is_pub,
+                is_pub: annotations.contains(
+                    self.vm
+                        .annotations
+                        .idx(self.vm.known.annotations.pub_)
+                        .read()
+                        .name,
+                ),
                 pos: node.pos,
                 name: node.name,
-                internal: node.internal,
+                internal: annotations.contains(
+                    self.vm
+                        .annotations
+                        .idx(self.vm.known.annotations.internal)
+                        .read()
+                        .name,
+                ),
                 internal_resolved: false,
                 type_params: Vec::new(),
                 type_params2: TypeParamDefinition::new(),
@@ -507,7 +521,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
-        let fct = Fct::new(self.vm, self.file_id, self.namespace_id, node, FctParent::None);
+        let fct = Fct::new(
+            self.vm,
+            self.file_id,
+            self.namespace_id,
+            node,
+            FctParent::None,
+        );
         let fctid = self.vm.add_fct(fct);
         let sym = Sym::Fct(fctid);
 
@@ -518,6 +538,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
         let id: EnumId = self.vm.enums.len().into();
+        let annotations = &node.annotation_usages;
         let mut xenum = EnumData {
             id,
             file_id: self.file_id,
@@ -527,7 +548,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             name: node.name,
             type_params: Vec::new(),
             type_params2: TypeParamDefinition::new(),
-            is_pub: node.is_pub,
+            is_pub: annotations.contains(
+                self.vm
+                    .annotations
+                    .idx(self.vm.known.annotations.pub_)
+                    .read()
+                    .name,
+            ),
             variants: Vec::new(),
             name_to_value: HashMap::new(),
             impls: Vec::new(),

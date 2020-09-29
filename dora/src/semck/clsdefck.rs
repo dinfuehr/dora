@@ -88,7 +88,14 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        self.add_field(f.pos, f.name, ty, f.mutable, f.is_pub);
+        let is_pub = f.annotation_usages.contains(
+            self.vm
+                .annotations
+                .idx(self.vm.known.annotations.pub_)
+                .read()
+                .name,
+        );
+        self.add_field(f.pos, f.name, ty, f.mutable, is_pub);
 
         if !f.primary_ctor && f.expr.is_none() {
             self.vm.diag.lock().report(
