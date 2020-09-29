@@ -2024,36 +2024,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_const_int32(dest, 0);
                 self.gen.bind_label(lbl_end);
             }
-            Intrinsic::Float32Sqrt => {
-                let callee_idx = self.gen.add_const_fct(info.fct_id.unwrap());
-                self.gen.emit_push_register(src);
-                self.gen.emit_invoke_direct(dest, callee_idx, opnd.pos());
-            }
-            Intrinsic::Float64Sqrt => {
-                let callee_idx = self.gen.add_const_fct(info.fct_id.unwrap());
-                self.gen.emit_push_register(src);
-                self.gen.emit_invoke_direct(dest, callee_idx, opnd.pos());
-            }
-            Intrinsic::Int32CountZeroBits
-            | Intrinsic::Int32CountZeroBitsLeading
-            | Intrinsic::Int32CountZeroBitsTrailing
-            | Intrinsic::Int32CountOneBits
-            | Intrinsic::Int32CountOneBitsLeading
-            | Intrinsic::Int32CountOneBitsTrailing => {
-                let callee_idx = self.gen.add_const_fct(info.fct_id.unwrap());
-                self.gen.emit_push_register(src);
-                self.gen.emit_invoke_direct(dest, callee_idx, opnd.pos());
-            }
-            Intrinsic::Int64CountZeroBits
-            | Intrinsic::Int64CountZeroBitsLeading
-            | Intrinsic::Int64CountZeroBitsTrailing
-            | Intrinsic::Int64CountOneBits
-            | Intrinsic::Int64CountOneBitsLeading
-            | Intrinsic::Int64CountOneBitsTrailing => {
-                let callee_idx = self.gen.add_const_fct(info.fct_id.unwrap());
-                self.gen.emit_push_register(src);
-                self.gen.emit_invoke_direct(dest, callee_idx, opnd.pos());
-            }
             Intrinsic::PromoteFloat32ToFloat64 => {
                 self.gen.emit_promote_float32_to_float64(dest, src);
             }

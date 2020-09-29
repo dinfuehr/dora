@@ -497,7 +497,22 @@ pub enum Intrinsic {
 impl Intrinsic {
     pub fn emit_as_function(&self) -> bool {
         match self {
-            Intrinsic::KillRefs | Intrinsic::Unreachable => true,
+            Intrinsic::KillRefs
+            | Intrinsic::Unreachable
+            | Intrinsic::Int64CountZeroBits
+            | Intrinsic::Int64CountZeroBitsLeading
+            | Intrinsic::Int64CountZeroBitsTrailing
+            | Intrinsic::Int64CountOneBits
+            | Intrinsic::Int64CountOneBitsLeading
+            | Intrinsic::Int64CountOneBitsTrailing
+            | Intrinsic::Int32CountZeroBits
+            | Intrinsic::Int32CountZeroBitsLeading
+            | Intrinsic::Int32CountZeroBitsTrailing
+            | Intrinsic::Int32CountOneBits
+            | Intrinsic::Int32CountOneBitsLeading
+            | Intrinsic::Int32CountOneBitsTrailing
+            | Intrinsic::Float32Sqrt
+            | Intrinsic::Float64Sqrt => true,
             _ => false,
         }
     }
