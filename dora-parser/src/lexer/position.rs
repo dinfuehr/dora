@@ -14,6 +14,10 @@ impl Position {
 
         Position { line: l, column: c }
     }
+
+    pub fn invalid() -> Position {
+        Position { line: 0, column: 0 }
+    }
 }
 
 impl Display for Position {

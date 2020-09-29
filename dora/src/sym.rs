@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::vm::{
-    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId, NamespaceId, StructId, TraitId,
-    TypeParamId, VarId, VM,
+    AnnotationId, ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId, NamespaceId,
+    StructId, TraitId, TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
@@ -102,6 +102,10 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_var())
     }
 
+    pub fn get_annotation(&self, name: Name) -> Option<AnnotationId> {
+        self.get(name).and_then(|n| n.to_annotation())
+    }
+
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }
@@ -172,6 +176,7 @@ pub enum Sym {
     Fct(FctId),
     Var(VarId),
     Module(ModuleId),
+    Annotation(AnnotationId),
     Global(GlobalId),
     Const(ConstId),
     Namespace(NamespaceId),
@@ -308,6 +313,20 @@ impl Sym {
     pub fn to_module(&self) -> Option<ModuleId> {
         match *self {
             Module(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_annotation(&self) -> bool {
+        match *self {
+            Annotation(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_annotation(&self) -> Option<AnnotationId> {
+        match *self {
+            Annotation(id) => Some(id),
             _ => None,
         }
     }

@@ -42,7 +42,8 @@ pub struct Annotation {
     pub name: Name,
     pub namespace_id: NamespaceId,
     pub ty: SourceType,
-    pub internal: Option<InternalAnnotation>,
+    pub internal: bool,
+    pub internal_annotation: Option<InternalAnnotation>,
 
     pub type_params: Option<Vec<TypeParam>>,
     pub term_params: Option<Vec<AnnotationParam>>,
