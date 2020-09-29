@@ -56,7 +56,7 @@ fun check_iterator1(map: HashMap[Int32, String]) {
             assert(!set.contains(2L));
             set.insert(2L);
         } else {
-            unreachable();
+            unreachable[()]();
         }
     }
 
@@ -83,7 +83,7 @@ fun check_iterator2(map: HashMap[Int32, String]) {
             assert(!set.contains(1L));
             set.insert(1L);
         } else {
-            unreachable();
+            unreachable[()]();
         }
     }
 

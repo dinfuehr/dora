@@ -25,7 +25,7 @@ fun iterateWithForIn() {
         else if idx == 1L { assert(value == "b"); }
         else if idx == 2L { assert(value == "c"); }
         else {
-            unreachable();
+            unreachable[()]();
         }
 
     }

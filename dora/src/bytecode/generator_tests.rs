@@ -3211,6 +3211,47 @@ fn gen_enum_mov_generic() {
 }
 
 #[test]
+fn gen_kill_refs() {
+    gen_fct(
+        "fun f(arr: Array[Int32], idx: Int64) { unsafeKillRefs[Int32](arr, idx); }",
+        |vm, code, fct| {
+            let fct_id = vm
+                .fct_by_name("unsafeKillRefs")
+                .expect("unsafeKillRefs not found");
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                InvokeStaticVoid(ConstPoolIdx(0)),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::single(BuiltinType::Int32))
+            );
+        },
+    );
+}
+
+#[test]
+fn gen_unreachable() {
+    gen_fct(
+        "fun f():    Int32 { unreachable[Int32]() }",
+        |vm, code, fct| {
+            let fct_id = vm
+                .fct_by_name("unreachable")
+                .expect("unreachable not found");
+            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::single(BuiltinType::Int32))
+            );
+        },
+    );
+}
+
+#[test]
 fn gen_enum_array() {
     let result = code(
         "enum MyEnum { A(Int32), B }

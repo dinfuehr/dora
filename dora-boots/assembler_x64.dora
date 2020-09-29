@@ -1363,8 +1363,7 @@ impl Condition {
         } else if self == Condition::Greater {
             0b1111
         } else {
-            unreachable();
-            0
+            unreachable[Int32]()
         }
     }
 }
@@ -1420,8 +1419,7 @@ impl ScaleFactor {
         } else if self == ScaleFactor::Eight {
             3
         } else {
-            unreachable();
-            -1
+            unreachable[Int32]()
         }
     }
 }
@@ -1499,7 +1497,7 @@ module Address {
         } else if mode == 0b10 {
             address.set_disp32(offset);
         } else {
-            unreachable();
+            unreachable[()]();
         }
 
         address
@@ -1540,7 +1538,7 @@ module Address {
         } else if mode == 0b10 {
             address.set_disp32(disp);
         } else {
-            unreachable();
+            unreachable[()]();
         }
 
         address

@@ -46,8 +46,7 @@ fun decodeRegisters(registers: Array[Int32]): Array[BytecodeType] {
         } else if regtype == BC_TYPE_PTR {
             BytecodeType::ptr()
         } else {
-            unreachable();
-            BytecodeType::bool()
+            unreachable[BytecodeType]()
         };
 
         result(i) = value;
@@ -87,7 +86,7 @@ fun decodeConstPool(constpool: Array[UInt8]): Array[ConstPoolEntry] {
             reader.skipBytes(length.toInt64());
         } else {
             println("opcode = ${opcode}");
-            unreachable();
+            unreachable[()]();
         }
     }
 

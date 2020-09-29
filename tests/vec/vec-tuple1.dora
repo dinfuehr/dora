@@ -1,0 +1,7 @@
+fun main() {
+    let x = Vec[(Int32, String)]((1, "abc"), (2, "def"), (3, "ghi"));
+    assert(x.size() == 3L);
+    assert(x.pop().1 == "ghi");
+    assert(x.pop().1 == "def");
+    assert(x.pop().1 == "abc");
+}

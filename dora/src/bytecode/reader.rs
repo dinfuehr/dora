@@ -610,10 +610,6 @@ where
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_string(dest, idx);
             }
-            BytecodeOpcode::ConstGenericDefault => {
-                let dest = self.read_register(wide);
-                self.visitor.visit_const_generic_default(dest);
-            }
 
             BytecodeOpcode::TestEqPtr => {
                 let dest = self.read_register(wide);
@@ -1575,9 +1571,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_const_string(&mut self, _dest: Register, _value: ConstPoolIdx) {
-        unimplemented!();
-    }
-    fn visit_const_generic_default(&mut self, _dest: Register) {
         unimplemented!();
     }
 

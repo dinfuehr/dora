@@ -572,8 +572,7 @@ fun binOpName(op: BinOp): String {
     } else if op == BinOp::Sar {
         "Sar"
     } else {
-        unreachable();
-        ""
+        unreachable[String]()
     }
 }
 
@@ -601,8 +600,7 @@ impl TestOp {
         } else if self == TestOp::LessOrEqual {
             "LessOrEqual"
         } else {
-            unreachable();
-            ""
+            unreachable[String]()
         }
     }
 }
@@ -617,8 +615,7 @@ fun unOpName(op: UnOp): String {
     } else if op == UnOp::Not {
         "Not"
     } else {
-        unreachable();
-        ""
+        unreachable[String]()
     }
 }
 

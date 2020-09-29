@@ -349,7 +349,8 @@ pub enum Intrinsic {
     ArrayGet,
     ArraySet,
 
-    DefaultValue,
+    Unreachable,
+    KillRefs,
 
     Assert,
     Debug,
@@ -494,6 +495,13 @@ pub enum Intrinsic {
 }
 
 impl Intrinsic {
+    pub fn emit_as_function(&self) -> bool {
+        match self {
+            Intrinsic::KillRefs | Intrinsic::Unreachable => true,
+            _ => false,
+        }
+    }
+
     pub fn result_type(self) -> BytecodeType {
         match self {
             Intrinsic::Int32Add

@@ -65,7 +65,7 @@ class Vec[T](values: T...) {
 
     // set popped element to nil so that GC can collect object
     // not necessary for primitive types
-    self.array.set(newlength, defaultValue[T]());
+    unsafeKillRefs[T](self.array, newlength);
 
     self.len = newlength;
     temp
@@ -94,7 +94,7 @@ class Vec[T](values: T...) {
       ind = ind + 1L;
     }
 
-    self.set(ind, defaultValue[T]());
+    unsafeKillRefs[T](self.array, ind);
     self.len = ind;
 
     temp

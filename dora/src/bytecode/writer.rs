@@ -211,10 +211,6 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::ConstFalse, dest);
     }
 
-    pub fn emit_const_generic_default(&mut self, dest: Register) {
-        self.emit_reg1(BytecodeOpcode::ConstGenericDefault, dest);
-    }
-
     pub fn emit_not_bool(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::NotBool, dest, src);
     }

@@ -96,6 +96,11 @@ pub extern "C" fn exit(status: i32) {
     process::exit(status);
 }
 
+pub extern "C" fn unreachable() {
+    eprintln!("unreachable code executed.");
+    process::exit(1);
+}
+
 pub extern "C" fn timestamp() -> u64 {
     use crate::timer;
 

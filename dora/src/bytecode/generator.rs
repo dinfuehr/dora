@@ -872,7 +872,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_expr_call(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
         if let Some(info) = self.get_intrinsic(expr.id) {
-            return self.visit_expr_call_intrinsic(expr, info, dest);
+            if !info.intrinsic.emit_as_function() {
+                return self.visit_expr_call_intrinsic(expr, info, dest);
+            }
         }
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
@@ -1706,34 +1708,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Intrinsic::ArrayWithValues => {
                     let ty = self.ty(expr.id);
                     self.emit_array_with_variadic_arguments(expr, &[ty], 0, dest)
-                }
-
-                Intrinsic::DefaultValue => {
-                    let ty = self.ty(expr.id);
-
-                    if ty.is_unit() || dest.is_effect() {
-                        assert!(dest.is_unit());
-                        return Register::invalid();
-                    }
-
-                    let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
-                    let dest = self.ensure_register(dest, ty.clone());
-
-                    match ty {
-                        BytecodeType::Bool => self.gen.emit_const_false(dest),
-                        BytecodeType::UInt8 => self.gen.emit_const_uint8(dest, 0),
-                        BytecodeType::Int32 => self.gen.emit_const_int32(dest, 0),
-                        BytecodeType::Int64 => self.gen.emit_const_int64(dest, 0),
-                        BytecodeType::Char => self.gen.emit_const_char(dest, '\0'),
-                        BytecodeType::Float32 => self.gen.emit_const_float32(dest, 0.0),
-                        BytecodeType::Float64 => self.gen.emit_const_float64(dest, 0.0),
-                        BytecodeType::Ptr => self.gen.emit_const_nil(dest),
-                        BytecodeType::Tuple(_) => unimplemented!(),
-                        BytecodeType::TypeParam(_) => self.gen.emit_const_generic_default(dest),
-                        BytecodeType::Enum(_, _) => unimplemented!(),
-                    }
-
-                    dest
                 }
 
                 _ => panic!("unimplemented intrinsic {:?}", intrinsic),

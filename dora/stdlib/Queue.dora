@@ -28,7 +28,7 @@ class Queue[T] {
     assert(self.count > 0L);
 
     let value = self.elements.get(self.front);
-    self.elements.set(self.front, defaultValue[T]());
+    unsafeKillRefs[T](self.elements, self.front);
 
     self.moveFront();
     self.count = self.count - 1L;

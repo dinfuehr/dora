@@ -109,8 +109,8 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
                     let value = self.values.get(idx);
                     self.inserted_and_deleted.insert(2L * idx + 1L);
 
-                    self.keys.set(idx, defaultValue[K]());
-                    self.values.set(idx, defaultValue[V]());
+                    unsafeKillRefs[K](self.keys, idx);
+                    unsafeKillRefs[V](self.values, idx);
 
                     self.entries = self.entries - 1L;
                     return Option::some[V](value);

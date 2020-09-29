@@ -25,7 +25,7 @@ class None[T] extends Option[T] {
   @override fun has(rhs: T): Bool = false;
   @override fun unwrap(): T {
     fatalError("cannot unwrap None.");
-    defaultValue[T]()
+    unreachable[T]()
   }
   @override fun unwrapNone() {}
   @override fun unwrapOr(value: T): T { value }

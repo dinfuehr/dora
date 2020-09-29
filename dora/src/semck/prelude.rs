@@ -178,6 +178,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_fct(vm, "fatalError", stdlib::fatal_error as *const u8);
     native_fct(vm, "abort", stdlib::abort as *const u8);
     native_fct(vm, "exit", stdlib::exit as *const u8);
+    intrinsic_fct(vm, "unreachable", Intrinsic::Unreachable);
 
     native_fct(vm, "print", stdlib::print as *const u8);
     native_fct(vm, "println", stdlib::println as *const u8);
@@ -197,7 +198,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     native_fct(vm, "call", stdlib::call as *const u8);
 
-    intrinsic_fct(vm, "defaultValue", Intrinsic::DefaultValue);
+    intrinsic_fct(vm, "unsafeKillRefs", Intrinsic::KillRefs);
 
     let clsid = vm.known.classes.uint8;
     native_class_method(vm, clsid, "toString", stdlib::uint8_to_string as *const u8);

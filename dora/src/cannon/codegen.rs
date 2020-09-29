@@ -23,6 +23,7 @@ use crate::semck::specialize::{
     specialize_class_id_params, specialize_tuple, specialize_type, specialize_type_list,
 };
 use crate::size::InstanceSize;
+use crate::stdlib;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM};
 use crate::vtable::{VTable, DISPLAY_SIZE};
@@ -1458,25 +1459,6 @@ where
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
-    fn emit_const_generic_default(&mut self, dest: Register) {
-        if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
-            match bytecode_type {
-                BytecodeType::Tuple(_) => unreachable!(),
-                BytecodeType::Bool => self.emit_const_bool(dest, false),
-                BytecodeType::UInt8
-                | BytecodeType::Char
-                | BytecodeType::Int32
-                | BytecodeType::Int64 => self.emit_const_int(dest, 0),
-                BytecodeType::Ptr => self.emit_const_nil(dest),
-                BytecodeType::Float32 | BytecodeType::Float64 => {
-                    self.emit_const_float(dest, 0_f64);
-                }
-                BytecodeType::TypeParam(_) => unreachable!(),
-                BytecodeType::Enum(_, _) => unimplemented!(),
-            }
-        }
-    }
-
     fn emit_test_generic(&mut self, dest: Register, lhs: Register, rhs: Register, op: CondCode) {
         assert_eq!(
             self.bytecode.register_type(lhs),
@@ -2131,8 +2113,13 @@ where
             self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
         assert!(fct_return_type.is_concrete_type(self.vm));
 
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, intrinsic)
+            self.emit_invoke_intrinsic(&*fct, type_params, intrinsic)
         } else {
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
             let self_register = arguments[0];
@@ -2165,11 +2152,6 @@ where
                 ),
                 None => (REG_RESULT.into(), None),
             };
-
-            let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-            debug_assert!(type_params
-                .iter()
-                .all(|ty| !ty.contains_type_param(self.vm)));
 
             self.asm.direct_call(
                 fct_id,
@@ -2215,8 +2197,13 @@ where
             self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
         assert!(fct_return_type.is_concrete_type(self.vm));
 
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, intrinsic)
+            self.emit_invoke_intrinsic(&*fct, type_params, intrinsic)
         } else {
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -2245,11 +2232,6 @@ where
                 ),
                 None => (REG_RESULT.into(), None),
             };
-
-            let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-            debug_assert!(type_params
-                .iter()
-                .all(|ty| !ty.contains_type_param(self.vm)));
 
             self.asm.direct_call(
                 fct_id,
@@ -2328,7 +2310,12 @@ where
         panic!("no impl found for generic trait call")
     }
 
-    fn emit_invoke_intrinsic(&mut self, _fct: &Fct, intrinsic: Intrinsic) -> AnyReg {
+    fn emit_invoke_intrinsic(
+        &mut self,
+        fct: &Fct,
+        type_params: TypeList,
+        intrinsic: Intrinsic,
+    ) -> AnyReg {
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         match intrinsic {
@@ -2423,6 +2410,74 @@ where
                 }
 
                 dest.into()
+            }
+
+            Intrinsic::Unreachable => {
+                let native_fct = NativeFct {
+                    ptr: Address::from_ptr(stdlib::unreachable as *const u8),
+                    args: &[],
+                    return_type: BuiltinType::Unit,
+                    desc: NativeFctDescriptor::NativeStub(fct.id),
+                };
+                let position = self.bytecode.offset_position(self.current_offset.to_u32());
+                let gcpoint = self.create_gcpoint();
+                let result = REG_RESULT.into();
+                self.asm.native_call(native_fct, position, gcpoint, result);
+
+                // Method should never return
+                self.asm.debug();
+
+                result
+            }
+
+            Intrinsic::KillRefs => {
+                assert_eq!(1, type_params.len());
+                assert_eq!(2, arguments.len());
+                let ty = type_params[0];
+                let result = REG_RESULT.into();
+
+                if ty.is_unit() {
+                    return result;
+                }
+
+                let bytecode_type: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+
+                match bytecode_type {
+                    BytecodeType::Bool
+                    | BytecodeType::Char
+                    | BytecodeType::UInt8
+                    | BytecodeType::Int32
+                    | BytecodeType::Int64
+                    | BytecodeType::Float32
+                    | BytecodeType::Float64 => {}
+
+                    BytecodeType::Ptr => {
+                        self.emit_load_register(arguments[0], REG_RESULT.into());
+                        self.emit_load_register(arguments[1], REG_TMP1.into());
+
+                        self.asm
+                            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, mem::ptr_width());
+                        self.asm
+                            .store_zero(MachineMode::Ptr, Mem::Base(REG_TMP1, 0));
+                    }
+
+                    BytecodeType::Tuple(tuple_id) => {
+                        let tuple_id = specialize_tuple(self.vm, tuple_id, &type_params);
+                        self.emit_load_register(arguments[0], REG_RESULT.into());
+                        self.emit_load_register(arguments[1], REG_TMP1.into());
+
+                        let tuple_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+                        self.asm
+                            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, tuple_size);
+                        self.zero_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));
+                    }
+
+                    BytecodeType::Enum(_, _) => unimplemented!(),
+
+                    BytecodeType::TypeParam(_) => unreachable!(),
+                }
+
+                result
             }
 
             _ => unreachable!(),
@@ -3256,10 +3311,6 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             )
         );
         self.emit_const_string(dest, value);
-    }
-    fn visit_const_generic_default(&mut self, dest: Register) {
-        comment!(self, format!("ConstGenericDefault {}", dest));
-        self.emit_const_generic_default(dest);
     }
 
     fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {

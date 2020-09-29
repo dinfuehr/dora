@@ -1,5 +1,5 @@
 //= error assert
-//= stderr "assert failed\n3: foo(): 9\n2: call(String): 19\n1: main(): 5\n"
+//= stderr "assert failed\n3: foo(): 9\n2: call(String): 17\n1: main(): 5\n"
 
 fun main() {
     call("foo");

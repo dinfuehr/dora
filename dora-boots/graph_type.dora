@@ -52,8 +52,7 @@ module Type {
         } else if ty.isPtr() {
             Type::ptr()
         } else {
-            unreachable();
-            Type::unit()
+            unreachable[Type]()
         }
     }
 }
@@ -87,8 +86,7 @@ impl TypeKind {
         } else if self == TypeKind::Ptr {
             "Ptr"
         } else {
-            unreachable();
-            ""
+            unreachable[String]()
         }
     }
 }

@@ -1,9 +1,7 @@
 @internal fun fatalError(msg: String);
 @internal fun abort();
 @internal fun exit(status: Int32);
-fun unreachable() {
-  fatalError("unreachable code");
-}
+@internal fun unreachable[T](): T;
 
 fun unimplemented() = fatalError("not yet implemented");
 
@@ -109,6 +107,6 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
   return true;
 }
 
-@internal fun defaultValue[T](): T;
+@internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
 
 @internal fun sleep(seconds: Int32);
