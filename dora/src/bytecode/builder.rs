@@ -481,32 +481,6 @@ impl BytecodeBuilder {
         self.writer.emit_convert_int64_to_float64(dest, src);
     }
 
-    pub fn emit_truncate_float32_to_int32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_truncate_float32_to_int32(dest, src);
-    }
-    pub fn emit_truncate_float32_to_int64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_truncate_float32_to_int64(dest, src);
-    }
-    pub fn emit_truncate_float64_to_int32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_truncate_float64_to_int32(dest, src);
-    }
-    pub fn emit_truncate_float64_to_int64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_truncate_float64_to_int64(dest, src);
-    }
-
-    pub fn emit_promote_float32_to_float64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_promote_float32_to_float64(dest, src);
-    }
-    pub fn emit_demote_float64_to_float32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_demote_float64_to_float32(dest, src);
-    }
-
     pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
         assert!(self.def(dest) && self.used(src));
         self.writer.emit_instance_of(dest, src, cls_idx);

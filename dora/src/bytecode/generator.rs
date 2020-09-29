@@ -2013,23 +2013,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::Int32ToFloat64 => self.gen.emit_convert_int32_to_float64(dest, src),
             Intrinsic::Int64ToFloat32 => self.gen.emit_convert_int64_to_float32(dest, src),
             Intrinsic::Int64ToFloat64 => self.gen.emit_convert_int64_to_float64(dest, src),
-            Intrinsic::Float32ToInt32 => self.gen.emit_truncate_float32_to_int32(dest, src),
-            Intrinsic::Float32ToInt64 => self.gen.emit_truncate_float32_to_int64(dest, src),
-            Intrinsic::Float64ToInt32 => self.gen.emit_truncate_float64_to_int32(dest, src),
-            Intrinsic::Float64ToInt64 => self.gen.emit_truncate_float64_to_int64(dest, src),
-            Intrinsic::BoolToInt32 => {
-                self.gen.emit_const_int32(dest, 1);
-                let lbl_end = self.gen.create_label();
-                self.gen.emit_jump_if_true(src, lbl_end);
-                self.gen.emit_const_int32(dest, 0);
-                self.gen.bind_label(lbl_end);
-            }
-            Intrinsic::PromoteFloat32ToFloat64 => {
-                self.gen.emit_promote_float32_to_float64(dest, src);
-            }
-            Intrinsic::DemoteFloat64ToFloat32 => {
-                self.gen.emit_demote_float64_to_float32(dest, src);
-            }
             _ => {
                 panic!("unimplemented intrinsic {:?}", intrinsic);
             }

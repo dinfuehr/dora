@@ -512,7 +512,14 @@ impl Intrinsic {
             | Intrinsic::Int32CountOneBitsLeading
             | Intrinsic::Int32CountOneBitsTrailing
             | Intrinsic::Float32Sqrt
-            | Intrinsic::Float64Sqrt => true,
+            | Intrinsic::Float64Sqrt
+            | Intrinsic::PromoteFloat32ToFloat64
+            | Intrinsic::DemoteFloat64ToFloat32
+            | Intrinsic::BoolToInt32
+            | Intrinsic::Float32ToInt32
+            | Intrinsic::Float32ToInt64
+            | Intrinsic::Float64ToInt32
+            | Intrinsic::Float64ToInt64 => true,
             _ => false,
         }
     }

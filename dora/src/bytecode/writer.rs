@@ -405,26 +405,6 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::ConvertInt64ToFloat64, dest, src);
     }
 
-    pub fn emit_truncate_float32_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::TruncateFloat32ToInt32, dest, src);
-    }
-    pub fn emit_truncate_float32_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::TruncateFloat32ToInt64, dest, src);
-    }
-    pub fn emit_truncate_float64_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::TruncateFloat64ToInt32, dest, src);
-    }
-    pub fn emit_truncate_float64_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::TruncateFloat64ToInt64, dest, src);
-    }
-
-    pub fn emit_promote_float32_to_float64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::PromoteFloat32ToFloat64, dest, src);
-    }
-    pub fn emit_demote_float64_to_float32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::DemoteFloat64ToFloat32, dest, src);
-    }
-
     pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
         self.emit_reg2_cls(BytecodeOpcode::InstanceOf, dest, src, cls_idx);
     }

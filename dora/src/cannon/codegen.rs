@@ -863,34 +863,6 @@ where
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
 
-    fn emit_float_to_int(&mut self, dest: Register, src: Register) {
-        let src_type = self.bytecode.register_type(src);
-        let dest_type = self.bytecode.register_type(dest);
-
-        let (dest_mode, src_mode) = match (dest_type, src_type) {
-            (BytecodeType::Int32, BytecodeType::Float32) => {
-                (MachineMode::Int32, MachineMode::Float32)
-            }
-            (BytecodeType::Int32, BytecodeType::Float64) => {
-                (MachineMode::Int32, MachineMode::Float64)
-            }
-            (BytecodeType::Int64, BytecodeType::Float32) => {
-                (MachineMode::Int64, MachineMode::Float32)
-            }
-            (BytecodeType::Int64, BytecodeType::Float64) => {
-                (MachineMode::Int64, MachineMode::Float64)
-            }
-            _ => unreachable!(),
-        };
-
-        self.emit_load_register(src, FREG_RESULT.into());
-
-        self.asm
-            .float_to_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
-
-        self.emit_store_register(REG_RESULT.into(), dest);
-    }
-
     fn emit_promote_float(&mut self, dest: Register, src: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Float64);
         assert_eq!(self.bytecode.register_type(src), BytecodeType::Float32);
@@ -2130,7 +2102,7 @@ where
 
     fn emit_invoke_direct_inner(
         &mut self,
-        dest: Option<Register>,
+        mut dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
     ) {
@@ -2154,7 +2126,7 @@ where
             .all(|ty| !ty.contains_type_param(self.vm)));
 
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, type_params, intrinsic)
+            self.emit_invoke_intrinsic(&*fct, &mut dest, type_params, intrinsic)
         } else {
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
             let self_register = arguments[0];
@@ -2220,7 +2192,7 @@ where
 
     fn emit_invoke_static_inner(
         &mut self,
-        dest: Option<Register>,
+        mut dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
     ) {
@@ -2238,7 +2210,7 @@ where
             .all(|ty| !ty.contains_type_param(self.vm)));
 
         let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, type_params, intrinsic)
+            self.emit_invoke_intrinsic(&*fct, &mut dest, type_params, intrinsic)
         } else {
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -2284,7 +2256,7 @@ where
         };
 
         if let Some(dest) = dest {
-            if !fct_return_type.is_tuple() {
+            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
                 self.emit_store_register(reg, dest);
             }
         }
@@ -2348,6 +2320,7 @@ where
     fn emit_invoke_intrinsic(
         &mut self,
         fct: &Fct,
+        dest: &mut Option<Register>,
         type_params: TypeList,
         intrinsic: Intrinsic,
     ) -> AnyReg {
@@ -2463,6 +2436,64 @@ where
                 self.asm.debug();
 
                 result
+            }
+
+            Intrinsic::PromoteFloat32ToFloat64 => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_promote_float(dest_reg, src_reg);
+
+                *dest = None;
+                REG_RESULT.into()
+            }
+
+            Intrinsic::DemoteFloat64ToFloat32 => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_demote_float64(dest_reg, src_reg);
+
+                *dest = None;
+                REG_RESULT.into()
+            }
+
+            Intrinsic::BoolToInt32 | Intrinsic::BoolToInt64 => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+
+                self.emit_load_register(src_reg, REG_RESULT.into());
+                self.asm
+                    .extend_byte(MachineMode::Int64, REG_RESULT, REG_RESULT);
+                self.emit_store_register(REG_RESULT.into(), dest_reg);
+
+                *dest = None;
+                REG_RESULT.into()
+            }
+
+            Intrinsic::Float32ToInt32
+            | Intrinsic::Float32ToInt64
+            | Intrinsic::Float64ToInt32
+            | Intrinsic::Float64ToInt64 => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+
+                self.emit_load_register(src_reg, FREG_RESULT.into());
+                let (src_mode, dest_mode) = match intrinsic {
+                    Intrinsic::Float32ToInt32 => (MachineMode::Float32, MachineMode::Int32),
+                    Intrinsic::Float64ToInt32 => (MachineMode::Float64, MachineMode::Int32),
+                    Intrinsic::Float32ToInt64 => (MachineMode::Float32, MachineMode::Int64),
+                    Intrinsic::Float64ToInt64 => (MachineMode::Float64, MachineMode::Int64),
+                    _ => unreachable!(),
+                };
+                self.asm
+                    .float_to_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
+                self.emit_store_register(REG_RESULT.into(), dest_reg);
+
+                *dest = None;
+                REG_RESULT.into()
             }
 
             Intrinsic::KillRefs => {
@@ -2980,32 +3011,6 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_convert_int64_to_float64(&mut self, dest: Register, src: Register) {
         comment!(self, format!("ConvertInt64ToFloat64 {}, {}", dest, src));
         self.emit_int_to_float(dest, src);
-    }
-
-    fn visit_truncate_float32_to_int32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("TruncateFloat32ToInt32 {}, {}", dest, src));
-        self.emit_float_to_int(dest, src);
-    }
-    fn visit_truncate_float32_to_int64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("TruncateFloat32ToInt64 {}, {}", dest, src));
-        self.emit_float_to_int(dest, src);
-    }
-    fn visit_truncate_float64_to_int32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("TruncateFloat64ToInt32 {}, {}", dest, src));
-        self.emit_float_to_int(dest, src);
-    }
-    fn visit_truncate_float64_to_int64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("TruncateFloat64ToInt64 {}, {}", dest, src));
-        self.emit_float_to_int(dest, src);
-    }
-
-    fn visit_promote_float32_to_float64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("PromoteFloat32ToFloat64 {}, {}", dest, src));
-        self.emit_promote_float(dest, src);
-    }
-    fn visit_demote_float64_to_float32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("DemoteFloat64ToFloat32 {}, {}", dest, src));
-        self.emit_demote_float64(dest, src);
     }
 
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {

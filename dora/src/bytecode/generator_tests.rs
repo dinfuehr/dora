@@ -3109,31 +3109,83 @@ fn gen_convert_int64_to_float64() {
 }
 
 #[test]
-fn gen_truncate_float32_to_int() {
-    let result = code("fun f(a: Float32): Int32 { a.toInt32() }");
-    let expected = vec![TruncateFloat32ToInt32(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+fn gen_truncate_float32_to_int32() {
+    gen_fct(
+        "fun f(a: Float32): Int32 { a.toInt32() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Float32", "toInt32", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_truncate_float32_to_int64() {
-    let result = code("fun f(a: Float32): Int64 { a.toInt64() }");
-    let expected = vec![TruncateFloat32ToInt64(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Float32): Int64 { a.toInt64() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Float32", "toInt64", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
-fn gen_truncate_float64_to_int() {
-    let result = code("fun f(a: Float64): Int32 { a.toInt32() }");
-    let expected = vec![TruncateFloat64ToInt32(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+fn gen_truncate_float64_to_int32() {
+    gen_fct(
+        "fun f(a: Float64): Int32 { a.toInt32() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Float64", "toInt32", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_truncate_float64_to_int64() {
-    let result = code("fun f(a: Float64): Int64 { a.toInt64() }");
-    let expected = vec![TruncateFloat64ToInt64(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Float64): Int64 { a.toInt64() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Float64", "toInt64", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]

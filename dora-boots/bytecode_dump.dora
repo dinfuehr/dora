@@ -183,11 +183,6 @@ class BytecodeDumper(let bc: BytecodeFunction) extends BytecodeVisitor {
     @override fun visitConvertInt64ToFloat32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ConvertInt64ToFloat32", dest, src); }
     @override fun visitConvertInt64ToFloat64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ConvertInt64ToFloat64", dest, src); }
 
-    @override fun visitTruncateFloat32ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("TruncateFloat32ToInt32", dest, src); }
-    @override fun visitTruncateFloat32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("TruncateFloat32ToInt64", dest, src); }
-    @override fun visitTruncateFloat64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("TruncateFloat64ToInt32", dest, src); }
-    @override fun visitTruncateFloat64ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("TruncateFloat64ToInt64", dest, src); }
-
     @override fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { self.emitReg2AndCls("InstanceOf", dest, src, cls); }
     @override fun visitCheckedCast(dest: BytecodeRegister, cls: ClassDefId) { self.emitReg1AndCls("CheckedCast", dest, cls); }
 

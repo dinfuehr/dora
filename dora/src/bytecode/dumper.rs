@@ -599,26 +599,6 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_reg2("ConvertInt64ToFloat64", dest, src);
     }
 
-    fn visit_truncate_float32_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("TruncateFloatToInt32", dest, src);
-    }
-    fn visit_truncate_float32_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("TruncateFloatToInt64", dest, src);
-    }
-    fn visit_truncate_float64_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("TruncateFloat64ToInt32", dest, src);
-    }
-    fn visit_truncate_float64_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("TruncateFloat64ToInt64", dest, src);
-    }
-
-    fn visit_promote_float32_to_float64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("PromoteFloat32ToFloat64", dest, src);
-    }
-    fn visit_demote_float64_to_float32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("TruncateFloat64ToFloat32", dest, src);
-    }
-
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ConstPoolIdx) {
         self.emit_reg2_cls("InstanceOf", dest, src, cls_id);
     }

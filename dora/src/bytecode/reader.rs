@@ -388,38 +388,6 @@ where
                 self.visitor.visit_convert_int64_to_float64(dest, src);
             }
 
-            BytecodeOpcode::TruncateFloat32ToInt32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_truncate_float32_to_int32(dest, src);
-            }
-            BytecodeOpcode::TruncateFloat32ToInt64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_truncate_float32_to_int64(dest, src);
-            }
-            BytecodeOpcode::TruncateFloat64ToInt32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_truncate_float64_to_int32(dest, src);
-            }
-            BytecodeOpcode::TruncateFloat64ToInt64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_truncate_float64_to_int64(dest, src);
-            }
-
-            BytecodeOpcode::PromoteFloat32ToFloat64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_promote_float32_to_float64(dest, src);
-            }
-            BytecodeOpcode::DemoteFloat64ToFloat32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_demote_float64_to_float32(dest, src);
-            }
-
             BytecodeOpcode::InstanceOf => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1433,13 +1401,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_truncate_float64_to_int64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-
-    fn visit_promote_float32_to_float64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_demote_float64_to_float32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 

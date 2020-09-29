@@ -239,14 +239,6 @@ pub enum BytecodeOpcode {
     ConvertInt64ToFloat32,
     ConvertInt64ToFloat64,
 
-    TruncateFloat32ToInt32,
-    TruncateFloat32ToInt64,
-    TruncateFloat64ToInt32,
-    TruncateFloat64ToInt64,
-
-    PromoteFloat32ToFloat64,
-    DemoteFloat64ToFloat32,
-
     InstanceOf,
     CheckedCast,
 
