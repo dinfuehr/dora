@@ -148,7 +148,9 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Opti
                 .report(fct.file, fct.pos(), SemError::MissingOverride(name));
         }
 
-        if !(super_method.has_open || super_method.has_override) || super_method.has_final {
+        if !(super_method.is_abstract || super_method.has_open || super_method.has_override)
+            || super_method.has_final
+        {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
