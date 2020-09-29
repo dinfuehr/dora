@@ -92,6 +92,54 @@ pub struct Class {
 }
 
 impl Class {
+    pub fn new(
+        _vm: &VM,
+        id: ClassId,
+        file_id: FileId,
+        ast: &Arc<ast::Class>,
+        namespace_id: NamespaceId,
+    ) -> Class {
+        let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
+            type_params
+                .iter()
+                .map(|type_param| TypeParam::new(type_param.name))
+                .collect()
+        });
+        Class {
+            id,
+            file_id,
+            ast: ast.clone(),
+            namespace_id: namespace_id,
+            pos: ast.pos,
+            name: ast.name,
+            ty: None,
+            parent_class: None,
+            has_open: ast.has_open,
+            is_abstract: ast.is_abstract,
+            internal: ast.internal,
+            internal_resolved: false,
+            has_constructor: ast.has_constructor,
+            is_pub: ast.is_pub,
+            table: SymTable::new(),
+
+            constructor: None,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            virtual_fcts: Vec::new(),
+
+            impls: Vec::new(),
+            extensions: Vec::new(),
+
+            type_params,
+            type_params2: TypeParamDefinition::new(),
+            specializations: RwLock::new(HashMap::new()),
+
+            is_array: false,
+            is_str: false,
+            primitive_type: None,
+        }
+    }
+
     pub fn is_generic(&self) -> bool {
         self.type_params.len() > 0
     }

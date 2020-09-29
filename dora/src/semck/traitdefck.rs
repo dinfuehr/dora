@@ -75,6 +75,7 @@ impl<'x> TraitCheck<'x> {
 
     fn visit_method(&mut self, node: &Arc<ast::Function>) {
         let mut fct = Fct::new(
+            self.vm,
             self.file_id,
             self.namespace_id,
             node,

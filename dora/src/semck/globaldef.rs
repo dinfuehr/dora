@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::error::msg::SemError;
 use crate::gc::Address;
 use crate::semck::report_sym_shadow;
-use crate::sym::{Sym, SymTable};
+use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
     self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
@@ -413,45 +413,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let mut classes = self.vm.classes.lock();
 
             let id: ClassId = classes.len().into();
-            let mut cls = vm::Class {
-                id,
-                name: node.name,
-                ast: node.clone(),
-                file_id: self.file_id,
-                namespace_id: self.namespace_id,
-                pos: node.pos,
-                primitive_type: None,
-                ty: None,
-                parent_class: None,
-                has_open: node.has_open,
-                is_abstract: node.is_abstract,
-                internal: node.internal,
-                internal_resolved: false,
-                has_constructor: node.has_constructor,
-                table: SymTable::new(),
-                is_pub: node.is_pub,
-
-                constructor: None,
-                fields: Vec::new(),
-                methods: Vec::new(),
-                virtual_fcts: Vec::new(),
-
-                impls: Vec::new(),
-                extensions: Vec::new(),
-
-                type_params: Vec::new(),
-                type_params2: TypeParamDefinition::new(),
-                specializations: RwLock::new(HashMap::new()),
-
-                is_array: false,
-                is_str: false,
-            };
-
-            if let Some(ref type_params) = node.type_params {
-                for param in type_params {
-                    cls.type_params.push(TypeParam::new(param.name));
-                }
-            }
+            let cls = vm::Class::new(&self.vm, id, self.file_id, node, self.namespace_id);
 
             classes.push(Arc::new(RwLock::new(cls)));
 
@@ -507,7 +469,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
-        let fct = Fct::new(self.file_id, self.namespace_id, node, FctParent::None);
+        let fct = Fct::new(
+            self.vm,
+            self.file_id,
+            self.namespace_id,
+            node,
+            FctParent::None,
+        );
         let fctid = self.vm.add_fct(fct);
         let sym = Sym::Fct(fctid);
 
