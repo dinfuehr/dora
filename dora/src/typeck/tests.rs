@@ -257,9 +257,14 @@ fn type_def_for_param() {
 fn type_def_for_var() {
     ok("fun a() { let a : Int32 = 1; }");
     err(
-        "fun a() { let a : test = 1; }",
+        "fun a() { let a : XYZ = 1; }",
         pos(1, 19),
-        SemError::UnknownType("test".into()),
+        SemError::UnknownType("XYZ".into()),
+    );
+    err(
+        "fun a() { let a : test = 1; }",
+        pos(1, 11),
+        SemError::AssignType("a".into(), "()".into(), "Int32".into()),
     );
 }
 

@@ -13,7 +13,7 @@ use crate::sym::TermSym::{
     SymClassConstructor, SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
     SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
-use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTypeParam};
+use crate::sym::TypeSym::{SymAnnotation, SymClass, SymEnum, SymStruct, SymTypeParam};
 use crate::ty::BuiltinType;
 
 pub fn check<'ast>(vm: &VM<'ast>) {
@@ -204,19 +204,19 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let type_sym = self.vm.sym.lock().get_type(ident.name);
 
         match (term_sym, type_sym) {
-            (Some(SymVar(id)), None) => {
+            (Some(SymVar(id)), None) | (Some(SymVar(id)), Some(SymAnnotation(_))) => {
                 self.src.map_idents.insert(ident.id, IdentType::Var(id));
             }
 
-            (Some(SymGlobal(id)), None) => {
+            (Some(SymGlobal(id)), None) | (Some(SymGlobal(id)), Some(SymAnnotation(_))) => {
                 self.src.map_idents.insert(ident.id, IdentType::Global(id));
             }
 
-            (Some(SymConst(id)), None) => {
+            (Some(SymConst(id)), None) | (Some(SymConst(id)), Some(SymAnnotation(_))) => {
                 self.src.map_idents.insert(ident.id, IdentType::Const(id));
             }
 
-            (Some(SymFct(id)), None) => {
+            (Some(SymFct(id)), None) | (Some(SymFct(id)), Some(SymAnnotation(_))) => {
                 self.src.map_idents.insert(ident.id, IdentType::Fct(id));
             }
 
@@ -240,6 +240,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
 
             (None, Some(SymEnum(id))) => self.src.map_idents.insert(ident.id, IdentType::Enum(id)),
+
+            (None, Some(SymAnnotation(_))) => {}
 
             (Some(SymModule(module_id)), Some(SymClass(class_id)))
             | (Some(SymClassConstructorAndModule(_, module_id)), Some(SymClass(class_id))) => self

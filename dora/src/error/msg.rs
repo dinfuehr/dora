@@ -34,6 +34,7 @@ pub enum SemError {
     ShadowGlobal(String),
     ShadowConst(String),
     ShadowModule(String),
+    ShadowAnnotation(String),
     ShadowEnum(String),
     ShadowEnumValue(String),
     InvalidLhsAssignment,
@@ -104,6 +105,7 @@ pub enum SemError {
     MisplacedAnnotation(String),
     RedundantAnnotation(String),
     UnknownAnnotation(String),
+    SymbolIsNotAnAnnotation(String),
     InvalidEscapeSequence(char),
     MissingFctBody,
     FctCallExpected,
@@ -233,6 +235,9 @@ impl SemError {
                 format!("can not shadow global variable `{}`.", name)
             }
             SemError::ShadowModule(ref name) => format!("can not shadow module `{}`.", name),
+            SemError::ShadowAnnotation(ref name) => {
+                format!("can not shadow annotation `{}`.", name)
+            }
             SemError::ShadowConst(ref name) => format!("can not shadow const `{}`.", name),
             SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
             SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
@@ -380,6 +385,9 @@ impl SemError {
             }
             SemError::RedundantAnnotation(ref token) => format!("redundant annotation {}.", token),
             SemError::UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
+            SemError::SymbolIsNotAnAnnotation(ref token) => {
+                format!("unknown annotation {}.", token)
+            }
             SemError::UnknownChar(ch) => {
                 format!("unknown character {} (codepoint {}).", ch, ch as usize)
             }

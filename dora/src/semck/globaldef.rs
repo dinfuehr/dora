@@ -8,15 +8,16 @@ use crate::sym::TermSym::{
     SymClassConstructor, SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
     SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
-use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait};
+use crate::sym::TypeSym::{SymAnnotation, SymClass, SymEnum, SymStruct, SymTrait};
 use crate::sym::{TermSym, TypeSym};
 use crate::ty::BuiltinType;
 use crate::vm::module::ModuleId;
 use crate::vm::{
-    class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
-    ExtensionId, Fct, FctKind, FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData, ImplId,
-    NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
+    annotation, class, module, AnnotationId, ClassId, ConstData, ConstId, ConstValue, EnumData,
+    EnumId, ExtensionData, ExtensionId, Fct, FctKind, FctParent, FctSrc, FileId, GlobalData,
+    GlobalId, ImplData, ImplId, NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
+use dora_parser::ast;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
 use dora_parser::interner::Name;
@@ -29,6 +30,7 @@ pub fn check<'ast>(
     map_trait_defs: &mut NodeMap<TraitId>,
     map_impl_defs: &mut NodeMap<ImplId>,
     map_module_defs: &mut NodeMap<ModuleId>,
+    map_annotation_defs: &mut NodeMap<AnnotationId>,
     map_global_defs: &mut NodeMap<GlobalId>,
     map_const_defs: &mut NodeMap<ConstId>,
     map_enum_defs: &mut NodeMap<EnumId>,
@@ -43,6 +45,7 @@ pub fn check<'ast>(
         map_trait_defs,
         map_impl_defs,
         map_module_defs,
+        map_annotation_defs,
         map_global_defs,
         map_const_defs,
         map_enum_defs,
@@ -60,6 +63,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_trait_defs: &'x mut NodeMap<TraitId>,
     map_impl_defs: &'x mut NodeMap<ImplId>,
     map_module_defs: &'x mut NodeMap<ModuleId>,
+    map_annotation_defs: &'x mut NodeMap<AnnotationId>,
     map_global_defs: &'x mut NodeMap<GlobalId>,
     map_const_defs: &'x mut NodeMap<ConstId>,
     map_enum_defs: &'x mut NodeMap<EnumId>,
@@ -297,6 +301,54 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
+    fn visit_annotation(&mut self, a: &'ast Annotation) {
+        if let Some(internal) = a.internal {
+            let annotations = self.vm.annotations.lock();
+            let annotation = annotations
+                .iter()
+                .find(|annotation| annotation.read().internal.contains(&internal))
+                .expect("expected internal annotation to be present");
+            let mut annotation = annotation.write();
+            annotation.file = self.file_id.into();
+            annotation.pos = a.pos;
+            if let Some(ref type_params) = a.type_params {
+                annotation.type_params = Some(convert_type_params(type_params));
+            }
+            return;
+        }
+        let id = {
+            let mut annotations = self.vm.annotations.lock();
+            let id: AnnotationId = annotations.len().into();
+
+            let mut annotation = annotation::Annotation {
+                id,
+                name: a.name,
+                file: self.file_id.into(),
+                pos: a.pos,
+                internal: a.internal,
+                type_params: None,
+                term_params: None,
+                ty: BuiltinType::Error,
+            };
+
+            if let Some(ref type_params) = a.type_params {
+                annotation.type_params = Some(convert_type_params(type_params));
+            }
+
+            annotations.push(Arc::new(RwLock::new(annotation)));
+
+            id
+        };
+
+        let sym = SymAnnotation(id);
+
+        self.map_annotation_defs.insert(a.id, id);
+
+        if let Some(sym) = self.vm.sym.lock().insert_type(a.name, sym) {
+            report_type_shadow(self.vm, a.name, self.file_id.into(), a.pos, sym);
+        }
+    }
+
     fn visit_fct(&mut self, f: &'ast Function) {
         let kind = if f.block.is_some() {
             FctKind::Source(RwLock::new(FctSrc::new()))
@@ -356,6 +408,7 @@ pub fn report_type_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym:
         SymClass(_) => SemError::ShadowClass(name),
         SymStruct(_) => SemError::ShadowStruct(name),
         SymTrait(_) => SemError::ShadowTrait(name),
+        SymAnnotation(_) => SemError::ShadowAnnotation(name),
         SymEnum(_) => SemError::ShadowEnum(name),
         _ => unimplemented!(),
     };
@@ -382,6 +435,14 @@ pub fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym:
     };
 
     vm.diag.lock().report(file, pos, msg);
+}
+
+fn convert_type_params(type_params: &Vec<ast::TypeParam>) -> Vec<TypeParam> {
+    let mut tps = Vec::new();
+    for param in type_params {
+        tps.push(TypeParam::new(param.name));
+    }
+    tps
 }
 
 #[cfg(test)]
@@ -534,6 +595,80 @@ mod tests {
             "enum Foo { A } class Foo",
             pos(1, 16),
             SemError::ShadowEnum("Foo".into()),
+        );
+    }
+
+    #[test]
+    fn class_annotations() {
+        ok_with_test(
+            "@open @abstract class Foo {}
+            class Bar {}",
+            |vm| {
+                let cls = vm.cls_by_name("Foo");
+                let cls = vm.classes.idx(cls);
+                let cls = cls.read();
+                assert_eq!(true, cls.is_abstract);
+                assert_eq!(true, cls.has_open);
+
+                let cls = vm.cls_by_name("Bar");
+                let cls = vm.classes.idx(cls);
+                let cls = cls.read();
+                assert_eq!(false, cls.is_abstract);
+                assert_eq!(false, cls.has_open);
+            },
+        );
+    }
+
+    #[test]
+    fn class_method_annotations() {
+        ok_with_test(
+            "@abstract @open class Bar {
+              @abstract @open fun zero();
+            }
+            class Foo extends Bar {
+              @final @cannon @optimizeImmediately @override fun zero() {}
+              @static fun foo() {}
+        }",
+            |vm| {
+                let met = vm.cls_method_by_name("Bar", "zero", false).unwrap();
+                let met = vm.fcts.idx(met);
+                let met = met.read();
+                assert_eq!(true, met.has_open);
+                assert_eq!(true, met.is_abstract);
+                assert_eq!(false, met.has_final);
+                assert_eq!(false, met.has_optimize_immediately);
+                assert_eq!(false, met.has_override);
+                assert_eq!(false, met.is_pub);
+                assert_eq!(false, met.is_static);
+                assert_eq!(false, met.is_test);
+                assert_eq!(false, met.use_cannon);
+
+                let met = vm.cls_method_by_name("Foo", "zero", false).unwrap();
+                let met = vm.fcts.idx(met);
+                let met = met.read();
+                assert_eq!(true, met.has_final);
+                assert_eq!(true, met.has_optimize_immediately);
+                assert_eq!(true, met.has_override);
+                assert_eq!(true, met.use_cannon);
+                assert_eq!(false, met.has_open);
+                assert_eq!(false, met.is_abstract);
+                assert_eq!(false, met.is_pub);
+                assert_eq!(false, met.is_static);
+                assert_eq!(false, met.is_test);
+
+                let met = vm.cls_method_by_name("Foo", "foo", true).unwrap();
+                let met = vm.fcts.idx(met);
+                let met = met.read();
+                assert_eq!(true, met.is_static);
+                assert_eq!(false, met.has_final);
+                assert_eq!(false, met.has_optimize_immediately);
+                assert_eq!(false, met.has_override);
+                assert_eq!(false, met.has_open);
+                assert_eq!(false, met.is_abstract);
+                assert_eq!(false, met.is_pub);
+                assert_eq!(false, met.is_test);
+                assert_eq!(false, met.use_cannon);
+            },
         );
     }
 }

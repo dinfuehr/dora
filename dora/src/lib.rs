@@ -4,6 +4,7 @@
 #![allow(non_camel_case_types)]
 #![feature(allocator_api)]
 #![feature(llvm_asm)]
+#![feature(option_result_contains)]
 
 extern crate alloc;
 

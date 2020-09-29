@@ -44,6 +44,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
     let mut map_impl_defs = NodeMap::new(); // get ImplId from ast node
     let mut map_module_defs = NodeMap::new(); // get ModuleId from ast node
+    let mut map_annotation_defs = NodeMap::new(); // get AnnotationId from ast node
     let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
     let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
     let mut map_enum_defs = NodeMap::new(); // get EnumId from ast node
@@ -60,6 +61,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
         &mut map_trait_defs,
         &mut map_impl_defs,
         &mut map_module_defs,
+        &mut map_annotation_defs,
         &mut map_global_defs,
         &mut map_const_defs,
         &mut map_enum_defs,
