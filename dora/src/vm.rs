@@ -29,6 +29,7 @@ use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
+pub use self::annotations::{Annotation, AnnotationId};
 pub use self::classes::{
     class_accessible_from, class_field_accessible_from, find_field_in_class, find_method_in_class,
     find_methods_in_class, method_accessible_from, Candidate, Class, ClassDef, ClassDefId, ClassId,
@@ -45,7 +46,8 @@ pub use self::globals::{global_accessible_from, init_global_addresses, GlobalDat
 pub use self::impls::{find_trait_impl, impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
 pub use self::known::{
-    KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs, KnownTraits,
+    KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
+    KnownTraits,
 };
 pub use self::modules::{
     find_methods_in_module, module_accessible_from, Module, ModuleDef, ModuleDefId, ModuleId,
@@ -126,6 +128,7 @@ pub struct VM {
     pub tuples: Mutex<Tuples>,                  // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
+    pub annotations: GrowableVec<RwLock<Annotation>>, // stores all annotation source definitions
     pub namespaces: Vec<NamespaceData>,         // storer all namespace definitions
     pub fcts: GrowableVec<RwLock<Fct>>,         // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,          // stores all function implementations
@@ -161,6 +164,7 @@ impl VM {
         let empty_fct_id: FctId = 0.into();
         let empty_enum_id: EnumId = 0.into();
         let empty_struct_id = 0.into();
+        let empty_annotation_id: AnnotationId = 0.into();
         let gc = Gc::new(&args);
 
         let prelude_namespace_id = NamespaceId(0);
@@ -191,6 +195,7 @@ impl VM {
             tuples: Mutex::new(Tuples::new()),
             modules: GrowableVec::new(),
             module_defs: GrowableVec::new(),
+            annotations: GrowableVec::new(),
             namespaces,
             enums: Vec::new(),
             enum_defs: GrowableVec::new(),
@@ -218,6 +223,21 @@ impl VM {
 
                 enums: KnownEnums {
                     option: empty_enum_id,
+                },
+
+                annotations: KnownAnnotations {
+                    abstract_: empty_annotation_id,
+                    final_: empty_annotation_id,
+                    internal: empty_annotation_id,
+                    override_: empty_annotation_id,
+                    open: empty_annotation_id,
+                    pub_: empty_annotation_id,
+                    static_: empty_annotation_id,
+
+                    test: empty_annotation_id,
+
+                    cannon: empty_annotation_id,
+                    optimize_immediately: empty_annotation_id,
                 },
 
                 structs: KnownStructs {
