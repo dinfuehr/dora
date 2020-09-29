@@ -409,6 +409,9 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_reg1("Pop", dest);
     }
 
+    fn visit_add_int32_stack(&mut self) {
+        self.emit_inst("AddInt32");
+    }
     fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("AddInt32", dest, lhs, rhs);
     }

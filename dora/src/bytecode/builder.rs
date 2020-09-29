@@ -98,6 +98,10 @@ impl BytecodeBuilder {
         self.writer.emit_pop(dest);
     }
 
+    pub fn emit_add_int32_stack(&mut self) {
+        self.writer.emit_add_int32_stack();
+    }
+
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_add_int32(dest, lhs, rhs);

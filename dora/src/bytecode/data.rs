@@ -165,6 +165,8 @@ pub enum BytecodeOpcode {
     Push,
     Pop,
 
+    AddInt32Stack,
+
     AddInt32,
     AddInt64,
     AddFloat32,

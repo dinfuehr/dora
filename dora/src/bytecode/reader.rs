@@ -51,6 +51,9 @@ where
                 self.visitor.visit_pop(opnd);
             }
 
+            BytecodeOpcode::AddInt32Stack => {
+                self.visitor.visit_add_int32_stack();
+            }
             BytecodeOpcode::AddInt32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -1187,6 +1190,10 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_pop(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+
+    fn visit_add_int32_stack(&mut self) {
         unimplemented!();
     }
 

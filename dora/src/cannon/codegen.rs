@@ -51,6 +51,7 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     asm: BaselineAssembler<'a, 'ast>,
     src: &'a FctSrc,
     bytecode: &'a BytecodeFunction,
+    stack: Vec<BytecodeType>,
 
     should_emit_asm: bool,
 
@@ -90,6 +91,7 @@ where
             asm: BaselineAssembler::new(vm),
             src,
             bytecode,
+            stack: Vec::new(),
             should_emit_asm: should_emit_asm(vm, fct),
             lbl_break: None,
             lbl_continue: None,
@@ -336,6 +338,10 @@ where
     }
 
     fn emit_pop(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+
+    fn emit_add_int_stack(&mut self) {
         unimplemented!();
     }
 
@@ -2797,6 +2803,10 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_pop(dest);
     }
 
+    fn visit_add_int32_stack(&mut self) {
+        comment!(self, format!("AddInt32"));
+        self.emit_add_int_stack();
+    }
     fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("AddInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
