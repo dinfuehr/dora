@@ -69,6 +69,73 @@ pub struct Fct<'ast> {
 }
 
 impl<'ast> Fct<'ast> {
+    #[allow(dead_code)]
+    pub fn new(
+        vm: &VM,
+        ast: &'ast ast::Function,
+        file: FileId,
+        kind: FctKind,
+        parent: FctParent,
+        is_constructor: bool,
+    ) -> Fct<'ast> {
+        let annotations = ast::AnnotationUsages::new();
+        Fct {
+            id: FctId(0),
+            ast,
+            file,
+            pos: ast.pos,
+            name: ast.name,
+            param_types: Vec::new(),
+            return_type: BuiltinType::Unit,
+            parent,
+            has_override: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.override_)
+                    .read()
+                    .name,
+            ),
+            has_open: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.open).read().name),
+            has_final: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.final_).read().name),
+            has_optimize_immediately: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.optimize_immediately)
+                    .read()
+                    .name,
+            ),
+            is_pub: annotations.contains(vm.annotations.idx(vm.known.annotations.pub_).read().name),
+            is_static: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.static_).read().name),
+            is_abstract: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.abstract_)
+                    .read()
+                    .name,
+            ),
+            is_test: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.test).read().name),
+            use_cannon: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.cannon).read().name),
+            internal: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.internal)
+                    .read()
+                    .name,
+            ),
+            internal_resolved: false,
+            overrides: None,
+            is_constructor,
+            vtable_index: None,
+            initialized: false,
+            impl_for: None,
+            variadic_arguments: false,
+            type_params: Vec::new(),
+            kind,
+            bytecode: None,
+        }
+    }
+
     pub fn type_param(&self, id: TypeListId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
@@ -122,7 +189,7 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn is_virtual(&self) -> bool {
-        (self.has_open || self.has_override) && !self.has_final
+        (self.is_abstract || self.has_open || self.has_override) && !self.has_final
     }
 
     pub fn in_class(&self) -> bool {

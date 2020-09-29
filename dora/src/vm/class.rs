@@ -13,6 +13,8 @@ use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{ExtensionId, FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId};
 use crate::vtable::VTableBox;
+
+use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -79,6 +81,63 @@ pub struct Class {
 }
 
 impl Class {
+    #[allow(dead_code)]
+    pub fn new(
+        vm: &VM,
+        id: ClassId,
+        ast: &ast::Class,
+        file: FileId,
+        has_constructor: bool,
+    ) -> Class {
+        let annotations = ast::AnnotationUsages::new();
+        let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
+            type_params
+                .iter()
+                .map(|type_param| TypeParam::new(type_param.name))
+                .collect()
+        });
+        Class {
+            id,
+            name: ast.name,
+            file,
+            pos: ast.pos,
+            ty: vm.cls(id),
+            parent_class: None,
+            has_open: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.open).read().name),
+            is_abstract: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.abstract_)
+                    .read()
+                    .name,
+            ),
+            internal: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.internal)
+                    .read()
+                    .name,
+            ),
+            internal_resolved: false,
+            has_constructor,
+            table: SymLevel::new(),
+
+            constructor: None,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            virtual_fcts: Vec::new(),
+
+            traits: Vec::new(),
+            impls: Vec::new(),
+            extensions: Vec::new(),
+
+            type_params,
+            specializations: RwLock::new(HashMap::new()),
+
+            is_array: false,
+            is_str: false,
+        }
+    }
+
     pub fn is_generic(&self) -> bool {
         self.type_params.len() > 0
     }
