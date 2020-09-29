@@ -49,6 +49,9 @@ pub fn check(vm: &mut VM) -> bool {
     }
     return_on_error!(vm);
 
+    // add internal annotations early
+    stdlib::resolve_internal_annotations(vm);
+
     // define internal classes
     stdlib::resolve_internal_classes(vm);
 

@@ -10,10 +10,10 @@ use crate::semck::report_sym_shadow;
 use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
-    self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
-    Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData, Module, ModuleId,
-    NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId, TypeParam,
-    TypeParamDefinition, VM,
+    self, AnnotationId, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
+    ExtensionId, Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData,
+    Module, ModuleId, NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId,
+    TypeParam, TypeParamDefinition, VM,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -463,6 +463,23 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         };
 
         let sym = Sym::Struct(id);
+        if let Some(sym) = self.insert(node.name, sym) {
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+        }
+    }
+
+    fn visit_annotation(&mut self, node: &Arc<ast::Annotation>) {
+        let id = {
+            let mut annotations = self.vm.annotations.lock();
+            let id: AnnotationId = annotations.len().into();
+            let annotation =
+                vm::Annotation::new(id, self.file_id, node.pos, node.name, self.namespace_id);
+            annotations.push(Arc::new(RwLock::new(annotation)));
+            id
+        };
+
+        let sym = Sym::Annotation(id);
+
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }

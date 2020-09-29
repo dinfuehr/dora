@@ -10,10 +10,33 @@ use crate::stdlib;
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDef, ClassDefId, ClassId, EnumId, ExtensionId, FctId, Intrinsic, ModuleId, NamespaceId,
-    StructId, TraitId, VM,
+    AnnotationId, ClassDef, ClassDefId, ClassId, EnumId, ExtensionId, FctId, Intrinsic, ModuleId,
+    NamespaceId, StructId, TraitId, VM,
 };
 use crate::vtable::VTableBox;
+use dora_parser::ast::Modifier;
+
+pub fn resolve_internal_annotations(vm: &mut VM) {
+    let stdlib = vm.stdlib_namespace_id;
+    vm.known.annotations.abstract_ =
+        internal_annotation(vm, stdlib, "abstract", Modifier::Abstract);
+    vm.known.annotations.final_ = internal_annotation(vm, stdlib, "final", Modifier::Final);
+    vm.known.annotations.internal = internal_annotation(vm, stdlib, "internal", Modifier::Internal);
+    vm.known.annotations.open = internal_annotation(vm, stdlib, "open", Modifier::Open);
+    vm.known.annotations.override_ =
+        internal_annotation(vm, stdlib, "override", Modifier::Override);
+    vm.known.annotations.pub_ = internal_annotation(vm, stdlib, "pub", Modifier::Pub);
+    vm.known.annotations.static_ = internal_annotation(vm, stdlib, "static", Modifier::Static);
+
+    vm.known.annotations.test = internal_annotation(vm, stdlib, "test", Modifier::Test);
+
+    vm.known.annotations.optimize_immediately = internal_annotation(
+        vm,
+        stdlib,
+        "optimizeImmediately",
+        Modifier::OptimizeImmediately,
+    );
+}
 
 pub fn resolve_internal_classes(vm: &mut VM) {
     let stdlib = vm.stdlib_namespace_id;
@@ -237,6 +260,25 @@ fn internal_struct(
     xstruct.internal_resolved = true;
 
     struct_id
+}
+
+fn internal_annotation(
+    vm: &mut VM,
+    namespace_id: NamespaceId,
+    name: &str,
+    internal_annotation: Modifier,
+) -> AnnotationId {
+    let iname = vm.interner.intern(name);
+    let symtable = NestedSymTable::new(vm, namespace_id);
+    let annotation_id = symtable
+        .get_annotation(iname)
+        .expect("annotation not found");
+
+    let annotation = vm.annotations.idx(annotation_id);
+    let mut annotation = annotation.write();
+    annotation.internal_annotation = Some(internal_annotation);
+
+    annotation_id
 }
 
 fn find_trait(vm: &mut VM, namespace_id: NamespaceId, name: &str) -> TraitId {
