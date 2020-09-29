@@ -3,13 +3,14 @@ use parking_lot::Mutex;
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::module::ModuleId;
-use crate::vm::{ClassDefId, ClassId, EnumId, FctId, TraitId, VM};
+use crate::vm::{AnnotationId, ClassDefId, ClassId, EnumId, FctId, TraitId, VM};
 
 #[derive(Debug)]
 pub struct KnownElements {
     pub classes: KnownClasses,
     pub modules: KnownModules,
     pub traits: KnownTraits,
+    pub annotations: KnownAnnotations,
     pub functions: KnownFunctions,
     pub enums: KnownEnums,
 
@@ -62,6 +63,22 @@ pub struct KnownTraits {
     pub stringable: TraitId,
     pub iterator: TraitId,
     pub zero: TraitId,
+}
+
+#[derive(Debug)]
+pub struct KnownAnnotations {
+    pub abstract_: AnnotationId,
+    pub final_: AnnotationId,
+    pub internal: AnnotationId,
+    pub override_: AnnotationId,
+    pub open: AnnotationId,
+    pub pub_: AnnotationId,
+    pub static_: AnnotationId,
+
+    pub test: AnnotationId,
+
+    pub cannon: AnnotationId,
+    pub optimize_immediately: AnnotationId,
 }
 
 #[derive(Debug)]
