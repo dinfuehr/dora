@@ -92,6 +92,69 @@ pub struct Class {
 }
 
 impl Class {
+
+    #[allow(dead_code)]
+    pub fn new(
+        vm: &VM,
+        id: ClassId,
+        file_id: FileId,
+        ast: Arc<ast::Class>,
+        namespace_id: NamespaceId,
+        has_constructor: bool,
+    ) -> Class {
+        let annotations = ast::AnnotationUsages::new();
+        let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
+            type_params
+                .iter()
+                .map(|type_param| TypeParam::new(type_param.name))
+                .collect()
+        });
+        Class {
+            id,
+            file_id,
+            ast: ast.clone(),
+            namespace_id: namespace_id,
+            pos: ast.pos,
+            name: ast.name,
+            ty: None,
+            parent_class: None,
+            has_open: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.open).read().name),
+            is_abstract: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.abstract_)
+                    .read()
+                    .name,
+            ),
+            internal: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.internal)
+                    .read()
+                    .name,
+            ),
+            internal_resolved: false,
+            has_constructor,
+            is_pub: false,
+            table: SymTable::new(),
+
+            constructor: None,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            virtual_fcts: Vec::new(),
+
+            impls: Vec::new(),
+            extensions: Vec::new(),
+
+            type_params,
+            type_params2: TypeParamDefinition::new(),
+            specializations: RwLock::new(HashMap::new()),
+
+            is_array: false,
+            is_str: false,
+            primitive_type: None
+        }
+    }
+
     pub fn is_generic(&self) -> bool {
         self.type_params.len() > 0
     }

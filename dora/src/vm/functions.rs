@@ -77,11 +77,13 @@ pub struct Fct {
 
 impl Fct {
     pub fn new(
+        vm: &VM,
         file_id: FileId,
         namespace_id: NamespaceId,
         ast: &Arc<ast::Function>,
         parent: FctParent,
     ) -> Fct {
+        let annotations = ast::AnnotationUsages::new();
         Fct {
             id: FctId(0),
             file_id,
@@ -92,15 +94,39 @@ impl Fct {
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,
-            has_override: ast.has_override,
-            has_open: ast.has_open || ast.is_abstract,
-            has_final: ast.has_final,
-            has_optimize_immediately: ast.has_optimize_immediately,
-            is_pub: ast.is_pub,
-            is_static: ast.is_static,
-            is_abstract: ast.is_abstract,
-            is_test: ast.is_test,
-            internal: ast.internal,
+            has_override: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.override_)
+                    .read()
+                    .name,
+            ),
+            has_open: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.open).read().name),
+            has_final: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.final_).read().name),
+            has_optimize_immediately: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.optimize_immediately)
+                    .read()
+                    .name,
+            ),
+            is_pub: annotations.contains(vm.annotations.idx(vm.known.annotations.pub_).read().name),
+            is_static: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.static_).read().name),
+            is_abstract: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.abstract_)
+                    .read()
+                    .name,
+            ),
+            is_test: annotations
+                .contains(vm.annotations.idx(vm.known.annotations.test).read().name),
+            internal: annotations.contains(
+                vm.annotations
+                    .idx(vm.known.annotations.internal)
+                    .read()
+                    .name,
+            ),
             internal_resolved: false,
             overrides: None,
             is_constructor: ast.is_constructor,
@@ -131,7 +157,7 @@ impl Fct {
     }
 
     pub fn is_virtual(&self) -> bool {
-        (self.has_open || self.has_override) && !self.has_final
+        (self.is_abstract || self.has_open || self.has_override) && !self.has_final
     }
 
     pub fn in_class(&self) -> bool {
