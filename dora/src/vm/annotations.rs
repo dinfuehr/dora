@@ -42,8 +42,34 @@ pub struct Annotation {
     pub name: Name,
     pub namespace_id: NamespaceId,
     pub ty: SourceType,
-    pub internal: Option<Modifier>,
+    pub internal_annotation: Option<Modifier>,
 
     pub type_params: Option<Vec<TypeParam>>,
     pub term_params: Option<Vec<AnnotationParam>>,
+}
+
+impl Annotation {
+    pub fn new(
+        id: AnnotationId,
+        file_id: FileId,
+        pos: Position,
+        name: Name,
+        namespace_id: NamespaceId,
+    ) -> Annotation {
+        Annotation {
+            id,
+            file_id,
+            pos,
+            name,
+            namespace_id,
+            ty: SourceType::Error,
+            internal_annotation: None,
+            type_params: None,
+            term_params: None,
+        }
+    }
+
+    pub fn internal(&self) -> bool {
+        self.internal_annotation.is_some()
+    }
 }
