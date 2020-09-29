@@ -524,10 +524,8 @@ pub struct Class {
     pub name: Name,
     pub pos: Position,
     pub span: Span,
+    pub annotation_usages: AnnotationUsages,
     pub parent_class: Option<ParentClass>,
-    pub has_open: bool,
-    pub is_abstract: bool,
-    pub internal: bool,
     pub has_constructor: bool,
 
     pub constructor: Option<Function>,
@@ -542,6 +540,7 @@ pub struct Module {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub annotation_usages: AnnotationUsages,
     pub parent_class: Option<ParentClass>,
     pub internal: bool,
     pub has_constructor: bool,
@@ -558,7 +557,7 @@ pub struct Annotation {
     pub name: Name,
     pub pos: Position,
     pub annotation_usages: AnnotationUsages,
-    pub internal: Option<Modifier>,
+    pub internal: Option<InternalAnnotation>,
 
     pub type_params: Option<Vec<TypeParam>>,
     pub term_params: Option<Vec<AnnotationParam>>,
@@ -636,17 +635,8 @@ pub struct Function {
     pub name: Name,
     pub pos: Position,
     pub span: Span,
+    pub annotation_usages: AnnotationUsages,
     pub method: bool,
-    pub has_open: bool,
-    pub has_override: bool,
-    pub has_final: bool,
-    pub has_optimize_immediately: bool,
-    pub is_pub: bool,
-    pub is_static: bool,
-    pub is_abstract: bool,
-    pub is_test: bool,
-    pub use_cannon: bool,
-    pub internal: bool,
     pub is_constructor: bool,
 
     pub params: Vec<Param>,
@@ -660,41 +650,6 @@ impl Function {
     pub fn block(&self) -> &ExprBlockType {
         self.block.as_ref().unwrap()
     }
-}
-
-// remove in next step
-#[derive(Clone, Debug)]
-pub struct Modifiers(Vec<ModifierElement>);
-
-// remove in next step
-impl Modifiers {
-    pub fn new() -> Modifiers {
-        Modifiers(Vec::new())
-    }
-
-    pub fn contains(&self, modifier: Modifier) -> bool {
-        self.0.iter().find(|el| el.value == modifier).is_some()
-    }
-
-    pub fn add(&mut self, modifier: Modifier, pos: Position, span: Span) {
-        self.0.push(ModifierElement {
-            value: modifier,
-            pos,
-            span,
-        });
-    }
-
-    pub fn iter(&self) -> Iter<ModifierElement> {
-        self.0.iter()
-    }
-}
-
-// remove in next step
-#[derive(Clone, Debug)]
-pub struct ModifierElement {
-    pub value: Modifier,
-    pub pos: Position,
-    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -727,9 +682,8 @@ pub struct AnnotationUsage {
     pub term_args: Vec<Box<Expr>>,
 }
 
-// rename to InternalAnnotation in next step
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Modifier {
+pub enum InternalAnnotation {
     Abstract,
     Override,
     Open,
@@ -742,35 +696,35 @@ pub enum Modifier {
     OptimizeImmediately,
 }
 
-impl Modifier {
-    pub fn find(name: &str) -> Option<Modifier> {
+impl InternalAnnotation {
+    pub fn find(name: &str) -> Option<InternalAnnotation> {
         match name {
-            "abstract" => Some(Modifier::Abstract),
-            "open" => Some(Modifier::Open),
-            "override" => Some(Modifier::Override),
-            "final" => Some(Modifier::Final),
-            "internal" => Some(Modifier::Internal),
-            "pub" => Some(Modifier::Pub),
-            "static" => Some(Modifier::Static),
-            "test" => Some(Modifier::Test),
-            "cannon" => Some(Modifier::Cannon),
-            "optimizeImmediately" => Some(Modifier::OptimizeImmediately),
+            "abstract" => Some(InternalAnnotation::Abstract),
+            "open" => Some(InternalAnnotation::Open),
+            "override" => Some(InternalAnnotation::Override),
+            "final" => Some(InternalAnnotation::Final),
+            "internal" => Some(InternalAnnotation::Internal),
+            "pub" => Some(InternalAnnotation::Pub),
+            "static" => Some(InternalAnnotation::Static),
+            "test" => Some(InternalAnnotation::Test),
+            "cannon" => Some(InternalAnnotation::Cannon),
+            "optimizeImmediately" => Some(InternalAnnotation::OptimizeImmediately),
             _ => None,
         }
     }
 
     pub fn name(&self) -> &'static str {
         match *self {
-            Modifier::Abstract => "abstract",
-            Modifier::Open => "open",
-            Modifier::Override => "override",
-            Modifier::Final => "final",
-            Modifier::Internal => "internal",
-            Modifier::Pub => "pub",
-            Modifier::Static => "static",
-            Modifier::Test => "test",
-            Modifier::Cannon => "cannon",
-            Modifier::OptimizeImmediately => "optimizeImmediately",
+            InternalAnnotation::Abstract => "abstract",
+            InternalAnnotation::Open => "open",
+            InternalAnnotation::Override => "override",
+            InternalAnnotation::Final => "final",
+            InternalAnnotation::Internal => "internal",
+            InternalAnnotation::Pub => "pub",
+            InternalAnnotation::Static => "static",
+            InternalAnnotation::Test => "test",
+            InternalAnnotation::Cannon => "cannon",
+            InternalAnnotation::OptimizeImmediately => "optimizeImmediately",
         }
     }
 }

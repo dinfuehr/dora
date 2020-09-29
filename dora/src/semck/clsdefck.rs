@@ -6,9 +6,7 @@ use crate::semck;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::sym::{SymLevel, TermSym, TypeSym};
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{
-    ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM,
-};
+use crate::vm::{ClassId, Fct, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
@@ -254,38 +252,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             FctKind::Definition
         };
 
-        let fct = Fct {
-            id: FctId(0),
-            pos: f.pos,
-            ast: f,
-            name: f.name,
-            param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
-            parent: FctParent::Class(clsid),
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: true,
-            is_static: false,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: f.is_constructor,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file: self.file_id.into(),
-            variadic_arguments: false,
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.vm,
+            f,
+            self.file_id.into(),
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
+            FctParent::Class(clsid),
+            f.is_constructor,
+        );
 
         let fctid = self.vm.add_fct(fct);
 
@@ -305,40 +279,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             FctKind::Definition
         };
 
-        let fct = Fct {
-            id: FctId(0),
-            ast: f,
-            pos: f.pos,
-            name: f.name,
-            param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
-            parent: FctParent::Class(self.cls_id.unwrap()),
-            has_override: f.has_override,
-            has_optimize_immediately: f.has_optimize_immediately,
-            variadic_arguments: false,
-
-            // abstract for methods also means that method is open to override
-            has_open: f.has_open || f.is_abstract,
-            has_final: f.has_final,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: f.is_abstract,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file: self.file_id.into(),
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.vm,
+            f,
+            self.file_id.into(),
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
+            FctParent::Class(self.cls_id.unwrap()),
+            false,
+        );
 
         let fctid = self.vm.add_fct(fct);
 

@@ -5,7 +5,7 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::TypeSym;
 use crate::ty::BuiltinType;
-use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
+use crate::vm::{EnumId, ExtensionId, Fct, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
@@ -132,7 +132,14 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
             let method = self.vm.fcts.idx(method);
             let method = method.read();
 
-            if method.name == f.name && method.is_static == f.is_static {
+            let is_static = f.annotation_usages.contains(
+                self.vm
+                    .annotations
+                    .idx(self.vm.known.annotations.static_)
+                    .read()
+                    .name,
+            );
+            if method.name == f.name && method.is_static == is_static {
                 let method_name = self.vm.interner.str(method.name).to_string();
                 let msg = SemError::MethodExists(method_name, method.pos);
                 self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
@@ -156,7 +163,14 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
             return true;
         }
 
-        let table = if f.is_static {
+        let is_static = f.annotation_usages.contains(
+            self.vm
+                .annotations
+                .idx(self.vm.known.annotations.static_)
+                .read()
+                .name,
+        );
+        let table = if is_static {
             &extension.static_names
         } else {
             &extension.instance_names
@@ -194,7 +208,14 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
 
         let extension_id = self.extension_id.unwrap();
 
-        if f.block.is_none() && !f.internal {
+        let internal = f.annotation_usages.contains(
+            self.vm
+                .annotations
+                .idx(self.vm.known.annotations.internal)
+                .read()
+                .name,
+        );
+        if f.block.is_none() && !internal {
             report(
                 self.vm,
                 self.file_id.into(),
@@ -211,38 +232,9 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
 
         let parent = FctParent::Extension(extension_id);
 
-        let fct = Fct {
-            id: FctId(0),
-            ast: f,
-            pos: f.pos,
-            name: f.name,
-            param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
-            parent: parent,
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file: self.file_id.into(),
-            variadic_arguments: false,
+        let fct = Fct::new(self.vm, f, self.file_id.into(), kind, parent, false);
 
-            type_params: Vec::new(),
-            kind,
-            bytecode: None,
-            intrinsic: None,
-        };
+        let is_static = fct.is_static;
 
         let fct_id = self.vm.add_fct(fct);
 
@@ -262,7 +254,7 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
         let mut extension = self.vm.extensions[extension_id].write();
         extension.methods.push(fct_id);
 
-        let table = if f.is_static {
+        let table = if is_static {
             &mut extension.static_names
         } else {
             &mut extension.instance_names

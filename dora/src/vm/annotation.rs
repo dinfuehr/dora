@@ -1,7 +1,7 @@
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
 use crate::vm::{FileId, TypeParam};
-use dora_parser::ast::{AnnotationParam, Modifier};
+use dora_parser::ast::{AnnotationParam, InternalAnnotation};
 use dora_parser::interner::Name;
 use dora_parser::Position;
 use parking_lot::RwLock;
@@ -41,7 +41,7 @@ pub struct Annotation {
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
-    pub internal: Option<Modifier>,
+    pub internal: Option<InternalAnnotation>,
 
     pub type_params: Option<Vec<TypeParam>>,
     pub term_params: Option<Vec<AnnotationParam>>,

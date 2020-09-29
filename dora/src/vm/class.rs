@@ -81,7 +81,6 @@ pub struct Class {
 }
 
 impl Class {
-    #[allow(dead_code)]
     pub fn new(
         vm: &VM,
         id: ClassId,
@@ -89,7 +88,7 @@ impl Class {
         file: FileId,
         has_constructor: bool,
     ) -> Class {
-        let annotations = ast::AnnotationUsages::new();
+        let annotations = &ast.annotation_usages;
         let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
             type_params
                 .iter()

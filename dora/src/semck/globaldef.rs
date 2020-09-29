@@ -9,13 +9,13 @@ use crate::sym::TermSym::{
     SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait};
-use crate::sym::{SymLevel, TermSym, TypeSym};
+use crate::sym::{TermSym, TypeSym};
 use crate::ty::BuiltinType;
 use crate::vm::module::ModuleId;
 use crate::vm::{
     class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
-    ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData,
-    ImplId, NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
+    ExtensionId, Fct, FctKind, FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData, ImplId,
+    NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
@@ -232,41 +232,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let mut classes = self.vm.classes.lock();
 
             let id: ClassId = classes.len().into();
-            let mut cls = class::Class {
-                id,
-                name: c.name,
-                file: self.file_id.into(),
-                pos: c.pos,
-                ty: self.vm.cls(id),
-                parent_class: None,
-                has_open: c.has_open,
-                is_abstract: c.is_abstract,
-                internal: c.internal,
-                internal_resolved: false,
-                has_constructor: c.has_constructor,
-                table: SymLevel::new(),
-
-                constructor: None,
-                fields: Vec::new(),
-                methods: Vec::new(),
-                virtual_fcts: Vec::new(),
-
-                traits: Vec::new(),
-                impls: Vec::new(),
-                extensions: Vec::new(),
-
-                type_params: Vec::new(),
-                specializations: RwLock::new(HashMap::new()),
-
-                is_array: false,
-                is_str: false,
-            };
-
-            if let Some(ref type_params) = c.type_params {
-                for param in type_params {
-                    cls.type_params.push(TypeParam::new(param.name));
-                }
-            }
+            let cls = class::Class::new(self.vm, id, c, self.file_id.into(), c.has_constructor);
 
             classes.push(Arc::new(RwLock::new(cls)));
 
@@ -338,38 +304,14 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             FctKind::Definition
         };
 
-        let fct = Fct {
-            id: FctId(0),
-            file: self.file_id.into(),
-            pos: f.pos,
-            ast: f,
-            name: f.name,
-            param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
-            parent: FctParent::None,
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: true,
-            is_static: false,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            variadic_arguments: false,
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.vm,
+            f,
+            self.file_id.into(),
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
+            FctParent::None,
+            false,
+        );
 
         if let Err(sym) = self.vm.add_fct_to_sym(fct) {
             report_term_shadow(self.vm, f.name, self.file_id.into(), f.pos, sym);

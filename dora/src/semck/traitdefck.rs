@@ -1,6 +1,5 @@
 use crate::error::msg::SemError;
-use crate::ty::BuiltinType;
-use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
+use crate::vm::{Fct, FctKind, FctParent, NodeMap, TraitId, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
@@ -58,38 +57,14 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
                 .report(self.file_id.into(), f.pos, SemError::TraitMethodWithBody);
         }
 
-        let fct = Fct {
-            id: FctId(0),
-            ast: f,
-            pos: f.pos,
-            name: f.name,
-            param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
-            parent: FctParent::Trait(self.trait_id.unwrap()),
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file: self.file_id.into(),
-            variadic_arguments: false,
-
-            type_params: Vec::new(),
-            kind: FctKind::Definition,
-            bytecode: None,
-            intrinsic: None,
-        };
+        let fct = Fct::new(
+            self.vm,
+            f,
+            self.file_id.into(),
+            FctKind::Definition,
+            FctParent::Trait(self.trait_id.unwrap()),
+            false,
+        );
 
         let fctid = self.vm.add_fct(fct);
 
