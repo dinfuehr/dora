@@ -9,9 +9,37 @@ use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
 use crate::ty::{BuiltinType, TypeList};
+use crate::vm::annotation::Annotation;
 use crate::vm::module::ModuleId;
-use crate::vm::{ClassDef, ClassDefId, ClassId, EnumId, FctId, FctKind, Intrinsic, TraitId, VM};
+use crate::vm::{
+    AnnotationId, ClassDef, ClassDefId, ClassId, EnumId, FctId, FctKind, FileId, Intrinsic,
+    TraitId, VM,
+};
 use crate::vtable::VTableBox;
+use dora_parser::ast::InternalAnnotation;
+use dora_parser::Position;
+
+pub fn internal_annotations<'ast>(vm: &mut VM<'ast>) {
+    vm.known.annotations.abstract_ =
+        internal_annotation(vm, "abstract", InternalAnnotation::Abstract);
+    vm.known.annotations.final_ = internal_annotation(vm, "final", InternalAnnotation::Final);
+    vm.known.annotations.internal =
+        internal_annotation(vm, "internal", InternalAnnotation::Internal);
+    vm.known.annotations.override_ =
+        internal_annotation(vm, "override", InternalAnnotation::Override);
+    vm.known.annotations.open = internal_annotation(vm, "open", InternalAnnotation::Open);
+    vm.known.annotations.pub_ = internal_annotation(vm, "pub", InternalAnnotation::Pub);
+    vm.known.annotations.static_ = internal_annotation(vm, "static", InternalAnnotation::Static);
+
+    vm.known.annotations.test = internal_annotation(vm, "test", InternalAnnotation::Test);
+
+    vm.known.annotations.cannon = internal_annotation(vm, "cannon", InternalAnnotation::Cannon);
+    vm.known.annotations.optimize_immediately = internal_annotation(
+        vm,
+        "optimizeImmediately",
+        InternalAnnotation::OptimizeImmediately,
+    );
+}
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.known.classes.unit = internal_class(vm, "Unit", Some(BuiltinType::Unit));
@@ -162,6 +190,28 @@ fn internal_module<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<BuiltinType>)
     } else {
         panic!("module {} not found!", name);
     }
+}
+
+fn internal_annotation<'ast>(
+    vm: &mut VM<'ast>,
+    name: &str,
+    internal: InternalAnnotation,
+) -> AnnotationId {
+    let name = vm.interner.intern(name);
+    let mut annotations = vm.annotations.lock();
+    let id: AnnotationId = annotations.len().into();
+    let annotation = Annotation {
+        id,
+        name,
+        file: FileId::from(0),
+        pos: Position::invalid(),
+        internal: Some(internal),
+        type_params: None,
+        term_params: None,
+        ty: BuiltinType::Error,
+    };
+    annotations.push(Arc::new(RwLock::new(annotation)));
+    id
 }
 
 fn find_trait<'ast>(vm: &mut VM<'ast>, name: &str) -> TraitId {

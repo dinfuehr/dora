@@ -49,6 +49,8 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut map_enum_defs = NodeMap::new(); // get EnumId from ast node
     let mut map_extension_defs = NodeMap::new(); // get ExtensionId from ast node
 
+    prelude::internal_annotations(vm);
+
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
     globaldef::check(
