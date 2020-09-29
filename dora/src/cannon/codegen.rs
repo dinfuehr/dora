@@ -1213,6 +1213,41 @@ where
         }
     }
 
+    fn zero_refs_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset) {
+        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let offsets = self
+            .vm
+            .tuples
+            .lock()
+            .get_tuple(tuple_id)
+            .offsets()
+            .to_owned();
+
+        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+            if let Some(tuple_id) = subtype.tuple_id() {
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => {
+                        RegOrOffset::Offset(tuple_offset + subtype_offset)
+                    }
+                };
+                self.zero_refs_tuple(tuple_id, dest);
+            } else if subtype.reference_type() {
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        Mem::Base(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+                };
+                self.asm.store_zero(MachineMode::Ptr, dest);
+            }
+        }
+    }
+
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
@@ -2469,7 +2504,7 @@ where
                         let tuple_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
                         self.asm
                             .array_address(REG_TMP1, REG_RESULT, REG_TMP1, tuple_size);
-                        self.zero_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));
+                        self.zero_refs_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));
                     }
 
                     BytecodeType::Enum(_, _) => unimplemented!(),
