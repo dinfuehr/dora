@@ -135,6 +135,7 @@ impl<'x> ExtensionCheck<'x> {
         }
 
         let fct = Fct::new(
+            self.vm,
             self.file_id,
             self.namespace_id,
             f,

@@ -193,7 +193,13 @@ impl<'x> ImplCheck<'x> {
 
         let parent = FctParent::Impl(self.impl_id);
 
-        let fct = Fct::new(self.file_id.into(), self.namespace_id, method, parent);
+        let fct = Fct::new(
+            self.vm,
+            self.file_id.into(),
+            self.namespace_id,
+            method,
+            parent,
+        );
         self.vm.add_fct(fct)
     }
 }

@@ -77,6 +77,7 @@ pub struct Fct {
 
 impl Fct {
     pub fn new(
+        _vm: &VM,
         file_id: FileId,
         namespace_id: NamespaceId,
         ast: &Arc<ast::Function>,
