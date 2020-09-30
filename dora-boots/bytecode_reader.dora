@@ -59,11 +59,6 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitReinterpretFloat32AsInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitReinterpretInt32AsFloat32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitReinterpretFloat64AsInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitReinterpretInt64AsFloat64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-
     @open fun visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
@@ -269,11 +264,6 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitReinterpretFloat32AsInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitReinterpretInt32AsFloat32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitReinterpretFloat64AsInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitReinterpretInt64AsFloat64(dest: BytecodeRegister, src: BytecodeRegister) {}
 
     @override fun visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
@@ -727,26 +717,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitRorInt64(dest, lhs, rhs);
-
-        } else if opcode == BC_REINTERPRET_FLOAT32_AS_INT32 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitReinterpretFloat32AsInt32(dest, src);
-
-        } else if opcode == BC_REINTERPRET_INT32_AS_FLOAT32{
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitReinterpretInt32AsFloat32(dest, src);
-
-        } else if opcode == BC_REINTERPRET_FLOAT64_AS_INT64 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitReinterpretFloat64AsInt64(dest, src);
-
-        } else if opcode == BC_REINTERPRET_INT64_AS_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitReinterpretInt64AsFloat64(dest, src);
 
         } else if opcode == BC_EXTEND_UINT8_TO_CHAR {
             let dest = self.readRegister(wide);

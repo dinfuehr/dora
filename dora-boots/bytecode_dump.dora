@@ -160,11 +160,6 @@ class BytecodeDumper(let bc: BytecodeFunction) extends BytecodeVisitor {
     @override fun visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RolInt64", dest, lhs, rhs); }
     @override fun visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RorInt64", dest, lhs, rhs); }
 
-    @override fun visitReinterpretFloat32AsInt32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ReinterpretFloat32AsInt32", dest, src); }
-    @override fun visitReinterpretInt32AsFloat32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ReinterpretInt32AsFloat32", dest, src); }
-    @override fun visitReinterpretFloat64AsInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ReinterpretFloat64AsInt64", dest, src); }
-    @override fun visitReinterpretInt64AsFloat64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ReinterpretInt64AsFloat64", dest, src); }
-
     @override fun visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendUInt8ToChar", dest, src); }
     @override fun visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendUInt8ToInt32", dest, src); }
     @override fun visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendUInt8ToInt64", dest, src); }

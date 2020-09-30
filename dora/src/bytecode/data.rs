@@ -222,11 +222,6 @@ pub enum BytecodeOpcode {
     RolInt64,
     RorInt64,
 
-    ReinterpretFloat32AsInt32,
-    ReinterpretInt32AsFloat32,
-    ReinterpretFloat64AsInt64,
-    ReinterpretInt64AsFloat64,
-
     ExtendUInt8ToChar,
     ExtendUInt8ToInt32,
     ExtendUInt8ToInt64,

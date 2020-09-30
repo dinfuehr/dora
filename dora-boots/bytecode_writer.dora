@@ -190,22 +190,6 @@ class BytecodeWriter {
         self.emitReg3(BC_ROR_INT64, dest, lhs, rhs);
     }
 
-    fun emitReinterpretFloat32AsInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_REINTERPRET_FLOAT32_AS_INT32, dest, src);
-    }
-
-    fun emitReinterpretInt32AsFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_REINTERPRET_INT32_AS_FLOAT32, dest, src);
-    }
-
-    fun emitReinterpretFloat64AsInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_REINTERPRET_FLOAT64_AS_INT64, dest, src);
-    }
-
-    fun emitReinterpretInt64AsFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_REINTERPRET_INT64_AS_FLOAT64, dest, src);
-    }
-
     fun emitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_UINT8_TO_CHAR, dest, src);
     }

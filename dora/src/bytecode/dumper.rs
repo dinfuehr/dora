@@ -549,19 +549,6 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_reg3("RorInt64", dest, lhs, rhs);
     }
 
-    fn visit_reinterpret_int32_as_float32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ReinterpretInt32AsFloat32", dest, src);
-    }
-    fn visit_reinterpret_float32_as_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ReinterpretFloat32AsInt32", dest, src);
-    }
-    fn visit_reinterpret_float64_as_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ReinterpretFloat64AsInt64", dest, src);
-    }
-    fn visit_reinterpret_int64_as_float64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ReinterpretInt64AsFloat64", dest, src);
-    }
-
     fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2("ExtendByteToChar", dest, src);
     }

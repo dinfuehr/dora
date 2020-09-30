@@ -2393,6 +2393,20 @@ where
                 dest.into()
             }
 
+            Intrinsic::ReinterpretFloat32AsInt32
+            | Intrinsic::ReinterpretInt32AsFloat32
+            | Intrinsic::ReinterpretFloat64AsInt64
+            | Intrinsic::ReinterpretInt64AsFloat64 => {
+                debug_assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+
+                self.emit_reinterpret(dest_reg, src_reg);
+
+                *dest = None;
+                REG_RESULT.into()
+            }
+
             Intrinsic::Int64CountZeroBits
             | Intrinsic::Int64CountZeroBitsLeading
             | Intrinsic::Int64CountZeroBitsTrailing
@@ -2981,23 +2995,6 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_ror_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("RorInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_ror_int(dest, lhs, rhs);
-    }
-
-    fn visit_reinterpret_float32_as_int32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ReinterpretFloat32AsInt32 {}, {}", dest, src));
-        self.emit_reinterpret(dest, src);
-    }
-    fn visit_reinterpret_int32_as_float32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ReinterpretInt32AsFloat32 {}, {}", dest, src));
-        self.emit_reinterpret(dest, src);
-    }
-    fn visit_reinterpret_float64_as_int64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ReinterpretFloat64AsInt64 {}, {}", dest, src));
-        self.emit_reinterpret(dest, src);
-    }
-    fn visit_reinterpret_int64_as_float64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ReinterpretInt64AsFloat64 {}, {}", dest, src));
-        self.emit_reinterpret(dest, src);
     }
 
     fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {

@@ -523,7 +523,11 @@ impl Intrinsic {
             | Intrinsic::Int32ToFloat32
             | Intrinsic::Int32ToFloat64
             | Intrinsic::Int64ToFloat32
-            | Intrinsic::Int64ToFloat64 => true,
+            | Intrinsic::Int64ToFloat64
+            | Intrinsic::ReinterpretFloat32AsInt32
+            | Intrinsic::ReinterpretInt32AsFloat32
+            | Intrinsic::ReinterpretFloat64AsInt64
+            | Intrinsic::ReinterpretInt64AsFloat64 => true,
             _ => false,
         }
     }

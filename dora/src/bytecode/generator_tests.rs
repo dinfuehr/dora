@@ -3030,30 +3030,82 @@ fn gen_position_assert() {
 
 #[test]
 fn gen_reinterpret_float32_as_int32() {
-    let result = code("fun f(a: Float32): Int32 { a.asInt32() }");
-    let expected = vec![ReinterpretFloat32AsInt32(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Float32): Int32 { a.asInt32() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Float32", "asInt32", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_reinterpret_int32_as_float32() {
-    let result = code("fun f(a: Int32): Float32 { a.asFloat32() }");
-    let expected = vec![ReinterpretInt32AsFloat32(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Int32): Float32 { a.asFloat32() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Int32", "asFloat32", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_reinterpret_float64_as_int64() {
-    let result = code("fun f(a: Float64): Int64 { a.asInt64() }");
-    let expected = vec![ReinterpretFloat64AsInt64(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Float64): Int64 { a.asInt64() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Float64", "asInt64", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_reinterpret_int64_as_float64() {
-    let result = code("fun f(a: Int64): Float64 { a.asFloat64() }");
-    let expected = vec![ReinterpretInt64AsFloat64(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Int64): Float64 { a.asFloat64() }",
+        |vm, code, fct| {
+            let fct_id = vm.cls_method_by_name("Int64", "asFloat64", false).unwrap();
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]
@@ -3768,11 +3820,6 @@ pub enum Bytecode {
     RolInt64(Register, Register, Register),
     RorInt64(Register, Register, Register),
 
-    ReinterpretFloat32AsInt32(Register, Register),
-    ReinterpretInt32AsFloat32(Register, Register),
-    ReinterpretFloat64AsInt64(Register, Register),
-    ReinterpretInt64AsFloat64(Register, Register),
-
     ExtendByteToChar(Register, Register),
     ExtendByteToInt32(Register, Register),
     ExtendByteToInt64(Register, Register),
@@ -4134,19 +4181,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_ror_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::RorInt64(dest, lhs, rhs));
-    }
-
-    fn visit_reinterpret_float32_as_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ReinterpretFloat32AsInt32(dest, src));
-    }
-    fn visit_reinterpret_int32_as_float32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ReinterpretInt32AsFloat32(dest, src));
-    }
-    fn visit_reinterpret_float64_as_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ReinterpretFloat64AsInt64(dest, src));
-    }
-    fn visit_reinterpret_int64_as_float64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ReinterpretInt64AsFloat64(dest, src));
     }
 
     fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {

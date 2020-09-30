@@ -303,27 +303,6 @@ where
                 self.visitor.visit_ror_int64(dest, lhs, rhs);
             }
 
-            BytecodeOpcode::ReinterpretFloat32AsInt32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_reinterpret_float32_as_int32(dest, src);
-            }
-            BytecodeOpcode::ReinterpretInt32AsFloat32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_reinterpret_int32_as_float32(dest, src);
-            }
-            BytecodeOpcode::ReinterpretFloat64AsInt64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_reinterpret_float64_as_int64(dest, src);
-            }
-            BytecodeOpcode::ReinterpretInt64AsFloat64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_reinterpret_int64_as_float64(dest, src);
-            }
-
             BytecodeOpcode::ExtendUInt8ToChar => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1312,19 +1291,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_ror_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_reinterpret_float32_as_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_reinterpret_int32_as_float32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_reinterpret_float64_as_int64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_reinterpret_int64_as_float64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 

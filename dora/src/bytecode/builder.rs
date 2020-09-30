@@ -412,26 +412,6 @@ impl BytecodeBuilder {
         self.writer.emit_ror_int64(dest, lhs, rhs);
     }
 
-    pub fn emit_reinterpret_float32_as_int32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_reinterpret_float32_as_int32(dest, src);
-    }
-
-    pub fn emit_reinterpret_int32_as_float32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_reinterpret_int32_as_float32(dest, src);
-    }
-
-    pub fn emit_reinterpret_float64_as_int64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_reinterpret_float64_as_int64(dest, src);
-    }
-
-    pub fn emit_reinterpret_int64_as_float64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_reinterpret_int64_as_float64(dest, src);
-    }
-
     pub fn emit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
         self.writer.emit_extend_byte_to_char(dest, src);

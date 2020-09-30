@@ -1925,18 +1925,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::BoolNot => self.gen.emit_not_bool(dest, src),
             Intrinsic::Int32Not => self.gen.emit_not_int32(dest, src),
             Intrinsic::Int64Not => self.gen.emit_not_int64(dest, src),
-            Intrinsic::ReinterpretFloat32AsInt32 => {
-                self.gen.emit_reinterpret_float32_as_int32(dest, src)
-            }
-            Intrinsic::ReinterpretInt32AsFloat32 => {
-                self.gen.emit_reinterpret_int32_as_float32(dest, src)
-            }
-            Intrinsic::ReinterpretFloat64AsInt64 => {
-                self.gen.emit_reinterpret_float64_as_int64(dest, src)
-            }
-            Intrinsic::ReinterpretInt64AsFloat64 => {
-                self.gen.emit_reinterpret_int64_as_float64(dest, src)
-            }
             Intrinsic::ByteToChar => self.gen.emit_extend_byte_to_char(dest, src),
             Intrinsic::ByteToInt32 => self.gen.emit_extend_byte_to_int32(dest, src),
             Intrinsic::ByteToInt64 => self.gen.emit_extend_byte_to_int64(dest, src),
