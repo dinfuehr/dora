@@ -195,14 +195,18 @@ fn gen_id_ptr() {
 #[test]
 fn gen_ptr_is() {
     let result = code("fun f(a: Object, b: Object): Bool { return a === b; }");
-    let expected = vec![TestEqPtr(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestIdentity(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_ptr_is_not() {
     let result = code("fun f(a: Object, b: Object): Bool { return a !== b; }");
-    let expected = vec![TestNePtr(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![
+        TestIdentity(r(2), r(0), r(1)),
+        NotBool(r(2), r(2)),
+        Ret(r(2)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -3828,8 +3832,7 @@ pub enum Bytecode {
     ConstFloat64(Register, f64),
     ConstString(Register, String),
 
-    TestEqPtr(Register, Register, Register),
-    TestNePtr(Register, Register, Register),
+    TestIdentity(Register, Register, Register),
 
     TestEqBool(Register, Register, Register),
     TestNeBool(Register, Register, Register),
@@ -4332,11 +4335,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::ConstString(dest, value));
     }
 
-    fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqPtr(dest, lhs, rhs));
-    }
-    fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNePtr(dest, lhs, rhs));
+    fn visit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestIdentity(dest, lhs, rhs));
     }
 
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {

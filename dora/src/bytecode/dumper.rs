@@ -746,18 +746,8 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         writeln!(self.w, " {}, @{} # \"{}\"", dest, idx.to_usize(), value).expect("write! failed");
     }
 
-    fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqPtr", dest, lhs, rhs);
-    }
-    fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNePtr", dest, lhs, rhs);
-    }
-
-    fn visit_test_eq_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqGeneric", dest, lhs, rhs);
-    }
-    fn visit_test_ne_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeGeneric", dest, lhs, rhs);
+    fn visit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestIdentity", dest, lhs, rhs);
     }
 
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {

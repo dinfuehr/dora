@@ -51,7 +51,8 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     asm: BaselineAssembler<'a, 'ast>,
     src: &'a FctSrc,
     bytecode: &'a BytecodeFunction,
-    stack: Vec<BytecodeType>,
+    temporary_stack: Vec<BytecodeType>,
+    temporary_stack_size: i32,
 
     should_emit_asm: bool,
 
@@ -91,7 +92,8 @@ where
             asm: BaselineAssembler::new(vm),
             src,
             bytecode,
-            stack: Vec::new(),
+            temporary_stack: Vec::new(),
+            temporary_stack_size: 0,
             should_emit_asm: should_emit_asm(vm, fct),
             lbl_break: None,
             lbl_continue: None,
@@ -1498,18 +1500,14 @@ where
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
-    fn emit_test_generic_eqeqeq(&mut self, dest: Register, lhs: Register, rhs: Register, eq: bool) {
+    fn emit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(rhs)
         );
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Bool);
 
-        let op = if eq {
-            CondCode::Equal
-        } else {
-            CondCode::NotEqual
-        };
+        let op = CondCode::Equal;
 
         if let Some(bytecode_type) = self.specialize_register_type_unit(lhs) {
             if let BytecodeType::Tuple(_tuple_id) = bytecode_type {
@@ -3387,22 +3385,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_const_string(dest, value);
     }
 
-    fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqPtr {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
-    }
-    fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNePtr {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
-    }
-
-    fn visit_test_eq_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqGeneric {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic_eqeqeq(dest, lhs, rhs, true);
-    }
-    fn visit_test_ne_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeGeneric {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic_eqeqeq(dest, lhs, rhs, false);
+    fn visit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestIdentity {}, {}, {}", dest, lhs, rhs));
+        self.emit_test_identity(dest, lhs, rhs);
     }
 
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {

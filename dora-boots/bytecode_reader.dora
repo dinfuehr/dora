@@ -945,17 +945,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let idx = self.readConstPoolId(wide);
             self.visitor.visitConstString(dest, idx);
 
-        } else if opcode == BC_TEST_EQ_PTR {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqPtr(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_PTR {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestNePtr(dest, lhs, rhs);
-
         } else if opcode == BC_TEST_EQ_BOOL {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);

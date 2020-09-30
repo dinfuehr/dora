@@ -585,6 +585,11 @@ impl BytecodeBuilder {
         self.writer.emit_ret_void();
     }
 
+    pub fn emit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_test_identity(dest, lhs, rhs);
+    }
+
     pub fn emit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_test_eq_bool(dest, lhs, rhs);
@@ -625,16 +630,6 @@ impl BytecodeBuilder {
         self.writer.emit_test_eq_float64(dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_ptr(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_eq_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_generic(dest, lhs, rhs);
-    }
-
     pub fn emit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_test_ne_bool(dest, lhs, rhs);
@@ -673,16 +668,6 @@ impl BytecodeBuilder {
     pub fn emit_test_ne_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_test_ne_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_ptr(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_generic(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_generic(dest, lhs, rhs);
     }
 
     pub fn emit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {

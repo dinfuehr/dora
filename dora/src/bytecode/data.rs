@@ -282,11 +282,7 @@ pub enum BytecodeOpcode {
     ConstFloat64,
     ConstString,
 
-    TestEqPtr,
-    TestNePtr,
-
-    TestEqGeneric,
-    TestNeGeneric,
+    TestIdentity,
 
     TestEqBool,
     TestNeBool,

@@ -1740,77 +1740,19 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return Register::invalid();
         }
 
-        let builtin_type = self.ty(expr.lhs.id());
         let dest = self.ensure_register(dest, BytecodeType::Bool);
 
         let lhs_reg = self.visit_expr(&expr.lhs, DataDest::Alloc);
         let rhs_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
-        let cmp_ty: BytecodeType = match builtin_type {
-            BuiltinType::Nil => BytecodeType::Ptr,
-            BuiltinType::Float32 => BytecodeType::Int32,
-            BuiltinType::Float64 => BytecodeType::Int64,
-            _ => BytecodeType::from_ty(self.vm, builtin_type),
-        };
+        self.gen.emit_test_identity(dest, lhs_reg, rhs_reg);
 
-        let cmp_lhs_reg;
-        let cmp_rhs_reg;
-
-        if builtin_type.is_float() {
-            cmp_lhs_reg = self.alloc_temp(cmp_ty.clone());
-            cmp_rhs_reg = self.alloc_temp(cmp_ty.clone());
-
-            if cmp_ty == BytecodeType::Int32 {
-                self.gen
-                    .emit_reinterpret_float32_as_int32(cmp_lhs_reg, lhs_reg);
-                self.gen
-                    .emit_reinterpret_float32_as_int32(cmp_rhs_reg, rhs_reg);
-            } else {
-                self.gen
-                    .emit_reinterpret_float64_as_int64(cmp_lhs_reg, lhs_reg);
-                self.gen
-                    .emit_reinterpret_float64_as_int64(cmp_rhs_reg, rhs_reg);
-            }
-
-            self.free_if_temp(lhs_reg);
-            self.free_if_temp(rhs_reg);
-        } else {
-            cmp_lhs_reg = lhs_reg;
-            cmp_rhs_reg = rhs_reg;
+        if expr.op == BinOp::Cmp(CmpOp::IsNot) {
+            self.gen.emit_not_bool(dest, dest);
         }
 
-        if expr.op == BinOp::Cmp(CmpOp::Is) {
-            match cmp_ty {
-                BytecodeType::UInt8 => self.gen.emit_test_eq_uint8(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Bool => self.gen.emit_test_eq_bool(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Char => self.gen.emit_test_eq_char(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Int32 => self.gen.emit_test_eq_int32(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Int64 => self.gen.emit_test_eq_int64(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Ptr => self.gen.emit_test_eq_ptr(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::TypeParam(_) => {
-                    self.gen
-                        .emit_test_eq_generic(dest, cmp_lhs_reg, cmp_rhs_reg)
-                }
-                _ => unreachable!(),
-            }
-        } else {
-            match cmp_ty {
-                BytecodeType::UInt8 => self.gen.emit_test_ne_uint8(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Bool => self.gen.emit_test_ne_bool(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Char => self.gen.emit_test_ne_char(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Int32 => self.gen.emit_test_ne_int32(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Int64 => self.gen.emit_test_ne_int64(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::Ptr => self.gen.emit_test_ne_ptr(dest, cmp_lhs_reg, cmp_rhs_reg),
-                BytecodeType::TypeParam(_) => {
-                    self.gen
-                        .emit_test_ne_generic(dest, cmp_lhs_reg, cmp_rhs_reg)
-                }
-                _ => unreachable!(),
-            }
-        }
-
-        self.free_if_temp(cmp_lhs_reg);
-        self.free_if_temp(cmp_rhs_reg);
+        self.free_if_temp(lhs_reg);
+        self.free_if_temp(rhs_reg);
 
         dest
     }
