@@ -1,0 +1,25 @@
+fun main() {
+    assert(2L.compareTo(4L) == -1);
+    assert(4L.compareTo(2L) == 1);
+    assert(4L.compareTo(4L) == 0);
+
+    assert((-2L).compareTo(-4L) == 1);
+    assert((-4L).compareTo(-2L) == -1);
+    assert((-4L).compareTo(-4L) == 0);
+
+    assert(2.compareTo(4) == -1);
+    assert(4.compareTo(2) == 1);
+    assert(4.compareTo(4) == 0);
+
+    assert((-2).compareTo(-4) == 1);
+    assert((-4).compareTo(-2) == -1);
+    assert((-4).compareTo(-4) == 0);
+
+    assert(2Y.compareTo(4Y) == -1);
+    assert(4Y.compareTo(2Y) == 1);
+    assert(4Y.compareTo(4Y) == 0);
+
+    assert('a'.compareTo('z') == -1);
+    assert('z'.compareTo('a') == 1);
+    assert('x'.compareTo('x') == 0);
+}

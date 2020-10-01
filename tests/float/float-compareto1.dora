@@ -3,7 +3,15 @@ fun main() {
     assert(4.0F.compareTo(2.0F) == 1);
     assert(4.0F.compareTo(4.0F) == 0);
 
+    assert(2.0F.compareTo(-4.0F) == 1);
+    assert((-4.0F).compareTo(-2.0F) == -1);
+    assert((-4.0F).compareTo(-4.0F) == 0);
+
     assert(2.0.compareTo(4.0) == -1);
     assert(4.0.compareTo(2.0) == 1);
     assert(4.0.compareTo(4.0) == 0);
+
+    assert(2.0.compareTo(-4.0) == 1);
+    assert((-4.0).compareTo(-2.0) == -1);
+    assert((-4.0).compareTo(-4.0) == 0);
 }

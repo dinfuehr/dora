@@ -194,6 +194,10 @@ where
         self.masm.get_scratch()
     }
 
+    pub fn cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.cmp_int(mode, dest, lhs, rhs);
+    }
+
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
         self.masm.cmp_reg(mode, lhs, rhs);
     }

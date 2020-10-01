@@ -3619,17 +3619,45 @@ fn gen_cast_int64() {
 
 #[test]
 fn gen_compare_to_method() {
-    let result = code("fun f(a: Int64, b: Int64): Int32 { a.compareTo(b) }");
-    let expected = vec![
-        SubInt64(r(3), r(0), r(1)),
-        CastInt64ToInt32(r(2), r(3)),
-        Ret(r(2)),
-    ];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Int64, b: Int64): Int32 { a.compareTo(b) }",
+        |vm, code, fct| {
+            let fct_id = vm
+                .cls_method_by_name("Int64", "compareTo", false)
+                .expect("Int64::compareTo not found");
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 
-    let result = code("fun f(a: Int32, b: Int32): Int32 { a.compareTo(b) }");
-    let expected = vec![SubInt32(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "fun f(a: Int32, b: Int32): Int32 { a.compareTo(b) }",
+        |vm, code, fct| {
+            let fct_id = vm
+                .cls_method_by_name("Int32", "compareTo", false)
+                .expect("Int32::compareTo not found");
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 
     gen_fct(
         "fun f(a: Float32, b: Float32): Int32 { a.compareTo(b) }",

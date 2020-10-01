@@ -2051,7 +2051,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_uint8(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_uint8(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_uint8(dest, lhs_reg, rhs_reg),
-                None => self.gen.emit_const_int32(dest, 0),
+                None => {
+                    let fct_id = info.fct_id.expect("fct_id missing");
+                    let ty = self.ty(lhs.id());
+                    let type_params = ty.type_params(self.vm);
+                    let idx = self.gen.add_const_fct_types(fct_id, type_params);
+                    self.gen.emit_push_register(lhs_reg);
+                    self.gen.emit_push_register(rhs_reg);
+                    self.gen.emit_invoke_direct(dest, idx, pos);
+                }
                 _ => unreachable!(),
             },
             Intrinsic::CharEq => match op {
@@ -2064,6 +2072,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_char(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_char(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_char(dest, lhs_reg, rhs_reg),
+                None => {
+                    let fct_id = info.fct_id.expect("fct_id missing");
+                    let ty = self.ty(lhs.id());
+                    let type_params = ty.type_params(self.vm);
+                    let idx = self.gen.add_const_fct_types(fct_id, type_params);
+                    self.gen.emit_push_register(lhs_reg);
+                    self.gen.emit_push_register(rhs_reg);
+                    self.gen.emit_invoke_direct(dest, idx, pos);
+                }
                 _ => unreachable!(),
             },
             Intrinsic::EnumEq => self.gen.emit_test_eq_enum(dest, lhs_reg, rhs_reg),
@@ -2080,7 +2097,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_int32(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_int32(dest, lhs_reg, rhs_reg),
                 Some(_) => unreachable!(),
-                None => self.gen.emit_sub_int32(dest, lhs_reg, rhs_reg),
+                None => {
+                    let fct_id = info.fct_id.expect("fct_id missing");
+                    let ty = self.ty(lhs.id());
+                    let type_params = ty.type_params(self.vm);
+                    let idx = self.gen.add_const_fct_types(fct_id, type_params);
+                    self.gen.emit_push_register(lhs_reg);
+                    self.gen.emit_push_register(rhs_reg);
+                    self.gen.emit_invoke_direct(dest, idx, pos);
+                }
             },
             Intrinsic::Int64Eq => match op {
                 Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_int64(dest, lhs_reg, rhs_reg),
@@ -2095,10 +2120,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_int64(dest, lhs_reg, rhs_reg),
                 Some(_) => unreachable!(),
                 None => {
-                    let result = self.alloc_temp(BytecodeType::Int64);
-                    self.gen.emit_sub_int64(result, lhs_reg, rhs_reg);
-                    self.gen.emit_cast_int64_to_int32(dest, result);
-                    self.free_temp(result);
+                    let fct_id = info.fct_id.expect("fct_id missing");
+                    let ty = self.ty(lhs.id());
+                    let type_params = ty.type_params(self.vm);
+                    let idx = self.gen.add_const_fct_types(fct_id, type_params);
+                    self.gen.emit_push_register(lhs_reg);
+                    self.gen.emit_push_register(rhs_reg);
+                    self.gen.emit_invoke_direct(dest, idx, pos);
                 }
             },
             Intrinsic::Float32Eq => match op {
@@ -2165,7 +2193,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let idx = self.gen.add_const_fct_types(fct_id, type_params);
                     self.gen.emit_push_register(lhs_reg);
                     self.gen.emit_push_register(rhs_reg);
-                    self.gen.emit_invoke_direct(dest, idx, pos)
+                    self.gen.emit_invoke_direct(dest, idx, pos);
                 }
 
                 _ => unreachable!(),

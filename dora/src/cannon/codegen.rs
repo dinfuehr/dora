@@ -2522,6 +2522,29 @@ where
                 REG_RESULT.into()
             }
 
+            Intrinsic::Int32Cmp | Intrinsic::Int64Cmp | Intrinsic::ByteCmp | Intrinsic::CharCmp => {
+                assert_eq!(arguments.len(), 2);
+                let dest_reg = dest.expect("missing dest");
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+
+                self.emit_load_register(lhs_reg, REG_TMP1.into());
+                self.emit_load_register(rhs_reg, REG_TMP2.into());
+
+                let mode = match intrinsic {
+                    Intrinsic::Int64Cmp => MachineMode::Int64,
+                    Intrinsic::Int32Cmp | Intrinsic::CharCmp => MachineMode::Int32,
+                    Intrinsic::ByteCmp => MachineMode::Int8,
+                    _ => unreachable!(),
+                };
+
+                self.asm.cmp_int(mode, REG_RESULT, REG_TMP1, REG_TMP2);
+                self.emit_store_register(REG_RESULT.into(), dest_reg);
+
+                *dest = None;
+                REG_RESULT.into()
+            }
+
             Intrinsic::Float32Cmp | Intrinsic::Float64Cmp => {
                 assert_eq!(arguments.len(), 2);
                 let dest_reg = dest.expect("missing dest");
