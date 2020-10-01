@@ -394,22 +394,22 @@ pub fn ldrd_imm(rt: FReg, rn: Reg, imm12: u32) -> u32 {
 }
 
 pub fn strb_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
     cls_ldst_regimm(0b00, 0, 0b00, imm12, rn, rt.asm())
 }
 
 pub fn strh_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
     cls_ldst_regimm(0b01, 0, 0b00, imm12, rn, rt.asm())
 }
 
 pub fn strw_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
     cls_ldst_regimm(0b10, 0, 0b00, imm12, rn, rt.asm())
 }
 
 pub fn strx_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
     cls_ldst_regimm(0b11, 0, 0b00, imm12, rn, rt.asm())
 }
 
@@ -604,6 +604,10 @@ pub fn csel(sf: u32, rd: Reg, rn: Reg, rm: Reg, cond: Cond) -> u32 {
 
 pub fn csinc(sf: u32, rd: Reg, rn: Reg, rm: Reg, cond: Cond) -> u32 {
     cls_csel(sf, 0, 0, rm, cond, 1, rn, rd)
+}
+
+pub fn csinv(sf: u32, rd: Reg, rn: Reg, rm: Reg, cond: Cond) -> u32 {
+    cls_csel(sf, 1, 0, rm, cond, 0, rn, rd)
 }
 
 pub fn cset(sf: u32, rd: Reg, cond: Cond) -> u32 {

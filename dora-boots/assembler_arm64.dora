@@ -37,7 +37,7 @@ let REG_SP: Register = Register(33);
 let REG_FP: Register = R29;
 let REG_LR: Register = R30;
 
-class AssemblerArm64: Assembler {
+class AssemblerArm64 extends Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
     fun ret() {

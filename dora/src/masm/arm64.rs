@@ -720,6 +720,34 @@ impl MacroAssembler {
         self.emit_u32(asm::fsqrt(dbl, dest, src));
     }
 
+    pub fn cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let sf = size_flag(mode);
+
+        self.emit_u32(asm::cmp_reg(sf, lhs, rhs));
+        self.emit_u32(asm::cset(0, dest, Cond::NE));
+        self.emit_u32(asm::csinv(0, dest, dest, REG_ZERO, Cond::GE));
+    }
+
+    pub fn float_cmp_int(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: FReg,
+        rhs: FReg,
+    ) {
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        self.emit_u32(asm::fcmp(dbl, lhs, rhs));
+        self.emit_u32(asm::cset(0, dest, Cond::GT));
+        let scratch = self.get_scratch();
+        self.emit_u32(asm::movn(0, *scratch, 0, 0));
+        self.emit_u32(asm::csel(0, dest, *scratch, dest, Cond::MI));
+    }
+
     pub fn float_cmp(
         &mut self,
         mode: MachineMode,
