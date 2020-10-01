@@ -728,13 +728,7 @@ impl MacroAssembler {
         self.emit_u32(asm::csinv(0, dest, dest, REG_ZERO, Cond::GE));
     }
 
-    pub fn float_cmp_int(
-        &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: FReg,
-        rhs: FReg,
-    ) {
+    pub fn float_cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
         let dbl = match mode {
             MachineMode::Float32 => 0,
             MachineMode::Float64 => 1,
