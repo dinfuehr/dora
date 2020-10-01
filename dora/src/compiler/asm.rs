@@ -336,6 +336,10 @@ where
         self.masm.float_cmp_nan(mode, dest, src);
     }
 
+    pub fn float_cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
+        self.masm.float_cmp_int(mode, dest, lhs, rhs);
+    }
+
     pub fn float_cmp(
         &mut self,
         mode: MachineMode,

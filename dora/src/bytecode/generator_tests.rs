@@ -3630,6 +3630,46 @@ fn gen_compare_to_method() {
     let result = code("fun f(a: Int32, b: Int32): Int32 { a.compareTo(b) }");
     let expected = vec![SubInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
+
+    gen_fct(
+        "fun f(a: Float32, b: Float32): Int32 { a.compareTo(b) }",
+        |vm, code, fct| {
+            let fct_id = vm
+                .cls_method_by_name("Float32", "compareTo", false)
+                .expect("Float32::compareTo not found");
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
+
+    gen_fct(
+        "fun f(a: Float64, b: Float64): Int32 { a.compareTo(b) }",
+        |vm, code, fct| {
+            let fct_id = vm
+                .cls_method_by_name("Float64", "compareTo", false)
+                .expect("Float64::compareTo not found");
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+            );
+        },
+    );
 }
 
 #[test]

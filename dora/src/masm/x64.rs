@@ -205,6 +205,21 @@ impl MacroAssembler {
         }
     }
 
+    pub fn float_cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
+        self.asm.xorl_rr(dest.into(), dest.into());
+        match mode {
+            MachineMode::Float64 => self.asm.ucomisd_rr(lhs.into(), rhs.into()),
+            MachineMode::Float32 => self.asm.ucomiss_rr(lhs.into(), rhs.into()),
+            _ => unreachable!(),
+        }
+        self.asm.setcc_r(Condition::Above, dest.into());
+
+        let scratch = self.get_scratch();
+        self.asm.movl_ri((*scratch).into(), Immediate(-1));
+        self.asm
+            .cmovl(Condition::Below, dest.into(), (*scratch).into());
+    }
+
     pub fn float_cmp(
         &mut self,
         mode: MachineMode,
