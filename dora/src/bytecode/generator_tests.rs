@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ensure_tuple, EnumId, GlobalId, TupleId, VM};
+use crate::vm::{ensure_tuple, ClassId, EnumId, FieldId, GlobalId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -105,14 +105,13 @@ fn gen_generic_direct_trait() {
 fn gen_load_field_uint8() {
     gen_fct(
         "class Foo(let bar: UInt8) fun f(a: Foo): UInt8 { return a.bar; }",
-        |vm, code, fct| {
+        |vm, code, _fct| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+            let expected = vec![
+                LoadField(r(1), r(0), cls, TypeList::empty(), field),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Field(cls, TypeList::empty(), field)
-            );
         },
     );
 }
@@ -2512,7 +2511,7 @@ fn gen_new_object() {
         let cls_id = vm.cls_by_name("Object");
         let ctor_id = vm.ctor_by_name("Object");
         let expected = vec![
-            NewObject(r(0), ConstPoolIdx(1)),
+            NewObject(r(0), cls_id, TypeList::empty()),
             PushRegister(r(0)),
             InvokeDirectVoid(ConstPoolIdx(0)),
             Ret(r(0)),
@@ -2537,17 +2536,13 @@ fn gen_new_object_assign_to_var() {
             let cls_id = vm.cls_by_name("Object");
             let ctor_id = vm.ctor_by_name("Object");
             let expected = vec![
-                NewObject(r(1), ConstPoolIdx(1)),
+                NewObject(r(1), cls_id, TypeList::empty()),
                 PushRegister(r(1)),
                 InvokeDirectVoid(ConstPoolIdx(0)),
                 MovPtr(r(0), r(1)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::Class(cls_id, TypeList::empty())
-            );
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
@@ -2567,18 +2562,14 @@ fn gen_position_new_object() {
 fn gen_new_array() {
     gen_fct(
         "fun f(): Array[Int32] { return Array::ofSizeUnsafe[Int32](1L); }",
-        |vm, code, fct| {
+        |vm, code, _fct| {
             let cls_id = vm.cls_by_name("Array");
             let expected = vec![
                 ConstInt64(r(1), 1),
-                NewArray(r(0), ConstPoolIdx(0), r(1)),
+                NewArray(r(0), cls_id, TypeList::single(BuiltinType::Int32), r(1)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, TypeList::single(BuiltinType::Int32))
-            );
         },
     );
 }
@@ -2878,7 +2869,7 @@ fn gen_new_object_with_multiple_args() {
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
                 ConstInt32(r(3), 3),
-                NewObject(r(0), ConstPoolIdx(4)),
+                NewObject(r(0), cls_id, TypeList::empty()),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
@@ -3477,23 +3468,35 @@ fn gen_unreachable() {
 
 #[test]
 fn gen_enum_array() {
-    let result = code(
+    gen_fct(
         "enum MyEnum { A(Int32), B }
         fun f(arr: Array[MyEnum], idx: Int64): MyEnum {
             arr(idx)
         }",
+        |vm, code, _fct| {
+            let enum_id = vm.enum_by_name("MyEnum");
+            let expected = vec![
+                LoadArrayEnum(r(2), r(0), r(1), enum_id, TypeList::empty()),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+        },
     );
-    let expected = vec![LoadArrayEnum(r(2), r(0), r(1), ConstPoolIdx(0)), Ret(r(2))];
-    assert_eq!(expected, result);
 
-    let result = code(
+    gen_fct(
         "enum MyEnum { A(Int32), B }
         fun f(arr: Array[MyEnum], idx: Int64, value: MyEnum) {
             arr(idx) = value;
         }",
+        |vm, code, _fct| {
+            let enum_id = vm.enum_by_name("MyEnum");
+            let expected = vec![
+                StoreArrayEnum(r(2), r(0), r(1), enum_id, TypeList::empty()),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
     );
-    let expected = vec![StoreArrayEnum(r(2), r(0), r(1), ConstPoolIdx(0)), RetVoid];
-    assert_eq!(expected, result);
 }
 
 #[test]
@@ -3986,7 +3989,7 @@ pub enum Bytecode {
 
     LoadTupleElement(Register, Register, TupleId, u32),
 
-    LoadField(Register, Register, ConstPoolIdx),
+    LoadField(Register, Register, ClassId, TypeList, FieldId),
     StoreField(Register, Register, ConstPoolIdx),
 
     LoadGlobal(Register, GlobalId),
@@ -4083,8 +4086,8 @@ pub enum Bytecode {
     InvokeGenericDirectVoid(ConstPoolIdx),
     InvokeGenericDirect(Register, ConstPoolIdx),
 
-    NewObject(Register, ConstPoolIdx),
-    NewArray(Register, ConstPoolIdx, Register),
+    NewObject(Register, ClassId, TypeList),
+    NewArray(Register, ClassId, TypeList, Register),
     NewTuple(Register, TupleId),
     NewEnum(Register, EnumId, TypeList, usize),
 
@@ -4102,7 +4105,7 @@ pub enum Bytecode {
     LoadArrayFloat64(Register, Register, Register),
     LoadArrayPtr(Register, Register, Register),
     LoadArrayGeneric(Register, Register, Register),
-    LoadArrayEnum(Register, Register, Register, ConstPoolIdx),
+    LoadArrayEnum(Register, Register, Register, EnumId, TypeList),
 
     StoreArrayBool(Register, Register, Register),
     StoreArrayUInt8(Register, Register, Register),
@@ -4113,7 +4116,7 @@ pub enum Bytecode {
     StoreArrayFloat64(Register, Register, Register),
     StoreArrayPtr(Register, Register, Register),
     StoreArrayGeneric(Register, Register, Register),
-    StoreArrayEnum(Register, Register, Register, ConstPoolIdx),
+    StoreArrayEnum(Register, Register, Register, EnumId, TypeList),
 
     RetVoid,
     Ret(Register),
@@ -4414,8 +4417,20 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::LoadTupleElement(src, dest, tuple_id, element));
     }
 
-    fn visit_load_field(&mut self, dest: Register, obj: Register, field: ConstPoolIdx) {
-        self.emit(Bytecode::LoadField(dest, obj, field));
+    fn visit_load_field(&mut self, dest: Register, obj: Register, idx: ConstPoolIdx) {
+        let (cls_id, type_params, field_id) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                (*cls_id, type_params.clone(), *field_id)
+            }
+            _ => unreachable!(),
+        };
+        self.emit(Bytecode::LoadField(
+            dest,
+            obj,
+            cls_id,
+            type_params,
+            field_id,
+        ));
     }
 
     fn visit_store_field(&mut self, src: Register, obj: Register, field: ConstPoolIdx) {
@@ -4706,11 +4721,19 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::InvokeGenericDirect(dest, fct_idx));
     }
 
-    fn visit_new_object(&mut self, dest: Register, cls: ConstPoolIdx) {
-        self.emit(Bytecode::NewObject(dest, cls));
+    fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let (cls_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        self.emit(Bytecode::NewObject(dest, cls_id, type_params));
     }
-    fn visit_new_array(&mut self, dest: Register, cls: ConstPoolIdx, length: Register) {
-        self.emit(Bytecode::NewArray(dest, cls, length));
+    fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
+        let (cls_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        self.emit(Bytecode::NewArray(dest, cls_id, type_params, length));
     }
     fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         self.emit(Bytecode::NewTuple(dest, tuple_id));
@@ -4770,7 +4793,17 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         idx: Register,
         enum_idx: ConstPoolIdx,
     ) {
-        self.emit(Bytecode::LoadArrayEnum(dest, arr, idx, enum_idx));
+        let (enum_id, type_params) = match self.bc.const_pool(enum_idx) {
+            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        self.emit(Bytecode::LoadArrayEnum(
+            dest,
+            arr,
+            idx,
+            enum_id,
+            type_params,
+        ));
     }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
@@ -4807,7 +4840,17 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         idx: Register,
         enum_idx: ConstPoolIdx,
     ) {
-        self.emit(Bytecode::StoreArrayEnum(dest, arr, idx, enum_idx));
+        let (enum_id, type_params) = match self.bc.const_pool(enum_idx) {
+            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        self.emit(Bytecode::StoreArrayEnum(
+            dest,
+            arr,
+            idx,
+            enum_id,
+            type_params,
+        ));
     }
 
     fn visit_ret_void(&mut self) {
