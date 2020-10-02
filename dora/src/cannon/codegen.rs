@@ -1618,12 +1618,8 @@ where
                     _ => unreachable!(),
                 };
 
-                let offset = self.register_offset(lhs);
-                self.asm
-                    .load_mem(mode, REG_RESULT.into(), Mem::Local(offset));
-
-                let offset = self.register_offset(rhs);
-                self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+                self.emit_load_register_as(lhs, REG_RESULT.into(), mode);
+                self.emit_load_register_as(rhs, REG_TMP1.into(), mode);
 
                 self.asm.cmp_reg(mode, REG_RESULT, REG_TMP1);
                 self.asm.set(REG_RESULT, op);
@@ -3989,7 +3985,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
 
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (enum_id, type_params, _variant_id) = match self.bytecode.const_pool(idx) {
+            let (enum_id, type_params, variant_id) = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
                     (*enum_id, type_params, *variant_id)
                 }
@@ -3998,11 +3994,14 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             let xenum = &self.vm.enums[enum_id];
             let xenum = xenum.read();
             let xenum_name = xenum.name_with_params(self.vm, type_params);
+            let variant = &xenum.variants[variant_id];
+            let variant_name = self.vm.interner.str(variant.name);
             format!(
-                "MovEnum {}, ConstPoolIdx({}) # {}",
+                "NewEnum {}, ConstPoolIdx({}) # {}::{}",
                 dest,
                 idx.to_usize(),
-                xenum_name
+                xenum_name,
+                variant_name,
             )
         });
         self.emit_new_enum(dest, idx);
