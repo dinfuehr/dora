@@ -1,8 +1,9 @@
 use std::fmt;
 
 use crate::mem::ptr_width;
+use crate::semck::specialize::specialize_enum_id_params;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeListId};
-use crate::vm::{get_vm, ClassId, EnumId, FctId, FieldId, TupleId, VM};
+use crate::vm::{get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -48,8 +49,8 @@ pub enum BytecodeType {
 }
 
 impl BytecodeType {
-    pub fn size(&self) -> i32 {
-        match *self {
+    pub fn size(&self, vm: &VM) -> i32 {
+        match self {
             BytecodeType::Bool => 1,
             BytecodeType::UInt8 => 1,
             BytecodeType::Char => 4,
@@ -60,10 +61,19 @@ impl BytecodeType {
             BytecodeType::Ptr => ptr_width(),
             BytecodeType::Tuple(tuple_id) => {
                 let vm = get_vm();
-                vm.tuples.lock().get_tuple(tuple_id).size()
+                vm.tuples.lock().get_tuple(*tuple_id).size()
             }
             BytecodeType::TypeParam(_) => unreachable!(),
-            BytecodeType::Enum(_, _) => unimplemented!(),
+            BytecodeType::Enum(enum_id, type_params) => {
+                let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
+                let edef = vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
+
+                match edef.layout {
+                    EnumLayout::Int => 4,
+                    EnumLayout::Ptr | EnumLayout::Tagged => ptr_width(),
+                }
+            }
         }
     }
 
@@ -83,7 +93,7 @@ impl BytecodeType {
         }
     }
 
-    pub fn mode(&self) -> MachineMode {
+    pub fn mode(&self, vm: &VM) -> MachineMode {
         match self {
             BytecodeType::Bool => MachineMode::Int8,
             BytecodeType::UInt8 => MachineMode::Int8,
@@ -95,7 +105,16 @@ impl BytecodeType {
             BytecodeType::Ptr => MachineMode::Ptr,
             BytecodeType::Tuple(_) => unreachable!(),
             BytecodeType::TypeParam(_) => unreachable!(),
-            BytecodeType::Enum(_, _) => unimplemented!(),
+            BytecodeType::Enum(enum_id, type_params) => {
+                let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
+                let edef = vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
+
+                match edef.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                }
+            }
         }
     }
 

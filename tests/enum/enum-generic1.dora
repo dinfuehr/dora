@@ -1,0 +1,11 @@
+enum Foo[T] { A(T), B }
+
+fun main() {
+    let value = Foo[String]::A("abc");
+    foo(value);
+}
+
+fun foo(x: Foo[String]): Foo[String] {
+    let y = x;
+    y
+}

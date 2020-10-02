@@ -185,7 +185,7 @@ fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &TypeList) -> bool {
     }
 
     let variant1 = xenum.variants.first().unwrap();
-    let variant2 = xenum.variants.first().unwrap();
+    let variant2 = xenum.variants.last().unwrap();
 
     let (none_variant, some_variant) = if variant1.types.is_empty() {
         (variant1, variant2)

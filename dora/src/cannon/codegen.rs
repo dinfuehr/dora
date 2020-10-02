@@ -20,12 +20,15 @@ use crate::masm::*;
 use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::{
-    specialize_class_id_params, specialize_tuple, specialize_type, specialize_type_list,
+    specialize_class_id_params, specialize_enum_id_params, specialize_tuple, specialize_type,
+    specialize_type_list,
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
-use crate::vm::{Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM};
+use crate::vm::{
+    EnumLayout, Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM,
+};
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
 macro_rules! comment {
@@ -152,7 +155,8 @@ where
 
         for (index, ty) in self.bytecode.registers().iter().enumerate() {
             if let Some(ty) = self.specialize_bytecode_type_unit(ty.clone()) {
-                stacksize = align_i32(stacksize + ty.size(), ty.size());
+                let sz = ty.size(self.vm);
+                stacksize = align_i32(stacksize + sz, sz);
                 offset[index] = Some(-stacksize);
             }
         }
@@ -325,14 +329,24 @@ where
         let bytecode_type = self.specialize_register_type(src);
         let offset = self.register_offset(src);
         self.asm
-            .load_mem(bytecode_type.mode(), dest, Mem::Local(offset));
+            .load_mem(bytecode_type.mode(self.vm), dest, Mem::Local(offset));
+    }
+
+    fn emit_load_register_as(&mut self, src: Register, dest: AnyReg, mode: MachineMode) {
+        let offset = self.register_offset(src);
+        self.asm.load_mem(mode, dest, Mem::Local(offset));
     }
 
     fn emit_store_register(&mut self, src: AnyReg, dest: Register) {
         let bytecode_type = self.specialize_register_type(dest);
         let offset = self.register_offset(dest);
         self.asm
-            .store_mem(bytecode_type.mode(), Mem::Local(offset), src);
+            .store_mem(bytecode_type.mode(self.vm), Mem::Local(offset), src);
+    }
+
+    fn emit_store_register_as(&mut self, src: AnyReg, dest: Register, mode: MachineMode) {
+        let offset = self.register_offset(dest);
+        self.asm.store_mem(mode, Mem::Local(offset), src);
     }
 
     fn emit_push(&mut self, _opnd: Register) {
@@ -361,8 +375,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_add(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_add(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -381,8 +399,12 @@ where
         self.emit_load_register(rhs, FREG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .float_add(bytecode_type.mode(), FREG_RESULT, FREG_RESULT, FREG_TMP1);
+        self.asm.float_add(
+            bytecode_type.mode(self.vm),
+            FREG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+        );
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -402,8 +424,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_sub(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_sub(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -422,8 +448,12 @@ where
         self.emit_load_register(rhs, FREG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .float_sub(bytecode_type.mode(), FREG_RESULT, FREG_RESULT, FREG_TMP1);
+        self.asm.float_sub(
+            bytecode_type.mode(self.vm),
+            FREG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+        );
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -438,7 +468,7 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         self.asm
-            .int_neg(bytecode_type.mode(), REG_RESULT, REG_RESULT);
+            .int_neg(bytecode_type.mode(self.vm), REG_RESULT, REG_RESULT);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -453,7 +483,7 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         self.asm
-            .float_neg(bytecode_type.mode(), FREG_RESULT, FREG_RESULT);
+            .float_neg(bytecode_type.mode(self.vm), FREG_RESULT, FREG_RESULT);
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -473,8 +503,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_mul(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_mul(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -493,8 +527,12 @@ where
         self.emit_load_register(rhs, FREG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .float_mul(bytecode_type.mode(), FREG_RESULT, FREG_RESULT, FREG_TMP1);
+        self.asm.float_mul(
+            bytecode_type.mode(self.vm),
+            FREG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+        );
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -518,7 +556,7 @@ where
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
         self.asm.int_div(
-            bytecode_type.mode(),
+            bytecode_type.mode(self.vm),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -542,8 +580,12 @@ where
         self.emit_load_register(rhs, FREG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .float_div(bytecode_type.mode(), FREG_RESULT, FREG_RESULT, FREG_TMP1);
+        self.asm.float_div(
+            bytecode_type.mode(self.vm),
+            FREG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+        );
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -567,7 +609,7 @@ where
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
         self.asm.int_mod(
-            bytecode_type.mode(),
+            bytecode_type.mode(self.vm),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -592,8 +634,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_and(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_and(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -613,8 +659,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_or(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_or(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -634,8 +684,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_xor(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_xor(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -663,7 +717,7 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         self.asm
-            .int_not(bytecode_type.mode(), REG_RESULT, REG_RESULT);
+            .int_not(bytecode_type.mode(self.vm), REG_RESULT, REG_RESULT);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -680,8 +734,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_shl(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_shl(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -698,8 +756,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_shr(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_shr(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -716,8 +778,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_sar(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_sar(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -734,8 +800,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_rol(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_rol(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -752,8 +822,12 @@ where
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm
-            .int_ror(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_ror(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -765,11 +839,11 @@ where
         );
 
         let src_type = self.bytecode.register_type(src);
-        let src_register = result_reg(src_type.clone());
+        let src_register = result_reg(self.vm, src_type.clone());
         self.emit_load_register(src, src_register.into());
 
         let dest_type = self.bytecode.register_type(dest);
-        let dest_register = result_reg(dest_type.clone());
+        let dest_register = result_reg(self.vm, dest_type.clone());
 
         match dest_type {
             BytecodeType::Int32 => {
@@ -1047,9 +1121,30 @@ where
                     self.emit_mov_tuple(dest, src, tuple_id);
                 }
 
-                _ => {
-                    let reg = result_reg(bytecode_type);
+                BytecodeType::Enum(enum_id, type_params) => {
+                    let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let edef = self.vm.enum_defs.idx(enum_def_id);
+                    let edef = edef.read();
 
+                    match edef.layout {
+                        EnumLayout::Int => {
+                            let reg = REG_RESULT.into();
+                            let mode = MachineMode::Int32;
+                            self.emit_load_register_as(src, reg, mode);
+                            self.emit_store_register_as(reg, dest, mode);
+                        }
+                        EnumLayout::Ptr => {
+                            let reg = REG_RESULT.into();
+                            let mode = MachineMode::Ptr;
+                            self.emit_load_register_as(src, reg, mode);
+                            self.emit_store_register_as(reg, dest, mode);
+                        }
+                        EnumLayout::Tagged => unimplemented!(),
+                    }
+                }
+
+                _ => {
+                    let reg = result_reg(self.vm, bytecode_type);
                     self.emit_load_register(src, reg.into());
                     self.emit_store_register(reg.into(), dest);
                 }
@@ -1098,9 +1193,12 @@ where
                     RegOrOffset::Offset(src_offset + offset),
                 );
             } else {
-                let reg = result_reg(dest_type.clone());
-                self.asm
-                    .load_mem(dest_type.mode(), reg, Mem::Local(src_offset + offset));
+                let reg = result_reg(self.vm, dest_type.clone());
+                self.asm.load_mem(
+                    dest_type.mode(self.vm),
+                    reg,
+                    Mem::Local(src_offset + offset),
+                );
 
                 self.emit_store_register(reg.into(), dest);
             }
@@ -1275,7 +1373,7 @@ where
                     RegOrOffset::RegWithOffset(obj_reg, field.offset),
                 );
             } else {
-                let dest_reg = result_reg(bytecode_type);
+                let dest_reg = result_reg(self.vm, bytecode_type);
                 self.asm
                     .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
 
@@ -1329,7 +1427,7 @@ where
                     .get_tuple(tuple_id)
                     .contains_references()
             } else {
-                let value = result_reg(bytecode_type);
+                let value = result_reg(self.vm, bytecode_type);
 
                 self.emit_load_register(src, value.into());
                 self.asm
@@ -1375,7 +1473,7 @@ where
                 RegOrOffset::Reg(REG_TMP1),
             );
         } else {
-            let reg = result_reg(bytecode_type);
+            let reg = result_reg(self.vm, bytecode_type);
 
             self.asm
                 .load_mem(glob.ty.mode(), reg, Mem::Base(REG_TMP1, 0));
@@ -1408,7 +1506,7 @@ where
                 RegOrOffset::Offset(src_offset),
             );
         } else {
-            let reg = result_reg(bytecode_type);
+            let reg = result_reg(self.vm, bytecode_type);
 
             self.emit_load_register(src, reg);
 
@@ -1454,7 +1552,7 @@ where
         );
 
         self.asm
-            .load_int_const(bytecode_type.mode(), REG_RESULT, int_const);
+            .load_int_const(bytecode_type.mode(self.vm), REG_RESULT, int_const);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -1464,7 +1562,7 @@ where
         assert!(bytecode_type == BytecodeType::Float32 || bytecode_type == BytecodeType::Float64);
 
         self.asm
-            .load_float_const(bytecode_type.mode(), FREG_RESULT, float_const);
+            .load_float_const(bytecode_type.mode(self.vm), FREG_RESULT, float_const);
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -1494,7 +1592,8 @@ where
 
         let bytecode_type = self.bytecode.register_type(lhs);
 
-        self.asm.cmp_reg(bytecode_type.mode(), REG_RESULT, REG_TMP1);
+        self.asm
+            .cmp_reg(bytecode_type.mode(self.vm), REG_RESULT, REG_TMP1);
         self.asm.set(REG_RESULT, op);
 
         self.emit_store_register(REG_RESULT.into(), dest);
@@ -1534,7 +1633,8 @@ where
                 self.emit_load_register(lhs, REG_RESULT.into());
                 self.emit_load_register(rhs, REG_TMP1.into());
 
-                self.asm.cmp_reg(bytecode_type.mode(), REG_RESULT, REG_TMP1);
+                self.asm
+                    .cmp_reg(bytecode_type.mode(self.vm), REG_RESULT, REG_TMP1);
                 self.asm.set(REG_RESULT, op);
 
                 self.emit_store_register(REG_RESULT.into(), dest);
@@ -1556,8 +1656,13 @@ where
 
         let bytecode_type = self.bytecode.register_type(lhs);
 
-        self.asm
-            .float_cmp(bytecode_type.mode(), REG_RESULT, FREG_RESULT, FREG_TMP1, op);
+        self.asm.float_cmp(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+            op,
+        );
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -1618,7 +1723,7 @@ where
                     RegOrOffset::Offset(src_offset),
                 );
             } else {
-                let reg = result_reg(bytecode_type);
+                let reg = result_reg(self.vm, bytecode_type);
                 self.emit_load_register(src, reg.into());
             }
         }
@@ -1838,18 +1943,59 @@ where
             } else {
                 let subtype_reg = arguments[arg_idx];
                 let dest_type = self.specialize_register_type(subtype_reg);
-                let tmp = result_reg(dest_type.clone());
+                let tmp = result_reg(self.vm, dest_type.clone());
 
                 self.emit_load_register(arguments[arg_idx], tmp);
 
                 self.asm.store_mem(
-                    dest_type.mode(),
+                    dest_type.mode(self.vm),
                     Mem::Local(dest_offset + subtype_offset),
                     tmp,
                 );
 
                 arg_idx += 1;
             }
+        }
+    }
+
+    fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let (enum_id, type_params, variant_id) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
+                (*enum_id, type_params.clone(), *variant_id)
+            }
+            _ => unreachable!(),
+        };
+
+        let xenum = &self.vm.enums[enum_id];
+        let xenum = xenum.read();
+
+        let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let edef = self.vm.enum_defs.idx(edef_id);
+        let edef = edef.read();
+
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
+        match edef.layout {
+            EnumLayout::Int => {
+                assert_eq!(0, arguments.len());
+                self.asm
+                    .load_int_const(MachineMode::Int32, REG_RESULT, variant_id as i64);
+                self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int32);
+            }
+            EnumLayout::Ptr => {
+                let variant = &xenum.variants[variant_id];
+
+                if variant.types.is_empty() {
+                    assert_eq!(0, arguments.len());
+                    self.asm.load_nil(REG_RESULT);
+                    self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
+                } else {
+                    assert_eq!(1, arguments.len());
+                    self.emit_load_register(arguments[0], REG_RESULT.into());
+                    self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
+                }
+            }
+            EnumLayout::Tagged => unimplemented!(),
         }
     }
 
@@ -1950,7 +2096,7 @@ where
                 self.asm.emit_barrier(REG_TMP1, card_table_offset);
             }
         } else {
-            let value_reg: AnyReg = if src_type.mode().is_float() {
+            let value_reg: AnyReg = if src_type.mode(self.vm).is_float() {
                 FREG_RESULT.into()
             } else {
                 REG_TMP2.into()
@@ -1959,11 +2105,11 @@ where
             self.emit_load_register(src, value_reg.into());
 
             self.asm.store_mem(
-                src_type.mode(),
+                src_type.mode(self.vm),
                 Mem::Index(
                     REG_RESULT,
                     REG_TMP1,
-                    src_type.mode().size(),
+                    src_type.mode(self.vm).size(),
                     offset_of_array_data(),
                 ),
                 value_reg,
@@ -1979,7 +2125,7 @@ where
                     Mem::Index(
                         REG_RESULT,
                         REG_TMP1,
-                        src_type.mode().size(),
+                        src_type.mode(self.vm).size(),
                         offset_of_array_data(),
                     ),
                 );
@@ -2026,9 +2172,9 @@ where
                 RegOrOffset::Reg(REG_TMP1),
             );
         } else {
-            let register = result_reg(dest_type.clone());
+            let register = result_reg(self.vm, dest_type.clone());
             self.asm
-                .load_array_elem(dest_type.mode(), register, REG_RESULT, REG_TMP1);
+                .load_array_elem(dest_type.mode(self.vm), register, REG_RESULT, REG_TMP1);
             self.emit_store_register(register, dest);
         }
     }
@@ -2072,8 +2218,8 @@ where
         let (reg, ty) = match bytecode_type {
             Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
             Some(bytecode_type) => (
-                result_reg(bytecode_type.clone()),
-                Some(bytecode_type.mode()),
+                result_reg(self.vm, bytecode_type.clone()),
+                Some(bytecode_type.mode(self.vm)),
             ),
             None => (REG_RESULT.into(), None),
         };
@@ -2166,8 +2312,8 @@ where
             let (reg, mode) = match bytecode_type {
                 Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
                 Some(bytecode_type) => (
-                    result_reg(bytecode_type.clone()),
-                    Some(bytecode_type.mode()),
+                    result_reg(self.vm, bytecode_type.clone()),
+                    Some(bytecode_type.mode(self.vm)),
                 ),
                 None => (REG_RESULT.into(), None),
             };
@@ -2246,8 +2392,8 @@ where
             let (reg, mode) = match bytecode_type {
                 Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
                 Some(bytecode_type) => (
-                    result_reg(bytecode_type.clone()),
-                    Some(bytecode_type.mode()),
+                    result_reg(self.vm, bytecode_type.clone()),
+                    Some(bytecode_type.mode(self.vm)),
                 ),
                 None => (REG_RESULT.into(), None),
             };
@@ -2691,7 +2837,7 @@ where
                         }
                     }
                     BytecodeType::Float32 | BytecodeType::Float64 => {
-                        let mode = bytecode_type.mode();
+                        let mode = bytecode_type.mode(self.vm);
 
                         if freg_idx < FREG_PARAMS.len() {
                             self.asm.load_mem(
@@ -2713,7 +2859,7 @@ where
                         }
                     }
                     _ => {
-                        let mode = bytecode_type.mode();
+                        let mode = bytecode_type.mode(self.vm);
 
                         if reg_idx < REG_PARAMS.len() {
                             self.asm
@@ -3175,6 +3321,25 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_mov_generic(&mut self, dest: Register, src: Register) {
         comment!(self, format!("MovGeneric {}, {}", dest, src));
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        comment!(self, {
+            let (enum_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
+                _ => unreachable!(),
+            };
+            let xenum = &self.vm.enums[enum_id];
+            let xenum = xenum.read();
+            let xenum_name = xenum.name_with_params(self.vm, type_params);
+            format!(
+                "MovEnum {}, {}, ConstPoolIdx({}) # {}",
+                dest,
+                src,
+                idx.to_usize(),
+                xenum_name
+            )
+        });
         self.emit_mov_generic(dest, src);
     }
 
@@ -3822,6 +3987,27 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_new_tuple(dest, tuple_id);
     }
 
+    fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, {
+            let (enum_id, type_params, _variant_id) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
+                    (*enum_id, type_params, *variant_id)
+                }
+                _ => unreachable!(),
+            };
+            let xenum = &self.vm.enums[enum_id];
+            let xenum = xenum.read();
+            let xenum_name = xenum.name_with_params(self.vm, type_params);
+            format!(
+                "MovEnum {}, ConstPoolIdx({}) # {}",
+                dest,
+                idx.to_usize(),
+                xenum_name
+            )
+        });
+        self.emit_new_enum(dest, idx);
+    }
+
     fn visit_nil_check(&mut self, obj: Register) {
         comment!(self, format!("NilCheck {}", obj));
         self.emit_nil_check(obj);
@@ -3928,8 +4114,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 }
 
-fn result_reg(bytecode_type: BytecodeType) -> AnyReg {
-    if bytecode_type.mode().is_float() {
+fn result_reg(vm: &VM, bytecode_type: BytecodeType) -> AnyReg {
+    if bytecode_type.mode(vm).is_float() {
         FREG_RESULT.into()
     } else {
         REG_RESULT.into()
