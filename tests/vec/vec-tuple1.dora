@@ -1,7 +1,23 @@
+//= vm-args "--gc-verify --gc=copy"
+
 fun main() {
-    let x = Vec[(Int32, String)]((1, "abc"), (2, "def"), (3, "ghi"));
+    let x = build_vec();
+    forceCollect();
     assert(x.size() == 3L);
-    assert(x.pop().1 == "ghi");
-    assert(x.pop().1 == "def");
-    assert(x.pop().1 == "abc");
+    pop_vec(x, "ghi");
+    forceCollect();
+    pop_vec(x, "def");
+    forceCollect();
+    pop_vec(x, "abc");
+    forceCollect();
+    assert(x.size() == 0L);
+}
+
+fun build_vec(): Vec[(Int32, String)] {
+    Vec[(Int32, String)]((1, "a" + "b" + "c"), (2, "d" + "e" + "f"), (3, "g" + "h" + "i"))
+}
+
+fun pop_vec(vec: Vec[(Int32, String)], expected: String) {
+    let (_, str) = vec.pop();
+    assert(str == expected);
 }
