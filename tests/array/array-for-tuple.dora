@@ -1,0 +1,14 @@
+fun main() {
+    let array = Array[(Int32, String)]((1, "abc"), (2, "def"), (3, "ghi"));
+    for (idx, name) in array {
+        if idx == 1 {
+            assert(name == "abc");
+        } else if idx == 2 {
+            assert(name == "def");
+        } else if idx == 3 {
+            assert(name == "ghi");
+        } else {
+            unreachable[()]();
+        }
+    }
+}

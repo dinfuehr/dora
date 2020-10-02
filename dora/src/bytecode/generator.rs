@@ -203,8 +203,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.emit_jump_if_false(tmp_reg, lbl_end);
         self.free_temp(tmp_reg);
 
-        // load current array element
+        // type of expression: Array[Something]
         let ty = self.ty(stmt.expr.id());
+        // get type of element: Something for Array[Something]
+        let ty = *ty.type_params(self.vm).types().first().unwrap();
         self.visit_stmt_for_pattern_assign_array(&stmt.pattern, array_reg, index_reg, ty);
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
