@@ -20,4 +20,5 @@ fun build_vec(): Vec[(Int32, String)] {
 fun pop_vec(vec: Vec[(Int32, String)], expected: String) {
     let (_, str) = vec.pop();
     assert(str == expected);
+    assert(vec.array(vec.size()).1 === nil);
 }
