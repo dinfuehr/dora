@@ -687,10 +687,26 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
         match ident_type {
-            &IdentType::EnumValue(_, value) => {
-                let dest = self.ensure_register(dest, BytecodeType::Int32);
-                self.gen.emit_const_int32(dest, value as i32);
-                dest
+            &IdentType::EnumValue(enum_ty, variant_id) => {
+                let enum_id = enum_ty.enum_id().expect("enum expected");
+                let xenum = &self.vm.enums[enum_id];
+                let xenum = xenum.read();
+
+                if xenum.simple_enumeration {
+                    let dest = self.ensure_register(dest, BytecodeType::Int32);
+                    self.gen.emit_const_int32(dest, variant_id as i32);
+                    dest
+                } else {
+                    let bty = BytecodeType::from_ty(self.vm, enum_ty);
+                    let dest = self.ensure_register(dest, bty);
+                    let idx = self.gen.add_const_enum_variant(
+                        enum_id,
+                        enum_ty.type_params(self.vm),
+                        variant_id,
+                    );
+                    self.gen.emit_new_enum(dest, idx);
+                    dest
+                }
             }
 
             _ => unreachable!(),
@@ -881,6 +897,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
 
+        if let CallType::Enum(enum_ty, variant_id) = *call_type {
+            return self.visit_expr_call_enum(expr, enum_ty, variant_id, dest);
+        }
+
         // Find method that is called
         let callee_id = self.determine_callee(&call_type);
 
@@ -941,6 +961,40 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         result_reg
+    }
+
+    fn visit_expr_call_enum(
+        &mut self,
+        expr: &ExprCallType,
+        enum_ty: BuiltinType,
+        variant_id: usize,
+        dest: DataDest,
+    ) -> Register {
+        let mut arguments = Vec::new();
+
+        for arg in &expr.args {
+            arguments.push(self.visit_expr(arg, DataDest::Alloc));
+        }
+
+        for &arg_reg in &arguments {
+            self.gen.emit_push_register(arg_reg);
+        }
+
+        let enum_id = enum_ty.enum_id().expect("enum expected");
+        let type_params = enum_ty.type_params(self.vm);
+
+        let idx = self
+            .gen
+            .add_const_enum_variant(enum_id, type_params, variant_id);
+        let bytecode_ty = BytecodeType::from_ty(self.vm, enum_ty);
+        let dest_reg = self.ensure_register(dest, bytecode_ty);
+        self.gen.emit_new_enum(dest_reg, idx);
+
+        for arg_reg in arguments {
+            self.free_if_temp(arg_reg);
+        }
+
+        dest_reg
     }
 
     fn determine_callee(&mut self, call_type: &CallType) -> FctId {
@@ -2658,13 +2712,17 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<IntrinsicInfo> {
-        let call_type = self.src.map_calls.get(id).unwrap();
+        let call_type = self.src.map_calls.get(id).expect("missing CallType");
 
         if let Some(intrinsic) = call_type.to_intrinsic() {
             return Some(intrinsic.into());
         }
 
-        let fid = call_type.fct_id().unwrap();
+        let fid = if let Some(fct_id) = call_type.fct_id() {
+            fct_id
+        } else {
+            return None;
+        };
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {

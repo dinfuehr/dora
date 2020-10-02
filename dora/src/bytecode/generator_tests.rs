@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ensure_tuple, GlobalId, TupleId, VM};
+use crate::vm::{ensure_tuple, EnumId, GlobalId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -2443,6 +2443,70 @@ fn gen_virtual_method_call_int_with_3_args() {
 }
 
 #[test]
+fn gen_new_enum() {
+    gen_fct(
+        "
+        enum Foo { A(Int32), B }
+        fun f(): Foo { Foo::A(10) }
+    ",
+        |vm, code, _fct| {
+            let enum_id = vm.enum_by_name("Foo");
+            let expected = vec![
+                ConstInt32(r(0), 10),
+                PushRegister(r(0)),
+                NewEnum(r(1), enum_id, TypeList::empty(), 0),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+
+    gen_fct(
+        "
+        enum Foo[T] { A(T), B }
+        fun f(): Foo[Int32] { Foo[Int32]::A(10) }
+    ",
+        |vm, code, _fct| {
+            let enum_id = vm.enum_by_name("Foo");
+            let expected = vec![
+                ConstInt32(r(0), 10),
+                PushRegister(r(0)),
+                NewEnum(r(1), enum_id, TypeList::single(BuiltinType::Int32), 0),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+
+    gen_fct(
+        "
+        enum Foo { A(Int32), B }
+        fun f(): Foo { Foo::B }
+    ",
+        |vm, code, _fct| {
+            let enum_id = vm.enum_by_name("Foo");
+            let expected = vec![NewEnum(r(0), enum_id, TypeList::empty(), 1), Ret(r(0))];
+            assert_eq!(expected, code);
+        },
+    );
+
+    gen_fct(
+        "
+        enum Foo[T] { A(T), B }
+        fun f(): Foo[Int32] { Foo[Int32]::B }
+    ",
+        |vm, code, _fct| {
+            let enum_id = vm.enum_by_name("Foo");
+            let expected = vec![
+                NewEnum(r(0), enum_id, TypeList::single(BuiltinType::Int32), 1),
+                Ret(r(0)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_new_object() {
     gen_fct("fun f(): Object { return Object(); }", |vm, code, fct| {
         let cls_id = vm.cls_by_name("Object");
@@ -4022,6 +4086,7 @@ pub enum Bytecode {
     NewObject(Register, ConstPoolIdx),
     NewArray(Register, ConstPoolIdx, Register),
     NewTuple(Register, TupleId),
+    NewEnum(Register, EnumId, TypeList, usize),
 
     NilCheck(Register),
 
@@ -4649,6 +4714,15 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         self.emit(Bytecode::NewTuple(dest, tuple_id));
+    }
+    fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let (enum_id, type_params, variant_id) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
+                (*enum_id, type_params.clone(), *variant_id)
+            }
+            _ => unreachable!(),
+        };
+        self.emit(Bytecode::NewEnum(dest, enum_id, type_params, variant_id));
     }
 
     fn visit_nil_check(&mut self, obj: Register) {

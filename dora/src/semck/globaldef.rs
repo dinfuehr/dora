@@ -381,6 +381,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             name_to_value: HashMap::new(),
             extensions: Vec::new(),
             specializations: RwLock::new(HashMap::new()),
+            simple_enumeration: false,
         };
 
         if let Some(ref type_params) = e.type_params {

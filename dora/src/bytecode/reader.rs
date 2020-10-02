@@ -906,6 +906,11 @@ where
                 let tuple = self.read_tuple(wide);
                 self.visitor.visit_new_tuple(dest, tuple);
             }
+            BytecodeOpcode::NewEnum => {
+                let dest = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                self.visitor.visit_new_enum(dest, idx);
+            }
 
             BytecodeOpcode::NilCheck => {
                 let obj = self.read_register(wide);
@@ -1671,6 +1676,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_new_tuple(&mut self, _dest: Register, _tuple: TupleId) {
+        unimplemented!();
+    }
+    fn visit_new_enum(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 

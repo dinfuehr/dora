@@ -359,6 +359,7 @@ pub enum BytecodeOpcode {
     NewObject,
     NewArray,
     NewTuple,
+    NewEnum,
 
     NilCheck,
 
@@ -565,6 +566,7 @@ pub enum ConstPoolEntry {
     Fct(FctId, TypeList),
     Generic(TypeListId, FctId, TypeList),
     Enum(EnumId, TypeList),
+    EnumVariant(EnumId, TypeList, usize),
 }
 
 impl ConstPoolEntry {

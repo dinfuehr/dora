@@ -1179,7 +1179,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprCallType,
         enum_ty: BuiltinType,
-        variant_id: u32,
+        variant_id: usize,
         arg_types: &[BuiltinType],
     ) {
         let enum_id = enum_ty.enum_id().expect("enum expected");
@@ -1207,6 +1207,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let msg = SemError::EnumArgsNoParens(enum_name, variant_name);
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
+
+        self.src
+            .map_calls
+            .insert(e.id, Arc::new(CallType::Enum(enum_ty, variant_id)));
 
         self.src.set_ty(e.id, enum_ty);
     }
@@ -1847,7 +1851,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src
                 .map_idents
-                .insert(e.id, IdentType::EnumValue(ty, value));
+                .insert(e.id, IdentType::EnumValue(ty, value as usize));
         } else {
             let name = self.vm.interner.str(name).to_string();
             self.vm

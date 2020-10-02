@@ -61,6 +61,19 @@ pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction)
                     xenum.name_with_params(vm, type_params)
                 )
             }
+            ConstPoolEntry::EnumVariant(cls_id, type_params, variant_id) => {
+                let xenum = &vm.enums[*cls_id];
+                let xenum = xenum.read();
+                let variant = &xenum.variants[*variant_id];
+                let variant_name = vm.interner.str(variant.name);
+                println!(
+                    "{}{} => EnumVariant {}::{}",
+                    align,
+                    idx,
+                    xenum.name_with_params(vm, type_params),
+                    variant_name,
+                )
+            }
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let cls = vm.classes.idx(*cls_id);
                 let cls = cls.read();
@@ -388,6 +401,29 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
             r1,
             tuple_id.to_usize(),
             tuple_name
+        )
+        .expect("write! failed");
+    }
+
+    fn emit_new_enum(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
+        self.emit_start(name);
+        let (enum_id, type_params, variant_id) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
+                (*enum_id, type_params, *variant_id)
+            }
+            _ => unreachable!(),
+        };
+        let xenum = &self.vm.enums[enum_id];
+        let xenum = xenum.read();
+        let xenum_name = xenum.name_with_params(self.vm, type_params);
+        let variant_name = self.vm.interner.str(xenum.variants[variant_id].name);
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # {}::{}",
+            r1,
+            idx.to_usize(),
+            xenum_name,
+            variant_name,
         )
         .expect("write! failed");
     }

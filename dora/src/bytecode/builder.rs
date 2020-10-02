@@ -54,6 +54,16 @@ impl BytecodeBuilder {
         self.writer.add_const(ConstPoolEntry::Enum(id, type_params))
     }
 
+    pub fn add_const_enum_variant(
+        &mut self,
+        id: EnumId,
+        type_params: TypeList,
+        variant_id: usize,
+    ) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_id))
+    }
+
     pub fn add_const_fct_types(&mut self, id: FctId, type_params: TypeList) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
     }
@@ -865,6 +875,10 @@ impl BytecodeBuilder {
     pub fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         assert!(self.def(dest));
         self.writer.emit_new_tuple(dest, tuple_id);
+    }
+    pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
+        assert!(self.def(dest));
+        self.writer.emit_new_enum(dest, idx);
     }
 
     pub fn emit_nil_check(&mut self, obj: Register, pos: Position) {

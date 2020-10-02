@@ -40,6 +40,7 @@ pub struct EnumData {
     pub name_to_value: HashMap<Name, u32>,
     pub extensions: Vec<ExtensionId>,
     pub specializations: RwLock<HashMap<TypeList, EnumDefId>>,
+    pub simple_enumeration: bool,
 }
 
 impl EnumData {

@@ -196,7 +196,7 @@ pub enum IdentType {
     EnumType(EnumId, TypeList),
 
     // specific value in enum
-    EnumValue(BuiltinType, u32),
+    EnumValue(BuiltinType, usize),
 }
 
 impl IdentType {
@@ -322,6 +322,13 @@ impl CallType {
         match *self {
             CallType::Intrinsic(intrinsic) => Some(intrinsic),
             _ => None,
+        }
+    }
+
+    pub fn is_enum(&self) -> bool {
+        match *self {
+            CallType::Enum(_, _) => true,
+            _ => false,
         }
     }
 

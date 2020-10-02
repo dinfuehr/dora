@@ -109,6 +109,7 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
         let mut xenum = xenum.write();
 
         let mut next_variant_id: u32 = 0;
+        let mut simple_enumeration = true;
 
         for value in &e.variants {
             let mut types: Vec<BuiltinType> = Vec::new();
@@ -119,6 +120,10 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
                         .unwrap_or(BuiltinType::Error);
                     types.push(variant_ty);
                 }
+            }
+
+            if types.len() > 0 {
+                simple_enumeration = false;
             }
 
             let variant = EnumVariant {
@@ -138,6 +143,8 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
 
             next_variant_id += 1;
         }
+
+        xenum.simple_enumeration = simple_enumeration;
 
         if e.variants.is_empty() {
             self.vm

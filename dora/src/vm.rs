@@ -309,6 +309,12 @@ impl<'ast> VM<'ast> {
     }
 
     #[cfg(test)]
+    pub fn enum_by_name(&self, name: &'static str) -> EnumId {
+        let name = self.interner.intern(name);
+        self.sym.lock().get_enum(name).expect("class not found")
+    }
+
+    #[cfg(test)]
     pub fn const_by_name(&self, name: &'static str) -> ConstId {
         let name = self.interner.intern(name);
         self.sym.lock().get_const(name).expect("class not found")
