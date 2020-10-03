@@ -1,5 +1,6 @@
 use libc;
 
+use std::char;
 use std::io::{self, Write};
 use std::mem;
 use std::process;
@@ -26,9 +27,9 @@ pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn char_to_string(val: char) -> Ref<Str> {
+pub extern "C" fn char_to_string(val: u32) -> Ref<Str> {
     handle_scope(|| {
-        let buffer = val.to_string();
+        let buffer = unsafe { char::from_u32_unchecked(val) }.to_string();
         let vm = get_vm();
 
         Str::from_buffer(vm, buffer.as_bytes())

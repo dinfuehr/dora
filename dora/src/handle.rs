@@ -123,7 +123,7 @@ struct BorderData {
     buffer: usize,
     element: usize,
 }
-
+#[repr(C)]
 pub struct Handle<T>(*mut Ref<T>);
 
 impl<T> Handle<T> {
