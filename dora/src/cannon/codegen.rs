@@ -1133,13 +1133,12 @@ where
                             self.emit_load_register_as(src, reg, mode);
                             self.emit_store_register_as(reg, dest, mode);
                         }
-                        EnumLayout::Ptr => {
+                        EnumLayout::Ptr | EnumLayout::Tagged => {
                             let reg = REG_RESULT.into();
                             let mode = MachineMode::Ptr;
                             self.emit_load_register_as(src, reg, mode);
                             self.emit_store_register_as(reg, dest, mode);
                         }
-                        EnumLayout::Tagged => unimplemented!(),
                     }
                 }
 
@@ -1997,7 +1996,7 @@ where
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = edef.ensure_class_for_variant(&*xenum, variant_id);
+                let cls_def_id = edef.ensure_class_for_variant(self.vm, &*xenum, variant_id);
 
                 let cls = self.vm.class_defs.idx(cls_def_id);
                 let cls = cls.read();
@@ -2013,37 +2012,69 @@ where
                 let gcpoint = self.create_gcpoint();
                 let position = self.bytecode.offset_position(self.current_offset.to_u32());
                 self.asm
-                    .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
+                    .allocate(REG_TMP1.into(), alloc_size, position, false, gcpoint);
 
                 // store gc object in register
-                self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
+                comment!(
+                    self,
+                    format!("NewEnum: store object address in register {}", dest)
+                );
+                self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
                 // store classptr in object
+                comment!(self, format!("NewEnum: initialize object header"));
                 let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
                 let disp = self.asm.add_addr(cptr);
                 let pos = self.asm.pos() as i32;
 
-                self.asm.load_constpool(REG_TMP1.into(), disp + pos);
+                self.asm.load_constpool(REG_RESULT.into(), disp + pos);
                 self.asm
-                    .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+                    .store_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
 
                 // clear mark/fwdptr word in header
                 assert!(Header::size() == 2 * mem::ptr_width());
-                self.asm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+                self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
                 self.asm.store_mem(
                     MachineMode::Ptr,
-                    Mem::Base(REG_RESULT, mem::ptr_width()),
-                    REG_TMP1.into(),
+                    Mem::Base(REG_TMP1, mem::ptr_width()),
+                    REG_RESULT.into(),
                 );
 
                 // store variant_id
+                comment!(self, format!("NewEnum: store variant_id {}", variant_id));
                 self.asm
-                    .load_int_const(MachineMode::Int32, REG_TMP1, variant_id as i64);
+                    .load_int_const(MachineMode::Int32, REG_RESULT, variant_id as i64);
                 self.asm.store_mem(
                     MachineMode::Int32,
-                    Mem::Base(REG_RESULT, Header::size()),
-                    REG_TMP1.into(),
+                    Mem::Base(REG_TMP1, Header::size()),
+                    REG_RESULT.into(),
                 );
+
+                let mut field_idx = 1; // first field is variant_id
+
+                for arg in arguments {
+                    if let Some(ty) = self.specialize_register_type_unit(arg) {
+                        let field = &cls.fields[field_idx];
+                        comment!(self, format!("NewEnum: store register {} in object", arg));
+
+                        if let BytecodeType::Tuple(tuple_id) = ty {
+                            let src_offset = self.register_offset(arg);
+                            self.copy_tuple(
+                                tuple_id,
+                                RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
+                                RegOrOffset::Offset(src_offset),
+                            )
+                        } else {
+                            let reg = result_reg(self.vm, ty.clone());
+                            self.emit_load_register(arg, reg);
+                            let mode = ty.mode(self.vm);
+                            self.asm
+                                .store_mem(mode, Mem::Base(REG_TMP1, field.offset), reg);
+                        }
+
+                        field_idx += 1;
+                    }
+                }
             }
         }
     }

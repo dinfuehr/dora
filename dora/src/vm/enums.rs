@@ -8,9 +8,14 @@ use std::sync::Arc;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
+use crate::mem;
+use crate::object::Header;
+use crate::semck::specialize::replace_type_param;
+use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
-use crate::vm::{ClassDefId, ExtensionId, FctId, FileId, TypeParam, VM};
+use crate::vm::{ClassDef, ClassDefId, ExtensionId, FctId, FieldDef, FileId, TypeParam, VM};
+use crate::vtable::VTableBox;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumId(u32);
@@ -97,10 +102,71 @@ pub struct EnumDef {
 impl EnumDef {
     pub fn ensure_class_for_variant(
         &mut self,
-        _xenum: &EnumData,
-        _variant_id: usize,
+        vm: &VM,
+        xenum: &EnumData,
+        variant_id: usize,
     ) -> ClassDefId {
-        unimplemented!()
+        let variant = &xenum.variants[variant_id];
+        let mut csize = Header::size() + 4;
+        let mut fields = vec![FieldDef {
+            offset: Header::size(),
+            ty: BuiltinType::Int32,
+        }];
+        let mut ref_fields = Vec::new();
+
+        for &ty in &variant.types {
+            let ty = replace_type_param(vm, ty, &self.type_params, None);
+            assert!(ty.is_concrete_type(vm));
+
+            if ty.is_unit() {
+                continue;
+            }
+
+            let field_size = ty.size(vm);
+            let field_align = ty.align(vm);
+
+            let offset = mem::align_i32(csize, field_align);
+            fields.push(FieldDef { offset, ty });
+
+            csize = offset + field_size;
+
+            if let Some(tuple_id) = ty.tuple_id() {
+                let tuples = vm.tuples.lock();
+                let tuple = tuples.get_tuple(tuple_id);
+
+                for &ref_offset in tuple.references() {
+                    ref_fields.push(offset + ref_offset);
+                }
+            } else if ty.reference_type() {
+                ref_fields.push(offset);
+            }
+        }
+
+        let instance_size = mem::align_i32(csize, mem::ptr_width());
+
+        let mut class_defs = vm.class_defs.lock();
+        let id: ClassDefId = class_defs.len().into();
+
+        let class_def = Arc::new(RwLock::new(ClassDef {
+            id,
+            cls_id: None,
+            type_params: TypeList::empty(),
+            parent_id: None,
+            size: InstanceSize::Fixed(instance_size),
+            fields,
+            ref_fields,
+            vtable: None,
+        }));
+
+        class_defs.push(class_def.clone());
+
+        let mut class_def = class_def.write();
+
+        let clsptr = &*class_def as *const ClassDef as *mut ClassDef;
+        let vtable = VTableBox::new(clsptr, instance_size as usize, 0, &[]);
+        class_def.vtable = Some(vtable);
+
+        id
     }
 }
 
