@@ -1967,7 +1967,7 @@ where
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(edef_id);
-        let edef = edef.read();
+        let mut edef = edef.write();
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -1987,11 +1987,64 @@ where
                     self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
                 } else {
                     assert_eq!(1, arguments.len());
+                    assert_eq!(
+                        self.specialize_register_type(arguments[0]),
+                        BytecodeType::Ptr
+                    );
                     self.emit_load_register(arguments[0], REG_RESULT.into());
                     self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
                 }
             }
-            EnumLayout::Tagged => unimplemented!(),
+
+            EnumLayout::Tagged => {
+                let cls_def_id = edef.ensure_class_for_variant(&*xenum, variant_id);
+
+                let cls = self.vm.class_defs.idx(cls_def_id);
+                let cls = cls.read();
+
+                let alloc_size = match cls.size {
+                    InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
+                    _ => unreachable!(
+                        "class size type {:?} for new object not supported",
+                        cls.size
+                    ),
+                };
+
+                let gcpoint = self.create_gcpoint();
+                let position = self.bytecode.offset_position(self.current_offset.to_u32());
+                self.asm
+                    .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
+
+                // store gc object in register
+                self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
+
+                // store classptr in object
+                let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
+                let disp = self.asm.add_addr(cptr);
+                let pos = self.asm.pos() as i32;
+
+                self.asm.load_constpool(REG_TMP1.into(), disp + pos);
+                self.asm
+                    .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+
+                // clear mark/fwdptr word in header
+                assert!(Header::size() == 2 * mem::ptr_width());
+                self.asm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+                self.asm.store_mem(
+                    MachineMode::Ptr,
+                    Mem::Base(REG_RESULT, mem::ptr_width()),
+                    REG_TMP1.into(),
+                );
+
+                // store variant_id
+                self.asm
+                    .load_int_const(MachineMode::Int32, REG_TMP1, variant_id as i64);
+                self.asm.store_mem(
+                    MachineMode::Int32,
+                    Mem::Base(REG_RESULT, Header::size()),
+                    REG_TMP1.into(),
+                );
+            }
         }
     }
 

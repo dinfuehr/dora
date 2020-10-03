@@ -435,6 +435,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeGenericDirect
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewArray
+            | BytecodeOpcode::NewEnum
+            | BytecodeOpcode::NewTuple
             | BytecodeOpcode::NilCheck
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck

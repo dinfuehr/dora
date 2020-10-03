@@ -872,12 +872,14 @@ impl BytecodeBuilder {
         self.writer.set_position(pos);
         self.writer.emit_new_array(dest, cls_idx, length);
     }
-    pub fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+    pub fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId, pos: Position) {
         assert!(self.def(dest));
+        self.writer.set_position(pos);
         self.writer.emit_new_tuple(dest, tuple_id);
     }
-    pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
+    pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
+        self.writer.set_position(pos);
         self.writer.emit_new_enum(dest, idx);
     }
 

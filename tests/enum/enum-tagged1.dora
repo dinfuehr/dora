@@ -1,0 +1,13 @@
+//= ignore
+
+enum Foo { A(Int32, String, Float32), B }
+
+fun main() {
+    let value = Foo::A(112, "a" + "b" + "c", 17.5F);
+    foo(value);
+}
+
+fun foo(x: Foo): Foo {
+    let y = x;
+    y
+}

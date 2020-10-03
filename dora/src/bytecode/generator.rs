@@ -704,7 +704,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         enum_ty.type_params(self.vm),
                         variant_id,
                     );
-                    self.gen.emit_new_enum(dest, idx);
+                    self.gen.emit_new_enum(dest, idx, expr.pos);
                     dest
                 }
             }
@@ -988,7 +988,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             .add_const_enum_variant(enum_id, type_params, variant_id);
         let bytecode_ty = BytecodeType::from_ty(self.vm, enum_ty);
         let dest_reg = self.ensure_register(dest, bytecode_ty);
-        self.gen.emit_new_enum(dest_reg, idx);
+        self.gen.emit_new_enum(dest_reg, idx, expr.pos);
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg);
@@ -1589,7 +1589,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.gen.emit_push_register(value);
         }
 
-        self.gen.emit_new_tuple(result, tuple_id);
+        self.gen.emit_new_tuple(result, tuple_id, e.pos);
 
         for arg_reg in values {
             self.free_if_temp(arg_reg);

@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
-use crate::vm::{ExtensionId, FctId, FileId, TypeParam, VM};
+use crate::vm::{ClassDefId, ExtensionId, FctId, FileId, TypeParam, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumId(u32);
@@ -92,6 +92,16 @@ pub struct EnumDef {
     pub enum_id: EnumId,
     pub type_params: TypeList,
     pub layout: EnumLayout,
+}
+
+impl EnumDef {
+    pub fn ensure_class_for_variant(
+        &mut self,
+        _xenum: &EnumData,
+        _variant_id: usize,
+    ) -> ClassDefId {
+        unimplemented!()
+    }
 }
 
 #[derive(Debug)]
