@@ -1204,6 +1204,138 @@ where
         }
     }
 
+    fn emit_load_enum_element(
+        &mut self,
+        dest: Register,
+        src: Register,
+        idx: ConstPoolIdx,
+        element: u32,
+    ) {
+        let (enum_id, type_params, variant_id) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
+                (*enum_id, type_params.clone(), *variant_id)
+            }
+            _ => unreachable!(),
+        };
+
+        let xenum = &self.vm.enums[enum_id];
+        let xenum = xenum.read();
+
+        let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let edef = self.vm.enum_defs.idx(edef_id);
+        let mut edef = edef.write();
+
+        match edef.layout {
+            EnumLayout::Int => {
+                unreachable!();
+            }
+            EnumLayout::Ptr => {
+                assert_eq!(0, element);
+                let first_variant = xenum.variants.first().unwrap();
+                let some_idx = if first_variant.types.is_empty() { 1 } else { 0 };
+                assert_eq!(variant_id, some_idx);
+                assert_eq!(BytecodeType::Ptr, self.specialize_register_type(dest));
+
+                self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
+                let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+                self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::ILLEGAL);
+                self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
+            }
+
+            EnumLayout::Tagged => {
+                let cls_def_id = edef.ensure_class_for_variant(self.vm, &*xenum, variant_id);
+
+                let cls = self.vm.class_defs.idx(cls_def_id);
+                let cls = cls.read();
+
+                self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
+                self.asm.load_mem(
+                    MachineMode::Int32,
+                    REG_TMP1.into(),
+                    Mem::Base(REG_RESULT, Header::size()),
+                );
+                let lbl_bailout = self.asm.create_label();
+                self.asm
+                    .cmp_reg_imm(MachineMode::Int32, REG_TMP1, variant_id as i32);
+                self.asm.jump_if(CondCode::Equal, lbl_bailout);
+                let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+                self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
+
+                let field_id = edef.field_id(&*xenum, variant_id, element);
+                let field = &cls.fields[field_id as usize];
+
+                if field.ty.is_unit() {
+                    assert_eq!(self.specialize_register_type_unit(dest), None);
+                    return;
+                }
+
+                let bty = BytecodeType::from_ty(self.vm, field.ty);
+                assert_eq!(bty, self.specialize_register_type(dest));
+
+                if let BytecodeType::Tuple(tuple_id) = bty {
+                    let dest_offset = self.register_offset(dest);
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(dest_offset),
+                        RegOrOffset::RegWithOffset(REG_RESULT, field.offset),
+                    )
+                } else {
+                    let reg = result_reg(self.vm, bty.clone());
+                    self.asm
+                        .load_mem(bty.mode(self.vm), reg, Mem::Base(REG_TMP1, field.offset));
+                    self.emit_store_register(reg, dest);
+                }
+            }
+        }
+    }
+
+    fn emit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        let (enum_id, type_params) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+
+        let xenum = &self.vm.enums[enum_id];
+        let xenum = xenum.read();
+
+        let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let edef = self.vm.enum_defs.idx(edef_id);
+        let edef = edef.read();
+
+        match edef.layout {
+            EnumLayout::Int => {
+                self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Int32);
+                self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int32);
+            }
+            EnumLayout::Ptr => {
+                let first_variant = xenum.variants.first().unwrap();
+                let none_idx = if first_variant.types.is_empty() { 0 } else { 1 };
+                let some_idx = if none_idx == 0 { 1 } else { 0 };
+
+                self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
+                self.asm
+                    .load_int_const(MachineMode::Int32, REG_RESULT, some_idx as i64);
+                self.asm.cmp_reg_imm(MachineMode::Ptr, REG_TMP1, some_idx);
+
+                let lbl_equal = self.asm.create_label();
+                self.asm.jump_if(CondCode::Equal, lbl_equal);
+                self.asm
+                    .load_int_const(MachineMode::Int32, REG_RESULT, none_idx);
+                self.asm.bind_label(lbl_equal);
+            }
+
+            EnumLayout::Tagged => {
+                self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
+                self.asm.load_mem(
+                    MachineMode::Int32,
+                    REG_RESULT.into(),
+                    Mem::Base(REG_RESULT, Header::size()),
+                );
+                self.emit_store_register_as(REG_RESULT.into(), dest.into(), MachineMode::Int32);
+            }
+        }
+    }
+
     fn copy_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset, src: RegOrOffset) {
         let subtypes = self.vm.tuples.lock().get(tuple_id);
         let offsets = self
@@ -3452,6 +3584,59 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             )
         });
         self.emit_load_tuple_element(dest, src, tuple_id, idx);
+    }
+
+    fn visit_load_enum_element(
+        &mut self,
+        dest: Register,
+        src: Register,
+        idx: ConstPoolIdx,
+        element: u32,
+    ) {
+        comment!(self, {
+            let (enum_id, type_params, variant_id) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
+                    (*enum_id, type_params, *variant_id)
+                }
+                _ => unreachable!(),
+            };
+            let xenum = &self.vm.enums[enum_id];
+            let xenum = xenum.read();
+            let xenum_name = xenum.name_with_params(self.vm, type_params);
+            let variant = &xenum.variants[variant_id];
+            let variant_name = self.vm.interner.str(variant.name);
+            format!(
+                "LoadEnumElement {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
+                dest,
+                src,
+                idx.to_usize(),
+                element,
+                xenum_name,
+                variant_name,
+                element,
+            )
+        });
+        self.emit_load_enum_element(dest, src, idx, element);
+    }
+
+    fn visit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        comment!(self, {
+            let (enum_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
+                _ => unreachable!(),
+            };
+            let xenum = &self.vm.enums[enum_id];
+            let xenum = xenum.read();
+            let xenum_name = xenum.name_with_params(self.vm, type_params);
+            format!(
+                "LoadEnumVariant {}, {}, ConstPoolIdx({}) # {}",
+                dest,
+                src,
+                idx.to_usize(),
+                xenum_name,
+            )
+        });
+        self.emit_load_enum_variant(dest, src, idx);
     }
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {

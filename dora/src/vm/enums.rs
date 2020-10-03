@@ -97,6 +97,7 @@ pub struct EnumDef {
     pub enum_id: EnumId,
     pub type_params: TypeList,
     pub layout: EnumLayout,
+    pub variants: Vec<Option<ClassDefId>>,
 }
 
 impl EnumDef {
@@ -106,6 +107,10 @@ impl EnumDef {
         xenum: &EnumData,
         variant_id: usize,
     ) -> ClassDefId {
+        if let Some(cls_def_id) = self.variants[variant_id] {
+            return cls_def_id;
+        }
+
         let variant = &xenum.variants[variant_id];
         let mut csize = Header::size() + 4;
         let mut fields = vec![FieldDef {
@@ -147,6 +152,8 @@ impl EnumDef {
         let mut class_defs = vm.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
 
+        self.variants[variant_id] = Some(id);
+
         let class_def = Arc::new(RwLock::new(ClassDef {
             id,
             cls_id: None,
@@ -168,9 +175,22 @@ impl EnumDef {
 
         id
     }
+
+    pub fn field_id(&mut self, xenum: &EnumData, variant_id: usize, element: u32) -> u32 {
+        let variant = &xenum.variants[variant_id];
+        let mut units = 0;
+
+        for &ty in &variant.types[0..element as usize] {
+            if ty.is_unit() {
+                units += 1;
+            }
+        }
+
+        element - units
+    }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum EnumLayout {
     Int,
     Ptr,

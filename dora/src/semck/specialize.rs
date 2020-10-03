@@ -149,6 +149,7 @@ fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> 
             enum_id: xenum.id,
             type_params: type_params.clone(),
             layout: EnumLayout::Int,
+            variants: Vec::new(),
         })));
 
         id
@@ -164,7 +165,10 @@ fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> 
 
     let enum_def = vm.enum_defs.idx(id);
     let mut enum_def = enum_def.write();
-    enum_def.layout = layout;
+    enum_def.layout = layout.clone();
+    if let EnumLayout::Tagged = layout {
+        enum_def.variants = vec![None; xenum.variants.len()];
+    }
 
     id
 }

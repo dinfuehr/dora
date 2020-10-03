@@ -274,6 +274,7 @@ pub extern "C" fn trap(trap_id: u32) {
         Trap::CAST => "cast failed",
         Trap::OOM => "out of memory",
         Trap::STACK_OVERFLOW => "stack overflow",
+        Trap::ILLEGAL => "illegal state",
     };
 
     eprintln!("{}", msg);

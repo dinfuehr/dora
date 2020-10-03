@@ -572,13 +572,22 @@ impl BytecodeBuilder {
         src: Register,
         idx: ConstPoolIdx,
         element: u32,
+        pos: Position,
     ) {
         assert!(self.def(dest) && self.used(src));
+        self.writer.set_position(pos);
         self.writer.emit_load_enum_element(dest, src, idx, element);
     }
 
-    pub fn emit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+    pub fn emit_load_enum_variant(
+        &mut self,
+        dest: Register,
+        src: Register,
+        idx: ConstPoolIdx,
+        pos: Position,
+    ) {
         assert!(self.def(dest) && self.used(src));
+        self.writer.set_position(pos);
         self.writer.emit_load_enum_variant(dest, src, idx);
     }
 
