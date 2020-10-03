@@ -438,15 +438,6 @@ where
                     .visit_load_tuple_element(dest, src, tuple, element);
             }
 
-            BytecodeOpcode::StoreTupleElement => {
-                let src = self.read_register(wide);
-                let dest = self.read_register(wide);
-                let tuple = self.read_tuple(wide);
-                let element = self.read_index(wide);
-                self.visitor
-                    .visit_store_tuple_element(src, dest, tuple, element);
-            }
-
             BytecodeOpcode::LoadField => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
@@ -1392,16 +1383,6 @@ pub trait BytecodeVisitor {
         &mut self,
         _dest: Register,
         _src: Register,
-        _tuple_id: TupleId,
-        _element: u32,
-    ) {
-        unimplemented!();
-    }
-
-    fn visit_store_tuple_element(
-        &mut self,
-        _src: Register,
-        _dest: Register,
         _tuple_id: TupleId,
         _element: u32,
     ) {
