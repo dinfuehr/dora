@@ -584,6 +584,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("in", TokenKind::In);
     keywords.insert("break", TokenKind::Break);
     keywords.insert("continue", TokenKind::Continue);
+    keywords.insert("match", TokenKind::Match);
 
     // qualifiers
     keywords.insert("self", TokenKind::This);
@@ -1019,12 +1020,13 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut reader = Lexer::from_str("fun let while if else self class");
+        let mut reader = Lexer::from_str("fun let while if else match");
         assert_tok(&mut reader, TokenKind::Fun, 1, 1);
         assert_tok(&mut reader, TokenKind::Let, 1, 5);
         assert_tok(&mut reader, TokenKind::While, 1, 9);
         assert_tok(&mut reader, TokenKind::If, 1, 15);
         assert_tok(&mut reader, TokenKind::Else, 1, 18);
+        assert_tok(&mut reader, TokenKind::Match, 1, 23);
 
         let mut reader = Lexer::from_str("self class super");
         assert_tok(&mut reader, TokenKind::This, 1, 1);

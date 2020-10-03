@@ -1331,6 +1331,15 @@ impl<'a> Parser<'a> {
         )))
     }
 
+    fn parse_match(&mut self) -> ExprResult {
+        let _start = self.token.span.start();
+        let _pos = self.expect_token(TokenKind::Match)?.position;
+
+        let _cond = self.parse_expression_no_struct_lit()?;
+
+        unimplemented!()
+    }
+
     fn parse_for(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::For)?.position;
@@ -1424,6 +1433,7 @@ impl<'a> Parser<'a> {
         let result = match self.token.kind {
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
+            TokenKind::Match => self.parse_match(),
             _ => self.parse_binary(0),
         };
 

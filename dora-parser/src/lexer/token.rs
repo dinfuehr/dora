@@ -42,6 +42,7 @@ pub enum TokenKind {
     In,
     Break,
     Continue,
+    Match,
 
     // qualifiers
     This,
@@ -154,6 +155,7 @@ impl TokenKind {
             TokenKind::In => "in",
             TokenKind::Break => "break",
             TokenKind::Continue => "continue",
+            TokenKind::Match => "match",
 
             // qualifiers
             TokenKind::This => "self",

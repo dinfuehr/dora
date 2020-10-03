@@ -2002,7 +2002,7 @@ where
                 let cls = cls.read();
 
                 let alloc_size = match cls.size {
-                    InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
+                    InstanceSize::Fixed(size) => size as usize,
                     _ => unreachable!(
                         "class size type {:?} for new object not supported",
                         cls.size
@@ -2011,8 +2011,13 @@ where
 
                 let gcpoint = self.create_gcpoint();
                 let position = self.bytecode.offset_position(self.current_offset.to_u32());
-                self.asm
-                    .allocate(REG_TMP1.into(), alloc_size, position, false, gcpoint);
+                self.asm.allocate(
+                    REG_TMP1.into(),
+                    AllocationSize::Fixed(alloc_size),
+                    position,
+                    false,
+                    gcpoint,
+                );
 
                 // store gc object in register
                 comment!(
@@ -2039,6 +2044,10 @@ where
                     Mem::Base(REG_TMP1, mem::ptr_width()),
                     REG_RESULT.into(),
                 );
+
+                // clear the whole object even if we are going to initialize fields right afterwards
+                // This ensures gaps are all zero.
+                self.asm.fill_zero(REG_TMP1, false, alloc_size as usize);
 
                 // store variant_id
                 comment!(self, format!("NewEnum: store variant_id {}", variant_id));
