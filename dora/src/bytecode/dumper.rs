@@ -208,6 +208,59 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
             .expect("write! failed");
     }
 
+    fn emit_enum_load(
+        &mut self,
+        name: &str,
+        r1: Register,
+        r2: Register,
+        idx: ConstPoolIdx,
+        element: u32,
+    ) {
+        self.emit_start(name);
+        let (enum_id, type_params, variant_id) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
+                (*enum_id, type_params, *variant_id)
+            }
+            _ => unreachable!(),
+        };
+        let xenum = &self.vm.enums[enum_id];
+        let xenum = xenum.read();
+        let xenum_name = xenum.name_with_params(self.vm, type_params);
+        let variant_name = self.vm.interner.str(xenum.variants[variant_id].name);
+        writeln!(
+            self.w,
+            " {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
+            r1,
+            r2,
+            idx.to_usize(),
+            element,
+            xenum_name,
+            variant_name,
+            element
+        )
+        .expect("write! failed");
+    }
+
+    fn emit_enum_variant(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
+        self.emit_start(name);
+        let (enum_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
+            _ => unreachable!(),
+        };
+        let xenum = &self.vm.enums[enum_id];
+        let xenum = xenum.read();
+        let xenum_name = xenum.name_with_params(self.vm, type_params);
+        writeln!(
+            self.w,
+            " {}, {}, ConstPoolIdx({}) # {}",
+            r1,
+            r2,
+            idx.to_usize(),
+            xenum_name,
+        )
+        .expect("write! failed");
+    }
+
     fn emit_reg2_cls(&mut self, name: &str, r1: Register, r2: Register, cls_idx: ConstPoolIdx) {
         self.emit_start(name);
         let (cls_id, type_params) = match self.bc.const_pool(cls_idx) {
@@ -665,6 +718,20 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         element: u32,
     ) {
         self.emit_tuple_load("LoadTupleElement", dest, src, tuple_id, element);
+    }
+
+    fn visit_load_enum_element(
+        &mut self,
+        dest: Register,
+        src: Register,
+        idx: ConstPoolIdx,
+        element: u32,
+    ) {
+        self.emit_enum_load("LoadEnumElement", dest, src, idx, element);
+    }
+
+    fn visit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_enum_variant("LoadEnumVariant", dest, src, idx);
     }
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {

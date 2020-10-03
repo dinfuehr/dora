@@ -269,6 +269,8 @@ pub enum BytecodeOpcode {
     MovEnum,
 
     LoadTupleElement,
+    LoadEnumElement,
+    LoadEnumVariant,
 
     LoadField,
     StoreField,

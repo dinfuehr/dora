@@ -566,6 +566,22 @@ impl BytecodeBuilder {
             .emit_load_tuple_element(dest, src, tuple_id, element);
     }
 
+    pub fn emit_load_enum_element(
+        &mut self,
+        dest: Register,
+        src: Register,
+        idx: ConstPoolIdx,
+        element: u32,
+    ) {
+        assert!(self.def(dest) && self.used(src));
+        self.writer.emit_load_enum_element(dest, src, idx, element);
+    }
+
+    pub fn emit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        assert!(self.def(dest) && self.used(src));
+        self.writer.emit_load_enum_variant(dest, src, idx);
+    }
+
     pub fn emit_ret(&mut self, src: Register) {
         assert!(self.used(src));
         self.writer.emit_ret(src);

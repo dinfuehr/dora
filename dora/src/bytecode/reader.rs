@@ -438,6 +438,22 @@ where
                     .visit_load_tuple_element(dest, src, tuple, element);
             }
 
+            BytecodeOpcode::LoadEnumElement => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                let element = self.read_index(wide);
+                self.visitor
+                    .visit_load_enum_element(dest, src, idx, element);
+            }
+
+            BytecodeOpcode::LoadEnumVariant => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                self.visitor.visit_load_enum_variant(dest, src, idx);
+            }
+
             BytecodeOpcode::LoadField => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
@@ -1386,6 +1402,20 @@ pub trait BytecodeVisitor {
         _tuple_id: TupleId,
         _element: u32,
     ) {
+        unimplemented!();
+    }
+
+    fn visit_load_enum_element(
+        &mut self,
+        _dest: Register,
+        _src: Register,
+        _idx: ConstPoolIdx,
+        _element: u32,
+    ) {
+        unimplemented!();
+    }
+
+    fn visit_load_enum_variant(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 
