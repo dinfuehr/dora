@@ -1526,19 +1526,47 @@ where
         if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
             assert_eq!(bytecode_type, BytecodeType::from_ty(self.vm, field.ty));
 
-            if let Some(tuple_id) = bytecode_type.tuple_id() {
-                let dest_offset = self.register_offset(dest);
-                self.copy_tuple(
-                    tuple_id,
-                    RegOrOffset::Offset(dest_offset),
-                    RegOrOffset::RegWithOffset(obj_reg, field.offset),
-                );
-            } else {
-                let dest_reg = result_reg(self.vm, bytecode_type);
-                self.asm
-                    .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
+            match bytecode_type {
+                BytecodeType::Tuple(tuple_id) => {
+                    let dest_offset = self.register_offset(dest);
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(dest_offset),
+                        RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                    );
+                }
 
-                self.emit_store_register(dest_reg.into(), dest);
+                BytecodeType::Enum(enum_id, type_params) => {
+                    let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let edef = self.vm.enum_defs.idx(edef_id);
+                    let edef = edef.read();
+
+                    let mode = match edef.layout {
+                        EnumLayout::Int => MachineMode::Int32,
+                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                    };
+
+                    self.asm
+                        .load_mem(mode, REG_RESULT.into(), Mem::Base(obj_reg, field.offset));
+                    self.emit_store_register_as(REG_RESULT.into(), dest, mode);
+                }
+
+                BytecodeType::TypeParam(_) => unreachable!(),
+
+                BytecodeType::Ptr
+                | BytecodeType::UInt8
+                | BytecodeType::Bool
+                | BytecodeType::Char
+                | BytecodeType::Int32
+                | BytecodeType::Int64
+                | BytecodeType::Float32
+                | BytecodeType::Float64 => {
+                    let dest_reg = result_reg(self.vm, bytecode_type);
+                    self.asm
+                        .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
+
+                    self.emit_store_register(dest_reg.into(), dest);
+                }
             }
         }
     }
@@ -1574,28 +1602,60 @@ where
         if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
             assert_eq!(bytecode_type, BytecodeType::from_ty(self.vm, field.ty));
 
-            let needs_write_barrier = if let Some(tuple_id) = bytecode_type.tuple_id() {
-                let src_offset = self.register_offset(src);
-                self.copy_tuple(
-                    tuple_id,
-                    RegOrOffset::RegWithOffset(obj_reg, field.offset),
-                    RegOrOffset::Offset(src_offset),
-                );
+            let needs_write_barrier;
 
-                self.vm
-                    .tuples
-                    .lock()
-                    .get_tuple(tuple_id)
-                    .contains_references()
-            } else {
-                let value = result_reg(self.vm, bytecode_type);
+            match bytecode_type {
+                BytecodeType::Tuple(tuple_id) => {
+                    let src_offset = self.register_offset(src);
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                        RegOrOffset::Offset(src_offset),
+                    );
 
-                self.emit_load_register(src, value.into());
-                self.asm
-                    .store_mem(field.ty.mode(), Mem::Base(obj_reg, field.offset), value);
+                    needs_write_barrier = self
+                        .vm
+                        .tuples
+                        .lock()
+                        .get_tuple(tuple_id)
+                        .contains_references()
+                }
 
-                field.ty.reference_type()
-            };
+                BytecodeType::Enum(enum_id, type_params) => {
+                    let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let edef = self.vm.enum_defs.idx(edef_id);
+                    let edef = edef.read();
+
+                    let mode = match edef.layout {
+                        EnumLayout::Int => MachineMode::Int32,
+                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                    };
+
+                    self.emit_load_register_as(src, REG_RESULT.into(), mode);
+                    self.asm
+                        .store_mem(mode, Mem::Base(obj_reg, field.offset), REG_RESULT.into());
+
+                    needs_write_barrier = mode == MachineMode::Ptr;
+                }
+
+                BytecodeType::TypeParam(_) => unreachable!(),
+                BytecodeType::Ptr
+                | BytecodeType::UInt8
+                | BytecodeType::Bool
+                | BytecodeType::Char
+                | BytecodeType::Int32
+                | BytecodeType::Int64
+                | BytecodeType::Float32
+                | BytecodeType::Float64 => {
+                    let value = result_reg(self.vm, bytecode_type);
+
+                    self.emit_load_register(src, value.into());
+                    self.asm
+                        .store_mem(field.ty.mode(), Mem::Base(obj_reg, field.offset), value);
+
+                    needs_write_barrier = field.ty.reference_type();
+                }
+            }
 
             if self.vm.gc.needs_write_barrier() && needs_write_barrier {
                 let card_table_offset = self.vm.gc.card_table_offset();

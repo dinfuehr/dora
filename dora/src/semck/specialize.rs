@@ -269,25 +269,29 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         size = if cls.is_array {
             let element_ty = type_params[0];
 
-            if element_ty.is_unit() {
-                InstanceSize::UnitArray
-            } else if element_ty.reference_type() {
-                InstanceSize::ObjArray
-            } else if let Some(tuple_id) = element_ty.tuple_id() {
-                let tuples = vm.tuples.lock();
-                let tuple = tuples.get_tuple(tuple_id);
-
-                if tuple.contains_references() {
-                    for &offset in tuple.references() {
-                        ref_fields.push(offset);
-                    }
-
-                    InstanceSize::TupleArray(tuple.size())
-                } else {
-                    InstanceSize::PrimitiveArray(tuple.size())
+            match element_ty {
+                BuiltinType::Unit => InstanceSize::UnitArray,
+                BuiltinType::Ptr | BuiltinType::Class(_, _) | BuiltinType::TraitObject(_) => {
+                    InstanceSize::ObjArray
                 }
-            } else {
-                InstanceSize::PrimitiveArray(element_ty.size(vm))
+                BuiltinType::Tuple(tuple_id) => {
+                    let tuples = vm.tuples.lock();
+                    let tuple = tuples.get_tuple(tuple_id);
+
+                    if tuple.contains_references() {
+                        for &offset in tuple.references() {
+                            ref_fields.push(offset);
+                        }
+
+                        InstanceSize::TupleArray(tuple.size())
+                    } else {
+                        InstanceSize::PrimitiveArray(tuple.size())
+                    }
+                }
+
+                BuiltinType::Enum(_, _) => unimplemented!(),
+
+                _ => InstanceSize::PrimitiveArray(element_ty.size(vm)),
             }
         } else {
             InstanceSize::Str
@@ -339,6 +343,18 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
 
                 for &ref_offset in tuple.references() {
                     ref_fields.push(offset + ref_offset);
+                }
+            } else if let BuiltinType::Enum(enum_id, type_params_id) = ty {
+                let type_params = vm.lists.lock().get(type_params_id);
+                let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+                let edef = vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
+
+                match edef.layout {
+                    EnumLayout::Int => {}
+                    EnumLayout::Ptr | EnumLayout::Tagged => {
+                        ref_fields.push(offset);
+                    }
                 }
             } else if ty.reference_type() {
                 ref_fields.push(offset);
