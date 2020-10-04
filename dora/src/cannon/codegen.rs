@@ -188,15 +188,44 @@ where
         assert!(self.references.is_empty());
         for (idx, ty) in self.bytecode.registers().iter().enumerate() {
             if let Some(ty) = self.specialize_bytecode_type_unit(ty.clone()) {
-                assert!(!ty.is_type_param());
-                if ty.is_ptr() {
-                    let offset = self.register_offset(Register(idx));
-                    self.references.push(offset);
-                } else if let Some(tuple_id) = ty.tuple_id() {
-                    let offset = self.register_offset(Register(idx));
-                    let tuples = self.vm.tuples.lock();
-                    for &ref_offset in tuples.get_tuple(tuple_id).references() {
-                        self.references.push(offset + ref_offset);
+                match ty {
+                    BytecodeType::Ptr => {
+                        let offset = self.register_offset(Register(idx));
+                        self.references.push(offset);
+                    }
+
+                    BytecodeType::Tuple(tuple_id) => {
+                        let offset = self.register_offset(Register(idx));
+                        let tuples = self.vm.tuples.lock();
+                        for &ref_offset in tuples.get_tuple(tuple_id).references() {
+                            self.references.push(offset + ref_offset);
+                        }
+                    }
+
+                    BytecodeType::Enum(enum_id, type_params) => {
+                        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                        let edef = self.vm.enum_defs.idx(enum_def_id);
+                        let edef = edef.read();
+
+                        match edef.layout {
+                            EnumLayout::Int => {
+                                // type does not contain reference
+                            }
+                            EnumLayout::Ptr | EnumLayout::Tagged => {
+                                let offset = self.register_offset(Register(idx));
+                                self.references.push(offset);
+                            }
+                        }
+                    }
+                    BytecodeType::TypeParam(_) => unreachable!(),
+                    BytecodeType::UInt8
+                    | BytecodeType::Int32
+                    | BytecodeType::Bool
+                    | BytecodeType::Char
+                    | BytecodeType::Int64
+                    | BytecodeType::Float32
+                    | BytecodeType::Float64 => {
+                        // type does not contain reference
                     }
                 }
             }
