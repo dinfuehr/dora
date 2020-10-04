@@ -1212,23 +1212,54 @@ where
         let src_offset = self.register_offset(src);
 
         if let Some(dest_type) = self.specialize_register_type_unit(dest) {
-            if let Some(dest_tuple_id) = dest_type.tuple_id() {
-                let dest_offset = self.register_offset(dest);
+            match dest_type {
+                BytecodeType::Tuple(dest_tuple_id) => {
+                    let dest_offset = self.register_offset(dest);
 
-                self.copy_tuple(
-                    dest_tuple_id,
-                    RegOrOffset::Offset(dest_offset),
-                    RegOrOffset::Offset(src_offset + offset),
-                );
-            } else {
-                let reg = result_reg(self.vm, dest_type.clone());
-                self.asm.load_mem(
-                    dest_type.mode(self.vm),
-                    reg,
-                    Mem::Local(src_offset + offset),
-                );
+                    self.copy_tuple(
+                        dest_tuple_id,
+                        RegOrOffset::Offset(dest_offset),
+                        RegOrOffset::Offset(src_offset + offset),
+                    );
+                }
 
-                self.emit_store_register(reg.into(), dest);
+                BytecodeType::Enum(enum_id, type_params) => {
+                    let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let edef = self.vm.enum_defs.idx(edef_id);
+                    let edef = edef.read();
+
+                    let mode = match edef.layout {
+                        EnumLayout::Int => MachineMode::Int32,
+                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                    };
+
+                    let reg = REG_RESULT.into();
+
+                    self.asm
+                        .load_mem(mode, reg, Mem::Local(src_offset + offset));
+
+                    self.emit_store_register_as(reg.into(), dest, mode);
+                }
+
+                BytecodeType::TypeParam(_) => unreachable!(),
+
+                BytecodeType::Ptr
+                | BytecodeType::UInt8
+                | BytecodeType::Bool
+                | BytecodeType::Char
+                | BytecodeType::Int32
+                | BytecodeType::Int64
+                | BytecodeType::Float32
+                | BytecodeType::Float64 => {
+                    let reg = result_reg(self.vm, dest_type.clone());
+                    self.asm.load_mem(
+                        dest_type.mode(self.vm),
+                        reg,
+                        Mem::Local(src_offset + offset),
+                    );
+
+                    self.emit_store_register(reg.into(), dest);
+                }
             }
         }
     }
@@ -1399,6 +1430,34 @@ where
                 self.copy_tuple(tuple_id, dest, src);
             } else if subtype.is_unit() {
                 // nothing
+            } else if let BuiltinType::Enum(enum_id, type_params_id) = subtype {
+                let type_params = self.vm.lists.lock().get(type_params_id);
+                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
+
+                let mode = match edef.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                let tmp = result_reg_mode(mode);
+                let src = match src {
+                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        Mem::Base(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+                };
+                self.asm.load_mem(mode, tmp, src);
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        Mem::Base(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+                };
+                self.asm.store_mem(mode, dest, tmp);
             } else {
                 let mode = subtype.mode();
                 let tmp = result_reg_mode(mode);
@@ -1981,23 +2040,49 @@ where
 
     fn emit_return_generic(&mut self, src: Register) {
         if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
-            if let Some(tuple_id) = bytecode_type.tuple_id() {
-                let src_offset = self.register_offset(src);
+            match bytecode_type {
+                BytecodeType::Tuple(tuple_id) => {
+                    let src_offset = self.register_offset(src);
 
-                self.asm.load_mem(
-                    MachineMode::Ptr,
-                    REG_TMP1.into(),
-                    Mem::Local(result_address_offset()),
-                );
+                    self.asm.load_mem(
+                        MachineMode::Ptr,
+                        REG_TMP1.into(),
+                        Mem::Local(result_address_offset()),
+                    );
 
-                self.copy_tuple(
-                    tuple_id,
-                    RegOrOffset::Reg(REG_TMP1),
-                    RegOrOffset::Offset(src_offset),
-                );
-            } else {
-                let reg = result_reg(self.vm, bytecode_type);
-                self.emit_load_register(src, reg.into());
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Reg(REG_TMP1),
+                        RegOrOffset::Offset(src_offset),
+                    );
+                }
+
+                BytecodeType::Enum(enum_id, type_params) => {
+                    let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let edef = self.vm.enum_defs.idx(enum_def_id);
+                    let edef = edef.read();
+
+                    let mode = match edef.layout {
+                        EnumLayout::Int => MachineMode::Int32,
+                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                    };
+
+                    self.emit_load_register_as(src, REG_RESULT.into(), mode);
+                }
+
+                BytecodeType::TypeParam(_) => unreachable!(),
+
+                BytecodeType::UInt8
+                | BytecodeType::Int32
+                | BytecodeType::Bool
+                | BytecodeType::Char
+                | BytecodeType::Int64
+                | BytecodeType::Float32
+                | BytecodeType::Float64
+                | BytecodeType::Ptr => {
+                    let reg = result_reg(self.vm, bytecode_type);
+                    self.emit_load_register(src, reg.into());
+                }
             }
         }
 
@@ -2202,32 +2287,77 @@ where
         let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
 
         for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
-            if let Some(tuple_id) = subtype.tuple_id() {
-                let src = arguments[arg_idx];
-                let src_offset = self.register_offset(src);
+            match subtype {
+                BuiltinType::Tuple(tuple_id) => {
+                    let src = arguments[arg_idx];
+                    let src_offset = self.register_offset(src);
 
-                self.copy_tuple(
-                    tuple_id,
-                    RegOrOffset::Offset(dest_offset + subtype_offset),
-                    RegOrOffset::Offset(src_offset),
-                );
-            } else if subtype.is_unit() {
-                // nothing
-            } else {
-                let subtype_reg = arguments[arg_idx];
-                let dest_type = self.specialize_register_type(subtype_reg);
-                let tmp = result_reg(self.vm, dest_type.clone());
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(dest_offset + subtype_offset),
+                        RegOrOffset::Offset(src_offset),
+                    );
+                }
 
-                self.emit_load_register(arguments[arg_idx], tmp);
+                BuiltinType::Unit => {
+                    // do nothing
+                    continue;
+                }
 
-                self.asm.store_mem(
-                    dest_type.mode(self.vm),
-                    Mem::Local(dest_offset + subtype_offset),
-                    tmp,
-                );
+                BuiltinType::Enum(enum_id, type_params_id) => {
+                    let type_params = self.vm.lists.lock().get(type_params_id);
+                    let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let edef = self.vm.enum_defs.idx(edef_id);
+                    let edef = edef.read();
 
-                arg_idx += 1;
+                    let mode = match edef.layout {
+                        EnumLayout::Int => MachineMode::Int32,
+                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                    };
+
+                    self.emit_load_register_as(arguments[arg_idx], REG_RESULT.into(), mode);
+
+                    self.asm.store_mem(
+                        mode,
+                        Mem::Local(dest_offset + subtype_offset),
+                        REG_RESULT.into(),
+                    );
+                }
+
+                BuiltinType::Ptr
+                | BuiltinType::UInt8
+                | BuiltinType::Bool
+                | BuiltinType::Char
+                | BuiltinType::Int32
+                | BuiltinType::Int64
+                | BuiltinType::Float32
+                | BuiltinType::Float64
+                | BuiltinType::Class(_, _)
+                | BuiltinType::TraitObject(_) => {
+                    let subtype_reg = arguments[arg_idx];
+                    let dest_type = self.specialize_register_type(subtype_reg);
+                    let tmp = result_reg(self.vm, dest_type.clone());
+
+                    self.emit_load_register(arguments[arg_idx], tmp);
+
+                    self.asm.store_mem(
+                        dest_type.mode(self.vm),
+                        Mem::Local(dest_offset + subtype_offset),
+                        tmp,
+                    );
+                }
+
+                BuiltinType::TypeParam(_)
+                | BuiltinType::Error
+                | BuiltinType::Any
+                | BuiltinType::Nil
+                | BuiltinType::This
+                | BuiltinType::Struct(_, _)
+                | BuiltinType::Module(_)
+                | BuiltinType::Lambda(_) => unreachable!(),
             }
+
+            arg_idx += 1;
         }
     }
 

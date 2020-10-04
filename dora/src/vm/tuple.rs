@@ -4,8 +4,9 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::mem;
+use crate::semck::specialize::specialize_enum_id_params;
 use crate::ty::BuiltinType;
-use crate::vm::VM;
+use crate::vm::{EnumLayout, VM};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct TupleId(u32);
@@ -150,13 +151,57 @@ fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> Option<Concr
             return None;
         }
 
-        let element_size = ty.size(vm);
-        let element_align = ty.align(vm);
+        let element_size;
+        let element_align;
+        let element_ty;
+
+        if let Some(tuple_id) = ty.tuple_id() {
+            let tuples = vm.tuples.lock();
+            let tpl = tuples.get_tuple(tuple_id);
+            let concrete = tpl.concrete.as_ref().expect("concrete tuple expected");
+
+            element_size = concrete.size;
+            element_align = concrete.align;
+
+            let element_offset = mem::align_i32(size, element_align);
+            offsets.push(element_offset);
+
+            for &ref_offset in &concrete.references {
+                offsets.push(element_offset + ref_offset);
+            }
+
+            size = element_offset + element_size;
+            align = max(align, element_align);
+
+            continue;
+        } else if let BuiltinType::Enum(enum_id, type_params_id) = ty {
+            let type_params = vm.lists.lock().get(*type_params_id);
+            let edef_id = specialize_enum_id_params(vm, *enum_id, type_params);
+            let edef = vm.enum_defs.idx(edef_id);
+            let edef = edef.read();
+
+            match edef.layout {
+                EnumLayout::Int => {
+                    element_size = 4;
+                    element_align = 4;
+                    element_ty = BuiltinType::Int32;
+                }
+                EnumLayout::Ptr | EnumLayout::Tagged => {
+                    element_size = mem::ptr_width();
+                    element_align = mem::ptr_width();
+                    element_ty = BuiltinType::Ptr;
+                }
+            }
+        } else {
+            element_size = ty.size(vm);
+            element_align = ty.align(vm);
+            element_ty = *ty;
+        }
 
         let element_offset = mem::align_i32(size, element_align);
         offsets.push(element_offset);
 
-        if ty.reference_type() {
+        if element_ty.reference_type() {
             references.push(element_offset);
         }
 
