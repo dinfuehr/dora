@@ -2,9 +2,11 @@ use std::sync::Arc;
 
 use crate::compiler::map::CodeDescriptor;
 use crate::gc::Address;
+use crate::semck::specialize::specialize_enum_id_params;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::vm::VM;
+use crate::ty::BuiltinType;
+use crate::vm::{EnumLayout, VM};
 
 pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
@@ -41,6 +43,19 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                 let slot_address = glob.address_value.offset(offset as usize);
                 let slot = Slot::at(slot_address);
                 rootset.push(slot);
+            }
+        } else if let BuiltinType::Enum(enum_id, type_params_id) = glob.ty {
+            let type_params = vm.lists.lock().get(type_params_id);
+            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            let edef = vm.enum_defs.idx(edef_id);
+            let edef = edef.read();
+
+            match edef.layout {
+                EnumLayout::Int => {}
+                EnumLayout::Ptr | EnumLayout::Tagged => {
+                    let slot = Slot::at(glob.address_value);
+                    rootset.push(slot);
+                }
             }
         }
     }

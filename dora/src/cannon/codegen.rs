@@ -1626,20 +1626,48 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
 
-        if let Some(tuple_id) = bytecode_type.tuple_id() {
-            let dest_offset = self.register_offset(dest);
-            self.copy_tuple(
-                tuple_id,
-                RegOrOffset::Offset(dest_offset),
-                RegOrOffset::Reg(REG_TMP1),
-            );
-        } else {
-            let reg = result_reg(self.vm, bytecode_type);
+        match bytecode_type {
+            BytecodeType::Tuple(tuple_id) => {
+                let dest_offset = self.register_offset(dest);
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::Offset(dest_offset),
+                    RegOrOffset::Reg(REG_TMP1),
+                );
+            }
 
-            self.asm
-                .load_mem(glob.ty.mode(), reg, Mem::Base(REG_TMP1, 0));
+            BytecodeType::Enum(enum_id, type_params) => {
+                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
 
-            self.emit_store_register(reg, dest);
+                let mode = match edef.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                self.asm
+                    .load_mem(mode, REG_RESULT.into(), Mem::Base(REG_TMP1, 0));
+                self.emit_store_register_as(REG_RESULT.into(), dest, mode);
+            }
+
+            BytecodeType::TypeParam(_) => unreachable!(),
+
+            BytecodeType::Ptr
+            | BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                let reg = result_reg(self.vm, bytecode_type);
+
+                self.asm
+                    .load_mem(glob.ty.mode(), reg, Mem::Base(REG_TMP1, 0));
+
+                self.emit_store_register(reg, dest);
+            }
         }
     }
 
@@ -1659,20 +1687,48 @@ where
 
         let bytecode_type = self.bytecode.register_type(src);
 
-        if let Some(tuple_id) = bytecode_type.tuple_id() {
-            let src_offset = self.register_offset(src);
-            self.copy_tuple(
-                tuple_id,
-                RegOrOffset::Reg(REG_TMP1),
-                RegOrOffset::Offset(src_offset),
-            );
-        } else {
-            let reg = result_reg(self.vm, bytecode_type);
+        match bytecode_type {
+            BytecodeType::Tuple(tuple_id) => {
+                let src_offset = self.register_offset(src);
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::Reg(REG_TMP1),
+                    RegOrOffset::Offset(src_offset),
+                );
+            }
 
-            self.emit_load_register(src, reg);
+            BytecodeType::Enum(enum_id, type_params) => {
+                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
 
-            self.asm
-                .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), reg);
+                let mode = match edef.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                self.emit_load_register_as(src, REG_RESULT.into(), mode);
+                self.asm
+                    .store_mem(mode, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
+            }
+
+            BytecodeType::TypeParam(_) => unreachable!(),
+
+            BytecodeType::Ptr
+            | BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                let reg = result_reg(self.vm, bytecode_type);
+
+                self.emit_load_register(src, reg);
+
+                self.asm
+                    .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), reg);
+            }
         }
 
         if glob.needs_initialization() {
