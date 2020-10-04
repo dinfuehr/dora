@@ -1041,6 +1041,9 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         self.emit_new_tuple("NewTuple", dest, tuple_id);
     }
+    fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new_enum("NewEnum", dest, idx);
+    }
 
     fn visit_nil_check(&mut self, obj: Register) {
         self.emit_reg1("NilCheck", obj);

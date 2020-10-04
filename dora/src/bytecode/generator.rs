@@ -1777,6 +1777,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.gen
                         .emit_load_enum_variant(dest_reg, src, idx, expr.pos);
 
+                    self.free_if_temp(src);
+
                     dest_reg
                 }
 
@@ -1803,6 +1805,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let dest_reg = self.ensure_register(dest, return_ty);
                     self.gen
                         .emit_load_enum_element(dest_reg, src, idx, element, expr.pos);
+
+                    self.free_if_temp(src);
 
                     dest_reg
                 }
