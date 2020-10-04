@@ -198,7 +198,17 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     native_fct(vm, "call", stdlib::call as *const u8);
 
-    intrinsic_fct(vm, "unsafeKillRefs", Intrinsic::KillRefs);
+    intrinsic_fct(vm, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
+    intrinsic_fct(
+        vm,
+        "unsafeLoadEnumVariant",
+        Intrinsic::UnsafeLoadEnumVariant,
+    );
+    intrinsic_fct(
+        vm,
+        "unsafeLoadEnumElement",
+        Intrinsic::UnsafeLoadEnumElement,
+    );
 
     let clsid = vm.known.classes.uint8;
     native_class_method(vm, clsid, "toString", stdlib::uint8_to_string as *const u8);

@@ -108,5 +108,7 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
 }
 
 @internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
+@internal fun unsafeLoadEnumVariant[T](xenum: T): Int32;
+@internal fun unsafeLoadEnumElement[T, R](xenum: T, variant_id: Int32, element: Int32): R;
 
 @internal fun sleep(seconds: Int32);

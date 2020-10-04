@@ -3,6 +3,13 @@ enum Foo { A(Int32, String, Float32), B }
 fun main() {
     let value = Foo::A(112, "abc", 17.5F);
     foo(value);
+    assert(unsafeLoadEnumVariant[Foo](value) == 0);
+    assert(unsafeLoadEnumElement[Foo, Int32](value, 0, 0) == 112);
+    assert(unsafeLoadEnumElement[Foo, String](value, 0, 1) == "abc");
+    assert(unsafeLoadEnumElement[Foo, Float32](value, 0, 2) == 17.5F);
+
+    let value = Foo::B;
+    assert(unsafeLoadEnumVariant[Foo](value) == 1);
 }
 
 fun foo(x: Foo): Foo {

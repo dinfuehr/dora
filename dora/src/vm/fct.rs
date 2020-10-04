@@ -350,7 +350,7 @@ pub enum Intrinsic {
     ArraySet,
 
     Unreachable,
-    KillRefs,
+    UnsafeKillRefs,
 
     Assert,
     Debug,
@@ -492,12 +492,15 @@ pub enum Intrinsic {
     Float64Neg,
     Float64IsNan,
     Float64Sqrt,
+
+    UnsafeLoadEnumVariant,
+    UnsafeLoadEnumElement,
 }
 
 impl Intrinsic {
     pub fn emit_as_function(&self) -> bool {
         match self {
-            Intrinsic::KillRefs
+            Intrinsic::UnsafeKillRefs
             | Intrinsic::Unreachable
             | Intrinsic::Int64CountZeroBits
             | Intrinsic::Int64CountZeroBitsLeading

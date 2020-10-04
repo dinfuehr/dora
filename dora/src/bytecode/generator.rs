@@ -1766,6 +1766,47 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.emit_array_with_variadic_arguments(expr, &[ty], 0, dest)
                 }
 
+                Intrinsic::UnsafeLoadEnumVariant => {
+                    let src = self.visit_expr(&expr.args[0], DataDest::Alloc);
+                    let enum_ty = self.ty(expr.args[0].id());
+                    let enum_id = enum_ty.enum_id().expect("enum expected");
+                    let type_params = enum_ty.type_params(self.vm);
+                    let idx = self.gen.add_const_enum(enum_id, type_params);
+
+                    let dest_reg = self.ensure_register(dest, BytecodeType::Int32);
+                    self.gen
+                        .emit_load_enum_variant(dest_reg, src, idx, expr.pos);
+
+                    dest_reg
+                }
+
+                Intrinsic::UnsafeLoadEnumElement => {
+                    let src = self.visit_expr(&expr.args[0], DataDest::Alloc);
+                    let enum_ty = self.ty(expr.args[0].id());
+                    let enum_id = enum_ty.enum_id().expect("enum expected");
+                    let type_params = enum_ty.type_params(self.vm);
+                    let variant_id = expr.args[1]
+                        .to_lit_int()
+                        .expect("literal int expected")
+                        .value as u32;
+                    let element = expr.args[2]
+                        .to_lit_int()
+                        .expect("literal int expected")
+                        .value as u32;
+
+                    let return_ty = self.ty(expr.id);
+                    let return_ty = BytecodeType::from_ty(self.vm, return_ty);
+
+                    let idx =
+                        self.gen
+                            .add_const_enum_variant(enum_id, type_params, variant_id as usize);
+                    let dest_reg = self.ensure_register(dest, return_ty);
+                    self.gen
+                        .emit_load_enum_element(dest_reg, src, idx, element, expr.pos);
+
+                    dest_reg
+                }
+
                 _ => panic!("unimplemented intrinsic {:?}", intrinsic),
             }
         }

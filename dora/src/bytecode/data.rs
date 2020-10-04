@@ -463,6 +463,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArrayTuple
             | BytecodeOpcode::StoreArrayGeneric
             | BytecodeOpcode::StoreArrayEnum
+            | BytecodeOpcode::LoadEnumElement
+            | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::Assert => true,
             _ => false,
         }

@@ -186,7 +186,7 @@ impl EnumDef {
             }
         }
 
-        element - units
+        1 + element - units
     }
 }
 

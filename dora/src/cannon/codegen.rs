@@ -1248,16 +1248,16 @@ where
                 let cls = self.vm.class_defs.idx(cls_def_id);
                 let cls = cls.read();
 
-                self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
+                self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.load_mem(
                     MachineMode::Int32,
-                    REG_TMP1.into(),
-                    Mem::Base(REG_RESULT, Header::size()),
+                    REG_RESULT.into(),
+                    Mem::Base(REG_TMP1, Header::size()),
                 );
                 let lbl_bailout = self.asm.create_label();
                 self.asm
-                    .cmp_reg_imm(MachineMode::Int32, REG_TMP1, variant_id as i32);
-                self.asm.jump_if(CondCode::Equal, lbl_bailout);
+                    .cmp_reg_imm(MachineMode::Int32, REG_RESULT, variant_id as i32);
+                self.asm.jump_if(CondCode::NotEqual, lbl_bailout);
                 let pos = self.bytecode.offset_position(self.current_offset.to_u32());
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
@@ -1277,7 +1277,7 @@ where
                     self.copy_tuple(
                         tuple_id,
                         RegOrOffset::Offset(dest_offset),
-                        RegOrOffset::RegWithOffset(REG_RESULT, field.offset),
+                        RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
                     )
                 } else {
                     let reg = result_reg(self.vm, bty.clone());
@@ -1314,14 +1314,15 @@ where
 
                 self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
                 self.asm
-                    .load_int_const(MachineMode::Int32, REG_RESULT, some_idx as i64);
-                self.asm.cmp_reg_imm(MachineMode::Ptr, REG_TMP1, some_idx);
+                    .load_int_const(MachineMode::Int32, REG_RESULT, none_idx as i64);
+                self.asm.cmp_reg_imm(MachineMode::Ptr, REG_TMP1, 0);
 
-                let lbl_equal = self.asm.create_label();
-                self.asm.jump_if(CondCode::Equal, lbl_equal);
+                let lbl_end = self.asm.create_label();
+                self.asm.jump_if(CondCode::Equal, lbl_end);
                 self.asm
-                    .load_int_const(MachineMode::Int32, REG_RESULT, none_idx);
-                self.asm.bind_label(lbl_equal);
+                    .load_int_const(MachineMode::Int32, REG_RESULT, some_idx);
+                self.asm.bind_label(lbl_end);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             EnumLayout::Tagged => {
@@ -2959,7 +2960,7 @@ where
                 REG_RESULT.into()
             }
 
-            Intrinsic::KillRefs => {
+            Intrinsic::UnsafeKillRefs => {
                 assert_eq!(1, type_params.len());
                 assert_eq!(2, arguments.len());
                 let ty = type_params[0];
@@ -4339,6 +4340,16 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         comment!(self, format!("LoadArrayGeneric {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
+    fn visit_load_array_enum(
+        &mut self,
+        dest: Register,
+        arr: Register,
+        idx: Register,
+        _enum_idx: ConstPoolIdx,
+    ) {
+        comment!(self, format!("LoadArrayEnum {}, {}, {}", dest, arr, idx));
+        self.emit_load_array(dest, arr, idx);
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArrayBool {}, {}, {}", src, arr, idx));
@@ -4378,6 +4389,16 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_store_array_generic(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArrayGeneric {}, {}, {}", src, arr, idx));
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_enum(
+        &mut self,
+        src: Register,
+        arr: Register,
+        idx: Register,
+        _enum_idx: ConstPoolIdx,
+    ) {
+        comment!(self, format!("StoreArrayEnum {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
 
