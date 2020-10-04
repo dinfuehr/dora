@@ -2572,6 +2572,28 @@ fn gen_new_array() {
             assert_eq!(expected, code);
         },
     );
+
+    gen_fct(
+        "fun f(): Array[Int32] { Array[Int32](1, 2, 3) }",
+        |vm, code, _fct| {
+            let cls_id = vm.cls_by_name("Array");
+            let expected = vec![
+                ConstInt64(r(0), 3),
+                NewArray(r(1), cls_id, TypeList::single(BuiltinType::Int32), r(0)),
+                ConstInt32(r(3), 1),
+                ConstInt64(r(2), 0),
+                StoreArrayInt32(r(3), r(1), r(2)),
+                ConstInt32(r(3), 2),
+                ConstInt64(r(2), 1),
+                StoreArrayInt32(r(3), r(1), r(2)),
+                ConstInt32(r(3), 3),
+                ConstInt64(r(2), 2),
+                StoreArrayInt32(r(3), r(1), r(2)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
 }
 
 #[test]

@@ -289,7 +289,17 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
                     }
                 }
 
-                BuiltinType::Enum(_, _) => unimplemented!(),
+                BuiltinType::Enum(enum_id, type_params_id) => {
+                    let type_params = vm.lists.lock().get(type_params_id);
+                    let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+                    let edef = vm.enum_defs.idx(edef_id);
+                    let edef = edef.read();
+
+                    match edef.layout {
+                        EnumLayout::Int => InstanceSize::PrimitiveArray(4),
+                        EnumLayout::Ptr | EnumLayout::Tagged => InstanceSize::ObjArray,
+                    }
+                }
 
                 _ => InstanceSize::PrimitiveArray(element_ty.size(vm)),
             }

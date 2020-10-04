@@ -1763,7 +1763,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 Intrinsic::ArrayWithValues => {
                     let ty = self.ty(expr.id);
-                    self.emit_array_with_variadic_arguments(expr, &[ty], 0, dest)
+                    assert_eq!(
+                        ty.cls_id(self.vm).expect("class expected"),
+                        self.vm.known.classes.array
+                    );
+                    let type_params = ty.type_params(self.vm);
+                    assert_eq!(1, type_params.len());
+                    let element_ty = type_params[0];
+                    self.emit_array_with_variadic_arguments(expr, &[element_ty], 0, dest)
                 }
 
                 Intrinsic::UnsafeLoadEnumVariant => {

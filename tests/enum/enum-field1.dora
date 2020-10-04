@@ -1,5 +1,4 @@
 //= vm-args "--gc-verify"
-//= ignore
 
 enum Foo { A(Int32, String, Float32), B }
 class Bar(var foo: Foo)
