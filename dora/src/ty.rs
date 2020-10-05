@@ -360,7 +360,13 @@ impl BuiltinType {
             },
             BuiltinType::TraitObject(_) => unimplemented!(),
             BuiltinType::Module(_) => *self == other,
-            BuiltinType::Enum(_, _) => *self == other,
+            BuiltinType::Enum(enum_id, type_params_id) => match other {
+                BuiltinType::Enum(other_enum_id, other_type_params_id) => {
+                    enum_id == other_enum_id && type_params_id == other_type_params_id
+                }
+
+                _ => false,
+            },
 
             BuiltinType::TypeParam(_) => *self == other,
 
@@ -508,12 +514,13 @@ impl BuiltinType {
             | BuiltinType::Int64
             | BuiltinType::Float32
             | BuiltinType::Float64
-            | BuiltinType::Enum(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::TraitObject(_)
             | BuiltinType::Lambda(_)
             | BuiltinType::TypeParam(_) => true,
-            BuiltinType::Class(_, list_id) | BuiltinType::Struct(_, list_id) => {
+            BuiltinType::Enum(_, list_id)
+            | BuiltinType::Class(_, list_id)
+            | BuiltinType::Struct(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
                 for param in params.iter() {
@@ -549,12 +556,11 @@ impl BuiltinType {
             | BuiltinType::Int64
             | BuiltinType::Float32
             | BuiltinType::Float64
-            | BuiltinType::Enum(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Ptr
             | BuiltinType::TraitObject(_)
             | BuiltinType::Nil => true,
-            BuiltinType::Class(_, list_id) => {
+            BuiltinType::Class(_, list_id) | BuiltinType::Enum(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
                 for param in params.iter() {

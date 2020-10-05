@@ -502,6 +502,20 @@ pub fn replace_type_param(
             BuiltinType::Class(cls_id, list_id)
         }
 
+        BuiltinType::Enum(enum_id, list_id) => {
+            let old_type_params = vm.lists.lock().get(list_id);
+
+            let new_type_params = TypeList::with(
+                old_type_params
+                    .iter()
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty))
+                    .collect::<Vec<_>>(),
+            );
+
+            let new_type_params_id = vm.lists.lock().insert(new_type_params);
+            BuiltinType::Enum(enum_id, new_type_params_id)
+        }
+
         BuiltinType::This => self_ty.expect("no type for Self given"),
 
         BuiltinType::Lambda(_) => unimplemented!(),

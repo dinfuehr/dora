@@ -101,6 +101,8 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
         let enum_id = *self.map_enum_defs.get(e.id).unwrap();
         self.enum_id = Some(enum_id);
 
+        self.vm.sym.lock().push_level();
+
         if let Some(ref type_params) = e.type_params {
             self.check_type_params(e, type_params);
         }
@@ -154,6 +156,7 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
         }
 
         self.enum_id = None;
+        self.vm.sym.lock().pop_level();
     }
 }
 

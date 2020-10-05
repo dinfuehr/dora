@@ -66,3 +66,21 @@ fun optionToString[T: Stringable](lhs: Option[T]): String {
     "None"
   }
 }
+
+enum NewOption[T] {
+  Some(T),
+  None,
+}
+
+@internal fun newOptionIsNone[T](value: NewOption[T]): Bool {
+  unsafeLoadEnumVariant[NewOption[T]](value) == 1
+}
+
+@internal fun newOptionUnwrap[T](value: NewOption[T]): T {
+  if unsafeLoadEnumVariant[NewOption[T]](value) == 0 {
+    unsafeLoadEnumElement[NewOption[T], T](value, 0, 0)
+  } else {
+    fatalError("cannot unwrap None.");
+    unreachable[T]()
+  }
+}

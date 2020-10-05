@@ -695,6 +695,9 @@ pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
             Intrinsic::Int64CountOneBitsTrailing,
         );
     }
+
+    intrinsic_fct(vm, "newOptionIsNone", Intrinsic::OptionIsNone);
+    intrinsic_fct(vm, "newOptionUnwrap", Intrinsic::OptionUnwrap);
 }
 
 #[cfg(test)]

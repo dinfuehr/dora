@@ -474,8 +474,7 @@ mod tests {
 
     #[test]
     fn check_previous_defined_type_params() {
-        // defaultValue<T>() defines T and needs to be cleaned up again,
-        // such that this fct definition is reported as an error
+        // Type params need to be cleaned up such that the following code is an error:
         err(
             "fun f(a: T) {}",
             pos(1, 10),

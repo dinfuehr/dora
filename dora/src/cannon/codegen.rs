@@ -259,6 +259,7 @@ where
 
         for (idx, &param_ty) in params.iter().enumerate() {
             let param_ty = self.specialize_type(param_ty);
+            assert!(param_ty.is_concrete_type(self.vm));
 
             let dest = Register(idx);
 
@@ -297,6 +298,31 @@ where
                         RegOrOffset::Offset(dest_offset),
                         RegOrOffset::Reg(REG_TMP1),
                     );
+                    sp_offset += 8;
+                }
+
+                continue;
+            }
+
+            if let BuiltinType::Enum(enum_id, list_id) = param_ty {
+                let type_params = self.vm.lists.lock().get(list_id);
+                let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let edef = self.vm.enum_defs.idx(enum_def_id);
+                let edef = edef.read();
+
+                let mode = match edef.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Tagged | EnumLayout::Ptr => MachineMode::Ptr,
+                };
+
+                if reg_idx < REG_PARAMS.len() {
+                    let reg = REG_PARAMS[reg_idx].into();
+                    reg_idx += 1;
+                    self.emit_store_register(reg, dest);
+                } else {
+                    self.asm
+                        .load_mem(mode, REG_RESULT.into(), Mem::Local(sp_offset));
+                    self.emit_store_register(REG_RESULT.into(), dest);
                     sp_offset += 8;
                 }
 
@@ -1278,6 +1304,11 @@ where
             _ => unreachable!(),
         };
 
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
         let xenum = &self.vm.enums[enum_id];
         let xenum = xenum.read();
 
@@ -1354,6 +1385,11 @@ where
             ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params.clone()),
             _ => unreachable!(),
         };
+
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
 
         let xenum = &self.vm.enums[enum_id];
         let xenum = xenum.read();
@@ -1707,10 +1743,11 @@ where
                 | BytecodeType::Float32
                 | BytecodeType::Float64 => {
                     let value = result_reg(self.vm, bytecode_type);
+                    let mode = field.ty.mode();
 
                     self.emit_load_register(src, value.into());
                     self.asm
-                        .store_mem(field.ty.mode(), Mem::Base(obj_reg, field.offset), value);
+                        .store_mem(mode, Mem::Base(obj_reg, field.offset), value);
 
                     needs_write_barrier = field.ty.reference_type();
                 }
@@ -3055,18 +3092,10 @@ where
 
         match intrinsic {
             Intrinsic::Float32Sqrt | Intrinsic::Float64Sqrt => {
-                debug_assert_eq!(arguments.len(), 1);
+                self.emit_intrinsic_float_sqrt(*dest, fct, intrinsic, &arguments, type_params);
 
-                let mode = match intrinsic {
-                    Intrinsic::Float32Sqrt => MachineMode::Float32,
-                    Intrinsic::Float64Sqrt => MachineMode::Float64,
-                    _ => unreachable!(),
-                };
-
-                self.emit_load_register(arguments[0], FREG_RESULT.into());
-                self.asm.float_sqrt(mode, FREG_RESULT, FREG_RESULT);
-
-                FREG_RESULT.into()
+                *dest = None;
+                REG_RESULT.into()
             }
 
             Intrinsic::Int32CountZeroBits
@@ -3308,56 +3337,215 @@ where
             }
 
             Intrinsic::UnsafeKillRefs => {
-                assert_eq!(1, type_params.len());
-                assert_eq!(2, arguments.len());
-                let ty = type_params[0];
-                let result = REG_RESULT.into();
+                self.emit_intrinsic_unsafe_kill_refs(
+                    *dest,
+                    fct,
+                    intrinsic,
+                    &arguments,
+                    type_params,
+                );
 
-                if ty.is_unit() {
-                    return result;
-                }
+                *dest = None;
+                REG_RESULT.into()
+            }
 
-                let bytecode_type: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+            Intrinsic::OptionIsNone => {
+                self.emit_intrinsic_option_is_none(*dest, fct, intrinsic, &arguments, type_params);
 
-                match bytecode_type {
-                    BytecodeType::Bool
-                    | BytecodeType::Char
-                    | BytecodeType::UInt8
-                    | BytecodeType::Int32
-                    | BytecodeType::Int64
-                    | BytecodeType::Float32
-                    | BytecodeType::Float64 => {}
+                *dest = None;
+                REG_RESULT.into()
+            }
 
-                    BytecodeType::Ptr => {
-                        self.emit_load_register(arguments[0], REG_RESULT.into());
-                        self.emit_load_register(arguments[1], REG_TMP1.into());
+            Intrinsic::OptionUnwrap => {
+                self.emit_intrinsic_option_unwrap(*dest, fct, intrinsic, &arguments, type_params);
 
-                        self.asm
-                            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, mem::ptr_width());
-                        self.asm
-                            .store_zero(MachineMode::Ptr, Mem::Base(REG_TMP1, 0));
-                    }
-
-                    BytecodeType::Tuple(tuple_id) => {
-                        let tuple_id = specialize_tuple(self.vm, tuple_id, &type_params);
-                        self.emit_load_register(arguments[0], REG_RESULT.into());
-                        self.emit_load_register(arguments[1], REG_TMP1.into());
-
-                        let tuple_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
-                        self.asm
-                            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, tuple_size);
-                        self.zero_refs_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));
-                    }
-
-                    BytecodeType::Enum(_, _) => unimplemented!(),
-
-                    BytecodeType::TypeParam(_) => unreachable!(),
-                }
-
-                result
+                *dest = None;
+                REG_RESULT.into()
             }
 
             _ => unreachable!(),
+        }
+    }
+
+    fn emit_intrinsic_float_sqrt(
+        &mut self,
+        dest: Option<Register>,
+        _fct: &Fct,
+        intrinsic: Intrinsic,
+        arguments: &[Register],
+        type_params: TypeList,
+    ) {
+        debug_assert_eq!(arguments.len(), 1);
+        debug_assert!(type_params.is_empty());
+
+        let mode = match intrinsic {
+            Intrinsic::Float32Sqrt => MachineMode::Float32,
+            Intrinsic::Float64Sqrt => MachineMode::Float64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(arguments[0], FREG_RESULT.into());
+        self.asm.float_sqrt(mode, FREG_RESULT, FREG_RESULT);
+        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+    }
+
+    fn emit_intrinsic_option_unwrap(
+        &mut self,
+        dest: Option<Register>,
+        _fct: &Fct,
+        _intrinsic: Intrinsic,
+        arguments: &[Register],
+        type_params: TypeList,
+    ) {
+        assert_eq!(1, arguments.len());
+        assert_eq!(1, type_params.len());
+
+        let (enum_id, type_params) = if let BytecodeType::Enum(enum_id, type_params) =
+            self.specialize_register_type(arguments[0])
+        {
+            (enum_id, type_params)
+        } else {
+            unreachable!()
+        };
+
+        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let edef = self.vm.enum_defs.idx(enum_def_id);
+        let edef = edef.read();
+
+        match edef.layout {
+            EnumLayout::Int => unreachable!(),
+            EnumLayout::Ptr => {
+                self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
+                let position = self.bytecode.offset_position(self.current_offset.to_u32());
+                self.asm
+                    .test_if_nil_bailout(position, REG_RESULT, Trap::ILLEGAL);
+                self.emit_store_register_as(
+                    REG_RESULT.into(),
+                    dest.expect("dest expected"),
+                    MachineMode::Ptr,
+                );
+            }
+
+            EnumLayout::Tagged => unimplemented!(),
+        }
+    }
+
+    fn emit_intrinsic_unsafe_kill_refs(
+        &mut self,
+        dest: Option<Register>,
+        _fct: &Fct,
+        _intrinsic: Intrinsic,
+        arguments: &[Register],
+        type_params: TypeList,
+    ) {
+        assert_eq!(1, type_params.len());
+        assert_eq!(2, arguments.len());
+        assert!(dest.is_none());
+
+        let ty = type_params[0];
+
+        if ty.is_unit() {
+            return;
+        }
+
+        let bytecode_type: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+
+        match bytecode_type {
+            BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::UInt8
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {}
+
+            BytecodeType::Ptr => {
+                self.emit_load_register(arguments[0], REG_RESULT.into());
+                self.emit_load_register(arguments[1], REG_TMP1.into());
+
+                self.asm
+                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, mem::ptr_width());
+                self.asm
+                    .store_zero(MachineMode::Ptr, Mem::Base(REG_TMP1, 0));
+            }
+
+            BytecodeType::Tuple(tuple_id) => {
+                let tuple_id = specialize_tuple(self.vm, tuple_id, &type_params);
+                self.emit_load_register(arguments[0], REG_RESULT.into());
+                self.emit_load_register(arguments[1], REG_TMP1.into());
+
+                let tuple_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+                self.asm
+                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, tuple_size);
+                self.zero_refs_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));
+            }
+
+            BytecodeType::Enum(_, _) => unimplemented!(),
+
+            BytecodeType::TypeParam(_) => unreachable!(),
+        }
+    }
+
+    fn emit_intrinsic_option_is_none(
+        &mut self,
+        dest: Option<Register>,
+        _fct: &Fct,
+        _intrinsic: Intrinsic,
+        arguments: &[Register],
+        type_params: TypeList,
+    ) {
+        assert_eq!(1, type_params.len());
+        assert_eq!(1, arguments.len());
+        let (enum_id, type_params) = if let BytecodeType::Enum(enum_id, type_params) =
+            self.specialize_register_type(arguments[0])
+        {
+            (enum_id, type_params)
+        } else {
+            unreachable!()
+        };
+
+        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let edef = self.vm.enum_defs.idx(enum_def_id);
+        let edef = edef.read();
+
+        match edef.layout {
+            EnumLayout::Int => unreachable!(),
+            EnumLayout::Ptr => {
+                self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
+                self.asm.cmp_reg_imm(MachineMode::Ptr, REG_TMP1, 0);
+                self.asm.set(REG_RESULT, CondCode::Equal);
+                self.emit_store_register_as(
+                    REG_RESULT.into(),
+                    dest.expect("dest expected"),
+                    MachineMode::Int8,
+                );
+            }
+
+            EnumLayout::Tagged => {
+                self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
+                let position = self.bytecode.offset_position(self.current_offset.to_u32());
+                self.asm
+                    .test_if_nil_bailout(position, REG_TMP1, Trap::ILLEGAL);
+
+                let xenum = &self.vm.enums[enum_id];
+                let xenum = xenum.read();
+                let first_variant = xenum.variants.first().unwrap();
+
+                let none_variant_id = if first_variant.types.is_empty() { 0 } else { 1 };
+
+                self.asm.cmp_mem_imm(
+                    MachineMode::Int32,
+                    Mem::Base(REG_TMP1, Header::size()),
+                    none_variant_id,
+                );
+                self.asm.set(REG_RESULT, CondCode::Equal);
+
+                self.emit_store_register_as(
+                    REG_RESULT.into(),
+                    dest.expect("dest expected"),
+                    MachineMode::Int8,
+                );
+            }
         }
     }
 
@@ -3531,13 +3719,8 @@ where
     }
 
     fn specialize_bytecode_type(&self, ty: BytecodeType) -> BytecodeType {
-        match ty {
-            BytecodeType::TypeParam(id) => {
-                let ty = self.type_params[id as usize];
-                BytecodeType::from_ty(self.vm, ty)
-            }
-            _ => ty,
-        }
+        self.specialize_bytecode_type_unit(ty)
+            .expect("unexpected unit")
     }
 
     fn specialize_bytecode_type_unit(&self, ty: BytecodeType) -> Option<BytecodeType> {
@@ -3556,6 +3739,12 @@ where
                 tuple_id,
                 self.type_params,
             ))),
+
+            BytecodeType::Enum(enum_id, type_params) => Some(BytecodeType::Enum(
+                enum_id,
+                specialize_type_list(self.vm, &type_params, &self.type_params),
+            )),
+
             _ => Some(ty),
         }
     }

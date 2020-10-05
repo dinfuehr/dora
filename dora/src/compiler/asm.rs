@@ -67,7 +67,6 @@ where
 
     pub fn assert(&mut self, value: Reg, pos: Position) {
         let lbl_assert = self.masm.create_label();
-        self.masm.emit_comment("check assert".into());
         self.masm
             .test_and_jump_if(CondCode::Zero, value, lbl_assert);
 

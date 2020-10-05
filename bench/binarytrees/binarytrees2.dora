@@ -1,0 +1,69 @@
+fun main() {
+  var maxDepth = 6;
+
+  if argc() > 0 {
+    maxDepth = argv(0).toInt32().unwrap();
+  }
+
+  if 6 > maxDepth {
+    maxDepth = 6;
+  }
+
+  let stretchDepth = maxDepth + 1;
+  println("stretch tree of depth " + stretchDepth.toString() +
+          "\t check: " + checkTree(createTree(stretchDepth)).toString());
+
+  trees(maxDepth);
+}
+
+fun trees(maxDepth: Int32) {
+  let longLastingNode = createTree(maxDepth);
+  var depth = 4;
+
+  while depth <= maxDepth {
+    let iterations = 16 << (maxDepth - depth);
+
+    loops(iterations, depth);
+    depth = depth + 2;
+  }
+
+  println("long lived tree of depth " + maxDepth.toString()
+    + "\t check: " + checkTree(longLastingNode).toString());
+}
+
+fun loops(iterations: Int32, depth: Int32) {
+  var check = 0;
+  var item = 0;
+
+  while item < iterations {
+    check = check + checkTree(createTree(depth));
+    item = item + 1;
+  }
+
+  println(iterations.toString() + "\t trees of depth " +
+    depth.toString() + "\t check: " + check.toString());
+}
+
+fun createTree(depth: Int32): TreeNode {
+  var depth = depth;
+  let node = TreeNode(0, NewOption[TreeNode]::None, NewOption[TreeNode]::None);
+
+  if depth > 0 {
+    depth = depth - 1;
+    node.left = NewOption[TreeNode]::Some(createTree(depth));
+    node.right = NewOption[TreeNode]::Some(createTree(depth));
+  }
+
+  return node;
+}
+
+fun checkTree(node: TreeNode): Int32 {
+  if newOptionIsNone[TreeNode](node.left) {
+    return 1;
+  }
+
+  return checkTree(newOptionUnwrap[TreeNode](node.left)) +
+         checkTree(newOptionUnwrap[TreeNode](node.right)) + 1;
+}
+
+class TreeNode(let item: Int32, var left: NewOption[TreeNode], var right: NewOption[TreeNode])
