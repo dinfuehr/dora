@@ -121,6 +121,10 @@ where
         self.masm.jump_if(cond, label);
     }
 
+    pub fn bailout_if(&mut self, cond: CondCode, trap: Trap, pos: Position) {
+        self.masm.bailout_if(cond, trap, pos);
+    }
+
     pub fn pos(&self) -> usize {
         self.masm.pos()
     }

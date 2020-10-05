@@ -1444,29 +1444,23 @@ where
             .to_owned();
 
         for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
-            if let Some(tuple_id) = subtype.tuple_id() {
-                let src = match src {
-                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => {
-                        RegOrOffset::Offset(tuple_offset + subtype_offset)
-                    }
-                };
-                let dest = match dest {
-                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => {
-                        RegOrOffset::Offset(tuple_offset + subtype_offset)
-                    }
-                };
+            let src = src.offset(subtype_offset);
+            let dest = dest.offset(subtype_offset);
+            self.copy_ty(subtype, dest, src);
+        }
+    }
+
+    fn copy_ty(&mut self, ty: BuiltinType, dest: RegOrOffset, src: RegOrOffset) {
+        match ty {
+            BuiltinType::Tuple(tuple_id) => {
                 self.copy_tuple(tuple_id, dest, src);
-            } else if subtype.is_unit() {
-                // nothing
-            } else if let BuiltinType::Enum(enum_id, type_params_id) = subtype {
+            }
+
+            BuiltinType::Unit => {
+                // do nothing
+            }
+
+            BuiltinType::Enum(enum_id, type_params_id) => {
                 let type_params = self.vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
@@ -1478,41 +1472,72 @@ where
                 };
 
                 let tmp = result_reg_mode(mode);
-                let src = match src {
-                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        Mem::Base(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
-                };
-                self.asm.load_mem(mode, tmp, src);
-                let dest = match dest {
-                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        Mem::Base(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
-                };
-                self.asm.store_mem(mode, dest, tmp);
-            } else {
-                let mode = subtype.mode();
+                self.asm.load_mem(mode, tmp, src.mem());
+                self.asm.store_mem(mode, dest.mem(), tmp);
+            }
+
+            BuiltinType::Ptr
+            | BuiltinType::UInt8
+            | BuiltinType::Bool
+            | BuiltinType::Char
+            | BuiltinType::Int32
+            | BuiltinType::Int64
+            | BuiltinType::Float32
+            | BuiltinType::Float64
+            | BuiltinType::Class(_, _)
+            | BuiltinType::TraitObject(_) => {
+                let mode = ty.mode();
                 let tmp = result_reg_mode(mode);
-                let src = match src {
-                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        Mem::Base(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+
+                self.asm.load_mem(mode, tmp, src.mem());
+                self.asm.store_mem(mode, dest.mem(), tmp);
+            }
+
+            BuiltinType::TypeParam(_)
+            | BuiltinType::Error
+            | BuiltinType::Any
+            | BuiltinType::Nil
+            | BuiltinType::This
+            | BuiltinType::Struct(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_) => unreachable!(),
+        }
+    }
+
+    fn copy_bytecode_ty(&mut self, ty: BytecodeType, dest: RegOrOffset, src: RegOrOffset) {
+        match ty {
+            BytecodeType::Tuple(tuple_id) => {
+                self.copy_tuple(tuple_id, dest, src);
+            }
+
+            BytecodeType::Enum(enum_id, type_params) => {
+                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
+
+                let mode = match edef.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
-                self.asm.load_mem(mode, tmp, src);
-                let dest = match dest {
-                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        Mem::Base(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
-                };
-                self.asm.store_mem(mode, dest, tmp);
+
+                self.asm.load_mem(mode, REG_RESULT.into(), src.mem());
+                self.asm.store_mem(mode, dest.mem(), REG_RESULT.into());
+            }
+
+            BytecodeType::TypeParam(_) => unreachable!(),
+
+            BytecodeType::Ptr
+            | BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                let mode = ty.mode(self.vm);
+                let reg = result_reg_mode(mode);
+                self.asm.load_mem(mode, reg, src.mem());
+                self.asm.store_mem(mode, dest.mem(), reg);
             }
         }
     }
@@ -1528,30 +1553,56 @@ where
             .to_owned();
 
         for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
-            if let Some(tuple_id) = subtype.tuple_id() {
-                let dest = match dest {
-                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => {
-                        RegOrOffset::Offset(tuple_offset + subtype_offset)
-                    }
-                };
+            self.zero_ty(subtype, dest.offset(subtype_offset));
+        }
+    }
+
+    fn zero_ty(&mut self, ty: BuiltinType, dest: RegOrOffset) {
+        match ty {
+            BuiltinType::Tuple(tuple_id) => {
                 self.zero_tuple(tuple_id, dest);
-            } else if subtype.is_unit() {
-                // nothing
-            } else {
-                let mode = subtype.mode();
-                let dest = match dest {
-                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        Mem::Base(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
-                };
-                self.asm.store_zero(mode, dest);
             }
+
+            BuiltinType::Unit => {
+                // do nothing
+            }
+
+            BuiltinType::Enum(enum_id, type_params_id) => {
+                let type_params = self.vm.lists.lock().get(type_params_id);
+                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
+
+                let mode = match edef.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                self.asm.store_zero(mode, dest.mem());
+            }
+
+            BuiltinType::Ptr
+            | BuiltinType::UInt8
+            | BuiltinType::Bool
+            | BuiltinType::Char
+            | BuiltinType::Int32
+            | BuiltinType::Int64
+            | BuiltinType::Float32
+            | BuiltinType::Float64
+            | BuiltinType::Class(_, _)
+            | BuiltinType::TraitObject(_) => {
+                let mode = ty.mode();
+                self.asm.store_zero(mode, dest.mem());
+            }
+
+            BuiltinType::TypeParam(_)
+            | BuiltinType::Error
+            | BuiltinType::Any
+            | BuiltinType::Nil
+            | BuiltinType::This
+            | BuiltinType::Struct(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_) => unreachable!(),
         }
     }
 
@@ -1566,27 +1617,54 @@ where
             .to_owned();
 
         for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
-            if let Some(tuple_id) = subtype.tuple_id() {
-                let dest = match dest {
-                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => {
-                        RegOrOffset::Offset(tuple_offset + subtype_offset)
-                    }
-                };
-                self.zero_refs_tuple(tuple_id, dest);
-            } else if subtype.reference_type() {
-                let dest = match dest {
-                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
-                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                        Mem::Base(reg, tuple_offset + subtype_offset)
-                    }
-                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
-                };
-                self.asm.store_zero(MachineMode::Ptr, dest);
+            self.zero_refs_ty(subtype, dest.offset(subtype_offset));
+        }
+    }
+
+    fn zero_refs_ty(&mut self, ty: BuiltinType, dest: RegOrOffset) {
+        match ty {
+            BuiltinType::Tuple(tuple_id) => {
+                self.zero_tuple(tuple_id, dest);
             }
+
+            BuiltinType::Unit => {
+                // do nothing
+            }
+
+            BuiltinType::Enum(enum_id, type_params_id) => {
+                let type_params = self.vm.lists.lock().get(type_params_id);
+                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
+
+                match edef.layout {
+                    EnumLayout::Int => {}
+                    EnumLayout::Ptr | EnumLayout::Tagged => {
+                        self.asm.store_zero(MachineMode::Ptr, dest.mem());
+                    }
+                }
+            }
+
+            BuiltinType::Ptr | BuiltinType::Class(_, _) | BuiltinType::TraitObject(_) => {
+                self.asm.store_zero(MachineMode::Ptr, dest.mem());
+            }
+
+            BuiltinType::UInt8
+            | BuiltinType::Bool
+            | BuiltinType::Char
+            | BuiltinType::Int32
+            | BuiltinType::Int64
+            | BuiltinType::Float32
+            | BuiltinType::Float64 => {}
+
+            BuiltinType::TypeParam(_)
+            | BuiltinType::Error
+            | BuiltinType::Any
+            | BuiltinType::Nil
+            | BuiltinType::This
+            | BuiltinType::Struct(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_) => unreachable!(),
         }
     }
 
@@ -1620,49 +1698,9 @@ where
 
         if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
             assert_eq!(bytecode_type, BytecodeType::from_ty(self.vm, field.ty));
-
-            match bytecode_type {
-                BytecodeType::Tuple(tuple_id) => {
-                    let dest_offset = self.register_offset(dest);
-                    self.copy_tuple(
-                        tuple_id,
-                        RegOrOffset::Offset(dest_offset),
-                        RegOrOffset::RegWithOffset(obj_reg, field.offset),
-                    );
-                }
-
-                BytecodeType::Enum(enum_id, type_params) => {
-                    let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let edef = self.vm.enum_defs.idx(edef_id);
-                    let edef = edef.read();
-
-                    let mode = match edef.layout {
-                        EnumLayout::Int => MachineMode::Int32,
-                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                    };
-
-                    self.asm
-                        .load_mem(mode, REG_RESULT.into(), Mem::Base(obj_reg, field.offset));
-                    self.emit_store_register_as(REG_RESULT.into(), dest, mode);
-                }
-
-                BytecodeType::TypeParam(_) => unreachable!(),
-
-                BytecodeType::Ptr
-                | BytecodeType::UInt8
-                | BytecodeType::Bool
-                | BytecodeType::Char
-                | BytecodeType::Int32
-                | BytecodeType::Int64
-                | BytecodeType::Float32
-                | BytecodeType::Float64 => {
-                    let dest_reg = result_reg(self.vm, bytecode_type);
-                    self.asm
-                        .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
-
-                    self.emit_store_register(dest_reg.into(), dest);
-                }
-            }
+            let dest = self.reg(dest);
+            let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
+            self.copy_bytecode_ty(bytecode_type, dest, src);
         }
     }
 
@@ -1782,49 +1820,9 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
 
-        match bytecode_type {
-            BytecodeType::Tuple(tuple_id) => {
-                let dest_offset = self.register_offset(dest);
-                self.copy_tuple(
-                    tuple_id,
-                    RegOrOffset::Offset(dest_offset),
-                    RegOrOffset::Reg(REG_TMP1),
-                );
-            }
-
-            BytecodeType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
-
-                let mode = match edef.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
-                self.asm
-                    .load_mem(mode, REG_RESULT.into(), Mem::Base(REG_TMP1, 0));
-                self.emit_store_register_as(REG_RESULT.into(), dest, mode);
-            }
-
-            BytecodeType::TypeParam(_) => unreachable!(),
-
-            BytecodeType::Ptr
-            | BytecodeType::UInt8
-            | BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {
-                let reg = result_reg(self.vm, bytecode_type);
-
-                self.asm
-                    .load_mem(glob.ty.mode(), reg, Mem::Base(REG_TMP1, 0));
-
-                self.emit_store_register(reg, dest);
-            }
-        }
+        let dest = self.reg(dest);
+        let src = RegOrOffset::Reg(REG_TMP1);
+        self.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_store_global(&mut self, src: Register, global_id: GlobalId) {
@@ -1843,49 +1841,9 @@ where
 
         let bytecode_type = self.bytecode.register_type(src);
 
-        match bytecode_type {
-            BytecodeType::Tuple(tuple_id) => {
-                let src_offset = self.register_offset(src);
-                self.copy_tuple(
-                    tuple_id,
-                    RegOrOffset::Reg(REG_TMP1),
-                    RegOrOffset::Offset(src_offset),
-                );
-            }
-
-            BytecodeType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
-
-                let mode = match edef.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
-                self.emit_load_register_as(src, REG_RESULT.into(), mode);
-                self.asm
-                    .store_mem(mode, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
-            }
-
-            BytecodeType::TypeParam(_) => unreachable!(),
-
-            BytecodeType::Ptr
-            | BytecodeType::UInt8
-            | BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {
-                let reg = result_reg(self.vm, bytecode_type);
-
-                self.emit_load_register(src, reg);
-
-                self.asm
-                    .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), reg);
-            }
-        }
+        let dest = RegOrOffset::Reg(REG_TMP1);
+        let src = self.reg(src);
+        self.copy_bytecode_ty(bytecode_type, dest, src);
 
         if glob.needs_initialization() {
             let disp = self.asm.add_addr(glob.address_init.to_ptr());
@@ -2324,76 +2282,14 @@ where
         let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
 
         for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
-            match subtype {
-                BuiltinType::Tuple(tuple_id) => {
-                    let src = arguments[arg_idx];
-                    let src_offset = self.register_offset(src);
-
-                    self.copy_tuple(
-                        tuple_id,
-                        RegOrOffset::Offset(dest_offset + subtype_offset),
-                        RegOrOffset::Offset(src_offset),
-                    );
-                }
-
-                BuiltinType::Unit => {
-                    // do nothing
-                    continue;
-                }
-
-                BuiltinType::Enum(enum_id, type_params_id) => {
-                    let type_params = self.vm.lists.lock().get(type_params_id);
-                    let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let edef = self.vm.enum_defs.idx(edef_id);
-                    let edef = edef.read();
-
-                    let mode = match edef.layout {
-                        EnumLayout::Int => MachineMode::Int32,
-                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                    };
-
-                    self.emit_load_register_as(arguments[arg_idx], REG_RESULT.into(), mode);
-
-                    self.asm.store_mem(
-                        mode,
-                        Mem::Local(dest_offset + subtype_offset),
-                        REG_RESULT.into(),
-                    );
-                }
-
-                BuiltinType::Ptr
-                | BuiltinType::UInt8
-                | BuiltinType::Bool
-                | BuiltinType::Char
-                | BuiltinType::Int32
-                | BuiltinType::Int64
-                | BuiltinType::Float32
-                | BuiltinType::Float64
-                | BuiltinType::Class(_, _)
-                | BuiltinType::TraitObject(_) => {
-                    let subtype_reg = arguments[arg_idx];
-                    let dest_type = self.specialize_register_type(subtype_reg);
-                    let tmp = result_reg(self.vm, dest_type.clone());
-
-                    self.emit_load_register(arguments[arg_idx], tmp);
-
-                    self.asm.store_mem(
-                        dest_type.mode(self.vm),
-                        Mem::Local(dest_offset + subtype_offset),
-                        tmp,
-                    );
-                }
-
-                BuiltinType::TypeParam(_)
-                | BuiltinType::Error
-                | BuiltinType::Any
-                | BuiltinType::Nil
-                | BuiltinType::This
-                | BuiltinType::Struct(_, _)
-                | BuiltinType::Module(_)
-                | BuiltinType::Lambda(_) => unreachable!(),
+            if subtype.is_unit() {
+                continue;
             }
 
+            let src = arguments[arg_idx];
+            let src = self.reg(src);
+            let dest = RegOrOffset::Offset(dest_offset + subtype_offset);
+            self.copy_ty(subtype, dest, src);
             arg_idx += 1;
         }
     }
@@ -2511,21 +2407,10 @@ where
                         let field = &cls.fields[field_idx];
                         comment!(self, format!("NewEnum: store register {} in object", arg));
 
-                        if let BytecodeType::Tuple(tuple_id) = ty {
-                            let src_offset = self.register_offset(arg);
-                            self.copy_tuple(
-                                tuple_id,
-                                RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
-                                RegOrOffset::Offset(src_offset),
-                            )
-                        } else {
-                            let reg = result_reg(self.vm, ty.clone());
-                            self.emit_load_register(arg, reg);
-                            let mode = ty.mode(self.vm);
-                            self.asm
-                                .store_mem(mode, Mem::Base(REG_TMP1, field.offset), reg);
-                        }
+                        let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+                        let src = self.reg(arg);
 
+                        self.copy_bytecode_ty(ty, dest, src);
                         field_idx += 1;
                     }
                 }
@@ -2866,7 +2751,7 @@ where
 
     fn emit_invoke_direct_inner(
         &mut self,
-        mut dest: Option<Register>,
+        dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
     ) {
@@ -2889,8 +2774,8 @@ where
             .iter()
             .all(|ty| !ty.contains_type_param(self.vm)));
 
-        let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, &mut dest, type_params, intrinsic)
+        if let FctKind::Builtin(intrinsic) = fct.kind {
+            self.emit_invoke_intrinsic(&*fct, dest, type_params, intrinsic)
         } else {
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
             let self_register = arguments[0];
@@ -2936,14 +2821,12 @@ where
 
             self.asm.decrease_stack_frame(argsize);
 
-            reg
-        };
-
-        if let Some(dest) = dest {
-            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
-                self.emit_store_register(reg, dest);
+            if let Some(dest) = dest {
+                if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
+                    self.emit_store_register(reg, dest);
+                }
             }
-        }
+        };
     }
 
     fn emit_invoke_static(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
@@ -2956,7 +2839,7 @@ where
 
     fn emit_invoke_static_inner(
         &mut self,
-        mut dest: Option<Register>,
+        dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
     ) {
@@ -2973,8 +2856,8 @@ where
             .iter()
             .all(|ty| !ty.contains_type_param(self.vm)));
 
-        let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, &mut dest, type_params, intrinsic)
+        if let FctKind::Builtin(intrinsic) = fct.kind {
+            self.emit_invoke_intrinsic(&*fct, dest, type_params, intrinsic)
         } else {
             let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -3016,12 +2899,10 @@ where
 
             self.asm.decrease_stack_frame(argsize);
 
-            reg
-        };
-
-        if let Some(dest) = dest {
-            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
-                self.emit_store_register(reg, dest);
+            if let Some(dest) = dest {
+                if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
+                    self.emit_store_register(reg, dest);
+                }
             }
         }
     }
@@ -3084,18 +2965,15 @@ where
     fn emit_invoke_intrinsic(
         &mut self,
         fct: &Fct,
-        dest: &mut Option<Register>,
+        dest: Option<Register>,
         type_params: TypeList,
         intrinsic: Intrinsic,
-    ) -> AnyReg {
+    ) {
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         match intrinsic {
             Intrinsic::Float32Sqrt | Intrinsic::Float64Sqrt => {
-                self.emit_intrinsic_float_sqrt(*dest, fct, intrinsic, &arguments, type_params);
-
-                *dest = None;
-                REG_RESULT.into()
+                self.emit_intrinsic_float_sqrt(dest, fct, intrinsic, &arguments, type_params);
             }
 
             Intrinsic::Int32CountZeroBits
@@ -3104,37 +2982,7 @@ where
             | Intrinsic::Int32CountOneBits
             | Intrinsic::Int32CountOneBitsLeading
             | Intrinsic::Int32CountOneBitsTrailing => {
-                debug_assert_eq!(arguments.len(), 1);
-                let dest = REG_RESULT;
-                self.emit_load_register(arguments[0], dest.into());
-
-                match intrinsic {
-                    Intrinsic::Int32CountZeroBits => {
-                        self.asm.count_bits(MachineMode::Int32, dest, dest, false)
-                    }
-                    Intrinsic::Int32CountOneBits => {
-                        self.asm.count_bits(MachineMode::Int32, dest, dest, true)
-                    }
-                    Intrinsic::Int32CountZeroBitsLeading => {
-                        self.asm
-                            .count_bits_leading(MachineMode::Int32, dest, dest, false)
-                    }
-                    Intrinsic::Int32CountOneBitsLeading => {
-                        self.asm
-                            .count_bits_leading(MachineMode::Int32, dest, dest, true)
-                    }
-                    Intrinsic::Int32CountZeroBitsTrailing => {
-                        self.asm
-                            .count_bits_trailing(MachineMode::Int32, dest, dest, false)
-                    }
-                    Intrinsic::Int32CountOneBitsTrailing => {
-                        self.asm
-                            .count_bits_trailing(MachineMode::Int32, dest, dest, true)
-                    }
-                    _ => unreachable!(),
-                }
-
-                dest.into()
+                self.emit_intrinsic_int32_count_bits(dest, fct, intrinsic, &arguments, type_params);
             }
 
             Intrinsic::ReinterpretFloat32AsInt32
@@ -3146,9 +2994,6 @@ where
                 let src_reg = arguments[0];
 
                 self.emit_reinterpret(dest_reg, src_reg);
-
-                *dest = None;
-                REG_RESULT.into()
             }
 
             Intrinsic::Int64CountZeroBits
@@ -3157,37 +3002,7 @@ where
             | Intrinsic::Int64CountOneBits
             | Intrinsic::Int64CountOneBitsLeading
             | Intrinsic::Int64CountOneBitsTrailing => {
-                debug_assert_eq!(arguments.len(), 1);
-                let dest = REG_RESULT;
-                self.emit_load_register(arguments[0], dest.into());
-
-                match intrinsic {
-                    Intrinsic::Int64CountZeroBits => {
-                        self.asm.count_bits(MachineMode::Int64, dest, dest, false)
-                    }
-                    Intrinsic::Int64CountOneBits => {
-                        self.asm.count_bits(MachineMode::Int64, dest, dest, true)
-                    }
-                    Intrinsic::Int64CountZeroBitsLeading => {
-                        self.asm
-                            .count_bits_leading(MachineMode::Int64, dest, dest, false)
-                    }
-                    Intrinsic::Int64CountOneBitsLeading => {
-                        self.asm
-                            .count_bits_leading(MachineMode::Int64, dest, dest, true)
-                    }
-                    Intrinsic::Int64CountZeroBitsTrailing => {
-                        self.asm
-                            .count_bits_trailing(MachineMode::Int64, dest, dest, false)
-                    }
-                    Intrinsic::Int64CountOneBitsTrailing => {
-                        self.asm
-                            .count_bits_trailing(MachineMode::Int64, dest, dest, true)
-                    }
-                    _ => unreachable!(),
-                }
-
-                dest.into()
+                self.emit_intrinsic_int64_count_bits(dest, fct, intrinsic, &arguments, type_params);
             }
 
             Intrinsic::Unreachable => {
@@ -3204,8 +3019,6 @@ where
 
                 // Method should never return
                 self.asm.debug();
-
-                result
             }
 
             Intrinsic::PromoteFloat32ToFloat64 => {
@@ -3213,9 +3026,6 @@ where
                 let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
                 self.emit_promote_float(dest_reg, src_reg);
-
-                *dest = None;
-                REG_RESULT.into()
             }
 
             Intrinsic::DemoteFloat64ToFloat32 => {
@@ -3223,9 +3033,6 @@ where
                 let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
                 self.emit_demote_float64(dest_reg, src_reg);
-
-                *dest = None;
-                REG_RESULT.into()
             }
 
             Intrinsic::BoolToInt32 | Intrinsic::BoolToInt64 => {
@@ -3237,9 +3044,6 @@ where
                 self.asm
                     .extend_byte(MachineMode::Int64, REG_RESULT, REG_RESULT);
                 self.emit_store_register(REG_RESULT.into(), dest_reg);
-
-                *dest = None;
-                REG_RESULT.into()
             }
 
             Intrinsic::Float32ToInt32
@@ -3261,9 +3065,6 @@ where
                 self.asm
                     .float_to_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
                 self.emit_store_register(REG_RESULT.into(), dest_reg);
-
-                *dest = None;
-                REG_RESULT.into()
             }
 
             Intrinsic::Int32Cmp | Intrinsic::Int64Cmp | Intrinsic::ByteCmp | Intrinsic::CharCmp => {
@@ -3284,9 +3085,6 @@ where
 
                 self.asm.cmp_int(mode, REG_RESULT, REG_TMP1, REG_TMP2);
                 self.emit_store_register(REG_RESULT.into(), dest_reg);
-
-                *dest = None;
-                REG_RESULT.into()
             }
 
             Intrinsic::Float32Cmp | Intrinsic::Float64Cmp => {
@@ -3307,9 +3105,6 @@ where
                 self.asm
                     .float_cmp_int(mode, REG_RESULT, FREG_RESULT, FREG_TMP1);
                 self.emit_store_register(REG_RESULT.into(), dest_reg);
-
-                *dest = None;
-                REG_RESULT.into()
             }
 
             Intrinsic::Int32ToFloat32
@@ -3331,40 +3126,102 @@ where
                 self.asm
                     .int_to_float(dest_mode, FREG_RESULT, src_mode, REG_RESULT);
                 self.emit_store_register(FREG_RESULT.into(), dest_reg);
-
-                *dest = None;
-                REG_RESULT.into()
             }
 
             Intrinsic::UnsafeKillRefs => {
-                self.emit_intrinsic_unsafe_kill_refs(
-                    *dest,
-                    fct,
-                    intrinsic,
-                    &arguments,
-                    type_params,
-                );
-
-                *dest = None;
-                REG_RESULT.into()
+                self.emit_intrinsic_unsafe_kill_refs(dest, fct, intrinsic, &arguments, type_params);
             }
 
             Intrinsic::OptionIsNone => {
-                self.emit_intrinsic_option_is_none(*dest, fct, intrinsic, &arguments, type_params);
-
-                *dest = None;
-                REG_RESULT.into()
+                self.emit_intrinsic_option_is_none(dest, fct, intrinsic, &arguments, type_params);
             }
 
             Intrinsic::OptionUnwrap => {
-                self.emit_intrinsic_option_unwrap(*dest, fct, intrinsic, &arguments, type_params);
-
-                *dest = None;
-                REG_RESULT.into()
+                self.emit_intrinsic_option_unwrap(dest, fct, intrinsic, &arguments, type_params);
             }
 
             _ => unreachable!(),
         }
+    }
+
+    fn emit_intrinsic_int64_count_bits(
+        &mut self,
+        dest: Option<Register>,
+        _fct: &Fct,
+        intrinsic: Intrinsic,
+        arguments: &[Register],
+        type_params: TypeList,
+    ) {
+        debug_assert_eq!(arguments.len(), 1);
+        debug_assert!(type_params.is_empty());
+        let reg = REG_RESULT;
+        self.emit_load_register(arguments[0], reg.into());
+
+        match intrinsic {
+            Intrinsic::Int64CountZeroBits => {
+                self.asm.count_bits(MachineMode::Int64, reg, reg, false)
+            }
+            Intrinsic::Int64CountOneBits => self.asm.count_bits(MachineMode::Int64, reg, reg, true),
+            Intrinsic::Int64CountZeroBitsLeading => {
+                self.asm
+                    .count_bits_leading(MachineMode::Int64, reg, reg, false)
+            }
+            Intrinsic::Int64CountOneBitsLeading => {
+                self.asm
+                    .count_bits_leading(MachineMode::Int64, reg, reg, true)
+            }
+            Intrinsic::Int64CountZeroBitsTrailing => {
+                self.asm
+                    .count_bits_trailing(MachineMode::Int64, reg, reg, false)
+            }
+            Intrinsic::Int64CountOneBitsTrailing => {
+                self.asm
+                    .count_bits_trailing(MachineMode::Int64, reg, reg, true)
+            }
+            _ => unreachable!(),
+        }
+
+        self.emit_store_register(reg.into(), dest.expect("dest missing"));
+    }
+
+    fn emit_intrinsic_int32_count_bits(
+        &mut self,
+        dest: Option<Register>,
+        _fct: &Fct,
+        intrinsic: Intrinsic,
+        arguments: &[Register],
+        type_params: TypeList,
+    ) {
+        debug_assert_eq!(arguments.len(), 1);
+        debug_assert!(type_params.is_empty());
+        let reg = REG_RESULT;
+        self.emit_load_register(arguments[0], reg.into());
+
+        match intrinsic {
+            Intrinsic::Int32CountZeroBits => {
+                self.asm.count_bits(MachineMode::Int32, reg, reg, false)
+            }
+            Intrinsic::Int32CountOneBits => self.asm.count_bits(MachineMode::Int32, reg, reg, true),
+            Intrinsic::Int32CountZeroBitsLeading => {
+                self.asm
+                    .count_bits_leading(MachineMode::Int32, reg, reg, false)
+            }
+            Intrinsic::Int32CountOneBitsLeading => {
+                self.asm
+                    .count_bits_leading(MachineMode::Int32, reg, reg, true)
+            }
+            Intrinsic::Int32CountZeroBitsTrailing => {
+                self.asm
+                    .count_bits_trailing(MachineMode::Int32, reg, reg, false)
+            }
+            Intrinsic::Int32CountOneBitsTrailing => {
+                self.asm
+                    .count_bits_trailing(MachineMode::Int32, reg, reg, true)
+            }
+            _ => unreachable!(),
+        }
+
+        self.emit_store_register(reg.into(), dest.expect("dest missing"));
     }
 
     fn emit_intrinsic_float_sqrt(
@@ -3410,7 +3267,7 @@ where
 
         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(enum_def_id);
-        let edef = edef.read();
+        let mut edef = edef.write();
 
         match edef.layout {
             EnumLayout::Int => unreachable!(),
@@ -3426,7 +3283,42 @@ where
                 );
             }
 
-            EnumLayout::Tagged => unimplemented!(),
+            EnumLayout::Tagged => {
+                self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
+                let position = self.bytecode.offset_position(self.current_offset.to_u32());
+                self.asm
+                    .test_if_nil_bailout(position, REG_RESULT, Trap::ILLEGAL);
+
+                let xenum = &self.vm.enums[enum_id];
+                let xenum = xenum.read();
+                let first_variant = xenum.variants.first().unwrap();
+
+                let some_variant_id = if first_variant.types.is_empty() { 1 } else { 0 };
+                let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+                self.asm.cmp_mem_imm(
+                    MachineMode::Int32,
+                    Mem::Base(REG_TMP1, Header::size()),
+                    some_variant_id,
+                );
+                self.asm
+                    .bailout_if(CondCode::NotEqual, Trap::ILLEGAL, position);
+
+                let cdef_id =
+                    edef.ensure_class_for_variant(self.vm, &*xenum, some_variant_id as usize);
+
+                let cls = self.vm.class_defs.idx(cdef_id);
+                let cls = cls.read();
+
+                let field = &cls.fields[1];
+                let dest_offset = self.register_offset(dest.expect("dest missing"));
+
+                self.copy_ty(
+                    field.ty,
+                    RegOrOffset::Offset(dest_offset),
+                    RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
+                );
+            }
         }
     }
 
@@ -3706,6 +3598,10 @@ where
     fn register_offset(&self, reg: Register) -> i32 {
         let Register(idx) = reg;
         self.offsets[idx].expect("offset missing")
+    }
+
+    fn reg(&self, reg: Register) -> RegOrOffset {
+        RegOrOffset::Offset(self.register_offset(reg))
     }
 
     fn specialize_register_type(&self, reg: Register) -> BytecodeType {
@@ -4975,10 +4871,31 @@ fn ensure_jit_or_stub_ptr<'ast>(src: &FctSrc, vm: &VM, type_params: TypeList) ->
     vm.compile_stub()
 }
 
+#[derive(Copy, Clone)]
 enum RegOrOffset {
     Reg(Reg),
     RegWithOffset(Reg, i32),
     Offset(i32),
+}
+
+impl RegOrOffset {
+    fn offset(self, offset: i32) -> RegOrOffset {
+        match self {
+            RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, offset),
+            RegOrOffset::RegWithOffset(reg, cur_offset) => {
+                RegOrOffset::RegWithOffset(reg, cur_offset + offset)
+            }
+            RegOrOffset::Offset(cur_offset) => RegOrOffset::Offset(cur_offset + offset),
+        }
+    }
+
+    fn mem(self) -> Mem {
+        match self {
+            RegOrOffset::Reg(reg) => Mem::Base(reg, 0),
+            RegOrOffset::RegWithOffset(reg, offset) => Mem::Base(reg, offset),
+            RegOrOffset::Offset(offset) => Mem::Local(offset),
+        }
+    }
 }
 
 fn result_address_offset() -> i32 {

@@ -186,6 +186,12 @@ impl MacroAssembler {
         self.bailouts.push((lbl, trap, pos));
     }
 
+    pub fn bailout_if(&mut self, cond: CondCode, trap: Trap, pos: Position) {
+        let lbl = self.create_label();
+        self.jump_if(cond, lbl);
+        self.emit_bailout(lbl, trap, pos);
+    }
+
     pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
         self.trap(trap, pos);
     }
