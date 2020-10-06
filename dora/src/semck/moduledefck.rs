@@ -210,6 +210,7 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
             type_params: Vec::new(),
             kind,
             bytecode: None,
+            intrinsic: None,
         };
 
         let fctid = self.vm.add_fct(fct);
@@ -263,6 +264,7 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
             type_params: Vec::new(),
             kind,
             bytecode: None,
+            intrinsic: None,
         };
 
         let fctid = self.vm.add_fct(fct);

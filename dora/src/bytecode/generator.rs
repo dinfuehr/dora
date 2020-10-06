@@ -12,8 +12,8 @@ use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
-    CallType, ConstId, Fct, FctId, FctKind, FctSrc, GlobalId, IdentType, Intrinsic, TraitId,
-    TupleId, VarId, VM,
+    CallType, ConstId, Fct, FctId, FctSrc, GlobalId, IdentType, Intrinsic, TraitId, TupleId, VarId,
+    VM,
 };
 
 pub struct LoopLabels {
@@ -2784,10 +2784,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let fct = self.vm.fcts.idx(fid);
         let fct = fct.read();
 
-        match fct.kind {
-            FctKind::Builtin(intr) => Some(IntrinsicInfo::with_fct(intr, fid)),
-            _ => None,
+        if let Some(intrinsic) = fct.intrinsic {
+            return Some(IntrinsicInfo::with_fct(intrinsic, fid));
         }
+
+        None
     }
 
     fn push_scope(&mut self) {

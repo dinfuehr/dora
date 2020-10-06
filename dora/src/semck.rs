@@ -167,7 +167,7 @@ fn internalck<'ast>(vm: &VM<'ast>) {
                 .report(fct.file, fct.pos, SemError::UnresolvedInternal);
         }
 
-        if fct.kind.is_definition() && !fct.in_trait() {
+        if fct.kind.is_definition() && !fct.in_trait() && !fct.internal {
             vm.diag
                 .lock()
                 .report(fct.file, fct.pos, SemError::MissingFctBody);
@@ -193,7 +193,7 @@ fn internalck<'ast>(vm: &VM<'ast>) {
                     .report(method.file, method.pos, SemError::UnresolvedInternal);
             }
 
-            if method.kind.is_definition() && !method.is_abstract {
+            if method.kind.is_definition() && !method.is_abstract && !method.internal {
                 vm.diag
                     .lock()
                     .report(method.file, method.pos, SemError::MissingFctBody);

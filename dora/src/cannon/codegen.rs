@@ -2768,7 +2768,7 @@ where
         let fct = fct.read();
         assert!(fct.has_self());
 
-        if let FctKind::Builtin(intrinsic) = fct.kind {
+        if let Some(intrinsic) = fct.intrinsic {
             self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, pos)
         } else {
             self.emit_invoke_direct(dest, fct_id, type_params, pos);
@@ -2865,7 +2865,7 @@ where
         let fct = fct.read();
         assert!(!fct.has_self());
 
-        if let FctKind::Builtin(intrinsic) = fct.kind {
+        if let Some(intrinsic) = fct.intrinsic {
             self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, pos);
         } else {
             self.emit_invoke_static(dest, fct_id, type_params, pos);
@@ -3646,7 +3646,6 @@ where
                 }
 
                 FctKind::Definition => panic!("prototype for fct call"),
-                FctKind::Builtin(_) => panic!("intrinsic fct call"),
             }
         }
     }

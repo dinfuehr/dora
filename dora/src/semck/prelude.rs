@@ -440,7 +440,12 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 }
 
 fn native_class_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
-    internal_class_method(vm, clsid, name, FctKind::Native(Address::from_ptr(fctptr)));
+    internal_class_method(
+        vm,
+        clsid,
+        name,
+        FctImplementation::Native(Address::from_ptr(fctptr)),
+    );
 }
 
 fn intrinsic_ctor(vm: &mut VM, clsid: ClassId, intrinsic: Intrinsic) {
@@ -451,7 +456,7 @@ fn intrinsic_ctor(vm: &mut VM, clsid: ClassId, intrinsic: Intrinsic) {
         let ctor = vm.fcts.idx(ctor_id);
         let mut ctor = ctor.write();
 
-        ctor.kind = FctKind::Builtin(intrinsic);
+        ctor.intrinsic = Some(intrinsic);
     } else {
         panic!("no constructor");
     }
@@ -463,10 +468,15 @@ fn intrinsic_class_method<'ast>(
     name: &str,
     intrinsic: Intrinsic,
 ) {
-    internal_class_method(vm, clsid, name, FctKind::Builtin(intrinsic));
+    internal_class_method(vm, clsid, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_class_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
+fn internal_class_method<'ast>(
+    vm: &mut VM<'ast>,
+    clsid: ClassId,
+    name: &str,
+    kind: FctImplementation,
+) {
     let cls = vm.classes.idx(clsid);
     let cls = cls.read();
     let name = vm.interner.intern(name);
@@ -477,7 +487,10 @@ fn internal_class_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, ki
 
         if mtd.name == name {
             if mtd.internal {
-                mtd.kind = kind;
+                match kind {
+                    FctImplementation::Intrinsic(intrinsic) => mtd.intrinsic = Some(intrinsic),
+                    FctImplementation::Native(address) => mtd.kind = FctKind::Native(address),
+                }
                 mtd.internal_resolved = true;
                 break;
             } else {
@@ -517,7 +530,7 @@ fn native_module_method<'ast>(
         vm,
         module_id,
         name,
-        FctKind::Native(Address::from_ptr(fctptr)),
+        FctImplementation::Native(Address::from_ptr(fctptr)),
     );
 }
 
@@ -527,10 +540,15 @@ fn intrinsic_module_method<'ast>(
     name: &str,
     intrinsic: Intrinsic,
 ) {
-    internal_module_method(vm, module_id, name, FctKind::Builtin(intrinsic));
+    internal_module_method(vm, module_id, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_module_method<'ast>(vm: &mut VM<'ast>, module_id: ModuleId, name: &str, kind: FctKind) {
+fn internal_module_method<'ast>(
+    vm: &mut VM<'ast>,
+    module_id: ModuleId,
+    name: &str,
+    kind: FctImplementation,
+) {
     let module = vm.modules.idx(module_id);
     let module = module.read();
     let name = vm.interner.intern(name);
@@ -541,7 +559,10 @@ fn internal_module_method<'ast>(vm: &mut VM<'ast>, module_id: ModuleId, name: &s
 
         if mtd.name == name {
             if mtd.internal {
-                mtd.kind = kind;
+                match kind {
+                    FctImplementation::Intrinsic(intrinsic) => mtd.intrinsic = Some(intrinsic),
+                    FctImplementation::Native(address) => mtd.kind = FctKind::Native(address),
+                }
                 mtd.internal_resolved = true;
                 break;
             } else {
@@ -572,14 +593,18 @@ fn find_module_method<'ast>(vm: &VM<'ast>, module_id: ModuleId, name: &str) -> F
 }
 
 fn native_fct<'ast>(vm: &mut VM<'ast>, name: &str, fctptr: *const u8) {
-    internal_fct(vm, name, FctKind::Native(Address::from_ptr(fctptr)));
+    internal_fct(
+        vm,
+        name,
+        FctImplementation::Native(Address::from_ptr(fctptr)),
+    );
 }
 
 fn intrinsic_fct<'ast>(vm: &mut VM<'ast>, name: &str, intrinsic: Intrinsic) {
-    internal_fct(vm, name, FctKind::Builtin(intrinsic));
+    internal_fct(vm, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_fct<'ast>(vm: &mut VM<'ast>, name: &str, kind: FctKind) {
+fn internal_fct<'ast>(vm: &mut VM<'ast>, name: &str, kind: FctImplementation) {
     let name = vm.interner.intern(name);
     let fctid = vm.sym.lock().get_fct(name);
 
@@ -588,10 +613,18 @@ fn internal_fct<'ast>(vm: &mut VM<'ast>, name: &str, kind: FctKind) {
         let mut fct = fct.write();
 
         if fct.internal {
-            fct.kind = kind;
+            match kind {
+                FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+                FctImplementation::Native(address) => fct.kind = FctKind::Native(address),
+            }
             fct.internal_resolved = true;
         }
     }
+}
+
+enum FctImplementation {
+    Intrinsic(Intrinsic),
+    Native(Address),
 }
 
 fn intrinsic_impl<'ast>(
@@ -601,10 +634,22 @@ fn intrinsic_impl<'ast>(
     name: &str,
     intrinsic: Intrinsic,
 ) {
-    internal_impl(vm, clsid, tid, name, FctKind::Builtin(intrinsic));
+    internal_impl(
+        vm,
+        clsid,
+        tid,
+        name,
+        FctImplementation::Intrinsic(intrinsic),
+    );
 }
 
-fn internal_impl<'ast>(vm: &mut VM<'ast>, clsid: ClassId, tid: TraitId, name: &str, kind: FctKind) {
+fn internal_impl<'ast>(
+    vm: &mut VM<'ast>,
+    clsid: ClassId,
+    tid: TraitId,
+    name: &str,
+    kind: FctImplementation,
+) {
     let name = vm.interner.intern(name);
     let cls = vm.classes.idx(clsid);
     let cls = cls.read();
@@ -618,7 +663,10 @@ fn internal_impl<'ast>(vm: &mut VM<'ast>, clsid: ClassId, tid: TraitId, name: &s
                 let mut fct = fct.write();
 
                 if fct.internal && fct.name == name {
-                    fct.kind = kind;
+                    match kind {
+                        FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+                        FctImplementation::Native(address) => fct.kind = FctKind::Native(address),
+                    }
                     fct.internal_resolved = true;
                     return;
                 }

@@ -65,6 +65,7 @@ pub struct Fct<'ast> {
     pub type_params: Vec<TypeParam>,
     pub kind: FctKind,
     pub bytecode: Option<BytecodeFunction>,
+    pub intrinsic: Option<Intrinsic>,
 }
 
 impl<'ast> Fct<'ast> {
@@ -315,20 +316,12 @@ pub enum FctKind {
     Source(RwLock<FctSrc>),
     Definition,
     Native(Address),
-    Builtin(Intrinsic),
 }
 
 impl FctKind {
     pub fn is_src(&self) -> bool {
         match *self {
             FctKind::Source(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_intrinsic(&self) -> bool {
-        match *self {
-            FctKind::Builtin(_) => true,
             _ => false,
         }
     }

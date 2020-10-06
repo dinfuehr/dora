@@ -88,6 +88,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             type_params: Vec::new(),
             kind: FctKind::Definition,
             bytecode: None,
+            intrinsic: None,
         };
 
         let fctid = self.vm.add_fct(fct);
