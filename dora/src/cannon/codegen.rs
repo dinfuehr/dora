@@ -76,6 +76,15 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     offsets: Vec<Option<i32>>,
     stacksize: i32,
     register_start_offset: i32,
+
+    slow_paths: Vec<(
+        Label,
+        Option<Register>,
+        FctId,
+        Vec<Register>,
+        TypeList,
+        Position,
+    )>,
 }
 
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>
@@ -110,6 +119,7 @@ where
             offsets: Vec::new(),
             stacksize: 0,
             register_start_offset: 0,
+            slow_paths: Vec::new(),
         }
     }
 
@@ -128,6 +138,8 @@ where
 
         bytecode::read(self.bytecode.code(), &mut self);
 
+        self.emit_slow_paths();
+
         self.resolve_forward_jumps();
 
         let jit_fct = self
@@ -135,6 +147,15 @@ where
             .jit(self.stacksize, JitDescriptor::DoraFct(self.fct.id));
 
         jit_fct
+    }
+
+    fn emit_slow_paths(&mut self) {
+        let slow_paths = std::mem::replace(&mut self.slow_paths, Vec::new());
+
+        for (lbl, dest, fct_id, arguments, type_params, pos) in slow_paths {
+            self.asm.bind_label(lbl);
+            self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+        }
     }
 
     fn calculate_offsets(&mut self) {
@@ -2753,8 +2774,9 @@ where
             .all(|ty| !ty.contains_type_param(self.vm)));
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_direct_or_intrinsic(dest, fct_id, type_params, pos);
+        self.emit_invoke_direct_or_intrinsic(dest, fct_id, type_params, arguments, pos);
     }
 
     fn emit_invoke_direct_or_intrinsic(
@@ -2762,6 +2784,7 @@ where
         dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
+        arguments: Vec<Register>,
         pos: Position,
     ) {
         let fct = self.vm.fcts.idx(fct_id);
@@ -2769,9 +2792,9 @@ where
         assert!(fct.has_self());
 
         if let Some(intrinsic) = fct.intrinsic {
-            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, pos)
+            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, pos);
         } else {
-            self.emit_invoke_direct(dest, fct_id, type_params, pos);
+            self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
         };
     }
 
@@ -2780,9 +2803,9 @@ where
         dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
+        arguments: Vec<Register>,
         pos: Position,
     ) {
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
         let self_register = arguments[0];
 
         let dest_ty = if let Some(dest) = dest {
@@ -2850,8 +2873,9 @@ where
             .all(|ty| !ty.contains_type_param(self.vm)));
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_static_or_intrinsic(dest, fct_id, type_params, pos);
+        self.emit_invoke_static_or_intrinsic(dest, fct_id, type_params, arguments, pos);
     }
 
     fn emit_invoke_static_or_intrinsic(
@@ -2859,6 +2883,7 @@ where
         dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
+        arguments: Vec<Register>,
         pos: Position,
     ) {
         let fct = self.vm.fcts.idx(fct_id);
@@ -2866,9 +2891,9 @@ where
         assert!(!fct.has_self());
 
         if let Some(intrinsic) = fct.intrinsic {
-            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, pos);
+            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, pos);
         } else {
-            self.emit_invoke_static(dest, fct_id, type_params, pos);
+            self.emit_invoke_static(dest, fct_id, type_params, arguments, pos);
         }
     }
 
@@ -2877,10 +2902,9 @@ where
         dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
+        arguments: Vec<Register>,
         pos: Position,
     ) {
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
-
         let bytecode_type = if let Some(dest) = dest {
             self.specialize_register_type_unit(dest)
         } else {
@@ -2949,11 +2973,12 @@ where
         let callee_id = self.find_trait_impl(trait_fct_id, trait_id, ty);
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         if is_static {
-            self.emit_invoke_static_or_intrinsic(dest, callee_id, type_params, pos);
+            self.emit_invoke_static_or_intrinsic(dest, callee_id, type_params, arguments, pos);
         } else {
-            self.emit_invoke_direct_or_intrinsic(dest, callee_id, type_params, pos);
+            self.emit_invoke_direct_or_intrinsic(dest, callee_id, type_params, arguments, pos);
         }
     }
 
@@ -2988,17 +3013,16 @@ where
         fct_id: FctId,
         intrinsic: Intrinsic,
         type_params: TypeList,
+        arguments: Vec<Register>,
         pos: Position,
     ) {
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
-
         match intrinsic {
             Intrinsic::Float32Sqrt | Intrinsic::Float64Sqrt => {
                 self.emit_intrinsic_float_sqrt(
                     dest,
                     fct_id,
                     intrinsic,
-                    &arguments,
+                    arguments,
                     type_params,
                     pos,
                 );
@@ -3014,7 +3038,7 @@ where
                     dest,
                     fct_id,
                     intrinsic,
-                    &arguments,
+                    arguments,
                     type_params,
                     pos,
                 );
@@ -3041,7 +3065,7 @@ where
                     dest,
                     fct_id,
                     intrinsic,
-                    &arguments,
+                    arguments,
                     type_params,
                     pos,
                 );
@@ -3174,7 +3198,7 @@ where
                     dest,
                     fct_id,
                     intrinsic,
-                    &arguments,
+                    arguments,
                     type_params,
                     pos,
                 );
@@ -3185,7 +3209,7 @@ where
                     dest,
                     fct_id,
                     intrinsic,
-                    &arguments,
+                    arguments,
                     type_params,
                     pos,
                 );
@@ -3196,7 +3220,7 @@ where
                     dest,
                     fct_id,
                     intrinsic,
-                    &arguments,
+                    arguments,
                     type_params,
                     pos,
                 );
@@ -3211,7 +3235,7 @@ where
         dest: Option<Register>,
         _fct_id: FctId,
         intrinsic: Intrinsic,
-        arguments: &[Register],
+        arguments: Vec<Register>,
         type_params: TypeList,
         _pos: Position,
     ) {
@@ -3252,7 +3276,7 @@ where
         dest: Option<Register>,
         _fct_id: FctId,
         intrinsic: Intrinsic,
-        arguments: &[Register],
+        arguments: Vec<Register>,
         type_params: TypeList,
         _pos: Position,
     ) {
@@ -3293,7 +3317,7 @@ where
         dest: Option<Register>,
         _fct_id: FctId,
         intrinsic: Intrinsic,
-        arguments: &[Register],
+        arguments: Vec<Register>,
         type_params: TypeList,
         _pos: Position,
     ) {
@@ -3314,9 +3338,9 @@ where
     fn emit_intrinsic_option_unwrap(
         &mut self,
         dest: Option<Register>,
-        _fct_id: FctId,
+        fct_id: FctId,
         _intrinsic: Intrinsic,
-        arguments: &[Register],
+        arguments: Vec<Register>,
         type_params: TypeList,
         pos: Position,
     ) {
@@ -3331,7 +3355,7 @@ where
             unreachable!()
         };
 
-        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
         let edef = self.vm.enum_defs.idx(enum_def_id);
         let mut edef = edef.write();
 
@@ -3339,7 +3363,8 @@ where
             EnumLayout::Int => unreachable!(),
             EnumLayout::Ptr => {
                 self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
-                self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::ILLEGAL);
+                let lbl_slow_path = self.asm.test_if_nil(REG_RESULT);
+                self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
                 self.emit_store_register_as(
                     REG_RESULT.into(),
                     dest.expect("dest expected"),
@@ -3362,7 +3387,10 @@ where
                     Mem::Base(REG_TMP1, Header::size()),
                     some_variant_id,
                 );
-                self.asm.bailout_if(CondCode::NotEqual, Trap::ILLEGAL, pos);
+                let lbl_slow_path = self.asm.create_label();
+                self.asm.jump_if(CondCode::NotEqual, lbl_slow_path);
+
+                self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
 
                 let cdef_id =
                     edef.ensure_class_for_variant(self.vm, &*xenum, some_variant_id as usize);
@@ -3382,12 +3410,25 @@ where
         }
     }
 
+    fn add_slow_path(
+        &mut self,
+        lbl: Label,
+        dest: Option<Register>,
+        fct_id: FctId,
+        arguments: Vec<Register>,
+        type_params: TypeList,
+        pos: Position,
+    ) {
+        self.slow_paths
+            .push((lbl, dest, fct_id, arguments, type_params, pos));
+    }
+
     fn emit_intrinsic_unsafe_kill_refs(
         &mut self,
         dest: Option<Register>,
         _fct_id: FctId,
         _intrinsic: Intrinsic,
-        arguments: &[Register],
+        arguments: Vec<Register>,
         type_params: TypeList,
         _pos: Position,
     ) {
@@ -3444,7 +3485,7 @@ where
         dest: Option<Register>,
         _fct_id: FctId,
         _intrinsic: Intrinsic,
-        arguments: &[Register],
+        arguments: Vec<Register>,
         type_params: TypeList,
         pos: Position,
     ) {
