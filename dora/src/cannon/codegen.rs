@@ -1,4 +1,5 @@
 use dora_parser::ast::*;
+use dora_parser::lexer::position::Position;
 use std::collections::hash_map::HashMap;
 
 use crate::bytecode::{
@@ -2740,21 +2741,146 @@ where
         }
     }
 
-    fn emit_invoke_direct(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_direct_from_bytecode(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
 
-        self.emit_invoke_direct_inner(dest, fct_id, type_params)
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        self.emit_invoke_direct_or_intrinsic(dest, fct_id, type_params, pos);
     }
 
-    fn emit_invoke_direct_inner(
+    fn emit_invoke_direct_or_intrinsic(
         &mut self,
         dest: Option<Register>,
         fct_id: FctId,
         type_params: TypeList,
+        pos: Position,
     ) {
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+        assert!(fct.has_self());
+
+        if let FctKind::Builtin(intrinsic) = fct.kind {
+            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, pos)
+        } else {
+            self.emit_invoke_direct(dest, fct_id, type_params, pos);
+        };
+    }
+
+    fn emit_invoke_direct(
+        &mut self,
+        dest: Option<Register>,
+        fct_id: FctId,
+        type_params: TypeList,
+        pos: Position,
+    ) {
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+        let self_register = arguments[0];
+
+        let dest_ty = if let Some(dest) = dest {
+            self.specialize_register_type_unit(dest)
+        } else {
+            None
+        };
+
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        let fct_return_type =
+            self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
+        assert!(fct_return_type.is_concrete_type(self.vm));
+
+        let bytecode_type_self = self.bytecode.register_type(self_register);
+
+        if bytecode_type_self.is_ptr() {
+            self.emit_load_register(self_register, REG_RESULT.into());
+
+            self.asm
+                .test_if_nil_bailout(pos, REG_RESULT.into(), Trap::NIL);
+        }
+
+        let result_register = match fct_return_type {
+            BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+            _ => None,
+        };
+
+        let argsize = self.emit_invoke_arguments(result_register, arguments);
+
+        let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
+        let gcpoint = self.create_gcpoint();
+
+        let (reg, mode) = match dest_ty {
+            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
+            Some(bytecode_type) => (
+                result_reg(self.vm, bytecode_type.clone()),
+                Some(bytecode_type.mode(self.vm)),
+            ),
+            None => (REG_RESULT.into(), None),
+        };
+
+        self.asm
+            .direct_call(fct_id, ptr.to_ptr(), type_params, pos, gcpoint, mode, reg);
+
+        self.asm.decrease_stack_frame(argsize);
+
+        if let Some(dest) = dest {
+            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
+                self.emit_store_register(reg, dest);
+            }
+        }
+    }
+
+    fn emit_invoke_static_from_bytecode(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+        let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        self.emit_invoke_static_or_intrinsic(dest, fct_id, type_params, pos);
+    }
+
+    fn emit_invoke_static_or_intrinsic(
+        &mut self,
+        dest: Option<Register>,
+        fct_id: FctId,
+        type_params: TypeList,
+        pos: Position,
+    ) {
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+        assert!(!fct.has_self());
+
+        if let FctKind::Builtin(intrinsic) = fct.kind {
+            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, pos);
+        } else {
+            self.emit_invoke_static(dest, fct_id, type_params, pos);
+        }
+    }
+
+    fn emit_invoke_static(
+        &mut self,
+        dest: Option<Register>,
+        fct_id: FctId,
+        type_params: TypeList,
+        pos: Position,
+    ) {
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
         let bytecode_type = if let Some(dest) = dest {
             self.specialize_register_type_unit(dest)
         } else {
@@ -2763,146 +2889,38 @@ where
 
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
-        assert!(fct.has_self());
 
         let fct_return_type =
             self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
         assert!(fct_return_type.is_concrete_type(self.vm));
 
-        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
-
-        if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, dest, type_params, intrinsic)
-        } else {
-            let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
-            let self_register = arguments[0];
-
-            let bytecode_type_self = self.bytecode.register_type(self_register);
-            let position = self.bytecode.offset_position(self.current_offset.to_u32());
-
-            if bytecode_type_self.is_ptr() {
-                self.emit_load_register(self_register, REG_RESULT.into());
-
-                self.asm
-                    .test_if_nil_bailout(position, REG_RESULT.into(), Trap::NIL);
-            }
-
-            let result_register = match fct_return_type {
-                BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
-                _ => None,
-            };
-
-            let argsize = self.emit_invoke_arguments(result_register, arguments);
-
-            let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
-            let gcpoint = self.create_gcpoint();
-
-            let (reg, mode) = match bytecode_type {
-                Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
-                Some(bytecode_type) => (
-                    result_reg(self.vm, bytecode_type.clone()),
-                    Some(bytecode_type.mode(self.vm)),
-                ),
-                None => (REG_RESULT.into(), None),
-            };
-
-            self.asm.direct_call(
-                fct_id,
-                ptr.to_ptr(),
-                type_params,
-                position,
-                gcpoint,
-                mode,
-                reg,
-            );
-
-            self.asm.decrease_stack_frame(argsize);
-
-            if let Some(dest) = dest {
-                if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
-                    self.emit_store_register(reg, dest);
-                }
-            }
+        let result_register = match fct_return_type {
+            BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+            _ => None,
         };
-    }
 
-    fn emit_invoke_static(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
-        let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
-            _ => unreachable!(),
+        let argsize = self.emit_invoke_arguments(result_register, arguments);
+
+        let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
+        let gcpoint = self.create_gcpoint();
+
+        let (reg, mode) = match bytecode_type {
+            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
+            Some(bytecode_type) => (
+                result_reg(self.vm, bytecode_type.clone()),
+                Some(bytecode_type.mode(self.vm)),
+            ),
+            None => (REG_RESULT.into(), None),
         };
-        self.emit_invoke_static_inner(dest, fct_id, type_params)
-    }
 
-    fn emit_invoke_static_inner(
-        &mut self,
-        dest: Option<Register>,
-        fct_id: FctId,
-        type_params: TypeList,
-    ) {
-        let fct = self.vm.fcts.idx(fct_id);
-        let fct = fct.read();
-        assert!(!fct.has_self());
+        self.asm
+            .direct_call(fct_id, ptr.to_ptr(), type_params, pos, gcpoint, mode, reg);
 
-        let fct_return_type =
-            self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
-        assert!(fct_return_type.is_concrete_type(self.vm));
+        self.asm.decrease_stack_frame(argsize);
 
-        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
-
-        if let FctKind::Builtin(intrinsic) = fct.kind {
-            self.emit_invoke_intrinsic(&*fct, dest, type_params, intrinsic)
-        } else {
-            let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
-
-            let bytecode_type = if let Some(dest) = dest {
-                self.specialize_register_type_unit(dest)
-            } else {
-                None
-            };
-
-            let result_register = match fct_return_type {
-                BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
-                _ => None,
-            };
-
-            let argsize = self.emit_invoke_arguments(result_register, arguments);
-
-            let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
-            let gcpoint = self.create_gcpoint();
-            let position = self.bytecode.offset_position(self.current_offset.to_u32());
-
-            let (reg, mode) = match bytecode_type {
-                Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
-                Some(bytecode_type) => (
-                    result_reg(self.vm, bytecode_type.clone()),
-                    Some(bytecode_type.mode(self.vm)),
-                ),
-                None => (REG_RESULT.into(), None),
-            };
-
-            self.asm.direct_call(
-                fct_id,
-                ptr.to_ptr(),
-                type_params,
-                position,
-                gcpoint,
-                mode,
-                reg,
-            );
-
-            self.asm.decrease_stack_frame(argsize);
-
-            if let Some(dest) = dest {
-                if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
-                    self.emit_store_register(reg, dest);
-                }
+        if let Some(dest) = dest {
+            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
+                self.emit_store_register(reg, dest);
             }
         }
     }
@@ -2930,10 +2948,12 @@ where
         let ty = self.type_params[id.to_usize()];
         let callee_id = self.find_trait_impl(trait_fct_id, trait_id, ty);
 
+        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+
         if is_static {
-            self.emit_invoke_static_inner(dest, callee_id, type_params);
+            self.emit_invoke_static_or_intrinsic(dest, callee_id, type_params, pos);
         } else {
-            self.emit_invoke_direct_inner(dest, callee_id, type_params);
+            self.emit_invoke_direct_or_intrinsic(dest, callee_id, type_params, pos);
         }
     }
 
@@ -2964,16 +2984,24 @@ where
 
     fn emit_invoke_intrinsic(
         &mut self,
-        fct: &Fct,
         dest: Option<Register>,
-        type_params: TypeList,
+        fct_id: FctId,
         intrinsic: Intrinsic,
+        type_params: TypeList,
+        pos: Position,
     ) {
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         match intrinsic {
             Intrinsic::Float32Sqrt | Intrinsic::Float64Sqrt => {
-                self.emit_intrinsic_float_sqrt(dest, fct, intrinsic, &arguments, type_params);
+                self.emit_intrinsic_float_sqrt(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    &arguments,
+                    type_params,
+                    pos,
+                );
             }
 
             Intrinsic::Int32CountZeroBits
@@ -2982,7 +3010,14 @@ where
             | Intrinsic::Int32CountOneBits
             | Intrinsic::Int32CountOneBitsLeading
             | Intrinsic::Int32CountOneBitsTrailing => {
-                self.emit_intrinsic_int32_count_bits(dest, fct, intrinsic, &arguments, type_params);
+                self.emit_intrinsic_int32_count_bits(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    &arguments,
+                    type_params,
+                    pos,
+                );
             }
 
             Intrinsic::ReinterpretFloat32AsInt32
@@ -3002,7 +3037,14 @@ where
             | Intrinsic::Int64CountOneBits
             | Intrinsic::Int64CountOneBitsLeading
             | Intrinsic::Int64CountOneBitsTrailing => {
-                self.emit_intrinsic_int64_count_bits(dest, fct, intrinsic, &arguments, type_params);
+                self.emit_intrinsic_int64_count_bits(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    &arguments,
+                    type_params,
+                    pos,
+                );
             }
 
             Intrinsic::Unreachable => {
@@ -3010,12 +3052,11 @@ where
                     ptr: Address::from_ptr(stdlib::unreachable as *const u8),
                     args: &[],
                     return_type: BuiltinType::Unit,
-                    desc: NativeFctDescriptor::NativeStub(fct.id),
+                    desc: NativeFctDescriptor::NativeStub(fct_id),
                 };
-                let position = self.bytecode.offset_position(self.current_offset.to_u32());
                 let gcpoint = self.create_gcpoint();
                 let result = REG_RESULT.into();
-                self.asm.native_call(native_fct, position, gcpoint, result);
+                self.asm.native_call(native_fct, pos, gcpoint, result);
 
                 // Method should never return
                 self.asm.debug();
@@ -3129,15 +3170,36 @@ where
             }
 
             Intrinsic::UnsafeKillRefs => {
-                self.emit_intrinsic_unsafe_kill_refs(dest, fct, intrinsic, &arguments, type_params);
+                self.emit_intrinsic_unsafe_kill_refs(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    &arguments,
+                    type_params,
+                    pos,
+                );
             }
 
             Intrinsic::OptionIsNone => {
-                self.emit_intrinsic_option_is_none(dest, fct, intrinsic, &arguments, type_params);
+                self.emit_intrinsic_option_is_none(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    &arguments,
+                    type_params,
+                    pos,
+                );
             }
 
             Intrinsic::OptionUnwrap => {
-                self.emit_intrinsic_option_unwrap(dest, fct, intrinsic, &arguments, type_params);
+                self.emit_intrinsic_option_unwrap(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    &arguments,
+                    type_params,
+                    pos,
+                );
             }
 
             _ => unreachable!(),
@@ -3147,10 +3209,11 @@ where
     fn emit_intrinsic_int64_count_bits(
         &mut self,
         dest: Option<Register>,
-        _fct: &Fct,
+        _fct_id: FctId,
         intrinsic: Intrinsic,
         arguments: &[Register],
         type_params: TypeList,
+        _pos: Position,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3187,10 +3250,11 @@ where
     fn emit_intrinsic_int32_count_bits(
         &mut self,
         dest: Option<Register>,
-        _fct: &Fct,
+        _fct_id: FctId,
         intrinsic: Intrinsic,
         arguments: &[Register],
         type_params: TypeList,
+        _pos: Position,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3227,10 +3291,11 @@ where
     fn emit_intrinsic_float_sqrt(
         &mut self,
         dest: Option<Register>,
-        _fct: &Fct,
+        _fct_id: FctId,
         intrinsic: Intrinsic,
         arguments: &[Register],
         type_params: TypeList,
+        _pos: Position,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3249,10 +3314,11 @@ where
     fn emit_intrinsic_option_unwrap(
         &mut self,
         dest: Option<Register>,
-        _fct: &Fct,
+        _fct_id: FctId,
         _intrinsic: Intrinsic,
         arguments: &[Register],
         type_params: TypeList,
+        pos: Position,
     ) {
         assert_eq!(1, arguments.len());
         assert_eq!(1, type_params.len());
@@ -3273,9 +3339,7 @@ where
             EnumLayout::Int => unreachable!(),
             EnumLayout::Ptr => {
                 self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
-                let position = self.bytecode.offset_position(self.current_offset.to_u32());
-                self.asm
-                    .test_if_nil_bailout(position, REG_RESULT, Trap::ILLEGAL);
+                self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::ILLEGAL);
                 self.emit_store_register_as(
                     REG_RESULT.into(),
                     dest.expect("dest expected"),
@@ -3285,24 +3349,20 @@ where
 
             EnumLayout::Tagged => {
                 self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
-                let position = self.bytecode.offset_position(self.current_offset.to_u32());
-                self.asm
-                    .test_if_nil_bailout(position, REG_RESULT, Trap::ILLEGAL);
+                self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::ILLEGAL);
 
                 let xenum = &self.vm.enums[enum_id];
                 let xenum = xenum.read();
                 let first_variant = xenum.variants.first().unwrap();
 
                 let some_variant_id = if first_variant.types.is_empty() { 1 } else { 0 };
-                let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
                 self.asm.cmp_mem_imm(
                     MachineMode::Int32,
                     Mem::Base(REG_TMP1, Header::size()),
                     some_variant_id,
                 );
-                self.asm
-                    .bailout_if(CondCode::NotEqual, Trap::ILLEGAL, position);
+                self.asm.bailout_if(CondCode::NotEqual, Trap::ILLEGAL, pos);
 
                 let cdef_id =
                     edef.ensure_class_for_variant(self.vm, &*xenum, some_variant_id as usize);
@@ -3325,10 +3385,11 @@ where
     fn emit_intrinsic_unsafe_kill_refs(
         &mut self,
         dest: Option<Register>,
-        _fct: &Fct,
+        _fct_id: FctId,
         _intrinsic: Intrinsic,
         arguments: &[Register],
         type_params: TypeList,
+        _pos: Position,
     ) {
         assert_eq!(1, type_params.len());
         assert_eq!(2, arguments.len());
@@ -3381,10 +3442,11 @@ where
     fn emit_intrinsic_option_is_none(
         &mut self,
         dest: Option<Register>,
-        _fct: &Fct,
+        _fct_id: FctId,
         _intrinsic: Intrinsic,
         arguments: &[Register],
         type_params: TypeList,
+        pos: Position,
     ) {
         assert_eq!(1, type_params.len());
         assert_eq!(1, arguments.len());
@@ -3415,9 +3477,7 @@ where
 
             EnumLayout::Tagged => {
                 self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
-                let position = self.bytecode.offset_position(self.current_offset.to_u32());
-                self.asm
-                    .test_if_nil_bailout(position, REG_TMP1, Trap::ILLEGAL);
+                self.asm.test_if_nil_bailout(pos, REG_TMP1, Trap::ILLEGAL);
 
                 let xenum = &self.vm.enums[enum_id];
                 let xenum = xenum.read();
@@ -4580,14 +4640,14 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
 
     fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeDirectVoid {}", fctdef.to_usize()));
-        self.emit_invoke_direct(None, fctdef)
+        self.emit_invoke_direct_from_bytecode(None, fctdef)
     }
     fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,
             format!("InvokeDirect {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_direct(Some(dest), fctdef);
+        self.emit_invoke_direct_from_bytecode(Some(dest), fctdef);
     }
 
     fn visit_invoke_virtual_void(&mut self, fctdef: ConstPoolIdx) {
@@ -4604,14 +4664,14 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
 
     fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeStaticVoid {}", fctdef.to_usize()));
-        self.emit_invoke_static(None, fctdef)
+        self.emit_invoke_static_from_bytecode(None, fctdef)
     }
     fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,
             format!("InvokeStatic {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_static(Some(dest), fctdef);
+        self.emit_invoke_static_from_bytecode(Some(dest), fctdef);
     }
 
     fn visit_invoke_generic_direct_void(&mut self, fctdef: ConstPoolIdx) {
