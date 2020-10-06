@@ -76,6 +76,10 @@ enum NewOption[T] {
   unsafeLoadEnumVariant[NewOption[T]](value) == 1
 }
 
+@internal fun newOptionIsSome[T](value: NewOption[T]): Bool {
+  unsafeLoadEnumVariant[NewOption[T]](value) == 0
+}
+
 @internal fun newOptionUnwrap[T](value: NewOption[T]): T {
   if unsafeLoadEnumVariant[NewOption[T]](value) == 0 {
     unsafeLoadEnumElement[NewOption[T], T](value, 0, 0)

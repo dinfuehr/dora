@@ -2692,23 +2692,40 @@ where
         }
     }
 
-    fn emit_invoke_virtual(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_virtual_from_bytecode(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
 
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
+        self.emit_invoke_virtual(dest, fct_id, type_params, arguments, pos);
+    }
+
+    fn emit_invoke_virtual(
+        &mut self,
+        dest: Option<Register>,
+        fct_id: FctId,
+        type_params: TypeList,
+        arguments: Vec<Register>,
+        pos: Position,
+    ) {
         let bytecode_type = if let Some(dest) = dest {
             self.specialize_register_type_unit(dest)
         } else {
             None
         };
 
-        let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
         let self_register = arguments[0];
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
         assert!(bytecode_type_self.is_ptr());
 
         let fct = self.vm.fcts.idx(fct_id);
@@ -2737,21 +2754,9 @@ where
             None => (REG_RESULT.into(), None),
         };
 
-        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
-
         let self_index = if result_register.is_some() { 1 } else { 0 };
-        self.asm.indirect_call(
-            vtable_index,
-            self_index,
-            position,
-            gcpoint,
-            ty,
-            type_params,
-            reg,
-        );
+        self.asm
+            .indirect_call(vtable_index, self_index, pos, gcpoint, ty, type_params, reg);
 
         self.asm.decrease_stack_frame(argsize);
 
@@ -3204,7 +3209,7 @@ where
                 );
             }
 
-            Intrinsic::OptionIsNone => {
+            Intrinsic::OptionIsNone | Intrinsic::OptionIsSome => {
                 self.emit_intrinsic_option_is_none(
                     dest,
                     fct_id,
@@ -3484,7 +3489,7 @@ where
         &mut self,
         dest: Option<Register>,
         _fct_id: FctId,
-        _intrinsic: Intrinsic,
+        intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: TypeList,
         pos: Position,
@@ -3503,12 +3508,18 @@ where
         let edef = self.vm.enum_defs.idx(enum_def_id);
         let edef = edef.read();
 
+        let cond = match intrinsic {
+            Intrinsic::OptionIsSome => CondCode::Equal,
+            Intrinsic::OptionIsNone => CondCode::NotEqual,
+            _ => unreachable!(),
+        };
+
         match edef.layout {
             EnumLayout::Int => unreachable!(),
             EnumLayout::Ptr => {
                 self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.cmp_reg_imm(MachineMode::Ptr, REG_TMP1, 0);
-                self.asm.set(REG_RESULT, CondCode::Equal);
+                self.asm.set(REG_RESULT, cond);
                 self.emit_store_register_as(
                     REG_RESULT.into(),
                     dest.expect("dest expected"),
@@ -3531,7 +3542,7 @@ where
                     Mem::Base(REG_TMP1, Header::size()),
                     none_variant_id,
                 );
-                self.asm.set(REG_RESULT, CondCode::Equal);
+                self.asm.set(REG_RESULT, cond);
 
                 self.emit_store_register_as(
                     REG_RESULT.into(),
@@ -4692,14 +4703,14 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
 
     fn visit_invoke_virtual_void(&mut self, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeVirtualVoid {}", fctdef.to_usize()));
-        self.emit_invoke_virtual(None, fctdef);
+        self.emit_invoke_virtual_from_bytecode(None, fctdef);
     }
     fn visit_invoke_virtual(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,
             format!("InvokeVirtual {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_virtual(Some(dest), fctdef);
+        self.emit_invoke_virtual_from_bytecode(Some(dest), fctdef);
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {

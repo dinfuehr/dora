@@ -490,6 +490,7 @@ pub enum Intrinsic {
     UnsafeLoadEnumElement,
 
     OptionIsNone,
+    OptionIsSome,
     OptionUnwrap,
 }
 
@@ -528,6 +529,7 @@ impl Intrinsic {
             | Intrinsic::ReinterpretFloat64AsInt64
             | Intrinsic::ReinterpretInt64AsFloat64
             | Intrinsic::OptionIsNone
+            | Intrinsic::OptionIsSome
             | Intrinsic::OptionUnwrap => true,
             _ => false,
         }

@@ -1,5 +1,5 @@
 //= error
-//= stderr "fatal error: cannot unwrap None.\n3: fatalError(String): 1\n2: newOptionUnwrap[T](NewOption[T]): T: 83\n1: main(): 5\n"
+//= stderr "fatal error: cannot unwrap None.\n3: fatalError(String): 1\n2: newOptionUnwrap[T](NewOption[T]): T: 87\n1: main(): 5\n"
 
 fun main() {
     newOptionUnwrap[Int32](NewOption[Int32]::None);

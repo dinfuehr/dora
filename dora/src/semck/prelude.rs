@@ -745,6 +745,7 @@ pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
     }
 
     intrinsic_fct(vm, "newOptionIsNone", Intrinsic::OptionIsNone);
+    intrinsic_fct(vm, "newOptionIsNone", Intrinsic::OptionIsSome);
     intrinsic_fct(vm, "newOptionUnwrap", Intrinsic::OptionUnwrap);
 }
 

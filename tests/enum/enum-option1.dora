@@ -1,8 +1,13 @@
 fun main() {
     assert(newOptionIsNone[String](NewOption[String]::None));
     assert(newOptionIsNone[Int32](NewOption[Int32]::None));
+    assert(!newOptionIsSome[String](NewOption[String]::None));
+    assert(!newOptionIsSome[Int32](NewOption[Int32]::None));
+
     assert(!newOptionIsNone[String](NewOption[String]::Some("abc")));
     assert(!newOptionIsNone[Int32](NewOption[Int32]::Some(12)));
+    assert(newOptionIsSome[String](NewOption[String]::Some("abc")));
+    assert(newOptionIsSome[Int32](NewOption[Int32]::Some(12)));
 
     newOptionIsNone[String](NewOption[String]::None);
     newOptionIsNone[Int32](NewOption[Int32]::Some(12));
