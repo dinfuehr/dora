@@ -3,7 +3,7 @@ use parking_lot::Mutex;
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::module::ModuleId;
-use crate::vm::{ClassDefId, ClassId, FctId, TraitId, VM};
+use crate::vm::{ClassDefId, ClassId, EnumId, FctId, TraitId, VM};
 
 #[derive(Debug)]
 pub struct KnownElements {
@@ -11,6 +11,7 @@ pub struct KnownElements {
     pub modules: KnownModules,
     pub traits: KnownTraits,
     pub functions: KnownFunctions,
+    pub enums: KnownEnums,
 
     pub byte_array_def: Mutex<Option<ClassDefId>>,
     pub int_array_def: Mutex<Option<ClassDefId>>,
@@ -21,6 +22,11 @@ pub struct KnownElements {
 
     pub free_object_class_def: ClassDefId,
     pub free_array_class_def: ClassDefId,
+}
+
+#[derive(Debug)]
+pub struct KnownEnums {
+    pub new_option: EnumId,
 }
 
 #[derive(Debug)]

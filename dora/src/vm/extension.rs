@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 
 use std::collections::HashMap;
 
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeListId};
 use crate::vm::{FctId, FileId, TypeParam};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -20,7 +20,7 @@ impl From<usize> for ExtensionId {
 }
 
 impl ExtensionId {
-    fn to_usize(self) -> usize {
+    pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
@@ -35,6 +35,12 @@ pub struct ExtensionData {
     pub methods: Vec<FctId>,
     pub instance_names: HashMap<Name, FctId>,
     pub static_names: HashMap<Name, FctId>,
+}
+
+impl ExtensionData {
+    pub fn type_param(&self, id: TypeListId) -> &TypeParam {
+        &self.type_params[id.to_usize()]
+    }
 }
 
 impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {

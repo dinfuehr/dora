@@ -136,11 +136,17 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             self.map_impl_defs.insert(i.id, id);
         } else {
             let id: ExtensionId = self.vm.extensions.len().into();
+            let mut extension_type_params = Vec::new();
+            if let Some(ref type_params) = i.type_params {
+                for param in type_params {
+                    extension_type_params.push(TypeParam::new(param.name));
+                }
+            }
             let extension = ExtensionData {
                 id,
                 file: self.file_id.into(),
                 pos: i.pos,
-                type_params: Vec::new(),
+                type_params: extension_type_params,
                 ty: BuiltinType::Error,
                 methods: Vec::new(),
                 instance_names: HashMap::new(),

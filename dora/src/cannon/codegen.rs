@@ -3508,17 +3508,16 @@ where
         let edef = self.vm.enum_defs.idx(enum_def_id);
         let edef = edef.read();
 
-        let cond = match intrinsic {
-            Intrinsic::OptionIsSome => CondCode::Equal,
-            Intrinsic::OptionIsNone => CondCode::NotEqual,
-            _ => unreachable!(),
-        };
-
         match edef.layout {
             EnumLayout::Int => unreachable!(),
             EnumLayout::Ptr => {
                 self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.cmp_reg_imm(MachineMode::Ptr, REG_TMP1, 0);
+                let cond = match intrinsic {
+                    Intrinsic::OptionIsSome => CondCode::NotEqual,
+                    Intrinsic::OptionIsNone => CondCode::Equal,
+                    _ => unreachable!(),
+                };
                 self.asm.set(REG_RESULT, cond);
                 self.emit_store_register_as(
                     REG_RESULT.into(),
@@ -3542,6 +3541,11 @@ where
                     Mem::Base(REG_TMP1, Header::size()),
                     none_variant_id,
                 );
+                let cond = match intrinsic {
+                    Intrinsic::OptionIsSome => CondCode::NotEqual,
+                    Intrinsic::OptionIsNone => CondCode::Equal,
+                    _ => unreachable!(),
+                };
                 self.asm.set(REG_RESULT, cond);
 
                 self.emit_store_register_as(

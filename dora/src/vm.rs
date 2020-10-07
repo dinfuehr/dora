@@ -41,7 +41,9 @@ pub use self::fct::{Fct, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
 pub use self::global::{GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
-pub use self::known::{KnownClasses, KnownElements, KnownFunctions, KnownModules, KnownTraits};
+pub use self::known::{
+    KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
+};
 pub use self::src::{CallType, ConvInfo, FctSrc, ForTypeInfo, IdentType, NodeMap, Var, VarId};
 pub use self::strct::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,
@@ -128,6 +130,7 @@ impl<'ast> VM<'ast> {
         let empty_module_id: ModuleId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctId = 0.into();
+        let empty_enum_id: EnumId = 0.into();
         let gc = Gc::new(&args);
 
         let vm = Box::new(VM {
@@ -185,6 +188,10 @@ impl<'ast> VM<'ast> {
                     stringable: empty_trait_id,
                     iterator: empty_trait_id,
                     zero: empty_trait_id,
+                },
+
+                enums: KnownEnums {
+                    new_option: empty_enum_id,
                 },
 
                 byte_array_def: Mutex::new(None),

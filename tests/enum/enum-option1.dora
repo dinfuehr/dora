@@ -1,14 +1,14 @@
 fun main() {
-    assert(newOptionIsNone[String](NewOption[String]::None));
-    assert(newOptionIsNone[Int32](NewOption[Int32]::None));
-    assert(!newOptionIsSome[String](NewOption[String]::None));
-    assert(!newOptionIsSome[Int32](NewOption[Int32]::None));
+    assert(NewOption[String]::None.isNone());
+    assert(NewOption[Int32]::None.isNone());
+    assert(!NewOption[String]::None.isSome());
+    assert(!NewOption[Int32]::None.isSome());
 
-    assert(!newOptionIsNone[String](NewOption[String]::Some("abc")));
-    assert(!newOptionIsNone[Int32](NewOption[Int32]::Some(12)));
-    assert(newOptionIsSome[String](NewOption[String]::Some("abc")));
-    assert(newOptionIsSome[Int32](NewOption[Int32]::Some(12)));
+    assert(!NewOption[String]::Some("abc").isNone());
+    assert(!NewOption[Int32]::Some(12).isNone());
+    assert(NewOption[String]::Some("abc").isSome());
+    assert(NewOption[Int32]::Some(12).isSome());
 
-    newOptionIsNone[String](NewOption[String]::None);
-    newOptionIsNone[Int32](NewOption[Int32]::Some(12));
+    NewOption[String]::None.isNone();
+    NewOption[Int32]::Some(12).isNone();
 }

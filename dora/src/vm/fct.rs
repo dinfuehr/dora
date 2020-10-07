@@ -100,6 +100,16 @@ impl<'ast> Fct<'ast> {
                     }
 
                     (id.to_usize() - len).into()
+                } else if let FctParent::Extension(extension_id) = self.parent {
+                    let extension = &vm.extensions[extension_id];
+                    let extension = extension.read();
+                    let len = extension.type_params.len();
+
+                    if id.to_usize() < len {
+                        return callback(extension.type_param(id), id);
+                    }
+
+                    (id.to_usize() - len).into()
                 } else {
                     id
                 };
@@ -185,6 +195,30 @@ impl<'ast> Fct<'ast> {
             FctParent::Trait(trait_id) => {
                 let xtrait = vm.traits[trait_id].read();
                 repr.push_str(&vm.interner.str(xtrait.name));
+                if self.is_static {
+                    repr.push_str("::");
+                } else {
+                    repr.push_str("#");
+                }
+            }
+
+            FctParent::Extension(extension_id) => {
+                let extension = &vm.extensions[extension_id];
+                let extension = extension.read();
+
+                if let Some(enum_id) = extension.ty.enum_id() {
+                    let xenum = &vm.enums[enum_id];
+                    let xenum = xenum.read();
+                    repr.push_str(&vm.interner.str(xenum.name));
+                } else if let Some(cls_id) = extension.ty.cls_id(vm) {
+                    let cls = vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    let name = cls.name;
+                    repr.push_str(&vm.interner.str(name));
+                } else {
+                    unreachable!();
+                }
+
                 if self.is_static {
                     repr.push_str("::");
                 } else {

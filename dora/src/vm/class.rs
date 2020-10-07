@@ -235,6 +235,10 @@ pub fn find_field_in_class(
     mut class: BuiltinType,
     name: Name,
 ) -> Option<(BuiltinType, FieldId, BuiltinType)> {
+    if class.cls_id(vm).is_none() {
+        return None;
+    }
+
     loop {
         let cls_id = class.cls_id(vm).expect("no class");
         let cls = vm.classes.idx(cls_id);

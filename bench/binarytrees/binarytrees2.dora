@@ -58,12 +58,12 @@ fun createTree(depth: Int32): TreeNode {
 }
 
 fun checkTree(node: TreeNode): Int32 {
-  if newOptionIsNone[TreeNode](node.left) {
+  if node.left.isNone() {
     return 1;
   }
 
-  return checkTree(newOptionUnwrap[TreeNode](node.left)) +
-         checkTree(newOptionUnwrap[TreeNode](node.right)) + 1;
+  return checkTree(node.left.unwrap()) +
+         checkTree(node.right.unwrap()) + 1;
 }
 
 class TreeNode(let item: Int32, var left: NewOption[TreeNode], var right: NewOption[TreeNode])

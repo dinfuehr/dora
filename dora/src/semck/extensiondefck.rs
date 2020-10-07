@@ -1,8 +1,9 @@
 use parking_lot::RwLock;
+use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::semck::typeparamck::{self, ErrorReporting};
+use crate::sym::TypeSym;
 use crate::ty::BuiltinType;
 use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
 
@@ -45,7 +46,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
         self.vm.sym.lock().push_level();
 
         if let Some(ref type_params) = i.type_params {
-            self.check_type_params(self.extension_id.unwrap(), type_params);
+            self.check_type_params(i, self.extension_id.unwrap(), type_params);
         }
 
         if let Some(extension_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
@@ -77,14 +78,37 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
 
     fn check_type_params(
         &mut self,
+        ximpl: &'ast ast::Impl,
         extension_id: ExtensionId,
-        _type_params: &'ast [ast::TypeParam],
+        type_params: &'ast [ast::TypeParam],
     ) {
         let extension = &self.vm.extensions[extension_id];
         let extension = extension.read();
 
-        let error = ErrorReporting::Yes(self.file_id.into(), extension.pos);
-        typeparamck::check_enum(self.vm, extension.ty, error);
+        if type_params.len() > 0 {
+            let mut names = HashSet::new();
+            let mut type_param_id = 0;
+
+            for type_param in type_params {
+                if !names.insert(type_param.name) {
+                    let name = self.vm.interner.str(type_param.name).to_string();
+                    let msg = SemError::TypeParamNameNotUnique(name);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(extension.file, type_param.pos, msg);
+                }
+
+                assert!(type_param.bounds.is_empty());
+
+                let sym = TypeSym::SymTypeParam(type_param_id.into());
+                self.vm.sym.lock().insert_type(type_param.name, sym);
+                type_param_id += 1;
+            }
+        } else {
+            let msg = SemError::TypeParamsExpected;
+            self.vm.diag.lock().report(extension.file, ximpl.pos, msg);
+        }
     }
 
     fn check_in_enum(&self, f: &ast::Function, enum_id: EnumId) -> bool {
@@ -179,10 +203,10 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
             );
         }
 
-        let kind = if f.internal {
-            FctKind::Definition
-        } else {
+        let kind = if f.block.is_some() {
             FctKind::Source(RwLock::new(FctSrc::new()))
+        } else {
+            FctKind::Definition
         };
 
         let parent = FctParent::Extension(extension_id);
@@ -343,5 +367,16 @@ mod tests {
             pos(1, 49),
             SemError::MethodExists("foo".into(), pos(1, 36)),
         );
+    }
+
+    #[test]
+    fn extension_with_type_param() {
+        ok("
+            enum MyFoo[T] { A(T), B }
+            impl[T] MyFoo[T] {
+                fun test(x: T) {}
+            }
+            fun test(x: MyFoo[Int32]) { x.test(1); }
+        ");
     }
 }

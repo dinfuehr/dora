@@ -1,4 +1,4 @@
 fun main() {
-    assert(newOptionUnwrap[String](NewOption[String]::Some("abc")) == "abc");
-    assert(newOptionUnwrap[Int32](NewOption[Int32]::Some(12)) == 12);
+    assert(NewOption[String]::Some("abc").unwrap() == "abc");
+    assert(NewOption[Int32]::Some(12).unwrap() == 12);
 }

@@ -65,8 +65,6 @@ pub fn start(content: Option<&str>) -> i32 {
         return 1;
     }
 
-    semck::prelude::install_conditional_intrinsics(&mut vm);
-
     semck::bytecode(&vm);
 
     if !vm.args.cmd_test && main.is_none() {

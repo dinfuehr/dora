@@ -156,7 +156,7 @@ impl SemError {
             SemError::UnknownMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
                 format!(
-                    "no method with definition `{}({})` in class `{}`.",
+                    "no method with definition `{}({})` in type `{}`.",
                     name, args, cls
                 )
             }

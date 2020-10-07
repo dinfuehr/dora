@@ -1509,7 +1509,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .pos(e.pos)
             .ctor(cls_id)
             .args(arg_types)
-            .cls_type_params(&type_params);
+            .container_type_params(&type_params);
 
         let ty = if lookup.find() {
             let fct_id = lookup.found_fct_id().unwrap();

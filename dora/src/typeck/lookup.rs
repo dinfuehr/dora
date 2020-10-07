@@ -4,8 +4,8 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::args_compatible;
 use crate::vm::{
-    find_methods_in_class, find_methods_in_enum, ClassId, Fct, FctId, FctParent, FileId, TraitId,
-    TypeParam, VM,
+    find_methods_in_class, find_methods_in_enum, ClassId, EnumId, Fct, FctId, FctParent, FileId,
+    TraitId, TypeParam, VM,
 };
 
 use crate::vm::module::find_methods_in_module;
@@ -29,7 +29,7 @@ pub struct MethodLookup<'a, 'ast: 'a> {
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [BuiltinType]>,
-    cls_tps: Option<&'a TypeList>,
+    container_tps: Option<&'a TypeList>,
     fct_tps: Option<&'a TypeList>,
     ret: Option<BuiltinType>,
     pos: Option<Position>,
@@ -51,7 +51,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             kind: None,
             name: None,
             args: None,
-            cls_tps: None,
+            container_tps: None,
             fct_tps: None,
             ret: None,
             pos: None,
@@ -118,8 +118,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self
     }
 
-    pub fn cls_type_params(mut self, cls_tps: &'a TypeList) -> MethodLookup<'a, 'ast> {
-        self.cls_tps = Some(cls_tps);
+    pub fn container_type_params(mut self, cls_tps: &'a TypeList) -> MethodLookup<'a, 'ast> {
+        self.container_tps = Some(cls_tps);
         self
     }
 
@@ -144,7 +144,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         let fct_id = match kind {
             LookupKind::Fct => {
-                assert!(self.cls_tps.is_none());
+                assert!(self.container_tps.is_none());
                 let name = self.name.expect("name not set");
                 self.find_fct(name)
             }
@@ -162,13 +162,13 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             }
 
             LookupKind::Static(cls_id) => {
-                assert!(self.cls_tps.is_none());
+                assert!(self.container_tps.is_none());
                 let name = self.name.expect("name not set");
                 self.find_method(self.vm.cls(cls_id), name, true)
             }
 
             LookupKind::Ctor(cls_id) => {
-                assert!(self.cls_tps.is_some());
+                assert!(self.container_tps.is_some());
                 self.find_ctor(cls_id)
             }
         };
@@ -247,15 +247,28 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             _ => None,
         };
 
-        let cls_tps: TypeList = if let Some(cls_tps) = self.cls_tps {
-            cls_tps.clone()
+        let enum_id = match fct.parent {
+            FctParent::Extension(extension_id) => {
+                let extension = &self.vm.extensions[extension_id];
+                let extension = extension.read();
+                extension.ty.enum_id()
+            }
+            _ => None,
+        };
+
+        let container_tps: TypeList = if let Some(container_tps) = self.container_tps {
+            container_tps.clone()
         } else if let LookupKind::Method(obj) = kind {
             obj.type_params(self.vm)
         } else {
             TypeList::empty()
         };
 
-        if cls_id.is_some() && !self.check_cls_tps(cls_id.unwrap(), &cls_tps) {
+        if cls_id.is_some() && !self.check_cls_tps(cls_id.unwrap(), &container_tps) {
+            return false;
+        }
+
+        if enum_id.is_some() && !self.check_enum_tps(enum_id.unwrap(), &container_tps) {
             return false;
         }
 
@@ -273,7 +286,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             return false;
         }
 
-        let type_params = cls_tps.append(&fct_tps);
+        let type_params = container_tps.append(&fct_tps);
         if !args_compatible(self.vm, &*fct, args, &type_params, None) {
             if !self.report_errors {
                 return false;
@@ -299,11 +312,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         let cmp_type = match kind {
             LookupKind::Ctor(cls_id) => {
-                let list_id = self.vm.lists.lock().insert(cls_tps);
+                let list_id = self.vm.lists.lock().insert(container_tps);
                 BuiltinType::Class(cls_id, list_id)
             }
             _ => {
-                let type_list = cls_tps.append(&fct_tps);
+                let type_list = container_tps.append(&fct_tps);
                 replace_type_param(self.vm, fct.return_type, &type_list, None)
             }
         };
@@ -376,6 +389,16 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         };
 
         self.check_tps(&cls_tps, tps)
+    }
+
+    fn check_enum_tps(&self, enum_id: EnumId, tps: &TypeList) -> bool {
+        let enum_tps = {
+            let xenum = &self.vm.enums[enum_id];
+            let xenum = xenum.read();
+            xenum.type_params.to_vec()
+        };
+
+        self.check_tps(&enum_tps, tps)
     }
 
     fn check_fct_tps(&self, tps: &TypeList) -> bool {

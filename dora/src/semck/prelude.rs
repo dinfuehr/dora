@@ -10,7 +10,7 @@ use crate::stack;
 use crate::stdlib;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::module::ModuleId;
-use crate::vm::{ClassDef, ClassDefId, ClassId, FctId, FctKind, Intrinsic, TraitId, VM};
+use crate::vm::{ClassDef, ClassDefId, ClassId, EnumId, FctId, FctKind, Intrinsic, TraitId, VM};
 use crate::vtable::VTableBox;
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
@@ -51,6 +51,8 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.known.traits.stringable = find_trait(vm, "Stringable");
     vm.known.traits.zero = find_trait(vm, "Zero");
     vm.known.traits.iterator = find_trait(vm, "Iterator");
+
+    vm.known.enums.new_option = find_enum(vm, "NewOption");
 
     internal_free_classes(vm);
 }
@@ -171,6 +173,18 @@ fn find_trait<'ast>(vm: &mut VM<'ast>, name: &str) -> TraitId {
         tid
     } else {
         panic!("trait {} not found!", name);
+    }
+}
+
+fn find_enum<'ast>(vm: &mut VM<'ast>, name: &str) -> EnumId {
+    let iname = vm.interner.intern(name);
+
+    let eid = vm.sym.lock().get_enum(iname);
+
+    if let Some(eid) = eid {
+        eid
+    } else {
+        panic!("enum {} not found!", name);
     }
 }
 
@@ -437,6 +451,29 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     if let Some(clsid) = clsid {
         native_class_method(vm, clsid, "start", stdlib::spawn_thread as *const u8);
     }
+
+    install_conditional_intrinsics(vm);
+
+    intrinsic_impl_enum(
+        vm,
+        vm.known.enums.new_option,
+        "isNone",
+        Intrinsic::OptionIsNone,
+    );
+
+    intrinsic_impl_enum(
+        vm,
+        vm.known.enums.new_option,
+        "isSome",
+        Intrinsic::OptionIsSome,
+    );
+
+    intrinsic_impl_enum(
+        vm,
+        vm.known.enums.new_option,
+        "unwrap",
+        Intrinsic::OptionUnwrap,
+    );
 }
 
 fn native_class_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
@@ -675,7 +712,40 @@ fn internal_impl<'ast>(
     }
 }
 
-pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
+fn intrinsic_impl_enum<'ast>(vm: &mut VM<'ast>, enum_id: EnumId, name: &str, intrinsic: Intrinsic) {
+    internal_impl_enum(vm, enum_id, name, FctImplementation::Intrinsic(intrinsic));
+}
+
+fn internal_impl_enum<'ast>(
+    vm: &mut VM<'ast>,
+    enum_id: EnumId,
+    name: &str,
+    kind: FctImplementation,
+) {
+    let name = vm.interner.intern(name);
+    let xenum = &vm.enums[enum_id];
+    let xenum = xenum.read();
+
+    for &eid in &xenum.extensions {
+        let ext = vm.extensions[eid].read();
+
+        for &fid in &ext.methods {
+            let fct = vm.fcts.idx(fid);
+            let mut fct = fct.write();
+
+            if fct.name == name {
+                match kind {
+                    FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+                    FctImplementation::Native(address) => fct.kind = FctKind::Native(address),
+                }
+                fct.internal_resolved = true;
+                return;
+            }
+        }
+    }
+}
+
+fn install_conditional_intrinsics(vm: &mut VM) {
     let clsid = vm.known.classes.int32;
     if has_popcnt() {
         intrinsic_class_method(vm, clsid, "countZeroBits", Intrinsic::Int32CountZeroBits);
@@ -743,10 +813,6 @@ pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
             Intrinsic::Int64CountOneBitsTrailing,
         );
     }
-
-    intrinsic_fct(vm, "newOptionIsNone", Intrinsic::OptionIsNone);
-    intrinsic_fct(vm, "newOptionIsNone", Intrinsic::OptionIsSome);
-    intrinsic_fct(vm, "newOptionUnwrap", Intrinsic::OptionUnwrap);
 }
 
 #[cfg(test)]

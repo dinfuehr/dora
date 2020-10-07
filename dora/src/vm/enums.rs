@@ -214,10 +214,6 @@ pub fn find_methods_in_enum(
     for &extension_id in &xenum.extensions {
         let extension = vm.extensions[extension_id].read();
 
-        if extension.ty.type_params(vm) != object_type.type_params(vm) {
-            continue;
-        }
-
         let table = if is_static {
             &extension.static_names
         } else {
@@ -225,7 +221,7 @@ pub fn find_methods_in_enum(
         };
 
         if let Some(&fct_id) = table.get(&name) {
-            return vec![(extension.ty, fct_id)];
+            return vec![(object_type, fct_id)];
         }
     }
 
