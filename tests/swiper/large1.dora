@@ -5,8 +5,8 @@ fun main() {
     let y = Array::ofSizeUnsafe[Object](16L * 1024L);
     let z = Array::ofSizeUnsafe[Object](16L * 1024L);
     forceCollect();
-    assert(x(0L) === nil);
+    assert(unsafeIsNull[Object](x(0L)));
     x(0L) = Object();
     forceCollect();
-    assert(x(0L) !== nil);
+    assert(!unsafeIsNull[Object](x(0L)));
 }

@@ -507,78 +507,6 @@ fn type_function_params() {
 }
 
 #[test]
-fn type_return_nil() {
-    ok("fun foo(): String { return nil; }");
-    ok("class Bar fun foo(): Bar { return nil; }");
-    err(
-        "fun foo(): Int32 { return nil; }",
-        pos(1, 20),
-        SemError::IncompatibleWithNil("Int32".into()),
-    );
-}
-
-#[test]
-fn type_nil_as_argument() {
-    ok("fun foo(a: String) {} fun test() { foo(nil); }");
-    err(
-        "fun foo(a: Int32) {} fun test() { foo(nil); }",
-        pos(1, 38),
-        SemError::ParamTypesIncompatible("foo".into(), vec!["Int32".into()], vec!["nil".into()]),
-    );
-}
-
-#[test]
-fn type_nil_for_ctor() {
-    ok("class Foo(let a: String) fun test() { Foo(nil); }");
-    err(
-        "class Foo(let a: Int32) fun test() { Foo(nil); }",
-        pos(1, 41),
-        SemError::ParamTypesIncompatible("Foo".into(), vec!["Int32".into()], vec!["nil".into()]),
-    );
-}
-
-#[test]
-fn type_nil_for_local_variable() {
-    ok("fun f() { let x: String = nil; }");
-    err(
-        "fun f() { let x = nil; }",
-        pos(1, 11),
-        SemError::VarNeedsTypeInfo("x".into()),
-    );
-    err(
-        "fun f() { let x: Int32 = nil; }",
-        pos(1, 11),
-        SemError::AssignType("x".into(), "Int32".into(), "nil".into()),
-    );
-}
-
-#[test]
-fn type_nil_for_field() {
-    ok("class Foo(var a: String) fun f() { Foo(nil).a = nil; }");
-    err(
-        "class Foo(var a: Int32) fun f() { Foo(1).a = nil; }",
-        pos(1, 44),
-        SemError::AssignField("a".into(), "Foo".into(), "Int32".into(), "nil".into()),
-    );
-}
-
-#[test]
-fn type_nil_method() {
-    err(
-        "fun f() { nil.test(); }",
-        pos(1, 19),
-        SemError::UnknownMethod("nil".into(), "test".into(), Vec::new()),
-    );
-}
-
-#[test]
-fn type_nil_as_method_argument() {
-    ok("class Foo {
-            fun f(a: String) {}
-        } fun f() { Foo().f(nil); }");
-}
-
-#[test]
 fn type_array() {
     ok("fun f(a: Array[Int32]): Int32 { return a(1L); }");
     err(
@@ -696,11 +624,11 @@ fn access_super_class_field() {
 fn same_names() {
     ok("class Foo { var Foo: Foo = Foo(); }");
     ok("class Foo fun foo() { let Foo: Int32 = 1; }");
-    ok("class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo(): Foo = nil; }");
-    ok("class Foo { fun Foo(): Foo { Foo::Foo(); return Foo(); } } module Foo { fun Foo(): Foo = nil; }");
+    ok("class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo(): Foo = Foo(); }");
+    ok("class Foo { fun Foo(): Foo { Foo::Foo(); return Foo(); } } module Foo { fun Foo(): Foo = Foo(); }");
     ok("class Foo { fun Far(): Foo = Foo::bar(); } module Foo { fun bar(): Foo = Foo(); }");
-    ok("module Foo { fun Foo(): Foo = nil; } class Foo { var Foo: Foo = Foo(); }");
-    ok("module Foo { fun Foo(): Foo = nil; } class Foo { fun Foo(): Foo { Foo::Foo(); return Foo(); } }");
+    ok("module Foo { fun Foo(): Foo = Foo(); } class Foo { var Foo: Foo = Foo(); }");
+    ok("module Foo { fun Foo(): Foo = Foo(); } class Foo { fun Foo(): Foo { Foo::Foo(); return Foo(); } }");
     ok("module Foo { fun bar(): Foo = Foo(); } class Foo { fun Far(): Foo = Foo::bar(); }");
 }
 
@@ -760,15 +688,6 @@ fn check_upcast() {
             }
 
             fun g(a: A) {}");
-}
-
-#[test]
-fn check_cmp_is() {
-    ok("fun f(x: String) {
-                let a = nil === x;
-                let b = x === nil;
-                let c = nil === nil;
-            }");
 }
 
 #[test]
@@ -1198,13 +1117,13 @@ fn test_generic_trait_bounds() {
             class X
             impl Foo for X {}
             class A[T: Foo]
-            fun f(): A[X] { return nil; }");
+            fun f(): A[X] { A[X]() }");
 
     err(
         "trait Foo {}
             class X
             class A[T: Foo]
-            fun f(): A[X] { return nil; }",
+            fun f(): A[X] { A[X]() }",
         pos(4, 22),
         SemError::TraitBoundNotSatisfied("X".into(), "Foo".into()),
     );
@@ -2203,7 +2122,7 @@ fn for_with_vec() {
 #[test]
 fn check_no_type_params_with_generic_type() {
     err(
-        "class Bar[T] fun f(): Bar { nil }",
+        "class Bar[T] fun f(x: Bar) {}",
         pos(1, 23),
         SemError::WrongNumberTypeParams(1, 0),
     );

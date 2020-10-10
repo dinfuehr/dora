@@ -213,6 +213,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_fct(vm, "call", stdlib::call as *const u8);
 
     intrinsic_fct(vm, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
+    intrinsic_fct(vm, "unsafeIsNull", Intrinsic::UnsafeIsNull);
     intrinsic_fct(
         vm,
         "unsafeLoadEnumVariant",

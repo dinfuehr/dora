@@ -1,17 +1,21 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  var x = Foo(1, Foo(2, Foo(3, nil)));
+  var x = foo(1, foo(2, foo(3, NewOption[Foo]::None)));
   forceMinorCollect();
-  x.next.next.next = Foo(4, nil);
-  x = Foo(100, x);
+  x.unwrap().next.unwrap().next.unwrap().next = foo(4, NewOption[Foo]::None);
+  x = foo(100, x);
   forceMinorCollect();
-  assert(x.a == 100);
-  assert(x.next.a == 1);
-  assert(x.next.next.a == 2);
-  assert(x.next.next.next.a == 3);
-  assert(x.next.next.next.next.a == 4);
-  assert(x.next.next.next.next.next === nil);
+  assert(x.unwrap().a == 100);
+  assert(x.unwrap().next.unwrap().a == 1);
+  assert(x.unwrap().next.unwrap().next.unwrap().a == 2);
+  assert(x.unwrap().next.unwrap().next.unwrap().next.unwrap().a == 3);
+  assert(x.unwrap().next.unwrap().next.unwrap().next.unwrap().next.unwrap().a == 4);
+  assert(x.unwrap().next.unwrap().next.unwrap().next.unwrap().next.unwrap().next.isNone());
 }
 
-class Foo(let a: Int32, var next: Foo)
+class Foo(let a: Int32, var next: NewOption[Foo])
+
+fun foo(a: Int32, next: NewOption[Foo]): NewOption[Foo] {
+  NewOption[Foo]::Some(Foo(a, next))
+}

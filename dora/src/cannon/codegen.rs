@@ -3209,6 +3209,17 @@ where
                 );
             }
 
+            Intrinsic::UnsafeIsNull => {
+                self.emit_intrinsic_unsafe_is_null(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    arguments,
+                    type_params,
+                    pos,
+                );
+            }
+
             Intrinsic::OptionIsNone | Intrinsic::OptionIsSome => {
                 self.emit_intrinsic_option_is_none(
                     dest,
@@ -3482,6 +3493,50 @@ where
             BytecodeType::Enum(_, _) => unimplemented!(),
 
             BytecodeType::TypeParam(_) => unreachable!(),
+        }
+    }
+
+    fn emit_intrinsic_unsafe_is_null(
+        &mut self,
+        dest: Option<Register>,
+        _fct_id: FctId,
+        _intrinsic: Intrinsic,
+        arguments: Vec<Register>,
+        type_params: TypeList,
+        _pos: Position,
+    ) {
+        assert_eq!(1, type_params.len());
+        assert_eq!(1, arguments.len());
+
+        let ty = type_params[0];
+        let dest_reg = dest.expect("missing dest");
+
+        if ty.is_unit() {
+            self.asm.load_false(REG_RESULT);
+            self.emit_store_register(REG_RESULT.into(), dest_reg);
+            return;
+        }
+
+        let bytecode_type: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+
+        match bytecode_type {
+            BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::UInt8
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64
+            | BytecodeType::Tuple(_)
+            | BytecodeType::Enum(_, _)
+            | BytecodeType::TypeParam(_) => unreachable!(),
+
+            BytecodeType::Ptr => {
+                self.emit_load_register(arguments[0], REG_RESULT.into());
+                self.asm.cmp_reg_imm(MachineMode::Ptr, REG_RESULT, 0);
+                self.asm.set(REG_RESULT, CondCode::Equal);
+                self.emit_store_register_as(REG_RESULT.into(), dest_reg, MachineMode::Int8);
+            }
         }
     }
 

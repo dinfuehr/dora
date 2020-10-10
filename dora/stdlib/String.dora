@@ -58,37 +58,19 @@
 }
 
 module String {
-  @internal fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64): String;
-  @internal fun fromStringPartOrNull(val: String, offset: Int64, len: Int64): String;
+  @internal fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64): NewOption[String];
+  @internal fun fromStringPartOrNull(val: String, offset: Int64, len: Int64): NewOption[String];
 
-  fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] {
-    let value = String::fromBytesPartOrNull(val, offset, len);
-
-    if value === nil {
-      Option::none[String]()
-    } else {
-      Option::some[String](value)
-    }
+  fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): NewOption[String] {
+    String::fromBytesPartOrNull(val, offset, len)
   }
 
-  fun fromBytes(val: Array[UInt8]): Option[String] {
-    let value = String::fromBytesPartOrNull(val, 0L, val.size());
-  
-    if value === nil {
-      Option::none[String]()
-    } else {
-      Option::some[String](value)
-    }
+  fun fromBytes(val: Array[UInt8]): NewOption[String] {
+    String::fromBytesPartOrNull(val, 0L, val.size())
   }
 
-  fun fromStringPart(val: String, offset: Int64, len: Int64): Option[String] {
-    let value = String::fromStringPartOrNull(val, offset, len);
-
-    if value === nil {
-      Option::none[String]()
-    } else {
-      Option::some[String](value)
-    }
+  fun fromStringPart(val: String, offset: Int64, len: Int64): NewOption[String] {
+    String::fromStringPartOrNull(val, offset, len)
   }
 
   fun fromString(val: String): String = val.clone();

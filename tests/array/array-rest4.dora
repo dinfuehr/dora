@@ -1,6 +1,5 @@
 fun main() {
     assert(sum_args(Foo(1), Foo(2)) == 3);
-    assert(sum_args(nil) == 0);
     assert(sum_args(Foo(7)) == 7);
     assert(sum_args() == 0);
 }
@@ -11,7 +10,7 @@ fun sum_args(x: Foo...): Int32 {
     
     while idx < x.size() {
         let foo = x(idx);
-        result = result + if foo === nil { 0 } else { foo.value };
+        result = result + foo.value;
         idx = idx + 1L;
     }
 
