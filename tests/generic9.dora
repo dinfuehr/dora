@@ -15,5 +15,5 @@ fun consume(x: Array[Int32]) {
 }
 
 fun consume2(x: Array[String]) {
-    assert(x(9L) === nil);
+    assert(x.size() == 10L);
 }

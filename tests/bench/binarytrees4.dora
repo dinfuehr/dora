@@ -1,4 +1,4 @@
-//= file bench/binarytrees/binarytrees.dora
+//= file bench/binarytrees/binarytrees2.dora
 //= args 6
 //= vm-args --gc=copy --gc-stress
 //= stdout file

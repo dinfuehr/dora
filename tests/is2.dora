@@ -8,7 +8,6 @@ fun main() {
   assert(isl7(L7()));
 
   assert(!isl7(LX()));
-  assert(!isl7(nil));
 }
 
 fun isl7(a: L1): Bool {

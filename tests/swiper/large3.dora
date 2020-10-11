@@ -5,7 +5,7 @@ class Foo(let x: Int32)
 fun main() {
     let x = Array::ofSizeUnsafe[Foo](16L * 1024L);
     forceCollect();
-    assert(x(0L) === nil);
+    assert(unsafeIsNull[Foo](x(0L)));
 
     x(0L) = Foo(1);
     forceMinorCollect();

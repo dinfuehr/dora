@@ -3,15 +3,16 @@
 class Foo(let x: Int32)
 
 fun main() {
-    let x = Array::ofSizeUnsafe[Foo](64L);
+    let default = Foo(17);
+    let x = Array::fill[Foo](64L, default);
     forceMinorCollect();
-    assert(x(0L) === nil);
-    assert(x(63L) === nil);
+    assert(x(0L) === default);
+    assert(x(63L) === default);
 
     x(0L) = Foo(1);
     forceMinorCollect();
     assert(x(0L).x == 1);
-    assert(x(63L) === nil);
+    assert(x(63L) === default);
 
     x(63L) = Foo(2);
     forceMinorCollect();

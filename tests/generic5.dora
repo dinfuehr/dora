@@ -1,6 +1,0 @@
-fun main() {
-    let x: A[Int32] = nil;
-    assert(x === nil);
-}
-
-class A[T](let x: T)

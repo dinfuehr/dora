@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Array::ofSizeUnsafe[Foo](2L);
+  let x = Array::fill[Foo](2L, Foo(42));
   forceMinorCollect();
   forceMinorCollect();
   // array in old generation references object in

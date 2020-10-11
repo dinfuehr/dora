@@ -1,5 +1,4 @@
 fun main() {
-  assert(!isb(nil));
   assert(!isb(A()));
   assert(isb(B()));
   assert(isa(B()));

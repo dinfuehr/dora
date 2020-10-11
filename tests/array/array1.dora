@@ -1,5 +1,5 @@
 fun main() {
-  foo(nil);
+  foo(Array[Int32]());
 }
 
 fun foo(a: Array[Int32]) {}

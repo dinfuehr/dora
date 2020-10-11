@@ -9,31 +9,32 @@ fun main() {
     var i = 0L;
 
     while i < SIZE {
-        x.push(Array::ofSizeUnsafe[Int32](32L * 1024L));
+        x.push(Array::fill[Int32](32L * 1024L, 0));
         i = i + 1L;
     }
 
     forceCollect();
 
     i = 0L;
+    var empty = Array::empty[Int32]();
 
     while i < SIZE {
-        x(i) = nil;
+        x(i) = empty;
         i = i + STEP;
     }
 
     forceCollect();
 
     i = 0L;
-    var nils = 0L;
+    var empties = 0L;
 
     while i < SIZE {
-        if x(i) === nil {
-            nils = nils + 1L;
+        if x(i) === empty {
+            empties = empties + 1L;
         }
 
         i = i + 1L;
     }
 
-    assert(nils == REMOVED);
+    assert(empties == REMOVED);
 }

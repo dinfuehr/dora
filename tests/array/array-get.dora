@@ -20,14 +20,8 @@ fun main() {
   assert(str_array_get(x, 2L) == "hello");
 
   let x = Array::fill[Foo](1L, Foo(1));
-  assert(x(0L) !== nil);
   assert(x(0L).y == 1);
-  assert(foo_array_get(x, 0L) !== nil);
   assert(foo_array_get(x, 0L).y == 1);
-
-  let x = Array::fill[Foo](2L, nil);
-  assert(x(0L) === nil);
-  assert(foo_array_get(x, 0L) === nil);
 }
 
 fun int32_array_get(x: Array[Int32], idx: Int64): Int32 {

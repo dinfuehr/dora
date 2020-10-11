@@ -2,15 +2,15 @@ fun main() {
   let a = nested();
   forceCollect();
 
-  assert(a.next.next.value == 3);
+  assert(a.next.unwrap().next.unwrap().value == 3);
 }
 
 fun nested(): Foo {
-  let x = Foo(3, nil);
-  let y = Foo(2, x);
-  let z = Foo(1, y);
+  let x = Foo(3, NewOption[Foo]::None);
+  let y = Foo(2, NewOption[Foo]::Some(x));
+  let z = Foo(1, NewOption[Foo]::Some(y));
 
   return z;
 }
 
-class Foo(let value: Int32, let next: Foo)
+class Foo(let value: Int32, let next: NewOption[Foo])

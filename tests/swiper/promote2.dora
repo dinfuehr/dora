@@ -1,14 +1,14 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Foo(1, nil);
+  let x = Foo(1, NewOption[Foo]::None);
   forceMinorCollect();
-  x.next = Foo(2, nil);
-  x.next.next = Foo(3, nil);
+  x.next = NewOption[Foo]::Some(Foo(2, NewOption[Foo]::None));
+  x.next.unwrap().next = NewOption[Foo]::Some(Foo(3, NewOption[Foo]::None));
   forceMinorCollect();
   assert(x.a == 1);
-  assert(x.next.a == 2);
-  assert(x.next.next.a == 3);
+  assert(x.next.unwrap().a == 2);
+  assert(x.next.unwrap().next.unwrap().a == 3);
 }
 
-class Foo(let a: Int32, var next: Foo)
+class Foo(let a: Int32, var next: NewOption[Foo])

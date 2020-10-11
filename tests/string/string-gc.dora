@@ -4,7 +4,8 @@ fun main() {
     let x = Array::empty[String]();
     assert(x.size() == 0L);
 
-    let x = Array::fill[String](10L, nil);
+    let emptyString = "".clone();
+    let x = Array::fill[String](10L, emptyString);
     assert(x.size() == 10L);
 
     x(0L) = "a" + "b";
@@ -17,6 +18,6 @@ fun main() {
 
     assert(x(0L) == "ab");
     assert(x(1L) == "xy");
-    assert(x(2L) === nil);
-    assert(x(9L) === nil);
+    assert(x(2L) === emptyString);
+    assert(x(9L) === emptyString);
 }

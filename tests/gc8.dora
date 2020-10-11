@@ -1,9 +1,9 @@
 fun main() {
-  let node = Node(10, Node(9, nil, nil), Node(11, nil, nil));
+  let node = Node(10, NewOption[Node]::Some(Node(9, NewOption[Node]::None, NewOption[Node]::None)), NewOption[Node]::Some(Node(11, NewOption[Node]::None, NewOption[Node]::None)));
   forceCollect();
-  assert(node.lhs.value == 9);
+  assert(node.lhs.unwrap().value == 9);
   assert(node.value == 10);
-  assert(node.rhs.value == 11);
+  assert(node.rhs.unwrap().value == 11);
 }
 
-class Node(let value: Int32, let lhs: Node, let rhs: Node)
+class Node(let value: Int32, let lhs: NewOption[Node], let rhs: NewOption[Node])
