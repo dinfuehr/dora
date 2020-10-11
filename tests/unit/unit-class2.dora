@@ -1,9 +1,0 @@
-//= error nil
-
-fun main() {
-    foo(nil)
-}
-
-class A(var value: ())
-
-fun foo(a: A): () { a.value }

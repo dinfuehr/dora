@@ -3,15 +3,16 @@
 class Foo(let x: Int32)
 
 fun main() {
-    let x = LargeObject();
+    let default = Foo(100);
+    let x = LargeObject(default);
     forceCollect();
-    assert(x.field0 === nil);
-    assert(x.field16383 === nil);
+    assert(x.field0 === default);
+    assert(x.field16383 === default);
 
     x.field0 = Foo(1);
     forceMinorCollect();
     assert(x.field0.x == 1);
-    assert(x.field16383 === nil);
+    assert(x.field16383 === default);
 
     x.field16383 = Foo(2);
     forceMinorCollect();
@@ -23,8 +24,8 @@ fun main() {
     assert(x.field16383.x == 2);
 }
 
-class LargeObject {
-    var field0: Foo;
+class LargeObject(x: Foo) {
+    var field0: Foo = x;
     var field1: Int64;
     var field2: Int64;
     var field3: Int64;
@@ -16407,5 +16408,5 @@ class LargeObject {
     var field16380: Int64;
     var field16381: Int64;
     var field16382: Int64;
-    var field16383: Foo;
+    var field16383: Foo = x;
 }

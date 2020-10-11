@@ -1,14 +1,15 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  var x = Array::ofSizeUnsafe[Foo](128L);
+  let default = Foo(42);
+  var x = Array::fill[Foo](128L, default);
   forceMinorCollect();
   x(0L) = Foo(1);
   x(127L) = Foo(2);
   forceMinorCollect();
   assert(x(0L).a == 1);
-  assert(x(1L) === nil);
-  assert(x(126L) === nil);
+  assert(x(1L) === default);
+  assert(x(126L) === default);
   assert(x(127L).a == 2);
 }
 

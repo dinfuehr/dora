@@ -18,20 +18,22 @@ fun main() {
 
 fun allocator() {
     var i = 1;
-    var list = Foo(0, nil);
+    var list = Foo(0, NewOption[Foo]::None);
 
     while i < 10_000 {
-        list = Foo(i, list);
+        list = Foo(i, NewOption[Foo]::Some(list));
         i = i + 1;
     }
 
     i = 10_000;
 
-    while i > 0 {
+    while i > 1 {
         i = i - 1;
         assert(list.key == i);
-        list = list.prev;
+        list = list.prev.unwrap();
     }
+
+    assert(list.prev.isNone());
 }
 
-class Foo(let key: Int32, let prev: Foo)
+class Foo(let key: Int32, let prev: NewOption[Foo])

@@ -4,9 +4,9 @@ fun main() {
 }
 
 class A[T] {
-    let x: Array[T] = nil;
+    let x: Array[T] = Array::empty[T]();
 }
 
 fun consume(x: Array[Int32]) {
-    assert(x === nil);
+    assert(x.size() == 0L);
 }
