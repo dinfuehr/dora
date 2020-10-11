@@ -18,35 +18,35 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
 }
 
 @open @abstract class ConstPoolEntry {
-    fun toInt32(): Option[Int32] {
+    fun toInt32(): NewOption[Int32] {
         if self is ConstPoolInt32 {
-            Option::some[Int32]((self as ConstPoolInt32).value)
+            NewOption[Int32]::Some((self as ConstPoolInt32).value)
         } else {
-            Option::none[Int32]()
+            NewOption[Int32]::None
         }
     }
 
-    fun toInt64(): Option[Int64] {
+    fun toInt64(): NewOption[Int64] {
         if self is ConstPoolInt64 {
-            Option::some[Int64]((self as ConstPoolInt64).value)
+            NewOption[Int64]::Some((self as ConstPoolInt64).value)
         } else {
-            Option::none[Int64]()
+            NewOption[Int64]::None
         }
     }
 
-    fun toFloat32(): Option[Float32] {
+    fun toFloat32(): NewOption[Float32] {
         if self is ConstPoolFloat32 {
-            Option::some[Float32]((self as ConstPoolFloat32).value)
+            NewOption[Float32]::Some((self as ConstPoolFloat32).value)
         } else {
-            Option::none[Float32]()
+            NewOption[Float32]::None
         }
     }
 
-    fun toFloat64(): Option[Float64] {
+    fun toFloat64(): NewOption[Float64] {
         if self is ConstPoolFloat64 {
-            Option::some[Float64]((self as ConstPoolFloat64).value)
+            NewOption[Float64]::Some((self as ConstPoolFloat64).value)
         } else {
-            Option::none[Float64]()
+            NewOption[Float64]::None
         }
     }
 

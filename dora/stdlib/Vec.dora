@@ -112,19 +112,19 @@ class Vec[T](values: T...) {
     self.array.size()
   }
 
-  fun first(): Option[T] {
+  fun first(): NewOption[T] {
     if self.len == 0L {
-      Option::none[T]()
+      NewOption[T]::None
     } else {
-      Option::some[T](self.array(0L))
+      NewOption[T]::Some(self.array(0L))
     }
   }
 
-  fun last(): Option[T] {
+  fun last(): NewOption[T] {
     if self.len == 0L {
-      Option::none[T]()
+      NewOption[T]::None
     } else {
-      Option::some[T](self.array(self.len - 1L))
+      NewOption[T]::Some(self.array(self.len - 1L))
     }
   }
 
