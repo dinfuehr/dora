@@ -18,11 +18,11 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction) extends EmptyByte
         self.blocks.size().toInt32()
     }
 
-    fun blockAt(offset: Int32): Option[Block] {
+    fun blockAt(offset: Int32): NewOption[Block] {
         self.blocks(offset)
     }
 
-    fun nextBlockAt(offset: Int32): Option[Block] {
+    fun nextBlockAt(offset: Int32): NewOption[Block] {
         var offset = offset.toInt64();
         while offset < self.bc.code.size() {
             let result = self.blockAt(offset.toInt32());
@@ -30,7 +30,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction) extends EmptyByte
             offset = offset + 1L;
         }
 
-        Option::none[Block]()
+        NewOption[Block]::None
     }
 
     fun markBlockTerminated() {

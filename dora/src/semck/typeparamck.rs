@@ -4,7 +4,7 @@ use std::collections::hash_set::HashSet;
 
 use crate::error::msg::SemError;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{Class, ClassId, EnumId, Fct, FileId, TraitId, TypeParam, VM};
+use crate::vm::{Class, ClassId, Fct, FileId, TraitId, TypeParam, VM};
 
 pub enum ErrorReporting {
     Yes(FileId, Position),
@@ -28,7 +28,6 @@ pub fn check_in_fct<'a, 'ast: 'a>(
         vm,
         use_fct: Some(fct),
         use_cls_id: fct.parent_cls_id(),
-        use_enum_id: None,
         error,
         tp_defs: &tp_defs,
     };
@@ -38,7 +37,12 @@ pub fn check_in_fct<'a, 'ast: 'a>(
     checker.check(&params)
 }
 
-pub fn check_enum<'a, 'ast: 'a>(vm: &VM<'ast>, ty: BuiltinType, error: ErrorReporting) -> bool {
+pub fn check_enum<'a, 'ast: 'a>(
+    vm: &VM<'ast>,
+    fct: &Fct<'ast>,
+    ty: BuiltinType,
+    error: ErrorReporting,
+) -> bool {
     let enum_id = ty.enum_id().expect("not an enum");
 
     let tp_defs = {
@@ -49,9 +53,8 @@ pub fn check_enum<'a, 'ast: 'a>(vm: &VM<'ast>, ty: BuiltinType, error: ErrorRepo
 
     let checker = TypeParamCheck {
         vm,
-        use_fct: None,
+        use_fct: Some(fct),
         use_cls_id: None,
-        use_enum_id: Some(enum_id),
         error,
         tp_defs: &tp_defs,
     };
@@ -75,7 +78,6 @@ pub fn check_super<'a, 'ast: 'a>(vm: &VM<'ast>, cls: &Class, error: ErrorReporti
         vm,
         use_fct: None,
         use_cls_id: Some(cls.id),
-        use_enum_id: None,
         error,
         tp_defs: &tp_defs,
     };
@@ -96,7 +98,6 @@ pub fn check_params<'a, 'ast: 'a>(
         vm,
         use_fct: Some(fct),
         use_cls_id: fct.parent_cls_id(),
-        use_enum_id: None,
         error,
         tp_defs,
     };
@@ -108,7 +109,6 @@ struct TypeParamCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
     use_fct: Option<&'a Fct<'ast>>,
     use_cls_id: Option<ClassId>,
-    use_enum_id: Option<EnumId>,
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],
 }
@@ -135,10 +135,6 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
                     let cls = self.vm.classes.idx(use_cls_id);
                     let cls = cls.read();
                     self.tp_against_definition(tp_def, cls.type_param(id), ty)
-                } else if let Some(use_enum_id) = self.use_enum_id {
-                    let xenum = &self.vm.enums[use_enum_id];
-                    let xenum = xenum.read();
-                    self.tp_against_definition(tp_def, xenum.type_param(id), ty)
                 } else {
                     unreachable!()
                 };
@@ -193,10 +189,6 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         let bound = self.vm.traits[trait_id].read();
         let name = if let Some(fct) = self.use_fct {
             ty.name_fct(self.vm, fct)
-        } else if let Some(enum_id) = self.use_enum_id {
-            let xenum = &self.vm.enums[enum_id];
-            let xenum = xenum.read();
-            ty.name_enum(self.vm, &*xenum)
         } else {
             let cls = self
                 .vm

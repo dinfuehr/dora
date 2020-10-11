@@ -2324,6 +2324,11 @@ where
             _ => unreachable!(),
         };
 
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
         let xenum = &self.vm.enums[enum_id];
         let xenum = xenum.read();
 

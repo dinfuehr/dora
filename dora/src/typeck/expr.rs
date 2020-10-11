@@ -1826,7 +1826,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let list_id = self.vm.lists.lock().insert(type_params);
         let ty = BuiltinType::Enum(id, list_id);
-        typeparamck::check_enum(self.vm, ty, ErrorReporting::Yes(self.file, e.pos));
+        typeparamck::check_enum(self.vm, self.fct, ty, ErrorReporting::Yes(self.file, e.pos));
 
         if let Some(&value) = xenum.name_to_value.get(&name) {
             let variant = &xenum.variants[value as usize];
