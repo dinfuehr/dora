@@ -31,19 +31,19 @@
   @internal fun toInt32OrZero(): Int32;
   @internal fun toInt64OrZero(): Int64;
 
-  fun toInt32(): Option[Int32] {
+  fun toInt32(): NewOption[Int32] {
     if self.toInt32Success() {
-      Option::some[Int32](self.toInt32OrZero())
+      NewOption[Int32]::Some(self.toInt32OrZero())
     } else {
-      Option::none[Int32]()
+      NewOption[Int32]::None
     }
   }
 
-  fun toInt64(): Option[Int64] {
+  fun toInt64(): NewOption[Int64] {
     if self.toInt64Success() {
-      Option::some[Int64](self.toInt64OrZero())
+      NewOption[Int64]::Some(self.toInt64OrZero())
     } else {
-      Option::none[Int64]()
+      NewOption[Int64]::None
     }
   }
 
