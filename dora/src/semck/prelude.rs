@@ -52,7 +52,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.known.traits.zero = find_trait(vm, "Zero");
     vm.known.traits.iterator = find_trait(vm, "Iterator");
 
-    vm.known.enums.new_option = find_enum(vm, "Option");
+    vm.known.enums.option = find_enum(vm, "Option");
 
     internal_free_classes(vm);
 }
@@ -455,26 +455,11 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     install_conditional_intrinsics(vm);
 
-    intrinsic_impl_enum(
-        vm,
-        vm.known.enums.new_option,
-        "isNone",
-        Intrinsic::OptionIsNone,
-    );
+    intrinsic_impl_enum(vm, vm.known.enums.option, "isNone", Intrinsic::OptionIsNone);
 
-    intrinsic_impl_enum(
-        vm,
-        vm.known.enums.new_option,
-        "isSome",
-        Intrinsic::OptionIsSome,
-    );
+    intrinsic_impl_enum(vm, vm.known.enums.option, "isSome", Intrinsic::OptionIsSome);
 
-    intrinsic_impl_enum(
-        vm,
-        vm.known.enums.new_option,
-        "unwrap",
-        Intrinsic::OptionUnwrap,
-    );
+    intrinsic_impl_enum(vm, vm.known.enums.option, "unwrap", Intrinsic::OptionUnwrap);
 }
 
 fn native_class_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {

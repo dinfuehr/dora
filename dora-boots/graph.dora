@@ -289,7 +289,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     var previous: Option[Inst] = Option[Inst]::None;
     var next: Option[Inst] = Option[Inst]::None;
 
-    var ty: Type = nil;
+    var ty: Type = typeUnit;
 
     var useListHead: Option[Input] = Option[Input]::None;
     var useListTail: Option[Input] = Option[Input]::None;

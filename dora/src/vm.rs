@@ -191,7 +191,7 @@ impl<'ast> VM<'ast> {
                 },
 
                 enums: KnownEnums {
-                    new_option: empty_enum_id,
+                    option: empty_enum_id,
                 },
 
                 byte_array_def: Mutex::new(None),

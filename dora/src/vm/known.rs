@@ -26,7 +26,7 @@ pub struct KnownElements {
 
 #[derive(Debug)]
 pub struct KnownEnums {
-    pub new_option: EnumId,
+    pub option: EnumId,
 }
 
 #[derive(Debug)]

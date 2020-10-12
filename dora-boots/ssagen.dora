@@ -11,7 +11,7 @@ fun createGraph(bc: BytecodeFunction): Graph {
 }
 
 class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: BlockBuilder) extends BytecodeVisitor {
-    var currentBlock: Block;
+    var currentBlock: Option[Block] = Option[Block]::None;
     var offset: Int32 = 0;
     var currentDef: Array[HashMap[Block, Inst]];
     var blockTerminated: Bool = false;
@@ -31,11 +31,11 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
         readBytecode(self.bc.code, self);
         assert(self.blockTerminated);
-        self.blockEndReached(nil);
+        self.blockEndReached(Option[Block]::None);
     }
 
     fun prepare() {
-        self.currentBlock = self.graph.getEntryBlock();
+        self.currentBlock = Option[Block]::Some(self.graph.getEntryBlock());
 
         self.currentDef = Array::ofSizeUnsafe[HashMap[Block, Inst]](self.bc.registers.size());
 
@@ -59,6 +59,10 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
             self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
             i = i + 1;
         }
+    }
+
+    fun current(): Block {
+        self.currentBlock.unwrap()
     }
 
     fun writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
@@ -166,17 +170,17 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         let block = self.blockBuilder.blockAt(offset);
 
         if block.isSome() {
-            self.blockEndReached(block.unwrap());
+            self.blockEndReached(block);
         }
 
         self.blockTerminated = false;
     }
 
-    fun blockEndReached(next: Block) {
-        let block = self.currentBlock;
+    fun blockEndReached(next: Option[Block]) {
+        let block = self.current();
 
         if !self.blockTerminated {
-            let gotoInst = GotoInst(next);
+            let gotoInst = GotoInst(next.unwrap());
             block.appendInst(gotoInst);
         }
 
@@ -243,11 +247,11 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: BinOp, ty: Type) {
-        let lhsInst = self.readVariable(lhs, self.currentBlock);
-        let rhsInst = self.readVariable(rhs, self.currentBlock);
+        let lhsInst = self.readVariable(lhs, self.current());
+        let rhsInst = self.readVariable(rhs, self.current());
         let destInst = BinaryInst(op, ty, lhsInst, rhsInst);
-        self.currentBlock.appendInst(destInst);
-        self.writeVariable(dest, self.currentBlock, destInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
     }
 
     @override fun visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -277,10 +281,10 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun emitUn(dest: BytecodeRegister, src: BytecodeRegister, op: UnOp, ty: Type) {
-        let srcInst = self.readVariable(src, self.currentBlock);
+        let srcInst = self.readVariable(src, self.current());
         let destInst = UnaryInst(op, ty, srcInst);
-        self.currentBlock.appendInst(destInst);
-        self.writeVariable(dest, self.currentBlock, destInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
     }
 
     @override fun visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -393,8 +397,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
-        let srcInst = self.readVariable(src, self.currentBlock);
-        self.writeVariable(dest, self.currentBlock, srcInst);
+        let srcInst = self.readVariable(src, self.current());
+        self.writeVariable(dest, self.current(), srcInst);
     }
 
     @override fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
@@ -406,8 +410,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
     fun emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId, ty: Type) {
         let globInst = LoadGlobalInst(ty, glob);
-        self.currentBlock.appendInst(globInst);
-        self.writeVariable(dest, self.currentBlock, globInst);
+        self.current().appendInst(globInst);
+        self.writeVariable(dest, self.current(), globInst);
     }
 
     @override fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
@@ -415,9 +419,9 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun emitStoreGlobal(src: BytecodeRegister, glob: GlobalId, ty: Type) {
-        let srcInst = self.readVariable(src, self.currentBlock);
+        let srcInst = self.readVariable(src, self.current());
         let globInst = StoreGlobalInst(ty, glob, srcInst);
-        self.currentBlock.appendInst(globInst);
+        self.current().appendInst(globInst);
     }
 
     @override fun visitPushRegister(src: BytecodeRegister) { unimplemented(); }
@@ -429,49 +433,49 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroInt32(dest: BytecodeRegister) {
         let inst = Int32Const(0);
-        self.currentBlock.appendInst(inst);
-        self.writeVariable(dest, self.currentBlock, inst);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstZeroInt64(dest: BytecodeRegister) {
         let inst = Int64Const(0L);
-        self.currentBlock.appendInst(inst);
-        self.writeVariable(dest, self.currentBlock, inst);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstZeroFloat32(dest: BytecodeRegister) {
         let inst = Float32Const(0.0F);
-        self.currentBlock.appendInst(inst);
-        self.writeVariable(dest, self.currentBlock, inst);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstZeroFloat64(dest: BytecodeRegister) {
         let inst = Float64Const(0.0);
-        self.currentBlock.appendInst(inst);
-        self.writeVariable(dest, self.currentBlock, inst);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {
         let value = self.bc.constPool(idx).toInt32().unwrap();
         let inst = Int32Const(value);
-        self.currentBlock.appendInst(inst);
-        self.writeVariable(dest, self.currentBlock, inst);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {
         let value = self.bc.constPool(idx).toInt64().unwrap();
         let inst = Int64Const(value);
-        self.currentBlock.appendInst(inst);
-        self.writeVariable(dest, self.currentBlock, inst);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) {
         let value = self.bc.constPool(idx).toFloat32().unwrap();
         let inst = Float32Const(value);
-        self.currentBlock.appendInst(inst);
-        self.writeVariable(dest, self.currentBlock, inst);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) {
         let value = self.bc.constPool(idx).toFloat64().unwrap();
         let inst = Float64Const(value);
-        self.currentBlock.appendInst(inst);
-        self.writeVariable(dest, self.currentBlock, inst);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
@@ -523,17 +527,17 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
     fun emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: TestOp, ty: Type) {
-        let lhsInst = self.readVariable(lhs, self.currentBlock);
-        let rhsInst = self.readVariable(rhs, self.currentBlock);
+        let lhsInst = self.readVariable(lhs, self.current());
+        let rhsInst = self.readVariable(rhs, self.current());
         let destInst = TestInst(op, ty, lhsInst, rhsInst);
-        self.currentBlock.appendInst(destInst);
-        self.writeVariable(dest, self.currentBlock, destInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
     }
 
     @override fun visitJumpLoop(offset: Int32) {
         let targetBlock = self.blockBuilder.blockAt(self.offset - offset).unwrap();
         let gotoInst = GotoInst(targetBlock);
-        self.currentBlock.appendInst(gotoInst);
+        self.current().appendInst(gotoInst);
         self.markBlockTerminated();
     }
     
@@ -562,12 +566,12 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     fun emitJump(offset: Int32) {
         let targetBlock = self.blockBuilder.blockAt(self.offset + offset).unwrap();
         let gotoInst = GotoInst(targetBlock);
-        self.currentBlock.appendInst(gotoInst);
+        self.current().appendInst(gotoInst);
         self.markBlockTerminated();
     }
 
     fun emitConditionalJump(opnd: BytecodeRegister, offset: Int32, value: Bool) {
-        let opndInst = self.readVariable(opnd, self.currentBlock);
+        let opndInst = self.readVariable(opnd, self.current());
         let targetBlock = self.blockBuilder.blockAt(self.offset + offset).unwrap();
         let fallthroughBlock = self.blockBuilder.nextBlockAt(self.offset+1).unwrap();
 
@@ -577,7 +581,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
             IfInst(opndInst, fallthroughBlock, targetBlock)
         };
 
-        self.currentBlock.appendInst(cond);
+        self.current().appendInst(cond);
         self.markBlockTerminated();
     }
 
@@ -626,7 +630,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
     @override fun visitRetVoid() {
         let inst = ReturnVoidInst();
-        self.currentBlock.appendInst(inst);
+        self.current().appendInst(inst);
         self.markBlockTerminated();
     }
 
@@ -637,9 +641,9 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun emitRet(opnd: BytecodeRegister, ty: Type) {
-        let value = self.readVariable(opnd, self.currentBlock);
+        let value = self.readVariable(opnd, self.current());
         let inst = ReturnInst(value, ty);
-        self.currentBlock.appendInst(inst);
+        self.current().appendInst(inst);
         self.markBlockTerminated();
     }
 }
