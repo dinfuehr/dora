@@ -26,6 +26,7 @@ pub enum TokenKind {
     Module,
     Annotation,
     Extends,
+    Implements,
 
     // "small" shapes
     Fun,
@@ -140,6 +141,7 @@ impl TokenKind {
             TokenKind::Module => "module",
             TokenKind::Annotation => "annotation",
             TokenKind::Extends => "extends",
+            TokenKind::Implements => "impls",
 
             // "small" shapes
             TokenKind::Fun => "fun",
