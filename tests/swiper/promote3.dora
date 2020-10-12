@@ -1,9 +1,9 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  var x = foo(1, foo(2, foo(3, NewOption[Foo]::None)));
+  var x = foo(1, foo(2, foo(3, Option[Foo]::None)));
   forceMinorCollect();
-  x.unwrap().next.unwrap().next.unwrap().next = foo(4, NewOption[Foo]::None);
+  x.unwrap().next.unwrap().next.unwrap().next = foo(4, Option[Foo]::None);
   x = foo(100, x);
   forceMinorCollect();
   assert(x.unwrap().a == 100);
@@ -14,8 +14,8 @@ fun main() {
   assert(x.unwrap().next.unwrap().next.unwrap().next.unwrap().next.unwrap().next.isNone());
 }
 
-class Foo(let a: Int32, var next: NewOption[Foo])
+class Foo(let a: Int32, var next: Option[Foo])
 
-fun foo(a: Int32, next: NewOption[Foo]): NewOption[Foo] {
-  NewOption[Foo]::Some(Foo(a, next))
+fun foo(a: Int32, next: Option[Foo]): Option[Foo] {
+  Option[Foo]::Some(Foo(a, next))
 }

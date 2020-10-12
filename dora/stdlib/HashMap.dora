@@ -68,11 +68,11 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
         false
     }
 
-    fun get(key: K): NewOption[V] {
+    fun get(key: K): Option[V] {
         assert(self.entries <= self.cap);
 
         if self.entries == 0L {
-            return NewOption[V]::None;
+            return Option[V]::None;
         }
 
         var hash = key.hash();
@@ -83,7 +83,7 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
                 let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
-                    return NewOption[V]::Some(self.values.get(idx));
+                    return Option[V]::Some(self.values.get(idx));
                 }
             } else {
                 break;
@@ -92,10 +92,10 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
             idx = (idx + 1L) & (self.cap - 1L);
         }
 
-        NewOption[V]::None
+        Option[V]::None
     }
 
-    fun remove(key: K): NewOption[V] {
+    fun remove(key: K): Option[V] {
         self.shrink();
 
         var hash = key.hash();
@@ -113,7 +113,7 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
                     unsafeKillRefs[V](self.values, idx);
 
                     self.entries = self.entries - 1L;
-                    return NewOption[V]::Some(value);
+                    return Option[V]::Some(value);
                 }
             } else {
                 break;
@@ -122,7 +122,7 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
             idx = (idx + 1L) & (self.cap - 1L);
         }
 
-        NewOption[V]::None
+        Option[V]::None
     }
 
     fun ensureCapacity(elements_to_add: Int64) {

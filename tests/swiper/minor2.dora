@@ -1,12 +1,12 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fun main() {
-    var x = Foo(NewOption[Foo]::None);
+    var x = Foo(Option[Foo]::None);
     var i = 0;
 
     while i < 100 {
-        x = Foo(NewOption[Foo]::Some(x));
-        Foo(NewOption[Foo]::Some(x));
+        x = Foo(Option[Foo]::Some(x));
+        Foo(Option[Foo]::Some(x));
         i = i + 1;
     }
 
@@ -16,8 +16,8 @@ fun main() {
     i = 0;
 
     while i < 100 {
-        x = Foo(NewOption[Foo]::Some(x));
-        Foo(NewOption[Foo]::Some(x));
+        x = Foo(Option[Foo]::Some(x));
+        Foo(Option[Foo]::Some(x));
         i = i + 1;
     }
 
@@ -27,4 +27,4 @@ fun main() {
     assert(x.next.unwrap().next.isSome());
 }
 
-class Foo(let next: NewOption[Foo])
+class Foo(let next: Option[Foo])

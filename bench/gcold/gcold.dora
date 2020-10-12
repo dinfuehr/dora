@@ -1,4 +1,4 @@
-class TreeNode(var left: NewOption[TreeNode], var right: NewOption[TreeNode], var value: Int32)
+class TreeNode(var left: Option[TreeNode], var right: Option[TreeNode], var value: Int32)
 
 const MEG: Int32 = 1_000_000;
 const INSIGNIFICANT: Int64 = 999L;
@@ -25,7 +25,7 @@ var promoteRate: Int32;
 var ptrMutRate: Int32;
 var steps: Int32;
 
-fun height(t: NewOption[TreeNode]): Int32 {
+fun height(t: Option[TreeNode]): Int32 {
     if t.isNone() {
         return 0;
     } else {
@@ -33,7 +33,7 @@ fun height(t: NewOption[TreeNode]): Int32 {
     }
 }
 
-fun shortestPath(t: NewOption[TreeNode]): Int32 {
+fun shortestPath(t: Option[TreeNode]): Int32 {
     if t.isNone() {
         return 0;
     } else {
@@ -78,11 +78,11 @@ fun bytesToHeight(bytes: Int64): Int32 {
 }
 
 fun makeTree(h: Int32): TreeNode {
-    let res = TreeNode(NewOption[TreeNode]::None, NewOption[TreeNode]::None, 0);
+    let res = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0);
     nodes = nodes + 1L;
     if h > 1 {
-        res.left = NewOption[TreeNode]::Some(makeTree(h-1));
-        res.right = NewOption[TreeNode]::Some(makeTree(h-1));
+        res.left = Option[TreeNode]::Some(makeTree(h-1));
+        res.right = Option[TreeNode]::Some(makeTree(h-1));
     }
     res.value = h;
     res
@@ -90,7 +90,7 @@ fun makeTree(h: Int32): TreeNode {
 
 fun initialize() {
     let ntrees = (size * MEG).toInt64() / treeSize;
-    let default = TreeNode(NewOption[TreeNode]::None, NewOption[TreeNode]::None, 0);
+    let default = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0);
     trees = Array::fill[TreeNode](ntrees, default);
 
     println("Allocating " + ntrees.toString() + " trees.");
@@ -114,8 +114,8 @@ fun checkTrees() {
     while i < ntrees {
         let t = trees(i);
 
-        let h1 = height(NewOption[TreeNode]::Some(t));
-        let h2 = shortestPath(NewOption[TreeNode]::Some(t));
+        let h1 = height(Option[TreeNode]::Some(t));
+        let h2 = shortestPath(Option[TreeNode]::Some(t));
 
         if (h1 != treeHeight) || (h2 != treeHeight) {
             println("**** BUG: " + h1.toString() + " " + h2.toString());
@@ -137,14 +137,14 @@ fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
         }
     } else if !canGoLeft && !canGoRight {
         if dir {
-            full.left = NewOption[TreeNode]::Some(partial);
+            full.left = Option[TreeNode]::Some(partial);
         } else {
-            full.right = NewOption[TreeNode]::Some(partial);
+            full.right = Option[TreeNode]::Some(partial);
         }
     } else if !canGoLeft {
-        full.left = NewOption[TreeNode]::Some(partial);
+        full.left = Option[TreeNode]::Some(partial);
     } else {
-        full.right = NewOption[TreeNode]::Some(partial);
+        full.right = Option[TreeNode]::Some(partial);
     }
 }
 

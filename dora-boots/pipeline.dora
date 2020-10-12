@@ -1,5 +1,5 @@
 class CompilationJob(let compilation_info: CompilationInfo) {
-    var graph: NewOption[Graph] = NewOption[Graph]::None;
+    var graph: Option[Graph] = Option[Graph]::None;
 
     fun run() {
         self.createGraph();
@@ -9,7 +9,7 @@ class CompilationJob(let compilation_info: CompilationInfo) {
 
     fun createGraph() {
         let graph = createGraph(self.compilation_info.bc);
-        self.graph = NewOption[Graph]::Some(graph);
+        self.graph = Option[Graph]::Some(graph);
     }
 
     fun optimizeGraph() {

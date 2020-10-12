@@ -1,7 +1,7 @@
 fun main() {
-    let x = Option::none[Int32]();
+    let x = Option[Int32]::None;
     assert(2 == x.unwrapOr(2));
 
-    let x = Option::some[Int32](2);
+    let x = Option[Int32]::Some(2);
     assert(2 == x.unwrapOr(100));
 }

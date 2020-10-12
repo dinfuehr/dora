@@ -18,10 +18,10 @@ fun main() {
 
 fun allocator() {
     var i = 1;
-    var list = Foo(0, NewOption[Foo]::None);
+    var list = Foo(0, Option[Foo]::None);
 
     while i < 10_000 {
-        list = Foo(i, NewOption[Foo]::Some(list));
+        list = Foo(i, Option[Foo]::Some(list));
         i = i + 1;
     }
 
@@ -36,4 +36,4 @@ fun allocator() {
     assert(list.prev.isNone());
 }
 
-class Foo(let key: Int32, let prev: NewOption[Foo])
+class Foo(let key: Int32, let prev: Option[Foo])

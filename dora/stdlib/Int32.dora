@@ -1,10 +1,10 @@
 @internal class Int32 {
   @internal fun toUInt8(): UInt8;
-  fun toChar(): NewOption[Char] {
+  fun toChar(): Option[Char] {
     if self >= 0 && self <= 0x10FFFFI && (self < 0xD800 || self > 0xDFFFI) {
-      NewOption[Char]::Some(self.toCharUnchecked())
+      Option[Char]::Some(self.toCharUnchecked())
     } else {
-      NewOption[Char]::None
+      Option[Char]::None
     }
   }
   @internal fun toCharUnchecked(): Char;

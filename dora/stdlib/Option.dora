@@ -1,39 +1,48 @@
-@open @abstract class Option[T] {
-  @open @abstract fun isSome(): Bool;
-  @open @abstract fun isNone(): Bool;
-
-  @open @abstract fun has(rhs: T): Bool;
-  @open @abstract fun unwrap(): T;
-  @open @abstract fun unwrapNone();
-  @open @abstract fun unwrapOr(value: T): T;
+enum Option[T] {
+  Some(T),
+  None,
 }
 
-class Some[T](let wrapped: T) extends Option[T] {
-  @override fun isSome(): Bool = true;
-  @override fun isNone(): Bool = false;
-
-  @override fun has(rhs: T): Bool = self.wrapped === rhs;
-  @override fun unwrap(): T { self.wrapped }
-  @override fun unwrapNone() { fatalError("cannot unwrap Some."); }
-  @override fun unwrapOr(value: T): T { self.wrapped }
-}
-
-class None[T] extends Option[T] {
-  @override fun isSome(): Bool = false;
-  @override fun isNone(): Bool = true;
-
-  @override fun has(rhs: T): Bool = false;
-  @override fun unwrap(): T {
-    fatalError("cannot unwrap None.");
-    unreachable[T]()
+impl[T] Option[T] {
+  fun isNone(): Bool {
+    unsafeLoadEnumVariant[Option[T]](self) == 1
   }
-  @override fun unwrapNone() {}
-  @override fun unwrapOr(value: T): T { value }
-}
 
-module Option {
-  fun none[T](): Option[T] = None[T]();
-  fun some[T](wrapped: T): Option[T] = Some[T](wrapped);
+  fun isSome(): Bool {
+    unsafeLoadEnumVariant[Option[T]](self) == 0
+  }
+
+  fun unwrap(): T {
+    if unsafeLoadEnumVariant[Option[T]](self) == 0 {
+      unsafeLoadEnumElement[Option[T], T](self, 0, 0)
+    } else {
+      fatalError("cannot unwrap None.");
+      unreachable[T]()
+    }
+  }
+
+  fun unwrapNone() {
+    if unsafeLoadEnumVariant[Option[T]](self) == 0 {
+      fatalError("cannot unwrap Some.");
+      unreachable[T]()
+    }
+  }
+
+  fun unwrapOr(alt: T): T {
+    if unsafeLoadEnumVariant[Option[T]](self) == 0 {
+      unsafeLoadEnumElement[Option[T], T](self, 0, 0)
+    } else {
+      alt
+    }
+  }
+
+  fun has(val: T): Bool {
+    if unsafeLoadEnumVariant[Option[T]](self) == 0 {
+      unsafeLoadEnumElement[Option[T], T](self, 0, 0) === val
+    } else {
+      false
+    }
+  }
 }
 
 fun optionContains[T: Equals](lhs: Option[T], rhs: T): Bool {
@@ -64,29 +73,5 @@ fun optionToString[T: Stringable](lhs: Option[T]): String {
     "Some(${lhs.unwrap()})"
   } else {
     "None"
-  }
-}
-
-enum NewOption[T] {
-  Some(T),
-  None,
-}
-
-impl[T] NewOption[T] {
-  fun isNone(): Bool {
-    unsafeLoadEnumVariant[NewOption[T]](self) == 1
-  }
-
-  fun isSome(): Bool {
-    unsafeLoadEnumVariant[NewOption[T]](self) == 0
-  }
-
-  fun unwrap(): T {
-    if unsafeLoadEnumVariant[NewOption[T]](self) == 0 {
-      unsafeLoadEnumElement[NewOption[T], T](self, 0, 0)
-    } else {
-      fatalError("cannot unwrap None.");
-      unreachable[T]()
-    }
   }
 }

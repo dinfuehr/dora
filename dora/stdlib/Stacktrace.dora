@@ -1,6 +1,6 @@
 class Stacktrace() {
-  var backtrace: NewOption[Array[Int32]] = NewOption[Array[Int32]]::None;
-  var elements: NewOption[Array[StacktraceElement]] = NewOption[Array[StacktraceElement]]::None;
+  var backtrace: Option[Array[Int32]] = Option[Array[Int32]]::None;
+  var elements: Option[Array[StacktraceElement]] = Option[Array[StacktraceElement]]::None;
 
   self.retrieveStacktrace();
 
@@ -11,7 +11,7 @@ class Stacktrace() {
 
     if self.backtrace.isNone() {
       let elements = Array::empty[StacktraceElement]();
-      self.elements = NewOption[Array[StacktraceElement]]::Some(elements);
+      self.elements = Option[Array[StacktraceElement]]::Some(elements);
       return elements;
     }
 
@@ -25,7 +25,7 @@ class Stacktrace() {
       i = i + 1L;
     }
 
-    self.elements = NewOption[Array[StacktraceElement]]::Some(elements);
+    self.elements = Option[Array[StacktraceElement]]::Some(elements);
     return elements;
   }
 

@@ -46,12 +46,12 @@ fun loops(iterations: Int32, depth: Int32) {
 
 fun createTree(depth: Int32): TreeNode {
   var depth = depth;
-  let node = TreeNode(0, NewOption[TreeNode]::None, NewOption[TreeNode]::None);
+  let node = TreeNode(0, Option[TreeNode]::None, Option[TreeNode]::None);
 
   if depth > 0 {
     depth = depth - 1;
-    node.left = NewOption[TreeNode]::Some(createTree(depth));
-    node.right = NewOption[TreeNode]::Some(createTree(depth));
+    node.left = Option[TreeNode]::Some(createTree(depth));
+    node.right = Option[TreeNode]::Some(createTree(depth));
   }
 
   return node;
@@ -66,4 +66,4 @@ fun checkTree(node: TreeNode): Int32 {
          checkTree(node.right.unwrap()) + 1;
 }
 
-class TreeNode(let item: Int32, var left: NewOption[TreeNode], var right: NewOption[TreeNode])
+class TreeNode(let item: Int32, var left: Option[TreeNode], var right: Option[TreeNode])

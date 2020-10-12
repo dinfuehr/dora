@@ -3394,8 +3394,8 @@ where
             }
 
             EnumLayout::Tagged => {
-                self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
-                self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::ILLEGAL);
+                self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
+                self.asm.test_if_nil_bailout(pos, REG_TMP1, Trap::ILLEGAL);
 
                 let xenum = &self.vm.enums[enum_id];
                 let xenum = xenum.read();

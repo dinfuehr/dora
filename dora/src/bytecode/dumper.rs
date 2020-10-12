@@ -398,12 +398,43 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
 
     fn emit_fct_void(&mut self, name: &str, fid: ConstPoolIdx) {
         self.emit_start(name);
-        writeln!(self.w, " ConstPoolIdx({})", fid.to_usize()).expect("write! failed");
+        let fname = self.get_fct_name(fid);
+        writeln!(self.w, " ConstPoolIdx({}) # {}", fid.to_usize(), fname).expect("write! failed");
     }
 
     fn emit_fct(&mut self, name: &str, r1: Register, fid: ConstPoolIdx) {
         self.emit_start(name);
-        writeln!(self.w, " {}, ConstPoolIdx({})", r1, fid.to_usize()).expect("write! failed");
+        let fname = self.get_fct_name(fid);
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # {}",
+            r1,
+            fid.to_usize(),
+            fname
+        )
+        .expect("write! failed");
+    }
+
+    fn get_fct_name(&mut self, idx: ConstPoolIdx) -> String {
+        let (fct_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
+            ConstPoolEntry::Generic(_, fct_id, type_params) => (fct_id, type_params),
+            _ => unreachable!(),
+        };
+
+        let fct = self.vm.fcts.idx(*fct_id);
+        let fct = fct.read();
+
+        if type_params.len() > 0 {
+            let type_params = type_params
+                .iter()
+                .map(|n| n.name(self.vm))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{} with [{}]", fct.full_name(self.vm), type_params)
+        } else {
+            format!("{}", fct.full_name(self.vm))
+        }
     }
 
     fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {

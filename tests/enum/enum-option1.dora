@@ -1,14 +1,14 @@
 fun main() {
-    assert(NewOption[String]::None.isNone());
-    assert(NewOption[Int32]::None.isNone());
-    assert(!NewOption[String]::None.isSome());
-    assert(!NewOption[Int32]::None.isSome());
+    assert(Option[String]::None.isNone());
+    assert(Option[Int32]::None.isNone());
+    assert(!Option[String]::None.isSome());
+    assert(!Option[Int32]::None.isSome());
 
-    assert(!NewOption[String]::Some("abc").isNone());
-    assert(!NewOption[Int32]::Some(12).isNone());
-    assert(NewOption[String]::Some("abc").isSome());
-    assert(NewOption[Int32]::Some(12).isSome());
+    assert(!Option[String]::Some("abc").isNone());
+    assert(!Option[Int32]::Some(12).isNone());
+    assert(Option[String]::Some("abc").isSome());
+    assert(Option[Int32]::Some(12).isSome());
 
-    NewOption[String]::None.isNone();
-    NewOption[Int32]::Some(12).isNone();
+    Option[String]::None.isNone();
+    Option[Int32]::Some(12).isNone();
 }

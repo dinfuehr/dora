@@ -52,7 +52,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.known.traits.zero = find_trait(vm, "Zero");
     vm.known.traits.iterator = find_trait(vm, "Iterator");
 
-    vm.known.enums.new_option = find_enum(vm, "NewOption");
+    vm.known.enums.new_option = find_enum(vm, "Option");
 
     internal_free_classes(vm);
 }

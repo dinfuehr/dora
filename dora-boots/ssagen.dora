@@ -116,7 +116,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun tryRemoveTrivialPhi(phi: PhiInst): Inst {
-        var same = NewOption[Inst]::None;
+        var same = Option[Inst]::None;
 
         for inp in phi.inputs {
             let op = inp.value;
@@ -129,11 +129,11 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
                 return phi;
             }
 
-            same = NewOption[Inst]::Some(op);
+            same = Option[Inst]::Some(op);
         }
 
         if same.isNone() {
-            same = NewOption[Inst]::Some(UndefInst());
+            same = Option[Inst]::Some(UndefInst());
         }
 
         let users = phi.users();

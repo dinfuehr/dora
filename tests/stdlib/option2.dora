@@ -1,0 +1,21 @@
+fun main() {
+  let x = Option[Int32]::None;
+  assert(x.isNone());
+  assert(!x.isSome());
+  assert(!x.has(0));
+  assert(!optionContains[Int32](x, 0));
+  assert(optionEquals[Int32](x, Option[Int32]::None));
+  assert(!optionEquals[Int32](x, Option[Int32]::Some(0)));
+  assert(optionToString[Int32](x) == "None");
+
+  let x = Option[Int32]::Some(42);
+  assert(x.isSome());
+  assert(!x.isNone());
+  assert(x.unwrap() == 42);
+  assert(x.has(42));
+  assert(optionContains[Int32](x, 42));
+  assert(optionEquals[Int32](x, Option[Int32]::Some(42)));
+  assert(!optionEquals[Int32](x, Option[Int32]::Some(2)));
+  assert(!optionEquals[Int32](x, Option[Int32]::None));
+  assert(optionToString[Int32](x) == "Some(42)");
+}

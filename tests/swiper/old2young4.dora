@@ -1,18 +1,18 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Foo(1, NewOption[Foo]::None);
+  let x = Foo(1, Option[Foo]::None);
   forceMinorCollect();
-  x.next = NewOption[Foo]::Some(Foo(2, NewOption[Foo]::None));
+  x.next = Option[Foo]::Some(Foo(2, Option[Foo]::None));
   // Promote x to old generation. Make sure that
   // promoted objects with references to young generations
   // are updated too.
   forceMinorCollect();
   assert(x.next.unwrap().a == 2);
-  // Promote Foo(2, NewOption[Foo]::None) into old generation and set
+  // Promote Foo(2, Option[Foo]::None) into old generation and set
   // card to clean again.
   forceMinorCollect();
   assert(x.next.unwrap().a == 2);
 }
 
-class Foo(let a: Int32, var next: NewOption[Foo])
+class Foo(let a: Int32, var next: Option[Foo])
