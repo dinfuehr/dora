@@ -532,7 +532,6 @@ impl<'a> AstDumper<'a> {
             ExprDelegation(ref call) => self.dump_expr_delegation(call),
             ExprSelf(ref selfie) => self.dump_expr_self(selfie),
             ExprSuper(ref expr) => self.dump_expr_super(expr),
-            ExprNil(ref nil) => self.dump_expr_nil(nil),
             ExprConv(ref expr) => self.dump_expr_conv(expr),
             ExprLambda(ref expr) => self.dump_expr_lambda(expr),
             ExprBlock(ref expr) => self.dump_expr_block(expr),
@@ -610,10 +609,6 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_super(&mut self, selfie: &ExprSuperType) {
         dump!(self, "super @ {} {}", selfie.pos, selfie.id);
-    }
-
-    fn dump_expr_nil(&mut self, nil: &ExprNilType) {
-        dump!(self, "nil @ {} {}", nil.pos, nil.id);
     }
 
     fn dump_expr_lit_char(&mut self, lit: &ExprLitCharType) {

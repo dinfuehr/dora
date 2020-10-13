@@ -82,8 +82,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             Some(LookupKind::Method(obj))
         } else if let BuiltinType::TraitObject(trait_id) = obj {
             Some(LookupKind::Trait(trait_id))
-        } else if obj.is_nil() {
-            Some(LookupKind::Method(obj))
         } else if obj.is_enum() {
             Some(LookupKind::Method(obj))
         } else {
@@ -346,10 +344,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         name: Name,
         is_static: bool,
     ) -> Option<FctId> {
-        if object_type.is_nil() {
-            return None;
-        }
-
         let candidates = if object_type.is_module() {
             find_methods_in_module(self.vm, object_type, name)
         } else if object_type.is_enum() {

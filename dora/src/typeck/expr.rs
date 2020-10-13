@@ -337,16 +337,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let fct_type = self.fct.return_type;
 
         if !expr_type.is_error() && !fct_type.allows(self.vm, expr_type) {
-            let msg = if expr_type.is_nil() {
-                let fct_type = fct_type.name_fct(self.vm, self.fct);
+            let fct_type = fct_type.name_fct(self.vm, self.fct);
+            let expr_type = expr_type.name_fct(self.vm, self.fct);
 
-                SemError::IncompatibleWithNil(fct_type)
-            } else {
-                let fct_type = fct_type.name_fct(self.vm, self.fct);
-                let expr_type = expr_type.name_fct(self.vm, self.fct);
-
-                SemError::ReturnType(fct_type, expr_type)
-            };
+            let msg = SemError::ReturnType(fct_type, expr_type);
 
             self.vm.diag.lock().report(self.file, pos, msg);
         }
@@ -991,9 +985,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     ) -> BuiltinType {
         match cmp {
             CmpOp::Is | CmpOp::IsNot => {
-                if !(lhs_type.is_nil() || lhs_type.allows(self.vm, rhs_type))
-                    && !(rhs_type.is_nil() || rhs_type.allows(self.vm, lhs_type))
-                {
+                if !lhs_type.allows(self.vm, rhs_type) && !rhs_type.allows(self.vm, lhs_type) {
                     let lhs_type = lhs_type.name_fct(self.vm, self.fct);
                     let rhs_type = rhs_type.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
@@ -1445,7 +1437,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.src.set_ty(e.id, return_type);
 
             return_type
-        } else if !object_type.is_nil() && lookup.found_fct_id().is_none() {
+        } else if lookup.found_fct_id().is_none() {
             // No method with this name found, so this might actually be a field
             self.check_expr_call_field(e, object_type, method_name, type_params, arg_types)
         } else {
@@ -2072,12 +2064,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         BuiltinType::Unit
     }
 
-    fn check_expr_nil(&mut self, e: &'ast ExprNilType, _expected_ty: BuiltinType) -> BuiltinType {
-        self.src.set_ty(e.id, BuiltinType::Nil);
-
-        BuiltinType::Nil
-    }
-
     fn check_expr_lambda(
         &mut self,
         e: &'ast ExprLambdaType,
@@ -2281,7 +2267,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             ExprDot(ref expr) => self.check_expr_dot(expr, expected_ty),
             ExprSelf(ref expr) => self.check_expr_this(expr, expected_ty),
             ExprSuper(ref expr) => self.check_expr_super(expr, expected_ty),
-            ExprNil(ref expr) => self.check_expr_nil(expr, expected_ty),
             ExprConv(ref expr) => self.check_expr_conv(expr, expected_ty),
             ExprLambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
             ExprBlock(ref expr) => self.check_expr_block(expr, expected_ty),
@@ -2376,7 +2361,6 @@ fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<Built
         | BuiltinType::Float32
         | BuiltinType::Float64
         | BuiltinType::Enum(_, _) => def == arg,
-        BuiltinType::Nil => panic!("nil should not occur in fct definition."),
         BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
         BuiltinType::This => {
             let real = self_ty.expect("no Self type expected.");
@@ -2388,7 +2372,7 @@ fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<Built
         BuiltinType::TypeParam(_) => def == arg,
 
         BuiltinType::Class(cls_id, list_id) => {
-            if def == arg || arg.is_nil() {
+            if def == arg {
                 return true;
             }
 

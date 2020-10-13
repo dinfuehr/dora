@@ -30,9 +30,6 @@ pub enum BuiltinType {
     Float32,
     Float64,
 
-    // type Nil, only used in typeck until final type is known
-    Nil,
-
     // pointer to object, only used internally
     Ptr,
 
@@ -89,13 +86,6 @@ impl BuiltinType {
     pub fn is_self(&self) -> bool {
         match *self {
             BuiltinType::This => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_nil(&self) -> bool {
-        match *self {
-            BuiltinType::Nil => true,
             _ => false,
         }
     }
@@ -323,12 +313,9 @@ impl BuiltinType {
             | BuiltinType::Int64
             | BuiltinType::Float32
             | BuiltinType::Float64 => *self == other,
-            BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
-            BuiltinType::Class(_, _) => {
-                *self == other || other.is_nil() || other.subclass_from(vm, *self)
-            }
+            BuiltinType::Class(_, _) => *self == other || other.subclass_from(vm, *self),
             BuiltinType::Tuple(tuple_id) => match other {
                 BuiltinType::Tuple(other_tuple_id) => {
                     if tuple_id == other_tuple_id {
@@ -379,14 +366,6 @@ impl BuiltinType {
         }
     }
 
-    pub fn if_nil(&self, other: BuiltinType) -> BuiltinType {
-        if self.is_nil() {
-            other
-        } else {
-            *self
-        }
-    }
-
     pub fn size(&self, vm: &VM) -> i32 {
         match *self {
             BuiltinType::Error => panic!("no size for error."),
@@ -409,7 +388,6 @@ impl BuiltinType {
                     EnumLayout::Ptr | EnumLayout::Tagged => BuiltinType::Ptr.size(vm),
                 }
             }
-            BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Any => panic!("no size for Any."),
             BuiltinType::Class(_, _)
@@ -441,7 +419,6 @@ impl BuiltinType {
             BuiltinType::Int64 => 8,
             BuiltinType::Float32 => 4,
             BuiltinType::Float64 => 8,
-            BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Any => panic!("no alignment for Any."),
             BuiltinType::Enum(eid, list_id) => {
@@ -485,7 +462,6 @@ impl BuiltinType {
             BuiltinType::Float32 => MachineMode::Float32,
             BuiltinType::Float64 => MachineMode::Float64,
             BuiltinType::Enum(_, _) => MachineMode::Int32,
-            BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
             BuiltinType::Any => panic!("no machine mode for Any."),
             BuiltinType::Class(_, _)
@@ -501,11 +477,7 @@ impl BuiltinType {
 
     pub fn is_defined_type(&self, vm: &VM) -> bool {
         match *self {
-            BuiltinType::Error
-            | BuiltinType::This
-            | BuiltinType::Any
-            | BuiltinType::Ptr
-            | BuiltinType::Nil => false,
+            BuiltinType::Error | BuiltinType::This | BuiltinType::Any | BuiltinType::Ptr => false,
             BuiltinType::Unit
             | BuiltinType::Bool
             | BuiltinType::UInt8
@@ -558,8 +530,7 @@ impl BuiltinType {
             | BuiltinType::Float64
             | BuiltinType::Module(_)
             | BuiltinType::Ptr
-            | BuiltinType::TraitObject(_)
-            | BuiltinType::Nil => true,
+            | BuiltinType::TraitObject(_) => true,
             BuiltinType::Class(_, list_id) | BuiltinType::Enum(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
@@ -855,7 +826,6 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
             BuiltinType::Float32 => "Float32".into(),
             BuiltinType::Float64 => "Float64".into(),
             BuiltinType::Bool => "Bool".into(),
-            BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),
             BuiltinType::Class(id, list_id) => {
@@ -988,12 +958,6 @@ mod tests {
         assert_eq!(MachineMode::Int8, BuiltinType::Bool.mode());
         assert_eq!(MachineMode::Int32, BuiltinType::Int32.mode());
         assert_eq!(MachineMode::Ptr, BuiltinType::Ptr.mode());
-    }
-
-    #[test]
-    #[should_panic]
-    fn mode_for_nil() {
-        assert_eq!(MachineMode::Ptr, BuiltinType::Nil.mode());
     }
 
     #[test]

@@ -1518,7 +1518,6 @@ where
             BuiltinType::TypeParam(_)
             | BuiltinType::Error
             | BuiltinType::Any
-            | BuiltinType::Nil
             | BuiltinType::This
             | BuiltinType::Struct(_, _)
             | BuiltinType::Module(_)
@@ -1620,7 +1619,6 @@ where
             BuiltinType::TypeParam(_)
             | BuiltinType::Error
             | BuiltinType::Any
-            | BuiltinType::Nil
             | BuiltinType::This
             | BuiltinType::Struct(_, _)
             | BuiltinType::Module(_)
@@ -1682,7 +1680,6 @@ where
             BuiltinType::TypeParam(_)
             | BuiltinType::Error
             | BuiltinType::Any
-            | BuiltinType::Nil
             | BuiltinType::This
             | BuiltinType::Struct(_, _)
             | BuiltinType::Module(_)
@@ -1875,12 +1872,6 @@ where
             self.asm
                 .store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
         }
-    }
-
-    fn emit_const_nil(&mut self, dest: Register) {
-        assert!(self.specialize_register_type(dest).is_ptr());
-        self.asm.load_nil(REG_RESULT);
-        self.emit_store_register(REG_RESULT.into(), dest);
     }
 
     fn emit_const_bool(&mut self, dest: Register, bool_const: bool) {
@@ -4336,10 +4327,6 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.argument_stack.push(src);
     }
 
-    fn visit_const_nil(&mut self, dest: Register) {
-        comment!(self, format!("ConstNil {}", dest));
-        self.emit_const_nil(dest);
-    }
     fn visit_const_true(&mut self, dest: Register) {
         comment!(self, format!("ConstTrue {}", dest));
         self.emit_const_bool(dest, true);

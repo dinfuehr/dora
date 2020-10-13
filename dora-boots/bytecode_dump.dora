@@ -193,7 +193,6 @@ class BytecodeDumper(let bc: BytecodeFunction) extends BytecodeVisitor {
 
     @override fun visitPushRegister(src: BytecodeRegister) { self.emitReg1("PushRegister", src); }
 
-    @override fun visitConstNil(dest: BytecodeRegister) { self.emitReg1("ConstNil", dest); }
     @override fun visitConstTrue(dest: BytecodeRegister) { self.emitReg1("ConstTrue", dest); }
     @override fun visitConstFalse(dest: BytecodeRegister) { self.emitReg1("ConstFalse", dest); }
     @override fun visitConstZeroUInt8(dest: BytecodeRegister) { self.emitReg1("ConstZeroUInt8", dest); }

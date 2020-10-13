@@ -157,10 +157,6 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::StoreField, src, obj, field_idx);
     }
 
-    pub fn emit_const_nil(&mut self, dest: Register) {
-        self.emit_reg1(BytecodeOpcode::ConstNil, dest);
-    }
-
     pub fn emit_const_char(&mut self, dest: Register, value: char) {
         let idx = self.add_const(ConstPoolEntry::Char(value));
         self.emit_reg1_idx(BytecodeOpcode::ConstChar, dest, idx);

@@ -426,7 +426,6 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
     @override fun visitPushRegister(src: BytecodeRegister) { unimplemented(); }
 
-    @override fun visitConstNil(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }

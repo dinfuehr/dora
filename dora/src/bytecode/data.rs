@@ -280,7 +280,6 @@ pub enum BytecodeOpcode {
 
     PushRegister,
 
-    ConstNil,
     ConstTrue,
     ConstFalse,
     ConstZeroUInt8,

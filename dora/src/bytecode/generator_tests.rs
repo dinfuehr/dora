@@ -472,13 +472,6 @@ fn gen_stmt_continue() {
 }
 
 #[test]
-fn gen_expr_nil() {
-    let result = code("fun f(): Object { return nil; }");
-    let expected = vec![ConstNil(r(0)), Ret(r(0))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_expr_lit_char() {
     let result = code("fun f(): Char { return '1'; }");
     let expected = vec![ConstChar(r(0), '1'), Ret(r(0))];
@@ -4019,7 +4012,6 @@ pub enum Bytecode {
 
     PushRegister(Register),
 
-    ConstNil(Register),
     ConstTrue(Register),
     ConstFalse(Register),
     ConstZeroUInt8(Register),
@@ -4471,9 +4463,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::PushRegister(src));
     }
 
-    fn visit_const_nil(&mut self, dest: Register) {
-        self.emit(Bytecode::ConstNil(dest));
-    }
     fn visit_const_true(&mut self, dest: Register) {
         self.emit(Bytecode::ConstTrue(dest));
     }

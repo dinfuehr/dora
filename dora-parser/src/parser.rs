@@ -1712,7 +1712,6 @@ impl<'a> Parser<'a> {
             TokenKind::Identifier(_) => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
-            TokenKind::Nil => self.parse_nil(),
             TokenKind::This => self.parse_this(),
             TokenKind::Super => self.parse_super(),
             TokenKind::BitOr | TokenKind::Or => self.parse_lambda(),
@@ -1957,17 +1956,6 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token()?;
 
         Ok(Box::new(Expr::create_super(
-            self.generate_id(),
-            tok.position,
-            span,
-        )))
-    }
-
-    fn parse_nil(&mut self) -> ExprResult {
-        let span = self.token.span;
-        let tok = self.advance_token()?;
-
-        Ok(Box::new(Expr::create_nil(
             self.generate_id(),
             tok.position,
             span,
@@ -2362,13 +2350,6 @@ mod tests {
         let (expr, _) = parse_expr("self");
 
         assert!(expr.is_this());
-    }
-
-    #[test]
-    fn parse_nil() {
-        let (expr, _) = parse_expr("nil");
-
-        assert!(expr.is_nil());
     }
 
     #[test]

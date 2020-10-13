@@ -92,7 +92,6 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @open fun visitPushRegister(src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitConstNil(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }
@@ -298,7 +297,6 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @override fun visitPushRegister(src: BytecodeRegister) {}
 
-    @override fun visitConstNil(dest: BytecodeRegister) {}
     @override fun visitConstTrue(dest: BytecodeRegister) {}
     @override fun visitConstFalse(dest: BytecodeRegister) {}
     @override fun visitConstZeroUInt8(dest: BytecodeRegister) {}
@@ -859,9 +857,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitPushRegister(src);
 
-        } else if opcode == BC_CONST_NIL {
-            let dest = self.readRegister(wide);
-            self.visitor.visitConstNil(dest);
         } else if opcode == BC_CONST_TRUE {
             let dest = self.readRegister(wide);
             self.visitor.visitConstTrue(dest);

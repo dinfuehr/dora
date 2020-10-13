@@ -808,9 +808,6 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_reg1("PushRegister", src)
     }
 
-    fn visit_const_nil(&mut self, dest: Register) {
-        self.emit_reg1("ConstNil", dest);
-    }
     fn visit_const_true(&mut self, dest: Register) {
         self.emit_reg1("ConstTrue", dest);
     }

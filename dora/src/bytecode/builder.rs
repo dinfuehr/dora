@@ -208,11 +208,6 @@ impl BytecodeBuilder {
         self.writer.emit_store_field(src, obj, field_idx);
     }
 
-    pub fn emit_const_nil(&mut self, dest: Register) {
-        assert!(self.def(dest));
-        self.writer.emit_const_nil(dest);
-    }
-
     pub fn emit_const_char(&mut self, dest: Register, value: char) {
         assert!(self.def(dest));
         self.writer.emit_const_char(dest, value);
@@ -1207,24 +1202,11 @@ impl BytecodeBuilder {
     }
 
     pub fn free_if_temp(&mut self, reg: Register) {
-        if self.registers.free_if_temp(reg) {
-            self.clear_if_ptr(reg);
-        }
+        self.registers.free_if_temp(reg);
     }
 
     pub fn free_temp(&mut self, reg: Register) {
         self.registers.free_temp(reg);
-        self.clear_if_ptr(reg);
-    }
-
-    fn clear_if_ptr(&mut self, reg: Register) {
-        if !self.clear_regs {
-            return;
-        }
-
-        if self.registers.all[reg.0].is_ptr() {
-            self.writer.emit_const_nil(reg);
-        }
     }
 
     fn used(&self, reg: Register) -> bool {

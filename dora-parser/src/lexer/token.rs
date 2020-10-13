@@ -14,7 +14,6 @@ pub enum TokenKind {
     Identifier(String),
     True,
     False,
-    Nil,
     End,
 
     // "big" shapes
@@ -129,7 +128,6 @@ impl TokenKind {
             TokenKind::Identifier(_) => "identifier",
             TokenKind::True => "true",
             TokenKind::False => "false",
-            TokenKind::Nil => "nil",
 
             // "big" shapes
             TokenKind::Class => "class",

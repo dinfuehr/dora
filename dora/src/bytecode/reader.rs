@@ -485,10 +485,6 @@ where
                 self.visitor.visit_push_register(src);
             }
 
-            BytecodeOpcode::ConstNil => {
-                let dest = self.read_register(wide);
-                self.visitor.visit_const_nil(dest);
-            }
             BytecodeOpcode::ConstTrue => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_true(dest);
@@ -1439,9 +1435,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_const_nil(&mut self, _dest: Register) {
-        unimplemented!();
-    }
     fn visit_const_true(&mut self, _dest: Register) {
         unimplemented!();
     }
