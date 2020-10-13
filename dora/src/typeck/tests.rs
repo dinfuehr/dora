@@ -2139,3 +2139,33 @@ fn check_wrong_number_type_params() {
         SemError::ParamTypesIncompatible("bar".into(), vec!["T".into()], vec!["Bool".into()]),
     );
 }
+
+#[test]
+fn check_uninitialized_var() {
+    err(
+        "fun foo(): Int32 { var x: Int32; x }",
+        pos(1, 34),
+        SemError::UninitializedVar,
+    );
+
+    err(
+        "fun foo() {
+            var x: Int32;
+            if false { x = 1; } else { let y = x; }
+        }",
+        pos(3, 48),
+        SemError::UninitializedVar,
+    );
+
+    ok("fun foo(a: Bool): Int32 {
+        var x: Int32;
+        if a { x = 1; } else { x = 2; }
+        x
+    }");
+
+    err(
+        "fun foo(): Int32 { var x: Int32; if false { x = 1; } x }",
+        pos(1, 54),
+        SemError::UninitializedVar,
+    );
+}

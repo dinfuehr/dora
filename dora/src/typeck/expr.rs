@@ -12,7 +12,7 @@ use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
-    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
+    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -30,10 +30,16 @@ pub struct TypeCheck<'a, 'ast: 'a> {
     pub src: &'a mut FctSrc,
     pub ast: &'ast Function,
     pub used_in_call: HashSet<NodeId>,
+    pub initialized_vars: HashSet<VarId>,
 }
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
     pub fn check(&mut self) {
+        for param in &self.ast.params {
+            let varid = *self.src.map_vars.get(param.id).unwrap();
+            self.initialized_vars.insert(varid);
+        }
+
         let block = self.ast.block.as_ref().expect("missing block");
         let mut returns = false;
 
@@ -96,7 +102,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
-        self.check_stmt_let_pattern(&s.pattern, defined_type);
+        let initialized = s.expr.is_some();
+        self.check_stmt_let_pattern(&s.pattern, defined_type, initialized);
 
         if s.expr.is_some() {
             if !expr_type.is_error()
@@ -123,11 +130,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: BuiltinType) {
+    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: BuiltinType, initialized: bool) {
         match pattern {
             LetPattern::Ident(ref ident) => {
                 let var = *self.src.map_vars.get(ident.id).unwrap();
                 self.src.vars[var].ty = ty;
+                if initialized {
+                    self.initialized_vars.insert(var);
+                }
             }
 
             LetPattern::Underscore(_) => {
@@ -135,7 +145,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             LetPattern::Tuple(ref tuple) => {
-                if !ty.is_tuple_or_unit() {
+                if !ty.is_tuple_or_unit() && !ty.is_error() {
                     let ty_name = ty.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
                         self.file,
@@ -153,6 +163,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             tuple.pos,
                             SemError::LetPatternShouldBeUnit,
                         );
+                    }
+                    return;
+                }
+
+                if ty.is_error() {
+                    for part in &tuple.parts {
+                        self.check_stmt_let_pattern(part, BuiltinType::Error, initialized);
                     }
                     return;
                 }
@@ -176,7 +193,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 for (idx, part) in tuple.parts.iter().enumerate() {
                     let ty = self.vm.tuples.lock().get_ty(tuple_id, idx);
-                    self.check_stmt_let_pattern(part, ty);
+                    self.check_stmt_let_pattern(part, ty, initialized);
                 }
             }
         }
@@ -186,8 +203,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let object_type = self.check_expr(&stmt.expr, BuiltinType::Any);
 
         if object_type.is_error() {
-            let var_id = *self.src.map_vars.get(stmt.id).unwrap();
-            self.src.vars[var_id].ty = BuiltinType::Error;
+            self.check_stmt_let_pattern(&stmt.pattern, BuiltinType::Error, true);
             self.visit_stmt(&stmt.block);
             return;
         }
@@ -197,7 +213,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let type_list = object_type.type_params(self.vm);
                 let var_ty = type_list[0];
 
-                self.check_stmt_let_pattern(&stmt.pattern, var_ty);
+                self.check_stmt_let_pattern(&stmt.pattern, var_ty, true);
 
                 self.visit_stmt(&stmt.block);
                 return;
@@ -206,7 +222,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if let Some((for_type_info, ret_type)) = self.type_supports_iterator_protocol(object_type) {
             // set variable type to return type of next
-            self.check_stmt_let_pattern(&stmt.pattern, ret_type);
+            self.check_stmt_let_pattern(&stmt.pattern, ret_type, true);
 
             // store fct ids for code generation
             self.src.map_fors.insert(stmt.id, for_type_info);
@@ -221,7 +237,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.type_supports_iterator_protocol(iterator_type)
             {
                 // set variable type to return type of next
-                self.check_stmt_let_pattern(&stmt.pattern, ret_type);
+                self.check_stmt_let_pattern(&stmt.pattern, ret_type, true);
 
                 // store fct ids for code generation
                 for_type_info.make_iterator = Some(make_iterator);
@@ -237,10 +253,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.vm.diag.lock().report(self.file, stmt.expr.pos(), msg);
 
         // set invalid error type
-        let ident = stmt.pattern.to_ident().expect("ident");
-        let var_id = *self.src.map_vars.get(ident.id).unwrap();
-        self.src.vars[var_id].ty = BuiltinType::Error;
-
+        self.check_stmt_let_pattern(&stmt.pattern, BuiltinType::Error, true);
         self.visit_stmt(&stmt.block);
     }
 
@@ -411,10 +424,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, expr.pos, msg);
         }
 
+        let initial_initialized_vars = self.initialized_vars.clone();
         let then_type = self.check_expr(&expr.then_block, BuiltinType::Any);
 
         let merged_type = if let Some(ref else_block) = expr.else_block {
+            let then_initialized_vars = self.initialized_vars.clone();
+
+            self.initialized_vars = initial_initialized_vars;
             let else_type = self.check_expr(else_block, BuiltinType::Any);
+            self.initialized_vars = self
+                .initialized_vars
+                .union(&then_initialized_vars)
+                .cloned()
+                .collect::<HashSet<VarId>>();
 
             if expr_always_returns(&expr.then_block) {
                 else_type
@@ -434,6 +456,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 then_type
             }
         } else {
+            self.initialized_vars = initial_initialized_vars;
             BuiltinType::Unit
         };
 
@@ -453,6 +476,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             &IdentType::Var(varid) => {
                 let ty = self.src.vars[varid].ty;
                 self.src.set_ty(e.id, ty);
+
+                if !self.initialized_vars.contains(&varid) {
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, e.pos, SemError::UninitializedVar);
+                }
 
                 ty
             }
@@ -601,7 +631,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         .lock()
                         .report(self.file, e.pos, SemError::LetReassigned);
                 }
-
+                self.initialized_vars.insert(varid);
                 lhs_type = self.src.vars[varid].ty;
             }
 

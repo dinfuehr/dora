@@ -142,6 +142,7 @@ pub enum SemError {
     NameExpected,
     IndexExpected,
     IllegalTupleIndex(u64, String),
+    UninitializedVar,
 }
 
 impl SemError {
@@ -495,6 +496,7 @@ impl SemError {
             SemError::IllegalTupleIndex(idx, ref ty) => {
                 format!("illegal index `{}` for type `{}`", idx, ty)
             }
+            SemError::UninitializedVar => "cannot read uninitialized variable.".into(),
         }
     }
 }
