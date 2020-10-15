@@ -127,13 +127,13 @@ var SOLAR_MASS: Float64;
 const DAYS_PER_YEAR: Float64 = 365.24;
 
 class Body {
-    var x: Float64;
-    var y: Float64;
-    var z: Float64;
-    var vx: Float64;
-    var vy: Float64;
-    var vz: Float64;
-    var mass: Float64;
+    var x: Float64 = 0.0;
+    var y: Float64 = 0.0;
+    var z: Float64 = 0.0;
+    var vx: Float64 = 0.0;
+    var vy: Float64 = 0.0;
+    var vz: Float64 = 0.0;
+    var mass: Float64 = 0.0;
 
    fun offsetMomentum(px: Float64, py: Float64, pz: Float64): Body {
       self.vx = -px / SOLAR_MASS;

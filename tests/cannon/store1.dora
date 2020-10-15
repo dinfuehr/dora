@@ -60,29 +60,29 @@ fun main() {
 }
 
 class FooBool() {
-    var y: Bool;
+    var y: Bool = false;
 }
 class FooByte() {
-    var y: UInt8;
+    var y: UInt8 = 0Y;
 }
 class FooChar() {
-    var y: Char;
+    var y: Char = '\0';
 }
 class FooInt32() {
-    var y: Int32;
+    var y: Int32 = 0;
 }
 class FooInt64() {
-    var y: Int64;
+    var y: Int64 = 0L;
 }
 class FooFloat32() {
-    var y: Float32;
+    var y: Float32 = 0.0F;
 }
 class FooFloat64() {
-    var y: Float64;
+    var y: Float64 = 0.0;
 }
 class FooString() {
-    var y: String;
+    var y: String = "";
 }
 class FooPtr() {
-    var y: FooInt32;
+    var y: FooInt32 = FooInt32();
 }

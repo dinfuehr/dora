@@ -1,6 +1,6 @@
 class Graph {
-    var entryBlock: Block;
-    var exitBlock: Block;
+    var entryBlock: Option[Block] = Option[Block]::None;
+    var exitBlock: Option[Block] = Option[Block]::None;
 
     var blocks: Vec[Block] = Vec[Block]();
     var postOrder: Vec[Block] = Vec[Block]();
@@ -21,19 +21,19 @@ class Graph {
     }
 
     fun setEntryBlock(block: Block) {
-        self.entryBlock = block;
+        self.entryBlock = Option[Block]::Some(block);
     }
 
     fun getEntryBlock(): Block {
-        self.entryBlock
+        self.entryBlock.unwrap()
     }
 
     fun setExitBlock(block: Block) {
-        self.exitBlock = block;
+        self.exitBlock = Option[Block]::Some(block);
     }
 
     fun getExitBlock(): Block {
-        self.exitBlock
+        self.exitBlock.unwrap()
     }
 
     fun nextInstId(): Int32 {

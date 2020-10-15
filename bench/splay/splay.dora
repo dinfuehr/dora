@@ -147,7 +147,7 @@ fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
 }
 
 class SplayTree {
-    var root: Option[SplayNode];
+    var root: Option[SplayNode] = Option[SplayNode]::None;
 
     fun isEmpty(): Bool {
         return self.root.isNone();
@@ -348,8 +348,8 @@ fun exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
 }
 
 class SplayNode(var key: Int32, var value: Option[PayloadNode]) {
-    var left: Option[SplayNode];
-    var right: Option[SplayNode];
+    var left: Option[SplayNode] = Option[SplayNode]::None;
+    var right: Option[SplayNode] = Option[SplayNode]::None;
 }
 
 class PayloadNode(let array: Option[Array[Int32]], let text: String, let left: Option[PayloadNode], let right: Option[PayloadNode])

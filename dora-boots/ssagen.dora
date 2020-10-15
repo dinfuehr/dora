@@ -13,7 +13,7 @@ fun createGraph(bc: BytecodeFunction): Graph {
 class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: BlockBuilder) extends BytecodeVisitor {
     var currentBlock: Option[Block] = Option[Block]::None;
     var offset: Int32 = 0;
-    var currentDef: Array[HashMap[Block, Inst]];
+    var currentDef: Array[HashMap[Block, Inst]] = Array::empty[HashMap[Block, Inst]]();
     var blockTerminated: Bool = false;
 
     // a block is considered filled when all instructions are inserted

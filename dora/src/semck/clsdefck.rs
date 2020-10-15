@@ -236,7 +236,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             .unwrap_or(BuiltinType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
-        if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
+        if !f.primary_ctor && f.expr.is_none() {
             self.vm.diag.lock().report(
                 self.file_id.into(),
                 f.pos,
@@ -493,8 +493,8 @@ mod tests {
     #[test]
     fn field_defined_twice() {
         err(
-            "class Foo { var a: Int32; var a: Int32; }",
-            pos(1, 27),
+            "class Foo { var a: Int32 = 0; var a: Int32 = 0; }",
+            pos(1, 31),
             SemError::ShadowField("a".into()),
         );
     }
@@ -502,7 +502,7 @@ mod tests {
     #[test]
     fn field_defined_twice_via_constructor() {
         err(
-            "class Foo(let a: Int32) { var a: Int32; }",
+            "class Foo(let a: Int32) { var a: Int32 = 0; }",
             pos(1, 27),
             SemError::ShadowField("a".into()),
         );

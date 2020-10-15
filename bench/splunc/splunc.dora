@@ -1,8 +1,8 @@
 @open @abstract class Node {
-    var birthday: Int32;
-    var value: Int32;
-    var left: Option[Node];
-    var right: Option[Node];
+    var birthday: Int32 = 0;
+    var value: Int32 = 0;
+    var left: Option[Node] = Option[Node]::None;
+    var right: Option[Node] = Option[Node]::None;
 
     fun printAge(date: Int32) {
         println((date - self.birthday).toString());

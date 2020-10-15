@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 class TupleClass {
-    var value: (Foo, Int64);
+    var value: (Foo, Int64) = (Foo(0), 0L);
 }
 
 class Foo(let value: Int32)

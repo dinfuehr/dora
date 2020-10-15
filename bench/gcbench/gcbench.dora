@@ -1,6 +1,6 @@
 class Node(var left: Option[Node], var right: Option[Node]) {
-    var i: Int32;
-    var j: Int32;
+    var i: Int32 = 0;
+    var j: Int32 = 0;
 }
 
 module Node {
