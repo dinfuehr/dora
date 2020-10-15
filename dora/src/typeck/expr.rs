@@ -94,10 +94,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        // update type of variable, necessary when variable is only initialized with
-        // an expression
-        let initialized = s.expr.is_some();
-        self.check_stmt_let_pattern(&s.pattern, defined_type, initialized);
+        // update type of variable, necessary when stmt has initializer expression but no type
+        self.check_stmt_let_pattern(&s.pattern, defined_type);
 
         if s.expr.is_some() {
             if !expr_type.is_error()
@@ -124,7 +122,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: BuiltinType, initialized: bool) {
+    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: BuiltinType) {
         match pattern {
             LetPattern::Ident(ref ident) => {
                 let var = *self.src.map_vars.get(ident.id).unwrap();
@@ -160,7 +158,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 if ty.is_error() {
                     for part in &tuple.parts {
-                        self.check_stmt_let_pattern(part, BuiltinType::Error, initialized);
+                        self.check_stmt_let_pattern(part, BuiltinType::Error);
                     }
                     return;
                 }
@@ -184,7 +182,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 for (idx, part) in tuple.parts.iter().enumerate() {
                     let ty = self.vm.tuples.lock().get_ty(tuple_id, idx);
-                    self.check_stmt_let_pattern(part, ty, initialized);
+                    self.check_stmt_let_pattern(part, ty);
                 }
             }
         }
@@ -194,7 +192,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let object_type = self.check_expr(&stmt.expr, BuiltinType::Any);
 
         if object_type.is_error() {
-            self.check_stmt_let_pattern(&stmt.pattern, BuiltinType::Error, true);
+            self.check_stmt_let_pattern(&stmt.pattern, BuiltinType::Error);
             self.visit_stmt(&stmt.block);
             return;
         }
@@ -204,7 +202,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let type_list = object_type.type_params(self.vm);
                 let var_ty = type_list[0];
 
-                self.check_stmt_let_pattern(&stmt.pattern, var_ty, true);
+                self.check_stmt_let_pattern(&stmt.pattern, var_ty);
 
                 self.visit_stmt(&stmt.block);
                 return;
@@ -213,7 +211,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if let Some((for_type_info, ret_type)) = self.type_supports_iterator_protocol(object_type) {
             // set variable type to return type of next
-            self.check_stmt_let_pattern(&stmt.pattern, ret_type, true);
+            self.check_stmt_let_pattern(&stmt.pattern, ret_type);
 
             // store fct ids for code generation
             self.src.map_fors.insert(stmt.id, for_type_info);
@@ -228,7 +226,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.type_supports_iterator_protocol(iterator_type)
             {
                 // set variable type to return type of next
-                self.check_stmt_let_pattern(&stmt.pattern, ret_type, true);
+                self.check_stmt_let_pattern(&stmt.pattern, ret_type);
 
                 // store fct ids for code generation
                 for_type_info.make_iterator = Some(make_iterator);
@@ -244,7 +242,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.vm.diag.lock().report(self.file, stmt.expr.pos(), msg);
 
         // set invalid error type
-        self.check_stmt_let_pattern(&stmt.pattern, BuiltinType::Error, true);
+        self.check_stmt_let_pattern(&stmt.pattern, BuiltinType::Error);
         self.visit_stmt(&stmt.block);
     }
 
