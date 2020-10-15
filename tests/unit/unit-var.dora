@@ -1,6 +1,6 @@
 fun main() {
-    var x = ();
-    var y: ();
+    let mut x = ();
+    let mut y: () = ();
     y = ();
     x = y;
 }

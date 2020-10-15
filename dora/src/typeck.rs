@@ -31,7 +31,6 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             src: &mut src,
             ast,
             used_in_call: HashSet::new(),
-            initialized_vars: HashSet::new(),
         };
 
         typeck.check();

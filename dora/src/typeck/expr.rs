@@ -12,7 +12,7 @@ use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
-    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VarId, VM,
+    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -30,16 +30,10 @@ pub struct TypeCheck<'a, 'ast: 'a> {
     pub src: &'a mut FctSrc,
     pub ast: &'ast Function,
     pub used_in_call: HashSet<NodeId>,
-    pub initialized_vars: HashSet<VarId>,
 }
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
     pub fn check(&mut self) {
-        for param in &self.ast.params {
-            let varid = *self.src.map_vars.get(param.id).unwrap();
-            self.initialized_vars.insert(varid);
-        }
-
         let block = self.ast.block.as_ref().expect("missing block");
         let mut returns = false;
 
@@ -122,7 +116,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
         // let variable binding needs to be assigned
-        } else if !s.reassignable {
+        } else {
             self.vm
                 .diag
                 .lock()
@@ -135,9 +129,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             LetPattern::Ident(ref ident) => {
                 let var = *self.src.map_vars.get(ident.id).unwrap();
                 self.src.vars[var].ty = ty;
-                if initialized {
-                    self.initialized_vars.insert(var);
-                }
             }
 
             LetPattern::Underscore(_) => {
@@ -424,19 +415,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, expr.pos, msg);
         }
 
-        let initial_initialized_vars = self.initialized_vars.clone();
         let then_type = self.check_expr(&expr.then_block, BuiltinType::Any);
 
         let merged_type = if let Some(ref else_block) = expr.else_block {
-            let then_initialized_vars = self.initialized_vars.clone();
-
-            self.initialized_vars = initial_initialized_vars;
             let else_type = self.check_expr(else_block, BuiltinType::Any);
-            self.initialized_vars = self
-                .initialized_vars
-                .union(&then_initialized_vars)
-                .cloned()
-                .collect::<HashSet<VarId>>();
 
             if expr_always_returns(&expr.then_block) {
                 else_type
@@ -456,7 +438,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 then_type
             }
         } else {
-            self.initialized_vars = initial_initialized_vars;
             BuiltinType::Unit
         };
 
@@ -476,13 +457,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             &IdentType::Var(varid) => {
                 let ty = self.src.vars[varid].ty;
                 self.src.set_ty(e.id, ty);
-
-                if !self.initialized_vars.contains(&varid) {
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file, e.pos, SemError::UninitializedVar);
-                }
 
                 ty
             }
@@ -631,7 +605,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         .lock()
                         .report(self.file, e.pos, SemError::LetReassigned);
                 }
-                self.initialized_vars.insert(varid);
                 lhs_type = self.src.vars[varid].ty;
             }
 
