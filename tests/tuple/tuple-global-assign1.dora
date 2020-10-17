@@ -1,6 +1,6 @@
-var x: (String, Bool);
-var y: (String, Bool);
-var tmp: (String, Bool);
+var x: (String, Bool) = ("", false);
+var y: (String, Bool) = ("", false);
+var tmp: (String, Bool) = ("", false);
 
 fun main() {
     x = ("my string", true);

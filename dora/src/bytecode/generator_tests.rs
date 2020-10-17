@@ -980,20 +980,26 @@ fn gen_expr_returnvoid() {
 
 #[test]
 fn gen_load_global() {
-    gen("var a: Int32; fun f(): Int32 { return a; }", |vm, code| {
-        let gid = vm.global_by_name("a");
-        let expected = vec![LoadGlobal(r(0), gid), Ret(r(0))];
-        assert_eq!(expected, code);
-    });
+    gen(
+        "var a: Int32 = 0; fun f(): Int32 { return a; }",
+        |vm, code| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobal(r(0), gid), Ret(r(0))];
+            assert_eq!(expected, code);
+        },
+    );
 }
 
 #[test]
 fn gen_store_global() {
-    gen("var a: Bool; fun f(x: Bool) { a = x; }", |vm, code| {
-        let gid = vm.global_by_name("a");
-        let expected = vec![StoreGlobal(r(0), gid), RetVoid];
-        assert_eq!(expected, code);
-    });
+    gen(
+        "var a: Bool = false; fun f(x: Bool) { a = x; }",
+        |vm, code| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![StoreGlobal(r(0), gid), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
 }
 
 #[test]

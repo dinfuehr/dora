@@ -1168,15 +1168,15 @@ fn test_invoke_abstract_class_ctor() {
 
 #[test]
 fn test_global_get() {
-    ok("var x: Int32; fun foo(): Int32 { return x; }");
+    ok("var x: Int32 = 0; fun foo(): Int32 { return x; }");
 }
 
 #[test]
 fn test_global_set() {
-    ok("var x: Int32; fun foo(a: Int32) { x = a; }");
+    ok("var x: Int32 = 0; fun foo(a: Int32) { x = a; }");
     err(
-        "let x: Int32; fun foo(a: Int32) { x = a; }",
-        pos(1, 37),
+        "let x: Int32 = 0; fun foo(a: Int32) { x = a; }",
+        pos(1, 41),
         SemError::LetReassigned,
     );
 }

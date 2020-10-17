@@ -7,8 +7,8 @@ module Node {
     fun leaf(): Node = Node(Option[Node]::None, Option[Node]::None);
 }
 
-var stretchTreeDepth: Int32;
-var longLivedTreeDepth: Int32;
+var stretchTreeDepth: Int32 = 0;
+var longLivedTreeDepth: Int32 = 0;
 const kArraySize: Int32 = 500000;
 const kMinTreeDepth: Int32 = 4;
 const kMaxTreeDepth: Int32 = 16;

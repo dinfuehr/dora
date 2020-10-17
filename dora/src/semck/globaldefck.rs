@@ -1,5 +1,6 @@
 use parking_lot::RwLock;
 
+use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::BuiltinType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, GlobalId, NodeMap, VM};
@@ -78,6 +79,9 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
 
             let fct_id = self.vm.add_fct(fct);
             glob.initializer = Some(fct_id);
+        } else {
+            let msg = SemError::LetMissingInitialization;
+            self.vm.diag.lock().report(file, g.pos, msg);
         }
     }
 }
@@ -101,7 +105,7 @@ mod tests {
     #[test]
     fn check_type() {
         err(
-            "var x: Foo;",
+            "var x: Foo = 0;",
             pos(1, 8),
             SemError::UnknownType("Foo".into()),
         );

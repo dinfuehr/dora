@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-var x: (Foo, Foo);
+var x: (Foo, Foo) = (Foo(0), Foo(0));
 
 fun main() {
     forceCollect();

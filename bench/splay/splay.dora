@@ -20,9 +20,9 @@ fun main() {
     bench.tearDown();
 }
 
-var rnd: Random;
+var rnd: Random = Random(0L);
 
-var splayTreeSize: Int32;
+var splayTreeSize: Int32 = 0;
 const splayTreeModifications: Int32 = 1000;
 const splayTreePayloadDepth: Int32 = 5;
 

@@ -7,23 +7,23 @@ const BYTES_PER_NODE: Int32 = 40;
 const WORDS_DEAD: Int32 = 100;
 
 const treeHeight: Int32 = 14;
-var treeSize: Int64;
+var treeSize: Int64 = 0L;
 
-var youngBytes: Int64;
-var nodes: Int64;
-var actuallyMut: Int64;
-var mutatorSum: Int64;
-var aexport: Array[Int32];
+var youngBytes: Int64 = 0L;
+var nodes: Int64 = 0L;
+var actuallyMut: Int64 = 0L;
+var mutatorSum: Int64 = 0L;
+var aexport: Array[Int32] = Array::empty[Int32]();
 
-var trees: Array[TreeNode];
-var where: Int32;
-var rnd: Random;
+var trees: Array[TreeNode] = Array::empty[TreeNode]();
+var where: Int32 = 0;
+var rnd: Random = Random(0L);
 
-var size: Int32;
-var workUnits: Int32;
-var promoteRate: Int32;
-var ptrMutRate: Int32;
-var steps: Int32;
+var size: Int32 = 0;
+var workUnits: Int32 = 0;
+var promoteRate: Int32 = 0;
+var ptrMutRate: Int32 = 0;
+var steps: Int32 = 0;
 
 fun height(t: Option[TreeNode]): Int32 {
     if t.isNone() {

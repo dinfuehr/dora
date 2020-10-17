@@ -123,7 +123,7 @@ class NBodySystem {
 }
 
 const PI: Float64 = 3.141592653589793;
-var SOLAR_MASS: Float64;
+var SOLAR_MASS: Float64 = 0.0;
 const DAYS_PER_YEAR: Float64 = 365.24;
 
 class Body {

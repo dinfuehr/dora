@@ -1,12 +1,12 @@
-var glob_bool: Bool;
-var glob_char: Char;
-var glob_byte: UInt8;
-var glob_int: Int32;
-var glob_long: Int64;
-var glob_float: Float32;
-var glob_double: Float64;
-var glob_string: String;
-var glob_obj: Foo;
+var glob_bool: Bool = false;
+var glob_char: Char = 'x';
+var glob_byte: UInt8 = 0Y;
+var glob_int: Int32 = 0;
+var glob_long: Int64 = 0L;
+var glob_float: Float32 = 0.0F;
+var glob_double: Float64 = 0.0;
+var glob_string: String = "";
+var glob_obj: Foo = Foo();
 
 fun main() {
     init_globs();
