@@ -70,7 +70,7 @@ impl<'a> Parser<'a> {
         let mut elements = vec![];
 
         while !self.token.is_eof() {
-            self.parse_top_level_element(&mut elements)?;
+            elements.push(self.parse_top_level_element()?);
         }
 
         let file = self.lexer.file();
@@ -89,10 +89,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_top_level_element(
-        &mut self,
-        elements: &mut Vec<Elem>,
-    ) -> Result<(), ParseErrorAndPos> {
+    fn parse_top_level_element(&mut self) -> Result<Elem, ParseErrorAndPos> {
         let modifiers = self.parse_annotation_usages()?;
 
         match self.token.kind {
@@ -107,7 +104,7 @@ impl<'a> Parser<'a> {
                     ],
                 )?;
                 let fct = self.parse_function(&modifiers)?;
-                elements.push(ElemFunction(fct));
+                Ok(ElemFunction(fct))
             }
 
             TokenKind::Class => {
@@ -121,59 +118,66 @@ impl<'a> Parser<'a> {
                     ],
                 )?;
                 let class = self.parse_class(&modifiers)?;
-                elements.push(ElemClass(class));
+                Ok(ElemClass(class))
             }
 
             TokenKind::Struct => {
                 self.ban_modifiers(&modifiers)?;
                 let struc = self.parse_struct()?;
-                elements.push(ElemStruct(struc))
+                Ok(ElemStruct(struc))
             }
 
             TokenKind::Trait => {
                 self.ban_modifiers(&modifiers)?;
                 let xtrait = self.parse_trait()?;
-                elements.push(ElemTrait(xtrait));
+                Ok(ElemTrait(xtrait))
             }
 
             TokenKind::Impl => {
                 self.ban_modifiers(&modifiers)?;
                 let ximpl = self.parse_impl()?;
-                elements.push(ElemImpl(ximpl));
+                Ok(ElemImpl(ximpl))
             }
 
             TokenKind::Module => {
                 self.ban_modifiers(&modifiers)?;
                 let module = self.parse_module(&modifiers)?;
-                elements.push(ElemModule(module));
+                Ok(ElemModule(module))
             }
 
             TokenKind::Annotation => {
                 let annotation = self.parse_annotation(&modifiers)?;
-                elements.push(ElemAnnotation(annotation));
+                Ok(ElemAnnotation(annotation))
             }
 
             TokenKind::Alias => {
                 self.ban_modifiers(&modifiers)?;
                 let alias = self.parse_alias()?;
-                elements.push(ElemAlias(alias));
+                Ok(ElemAlias(alias))
             }
 
             TokenKind::Let | TokenKind::Var => {
                 self.ban_modifiers(&modifiers)?;
-                self.parse_global(elements)?;
+                let global = self.parse_global()?;
+                Ok(ElemGlobal(global))
             }
 
             TokenKind::Const => {
                 self.ban_modifiers(&modifiers)?;
                 let xconst = self.parse_const()?;
-                elements.push(ElemConst(xconst));
+                Ok(ElemConst(xconst))
             }
 
             TokenKind::Enum => {
                 self.ban_modifiers(&modifiers)?;
                 let xenum = self.parse_enum()?;
-                elements.push(ElemEnum(xenum));
+                Ok(ElemEnum(xenum))
+            }
+
+            TokenKind::Namespace => {
+                self.ban_modifiers(&modifiers)?;
+                let namespace = self.parse_namespace()?;
+                Ok(ElemNamespace(namespace))
             }
 
             _ => {
@@ -181,8 +185,6 @@ impl<'a> Parser<'a> {
                 return Err(ParseErrorAndPos::new(self.token.position, msg));
             }
         }
-
-        Ok(())
     }
 
     fn parse_enum(&mut self) -> Result<Enum, ParseErrorAndPos> {
@@ -204,6 +206,31 @@ impl<'a> Parser<'a> {
             name,
             type_params,
             variants,
+        })
+    }
+
+    fn parse_namespace(&mut self) -> Result<Namespace, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.expect_token(TokenKind::Namespace)?.position;
+        let name = self.expect_identifier()?;
+
+        self.expect_token(TokenKind::LBrace)?;
+
+        let mut elements = Vec::new();
+
+        while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
+            elements.push(self.parse_top_level_element()?);
+        }
+
+        self.expect_token(TokenKind::RBrace)?;
+        let span = self.span_from(start);
+
+        Ok(Namespace {
+            id: self.generate_id(),
+            pos,
+            span,
+            name,
+            elements,
         })
     }
 
@@ -293,7 +320,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_global(&mut self, elements: &mut Vec<Elem>) -> Result<(), ParseErrorAndPos> {
+    fn parse_global(&mut self) -> Result<Global, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
         let reassignable = self.token.is(TokenKind::Var);
@@ -329,9 +356,7 @@ impl<'a> Parser<'a> {
             global.initializer = Some(initializer);
         }
 
-        elements.push(ElemGlobal(global));
-
-        Ok(())
+        Ok(global)
     }
 
     fn parse_trait(&mut self) -> Result<Trait, ParseErrorAndPos> {
@@ -3863,5 +3888,14 @@ mod tests {
     fn parse_alias() {
         let (prog, _) = parse("alias NewType = Int;");
         let _alias = prog.alias0();
+    }
+
+    #[test]
+    fn parse_namespace() {
+        let (prog, _) = parse("namespace foo { fun bar() {} fun baz() {} }");
+        let namespace = prog.namespace0();
+        assert_eq!(namespace.elements.len(), 2);
+        assert!(namespace.elements[0].to_function().is_some());
+        assert!(namespace.elements[1].to_function().is_some());
     }
 }

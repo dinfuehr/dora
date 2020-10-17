@@ -2274,6 +2274,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             ExprIf(ref expr) => self.check_expr_if(expr, expected_ty),
             ExprTuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
             ExprParen(ref expr) => self.check_expr_paren(expr, expected_ty),
+            ExprMatch(_) => unimplemented!(),
         }
     }
 }

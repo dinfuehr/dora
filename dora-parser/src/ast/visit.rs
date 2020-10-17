@@ -53,6 +53,10 @@ pub trait Visitor<'v>: Sized {
         walk_alias(self, e);
     }
 
+    fn visit_namespace(&mut self, e: &'v Namespace) {
+        walk_namespace(self, e);
+    }
+
     fn visit_struct_field(&mut self, f: &'v StructField) {
         walk_struct_field(self, f);
     }
@@ -98,19 +102,24 @@ pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
 
 pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
     for e in &f.elements {
-        match *e {
-            ElemFunction(ref f) => v.visit_fct(f),
-            ElemClass(ref c) => v.visit_class(c),
-            ElemStruct(ref s) => v.visit_struct(s),
-            ElemTrait(ref t) => v.visit_trait(t),
-            ElemImpl(ref i) => v.visit_impl(i),
-            ElemModule(ref m) => v.visit_module(m),
-            ElemAnnotation(ref a) => v.visit_annotation(a),
-            ElemGlobal(ref g) => v.visit_global(g),
-            ElemConst(ref c) => v.visit_const(c),
-            ElemEnum(ref e) => v.visit_enum(e),
-            ElemAlias(ref e) => v.visit_alias(e),
-        }
+        walk_elem(v, e);
+    }
+}
+
+pub fn walk_elem<'v, V: Visitor<'v>>(v: &mut V, e: &'v Elem) {
+    match *e {
+        ElemFunction(ref f) => v.visit_fct(f),
+        ElemClass(ref c) => v.visit_class(c),
+        ElemStruct(ref s) => v.visit_struct(s),
+        ElemTrait(ref t) => v.visit_trait(t),
+        ElemImpl(ref i) => v.visit_impl(i),
+        ElemModule(ref m) => v.visit_module(m),
+        ElemAnnotation(ref a) => v.visit_annotation(a),
+        ElemGlobal(ref g) => v.visit_global(g),
+        ElemConst(ref c) => v.visit_const(c),
+        ElemEnum(ref e) => v.visit_enum(e),
+        ElemAlias(ref e) => v.visit_alias(e),
+        ElemNamespace(ref e) => v.visit_namespace(e),
     }
 }
 
@@ -175,6 +184,12 @@ pub fn walk_enum<'v, V: Visitor<'v>>(_v: &mut V, _e: &'v Enum) {
 
 pub fn walk_alias<'v, V: Visitor<'v>>(v: &mut V, a: &'v Alias) {
     v.visit_type(&a.ty);
+}
+
+pub fn walk_namespace<'v, V: Visitor<'v>>(v: &mut V, namespace: &'v Namespace) {
+    for e in &namespace.elements {
+        walk_elem(v, e);
+    }
 }
 
 pub fn walk_struct<'v, V: Visitor<'v>>(v: &mut V, s: &'v Struct) {
@@ -364,6 +379,10 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         }
 
         ExprParen(ref value) => {
+            v.visit_expr(&value.expr);
+        }
+
+        ExprMatch(ref value) => {
             v.visit_expr(&value.expr);
         }
 

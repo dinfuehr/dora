@@ -61,6 +61,13 @@ impl Ast {
     }
 
     #[cfg(test)]
+    pub fn namespace0(&self) -> &Namespace {
+        self.files.last().unwrap().elements[0]
+            .to_namespace()
+            .unwrap()
+    }
+
+    #[cfg(test)]
     pub fn trai(&self, index: usize) -> &Trait {
         self.files.last().unwrap().elements[index]
             .to_trait()
@@ -135,6 +142,7 @@ pub enum Elem {
     ElemConst(Const),
     ElemEnum(Enum),
     ElemAlias(Alias),
+    ElemNamespace(Namespace),
 }
 
 impl Elem {
@@ -151,6 +159,7 @@ impl Elem {
             &ElemConst(ref c) => c.id,
             &ElemEnum(ref e) => e.id,
             &ElemAlias(ref e) => e.id,
+            &ElemNamespace(ref e) => e.id,
         }
     }
 
@@ -178,6 +187,13 @@ impl Elem {
     pub fn to_alias(&self) -> Option<&Alias> {
         match self {
             &ElemAlias(ref alias) => Some(alias),
+            _ => None,
+        }
+    }
+
+    pub fn to_namespace(&self) -> Option<&Namespace> {
+        match self {
+            &ElemNamespace(ref namespace) => Some(namespace),
             _ => None,
         }
     }
@@ -241,6 +257,15 @@ pub struct Global {
     pub reassignable: bool,
     pub data_type: Type,
     pub initializer: Option<Function>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Namespace {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub name: Name,
+    pub elements: Vec<Elem>,
 }
 
 #[derive(Clone, Debug)]
@@ -1257,6 +1282,7 @@ pub enum Expr {
     ExprIf(ExprIfType),
     ExprTuple(ExprTupleType),
     ExprParen(ExprParenType),
+    ExprMatch(ExprMatchType),
 }
 
 impl Expr {
@@ -1902,6 +1928,7 @@ impl Expr {
             Expr::ExprIf(ref val) => val.pos,
             Expr::ExprTuple(ref val) => val.pos,
             Expr::ExprParen(ref val) => val.pos,
+            Expr::ExprMatch(ref val) => val.pos,
         }
     }
 
@@ -1929,6 +1956,7 @@ impl Expr {
             Expr::ExprIf(ref val) => val.span,
             Expr::ExprTuple(ref val) => val.span,
             Expr::ExprParen(ref val) => val.span,
+            Expr::ExprMatch(ref val) => val.span,
         }
     }
 
@@ -1956,6 +1984,7 @@ impl Expr {
             Expr::ExprIf(ref val) => val.id,
             Expr::ExprTuple(ref val) => val.id,
             Expr::ExprParen(ref val) => val.id,
+            Expr::ExprMatch(ref val) => val.id,
         }
     }
 }
@@ -2156,6 +2185,15 @@ impl ExprCallType {
 
 #[derive(Clone, Debug)]
 pub struct ExprParenType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub expr: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprMatchType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,

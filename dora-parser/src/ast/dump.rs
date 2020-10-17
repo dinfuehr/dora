@@ -68,19 +68,24 @@ impl<'a> AstDumper<'a> {
 
     fn dump_file(&mut self, f: &File) {
         for el in &f.elements {
-            match *el {
-                ElemFunction(ref fct) => self.dump_fct(fct),
-                ElemClass(ref cls) => self.dump_class(cls),
-                ElemStruct(ref struc) => self.dump_struct(struc),
-                ElemTrait(ref xtrait) => self.dump_trait(xtrait),
-                ElemImpl(ref ximpl) => self.dump_impl(ximpl),
-                ElemModule(ref module) => self.dump_module(module),
-                ElemAnnotation(ref annotation) => self.dump_annotation(annotation),
-                ElemGlobal(ref global) => self.dump_global(global),
-                ElemConst(ref xconst) => self.dump_const(xconst),
-                ElemEnum(ref xenum) => self.dump_enum(xenum),
-                ElemAlias(ref alias) => self.dump_alias(alias),
-            }
+            self.dump_elem(el);
+        }
+    }
+
+    fn dump_elem(&mut self, el: &Elem) {
+        match *el {
+            ElemFunction(ref fct) => self.dump_fct(fct),
+            ElemClass(ref cls) => self.dump_class(cls),
+            ElemStruct(ref struc) => self.dump_struct(struc),
+            ElemTrait(ref xtrait) => self.dump_trait(xtrait),
+            ElemImpl(ref ximpl) => self.dump_impl(ximpl),
+            ElemModule(ref module) => self.dump_module(module),
+            ElemAnnotation(ref annotation) => self.dump_annotation(annotation),
+            ElemGlobal(ref global) => self.dump_global(global),
+            ElemConst(ref xconst) => self.dump_const(xconst),
+            ElemEnum(ref xenum) => self.dump_enum(xenum),
+            ElemAlias(ref alias) => self.dump_alias(alias),
+            ElemNamespace(ref namespace) => self.dump_namespace(namespace),
         }
     }
 
@@ -130,6 +135,22 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             d.dump_type(&alias.ty);
+        });
+    }
+
+    fn dump_namespace(&mut self, namespace: &Namespace) {
+        dump!(
+            self,
+            "namespace {} @ {} {}",
+            self.str(namespace.name),
+            namespace.pos,
+            namespace.id
+        );
+
+        self.indent(|d| {
+            for e in &namespace.elements {
+                d.dump_elem(e);
+            }
         });
     }
 
@@ -538,6 +559,7 @@ impl<'a> AstDumper<'a> {
             ExprIf(ref expr) => self.dump_expr_if(expr),
             ExprTuple(ref expr) => self.dump_expr_tuple(expr),
             ExprParen(ref expr) => self.dump_expr_paren(expr),
+            ExprMatch(ref expr) => self.dump_expr_match(expr),
         }
     }
 
@@ -709,6 +731,13 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_paren(&mut self, expr: &ExprParenType) {
         dump!(self, "paren @ {} {}", expr.pos, expr.id);
+        self.indent(|d| {
+            d.dump_expr(&expr.expr);
+        });
+    }
+
+    fn dump_expr_match(&mut self, expr: &ExprMatchType) {
+        dump!(self, "match @ {} {}", expr.pos, expr.id);
         self.indent(|d| {
             d.dump_expr(&expr.expr);
         });

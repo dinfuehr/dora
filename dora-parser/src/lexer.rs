@@ -567,6 +567,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("module", TokenKind::Module);
     keywords.insert("annotation", TokenKind::Annotation);
     keywords.insert("extends", TokenKind::Extends);
+    keywords.insert("namespace", TokenKind::Namespace);
 
     // "small" shapes
     keywords.insert("fun", TokenKind::Fun);
@@ -1028,10 +1029,11 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Else, 1, 18);
         assert_tok(&mut reader, TokenKind::Match, 1, 23);
 
-        let mut reader = Lexer::from_str("self class super");
+        let mut reader = Lexer::from_str("self class super namespace");
         assert_tok(&mut reader, TokenKind::This, 1, 1);
         assert_tok(&mut reader, TokenKind::Class, 1, 6);
         assert_tok(&mut reader, TokenKind::Super, 1, 12);
+        assert_tok(&mut reader, TokenKind::Namespace, 1, 18);
 
         let mut reader = Lexer::from_str("break continue return");
         assert_tok(&mut reader, TokenKind::Break, 1, 1);
