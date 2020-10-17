@@ -1091,6 +1091,23 @@ fn method_call_with_multiple_matching_traits() {
         pos(8, 30),
         ErrorMessage::MultipleCandidatesForMethod("A".into(), "f".into(), Vec::new()),
     );
+
+    err(
+        "class A
+            trait X { fun f(x: Int64); }
+            trait Y { fun f(x: Int64); }
+
+            impl X for A { fun f(x: Int64) {} }
+            impl Y for A { fun f(x: Int64) {} }
+
+            fun g(a: A) { a.f(123); }",
+        pos(8, 30),
+        ErrorMessage::MultipleCandidatesForMethod(
+            "A".into(),
+            "f".into(),
+            vec!["Int64".to_string()],
+        ),
+    );
 }
 
 #[test]
