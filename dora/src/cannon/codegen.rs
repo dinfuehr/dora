@@ -1547,8 +1547,16 @@ where
 
             BytecodeType::TypeParam(_) => unreachable!(),
 
-            BytecodeType::Ptr
-            | BytecodeType::UInt8
+            BytecodeType::Ptr => {
+                let mode = MachineMode::Ptr;
+                let reg = REG_RESULT;
+                self.asm.load_mem(mode, reg.into(), src.mem());
+                self.asm
+                    .test_if_nil_bailout(Position::new(1, 1), reg, Trap::ILLEGAL);
+                self.asm.store_mem(mode, dest.mem(), reg.into());
+            }
+
+            BytecodeType::UInt8
             | BytecodeType::Bool
             | BytecodeType::Char
             | BytecodeType::Int32
@@ -1791,8 +1799,7 @@ where
                 }
 
                 BytecodeType::TypeParam(_) => unreachable!(),
-                BytecodeType::Ptr
-                | BytecodeType::UInt8
+                BytecodeType::UInt8
                 | BytecodeType::Bool
                 | BytecodeType::Char
                 | BytecodeType::Int32
@@ -1806,7 +1813,19 @@ where
                     self.asm
                         .store_mem(mode, Mem::Base(obj_reg, field.offset), value);
 
-                    needs_write_barrier = field.ty.reference_type();
+                    needs_write_barrier = false;
+                }
+
+                BytecodeType::Ptr => {
+                    let value = REG_RESULT;
+                    let mode = MachineMode::Ptr;
+
+                    self.emit_load_register(src, value.into());
+                    self.asm.test_if_nil_bailout(pos, value, Trap::NIL);
+                    self.asm
+                        .store_mem(mode, Mem::Base(obj_reg, field.offset), value.into());
+
+                    needs_write_barrier = true;
                 }
             }
 
@@ -2086,10 +2105,16 @@ where
                 | BytecodeType::Char
                 | BytecodeType::Int64
                 | BytecodeType::Float32
-                | BytecodeType::Float64
-                | BytecodeType::Ptr => {
+                | BytecodeType::Float64 => {
                     let reg = result_reg(self.vm, bytecode_type);
                     self.emit_load_register(src, reg.into());
+                }
+
+                BytecodeType::Ptr => {
+                    let reg = REG_RESULT;
+                    self.emit_load_register(src, reg.into());
+                    self.asm
+                        .test_if_nil_bailout(Position::new(1, 1), REG_RESULT, Trap::ILLEGAL);
                 }
             }
         }
