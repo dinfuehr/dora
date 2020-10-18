@@ -66,8 +66,6 @@ module String {
 
   @internal fun fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
 
-  fun fromString(val: String): String = val.clone();
-
   fun binary(data: Int64): String {
     var data = data;
     if data == 0L { return "0"; }
