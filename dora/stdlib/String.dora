@@ -58,20 +58,13 @@
 }
 
 module String {
-  @internal fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64): Option[String];
-  @internal fun fromStringPartOrNull(val: String, offset: Int64, len: Int64): Option[String];
-
-  fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] {
-    String::fromBytesPartOrNull(val, offset, len)
-  }
+  @internal fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] ;
 
   fun fromBytes(val: Array[UInt8]): Option[String] {
-    String::fromBytesPartOrNull(val, 0L, val.size())
+    String::fromBytesPart(val, 0L, val.size())
   }
 
-  fun fromStringPart(val: String, offset: Int64, len: Int64): Option[String] {
-    String::fromStringPartOrNull(val, offset, len)
-  }
+  @internal fun fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
 
   fun fromString(val: String): String = val.clone();
 

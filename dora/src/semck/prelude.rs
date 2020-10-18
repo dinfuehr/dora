@@ -413,13 +413,13 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_module_method(
         vm,
         module_id,
-        "fromBytesPartOrNull",
+        "fromBytesPart",
         stdlib::str_from_bytes as *const u8,
     );
     native_module_method(
         vm,
         module_id,
-        "fromStringPartOrNull",
+        "fromStringPart",
         stdlib::str_from_bytes as *const u8,
     );
 
