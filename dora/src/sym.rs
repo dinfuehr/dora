@@ -8,7 +8,9 @@ use crate::sym::TermSym::{
 };
 use crate::ty::TypeListId;
 use crate::vm::module::ModuleId;
-use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, StructId, TraitId, VarId};
+use crate::vm::{
+    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, NamespaceId, StructId, TraitId, VarId,
+};
 use dora_parser::interner::Name;
 
 #[derive(Debug)]
@@ -163,6 +165,7 @@ pub enum TermSym {
     SymConst(ConstId),
     SymClassConstructor(ClassId),
     SymStructConstructor(StructId),
+    SymNamespace(NamespaceId),
 }
 
 impl TypeSym {

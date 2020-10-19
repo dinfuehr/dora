@@ -48,6 +48,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
     let mut map_enum_defs = NodeMap::new(); // get EnumId from ast node
     let mut map_extension_defs = NodeMap::new(); // get ExtensionId from ast node
+    let mut map_namespaces = NodeMap::new(); // get NamespaceId from ast node
 
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
@@ -62,6 +63,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
         &mut map_const_defs,
         &mut map_enum_defs,
         &mut map_extension_defs,
+        &mut map_namespaces,
     );
     return_on_error!(vm);
 

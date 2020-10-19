@@ -35,6 +35,7 @@ pub enum SemError {
     ShadowConst(String),
     ShadowModule(String),
     ShadowEnum(String),
+    ShadowNamespace(String),
     ShadowEnumValue(String),
     InvalidLhsAssignment,
     NoEnumValue,
@@ -235,6 +236,7 @@ impl SemError {
             SemError::ShadowModule(ref name) => format!("can not shadow module `{}`.", name),
             SemError::ShadowConst(ref name) => format!("can not shadow const `{}`.", name),
             SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
+            SemError::ShadowNamespace(ref name) => format!("can not shadow namespace `{}`.", name),
             SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
             SemError::NoEnumValue => "enum needs at least one value.".into(),
             SemError::EnumArgsIncompatible(ref xenum, ref name, ref def, ref expr) => {

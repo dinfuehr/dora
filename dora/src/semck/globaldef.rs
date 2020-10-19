@@ -6,7 +6,7 @@ use crate::error::msg::SemError;
 use crate::gc::Address;
 use crate::sym::TermSym::{
     SymClassConstructor, SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
-    SymStructConstructor, SymStructConstructorAndModule, SymVar,
+    SymNamespace, SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait};
 use crate::sym::{SymLevel, TermSym, TypeSym};
@@ -15,7 +15,8 @@ use crate::vm::module::ModuleId;
 use crate::vm::{
     class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
     ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData,
-    ImplId, NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
+    ImplId, NamespaceData, NamespaceId, NodeMap, StructData, StructId, TraitData, TraitId,
+    TypeParam, VM,
 };
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
@@ -33,11 +34,13 @@ pub fn check<'ast>(
     map_const_defs: &mut NodeMap<ConstId>,
     map_enum_defs: &mut NodeMap<EnumId>,
     map_extension_defs: &mut NodeMap<ExtensionId>,
+    map_namespaces: &mut NodeMap<NamespaceId>,
 ) {
     let ast = vm.ast;
     let mut gdef = GlobalDef {
         vm,
         file_id: 0,
+        namespace_id: None,
         map_cls_defs,
         map_struct_defs,
         map_trait_defs,
@@ -47,6 +50,7 @@ pub fn check<'ast>(
         map_const_defs,
         map_enum_defs,
         map_extension_defs,
+        map_namespaces,
     };
 
     gdef.visit_ast(ast);
@@ -55,6 +59,7 @@ pub fn check<'ast>(
 struct GlobalDef<'x, 'ast: 'x> {
     vm: &'x mut VM<'ast>,
     file_id: u32,
+    namespace_id: Option<NamespaceId>,
     map_cls_defs: &'x mut NodeMap<ClassId>,
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
@@ -64,12 +69,37 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_const_defs: &'x mut NodeMap<ConstId>,
     map_enum_defs: &'x mut NodeMap<EnumId>,
     map_extension_defs: &'x mut NodeMap<ExtensionId>,
+    map_namespaces: &'x mut NodeMap<NamespaceId>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     fn visit_file(&mut self, f: &'ast File) {
         walk_file(self, f);
         self.file_id += 1;
+    }
+
+    fn visit_namespace(&mut self, n: &'ast Namespace) {
+        let id: NamespaceId = self.vm.namespaces.len().into();
+        let namespace = NamespaceData {
+            id,
+            file: self.file_id.into(),
+            pos: n.pos,
+            name: n.name,
+            namespace_id: self.namespace_id,
+            table: SymLevel::new(),
+        };
+
+        self.vm.namespaces.push(RwLock::new(namespace));
+        self.map_namespaces.insert(n.id, id);
+
+        let sym = SymNamespace(id);
+        if let Some(sym) = self.insert_term(n.name, sym) {
+            report_term_shadow(self.vm, n.name, self.file_id.into(), n.pos, sym);
+        }
+
+        let saved_namespace_id = self.namespace_id;
+        walk_namespace(self, n);
+        self.namespace_id = saved_namespace_id;
     }
 
     fn visit_trait(&mut self, t: &'ast Trait) {
@@ -87,7 +117,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_trait_defs.insert(t.id, id);
 
         let sym = SymTrait(id);
-        if let Some(sym) = self.vm.sym.lock().insert_type(t.name, sym) {
+        if let Some(sym) = self.insert_type(t.name, sym) {
             report_type_shadow(self.vm, t.name, self.file_id.into(), t.pos, sym);
         }
     }
@@ -116,7 +146,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_global_defs.insert(g.id, id);
 
         let sym = SymGlobal(id);
-        if let Some(sym) = self.vm.sym.lock().insert_term(g.name, sym) {
+        if let Some(sym) = self.insert_term(g.name, sym) {
             report_term_shadow(self.vm, g.name, self.file_id.into(), g.pos, sym);
         }
     }
@@ -222,7 +252,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_const_defs.insert(c.id, id);
 
         let sym = SymConst(id);
-        if let Some(sym) = self.vm.sym.lock().insert_term(c.name, sym) {
+        if let Some(sym) = self.insert_term(c.name, sym) {
             report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym);
         }
     }
@@ -276,7 +306,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_cls_defs.insert(c.id, id);
 
         let sym = SymClass(id);
-        if let Some(sym) = self.vm.sym.lock().insert_type(c.name, sym) {
+        if let Some(sym) = self.insert_type(c.name, sym) {
             report_type_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym);
             return;
         }
@@ -314,7 +344,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_struct_defs.insert(s.id, id);
 
         let sym = SymStruct(id);
-        if let Some(sym) = self.vm.sym.lock().insert_type(s.name, sym) {
+        if let Some(sym) = self.insert_type(s.name, sym) {
             report_type_shadow(self.vm, s.name, self.file_id.into(), s.pos, sym);
             return;
         }
@@ -401,9 +431,19 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_enum_defs.insert(e.id, id);
 
         let sym = SymEnum(id);
-        if let Some(sym) = self.vm.sym.lock().insert_type(e.name, sym) {
+        if let Some(sym) = self.insert_type(e.name, sym) {
             report_type_shadow(self.vm, e.name, self.file_id.into(), e.pos, sym);
         }
+    }
+}
+
+impl<'x, 'ast> GlobalDef<'x, 'ast> {
+    fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+        self.vm.sym.lock().insert_type(name, sym)
+    }
+
+    fn insert_term(&mut self, name: Name, sym: TermSym) -> Option<TermSym> {
+        self.vm.sym.lock().insert_term(name, sym)
     }
 }
 
@@ -436,6 +476,7 @@ pub fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym:
         SymStructConstructor(_) | SymStructConstructorAndModule(_, _) => {
             SemError::ShadowStructConstructor(name)
         }
+        SymNamespace(_) => SemError::ShadowNamespace(name),
         x => unimplemented!("{:?}", x),
     };
 
@@ -592,6 +633,17 @@ mod tests {
             "enum Foo { A } class Foo",
             pos(1, 16),
             SemError::ShadowEnum("Foo".into()),
+        );
+    }
+
+    #[test]
+    fn test_namespace() {
+        ok("namespace foo {} namespace bar {}");
+
+        err(
+            "namespace foo {} namespace foo {}",
+            pos(1, 18),
+            SemError::ShadowNamespace("foo".into()),
         );
     }
 }

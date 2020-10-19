@@ -44,6 +44,7 @@ pub use self::impls::{ImplData, ImplId};
 pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
 };
+pub use self::namespaces::{NamespaceData, NamespaceId};
 pub use self::src::{CallType, ConvInfo, FctSrc, ForTypeInfo, IdentType, NodeMap, Var, VarId};
 pub use self::strct::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,
@@ -61,6 +62,7 @@ mod global;
 mod impls;
 mod known;
 pub mod module;
+mod namespaces;
 mod src;
 mod strct;
 mod traits;
@@ -104,6 +106,7 @@ pub struct VM<'ast> {
     pub tuples: Mutex<Tuples>,                 // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
+    pub namespaces: Vec<RwLock<NamespaceData>>, // storer all namespace definitions
     pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
     pub enums: Vec<RwLock<EnumData>>,          // store all enum source definitions
@@ -145,6 +148,7 @@ impl<'ast> VM<'ast> {
             tuples: Mutex::new(Tuples::new()),
             modules: GrowableVec::new(),
             module_defs: GrowableVec::new(),
+            namespaces: Vec::new(),
             enums: Vec::new(),
             enum_defs: GrowableVec::new(),
             traits: Vec::new(),
