@@ -11,7 +11,9 @@ use crate::gc::Address;
 use crate::ty::{BuiltinType, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::module::ModuleId;
-use crate::vm::{ClassId, ExtensionId, FctSrc, FileId, ImplId, TraitId, TypeParam, VM};
+use crate::vm::{
+    ClassId, ExtensionId, FctSrc, FileId, ImplId, NamespaceId, TraitId, TypeParam, VM,
+};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctId(pub usize);
@@ -39,6 +41,7 @@ pub struct Fct<'ast> {
     pub ast: &'ast ast::Function,
     pub pos: Position,
     pub name: Name,
+    pub namespace_id: Option<NamespaceId>,
     pub parent: FctParent,
     pub has_open: bool,
     pub has_override: bool,

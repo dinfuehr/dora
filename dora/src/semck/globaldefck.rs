@@ -49,6 +49,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
                 pos: initializer.pos,
                 ast: initializer,
                 name: initializer.name,
+                namespace_id: None,
                 param_types: Vec::new(),
                 return_type: BuiltinType::Unit,
                 parent: FctParent::None,

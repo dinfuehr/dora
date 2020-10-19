@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::gc::Address;
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, FileId};
+use crate::vm::{FctId, FileId, NamespaceId};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlobalId(u32);
@@ -28,6 +28,7 @@ pub struct GlobalData {
     pub id: GlobalId,
     pub file: FileId,
     pub pos: Position,
+    pub namespace_id: Option<NamespaceId>,
     pub ty: BuiltinType,
     pub reassignable: bool,
     pub name: Name,

@@ -5,7 +5,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::ty::BuiltinType;
-use crate::vm::{FctId, FileId, VM};
+use crate::vm::{FctId, FileId, NamespaceId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitId(u32);
@@ -20,6 +20,7 @@ impl From<u32> for TraitId {
 pub struct TraitData {
     pub id: TraitId,
     pub file: FileId,
+    pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,
     pub methods: Vec<FctId>,

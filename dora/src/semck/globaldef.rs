@@ -107,6 +107,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let xtrait = TraitData {
             id,
             file: self.file_id.into(),
+            namespace_id: self.namespace_id,
             pos: t.pos,
             name: t.name,
             methods: Vec::new(),
@@ -129,6 +130,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let global = GlobalData {
                 id,
                 file: self.file_id.into(),
+                namespace_id: self.namespace_id,
                 pos: g.pos,
                 name: g.name,
                 ty: BuiltinType::Unit,
@@ -374,6 +376,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             pos: f.pos,
             ast: f,
             name: f.name,
+            namespace_id: self.namespace_id,
             param_types: Vec::new(),
             return_type: BuiltinType::Unit,
             parent: FctParent::None,
