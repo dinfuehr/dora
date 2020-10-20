@@ -2472,8 +2472,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             &IdentType::Var(varid) => self.visit_expr_ident_var(varid, dest),
             &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest),
 
-            &IdentType::Field(_, _) => unimplemented!(),
+            &IdentType::Field(_, _) => unreachable!(),
             &IdentType::Struct(_) => unimplemented!(),
+            &IdentType::Namespace(_) => unimplemented!(),
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
 
             &IdentType::Enum(_) | &IdentType::EnumType(_, _) | &IdentType::EnumValue(_, _) => {

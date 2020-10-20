@@ -9,7 +9,9 @@ use dora_parser::interner::Name;
 use crate::compiler::fct::JitFctId;
 use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::vm::module::ModuleId;
-use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, StructId, TraitId};
+use crate::vm::{
+    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, NamespaceId, StructId, TraitId,
+};
 
 #[derive(Debug)]
 pub struct FctSrc {
@@ -197,6 +199,9 @@ pub enum IdentType {
 
     // specific value in enum
     EnumValue(BuiltinType, usize),
+
+    // namespace
+    Namespace(NamespaceId),
 }
 
 impl IdentType {

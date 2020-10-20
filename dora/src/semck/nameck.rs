@@ -11,7 +11,7 @@ use dora_parser::lexer::position::Position;
 use crate::semck::globaldef::report_term_shadow;
 use crate::sym::TermSym::{
     SymClassConstructor, SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
-    SymStructConstructor, SymStructConstructorAndModule, SymVar,
+    SymNamespace, SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTypeParam};
 use crate::ty::BuiltinType;
@@ -261,6 +261,11 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             (Some(SymStructConstructor(id)), _) => {
                 self.src.map_idents.insert(ident.id, IdentType::Struct(id))
             }
+
+            (Some(SymNamespace(id)), _) => self
+                .src
+                .map_idents
+                .insert(ident.id, IdentType::Namespace(id)),
 
             (None, None) => {
                 let name = self.vm.interner.str(ident.name).to_string();

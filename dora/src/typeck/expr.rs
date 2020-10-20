@@ -552,6 +552,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 BuiltinType::Error
             }
 
+            &IdentType::Namespace(_) => unimplemented!(),
+
             &IdentType::EnumValue(_, _) => unreachable!(),
             &IdentType::EnumType(_, _) => unreachable!(),
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
@@ -677,7 +679,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return;
             }
 
-            &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
+            &IdentType::Method(_, _)
+            | &IdentType::MethodType(_, _, _)
+            | &IdentType::Namespace(_) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
                 unreachable!()
             }
