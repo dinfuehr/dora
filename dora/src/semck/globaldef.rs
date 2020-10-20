@@ -98,6 +98,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
 
         let saved_namespace_id = self.namespace_id;
+        self.namespace_id = Some(id);
         walk_namespace(self, n);
         self.namespace_id = saved_namespace_id;
     }
@@ -404,7 +405,10 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             intrinsic: None,
         };
 
-        if let Err(sym) = self.vm.add_fct_to_sym(fct) {
+        let fctid = self.vm.add_fct(fct);
+        let sym = SymFct(fctid);
+
+        if let Some(sym) = self.insert_term(f.name, sym) {
             report_term_shadow(self.vm, f.name, self.file_id.into(), f.pos, sym);
         }
     }
@@ -442,11 +446,23 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
 impl<'x, 'ast> GlobalDef<'x, 'ast> {
     fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
-        self.vm.sym.lock().insert_type(name, sym)
+        if let Some(namespace_id) = self.namespace_id {
+            let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+            let mut namespace = namespace.write();
+            namespace.table.insert_type(name, sym)
+        } else {
+            self.vm.sym.lock().insert_type(name, sym)
+        }
     }
 
     fn insert_term(&mut self, name: Name, sym: TermSym) -> Option<TermSym> {
-        self.vm.sym.lock().insert_term(name, sym)
+        if let Some(namespace_id) = self.namespace_id {
+            let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+            let mut namespace = namespace.write();
+            namespace.table.insert_term(name, sym)
+        } else {
+            self.vm.sym.lock().insert_term(name, sym)
+        }
     }
 }
 
@@ -642,11 +658,18 @@ mod tests {
     #[test]
     fn test_namespace() {
         ok("namespace foo {} namespace bar {}");
+        ok("fun bar() {} namespace foo { fun bar() {} }");
 
         err(
             "namespace foo {} namespace foo {}",
             pos(1, 18),
             SemError::ShadowNamespace("foo".into()),
+        );
+
+        err(
+            "namespace foo { fun bar() {} fun bar() {} }",
+            pos(1, 30),
+            SemError::ShadowFunction("bar".into()),
         );
     }
 }

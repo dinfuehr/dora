@@ -16,8 +16,7 @@ use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
-use crate::sym::TermSym::SymFct;
-use crate::sym::{SymTable, TermSym};
+use crate::sym::SymTable;
 use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeLists};
 use crate::utils::GrowableVec;
@@ -295,22 +294,6 @@ impl<'ast> VM<'ast> {
         fcts.push(Arc::new(RwLock::new(fct)));
 
         fctid
-    }
-
-    pub fn add_fct_to_sym(&mut self, fct: Fct<'ast>) -> Result<FctId, TermSym> {
-        let name = fct.name;
-        let fctid = self.add_fct(fct);
-
-        let mut sym = self.sym.lock();
-
-        match sym.get_term(name) {
-            Some(sym) => Err(sym),
-            None => {
-                assert!(sym.insert_term(name, SymFct(fctid)).is_none());
-
-                Ok(fctid)
-            }
-        }
     }
 
     #[cfg(test)]
