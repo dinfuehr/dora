@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::error::msg::SemError;
 use crate::vm::VM;
-use crate::vm::{Fct, FctId};
+use crate::vm::{init_global_addresses, Fct, FctId};
 use dora_parser::ast::{self, Ast};
 
 use crate::driver::cmd;
@@ -79,6 +79,7 @@ pub fn start(content: Option<&str>) -> i32 {
 
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 
+    init_global_addresses(&vm);
     vm.threads.attach_current_thread();
 
     let code = if vm.args.cmd_test {

@@ -38,7 +38,7 @@ pub use self::enums::{
 pub use self::extension::{ExtensionData, ExtensionId};
 pub use self::fct::{Fct, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
-pub use self::global::{GlobalData, GlobalId};
+pub use self::global::{init_global_addresses, GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
 pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
