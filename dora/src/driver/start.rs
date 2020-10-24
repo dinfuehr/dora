@@ -16,14 +16,8 @@ use crate::semck::specialize::specialize_class_id;
 use crate::ty::SourceType;
 use dora_parser::parser::Parser;
 
-pub fn start(content: Option<&str>) -> i32 {
-    let fuzzing = content.is_some();
-
-    let args = if fuzzing {
-        Default::default()
-    } else {
-        cmd::parse()
-    };
+pub fn start() -> i32 {
+    let args = cmd::parse();
 
     if args.flag_version {
         println!("dora v0.01b");
@@ -34,7 +28,7 @@ pub fn start(content: Option<&str>) -> i32 {
     let empty = Ast::new();
     let mut vm = VM::new(args, &empty);
 
-    if let Err(code) = parse_all_files(&mut vm, &mut ast, content) {
+    if let Err(code) = parse_all_files(&mut vm, &mut ast) {
         return code;
     }
 
@@ -99,9 +93,7 @@ pub fn start(content: Option<&str>) -> i32 {
     code
 }
 
-fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<(), i32> {
-    let fuzzing = content.is_some();
-
+fn parse_all_files(vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     let stdlib_dir = vm.args.flag_stdlib.clone();
 
     if let Some(stdlib) = stdlib_dir {
@@ -114,10 +106,6 @@ fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<
 
     if let Some(boots) = boots_dir {
         parse_dir(&boots, vm, ast)?;
-    }
-
-    if fuzzing {
-        return parse_str(content.unwrap(), vm, ast);
     }
 
     let arg_file = vm.args.arg_file.clone();

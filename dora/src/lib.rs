@@ -53,11 +53,6 @@ mod vtable;
 mod test;
 
 #[cfg(not(test))]
-pub fn run_content(content: &str) -> i32 {
-    driver::start(Some(content))
-}
-
-#[cfg(not(test))]
 pub fn run() -> i32 {
-    driver::start(None)
+    driver::start()
 }
