@@ -105,6 +105,94 @@ impl SymTable {
 }
 
 #[derive(Debug)]
+pub struct SymTables<'a> {
+    global: &'a SymLevel,
+    levels: Vec<SymLevel>,
+}
+
+impl<'a> SymTables<'a> {
+    pub fn new(global: &'a SymLevel) -> SymTables {
+        SymTables {
+            global,
+            levels: Vec::new(),
+        }
+    }
+
+    pub fn push_level(&mut self) {
+        self.levels.push(SymLevel::new());
+    }
+
+    pub fn pop_level(&mut self) {
+        assert!(self.levels.len() >= 1);
+        self.levels.pop();
+    }
+
+    pub fn get_type(&self, name: Name) -> Option<TypeSym> {
+        for level in self.levels.iter().rev() {
+            if let Some(val) = level.get_type(name) {
+                return Some(val.clone());
+            }
+        }
+
+        self.global.get_type(name).cloned()
+    }
+
+    pub fn get_term(&self, name: Name) -> Option<TermSym> {
+        for level in self.levels.iter().rev() {
+            if let Some(val) = level.get_term(name) {
+                return Some(val.clone());
+            }
+        }
+
+        self.global.get_term(name).cloned()
+    }
+
+    pub fn get_class(&self, name: Name) -> Option<ClassId> {
+        self.get_type(name).and_then(|n| n.to_class())
+    }
+
+    pub fn get_const(&self, name: Name) -> Option<ConstId> {
+        self.get_term(name).and_then(|n| n.to_const())
+    }
+
+    pub fn get_fct(&self, name: Name) -> Option<FctId> {
+        self.get_term(name).and_then(|n| n.to_fct())
+    }
+
+    pub fn get_struct(&self, name: Name) -> Option<StructId> {
+        self.get_type(name).and_then(|n| n.to_struct())
+    }
+
+    pub fn get_trait(&self, name: Name) -> Option<TraitId> {
+        self.get_type(name).and_then(|n| n.to_trait())
+    }
+
+    pub fn get_module(&self, name: Name) -> Option<ModuleId> {
+        self.get_term(name).and_then(|n| n.to_module())
+    }
+
+    pub fn get_enum(&self, name: Name) -> Option<EnumId> {
+        self.get_type(name).and_then(|n| n.to_enum())
+    }
+
+    pub fn get_global(&self, name: Name) -> Option<GlobalId> {
+        self.get_term(name).and_then(|n| n.to_global())
+    }
+
+    pub fn get_var(&self, name: Name) -> Option<VarId> {
+        self.get_term(name).and_then(|n| n.to_var())
+    }
+
+    pub fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+        self.levels.last_mut().unwrap().insert_type(name, sym)
+    }
+
+    pub fn insert_term(&mut self, name: Name, sym: TermSym) -> Option<TermSym> {
+        self.levels.last_mut().unwrap().insert_term(name, sym)
+    }
+}
+
+#[derive(Debug)]
 pub struct SymLevel {
     types: HashMap<Name, TypeSym>,
     terms: HashMap<Name, TermSym>,
