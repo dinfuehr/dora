@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::TypeSym;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
@@ -77,7 +77,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
             FctParent::Trait(_) => {
                 if fct.has_self() {
-                    fct.param_types.push(BuiltinType::This);
+                    fct.param_types.push(SourceType::This);
                 }
             }
 
@@ -102,7 +102,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                         let ty = semck::read_type(vm, fct.file, bound);
 
                         match ty {
-                            Some(BuiltinType::TraitObject(trait_id)) => {
+                            Some(SourceType::TraitObject(trait_id)) => {
                                 if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = SemError::DuplicateTraitBound;
                                     vm.diag.lock().report(fct.file, type_param.pos, msg);
@@ -137,9 +137,9 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                     .report(fct.file, p.pos, SemError::VariadicParameterNeedsToBeLast);
             }
 
-            let ty = semck::read_type(vm, fct.file, &p.data_type).unwrap_or(BuiltinType::Unit);
+            let ty = semck::read_type(vm, fct.file, &p.data_type).unwrap_or(SourceType::Unit);
 
-            if ty == BuiltinType::This && !fct.in_trait() {
+            if ty == SourceType::This && !fct.in_trait() {
                 vm.diag
                     .lock()
                     .report(fct.file, p.data_type.pos(), SemError::SelfTypeUnavailable);
@@ -169,9 +169,9 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty = semck::read_type(vm, fct.file, ret).unwrap_or(BuiltinType::Unit);
+            let ty = semck::read_type(vm, fct.file, ret).unwrap_or(SourceType::Unit);
 
-            if ty == BuiltinType::This && !fct.in_trait() {
+            if ty == SourceType::This && !fct.in_trait() {
                 vm.diag
                     .lock()
                     .report(fct.file, ret.pos(), SemError::SelfTypeUnavailable);
@@ -221,7 +221,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             fct: &*fct,
             src: &mut src,
             ast,
-            current_type: BuiltinType::Unit,
+            current_type: SourceType::Unit,
         };
 
         defck.check();
@@ -298,7 +298,7 @@ struct FctDefCheck<'a, 'ast: 'a> {
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
-    current_type: BuiltinType,
+    current_type: SourceType,
 }
 
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
@@ -320,8 +320,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
-        self.current_type =
-            semck::read_type(self.vm, self.fct.file, t).unwrap_or(BuiltinType::Unit);
+        self.current_type = semck::read_type(self.vm, self.fct.file, t).unwrap_or(SourceType::Unit);
         self.src.set_ty(t.id(), self.current_type);
     }
 }

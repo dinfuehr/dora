@@ -3,7 +3,7 @@ use std::io;
 use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{Fct, GlobalId, TupleId, VM};
 
 pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction) {
@@ -498,7 +498,7 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
 
     fn emit_new_tuple(&mut self, name: &str, r1: Register, tuple_id: TupleId) {
         self.emit_start(name);
-        let tuple_name = BuiltinType::Tuple(tuple_id).name(self.vm);
+        let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
         writeln!(
             self.w,
             " {}, TupleId({}) # {}",

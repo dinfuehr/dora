@@ -1,6 +1,6 @@
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{NodeMap, StructFieldData, StructId, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
@@ -45,7 +45,7 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
         let struc = self.vm.structs.idx(id);
         let file = struc.lock().file;
 
-        let ty = semck::read_type(self.vm, file, &f.data_type).unwrap_or(BuiltinType::Unit);
+        let ty = semck::read_type(self.vm, file, &f.data_type).unwrap_or(SourceType::Unit);
 
         let mut struc = struc.lock();
 

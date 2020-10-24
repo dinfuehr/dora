@@ -5,7 +5,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::FileId;
 
@@ -30,7 +30,7 @@ pub struct ConstData {
     pub file: FileId,
     pub pos: Position,
     pub name: Name,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
     pub expr: Box<ast::Expr>,
     pub value: ConstValue,
 }

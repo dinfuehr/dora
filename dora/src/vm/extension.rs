@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 
 use std::collections::HashMap;
 
-use crate::ty::{BuiltinType, TypeListId};
+use crate::ty::{SourceType, TypeListId};
 use crate::vm::{FctId, FileId, TypeParam};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -31,7 +31,7 @@ pub struct ExtensionData {
     pub file: FileId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
     pub methods: Vec<FctId>,
     pub instance_names: HashMap<Name, FctId>,
     pub static_names: HashMap<Name, FctId>,

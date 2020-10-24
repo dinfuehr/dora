@@ -10,7 +10,7 @@ use crate::sym::TermSym::{
 };
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait};
 use crate::sym::{SymLevel, TermSym, TypeSym};
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::module::ModuleId;
 use crate::vm::{
     class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
@@ -134,7 +134,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 namespace_id: self.namespace_id,
                 pos: g.pos,
                 name: g.name,
-                ty: BuiltinType::Unit,
+                ty: SourceType::Unit,
                 reassignable: g.reassignable,
                 initializer: None,
                 address_init: Address::null(),
@@ -162,7 +162,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 file: self.file_id.into(),
                 pos: i.pos,
                 trait_id: None,
-                class_ty: BuiltinType::Error,
+                class_ty: SourceType::Error,
                 methods: Vec::new(),
             };
             self.vm.impls.push(RwLock::new(ximpl));
@@ -180,7 +180,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 file: self.file_id.into(),
                 pos: i.pos,
                 type_params: extension_type_params,
-                ty: BuiltinType::Error,
+                ty: SourceType::Error,
                 methods: Vec::new(),
                 instance_names: HashMap::new(),
                 static_names: HashMap::new(),
@@ -250,7 +250,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 file: self.file_id.into(),
                 pos: c.pos,
                 name: c.name,
-                ty: BuiltinType::Unit,
+                ty: SourceType::Unit,
                 expr: c.expr.clone(),
                 value: ConstValue::None,
             };
@@ -403,7 +403,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             name: f.name,
             namespace_id: self.namespace_id,
             param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
+            return_type: SourceType::Unit,
             parent: FctParent::None,
             has_override: f.has_override,
             has_open: f.has_open,

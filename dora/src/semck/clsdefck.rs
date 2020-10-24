@@ -5,7 +5,7 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::sym::{SymLevel, TermSym, TypeSym};
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 use crate::vm::{
     ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM,
 };
@@ -41,7 +41,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         self.visit_ast(self.ast);
     }
 
-    fn add_field(&mut self, pos: Position, name: Name, ty: BuiltinType, reassignable: bool) {
+    fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, reassignable: bool) {
         let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
 
@@ -77,13 +77,13 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                     self.vm.diag.lock().report(cls.file, type_param.pos, msg);
                 }
 
-                params.push(BuiltinType::TypeParam(type_param_id.into()));
+                params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
                     let ty = semck::read_type(self.vm, cls.file, bound);
 
                     match ty {
-                        Some(BuiltinType::TraitObject(trait_id)) => {
+                        Some(SourceType::TraitObject(trait_id)) => {
                             if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                 let msg = SemError::DuplicateTraitBound;
                                 self.vm.diag.lock().report(cls.file, type_param.pos, msg);
@@ -108,7 +108,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
             let params = TypeList::with(params);
             let list_id = self.vm.lists.lock().insert(params);
-            cls.ty = BuiltinType::Class(cls.id, list_id);
+            cls.ty = SourceType::Class(cls.id, list_id);
         } else {
             let msg = SemError::TypeParamsExpected;
             self.vm.diag.lock().report(cls.file, c.pos, msg);
@@ -136,14 +136,14 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
                 for tp in &parent_class.type_params {
                     let ty = semck::read_type(self.vm, self.file_id.into(), tp)
-                        .unwrap_or(BuiltinType::Error);
+                        .unwrap_or(SourceType::Error);
                     types.push(ty);
                 }
 
                 let list = TypeList::with(types);
                 let list_id = self.vm.lists.lock().insert(list);
 
-                let super_class = BuiltinType::Class(cls_id, list_id);
+                let super_class = SourceType::Class(cls_id, list_id);
                 let cls = self.vm.classes.idx(self.cls_id.unwrap());
                 let mut cls = cls.write();
                 cls.parent_class = Some(super_class);
@@ -169,7 +169,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
             let list = TypeList::empty();
             let list_id = self.vm.lists.lock().insert(list);
-            cls.parent_class = Some(BuiltinType::Class(object_cls, list_id));
+            cls.parent_class = Some(SourceType::Class(object_cls, list_id));
         }
     }
 
@@ -233,7 +233,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
         let ty = semck::read_type(self.vm, self.file_id.into(), &f.data_type)
-            .unwrap_or(BuiltinType::Unit);
+            .unwrap_or(SourceType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.primary_ctor && f.expr.is_none() {
@@ -261,7 +261,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             name: f.name,
             namespace_id: None,
             param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
+            return_type: SourceType::Unit,
             parent: FctParent::Class(clsid),
             has_override: f.has_override,
             has_open: f.has_open,
@@ -313,7 +313,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             name: f.name,
             namespace_id: None,
             param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
+            return_type: SourceType::Unit,
             parent: FctParent::Class(self.cls_id.unwrap()),
             has_override: f.has_override,
             has_optimize_immediately: f.has_optimize_immediately,

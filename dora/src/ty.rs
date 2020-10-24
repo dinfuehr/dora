@@ -9,7 +9,7 @@ use crate::vm::VM;
 use crate::vm::{Class, ClassId, EnumData, EnumId, EnumLayout, Fct, StructId, TraitId, TupleId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum BuiltinType {
+pub enum SourceType {
     // couldn't determine type because of error
     Error,
 
@@ -61,122 +61,122 @@ pub enum BuiltinType {
     Enum(EnumId, TypeListId),
 }
 
-impl BuiltinType {
+impl SourceType {
     pub fn is_error(&self) -> bool {
         match *self {
-            BuiltinType::Error => true,
+            SourceType::Error => true,
             _ => false,
         }
     }
 
     pub fn is_enum(&self) -> bool {
         match *self {
-            BuiltinType::Enum(_, _) => true,
+            SourceType::Enum(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_unit(&self) -> bool {
         match *self {
-            BuiltinType::Unit => true,
+            SourceType::Unit => true,
             _ => false,
         }
     }
 
     pub fn is_self(&self) -> bool {
         match *self {
-            BuiltinType::This => true,
+            SourceType::This => true,
             _ => false,
         }
     }
 
     pub fn is_cls(&self) -> bool {
         match *self {
-            BuiltinType::Class(_, _) => true,
+            SourceType::Class(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_module(&self) -> bool {
         match *self {
-            BuiltinType::Module(_) => true,
+            SourceType::Module(_) => true,
             _ => false,
         }
     }
 
     pub fn is_float(&self) -> bool {
         match self {
-            &BuiltinType::Float32 | &BuiltinType::Float64 => true,
+            &SourceType::Float32 | &SourceType::Float64 => true,
             _ => false,
         }
     }
 
     pub fn is_bool(&self) -> bool {
         match self {
-            &BuiltinType::Bool => true,
+            &SourceType::Bool => true,
             _ => false,
         }
     }
 
     pub fn is_type_param(&self) -> bool {
         match self {
-            &BuiltinType::TypeParam(_) => true,
+            &SourceType::TypeParam(_) => true,
             _ => false,
         }
     }
 
     pub fn is_tuple(&self) -> bool {
         match self {
-            &BuiltinType::Tuple(_) => true,
+            &SourceType::Tuple(_) => true,
             _ => false,
         }
     }
 
     pub fn is_tuple_or_unit(&self) -> bool {
         match self {
-            &BuiltinType::Tuple(_) => true,
-            &BuiltinType::Unit => true,
+            &SourceType::Tuple(_) => true,
+            &SourceType::Unit => true,
             _ => false,
         }
     }
 
     pub fn cls_id(&self, vm: &VM) -> Option<ClassId> {
         match *self {
-            BuiltinType::Class(cls_id, _) => Some(cls_id),
-            BuiltinType::Unit => Some(vm.known.classes.unit),
-            BuiltinType::Bool => Some(vm.known.classes.bool),
-            BuiltinType::UInt8 => Some(vm.known.classes.uint8),
-            BuiltinType::Char => Some(vm.known.classes.char),
-            BuiltinType::Int32 => Some(vm.known.classes.int32),
-            BuiltinType::Int64 => Some(vm.known.classes.int64),
-            BuiltinType::Float32 => Some(vm.known.classes.float32),
-            BuiltinType::Float64 => Some(vm.known.classes.float64),
+            SourceType::Class(cls_id, _) => Some(cls_id),
+            SourceType::Unit => Some(vm.known.classes.unit),
+            SourceType::Bool => Some(vm.known.classes.bool),
+            SourceType::UInt8 => Some(vm.known.classes.uint8),
+            SourceType::Char => Some(vm.known.classes.char),
+            SourceType::Int32 => Some(vm.known.classes.int32),
+            SourceType::Int64 => Some(vm.known.classes.int64),
+            SourceType::Float32 => Some(vm.known.classes.float32),
+            SourceType::Float64 => Some(vm.known.classes.float64),
             _ => None,
         }
     }
 
-    pub fn from_cls(cls_id: ClassId, vm: &VM) -> BuiltinType {
+    pub fn from_cls(cls_id: ClassId, vm: &VM) -> SourceType {
         let list_id = vm.lists.lock().insert(TypeList::empty());
-        BuiltinType::Class(cls_id, list_id)
+        SourceType::Class(cls_id, list_id)
     }
 
     pub fn module_id(&self) -> Option<ModuleId> {
         match *self {
-            BuiltinType::Module(module_id) => Some(module_id),
+            SourceType::Module(module_id) => Some(module_id),
             _ => None,
         }
     }
 
     pub fn enum_id(&self) -> Option<EnumId> {
         match *self {
-            BuiltinType::Enum(enum_id, _) => Some(enum_id),
+            SourceType::Enum(enum_id, _) => Some(enum_id),
             _ => None,
         }
     }
 
     pub fn tuple_id(&self) -> Option<TupleId> {
         match *self {
-            BuiltinType::Tuple(tuple_id) => Some(tuple_id),
+            SourceType::Tuple(tuple_id) => Some(tuple_id),
             _ => None,
         }
     }
@@ -193,23 +193,23 @@ impl BuiltinType {
 
     pub fn type_params(&self, vm: &VM) -> TypeList {
         match self {
-            &BuiltinType::Class(_, list_id)
-            | &BuiltinType::Enum(_, list_id)
-            | &BuiltinType::Struct(_, list_id) => vm.lists.lock().get(list_id),
+            &SourceType::Class(_, list_id)
+            | &SourceType::Enum(_, list_id)
+            | &SourceType::Struct(_, list_id) => vm.lists.lock().get(list_id),
             _ => TypeList::empty(),
         }
     }
 
     pub fn contains_type_param(&self, vm: &VM) -> bool {
         match self {
-            &BuiltinType::TypeParam(_) => true,
+            &SourceType::TypeParam(_) => true,
 
-            &BuiltinType::Class(_, list_id) => {
+            &SourceType::Class(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 params.iter().any(|t| t.contains_type_param(vm))
             }
 
-            &BuiltinType::Lambda(_) => unimplemented!(),
+            &SourceType::Lambda(_) => unimplemented!(),
 
             _ => false,
         }
@@ -217,27 +217,27 @@ impl BuiltinType {
 
     pub fn reference_type(&self) -> bool {
         match *self {
-            BuiltinType::Ptr => true,
-            BuiltinType::Class(_, _) => true,
-            BuiltinType::TraitObject(_) => true,
+            SourceType::Ptr => true,
+            SourceType::Class(_, _) => true,
+            SourceType::TraitObject(_) => true,
             _ => false,
         }
     }
 
     pub fn value_type(&self) -> bool {
         match *self {
-            BuiltinType::Unit
-            | BuiltinType::Bool
-            | BuiltinType::UInt8
-            | BuiltinType::Int32
-            | BuiltinType::Int64
-            | BuiltinType::Float32
-            | BuiltinType::Float64 => true,
+            SourceType::Unit
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64 => true,
             _ => false,
         }
     }
 
-    pub fn subclass_from(&self, vm: &VM, ty: BuiltinType) -> bool {
+    pub fn subclass_from(&self, vm: &VM, ty: SourceType) -> bool {
         if !self.is_cls() {
             return false;
         }
@@ -295,29 +295,28 @@ impl BuiltinType {
         writer.name(*self)
     }
 
-    pub fn allows(&self, vm: &VM, other: BuiltinType) -> bool {
+    pub fn allows(&self, vm: &VM, other: SourceType) -> bool {
         match *self {
             // allow all types for Error, there is already an error,
             // don't report too many messages for the same error
-            BuiltinType::Error => true,
+            SourceType::Error => true,
 
             // Any allows all other types
-            BuiltinType::Any => true,
+            SourceType::Any => true,
 
-            BuiltinType::Unit
-            | BuiltinType::Bool
-            | BuiltinType::UInt8
-            | BuiltinType::Char
-            | BuiltinType::Struct(_, _) => *self == other,
-            BuiltinType::Int32
-            | BuiltinType::Int64
-            | BuiltinType::Float32
-            | BuiltinType::Float64 => *self == other,
-            BuiltinType::Ptr => panic!("ptr does not allow any other types"),
-            BuiltinType::This => unreachable!(),
-            BuiltinType::Class(_, _) => *self == other || other.subclass_from(vm, *self),
-            BuiltinType::Tuple(tuple_id) => match other {
-                BuiltinType::Tuple(other_tuple_id) => {
+            SourceType::Unit
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Struct(_, _) => *self == other,
+            SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
+                *self == other
+            }
+            SourceType::Ptr => panic!("ptr does not allow any other types"),
+            SourceType::This => unreachable!(),
+            SourceType::Class(_, _) => *self == other || other.subclass_from(vm, *self),
+            SourceType::Tuple(tuple_id) => match other {
+                SourceType::Tuple(other_tuple_id) => {
                     if tuple_id == other_tuple_id {
                         return true;
                     }
@@ -345,19 +344,19 @@ impl BuiltinType {
 
                 _ => false,
             },
-            BuiltinType::TraitObject(_) => unimplemented!(),
-            BuiltinType::Module(_) => *self == other,
-            BuiltinType::Enum(enum_id, type_params_id) => match other {
-                BuiltinType::Enum(other_enum_id, other_type_params_id) => {
+            SourceType::TraitObject(_) => unimplemented!(),
+            SourceType::Module(_) => *self == other,
+            SourceType::Enum(enum_id, type_params_id) => match other {
+                SourceType::Enum(other_enum_id, other_type_params_id) => {
                     enum_id == other_enum_id && type_params_id == other_type_params_id
                 }
 
                 _ => false,
             },
 
-            BuiltinType::TypeParam(_) => *self == other,
+            SourceType::TypeParam(_) => *self == other,
 
-            BuiltinType::Lambda(_) => {
+            SourceType::Lambda(_) => {
                 // for now expect the exact same params and return types
                 // possible improvement: allow super classes for params,
                 //                             sub class for return type
@@ -368,33 +367,33 @@ impl BuiltinType {
 
     pub fn size(&self, vm: &VM) -> i32 {
         match *self {
-            BuiltinType::Error => panic!("no size for error."),
-            BuiltinType::Unit => 0,
-            BuiltinType::Bool => 1,
-            BuiltinType::UInt8 => 1,
-            BuiltinType::Char => 4,
-            BuiltinType::Int32 => 4,
-            BuiltinType::Int64 => 8,
-            BuiltinType::Float32 => 4,
-            BuiltinType::Float64 => 8,
-            BuiltinType::Enum(eid, list_id) => {
+            SourceType::Error => panic!("no size for error."),
+            SourceType::Unit => 0,
+            SourceType::Bool => 1,
+            SourceType::UInt8 => 1,
+            SourceType::Char => 4,
+            SourceType::Int32 => 4,
+            SourceType::Int64 => 8,
+            SourceType::Float32 => 4,
+            SourceType::Float64 => 8,
+            SourceType::Enum(eid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
                 let xenum = vm.enum_defs.idx(enum_def_id);
                 let xenum = xenum.read();
 
                 match xenum.layout {
-                    EnumLayout::Int => BuiltinType::Int32.size(vm),
-                    EnumLayout::Ptr | EnumLayout::Tagged => BuiltinType::Ptr.size(vm),
+                    EnumLayout::Int => SourceType::Int32.size(vm),
+                    EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.size(vm),
                 }
             }
-            BuiltinType::This => panic!("no size for Self."),
-            BuiltinType::Any => panic!("no size for Any."),
-            BuiltinType::Class(_, _)
-            | BuiltinType::Module(_)
-            | BuiltinType::Lambda(_)
-            | BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(sid, list_id) => {
+            SourceType::This => panic!("no size for Self."),
+            SourceType::Any => panic!("no size for Any."),
+            SourceType::Class(_, _)
+            | SourceType::Module(_)
+            | SourceType::Lambda(_)
+            | SourceType::Ptr => mem::ptr_width(),
+            SourceType::Struct(sid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
@@ -402,41 +401,41 @@ impl BuiltinType {
 
                 struc.size
             }
-            BuiltinType::TraitObject(_) => mem::ptr_width(),
-            BuiltinType::TypeParam(_) => panic!("no size for type variable."),
-            BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).size(),
+            SourceType::TraitObject(_) => mem::ptr_width(),
+            SourceType::TypeParam(_) => panic!("no size for type variable."),
+            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).size(),
         }
     }
 
     pub fn align(&self, vm: &VM) -> i32 {
         match *self {
-            BuiltinType::Error => panic!("no alignment for error."),
-            BuiltinType::Unit => 0,
-            BuiltinType::Bool => 1,
-            BuiltinType::UInt8 => 1,
-            BuiltinType::Char => 4,
-            BuiltinType::Int32 => 4,
-            BuiltinType::Int64 => 8,
-            BuiltinType::Float32 => 4,
-            BuiltinType::Float64 => 8,
-            BuiltinType::This => panic!("no alignment for Self."),
-            BuiltinType::Any => panic!("no alignment for Any."),
-            BuiltinType::Enum(eid, list_id) => {
+            SourceType::Error => panic!("no alignment for error."),
+            SourceType::Unit => 0,
+            SourceType::Bool => 1,
+            SourceType::UInt8 => 1,
+            SourceType::Char => 4,
+            SourceType::Int32 => 4,
+            SourceType::Int64 => 8,
+            SourceType::Float32 => 4,
+            SourceType::Float64 => 8,
+            SourceType::This => panic!("no alignment for Self."),
+            SourceType::Any => panic!("no alignment for Any."),
+            SourceType::Enum(eid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
                 let xenum = vm.enum_defs.idx(enum_def_id);
                 let xenum = xenum.read();
 
                 match xenum.layout {
-                    EnumLayout::Int => BuiltinType::Int32.align(vm),
-                    EnumLayout::Ptr | EnumLayout::Tagged => BuiltinType::Ptr.align(vm),
+                    EnumLayout::Int => SourceType::Int32.align(vm),
+                    EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.align(vm),
                 }
             }
-            BuiltinType::Class(_, _)
-            | BuiltinType::Module(_)
-            | BuiltinType::Lambda(_)
-            | BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(sid, list_id) => {
+            SourceType::Class(_, _)
+            | SourceType::Module(_)
+            | SourceType::Lambda(_)
+            | SourceType::Ptr => mem::ptr_width(),
+            SourceType::Struct(sid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
@@ -444,55 +443,55 @@ impl BuiltinType {
 
                 struc.align
             }
-            BuiltinType::TraitObject(_) => mem::ptr_width(),
-            BuiltinType::TypeParam(_) => panic!("no alignment for type variable."),
-            BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).align(),
+            SourceType::TraitObject(_) => mem::ptr_width(),
+            SourceType::TypeParam(_) => panic!("no alignment for type variable."),
+            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).align(),
         }
     }
 
     pub fn mode(&self) -> MachineMode {
         match *self {
-            BuiltinType::Error => panic!("no machine mode for error."),
-            BuiltinType::Unit => panic!("no machine mode for ()."),
-            BuiltinType::Bool => MachineMode::Int8,
-            BuiltinType::UInt8 => MachineMode::Int8,
-            BuiltinType::Char => MachineMode::Int32,
-            BuiltinType::Int32 => MachineMode::Int32,
-            BuiltinType::Int64 => MachineMode::Int64,
-            BuiltinType::Float32 => MachineMode::Float32,
-            BuiltinType::Float64 => MachineMode::Float64,
-            BuiltinType::Enum(_, _) => MachineMode::Int32,
-            BuiltinType::This => panic!("no machine mode for Self."),
-            BuiltinType::Any => panic!("no machine mode for Any."),
-            BuiltinType::Class(_, _)
-            | BuiltinType::Module(_)
-            | BuiltinType::Lambda(_)
-            | BuiltinType::Ptr => MachineMode::Ptr,
-            BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),
-            BuiltinType::TraitObject(_) => MachineMode::Ptr,
-            BuiltinType::TypeParam(_) => panic!("no machine mode for type variable."),
-            BuiltinType::Tuple(_) => unimplemented!(),
+            SourceType::Error => panic!("no machine mode for error."),
+            SourceType::Unit => panic!("no machine mode for ()."),
+            SourceType::Bool => MachineMode::Int8,
+            SourceType::UInt8 => MachineMode::Int8,
+            SourceType::Char => MachineMode::Int32,
+            SourceType::Int32 => MachineMode::Int32,
+            SourceType::Int64 => MachineMode::Int64,
+            SourceType::Float32 => MachineMode::Float32,
+            SourceType::Float64 => MachineMode::Float64,
+            SourceType::Enum(_, _) => MachineMode::Int32,
+            SourceType::This => panic!("no machine mode for Self."),
+            SourceType::Any => panic!("no machine mode for Any."),
+            SourceType::Class(_, _)
+            | SourceType::Module(_)
+            | SourceType::Lambda(_)
+            | SourceType::Ptr => MachineMode::Ptr,
+            SourceType::Struct(_, _) => panic!("no machine mode for struct."),
+            SourceType::TraitObject(_) => MachineMode::Ptr,
+            SourceType::TypeParam(_) => panic!("no machine mode for type variable."),
+            SourceType::Tuple(_) => unimplemented!(),
         }
     }
 
     pub fn is_defined_type(&self, vm: &VM) -> bool {
         match *self {
-            BuiltinType::Error | BuiltinType::This | BuiltinType::Any | BuiltinType::Ptr => false,
-            BuiltinType::Unit
-            | BuiltinType::Bool
-            | BuiltinType::UInt8
-            | BuiltinType::Char
-            | BuiltinType::Int32
-            | BuiltinType::Int64
-            | BuiltinType::Float32
-            | BuiltinType::Float64
-            | BuiltinType::Module(_)
-            | BuiltinType::TraitObject(_)
-            | BuiltinType::Lambda(_)
-            | BuiltinType::TypeParam(_) => true,
-            BuiltinType::Enum(_, list_id)
-            | BuiltinType::Class(_, list_id)
-            | BuiltinType::Struct(_, list_id) => {
+            SourceType::Error | SourceType::This | SourceType::Any | SourceType::Ptr => false,
+            SourceType::Unit
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Module(_)
+            | SourceType::TraitObject(_)
+            | SourceType::Lambda(_)
+            | SourceType::TypeParam(_) => true,
+            SourceType::Enum(_, list_id)
+            | SourceType::Class(_, list_id)
+            | SourceType::Struct(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
                 for param in params.iter() {
@@ -503,7 +502,7 @@ impl BuiltinType {
 
                 true
             }
-            BuiltinType::Tuple(tuple_id) => {
+            SourceType::Tuple(tuple_id) => {
                 let subtypes = vm.tuples.lock().get(tuple_id);
 
                 for ty in subtypes.iter() {
@@ -519,19 +518,19 @@ impl BuiltinType {
 
     pub fn is_concrete_type(&self, vm: &VM) -> bool {
         match *self {
-            BuiltinType::Error | BuiltinType::This | BuiltinType::Any => false,
-            BuiltinType::Unit
-            | BuiltinType::Bool
-            | BuiltinType::UInt8
-            | BuiltinType::Char
-            | BuiltinType::Int32
-            | BuiltinType::Int64
-            | BuiltinType::Float32
-            | BuiltinType::Float64
-            | BuiltinType::Module(_)
-            | BuiltinType::Ptr
-            | BuiltinType::TraitObject(_) => true,
-            BuiltinType::Class(_, list_id) | BuiltinType::Enum(_, list_id) => {
+            SourceType::Error | SourceType::This | SourceType::Any => false,
+            SourceType::Unit
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Module(_)
+            | SourceType::Ptr
+            | SourceType::TraitObject(_) => true,
+            SourceType::Class(_, list_id) | SourceType::Enum(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
                 for param in params.iter() {
@@ -542,9 +541,9 @@ impl BuiltinType {
 
                 true
             }
-            BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
-            BuiltinType::Lambda(_) | BuiltinType::Struct(_, _) => unimplemented!(),
-            BuiltinType::TypeParam(_) => false,
+            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
+            SourceType::Lambda(_) | SourceType::Struct(_, _) => unimplemented!(),
+            SourceType::TypeParam(_) => false,
         }
     }
 }
@@ -622,7 +621,7 @@ impl From<usize> for CombinedTypeListId {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum TypeList {
     Empty,
-    List(Arc<Vec<BuiltinType>>),
+    List(Arc<Vec<SourceType>>),
 }
 
 impl TypeList {
@@ -630,11 +629,11 @@ impl TypeList {
         TypeList::Empty
     }
 
-    pub fn single(ty: BuiltinType) -> TypeList {
+    pub fn single(ty: SourceType) -> TypeList {
         TypeList::List(Arc::new(vec![ty]))
     }
 
-    pub fn with(type_params: Vec<BuiltinType>) -> TypeList {
+    pub fn with(type_params: Vec<SourceType>) -> TypeList {
         if type_params.len() == 0 {
             TypeList::Empty
         } else {
@@ -657,7 +656,7 @@ impl TypeList {
         TypeList::List(Arc::new(params))
     }
 
-    pub fn types(&self) -> &[BuiltinType] {
+    pub fn types(&self) -> &[SourceType] {
         match self {
             TypeList::Empty => &[],
             TypeList::List(ref params) => (**params).as_slice(),
@@ -684,9 +683,9 @@ impl TypeList {
 }
 
 impl Index<usize> for TypeList {
-    type Output = BuiltinType;
+    type Output = SourceType;
 
-    fn index(&self, idx: usize) -> &BuiltinType {
+    fn index(&self, idx: usize) -> &SourceType {
         match self {
             &TypeList::Empty => panic!("type list index out-of-bounds"),
             &TypeList::List(ref params) => &params[idx],
@@ -700,9 +699,9 @@ pub struct TypeListIter<'a> {
 }
 
 impl<'a> Iterator for TypeListIter<'a> {
-    type Item = BuiltinType;
+    type Item = SourceType;
 
-    fn next(&mut self) -> Option<BuiltinType> {
+    fn next(&mut self) -> Option<SourceType> {
         match self.params {
             &TypeList::Empty => None,
 
@@ -783,7 +782,7 @@ impl LambdaTypes {
         self.values.len()
     }
 
-    pub fn insert(&mut self, params: Vec<BuiltinType>, ret: BuiltinType) -> LambdaId {
+    pub fn insert(&mut self, params: Vec<SourceType>, ret: SourceType) -> LambdaId {
         let ty = LambdaType { params, ret };
 
         if let Some(&val) = self.types.get(&ty) {
@@ -814,21 +813,21 @@ struct BuiltinTypePrinter<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
-    pub fn name(&self, ty: BuiltinType) -> String {
+    pub fn name(&self, ty: SourceType) -> String {
         match ty {
-            BuiltinType::Error => "<error>".into(),
-            BuiltinType::Any => "Any".into(),
-            BuiltinType::Unit => "()".into(),
-            BuiltinType::UInt8 => "UInt8".into(),
-            BuiltinType::Char => "Char".into(),
-            BuiltinType::Int32 => "Int32".into(),
-            BuiltinType::Int64 => "Int64".into(),
-            BuiltinType::Float32 => "Float32".into(),
-            BuiltinType::Float64 => "Float64".into(),
-            BuiltinType::Bool => "Bool".into(),
-            BuiltinType::Ptr => panic!("type Ptr only for internal use."),
-            BuiltinType::This => "Self".into(),
-            BuiltinType::Class(id, list_id) => {
+            SourceType::Error => "<error>".into(),
+            SourceType::Any => "Any".into(),
+            SourceType::Unit => "()".into(),
+            SourceType::UInt8 => "UInt8".into(),
+            SourceType::Char => "Char".into(),
+            SourceType::Int32 => "Int32".into(),
+            SourceType::Int64 => "Int64".into(),
+            SourceType::Float32 => "Float32".into(),
+            SourceType::Float64 => "Float64".into(),
+            SourceType::Bool => "Bool".into(),
+            SourceType::Ptr => panic!("type Ptr only for internal use."),
+            SourceType::This => "Self".into(),
+            SourceType::Class(id, list_id) => {
                 let params = self.vm.lists.lock().get(list_id);
                 let cls = self.vm.classes.idx(id);
                 let cls = cls.read();
@@ -846,7 +845,7 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                     format!("{}[{}]", base, params)
                 }
             }
-            BuiltinType::Struct(sid, list_id) => {
+            SourceType::Struct(sid, list_id) => {
                 let struc = self.vm.structs.idx(sid);
                 let struc = struc.lock();
                 let name = struc.name;
@@ -866,11 +865,11 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                     format!("{}[{}]", name, params)
                 }
             }
-            BuiltinType::TraitObject(tid) => {
+            SourceType::TraitObject(tid) => {
                 let xtrait = self.vm.traits[tid].read();
                 self.vm.interner.str(xtrait.name).to_string()
             }
-            BuiltinType::Enum(id, list_id) => {
+            SourceType::Enum(id, list_id) => {
                 let xenum = self.vm.enums[id].read();
                 let name = self.vm.interner.str(xenum.name).to_string();
 
@@ -888,12 +887,12 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                     format!("{}[{}]", name, params)
                 }
             }
-            BuiltinType::Module(id) => {
+            SourceType::Module(id) => {
                 let module = self.vm.modules.idx(id);
                 let module = module.read();
                 self.vm.interner.str(module.name).to_string()
             }
-            BuiltinType::TypeParam(idx) => {
+            SourceType::TypeParam(idx) => {
                 if let Some(fct) = self.use_fct {
                     fct.type_param_ty(self.vm, ty, |tp, _| {
                         self.vm.interner.str(tp.name).to_string()
@@ -907,7 +906,7 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                 }
             }
 
-            BuiltinType::Lambda(id) => {
+            SourceType::Lambda(id) => {
                 let lambda = self.vm.lambda_types.lock().get(id);
                 let params = lambda
                     .params
@@ -920,7 +919,7 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                 format!("({}) -> {}", params, ret)
             }
 
-            BuiltinType::Tuple(tuple_id) => {
+            SourceType::Tuple(tuple_id) => {
                 let types = self.vm.tuples.lock().get(tuple_id);
 
                 let types = types
@@ -937,8 +936,8 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LambdaType {
-    params: Vec<BuiltinType>,
-    ret: BuiltinType,
+    params: Vec<SourceType>,
+    ret: SourceType,
 }
 
 #[cfg(test)]
@@ -955,28 +954,28 @@ mod tests {
 
     #[test]
     fn mode_for_types() {
-        assert_eq!(MachineMode::Int8, BuiltinType::Bool.mode());
-        assert_eq!(MachineMode::Int32, BuiltinType::Int32.mode());
-        assert_eq!(MachineMode::Ptr, BuiltinType::Ptr.mode());
+        assert_eq!(MachineMode::Int8, SourceType::Bool.mode());
+        assert_eq!(MachineMode::Int32, SourceType::Int32.mode());
+        assert_eq!(MachineMode::Ptr, SourceType::Ptr.mode());
     }
 
     #[test]
     #[should_panic]
     fn mode_for_unit() {
-        assert_eq!(MachineMode::Ptr, BuiltinType::Unit.mode());
+        assert_eq!(MachineMode::Ptr, SourceType::Unit.mode());
     }
 
     #[test]
     fn append_type_lists() {
         let e1 = TypeList::empty();
-        let e2 = TypeList::single(BuiltinType::Int32);
-        assert_eq!(e1.append(&e2).types(), &[BuiltinType::Int32]);
+        let e2 = TypeList::single(SourceType::Int32);
+        assert_eq!(e1.append(&e2).types(), &[SourceType::Int32]);
 
-        let e1 = TypeList::single(BuiltinType::Float32);
-        let e2 = TypeList::single(BuiltinType::Int32);
+        let e1 = TypeList::single(SourceType::Float32);
+        let e2 = TypeList::single(SourceType::Int32);
         assert_eq!(
             e1.append(&e2).types(),
-            &[BuiltinType::Float32, BuiltinType::Int32]
+            &[SourceType::Float32, SourceType::Int32]
         );
     }
 }

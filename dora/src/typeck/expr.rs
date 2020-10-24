@@ -8,7 +8,7 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns};
 use crate::sym::TypeSym::SymClass;
-use crate::ty::{BuiltinType, TypeList, TypeListId};
+use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
@@ -53,7 +53,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let return_type = self.fct.return_type;
             self.check_expr(value, return_type)
         } else {
-            BuiltinType::Unit
+            SourceType::Unit
         };
 
         if !returns {
@@ -65,14 +65,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let defined_type = if let Some(ref data_type) = s.data_type {
             self.src.ty(data_type.id())
         } else {
-            BuiltinType::Any
+            SourceType::Any
         };
 
         let expr_type = s
             .expr
             .as_ref()
             .map(|expr| self.check_expr(&expr, defined_type))
-            .unwrap_or(BuiltinType::Any);
+            .unwrap_or(SourceType::Any);
 
         let defined_type = if s.data_type.is_some() {
             defined_type
@@ -122,7 +122,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: BuiltinType) {
+    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: SourceType) {
         match pattern {
             LetPattern::Ident(ref ident) => {
                 let var = *self.src.map_vars.get(ident.id).unwrap();
@@ -158,7 +158,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 if ty.is_error() {
                     for part in &tuple.parts {
-                        self.check_stmt_let_pattern(part, BuiltinType::Error);
+                        self.check_stmt_let_pattern(part, SourceType::Error);
                     }
                     return;
                 }
@@ -189,10 +189,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_for(&mut self, stmt: &'ast StmtForType) {
-        let object_type = self.check_expr(&stmt.expr, BuiltinType::Any);
+        let object_type = self.check_expr(&stmt.expr, SourceType::Any);
 
         if object_type.is_error() {
-            self.check_stmt_let_pattern(&stmt.pattern, BuiltinType::Error);
+            self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
             self.visit_stmt(&stmt.block);
             return;
         }
@@ -242,14 +242,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.vm.diag.lock().report(self.file, stmt.expr.pos(), msg);
 
         // set invalid error type
-        self.check_stmt_let_pattern(&stmt.pattern, BuiltinType::Error);
+        self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
         self.visit_stmt(&stmt.block);
     }
 
     fn type_supports_make_iterator(
         &mut self,
-        object_type: BuiltinType,
-    ) -> Option<(FctId, BuiltinType)> {
+        object_type: SourceType,
+    ) -> Option<(FctId, SourceType)> {
         let make_iterator_name = self.vm.interner.intern("makeIterator");
 
         let mut lookup = MethodLookup::new(self.vm, self.fct)
@@ -270,8 +270,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn type_supports_iterator_protocol(
         &mut self,
-        object_type: BuiltinType,
-    ) -> Option<(ForTypeInfo, BuiltinType)> {
+        object_type: SourceType,
+    ) -> Option<(ForTypeInfo, SourceType)> {
         let has_next_name = self.vm.interner.intern("hasNext");
 
         let mut has_next = MethodLookup::new(self.vm, self.fct)
@@ -314,7 +314,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_while(&mut self, s: &'ast StmtWhileType) {
-        let expr_type = self.check_expr(&s.cond, BuiltinType::Any);
+        let expr_type = self.check_expr(&s.cond, SourceType::Any);
 
         if !expr_type.is_error() && !expr_type.is_bool() {
             let expr_type = expr_type.name_fct(self.vm, self.fct);
@@ -329,13 +329,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type = s
             .expr
             .as_ref()
-            .map(|expr| self.check_expr(&expr, BuiltinType::Any))
-            .unwrap_or(BuiltinType::Unit);
+            .map(|expr| self.check_expr(&expr, SourceType::Any))
+            .unwrap_or(SourceType::Unit);
 
         self.check_fct_return_type(s.pos, expr_type);
     }
 
-    fn check_fct_return_type(&mut self, pos: Position, expr_type: BuiltinType) {
+    fn check_fct_return_type(&mut self, pos: Position, expr_type: SourceType) {
         let fct_type = self.fct.return_type;
 
         if !expr_type.is_error() && !fct_type.allows(self.vm, expr_type) {
@@ -351,16 +351,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_block(
         &mut self,
         block: &'ast ExprBlockType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+        _expected_ty: SourceType,
+    ) -> SourceType {
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
         }
 
         let ty = if let Some(ref expr) = block.expr {
-            self.check_expr(expr, BuiltinType::Any)
+            self.check_expr(expr, SourceType::Any)
         } else {
-            BuiltinType::Unit
+            SourceType::Unit
         };
 
         self.src.set_ty(block.id, ty);
@@ -371,23 +371,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_tuple(
         &mut self,
         tuple: &'ast ExprTupleType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let mut subtypes = Vec::new();
 
         if tuple.values.is_empty() {
-            self.src.set_ty(tuple.id, BuiltinType::Unit);
-            return BuiltinType::Unit;
+            self.src.set_ty(tuple.id, SourceType::Unit);
+            return SourceType::Unit;
         }
 
         for value in &tuple.values {
-            let subtype = self.check_expr(value, BuiltinType::Any);
+            let subtype = self.check_expr(value, SourceType::Any);
             subtypes.push(subtype);
         }
 
         let tuple_id = ensure_tuple(self.vm, subtypes);
 
-        let ty = BuiltinType::Tuple(tuple_id);
+        let ty = SourceType::Tuple(tuple_id);
         self.src.set_ty(tuple.id, ty);
 
         ty
@@ -396,16 +396,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_paren(
         &mut self,
         paren: &'ast ExprParenType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
-        let ty = self.check_expr(&paren.expr, BuiltinType::Any);
+        _expected_ty: SourceType,
+    ) -> SourceType {
+        let ty = self.check_expr(&paren.expr, SourceType::Any);
         self.src.set_ty(paren.id, ty);
 
         ty
     }
 
-    fn check_expr_if(&mut self, expr: &'ast ExprIfType, _expected_ty: BuiltinType) -> BuiltinType {
-        let expr_type = self.check_expr(&expr.cond, BuiltinType::Any);
+    fn check_expr_if(&mut self, expr: &'ast ExprIfType, _expected_ty: SourceType) -> SourceType {
+        let expr_type = self.check_expr(&expr.cond, SourceType::Any);
 
         if !expr_type.is_bool() && !expr_type.is_error() {
             let expr_type = expr_type.name_fct(self.vm, self.fct);
@@ -413,10 +413,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, expr.pos, msg);
         }
 
-        let then_type = self.check_expr(&expr.then_block, BuiltinType::Any);
+        let then_type = self.check_expr(&expr.then_block, SourceType::Any);
 
         let merged_type = if let Some(ref else_block) = expr.else_block {
-            let else_type = self.check_expr(else_block, BuiltinType::Any);
+            let else_type = self.check_expr(else_block, SourceType::Any);
 
             if expr_always_returns(&expr.then_block) {
                 else_type
@@ -436,7 +436,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 then_type
             }
         } else {
-            BuiltinType::Unit
+            SourceType::Unit
         };
 
         self.src.set_ty(expr.id, merged_type);
@@ -444,11 +444,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         merged_type
     }
 
-    fn check_expr_ident(
-        &mut self,
-        e: &'ast ExprIdentType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+    fn check_expr_ident(&mut self, e: &'ast ExprIdentType, _expected_ty: SourceType) -> SourceType {
         let ident_type = self.src.map_idents.get(e.id).unwrap();
 
         match ident_type {
@@ -480,7 +476,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             &IdentType::Struct(sid) => {
                 let list_id = self.vm.lists.lock().insert(TypeList::empty());
-                let ty = BuiltinType::Struct(sid, list_id);
+                let ty = SourceType::Struct(sid, list_id);
                 self.src.set_ty(e.id, ty);
 
                 ty
@@ -503,9 +499,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         .report(self.file, e.pos, SemError::FctUsedAsIdentifier);
                 }
 
-                self.src.set_ty(e.id, BuiltinType::Error);
+                self.src.set_ty(e.id, SourceType::Error);
 
-                BuiltinType::Error
+                SourceType::Error
             }
 
             &IdentType::Class(_) => {
@@ -516,9 +512,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         .report(self.file, e.pos, SemError::ClsUsedAsIdentifier);
                 }
 
-                self.src.set_ty(e.id, BuiltinType::Error);
+                self.src.set_ty(e.id, SourceType::Error);
 
-                BuiltinType::Error
+                SourceType::Error
             }
 
             &IdentType::Module(module_id)
@@ -539,17 +535,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 };
 
                 self.vm.diag.lock().report(self.file, e.pos, msg);
-                self.src.set_ty(e.id, BuiltinType::Error);
+                self.src.set_ty(e.id, SourceType::Error);
 
-                BuiltinType::Error
+                SourceType::Error
             }
 
             &IdentType::Enum(_) => {
                 let msg = SemError::EnumUsedAsIdentifier;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
-                self.src.set_ty(e.id, BuiltinType::Error);
+                self.src.set_ty(e.id, SourceType::Error);
 
-                BuiltinType::Error
+                SourceType::Error
             }
 
             &IdentType::Namespace(_) => unimplemented!(),
@@ -579,15 +575,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .report(self.file, e.pos, SemError::LvalueExpected);
         }
 
-        self.src.set_ty(e.id, BuiltinType::Unit);
+        self.src.set_ty(e.id, SourceType::Unit);
     }
 
     fn check_expr_assign_ident(&mut self, e: &'ast ExprBinType) {
         let lhs_type;
 
-        let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
+        let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
 
-        self.src.set_ty(e.id, BuiltinType::Unit);
+        self.src.set_ty(e.id, SourceType::Unit);
 
         let ident_type = self.src.map_idents.get(e.lhs.id());
 
@@ -693,7 +689,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let lhs_type = lhs_type.name_fct(self.vm, self.fct);
             let rhs_type = rhs_type.name_fct(self.vm, self.fct);
 
-            self.src.set_ty(e.id, BuiltinType::Unit);
+            self.src.set_ty(e.id, SourceType::Unit);
 
             let msg = SemError::AssignType(name, lhs_type, rhs_type);
             self.vm.diag.lock().report(self.file, e.pos, msg);
@@ -702,15 +698,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_assign_call(&mut self, e: &'ast ExprBinType) {
         let call = e.lhs.to_call().unwrap();
-        let expr_type = self.check_expr(&call.callee, BuiltinType::Any);
+        let expr_type = self.check_expr(&call.callee, SourceType::Any);
 
-        let mut arg_types: Vec<BuiltinType> = call
+        let mut arg_types: Vec<SourceType> = call
             .args
             .iter()
-            .map(|arg| self.check_expr(arg, BuiltinType::Any))
+            .map(|arg| self.check_expr(arg, SourceType::Any))
             .collect();
 
-        let value_type = self.check_expr(&e.rhs, BuiltinType::Any);
+        let value_type = self.check_expr(&e.rhs, SourceType::Any);
 
         let name = self.vm.interner.intern("set");
         arg_types.push(value_type);
@@ -740,13 +736,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let msg = SemError::NameExpected;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                self.src.set_ty(e.id, BuiltinType::Error);
+                self.src.set_ty(e.id, SourceType::Error);
                 return;
             }
         };
 
-        let object_type = self.check_expr(&field_expr.lhs, BuiltinType::Any);
-        let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
+        let object_type = self.check_expr(&field_expr.lhs, SourceType::Any);
+        let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
 
         if object_type.cls_id(self.vm).is_some() {
             if let Some((cls_ty, field_id, _)) = find_field_in_class(self.vm, object_type, name) {
@@ -784,7 +780,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     self.vm.diag.lock().report(self.file, e.pos, msg);
                 }
 
-                self.src.set_ty(e.id, BuiltinType::Unit);
+                self.src.set_ty(e.id, SourceType::Unit);
                 return;
             }
         }
@@ -795,18 +791,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let msg = SemError::UnknownField(field_name, expr_name);
         self.vm.diag.lock().report(self.file, field_expr.pos, msg);
 
-        self.src.set_ty(e.id, BuiltinType::Unit);
+        self.src.set_ty(e.id, SourceType::Unit);
     }
 
     fn find_method(
         &mut self,
         pos: Position,
-        object_type: BuiltinType,
+        object_type: SourceType,
         is_static: bool,
         name: Name,
-        args: &[BuiltinType],
+        args: &[SourceType],
         fct_type_params: &TypeList,
-    ) -> Option<(ClassId, FctId, BuiltinType)> {
+    ) -> Option<(ClassId, FctId, SourceType)> {
         let result = lookup_method(
             self.vm,
             object_type,
@@ -836,15 +832,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         result
     }
 
-    fn check_expr_un(&mut self, e: &'ast ExprUnType, _expected_ty: BuiltinType) -> BuiltinType {
+    fn check_expr_un(&mut self, e: &'ast ExprUnType, _expected_ty: SourceType) -> SourceType {
         if e.op == UnOp::Neg && e.opnd.is_lit_int() {
             let expr_type =
-                self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, BuiltinType::Any);
+                self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, SourceType::Any);
             self.src.set_ty(e.id, expr_type);
             return expr_type;
         }
 
-        let opnd = self.check_expr(&e.opnd, BuiltinType::Any);
+        let opnd = self.check_expr(&e.opnd, SourceType::Any);
 
         match e.op {
             UnOp::Plus => self.check_expr_un_method(e, e.op, "unaryPlus", opnd),
@@ -858,8 +854,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprUnType,
         op: UnOp,
         name: &str,
-        ty: BuiltinType,
-    ) -> BuiltinType {
+        ty: SourceType,
+    ) -> SourceType {
         let name = self.vm.interner.intern(name);
         let call_types = [];
 
@@ -886,23 +882,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        self.src.set_ty(e.id, BuiltinType::Error);
+        self.src.set_ty(e.id, SourceType::Error);
 
-        BuiltinType::Error
+        SourceType::Error
     }
 
-    fn check_expr_bin(&mut self, e: &'ast ExprBinType, _expected_ty: BuiltinType) -> BuiltinType {
+    fn check_expr_bin(&mut self, e: &'ast ExprBinType, _expected_ty: SourceType) -> SourceType {
         if e.op.is_any_assign() {
             self.check_expr_assign(e);
-            return BuiltinType::Unit;
+            return SourceType::Unit;
         }
 
-        let lhs_type = self.check_expr(&e.lhs, BuiltinType::Any);
-        let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
+        let lhs_type = self.check_expr(&e.lhs, SourceType::Any);
+        let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
 
         if lhs_type.is_error() || rhs_type.is_error() {
-            self.src.set_ty(e.id, BuiltinType::Error);
-            return BuiltinType::Error;
+            self.src.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
         }
 
         match e.op {
@@ -931,13 +927,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprBinType,
         op: BinOp,
-        lhs_type: BuiltinType,
-        rhs_type: BuiltinType,
-    ) -> BuiltinType {
-        self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Bool);
-        self.src.set_ty(e.id, BuiltinType::Bool);
+        lhs_type: SourceType,
+        rhs_type: SourceType,
+    ) -> SourceType {
+        self.check_type(e, op, lhs_type, rhs_type, SourceType::Bool);
+        self.src.set_ty(e.id, SourceType::Bool);
 
-        BuiltinType::Bool
+        SourceType::Bool
     }
 
     fn check_expr_bin_method(
@@ -945,9 +941,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprBinType,
         op: BinOp,
         name: &str,
-        lhs_type: BuiltinType,
-        rhs_type: BuiltinType,
-    ) -> BuiltinType {
+        lhs_type: SourceType,
+        rhs_type: SourceType,
+    ) -> SourceType {
         let name = self.vm.interner.intern(name);
         let call_types = [rhs_type];
 
@@ -975,9 +971,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, BuiltinType::Error);
+            self.src.set_ty(e.id, SourceType::Error);
 
-            BuiltinType::Error
+            SourceType::Error
         }
     }
 
@@ -985,9 +981,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprBinType,
         cmp: CmpOp,
-        lhs_type: BuiltinType,
-        rhs_type: BuiltinType,
-    ) -> BuiltinType {
+        lhs_type: SourceType,
+        rhs_type: SourceType,
+    ) -> SourceType {
         match cmp {
             CmpOp::Is | CmpOp::IsNot => {
                 if !lhs_type.allows(self.vm, rhs_type) && !rhs_type.allows(self.vm, lhs_type) {
@@ -1000,8 +996,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     );
                 }
 
-                self.src.set_ty(e.id, BuiltinType::Bool);
-                return BuiltinType::Bool;
+                self.src.set_ty(e.id, SourceType::Bool);
+                return SourceType::Bool;
             }
 
             CmpOp::Eq | CmpOp::Ne => {
@@ -1017,17 +1013,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
-        self.src.set_ty(e.id, BuiltinType::Bool);
+        self.src.set_ty(e.id, SourceType::Bool);
 
-        BuiltinType::Bool
+        SourceType::Bool
     }
 
     fn check_expr_cmp_enum(
         &mut self,
         e: &'ast ExprBinType,
         op: CmpOp,
-        lhs_type: BuiltinType,
-        rhs_type: BuiltinType,
+        lhs_type: SourceType,
+        rhs_type: SourceType,
     ) {
         if lhs_type.allows(self.vm, rhs_type) {
             let intrinsic = match op {
@@ -1040,7 +1036,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
 
-            self.src.set_ty(e.id, BuiltinType::Bool);
+            self.src.set_ty(e.id, SourceType::Bool);
         } else {
             let lhs_type = lhs_type.name_fct(self.vm, self.fct);
             let rhs_type = rhs_type.name_fct(self.vm, self.fct);
@@ -1048,7 +1044,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, BuiltinType::Error);
+            self.src.set_ty(e.id, SourceType::Error);
         }
     }
 
@@ -1056,9 +1052,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprBinType,
         op: BinOp,
-        lhs_type: BuiltinType,
-        rhs_type: BuiltinType,
-        expected_type: BuiltinType,
+        lhs_type: SourceType,
+        rhs_type: SourceType,
+        expected_type: SourceType,
     ) {
         if !expected_type.allows(self.vm, lhs_type) || !expected_type.allows(self.vm, rhs_type) {
             let op = op.as_str().into();
@@ -1070,16 +1066,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_call(&mut self, e: &'ast ExprCallType, _expected_ty: BuiltinType) -> BuiltinType {
+    fn check_expr_call(&mut self, e: &'ast ExprCallType, _expected_ty: SourceType) -> SourceType {
         self.used_in_call.insert(e.callee.id());
 
-        let expr_type = self.check_expr(&e.callee, BuiltinType::Any);
+        let expr_type = self.check_expr(&e.callee, SourceType::Any);
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
-        let arg_types: Vec<BuiltinType> = e
+        let arg_types: Vec<SourceType> = e
             .args
             .iter()
-            .map(|arg| self.check_expr(arg, BuiltinType::Any))
+            .map(|arg| self.check_expr(arg, SourceType::Any))
             .collect();
 
         // Workaround to use .get() method on Arrays when used as field: (self.field)(idx)
@@ -1144,15 +1140,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             Some(IdentType::TypeParam(_)) => {
-                self.src.set_ty(e.id, BuiltinType::Error);
+                self.src.set_ty(e.id, SourceType::Error);
 
-                BuiltinType::Error
+                SourceType::Error
             }
 
             Some(IdentType::Enum(_)) => {
-                self.src.set_ty(e.id, BuiltinType::Error);
+                self.src.set_ty(e.id, SourceType::Error);
 
-                BuiltinType::Error
+                SourceType::Error
             }
 
             Some(IdentType::EnumValue(enum_ty, variant_id)) => {
@@ -1175,9 +1171,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_enum(
         &mut self,
         e: &'ast ExprCallType,
-        enum_ty: BuiltinType,
+        enum_ty: SourceType,
         variant_id: usize,
-        arg_types: &[BuiltinType],
+        arg_types: &[SourceType],
     ) {
         let enum_id = enum_ty.enum_id().expect("enum expected");
         let xenum = self.vm.enums[enum_id].read();
@@ -1214,9 +1210,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_enum_args(
         &mut self,
-        enum_ty: BuiltinType,
+        enum_ty: SourceType,
         variant: &vm::EnumVariant,
-        arg_types: &[BuiltinType],
+        arg_types: &[SourceType],
     ) -> bool {
         if variant.types.len() != arg_types.len() {
             return false;
@@ -1238,10 +1234,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_generic_static_method(
         &mut self,
         e: &'ast ExprCallType,
-        tp: BuiltinType,
+        tp: SourceType,
         name: Name,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        arg_types: &[SourceType],
+    ) -> SourceType {
         let mut fcts = Vec::new();
 
         let (type_param, tp_id) = self
@@ -1265,13 +1261,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, BuiltinType::Error);
-            return BuiltinType::Error;
+            self.src.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
         }
 
-        if arg_types.contains(&BuiltinType::Error) {
-            self.src.set_ty(e.id, BuiltinType::Error);
-            return BuiltinType::Error;
+        if arg_types.contains(&SourceType::Error) {
+            self.src.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
         }
 
         let (trait_id, fct_id) = fcts[0];
@@ -1307,9 +1303,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_expr(
         &mut self,
         e: &'ast ExprCallType,
-        expr_type: BuiltinType,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        expr_type: SourceType,
+        arg_types: &[SourceType],
+    ) -> SourceType {
         let get = self.vm.interner.intern("get");
 
         if let Some((_, fct_id, return_type)) =
@@ -1324,9 +1320,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             return_type
         } else {
-            self.src.set_ty(e.id, BuiltinType::Error);
+            self.src.set_ty(e.id, SourceType::Error);
 
-            BuiltinType::Error
+            SourceType::Error
         }
     }
 
@@ -1335,8 +1331,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprCallType,
         fct_id: FctId,
         type_params: TypeList,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        arg_types: &[SourceType],
+    ) -> SourceType {
         let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
             .callee(fct_id)
@@ -1349,7 +1345,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             lookup.found_ret().unwrap()
         } else {
-            BuiltinType::Error
+            SourceType::Error
         };
 
         self.src.set_ty(e.id, ty);
@@ -1360,11 +1356,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_static_method(
         &mut self,
         e: &'ast ExprCallType,
-        object_type: BuiltinType,
+        object_type: SourceType,
         method_name: Name,
         type_params: TypeList,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        arg_types: &[SourceType],
+    ) -> SourceType {
         let cls_id = object_type.cls_id(self.vm).unwrap();
         assert_eq!(object_type.type_params(self.vm).len(), 0);
 
@@ -1389,29 +1385,29 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             return_type
         } else {
-            self.src.set_ty(e.id, BuiltinType::Error);
+            self.src.set_ty(e.id, SourceType::Error);
 
-            BuiltinType::Error
+            SourceType::Error
         }
     }
 
     fn check_expr_call_method(
         &mut self,
         e: &'ast ExprCallType,
-        object_type: BuiltinType,
+        object_type: SourceType,
         method_name: Name,
         type_params: TypeList,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        arg_types: &[SourceType],
+    ) -> SourceType {
         if object_type.is_type_param() {
             assert_eq!(type_params.len(), 0);
             return self.check_expr_call_generic(e, object_type, method_name, arg_types);
         }
 
         if object_type.is_error() {
-            self.src.set_ty(e.id, BuiltinType::Error);
+            self.src.set_ty(e.id, SourceType::Error);
 
-            return BuiltinType::Error;
+            return SourceType::Error;
         }
 
         let mut lookup = MethodLookup::new(self.vm, self.fct)
@@ -1425,7 +1421,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let fct_id = lookup.found_fct_id().unwrap();
             let return_type = lookup.found_ret().unwrap();
 
-            let call_type = if let BuiltinType::TraitObject(trait_id) = object_type {
+            let call_type = if let SourceType::TraitObject(trait_id) = object_type {
                 CallType::TraitObjectMethod(trait_id, fct_id)
             } else {
                 let method_type = lookup.found_class_type().unwrap();
@@ -1456,20 +1452,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             assert!(!lookup.find());
 
-            self.src.set_ty(e.id, BuiltinType::Error);
+            self.src.set_ty(e.id, SourceType::Error);
 
-            BuiltinType::Error
+            SourceType::Error
         }
     }
 
     fn check_expr_call_field(
         &mut self,
         e: &'ast ExprCallType,
-        object_type: BuiltinType,
+        object_type: SourceType,
         method_name: Name,
         type_params: TypeList,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        arg_types: &[SourceType],
+    ) -> SourceType {
         if let Some((actual_type, field_id, field_type)) =
             find_field_in_class(self.vm, object_type, method_name)
         {
@@ -1490,9 +1486,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .args(arg_types);
         assert!(!lookup.find());
 
-        self.src.set_ty(e.id, BuiltinType::Error);
+        self.src.set_ty(e.id, SourceType::Error);
 
-        BuiltinType::Error
+        SourceType::Error
     }
 
     fn check_expr_call_ctor(
@@ -1500,8 +1496,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprCallType,
         cls_id: ClassId,
         type_params: TypeList,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        arg_types: &[SourceType],
+    ) -> SourceType {
         let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
             .ctor(cls_id)
@@ -1524,7 +1520,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             lookup.found_ret().unwrap()
         } else {
-            BuiltinType::Error
+            SourceType::Error
         };
 
         self.src.set_ty(e.id, ty);
@@ -1535,10 +1531,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_generic(
         &mut self,
         e: &'ast ExprCallType,
-        object_type: BuiltinType,
+        object_type: SourceType,
         name: Name,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        arg_types: &[SourceType],
+    ) -> SourceType {
         self.fct.type_param_ty(self.vm, object_type, |tp, id| {
             self.check_expr_call_generic_type_param(e, object_type, id, tp, name, arg_types)
         })
@@ -1547,12 +1543,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_generic_type_param(
         &mut self,
         e: &'ast ExprCallType,
-        object_type: BuiltinType,
+        object_type: SourceType,
         _id: TypeListId,
         tp: &vm::TypeParam,
         name: Name,
-        args: &[BuiltinType],
-    ) -> BuiltinType {
+        args: &[SourceType],
+    ) -> SourceType {
         let mut found_fcts = Vec::new();
 
         for &trait_id in &tp.trait_bounds {
@@ -1591,9 +1587,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, BuiltinType::Error);
+            self.src.set_ty(e.id, SourceType::Error);
 
-            BuiltinType::Error
+            SourceType::Error
         }
     }
 
@@ -1601,8 +1597,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprCallType,
         type_params: TypeList,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
+        arg_types: &[SourceType],
+    ) -> SourceType {
         let path = e.callee.to_path().unwrap();
         let class_expr = &path.lhs;
         let method_name_expr = &path.rhs;
@@ -1616,8 +1612,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let msg = SemError::ExpectedSomeIdentifier;
             self.vm.diag.lock().report(self.file, class_expr.pos(), msg);
 
-            self.src.set_ty(e.id, BuiltinType::Error);
-            return BuiltinType::Error;
+            self.src.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
         }
 
         if let Some(method_name_expr) = method_name_expr.to_ident() {
@@ -1629,8 +1625,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .lock()
                 .report(self.file, method_name_expr.pos(), msg);
 
-            self.src.set_ty(e.id, BuiltinType::Error);
-            return BuiltinType::Error;
+            self.src.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
         }
 
         match self.vm.sym.lock().get_type(class) {
@@ -1655,9 +1651,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     ty
                 } else {
-                    self.src.set_ty(e.id, BuiltinType::Error);
+                    self.src.set_ty(e.id, SourceType::Error);
 
-                    BuiltinType::Error
+                    SourceType::Error
                 };
 
                 return ty;
@@ -1669,20 +1665,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let msg = SemError::ClassExpected;
         self.vm.diag.lock().report(self.file, e.pos, msg);
 
-        self.src.set_ty(e.id, BuiltinType::Error);
+        self.src.set_ty(e.id, SourceType::Error);
 
-        BuiltinType::Error
+        SourceType::Error
     }
 
     fn check_expr_delegation(
         &mut self,
         e: &'ast ExprDelegationType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
-        let arg_types: Vec<BuiltinType> = e
+        _expected_ty: SourceType,
+    ) -> SourceType {
+        let arg_types: Vec<SourceType> = e
             .args
             .iter()
-            .map(|arg| self.check_expr(arg, BuiltinType::Any))
+            .map(|arg| self.check_expr(arg, SourceType::Any))
             .collect();
 
         let owner = self.vm.classes.idx(self.fct.cls_id());
@@ -1705,7 +1701,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let cls_ty = self.vm.cls_with_type_list(cls_id, parent_class_type_params);
                 let call_type = CallType::CtorParent(cls_ty, ctor.id);
                 self.src.map_calls.insert(e.id, Arc::new(call_type));
-                return BuiltinType::Error;
+                return SourceType::Error;
             }
         }
 
@@ -1717,10 +1713,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let msg = SemError::UnknownCtor(name, arg_types);
         self.vm.diag.lock().report(self.file, e.pos, msg);
 
-        BuiltinType::Error
+        SourceType::Error
     }
 
-    fn super_type(&self, pos: Position) -> BuiltinType {
+    fn super_type(&self, pos: Position) -> SourceType {
         if let FctParent::Class(clsid) = self.fct.parent {
             let cls = self.vm.classes.idx(clsid);
             let cls = cls.read();
@@ -1733,15 +1729,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let msg = SemError::SuperUnavailable;
         self.vm.diag.lock().report(self.file, pos, msg);
 
-        BuiltinType::Error
+        SourceType::Error
     }
 
-    fn check_expr_path(&mut self, e: &'ast ExprPathType, expected_ty: BuiltinType) -> BuiltinType {
+    fn check_expr_path(&mut self, e: &'ast ExprPathType, expected_ty: SourceType) -> SourceType {
         let (ident_type, type_params) = if e.lhs.is_ident() {
             (self.src.map_idents.get(e.lhs.id()).cloned(), None)
         } else if let Some(tp) = e.lhs.to_type_param() {
             if tp.callee.is_ident() {
-                let type_params: Vec<BuiltinType> =
+                let type_params: Vec<SourceType> =
                     tp.args.iter().map(|p| self.src.ty(p.id())).collect();
                 let type_params: TypeList = TypeList::with(type_params);
 
@@ -1761,13 +1757,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         } else {
             let msg = SemError::NameOfStaticMethodExpected;
             self.vm.diag.lock().report(self.file, e.rhs.pos(), msg);
-            return BuiltinType::Error;
+            return SourceType::Error;
         };
 
         let ident_type = match ident_type {
             Some(IdentType::Class(cls_id)) if type_params.is_none() => {
                 let list = self.vm.lists.lock().insert(TypeList::empty());
-                let cls_ty = BuiltinType::Class(cls_id, list);
+                let cls_ty = SourceType::Class(cls_id, list);
 
                 IdentType::StaticMethod(cls_ty, name)
             }
@@ -1775,7 +1771,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             Some(IdentType::Module(module_id)) | Some(IdentType::ClassAndModule(_, module_id))
                 if type_params.is_none() =>
             {
-                let module_ty = BuiltinType::Module(module_id);
+                let module_ty = SourceType::Module(module_id);
 
                 IdentType::Method(module_ty, name)
             }
@@ -1793,14 +1789,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let msg = SemError::InvalidLeftSideOfSeparator;
                 self.vm.diag.lock().report(self.file, e.lhs.pos(), msg);
 
-                self.src.set_ty(e.id, BuiltinType::Error);
-                return BuiltinType::Error;
+                self.src.set_ty(e.id, SourceType::Error);
+                return SourceType::Error;
             }
         };
 
         if self.used_in_call.contains(&e.id) {
             self.src.map_idents.insert(e.id, ident_type);
-            return BuiltinType::Error;
+            return SourceType::Error;
         }
 
         self.vm
@@ -1808,21 +1804,21 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .lock()
             .report(self.file, e.pos, SemError::FctUsedAsIdentifier);
 
-        BuiltinType::Error
+        SourceType::Error
     }
 
     fn check_expr_path_enum(
         &mut self,
         e: &'ast ExprPathType,
-        _expected_ty: BuiltinType,
+        _expected_ty: SourceType,
         id: EnumId,
         type_params: TypeList,
         name: Name,
-    ) -> BuiltinType {
+    ) -> SourceType {
         let xenum = self.vm.enums[id].read();
 
         let list_id = self.vm.lists.lock().insert(type_params);
-        let ty = BuiltinType::Enum(id, list_id);
+        let ty = SourceType::Enum(id, list_id);
         typeparamck::check_enum(self.vm, self.fct, ty, ErrorReporting::Yes(self.file, e.pos));
 
         if let Some(&value) = xenum.name_to_value.get(&name) {
@@ -1864,16 +1860,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_type_param(
         &mut self,
         e: &'ast ExprTypeParamType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+        _expected_ty: SourceType,
+    ) -> SourceType {
         if self.used_in_call.contains(&e.id) {
             self.used_in_call.insert(e.callee.id());
         }
 
-        let expr_type = self.check_expr(&e.callee, BuiltinType::Any);
+        let expr_type = self.check_expr(&e.callee, SourceType::Any);
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
-        let type_params: Vec<BuiltinType> = e.args.iter().map(|p| self.src.ty(p.id())).collect();
+        let type_params: Vec<SourceType> = e.args.iter().map(|p| self.src.ty(p.id())).collect();
         let type_params: TypeList = TypeList::with(type_params);
 
         match ident_type {
@@ -1917,11 +1913,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         expr_type
     }
 
-    fn check_expr_dot(&mut self, e: &'ast ExprDotType, _expected_ty: BuiltinType) -> BuiltinType {
+    fn check_expr_dot(&mut self, e: &'ast ExprDotType, _expected_ty: SourceType) -> SourceType {
         let object_type = if e.lhs.is_super() {
             self.super_type(e.lhs.pos())
         } else {
-            self.check_expr(&e.lhs, BuiltinType::Any)
+            self.check_expr(&e.lhs, SourceType::Any)
         };
 
         if object_type.is_tuple() {
@@ -1935,8 +1931,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let msg = SemError::NameExpected;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                self.src.set_ty(e.id, BuiltinType::Error);
-                return BuiltinType::Error;
+                self.src.set_ty(e.id, SourceType::Error);
+                return SourceType::Error;
             }
         };
 
@@ -1944,7 +1940,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.src
                 .map_idents
                 .insert(e.id, IdentType::Method(object_type, name));
-            return BuiltinType::Error;
+            return SourceType::Error;
         }
 
         if object_type.cls_id(self.vm).is_some() {
@@ -1975,16 +1971,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        self.src.set_ty(e.id, BuiltinType::Error);
+        self.src.set_ty(e.id, SourceType::Error);
 
-        BuiltinType::Error
+        SourceType::Error
     }
 
     fn check_expr_dot_tuple(
         &mut self,
         e: &'ast ExprDotType,
-        object_type: BuiltinType,
-    ) -> BuiltinType {
+        object_type: SourceType,
+    ) -> SourceType {
         let index = match e.rhs.to_lit_int() {
             Some(ident) => ident.value,
 
@@ -1992,13 +1988,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let msg = SemError::IndexExpected;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                self.src.set_ty(e.id, BuiltinType::Error);
-                return BuiltinType::Error;
+                self.src.set_ty(e.id, SourceType::Error);
+                return SourceType::Error;
             }
         };
 
         let tuple_id = match object_type {
-            BuiltinType::Tuple(tuple_id) => tuple_id,
+            SourceType::Tuple(tuple_id) => tuple_id,
             _ => unreachable!(),
         };
 
@@ -2008,8 +2004,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let msg = SemError::IllegalTupleIndex(index, object_type.name_fct(self.vm, self.fct));
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, BuiltinType::Error);
-            return BuiltinType::Error;
+            self.src.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
         }
 
         let ty = tuple[usize::try_from(index).unwrap()];
@@ -2018,7 +2014,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         ty
     }
 
-    fn check_expr_this(&mut self, e: &'ast ExprSelfType, _expected_ty: BuiltinType) -> BuiltinType {
+    fn check_expr_this(&mut self, e: &'ast ExprSelfType, _expected_ty: SourceType) -> SourceType {
         match self.fct.parent {
             FctParent::Class(clsid) => {
                 let cls = self.vm.classes.idx(clsid);
@@ -2050,34 +2046,30 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             _ => {
                 let msg = SemError::ThisUnavailable;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
-                self.src.set_ty(e.id, BuiltinType::Unit);
+                self.src.set_ty(e.id, SourceType::Unit);
 
-                BuiltinType::Unit
+                SourceType::Unit
             }
         }
     }
 
-    fn check_expr_super(
-        &mut self,
-        e: &'ast ExprSuperType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+    fn check_expr_super(&mut self, e: &'ast ExprSuperType, _expected_ty: SourceType) -> SourceType {
         let msg = SemError::SuperNeedsMethodCall;
         self.vm.diag.lock().report(self.file, e.pos, msg);
-        self.src.set_ty(e.id, BuiltinType::Unit);
+        self.src.set_ty(e.id, SourceType::Unit);
 
-        BuiltinType::Unit
+        SourceType::Unit
     }
 
     fn check_expr_lambda(
         &mut self,
         e: &'ast ExprLambdaType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let ret = if let Some(ref ty) = e.ret {
             self.src.ty(ty.id())
         } else {
-            BuiltinType::Unit
+            SourceType::Unit
         };
 
         let params = e
@@ -2087,15 +2079,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .collect::<Vec<_>>();
 
         let ty = self.vm.lambda_types.lock().insert(params, ret);
-        let ty = BuiltinType::Lambda(ty);
+        let ty = SourceType::Lambda(ty);
 
         self.src.set_ty(e.id, ty);
 
         ty
     }
 
-    fn check_expr_conv(&mut self, e: &'ast ExprConvType, _expected_ty: BuiltinType) -> BuiltinType {
-        let object_type = self.check_expr(&e.object, BuiltinType::Any);
+    fn check_expr_conv(&mut self, e: &'ast ExprConvType, _expected_ty: SourceType) -> SourceType {
+        let object_type = self.check_expr(&e.object, SourceType::Any);
         self.src.set_ty(e.object.id(), object_type);
 
         let check_type = self.src.ty(e.data_type.id());
@@ -2107,9 +2099,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .lock()
                 .report(self.file, e.pos, SemError::ReferenceTypeExpected(name));
             let ty = if e.is {
-                BuiltinType::Bool
+                SourceType::Bool
             } else {
-                BuiltinType::Error
+                SourceType::Error
             };
             self.src.set_ty(e.id, ty);
             return ty;
@@ -2119,9 +2111,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if !typeparamck::check_in_fct(self.vm, self.fct, error, check_type) {
             let ty = if e.is {
-                BuiltinType::Bool
+                SourceType::Bool
             } else {
-                BuiltinType::Error
+                SourceType::Error
             };
             self.src.set_ty(e.id, ty);
             return ty;
@@ -2151,7 +2143,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             },
         );
 
-        let ty = if e.is { BuiltinType::Bool } else { check_type };
+        let ty = if e.is { SourceType::Bool } else { check_type };
 
         self.src.set_ty(e.id, ty);
 
@@ -2162,8 +2154,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprLitIntType,
         negate: bool,
-        expected_ty: BuiltinType,
-    ) -> BuiltinType {
+        expected_ty: SourceType,
+    ) -> SourceType {
         let (ty, _) = check_lit_int(self.vm, self.file, e, negate, expected_ty);
 
         self.src.set_ty(e.id, ty);
@@ -2175,8 +2167,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprLitFloatType,
         negate: bool,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let (ty, _) = check_lit_float(self.vm, self.file, e, negate);
 
         self.src.set_ty(e.id, ty);
@@ -2187,8 +2179,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_lit_str(
         &mut self,
         e: &'ast ExprLitStrType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let str_ty = self.vm.cls(self.vm.known.classes.string);
         self.src.set_ty(e.id, str_ty);
 
@@ -2198,33 +2190,33 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_lit_bool(
         &mut self,
         e: &'ast ExprLitBoolType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
-        self.src.set_ty(e.id, BuiltinType::Bool);
+        _expected_ty: SourceType,
+    ) -> SourceType {
+        self.src.set_ty(e.id, SourceType::Bool);
 
-        BuiltinType::Bool
+        SourceType::Bool
     }
 
     fn check_expr_lit_char(
         &mut self,
         e: &'ast ExprLitCharType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
-        self.src.set_ty(e.id, BuiltinType::Char);
+        _expected_ty: SourceType,
+    ) -> SourceType {
+        self.src.set_ty(e.id, SourceType::Char);
 
-        BuiltinType::Char
+        SourceType::Char
     }
 
     fn check_expr_template(
         &mut self,
         e: &'ast ExprTemplateType,
-        _expected_ty: BuiltinType,
-    ) -> BuiltinType {
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let stringable_trait = self.vm.known.traits.stringable;
 
         for (idx, part) in e.parts.iter().enumerate() {
             if idx % 2 != 0 {
-                let part_expr = self.check_expr(part, BuiltinType::Any);
+                let part_expr = self.check_expr(part, SourceType::Any);
 
                 let implements_stringable = if part_expr.is_type_param() {
                     self.fct.type_param_ty(self.vm, part_expr, |tp, _| {
@@ -2254,7 +2246,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         str_ty
     }
 
-    fn check_expr(&mut self, e: &'ast Expr, expected_ty: BuiltinType) -> BuiltinType {
+    fn check_expr(&mut self, e: &'ast Expr, expected_ty: SourceType) -> SourceType {
         match *e {
             ExprLitChar(ref expr) => self.check_expr_lit_char(expr, expected_ty),
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr, false, expected_ty),
@@ -2299,20 +2291,20 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtBreak(_) => visit::walk_stmt(self, s),
             StmtContinue(_) => visit::walk_stmt(self, s),
             StmtExpr(ref stmt) => {
-                self.check_expr(&stmt.expr, BuiltinType::Any);
+                self.check_expr(&stmt.expr, SourceType::Any);
             }
         }
 
-        self.src.set_ty(s.id(), BuiltinType::Unit);
+        self.src.set_ty(s.id(), SourceType::Unit);
     }
 }
 
 pub fn args_compatible<'ast>(
     vm: &VM<'ast>,
     callee: &Fct<'ast>,
-    args: &[BuiltinType],
+    args: &[SourceType],
     type_params: &TypeList,
-    self_ty: Option<BuiltinType>,
+    self_ty: Option<SourceType>,
 ) -> bool {
     let def_args = callee.params_without_self();
 
@@ -2326,7 +2318,7 @@ pub fn args_compatible<'ast>(
         return false;
     }
 
-    let (def, rest_ty): (&[BuiltinType], Option<BuiltinType>) = if callee.variadic_arguments {
+    let (def, rest_ty): (&[SourceType], Option<SourceType>) = if callee.variadic_arguments {
         (&def_args[0..def_args.len() - 1], def_args.last().cloned())
     } else {
         (&def_args, None)
@@ -2354,30 +2346,30 @@ pub fn args_compatible<'ast>(
     true
 }
 
-fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<BuiltinType>) -> bool {
+fn arg_allows(vm: &VM, def: SourceType, arg: SourceType, self_ty: Option<SourceType>) -> bool {
     match def {
-        BuiltinType::Error | BuiltinType::Any => unreachable!(),
-        BuiltinType::Unit
-        | BuiltinType::Bool
-        | BuiltinType::UInt8
-        | BuiltinType::Char
-        | BuiltinType::Struct(_, _)
-        | BuiltinType::Int32
-        | BuiltinType::Int64
-        | BuiltinType::Float32
-        | BuiltinType::Float64
-        | BuiltinType::Enum(_, _) => def == arg,
-        BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
-        BuiltinType::This => {
+        SourceType::Error | SourceType::Any => unreachable!(),
+        SourceType::Unit
+        | SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Struct(_, _)
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Enum(_, _) => def == arg,
+        SourceType::Ptr => panic!("ptr should not occur in fct definition."),
+        SourceType::This => {
             let real = self_ty.expect("no Self type expected.");
 
             arg_allows(vm, real, arg, self_ty)
         }
-        BuiltinType::TraitObject(_) => panic!("trait should not occur in fct definition."),
+        SourceType::TraitObject(_) => panic!("trait should not occur in fct definition."),
 
-        BuiltinType::TypeParam(_) => def == arg,
+        SourceType::TypeParam(_) => def == arg,
 
-        BuiltinType::Class(cls_id, list_id) => {
+        SourceType::Class(cls_id, list_id) => {
             if def == arg {
                 return true;
             }
@@ -2386,7 +2378,7 @@ fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<Built
             let other_list_id;
 
             match arg {
-                BuiltinType::Class(cls_id, list_id) => {
+                SourceType::Class(cls_id, list_id) => {
                     other_cls_id = cls_id;
                     other_list_id = list_id;
                 }
@@ -2416,8 +2408,8 @@ fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<Built
             true
         }
 
-        BuiltinType::Tuple(tuple_id) => match arg {
-            BuiltinType::Tuple(other_tuple_id) => {
+        SourceType::Tuple(tuple_id) => match arg {
+            SourceType::Tuple(other_tuple_id) => {
                 if tuple_id == other_tuple_id {
                     return true;
                 }
@@ -2446,9 +2438,9 @@ fn arg_allows(vm: &VM, def: BuiltinType, arg: BuiltinType, self_ty: Option<Built
             _ => false,
         },
 
-        BuiltinType::Module(_) => def == arg,
+        SourceType::Module(_) => def == arg,
 
-        BuiltinType::Lambda(_) => {
+        SourceType::Lambda(_) => {
             // for now expect the exact same params and return types
             // possible improvement: allow super classes for params,
             //                             sub class for return type
@@ -2462,17 +2454,17 @@ pub fn check_lit_int(
     file: FileId,
     e: &ExprLitIntType,
     negate: bool,
-    expected_type: BuiltinType,
-) -> (BuiltinType, i64) {
+    expected_type: SourceType,
+) -> (SourceType, i64) {
     let ty = match e.suffix {
-        IntSuffix::UInt8 => BuiltinType::UInt8,
-        IntSuffix::Int32 => BuiltinType::Int32,
-        IntSuffix::Int64 => BuiltinType::Int64,
+        IntSuffix::UInt8 => SourceType::UInt8,
+        IntSuffix::Int32 => SourceType::Int32,
+        IntSuffix::Int64 => SourceType::Int64,
         IntSuffix::None => match expected_type {
-            BuiltinType::UInt8 => BuiltinType::UInt8,
-            BuiltinType::Int32 => BuiltinType::Int32,
-            BuiltinType::Int64 => BuiltinType::Int64,
-            _ => BuiltinType::Int32,
+            SourceType::UInt8 => SourceType::UInt8,
+            SourceType::Int32 => SourceType::Int32,
+            SourceType::Int64 => SourceType::Int64,
+            _ => SourceType::Int32,
         },
     };
 
@@ -2481,9 +2473,9 @@ pub fn check_lit_int(
 
     if e.base == IntBase::Dec {
         let max = match ty {
-            BuiltinType::UInt8 => 256,
-            BuiltinType::Int32 => (1u64 << 31),
-            BuiltinType::Int64 => (1u64 << 63),
+            SourceType::UInt8 => 256,
+            SourceType::Int32 => (1u64 << 31),
+            SourceType::Int64 => (1u64 << 63),
             _ => unreachable!(),
         };
 
@@ -2496,9 +2488,9 @@ pub fn check_lit_int(
         assert!(!negate);
 
         let max = match ty {
-            BuiltinType::UInt8 => 256 as u64,
-            BuiltinType::Int32 => u32::max_value() as u64,
-            BuiltinType::Int64 => u64::max_value() as u64,
+            SourceType::UInt8 => 256 as u64,
+            SourceType::Int32 => u32::max_value() as u64,
+            SourceType::Int64 => u64::max_value() as u64,
             _ => unreachable!(),
         };
 
@@ -2523,10 +2515,10 @@ pub fn check_lit_float(
     file: FileId,
     e: &ExprLitFloatType,
     negate: bool,
-) -> (BuiltinType, f64) {
+) -> (SourceType, f64) {
     let ty = match e.suffix {
-        FloatSuffix::Float32 => BuiltinType::Float32,
-        FloatSuffix::Float64 => BuiltinType::Float64,
+        FloatSuffix::Float32 => SourceType::Float32,
+        FloatSuffix::Float64 => SourceType::Float64,
     };
 
     let (min, max) = match e.suffix {
@@ -2552,13 +2544,13 @@ pub fn check_lit_float(
 
 pub fn lookup_method<'ast>(
     vm: &VM<'ast>,
-    object_type: BuiltinType,
+    object_type: SourceType,
     is_static: bool,
     name: Name,
-    args: &[BuiltinType],
+    args: &[SourceType],
     fct_tps: &TypeList,
-    return_type: Option<BuiltinType>,
-) -> Option<(ClassId, FctId, BuiltinType)> {
+    return_type: Option<SourceType>,
+) -> Option<(ClassId, FctId, SourceType)> {
     let cls_id = object_type.cls_id(vm);
 
     if cls_id.is_some() {

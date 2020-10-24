@@ -1,4 +1,4 @@
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 
 // first param offset to rbp is +16,
 // rbp+0 -> saved rbp
@@ -6,6 +6,6 @@ use crate::ty::BuiltinType;
 pub static PARAM_OFFSET: i32 = 16;
 
 // on x64 each parameter needs exactly 8 bytes
-pub fn next_param_offset(param_offset: i32, _: BuiltinType) -> i32 {
+pub fn next_param_offset(param_offset: i32, _: SourceType) -> i32 {
     param_offset + 8
 }

@@ -3,7 +3,7 @@ use parking_lot::RwLock;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::TypeSym;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 
 use crate::vm::module::ModuleId;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, Field, NodeMap, VM};
@@ -38,7 +38,7 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
         self.visit_ast(self.ast);
     }
 
-    fn add_field(&mut self, pos: Position, name: Name, ty: BuiltinType, reassignable: bool) {
+    fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, reassignable: bool) {
         let module = self.vm.modules.idx(self.module_id.unwrap());
         let mut module = module.write();
 
@@ -96,7 +96,7 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
 
                     for tp in &parent_class.type_params {
                         let ty = semck::read_type(self.vm, self.file_id.into(), tp)
-                            .unwrap_or(BuiltinType::Error);
+                            .unwrap_or(SourceType::Error);
                         types.push(ty);
                     }
 
@@ -105,7 +105,7 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
 
                     let module = self.vm.modules.idx(self.module_id.unwrap());
                     let mut module = module.write();
-                    module.parent_class = Some(BuiltinType::Class(cls_id, list_id));
+                    module.parent_class = Some(SourceType::Class(cls_id, list_id));
                 }
             }
 
@@ -128,7 +128,7 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
 
         let list = TypeList::empty();
         let list_id = self.vm.lists.lock().insert(list);
-        module.parent_class = Some(BuiltinType::Class(object_cls, list_id));
+        module.parent_class = Some(SourceType::Class(object_cls, list_id));
     }
 }
 
@@ -159,7 +159,7 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
         let ty = semck::read_type(self.vm, self.file_id.into(), &f.data_type)
-            .unwrap_or(BuiltinType::Unit);
+            .unwrap_or(SourceType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
@@ -187,7 +187,7 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
             name: f.name,
             namespace_id: None,
             param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
+            return_type: SourceType::Unit,
             parent: FctParent::Module(module_id),
             has_override: f.has_override,
             has_open: f.has_open,
@@ -239,7 +239,7 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
             name: f.name,
             namespace_id: None,
             param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
+            return_type: SourceType::Unit,
             parent: FctParent::Module(self.module_id.unwrap()),
             has_override: f.has_override,
             has_optimize_immediately: f.has_optimize_immediately,

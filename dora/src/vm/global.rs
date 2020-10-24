@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::gc::Address;
 use crate::mem;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{FctId, FileId, NamespaceId, VM};
 
@@ -30,7 +30,7 @@ pub struct GlobalData {
     pub file: FileId,
     pub pos: Position,
     pub namespace_id: Option<NamespaceId>,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
     pub reassignable: bool,
     pub name: Name,
     pub initializer: Option<FctId>,
@@ -63,7 +63,7 @@ pub fn init_global_addresses<'ast>(vm: &VM<'ast>) {
         let glob = glob.read();
 
         let initialized = size;
-        size += BuiltinType::Bool.size(vm);
+        size += SourceType::Bool.size(vm);
 
         let ty_size = glob.ty.size(vm);
         let ty_align = glob.ty.align(vm);

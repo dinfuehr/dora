@@ -26,7 +26,7 @@ use crate::semck::specialize::{
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
-use crate::ty::{BuiltinType, MachineMode, TypeList};
+use crate::ty::{MachineMode, SourceType, TypeList};
 use crate::vm::{
     EnumLayout, Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM,
 };
@@ -287,7 +287,7 @@ where
 
             let param_ty = if idx == params.len() - 1 && self.fct.variadic_arguments {
                 assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
-                BuiltinType::Ptr
+                SourceType::Ptr
             } else if param_ty.is_unit() {
                 continue;
             } else {
@@ -326,7 +326,7 @@ where
                 continue;
             }
 
-            if let BuiltinType::Enum(enum_id, list_id) = param_ty {
+            if let SourceType::Enum(enum_id, list_id) = param_ty {
                 let type_params = self.vm.lists.lock().get(list_id);
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(enum_def_id);
@@ -1472,17 +1472,17 @@ where
         }
     }
 
-    fn copy_ty(&mut self, ty: BuiltinType, dest: RegOrOffset, src: RegOrOffset) {
+    fn copy_ty(&mut self, ty: SourceType, dest: RegOrOffset, src: RegOrOffset) {
         match ty {
-            BuiltinType::Tuple(tuple_id) => {
+            SourceType::Tuple(tuple_id) => {
                 self.copy_tuple(tuple_id, dest, src);
             }
 
-            BuiltinType::Unit => {
+            SourceType::Unit => {
                 // do nothing
             }
 
-            BuiltinType::Enum(enum_id, type_params_id) => {
+            SourceType::Enum(enum_id, type_params_id) => {
                 let type_params = self.vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
@@ -1498,16 +1498,16 @@ where
                 self.asm.store_mem(mode, dest.mem(), tmp);
             }
 
-            BuiltinType::Ptr
-            | BuiltinType::UInt8
-            | BuiltinType::Bool
-            | BuiltinType::Char
-            | BuiltinType::Int32
-            | BuiltinType::Int64
-            | BuiltinType::Float32
-            | BuiltinType::Float64
-            | BuiltinType::Class(_, _)
-            | BuiltinType::TraitObject(_) => {
+            SourceType::Ptr
+            | SourceType::UInt8
+            | SourceType::Bool
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Class(_, _)
+            | SourceType::TraitObject(_) => {
                 let mode = ty.mode();
                 let tmp = result_reg_mode(mode);
 
@@ -1515,13 +1515,13 @@ where
                 self.asm.store_mem(mode, dest.mem(), tmp);
             }
 
-            BuiltinType::TypeParam(_)
-            | BuiltinType::Error
-            | BuiltinType::Any
-            | BuiltinType::This
-            | BuiltinType::Struct(_, _)
-            | BuiltinType::Module(_)
-            | BuiltinType::Lambda(_) => unreachable!(),
+            SourceType::TypeParam(_)
+            | SourceType::Error
+            | SourceType::Any
+            | SourceType::This
+            | SourceType::Struct(_, _)
+            | SourceType::Module(_)
+            | SourceType::Lambda(_) => unreachable!(),
         }
     }
 
@@ -1586,17 +1586,17 @@ where
         }
     }
 
-    fn zero_ty(&mut self, ty: BuiltinType, dest: RegOrOffset) {
+    fn zero_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
         match ty {
-            BuiltinType::Tuple(tuple_id) => {
+            SourceType::Tuple(tuple_id) => {
                 self.zero_tuple(tuple_id, dest);
             }
 
-            BuiltinType::Unit => {
+            SourceType::Unit => {
                 // do nothing
             }
 
-            BuiltinType::Enum(enum_id, type_params_id) => {
+            SourceType::Enum(enum_id, type_params_id) => {
                 let type_params = self.vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
@@ -1610,27 +1610,27 @@ where
                 self.asm.store_zero(mode, dest.mem());
             }
 
-            BuiltinType::Ptr
-            | BuiltinType::UInt8
-            | BuiltinType::Bool
-            | BuiltinType::Char
-            | BuiltinType::Int32
-            | BuiltinType::Int64
-            | BuiltinType::Float32
-            | BuiltinType::Float64
-            | BuiltinType::Class(_, _)
-            | BuiltinType::TraitObject(_) => {
+            SourceType::Ptr
+            | SourceType::UInt8
+            | SourceType::Bool
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Class(_, _)
+            | SourceType::TraitObject(_) => {
                 let mode = ty.mode();
                 self.asm.store_zero(mode, dest.mem());
             }
 
-            BuiltinType::TypeParam(_)
-            | BuiltinType::Error
-            | BuiltinType::Any
-            | BuiltinType::This
-            | BuiltinType::Struct(_, _)
-            | BuiltinType::Module(_)
-            | BuiltinType::Lambda(_) => unreachable!(),
+            SourceType::TypeParam(_)
+            | SourceType::Error
+            | SourceType::Any
+            | SourceType::This
+            | SourceType::Struct(_, _)
+            | SourceType::Module(_)
+            | SourceType::Lambda(_) => unreachable!(),
         }
     }
 
@@ -1649,17 +1649,17 @@ where
         }
     }
 
-    fn zero_refs_ty(&mut self, ty: BuiltinType, dest: RegOrOffset) {
+    fn zero_refs_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
         match ty {
-            BuiltinType::Tuple(tuple_id) => {
+            SourceType::Tuple(tuple_id) => {
                 self.zero_tuple(tuple_id, dest);
             }
 
-            BuiltinType::Unit => {
+            SourceType::Unit => {
                 // do nothing
             }
 
-            BuiltinType::Enum(enum_id, type_params_id) => {
+            SourceType::Enum(enum_id, type_params_id) => {
                 let type_params = self.vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
@@ -1673,25 +1673,25 @@ where
                 }
             }
 
-            BuiltinType::Ptr | BuiltinType::Class(_, _) | BuiltinType::TraitObject(_) => {
+            SourceType::Ptr | SourceType::Class(_, _) | SourceType::TraitObject(_) => {
                 self.asm.store_zero(MachineMode::Ptr, dest.mem());
             }
 
-            BuiltinType::UInt8
-            | BuiltinType::Bool
-            | BuiltinType::Char
-            | BuiltinType::Int32
-            | BuiltinType::Int64
-            | BuiltinType::Float32
-            | BuiltinType::Float64 => {}
+            SourceType::UInt8
+            | SourceType::Bool
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64 => {}
 
-            BuiltinType::TypeParam(_)
-            | BuiltinType::Error
-            | BuiltinType::Any
-            | BuiltinType::This
-            | BuiltinType::Struct(_, _)
-            | BuiltinType::Module(_)
-            | BuiltinType::Lambda(_) => unreachable!(),
+            SourceType::TypeParam(_)
+            | SourceType::Error
+            | SourceType::Any
+            | SourceType::This
+            | SourceType::Struct(_, _)
+            | SourceType::Module(_)
+            | SourceType::Lambda(_) => unreachable!(),
         }
     }
 
@@ -2757,7 +2757,7 @@ where
         assert!(fct_return_type.is_concrete_type(self.vm));
 
         let result_register = match fct_return_type {
-            BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+            SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
             _ => None,
         };
 
@@ -2857,7 +2857,7 @@ where
         }
 
         let result_register = match fct_return_type {
-            BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+            SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
             _ => None,
         };
 
@@ -2945,7 +2945,7 @@ where
         assert!(fct_return_type.is_concrete_type(self.vm));
 
         let result_register = match fct_return_type {
-            BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+            SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
             _ => None,
         };
 
@@ -3008,7 +3008,7 @@ where
         }
     }
 
-    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
+    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: SourceType) -> FctId {
         let cls_id = object_type.cls_id(self.vm).unwrap();
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
@@ -3101,7 +3101,7 @@ where
                 let native_fct = NativeFct {
                     ptr: Address::from_ptr(stdlib::unreachable as *const u8),
                     args: &[],
-                    return_type: BuiltinType::Unit,
+                    return_type: SourceType::Unit,
                     desc: NativeFctDescriptor::NativeStub(fct_id),
                 };
                 let gcpoint = self.create_gcpoint();
@@ -3782,7 +3782,7 @@ where
         }
     }
 
-    fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
+    fn specialize_type(&self, ty: SourceType) -> SourceType {
         specialize_type(self.vm, ty, self.type_params)
     }
 
@@ -4151,7 +4151,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
         comment!(self, {
-            let tuple_ty = BuiltinType::Tuple(tuple_id);
+            let tuple_ty = SourceType::Tuple(tuple_id);
             let tuple_ty_name = tuple_ty.name(self.vm);
             format!(
                 "MovTuple {}, {}, Tuple({})={}",
@@ -4196,7 +4196,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         idx: u32,
     ) {
         comment!(self, {
-            let tuple_ty = BuiltinType::Tuple(tuple_id);
+            let tuple_ty = SourceType::Tuple(tuple_id);
             let tuple_ty_name = tuple_ty.name(self.vm);
             format!(
                 "LoadTupleElement {}, {}, Tuple({})={}.{}",
@@ -4870,7 +4870,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         comment!(self, {
-            let tuple_name = BuiltinType::Tuple(tuple_id).name(self.vm);
+            let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
             format!(
                 "NewTuple {}, TupleId({}) # {}",
                 dest,

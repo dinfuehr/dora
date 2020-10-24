@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
@@ -65,7 +65,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             name: f.name,
             namespace_id: None,
             param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
+            return_type: SourceType::Unit,
             parent: FctParent::Trait(self.trait_id.unwrap()),
             has_override: f.has_override,
             has_open: f.has_open,

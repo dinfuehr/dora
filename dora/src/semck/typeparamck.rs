@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use std::collections::hash_set::HashSet;
 
 use crate::error::msg::SemError;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 use crate::vm::{Class, ClassId, Fct, FileId, TraitId, TypeParam, VM};
 
 pub enum ErrorReporting {
@@ -15,7 +15,7 @@ pub fn check_in_fct<'a, 'ast: 'a>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
     error: ErrorReporting,
-    object_type: BuiltinType,
+    object_type: SourceType,
 ) -> bool {
     let tp_defs = {
         let cls_id = object_type.cls_id(vm).expect("no class");
@@ -40,7 +40,7 @@ pub fn check_in_fct<'a, 'ast: 'a>(
 pub fn check_enum<'a, 'ast: 'a>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
-    ty: BuiltinType,
+    ty: SourceType,
     error: ErrorReporting,
 ) -> bool {
     let enum_id = ty.enum_id().expect("not an enum");
@@ -126,7 +126,7 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         let mut succeeded = true;
 
         for (tp_def, ty) in self.tp_defs.iter().zip(tps.iter()) {
-            if let BuiltinType::TypeParam(id) = ty {
+            if let SourceType::TypeParam(id) = ty {
                 let ok = if let Some(use_fct) = self.use_fct {
                     use_fct.type_param_ty(self.vm, ty, |tp_arg, _| {
                         self.tp_against_definition(tp_def, tp_arg, ty)
@@ -150,7 +150,7 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         succeeded
     }
 
-    fn type_against_definition(&self, tp: &TypeParam, ty: BuiltinType) -> bool {
+    fn type_against_definition(&self, tp: &TypeParam, ty: SourceType) -> bool {
         let mut succeeded = true;
 
         for &trait_bound in &tp.trait_bounds {
@@ -165,7 +165,7 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         succeeded
     }
 
-    fn tp_against_definition(&self, tp: &TypeParam, arg: &TypeParam, arg_ty: BuiltinType) -> bool {
+    fn tp_against_definition(&self, tp: &TypeParam, arg: &TypeParam, arg_ty: SourceType) -> bool {
         let mut succeeded = true;
 
         if tp.trait_bounds.len() == 0 {
@@ -185,7 +185,7 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         succeeded
     }
 
-    fn fail_trait_bound(&self, file_id: FileId, pos: Position, trait_id: TraitId, ty: BuiltinType) {
+    fn fail_trait_bound(&self, file_id: FileId, pos: Position, trait_id: TraitId, ty: SourceType) {
         let bound = self.vm.traits[trait_id].read();
         let name = if let Some(fct) = self.use_fct {
             ty.name_fct(self.vm, fct)

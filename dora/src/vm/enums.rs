@@ -12,7 +12,7 @@ use crate::mem;
 use crate::object::Header;
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
-use crate::ty::{BuiltinType, TypeList, TypeListId};
+use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::{ClassDef, ClassDefId, ExtensionId, FctId, FieldDef, FileId, TypeParam, VM};
 use crate::vtable::VTableBox;
@@ -73,7 +73,7 @@ impl EnumData {
 #[derive(Debug)]
 pub struct EnumVariant {
     pub name: Name,
-    pub types: Vec<BuiltinType>,
+    pub types: Vec<SourceType>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -115,7 +115,7 @@ impl EnumDef {
         let mut csize = Header::size() + 4;
         let mut fields = vec![FieldDef {
             offset: Header::size(),
-            ty: BuiltinType::Int32,
+            ty: SourceType::Int32,
         }];
         let mut ref_fields = Vec::new();
 
@@ -199,15 +199,15 @@ pub enum EnumLayout {
 
 #[derive(Debug)]
 pub struct EnumDefVariant {
-    pub types: Vec<BuiltinType>,
+    pub types: Vec<SourceType>,
 }
 
 pub fn find_methods_in_enum(
     vm: &VM,
-    object_type: BuiltinType,
+    object_type: SourceType,
     name: Name,
     is_static: bool,
-) -> Vec<(BuiltinType, FctId)> {
+) -> Vec<(SourceType, FctId)> {
     let enum_id = object_type.enum_id().unwrap();
     let xenum = vm.enums[enum_id].read();
 

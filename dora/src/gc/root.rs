@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::semck::specialize::specialize_enum_id_params;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{EnumLayout, VM};
 
 pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
@@ -44,7 +44,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                 let slot = Slot::at(slot_address);
                 rootset.push(slot);
             }
-        } else if let BuiltinType::Enum(enum_id, type_params_id) = glob.ty {
+        } else if let SourceType::Enum(enum_id, type_params_id) = glob.ty {
             let type_params = vm.lists.lock().get(type_params_id);
             let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
             let edef = vm.enum_defs.idx(edef_id);

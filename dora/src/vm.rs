@@ -18,7 +18,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
 use crate::sym::{SymLevel, SymTable};
 use crate::threads::{Threads, STACK_SIZE, THREAD};
-use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeLists};
+use crate::ty::{LambdaTypes, SourceType, TypeList, TypeLists};
 use crate::utils::GrowableVec;
 use crate::vm::module::{Module, ModuleDef, ModuleId};
 
@@ -417,28 +417,28 @@ impl<'ast> VM<'ast> {
         self.sym.lock().get_global(name).expect("global not found")
     }
 
-    pub fn cls(&self, cls_id: ClassId) -> BuiltinType {
+    pub fn cls(&self, cls_id: ClassId) -> SourceType {
         let list_id = self.lists.lock().insert(TypeList::empty());
-        BuiltinType::Class(cls_id, list_id)
+        SourceType::Class(cls_id, list_id)
     }
 
     pub fn cls_with_type_params(
         &self,
         cls_id: ClassId,
-        type_params: Vec<BuiltinType>,
-    ) -> BuiltinType {
+        type_params: Vec<SourceType>,
+    ) -> SourceType {
         let list = TypeList::with(type_params);
         let list_id = self.lists.lock().insert(list);
-        BuiltinType::Class(cls_id, list_id)
+        SourceType::Class(cls_id, list_id)
     }
 
-    pub fn cls_with_type_list(&self, cls_id: ClassId, type_list: TypeList) -> BuiltinType {
+    pub fn cls_with_type_list(&self, cls_id: ClassId, type_list: TypeList) -> SourceType {
         let list_id = self.lists.lock().insert(type_list);
-        BuiltinType::Class(cls_id, list_id)
+        SourceType::Class(cls_id, list_id)
     }
 
-    pub fn modu(&self, mod_id: ModuleId) -> BuiltinType {
-        BuiltinType::Module(mod_id)
+    pub fn modu(&self, mod_id: ModuleId) -> SourceType {
+        SourceType::Module(mod_id)
     }
 
     pub fn dora_stub(&self) -> Address {
@@ -467,8 +467,8 @@ impl<'ast> VM<'ast> {
         if trap_stub_address.is_null() {
             let ifct = NativeFct {
                 ptr: Address::from_ptr(stdlib::trap as *const u8),
-                args: &[BuiltinType::Int32],
-                return_type: BuiltinType::Unit,
+                args: &[SourceType::Int32],
+                return_type: SourceType::Unit,
                 desc: NativeFctDescriptor::TrapStub,
             };
             let jit_fct_id = native_stub::generate(self, ifct, false);
@@ -487,7 +487,7 @@ impl<'ast> VM<'ast> {
             let ifct = NativeFct {
                 ptr: Address::from_ptr(safepoint::guard_check as *const u8),
                 args: &[],
-                return_type: BuiltinType::Unit,
+                return_type: SourceType::Unit,
                 desc: NativeFctDescriptor::GuardCheckStub,
             };
             let jit_fct_id = native_stub::generate(self, ifct, false);

@@ -4,7 +4,7 @@ use std::ops::Index;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{FctId, FileId, NamespaceId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -45,8 +45,8 @@ impl TraitData {
         vm: &VM,
         is_static: bool,
         name: Name,
-        replace: Option<BuiltinType>,
-        args: &[BuiltinType],
+        replace: Option<SourceType>,
+        args: &[SourceType],
     ) -> Option<FctId> {
         for &method in &self.methods {
             let method = vm.fcts.idx(method);
@@ -65,9 +65,9 @@ impl TraitData {
 }
 
 fn params_match(
-    replace: Option<BuiltinType>,
-    trait_args: &[BuiltinType],
-    args: &[BuiltinType],
+    replace: Option<SourceType>,
+    trait_args: &[SourceType],
+    args: &[SourceType],
 ) -> bool {
     if trait_args.len() != args.len() {
         return false;
@@ -76,7 +76,7 @@ fn params_match(
     for (ind, &ty) in trait_args.iter().enumerate() {
         let other = args[ind];
 
-        let found = if ty == BuiltinType::This {
+        let found = if ty == SourceType::This {
             replace.is_none() || replace.unwrap() == other
         } else {
             ty == other

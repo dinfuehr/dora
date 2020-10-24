@@ -13,7 +13,7 @@ use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, ScratchReg};
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
-use crate::ty::{BuiltinType, MachineMode, TypeList};
+use crate::ty::{MachineMode, SourceType, TypeList};
 use crate::vm::FctId;
 use crate::vm::{GlobalData, Trap, VM};
 
@@ -457,11 +457,11 @@ where
         self.masm.emit_position(position);
     }
 
-    pub fn var_store(&mut self, offset: i32, ty: BuiltinType, src: AnyReg) {
+    pub fn var_store(&mut self, offset: i32, ty: SourceType, src: AnyReg) {
         self.masm.store_mem(ty.mode(), Mem::Local(offset), src);
     }
 
-    pub fn var_load(&mut self, offset: i32, ty: BuiltinType, dest: AnyReg) {
+    pub fn var_load(&mut self, offset: i32, ty: SourceType, dest: AnyReg) {
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
@@ -573,8 +573,8 @@ where
 
         let internal_fct = NativeFct {
             ptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
-            args: &[BuiltinType::Int64, BuiltinType::Bool],
-            return_type: BuiltinType::Ptr,
+            args: &[SourceType::Int64, SourceType::Bool],
+            return_type: SourceType::Ptr,
             desc: NativeFctDescriptor::AllocStub,
         };
 

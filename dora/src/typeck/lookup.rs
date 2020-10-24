@@ -1,7 +1,7 @@
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 use crate::typeck::expr::args_compatible;
 use crate::vm::{
     find_methods_in_class, find_methods_in_enum, ClassId, EnumId, Fct, FctId, FctParent, FileId,
@@ -15,7 +15,7 @@ use dora_parser::lexer::position::Position;
 #[derive(Copy, Clone)]
 enum LookupKind {
     Fct,
-    Method(BuiltinType),
+    Method(SourceType),
     Static(ClassId),
     Trait(TraitId),
     Callee(FctId),
@@ -28,16 +28,16 @@ pub struct MethodLookup<'a, 'ast: 'a> {
     file: FileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
-    args: Option<&'a [BuiltinType]>,
+    args: Option<&'a [SourceType]>,
     container_tps: Option<&'a TypeList>,
     fct_tps: Option<&'a TypeList>,
-    ret: Option<BuiltinType>,
+    ret: Option<SourceType>,
     pos: Option<Position>,
     report_errors: bool,
 
     found_fct_id: Option<FctId>,
-    found_class_type: Option<BuiltinType>,
-    found_ret: Option<BuiltinType>,
+    found_class_type: Option<SourceType>,
+    found_ret: Option<SourceType>,
 
     found_multiple_functions: bool,
 }
@@ -75,12 +75,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self
     }
 
-    pub fn method(mut self, obj: BuiltinType) -> MethodLookup<'a, 'ast> {
+    pub fn method(mut self, obj: SourceType) -> MethodLookup<'a, 'ast> {
         self.kind = if let Some(_) = obj.cls_id(self.vm) {
             Some(LookupKind::Method(obj))
         } else if let Some(_) = obj.module_id() {
             Some(LookupKind::Method(obj))
-        } else if let BuiltinType::TraitObject(trait_id) = obj {
+        } else if let SourceType::TraitObject(trait_id) = obj {
             Some(LookupKind::Trait(trait_id))
         } else if obj.is_enum() {
             Some(LookupKind::Method(obj))
@@ -106,7 +106,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self
     }
 
-    pub fn args(mut self, args: &'a [BuiltinType]) -> MethodLookup<'a, 'ast> {
+    pub fn args(mut self, args: &'a [SourceType]) -> MethodLookup<'a, 'ast> {
         self.args = Some(args);
         self
     }
@@ -131,7 +131,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self
     }
 
-    pub fn return_type(mut self, ret: BuiltinType) -> MethodLookup<'a, 'ast> {
+    pub fn return_type(mut self, ret: SourceType) -> MethodLookup<'a, 'ast> {
         self.ret = Some(ret);
         self
     }
@@ -280,7 +280,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             TypeList::empty()
         };
 
-        if args.contains(&BuiltinType::Error) {
+        if args.contains(&SourceType::Error) {
             return false;
         }
 
@@ -311,7 +311,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cmp_type = match kind {
             LookupKind::Ctor(cls_id) => {
                 let list_id = self.vm.lists.lock().insert(container_tps);
-                BuiltinType::Class(cls_id, list_id)
+                SourceType::Class(cls_id, list_id)
             }
             _ => {
                 let type_list = container_tps.append(&fct_tps);
@@ -340,7 +340,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     fn find_method(
         &mut self,
-        object_type: BuiltinType,
+        object_type: SourceType,
         name: Name,
         is_static: bool,
     ) -> Option<FctId> {
@@ -421,11 +421,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.found_fct_id
     }
 
-    pub fn found_class_type(&self) -> Option<BuiltinType> {
+    pub fn found_class_type(&self) -> Option<SourceType> {
         self.found_class_type
     }
 
-    pub fn found_ret(&self) -> Option<BuiltinType> {
+    pub fn found_ret(&self) -> Option<SourceType> {
         self.found_ret
     }
 }

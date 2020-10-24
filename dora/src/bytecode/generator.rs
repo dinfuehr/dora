@@ -10,7 +10,7 @@ use crate::bytecode::{
 };
 use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 use crate::vm::{
     CallType, ConstId, Fct, FctId, FctSrc, GlobalId, IdentType, Intrinsic, TraitId, TupleId, VarId,
     VM,
@@ -254,7 +254,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         pattern: &LetPattern,
         array_reg: Register,
         index_reg: Register,
-        ty: BuiltinType,
+        ty: SourceType,
     ) {
         match pattern {
             LetPattern::Ident(ref ident) => {
@@ -288,7 +288,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         pattern: &LetPattern,
         next_reg: Register,
-        next_ty: BuiltinType,
+        next_ty: SourceType,
     ) {
         match pattern {
             LetPattern::Ident(ref ident) => {
@@ -317,7 +317,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         tuple: &LetTupleType,
         tuple_reg: Register,
-        tuple_ty: BuiltinType,
+        tuple_ty: SourceType,
     ) {
         let tuple_id = tuple_ty.tuple_id().expect("type should be tuple");
 
@@ -613,7 +613,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.visit_expr(part, DataDest::Reg(part_register));
                 } else if ty.is_type_param() {
                     let type_list_id = match ty {
-                        BuiltinType::TypeParam(id) => id,
+                        SourceType::TypeParam(id) => id,
                         _ => unreachable!(),
                     };
 
@@ -960,7 +960,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn visit_expr_call_enum(
         &mut self,
         expr: &ExprCallType,
-        enum_ty: BuiltinType,
+        enum_ty: SourceType,
         variant_id: usize,
         dest: DataDest,
     ) -> Register {
@@ -999,14 +999,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         call_type: &CallType,
         fct: &Fct,
-    ) -> (Vec<BuiltinType>, Vec<BytecodeType>, BuiltinType) {
+    ) -> (Vec<SourceType>, Vec<BytecodeType>, SourceType) {
         let return_type = self.specialize_type_for_call(&call_type, fct.return_type);
 
         let arg_types = fct
             .params_with_self()
             .iter()
             .map(|&arg| self.specialize_type_for_call(&call_type, arg))
-            .collect::<Vec<BuiltinType>>();
+            .collect::<Vec<SourceType>>();
 
         let arg_bytecode_types = arg_types
             .iter()
@@ -1044,7 +1044,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         expr: &ExprCallType,
         callee: &Fct,
         call_type: &CallType,
-        arg_types: &[BuiltinType],
+        arg_types: &[SourceType],
     ) -> Vec<Register> {
         let mut registers = Vec::new();
 
@@ -1092,7 +1092,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn emit_array_with_variadic_arguments(
         &mut self,
         expr: &ExprCallType,
-        arg_types: &[BuiltinType],
+        arg_types: &[SourceType],
         non_variadic_arguments: usize,
         dest: DataDest,
     ) -> Register {
@@ -1144,7 +1144,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         pos: Position,
         call_type: &CallType,
-        arg_types: &[BuiltinType],
+        arg_types: &[SourceType],
         object_reg: Option<Register>,
     ) {
         match *call_type {
@@ -1167,7 +1167,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         expr: &ExprCallType,
         fct: &Fct,
         call_type: &CallType,
-        return_type: BuiltinType,
+        return_type: SourceType,
         pos: Position,
         callee_idx: ConstPoolIdx,
         return_reg: Register,
@@ -1290,7 +1290,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn emit_invoke_virtual(
         &mut self,
-        return_type: BuiltinType,
+        return_type: SourceType,
         return_reg: Register,
         callee_id: ConstPoolIdx,
         pos: Position,
@@ -1304,7 +1304,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn emit_invoke_direct(
         &mut self,
-        return_type: BuiltinType,
+        return_type: SourceType,
         return_reg: Register,
         callee_id: ConstPoolIdx,
         pos: Position,
@@ -1318,7 +1318,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn emit_invoke_static(
         &mut self,
-        return_type: BuiltinType,
+        return_type: SourceType,
         return_reg: Register,
         callee_id: ConstPoolIdx,
         pos: Position,
@@ -1332,7 +1332,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn emit_invoke_generic_static(
         &mut self,
-        return_type: BuiltinType,
+        return_type: SourceType,
         return_reg: Register,
         callee_id: ConstPoolIdx,
         pos: Position,
@@ -1347,7 +1347,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn emit_invoke_generic_direct(
         &mut self,
-        return_type: BuiltinType,
+        return_type: SourceType,
         return_reg: Register,
         callee_id: ConstPoolIdx,
         pos: Position,
@@ -1452,9 +1452,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ty = self.src.ty(lit.id);
 
         let ty = match ty {
-            BuiltinType::UInt8 => BytecodeType::UInt8,
-            BuiltinType::Int32 => BytecodeType::Int32,
-            BuiltinType::Int64 => BytecodeType::Int64,
+            SourceType::UInt8 => BytecodeType::UInt8,
+            SourceType::Int32 => BytecodeType::Int32,
+            SourceType::Int64 => BytecodeType::Int64,
             _ => unreachable!(),
         };
 
@@ -1493,8 +1493,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ty = self.src.ty(lit.id);
 
         let ty = match ty {
-            BuiltinType::Float32 => BytecodeType::Float32,
-            BuiltinType::Float64 => BytecodeType::Float64,
+            SourceType::Float32 => BytecodeType::Float32,
+            SourceType::Float64 => BytecodeType::Float64,
             _ => unreachable!(),
         };
 
@@ -1602,7 +1602,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         // Create FctDefId for this callee
         let callee_idx = self.specialize_call(&callee, &call_type);
 
-        let function_return_type: BuiltinType =
+        let function_return_type: SourceType =
             self.specialize_type_for_call(call_type, callee.return_type);
 
         let function_return_type_bc: BytecodeType =
@@ -1647,7 +1647,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         // Create FctDefId for this callee
         let callee_idx = self.specialize_call(&callee, &call_type);
 
-        let function_return_type: BuiltinType =
+        let function_return_type: SourceType =
             self.specialize_type_for_call(call_type, callee.return_type);
 
         let function_return_type_bc: BytecodeType =
@@ -2504,7 +2504,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let dest = self.ensure_register(dest, BytecodeType::from_ty(self.vm, ty));
 
         match ty {
-            BuiltinType::Bool => {
+            SourceType::Bool => {
                 if xconst.value.to_bool() {
                     self.gen.emit_const_true(dest);
                 } else {
@@ -2512,29 +2512,29 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
 
-            BuiltinType::Char => {
+            SourceType::Char => {
                 self.gen.emit_const_char(dest, xconst.value.to_char());
             }
 
-            BuiltinType::UInt8 => {
+            SourceType::UInt8 => {
                 self.gen.emit_const_uint8(dest, xconst.value.to_int() as u8);
             }
 
-            BuiltinType::Int32 => {
+            SourceType::Int32 => {
                 self.gen
                     .emit_const_int32(dest, xconst.value.to_int() as i32);
             }
 
-            BuiltinType::Int64 => {
+            SourceType::Int64 => {
                 self.gen.emit_const_int64(dest, xconst.value.to_int());
             }
 
-            BuiltinType::Float32 => {
+            SourceType::Float32 => {
                 self.gen
                     .emit_const_float32(dest, xconst.value.to_float() as f32);
             }
 
-            BuiltinType::Float64 => {
+            SourceType::Float64 => {
                 self.gen.emit_const_float64(dest, xconst.value.to_float());
             }
 
@@ -2590,7 +2590,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
+    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: SourceType) -> FctId {
         let cls_id = object_type.cls_id(self.vm).unwrap();
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
@@ -2686,7 +2686,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {
+    fn specialize_type_for_call(&self, call_type: &CallType, ty: SourceType) -> SourceType {
         let ty = match *call_type {
             CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
                 let type_params = cls_type_params.append(fct_type_params);
@@ -2719,7 +2719,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::GenericMethod(id, _, _) | CallType::GenericStaticMethod(id, _, _) => {
                 debug_assert!(ty.is_concrete_type(self.vm) || ty.is_self());
                 if ty.is_self() {
-                    BuiltinType::TypeParam(id)
+                    SourceType::TypeParam(id)
                 } else {
                     ty
                 }
@@ -2732,16 +2732,16 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.specialize_type(ty)
     }
 
-    fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
+    fn specialize_type(&self, ty: SourceType) -> SourceType {
         ty
     }
 
-    fn ty(&self, id: NodeId) -> BuiltinType {
+    fn ty(&self, id: NodeId) -> SourceType {
         let ty = self.src.ty(id);
         self.specialize_type(ty)
     }
 
-    fn var_ty(&self, id: VarId) -> BuiltinType {
+    fn var_ty(&self, id: VarId) -> SourceType {
         let ty = self.src.vars[id].ty;
         self.specialize_type(ty)
     }

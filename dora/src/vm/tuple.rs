@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::mem;
 use crate::semck::specialize::specialize_enum_id_params;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{EnumLayout, VM};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -31,7 +31,7 @@ pub struct ConcreteTuple {
 }
 
 pub struct Tuple {
-    args: Arc<Vec<BuiltinType>>,
+    args: Arc<Vec<SourceType>>,
     concrete: Option<ConcreteTuple>,
 }
 
@@ -50,7 +50,7 @@ impl Tuple {
         true
     }
 
-    pub fn args(&self) -> Arc<Vec<BuiltinType>> {
+    pub fn args(&self) -> Arc<Vec<SourceType>> {
         self.args.clone()
     }
 
@@ -77,7 +77,7 @@ impl Tuple {
 
 pub struct Tuples {
     all: Vec<Tuple>,
-    map: HashMap<Arc<Vec<BuiltinType>>, TupleId>,
+    map: HashMap<Arc<Vec<SourceType>>, TupleId>,
 }
 
 impl Tuples {
@@ -88,12 +88,12 @@ impl Tuples {
         }
     }
 
-    pub fn get_ty(&self, id: TupleId, idx: usize) -> BuiltinType {
+    pub fn get_ty(&self, id: TupleId, idx: usize) -> SourceType {
         let tuple = self.get_tuple(id);
         tuple.args[idx]
     }
 
-    pub fn get_ty_and_offset(&self, id: TupleId, idx: usize) -> (BuiltinType, i32) {
+    pub fn get_ty_and_offset(&self, id: TupleId, idx: usize) -> (SourceType, i32) {
         let tuple = self.get_tuple(id);
         (
             tuple.args[idx],
@@ -109,12 +109,12 @@ impl Tuples {
         &self.all[id.0 as usize]
     }
 
-    pub fn get(&self, id: TupleId) -> Arc<Vec<BuiltinType>> {
+    pub fn get(&self, id: TupleId) -> Arc<Vec<SourceType>> {
         self.all[id.0 as usize].args.clone()
     }
 }
 
-pub fn ensure_tuple(vm: &VM, args: Vec<BuiltinType>) -> TupleId {
+pub fn ensure_tuple(vm: &VM, args: Vec<SourceType>) -> TupleId {
     let args = Arc::new(args);
 
     if let Some(&tuple_id) = vm.tuples.lock().map.get(&args) {
@@ -140,7 +140,7 @@ pub fn ensure_tuple(vm: &VM, args: Vec<BuiltinType>) -> TupleId {
     id
 }
 
-fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> Option<ConcreteTuple> {
+fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[SourceType]) -> Option<ConcreteTuple> {
     let mut size = 0;
     let mut offsets = Vec::new();
     let mut references = Vec::new();
@@ -174,7 +174,7 @@ fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> Option<Concr
             align = max(align, element_align);
 
             continue;
-        } else if let BuiltinType::Enum(enum_id, type_params_id) = ty {
+        } else if let SourceType::Enum(enum_id, type_params_id) = ty {
             let type_params = vm.lists.lock().get(*type_params_id);
             let edef_id = specialize_enum_id_params(vm, *enum_id, type_params);
             let edef = vm.enum_defs.idx(edef_id);
@@ -184,12 +184,12 @@ fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> Option<Concr
                 EnumLayout::Int => {
                     element_size = 4;
                     element_align = 4;
-                    element_ty = BuiltinType::Int32;
+                    element_ty = SourceType::Int32;
                 }
                 EnumLayout::Ptr | EnumLayout::Tagged => {
                     element_size = mem::ptr_width();
                     element_align = mem::ptr_width();
-                    element_ty = BuiltinType::Ptr;
+                    element_ty = SourceType::Ptr;
                 }
             }
         } else {

@@ -13,7 +13,7 @@ use crate::gc::{Address, Region};
 use crate::handle::{root, Handle};
 use crate::mem;
 use crate::size::InstanceSize;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{ClassDef, ClassDefId, FieldId, VM};
 use crate::vtable::VTable;
 
@@ -853,7 +853,7 @@ pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, val
     let cls_def = cls_def.read();
     let field = &cls_def.fields[fid.idx()];
     let slot = obj.address().offset(field.offset as usize);
-    assert!(field.ty == BuiltinType::Int32);
+    assert!(field.ty == SourceType::Int32);
 
     unsafe {
         *slot.to_mut_ptr::<i32>() = value;

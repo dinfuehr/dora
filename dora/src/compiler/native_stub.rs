@@ -13,7 +13,7 @@ use crate::masm::MacroAssembler;
 use crate::mem;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::ty::{BuiltinType, MachineMode};
+use crate::ty::{MachineMode, SourceType};
 use crate::vm::FctId;
 use crate::vm::VM;
 
@@ -48,8 +48,8 @@ pub enum NativeFctDescriptor {
 
 pub struct NativeFct<'a> {
     pub ptr: Address,
-    pub args: &'a [BuiltinType],
-    pub return_type: BuiltinType,
+    pub args: &'a [SourceType],
+    pub return_type: SourceType,
     pub desc: NativeFctDescriptor,
 }
 
@@ -94,7 +94,7 @@ where
     'ast: 'a,
 {
     pub fn generate(mut self) -> Code {
-        let save_return = self.fct.return_type != BuiltinType::Unit;
+        let save_return = self.fct.return_type != SourceType::Unit;
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
         let (stack_args, temporaries, temporaries_desc, args_desc) = analyze(self.fct.args);
@@ -264,7 +264,7 @@ where
 }
 
 fn analyze(
-    args: &[BuiltinType],
+    args: &[SourceType],
 ) -> (
     u32,
     u32,

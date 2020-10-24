@@ -6,7 +6,7 @@ use dora_parser::ast::{Ast, Enum, File, TypeParam};
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::TypeSym;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{EnumId, EnumVariant, NodeMap, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<EnumId>) {
@@ -53,13 +53,13 @@ impl<'x, 'ast> EnumCheck<'x, 'ast> {
                     self.vm.diag.lock().report(xenum.file, type_param.pos, msg);
                 }
 
-                params.push(BuiltinType::TypeParam(type_param_id.into()));
+                params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
                     let ty = semck::read_type(self.vm, xenum.file, bound);
 
                     match ty {
-                        Some(BuiltinType::TraitObject(trait_id)) => {
+                        Some(SourceType::TraitObject(trait_id)) => {
                             if !xenum.type_params[type_param_id]
                                 .trait_bounds
                                 .insert(trait_id)
@@ -114,12 +114,12 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
         let mut simple_enumeration = true;
 
         for value in &e.variants {
-            let mut types: Vec<BuiltinType> = Vec::new();
+            let mut types: Vec<SourceType> = Vec::new();
 
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {
                     let variant_ty = semck::read_type(self.vm, self.file_id.into(), ty)
-                        .unwrap_or(BuiltinType::Error);
+                        .unwrap_or(SourceType::Error);
                     types.push(variant_ty);
                 }
             }

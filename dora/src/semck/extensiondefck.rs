@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::TypeSym;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
@@ -18,7 +18,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_extension_defs: &NodeM
         extension_id: None,
         map_extension_defs,
         file_id: 0,
-        extension_ty: BuiltinType::Error,
+        extension_ty: SourceType::Error,
     };
 
     clsck.check();
@@ -31,7 +31,7 @@ struct ExtensionCheck<'x, 'ast: 'x> {
     file_id: u32,
 
     extension_id: Option<ExtensionId>,
-    extension_ty: BuiltinType,
+    extension_ty: SourceType,
 }
 
 impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
@@ -53,7 +53,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
             self.extension_ty = extension_ty;
 
             match extension_ty {
-                BuiltinType::Enum(enum_id, _) => {
+                SourceType::Enum(enum_id, _) => {
                     let mut xenum = self.vm.enums[enum_id].write();
                     xenum.extensions.push(self.extension_id.unwrap());
                 }
@@ -218,7 +218,7 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
             name: f.name,
             namespace_id: None,
             param_types: Vec::new(),
-            return_type: BuiltinType::Unit,
+            return_type: SourceType::Unit,
             parent: parent,
             has_override: f.has_override,
             has_open: f.has_open,
@@ -252,7 +252,7 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
         }
 
         let success = match self.extension_ty {
-            BuiltinType::Enum(enum_id, _) => self.check_in_enum(f, enum_id),
+            SourceType::Enum(enum_id, _) => self.check_in_enum(f, enum_id),
             _ => self.check_in_class(f),
         };
 

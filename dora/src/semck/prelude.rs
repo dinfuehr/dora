@@ -8,22 +8,22 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 use crate::vm::module::ModuleId;
 use crate::vm::{ClassDef, ClassDefId, ClassId, EnumId, FctId, FctKind, Intrinsic, TraitId, VM};
 use crate::vtable::VTableBox;
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
-    vm.known.classes.unit = internal_class(vm, "Unit", Some(BuiltinType::Unit));
-    vm.known.classes.bool = internal_class(vm, "Bool", Some(BuiltinType::Bool));
+    vm.known.classes.unit = internal_class(vm, "Unit", Some(SourceType::Unit));
+    vm.known.classes.bool = internal_class(vm, "Bool", Some(SourceType::Bool));
 
-    vm.known.classes.uint8 = internal_class(vm, "UInt8", Some(BuiltinType::UInt8));
-    vm.known.classes.char = internal_class(vm, "Char", Some(BuiltinType::Char));
-    vm.known.classes.int32 = internal_class(vm, "Int32", Some(BuiltinType::Int32));
-    vm.known.classes.int64 = internal_class(vm, "Int64", Some(BuiltinType::Int64));
+    vm.known.classes.uint8 = internal_class(vm, "UInt8", Some(SourceType::UInt8));
+    vm.known.classes.char = internal_class(vm, "Char", Some(SourceType::Char));
+    vm.known.classes.int32 = internal_class(vm, "Int32", Some(SourceType::Int32));
+    vm.known.classes.int64 = internal_class(vm, "Int64", Some(SourceType::Int64));
 
-    vm.known.classes.float32 = internal_class(vm, "Float32", Some(BuiltinType::Float32));
-    vm.known.classes.float64 = internal_class(vm, "Float64", Some(BuiltinType::Float64));
+    vm.known.classes.float32 = internal_class(vm, "Float32", Some(SourceType::Float32));
+    vm.known.classes.float64 = internal_class(vm, "Float64", Some(SourceType::Float64));
 
     vm.known.classes.object = internal_class(vm, "Object", None);
     vm.known.classes.string = internal_class(vm, "String", None);
@@ -120,7 +120,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
     vm.known.free_array_class_def = free_array;
 }
 
-fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<BuiltinType>) -> ClassId {
+fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) -> ClassId {
     let iname = vm.interner.intern(name);
     let clsid = vm.sym.lock().get_class(iname);
 
@@ -142,7 +142,7 @@ fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<BuiltinType>) 
     }
 }
 
-fn internal_module<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<BuiltinType>) -> ModuleId {
+fn internal_module<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) -> ModuleId {
     let iname = vm.interner.intern(name);
     let module_id = vm.sym.lock().get_module(iname);
 

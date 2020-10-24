@@ -4,7 +4,7 @@ use std::ops::Index;
 
 use dora_parser::lexer::position::Position;
 
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{ClassId, FctId, FileId, TraitId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -22,7 +22,7 @@ pub struct ImplData {
     pub file: FileId,
     pub pos: Position,
     pub trait_id: Option<TraitId>,
-    pub class_ty: BuiltinType,
+    pub class_ty: SourceType,
     pub methods: Vec<FctId>,
 }
 

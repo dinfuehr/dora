@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, GlobalId, NodeMap, VM};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Elem::ElemGlobal;
@@ -11,7 +11,7 @@ use dora_parser::ast::{Ast, File, Global};
 pub fn check<'a, 'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_global_defs: &NodeMap<GlobalId>) {
     let mut checker = GlobalDefCheck {
         vm,
-        current_type: BuiltinType::Unit,
+        current_type: SourceType::Unit,
         map_global_defs,
     };
 
@@ -20,7 +20,7 @@ pub fn check<'a, 'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_global_defs: &Node
 
 struct GlobalDefCheck<'a, 'ast: 'a> {
     vm: &'a mut VM<'ast>,
-    current_type: BuiltinType,
+    current_type: SourceType,
     map_global_defs: &'a NodeMap<GlobalId>,
 }
 
@@ -40,7 +40,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
         let mut glob = glob.write();
         let file = glob.file;
 
-        let ty = semck::read_type(self.vm, file, &g.data_type).unwrap_or(BuiltinType::Error);
+        let ty = semck::read_type(self.vm, file, &g.data_type).unwrap_or(SourceType::Error);
         glob.ty = ty;
 
         if let Some(ref initializer) = g.initializer {
@@ -51,7 +51,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
                 name: initializer.name,
                 namespace_id: None,
                 param_types: Vec::new(),
-                return_type: BuiltinType::Unit,
+                return_type: SourceType::Unit,
                 parent: FctParent::None,
                 has_override: initializer.has_override,
                 has_open: initializer.has_open,

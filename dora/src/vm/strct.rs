@@ -5,7 +5,7 @@ use std::sync::Arc;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{FileId, TypeList};
 
@@ -48,7 +48,7 @@ pub struct StructFieldData {
     pub id: StructFieldId,
     pub pos: Position,
     pub name: Name,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -76,5 +76,5 @@ pub struct StructDef {
 #[derive(Debug, Clone)]
 pub struct StructFieldDef {
     pub offset: i32,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
 }

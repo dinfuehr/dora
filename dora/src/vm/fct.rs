@@ -8,7 +8,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
-use crate::ty::{BuiltinType, TypeListId};
+use crate::ty::{SourceType, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::module::ModuleId;
 use crate::vm::{
@@ -55,8 +55,8 @@ pub struct Fct<'ast> {
     pub internal: bool,
     pub internal_resolved: bool,
     pub overrides: Option<FctId>,
-    pub param_types: Vec<BuiltinType>,
-    pub return_type: BuiltinType,
+    pub param_types: Vec<SourceType>,
+    pub return_type: SourceType,
     pub is_constructor: bool,
     pub file: FileId,
     pub variadic_arguments: bool,
@@ -82,17 +82,17 @@ impl<'ast> Fct<'ast> {
         id: TypeListId,
         callback: F,
     ) -> R {
-        self.type_param_ty(vm, BuiltinType::TypeParam(id), callback)
+        self.type_param_ty(vm, SourceType::TypeParam(id), callback)
     }
 
     pub fn type_param_ty<F: FnOnce(&TypeParam, TypeListId) -> R, R>(
         &self,
         vm: &VM,
-        ty: BuiltinType,
+        ty: SourceType,
         callback: F,
     ) -> R {
         match ty {
-            BuiltinType::TypeParam(id) => {
+            SourceType::TypeParam(id) => {
                 let fct_id = if let Some(cls_id) = self.parent_cls_id() {
                     let cls = vm.classes.idx(cls_id);
                     let cls = cls.read();
@@ -263,7 +263,7 @@ impl<'ast> Fct<'ast> {
 
         repr.push_str(")");
 
-        if self.return_type != BuiltinType::Unit {
+        if self.return_type != SourceType::Unit {
             repr.push_str(": ");
 
             let name = self.return_type.name_fct(vm, self);
@@ -302,11 +302,11 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn params_with_self(&self) -> &[BuiltinType] {
+    pub fn params_with_self(&self) -> &[SourceType] {
         &self.param_types
     }
 
-    pub fn params_without_self(&self) -> &[BuiltinType] {
+    pub fn params_without_self(&self) -> &[SourceType] {
         if self.has_self() {
             &self.param_types[1..]
         } else {

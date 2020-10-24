@@ -14,7 +14,7 @@ use crate::sym::TermSym::{
     SymNamespace, SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTypeParam};
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 
 pub fn check<'ast>(vm: &VM<'ast>) {
     for fct in vm.fcts.iter() {
@@ -168,7 +168,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                     id: VarId(0),
                     name: ident.name,
                     reassignable: reassignable || ident.mutable,
-                    ty: BuiltinType::Unit,
+                    ty: SourceType::Unit,
                     node_id: ident.id,
                 };
 
@@ -233,7 +233,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
 
             (None, Some(SymTypeParam(id))) => {
-                let ty = BuiltinType::TypeParam(id);
+                let ty = SourceType::TypeParam(id);
                 self.src
                     .map_idents
                     .insert(ident.id, IdentType::TypeParam(ty))
@@ -312,7 +312,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             id: VarId(0),
             name: p.name,
             reassignable: false,
-            ty: BuiltinType::Unit,
+            ty: SourceType::Unit,
             node_id: p.id,
         };
 

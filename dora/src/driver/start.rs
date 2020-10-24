@@ -13,7 +13,7 @@ use dora_parser::lexer::reader::Reader;
 
 use crate::semck;
 use crate::semck::specialize::specialize_class_id;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use dora_parser::parser::Parser;
 
 pub fn start(content: Option<&str>) -> i32 {
@@ -350,8 +350,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
     let fct = fct.read();
     let ret = fct.return_type;
 
-    if (ret != BuiltinType::Unit && ret != BuiltinType::Int32)
-        || fct.params_without_self().len() > 0
+    if (ret != SourceType::Unit && ret != SourceType::Int32) || fct.params_without_self().len() > 0
     {
         let pos = fct.ast.pos;
         vm.diag

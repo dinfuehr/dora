@@ -7,7 +7,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 
 use crate::compiler::fct::JitFctId;
-use crate::ty::{BuiltinType, TypeList, TypeListId};
+use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::vm::module::ModuleId;
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, NamespaceId, StructId, TraitId,
@@ -17,7 +17,7 @@ use crate::vm::{
 pub struct FctSrc {
     pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
-    pub map_tys: NodeMap<BuiltinType>,
+    pub map_tys: NodeMap<SourceType>,
     pub map_vars: NodeMap<VarId>,
     pub map_convs: NodeMap<ConvInfo>,
     pub map_cls: NodeMap<ClassId>,
@@ -64,11 +64,11 @@ impl FctSrc {
         }
     }
 
-    pub fn set_ty(&mut self, id: ast::NodeId, ty: BuiltinType) {
+    pub fn set_ty(&mut self, id: ast::NodeId, ty: SourceType) {
         self.map_tys.insert_or_replace(id, ty);
     }
 
-    pub fn ty(&self, id: ast::NodeId) -> BuiltinType {
+    pub fn ty(&self, id: ast::NodeId) -> SourceType {
         self.map_tys.get(id).expect("no type found").clone()
     }
 
@@ -132,7 +132,7 @@ where
 
 #[derive(Debug, Copy, Clone)]
 pub struct ConvInfo {
-    pub check_type: BuiltinType,
+    pub check_type: SourceType,
     pub valid: bool,
 }
 
@@ -144,7 +144,7 @@ pub enum IdentType {
     Global(GlobalId),
 
     /// field expression: <expr>.<field_name>
-    Field(BuiltinType, FieldId),
+    Field(SourceType, FieldId),
 
     /// name of structure
     Struct(StructId),
@@ -174,22 +174,22 @@ pub enum IdentType {
     StructAndModule(StructId, ModuleId),
 
     // method expression: <expr>.<method_name>
-    Method(BuiltinType, Name),
+    Method(SourceType, Name),
 
     // method expression with type params: <expr>.<method_name>[T1, T2, ...]
-    MethodType(BuiltinType, Name, TypeList),
+    MethodType(SourceType, Name, TypeList),
 
     // static method expression: SomeClass[T1, T2, ...]::<name>
-    StaticMethod(BuiltinType, Name),
+    StaticMethod(SourceType, Name),
 
     // static method expression: SomeClass[T1, T2, ...]::<name>[T1, T2, ...]
-    StaticMethodType(BuiltinType, Name, TypeList),
+    StaticMethodType(SourceType, Name, TypeList),
 
     // function or class type param: e.g. T
-    TypeParam(BuiltinType),
+    TypeParam(SourceType),
 
     // static method call on type param: <T>::<name>
-    TypeParamStaticMethod(BuiltinType, Name),
+    TypeParamStaticMethod(SourceType, Name),
 
     // name of enum
     Enum(EnumId),
@@ -198,7 +198,7 @@ pub enum IdentType {
     EnumType(EnumId, TypeList),
 
     // specific value in enum
-    EnumValue(BuiltinType, usize),
+    EnumValue(SourceType, usize),
 
     // namespace
     Namespace(NamespaceId),
@@ -255,8 +255,8 @@ pub struct ForTypeInfo {
     pub make_iterator: Option<FctId>,
     pub next: FctId,
     pub has_next: FctId,
-    pub iterator_type: BuiltinType,
-    pub next_type: BuiltinType,
+    pub iterator_type: SourceType,
+    pub next_type: SourceType,
 }
 
 #[derive(Debug, Clone)]
@@ -265,18 +265,18 @@ pub enum CallType {
     Fct(FctId, TypeList, TypeList),
 
     // Direct or virtual method calls, e.g. obj.method(<args>)
-    Method(BuiltinType, FctId, TypeList),
+    Method(SourceType, FctId, TypeList),
 
     // Module method call, e.g. Module::method(<args>)
-    ModuleMethod(BuiltinType, FctId, TypeList),
+    ModuleMethod(SourceType, FctId, TypeList),
 
     // Constructor call Class(<args>)
-    Ctor(BuiltinType, FctId),
+    Ctor(SourceType, FctId),
     // Call to parent constructor, i.e. class Foo() : Bar()
-    CtorParent(BuiltinType, FctId),
+    CtorParent(SourceType, FctId),
 
     // Invoke on expression, e.g. <expr>(<args>)
-    Expr(BuiltinType, FctId),
+    Expr(SourceType, FctId),
 
     // Invoke method on trait object
     TraitObjectMethod(TraitId, FctId),
@@ -288,7 +288,7 @@ pub enum CallType {
     GenericStaticMethod(TypeListId, TraitId, FctId),
 
     // Construct enum value
-    Enum(BuiltinType, usize),
+    Enum(SourceType, usize),
 
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),
@@ -361,7 +361,7 @@ pub struct VarId(pub usize);
 pub struct Var {
     pub id: VarId,
     pub name: Name,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
     pub reassignable: bool,
     pub node_id: ast::NodeId,
 }

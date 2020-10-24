@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{FctId, Field, FieldDef, FileId, TraitId, VM};
 
@@ -47,8 +47,8 @@ pub struct Module {
     pub file: FileId,
     pub pos: Position,
     pub name: Name,
-    pub ty: BuiltinType,
-    pub parent_class: Option<BuiltinType>,
+    pub ty: SourceType,
+    pub parent_class: Option<SourceType>,
     pub internal: bool,
     pub internal_resolved: bool,
     pub has_constructor: bool,
@@ -63,9 +63,9 @@ pub struct Module {
 
 pub fn find_methods_in_module(
     vm: &VM,
-    object_type: BuiltinType,
+    object_type: SourceType,
     name: Name,
-) -> Vec<(BuiltinType, FctId)> {
+) -> Vec<(SourceType, FctId)> {
     let mut ignores = HashSet::new();
 
     let mut module_type = object_type;

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 use crate::vm::{
     ensure_tuple, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId, EnumId,
     EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, TupleId,
@@ -14,7 +14,7 @@ use crate::vm::{
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
-pub fn specialize_type(vm: &VM, ty: BuiltinType, type_params: &TypeList) -> BuiltinType {
+pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &TypeList) -> SourceType {
     replace_type_param(vm, ty, type_params, None)
 }
 
@@ -214,9 +214,9 @@ pub fn specialize_class_id_params(vm: &VM, cls_id: ClassId, type_params: &TypeLi
     specialize_class(vm, &*cls, &type_params)
 }
 
-pub fn specialize_class_ty(vm: &VM, ty: BuiltinType) -> ClassDefId {
+pub fn specialize_class_ty(vm: &VM, ty: SourceType) -> ClassDefId {
     match ty {
-        BuiltinType::Class(cls_id, list_id) => {
+        SourceType::Class(cls_id, list_id) => {
             let params = vm.lists.lock().get(list_id);
             specialize_class_id_params(vm, cls_id, &params)
         }
@@ -270,11 +270,11 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
             let element_ty = type_params[0];
 
             match element_ty {
-                BuiltinType::Unit => InstanceSize::UnitArray,
-                BuiltinType::Ptr | BuiltinType::Class(_, _) | BuiltinType::TraitObject(_) => {
+                SourceType::Unit => InstanceSize::UnitArray,
+                SourceType::Ptr | SourceType::Class(_, _) | SourceType::TraitObject(_) => {
                     InstanceSize::ObjArray
                 }
-                BuiltinType::Tuple(tuple_id) => {
+                SourceType::Tuple(tuple_id) => {
                     let tuples = vm.tuples.lock();
                     let tuple = tuples.get_tuple(tuple_id);
 
@@ -289,7 +289,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
                     }
                 }
 
-                BuiltinType::Enum(enum_id, type_params_id) => {
+                SourceType::Enum(enum_id, type_params_id) => {
                     let type_params = vm.lists.lock().get(type_params_id);
                     let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
                     let edef = vm.enum_defs.idx(edef_id);
@@ -354,7 +354,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
                 for &ref_offset in tuple.references() {
                     ref_fields.push(offset + ref_offset);
                 }
-            } else if let BuiltinType::Enum(enum_id, type_params_id) = ty {
+            } else if let SourceType::Enum(enum_id, type_params_id) = ty {
                 let type_params = vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
                 let edef = vm.enum_defs.idx(edef_id);
@@ -481,14 +481,14 @@ pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &TypeList) -> T
 
 pub fn replace_type_param(
     vm: &VM,
-    ty: BuiltinType,
+    ty: SourceType,
     type_params: &TypeList,
-    self_ty: Option<BuiltinType>,
-) -> BuiltinType {
+    self_ty: Option<SourceType>,
+) -> SourceType {
     match ty {
-        BuiltinType::TypeParam(tpid) => type_params[tpid.to_usize()],
+        SourceType::TypeParam(tpid) => type_params[tpid.to_usize()],
 
-        BuiltinType::Class(cls_id, list_id) => {
+        SourceType::Class(cls_id, list_id) => {
             let params = vm.lists.lock().get(list_id);
 
             let params = TypeList::with(
@@ -499,10 +499,10 @@ pub fn replace_type_param(
             );
 
             let list_id = vm.lists.lock().insert(params);
-            BuiltinType::Class(cls_id, list_id)
+            SourceType::Class(cls_id, list_id)
         }
 
-        BuiltinType::Enum(enum_id, list_id) => {
+        SourceType::Enum(enum_id, list_id) => {
             let old_type_params = vm.lists.lock().get(list_id);
 
             let new_type_params = TypeList::with(
@@ -513,14 +513,14 @@ pub fn replace_type_param(
             );
 
             let new_type_params_id = vm.lists.lock().insert(new_type_params);
-            BuiltinType::Enum(enum_id, new_type_params_id)
+            SourceType::Enum(enum_id, new_type_params_id)
         }
 
-        BuiltinType::This => self_ty.expect("no type for Self given"),
+        SourceType::This => self_ty.expect("no type for Self given"),
 
-        BuiltinType::Lambda(_) => unimplemented!(),
+        SourceType::Lambda(_) => unimplemented!(),
 
-        BuiltinType::Tuple(tuple_id) => {
+        SourceType::Tuple(tuple_id) => {
             let subtypes = {
                 let tuples = vm.tuples.lock();
                 let tuple = tuples.get_tuple(tuple_id);
@@ -538,7 +538,7 @@ pub fn replace_type_param(
                 .collect::<Vec<_>>();
 
             let tuple_id = ensure_tuple(vm, new_subtypes);
-            BuiltinType::Tuple(tuple_id)
+            SourceType::Tuple(tuple_id)
         }
 
         _ => ty,

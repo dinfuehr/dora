@@ -1,13 +1,13 @@
 use crate::error::msg::SemError;
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait, SymTypeParam};
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 
-pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<BuiltinType> {
+pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<SourceType> {
     match *t {
-        TypeSelf(_) => Some(BuiltinType::This),
+        TypeSelf(_) => Some(SourceType::This),
         TypeBasic(ref basic) => read_type_basic(vm, file, basic),
         TypeTuple(ref tuple) => read_type_tuple(vm, file, tuple),
         TypeLambda(ref lambda) => read_type_lambda(vm, file, lambda),
@@ -18,7 +18,7 @@ fn read_type_basic<'ast>(
     vm: &VM<'ast>,
     file: FileId,
     basic: &'ast TypeBasicType,
-) -> Option<BuiltinType> {
+) -> Option<SourceType> {
     let sym = vm.sym.lock().get_type(basic.name);
 
     if sym.is_none() {
@@ -40,7 +40,7 @@ fn read_type_basic<'ast>(
                 vm.diag.lock().report(file, basic.pos, msg);
             }
 
-            Some(BuiltinType::TraitObject(trait_id))
+            Some(SourceType::TraitObject(trait_id))
         }
 
         SymStruct(struct_id) => {
@@ -50,7 +50,7 @@ fn read_type_basic<'ast>(
             }
 
             let list_id = vm.lists.lock().insert(TypeList::empty());
-            Some(BuiltinType::Struct(struct_id, list_id))
+            Some(SourceType::Struct(struct_id, list_id))
         }
 
         SymEnum(enum_id) => read_type_enum(vm, file, basic, enum_id),
@@ -61,7 +61,7 @@ fn read_type_basic<'ast>(
                 vm.diag.lock().report(file, basic.pos, msg);
             }
 
-            Some(BuiltinType::TypeParam(type_param_id))
+            Some(SourceType::TypeParam(type_param_id))
         }
     }
 }
@@ -71,7 +71,7 @@ fn read_type_enum<'ast>(
     file: FileId,
     basic: &'ast TypeBasicType,
     enum_id: EnumId,
-) -> Option<BuiltinType> {
+) -> Option<SourceType> {
     let mut type_params = Vec::new();
 
     for param in &basic.params {
@@ -114,7 +114,7 @@ fn read_type_enum<'ast>(
 
     let list = TypeList::with(type_params);
     let list_id = vm.lists.lock().insert(list);
-    Some(BuiltinType::Enum(xenum.id, list_id))
+    Some(SourceType::Enum(xenum.id, list_id))
 }
 
 fn read_type_class<'ast>(
@@ -122,7 +122,7 @@ fn read_type_class<'ast>(
     file: FileId,
     basic: &'ast TypeBasicType,
     cls_id: ClassId,
-) -> Option<BuiltinType> {
+) -> Option<SourceType> {
     let mut type_params = Vec::new();
 
     for param in &basic.params {
@@ -171,16 +171,16 @@ fn read_type_class<'ast>(
 
     let list = TypeList::with(type_params);
     let list_id = vm.lists.lock().insert(list);
-    Some(BuiltinType::Class(cls.id, list_id))
+    Some(SourceType::Class(cls.id, list_id))
 }
 
 fn read_type_tuple<'ast>(
     vm: &VM<'ast>,
     file: FileId,
     tuple: &'ast TypeTupleType,
-) -> Option<BuiltinType> {
+) -> Option<SourceType> {
     if tuple.subtypes.len() == 0 {
-        Some(BuiltinType::Unit)
+        Some(SourceType::Unit)
     } else {
         let mut subtypes = Vec::new();
 
@@ -193,7 +193,7 @@ fn read_type_tuple<'ast>(
         }
 
         let tuple_id = ensure_tuple(vm, subtypes);
-        Some(BuiltinType::Tuple(tuple_id))
+        Some(SourceType::Tuple(tuple_id))
     }
 }
 
@@ -201,7 +201,7 @@ fn read_type_lambda<'ast>(
     vm: &VM<'ast>,
     file: FileId,
     lambda: &'ast TypeLambdaType,
-) -> Option<BuiltinType> {
+) -> Option<SourceType> {
     let mut params = vec![];
 
     for param in &lambda.params {
@@ -219,7 +219,7 @@ fn read_type_lambda<'ast>(
     };
 
     let ty = vm.lambda_types.lock().insert(params, ret);
-    let ty = BuiltinType::Lambda(ty);
+    let ty = SourceType::Lambda(ty);
 
     Some(ty)
 }

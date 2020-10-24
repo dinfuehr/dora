@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::vm::{FileId, VM};
 
 use dora_parser::lexer::position::Position;
@@ -35,7 +35,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
                 let trait_method = trait_method.read();
 
                 let return_type_valid = method.return_type
-                    == if trait_method.return_type == BuiltinType::This {
+                    == if trait_method.return_type == SourceType::This {
                         cls
                     } else {
                         trait_method.return_type

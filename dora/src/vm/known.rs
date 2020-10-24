@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{SourceType, TypeList};
 use crate::vm::module::ModuleId;
 use crate::vm::{ClassDefId, ClassId, EnumId, FctId, TraitId, VM};
 
@@ -72,10 +72,10 @@ pub struct KnownFunctions {
 }
 
 impl KnownElements {
-    pub fn array_ty(&self, vm: &VM, element: BuiltinType) -> BuiltinType {
+    pub fn array_ty(&self, vm: &VM, element: SourceType) -> SourceType {
         let list = TypeList::single(element);
         let list_id = vm.lists.lock().insert(list);
-        BuiltinType::Class(self.classes.array, list_id)
+        SourceType::Class(self.classes.array, list_id)
     }
 
     pub fn byte_array(&self, vm: &VM) -> ClassDefId {
@@ -84,7 +84,7 @@ impl KnownElements {
         if let Some(cls_id) = *byte_array_def {
             cls_id
         } else {
-            let type_args = TypeList::single(BuiltinType::UInt8);
+            let type_args = TypeList::single(SourceType::UInt8);
             let cls_id = specialize_class_id_params(vm, self.classes.array, &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
@@ -97,7 +97,7 @@ impl KnownElements {
         if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
-            let type_args = TypeList::single(BuiltinType::Int32);
+            let type_args = TypeList::single(SourceType::Int32);
             let cls_id = specialize_class_id_params(vm, self.classes.array, &type_args);
             *int_array_def = Some(cls_id);
             cls_id
@@ -140,15 +140,15 @@ impl KnownElements {
         }
     }
 
-    pub fn find_class(&self, ty: BuiltinType) -> Option<ClassId> {
+    pub fn find_class(&self, ty: SourceType) -> Option<ClassId> {
         match ty {
-            BuiltinType::Bool => Some(self.classes.bool),
-            BuiltinType::UInt8 => Some(self.classes.uint8),
-            BuiltinType::Char => Some(self.classes.char),
-            BuiltinType::Int32 => Some(self.classes.int32),
-            BuiltinType::Int64 => Some(self.classes.int64),
-            BuiltinType::Float32 => Some(self.classes.float32),
-            BuiltinType::Float64 => Some(self.classes.float64),
+            SourceType::Bool => Some(self.classes.bool),
+            SourceType::UInt8 => Some(self.classes.uint8),
+            SourceType::Char => Some(self.classes.char),
+            SourceType::Int32 => Some(self.classes.int32),
+            SourceType::Int64 => Some(self.classes.int64),
+            SourceType::Float32 => Some(self.classes.float32),
+            SourceType::Float64 => Some(self.classes.float64),
             _ => None,
         }
     }

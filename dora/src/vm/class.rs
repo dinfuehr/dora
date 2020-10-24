@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::sym::SymLevel;
-use crate::ty::{BuiltinType, TypeList, TypeListId};
+use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{ExtensionId, FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId};
@@ -51,8 +51,8 @@ pub struct Class {
     pub file: FileId,
     pub pos: Position,
     pub name: Name,
-    pub ty: BuiltinType,
-    pub parent_class: Option<BuiltinType>,
+    pub ty: SourceType,
+    pub parent_class: Option<SourceType>,
     pub has_open: bool,
     pub is_abstract: bool,
     pub internal: bool,
@@ -87,9 +87,9 @@ impl Class {
         &self.type_params[id.to_usize()]
     }
 
-    pub fn type_param_ty(&self, ty: BuiltinType) -> &TypeParam {
+    pub fn type_param_ty(&self, ty: SourceType) -> &TypeParam {
         let id = match ty {
-            BuiltinType::TypeParam(id) => id,
+            SourceType::TypeParam(id) => id,
             _ => unimplemented!(),
         };
 
@@ -232,9 +232,9 @@ impl Class {
 
 pub fn find_field_in_class(
     vm: &VM,
-    mut class: BuiltinType,
+    mut class: SourceType,
     name: Name,
-) -> Option<(BuiltinType, FieldId, BuiltinType)> {
+) -> Option<(SourceType, FieldId, SourceType)> {
     if class.cls_id(vm).is_none() {
         return None;
     }
@@ -267,9 +267,9 @@ pub fn find_field_in_class(
 
 pub fn find_method_in_class(
     vm: &VM,
-    mut class: BuiltinType,
+    mut class: SourceType,
     name: Name,
-) -> Option<(BuiltinType, FctId)> {
+) -> Option<(SourceType, FctId)> {
     loop {
         let cls_id = class.cls_id(vm).expect("no class");
         let cls = vm.classes.idx(cls_id);
@@ -295,10 +295,10 @@ pub fn find_method_in_class(
 
 pub fn find_methods_in_class(
     vm: &VM,
-    object_type: BuiltinType,
+    object_type: SourceType,
     name: Name,
     is_static: bool,
-) -> Vec<(BuiltinType, FctId)> {
+) -> Vec<(SourceType, FctId)> {
     let mut candidates = Vec::new();
     let mut ignores = HashSet::new();
 

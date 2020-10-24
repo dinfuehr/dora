@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::mem::ptr_width;
 use crate::semck::specialize::specialize_enum_id_params;
-use crate::ty::{BuiltinType, MachineMode, TypeList, TypeListId};
+use crate::ty::{MachineMode, SourceType, TypeList, TypeListId};
 use crate::vm::{get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
@@ -146,17 +146,17 @@ impl BytecodeType {
         }
     }
 
-    pub fn from_ty(vm: &VM, ty: BuiltinType) -> BytecodeType {
+    pub fn from_ty(vm: &VM, ty: SourceType) -> BytecodeType {
         match ty {
-            BuiltinType::Bool => BytecodeType::Bool,
-            BuiltinType::UInt8 => BytecodeType::UInt8,
-            BuiltinType::Char => BytecodeType::Char,
-            BuiltinType::Int32 => BytecodeType::Int32,
-            BuiltinType::Int64 => BytecodeType::Int64,
-            BuiltinType::Float32 => BytecodeType::Float32,
-            BuiltinType::Float64 => BytecodeType::Float64,
-            BuiltinType::Class(_, _) => BytecodeType::Ptr,
-            BuiltinType::Enum(id, list_id) => {
+            SourceType::Bool => BytecodeType::Bool,
+            SourceType::UInt8 => BytecodeType::UInt8,
+            SourceType::Char => BytecodeType::Char,
+            SourceType::Int32 => BytecodeType::Int32,
+            SourceType::Int64 => BytecodeType::Int64,
+            SourceType::Float32 => BytecodeType::Float32,
+            SourceType::Float64 => BytecodeType::Float64,
+            SourceType::Class(_, _) => BytecodeType::Ptr,
+            SourceType::Enum(id, list_id) => {
                 let xenum = vm.enums[id].read();
 
                 for variant in &xenum.variants {
@@ -168,8 +168,8 @@ impl BytecodeType {
 
                 BytecodeType::Int32
             }
-            BuiltinType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
-            BuiltinType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
+            SourceType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
+            SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
         }
     }

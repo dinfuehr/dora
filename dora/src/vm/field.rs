@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use dora_parser::interner::Name;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -26,7 +26,7 @@ impl From<usize> for FieldId {
 pub struct Field {
     pub id: FieldId,
     pub name: Name,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
     pub offset: i32,
     pub reassignable: bool,
 }
@@ -48,5 +48,5 @@ impl IndexMut<FieldId> for Vec<Field> {
 #[derive(Debug, Clone)]
 pub struct FieldDef {
     pub offset: i32,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
 }
