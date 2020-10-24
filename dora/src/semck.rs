@@ -6,7 +6,7 @@ use crate::typeck;
 use crate::vm::{NodeMap, VM};
 use dora_parser::ast::{Expr, ExprBlockType, Stmt};
 
-pub use ty::read_type;
+pub use readty::read_type;
 
 mod abstractck;
 mod clsdefck;
@@ -22,12 +22,12 @@ mod impldefck;
 mod moduledefck;
 mod nameck;
 pub(crate) mod prelude;
+mod readty;
 mod returnck;
 pub mod specialize;
 mod structdefck;
 mod superck;
 mod traitdefck;
-mod ty;
 pub mod typeparamck;
 
 macro_rules! return_on_error {

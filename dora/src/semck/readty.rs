@@ -1,25 +1,49 @@
 use crate::error::msg::SemError;
+use crate::sym::SymTables;
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait, SymTypeParam};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 
+pub fn read_type_table<'ast>(
+    vm: &VM<'ast>,
+    table: &SymTables,
+    file: FileId,
+    t: &'ast Type,
+) -> Option<SourceType> {
+    read_type_raw(vm, Some(table), file, t)
+}
+
 pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<SourceType> {
+    read_type_raw(vm, None, file, t)
+}
+
+fn read_type_raw<'ast>(
+    vm: &VM<'ast>,
+    table: Option<&SymTables>,
+    file: FileId,
+    t: &'ast Type,
+) -> Option<SourceType> {
     match *t {
         TypeSelf(_) => Some(SourceType::This),
-        TypeBasic(ref basic) => read_type_basic(vm, file, basic),
-        TypeTuple(ref tuple) => read_type_tuple(vm, file, tuple),
-        TypeLambda(ref lambda) => read_type_lambda(vm, file, lambda),
+        TypeBasic(ref basic) => read_type_basic(vm, table, file, basic),
+        TypeTuple(ref tuple) => read_type_tuple(vm, table, file, tuple),
+        TypeLambda(ref lambda) => read_type_lambda(vm, table, file, lambda),
     }
 }
 
 fn read_type_basic<'ast>(
     vm: &VM<'ast>,
+    table: Option<&SymTables>,
     file: FileId,
     basic: &'ast TypeBasicType,
 ) -> Option<SourceType> {
-    let sym = vm.sym.lock().get_type(basic.name);
+    let sym = if let Some(table) = table {
+        table.get_type(basic.name)
+    } else {
+        vm.sym.lock().get_type(basic.name)
+    };
 
     if sym.is_none() {
         let name = vm.interner.str(basic.name).to_string();
@@ -32,7 +56,7 @@ fn read_type_basic<'ast>(
     let sym = sym.unwrap();
 
     match sym {
-        SymClass(cls_id) => read_type_class(vm, file, basic, cls_id),
+        SymClass(cls_id) => read_type_class(vm, table, file, basic, cls_id),
 
         SymTrait(trait_id) => {
             if basic.params.len() > 0 {
@@ -53,7 +77,7 @@ fn read_type_basic<'ast>(
             Some(SourceType::Struct(struct_id, list_id))
         }
 
-        SymEnum(enum_id) => read_type_enum(vm, file, basic, enum_id),
+        SymEnum(enum_id) => read_type_enum(vm, table, file, basic, enum_id),
 
         SymTypeParam(type_param_id) => {
             if basic.params.len() > 0 {
@@ -68,6 +92,7 @@ fn read_type_basic<'ast>(
 
 fn read_type_enum<'ast>(
     vm: &VM<'ast>,
+    table: Option<&SymTables>,
     file: FileId,
     basic: &'ast TypeBasicType,
     enum_id: EnumId,
@@ -75,7 +100,7 @@ fn read_type_enum<'ast>(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, file, param);
+        let param = read_type_raw(vm, table, file, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -119,6 +144,7 @@ fn read_type_enum<'ast>(
 
 fn read_type_class<'ast>(
     vm: &VM<'ast>,
+    table: Option<&SymTables>,
     file: FileId,
     basic: &'ast TypeBasicType,
     cls_id: ClassId,
@@ -126,7 +152,7 @@ fn read_type_class<'ast>(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, file, param);
+        let param = read_type_raw(vm, table, file, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -176,6 +202,7 @@ fn read_type_class<'ast>(
 
 fn read_type_tuple<'ast>(
     vm: &VM<'ast>,
+    table: Option<&SymTables>,
     file: FileId,
     tuple: &'ast TypeTupleType,
 ) -> Option<SourceType> {
@@ -185,7 +212,7 @@ fn read_type_tuple<'ast>(
         let mut subtypes = Vec::new();
 
         for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type(vm, file, subtype) {
+            if let Some(ty) = read_type_raw(vm, table, file, subtype) {
                 subtypes.push(ty);
             } else {
                 return None;
@@ -199,20 +226,21 @@ fn read_type_tuple<'ast>(
 
 fn read_type_lambda<'ast>(
     vm: &VM<'ast>,
+    table: Option<&SymTables>,
     file: FileId,
     lambda: &'ast TypeLambdaType,
 ) -> Option<SourceType> {
     let mut params = vec![];
 
     for param in &lambda.params {
-        if let Some(p) = read_type(vm, file, param) {
+        if let Some(p) = read_type_raw(vm, table, file, param) {
             params.push(p);
         } else {
             return None;
         }
     }
 
-    let ret = if let Some(ret) = read_type(vm, file, &lambda.ret) {
+    let ret = if let Some(ret) = read_type_raw(vm, table, file, &lambda.ret) {
         ret
     } else {
         return None;
