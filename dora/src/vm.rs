@@ -16,7 +16,7 @@ use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
-use crate::sym::SymTable;
+use crate::sym::{SymLevel, SymTable};
 use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeLists};
 use crate::utils::GrowableVec;
@@ -95,6 +95,7 @@ pub struct VM<'ast> {
     pub files: Vec<File>,
     pub diag: Mutex<Diagnostic>,
     pub sym: Mutex<SymTable>,
+    pub global_namespace: RwLock<SymLevel>,
     pub known: KnownElements,
     pub consts: GrowableVec<Mutex<ConstData>>, // stores all const definitions
     pub structs: GrowableVec<Mutex<StructData>>, // stores all struct source definitions
@@ -212,6 +213,7 @@ impl<'ast> VM<'ast> {
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             sym: Mutex::new(SymTable::new()),
+            global_namespace: RwLock::new(SymLevel::new()),
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),

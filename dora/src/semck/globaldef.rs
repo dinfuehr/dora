@@ -224,9 +224,17 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let mut sym_table = self.vm.sym.lock();
         match sym_table.get_term(m.name) {
             None => {
+                self.vm
+                    .global_namespace
+                    .write()
+                    .insert_term(m.name, SymModule(id));
                 sym_table.insert_term(m.name, SymModule(id));
             }
             Some(SymClassConstructor(class_id)) => {
+                self.vm
+                    .global_namespace
+                    .write()
+                    .insert_term(m.name, SymClassConstructorAndModule(class_id, id));
                 sym_table.insert_term(m.name, SymClassConstructorAndModule(class_id, id));
             }
             Some(sym) => report_term_shadow(self.vm, m.name, self.file_id.into(), m.pos, sym),
@@ -317,9 +325,17 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let mut sym_table = self.vm.sym.lock();
         match sym_table.get_term(c.name) {
             None => {
+                self.vm
+                    .global_namespace
+                    .write()
+                    .insert_term(c.name, SymClassConstructor(id));
                 sym_table.insert_term(c.name, SymClassConstructor(id));
             }
             Some(SymModule(module_id)) => {
+                self.vm
+                    .global_namespace
+                    .write()
+                    .insert_term(c.name, SymClassConstructorAndModule(id, module_id));
                 sym_table.insert_term(c.name, SymClassConstructorAndModule(id, module_id));
             }
             Some(sym) => report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym),
@@ -355,9 +371,17 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let mut sym_table = self.vm.sym.lock();
         match sym_table.get_term(s.name) {
             None => {
+                self.vm
+                    .global_namespace
+                    .write()
+                    .insert_term(s.name, SymStructConstructor(id));
                 sym_table.insert_term(s.name, SymStructConstructor(id));
             }
             Some(SymModule(module_id)) => {
+                self.vm
+                    .global_namespace
+                    .write()
+                    .insert_term(s.name, SymStructConstructorAndModule(id, module_id));
                 sym_table.insert_term(s.name, SymStructConstructorAndModule(id, module_id));
             }
             Some(sym) => report_term_shadow(self.vm, s.name, self.file_id.into(), s.pos, sym),
@@ -451,6 +475,10 @@ impl<'x, 'ast> GlobalDef<'x, 'ast> {
             let mut namespace = namespace.write();
             namespace.table.insert_type(name, sym)
         } else {
+            self.vm
+                .global_namespace
+                .write()
+                .insert_type(name, sym.clone());
             self.vm.sym.lock().insert_type(name, sym)
         }
     }
@@ -461,6 +489,10 @@ impl<'x, 'ast> GlobalDef<'x, 'ast> {
             let mut namespace = namespace.write();
             namespace.table.insert_term(name, sym)
         } else {
+            self.vm
+                .global_namespace
+                .write()
+                .insert_term(name, sym.clone());
             self.vm.sym.lock().insert_term(name, sym)
         }
     }
