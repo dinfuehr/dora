@@ -14,7 +14,9 @@ use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
-use crate::vm::{ClassDef, ClassDefId, ExtensionId, FctId, FieldDef, FileId, TypeParam, VM};
+use crate::vm::{
+    ClassDef, ClassDefId, ExtensionId, FctId, FieldDef, FileId, NamespaceId, TypeParam, VM,
+};
 use crate::vtable::VTableBox;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -38,6 +40,7 @@ impl Index<EnumId> for Vec<RwLock<EnumData>> {
 pub struct EnumData {
     pub id: EnumId,
     pub file: FileId,
+    pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,
     pub type_params: Vec<TypeParam>,

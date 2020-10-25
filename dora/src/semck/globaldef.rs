@@ -199,6 +199,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 id: id,
                 name: m.name,
                 file: self.file_id.into(),
+                namespace_id: self.namespace_id,
                 pos: m.pos,
                 ty: self.vm.modu(id),
                 parent_class: None,
@@ -241,6 +242,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let xconst = ConstData {
                 id,
                 file: self.file_id.into(),
+                namespace_id: self.namespace_id,
                 pos: c.pos,
                 name: c.name,
                 ty: SourceType::Unit,
@@ -270,6 +272,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 id,
                 name: c.name,
                 file: self.file_id.into(),
+                namespace_id: self.namespace_id,
                 pos: c.pos,
                 ty: self.vm.cls(id),
                 parent_class: None,
@@ -335,6 +338,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let struc = StructData {
                 id,
                 file: self.file_id.into(),
+                namespace_id: self.namespace_id,
                 pos: s.pos,
                 name: s.name,
                 fields: Vec::new(),
@@ -421,6 +425,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let mut xenum = EnumData {
             id,
             file: self.file_id.into(),
+            namespace_id: self.namespace_id,
             pos: e.pos,
             name: e.name,
             type_params: Vec::new(),

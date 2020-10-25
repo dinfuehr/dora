@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FileId, TypeList};
+use crate::vm::{FileId, NamespaceId, TypeList};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
@@ -28,6 +28,7 @@ impl From<u32> for StructId {
 pub struct StructData {
     pub id: StructId,
     pub file: FileId,
+    pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,

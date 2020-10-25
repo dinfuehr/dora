@@ -11,7 +11,9 @@ use crate::sym::SymTable;
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{ExtensionId, FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId};
+use crate::vm::{
+    ExtensionId, FctId, Field, FieldDef, FieldId, FileId, ImplId, NamespaceId, TraitId,
+};
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -49,6 +51,7 @@ pub static DISPLAY_SIZE: usize = 6;
 pub struct Class {
     pub id: ClassId,
     pub file: FileId,
+    pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,
     pub ty: SourceType,

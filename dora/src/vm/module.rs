@@ -5,7 +5,7 @@ use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, Field, FieldDef, FileId, TraitId, VM};
+use crate::vm::{FctId, Field, FieldDef, FileId, NamespaceId, TraitId, VM};
 
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
@@ -45,6 +45,7 @@ pub static DISPLAY_SIZE: usize = 6;
 pub struct Module {
     pub id: ModuleId,
     pub file: FileId,
+    pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,
     pub ty: SourceType,

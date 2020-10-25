@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::FileId;
+use crate::vm::{FileId, NamespaceId};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstId(usize);
@@ -28,6 +28,7 @@ impl GrowableVec<Mutex<ConstData>> {
 pub struct ConstData {
     pub id: ConstId,
     pub file: FileId,
+    pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,
     pub ty: SourceType,
