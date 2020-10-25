@@ -1,4 +1,5 @@
 use crate::error::msg::SemError;
+use crate::sym::SymTables;
 use crate::vm::*;
 
 use dora_parser::ast::visit::*;
@@ -28,11 +29,14 @@ pub fn check<'ast>(vm: &VM<'ast>) {
         let mut src = src.write();
         let ast = fct.ast;
 
+        let global_namespace = vm.global_namespace.read();
+
         let mut nameck = NameCheck {
             vm,
             fct: &fct,
             src: &mut src,
             ast,
+            sym: SymTables::new(&*global_namespace),
         };
 
         nameck.check();
@@ -44,11 +48,12 @@ struct NameCheck<'a, 'ast: 'a> {
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
+    sym: SymTables<'a>,
 }
 
 impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.vm.sym.lock().push_level();
+        self.sym.push_level();
 
         if self.fct.has_self() {
             // add hidden this parameter for ctors and methods
@@ -60,10 +65,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             let cls = cls.read();
 
             for (tpid, tp) in cls.type_params.iter().enumerate() {
-                self.vm
-                    .sym
-                    .lock()
-                    .insert_type(tp.name, SymTypeParam(tpid.into()));
+                self.sym.insert_type(tp.name, SymTypeParam(tpid.into()));
             }
 
             cls.type_params.len()
@@ -73,9 +75,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         if let Some(ref type_params) = self.fct.ast.type_params {
             for (tpid, tp) in type_params.iter().enumerate() {
-                self.vm
-                    .sym
-                    .lock()
+                self.sym
                     .insert_type(tp.name, SymTypeParam((cls_type_params_count + tpid).into()));
             }
         }
@@ -96,7 +96,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
         }
 
-        self.vm.sym.lock().pop_level();
+        self.sym.pop_level();
     }
 
     pub fn add_hidden_parameter_self(&mut self) {
@@ -144,7 +144,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         var.id = var_id;
 
-        match self.vm.sym.lock().insert_term(name, SymVar(var_id)) {
+        match self.sym.insert_term(name, SymVar(var_id)) {
             Some(SymVar(_)) | None => {}
             Some(sym) => report_term_shadow(self.vm, name, self.fct.file, pos, sym),
         }
@@ -191,17 +191,17 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check_stmt_for(&mut self, fl: &'ast StmtForType) {
         self.visit_expr(&fl.expr);
 
-        self.vm.sym.lock().push_level();
+        self.sym.push_level();
 
         self.check_stmt_let_pattern(&fl.pattern, false);
 
         self.visit_stmt(&fl.block);
-        self.vm.sym.lock().pop_level();
+        self.sym.pop_level();
     }
 
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
-        let term_sym = self.vm.sym.lock().get_term(ident.name);
-        let type_sym = self.vm.sym.lock().get_type(ident.name);
+        let term_sym = self.sym.get_term(ident.name);
+        let type_sym = self.sym.get_type(ident.name);
 
         match (term_sym, type_sym) {
             (Some(SymVar(id)), None) => {
@@ -292,7 +292,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     fn check_expr_block(&mut self, block: &'ast ExprBlockType) {
-        self.vm.sym.lock().push_level();
+        self.sym.push_level();
 
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
@@ -302,7 +302,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.visit_expr(expr);
         }
 
-        self.vm.sym.lock().pop_level();
+        self.sym.pop_level();
     }
 }
 
@@ -317,7 +317,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         };
 
         // params are only allowed to replace functions, vars cannot be replaced
-        let term_sym = self.vm.sym.lock().get_term(p.name);
+        let term_sym = self.sym.get_term(p.name);
         match term_sym {
             Some(SymFct(_)) | None => {
                 let var_id = self.add_var(var_ctxt, p.pos);
