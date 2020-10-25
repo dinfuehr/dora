@@ -2,14 +2,14 @@ use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::TypeSym;
+use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
 
 pub fn check<'a, 'ast>(vm: &VM<'ast>) {
-    debug_assert!(vm.sym.lock().levels() == 1);
+    let global_namespace = vm.global_namespace.read();
 
     for fct in vm.fcts.iter() {
         let mut fct = fct.write();
@@ -23,7 +23,8 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             continue;
         }
 
-        vm.sym.lock().push_level();
+        let mut sym_table = SymTables::new(&*global_namespace);
+        sym_table.push_level();
 
         let mut cls_type_params_count = 0;
 
@@ -35,7 +36,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
                 for param in &cls.type_params {
                     let sym = TypeSym::SymTypeParam(type_param_id.into());
-                    vm.sym.lock().insert_type(param.name, sym);
+                    sym_table.insert_type(param.name, sym);
                     type_param_id += 1;
                 }
 
@@ -62,7 +63,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
                 for param in &extension.type_params {
                     let sym = TypeSym::SymTypeParam(type_param_id.into());
-                    vm.sym.lock().insert_type(param.name, sym);
+                    sym_table.insert_type(param.name, sym);
                     type_param_id += 1;
                 }
 
@@ -99,7 +100,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                     fct.type_params.push(vm::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type(vm, fct.file, bound);
+                        let ty = semck::read_type_table(vm, &sym_table, fct.file, bound);
 
                         match ty {
                             Some(SourceType::TraitObject(trait_id)) => {
@@ -121,7 +122,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                     }
 
                     let sym = TypeSym::SymTypeParam((cls_type_params_count + type_param_id).into());
-                    vm.sym.lock().insert_type(type_param.name, sym);
+                    sym_table.insert_type(type_param.name, sym);
                     type_param_id += 1;
                 }
             } else {
@@ -137,7 +138,8 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                     .report(fct.file, p.pos, SemError::VariadicParameterNeedsToBeLast);
             }
 
-            let ty = semck::read_type(vm, fct.file, &p.data_type).unwrap_or(SourceType::Unit);
+            let ty = semck::read_type_table(vm, &sym_table, fct.file, &p.data_type)
+                .unwrap_or(SourceType::Unit);
 
             if ty == SourceType::This && !fct.in_trait() {
                 vm.diag
@@ -169,7 +171,8 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty = semck::read_type(vm, fct.file, ret).unwrap_or(SourceType::Unit);
+            let ty =
+                semck::read_type_table(vm, &sym_table, fct.file, ret).unwrap_or(SourceType::Unit);
 
             if ty == SourceType::This && !fct.in_trait() {
                 vm.diag
@@ -209,7 +212,6 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
         }
 
         if !fct.is_src() {
-            vm.sym.lock().pop_level();
             continue;
         }
 
@@ -222,14 +224,11 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             src: &mut src,
             ast,
             current_type: SourceType::Unit,
+            sym: sym_table,
         };
 
         defck.check();
-
-        vm.sym.lock().pop_level();
     }
-
-    debug_assert!(vm.sym.lock().levels() == 1);
 }
 
 fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
@@ -299,6 +298,7 @@ struct FctDefCheck<'a, 'ast: 'a> {
     src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: SourceType,
+    sym: SymTables<'a>,
 }
 
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
@@ -320,7 +320,8 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
-        self.current_type = semck::read_type(self.vm, self.fct.file, t).unwrap_or(SourceType::Unit);
+        self.current_type = semck::read_type_table(self.vm, &self.sym, self.fct.file, t)
+            .unwrap_or(SourceType::Unit);
         self.src.set_ty(t.id(), self.current_type);
     }
 }
