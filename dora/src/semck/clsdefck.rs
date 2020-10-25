@@ -15,7 +15,7 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
+pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsDefCheck {
         vm,
         ast,
@@ -28,7 +28,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<Cla
 }
 
 struct ClsDefCheck<'x, 'ast: 'x> {
-    vm: &'x mut VM<'ast>,
+    vm: &'x VM<'ast>,
     ast: &'ast ast::Ast,
     map_cls_defs: &'x NodeMap<ClassId>,
     file_id: u32,

@@ -287,7 +287,7 @@ impl<'ast> VM<'ast> {
         code_map.insert(start, end, desc);
     }
 
-    pub fn add_fct(&mut self, mut fct: Fct<'ast>) -> FctId {
+    pub fn add_fct(&self, mut fct: Fct<'ast>) -> FctId {
         let mut fcts = self.fcts.lock();
         let fctid = FctId(fcts.len());
 

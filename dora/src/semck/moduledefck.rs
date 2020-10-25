@@ -12,7 +12,7 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_module_defs: &NodeMap<ModuleId>) {
+pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_module_defs: &NodeMap<ModuleId>) {
     let mut module_check = ModuleCheck {
         vm,
         ast,
@@ -25,7 +25,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_module_defs: &NodeMap<
 }
 
 struct ModuleCheck<'x, 'ast: 'x> {
-    vm: &'x mut VM<'ast>,
+    vm: &'x VM<'ast>,
     ast: &'ast ast::Ast,
     map_module_defs: &'x NodeMap<ModuleId>,
     file_id: u32,

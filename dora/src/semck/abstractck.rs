@@ -4,7 +4,7 @@ use std::rc::Rc;
 use crate::error::msg::SemError;
 use crate::vm::{Class, ClassId, FctId, VM};
 
-pub fn check<'ast>(vm: &mut VM<'ast>) {
+pub fn check<'ast>(vm: &VM<'ast>) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
 
     for cls in vm.classes.iter() {
