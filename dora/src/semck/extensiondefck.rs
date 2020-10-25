@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::TypeSym;
+use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
 
@@ -12,11 +12,14 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_extension_defs: &NodeMap<ExtensionId>) {
+    let global_namespace = vm.global_namespace.read();
     let mut clsck = ExtensionCheck {
         vm,
         ast,
         extension_id: None,
         map_extension_defs,
+        sym: SymTables::new(&*global_namespace),
+
         file_id: 0,
         extension_ty: SourceType::Error,
     };
@@ -29,6 +32,7 @@ struct ExtensionCheck<'x, 'ast: 'x> {
     ast: &'ast ast::Ast,
     map_extension_defs: &'x NodeMap<ExtensionId>,
     file_id: u32,
+    sym: SymTables<'x>,
 
     extension_id: Option<ExtensionId>,
     extension_ty: SourceType,
@@ -43,13 +47,15 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
         assert!(i.trait_type.is_none());
         self.extension_id = Some(*self.map_extension_defs.get(i.id).unwrap());
 
-        self.vm.sym.lock().push_level();
+        self.sym.push_level();
 
         if let Some(ref type_params) = i.type_params {
             self.check_type_params(i, self.extension_id.unwrap(), type_params);
         }
 
-        if let Some(extension_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
+        if let Some(extension_ty) =
+            semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &i.class_type)
+        {
             self.extension_ty = extension_ty;
 
             match extension_ty {
@@ -73,7 +79,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
         visit::walk_impl(self, i);
 
         self.extension_id = None;
-        self.vm.sym.lock().pop_level();
+        self.sym.pop_level();
     }
 
     fn check_type_params(
@@ -102,7 +108,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
                 assert!(type_param.bounds.is_empty());
 
                 let sym = TypeSym::SymTypeParam(type_param_id.into());
-                self.vm.sym.lock().insert_type(type_param.name, sym);
+                self.sym.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
         } else {

@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::TypeSym;
+use crate::sym::{SymTables, TypeSym};
 use crate::ty::{SourceType, TypeList};
 
 use crate::vm::module::ModuleId;
@@ -13,9 +13,11 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_module_defs: &NodeMap<ModuleId>) {
+    let global_namespace = vm.global_namespace.read();
     let mut module_check = ModuleCheck {
         vm,
         ast,
+        sym: SymTables::new(&*global_namespace),
         module_id: None,
         map_module_defs,
         file_id: 0,
@@ -29,6 +31,7 @@ struct ModuleCheck<'x, 'ast: 'x> {
     ast: &'ast ast::Ast,
     map_module_defs: &'x NodeMap<ModuleId>,
     file_id: u32,
+    sym: SymTables<'x>,
 
     module_id: Option<ModuleId>,
 }
@@ -65,7 +68,7 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
 
     fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
         let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.vm.sym.lock().get_type(parent_class.name);
+        let sym = self.sym.get_type(parent_class.name);
 
         match sym {
             Some(TypeSym::SymClass(cls_id)) => {
@@ -95,8 +98,9 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
                     let mut types = Vec::new();
 
                     for tp in &parent_class.type_params {
-                        let ty = semck::read_type(self.vm, self.file_id.into(), tp)
-                            .unwrap_or(SourceType::Error);
+                        let ty =
+                            semck::read_type_table(self.vm, &self.sym, self.file_id.into(), tp)
+                                .unwrap_or(SourceType::Error);
                         types.push(ty);
                     }
 
@@ -143,7 +147,7 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
     fn visit_module(&mut self, m: &'ast ast::Module) {
         self.module_id = Some(*self.map_module_defs.get(m.id).unwrap());
 
-        self.vm.sym.lock().push_level();
+        self.sym.push_level();
 
         visit::walk_module(self, m);
 
@@ -154,11 +158,11 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
         }
 
         self.module_id = None;
-        self.vm.sym.lock().pop_level();
+        self.sym.pop_level();
     }
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
-        let ty = semck::read_type(self.vm, self.file_id.into(), &f.data_type)
+        let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
             .unwrap_or(SourceType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 

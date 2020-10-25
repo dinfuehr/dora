@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::sym::{SymLevel, TermSym, TypeSym};
+use crate::sym::{SymLevel, SymTables, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
     ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM,
@@ -16,12 +16,14 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
+    let global_namespace = vm.global_namespace.read();
     let mut clsck = ClsDefCheck {
         vm,
         ast,
         cls_id: None,
         map_cls_defs,
         file_id: 0,
+        sym: SymTables::new(&*global_namespace),
     };
 
     clsck.check();
@@ -32,6 +34,7 @@ struct ClsDefCheck<'x, 'ast: 'x> {
     ast: &'ast ast::Ast,
     map_cls_defs: &'x NodeMap<ClassId>,
     file_id: u32,
+    sym: SymTables<'x>,
 
     cls_id: Option<ClassId>,
 }
@@ -80,7 +83,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type(self.vm, cls.file, bound);
+                    let ty = semck::read_type_table(self.vm, &self.sym, cls.file, bound);
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {
@@ -102,7 +105,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                 }
 
                 let sym = TypeSym::SymTypeParam(type_param_id.into());
-                self.vm.sym.lock().insert_type(type_param.name, sym);
+                self.sym.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
 
@@ -117,7 +120,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
     fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
         let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.vm.sym.lock().get_type(parent_class.name);
+        let sym = self.sym.get_type(parent_class.name);
 
         match sym {
             Some(TypeSym::SymClass(cls_id)) => {
@@ -135,7 +138,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                 let mut types = Vec::new();
 
                 for tp in &parent_class.type_params {
-                    let ty = semck::read_type(self.vm, self.file_id.into(), tp)
+                    let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), tp)
                         .unwrap_or(SourceType::Error);
                     types.push(ty);
                 }
@@ -211,7 +214,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
-        self.vm.sym.lock().push_level();
+        self.sym.push_level();
 
         if let Some(ref type_params) = c.type_params {
             self.check_type_params(c, type_params);
@@ -226,13 +229,13 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         }
 
         self.cls_id = None;
-        self.vm.sym.lock().pop_level();
+        self.sym.pop_level();
     }
 
     fn visit_module(&mut self, _: &'ast ast::Module) {}
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
-        let ty = semck::read_type(self.vm, self.file_id.into(), &f.data_type)
+        let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
             .unwrap_or(SourceType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
