@@ -110,7 +110,7 @@ mod tests {
     fn test_always_returns(code: &'static str, value: bool) {
         parse(code, |vm| {
             let name = vm.interner.intern("f");
-            let fct_id = vm.sym.lock().get_fct(name).unwrap();
+            let fct_id = vm.global_namespace.read().get_fct(name).unwrap();
 
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();

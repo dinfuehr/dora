@@ -327,11 +327,10 @@ fn parse_reader(reader: Reader, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
 
 fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
     let name = vm.interner.intern("main");
-    let fctid = match vm.sym.lock().get_fct(name) {
-        Some(id) => id,
-        None => {
-            return None;
-        }
+    let fctid = if let Some(id) = vm.global_namespace.read().get_fct(name) {
+        id
+    } else {
+        return None;
     };
 
     let fct = vm.fcts.idx(fctid);

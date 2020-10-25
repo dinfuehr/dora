@@ -182,7 +182,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
             let file: FileId = self.file_id.into();
 
             match sym {
-                &TermSym::SymFct(method) => {
+                TermSym::SymFct(method) => {
                     let method = self.vm.fcts.idx(method);
                     let method = method.read();
 
@@ -191,7 +191,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                     self.vm.diag.lock().report(file, pos, msg);
                 }
 
-                &TermSym::SymField(_) => {
+                TermSym::SymField(_) => {
                     let name = self.vm.interner.str(name).to_string();
                     self.vm
                         .diag

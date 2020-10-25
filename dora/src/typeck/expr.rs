@@ -1629,7 +1629,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return SourceType::Error;
         }
 
-        match self.vm.sym.lock().get_type(class) {
+        match self.vm.global_namespace.read().get_type(class) {
             Some(SymClass(cls_id)) => {
                 let mut lookup = MethodLookup::new(self.vm, self.fct)
                     .pos(e.pos)

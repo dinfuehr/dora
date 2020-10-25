@@ -42,7 +42,7 @@ fn read_type_basic<'ast>(
     let sym = if let Some(table) = table {
         table.get_type(basic.name)
     } else {
-        vm.sym.lock().get_type(basic.name)
+        vm.global_namespace.read().get_type(basic.name)
     };
 
     if sym.is_none() {

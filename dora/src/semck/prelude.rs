@@ -122,7 +122,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
 
 fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) -> ClassId {
     let iname = vm.interner.intern(name);
-    let clsid = vm.sym.lock().get_class(iname);
+    let clsid = vm.global_namespace.read().get_class(iname);
 
     if let Some(clsid) = clsid {
         let cls = vm.classes.idx(clsid);
@@ -144,7 +144,7 @@ fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) -
 
 fn internal_module<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) -> ModuleId {
     let iname = vm.interner.intern(name);
-    let module_id = vm.sym.lock().get_module(iname);
+    let module_id = vm.global_namespace.read().get_module(iname);
 
     if let Some(module_id) = module_id {
         let module = vm.modules.idx(module_id);
@@ -167,7 +167,7 @@ fn internal_module<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) 
 fn find_trait<'ast>(vm: &mut VM<'ast>, name: &str) -> TraitId {
     let iname = vm.interner.intern(name);
 
-    let tid = vm.sym.lock().get_trait(iname);
+    let tid = vm.global_namespace.read().get_trait(iname);
 
     if let Some(tid) = tid {
         tid
@@ -179,7 +179,7 @@ fn find_trait<'ast>(vm: &mut VM<'ast>, name: &str) -> TraitId {
 fn find_enum<'ast>(vm: &mut VM<'ast>, name: &str) -> EnumId {
     let iname = vm.interner.intern(name);
 
-    let eid = vm.sym.lock().get_enum(iname);
+    let eid = vm.global_namespace.read().get_enum(iname);
 
     if let Some(eid) = eid {
         eid
@@ -447,7 +447,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     );
 
     let iname = vm.interner.intern("Thread");
-    let clsid = vm.sym.lock().get_class(iname);
+    let clsid = vm.global_namespace.read().get_class(iname);
 
     if let Some(clsid) = clsid {
         native_class_method(vm, clsid, "start", stdlib::spawn_thread as *const u8);
@@ -629,7 +629,7 @@ fn intrinsic_fct<'ast>(vm: &mut VM<'ast>, name: &str, intrinsic: Intrinsic) {
 
 fn internal_fct<'ast>(vm: &mut VM<'ast>, name: &str, kind: FctImplementation) {
     let name = vm.interner.intern(name);
-    let fctid = vm.sym.lock().get_fct(name);
+    let fctid = vm.global_namespace.read().get_fct(name);
 
     if let Some(fctid) = fctid {
         let fct = vm.fcts.idx(fctid);

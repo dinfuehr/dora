@@ -13,7 +13,6 @@ use crate::gc::{Address, GcReason};
 use crate::handle::{scope as handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
-use crate::sym::TermSym::SymFct;
 use crate::threads::{DoraThread, STACK_SIZE, THREAD};
 use crate::ty::TypeList;
 use crate::vm::{get_vm, stack_pointer, Trap};
@@ -127,29 +126,23 @@ pub extern "C" fn call(fct: Handle<Str>) {
     let vm = get_vm();
     let name = vm.interner.intern(fct_name);
 
-    let sym = vm.sym.lock().get_term(name);
+    if let Some(fct_id) = vm.global_namespace.read().get_fct(name) {
+        {
+            let fct = vm.fcts.idx(fct_id);
+            let fct = fct.read();
 
-    match sym {
-        Some(SymFct(fct_id)) => {
-            {
-                let fct = vm.fcts.idx(fct_id);
-                let fct = fct.read();
-
-                if !fct.param_types.is_empty() {
-                    writeln!(&mut io::stderr(), "fct `{}` takes arguments.", fct_name)
-                        .expect("could not print to stderr");
-                    process::exit(1);
-                }
+            if !fct.param_types.is_empty() {
+                writeln!(&mut io::stderr(), "fct `{}` takes arguments.", fct_name)
+                    .expect("could not print to stderr");
+                process::exit(1);
             }
-
-            vm.run(fct_id);
         }
 
-        _ => {
-            writeln!(&mut io::stderr(), "fct `{}` not found.", fct_name)
-                .expect("could not print to stderr");
-            process::exit(1);
-        }
+        vm.run(fct_id);
+    } else {
+        writeln!(&mut io::stderr(), "fct `{}` not found.", fct_name)
+            .expect("could not print to stderr");
+        process::exit(1);
     }
 }
 

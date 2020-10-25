@@ -16,7 +16,7 @@ use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
-use crate::sym::{SymLevel, SymTable};
+use crate::sym::SymLevel;
 use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{LambdaTypes, SourceType, TypeList, TypeLists};
 use crate::utils::GrowableVec;
@@ -94,7 +94,6 @@ pub struct VM<'ast> {
     pub id_generator: NodeIdGenerator,
     pub files: Vec<File>,
     pub diag: Mutex<Diagnostic>,
-    pub sym: Mutex<SymTable>,
     pub global_namespace: RwLock<SymLevel>,
     pub known: KnownElements,
     pub consts: GrowableVec<Mutex<ConstData>>, // stores all const definitions
@@ -212,7 +211,6 @@ impl<'ast> VM<'ast> {
             ast,
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
-            sym: Mutex::new(SymTable::new()),
             global_namespace: RwLock::new(SymLevel::new()),
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
@@ -301,19 +299,28 @@ impl<'ast> VM<'ast> {
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassId {
         let name = self.interner.intern(name);
-        self.sym.lock().get_class(name).expect("class not found")
+        self.global_namespace
+            .read()
+            .get_class(name)
+            .expect("class not found")
     }
 
     #[cfg(test)]
     pub fn enum_by_name(&self, name: &'static str) -> EnumId {
         let name = self.interner.intern(name);
-        self.sym.lock().get_enum(name).expect("class not found")
+        self.global_namespace
+            .read()
+            .get_enum(name)
+            .expect("class not found")
     }
 
     #[cfg(test)]
     pub fn const_by_name(&self, name: &'static str) -> ConstId {
         let name = self.interner.intern(name);
-        self.sym.lock().get_const(name).expect("class not found")
+        self.global_namespace
+            .read()
+            .get_const(name)
+            .expect("class not found")
     }
 
     #[cfg(test)]
@@ -327,8 +334,8 @@ impl<'ast> VM<'ast> {
         let function_name = self.interner.intern(function_name);
 
         let cls_id = self
-            .sym
-            .lock()
+            .global_namespace
+            .read()
             .get_class(class_name)
             .expect("class not found");
         let cls = self.cls(cls_id);
@@ -345,7 +352,11 @@ impl<'ast> VM<'ast> {
         use crate::semck::specialize::specialize_class_id;
 
         let name = self.interner.intern(name);
-        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+        let cls_id = self
+            .global_namespace
+            .read()
+            .get_class(name)
+            .expect("class not found");
 
         specialize_class_id(self, cls_id)
     }
@@ -358,7 +369,11 @@ impl<'ast> VM<'ast> {
         use crate::semck::specialize::specialize_class_id_params;
 
         let name = self.interner.intern(name);
-        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+        let cls_id = self
+            .global_namespace
+            .read()
+            .get_class(name)
+            .expect("class not found");
 
         specialize_class_id_params(self, cls_id, &type_params)
     }
@@ -385,8 +400,8 @@ impl<'ast> VM<'ast> {
         let field_name = self.interner.intern(field_name);
 
         let cls_id = self
-            .sym
-            .lock()
+            .global_namespace
+            .read()
             .get_class(class_name)
             .expect("class not found");
         let cls = self.classes.idx(cls_id);
@@ -398,13 +413,17 @@ impl<'ast> VM<'ast> {
 
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
-        self.sym.lock().get_fct(name)
+        self.global_namespace.read().get_fct(name)
     }
 
     #[cfg(test)]
     pub fn ctor_by_name(&self, name: &str) -> FctId {
         let name = self.interner.intern(name);
-        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+        let cls_id = self
+            .global_namespace
+            .read()
+            .get_class(name)
+            .expect("class not found");
         let cls = self.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -414,7 +433,10 @@ impl<'ast> VM<'ast> {
     #[cfg(test)]
     pub fn global_by_name(&self, name: &str) -> GlobalId {
         let name = self.interner.intern(name);
-        self.sym.lock().get_global(name).expect("global not found")
+        self.global_namespace
+            .read()
+            .get_global(name)
+            .expect("global not found")
     }
 
     pub fn cls(&self, cls_id: ClassId) -> SourceType {

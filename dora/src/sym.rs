@@ -134,7 +134,7 @@ impl<'a> SymTables<'a> {
             }
         }
 
-        self.global.get_type(name).cloned()
+        self.global.get_type(name)
     }
 
     pub fn get_term(&self, name: Name) -> Option<TermSym> {
@@ -144,7 +144,7 @@ impl<'a> SymTables<'a> {
             }
         }
 
-        self.global.get_term(name).cloned()
+        self.global.get_term(name)
     }
 
     pub fn get_class(&self, name: Name) -> Option<ClassId> {
@@ -211,8 +211,8 @@ impl SymLevel {
         self.types.contains_key(&name)
     }
 
-    pub fn get_type(&self, name: Name) -> Option<&TypeSym> {
-        self.types.get(&name)
+    pub fn get_type(&self, name: Name) -> Option<TypeSym> {
+        self.types.get(&name).cloned()
     }
 
     pub fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
@@ -223,12 +223,40 @@ impl SymLevel {
         self.terms.contains_key(&name)
     }
 
-    pub fn get_term(&self, name: Name) -> Option<&TermSym> {
-        self.terms.get(&name)
+    pub fn get_term(&self, name: Name) -> Option<TermSym> {
+        self.terms.get(&name).cloned()
     }
 
     pub fn insert_term(&mut self, name: Name, sym: TermSym) -> Option<TermSym> {
         self.terms.insert(name, sym)
+    }
+
+    pub fn get_fct(&self, name: Name) -> Option<FctId> {
+        self.get_term(name).and_then(|n| n.to_fct())
+    }
+
+    pub fn get_const(&self, name: Name) -> Option<ConstId> {
+        self.get_term(name).and_then(|n| n.to_const())
+    }
+
+    pub fn get_class(&self, name: Name) -> Option<ClassId> {
+        self.get_type(name).and_then(|n| n.to_class())
+    }
+
+    pub fn get_trait(&self, name: Name) -> Option<TraitId> {
+        self.get_type(name).and_then(|n| n.to_trait())
+    }
+
+    pub fn get_module(&self, name: Name) -> Option<ModuleId> {
+        self.get_term(name).and_then(|n| n.to_module())
+    }
+
+    pub fn get_enum(&self, name: Name) -> Option<EnumId> {
+        self.get_type(name).and_then(|n| n.to_enum())
+    }
+
+    pub fn get_global(&self, name: Name) -> Option<GlobalId> {
+        self.get_term(name).and_then(|n| n.to_global())
     }
 }
 

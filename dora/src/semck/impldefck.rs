@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::TypeSym;
+use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, ImplId, NodeMap, VM};
 
@@ -10,24 +10,27 @@ use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
+pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
+    let global_namespace = vm.global_namespace.read();
     let mut clsck = ImplCheck {
         vm,
         ast,
         impl_id: None,
         map_impl_defs,
         file_id: 0,
+        sym: SymTables::new(&*global_namespace),
     };
 
     clsck.check();
 }
 
 struct ImplCheck<'x, 'ast: 'x> {
-    vm: &'x mut VM<'ast>,
+    vm: &'x VM<'ast>,
     ast: &'ast ast::Ast,
     map_impl_defs: &'x NodeMap<ImplId>,
     file_id: u32,
     impl_id: Option<ImplId>,
+    sym: SymTables<'x>,
 }
 
 impl<'x, 'ast> ImplCheck<'x, 'ast> {
@@ -52,7 +55,7 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
 
         if let Some(ref trait_type) = i.trait_type {
             if let Some(trait_name) = trait_type.to_basic_without_type_params() {
-                if let Some(TypeSym::SymTrait(trait_id)) = self.vm.sym.lock().get_type(trait_name) {
+                if let Some(TypeSym::SymTrait(trait_id)) = self.sym.get_type(trait_name) {
                     ximpl.trait_id = Some(trait_id);
                 } else {
                     let name = self.vm.interner.str(trait_name).to_string();
