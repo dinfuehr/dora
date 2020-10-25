@@ -11,14 +11,14 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
-    let global_namespace = vm.global_namespace.read();
+    let global_namespace = vm.global_namespace.clone();
     let mut clsck = ImplCheck {
         vm,
         ast,
         impl_id: None,
         map_impl_defs,
         file_id: 0,
-        sym: SymTables::new(&*global_namespace),
+        sym: SymTables::new(global_namespace),
     };
 
     clsck.check();
@@ -30,7 +30,7 @@ struct ImplCheck<'x, 'ast: 'x> {
     map_impl_defs: &'x NodeMap<ImplId>,
     file_id: u32,
     impl_id: Option<ImplId>,
-    sym: SymTables<'x>,
+    sym: SymTables,
 }
 
 impl<'x, 'ast> ImplCheck<'x, 'ast> {

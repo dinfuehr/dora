@@ -9,8 +9,6 @@ use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
 
 pub fn check<'a, 'ast>(vm: &VM<'ast>) {
-    let global_namespace = vm.global_namespace.read();
-
     for fct in vm.fcts.iter() {
         let mut fct = fct.write();
         let ast = fct.ast;
@@ -23,7 +21,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             continue;
         }
 
-        let mut sym_table = SymTables::new(&*global_namespace);
+        let mut sym_table = SymTables::new(vm.global_namespace.clone());
         sym_table.push_level();
 
         let mut cls_type_params_count = 0;
@@ -298,7 +296,7 @@ struct FctDefCheck<'a, 'ast: 'a> {
     src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: SourceType,
-    sym: SymTables<'a>,
+    sym: SymTables,
 }
 
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {

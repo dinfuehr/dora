@@ -1,5 +1,9 @@
-use crate::sym::SymLevel;
+use parking_lot::RwLock;
+use std::sync::Arc;
+
+use crate::sym::SymTable;
 use crate::vm::FileId;
+
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -25,5 +29,5 @@ pub struct NamespaceData {
     pub pos: Position,
     pub namespace_id: Option<NamespaceId>,
     pub name: Name,
-    pub table: SymLevel,
+    pub table: Arc<RwLock<SymTable>>,
 }

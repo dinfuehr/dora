@@ -16,7 +16,7 @@ use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
-use crate::sym::SymLevel;
+use crate::sym::SymTable;
 use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{LambdaTypes, SourceType, TypeList, TypeLists};
 use crate::utils::GrowableVec;
@@ -94,7 +94,7 @@ pub struct VM<'ast> {
     pub id_generator: NodeIdGenerator,
     pub files: Vec<File>,
     pub diag: Mutex<Diagnostic>,
-    pub global_namespace: RwLock<SymLevel>,
+    pub global_namespace: Arc<RwLock<SymTable>>,
     pub known: KnownElements,
     pub consts: GrowableVec<Mutex<ConstData>>, // stores all const definitions
     pub structs: GrowableVec<Mutex<StructData>>, // stores all struct source definitions
@@ -105,7 +105,7 @@ pub struct VM<'ast> {
     pub tuples: Mutex<Tuples>,                 // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
-    pub namespaces: Vec<RwLock<NamespaceData>>, // storer all namespace definitions
+    pub namespaces: Vec<NamespaceData>,        // storer all namespace definitions
     pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
     pub enums: Vec<RwLock<EnumData>>,          // store all enum source definitions
@@ -211,7 +211,7 @@ impl<'ast> VM<'ast> {
             ast,
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
-            global_namespace: RwLock::new(SymLevel::new()),
+            global_namespace: Arc::new(RwLock::new(SymTable::new())),
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),

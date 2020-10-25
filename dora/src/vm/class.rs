@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
-use crate::sym::SymLevel;
+use crate::sym::SymTable;
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
@@ -58,7 +58,7 @@ pub struct Class {
     pub internal: bool,
     pub internal_resolved: bool,
     pub has_constructor: bool,
-    pub table: SymLevel,
+    pub table: SymTable,
 
     pub constructor: Option<FctId>,
     pub fields: Vec<Field>,

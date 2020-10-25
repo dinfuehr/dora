@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
-use crate::sym::SymLevel;
+use crate::sym::SymTable;
 use crate::typeck;
 use crate::vm::{NodeMap, VM};
 use dora_parser::ast::{Expr, ExprBlockType, Stmt};
@@ -214,7 +214,7 @@ pub fn expr_block_always_returns(e: &ExprBlockType) -> bool {
 }
 
 struct SemanticAnalysis {
-    pub global_namespace: RwLock<SymLevel>,
+    pub global_namespace: RwLock<SymTable>,
 }
 
 #[cfg(test)]

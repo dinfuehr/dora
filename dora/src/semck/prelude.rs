@@ -167,25 +167,19 @@ fn internal_module<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) 
 fn find_trait<'ast>(vm: &mut VM<'ast>, name: &str) -> TraitId {
     let iname = vm.interner.intern(name);
 
-    let tid = vm.global_namespace.read().get_trait(iname);
-
-    if let Some(tid) = tid {
-        tid
-    } else {
-        panic!("trait {} not found!", name);
-    }
+    vm.global_namespace
+        .read()
+        .get_trait(iname)
+        .expect("trait not found")
 }
 
 fn find_enum<'ast>(vm: &mut VM<'ast>, name: &str) -> EnumId {
     let iname = vm.interner.intern(name);
 
-    let eid = vm.global_namespace.read().get_enum(iname);
-
-    if let Some(eid) = eid {
-        eid
-    } else {
-        panic!("enum {} not found!", name);
-    }
+    vm.global_namespace
+        .read()
+        .get_enum(iname)
+        .expect("enum not found")
 }
 
 pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {

@@ -10,13 +10,13 @@ use crate::ty::SourceType;
 use crate::vm::{EnumId, EnumVariant, NodeMap, VM};
 
 pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<EnumId>) {
-    let global_namespace = vm.global_namespace.read();
+    let global_namespace = vm.global_namespace.clone();
     let mut enumck = EnumCheck {
         vm,
         ast,
         map_enum_defs,
         file_id: 0,
-        sym: SymTables::new(&*global_namespace),
+        sym: SymTables::new(global_namespace),
 
         enum_id: None,
     };
@@ -29,7 +29,7 @@ struct EnumCheck<'x, 'ast: 'x> {
     ast: &'ast Ast,
     map_enum_defs: &'x NodeMap<EnumId>,
     file_id: u32,
-    sym: SymTables<'x>,
+    sym: SymTables,
 
     enum_id: Option<EnumId>,
 }

@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::sym::{SymLevel, SymTables, TermSym, TypeSym};
+use crate::sym::{SymTable, SymTables, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
     ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM,
@@ -16,14 +16,14 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
-    let global_namespace = vm.global_namespace.read();
+    let global_namespace = vm.global_namespace.clone();
     let mut clsck = ClsDefCheck {
         vm,
         ast,
         cls_id: None,
         map_cls_defs,
         file_id: 0,
-        sym: SymTables::new(&*global_namespace),
+        sym: SymTables::new(global_namespace),
     };
 
     clsck.check();
@@ -34,7 +34,7 @@ struct ClsDefCheck<'x, 'ast: 'x> {
     ast: &'ast ast::Ast,
     map_cls_defs: &'x NodeMap<ClassId>,
     file_id: u32,
-    sym: SymTables<'x>,
+    sym: SymTables,
 
     cls_id: Option<ClassId>,
 }
@@ -176,7 +176,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         }
     }
 
-    fn check_if_symbol_exists(&mut self, name: Name, pos: Position, table: &SymLevel) {
+    fn check_if_symbol_exists(&mut self, name: Name, pos: Position, table: &SymTable) {
         if table.contains_term(name) {
             let sym = table.get_term(name).unwrap();
             let file: FileId = self.file_id.into();

@@ -29,14 +29,12 @@ pub fn check<'ast>(vm: &VM<'ast>) {
         let mut src = src.write();
         let ast = fct.ast;
 
-        let global_namespace = vm.global_namespace.read();
-
         let mut nameck = NameCheck {
             vm,
             fct: &fct,
             src: &mut src,
             ast,
-            sym: SymTables::new(&*global_namespace),
+            sym: SymTables::new(vm.global_namespace.clone()),
         };
 
         nameck.check();
@@ -48,7 +46,7 @@ struct NameCheck<'a, 'ast: 'a> {
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
-    sym: SymTables<'a>,
+    sym: SymTables,
 }
 
 impl<'a, 'ast> NameCheck<'a, 'ast> {

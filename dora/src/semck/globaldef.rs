@@ -9,7 +9,7 @@ use crate::sym::TermSym::{
     SymNamespace, SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait};
-use crate::sym::{SymLevel, TermSym, TypeSym};
+use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::module::ModuleId;
 use crate::vm::{
@@ -86,10 +86,10 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             pos: n.pos,
             name: n.name,
             namespace_id: self.namespace_id,
-            table: SymLevel::new(),
+            table: Arc::new(RwLock::new(SymTable::new())),
         };
 
-        self.vm.namespaces.push(RwLock::new(namespace));
+        self.vm.namespaces.push(namespace);
         self.map_namespaces.insert(n.id, id);
 
         let sym = SymNamespace(id);
@@ -221,13 +221,14 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.map_module_defs.insert(m.id, id);
 
-        let mut global_namespace = self.vm.global_namespace.write();
-        match global_namespace.get_term(m.name) {
+        let level = self.current_level();
+        let mut level = level.write();
+        match level.get_term(m.name) {
             None => {
-                global_namespace.insert_term(m.name, SymModule(id));
+                level.insert_term(m.name, SymModule(id));
             }
             Some(SymClassConstructor(class_id)) => {
-                global_namespace.insert_term(m.name, SymClassConstructorAndModule(class_id, id));
+                level.insert_term(m.name, SymClassConstructorAndModule(class_id, id));
             }
             Some(sym) => report_term_shadow(self.vm, m.name, self.file_id.into(), m.pos, sym),
         }
@@ -277,7 +278,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 internal: c.internal,
                 internal_resolved: false,
                 has_constructor: c.has_constructor,
-                table: SymLevel::new(),
+                table: SymTable::new(),
 
                 constructor: None,
                 fields: Vec::new(),
@@ -314,13 +315,14 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             return;
         }
 
-        let mut global_namespace = self.vm.global_namespace.write();
-        match global_namespace.get_term(c.name) {
+        let level = self.current_level();
+        let mut level = level.write();
+        match level.get_term(c.name) {
             None => {
-                global_namespace.insert_term(c.name, SymClassConstructor(id));
+                level.insert_term(c.name, SymClassConstructor(id));
             }
             Some(SymModule(module_id)) => {
-                global_namespace.insert_term(c.name, SymClassConstructorAndModule(id, module_id));
+                level.insert_term(c.name, SymClassConstructorAndModule(id, module_id));
             }
             Some(sym) => report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym),
         }
@@ -352,13 +354,14 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             return;
         }
 
-        let mut global_namespace = self.vm.global_namespace.write();
-        match global_namespace.get_term(s.name) {
+        let level = self.current_level();
+        let mut level = level.write();
+        match level.get_term(s.name) {
             None => {
-                global_namespace.insert_term(s.name, SymStructConstructor(id));
+                level.insert_term(s.name, SymStructConstructor(id));
             }
             Some(SymModule(module_id)) => {
-                global_namespace.insert_term(s.name, SymStructConstructorAndModule(id, module_id));
+                level.insert_term(s.name, SymStructConstructorAndModule(id, module_id));
             }
             Some(sym) => report_term_shadow(self.vm, s.name, self.file_id.into(), s.pos, sym),
         }
@@ -445,30 +448,24 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 }
 
 impl<'x, 'ast> GlobalDef<'x, 'ast> {
-    fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+    fn current_level(&self) -> Arc<RwLock<SymTable>> {
         if let Some(namespace_id) = self.namespace_id {
-            let namespace = &self.vm.namespaces[namespace_id.to_usize()];
-            let mut namespace = namespace.write();
-            namespace.table.insert_type(name, sym)
+            self.vm.namespaces[namespace_id.to_usize()].table.clone()
         } else {
-            self.vm
-                .global_namespace
-                .write()
-                .insert_type(name, sym.clone())
+            self.vm.global_namespace.clone()
         }
     }
 
+    fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+        let level = self.current_level();
+        let mut level = level.write();
+        level.insert_type(name, sym)
+    }
+
     fn insert_term(&mut self, name: Name, sym: TermSym) -> Option<TermSym> {
-        if let Some(namespace_id) = self.namespace_id {
-            let namespace = &self.vm.namespaces[namespace_id.to_usize()];
-            let mut namespace = namespace.write();
-            namespace.table.insert_term(name, sym)
-        } else {
-            self.vm
-                .global_namespace
-                .write()
-                .insert_term(name, sym.clone())
-        }
+        let level = self.current_level();
+        let mut level = level.write();
+        level.insert_term(name, sym)
     }
 }
 
