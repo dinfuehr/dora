@@ -12,20 +12,33 @@ use crate::sym::TermSym::{
 use crate::ty::TypeListId;
 use crate::vm::module::ModuleId;
 use crate::vm::{
-    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, NamespaceId, StructId, TraitId, VarId,
+    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, NamespaceId, StructId, TraitId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
 #[derive(Debug)]
 pub struct SymTables {
-    global: Arc<RwLock<SymTable>>,
+    namespace: Arc<RwLock<SymTable>>,
     levels: Vec<SymTable>,
 }
 
 impl SymTables {
-    pub fn new(global: Arc<RwLock<SymTable>>) -> SymTables {
+    pub fn new(namespace: Arc<RwLock<SymTable>>) -> SymTables {
         SymTables {
-            global,
+            namespace,
+            levels: Vec::new(),
+        }
+    }
+
+    pub fn current(vm: &VM, namespace_id: Option<NamespaceId>) -> SymTables {
+        let namespace = if let Some(namespace_id) = namespace_id {
+            vm.namespaces[namespace_id.to_usize()].table.clone()
+        } else {
+            vm.global_namespace.clone()
+        };
+
+        SymTables {
+            namespace,
             levels: Vec::new(),
         }
     }
@@ -46,7 +59,7 @@ impl SymTables {
             }
         }
 
-        self.global.read().get_type(name)
+        self.namespace.read().get_type(name)
     }
 
     pub fn get_term(&self, name: Name) -> Option<TermSym> {
@@ -56,7 +69,7 @@ impl SymTables {
             }
         }
 
-        self.global.read().get_term(name)
+        self.namespace.read().get_term(name)
     }
 
     pub fn get_class(&self, name: Name) -> Option<ClassId> {

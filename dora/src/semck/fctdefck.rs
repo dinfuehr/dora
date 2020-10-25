@@ -21,7 +21,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             continue;
         }
 
-        let mut sym_table = SymTables::new(vm.global_namespace.clone());
+        let mut sym_table = SymTables::current(vm, fct.namespace_id);
         sym_table.push_level();
 
         let mut cls_type_params_count = 0;

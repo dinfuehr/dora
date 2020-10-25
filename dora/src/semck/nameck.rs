@@ -34,7 +34,7 @@ pub fn check<'ast>(vm: &VM<'ast>) {
             fct: &fct,
             src: &mut src,
             ast,
-            sym: SymTables::new(vm.global_namespace.clone()),
+            sym: SymTables::current(vm, fct.namespace_id),
         };
 
         nameck.check();
