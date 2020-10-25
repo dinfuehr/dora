@@ -5,16 +5,18 @@ use dora_parser::ast::{Ast, Enum, File, TypeParam};
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::TypeSym;
+use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{EnumId, EnumVariant, NodeMap, VM};
 
-pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<EnumId>) {
+pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<EnumId>) {
+    let global_namespace = vm.global_namespace.read();
     let mut enumck = EnumCheck {
         vm,
         ast,
         map_enum_defs,
         file_id: 0,
+        sym: SymTables::new(&*global_namespace),
 
         enum_id: None,
     };
@@ -23,10 +25,11 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<En
 }
 
 struct EnumCheck<'x, 'ast: 'x> {
-    vm: &'x mut VM<'ast>,
+    vm: &'x VM<'ast>,
     ast: &'ast Ast,
     map_enum_defs: &'x NodeMap<EnumId>,
     file_id: u32,
+    sym: SymTables<'x>,
 
     enum_id: Option<EnumId>,
 }
@@ -81,7 +84,7 @@ impl<'x, 'ast> EnumCheck<'x, 'ast> {
                 }
 
                 let sym = TypeSym::SymTypeParam(type_param_id.into());
-                self.vm.sym.lock().insert_type(type_param.name, sym);
+                self.sym.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
         } else {
@@ -101,7 +104,7 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
         let enum_id = *self.map_enum_defs.get(e.id).unwrap();
         self.enum_id = Some(enum_id);
 
-        self.vm.sym.lock().push_level();
+        self.sym.push_level();
 
         if let Some(ref type_params) = e.type_params {
             self.check_type_params(e, type_params);
@@ -118,8 +121,9 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
 
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {
-                    let variant_ty = semck::read_type(self.vm, self.file_id.into(), ty)
-                        .unwrap_or(SourceType::Error);
+                    let variant_ty =
+                        semck::read_type_table(self.vm, &self.sym, self.file_id.into(), ty)
+                            .unwrap_or(SourceType::Error);
                     types.push(variant_ty);
                 }
             }
@@ -156,7 +160,7 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
         }
 
         self.enum_id = None;
-        self.vm.sym.lock().pop_level();
+        self.sym.pop_level();
     }
 }
 

@@ -6,7 +6,7 @@ use crate::typeck;
 use crate::vm::{NodeMap, VM};
 use dora_parser::ast::{Expr, ExprBlockType, Stmt};
 
-pub use readty::read_type;
+pub use readty::{read_type, read_type_table};
 
 mod abstractck;
 mod clsdefck;

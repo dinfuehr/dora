@@ -394,8 +394,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
-        self.vm.sym.lock().push_level();
-
         if let Some(ref parent_class) = c.parent_class {
             let cls = self.vm.classes.idx(self.cls_id.unwrap());
             let cls = cls.read();
@@ -404,7 +402,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
         }
 
         self.cls_id = None;
-        self.vm.sym.lock().pop_level();
     }
 }
 
