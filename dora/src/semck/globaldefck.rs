@@ -24,7 +24,7 @@ struct GlobalDefCheck<'a, 'ast: 'a> {
     map_global_defs: &'a NodeMap<GlobalId>,
 }
 
-impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
+impl<'a, 'ast> Visitor for GlobalDefCheck<'a, 'ast> {
     fn visit_file(&mut self, f: &File) {
         for e in &f.elements {
             match *e {

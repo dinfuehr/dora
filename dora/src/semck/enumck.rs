@@ -94,7 +94,7 @@ impl<'x, 'ast> EnumCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
+impl<'x, 'ast> Visitor for EnumCheck<'x, 'ast> {
     fn visit_file(&mut self, f: &File) {
         walk_file(self, f);
         self.file_id += 1;

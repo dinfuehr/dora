@@ -206,7 +206,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
+impl<'x, 'ast> Visitor for ClsDefCheck<'x, 'ast> {
     fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
@@ -389,7 +389,7 @@ impl<'x, 'ast> ClsSuperDefinitionCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
+impl<'x, 'ast> Visitor for ClsSuperDefinitionCheck<'x, 'ast> {
     fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;

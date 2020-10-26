@@ -30,7 +30,7 @@ impl<'x, 'ast> ConstCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor<'ast> for ConstCheck<'x, 'ast> {
+impl<'x, 'ast> Visitor for ConstCheck<'x, 'ast> {
     fn visit_const(&mut self, c: &ast::Const) {
         let const_id = *self.map_const_defs.get(c.id).unwrap();
 

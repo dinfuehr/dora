@@ -303,7 +303,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
+impl<'a, 'ast> Visitor for NameCheck<'a, 'ast> {
     fn visit_param(&mut self, p: &Param) {
         let var_ctxt = Var {
             id: VarId(0),

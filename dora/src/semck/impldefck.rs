@@ -99,7 +99,7 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
+impl<'x, 'ast> Visitor for ImplCheck<'x, 'ast> {
     fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;

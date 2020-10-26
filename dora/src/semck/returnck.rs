@@ -39,7 +39,7 @@ impl<'a, 'ast> ReturnCheck<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
+impl<'a, 'ast> Visitor for ReturnCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: Arc<Function>) {
         let returns = expr_block_returns_value(f.block()).is_ok();
 

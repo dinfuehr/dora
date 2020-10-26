@@ -4,7 +4,7 @@ use crate::ast::Expr::*;
 use crate::ast::Stmt::*;
 use crate::ast::Type::*;
 
-pub trait Visitor<'v>: Sized {
+pub trait Visitor: Sized {
     fn visit_ast(&mut self, a: &Ast) {
         walk_ast(self, a);
     }
@@ -94,19 +94,19 @@ pub trait Visitor<'v>: Sized {
     }
 }
 
-pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &Ast) {
+pub fn walk_ast<V: Visitor>(v: &mut V, a: &Ast) {
     for f in &a.files {
         v.visit_file(f);
     }
 }
 
-pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &File) {
+pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
     for e in &f.elements {
         walk_elem(v, e);
     }
 }
 
-pub fn walk_elem<'v, V: Visitor<'v>>(v: &mut V, e: &Elem) {
+pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
     match e {
         ElemFunction(f) => v.visit_fct(f.clone()),
         ElemClass(ref c) => v.visit_class(c),
@@ -123,7 +123,7 @@ pub fn walk_elem<'v, V: Visitor<'v>>(v: &mut V, e: &Elem) {
     }
 }
 
-pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &Global) {
+pub fn walk_global<V: Visitor>(v: &mut V, g: &Global) {
     v.visit_type(&g.data_type);
 
     if let Some(ref initializer) = g.initializer {
@@ -131,19 +131,19 @@ pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &Global) {
     }
 }
 
-pub fn walk_trait<'v, V: Visitor<'v>>(v: &mut V, t: &Trait) {
+pub fn walk_trait<V: Visitor>(v: &mut V, t: &Trait) {
     for m in &t.methods {
         v.visit_method(m.clone());
     }
 }
 
-pub fn walk_impl<'v, V: Visitor<'v>>(v: &mut V, i: &Impl) {
+pub fn walk_impl<V: Visitor>(v: &mut V, i: &Impl) {
     for m in &i.methods {
         v.visit_method(m.clone());
     }
 }
 
-pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &Arc<Class>) {
+pub fn walk_class<V: Visitor>(v: &mut V, c: &Arc<Class>) {
     for f in &c.fields {
         v.visit_field(f);
     }
@@ -157,7 +157,7 @@ pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &Arc<Class>) {
     }
 }
 
-pub fn walk_module<'v, V: Visitor<'v>>(v: &mut V, m: &Module) {
+pub fn walk_module<V: Visitor>(v: &mut V, m: &Module) {
     for f in &m.fields {
         v.visit_field(f);
     }
@@ -171,42 +171,42 @@ pub fn walk_module<'v, V: Visitor<'v>>(v: &mut V, m: &Module) {
     }
 }
 
-pub fn walk_annotation<'v, V: Visitor<'v>>(_v: &mut V, _a: &Annotation) {}
+pub fn walk_annotation<V: Visitor>(_v: &mut V, _a: &Annotation) {}
 
-pub fn walk_const<'v, V: Visitor<'v>>(v: &mut V, c: &Const) {
+pub fn walk_const<V: Visitor>(v: &mut V, c: &Const) {
     v.visit_type(&c.data_type);
     v.visit_expr(&c.expr);
 }
 
-pub fn walk_enum<'v, V: Visitor<'v>>(_v: &mut V, _e: &Enum) {
+pub fn walk_enum<V: Visitor>(_v: &mut V, _e: &Enum) {
     // nothing to do
 }
 
-pub fn walk_alias<'v, V: Visitor<'v>>(v: &mut V, a: &Alias) {
+pub fn walk_alias<V: Visitor>(v: &mut V, a: &Alias) {
     v.visit_type(&a.ty);
 }
 
-pub fn walk_namespace<'v, V: Visitor<'v>>(v: &mut V, namespace: &Namespace) {
+pub fn walk_namespace<V: Visitor>(v: &mut V, namespace: &Namespace) {
     for e in &namespace.elements {
         walk_elem(v, e);
     }
 }
 
-pub fn walk_struct<'v, V: Visitor<'v>>(v: &mut V, s: &Struct) {
+pub fn walk_struct<V: Visitor>(v: &mut V, s: &Struct) {
     for f in &s.fields {
         v.visit_struct_field(f);
     }
 }
 
-pub fn walk_struct_field<'v, V: Visitor<'v>>(v: &mut V, f: &StructField) {
+pub fn walk_struct_field<V: Visitor>(v: &mut V, f: &StructField) {
     v.visit_type(&f.data_type);
 }
 
-pub fn walk_field<'v, V: Visitor<'v>>(v: &mut V, f: &Field) {
+pub fn walk_field<V: Visitor>(v: &mut V, f: &Field) {
     v.visit_type(&f.data_type);
 }
 
-pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &Function) {
+pub fn walk_fct<V: Visitor>(v: &mut V, f: &Function) {
     for p in &f.params {
         v.visit_param(p);
     }
@@ -226,11 +226,11 @@ pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &Function) {
     }
 }
 
-pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, p: &Param) {
+pub fn walk_param<V: Visitor>(v: &mut V, p: &Param) {
     v.visit_type(&p.data_type);
 }
 
-pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &Type) {
+pub fn walk_type<V: Visitor>(v: &mut V, t: &Type) {
     match *t {
         TypeSelf(_) => {}
         TypeBasic(_) => {}
@@ -250,7 +250,7 @@ pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &Type) {
     }
 }
 
-pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &Stmt) {
+pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) {
     match *s {
         StmtLet(ref value) => {
             if let Some(ref ty) = value.data_type {
@@ -287,7 +287,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &Stmt) {
     }
 }
 
-pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &Expr) {
+pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
     match *e {
         ExprUn(ref value) => {
             v.visit_expr(&value.opnd);

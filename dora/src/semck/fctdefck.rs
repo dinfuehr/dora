@@ -304,7 +304,7 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
+impl<'a, 'ast> Visitor for FctDefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: Arc<Function>) {
         let block = f.block();
         for stmt in &block.stmts {

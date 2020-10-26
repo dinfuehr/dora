@@ -2243,7 +2243,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
+impl<'a, 'ast> Visitor for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, _e: &Expr) {
         unreachable!();
     }

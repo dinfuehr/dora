@@ -72,7 +72,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_namespaces: &'x mut NodeMap<NamespaceId>,
 }
 
-impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
+impl<'x, 'ast> Visitor for GlobalDef<'x, 'ast> {
     fn visit_file(&mut self, f: &File) {
         walk_file(self, f);
         self.file_id += 1;

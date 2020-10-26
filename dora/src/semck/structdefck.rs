@@ -31,7 +31,7 @@ impl<'x, 'ast> StructCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
+impl<'x, 'ast> Visitor for StructCheck<'x, 'ast> {
     fn visit_struct(&mut self, s: &ast::Struct) {
         self.struct_id = Some(*self.map_struct_defs.get(s.id).unwrap());
 
