@@ -35,12 +35,12 @@ impl<'x, 'ast> TraitCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast ast::File) {
+    fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
     }
 
-    fn visit_trait(&mut self, t: &'ast ast::Trait) {
+    fn visit_trait(&mut self, t: &ast::Trait) {
         self.trait_id = Some(*self.map_trait_defs.get(t.id).unwrap());
 
         visit::walk_trait(self, t);

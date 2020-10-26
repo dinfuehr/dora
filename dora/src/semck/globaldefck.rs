@@ -25,7 +25,7 @@ struct GlobalDefCheck<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
-    fn visit_file(&mut self, f: &'ast File) {
+    fn visit_file(&mut self, f: &File) {
         for e in &f.elements {
             match *e {
                 ElemGlobal(ref g) => self.visit_global(g),
@@ -34,7 +34,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
         }
     }
 
-    fn visit_global(&mut self, g: &'ast Global) {
+    fn visit_global(&mut self, g: &Global) {
         let global_id = *self.map_global_defs.get(g.id).unwrap();
         let glob = self.vm.globals.idx(global_id);
         let mut glob = glob.write();

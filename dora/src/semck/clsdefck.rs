@@ -207,7 +207,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast ast::File) {
+    fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
     }
@@ -233,7 +233,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         self.sym.pop_level();
     }
 
-    fn visit_module(&mut self, _: &'ast ast::Module) {}
+    fn visit_module(&mut self, _: &ast::Module) {}
 
     fn visit_field(&mut self, f: &ast::Field) {
         let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
@@ -390,7 +390,7 @@ impl<'x, 'ast> ClsSuperDefinitionCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast ast::File) {
+    fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
     }

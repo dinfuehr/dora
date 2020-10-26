@@ -39,7 +39,7 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
         self.visit_ast(self.ast);
     }
 
-    fn add_impl(&mut self, i: &'ast ast::Impl) {
+    fn add_impl(&mut self, i: &ast::Impl) {
         assert!(i.trait_type.is_some());
         self.impl_id = Some(*self.map_impl_defs.get(i.id).unwrap());
 
@@ -100,12 +100,12 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast ast::File) {
+    fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
     }
 
-    fn visit_impl(&mut self, i: &'ast ast::Impl) {
+    fn visit_impl(&mut self, i: &ast::Impl) {
         if i.trait_type.is_some() {
             self.add_impl(i);
         }

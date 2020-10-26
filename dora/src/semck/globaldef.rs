@@ -73,12 +73,12 @@ struct GlobalDef<'x, 'ast: 'x> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast File) {
+    fn visit_file(&mut self, f: &File) {
         walk_file(self, f);
         self.file_id += 1;
     }
 
-    fn visit_namespace(&mut self, n: &'ast Namespace) {
+    fn visit_namespace(&mut self, n: &Namespace) {
         let id: NamespaceId = self.vm.namespaces.len().into();
         let namespace = NamespaceData {
             id,
@@ -103,7 +103,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.namespace_id = saved_namespace_id;
     }
 
-    fn visit_trait(&mut self, t: &'ast Trait) {
+    fn visit_trait(&mut self, t: &Trait) {
         let id: TraitId = (self.vm.traits.len() as u32).into();
         let xtrait = TraitData {
             id,
@@ -124,7 +124,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_global(&mut self, g: &'ast Global) {
+    fn visit_global(&mut self, g: &Global) {
         let id = {
             let mut globals = self.vm.globals.lock();
             let id: GlobalId = (globals.len() as u32).into();
@@ -154,7 +154,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_impl(&mut self, i: &'ast Impl) {
+    fn visit_impl(&mut self, i: &Impl) {
         if i.trait_type.is_some() {
             let id: ImplId = (self.vm.impls.len() as u32).into();
             let ximpl = ImplData {
@@ -190,7 +190,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_module(&mut self, m: &'ast Module) {
+    fn visit_module(&mut self, m: &Module) {
         let id = {
             let mut modules = self.vm.modules.lock();
 
@@ -235,7 +235,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_const(&mut self, c: &'ast Const) {
+    fn visit_const(&mut self, c: &Const) {
         let id = {
             let mut consts = self.vm.consts.lock();
             let id: ConstId = consts.len().into();
@@ -332,7 +332,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_struct(&mut self, s: &'ast Struct) {
+    fn visit_struct(&mut self, s: &Struct) {
         let id = {
             let mut structs = self.vm.structs.lock();
             let id: StructId = (structs.len() as u32).into();
@@ -421,7 +421,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_enum(&mut self, e: &'ast Enum) {
+    fn visit_enum(&mut self, e: &Enum) {
         let id: EnumId = self.vm.enums.len().into();
         let mut xenum = EnumData {
             id,

@@ -39,7 +39,7 @@ impl<'x, 'ast> EnumCheck<'x, 'ast> {
         self.visit_ast(self.ast);
     }
 
-    fn check_type_params(&mut self, ast: &'ast Enum, type_params: &'ast [TypeParam]) {
+    fn check_type_params(&mut self, ast: &Enum, type_params: &[TypeParam]) {
         let enum_id = self.enum_id.expect("missing enum_id");
         let xenum = &self.vm.enums[enum_id];
         let mut xenum = xenum.write();
@@ -95,12 +95,12 @@ impl<'x, 'ast> EnumCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast File) {
+    fn visit_file(&mut self, f: &File) {
         walk_file(self, f);
         self.file_id += 1;
     }
 
-    fn visit_enum(&mut self, e: &'ast Enum) {
+    fn visit_enum(&mut self, e: &Enum) {
         let enum_id = *self.map_enum_defs.get(e.id).unwrap();
         self.enum_id = Some(enum_id);
 

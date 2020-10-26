@@ -44,7 +44,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
         self.visit_ast(self.ast);
     }
 
-    fn visit_extension(&mut self, i: &'ast ast::Impl) {
+    fn visit_extension(&mut self, i: &ast::Impl) {
         assert!(i.trait_type.is_none());
         self.extension_id = Some(*self.map_extension_defs.get(i.id).unwrap());
 
@@ -85,9 +85,9 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
 
     fn check_type_params(
         &mut self,
-        ximpl: &'ast ast::Impl,
+        ximpl: &ast::Impl,
         extension_id: ExtensionId,
-        type_params: &'ast [ast::TypeParam],
+        type_params: &[ast::TypeParam],
     ) {
         let extension = &self.vm.extensions[extension_id];
         let extension = extension.read();
@@ -183,12 +183,12 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast ast::File) {
+    fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
     }
 
-    fn visit_impl(&mut self, i: &'ast ast::Impl) {
+    fn visit_impl(&mut self, i: &ast::Impl) {
         if i.trait_type.is_none() {
             self.visit_extension(i);
         }

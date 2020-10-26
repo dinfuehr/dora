@@ -67,7 +67,7 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
         module.fields.push(field);
     }
 
-    fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
+    fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
         let name = self.vm.interner.str(parent_class.name).to_string();
         let sym = self.sym.get_type(parent_class.name);
 
@@ -138,14 +138,14 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast ast::File) {
+    fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
     }
 
     fn visit_class(&mut self, _: &Arc<ast::Class>) {}
 
-    fn visit_module(&mut self, m: &'ast ast::Module) {
+    fn visit_module(&mut self, m: &ast::Module) {
         self.module_id = Some(*self.map_module_defs.get(m.id).unwrap());
 
         self.sym.push_level();

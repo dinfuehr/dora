@@ -5,23 +5,23 @@ use crate::ast::Stmt::*;
 use crate::ast::Type::*;
 
 pub trait Visitor<'v>: Sized {
-    fn visit_ast(&mut self, a: &'v Ast) {
+    fn visit_ast(&mut self, a: &Ast) {
         walk_ast(self, a);
     }
 
-    fn visit_file(&mut self, a: &'v File) {
+    fn visit_file(&mut self, a: &File) {
         walk_file(self, a);
     }
 
-    fn visit_global(&mut self, g: &'v Global) {
+    fn visit_global(&mut self, g: &Global) {
         walk_global(self, g);
     }
 
-    fn visit_trait(&mut self, t: &'v Trait) {
+    fn visit_trait(&mut self, t: &Trait) {
         walk_trait(self, t);
     }
 
-    fn visit_impl(&mut self, i: &'v Impl) {
+    fn visit_impl(&mut self, i: &Impl) {
         walk_impl(self, i);
     }
 
@@ -29,35 +29,35 @@ pub trait Visitor<'v>: Sized {
         walk_class(self, c);
     }
 
-    fn visit_module(&mut self, m: &'v Module) {
+    fn visit_module(&mut self, m: &Module) {
         walk_module(self, m);
     }
 
-    fn visit_struct(&mut self, s: &'v Struct) {
+    fn visit_struct(&mut self, s: &Struct) {
         walk_struct(self, s);
     }
 
-    fn visit_annotation(&mut self, a: &'v Annotation) {
+    fn visit_annotation(&mut self, a: &Annotation) {
         walk_annotation(self, a);
     }
 
-    fn visit_const(&mut self, c: &'v Const) {
+    fn visit_const(&mut self, c: &Const) {
         walk_const(self, c);
     }
 
-    fn visit_enum(&mut self, e: &'v Enum) {
+    fn visit_enum(&mut self, e: &Enum) {
         walk_enum(self, e);
     }
 
-    fn visit_alias(&mut self, e: &'v Alias) {
+    fn visit_alias(&mut self, e: &Alias) {
         walk_alias(self, e);
     }
 
-    fn visit_namespace(&mut self, e: &'v Namespace) {
+    fn visit_namespace(&mut self, e: &Namespace) {
         walk_namespace(self, e);
     }
 
-    fn visit_struct_field(&mut self, f: &'v StructField) {
+    fn visit_struct_field(&mut self, f: &StructField) {
         walk_struct_field(self, f);
     }
 
@@ -94,19 +94,19 @@ pub trait Visitor<'v>: Sized {
     }
 }
 
-pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
+pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &Ast) {
     for f in &a.files {
         v.visit_file(f);
     }
 }
 
-pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
+pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &File) {
     for e in &f.elements {
         walk_elem(v, e);
     }
 }
 
-pub fn walk_elem<'v, V: Visitor<'v>>(v: &mut V, e: &'v Elem) {
+pub fn walk_elem<'v, V: Visitor<'v>>(v: &mut V, e: &Elem) {
     match e {
         ElemFunction(f) => v.visit_fct(f.clone()),
         ElemClass(ref c) => v.visit_class(c),
@@ -123,7 +123,7 @@ pub fn walk_elem<'v, V: Visitor<'v>>(v: &mut V, e: &'v Elem) {
     }
 }
 
-pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &'v Global) {
+pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &Global) {
     v.visit_type(&g.data_type);
 
     if let Some(ref initializer) = g.initializer {
@@ -131,13 +131,13 @@ pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &'v Global) {
     }
 }
 
-pub fn walk_trait<'v, V: Visitor<'v>>(v: &mut V, t: &'v Trait) {
+pub fn walk_trait<'v, V: Visitor<'v>>(v: &mut V, t: &Trait) {
     for m in &t.methods {
         v.visit_method(m.clone());
     }
 }
 
-pub fn walk_impl<'v, V: Visitor<'v>>(v: &mut V, i: &'v Impl) {
+pub fn walk_impl<'v, V: Visitor<'v>>(v: &mut V, i: &Impl) {
     for m in &i.methods {
         v.visit_method(m.clone());
     }
@@ -157,7 +157,7 @@ pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &Arc<Class>) {
     }
 }
 
-pub fn walk_module<'v, V: Visitor<'v>>(v: &mut V, m: &'v Module) {
+pub fn walk_module<'v, V: Visitor<'v>>(v: &mut V, m: &Module) {
     for f in &m.fields {
         v.visit_field(f);
     }
@@ -171,34 +171,34 @@ pub fn walk_module<'v, V: Visitor<'v>>(v: &mut V, m: &'v Module) {
     }
 }
 
-pub fn walk_annotation<'v, V: Visitor<'v>>(_v: &mut V, _a: &'v Annotation) {}
+pub fn walk_annotation<'v, V: Visitor<'v>>(_v: &mut V, _a: &Annotation) {}
 
-pub fn walk_const<'v, V: Visitor<'v>>(v: &mut V, c: &'v Const) {
+pub fn walk_const<'v, V: Visitor<'v>>(v: &mut V, c: &Const) {
     v.visit_type(&c.data_type);
     v.visit_expr(&c.expr);
 }
 
-pub fn walk_enum<'v, V: Visitor<'v>>(_v: &mut V, _e: &'v Enum) {
+pub fn walk_enum<'v, V: Visitor<'v>>(_v: &mut V, _e: &Enum) {
     // nothing to do
 }
 
-pub fn walk_alias<'v, V: Visitor<'v>>(v: &mut V, a: &'v Alias) {
+pub fn walk_alias<'v, V: Visitor<'v>>(v: &mut V, a: &Alias) {
     v.visit_type(&a.ty);
 }
 
-pub fn walk_namespace<'v, V: Visitor<'v>>(v: &mut V, namespace: &'v Namespace) {
+pub fn walk_namespace<'v, V: Visitor<'v>>(v: &mut V, namespace: &Namespace) {
     for e in &namespace.elements {
         walk_elem(v, e);
     }
 }
 
-pub fn walk_struct<'v, V: Visitor<'v>>(v: &mut V, s: &'v Struct) {
+pub fn walk_struct<'v, V: Visitor<'v>>(v: &mut V, s: &Struct) {
     for f in &s.fields {
         v.visit_struct_field(f);
     }
 }
 
-pub fn walk_struct_field<'v, V: Visitor<'v>>(v: &mut V, f: &'v StructField) {
+pub fn walk_struct_field<'v, V: Visitor<'v>>(v: &mut V, f: &StructField) {
     v.visit_type(&f.data_type);
 }
 

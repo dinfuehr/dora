@@ -32,7 +32,7 @@ impl<'x, 'ast> StructCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
-    fn visit_struct(&mut self, s: &'ast ast::Struct) {
+    fn visit_struct(&mut self, s: &ast::Struct) {
         self.struct_id = Some(*self.map_struct_defs.get(s.id).unwrap());
 
         visit::walk_struct(self, s);
@@ -40,7 +40,7 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
         self.struct_id = None;
     }
 
-    fn visit_struct_field(&mut self, f: &'ast ast::StructField) {
+    fn visit_struct_field(&mut self, f: &ast::StructField) {
         let id = self.struct_id.unwrap();
         let struc = self.vm.structs.idx(id);
         let file = struc.lock().file;

@@ -31,7 +31,7 @@ impl<'x, 'ast> ConstCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for ConstCheck<'x, 'ast> {
-    fn visit_const(&mut self, c: &'ast ast::Const) {
+    fn visit_const(&mut self, c: &ast::Const) {
         let const_id = *self.map_const_defs.get(c.id).unwrap();
 
         let xconst = self.vm.consts.idx(const_id);
