@@ -194,7 +194,7 @@ impl<'x, 'ast> Visitor for ExtensionCheck<'x, 'ast> {
         }
     }
 
-    fn visit_method(&mut self, f: Arc<ast::Function>) {
+    fn visit_method(&mut self, f: &Arc<ast::Function>) {
         if self.extension_id.is_none() {
             return;
         }

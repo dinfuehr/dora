@@ -35,12 +35,12 @@ struct ReturnCheck<'a, 'ast: 'a> {
 
 impl<'a, 'ast> ReturnCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.visit_fct(self.fct.ast.clone());
+        self.visit_fct(&self.fct.ast);
     }
 }
 
 impl<'a, 'ast> Visitor for ReturnCheck<'a, 'ast> {
-    fn visit_fct(&mut self, f: Arc<Function>) {
+    fn visit_fct(&mut self, f: &Arc<Function>) {
         let returns = expr_block_returns_value(f.block()).is_ok();
 
         if returns {

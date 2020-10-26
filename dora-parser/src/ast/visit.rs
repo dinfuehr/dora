@@ -61,11 +61,11 @@ pub trait Visitor: Sized {
         walk_struct_field(self, f);
     }
 
-    fn visit_ctor(&mut self, m: Arc<Function>) {
+    fn visit_ctor(&mut self, m: &Arc<Function>) {
         walk_fct(self, &m);
     }
 
-    fn visit_method(&mut self, m: Arc<Function>) {
+    fn visit_method(&mut self, m: &Arc<Function>) {
         walk_fct(self, &m);
     }
 
@@ -73,7 +73,7 @@ pub trait Visitor: Sized {
         walk_field(self, p);
     }
 
-    fn visit_fct(&mut self, f: Arc<Function>) {
+    fn visit_fct(&mut self, f: &Arc<Function>) {
         walk_fct(self, &f);
     }
 
@@ -108,7 +108,7 @@ pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
 
 pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
     match e {
-        ElemFunction(f) => v.visit_fct(f.clone()),
+        ElemFunction(f) => v.visit_fct(f),
         ElemClass(ref c) => v.visit_class(c),
         ElemStruct(ref s) => v.visit_struct(s),
         ElemTrait(ref t) => v.visit_trait(t),
@@ -127,19 +127,19 @@ pub fn walk_global<V: Visitor>(v: &mut V, g: &Global) {
     v.visit_type(&g.data_type);
 
     if let Some(ref initializer) = g.initializer {
-        v.visit_fct(initializer.clone());
+        v.visit_fct(initializer);
     }
 }
 
 pub fn walk_trait<V: Visitor>(v: &mut V, t: &Trait) {
     for m in &t.methods {
-        v.visit_method(m.clone());
+        v.visit_method(m);
     }
 }
 
 pub fn walk_impl<V: Visitor>(v: &mut V, i: &Impl) {
     for m in &i.methods {
-        v.visit_method(m.clone());
+        v.visit_method(m);
     }
 }
 
@@ -149,11 +149,11 @@ pub fn walk_class<V: Visitor>(v: &mut V, c: &Arc<Class>) {
     }
 
     if let Some(ctor) = &c.constructor {
-        v.visit_ctor(ctor.clone());
+        v.visit_ctor(ctor);
     }
 
     for m in &c.methods {
-        v.visit_method(m.clone());
+        v.visit_method(m);
     }
 }
 
@@ -163,11 +163,11 @@ pub fn walk_module<V: Visitor>(v: &mut V, m: &Module) {
     }
 
     if let Some(ctor) = &m.constructor {
-        v.visit_ctor(ctor.clone());
+        v.visit_ctor(ctor);
     }
 
     for m in &m.methods {
-        v.visit_method(m.clone());
+        v.visit_method(m);
     }
 }
 

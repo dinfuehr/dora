@@ -300,12 +300,12 @@ struct FctDefCheck<'a, 'ast: 'a> {
 
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.visit_fct(self.fct.ast.clone());
+        self.visit_fct(&self.fct.ast);
     }
 }
 
 impl<'a, 'ast> Visitor for FctDefCheck<'a, 'ast> {
-    fn visit_fct(&mut self, f: Arc<Function>) {
+    fn visit_fct(&mut self, f: &Arc<Function>) {
         let block = f.block();
         for stmt in &block.stmts {
             self.visit_stmt(stmt);

@@ -48,7 +48,7 @@ impl<'x, 'ast> Visitor for TraitCheck<'x, 'ast> {
         self.trait_id = None;
     }
 
-    fn visit_method(&mut self, f: Arc<ast::Function>) {
+    fn visit_method(&mut self, f: &Arc<ast::Function>) {
         if self.trait_id.is_none() {
             return;
         }

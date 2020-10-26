@@ -372,7 +372,7 @@ impl<'x, 'ast> Visitor for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_fct(&mut self, f: Arc<Function>) {
+    fn visit_fct(&mut self, f: &Arc<Function>) {
         let kind = if f.block.is_some() {
             FctKind::Source(RwLock::new(FctSrc::new()))
         } else {

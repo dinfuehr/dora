@@ -249,7 +249,7 @@ impl<'x, 'ast> Visitor for ClsDefCheck<'x, 'ast> {
         }
     }
 
-    fn visit_ctor(&mut self, f: Arc<ast::Function>) {
+    fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
         let clsid = self.cls_id.unwrap();
 
         let kind = if f.block.is_some() {
@@ -299,7 +299,7 @@ impl<'x, 'ast> Visitor for ClsDefCheck<'x, 'ast> {
         cls.constructor = Some(fctid);
     }
 
-    fn visit_method(&mut self, f: Arc<ast::Function>) {
+    fn visit_method(&mut self, f: &Arc<ast::Function>) {
         if self.cls_id.is_none() {
             return;
         }

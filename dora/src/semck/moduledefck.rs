@@ -176,7 +176,7 @@ impl<'x, 'ast> Visitor for ModuleCheck<'x, 'ast> {
         }
     }
 
-    fn visit_ctor(&mut self, f: Arc<ast::Function>) {
+    fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
         let module_id = self.module_id.unwrap();
 
         let kind = if f.block.is_some() {
@@ -226,7 +226,7 @@ impl<'x, 'ast> Visitor for ModuleCheck<'x, 'ast> {
         module.constructor = Some(fctid);
     }
 
-    fn visit_method(&mut self, f: Arc<ast::Function>) {
+    fn visit_method(&mut self, f: &Arc<ast::Function>) {
         if self.module_id.is_none() {
             return;
         }

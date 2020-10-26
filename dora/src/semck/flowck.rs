@@ -36,7 +36,7 @@ struct FlowCheck<'a, 'ast: 'a> {
 
 impl<'a, 'ast> FlowCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.visit_fct(self.fct.ast.clone());
+        self.visit_fct(&self.fct.ast);
     }
 
     fn handle_loop(&mut self, block: &Stmt) {

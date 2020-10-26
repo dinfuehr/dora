@@ -111,7 +111,7 @@ impl<'x, 'ast> Visitor for ImplCheck<'x, 'ast> {
         }
     }
 
-    fn visit_method(&mut self, f: Arc<ast::Function>) {
+    fn visit_method(&mut self, f: &Arc<ast::Function>) {
         if self.impl_id.is_none() {
             return;
         }
