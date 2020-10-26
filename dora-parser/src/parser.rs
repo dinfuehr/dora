@@ -119,7 +119,7 @@ impl<'a> Parser<'a> {
                     ],
                 )?;
                 let class = self.parse_class(&modifiers)?;
-                Ok(ElemClass(class))
+                Ok(ElemClass(Arc::new(class)))
             }
 
             TokenKind::Struct => {

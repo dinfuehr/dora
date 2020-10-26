@@ -15,6 +15,7 @@ use crate::vm::{
     ExtensionId, FctId, Field, FieldDef, FieldId, FileId, ImplId, NamespaceId, TraitId,
 };
 use crate::vtable::VTableBox;
+use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -51,6 +52,7 @@ pub static DISPLAY_SIZE: usize = 6;
 pub struct Class {
     pub id: ClassId,
     pub file: FileId,
+    pub ast: Arc<ast::Class>,
     pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,

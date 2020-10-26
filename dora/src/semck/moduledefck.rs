@@ -143,7 +143,7 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
         self.file_id += 1;
     }
 
-    fn visit_class(&mut self, _: &'ast ast::Class) {}
+    fn visit_class(&mut self, _: &Arc<ast::Class>) {}
 
     fn visit_module(&mut self, m: &'ast ast::Module) {
         self.module_id = Some(*self.map_module_defs.get(m.id).unwrap());
@@ -162,7 +162,7 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
         self.sym.pop_level();
     }
 
-    fn visit_field(&mut self, f: &'ast ast::Field) {
+    fn visit_field(&mut self, f: &ast::Field) {
         let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
             .unwrap_or(SourceType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);

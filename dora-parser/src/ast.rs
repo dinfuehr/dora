@@ -133,7 +133,7 @@ impl fmt::Display for NodeId {
 #[derive(Clone, Debug)]
 pub enum Elem {
     ElemFunction(Arc<Function>),
-    ElemClass(Class),
+    ElemClass(Arc<Class>),
     ElemStruct(Struct),
     ElemTrait(Trait),
     ElemImpl(Impl),

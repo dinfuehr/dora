@@ -65,7 +65,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         cls.table.insert_term(name, TermSym::SymField(fid));
     }
 
-    fn check_type_params(&mut self, c: &'ast ast::Class, type_params: &'ast [ast::TypeParam]) {
+    fn check_type_params(&mut self, c: &ast::Class, type_params: &[ast::TypeParam]) {
         let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
 
@@ -119,7 +119,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         }
     }
 
-    fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
+    fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
         let name = self.vm.interner.str(parent_class.name).to_string();
         let sym = self.sym.get_type(parent_class.name);
 
@@ -212,7 +212,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         self.file_id += 1;
     }
 
-    fn visit_class(&mut self, c: &'ast ast::Class) {
+    fn visit_class(&mut self, c: &Arc<ast::Class>) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
         self.sym.push_level();
@@ -235,7 +235,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
     fn visit_module(&mut self, _: &'ast ast::Module) {}
 
-    fn visit_field(&mut self, f: &'ast ast::Field) {
+    fn visit_field(&mut self, f: &ast::Field) {
         let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
             .unwrap_or(SourceType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
@@ -395,7 +395,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
         self.file_id += 1;
     }
 
-    fn visit_class(&mut self, c: &'ast ast::Class) {
+    fn visit_class(&mut self, c: &Arc<ast::Class>) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
         if let Some(ref parent_class) = c.parent_class {

@@ -263,7 +263,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_class(&mut self, c: &'ast Class) {
+    fn visit_class(&mut self, c: &Arc<Class>) {
         let id = {
             let mut classes = self.vm.classes.lock();
 
@@ -271,6 +271,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let mut cls = class::Class {
                 id,
                 name: c.name,
+                ast: c.clone(),
                 file: self.file_id.into(),
                 namespace_id: self.namespace_id,
                 pos: c.pos,

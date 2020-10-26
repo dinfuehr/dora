@@ -25,7 +25,7 @@ pub trait Visitor<'v>: Sized {
         walk_impl(self, i);
     }
 
-    fn visit_class(&mut self, c: &'v Class) {
+    fn visit_class(&mut self, c: &Arc<Class>) {
         walk_class(self, c);
     }
 
@@ -69,7 +69,7 @@ pub trait Visitor<'v>: Sized {
         walk_fct(self, &m);
     }
 
-    fn visit_field(&mut self, p: &'v Field) {
+    fn visit_field(&mut self, p: &Field) {
         walk_field(self, p);
     }
 
@@ -143,7 +143,7 @@ pub fn walk_impl<'v, V: Visitor<'v>>(v: &mut V, i: &'v Impl) {
     }
 }
 
-pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
+pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &Arc<Class>) {
     for f in &c.fields {
         v.visit_field(f);
     }
@@ -202,7 +202,7 @@ pub fn walk_struct_field<'v, V: Visitor<'v>>(v: &mut V, f: &'v StructField) {
     v.visit_type(&f.data_type);
 }
 
-pub fn walk_field<'v, V: Visitor<'v>>(v: &mut V, f: &'v Field) {
+pub fn walk_field<'v, V: Visitor<'v>>(v: &mut V, f: &Field) {
     v.visit_type(&f.data_type);
 }
 
