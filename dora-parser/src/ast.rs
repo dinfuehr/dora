@@ -1,5 +1,6 @@
 use std::fmt;
 use std::slice::Iter;
+use std::sync::Arc;
 
 use crate::ast::Elem::*;
 use crate::interner::{Interner, Name};
@@ -131,7 +132,7 @@ impl fmt::Display for NodeId {
 
 #[derive(Clone, Debug)]
 pub enum Elem {
-    ElemFunction(Function),
+    ElemFunction(Arc<Function>),
     ElemClass(Class),
     ElemStruct(Struct),
     ElemTrait(Trait),
@@ -256,7 +257,7 @@ pub struct Global {
     pub name: Name,
     pub reassignable: bool,
     pub data_type: Type,
-    pub initializer: Option<Function>,
+    pub initializer: Option<Arc<Function>>,
 }
 
 #[derive(Clone, Debug)]
@@ -506,7 +507,7 @@ pub struct Impl {
     pub type_params: Option<Vec<TypeParam>>,
     pub trait_type: Option<Type>,
     pub class_type: Type,
-    pub methods: Vec<Function>,
+    pub methods: Vec<Arc<Function>>,
 }
 
 #[derive(Clone, Debug)]
@@ -515,7 +516,7 @@ pub struct Trait {
     pub name: Name,
     pub pos: Position,
     pub span: Span,
-    pub methods: Vec<Function>,
+    pub methods: Vec<Arc<Function>>,
 }
 
 #[derive(Clone, Debug)]
@@ -530,9 +531,9 @@ pub struct Class {
     pub internal: bool,
     pub has_constructor: bool,
 
-    pub constructor: Option<Function>,
+    pub constructor: Option<Arc<Function>>,
     pub fields: Vec<Field>,
-    pub methods: Vec<Function>,
+    pub methods: Vec<Arc<Function>>,
     pub initializers: Vec<Box<Stmt>>,
     pub type_params: Option<Vec<TypeParam>>,
 }
@@ -546,9 +547,9 @@ pub struct Module {
     pub internal: bool,
     pub has_constructor: bool,
 
-    pub constructor: Option<Function>,
+    pub constructor: Option<Arc<Function>>,
     pub fields: Vec<Field>,
-    pub methods: Vec<Function>,
+    pub methods: Vec<Arc<Function>>,
     pub initializers: Vec<Box<Stmt>>,
 }
 

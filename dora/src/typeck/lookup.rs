@@ -24,7 +24,7 @@ enum LookupKind {
 
 pub struct MethodLookup<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    caller: &'a Fct<'ast>,
+    caller: &'a Fct,
     file: FileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
@@ -43,7 +43,7 @@ pub struct MethodLookup<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> MethodLookup<'a, 'ast> {
-    pub fn new(vm: &'a VM<'ast>, caller: &'a Fct<'ast>) -> MethodLookup<'a, 'ast> {
+    pub fn new(vm: &'a VM<'ast>, caller: &'a Fct) -> MethodLookup<'a, 'ast> {
         MethodLookup {
             vm,
             caller,

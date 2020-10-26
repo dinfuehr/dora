@@ -106,7 +106,7 @@ pub struct VM<'ast> {
     pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
     pub namespaces: Vec<NamespaceData>,        // storer all namespace definitions
-    pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function source definitions
+    pub fcts: GrowableVec<RwLock<Fct>>,        // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
     pub enums: Vec<RwLock<EnumData>>,          // store all enum source definitions
     pub enum_defs: GrowableVec<RwLock<EnumDef>>, // stores all enum definitions
@@ -285,7 +285,7 @@ impl<'ast> VM<'ast> {
         code_map.insert(start, end, desc);
     }
 
-    pub fn add_fct(&self, mut fct: Fct<'ast>) -> FctId {
+    pub fn add_fct(&self, mut fct: Fct) -> FctId {
         let mut fcts = self.fcts.lock();
         let fctid = FctId(fcts.len());
 

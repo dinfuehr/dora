@@ -6,7 +6,7 @@ use crate::bytecode::{
 use crate::ty::SourceType;
 use crate::vm::{Fct, GlobalId, TupleId, VM};
 
-pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct<'ast>>, bc: &BytecodeFunction) {
+pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
         println!("{}", fct.full_name(vm));

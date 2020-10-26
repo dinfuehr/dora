@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::error::msg::SemError;
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
@@ -46,7 +48,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
         self.trait_id = None;
     }
 
-    fn visit_method(&mut self, f: &'ast ast::Function) {
+    fn visit_method(&mut self, f: Arc<ast::Function>) {
         if self.trait_id.is_none() {
             return;
         }
@@ -60,7 +62,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
 
         let fct = Fct {
             id: FctId(0),
-            ast: f,
+            ast: f.clone(),
             pos: f.pos,
             name: f.name,
             namespace_id: None,

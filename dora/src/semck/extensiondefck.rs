@@ -1,5 +1,6 @@
 use parking_lot::RwLock;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
@@ -193,7 +194,7 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
         }
     }
 
-    fn visit_method(&mut self, f: &'ast ast::Function) {
+    fn visit_method(&mut self, f: Arc<ast::Function>) {
         if self.extension_id.is_none() {
             return;
         }
@@ -219,7 +220,7 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
 
         let fct = Fct {
             id: FctId(0),
-            ast: f,
+            ast: f.clone(),
             pos: f.pos,
             name: f.name,
             namespace_id: None,
@@ -258,8 +259,8 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
         }
 
         let success = match self.extension_ty {
-            SourceType::Enum(enum_id, _) => self.check_in_enum(f, enum_id),
-            _ => self.check_in_class(f),
+            SourceType::Enum(enum_id, _) => self.check_in_enum(&f, enum_id),
+            _ => self.check_in_class(&f),
         };
 
         if !success {

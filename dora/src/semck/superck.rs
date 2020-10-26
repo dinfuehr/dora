@@ -112,7 +112,7 @@ pub fn check_override<'ast>(vm: &VM<'ast>) {
     }
 }
 
-fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Option<FctId> {
+fn check_fct_modifier<'ast>(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
     // catch: class A { @open fun f() } (A is not derivable)
     // catch: @open @final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {

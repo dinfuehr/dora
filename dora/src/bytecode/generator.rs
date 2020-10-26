@@ -38,14 +38,13 @@ pub fn generate_fct<'ast>(vm: &VM<'ast>, id: FctId, type_params: &TypeList) -> B
 
 pub fn generate<'ast>(
     vm: &VM<'ast>,
-    fct: &Fct<'ast>,
+    fct: &Fct,
     src: &FctSrc,
     type_params: &TypeList,
 ) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
         fct,
-        ast: fct.ast,
         src,
 
         type_params,
@@ -54,7 +53,7 @@ pub fn generate<'ast>(
         loops: Vec::new(),
         var_registers: HashMap::new(),
     };
-    ast_bytecode_generator.generate()
+    ast_bytecode_generator.generate(&fct.ast)
 }
 
 pub fn generate_generic_fct<'ast>(vm: &VM<'ast>, id: FctId) -> BytecodeFunction {
@@ -66,11 +65,10 @@ pub fn generate_generic_fct<'ast>(vm: &VM<'ast>, id: FctId) -> BytecodeFunction 
     generate_generic(vm, &fct, &src)
 }
 
-pub fn generate_generic<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>, src: &FctSrc) -> BytecodeFunction {
+pub fn generate_generic<'ast>(vm: &VM<'ast>, fct: &Fct, src: &FctSrc) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
         fct,
-        ast: fct.ast,
         src,
 
         type_params: &TypeList::empty(),
@@ -79,13 +77,12 @@ pub fn generate_generic<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>, src: &FctSrc) -> B
         loops: Vec::new(),
         var_registers: HashMap::new(),
     };
-    ast_bytecode_generator.generate()
+    ast_bytecode_generator.generate(&fct.ast)
 }
 
 struct AstBytecodeGen<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    fct: &'a Fct<'ast>,
-    ast: &'ast Function,
+    fct: &'a Fct,
     src: &'a FctSrc,
 
     type_params: &'a TypeList,
@@ -96,7 +93,7 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
-    fn generate(mut self) -> BytecodeFunction {
+    fn generate(mut self, ast: &Function) -> BytecodeFunction {
         let mut arguments = 0;
         self.push_scope();
 
@@ -113,7 +110,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
         }
 
-        for param in &self.ast.params {
+        for param in &ast.params {
             let var_id = *self.src.map_vars.get(param.id).unwrap();
             let ty = self.var_ty(var_id);
 
@@ -129,7 +126,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         self.gen.set_arguments(arguments);
 
-        if let Some(ref block) = self.ast.block {
+        if let Some(ref block) = ast.block {
             for stmt in &block.stmts {
                 self.visit_stmt(stmt);
             }

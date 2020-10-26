@@ -47,7 +47,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
             let fct = Fct {
                 id: FctId(0),
                 pos: initializer.pos,
-                ast: initializer,
+                ast: initializer.clone(),
                 name: initializer.name,
                 namespace_id: None,
                 param_types: Vec::new(),

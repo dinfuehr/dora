@@ -10,7 +10,7 @@ mod codegen;
 
 pub(super) fn compile<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
-    fct: &Fct<'ast>,
+    fct: &Fct,
     src: &'a FctSrc,
     type_params: &TypeList,
 ) -> Code {

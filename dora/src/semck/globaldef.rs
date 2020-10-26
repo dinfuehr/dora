@@ -371,7 +371,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
-    fn visit_fct(&mut self, f: &'ast Function) {
+    fn visit_fct(&mut self, f: Arc<Function>) {
         let kind = if f.block.is_some() {
             FctKind::Source(RwLock::new(FctSrc::new()))
         } else {
@@ -382,7 +382,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             id: FctId(0),
             file: self.file_id.into(),
             pos: f.pos,
-            ast: f,
+            ast: f.clone(),
             name: f.name,
             namespace_id: self.namespace_id,
             param_types: Vec::new(),

@@ -1,4 +1,5 @@
 use crate::vm::{Fct, FctSrc, VM};
+use std::sync::Arc;
 
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Stmt::*;
@@ -15,13 +16,11 @@ pub fn check<'ast>(vm: &VM<'ast>) {
 
         let src = fct.src();
         let mut src = src.write();
-        let ast = fct.ast;
 
         let mut returnck = ReturnCheck {
             vm,
             fct: &fct,
             src: &mut src,
-            ast,
         };
 
         returnck.check();
@@ -30,19 +29,18 @@ pub fn check<'ast>(vm: &VM<'ast>) {
 
 struct ReturnCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    fct: &'a Fct<'ast>,
+    fct: &'a Fct,
     src: &'a mut FctSrc,
-    ast: &'ast Function,
 }
 
 impl<'a, 'ast> ReturnCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.visit_fct(self.ast);
+        self.visit_fct(self.fct.ast.clone());
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
-    fn visit_fct(&mut self, f: &'ast Function) {
+    fn visit_fct(&mut self, f: Arc<Function>) {
         let returns = expr_block_returns_value(f.block()).is_ok();
 
         if returns {

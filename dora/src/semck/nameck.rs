@@ -27,13 +27,12 @@ pub fn check<'ast>(vm: &VM<'ast>) {
 
         let src = fct.src();
         let mut src = src.write();
-        let ast = fct.ast;
 
         let mut nameck = NameCheck {
             vm,
             fct: &fct,
             src: &mut src,
-            ast,
+            ast: &fct.ast,
             sym: SymTables::current(vm, fct.namespace_id),
         };
 
@@ -43,9 +42,9 @@ pub fn check<'ast>(vm: &VM<'ast>) {
 
 struct NameCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    fct: &'a Fct<'ast>,
+    fct: &'a Fct,
     src: &'a mut FctSrc,
-    ast: &'ast Function,
+    ast: &'a Function,
     sym: SymTables,
 }
 
@@ -151,7 +150,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         var_id
     }
 
-    fn check_stmt_let(&mut self, let_decl: &'ast StmtLetType) {
+    fn check_stmt_let(&mut self, let_decl: &StmtLetType) {
         if let Some(ref expr) = let_decl.expr {
             self.visit_expr(expr);
         }
@@ -186,7 +185,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_for(&mut self, fl: &'ast StmtForType) {
+    fn check_stmt_for(&mut self, fl: &StmtForType) {
         self.visit_expr(&fl.expr);
 
         self.sym.push_level();
@@ -197,7 +196,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.sym.pop_level();
     }
 
-    fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
+    fn check_expr_ident(&mut self, ident: &ExprIdentType) {
         let term_sym = self.sym.get_term(ident.name);
         let type_sym = self.sym.get_type(ident.name);
 
@@ -279,17 +278,17 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_path(&mut self, path: &'ast ExprPathType) {
+    fn check_expr_path(&mut self, path: &ExprPathType) {
         self.visit_expr(&path.lhs);
         // do not check right hand site of path
     }
 
-    fn check_expr_dot(&mut self, dot: &'ast ExprDotType) {
+    fn check_expr_dot(&mut self, dot: &ExprDotType) {
         self.visit_expr(&dot.lhs);
         // do not check right hand site of dot
     }
 
-    fn check_expr_block(&mut self, block: &'ast ExprBlockType) {
+    fn check_expr_block(&mut self, block: &ExprBlockType) {
         self.sym.push_level();
 
         for stmt in &block.stmts {
@@ -305,7 +304,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
-    fn visit_param(&mut self, p: &'ast Param) {
+    fn visit_param(&mut self, p: &Param) {
         let var_ctxt = Var {
             id: VarId(0),
             name: p.name,
@@ -327,7 +326,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         }
     }
 
-    fn visit_stmt(&mut self, s: &'ast Stmt) {
+    fn visit_stmt(&mut self, s: &Stmt) {
         match *s {
             StmtLet(ref stmt) => self.check_stmt_let(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
@@ -337,7 +336,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         }
     }
 
-    fn visit_expr(&mut self, e: &'ast Expr) {
+    fn visit_expr(&mut self, e: &Expr) {
         match e {
             &ExprIdent(ref ident) => self.check_expr_ident(ident),
             &ExprPath(ref path) => self.check_expr_path(path),

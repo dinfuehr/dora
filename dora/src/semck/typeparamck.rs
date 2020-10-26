@@ -13,7 +13,7 @@ pub enum ErrorReporting {
 
 pub fn check_in_fct<'a, 'ast: 'a>(
     vm: &VM<'ast>,
-    fct: &Fct<'ast>,
+    fct: &Fct,
     error: ErrorReporting,
     object_type: SourceType,
 ) -> bool {
@@ -39,7 +39,7 @@ pub fn check_in_fct<'a, 'ast: 'a>(
 
 pub fn check_enum<'a, 'ast: 'a>(
     vm: &VM<'ast>,
-    fct: &Fct<'ast>,
+    fct: &Fct,
     ty: SourceType,
     error: ErrorReporting,
 ) -> bool {
@@ -89,7 +89,7 @@ pub fn check_super<'a, 'ast: 'a>(vm: &VM<'ast>, cls: &Class, error: ErrorReporti
 
 pub fn check_params<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
-    fct: &'a Fct<'ast>,
+    fct: &'a Fct,
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],
     params: &'a TypeList,
@@ -107,7 +107,7 @@ pub fn check_params<'a, 'ast: 'a>(
 
 struct TypeParamCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    use_fct: Option<&'a Fct<'ast>>,
+    use_fct: Option<&'a Fct>,
     use_cls_id: Option<ClassId>,
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],

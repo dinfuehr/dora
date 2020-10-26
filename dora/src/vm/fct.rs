@@ -30,15 +30,15 @@ impl From<usize> for FctId {
     }
 }
 
-impl<'ast> GrowableVec<RwLock<Fct<'ast>>> {
-    pub fn idx(&self, index: FctId) -> Arc<RwLock<Fct<'ast>>> {
+impl GrowableVec<RwLock<Fct>> {
+    pub fn idx(&self, index: FctId) -> Arc<RwLock<Fct>> {
         self.idx_usize(index.0)
     }
 }
 
-pub struct Fct<'ast> {
+pub struct Fct {
     pub id: FctId,
-    pub ast: &'ast ast::Function,
+    pub ast: Arc<ast::Function>,
     pub pos: Position,
     pub name: Name,
     pub namespace_id: Option<NamespaceId>,
@@ -71,7 +71,7 @@ pub struct Fct<'ast> {
     pub intrinsic: Option<Intrinsic>,
 }
 
-impl<'ast> Fct<'ast> {
+impl Fct {
     pub fn type_param(&self, id: TypeListId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
@@ -163,7 +163,7 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn full_name(&self, vm: &VM<'ast>) -> String {
+    pub fn full_name(&self, vm: &VM) -> String {
         let mut repr = String::new();
 
         match self.parent {

@@ -1,5 +1,6 @@
 use parking_lot::RwLock;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
@@ -248,7 +249,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         }
     }
 
-    fn visit_ctor(&mut self, f: &'ast ast::Function) {
+    fn visit_ctor(&mut self, f: Arc<ast::Function>) {
         let clsid = self.cls_id.unwrap();
 
         let kind = if f.block.is_some() {
@@ -260,7 +261,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         let fct = Fct {
             id: FctId(0),
             pos: f.pos,
-            ast: f,
+            ast: f.clone(),
             name: f.name,
             namespace_id: None,
             param_types: Vec::new(),
@@ -298,7 +299,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         cls.constructor = Some(fctid);
     }
 
-    fn visit_method(&mut self, f: &'ast ast::Function) {
+    fn visit_method(&mut self, f: Arc<ast::Function>) {
         if self.cls_id.is_none() {
             return;
         }
@@ -311,7 +312,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         let fct = Fct {
             id: FctId(0),
-            ast: f,
+            ast: f.clone(),
             pos: f.pos,
             name: f.name,
             namespace_id: None,

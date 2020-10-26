@@ -9,7 +9,7 @@ pub fn supported() -> bool {
 
 pub fn disassemble<'ast>(
     _vm: &VM<'ast>,
-    _fct: &Fct<'ast>,
+    _fct: &Fct,
     _type_params: &TypeList,
     _code: &Code,
     _fct_src: Option<&FctSrc>,

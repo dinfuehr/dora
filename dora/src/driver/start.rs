@@ -168,7 +168,7 @@ fn run_test<'ast>(vm: &VM<'ast>, fct: FctId) -> bool {
     !testing.has_failed()
 }
 
-fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
+fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct) -> bool {
     // tests need to be standalone functions, with no return type and a single parameter
     if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
         return false;
@@ -184,7 +184,7 @@ fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     fct.is_test
 }
 
-fn test_filter_matches<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
+fn test_filter_matches<'ast>(vm: &VM<'ast>, fct: &Fct) -> bool {
     if vm.args.flag_test_filter.is_none() {
         return true;
     }

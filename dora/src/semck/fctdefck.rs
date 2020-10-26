@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
@@ -11,7 +12,7 @@ use dora_parser::ast::*;
 pub fn check<'a, 'ast>(vm: &VM<'ast>) {
     for fct in vm.fcts.iter() {
         let mut fct = fct.write();
-        let ast = fct.ast;
+        let ast = fct.ast.clone();
 
         // check modifiers for function
         check_abstract(vm, &*fct);
@@ -220,7 +221,6 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             vm,
             fct: &*fct,
             src: &mut src,
-            ast,
             current_type: SourceType::Unit,
             sym: sym_table,
         };
@@ -229,7 +229,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
     }
 }
 
-fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
+fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct) {
     if !fct.is_abstract {
         return;
     }
@@ -249,7 +249,7 @@ fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
     }
 }
 
-fn check_static<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
+fn check_static<'ast>(vm: &VM<'ast>, fct: &Fct) {
     if !fct.is_static {
         return;
     }
@@ -292,21 +292,20 @@ fn check_against_methods(vm: &VM, fct: &Fct, methods: &[FctId]) {
 
 struct FctDefCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    fct: &'a Fct<'ast>,
+    fct: &'a Fct,
     src: &'a mut FctSrc,
-    ast: &'ast Function,
     current_type: SourceType,
     sym: SymTables,
 }
 
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.visit_fct(self.ast);
+        self.visit_fct(self.fct.ast.clone());
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
-    fn visit_fct(&mut self, f: &'ast Function) {
+    fn visit_fct(&mut self, f: Arc<Function>) {
         let block = f.block();
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
@@ -317,7 +316,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
         }
     }
 
-    fn visit_type(&mut self, t: &'ast Type) {
+    fn visit_type(&mut self, t: &Type) {
         self.current_type = semck::read_type_table(self.vm, &self.sym, self.fct.file, t)
             .unwrap_or(SourceType::Unit);
         self.src.set_ty(t.id(), self.current_type);

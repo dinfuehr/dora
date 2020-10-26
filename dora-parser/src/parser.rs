@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::mem;
+use std::sync::Arc;
 
 use crate::ast;
 use crate::ast::Elem::*;
@@ -104,7 +105,7 @@ impl<'a> Parser<'a> {
                     ],
                 )?;
                 let fct = self.parse_function(&modifiers)?;
-                Ok(ElemFunction(fct))
+                Ok(ElemFunction(Arc::new(fct)))
             }
 
             TokenKind::Class => {
@@ -303,7 +304,8 @@ impl<'a> Parser<'a> {
             let mods = &[Modifier::Static, Modifier::Internal, Modifier::Cannon];
             self.restrict_modifiers(&modifiers, mods)?;
 
-            methods.push(self.parse_function(&modifiers)?);
+            let method = self.parse_function(&modifiers)?;
+            methods.push(Arc::new(method));
         }
 
         self.expect_token(TokenKind::RBrace)?;
@@ -353,7 +355,7 @@ impl<'a> Parser<'a> {
 
         if let Some(expr) = expr {
             let initializer = self.generate_global_initializer(&global, expr);
-            global.initializer = Some(initializer);
+            global.initializer = Some(Arc::new(initializer));
         }
 
         Ok(global)
@@ -373,7 +375,8 @@ impl<'a> Parser<'a> {
             let mods = &[Modifier::Static];
             self.restrict_modifiers(&modifiers, mods)?;
 
-            methods.push(self.parse_function(&modifiers)?);
+            let method = self.parse_function(&modifiers)?;
+            methods.push(Arc::new(method));
         }
 
         self.expect_token(TokenKind::RBrace)?;
@@ -463,7 +466,8 @@ impl<'a> Parser<'a> {
         self.parse_class_body(&mut cls)?;
         let span = self.span_from(start);
 
-        cls.constructor = Some(self.generate_constructor(&mut cls, ctor_params, use_cannon));
+        let constructor = self.generate_constructor(&mut cls, ctor_params, use_cannon);
+        cls.constructor = Some(Arc::new(constructor));
         cls.span = span;
         self.in_class_or_module = false;
 
@@ -774,7 +778,7 @@ impl<'a> Parser<'a> {
                     self.restrict_modifiers(&modifiers, mods)?;
 
                     let fct = self.parse_function(&modifiers)?;
-                    cls.methods.push(fct);
+                    cls.methods.push(Arc::new(fct));
                 }
 
                 TokenKind::Var | TokenKind::Let => {
@@ -819,7 +823,7 @@ impl<'a> Parser<'a> {
                     self.restrict_modifiers(&modifiers, mods)?;
 
                     let fct = self.parse_function(&modifiers)?;
-                    module.methods.push(fct);
+                    module.methods.push(Arc::new(fct));
                 }
 
                 TokenKind::Var | TokenKind::Let => {

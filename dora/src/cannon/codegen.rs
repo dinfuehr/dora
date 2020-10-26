@@ -1,4 +1,3 @@
-use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use std::collections::hash_map::HashMap;
 
@@ -50,8 +49,7 @@ struct ForwardJump {
 
 pub struct CannonCodeGen<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    fct: &'a Fct<'ast>,
-    ast: &'ast Function,
+    fct: &'a Fct,
     asm: BaselineAssembler<'a, 'ast>,
     src: &'a FctSrc,
     bytecode: &'a BytecodeFunction,
@@ -93,7 +91,7 @@ where
 {
     pub fn new(
         vm: &'a VM<'ast>,
-        fct: &'a Fct<'ast>,
+        fct: &'a Fct,
         src: &'a FctSrc,
         bytecode: &'a BytecodeFunction,
         type_params: &'a TypeList,
@@ -101,7 +99,6 @@ where
         CannonCodeGen {
             vm,
             fct,
-            ast: fct.ast,
             asm: BaselineAssembler::new(vm),
             src,
             bytecode,

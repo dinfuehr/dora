@@ -15,13 +15,11 @@ pub fn check<'ast>(vm: &VM<'ast>) {
 
         let src = fct.src();
         let mut src = src.write();
-        let ast = fct.ast;
 
         let mut flowck = FlowCheck {
             vm,
             fct: &fct,
             src: &mut src,
-            ast,
             in_loop: false,
         };
 
@@ -31,18 +29,17 @@ pub fn check<'ast>(vm: &VM<'ast>) {
 
 struct FlowCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    fct: &'a Fct<'ast>,
+    fct: &'a Fct,
     src: &'a mut FctSrc,
-    ast: &'ast Function,
     in_loop: bool,
 }
 
 impl<'a, 'ast> FlowCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.visit_fct(self.ast);
+        self.visit_fct(self.fct.ast.clone());
     }
 
-    fn handle_loop(&mut self, block: &'ast Stmt) {
+    fn handle_loop(&mut self, block: &Stmt) {
         let old_in_loop = self.in_loop;
 
         self.in_loop = true;
@@ -50,7 +47,7 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
         self.in_loop = old_in_loop;
     }
 
-    fn handle_flow(&mut self, s: &'ast Stmt) {
+    fn handle_flow(&mut self, s: &Stmt) {
         if !self.in_loop {
             self.vm
                 .diag
@@ -61,7 +58,7 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
-    fn visit_stmt(&mut self, s: &'ast Stmt) {
+    fn visit_stmt(&mut self, s: &Stmt) {
         match *s {
             StmtWhile(_) => self.handle_loop(s),
             StmtFor(_) => self.handle_loop(s),

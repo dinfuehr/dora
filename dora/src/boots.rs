@@ -15,7 +15,7 @@ use crate::vm::{Fct, FctSrc, VM};
 
 pub fn compile<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
-    fct: &Fct<'ast>,
+    fct: &Fct,
     src: &'a FctSrc,
     type_params: &TypeList,
 ) -> Code {

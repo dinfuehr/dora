@@ -22,14 +22,13 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
         let src = fct.src();
         let mut src = src.write();
-        let ast = fct.ast;
 
         let mut typeck = TypeCheck {
             vm,
             fct: &fct,
             file: fct.file,
             src: &mut src,
-            ast,
+            ast: &fct.ast,
             used_in_call: HashSet::new(),
         };
 

@@ -10,12 +10,12 @@ pub fn read_type_table<'ast>(
     vm: &VM<'ast>,
     table: &SymTables,
     file: FileId,
-    t: &'ast Type,
+    t: &Type,
 ) -> Option<SourceType> {
     read_type_raw(vm, Some(table), file, t)
 }
 
-pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<SourceType> {
+pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &Type) -> Option<SourceType> {
     read_type_raw(vm, None, file, t)
 }
 
@@ -23,7 +23,7 @@ fn read_type_raw<'ast>(
     vm: &VM<'ast>,
     table: Option<&SymTables>,
     file: FileId,
-    t: &'ast Type,
+    t: &Type,
 ) -> Option<SourceType> {
     match *t {
         TypeSelf(_) => Some(SourceType::This),
@@ -37,7 +37,7 @@ fn read_type_basic<'ast>(
     vm: &VM<'ast>,
     table: Option<&SymTables>,
     file: FileId,
-    basic: &'ast TypeBasicType,
+    basic: &TypeBasicType,
 ) -> Option<SourceType> {
     let sym = if let Some(table) = table {
         table.get_type(basic.name)
@@ -94,7 +94,7 @@ fn read_type_enum<'ast>(
     vm: &VM<'ast>,
     table: Option<&SymTables>,
     file: FileId,
-    basic: &'ast TypeBasicType,
+    basic: &TypeBasicType,
     enum_id: EnumId,
 ) -> Option<SourceType> {
     let mut type_params = Vec::new();
@@ -146,7 +146,7 @@ fn read_type_class<'ast>(
     vm: &VM<'ast>,
     table: Option<&SymTables>,
     file: FileId,
-    basic: &'ast TypeBasicType,
+    basic: &TypeBasicType,
     cls_id: ClassId,
 ) -> Option<SourceType> {
     let mut type_params = Vec::new();
@@ -204,7 +204,7 @@ fn read_type_tuple<'ast>(
     vm: &VM<'ast>,
     table: Option<&SymTables>,
     file: FileId,
-    tuple: &'ast TypeTupleType,
+    tuple: &TypeTupleType,
 ) -> Option<SourceType> {
     if tuple.subtypes.len() == 0 {
         Some(SourceType::Unit)
@@ -228,7 +228,7 @@ fn read_type_lambda<'ast>(
     vm: &VM<'ast>,
     table: Option<&SymTables>,
     file: FileId,
-    lambda: &'ast TypeLambdaType,
+    lambda: &TypeLambdaType,
 ) -> Option<SourceType> {
     let mut params = vec![];
 

@@ -61,35 +61,35 @@ pub trait Visitor<'v>: Sized {
         walk_struct_field(self, f);
     }
 
-    fn visit_ctor(&mut self, m: &'v Function) {
-        walk_fct(self, m);
+    fn visit_ctor(&mut self, m: Arc<Function>) {
+        walk_fct(self, &m);
     }
 
-    fn visit_method(&mut self, m: &'v Function) {
-        walk_fct(self, m);
+    fn visit_method(&mut self, m: Arc<Function>) {
+        walk_fct(self, &m);
     }
 
     fn visit_field(&mut self, p: &'v Field) {
         walk_field(self, p);
     }
 
-    fn visit_fct(&mut self, f: &'v Function) {
-        walk_fct(self, f);
+    fn visit_fct(&mut self, f: Arc<Function>) {
+        walk_fct(self, &f);
     }
 
-    fn visit_param(&mut self, p: &'v Param) {
+    fn visit_param(&mut self, p: &Param) {
         walk_param(self, p);
     }
 
-    fn visit_type(&mut self, t: &'v Type) {
+    fn visit_type(&mut self, t: &Type) {
         walk_type(self, t);
     }
 
-    fn visit_stmt(&mut self, s: &'v Stmt) {
+    fn visit_stmt(&mut self, s: &Stmt) {
         walk_stmt(self, s);
     }
 
-    fn visit_expr(&mut self, e: &'v Expr) {
+    fn visit_expr(&mut self, e: &Expr) {
         walk_expr(self, e);
     }
 }
@@ -107,8 +107,8 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
 }
 
 pub fn walk_elem<'v, V: Visitor<'v>>(v: &mut V, e: &'v Elem) {
-    match *e {
-        ElemFunction(ref f) => v.visit_fct(f),
+    match e {
+        ElemFunction(f) => v.visit_fct(f.clone()),
         ElemClass(ref c) => v.visit_class(c),
         ElemStruct(ref s) => v.visit_struct(s),
         ElemTrait(ref t) => v.visit_trait(t),
@@ -127,19 +127,19 @@ pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &'v Global) {
     v.visit_type(&g.data_type);
 
     if let Some(ref initializer) = g.initializer {
-        v.visit_fct(initializer);
+        v.visit_fct(initializer.clone());
     }
 }
 
 pub fn walk_trait<'v, V: Visitor<'v>>(v: &mut V, t: &'v Trait) {
     for m in &t.methods {
-        v.visit_method(m);
+        v.visit_method(m.clone());
     }
 }
 
 pub fn walk_impl<'v, V: Visitor<'v>>(v: &mut V, i: &'v Impl) {
     for m in &i.methods {
-        v.visit_method(m);
+        v.visit_method(m.clone());
     }
 }
 
@@ -149,11 +149,11 @@ pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
     }
 
     if let Some(ctor) = &c.constructor {
-        v.visit_ctor(ctor);
+        v.visit_ctor(ctor.clone());
     }
 
     for m in &c.methods {
-        v.visit_method(m);
+        v.visit_method(m.clone());
     }
 }
 
@@ -163,11 +163,11 @@ pub fn walk_module<'v, V: Visitor<'v>>(v: &mut V, m: &'v Module) {
     }
 
     if let Some(ctor) = &m.constructor {
-        v.visit_ctor(ctor);
+        v.visit_ctor(ctor.clone());
     }
 
     for m in &m.methods {
-        v.visit_method(m);
+        v.visit_method(m.clone());
     }
 }
 
@@ -206,7 +206,7 @@ pub fn walk_field<'v, V: Visitor<'v>>(v: &mut V, f: &'v Field) {
     v.visit_type(&f.data_type);
 }
 
-pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
+pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &Function) {
     for p in &f.params {
         v.visit_param(p);
     }
@@ -226,11 +226,11 @@ pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
     }
 }
 
-pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, p: &'v Param) {
+pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, p: &Param) {
     v.visit_type(&p.data_type);
 }
 
-pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &'v Type) {
+pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &Type) {
     match *t {
         TypeSelf(_) => {}
         TypeBasic(_) => {}
@@ -250,7 +250,7 @@ pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &'v Type) {
     }
 }
 
-pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
+pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &Stmt) {
     match *s {
         StmtLet(ref value) => {
             if let Some(ref ty) = value.data_type {
@@ -287,7 +287,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
     }
 }
 
-pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
+pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &Expr) {
     match *e {
         ExprUn(ref value) => {
             v.visit_expr(&value.opnd);
