@@ -53,7 +53,7 @@ pub struct NativeFct<'a> {
     pub desc: NativeFctDescriptor,
 }
 
-pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: NativeFct, dbg: bool) -> JitFctId {
+pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> JitFctId {
     let fct_desc = fct.desc.clone();
 
     let ngen = NativeGen {
@@ -81,18 +81,15 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: NativeFct, dbg: bool) -> Ji
     jit_fct_id
 }
 
-struct NativeGen<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct NativeGen<'a> {
+    vm: &'a VM,
     masm: MacroAssembler,
 
     fct: NativeFct<'a>,
     dbg: bool,
 }
 
-impl<'a, 'ast> NativeGen<'a, 'ast>
-where
-    'ast: 'a,
-{
+impl<'a> NativeGen<'a> {
     pub fn generate(mut self) -> Code {
         let save_return = self.fct.return_type != SourceType::Unit;
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;

@@ -1,10 +1,11 @@
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::vm::VM;
 use crate::vm::{init_global_addresses, Fct, FctId};
-use dora_parser::ast::{self, Ast};
+use dora_parser::ast;
 
 use crate::driver::cmd;
 use crate::object;
@@ -24,18 +25,15 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    let mut ast = Ast::new();
-    let empty = Ast::new();
-    let mut vm = VM::new(args, &empty);
+    let mut vm = VM::new(args);
 
-    if let Err(code) = parse_all_files(&mut vm, &mut ast) {
+    if let Err(code) = parse_all_files(&mut vm) {
         return code;
     }
 
-    vm.ast = &ast;
-
     if vm.args.flag_emit_ast {
-        ast::dump::dump(&vm.ast, &vm.interner);
+        let files = vm.files.read();
+        ast::dump::dump_files(&files, &vm.interner);
     }
 
     semck::check(&mut vm);
@@ -93,35 +91,35 @@ pub fn start() -> i32 {
     code
 }
 
-fn parse_all_files(vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+fn parse_all_files(vm: &mut VM) -> Result<(), i32> {
     let stdlib_dir = vm.args.flag_stdlib.clone();
 
     if let Some(stdlib) = stdlib_dir {
-        parse_dir(&stdlib, vm, ast)?;
+        parse_dir(&stdlib, vm)?;
     } else {
-        parse_bundled_stdlib(vm, ast)?;
+        parse_bundled_stdlib(vm)?;
     }
 
     let boots_dir = vm.args.flag_boots.clone();
 
     if let Some(boots) = boots_dir {
-        parse_dir(&boots, vm, ast)?;
+        parse_dir(&boots, vm)?;
     }
 
     let arg_file = vm.args.arg_file.clone();
     let path = Path::new(&arg_file);
 
     if path.is_file() {
-        parse_file(&arg_file, vm, ast)
+        parse_file(&arg_file, vm)
     } else if path.is_dir() {
-        parse_dir(&arg_file, vm, ast)
+        parse_dir(&arg_file, vm)
     } else {
         println!("file or directory `{}` does not exist.", &arg_file);
         Err(1)
     }
 }
 
-fn run_tests<'ast>(vm: &VM<'ast>) -> i32 {
+fn run_tests(vm: &VM) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
@@ -159,7 +157,7 @@ fn run_tests<'ast>(vm: &VM<'ast>) -> i32 {
     }
 }
 
-fn run_test<'ast>(vm: &VM<'ast>, fct: FctId) -> bool {
+fn run_test(vm: &VM, fct: FctId) -> bool {
     let testing_class = vm.known.classes.testing;
     let testing_class = specialize_class_id(vm, testing_class);
     let testing = object::alloc(vm, testing_class).cast();
@@ -168,7 +166,7 @@ fn run_test<'ast>(vm: &VM<'ast>, fct: FctId) -> bool {
     !testing.has_failed()
 }
 
-fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct) -> bool {
+fn is_test_fct(vm: &VM, fct: &Fct) -> bool {
     // tests need to be standalone functions, with no return type and a single parameter
     if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
         return false;
@@ -184,7 +182,7 @@ fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct) -> bool {
     fct.is_test
 }
 
-fn test_filter_matches<'ast>(vm: &VM<'ast>, fct: &Fct) -> bool {
+fn test_filter_matches(vm: &VM, fct: &Fct) -> bool {
     if vm.args.flag_test_filter.is_none() {
         return true;
     }
@@ -195,7 +193,7 @@ fn test_filter_matches<'ast>(vm: &VM<'ast>, fct: &Fct) -> bool {
     name.contains(filter)
 }
 
-fn run_main<'ast>(vm: &VM<'ast>, main: FctId) -> i32 {
+fn run_main(vm: &VM, main: FctId) -> i32 {
     let res = vm.run(main);
     let fct = vm.fcts.idx(main);
     let fct = fct.read();
@@ -211,7 +209,7 @@ fn run_main<'ast>(vm: &VM<'ast>, main: FctId) -> i32 {
     }
 }
 
-fn parse_dir(dirname: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+fn parse_dir(dirname: &str, vm: &mut VM) -> Result<(), i32> {
     let path = Path::new(dirname);
 
     if path.is_dir() {
@@ -219,7 +217,7 @@ fn parse_dir(dirname: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
             let path = entry.unwrap().path();
 
             if should_file_be_parsed(&path) {
-                parse_file(path.to_str().unwrap(), vm, ast)?;
+                parse_file(path.to_str().unwrap(), vm)?;
             }
         }
 
@@ -251,7 +249,7 @@ fn should_file_be_parsed(path: &Path) -> bool {
     }
 }
 
-fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+fn parse_file(filename: &str, vm: &mut VM) -> Result<(), i32> {
     let reader = if filename == "-" {
         match Reader::from_input() {
             Ok(reader) => reader,
@@ -272,42 +270,36 @@ fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
         }
     };
 
-    parse_reader(reader, vm, ast)
+    parse_reader(reader, vm)
 }
 
 const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
-pub fn parse_bundled_stdlib(vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+pub fn parse_bundled_stdlib(vm: &mut VM) -> Result<(), i32> {
     for (filename, content) in STDLIB {
-        parse_bundled_stdlib_file(filename, content, vm, ast)?;
+        parse_bundled_stdlib_file(filename, content, vm)?;
     }
 
     Ok(())
 }
 
-fn parse_bundled_stdlib_file(
-    filename: &str,
-    content: &str,
-    vm: &mut VM,
-    ast: &mut Ast,
-) -> Result<(), i32> {
+fn parse_bundled_stdlib_file(filename: &str, content: &str, vm: &mut VM) -> Result<(), i32> {
     let reader = Reader::from_string(filename, content);
-    parse_reader(reader, vm, ast)
+    parse_reader(reader, vm)
 }
 
-fn parse_str(file: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+fn parse_str(file: &str, vm: &mut VM) -> Result<(), i32> {
     let reader = Reader::from_string("<<code>>", file);
-    parse_reader(reader, vm, ast)
+    parse_reader(reader, vm)
 }
 
-fn parse_reader(reader: Reader, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+fn parse_reader(reader: Reader, vm: &mut VM) -> Result<(), i32> {
     let filename: String = reader.path().into();
-    let parser = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner);
+    let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
 
     match parser.parse() {
         Ok(file) => {
-            vm.files.push(file);
-            assert_eq!(ast.files.len(), vm.files.len());
+            vm.files.write().push(Arc::new(file));
             Ok(())
         }
 
@@ -325,7 +317,7 @@ fn parse_reader(reader: Reader, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     }
 }
 
-fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
+fn find_main(vm: &VM) -> Option<FctId> {
     let name = vm.interner.intern("main");
     let fctid = if let Some(id) = vm.global_namespace.read().get_fct(name) {
         id

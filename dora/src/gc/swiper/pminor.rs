@@ -25,8 +25,8 @@ use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use scoped_threadpool::Pool;
 
-pub struct ParallelMinorCollector<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+pub struct ParallelMinorCollector<'a> {
+    vm: &'a VM,
 
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -57,9 +57,9 @@ pub struct ParallelMinorCollector<'a, 'ast: 'a> {
     phases: MinorCollectorPhases,
 }
 
-impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
+impl<'a> ParallelMinorCollector<'a> {
     pub fn new(
-        vm: &'a VM<'ast>,
+        vm: &'a VM,
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,
@@ -71,7 +71,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         max_heap_size: usize,
         threadpool: &'a mut Pool,
         config: &'a SharedHeapConfig,
-    ) -> ParallelMinorCollector<'a, 'ast> {
+    ) -> ParallelMinorCollector<'a> {
         ParallelMinorCollector {
             vm,
             young,
@@ -394,7 +394,7 @@ const CLAB_OBJECT_SIZE: usize = TLAB_OBJECT_SIZE;
 
 const LOCAL_MAXIMUM: usize = 64;
 
-struct CopyTask<'a, 'ast: 'a> {
+struct CopyTask<'a> {
     task_id: usize,
     local: Vec<Address>,
     worker: Worker<Address>,
@@ -403,7 +403,7 @@ struct CopyTask<'a, 'ast: 'a> {
     terminator: &'a Terminator,
     number_workers: usize,
 
-    vm: &'a VM<'ast>,
+    vm: &'a VM,
     young: &'a YoungGen,
     old: &'a OldGen,
     large: &'a LargeSpace,
@@ -437,10 +437,7 @@ struct CopyTask<'a, 'ast: 'a> {
     timer: &'a Option<Mutex<(Timer, f32)>>,
 }
 
-impl<'a, 'ast> CopyTask<'a, 'ast>
-where
-    'ast: 'a,
-{
+impl<'a> CopyTask<'a> {
     fn run(&mut self) {
         self.visit_roots();
         self.visit_dirty_cards();

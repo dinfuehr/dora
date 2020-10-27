@@ -6,7 +6,7 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(vm: &VM<'ast>) {
+pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 
@@ -27,19 +27,19 @@ pub fn check<'ast>(vm: &VM<'ast>) {
     }
 }
 
-struct ReturnCheck<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct ReturnCheck<'a> {
+    vm: &'a VM,
     fct: &'a Fct,
     src: &'a mut FctSrc,
 }
 
-impl<'a, 'ast> ReturnCheck<'a, 'ast> {
+impl<'a> ReturnCheck<'a> {
     fn check(&mut self) {
         self.visit_fct(&self.fct.ast);
     }
 }
 
-impl<'a, 'ast> Visitor for ReturnCheck<'a, 'ast> {
+impl<'a> Visitor for ReturnCheck<'a> {
     fn visit_fct(&mut self, f: &Arc<Function>) {
         let returns = expr_block_returns_value(f.block()).is_ok();
 

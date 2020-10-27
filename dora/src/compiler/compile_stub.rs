@@ -25,7 +25,7 @@ use crate::vm::{get_vm, VM};
 // now-compiled function directly on the next invocation. In the end the function is
 // executed.
 
-pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
+pub fn generate<'a>(vm: &'a VM) -> Address {
     let ngen = DoraCompileGen {
         vm,
         masm: MacroAssembler::new(),
@@ -44,16 +44,13 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     addr
 }
 
-struct DoraCompileGen<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct DoraCompileGen<'a> {
+    vm: &'a VM,
     masm: MacroAssembler,
     dbg: bool,
 }
 
-impl<'a, 'ast> DoraCompileGen<'a, 'ast>
-where
-    'ast: 'a,
-{
+impl<'a> DoraCompileGen<'a> {
     pub fn generate(mut self) -> Code {
         let offset_shadow_stack = 0;
         let offset_dtn = offset_shadow_stack

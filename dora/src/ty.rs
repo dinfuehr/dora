@@ -262,7 +262,7 @@ impl SourceType {
         writer.name(*self)
     }
 
-    pub fn name_fct<'ast>(&self, vm: &VM<'ast>, fct: &Fct) -> String {
+    pub fn name_fct(&self, vm: &VM, fct: &Fct) -> String {
         let writer = BuiltinTypePrinter {
             vm,
             use_fct: Some(fct),
@@ -805,14 +805,14 @@ impl LambdaTypes {
     }
 }
 
-struct BuiltinTypePrinter<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct BuiltinTypePrinter<'a> {
+    vm: &'a VM,
     use_fct: Option<&'a Fct>,
     use_class: Option<&'a Class>,
     use_enum: Option<&'a EnumData>,
 }
 
-impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
+impl<'a> BuiltinTypePrinter<'a> {
     pub fn name(&self, ty: SourceType) -> String {
         match ty {
             SourceType::Error => "<error>".into(),

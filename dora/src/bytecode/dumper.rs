@@ -6,7 +6,7 @@ use crate::bytecode::{
 use crate::ty::SourceType;
 use crate::vm::{Fct, GlobalId, TupleId, VM};
 
-pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct>, bc: &BytecodeFunction) {
+pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
         println!("{}", fct.full_name(vm));
@@ -147,14 +147,14 @@ pub fn dump<'ast>(vm: &VM<'ast>, fct: Option<&Fct>, bc: &BytecodeFunction) {
     println!();
 }
 
-struct BytecodeDumper<'a, 'ast: 'a> {
+struct BytecodeDumper<'a> {
     bc: &'a BytecodeFunction,
     pos: BytecodeOffset,
     w: &'a mut dyn io::Write,
-    vm: &'a VM<'ast>,
+    vm: &'a VM,
 }
 
-impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
+impl<'a> BytecodeDumper<'a> {
     fn emit_inst(&mut self, name: &str) {
         self.emit_start(name);
         writeln!(self.w, "").expect("write! failed");
@@ -537,7 +537,7 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
+impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_instruction(&mut self, offset: BytecodeOffset) {
         self.pos = offset;
     }

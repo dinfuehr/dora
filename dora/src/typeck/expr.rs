@@ -23,8 +23,8 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 
-pub struct TypeCheck<'a, 'ast: 'a> {
-    pub vm: &'a VM<'ast>,
+pub struct TypeCheck<'a> {
+    pub vm: &'a VM,
     pub fct: &'a Fct,
     pub file: FileId,
     pub src: &'a mut FctSrc,
@@ -32,7 +32,7 @@ pub struct TypeCheck<'a, 'ast: 'a> {
     pub used_in_call: HashSet<NodeId>,
 }
 
-impl<'a, 'ast> TypeCheck<'a, 'ast> {
+impl<'a> TypeCheck<'a> {
     pub fn check(&mut self) {
         let block = self.ast.block.as_ref().expect("missing block");
         let mut returns = false;
@@ -2243,7 +2243,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> Visitor for TypeCheck<'a, 'ast> {
+impl<'a> Visitor for TypeCheck<'a> {
     fn visit_expr(&mut self, _e: &Expr) {
         unreachable!();
     }
@@ -2267,8 +2267,8 @@ impl<'a, 'ast> Visitor for TypeCheck<'a, 'ast> {
     }
 }
 
-pub fn args_compatible<'ast>(
-    vm: &VM<'ast>,
+pub fn args_compatible(
+    vm: &VM,
     callee: &Fct,
     args: &[SourceType],
     type_params: &TypeList,
@@ -2510,8 +2510,8 @@ pub fn check_lit_float(
     (ty, value)
 }
 
-pub fn lookup_method<'ast>(
-    vm: &VM<'ast>,
+pub fn lookup_method(
+    vm: &VM,
     object_type: SourceType,
     is_static: bool,
     name: Name,

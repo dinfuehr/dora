@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use dora_parser::ast::visit::{walk_file, Visitor};
-use dora_parser::ast::{Ast, Enum, File, TypeParam};
+use dora_parser::ast::{Enum, File, TypeParam};
 
 use crate::error::msg::SemError;
 use crate::semck;
@@ -9,11 +9,10 @@ use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{EnumId, EnumVariant, NodeMap, VM};
 
-pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<EnumId>) {
+pub fn check(vm: &VM, map_enum_defs: &NodeMap<EnumId>) {
     let global_namespace = vm.global_namespace.clone();
     let mut enumck = EnumCheck {
         vm,
-        ast,
         map_enum_defs,
         file_id: 0,
         sym: SymTables::new(global_namespace),
@@ -24,9 +23,8 @@ pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<EnumId
     enumck.check();
 }
 
-struct EnumCheck<'x, 'ast: 'x> {
-    vm: &'x VM<'ast>,
-    ast: &'ast Ast,
+struct EnumCheck<'x> {
+    vm: &'x VM,
     map_enum_defs: &'x NodeMap<EnumId>,
     file_id: u32,
     sym: SymTables,
@@ -34,9 +32,14 @@ struct EnumCheck<'x, 'ast: 'x> {
     enum_id: Option<EnumId>,
 }
 
-impl<'x, 'ast> EnumCheck<'x, 'ast> {
+impl<'x> EnumCheck<'x> {
     fn check(&mut self) {
-        self.visit_ast(self.ast);
+        let files = self.vm.files.clone();
+        let files = files.read();
+
+        for file in files.iter() {
+            self.visit_file(file);
+        }
     }
 
     fn check_type_params(&mut self, ast: &Enum, type_params: &[TypeParam]) {
@@ -94,7 +97,7 @@ impl<'x, 'ast> EnumCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor for EnumCheck<'x, 'ast> {
+impl<'x> Visitor for EnumCheck<'x> {
     fn visit_file(&mut self, f: &File) {
         walk_file(self, f);
         self.file_id += 1;

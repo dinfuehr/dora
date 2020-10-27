@@ -7,7 +7,7 @@ use crate::mem;
 use crate::ty::MachineMode;
 use crate::vm::VM;
 
-pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
+pub fn generate<'a>(vm: &'a VM) -> Address {
     let ngen = DoraEntryGen {
         vm,
         masm: MacroAssembler::new(),
@@ -27,16 +27,13 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     ptr
 }
 
-struct DoraEntryGen<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct DoraEntryGen<'a> {
+    vm: &'a VM,
     masm: MacroAssembler,
     dbg: bool,
 }
 
-impl<'a, 'ast> DoraEntryGen<'a, 'ast>
-where
-    'ast: 'a,
-{
+impl<'a> DoraEntryGen<'a> {
     pub fn generate(mut self) -> Code {
         let framesize = mem::ptr_width_usize();
         let framesize = mem::align_usize(framesize, 16) as i32;

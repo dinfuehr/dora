@@ -6,25 +6,15 @@ use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 
-pub fn read_type_table<'ast>(
-    vm: &VM<'ast>,
-    table: &SymTables,
-    file: FileId,
-    t: &Type,
-) -> Option<SourceType> {
+pub fn read_type_table(vm: &VM, table: &SymTables, file: FileId, t: &Type) -> Option<SourceType> {
     read_type_raw(vm, Some(table), file, t)
 }
 
-pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &Type) -> Option<SourceType> {
+pub fn read_type(vm: &VM, file: FileId, t: &Type) -> Option<SourceType> {
     read_type_raw(vm, None, file, t)
 }
 
-fn read_type_raw<'ast>(
-    vm: &VM<'ast>,
-    table: Option<&SymTables>,
-    file: FileId,
-    t: &Type,
-) -> Option<SourceType> {
+fn read_type_raw(vm: &VM, table: Option<&SymTables>, file: FileId, t: &Type) -> Option<SourceType> {
     match *t {
         TypeSelf(_) => Some(SourceType::This),
         TypeBasic(ref basic) => read_type_basic(vm, table, file, basic),
@@ -33,8 +23,8 @@ fn read_type_raw<'ast>(
     }
 }
 
-fn read_type_basic<'ast>(
-    vm: &VM<'ast>,
+fn read_type_basic(
+    vm: &VM,
     table: Option<&SymTables>,
     file: FileId,
     basic: &TypeBasicType,
@@ -90,8 +80,8 @@ fn read_type_basic<'ast>(
     }
 }
 
-fn read_type_enum<'ast>(
-    vm: &VM<'ast>,
+fn read_type_enum(
+    vm: &VM,
     table: Option<&SymTables>,
     file: FileId,
     basic: &TypeBasicType,
@@ -142,8 +132,8 @@ fn read_type_enum<'ast>(
     Some(SourceType::Enum(xenum.id, list_id))
 }
 
-fn read_type_class<'ast>(
-    vm: &VM<'ast>,
+fn read_type_class(
+    vm: &VM,
     table: Option<&SymTables>,
     file: FileId,
     basic: &TypeBasicType,
@@ -200,8 +190,8 @@ fn read_type_class<'ast>(
     Some(SourceType::Class(cls.id, list_id))
 }
 
-fn read_type_tuple<'ast>(
-    vm: &VM<'ast>,
+fn read_type_tuple(
+    vm: &VM,
     table: Option<&SymTables>,
     file: FileId,
     tuple: &TypeTupleType,
@@ -224,8 +214,8 @@ fn read_type_tuple<'ast>(
     }
 }
 
-fn read_type_lambda<'ast>(
-    vm: &VM<'ast>,
+fn read_type_lambda(
+    vm: &VM,
     table: Option<&SymTables>,
     file: FileId,
     lambda: &TypeLambdaType,

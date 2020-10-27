@@ -8,12 +8,7 @@ use crate::vm::{Fct, FctSrc, VM};
 
 mod codegen;
 
-pub(super) fn compile<'a, 'ast: 'a>(
-    vm: &'a VM<'ast>,
-    fct: &Fct,
-    src: &'a FctSrc,
-    type_params: &TypeList,
-) -> Code {
+pub(super) fn compile<'a>(vm: &'a VM, fct: &Fct, src: &'a FctSrc, type_params: &TypeList) -> Code {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     if should_emit_bytecode(vm, fct) {

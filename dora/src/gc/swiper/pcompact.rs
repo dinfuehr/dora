@@ -20,8 +20,8 @@ use crate::stdlib;
 use crate::timer::Timer;
 use crate::vm::{Trap, VM};
 
-pub struct ParallelFullCollector<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+pub struct ParallelFullCollector<'a> {
+    vm: &'a VM,
     heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -47,9 +47,9 @@ pub struct ParallelFullCollector<'a, 'ast: 'a> {
     phases: FullCollectorPhases,
 }
 
-impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
+impl<'a> ParallelFullCollector<'a> {
     pub fn new(
-        vm: &'a VM<'ast>,
+        vm: &'a VM,
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -62,7 +62,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         number_workers: usize,
         min_heap_size: usize,
         max_heap_size: usize,
-    ) -> ParallelFullCollector<'a, 'ast> {
+    ) -> ParallelFullCollector<'a> {
         ParallelFullCollector {
             vm,
             heap,

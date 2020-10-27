@@ -13,12 +13,7 @@ use crate::threads::THREAD;
 use crate::ty::TypeList;
 use crate::vm::{Fct, FctSrc, VM};
 
-pub fn compile<'a, 'ast: 'a>(
-    vm: &'a VM<'ast>,
-    fct: &Fct,
-    src: &'a FctSrc,
-    type_params: &TypeList,
-) -> Code {
+pub fn compile<'a>(vm: &'a VM, fct: &Fct, src: &'a FctSrc, type_params: &TypeList) -> Code {
     let bytecode_fct = bytecode::generate(vm, fct, src, type_params);
 
     if should_emit_bytecode(vm, fct) {

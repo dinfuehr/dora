@@ -147,8 +147,8 @@ impl MarkCompactCollector {
     }
 }
 
-struct MarkCompact<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct MarkCompact<'a> {
+    vm: &'a VM,
     heap: Region,
     perm_space: &'a Space,
     init_top: Address,
@@ -158,7 +158,7 @@ struct MarkCompact<'a, 'ast: 'a> {
     reason: GcReason,
 }
 
-impl<'a, 'ast> MarkCompact<'a, 'ast> {
+impl<'a> MarkCompact<'a> {
     fn collect(&mut self) {
         self.mark_live();
         self.compute_forward();

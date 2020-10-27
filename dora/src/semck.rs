@@ -38,7 +38,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check<'ast>(vm: &mut VM<'ast>) {
+pub fn check(vm: &mut VM) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
@@ -71,21 +71,21 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     prelude::internal_classes(vm);
 
     // find all trait implementations for classes
-    impldefck::check(vm, &vm.ast, &map_impl_defs);
+    impldefck::check(vm, &map_impl_defs);
 
     // checks class/struct/trait definitions/bodies
-    clsdefck::check(vm, &vm.ast, &map_cls_defs);
-    moduledefck::check(vm, &vm.ast, &map_module_defs);
-    structdefck::check(vm, &vm.ast, &map_struct_defs);
-    traitdefck::check(vm, &vm.ast, &map_trait_defs);
-    globaldefck::check(vm, &vm.ast, &map_global_defs);
-    constdefck::check(vm, &vm.ast, &map_const_defs);
-    enumck::check(vm, &vm.ast, &map_enum_defs);
-    extensiondefck::check(vm, &vm.ast, &map_extension_defs);
+    clsdefck::check(vm, &map_cls_defs);
+    moduledefck::check(vm, &map_module_defs);
+    structdefck::check(vm, &map_struct_defs);
+    traitdefck::check(vm, &map_trait_defs);
+    globaldefck::check(vm, &map_global_defs);
+    constdefck::check(vm, &map_const_defs);
+    enumck::check(vm, &map_enum_defs);
+    extensiondefck::check(vm, &map_extension_defs);
     return_on_error!(vm);
 
     // check super class definition of classes
-    clsdefck::check_super_definition(vm, &vm.ast, &map_cls_defs);
+    clsdefck::check_super_definition(vm, &map_cls_defs);
     return_on_error!(vm);
 
     // check names/identifiers of local variables
@@ -130,7 +130,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     return_on_error!(vm);
 }
 
-pub fn bytecode<'ast>(vm: &VM<'ast>) {
+pub fn bytecode(vm: &VM) {
     use crate::bytecode;
 
     for fct in vm.fcts.iter() {
@@ -152,7 +152,7 @@ pub fn bytecode<'ast>(vm: &VM<'ast>) {
     }
 }
 
-fn internalck<'ast>(vm: &VM<'ast>) {
+fn internalck(vm: &VM) {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 

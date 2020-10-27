@@ -403,7 +403,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
     id
 }
 
-fn ensure_display<'ast>(vm: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
+fn ensure_display(vm: &VM, cls_def: &mut ClassDef) -> usize {
     let vtable = cls_def.vtable.as_mut().unwrap();
 
     // if subtype_display[0] is set, vtable was already initialized

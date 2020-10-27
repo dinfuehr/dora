@@ -6,25 +6,36 @@ use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, GlobalId, NodeMap, VM};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Elem::ElemGlobal;
-use dora_parser::ast::{Ast, File, Global};
+use dora_parser::ast::{File, Global};
 
-pub fn check<'a, 'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_global_defs: &NodeMap<GlobalId>) {
+pub fn check<'a>(vm: &mut VM, map_global_defs: &NodeMap<GlobalId>) {
     let mut checker = GlobalDefCheck {
         vm,
         current_type: SourceType::Unit,
         map_global_defs,
     };
 
-    checker.visit_ast(ast);
+    checker.check();
 }
 
-struct GlobalDefCheck<'a, 'ast: 'a> {
-    vm: &'a mut VM<'ast>,
+struct GlobalDefCheck<'a> {
+    vm: &'a mut VM,
     current_type: SourceType,
     map_global_defs: &'a NodeMap<GlobalId>,
 }
 
-impl<'a, 'ast> Visitor for GlobalDefCheck<'a, 'ast> {
+impl<'a> GlobalDefCheck<'a> {
+    fn check(&mut self) {
+        let files = self.vm.files.clone();
+        let files = files.read();
+
+        for file in files.iter() {
+            self.visit_file(file);
+        }
+    }
+}
+
+impl<'a> Visitor for GlobalDefCheck<'a> {
     fn visit_file(&mut self, f: &File) {
         for e in &f.elements {
             match *e {

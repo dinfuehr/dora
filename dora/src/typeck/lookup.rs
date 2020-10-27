@@ -22,8 +22,8 @@ enum LookupKind {
     Ctor(ClassId),
 }
 
-pub struct MethodLookup<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+pub struct MethodLookup<'a> {
+    vm: &'a VM,
     caller: &'a Fct,
     file: FileId,
     kind: Option<LookupKind>,
@@ -42,8 +42,8 @@ pub struct MethodLookup<'a, 'ast: 'a> {
     found_multiple_functions: bool,
 }
 
-impl<'a, 'ast> MethodLookup<'a, 'ast> {
-    pub fn new(vm: &'a VM<'ast>, caller: &'a Fct) -> MethodLookup<'a, 'ast> {
+impl<'a> MethodLookup<'a> {
+    pub fn new(vm: &'a VM, caller: &'a Fct) -> MethodLookup<'a> {
         MethodLookup {
             vm,
             caller,
@@ -65,17 +65,17 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         }
     }
 
-    pub fn ctor(mut self, cls_id: ClassId) -> MethodLookup<'a, 'ast> {
+    pub fn ctor(mut self, cls_id: ClassId) -> MethodLookup<'a> {
         self.kind = Some(LookupKind::Ctor(cls_id));
         self
     }
 
-    pub fn callee(mut self, fct_id: FctId) -> MethodLookup<'a, 'ast> {
+    pub fn callee(mut self, fct_id: FctId) -> MethodLookup<'a> {
         self.kind = Some(LookupKind::Callee(fct_id));
         self
     }
 
-    pub fn method(mut self, obj: SourceType) -> MethodLookup<'a, 'ast> {
+    pub fn method(mut self, obj: SourceType) -> MethodLookup<'a> {
         self.kind = if let Some(_) = obj.cls_id(self.vm) {
             Some(LookupKind::Method(obj))
         } else if let Some(_) = obj.module_id() {
@@ -91,47 +91,47 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self
     }
 
-    pub fn no_error_reporting(mut self) -> MethodLookup<'a, 'ast> {
+    pub fn no_error_reporting(mut self) -> MethodLookup<'a> {
         self.report_errors = false;
         self
     }
 
-    pub fn static_method(mut self, cls_id: ClassId) -> MethodLookup<'a, 'ast> {
+    pub fn static_method(mut self, cls_id: ClassId) -> MethodLookup<'a> {
         self.kind = Some(LookupKind::Static(cls_id));
         self
     }
 
-    pub fn fct(mut self) -> MethodLookup<'a, 'ast> {
+    pub fn fct(mut self) -> MethodLookup<'a> {
         self.kind = Some(LookupKind::Fct);
         self
     }
 
-    pub fn args(mut self, args: &'a [SourceType]) -> MethodLookup<'a, 'ast> {
+    pub fn args(mut self, args: &'a [SourceType]) -> MethodLookup<'a> {
         self.args = Some(args);
         self
     }
 
-    pub fn pos(mut self, pos: Position) -> MethodLookup<'a, 'ast> {
+    pub fn pos(mut self, pos: Position) -> MethodLookup<'a> {
         self.pos = Some(pos);
         self
     }
 
-    pub fn container_type_params(mut self, cls_tps: &'a TypeList) -> MethodLookup<'a, 'ast> {
+    pub fn container_type_params(mut self, cls_tps: &'a TypeList) -> MethodLookup<'a> {
         self.container_tps = Some(cls_tps);
         self
     }
 
-    pub fn fct_type_params(mut self, fct_tps: &'a TypeList) -> MethodLookup<'a, 'ast> {
+    pub fn fct_type_params(mut self, fct_tps: &'a TypeList) -> MethodLookup<'a> {
         self.fct_tps = Some(fct_tps);
         self
     }
 
-    pub fn name(mut self, name: Name) -> MethodLookup<'a, 'ast> {
+    pub fn name(mut self, name: Name) -> MethodLookup<'a> {
         self.name = Some(name);
         self
     }
 
-    pub fn return_type(mut self, ret: SourceType) -> MethodLookup<'a, 'ast> {
+    pub fn return_type(mut self, ret: SourceType) -> MethodLookup<'a> {
         self.ret = Some(ret);
         self
     }

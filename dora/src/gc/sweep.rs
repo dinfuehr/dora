@@ -155,8 +155,8 @@ impl SweepCollector {
     }
 }
 
-struct MarkSweep<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct MarkSweep<'a> {
+    vm: &'a VM,
     heap: Region,
     perm_space: &'a Space,
 
@@ -165,7 +165,7 @@ struct MarkSweep<'a, 'ast: 'a> {
     free_list: FreeList,
 }
 
-impl<'a, 'ast> MarkSweep<'a, 'ast> {
+impl<'a> MarkSweep<'a> {
     fn collect(&mut self) {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
 

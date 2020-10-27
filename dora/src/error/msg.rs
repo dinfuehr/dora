@@ -519,7 +519,7 @@ impl SemErrorAndPos {
         let file = vm.file(self.file);
         format!(
             "error in {} at {}: {}",
-            file.name,
+            file.path,
             self.pos,
             self.msg.message()
         )

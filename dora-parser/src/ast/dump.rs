@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ast::*;
 
 use crate::ast::Expr::*;
@@ -14,13 +16,15 @@ macro_rules! dump {
     }};
 }
 
-pub fn dump(ast: &Ast, interner: &Interner) {
+pub fn dump_files(files: &[Arc<File>], interner: &Interner) {
     let mut dumper = AstDumper {
         interner,
         indent: 0,
     };
 
-    dumper.dump_ast(ast);
+    for file in files {
+        dumper.dump_file(file);
+    }
 }
 
 pub fn dump_fct(fct: &Function, interner: &Interner) {
@@ -56,16 +60,6 @@ struct AstDumper<'a> {
 }
 
 impl<'a> AstDumper<'a> {
-    fn dump_ast(&mut self, ast: &Ast) {
-        for f in &ast.files {
-            dump!(self, "file {}", &f.path);
-
-            self.indent(|d| {
-                d.dump_file(f);
-            })
-        }
-    }
-
     fn dump_file(&mut self, f: &File) {
         for el in &f.elements {
             self.dump_elem(el);

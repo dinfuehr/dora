@@ -2,7 +2,6 @@ use std::fs;
 use std::io::{self, Error, Read};
 
 use crate::lexer::position::Position;
-use crate::lexer::File;
 
 pub struct Reader {
     name: String,
@@ -73,14 +72,6 @@ impl Reader {
         self.curr()
     }
 
-    pub fn file(self) -> File {
-        File {
-            name: self.name,
-            content: self.content,
-            line_ends: self.line_ends,
-        }
-    }
-
     pub fn curr(&self) -> Option<char> {
         self.nth(0)
     }
@@ -101,6 +92,10 @@ impl Reader {
 
     pub fn idx(&self) -> u32 {
         self.idx as u32
+    }
+
+    pub fn data(self) -> (String, String, Vec<u32>) {
+        (self.name, self.content, self.line_ends)
     }
 }
 

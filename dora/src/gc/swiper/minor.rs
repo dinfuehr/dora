@@ -15,8 +15,8 @@ use crate::object::{offset_of_array_data, Obj};
 use crate::timer::Timer;
 use crate::vm::VM;
 
-pub struct MinorCollector<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+pub struct MinorCollector<'a> {
+    vm: &'a VM,
 
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -45,9 +45,9 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     phases: MinorCollectorPhases,
 }
 
-impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
+impl<'a> MinorCollector<'a> {
     pub fn new(
-        vm: &'a VM<'ast>,
+        vm: &'a VM,
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,
@@ -58,7 +58,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         min_heap_size: usize,
         max_heap_size: usize,
         config: &'a SharedHeapConfig,
-    ) -> MinorCollector<'a, 'ast> {
+    ) -> MinorCollector<'a> {
         MinorCollector {
             vm,
             young,

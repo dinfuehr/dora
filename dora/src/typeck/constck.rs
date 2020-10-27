@@ -7,13 +7,13 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::token::IntSuffix;
 
-pub struct ConstCheck<'a, 'ast: 'a> {
-    pub vm: &'a VM<'ast>,
+pub struct ConstCheck<'a> {
+    pub vm: &'a VM,
     pub xconst: &'a ConstData,
     pub negative_expr_id: NodeId,
 }
 
-impl<'a, 'ast> ConstCheck<'a, 'ast> {
+impl<'a> ConstCheck<'a> {
     pub fn check_expr(&mut self, expr: &Expr) -> (SourceType, ConstValue) {
         let (ty, lit) = match expr {
             &ExprLitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),

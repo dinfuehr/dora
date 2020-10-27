@@ -11,16 +11,15 @@ use crate::vm::{
     ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM,
 };
 
+use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use dora_parser::ast::{self, Ast};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
+pub fn check(vm: &VM, map_cls_defs: &NodeMap<ClassId>) {
     let global_namespace = vm.global_namespace.clone();
     let mut clsck = ClsDefCheck {
         vm,
-        ast,
         cls_id: None,
         map_cls_defs,
         file_id: 0,
@@ -30,9 +29,8 @@ pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId
     clsck.check();
 }
 
-struct ClsDefCheck<'x, 'ast: 'x> {
-    vm: &'x VM<'ast>,
-    ast: &'ast ast::Ast,
+struct ClsDefCheck<'x> {
+    vm: &'x VM,
     map_cls_defs: &'x NodeMap<ClassId>,
     file_id: u32,
     sym: SymTables,
@@ -40,9 +38,14 @@ struct ClsDefCheck<'x, 'ast: 'x> {
     cls_id: Option<ClassId>,
 }
 
-impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
+impl<'x> ClsDefCheck<'x> {
     fn check(&mut self) {
-        self.visit_ast(self.ast);
+        let files = self.vm.files.clone();
+        let files = files.read();
+
+        for file in files.iter() {
+            self.visit_file(file);
+        }
     }
 
     fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, reassignable: bool) {
@@ -206,7 +209,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor for ClsDefCheck<'x, 'ast> {
+impl<'x> Visitor for ClsDefCheck<'x> {
     fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
@@ -358,14 +361,9 @@ impl<'x, 'ast> Visitor for ClsDefCheck<'x, 'ast> {
     }
 }
 
-pub fn check_super_definition<'ast>(
-    vm: &mut VM<'ast>,
-    ast: &'ast Ast,
-    map_cls_defs: &NodeMap<ClassId>,
-) {
+pub fn check_super_definition(vm: &mut VM, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsSuperDefinitionCheck {
         vm,
-        ast,
         cls_id: None,
         map_cls_defs,
         file_id: 0,
@@ -374,22 +372,26 @@ pub fn check_super_definition<'ast>(
     clsck.check();
 }
 
-struct ClsSuperDefinitionCheck<'x, 'ast: 'x> {
-    vm: &'x mut VM<'ast>,
-    ast: &'ast ast::Ast,
+struct ClsSuperDefinitionCheck<'x> {
+    vm: &'x mut VM,
     map_cls_defs: &'x NodeMap<ClassId>,
     file_id: u32,
 
     cls_id: Option<ClassId>,
 }
 
-impl<'x, 'ast> ClsSuperDefinitionCheck<'x, 'ast> {
+impl<'x> ClsSuperDefinitionCheck<'x> {
     fn check(&mut self) {
-        self.visit_ast(self.ast);
+        let files = self.vm.files.clone();
+        let files = files.read();
+
+        for file in files.iter() {
+            self.visit_file(file);
+        }
     }
 }
 
-impl<'x, 'ast> Visitor for ClsSuperDefinitionCheck<'x, 'ast> {
+impl<'x> Visitor for ClsSuperDefinitionCheck<'x> {
     fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;

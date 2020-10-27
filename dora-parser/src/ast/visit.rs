@@ -5,10 +5,6 @@ use crate::ast::Stmt::*;
 use crate::ast::Type::*;
 
 pub trait Visitor: Sized {
-    fn visit_ast(&mut self, a: &Ast) {
-        walk_ast(self, a);
-    }
-
     fn visit_file(&mut self, a: &File) {
         walk_file(self, a);
     }
@@ -91,12 +87,6 @@ pub trait Visitor: Sized {
 
     fn visit_expr(&mut self, e: &Expr) {
         walk_expr(self, e);
-    }
-}
-
-pub fn walk_ast<V: Visitor>(v: &mut V, a: &Ast) {
-    for f in &a.files {
-        v.visit_file(f);
     }
 }
 

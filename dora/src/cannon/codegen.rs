@@ -47,10 +47,10 @@ struct ForwardJump {
     offset: BytecodeOffset,
 }
 
-pub struct CannonCodeGen<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+pub struct CannonCodeGen<'a> {
+    vm: &'a VM,
     fct: &'a Fct,
-    asm: BaselineAssembler<'a, 'ast>,
+    asm: BaselineAssembler<'a>,
     src: &'a FctSrc,
     bytecode: &'a BytecodeFunction,
     temporary_stack: Vec<BytecodeType>,
@@ -85,17 +85,14 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     )>,
 }
 
-impl<'a, 'ast> CannonCodeGen<'a, 'ast>
-where
-    'ast: 'a,
-{
+impl<'a> CannonCodeGen<'a> {
     pub fn new(
-        vm: &'a VM<'ast>,
+        vm: &'a VM,
         fct: &'a Fct,
         src: &'a FctSrc,
         bytecode: &'a BytecodeFunction,
         type_params: &'a TypeList,
-    ) -> CannonCodeGen<'a, 'ast> {
+    ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
             fct,
@@ -3834,7 +3831,7 @@ where
     }
 }
 
-impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
+impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_instruction(&mut self, offset: BytecodeOffset) {
         self.offset_to_address.insert(offset, self.asm.pos());
         self.current_offset = offset;
@@ -5044,7 +5041,7 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
     }
 }
 
-fn ensure_jit_or_stub_ptr<'ast>(src: &FctSrc, vm: &VM, type_params: TypeList) -> Address {
+fn ensure_jit_or_stub_ptr(src: &FctSrc, vm: &VM, type_params: TypeList) -> Address {
     let specials = src.specializations.read();
 
     if let Some(&jit_fct_id) = specials.get(&type_params) {

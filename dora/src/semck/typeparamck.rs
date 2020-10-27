@@ -11,8 +11,8 @@ pub enum ErrorReporting {
     No,
 }
 
-pub fn check_in_fct<'a, 'ast: 'a>(
-    vm: &VM<'ast>,
+pub fn check_in_fct<'a>(
+    vm: &VM,
     fct: &Fct,
     error: ErrorReporting,
     object_type: SourceType,
@@ -37,12 +37,7 @@ pub fn check_in_fct<'a, 'ast: 'a>(
     checker.check(&params)
 }
 
-pub fn check_enum<'a, 'ast: 'a>(
-    vm: &VM<'ast>,
-    fct: &Fct,
-    ty: SourceType,
-    error: ErrorReporting,
-) -> bool {
+pub fn check_enum<'a>(vm: &VM, fct: &Fct, ty: SourceType, error: ErrorReporting) -> bool {
     let enum_id = ty.enum_id().expect("not an enum");
 
     let tp_defs = {
@@ -64,7 +59,7 @@ pub fn check_enum<'a, 'ast: 'a>(
     checker.check(&params)
 }
 
-pub fn check_super<'a, 'ast: 'a>(vm: &VM<'ast>, cls: &Class, error: ErrorReporting) -> bool {
+pub fn check_super<'a>(vm: &VM, cls: &Class, error: ErrorReporting) -> bool {
     let object_type = cls.parent_class.expect("parent_class missing");
 
     let tp_defs = {
@@ -87,8 +82,8 @@ pub fn check_super<'a, 'ast: 'a>(vm: &VM<'ast>, cls: &Class, error: ErrorReporti
     checker.check(&params)
 }
 
-pub fn check_params<'a, 'ast: 'a>(
-    vm: &'a VM<'ast>,
+pub fn check_params<'a>(
+    vm: &'a VM,
     fct: &'a Fct,
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],
@@ -105,15 +100,15 @@ pub fn check_params<'a, 'ast: 'a>(
     checker.check(params)
 }
 
-struct TypeParamCheck<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct TypeParamCheck<'a> {
+    vm: &'a VM,
     use_fct: Option<&'a Fct>,
     use_cls_id: Option<ClassId>,
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],
 }
 
-impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
+impl<'a> TypeParamCheck<'a> {
     fn check(&self, tps: &TypeList) -> bool {
         if self.tp_defs.len() != tps.len() {
             if let ErrorReporting::Yes(file_id, pos) = self.error {

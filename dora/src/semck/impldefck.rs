@@ -7,15 +7,15 @@ use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, ImplId, NodeMap, VM};
 
+use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use dora_parser::ast::{self, Ast};
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
+pub fn check(vm: &VM, map_impl_defs: &NodeMap<ImplId>) {
     let global_namespace = vm.global_namespace.clone();
+
     let mut clsck = ImplCheck {
         vm,
-        ast,
         impl_id: None,
         map_impl_defs,
         file_id: 0,
@@ -25,18 +25,22 @@ pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId
     clsck.check();
 }
 
-struct ImplCheck<'x, 'ast: 'x> {
-    vm: &'x VM<'ast>,
-    ast: &'ast ast::Ast,
+struct ImplCheck<'x> {
+    vm: &'x VM,
     map_impl_defs: &'x NodeMap<ImplId>,
     file_id: u32,
     impl_id: Option<ImplId>,
     sym: SymTables,
 }
 
-impl<'x, 'ast> ImplCheck<'x, 'ast> {
+impl<'x> ImplCheck<'x> {
     fn check(&mut self) {
-        self.visit_ast(self.ast);
+        let files = self.vm.files.clone();
+        let files = files.read();
+
+        for file in files.iter() {
+            self.visit_file(file);
+        }
     }
 
     fn add_impl(&mut self, i: &ast::Impl) {
@@ -99,7 +103,7 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor for ImplCheck<'x, 'ast> {
+impl<'x> Visitor for ImplCheck<'x> {
     fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;

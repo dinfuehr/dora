@@ -17,17 +17,14 @@ use crate::ty::{MachineMode, SourceType, TypeList};
 use crate::vm::FctId;
 use crate::vm::{GlobalData, Trap, VM};
 
-pub struct BaselineAssembler<'a, 'ast: 'a> {
+pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
-    vm: &'a VM<'ast>,
+    vm: &'a VM,
     slow_paths: Vec<SlowPathKind>,
 }
 
-impl<'a, 'ast> BaselineAssembler<'a, 'ast>
-where
-    'ast: 'a,
-{
-    pub fn new(vm: &'a VM<'ast>) -> BaselineAssembler<'a, 'ast> {
+impl<'a> BaselineAssembler<'a> {
+    pub fn new(vm: &'a VM) -> BaselineAssembler<'a> {
         BaselineAssembler {
             masm: MacroAssembler::new(),
             vm,

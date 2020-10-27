@@ -2,13 +2,12 @@ use crate::semck;
 use crate::ty::SourceType;
 use crate::vm::{ConstId, NodeMap, VM};
 
+use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, Ast};
 
-pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_const_defs: &NodeMap<ConstId>) {
+pub fn check(vm: &mut VM, map_const_defs: &NodeMap<ConstId>) {
     let mut clsck = ConstCheck {
         vm,
-        ast,
         const_id: None,
         map_const_defs,
     };
@@ -16,21 +15,25 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_const_defs: &NodeMap<C
     clsck.check();
 }
 
-struct ConstCheck<'x, 'ast: 'x> {
-    vm: &'x mut VM<'ast>,
-    ast: &'ast ast::Ast,
+struct ConstCheck<'x> {
+    vm: &'x mut VM,
     map_const_defs: &'x NodeMap<ConstId>,
 
     const_id: Option<ConstId>,
 }
 
-impl<'x, 'ast> ConstCheck<'x, 'ast> {
+impl<'x> ConstCheck<'x> {
     fn check(&mut self) {
-        self.visit_ast(self.ast);
+        let files = self.vm.files.clone();
+        let files = files.read();
+
+        for file in files.iter() {
+            self.visit_file(file);
+        }
     }
 }
 
-impl<'x, 'ast> Visitor for ConstCheck<'x, 'ast> {
+impl<'x> Visitor for ConstCheck<'x> {
     fn visit_const(&mut self, c: &ast::Const) {
         let const_id = *self.map_const_defs.get(c.id).unwrap();
 

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use crate::error::msg::SemError;
 use crate::vm::{Class, ClassId, FctId, VM};
 
-pub fn check<'ast>(vm: &VM<'ast>) {
+pub fn check(vm: &VM) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
 
     for cls in vm.classes.iter() {
@@ -29,8 +29,8 @@ pub fn check<'ast>(vm: &VM<'ast>) {
     }
 }
 
-pub fn check_abstract<'ast>(
-    vm: &VM<'ast>,
+pub fn check_abstract(
+    vm: &VM,
     cls: &Class,
     super_cls: &Class,
     abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
@@ -69,8 +69,8 @@ pub fn check_abstract<'ast>(
     }
 }
 
-fn find_abstract_methods<'ast>(
-    vm: &VM<'ast>,
+fn find_abstract_methods(
+    vm: &VM,
     cls: &Class,
     abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
 ) -> Rc<Vec<FctId>> {

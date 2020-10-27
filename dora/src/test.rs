@@ -1,4 +1,5 @@
-use dora_parser::ast::Ast;
+use std::sync::Arc;
+
 use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
@@ -26,21 +27,18 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&VM) -> T,
 {
-    let mut ast = Ast::new();
     let args: Args = Default::default();
-    let empty = Ast::new();
-    let mut vm = VM::new(args, &empty);
+    let mut vm = VM::new(args);
 
-    parse_bundled_stdlib(&mut vm, &mut ast).expect("failed parsing stdlib");
+    parse_bundled_stdlib(&mut vm).expect("failed parsing stdlib");
 
     {
         let filename = "<<code>>";
         let reader = Reader::from_string(filename, code);
-        let parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
+        let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
         match parser.parse() {
             Ok(file) => {
-                vm.files.push(file);
-                assert_eq!(ast.files.len(), vm.files.len());
+                vm.files.write().push(Arc::new(file));
             }
 
             Err(error) => {
@@ -54,8 +52,6 @@ where
             }
         }
     }
-
-    vm.ast = &ast;
 
     semck::check(&mut vm);
 

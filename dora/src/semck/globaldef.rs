@@ -23,8 +23,8 @@ use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(
-    vm: &mut VM<'ast>,
+pub fn check(
+    vm: &mut VM,
     map_cls_defs: &mut NodeMap<ClassId>,
     map_struct_defs: &mut NodeMap<StructId>,
     map_trait_defs: &mut NodeMap<TraitId>,
@@ -36,7 +36,8 @@ pub fn check<'ast>(
     map_extension_defs: &mut NodeMap<ExtensionId>,
     map_namespaces: &mut NodeMap<NamespaceId>,
 ) {
-    let ast = vm.ast;
+    let files = vm.files.clone();
+
     let mut gdef = GlobalDef {
         vm,
         file_id: 0,
@@ -53,11 +54,14 @@ pub fn check<'ast>(
         map_namespaces,
     };
 
-    gdef.visit_ast(ast);
+    let files = files.read();
+    for file in files.iter() {
+        gdef.visit_file(file);
+    }
 }
 
-struct GlobalDef<'x, 'ast: 'x> {
-    vm: &'x mut VM<'ast>,
+struct GlobalDef<'x> {
+    vm: &'x mut VM,
     file_id: u32,
     namespace_id: Option<NamespaceId>,
     map_cls_defs: &'x mut NodeMap<ClassId>,
@@ -72,7 +76,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_namespaces: &'x mut NodeMap<NamespaceId>,
 }
 
-impl<'x, 'ast> Visitor for GlobalDef<'x, 'ast> {
+impl<'x> Visitor for GlobalDef<'x> {
     fn visit_file(&mut self, f: &File) {
         walk_file(self, f);
         self.file_id += 1;
@@ -453,7 +457,7 @@ impl<'x, 'ast> Visitor for GlobalDef<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> GlobalDef<'x, 'ast> {
+impl<'x> GlobalDef<'x> {
     fn current_level(&self) -> Arc<RwLock<SymTable>> {
         if let Some(namespace_id) = self.namespace_id {
             self.vm.namespaces[namespace_id.to_usize()].table.clone()

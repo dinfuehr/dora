@@ -4,7 +4,7 @@ use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::vm::{find_method_in_class, Class, ClassId, Fct, FctId, VM};
 
-pub fn check<'ast>(vm: &mut VM<'ast>) {
+pub fn check(vm: &mut VM) {
     cycle_detection(vm);
 
     if vm.diag.lock().has_errors() {
@@ -15,7 +15,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     determine_vtables(vm);
 }
 
-fn cycle_detection<'ast>(vm: &mut VM<'ast>) {
+fn cycle_detection(vm: &mut VM) {
     for cls in vm.classes.iter() {
         let cls = cls.read();
 
@@ -41,7 +41,7 @@ fn cycle_detection<'ast>(vm: &mut VM<'ast>) {
     }
 }
 
-fn determine_vtables<'ast>(vm: &VM<'ast>) {
+fn determine_vtables(vm: &VM) {
     let mut lens = HashSet::new();
 
     for cls in vm.classes.iter() {
@@ -52,7 +52,7 @@ fn determine_vtables<'ast>(vm: &VM<'ast>) {
     }
 }
 
-fn determine_vtable<'ast>(vm: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mut Class) {
+fn determine_vtable(vm: &VM, lens: &mut HashSet<ClassId>, cls: &mut Class) {
     if let Some(parent_class) = cls.parent_class {
         let parent_cls_id = parent_class.cls_id(vm).expect("no class");
         let parent = vm.classes.idx(parent_cls_id);
@@ -94,7 +94,7 @@ fn determine_vtable<'ast>(vm: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mut 
     lens.insert(cls.id);
 }
 
-pub fn check_override<'ast>(vm: &VM<'ast>) {
+pub fn check_override(vm: &VM) {
     for cls in vm.classes.iter() {
         let cls = cls.read();
 
@@ -112,7 +112,7 @@ pub fn check_override<'ast>(vm: &VM<'ast>) {
     }
 }
 
-fn check_fct_modifier<'ast>(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
+fn check_fct_modifier(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
     // catch: class A { @open fun f() } (A is not derivable)
     // catch: @open @final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
@@ -635,7 +635,7 @@ mod tests {
     //                  });
     // }
 
-    fn assert_name<'a, 'ast>(vm: &'a VM<'ast>, a: Name, b: &'static str) {
+    fn assert_name<'a>(vm: &'a VM, a: Name, b: &'static str) {
         let bname = vm.interner.intern(b);
 
         println!("{} {}", vm.interner.str(a), b);

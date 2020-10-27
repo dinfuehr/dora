@@ -8,16 +8,15 @@ use crate::ty::{SourceType, TypeList};
 
 use crate::vm::module::ModuleId;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, Field, NodeMap, VM};
+use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use dora_parser::ast::{self, Ast};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_module_defs: &NodeMap<ModuleId>) {
+pub fn check(vm: &VM, map_module_defs: &NodeMap<ModuleId>) {
     let global_namespace = vm.global_namespace.clone();
     let mut module_check = ModuleCheck {
         vm,
-        ast,
         sym: SymTables::new(global_namespace),
         module_id: None,
         map_module_defs,
@@ -27,9 +26,8 @@ pub fn check<'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_module_defs: &NodeMap<Modu
     module_check.check();
 }
 
-struct ModuleCheck<'x, 'ast: 'x> {
-    vm: &'x VM<'ast>,
-    ast: &'ast ast::Ast,
+struct ModuleCheck<'x> {
+    vm: &'x VM,
     map_module_defs: &'x NodeMap<ModuleId>,
     file_id: u32,
     sym: SymTables,
@@ -37,9 +35,14 @@ struct ModuleCheck<'x, 'ast: 'x> {
     module_id: Option<ModuleId>,
 }
 
-impl<'x, 'ast> ModuleCheck<'x, 'ast> {
+impl<'x> ModuleCheck<'x> {
     fn check(&mut self) {
-        self.visit_ast(self.ast);
+        let files = self.vm.files.clone();
+        let files = files.read();
+
+        for file in files.iter() {
+            self.visit_file(file);
+        }
     }
 
     fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, reassignable: bool) {
@@ -137,7 +140,7 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor for ModuleCheck<'x, 'ast> {
+impl<'x> Visitor for ModuleCheck<'x> {
     fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;

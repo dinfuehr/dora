@@ -9,7 +9,7 @@ use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
 
-pub fn check<'a, 'ast>(vm: &VM<'ast>) {
+pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
         let mut fct = fct.write();
         let ast = fct.ast.clone();
@@ -229,7 +229,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
     }
 }
 
-fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct) {
+fn check_abstract(vm: &VM, fct: &Fct) {
     if !fct.is_abstract {
         return;
     }
@@ -249,7 +249,7 @@ fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct) {
     }
 }
 
-fn check_static<'ast>(vm: &VM<'ast>, fct: &Fct) {
+fn check_static(vm: &VM, fct: &Fct) {
     if !fct.is_static {
         return;
     }
@@ -290,21 +290,21 @@ fn check_against_methods(vm: &VM, fct: &Fct, methods: &[FctId]) {
     }
 }
 
-struct FctDefCheck<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct FctDefCheck<'a> {
+    vm: &'a VM,
     fct: &'a Fct,
     src: &'a mut FctSrc,
     current_type: SourceType,
     sym: SymTables,
 }
 
-impl<'a, 'ast> FctDefCheck<'a, 'ast> {
+impl<'a> FctDefCheck<'a> {
     fn check(&mut self) {
         self.visit_fct(&self.fct.ast);
     }
 }
 
-impl<'a, 'ast> Visitor for FctDefCheck<'a, 'ast> {
+impl<'a> Visitor for FctDefCheck<'a> {
     fn visit_fct(&mut self, f: &Arc<Function>) {
         let block = f.block();
         for stmt in &block.stmts {

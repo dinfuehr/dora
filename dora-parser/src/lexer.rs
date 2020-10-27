@@ -505,8 +505,8 @@ impl Lexer {
         self.curr() == Some('*') && self.next() == Some('/')
     }
 
-    pub fn file(self) -> File {
-        self.reader.file()
+    pub fn data(self) -> (String, String, Vec<u32>) {
+        self.reader.data()
     }
 }
 

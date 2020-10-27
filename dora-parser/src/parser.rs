@@ -13,7 +13,6 @@ use crate::interner::*;
 use crate::lexer::position::{Position, Span};
 use crate::lexer::reader::Reader;
 use crate::lexer::token::*;
-use crate::lexer::File as LexerFile;
 use crate::lexer::*;
 
 pub struct Parser<'a> {
@@ -21,7 +20,6 @@ pub struct Parser<'a> {
     token: Token,
     id_generator: &'a NodeIdGenerator,
     interner: &'a mut Interner,
-    ast: &'a mut Ast,
     param_idx: u32,
     in_class_or_module: bool,
     parse_struct_lit: bool,
@@ -41,7 +39,6 @@ impl<'a> Parser<'a> {
     pub fn new(
         reader: Reader,
         id_generator: &'a NodeIdGenerator,
-        ast: &'a mut Ast,
         interner: &'a mut Interner,
     ) -> Parser<'a> {
         let token = Token::new(TokenKind::End, Position::new(1, 1), Span::invalid());
@@ -55,7 +52,6 @@ impl<'a> Parser<'a> {
             param_idx: 0,
             in_class_or_module: false,
             parse_struct_lit: true,
-            ast,
             last_end: Some(0),
         };
 
@@ -66,7 +62,7 @@ impl<'a> Parser<'a> {
         self.id_generator.next()
     }
 
-    pub fn parse(mut self) -> Result<LexerFile, ParseErrorAndPos> {
+    pub fn parse(mut self) -> Result<ast::File, ParseErrorAndPos> {
         self.init()?;
         let mut elements = vec![];
 
@@ -74,14 +70,16 @@ impl<'a> Parser<'a> {
             elements.push(self.parse_top_level_element()?);
         }
 
-        let file = self.lexer.file();
+        let (name, content, line_ends) = self.lexer.data();
 
-        self.ast.files.push(ast::File {
-            path: file.name.clone(),
+        let ast_file = ast::File {
+            path: name.clone(),
+            content,
+            line_ends,
             elements,
-        });
+        };
 
-        Ok(file)
+        Ok(ast_file)
     }
 
     fn init(&mut self) -> Result<(), ParseErrorAndPos> {
@@ -2190,11 +2188,10 @@ mod tests {
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
         let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
-        let mut ast = Ast::new();
 
         let expr = {
             let reader = Reader::from_string("<<code>>", code);
-            let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+            let mut parser = Parser::new(reader, &id_generator, &mut interner);
             assert!(parser.init().is_ok(), true);
 
             let result = parser.parse_expression();
@@ -2213,9 +2210,8 @@ mod tests {
         let err = {
             let id_generator = NodeIdGenerator::new();
             let mut interner = Interner::new();
-            let mut ast = Ast::new();
             let reader = Reader::from_string("<<code>>", code);
-            let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+            let mut parser = Parser::new(reader, &id_generator, &mut interner);
 
             assert!(parser.init().is_ok(), true);
             parser.parse_expression().unwrap_err()
@@ -2229,9 +2225,8 @@ mod tests {
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
         let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
-        let mut ast = Ast::new();
         let reader = Reader::from_string("<<code>>", code);
-        let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+        let mut parser = Parser::new(reader, &id_generator, &mut interner);
         assert!(parser.init().is_ok(), true);
 
         parser.parse_statement().unwrap()
@@ -2241,9 +2236,8 @@ mod tests {
         let err = {
             let id_generator = NodeIdGenerator::new();
             let mut interner = Interner::new();
-            let mut ast = Ast::new();
             let reader = Reader::from_string("<<code>>", code);
-            let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+            let mut parser = Parser::new(reader, &id_generator, &mut interner);
 
             assert!(parser.init().is_ok(), true);
             parser.parse_statement().unwrap_err()
@@ -2258,9 +2252,8 @@ mod tests {
         let mut interner = Interner::new();
         let ty = {
             let id_generator = NodeIdGenerator::new();
-            let mut ast = Ast::new();
             let reader = Reader::from_string("<<code>>", code);
-            let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+            let mut parser = Parser::new(reader, &id_generator, &mut interner);
             assert!(parser.init().is_ok(), true);
 
             parser.parse_type().unwrap()
@@ -2269,26 +2262,24 @@ mod tests {
         (ty, interner)
     }
 
-    fn parse(code: &'static str) -> (Ast, Interner) {
+    fn parse(code: &'static str) -> (File, Interner) {
         let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
-        let mut ast = Ast::new();
 
         let reader = Reader::from_string("<<code>>", code);
-        Parser::new(reader, &id_generator, &mut ast, &mut interner)
+        let file = Parser::new(reader, &id_generator, &mut interner)
             .parse()
             .unwrap();
 
-        (ast, interner)
+        (file, interner)
     }
 
     fn parse_err(code: &'static str, msg: ParseError, line: u32, col: u32) {
         let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
-        let mut ast = Ast::new();
 
         let reader = Reader::from_string("<<code>>", code);
-        let err = Parser::new(reader, &id_generator, &mut ast, &mut interner)
+        let err = Parser::new(reader, &id_generator, &mut interner)
             .parse()
             .unwrap_err();
 

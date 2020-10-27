@@ -4,13 +4,12 @@ use crate::error::msg::SemError;
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
 
+use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use dora_parser::ast::{self, Ast};
 
-pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<TraitId>) {
+pub fn check(vm: &mut VM, map_trait_defs: &NodeMap<TraitId>) {
     let mut clsck = TraitCheck {
         vm,
-        ast,
         trait_id: None,
         map_trait_defs,
         file_id: 0,
@@ -19,22 +18,26 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<T
     clsck.check();
 }
 
-struct TraitCheck<'x, 'ast: 'x> {
-    vm: &'x mut VM<'ast>,
-    ast: &'ast ast::Ast,
+struct TraitCheck<'x> {
+    vm: &'x mut VM,
     map_trait_defs: &'x NodeMap<TraitId>,
     file_id: u32,
 
     trait_id: Option<TraitId>,
 }
 
-impl<'x, 'ast> TraitCheck<'x, 'ast> {
+impl<'x> TraitCheck<'x> {
     fn check(&mut self) {
-        self.visit_ast(self.ast);
+        let files = self.vm.files.clone();
+        let files = files.read();
+
+        for file in files.iter() {
+            self.visit_file(file);
+        }
     }
 }
 
-impl<'x, 'ast> Visitor for TraitCheck<'x, 'ast> {
+impl<'x> Visitor for TraitCheck<'x> {
     fn visit_file(&mut self, f: &ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;

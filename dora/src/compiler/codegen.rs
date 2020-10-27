@@ -15,7 +15,7 @@ use crate::ty::{MachineMode, TypeList};
 use crate::vm::VM;
 use crate::vm::{Fct, FctId, FctSrc};
 
-pub fn generate<'ast>(vm: &VM<'ast>, id: FctId, type_params: &TypeList) -> Address {
+pub fn generate(vm: &VM, id: FctId, type_params: &TypeList) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
@@ -24,12 +24,7 @@ pub fn generate<'ast>(vm: &VM<'ast>, id: FctId, type_params: &TypeList) -> Addre
     generate_fct(vm, &fct, &src, type_params)
 }
 
-pub fn generate_fct<'ast>(
-    vm: &VM<'ast>,
-    fct: &Fct,
-    src: &FctSrc,
-    type_params: &TypeList,
-) -> Address {
+pub fn generate_fct(vm: &VM, fct: &Fct, src: &FctSrc, type_params: &TypeList) -> Address {
     debug_assert!(type_params.iter().all(|ty| !ty.contains_type_param(vm)));
 
     {

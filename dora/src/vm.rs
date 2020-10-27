@@ -24,7 +24,6 @@ use crate::vm::module::{Module, ModuleDef, ModuleId};
 
 use dora_parser::ast;
 use dora_parser::interner::*;
-use dora_parser::lexer::File;
 use dora_parser::parser::NodeIdGenerator;
 
 pub use self::class::{
@@ -69,7 +68,7 @@ mod tuple;
 
 static mut VM_GLOBAL: *const u8 = ptr::null();
 
-pub fn get_vm() -> &'static VM<'static> {
+pub fn get_vm() -> &'static VM {
     unsafe { &*(VM_GLOBAL as *const VM) }
 }
 
@@ -87,12 +86,11 @@ pub fn stack_pointer() -> Address {
     Address::from_ptr(&local as *const i32)
 }
 
-pub struct VM<'ast> {
+pub struct VM {
     pub args: Args,
     pub interner: Interner,
-    pub ast: &'ast ast::Ast,
     pub id_generator: NodeIdGenerator,
-    pub files: Vec<File>,
+    pub files: Arc<RwLock<Vec<Arc<ast::File>>>>,
     pub diag: Mutex<Diagnostic>,
     pub global_namespace: Arc<RwLock<SymTable>>,
     pub known: KnownElements,
@@ -125,8 +123,8 @@ pub struct VM<'ast> {
     pub threads: Threads,
 }
 
-impl<'ast> VM<'ast> {
-    pub fn new(args: Args, ast: &'ast ast::Ast) -> Box<VM<'ast>> {
+impl VM {
+    pub fn new(args: Args) -> Box<VM> {
         let empty_class_id: ClassId = 0.into();
         let empty_class_def_id: ClassDefId = 0.into();
         let empty_module_id: ModuleId = 0.into();
@@ -137,7 +135,7 @@ impl<'ast> VM<'ast> {
 
         let vm = Box::new(VM {
             args,
-            files: Vec::new(),
+            files: Arc::new(RwLock::new(Vec::new())),
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
             struct_defs: GrowableVec::new(),
@@ -208,7 +206,6 @@ impl<'ast> VM<'ast> {
                 free_array_class_def: empty_class_def_id,
             },
             gc,
-            ast,
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             global_namespace: Arc::new(RwLock::new(SymTable::new())),
@@ -521,12 +518,12 @@ impl<'ast> VM<'ast> {
         *guard_check_stub_address
     }
 
-    pub fn file(&self, idx: FileId) -> &File {
-        &self.files[idx.0 as usize]
+    pub fn file(&self, idx: FileId) -> Arc<ast::File> {
+        self.files.read().get(idx.to_usize()).unwrap().clone()
     }
 }
 
-unsafe impl<'ast> Sync for VM<'ast> {}
+unsafe impl Sync for VM {}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FileId(u32);
@@ -534,6 +531,12 @@ pub struct FileId(u32);
 impl From<u32> for FileId {
     fn from(data: u32) -> FileId {
         FileId(data)
+    }
+}
+
+impl FileId {
+    fn to_usize(self) -> usize {
+        self.0 as usize
     }
 }
 

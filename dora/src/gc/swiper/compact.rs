@@ -17,8 +17,8 @@ use crate::stdlib;
 use crate::timer::Timer;
 use crate::vm::{Trap, VM};
 
-pub struct FullCollector<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+pub struct FullCollector<'a> {
+    vm: &'a VM,
     heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -42,9 +42,9 @@ pub struct FullCollector<'a, 'ast: 'a> {
     phases: FullCollectorPhases,
 }
 
-impl<'a, 'ast> FullCollector<'a, 'ast> {
+impl<'a> FullCollector<'a> {
     pub fn new(
-        vm: &'a VM<'ast>,
+        vm: &'a VM,
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -56,7 +56,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         reason: GcReason,
         min_heap_size: usize,
         max_heap_size: usize,
-    ) -> FullCollector<'a, 'ast> {
+    ) -> FullCollector<'a> {
         let old_total = old.total();
 
         FullCollector {

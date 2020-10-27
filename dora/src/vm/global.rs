@@ -54,7 +54,7 @@ impl GrowableVec<RwLock<GlobalData>> {
     }
 }
 
-pub fn init_global_addresses<'ast>(vm: &VM<'ast>) {
+pub fn init_global_addresses(vm: &VM) {
     let globals = vm.globals.lock();
     let mut size = 0;
     let mut offsets = Vec::with_capacity(globals.len());

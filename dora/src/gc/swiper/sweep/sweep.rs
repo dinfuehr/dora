@@ -11,8 +11,8 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::{GcReason, Region};
 use crate::vm::VM;
 
-pub struct FullSweepCollector<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+pub struct FullSweepCollector<'a> {
+    vm: &'a VM,
     heap: Region,
 
     young: &'a YoungGen,
@@ -30,9 +30,9 @@ pub struct FullSweepCollector<'a, 'ast: 'a> {
     max_heap_size: usize,
 }
 
-impl<'a, 'ast> FullSweepCollector<'a, 'ast> {
+impl<'a> FullSweepCollector<'a> {
     pub fn new(
-        vm: &'a VM<'ast>,
+        vm: &'a VM,
         heap: Region,
 
         young: &'a YoungGen,
@@ -47,7 +47,7 @@ impl<'a, 'ast> FullSweepCollector<'a, 'ast> {
 
         min_heap_size: usize,
         max_heap_size: usize,
-    ) -> FullSweepCollector<'a, 'ast> {
+    ) -> FullSweepCollector<'a> {
         FullSweepCollector {
             vm,
             heap,

@@ -12,7 +12,7 @@ mod lookup;
 #[cfg(test)]
 mod tests;
 
-pub fn check<'a, 'ast>(vm: &VM<'ast>) {
+pub fn check<'a>(vm: &VM) {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 

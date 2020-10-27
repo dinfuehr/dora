@@ -27,7 +27,7 @@ impl LoopLabels {
     }
 }
 
-pub fn generate_fct<'ast>(vm: &VM<'ast>, id: FctId, type_params: &TypeList) -> BytecodeFunction {
+pub fn generate_fct(vm: &VM, id: FctId, type_params: &TypeList) -> BytecodeFunction {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
@@ -36,12 +36,7 @@ pub fn generate_fct<'ast>(vm: &VM<'ast>, id: FctId, type_params: &TypeList) -> B
     generate(vm, &fct, &src, type_params)
 }
 
-pub fn generate<'ast>(
-    vm: &VM<'ast>,
-    fct: &Fct,
-    src: &FctSrc,
-    type_params: &TypeList,
-) -> BytecodeFunction {
+pub fn generate(vm: &VM, fct: &Fct, src: &FctSrc, type_params: &TypeList) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
         fct,
@@ -56,7 +51,7 @@ pub fn generate<'ast>(
     ast_bytecode_generator.generate(&fct.ast)
 }
 
-pub fn generate_generic_fct<'ast>(vm: &VM<'ast>, id: FctId) -> BytecodeFunction {
+pub fn generate_generic_fct(vm: &VM, id: FctId) -> BytecodeFunction {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
@@ -65,7 +60,7 @@ pub fn generate_generic_fct<'ast>(vm: &VM<'ast>, id: FctId) -> BytecodeFunction 
     generate_generic(vm, &fct, &src)
 }
 
-pub fn generate_generic<'ast>(vm: &VM<'ast>, fct: &Fct, src: &FctSrc) -> BytecodeFunction {
+pub fn generate_generic(vm: &VM, fct: &Fct, src: &FctSrc) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
         fct,
@@ -80,8 +75,8 @@ pub fn generate_generic<'ast>(vm: &VM<'ast>, fct: &Fct, src: &FctSrc) -> Bytecod
     ast_bytecode_generator.generate(&fct.ast)
 }
 
-struct AstBytecodeGen<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct AstBytecodeGen<'a> {
+    vm: &'a VM,
     fct: &'a Fct,
     src: &'a FctSrc,
 
@@ -92,7 +87,7 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
     var_registers: HashMap<VarId, Register>,
 }
 
-impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
+impl<'a> AstBytecodeGen<'a> {
     fn generate(mut self, ast: &Function) -> BytecodeFunction {
         let mut arguments = 0;
         self.push_scope();

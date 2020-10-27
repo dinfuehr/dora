@@ -5,7 +5,7 @@ use dora_parser::ast::visit::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
-pub fn check<'ast>(vm: &VM<'ast>) {
+pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 
@@ -27,14 +27,14 @@ pub fn check<'ast>(vm: &VM<'ast>) {
     }
 }
 
-struct FlowCheck<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct FlowCheck<'a> {
+    vm: &'a VM,
     fct: &'a Fct,
     src: &'a mut FctSrc,
     in_loop: bool,
 }
 
-impl<'a, 'ast> FlowCheck<'a, 'ast> {
+impl<'a> FlowCheck<'a> {
     fn check(&mut self) {
         self.visit_fct(&self.fct.ast);
     }
@@ -57,7 +57,7 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> Visitor for FlowCheck<'a, 'ast> {
+impl<'a> Visitor for FlowCheck<'a> {
     fn visit_stmt(&mut self, s: &Stmt) {
         match *s {
             StmtWhile(_) => self.handle_loop(s),

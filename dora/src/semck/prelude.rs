@@ -13,7 +13,7 @@ use crate::vm::module::ModuleId;
 use crate::vm::{ClassDef, ClassDefId, ClassId, EnumId, FctId, FctKind, Intrinsic, TraitId, VM};
 use crate::vtable::VTableBox;
 
-pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
+pub fn internal_classes(vm: &mut VM) {
     vm.known.classes.unit = internal_class(vm, "Unit", Some(SourceType::Unit));
     vm.known.classes.bool = internal_class(vm, "Bool", Some(SourceType::Bool));
 
@@ -57,7 +57,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     internal_free_classes(vm);
 }
 
-pub fn known_methods<'ast>(vm: &mut VM<'ast>) {
+pub fn known_methods(vm: &mut VM) {
     vm.known.functions.string_buffer_empty =
         find_module_method(vm, vm.known.modules.string_buffer, "empty");
     vm.known.functions.string_buffer_append =
@@ -66,7 +66,7 @@ pub fn known_methods<'ast>(vm: &mut VM<'ast>) {
         find_class_method(vm, vm.known.classes.string_buffer, "toString");
 }
 
-fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
+fn internal_free_classes(vm: &mut VM) {
     let free_object: ClassDefId;
     let free_array: ClassDefId;
 
@@ -120,7 +120,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
     vm.known.free_array_class_def = free_array;
 }
 
-fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) -> ClassId {
+fn internal_class(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ClassId {
     let iname = vm.interner.intern(name);
     let clsid = vm.global_namespace.read().get_class(iname);
 
@@ -142,7 +142,7 @@ fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) -
     }
 }
 
-fn internal_module<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) -> ModuleId {
+fn internal_module(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ModuleId {
     let iname = vm.interner.intern(name);
     let module_id = vm.global_namespace.read().get_module(iname);
 
@@ -164,7 +164,7 @@ fn internal_module<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<SourceType>) 
     }
 }
 
-fn find_trait<'ast>(vm: &mut VM<'ast>, name: &str) -> TraitId {
+fn find_trait(vm: &mut VM, name: &str) -> TraitId {
     let iname = vm.interner.intern(name);
 
     vm.global_namespace
@@ -173,7 +173,7 @@ fn find_trait<'ast>(vm: &mut VM<'ast>, name: &str) -> TraitId {
         .expect("trait not found")
 }
 
-fn find_enum<'ast>(vm: &mut VM<'ast>, name: &str) -> EnumId {
+fn find_enum(vm: &mut VM, name: &str) -> EnumId {
     let iname = vm.interner.intern(name);
 
     vm.global_namespace
@@ -182,7 +182,7 @@ fn find_enum<'ast>(vm: &mut VM<'ast>, name: &str) -> EnumId {
         .expect("enum not found")
 }
 
-pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
+pub fn internal_functions(vm: &mut VM) {
     native_fct(vm, "fatalError", stdlib::fatal_error as *const u8);
     native_fct(vm, "abort", stdlib::abort as *const u8);
     native_fct(vm, "exit", stdlib::exit as *const u8);
@@ -456,7 +456,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_impl_enum(vm, vm.known.enums.option, "unwrap", Intrinsic::OptionUnwrap);
 }
 
-fn native_class_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
+fn native_class_method(vm: &mut VM, clsid: ClassId, name: &str, fctptr: *const u8) {
     internal_class_method(
         vm,
         clsid,
@@ -479,21 +479,11 @@ fn intrinsic_ctor(vm: &mut VM, clsid: ClassId, intrinsic: Intrinsic) {
     }
 }
 
-fn intrinsic_class_method<'ast>(
-    vm: &mut VM<'ast>,
-    clsid: ClassId,
-    name: &str,
-    intrinsic: Intrinsic,
-) {
+fn intrinsic_class_method(vm: &mut VM, clsid: ClassId, name: &str, intrinsic: Intrinsic) {
     internal_class_method(vm, clsid, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_class_method<'ast>(
-    vm: &mut VM<'ast>,
-    clsid: ClassId,
-    name: &str,
-    kind: FctImplementation,
-) {
+fn internal_class_method(vm: &mut VM, clsid: ClassId, name: &str, kind: FctImplementation) {
     let cls = vm.classes.idx(clsid);
     let cls = cls.read();
     let name = vm.interner.intern(name);
@@ -520,7 +510,7 @@ fn internal_class_method<'ast>(
     }
 }
 
-fn find_class_method<'ast>(vm: &VM<'ast>, clsid: ClassId, name: &str) -> FctId {
+fn find_class_method(vm: &VM, clsid: ClassId, name: &str) -> FctId {
     let cls = vm.classes.idx(clsid);
     let cls = cls.read();
     let intern_name = vm.interner.intern(name);
@@ -537,12 +527,7 @@ fn find_class_method<'ast>(vm: &VM<'ast>, clsid: ClassId, name: &str) -> FctId {
     panic!("cannot find class method `{}`", name)
 }
 
-fn native_module_method<'ast>(
-    vm: &mut VM<'ast>,
-    module_id: ModuleId,
-    name: &str,
-    fctptr: *const u8,
-) {
+fn native_module_method(vm: &mut VM, module_id: ModuleId, name: &str, fctptr: *const u8) {
     internal_module_method(
         vm,
         module_id,
@@ -551,21 +536,11 @@ fn native_module_method<'ast>(
     );
 }
 
-fn intrinsic_module_method<'ast>(
-    vm: &mut VM<'ast>,
-    module_id: ModuleId,
-    name: &str,
-    intrinsic: Intrinsic,
-) {
+fn intrinsic_module_method(vm: &mut VM, module_id: ModuleId, name: &str, intrinsic: Intrinsic) {
     internal_module_method(vm, module_id, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_module_method<'ast>(
-    vm: &mut VM<'ast>,
-    module_id: ModuleId,
-    name: &str,
-    kind: FctImplementation,
-) {
+fn internal_module_method(vm: &mut VM, module_id: ModuleId, name: &str, kind: FctImplementation) {
     let module = vm.modules.idx(module_id);
     let module = module.read();
     let name = vm.interner.intern(name);
@@ -592,7 +567,7 @@ fn internal_module_method<'ast>(
     }
 }
 
-fn find_module_method<'ast>(vm: &VM<'ast>, module_id: ModuleId, name: &str) -> FctId {
+fn find_module_method(vm: &VM, module_id: ModuleId, name: &str) -> FctId {
     let module = vm.modules.idx(module_id);
     let module = module.read();
     let intern_name = vm.interner.intern(name);
@@ -609,7 +584,7 @@ fn find_module_method<'ast>(vm: &VM<'ast>, module_id: ModuleId, name: &str) -> F
     panic!("cannot find module method `{}`", name)
 }
 
-fn native_fct<'ast>(vm: &mut VM<'ast>, name: &str, fctptr: *const u8) {
+fn native_fct(vm: &mut VM, name: &str, fctptr: *const u8) {
     internal_fct(
         vm,
         name,
@@ -617,11 +592,11 @@ fn native_fct<'ast>(vm: &mut VM<'ast>, name: &str, fctptr: *const u8) {
     );
 }
 
-fn intrinsic_fct<'ast>(vm: &mut VM<'ast>, name: &str, intrinsic: Intrinsic) {
+fn intrinsic_fct(vm: &mut VM, name: &str, intrinsic: Intrinsic) {
     internal_fct(vm, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_fct<'ast>(vm: &mut VM<'ast>, name: &str, kind: FctImplementation) {
+fn internal_fct(vm: &mut VM, name: &str, kind: FctImplementation) {
     let name = vm.interner.intern(name);
     let fctid = vm.global_namespace.read().get_fct(name);
 
@@ -644,13 +619,7 @@ enum FctImplementation {
     Native(Address),
 }
 
-fn intrinsic_impl<'ast>(
-    vm: &mut VM<'ast>,
-    clsid: ClassId,
-    tid: TraitId,
-    name: &str,
-    intrinsic: Intrinsic,
-) {
+fn intrinsic_impl(vm: &mut VM, clsid: ClassId, tid: TraitId, name: &str, intrinsic: Intrinsic) {
     internal_impl(
         vm,
         clsid,
@@ -660,13 +629,7 @@ fn intrinsic_impl<'ast>(
     );
 }
 
-fn internal_impl<'ast>(
-    vm: &mut VM<'ast>,
-    clsid: ClassId,
-    tid: TraitId,
-    name: &str,
-    kind: FctImplementation,
-) {
+fn internal_impl(vm: &mut VM, clsid: ClassId, tid: TraitId, name: &str, kind: FctImplementation) {
     let name = vm.interner.intern(name);
     let cls = vm.classes.idx(clsid);
     let cls = cls.read();
@@ -692,16 +655,11 @@ fn internal_impl<'ast>(
     }
 }
 
-fn intrinsic_impl_enum<'ast>(vm: &mut VM<'ast>, enum_id: EnumId, name: &str, intrinsic: Intrinsic) {
+fn intrinsic_impl_enum(vm: &mut VM, enum_id: EnumId, name: &str, intrinsic: Intrinsic) {
     internal_impl_enum(vm, enum_id, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_impl_enum<'ast>(
-    vm: &mut VM<'ast>,
-    enum_id: EnumId,
-    name: &str,
-    kind: FctImplementation,
-) {
+fn internal_impl_enum(vm: &mut VM, enum_id: EnumId, name: &str, kind: FctImplementation) {
     let name = vm.interner.intern(name);
     let xenum = &vm.enums[enum_id];
     let xenum = xenum.read();

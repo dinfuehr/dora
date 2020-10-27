@@ -6,7 +6,7 @@ use crate::vm::{FileId, VM};
 
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(vm: &mut VM<'ast>) {
+pub fn check(vm: &mut VM) {
     for ximpl in &vm.impls {
         let ximpl = ximpl.read();
         let xtrait = vm.traits[ximpl.trait_id()].read();

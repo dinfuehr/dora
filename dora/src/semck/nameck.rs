@@ -17,7 +17,7 @@ use crate::sym::TermSym::{
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTypeParam};
 use crate::ty::SourceType;
 
-pub fn check<'ast>(vm: &VM<'ast>) {
+pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 
@@ -40,15 +40,15 @@ pub fn check<'ast>(vm: &VM<'ast>) {
     }
 }
 
-struct NameCheck<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
+struct NameCheck<'a> {
+    vm: &'a VM,
     fct: &'a Fct,
     src: &'a mut FctSrc,
     ast: &'a Function,
     sym: SymTables,
 }
 
-impl<'a, 'ast> NameCheck<'a, 'ast> {
+impl<'a> NameCheck<'a> {
     fn check(&mut self) {
         self.sym.push_level();
 
@@ -303,7 +303,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> Visitor for NameCheck<'a, 'ast> {
+impl<'a> Visitor for NameCheck<'a> {
     fn visit_param(&mut self, p: &Param) {
         let var_ctxt = Var {
             id: VarId(0),

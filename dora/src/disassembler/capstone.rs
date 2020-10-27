@@ -15,8 +15,8 @@ pub fn supported() -> bool {
     true
 }
 
-pub fn disassemble<'ast>(
-    vm: &VM<'ast>,
+pub fn disassemble(
+    vm: &VM,
     fct: &Fct,
     type_params: &TypeList,
     code: &Code,

@@ -11,114 +11,93 @@ pub mod dump;
 pub mod visit;
 
 #[derive(Clone, Debug)]
-pub struct Ast {
-    pub files: Vec<File>,
+pub struct File {
+    pub path: String,
+    pub content: String,
+    pub line_ends: Vec<u32>,
+    pub elements: Vec<Elem>,
 }
 
-impl Ast {
-    pub fn new() -> Ast {
-        Ast { files: Vec::new() }
-    }
-
+impl File {
     #[cfg(test)]
     pub fn fct0(&self) -> &Function {
-        self.files.last().unwrap().elements[0]
-            .to_function()
-            .unwrap()
+        self.elements[0].to_function().unwrap()
     }
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
-        self.files.last().unwrap().elements[index]
-            .to_function()
-            .unwrap()
+        self.elements[index].to_function().unwrap()
     }
 
     #[cfg(test)]
     pub fn cls0(&self) -> &Class {
-        self.files.last().unwrap().elements[0].to_class().unwrap()
+        self.elements[0].to_class().unwrap()
     }
 
     #[cfg(test)]
     pub fn cls(&self, index: usize) -> &Class {
-        self.files.last().unwrap().elements[index]
-            .to_class()
-            .unwrap()
+        self.elements[index].to_class().unwrap()
     }
 
     #[cfg(test)]
     pub fn struct0(&self) -> &Struct {
-        self.files.last().unwrap().elements[0].to_struct().unwrap()
+        self.elements[0].to_struct().unwrap()
     }
 
     #[cfg(test)]
     pub fn enum0(&self) -> &Enum {
-        self.files.last().unwrap().elements[0].to_enum().unwrap()
+        self.elements[0].to_enum().unwrap()
     }
 
     #[cfg(test)]
     pub fn alias0(&self) -> &Alias {
-        self.files.last().unwrap().elements[0].to_alias().unwrap()
+        self.elements[0].to_alias().unwrap()
     }
 
     #[cfg(test)]
     pub fn namespace0(&self) -> &Namespace {
-        self.files.last().unwrap().elements[0]
-            .to_namespace()
-            .unwrap()
+        self.elements[0].to_namespace().unwrap()
     }
 
     #[cfg(test)]
     pub fn trai(&self, index: usize) -> &Trait {
-        self.files.last().unwrap().elements[index]
-            .to_trait()
-            .unwrap()
+        self.elements[index].to_trait().unwrap()
     }
 
     #[cfg(test)]
     pub fn trait0(&self) -> &Trait {
-        self.files.last().unwrap().elements[0].to_trait().unwrap()
+        self.elements[0].to_trait().unwrap()
     }
 
     #[cfg(test)]
     pub fn impl0(&self) -> &Impl {
-        self.files.last().unwrap().elements[0].to_impl().unwrap()
+        self.elements[0].to_impl().unwrap()
     }
 
     #[cfg(test)]
     pub fn mod0(&self) -> &Module {
-        self.files.last().unwrap().elements[0].to_module().unwrap()
+        self.elements[0].to_module().unwrap()
     }
 
     #[cfg(test)]
     pub fn modu(&self, index: usize) -> &Module {
-        self.files.last().unwrap().elements[index]
-            .to_module()
-            .unwrap()
+        self.elements[index].to_module().unwrap()
     }
 
     #[cfg(test)]
     pub fn ann0(&self) -> &Annotation {
-        self.files.last().unwrap().elements[0]
-            .to_annotation()
-            .unwrap()
+        self.elements[0].to_annotation().unwrap()
     }
 
     #[cfg(test)]
     pub fn global0(&self) -> &Global {
-        self.files.last().unwrap().elements[0].to_global().unwrap()
+        self.elements[0].to_global().unwrap()
     }
 
     #[cfg(test)]
     pub fn const0(&self) -> &Const {
-        self.files.last().unwrap().elements[0].to_const().unwrap()
+        self.elements[0].to_const().unwrap()
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct File {
-    pub path: String,
-    pub elements: Vec<Elem>,
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
