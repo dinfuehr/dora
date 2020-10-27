@@ -140,7 +140,7 @@ pub fn ensure_tuple(vm: &VM, args: Vec<SourceType>) -> TupleId {
     id
 }
 
-fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[SourceType]) -> Option<ConcreteTuple> {
+fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> Option<ConcreteTuple> {
     let mut size = 0;
     let mut offsets = Vec::new();
     let mut references = Vec::new();

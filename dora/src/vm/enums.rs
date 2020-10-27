@@ -88,7 +88,7 @@ impl From<usize> for EnumDefId {
     }
 }
 
-impl<'ast> GrowableVec<RwLock<EnumDef>> {
+impl GrowableVec<RwLock<EnumDef>> {
     pub fn idx(&self, index: EnumDefId) -> Arc<RwLock<EnumDef>> {
         self.idx_usize(index.0 as usize)
     }

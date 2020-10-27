@@ -7,8 +7,8 @@ pub fn supported() -> bool {
     false
 }
 
-pub fn disassemble<'ast>(
-    _vm: &VM<'ast>,
+pub fn disassemble(
+    _vm: &VM,
     _fct: &Fct,
     _type_params: &TypeList,
     _code: &Code,
