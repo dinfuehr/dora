@@ -62,11 +62,11 @@ pub enum TokenKind {
 
     // operators – logic
     Not,
-    BitOr,
-    BitAnd,
-    Caret,
-    And,
     Or,
+    And,
+    Caret,
+    AndAnd,
+    OrOr,
 
     // operators – comparisons
     EqEq,
@@ -176,11 +176,11 @@ impl TokenKind {
 
             // operators – logic
             TokenKind::Not => "!",
-            TokenKind::BitOr => "|",
-            TokenKind::BitAnd => "&",
+            TokenKind::Or => "|",
+            TokenKind::And => "&",
             TokenKind::Caret => "^",
-            TokenKind::And => "&&",
-            TokenKind::Or => "||",
+            TokenKind::AndAnd => "&&",
+            TokenKind::OrOr => "||",
 
             // operators – comparisons
             TokenKind::EqEq => "==",

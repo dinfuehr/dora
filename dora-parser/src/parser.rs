@@ -1537,21 +1537,29 @@ impl<'a> Parser<'a> {
 
         loop {
             let right_precedence = match self.token.kind {
-                TokenKind::Or => 1,
-                TokenKind::And => 2,
-                TokenKind::Eq => 3,
+                TokenKind::Eq => 1,
+                TokenKind::OrOr => 2,
+                TokenKind::AndAnd => 3,
                 TokenKind::EqEq
                 | TokenKind::NotEq
                 | TokenKind::Lt
                 | TokenKind::Le
                 | TokenKind::Gt
-                | TokenKind::Ge => 4,
-                TokenKind::EqEqEq | TokenKind::NeEqEq => 5,
-                TokenKind::BitOr | TokenKind::BitAnd | TokenKind::Caret => 6,
-                TokenKind::LtLt | TokenKind::GtGt | TokenKind::GtGtGt => 7,
-                TokenKind::Add | TokenKind::Sub => 8,
-                TokenKind::Mul | TokenKind::Div | TokenKind::Mod => 9,
-                TokenKind::Is | TokenKind::As => 10,
+                | TokenKind::Ge
+                | TokenKind::EqEqEq
+                | TokenKind::NeEqEq => 4,
+                TokenKind::Add
+                | TokenKind::Sub
+                | TokenKind::Or
+                | TokenKind::And
+                | TokenKind::Caret => 5,
+                TokenKind::Mul
+                | TokenKind::Div
+                | TokenKind::Mod
+                | TokenKind::LtLt
+                | TokenKind::GtGt
+                | TokenKind::GtGtGt => 6,
+                TokenKind::Is | TokenKind::As => 7,
                 _ => {
                     return Ok(left);
                 }
@@ -1691,8 +1699,8 @@ impl<'a> Parser<'a> {
     ) -> Box<Expr> {
         let op = match tok.kind {
             TokenKind::Eq => BinOp::Assign,
-            TokenKind::Or => BinOp::Or,
-            TokenKind::And => BinOp::And,
+            TokenKind::OrOr => BinOp::Or,
+            TokenKind::AndAnd => BinOp::And,
             TokenKind::EqEq => BinOp::Cmp(CmpOp::Eq),
             TokenKind::NotEq => BinOp::Cmp(CmpOp::Ne),
             TokenKind::Lt => BinOp::Cmp(CmpOp::Lt),
@@ -1701,8 +1709,8 @@ impl<'a> Parser<'a> {
             TokenKind::Ge => BinOp::Cmp(CmpOp::Ge),
             TokenKind::EqEqEq => BinOp::Cmp(CmpOp::Is),
             TokenKind::NeEqEq => BinOp::Cmp(CmpOp::IsNot),
-            TokenKind::BitOr => BinOp::BitOr,
-            TokenKind::BitAnd => BinOp::BitAnd,
+            TokenKind::Or => BinOp::BitOr,
+            TokenKind::And => BinOp::BitAnd,
             TokenKind::Caret => BinOp::BitXor,
             TokenKind::Add => BinOp::Add,
             TokenKind::Sub => BinOp::Sub,
@@ -1741,7 +1749,7 @@ impl<'a> Parser<'a> {
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::This => self.parse_this(),
             TokenKind::Super => self.parse_super(),
-            TokenKind::BitOr | TokenKind::Or => self.parse_lambda(),
+            TokenKind::Or | TokenKind::OrOr => self.parse_lambda(),
             _ => Err(ParseErrorAndPos::new(
                 self.token.position,
                 ParseError::ExpectedFactor(self.token.name().clone()),
@@ -1993,12 +2001,12 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let tok = self.advance_token()?;
 
-        let params = if tok.kind == TokenKind::Or {
+        let params = if tok.kind == TokenKind::OrOr {
             // nothing to do
             Vec::new()
         } else {
             self.param_idx = 0;
-            self.parse_list(TokenKind::Comma, TokenKind::BitOr, |p| {
+            self.parse_list(TokenKind::Comma, TokenKind::Or, |p| {
                 p.param_idx += 1;
                 p.parse_function_param()
             })?

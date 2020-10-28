@@ -259,18 +259,18 @@ impl Lexer {
             '|' => {
                 if nch == '|' {
                     self.read_char();
-                    TokenKind::Or
+                    TokenKind::OrOr
                 } else {
-                    TokenKind::BitOr
+                    TokenKind::Or
                 }
             }
 
             '&' => {
                 if nch == '&' {
                     self.read_char();
-                    TokenKind::And
+                    TokenKind::AndAnd
                 } else {
-                    TokenKind::BitAnd
+                    TokenKind::And
                 }
             }
 
