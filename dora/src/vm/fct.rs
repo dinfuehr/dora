@@ -51,6 +51,7 @@ pub struct Fct {
     pub is_pub: bool,
     pub is_abstract: bool,
     pub is_test: bool,
+    pub newcall: bool,
     pub use_cannon: bool,
     pub internal: bool,
     pub internal_resolved: bool,

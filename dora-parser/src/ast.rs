@@ -628,6 +628,7 @@ pub struct Function {
     pub use_cannon: bool,
     pub internal: bool,
     pub is_constructor: bool,
+    pub newcall: bool,
 
     pub params: Vec<Param>,
 
@@ -720,6 +721,7 @@ pub enum Modifier {
     Test,
     Cannon,
     OptimizeImmediately,
+    NewCall,
 }
 
 impl Modifier {
@@ -735,6 +737,7 @@ impl Modifier {
             "test" => Some(Modifier::Test),
             "cannon" => Some(Modifier::Cannon),
             "optimizeImmediately" => Some(Modifier::OptimizeImmediately),
+            "newcall" => Some(Modifier::NewCall),
             _ => None,
         }
     }
@@ -751,6 +754,7 @@ impl Modifier {
             Modifier::Test => "test",
             Modifier::Cannon => "cannon",
             Modifier::OptimizeImmediately => "optimizeImmediately",
+            Modifier::NewCall => "newcall",
         }
     }
 }

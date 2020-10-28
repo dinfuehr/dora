@@ -230,6 +230,7 @@ impl<'x> Visitor for ExtensionCheck<'x> {
             param_types: Vec::new(),
             return_type: SourceType::Unit,
             parent: parent,
+            newcall: f.newcall,
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,

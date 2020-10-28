@@ -76,6 +76,7 @@ impl<'x> Visitor for TraitCheck<'x> {
             has_open: f.has_open,
             has_final: f.has_final,
             has_optimize_immediately: f.has_optimize_immediately,
+            newcall: f.newcall,
             is_pub: f.is_pub,
             is_static: f.is_static,
             is_abstract: false,

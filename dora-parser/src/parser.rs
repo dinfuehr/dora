@@ -100,6 +100,7 @@ impl<'a> Parser<'a> {
                         Modifier::OptimizeImmediately,
                         Modifier::Test,
                         Modifier::Cannon,
+                        Modifier::NewCall,
                     ],
                 )?;
                 let fct = self.parse_function(&modifiers)?;
@@ -861,6 +862,7 @@ impl<'a> Parser<'a> {
                 "test" => Modifier::Test,
                 "cannon" => Modifier::Cannon,
                 "optimizeImmediately" => Modifier::OptimizeImmediately,
+                "newcall" => Modifier::NewCall,
                 annotation => {
                     return Err(ParseErrorAndPos::new(
                         self.token.position,
@@ -969,6 +971,7 @@ impl<'a> Parser<'a> {
             is_constructor: false,
             is_test: modifiers.contains(Modifier::Test),
             use_cannon: modifiers.contains(Modifier::Cannon),
+            newcall: modifiers.contains(Modifier::NewCall),
             params,
             return_type,
             block,

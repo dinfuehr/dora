@@ -163,6 +163,7 @@ impl<'a> BuilderFct<'a> {
             is_pub: self.is_public,
             is_static: false,
             is_abstract: false,
+            newcall: false,
             internal: false,
             is_constructor: self.is_constructor,
             is_test: false,

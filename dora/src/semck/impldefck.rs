@@ -159,6 +159,7 @@ impl<'x> Visitor for ImplCheck<'x> {
             use_cannon: f.use_cannon,
             internal: f.internal,
             internal_resolved: false,
+            newcall: f.newcall,
             overrides: None,
             is_constructor: false,
             vtable_index: None,

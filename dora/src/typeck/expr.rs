@@ -1054,6 +1054,78 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
+    fn check_expr_call_new(&mut self, e: &ExprCallType, _expected_ty: SourceType) -> SourceType {
+        let (callee, type_params) = if let Some(expr_type_params) = e.callee.to_type_param() {
+            let type_params: Vec<SourceType> = expr_type_params
+                .args
+                .iter()
+                .map(|p| self.src.ty(p.id()))
+                .collect();
+            let type_params: TypeList = TypeList::with(type_params);
+            (&expr_type_params.callee, type_params)
+        } else {
+            (&e.callee, TypeList::empty())
+        };
+
+        let arg_types: Vec<SourceType> = e
+            .args
+            .iter()
+            .map(|arg| self.check_expr(arg, SourceType::Any))
+            .collect();
+
+        if let Some(expr_dot) = callee.to_dot() {
+            let object_type = self.check_expr(&expr_dot.lhs, SourceType::Any);
+            let method_name = match expr_dot.rhs.to_ident() {
+                Some(ident) => ident.name,
+
+                None => {
+                    let msg = SemError::NameExpected;
+                    self.vm.diag.lock().report(self.file, e.pos, msg);
+
+                    self.src.set_ty(e.id, SourceType::Error);
+                    return SourceType::Error;
+                }
+            };
+            self.check_expr_call_method(e, object_type, method_name, type_params, &arg_types)
+        } else {
+            let ident_type = self.src.map_idents.get(callee.id()).cloned();
+
+            match ident_type {
+                Some(IdentType::Fct(fct_id)) => {
+                    self.check_expr_call_ident(e, fct_id, type_params, &arg_types)
+                }
+
+                Some(IdentType::Class(cls_id)) | Some(IdentType::ClassAndModule(cls_id, _)) => {
+                    self.check_expr_call_ctor(e, cls_id, type_params, &arg_types)
+                }
+
+                Some(IdentType::StaticMethod(object_type, method_name)) => self
+                    .check_expr_call_static_method(
+                        e,
+                        object_type,
+                        method_name,
+                        type_params,
+                        &arg_types,
+                    ),
+
+                Some(IdentType::TypeParamStaticMethod(ty, name)) => {
+                    assert!(type_params.is_empty());
+                    self.check_expr_call_generic_static_method(e, ty, name, &arg_types)
+                }
+
+                Some(IdentType::Enum(_)) => unimplemented!(),
+
+                Some(IdentType::EnumValue(_enum_ty, _variant_id)) => unimplemented!(),
+
+                _ => {
+                    assert!(type_params.is_empty());
+                    let expr_type = self.check_expr(callee, SourceType::Any);
+                    self.check_expr_call_expr(e, expr_type, &arg_types)
+                }
+            }
+        }
+    }
+
     fn check_expr_call(&mut self, e: &ExprCallType, _expected_ty: SourceType) -> SourceType {
         self.used_in_call.insert(e.callee.id());
 
@@ -2215,7 +2287,13 @@ impl<'a> TypeCheck<'a> {
             ExprIdent(ref expr) => self.check_expr_ident(expr, expected_ty),
             ExprUn(ref expr) => self.check_expr_un(expr, expected_ty),
             ExprBin(ref expr) => self.check_expr_bin(expr, expected_ty),
-            ExprCall(ref expr) => self.check_expr_call(expr, expected_ty),
+            ExprCall(ref expr) => {
+                if self.fct.newcall {
+                    self.check_expr_call_new(expr, expected_ty)
+                } else {
+                    self.check_expr_call(expr, expected_ty)
+                }
+            }
             ExprTypeParam(ref expr) => self.check_expr_type_param(expr, expected_ty),
             ExprPath(ref expr) => self.check_expr_path(expr, expected_ty),
             ExprDelegation(ref expr) => self.check_expr_delegation(expr, expected_ty),
