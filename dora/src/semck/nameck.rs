@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::sym::SymTables;
+use crate::sym::{SymTables, TermSym, TypeSym};
 use crate::vm::*;
 
 use dora_parser::ast::visit::*;
@@ -197,79 +197,89 @@ impl<'a> NameCheck<'a> {
     }
 
     fn check_expr_ident(&mut self, ident: &ExprIdentType) {
-        let term_sym = self.sym.get_term(ident.name);
-        let type_sym = self.sym.get_type(ident.name);
+        let sym_term = self.sym.get_term(ident.name);
+        let sym_type = self.sym.get_type(ident.name);
+        self.find_sym(sym_term, sym_type, ident.name, ident.id, ident.pos);
+    }
 
-        match (term_sym, type_sym) {
+    fn find_sym(
+        &mut self,
+        sym_term: Option<TermSym>,
+        sym_type: Option<TypeSym>,
+        name: Name,
+        node_id: NodeId,
+        node_pos: Position,
+    ) {
+        match (sym_term, sym_type) {
             (Some(SymVar(id)), None) => {
-                self.src.map_idents.insert(ident.id, IdentType::Var(id));
+                self.src.map_idents.insert(node_id, IdentType::Var(id));
             }
 
             (Some(SymGlobal(id)), None) => {
-                self.src.map_idents.insert(ident.id, IdentType::Global(id));
+                self.src.map_idents.insert(node_id, IdentType::Global(id));
             }
 
             (Some(SymConst(id)), None) => {
-                self.src.map_idents.insert(ident.id, IdentType::Const(id));
+                self.src.map_idents.insert(node_id, IdentType::Const(id));
             }
 
             (Some(SymFct(id)), None) => {
-                self.src.map_idents.insert(ident.id, IdentType::Fct(id));
+                self.src.map_idents.insert(node_id, IdentType::Fct(id));
             }
 
             (Some(SymModule(id)), None) => {
-                self.src.map_idents.insert(ident.id, IdentType::Module(id));
+                self.src.map_idents.insert(node_id, IdentType::Module(id));
             }
 
             (None, Some(SymStruct(id))) => {
-                self.src.map_idents.insert(ident.id, IdentType::Struct(id));
+                self.src.map_idents.insert(node_id, IdentType::Struct(id));
             }
 
             (None, Some(SymClass(id))) => {
-                self.src.map_idents.insert(ident.id, IdentType::Class(id));
+                self.src.map_idents.insert(node_id, IdentType::Class(id));
             }
 
             (None, Some(SymTypeParam(id))) => {
                 let ty = SourceType::TypeParam(id);
                 self.src
                     .map_idents
-                    .insert(ident.id, IdentType::TypeParam(ty))
+                    .insert(node_id, IdentType::TypeParam(ty))
             }
 
-            (None, Some(SymEnum(id))) => self.src.map_idents.insert(ident.id, IdentType::Enum(id)),
+            (None, Some(SymEnum(id))) => self.src.map_idents.insert(node_id, IdentType::Enum(id)),
 
             (Some(SymModule(module_id)), Some(SymClass(class_id)))
             | (Some(SymClassConstructorAndModule(_, module_id)), Some(SymClass(class_id))) => self
                 .src
                 .map_idents
-                .insert(ident.id, IdentType::ClassAndModule(class_id, module_id)),
+                .insert(node_id, IdentType::ClassAndModule(class_id, module_id)),
 
             (Some(SymClassConstructor(id)), _) => {
-                self.src.map_idents.insert(ident.id, IdentType::Class(id))
+                self.src.map_idents.insert(node_id, IdentType::Class(id))
             }
 
             (Some(SymModule(module_id)), Some(SymStruct(struct_id)))
             | (Some(SymStructConstructorAndModule(_, module_id)), Some(SymStruct(struct_id))) => {
                 self.src
                     .map_idents
-                    .insert(ident.id, IdentType::StructAndModule(struct_id, module_id))
+                    .insert(node_id, IdentType::StructAndModule(struct_id, module_id))
             }
 
             (Some(SymStructConstructor(id)), _) => {
-                self.src.map_idents.insert(ident.id, IdentType::Struct(id))
+                self.src.map_idents.insert(node_id, IdentType::Struct(id))
             }
 
             (Some(SymNamespace(id)), _) => self
                 .src
                 .map_idents
-                .insert(ident.id, IdentType::Namespace(id)),
+                .insert(node_id, IdentType::Namespace(id)),
 
             (None, None) => {
-                let name = self.vm.interner.str(ident.name).to_string();
+                let name = self.vm.interner.str(name).to_string();
                 report(
                     self.vm,
                     self.fct.file,
-                    ident.pos,
+                    node_pos,
                     SemError::UnknownIdentifier(name),
                 );
             }
@@ -281,6 +291,18 @@ impl<'a> NameCheck<'a> {
     fn check_expr_path(&mut self, path: &ExprPathType) {
         self.visit_expr(&path.lhs);
         // do not check right hand site of path
+
+        let lhs_ident_type = self.src.map_idents.get(path.lhs.id());
+
+        if let Some(IdentType::Namespace(namespace_id)) = lhs_ident_type {
+            if let Some(rhs_ident) = path.rhs.to_ident() {
+                let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+                let table = namespace.table.read();
+                let sym_term = table.get_term(rhs_ident.name);
+                let sym_type = table.get_type(rhs_ident.name);
+                self.find_sym(sym_term, sym_type, rhs_ident.name, path.id, path.pos);
+            }
+        }
     }
 
     fn check_expr_dot(&mut self, dot: &ExprDotType) {
@@ -485,5 +507,14 @@ mod tests {
     #[test]
     fn for_var() {
         ok("fun f() { for i in range(0, 4) { i; } }");
+    }
+
+    #[test]
+    #[ignore]
+    fn namespace_fct_call() {
+        ok("
+            fun f() { foo::g(); }
+            namespace foo { fun g() {} }
+        ");
     }
 }
