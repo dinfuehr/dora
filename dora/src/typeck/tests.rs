@@ -2125,12 +2125,3 @@ fn check_wrong_number_type_params() {
         SemError::ParamTypesIncompatible("bar".into(), vec!["T".into()], vec!["Bool".into()]),
     );
 }
-
-#[test]
-fn newcall_fct() {
-    // ok("@newcall fun f() { g(); } fun g() {}");
-    // ok("@newcall fun f() { g[Int32](); } fun g[T]() {}");
-    // ok("@newcall fun f(g: Array[Int32]) { g(0L); }");
-    ok("class Foo { fun bar() {} } @newcall fun f(g: Foo) { g.bar(); }");
-    ok("class Foo { fun bar[T]() {} } @newcall fun f(g: Foo) { g.bar[Int32](); }");
-}

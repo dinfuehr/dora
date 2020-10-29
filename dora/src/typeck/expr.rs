@@ -12,7 +12,8 @@ use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
-    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
+    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, Var, VarId,
+    VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -119,17 +120,6 @@ impl<'a> TypeCheck<'a> {
     fn add_params(&mut self) {
         self.add_hidden_parameter_self();
 
-        for param in &self.ast.params {
-            let var_id = self.src.map_vars.get(param.id).cloned().unwrap();
-            let term_sym = self
-                .symtable
-                .insert_term(param.name, TermSym::SymVar(var_id));
-
-            if let Some(term_sym) = term_sym {
-                report_term_shadow(self.vm, param.name, self.fct.file, param.pos, term_sym);
-            }
-        }
-
         let self_count = if self.fct.has_self() { 1 } else { 0 };
         debug_assert_eq!(
             self.ast.params.len() + self_count,
@@ -151,8 +141,28 @@ impl<'a> TypeCheck<'a> {
                 ty
             };
 
-            let var = *self.src.map_vars.get(param.id).unwrap();
-            self.src.vars[var].ty = ty;
+            let var_ctxt = Var {
+                id: VarId(0),
+                name: param.name,
+                reassignable: false,
+                ty,
+                node_id: param.id,
+            };
+
+            let var_id = self.add_var(var_ctxt);
+            self.src.map_vars.insert(param.id, var_id);
+
+            // params are only allowed to replace functions, vars cannot be replaced
+            let term_sym = self.symtable.get_term(param.name);
+            match term_sym {
+                Some(TermSym::SymFct(_)) | None => {
+                    self.symtable
+                        .insert_term(param.name, TermSym::SymVar(var_id));
+                }
+                Some(conflict_sym) => {
+                    report_term_shadow(self.vm, param.name, self.fct.file, param.pos, conflict_sym)
+                }
+            }
         }
     }
 
@@ -185,7 +195,38 @@ impl<'a> TypeCheck<'a> {
             _ => unreachable!(),
         };
 
-        self.src.var_self_mut().ty = ty;
+        let ast_id = self.fct.ast.id;
+        let name = self.vm.interner.intern("self");
+
+        let var = Var {
+            id: VarId(0),
+            name,
+            ty,
+            reassignable: false,
+            node_id: ast_id,
+        };
+
+        assert!(self.src.vars.is_empty());
+        self.src.vars.push(var);
+    }
+
+    fn add_local(&mut self, var: Var, pos: Position) -> VarId {
+        let name = var.name;
+        let var_id = self.add_var(var);
+        match self.symtable.insert_term(name, TermSym::SymVar(var_id)) {
+            Some(TermSym::SymVar(_)) | None => {}
+            Some(sym) => report_term_shadow(self.vm, name, self.fct.file, pos, sym),
+        }
+        var_id
+    }
+
+    fn add_var(&mut self, mut var: Var) -> VarId {
+        let var_id = VarId(self.src.vars.len());
+
+        var.id = var_id;
+        self.src.vars.push(var);
+
+        var_id
     }
 
     fn check_stmt_let(&mut self, s: &StmtLetType) {
@@ -222,8 +263,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         // update type of variable, necessary when stmt has initializer expression but no type
-        self.add_vars_from_let_pattern(&s.pattern);
-        self.check_stmt_let_pattern(&s.pattern, defined_type);
+        self.check_stmt_let_pattern(&s.pattern, defined_type, s.reassignable);
 
         if s.expr.is_some() {
             if !expr_type.is_error()
@@ -254,41 +294,19 @@ impl<'a> TypeCheck<'a> {
         read_type_table(self.vm, &self.symtable, self.fct.file, t).unwrap_or(SourceType::Error)
     }
 
-    fn add_vars_from_let_pattern(&mut self, pattern: &LetPattern) {
+    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: SourceType, reassignable: bool) {
         match pattern {
             LetPattern::Ident(ref ident) => {
-                let var_id = self.src.map_vars.get(ident.id).cloned().unwrap();
+                let var_ctxt = Var {
+                    id: VarId(0),
+                    name: ident.name,
+                    reassignable: reassignable || ident.mutable,
+                    ty,
+                    node_id: ident.id,
+                };
 
-                let term_sym = self
-                    .symtable
-                    .insert_term(ident.name, TermSym::SymVar(var_id));
-
-                match term_sym {
-                    Some(TermSym::SymVar(_)) | None => {}
-
-                    Some(term_sym) => {
-                        report_term_shadow(self.vm, ident.name, self.fct.file, ident.pos, term_sym);
-                    }
-                }
-            }
-
-            LetPattern::Underscore(_) => {
-                // no variable to declare
-            }
-
-            LetPattern::Tuple(ref tuple) => {
-                for sub in &tuple.parts {
-                    self.add_vars_from_let_pattern(sub);
-                }
-            }
-        }
-    }
-
-    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: SourceType) {
-        match pattern {
-            LetPattern::Ident(ref ident) => {
-                let var = *self.src.map_vars.get(ident.id).unwrap();
-                self.src.vars[var].ty = ty;
+                let var_id = self.add_local(var_ctxt, ident.pos);
+                self.src.map_vars.insert(ident.id, var_id);
             }
 
             LetPattern::Underscore(_) => {
@@ -320,7 +338,7 @@ impl<'a> TypeCheck<'a> {
 
                 if ty.is_error() {
                     for part in &tuple.parts {
-                        self.check_stmt_let_pattern(part, SourceType::Error);
+                        self.check_stmt_let_pattern(part, SourceType::Error, reassignable);
                     }
                     return;
                 }
@@ -344,7 +362,7 @@ impl<'a> TypeCheck<'a> {
 
                 for (idx, part) in tuple.parts.iter().enumerate() {
                     let ty = self.vm.tuples.lock().get_ty(tuple_id, idx);
-                    self.check_stmt_let_pattern(part, ty);
+                    self.check_stmt_let_pattern(part, ty, reassignable);
                 }
             }
         }
@@ -355,8 +373,7 @@ impl<'a> TypeCheck<'a> {
 
         if object_type.is_error() {
             self.symtable.push_level();
-            self.add_vars_from_let_pattern(&stmt.pattern);
-            self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
+            self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error, false);
             self.visit_stmt(&stmt.block);
             self.symtable.pop_level();
             return;
@@ -368,8 +385,7 @@ impl<'a> TypeCheck<'a> {
                 let var_ty = type_list[0];
 
                 self.symtable.push_level();
-                self.add_vars_from_let_pattern(&stmt.pattern);
-                self.check_stmt_let_pattern(&stmt.pattern, var_ty);
+                self.check_stmt_let_pattern(&stmt.pattern, var_ty, false);
                 self.visit_stmt(&stmt.block);
                 self.symtable.pop_level();
                 return;
@@ -378,9 +394,8 @@ impl<'a> TypeCheck<'a> {
 
         if let Some((for_type_info, ret_type)) = self.type_supports_iterator_protocol(object_type) {
             self.symtable.push_level();
-            self.add_vars_from_let_pattern(&stmt.pattern);
             // set variable type to return type of next
-            self.check_stmt_let_pattern(&stmt.pattern, ret_type);
+            self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
             // store fct ids for code generation
             self.src.map_fors.insert(stmt.id, for_type_info);
             self.visit_stmt(&stmt.block);
@@ -394,9 +409,8 @@ impl<'a> TypeCheck<'a> {
                 self.type_supports_iterator_protocol(iterator_type)
             {
                 self.symtable.push_level();
-                self.add_vars_from_let_pattern(&stmt.pattern);
                 // set variable type to return type of next
-                self.check_stmt_let_pattern(&stmt.pattern, ret_type);
+                self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
 
                 // store fct ids for code generation
                 for_type_info.make_iterator = Some(make_iterator);
@@ -414,8 +428,7 @@ impl<'a> TypeCheck<'a> {
 
         // set invalid error type
         self.symtable.push_level();
-        self.add_vars_from_let_pattern(&stmt.pattern);
-        self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
+        self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error, false);
         self.visit_stmt(&stmt.block);
         self.symtable.pop_level();
     }
@@ -610,119 +623,134 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_ident(&mut self, e: &ExprIdentType, _expected_ty: SourceType) -> SourceType {
-        let ident_type = self.src.map_idents.get(e.id).unwrap();
+        let sym_term = self.symtable.get_term(e.name);
+        let sym_type = self.symtable.get_type(e.name);
+        let ident_type = self.get_ident_type(sym_term, sym_type);
 
-        match ident_type {
-            &IdentType::Var(varid) => {
-                let ty = self.src.vars[varid].ty;
-                self.src.set_ty(e.id, ty);
+        if let Some(ident_type) = ident_type {
+            self.src
+                .map_idents
+                .insert_or_replace(e.id, ident_type.clone());
 
-                ty
-            }
+            match ident_type {
+                IdentType::Var(varid) => {
+                    let ty = self.src.vars[varid].ty;
+                    self.src.set_ty(e.id, ty);
 
-            &IdentType::Global(globalid) => {
-                let glob = self.vm.globals.idx(globalid);
-                let ty = glob.read().ty;
-                self.src.set_ty(e.id, ty);
-
-                ty
-            }
-
-            &IdentType::Field(ty, fieldid) => {
-                let clsid = ty.cls_id(self.vm).unwrap();
-                let cls = self.vm.classes.idx(clsid);
-                let cls = cls.read();
-                let field = &cls.fields[fieldid];
-
-                self.src.set_ty(e.id, field.ty);
-
-                field.ty
-            }
-
-            &IdentType::Struct(sid) => {
-                let list_id = self.vm.lists.lock().insert(TypeList::empty());
-                let ty = SourceType::Struct(sid, list_id);
-                self.src.set_ty(e.id, ty);
-
-                ty
-            }
-
-            &IdentType::Const(const_id) => {
-                let xconst = self.vm.consts.idx(const_id);
-                let xconst = xconst.lock();
-
-                self.src.set_ty(e.id, xconst.ty);
-
-                xconst.ty
-            }
-
-            &IdentType::Fct(_) => {
-                if !self.used_in_call.contains(&e.id) {
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file, e.pos, SemError::FctUsedAsIdentifier);
+                    ty
                 }
 
-                self.src.set_ty(e.id, SourceType::Error);
+                IdentType::Global(globalid) => {
+                    let glob = self.vm.globals.idx(globalid);
+                    let ty = glob.read().ty;
+                    self.src.set_ty(e.id, ty);
 
-                SourceType::Error
-            }
-
-            &IdentType::Class(_) => {
-                if !self.used_in_call.contains(&e.id) {
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file, e.pos, SemError::ClsUsedAsIdentifier);
+                    ty
                 }
 
-                self.src.set_ty(e.id, SourceType::Error);
+                IdentType::Field(ty, fieldid) => {
+                    let clsid = ty.cls_id(self.vm).unwrap();
+                    let cls = self.vm.classes.idx(clsid);
+                    let cls = cls.read();
+                    let field = &cls.fields[fieldid];
 
-                SourceType::Error
+                    self.src.set_ty(e.id, field.ty);
+
+                    field.ty
+                }
+
+                IdentType::Struct(sid) => {
+                    let list_id = self.vm.lists.lock().insert(TypeList::empty());
+                    let ty = SourceType::Struct(sid, list_id);
+                    self.src.set_ty(e.id, ty);
+
+                    ty
+                }
+
+                IdentType::Const(const_id) => {
+                    let xconst = self.vm.consts.idx(const_id);
+                    let xconst = xconst.lock();
+
+                    self.src.set_ty(e.id, xconst.ty);
+
+                    xconst.ty
+                }
+
+                IdentType::Fct(_) => {
+                    if !self.used_in_call.contains(&e.id) {
+                        self.vm
+                            .diag
+                            .lock()
+                            .report(self.file, e.pos, SemError::FctUsedAsIdentifier);
+                    }
+
+                    self.src.set_ty(e.id, SourceType::Error);
+
+                    SourceType::Error
+                }
+
+                IdentType::Class(_) => {
+                    if !self.used_in_call.contains(&e.id) {
+                        self.vm
+                            .diag
+                            .lock()
+                            .report(self.file, e.pos, SemError::ClsUsedAsIdentifier);
+                    }
+
+                    self.src.set_ty(e.id, SourceType::Error);
+
+                    SourceType::Error
+                }
+
+                IdentType::Module(module_id)
+                | IdentType::ClassAndModule(_, module_id)
+                | IdentType::StructAndModule(_, module_id) => {
+                    let module = self.vm.modules.idx(module_id);
+                    let ty = module.read().ty;
+                    self.src.set_ty(e.id, ty);
+
+                    ty
+                }
+
+                IdentType::TypeParam(_) => {
+                    let msg = if self.used_in_call.contains(&e.id) {
+                        SemError::TypeParamUsedAsCallee
+                    } else {
+                        SemError::TypeParamUsedAsIdentifier
+                    };
+
+                    self.vm.diag.lock().report(self.file, e.pos, msg);
+                    self.src.set_ty(e.id, SourceType::Error);
+
+                    SourceType::Error
+                }
+
+                IdentType::Enum(_) => {
+                    let msg = SemError::EnumUsedAsIdentifier;
+                    self.vm.diag.lock().report(self.file, e.pos, msg);
+                    self.src.set_ty(e.id, SourceType::Error);
+
+                    SourceType::Error
+                }
+
+                IdentType::Namespace(_) => unimplemented!(),
+
+                IdentType::EnumValue(_, _) => unreachable!(),
+                IdentType::EnumType(_, _) => unreachable!(),
+                IdentType::FctType(_, _) | IdentType::ClassType(_, _) => unreachable!(),
+                IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
+                IdentType::Method(_, _) | IdentType::MethodType(_, _, _) => unreachable!(),
+                IdentType::StaticMethod(_, _) | IdentType::StaticMethodType(_, _, _) => {
+                    unreachable!()
+                }
             }
-
-            &IdentType::Module(module_id)
-            | &IdentType::ClassAndModule(_, module_id)
-            | &IdentType::StructAndModule(_, module_id) => {
-                let module = self.vm.modules.idx(module_id);
-                let ty = module.read().ty;
-                self.src.set_ty(e.id, ty);
-
-                ty
-            }
-
-            &IdentType::TypeParam(_) => {
-                let msg = if self.used_in_call.contains(&e.id) {
-                    SemError::TypeParamUsedAsCallee
-                } else {
-                    SemError::TypeParamUsedAsIdentifier
-                };
-
-                self.vm.diag.lock().report(self.file, e.pos, msg);
-                self.src.set_ty(e.id, SourceType::Error);
-
-                SourceType::Error
-            }
-
-            &IdentType::Enum(_) => {
-                let msg = SemError::EnumUsedAsIdentifier;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
-                self.src.set_ty(e.id, SourceType::Error);
-
-                SourceType::Error
-            }
-
-            &IdentType::Namespace(_) => unimplemented!(),
-
-            &IdentType::EnumValue(_, _) => unreachable!(),
-            &IdentType::EnumType(_, _) => unreachable!(),
-            &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
-            &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
-            &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
-                unreachable!()
-            }
+        } else {
+            let name = self.vm.interner.str(e.name).to_string();
+            self.vm
+                .diag
+                .lock()
+                .report(self.fct.file, e.pos, SemError::UnknownIdentifier(name));
+            SourceType::Error
         }
     }
 
@@ -750,16 +778,23 @@ impl<'a> TypeCheck<'a> {
 
         self.src.set_ty(e.id, SourceType::Unit);
 
-        let ident_type = self.src.map_idents.get(e.lhs.id());
+        let lhs_ident = e.lhs.to_ident().unwrap();
+        let ident_type = self.get_ident_type_expr(lhs_ident);
 
         if ident_type.is_none() {
+            let name = self.vm.interner.str(lhs_ident.name).to_string();
+            self.vm.diag.lock().report(
+                self.fct.file,
+                lhs_ident.pos,
+                SemError::UnknownIdentifier(name),
+            );
             return;
         }
 
         let ident_type = ident_type.unwrap();
 
         match ident_type {
-            &IdentType::Var(varid) => {
+            IdentType::Var(varid) => {
                 if !self.src.vars[varid].reassignable {
                     self.vm
                         .diag
@@ -769,7 +804,7 @@ impl<'a> TypeCheck<'a> {
                 lhs_type = self.src.vars[varid].ty;
             }
 
-            &IdentType::Global(gid) => {
+            IdentType::Global(gid) => {
                 let glob = self.vm.globals.idx(gid);
                 let glob = glob.read();
 
@@ -783,15 +818,15 @@ impl<'a> TypeCheck<'a> {
                 lhs_type = glob.ty;
             }
 
-            &IdentType::Field(_, _) => {
+            IdentType::Field(_, _) => {
                 unreachable!();
             }
 
-            &IdentType::Struct(_) | &IdentType::StructAndModule(_, _) => {
+            IdentType::Struct(_) | IdentType::StructAndModule(_, _) => {
                 unimplemented!();
             }
 
-            &IdentType::Const(_) => {
+            IdentType::Const(_) => {
                 self.vm
                     .diag
                     .lock()
@@ -800,7 +835,7 @@ impl<'a> TypeCheck<'a> {
                 return;
             }
 
-            &IdentType::Fct(_) | &IdentType::FctType(_, _) => {
+            IdentType::Fct(_) | IdentType::FctType(_, _) => {
                 self.vm
                     .diag
                     .lock()
@@ -809,9 +844,7 @@ impl<'a> TypeCheck<'a> {
                 return;
             }
 
-            &IdentType::Class(_)
-            | &IdentType::ClassType(_, _)
-            | &IdentType::ClassAndModule(_, _) => {
+            IdentType::Class(_) | IdentType::ClassType(_, _) | IdentType::ClassAndModule(_, _) => {
                 self.vm
                     .diag
                     .lock()
@@ -820,9 +853,9 @@ impl<'a> TypeCheck<'a> {
                 return;
             }
 
-            &IdentType::Module(_) => unreachable!(),
+            IdentType::Module(_) => unreachable!(),
 
-            &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
+            IdentType::TypeParam(_) | IdentType::TypeParamStaticMethod(_, _) => {
                 self.vm
                     .diag
                     .lock()
@@ -831,7 +864,7 @@ impl<'a> TypeCheck<'a> {
                 return;
             }
 
-            &IdentType::Enum(_) | &IdentType::EnumType(_, _) | &IdentType::EnumValue(_, _) => {
+            IdentType::Enum(_) | IdentType::EnumType(_, _) | IdentType::EnumValue(_, _) => {
                 self.vm
                     .diag
                     .lock()
@@ -840,12 +873,10 @@ impl<'a> TypeCheck<'a> {
                 return;
             }
 
-            &IdentType::Method(_, _)
-            | &IdentType::MethodType(_, _, _)
-            | &IdentType::Namespace(_) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
+            IdentType::Method(_, _) | IdentType::MethodType(_, _, _) | IdentType::Namespace(_) => {
                 unreachable!()
             }
+            IdentType::StaticMethod(_, _) | IdentType::StaticMethodType(_, _, _) => unreachable!(),
         }
 
         if !lhs_type.is_error() && !rhs_type.is_error() && !lhs_type.allows(self.vm, rhs_type) {
@@ -1962,18 +1993,15 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_path(&mut self, e: &ExprPathType, expected_ty: SourceType) -> SourceType {
-        let (ident_type, type_params) = if e.lhs.is_ident() {
-            (self.src.map_idents.get(e.lhs.id()).cloned(), None)
+        let (ident_type, type_params) = if let Some(lhs_ident) = e.lhs.to_ident() {
+            (self.get_ident_type_expr(lhs_ident), None)
         } else if let Some(tp) = e.lhs.to_type_param() {
-            if tp.callee.is_ident() {
+            if let Some(ident_type) = tp.callee.to_ident() {
                 let type_params: Vec<SourceType> =
                     tp.args.iter().map(|p| self.read_type(p)).collect();
                 let type_params: TypeList = TypeList::with(type_params);
 
-                (
-                    self.src.map_idents.get(tp.callee.id()).cloned(),
-                    Some(type_params),
-                )
+                (self.get_ident_type_expr(ident_type), Some(type_params))
             } else {
                 (None, None)
             }
@@ -2474,6 +2502,54 @@ impl<'a> TypeCheck<'a> {
             ExprTuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
             ExprParen(ref expr) => self.check_expr_paren(expr, expected_ty),
             ExprMatch(_) => unimplemented!(),
+        }
+    }
+
+    fn get_ident_type_expr(&mut self, expr: &ExprIdentType) -> Option<IdentType> {
+        let sym_term = self.symtable.get_term(expr.name);
+        let sym_type = self.symtable.get_type(expr.name);
+        let ident_type = self.get_ident_type(sym_term, sym_type);
+
+        if let Some(ident_type) = ident_type.clone() {
+            self.src.map_idents.insert_or_replace(expr.id, ident_type);
+        }
+
+        ident_type
+    }
+
+    fn get_ident_type(
+        &mut self,
+        sym_term: Option<TermSym>,
+        sym_type: Option<TypeSym>,
+    ) -> Option<IdentType> {
+        match (sym_term, sym_type) {
+            (Some(TermSym::SymVar(id)), None) => Some(IdentType::Var(id)),
+            (Some(TermSym::SymGlobal(id)), None) => Some(IdentType::Global(id)),
+            (Some(TermSym::SymConst(id)), None) => Some(IdentType::Const(id)),
+            (Some(TermSym::SymFct(id)), None) => Some(IdentType::Fct(id)),
+            (Some(TermSym::SymModule(id)), None) => Some(IdentType::Module(id)),
+            (None, Some(TypeSym::SymStruct(id))) => Some(IdentType::Struct(id)),
+            (None, Some(TypeSym::SymClass(id))) => Some(IdentType::Class(id)),
+            (None, Some(TypeSym::SymTypeParam(id))) => {
+                Some(IdentType::TypeParam(SourceType::TypeParam(id)))
+            }
+            (None, Some(TypeSym::SymEnum(id))) => Some(IdentType::Enum(id)),
+            (Some(TermSym::SymModule(module_id)), Some(TypeSym::SymClass(class_id)))
+            | (
+                Some(TermSym::SymClassConstructorAndModule(_, module_id)),
+                Some(TypeSym::SymClass(class_id)),
+            ) => Some(IdentType::ClassAndModule(class_id, module_id)),
+            (Some(TermSym::SymClassConstructor(id)), _) => Some(IdentType::Class(id)),
+
+            (Some(TermSym::SymModule(module_id)), Some(TypeSym::SymStruct(struct_id)))
+            | (
+                Some(TermSym::SymStructConstructorAndModule(_, module_id)),
+                Some(TypeSym::SymStruct(struct_id)),
+            ) => Some(IdentType::StructAndModule(struct_id, module_id)),
+            (Some(TermSym::SymStructConstructor(id)), _) => Some(IdentType::Struct(id)),
+            (Some(TermSym::SymNamespace(id)), _) => Some(IdentType::Namespace(id)),
+            (None, None) => None,
+            (term_sym, type_sym) => unreachable!(format!("{:?} {:?}", term_sym, type_sym)),
         }
     }
 }
