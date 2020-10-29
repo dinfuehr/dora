@@ -2125,3 +2125,136 @@ fn check_wrong_number_type_params() {
         SemError::ParamTypesIncompatible("bar".into(), vec!["T".into()], vec!["Bool".into()]),
     );
 }
+
+#[test]
+fn multiple_functions() {
+    ok("fun f() {}\nfun g() {}");
+}
+
+#[test]
+fn redefine_function() {
+    err(
+        "fun f() {}\nfun f() {}",
+        pos(2, 1),
+        SemError::ShadowFunction("f".into()),
+    );
+}
+
+#[test]
+fn shadow_type_with_function() {
+    err(
+        "fun Int32() {}",
+        pos(1, 1),
+        SemError::ShadowClassConstructor("Int32".into()),
+    );
+}
+
+#[test]
+fn shadow_type_with_param() {
+    err(
+        "fun test(Bool: String) {}",
+        pos(1, 10),
+        SemError::ShadowClassConstructor("Bool".into()),
+    );
+}
+
+#[test]
+fn shadow_type_with_var() {
+    ok("fun test() { let String = 3; }");
+}
+
+#[test]
+fn shadow_function() {
+    ok("fun f() { let f = 1; }");
+    err(
+        "fun f() { let f = 1; f(); }",
+        pos(1, 23),
+        SemError::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
+    );
+}
+
+#[test]
+fn shadow_var() {
+    ok("fun f() { let f = 1; let f = 2; }");
+}
+
+#[test]
+fn shadow_param() {
+    err(
+        "fun f(a: Int32, b: Int32, a: String) {}",
+        pos(1, 27),
+        SemError::ShadowParam("a".into()),
+    );
+}
+
+#[test]
+fn multiple_params() {
+    ok("fun f(a: Int32, b: Int32, c:String) {}");
+}
+
+#[test]
+fn undefined_variable() {
+    err(
+        "fun f() { let b = a; }",
+        pos(1, 19),
+        SemError::UnknownIdentifier("a".into()),
+    );
+    err(
+        "fun f() { a; }",
+        pos(1, 11),
+        SemError::UnknownIdentifier("a".into()),
+    );
+}
+
+#[test]
+fn undefined_function() {
+    err(
+        "fun f() { foo(); }",
+        pos(1, 11),
+        SemError::UnknownIdentifier("foo".into()),
+    );
+}
+
+#[test]
+fn recursive_function_call() {
+    ok("fun f() { f(); }");
+}
+
+#[test]
+fn function_call() {
+    ok("fun a() {}\nfun b() { a(); }");
+
+    // non-forward definition of functions
+    ok("fun a() { b(); }\nfun b() {}");
+}
+
+#[test]
+fn variable_outside_of_scope() {
+    err(
+        "fun f(): Int32 { { let a = 1; } return a; }",
+        pos(1, 40),
+        SemError::UnknownIdentifier("a".into()),
+    );
+
+    ok("fun f(): Int32 { let a = 1; { let a = 2; } return a; }");
+}
+
+#[test]
+fn const_value() {
+    ok("const one: Int32 = 1;
+        fun f(): Int32 { return one; }");
+}
+
+#[test]
+fn for_var() {
+    ok("fun f() { for i in range(0, 4) { i; } }");
+}
+
+#[test]
+#[ignore]
+fn namespace_fct_call() {
+    ok("
+        fun f() { foo::g(); }
+        namespace foo { fun g() {} }
+    ");
+}
