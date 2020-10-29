@@ -1,13 +1,10 @@
 use std::collections::HashSet;
-use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
-use dora_parser::ast::visit::*;
-use dora_parser::ast::*;
+use crate::vm::{self, Fct, FctId, FctParent, VM};
 
 pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
@@ -193,23 +190,6 @@ pub fn check(vm: &VM) {
 
             _ => {}
         }
-
-        if !fct.is_src() {
-            continue;
-        }
-
-        let src = fct.src();
-        let mut src = src.write();
-
-        let mut defck = FctDefCheck {
-            vm,
-            fct: &*fct,
-            src: &mut src,
-            current_type: SourceType::Unit,
-            sym: sym_table,
-        };
-
-        defck.check();
     }
 }
 
@@ -271,39 +251,6 @@ fn check_against_methods(vm: &VM, fct: &Fct, methods: &[FctId]) {
             vm.diag.lock().report(fct.file, fct.ast.pos, msg);
             return;
         }
-    }
-}
-
-struct FctDefCheck<'a> {
-    vm: &'a VM,
-    fct: &'a Fct,
-    src: &'a mut FctSrc,
-    current_type: SourceType,
-    sym: SymTables,
-}
-
-impl<'a> FctDefCheck<'a> {
-    fn check(&mut self) {
-        self.visit_fct(&self.fct.ast);
-    }
-}
-
-impl<'a> Visitor for FctDefCheck<'a> {
-    fn visit_fct(&mut self, f: &Arc<Function>) {
-        let block = f.block();
-        for stmt in &block.stmts {
-            self.visit_stmt(stmt);
-        }
-
-        if let Some(ref value) = block.expr {
-            self.visit_expr(value);
-        }
-    }
-
-    fn visit_type(&mut self, t: &Type) {
-        self.current_type = semck::read_type_table(self.vm, &self.sym, self.fct.file, t)
-            .unwrap_or(SourceType::Unit);
-        self.src.set_ty(t.id(), self.current_type);
     }
 }
 

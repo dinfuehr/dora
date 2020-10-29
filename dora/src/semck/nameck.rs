@@ -97,37 +97,13 @@ impl<'a> NameCheck<'a> {
     }
 
     pub fn add_hidden_parameter_self(&mut self) {
-        let ty = match self.fct.parent {
-            FctParent::Class(cls_id) => {
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-
-                cls.ty
-            }
-
-            FctParent::Impl(impl_id) => {
-                let ximpl = self.vm.impls[impl_id].read();
-                let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
-                let cls = cls.read();
-
-                cls.ty
-            }
-
-            FctParent::Extension(extension_id) => {
-                let extension = self.vm.extensions[extension_id].read();
-                extension.ty
-            }
-
-            _ => unreachable!(),
-        };
-
         let ast_id = self.fct.ast.id;
         let name = self.vm.interner.intern("self");
 
         let var = Var {
             id: VarId(0),
             name,
-            ty,
+            ty: SourceType::Error,
             reassignable: false,
             node_id: ast_id,
         };

@@ -6,7 +6,7 @@ use std::{f32, f64};
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::semck::{always_returns, expr_always_returns};
+use crate::semck::{always_returns, expr_always_returns, read_type_table};
 use crate::sym::{SymTables, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
@@ -37,6 +37,7 @@ impl<'a> TypeCheck<'a> {
     pub fn check(&mut self) {
         assert_eq!(self.symtable.levels(), 0);
         self.symtable.push_level();
+        self.add_type_params();
         self.add_params();
 
         let block = self.ast.block.as_ref().expect("missing block");
@@ -69,7 +70,55 @@ impl<'a> TypeCheck<'a> {
         assert_eq!(self.symtable.levels(), 0);
     }
 
+    fn add_type_params(&mut self) {
+        let cls_type_params_count = match self.fct.parent {
+            FctParent::Class(owner_class) => {
+                let cls = self.vm.classes.idx(owner_class);
+                let cls = cls.read();
+                let mut type_param_id = 0;
+
+                for param in &cls.type_params {
+                    let sym = TypeSym::SymTypeParam(type_param_id.into());
+                    self.symtable.insert_type(param.name, sym);
+                    type_param_id += 1;
+                }
+
+                type_param_id
+            }
+
+            FctParent::Impl(_impl_id) => 0,
+
+            FctParent::Extension(extension_id) => {
+                let extension = self.vm.extensions[extension_id].read();
+                let mut type_param_id = 0;
+
+                for param in &extension.type_params {
+                    let sym = TypeSym::SymTypeParam(type_param_id.into());
+                    self.symtable.insert_type(param.name, sym);
+                    type_param_id += 1;
+                }
+
+                type_param_id
+            }
+
+            FctParent::Module(_) => 0,
+            FctParent::Trait(_) => 0,
+            FctParent::None => 0,
+        };
+
+        if let Some(ref type_params) = self.fct.ast.type_params {
+            for (tpid, tp) in type_params.iter().enumerate() {
+                self.symtable.insert_type(
+                    tp.name,
+                    TypeSym::SymTypeParam((cls_type_params_count + tpid).into()),
+                );
+            }
+        }
+    }
+
     fn add_params(&mut self) {
+        self.add_hidden_parameter_self();
+
         for param in &self.ast.params {
             let var_id = self.src.map_vars.get(param.id).cloned().unwrap();
             let term_sym = self
@@ -107,9 +156,41 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    pub fn check_stmt_let(&mut self, s: &StmtLetType) {
+    fn add_hidden_parameter_self(&mut self) {
+        if !self.fct.has_self() {
+            return;
+        }
+
+        let ty = match self.fct.parent {
+            FctParent::Class(cls_id) => {
+                let cls = self.vm.classes.idx(cls_id);
+                let cls = cls.read();
+
+                cls.ty
+            }
+
+            FctParent::Impl(impl_id) => {
+                let ximpl = self.vm.impls[impl_id].read();
+                let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
+                let cls = cls.read();
+
+                cls.ty
+            }
+
+            FctParent::Extension(extension_id) => {
+                let extension = self.vm.extensions[extension_id].read();
+                extension.ty
+            }
+
+            _ => unreachable!(),
+        };
+
+        self.src.var_self_mut().ty = ty;
+    }
+
+    fn check_stmt_let(&mut self, s: &StmtLetType) {
         let defined_type = if let Some(ref data_type) = s.data_type {
-            self.src.ty(data_type.id())
+            self.read_type(data_type)
         } else {
             SourceType::Any
         };
@@ -167,6 +248,10 @@ impl<'a> TypeCheck<'a> {
                 .lock()
                 .report(self.file, s.pos, SemError::LetMissingInitialization);
         }
+    }
+
+    fn read_type(&mut self, t: &Type) -> SourceType {
+        read_type_table(self.vm, &self.symtable, self.fct.file, t).unwrap_or(SourceType::Error)
     }
 
     fn add_vars_from_let_pattern(&mut self, pattern: &LetPattern) {
@@ -1151,7 +1236,7 @@ impl<'a> TypeCheck<'a> {
             let type_params: Vec<SourceType> = expr_type_params
                 .args
                 .iter()
-                .map(|p| self.src.ty(p.id()))
+                .map(|p| self.read_type(p))
                 .collect();
             let type_params: TypeList = TypeList::with(type_params);
             (&expr_type_params.callee, type_params)
@@ -1882,7 +1967,7 @@ impl<'a> TypeCheck<'a> {
         } else if let Some(tp) = e.lhs.to_type_param() {
             if tp.callee.is_ident() {
                 let type_params: Vec<SourceType> =
-                    tp.args.iter().map(|p| self.src.ty(p.id())).collect();
+                    tp.args.iter().map(|p| self.read_type(p)).collect();
                 let type_params: TypeList = TypeList::with(type_params);
 
                 (
@@ -2013,7 +2098,7 @@ impl<'a> TypeCheck<'a> {
         let expr_type = self.check_expr(&e.callee, SourceType::Any);
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
-        let type_params: Vec<SourceType> = e.args.iter().map(|p| self.src.ty(p.id())).collect();
+        let type_params: Vec<SourceType> = e.args.iter().map(|p| self.read_type(p)).collect();
         let type_params: TypeList = TypeList::with(type_params);
 
         match ident_type {
@@ -2202,8 +2287,8 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_lambda(&mut self, e: &ExprLambdaType, _expected_ty: SourceType) -> SourceType {
-        let ret = if let Some(ref ty) = e.ret {
-            self.src.ty(ty.id())
+        let ret = if let Some(ref ret_type) = e.ret {
+            self.read_type(ret_type)
         } else {
             SourceType::Unit
         };
@@ -2211,7 +2296,7 @@ impl<'a> TypeCheck<'a> {
         let params = e
             .params
             .iter()
-            .map(|p| self.src.ty(p.data_type.id()))
+            .map(|p| self.read_type(&p.data_type))
             .collect::<Vec<_>>();
 
         let ty = self.vm.lambda_types.lock().insert(params, ret);
@@ -2226,26 +2311,14 @@ impl<'a> TypeCheck<'a> {
         let object_type = self.check_expr(&e.object, SourceType::Any);
         self.src.set_ty(e.object.id(), object_type);
 
-        let check_type = self.src.ty(e.data_type.id());
+        let check_type = self.read_type(&e.data_type);
 
-        if !check_type.is_cls() {
+        if !check_type.is_error() && !check_type.is_cls() {
             let name = check_type.name_fct(self.vm, self.fct);
             self.vm
                 .diag
                 .lock()
                 .report(self.file, e.pos, SemError::ReferenceTypeExpected(name));
-            let ty = if e.is {
-                SourceType::Bool
-            } else {
-                SourceType::Error
-            };
-            self.src.set_ty(e.id, ty);
-            return ty;
-        }
-
-        let error = ErrorReporting::Yes(self.file, e.data_type.pos());
-
-        if !typeparamck::check_in_fct(self.vm, self.fct, error, check_type) {
             let ty = if e.is {
                 SourceType::Bool
             } else {
