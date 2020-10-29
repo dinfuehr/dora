@@ -7,7 +7,7 @@ use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns};
-use crate::sym::TypeSym::SymClass;
+use crate::sym::{SymTables, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
@@ -30,10 +30,15 @@ pub struct TypeCheck<'a> {
     pub src: &'a mut FctSrc,
     pub ast: &'a Function,
     pub used_in_call: HashSet<NodeId>,
+    pub symtable: SymTables,
 }
 
 impl<'a> TypeCheck<'a> {
     pub fn check(&mut self) {
+        assert_eq!(self.symtable.levels(), 0);
+        self.symtable.push_level();
+        self.add_params();
+
         let block = self.ast.block.as_ref().expect("missing block");
         let mut returns = false;
 
@@ -58,6 +63,47 @@ impl<'a> TypeCheck<'a> {
 
         if !returns {
             self.check_fct_return_type(block.pos, return_type);
+        }
+
+        self.symtable.pop_level();
+        assert_eq!(self.symtable.levels(), 0);
+    }
+
+    fn add_params(&mut self) {
+        for param in &self.ast.params {
+            let var_id = self.src.map_vars.get(param.id).cloned().unwrap();
+            let term_sym = self
+                .symtable
+                .insert_term(param.name, TermSym::SymVar(var_id));
+
+            if let Some(term_sym) = term_sym {
+                report_term_shadow(self.vm, param.name, self.fct.file, param.pos, term_sym);
+            }
+        }
+
+        let self_count = if self.fct.has_self() { 1 } else { 0 };
+        debug_assert_eq!(
+            self.ast.params.len() + self_count,
+            self.fct.param_types.len()
+        );
+
+        for (ind, (param, &ty)) in self
+            .ast
+            .params
+            .iter()
+            .zip(self.fct.param_types.iter().skip(self_count))
+            .enumerate()
+        {
+            // is this last argument of function with variadic arguments?
+            let ty = if self.fct.variadic_arguments && ind == self.ast.params.len() - 1 {
+                // type of variable is Array[T]
+                self.vm.known.array_ty(self.vm, ty)
+            } else {
+                ty
+            };
+
+            let var = *self.src.map_vars.get(param.id).unwrap();
+            self.src.vars[var].ty = ty;
         }
     }
 
@@ -95,6 +141,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         // update type of variable, necessary when stmt has initializer expression but no type
+        self.add_vars_from_let_pattern(&s.pattern);
         self.check_stmt_let_pattern(&s.pattern, defined_type);
 
         if s.expr.is_some() {
@@ -119,6 +166,36 @@ impl<'a> TypeCheck<'a> {
                 .diag
                 .lock()
                 .report(self.file, s.pos, SemError::LetMissingInitialization);
+        }
+    }
+
+    fn add_vars_from_let_pattern(&mut self, pattern: &LetPattern) {
+        match pattern {
+            LetPattern::Ident(ref ident) => {
+                let var_id = self.src.map_vars.get(ident.id).cloned().unwrap();
+
+                let term_sym = self
+                    .symtable
+                    .insert_term(ident.name, TermSym::SymVar(var_id));
+
+                match term_sym {
+                    Some(TermSym::SymVar(_)) | None => {}
+
+                    Some(term_sym) => {
+                        report_term_shadow(self.vm, ident.name, self.fct.file, ident.pos, term_sym);
+                    }
+                }
+            }
+
+            LetPattern::Underscore(_) => {
+                // no variable to declare
+            }
+
+            LetPattern::Tuple(ref tuple) => {
+                for sub in &tuple.parts {
+                    self.add_vars_from_let_pattern(sub);
+                }
+            }
         }
     }
 
@@ -192,8 +269,11 @@ impl<'a> TypeCheck<'a> {
         let object_type = self.check_expr(&stmt.expr, SourceType::Any);
 
         if object_type.is_error() {
+            self.symtable.push_level();
+            self.add_vars_from_let_pattern(&stmt.pattern);
             self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
             self.visit_stmt(&stmt.block);
+            self.symtable.pop_level();
             return;
         }
 
@@ -202,21 +282,24 @@ impl<'a> TypeCheck<'a> {
                 let type_list = object_type.type_params(self.vm);
                 let var_ty = type_list[0];
 
+                self.symtable.push_level();
+                self.add_vars_from_let_pattern(&stmt.pattern);
                 self.check_stmt_let_pattern(&stmt.pattern, var_ty);
-
                 self.visit_stmt(&stmt.block);
+                self.symtable.pop_level();
                 return;
             }
         }
 
         if let Some((for_type_info, ret_type)) = self.type_supports_iterator_protocol(object_type) {
+            self.symtable.push_level();
+            self.add_vars_from_let_pattern(&stmt.pattern);
             // set variable type to return type of next
             self.check_stmt_let_pattern(&stmt.pattern, ret_type);
-
             // store fct ids for code generation
             self.src.map_fors.insert(stmt.id, for_type_info);
-
             self.visit_stmt(&stmt.block);
+            self.symtable.pop_level();
             return;
         }
 
@@ -225,6 +308,8 @@ impl<'a> TypeCheck<'a> {
             if let Some((mut for_type_info, ret_type)) =
                 self.type_supports_iterator_protocol(iterator_type)
             {
+                self.symtable.push_level();
+                self.add_vars_from_let_pattern(&stmt.pattern);
                 // set variable type to return type of next
                 self.check_stmt_let_pattern(&stmt.pattern, ret_type);
 
@@ -233,6 +318,7 @@ impl<'a> TypeCheck<'a> {
                 self.src.map_fors.insert(stmt.id, for_type_info);
 
                 self.visit_stmt(&stmt.block);
+                self.symtable.pop_level();
                 return;
             }
         }
@@ -242,8 +328,11 @@ impl<'a> TypeCheck<'a> {
         self.vm.diag.lock().report(self.file, stmt.expr.pos(), msg);
 
         // set invalid error type
+        self.symtable.push_level();
+        self.add_vars_from_let_pattern(&stmt.pattern);
         self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
         self.visit_stmt(&stmt.block);
+        self.symtable.pop_level();
     }
 
     fn type_supports_make_iterator(
@@ -349,6 +438,8 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_block(&mut self, block: &ExprBlockType, _expected_ty: SourceType) -> SourceType {
+        self.symtable.push_level();
+
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
         }
@@ -360,6 +451,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         self.src.set_ty(block.id, ty);
+        self.symtable.pop_level();
 
         ty
     }
@@ -1073,7 +1165,9 @@ impl<'a> TypeCheck<'a> {
             .map(|arg| self.check_expr(arg, SourceType::Any))
             .collect();
 
-        if let Some(expr_dot) = callee.to_dot() {
+        if let Some(_expr_ident) = callee.to_ident() {
+            unimplemented!()
+        } else if let Some(expr_dot) = callee.to_dot() {
             let object_type = self.check_expr(&expr_dot.lhs, SourceType::Any);
             let method_name = match expr_dot.rhs.to_ident() {
                 Some(ident) => ident.name,
@@ -1680,7 +1774,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         match self.vm.global_namespace.read().get_type(class) {
-            Some(SymClass(cls_id)) => {
+            Some(TypeSym::SymClass(cls_id)) => {
                 let mut lookup = MethodLookup::new(self.vm, self.fct)
                     .pos(e.pos)
                     .static_method(cls_id)
@@ -2623,4 +2717,26 @@ pub fn lookup_method(
     }
 
     None
+}
+
+fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: TermSym) {
+    let name = vm.interner.str(name).to_string();
+
+    let msg = match sym {
+        TermSym::SymFct(_) => SemError::ShadowFunction(name),
+        TermSym::SymGlobal(_) => SemError::ShadowGlobal(name),
+        TermSym::SymConst(_) => SemError::ShadowConst(name),
+        TermSym::SymModule(_) => SemError::ShadowModule(name),
+        TermSym::SymVar(_) => SemError::ShadowParam(name),
+        TermSym::SymClassConstructor(_) | TermSym::SymClassConstructorAndModule(_, _) => {
+            SemError::ShadowClassConstructor(name)
+        }
+        TermSym::SymStructConstructor(_) | TermSym::SymStructConstructorAndModule(_, _) => {
+            SemError::ShadowStructConstructor(name)
+        }
+        TermSym::SymNamespace(_) => SemError::ShadowNamespace(name),
+        _ => unimplemented!("{:?}", sym),
+    };
+
+    vm.diag.lock().report(file, pos, msg);
 }

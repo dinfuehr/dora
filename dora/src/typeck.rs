@@ -1,5 +1,6 @@
 use std::collections::hash_set::HashSet;
 
+use crate::sym::SymTables;
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::expr::TypeCheck;
 use crate::vm::VM;
@@ -30,6 +31,7 @@ pub fn check<'a>(vm: &VM) {
             src: &mut src,
             ast: &fct.ast,
             used_in_call: HashSet::new(),
+            symtable: SymTables::current(vm, fct.namespace_id),
         };
 
         typeck.check();

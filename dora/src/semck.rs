@@ -88,11 +88,6 @@ pub fn check(vm: &mut VM) {
     clsdefck::check_super_definition(vm, &map_cls_defs);
     return_on_error!(vm);
 
-    // check names/identifiers of local variables
-    // and their usage (variable def/use, function calls) in function bodies
-    nameck::check(vm);
-    return_on_error!(vm);
-
     // check type definitions of params,
     // return types and local variables in functions
     fctdefck::check(vm);
@@ -108,6 +103,11 @@ pub fn check(vm: &mut VM) {
     // define internal functions & methods
     prelude::internal_functions(vm);
     prelude::known_methods(vm);
+
+    // check names/identifiers of local variables
+    // and their usage (variable def/use, function calls) in function bodies
+    nameck::check(vm);
+    return_on_error!(vm);
 
     // check types of expressions in functions
     typeck::check(vm);

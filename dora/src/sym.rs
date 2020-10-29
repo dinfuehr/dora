@@ -52,6 +52,10 @@ impl SymTables {
         self.levels.pop();
     }
 
+    pub fn levels(&mut self) -> usize {
+        self.levels.len()
+    }
+
     pub fn get_type(&self, name: Name) -> Option<TypeSym> {
         for level in self.levels.iter().rev() {
             if let Some(val) = level.get_type(name) {

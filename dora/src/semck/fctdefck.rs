@@ -130,7 +130,7 @@ pub fn check(vm: &VM) {
             }
         }
 
-        for (ind, p) in ast.params.iter().enumerate() {
+        for p in &ast.params {
             if fct.variadic_arguments {
                 vm.diag
                     .lock()
@@ -138,7 +138,7 @@ pub fn check(vm: &VM) {
             }
 
             let ty = semck::read_type_table(vm, &sym_table, fct.file, &p.data_type)
-                .unwrap_or(SourceType::Unit);
+                .unwrap_or(SourceType::Error);
 
             if ty == SourceType::This && !fct.in_trait() {
                 vm.diag
@@ -150,22 +150,6 @@ pub fn check(vm: &VM) {
 
             if p.variadic {
                 fct.variadic_arguments = true;
-            }
-
-            if fct.is_src() {
-                let src = fct.src();
-                let mut src = src.write();
-
-                // is this last argument of function with variadic arguments?
-                let ty = if fct.variadic_arguments && ind == ast.params.len() - 1 {
-                    // type of variable is Array[T]
-                    vm.known.array_ty(vm, ty)
-                } else {
-                    ty
-                };
-
-                let var = *src.map_vars.get(p.id).unwrap();
-                src.vars[var].ty = ty;
             }
         }
 

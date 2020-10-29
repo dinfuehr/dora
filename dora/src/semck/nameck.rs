@@ -132,6 +132,7 @@ impl<'a> NameCheck<'a> {
             node_id: ast_id,
         };
 
+        assert!(self.src.vars.is_empty());
         self.src.vars.push(var);
     }
 
@@ -165,7 +166,7 @@ impl<'a> NameCheck<'a> {
                     id: VarId(0),
                     name: ident.name,
                     reassignable: reassignable || ident.mutable,
-                    ty: SourceType::Unit,
+                    ty: SourceType::Error,
                     node_id: ident.id,
                 };
 
@@ -337,7 +338,7 @@ impl<'a> Visitor for NameCheck<'a> {
             id: VarId(0),
             name: p.name,
             reassignable: false,
-            ty: SourceType::Unit,
+            ty: SourceType::Error,
             node_id: p.id,
         };
 
