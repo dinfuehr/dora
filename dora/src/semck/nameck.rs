@@ -292,15 +292,21 @@ impl<'a> NameCheck<'a> {
         self.visit_expr(&path.lhs);
         // do not check right hand site of path
 
-        let lhs_ident_type = self.src.map_idents.get(path.lhs.id());
+        let lhs_ident_type = self.src.map_idents.get(path.lhs.id()).cloned();
 
-        if let Some(IdentType::Namespace(namespace_id)) = lhs_ident_type {
-            if let Some(rhs_ident) = path.rhs.to_ident() {
-                let namespace = &self.vm.namespaces[namespace_id.to_usize()];
-                let table = namespace.table.read();
-                let sym_term = table.get_term(rhs_ident.name);
-                let sym_type = table.get_type(rhs_ident.name);
-                self.find_sym(sym_term, sym_type, rhs_ident.name, path.id, path.pos);
+        if let Some(lhs_ident_type) = lhs_ident_type {
+            match lhs_ident_type {
+                IdentType::Namespace(namespace_id) => {
+                    if let Some(rhs_ident) = path.rhs.to_ident() {
+                        let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+                        let table = namespace.table.read();
+                        let sym_term = table.get_term(rhs_ident.name);
+                        let sym_type = table.get_type(rhs_ident.name);
+                        self.find_sym(sym_term, sym_type, rhs_ident.name, path.id, path.pos);
+                    }
+                }
+
+                _ => {}
             }
         }
     }
