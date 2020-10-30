@@ -12,7 +12,7 @@ use crate::vm::module::find_methods_in_module;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 enum LookupKind {
     Fct,
     Method(SourceType),
@@ -137,7 +137,7 @@ impl<'a> MethodLookup<'a> {
     }
 
     pub fn find(&mut self) -> bool {
-        let kind = self.kind.expect("kind not set");
+        let kind = self.kind.clone().expect("kind not set");
         let args = self.args.expect("args not set");
 
         let fct_id = match kind {
@@ -149,9 +149,9 @@ impl<'a> MethodLookup<'a> {
 
             LookupKind::Callee(fct_id) => Some(fct_id),
 
-            LookupKind::Method(obj) => {
+            LookupKind::Method(ref obj) => {
                 let name = self.name.expect("name not set");
-                self.find_method(obj, name, false)
+                self.find_method(obj.clone(), name, false)
             }
 
             LookupKind::Trait(trait_id) => {
@@ -194,7 +194,7 @@ impl<'a> MethodLookup<'a> {
             let msg = match kind {
                 LookupKind::Fct => SemError::Unimplemented,
                 LookupKind::Callee(_) => unreachable!(),
-                LookupKind::Method(obj) => {
+                LookupKind::Method(ref obj) => {
                     let type_name = obj.name_fct(self.vm, self.caller);
 
                     if self.found_multiple_functions {
@@ -256,7 +256,7 @@ impl<'a> MethodLookup<'a> {
 
         let container_tps: TypeList = if let Some(container_tps) = self.container_tps {
             container_tps.clone()
-        } else if let LookupKind::Method(obj) = kind {
+        } else if let LookupKind::Method(ref obj) = kind {
             obj.type_params(self.vm)
         } else {
             TypeList::empty()
@@ -315,11 +315,11 @@ impl<'a> MethodLookup<'a> {
             }
             _ => {
                 let type_list = container_tps.append(&fct_tps);
-                replace_type_param(self.vm, fct.return_type, &type_list, None)
+                replace_type_param(self.vm, fct.return_type.clone(), &type_list, None)
             }
         };
 
-        if self.ret.is_none() || self.ret.unwrap() == cmp_type {
+        if self.ret.is_none() || self.ret.clone().unwrap() == cmp_type {
             self.found_ret = Some(cmp_type);
             true
         } else {
@@ -356,7 +356,7 @@ impl<'a> MethodLookup<'a> {
 
         if candidates.len() == 1 {
             let candidate = candidates.first().unwrap();
-            self.found_class_type = Some(candidate.0);
+            self.found_class_type = Some(candidate.0.clone());
             Some(candidate.1)
         } else {
             None
@@ -422,10 +422,10 @@ impl<'a> MethodLookup<'a> {
     }
 
     pub fn found_class_type(&self) -> Option<SourceType> {
-        self.found_class_type
+        self.found_class_type.clone()
     }
 
     pub fn found_ret(&self) -> Option<SourceType> {
-        self.found_ret
+        self.found_ret.clone()
     }
 }

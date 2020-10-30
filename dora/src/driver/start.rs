@@ -14,7 +14,6 @@ use dora_parser::lexer::reader::Reader;
 
 use crate::semck;
 use crate::semck::specialize::specialize_class_id;
-use crate::ty::SourceType;
 use dora_parser::parser::Parser;
 
 pub fn start() -> i32 {
@@ -327,9 +326,11 @@ fn find_main(vm: &VM) -> Option<FctId> {
 
     let fct = vm.fcts.idx(fctid);
     let fct = fct.read();
-    let ret = fct.return_type;
+    let ret = fct.return_type.clone();
 
-    if (ret != SourceType::Unit && ret != SourceType::Int32) || fct.params_without_self().len() > 0
+    if (!ret.is_unit() && !ret.is_int32())
+        || !fct.params_without_self().is_empty()
+        || !fct.type_params.is_empty()
     {
         let pos = fct.ast.pos;
         vm.diag

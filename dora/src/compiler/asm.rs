@@ -475,7 +475,7 @@ impl<'a> BaselineAssembler<'a> {
         gcpoint: GcPoint,
         dest: AnyReg,
     ) {
-        let ty = internal_fct.return_type;
+        let ty = internal_fct.return_type.clone();
         let ptr = ensure_native_stub(self.vm, None, internal_fct);
 
         self.masm.raw_call(ptr.to_ptr());

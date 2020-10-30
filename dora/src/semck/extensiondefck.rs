@@ -60,7 +60,7 @@ impl<'x> ExtensionCheck<'x> {
         if let Some(extension_ty) =
             semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &i.class_type)
         {
-            self.extension_ty = extension_ty;
+            self.extension_ty = extension_ty.clone();
 
             match extension_ty {
                 SourceType::Enum(enum_id, _) => {
@@ -111,7 +111,7 @@ impl<'x> ExtensionCheck<'x> {
 
                 assert!(type_param.bounds.is_empty());
 
-                let sym = TypeSym::SymTypeParam(type_param_id.into());
+                let sym = TypeSym::TypeParam(type_param_id.into());
                 self.sym.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
@@ -230,7 +230,6 @@ impl<'x> Visitor for ExtensionCheck<'x> {
             param_types: Vec::new(),
             return_type: SourceType::Unit,
             parent: parent,
-            newcall: f.newcall,
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,

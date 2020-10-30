@@ -86,7 +86,7 @@ impl<'x> EnumCheck<'x> {
                     }
                 }
 
-                let sym = TypeSym::SymTypeParam(type_param_id.into());
+                let sym = TypeSym::TypeParam(type_param_id.into());
                 self.sym.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }

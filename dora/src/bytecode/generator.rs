@@ -94,7 +94,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         if self.fct.has_self() {
             let var_self = self.src.var_self();
-            let var_ty = self.specialize_type(var_self.ty);
+            let var_ty = self.specialize_type(var_self.ty.clone());
 
             if !var_ty.is_unit() {
                 let var_id = var_self.id;
@@ -198,7 +198,7 @@ impl<'a> AstBytecodeGen<'a> {
         // type of expression: Array[Something]
         let ty = self.ty(stmt.expr.id());
         // get type of element: Something for Array[Something]
-        let ty = *ty.type_params(self.vm).types().first().unwrap();
+        let ty = ty.type_params(self.vm).types().first().cloned().unwrap();
         self.visit_stmt_for_pattern_assign_array(&stmt.pattern, array_reg, index_reg, ty);
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
@@ -266,7 +266,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             LetPattern::Tuple(ref tuple) => {
                 if tuple.parts.len() > 0 {
-                    let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+                    let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, ty.clone());
                     let tuple_reg = self.alloc_temp(bytecode_ty.clone());
                     self.emit_load_array(bytecode_ty, tuple_reg, array_reg, index_reg, tuple.pos);
                     self.destruct_tuple_pattern(tuple, tuple_reg, ty);
@@ -337,7 +337,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let ty = self.vm.tuples.lock().get_ty(tuple_id, idx);
 
                     if !ty.is_unit() {
-                        let temp_reg = self.alloc_temp(BytecodeType::from_ty(self.vm, ty));
+                        let temp_reg = self.alloc_temp(BytecodeType::from_ty(self.vm, ty.clone()));
                         self.gen
                             .emit_load_tuple_element(temp_reg, tuple_reg, tuple_id, idx as u32);
                         self.destruct_tuple_pattern(tuple, temp_reg, ty);
@@ -373,7 +373,7 @@ impl<'a> AstBytecodeGen<'a> {
             object_reg
         };
 
-        let iterator_type = self.specialize_type(for_type_info.iterator_type);
+        let iterator_type = self.specialize_type(for_type_info.iterator_type.clone());
         let iterator_type_params = iterator_type.type_params(self.vm);
 
         self.gen.emit_push_register(iterator_reg);
@@ -392,7 +392,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_temp(cond_reg);
 
         // Emit: <var> = <iterator>.next()
-        let next_ty = self.specialize_type(for_type_info.next_type);
+        let next_ty = self.specialize_type(for_type_info.next_type.clone());
         let fct_idx = self
             .gen
             .add_const_fct_types(for_type_info.next, iterator_type_params.clone());
@@ -400,11 +400,11 @@ impl<'a> AstBytecodeGen<'a> {
             self.gen.emit_push_register(iterator_reg);
             self.gen.emit_invoke_direct_void(fct_idx, stmt.expr.pos());
         } else {
-            let next_bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, next_ty);
+            let next_bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, next_ty.clone());
             let next_reg = self.alloc_var(next_bytecode_ty);
 
             self.gen.emit_push_register(iterator_reg);
-            self.emit_invoke_direct(next_ty, next_reg, fct_idx, stmt.expr.pos());
+            self.emit_invoke_direct(next_ty.clone(), next_reg, fct_idx, stmt.expr.pos());
 
             self.visit_stmt_for_pattern_setup(&stmt.pattern);
             self.visit_stmt_for_pattern_assign_iterator(&stmt.pattern, next_reg, next_ty);
@@ -530,7 +530,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn emit_ret_value(&mut self, result_reg: Register) {
-        let ret_ty = self.specialize_type(self.fct.return_type);
+        let ret_ty = self.specialize_type(self.fct.return_type.clone());
 
         if ret_ty.is_unit() {
             self.gen.emit_ret_void();
@@ -670,11 +670,10 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_path(&mut self, expr: &ExprPathType, dest: DataDest) -> Register {
-        let ident_type = self.src.map_idents.get(expr.id).unwrap();
+        let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
-            &IdentType::EnumValue(enum_ty, variant_id) => {
-                let enum_id = enum_ty.enum_id().expect("enum expected");
+            IdentType::EnumValueType(enum_id, type_list, variant_id) => {
                 let xenum = &self.vm.enums[enum_id];
                 let xenum = xenum.read();
 
@@ -683,13 +682,11 @@ impl<'a> AstBytecodeGen<'a> {
                     self.gen.emit_const_int32(dest, variant_id as i32);
                     dest
                 } else {
-                    let bty = BytecodeType::from_ty(self.vm, enum_ty);
+                    let bty = BytecodeType::Enum(enum_id, type_list.clone());
                     let dest = self.ensure_register(dest, bty);
-                    let idx = self.gen.add_const_enum_variant(
-                        enum_id,
-                        enum_ty.type_params(self.vm),
-                        variant_id,
-                    );
+                    let idx = self
+                        .gen
+                        .add_const_enum_variant(enum_id, type_list, variant_id);
                     self.gen.emit_new_enum(dest, idx, expr.pos);
                     dest
                 }
@@ -700,8 +697,8 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_conv(&mut self, expr: &ExprConvType, dest: DataDest) -> Register {
-        let conv = *self.src.map_convs.get(expr.id).unwrap();
-        let ty = self.specialize_type(conv.check_type);
+        let conv = self.src.map_convs.get(expr.id).clone().unwrap();
+        let ty = self.specialize_type(conv.check_type.clone());
         let cls_id = ty.cls_id(self.vm).expect("class expected");
         let type_params = ty.type_params(self.vm);
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
@@ -798,7 +795,7 @@ impl<'a> AstBytecodeGen<'a> {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
             match ident_type {
-                &IdentType::Field(ty, field) => (ty, field),
+                IdentType::Field(ty, field) => (ty.clone(), *field),
                 _ => unreachable!(),
             }
         };
@@ -816,7 +813,7 @@ impl<'a> AstBytecodeGen<'a> {
             let cls = cls.read();
 
             let field = &cls.fields[field_id.idx()];
-            field.ty
+            field.ty.clone()
         };
 
         let field_ty = specialize_type(self.vm, field_ty, &type_params);
@@ -883,8 +880,8 @@ impl<'a> AstBytecodeGen<'a> {
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
 
-        if let CallType::Enum(enum_ty, variant_id) = *call_type {
-            return self.visit_expr_call_enum(expr, enum_ty, variant_id, dest);
+        if let CallType::Enum(ref enum_ty, variant_id) = *call_type {
+            return self.visit_expr_call_enum(expr, enum_ty.clone(), variant_id, dest);
         }
 
         // Find method that is called
@@ -903,7 +900,7 @@ impl<'a> AstBytecodeGen<'a> {
         let return_reg = if return_type.is_unit() {
             Register::invalid()
         } else {
-            self.ensure_register(dest, BytecodeType::from_ty(self.vm, return_type))
+            self.ensure_register(dest, BytecodeType::from_ty(self.vm, return_type.clone()))
         };
 
         // Evaluate object/self argument
@@ -992,18 +989,18 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
         fct: &Fct,
     ) -> (Vec<SourceType>, Vec<BytecodeType>, SourceType) {
-        let return_type = self.specialize_type_for_call(&call_type, fct.return_type);
+        let return_type = self.specialize_type_for_call(&call_type, fct.return_type.clone());
 
         let arg_types = fct
             .params_with_self()
             .iter()
-            .map(|&arg| self.specialize_type_for_call(&call_type, arg))
+            .map(|arg| self.specialize_type_for_call(&call_type, arg.clone()))
             .collect::<Vec<SourceType>>();
 
         let arg_bytecode_types = arg_types
             .iter()
             .filter(|ty| !ty.is_unit())
-            .map(|&ty| BytecodeType::from_ty(self.vm, ty))
+            .map(|ty| BytecodeType::from_ty(self.vm, ty.clone()))
             .collect::<Vec<BytecodeType>>();
 
         (arg_types, arg_bytecode_types, return_type)
@@ -1058,7 +1055,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Evaluate non-variadic arguments and track registers.
         for (idx, arg) in expr.args.iter().take(non_variadic_arguments).enumerate() {
-            let ty = arg_types[idx + arg_start_offset];
+            let ty = arg_types[idx + arg_start_offset].clone();
 
             if ty.is_unit() {
                 self.emit_expr_for_effect(arg);
@@ -1092,7 +1089,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // We need array of elements
         let element_ty = arg_types.last().cloned().unwrap();
-        let ty = self.vm.known.array_ty(self.vm, element_ty);
+        let ty = self.vm.known.array_ty(self.vm, element_ty.clone());
         let cls_id = ty.cls_id(self.vm).expect("class expected");
         let type_params = ty.type_params(self.vm);
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
@@ -1367,8 +1364,11 @@ impl<'a> AstBytecodeGen<'a> {
         let arg_types = callee
             .params_with_self()
             .iter()
-            .map(|&arg| {
-                BytecodeType::from_ty(self.vm, self.specialize_type_for_call(&call_type, arg))
+            .map(|arg| {
+                BytecodeType::from_ty(
+                    self.vm,
+                    self.specialize_type_for_call(&call_type, arg.clone()),
+                )
             })
             .collect::<Vec<BytecodeType>>();
         let num_args = arg_types.len();
@@ -1417,7 +1417,8 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let dest = dest.reg();
-        let ty: BytecodeType = BytecodeType::from_ty(self.vm, self.src.var_self().ty);
+        let self_ty = self.src.var_self().ty.clone();
+        let ty: BytecodeType = BytecodeType::from_ty(self.vm, self_ty);
 
         self.emit_mov(ty, dest, var_reg);
 
@@ -1595,10 +1596,10 @@ impl<'a> AstBytecodeGen<'a> {
         let callee_idx = self.specialize_call(&callee, &call_type);
 
         let function_return_type: SourceType =
-            self.specialize_type_for_call(call_type, callee.return_type);
+            self.specialize_type_for_call(call_type, callee.return_type.clone());
 
         let function_return_type_bc: BytecodeType =
-            BytecodeType::from_ty(self.vm, function_return_type);
+            BytecodeType::from_ty(self.vm, function_return_type.clone());
 
         let dest = self.ensure_register(dest, function_return_type_bc);
 
@@ -1640,10 +1641,10 @@ impl<'a> AstBytecodeGen<'a> {
         let callee_idx = self.specialize_call(&callee, &call_type);
 
         let function_return_type: SourceType =
-            self.specialize_type_for_call(call_type, callee.return_type);
+            self.specialize_type_for_call(call_type, callee.return_type.clone());
 
         let function_return_type_bc: BytecodeType =
-            BytecodeType::from_ty(self.vm, function_return_type);
+            BytecodeType::from_ty(self.vm, function_return_type.clone());
 
         let return_type = match expr.op {
             BinOp::Cmp(_) => BytecodeType::Bool,
@@ -1743,7 +1744,7 @@ impl<'a> AstBytecodeGen<'a> {
                     );
                     let type_params = ty.type_params(self.vm);
                     assert_eq!(1, type_params.len());
-                    let element_ty = type_params[0];
+                    let element_ty = type_params[0].clone();
                     self.emit_array_with_variadic_arguments(expr, &[element_ty], 0, dest)
                 }
 
@@ -1899,7 +1900,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let ty = self.ty(arr.id());
         let ty = ty.type_params(self.vm);
-        let ty = ty[0];
+        let ty = ty[0].clone();
         let ty: Option<BytecodeType> = if ty.is_unit() {
             None
         } else {
@@ -2050,7 +2051,7 @@ impl<'a> AstBytecodeGen<'a> {
                         Some(BytecodeType::UInt8)
                     } else {
                         let ty = ty.type_params(self.vm);
-                        let ty = ty[0];
+                        let ty = ty[0].clone();
 
                         if ty.is_unit() {
                             assert!(dest.is_unit());
@@ -2383,9 +2384,9 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_assign_dot(&mut self, expr: &ExprBinType, dot: &ExprDotType) {
         let (cls_ty, field_id) = {
-            let ident_type = self.src.map_idents.get(dot.id).unwrap();
+            let ident_type = self.src.map_idents.get(dot.id).cloned().unwrap();
             match ident_type {
-                &IdentType::Field(class, field) => (class, field),
+                IdentType::Field(class, field) => (class, field),
                 _ => unreachable!(),
             }
         };
@@ -2401,7 +2402,7 @@ impl<'a> AstBytecodeGen<'a> {
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
         let field = &cls.fields[field_id.idx()];
-        let field_ty = field.ty;
+        let field_ty = field.ty.clone();
         let field_ty = specialize_type(self.vm, field_ty, &type_params);
         let field_ty = self.specialize_type(field_ty);
 
@@ -2469,9 +2470,9 @@ impl<'a> AstBytecodeGen<'a> {
             &IdentType::Namespace(_) => unimplemented!(),
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
 
-            &IdentType::Enum(_) | &IdentType::EnumType(_, _) | &IdentType::EnumValue(_, _) => {
-                unreachable!()
-            }
+            &IdentType::Enum(_)
+            | &IdentType::EnumType(_, _)
+            | &IdentType::EnumValueType(_, _, _) => unreachable!(),
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Module(_) => unreachable!(),
@@ -2491,9 +2492,10 @@ impl<'a> AstBytecodeGen<'a> {
 
         let xconst = self.vm.consts.idx(const_id);
         let xconst = xconst.lock();
-        let ty = xconst.ty;
+        let ty = xconst.ty.clone();
 
-        let dest = self.ensure_register(dest, BytecodeType::from_ty(self.vm, ty));
+        let bytecode_ty = BytecodeType::from_ty(self.vm, ty.clone());
+        let dest = self.ensure_register(dest, bytecode_ty);
 
         match ty {
             SourceType::Bool => {
@@ -2549,7 +2551,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let ty: BytecodeType = BytecodeType::from_ty(self.vm, glob.ty);
+        let ty: BytecodeType = BytecodeType::from_ty(self.vm, glob.ty.clone());
         let dest = self.ensure_register(dest, ty);
 
         self.gen.emit_load_global(dest, gid);
@@ -2622,18 +2624,18 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn determine_call_type_params(&self, call_type: &CallType) -> TypeList {
-        match *call_type {
+        match call_type {
             CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => ty.type_params(self.vm),
 
             CallType::Method(ty, _, ref fct_type_params) => {
-                let ty = self.specialize_type(ty);
+                let ty = self.specialize_type(ty.clone());
 
                 let cls_type_params = ty.type_params(self.vm);
                 cls_type_params.append(fct_type_params)
             }
 
             CallType::ModuleMethod(ty, _, ref fct_type_params) => {
-                let ty = self.specialize_type(ty);
+                let ty = self.specialize_type(ty.clone());
 
                 let cls_type_params = ty.type_params(self.vm);
                 cls_type_params.append(fct_type_params)
@@ -2646,7 +2648,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             CallType::Expr(ty, _) => {
-                let ty = self.specialize_type(ty);
+                let ty = self.specialize_type(ty.clone());
 
                 ty.type_params(self.vm)
             }
@@ -2679,7 +2681,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: SourceType) -> SourceType {
-        let ty = match *call_type {
+        let ty = match call_type {
             CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
                 let type_params = cls_type_params.append(fct_type_params);
                 specialize_type(self.vm, ty, &type_params)
@@ -2711,7 +2713,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::GenericMethod(id, _, _) | CallType::GenericStaticMethod(id, _, _) => {
                 debug_assert!(ty.is_concrete_type(self.vm) || ty.is_self());
                 if ty.is_self() {
-                    SourceType::TypeParam(id)
+                    SourceType::TypeParam(*id)
                 } else {
                     ty
                 }
@@ -2734,7 +2736,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn var_ty(&self, id: VarId) -> SourceType {
-        let ty = self.src.vars[id].ty;
+        let ty = self.src.vars[id].ty.clone();
         self.specialize_type(ty)
     }
 

@@ -6,8 +6,7 @@ use std::sync::Arc;
 use self::TypeSym::*;
 
 use crate::sym::TermSym::{
-    SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
-    SymStructConstructorAndModule, SymVar,
+    ClassConstructorAndModule, Const, Fct, Global, Module, StructConstructorAndModule, Var,
 };
 use crate::ty::TypeListId;
 use crate::vm::module::ModuleId;
@@ -191,88 +190,88 @@ impl SymTable {
 
 #[derive(Debug, Clone)]
 pub enum TypeSym {
-    SymClass(ClassId),
-    SymStruct(StructId),
-    SymTrait(TraitId),
-    SymTypeParam(TypeListId),
-    SymEnum(EnumId),
+    Class(ClassId),
+    Struct(StructId),
+    Trait(TraitId),
+    TypeParam(TypeListId),
+    Enum(EnumId),
 }
 
 #[derive(Debug, Clone)]
 pub enum TermSym {
-    SymField(FieldId),
-    SymFct(FctId),
-    SymVar(VarId),
-    SymModule(ModuleId),
-    SymClassConstructorAndModule(ClassId, ModuleId),
-    SymStructConstructorAndModule(StructId, ModuleId),
-    SymGlobal(GlobalId),
-    SymConst(ConstId),
-    SymClassConstructor(ClassId),
-    SymStructConstructor(StructId),
-    SymNamespace(NamespaceId),
+    Field(FieldId),
+    Fct(FctId),
+    Var(VarId),
+    Module(ModuleId),
+    ClassConstructorAndModule(ClassId, ModuleId),
+    StructConstructorAndModule(StructId, ModuleId),
+    Global(GlobalId),
+    Const(ConstId),
+    ClassConstructor(ClassId),
+    StructConstructor(StructId),
+    Namespace(NamespaceId),
 }
 
 impl TypeSym {
     pub fn is_class(&self) -> bool {
         match *self {
-            SymClass(_) => true,
+            Class(_) => true,
             _ => false,
         }
     }
 
     pub fn to_class(&self) -> Option<ClassId> {
         match *self {
-            SymClass(id) => Some(id),
+            Class(id) => Some(id),
             _ => None,
         }
     }
 
     pub fn is_struct(&self) -> bool {
         match *self {
-            SymStruct(_) => true,
+            Struct(_) => true,
             _ => false,
         }
     }
 
     pub fn to_struct(&self) -> Option<StructId> {
         match *self {
-            SymStruct(id) => Some(id),
+            Struct(id) => Some(id),
             _ => None,
         }
     }
 
     pub fn is_trait(&self) -> bool {
         match *self {
-            SymTrait(_) => true,
+            Trait(_) => true,
             _ => false,
         }
     }
 
     pub fn to_trait(&self) -> Option<TraitId> {
         match *self {
-            SymTrait(id) => Some(id),
+            Trait(id) => Some(id),
             _ => None,
         }
     }
 
     pub fn is_type_param(&self) -> bool {
         match *self {
-            SymTypeParam(_) => true,
+            TypeParam(_) => true,
             _ => false,
         }
     }
 
     pub fn is_enum(&self) -> bool {
         match *self {
-            SymEnum(_) => true,
+            Enum(_) => true,
             _ => false,
         }
     }
 
     pub fn to_enum(&self) -> Option<EnumId> {
         match *self {
-            SymEnum(id) => Some(id),
+            Enum(id) => Some(id),
             _ => None,
         }
     }
@@ -281,72 +280,72 @@ impl TypeSym {
 impl TermSym {
     pub fn is_fct(&self) -> bool {
         match *self {
-            SymFct(_) => true,
+            Fct(_) => true,
             _ => false,
         }
     }
 
     pub fn to_fct(&self) -> Option<FctId> {
         match *self {
-            SymFct(id) => Some(id),
+            Fct(id) => Some(id),
             _ => None,
         }
     }
 
     pub fn is_var(&self) -> bool {
         match *self {
-            SymVar(_) => true,
+            Var(_) => true,
             _ => false,
         }
     }
 
     pub fn to_var(&self) -> Option<VarId> {
         match *self {
-            SymVar(id) => Some(id),
+            Var(id) => Some(id),
             _ => None,
         }
     }
 
     pub fn is_const(&self) -> bool {
         match *self {
-            SymConst(_) => true,
+            Const(_) => true,
             _ => false,
         }
     }
 
     pub fn to_const(&self) -> Option<ConstId> {
         match *self {
-            SymConst(id) => Some(id),
+            Const(id) => Some(id),
             _ => None,
         }
     }
 
     pub fn is_global(&self) -> bool {
         match *self {
-            SymGlobal(_) => true,
+            Global(_) => true,
             _ => false,
         }
     }
 
     pub fn to_global(&self) -> Option<GlobalId> {
         match *self {
-            SymGlobal(id) => Some(id),
+            Global(id) => Some(id),
             _ => None,
         }
     }
 
     pub fn is_module(&self) -> bool {
         match *self {
-            SymModule(_) => true,
+            Module(_) => true,
             _ => false,
         }
     }
 
     pub fn to_module(&self) -> Option<ModuleId> {
         match *self {
-            SymModule(id) => Some(id),
-            SymClassConstructorAndModule(_, id) => Some(id),
-            SymStructConstructorAndModule(_, id) => Some(id),
+            Module(id) => Some(id),
+            ClassConstructorAndModule(_, id) => Some(id),
+            StructConstructorAndModule(_, id) => Some(id),
             _ => None,
         }
     }

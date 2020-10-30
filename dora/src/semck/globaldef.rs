@@ -4,11 +4,6 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::gc::Address;
-use crate::sym::TermSym::{
-    SymClassConstructor, SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
-    SymNamespace, SymStructConstructor, SymStructConstructorAndModule, SymVar,
-};
-use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait};
 use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::module::ModuleId;
@@ -96,7 +91,7 @@ impl<'x> Visitor for GlobalDef<'x> {
         self.vm.namespaces.push(namespace);
         self.map_namespaces.insert(n.id, id);
 
-        let sym = SymNamespace(id);
+        let sym = TermSym::Namespace(id);
         if let Some(sym) = self.insert_term(n.name, sym) {
             report_term_shadow(self.vm, n.name, self.file_id.into(), n.pos, sym);
         }
@@ -122,7 +117,7 @@ impl<'x> Visitor for GlobalDef<'x> {
 
         self.map_trait_defs.insert(t.id, id);
 
-        let sym = SymTrait(id);
+        let sym = TypeSym::Trait(id);
         if let Some(sym) = self.insert_type(t.name, sym) {
             report_type_shadow(self.vm, t.name, self.file_id.into(), t.pos, sym);
         }
@@ -152,7 +147,7 @@ impl<'x> Visitor for GlobalDef<'x> {
 
         self.map_global_defs.insert(g.id, id);
 
-        let sym = SymGlobal(id);
+        let sym = TermSym::Global(id);
         if let Some(sym) = self.insert_term(g.name, sym) {
             report_term_shadow(self.vm, g.name, self.file_id.into(), g.pos, sym);
         }
@@ -226,14 +221,14 @@ impl<'x> Visitor for GlobalDef<'x> {
 
         self.map_module_defs.insert(m.id, id);
 
-        let level = self.current_level();
+        let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
         match level.get_term(m.name) {
             None => {
-                level.insert_term(m.name, SymModule(id));
+                level.insert_term(m.name, TermSym::Module(id));
             }
-            Some(SymClassConstructor(class_id)) => {
-                level.insert_term(m.name, SymClassConstructorAndModule(class_id, id));
+            Some(TermSym::ClassConstructor(class_id)) => {
+                level.insert_term(m.name, TermSym::ClassConstructorAndModule(class_id, id));
             }
             Some(sym) => report_term_shadow(self.vm, m.name, self.file_id.into(), m.pos, sym),
         }
@@ -261,7 +256,7 @@ impl<'x> Visitor for GlobalDef<'x> {
 
         self.map_const_defs.insert(c.id, id);
 
-        let sym = SymConst(id);
+        let sym = TermSym::Const(id);
         if let Some(sym) = self.insert_term(c.name, sym) {
             report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym);
         }
@@ -317,20 +312,20 @@ impl<'x> Visitor for GlobalDef<'x> {
 
         self.map_cls_defs.insert(c.id, id);
 
-        let sym = SymClass(id);
+        let sym = TypeSym::Class(id);
         if let Some(sym) = self.insert_type(c.name, sym) {
             report_type_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym);
             return;
         }
 
-        let level = self.current_level();
+        let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
         match level.get_term(c.name) {
             None => {
-                level.insert_term(c.name, SymClassConstructor(id));
+                level.insert_term(c.name, TermSym::ClassConstructor(id));
             }
-            Some(SymModule(module_id)) => {
-                level.insert_term(c.name, SymClassConstructorAndModule(id, module_id));
+            Some(TermSym::Module(module_id)) => {
+                level.insert_term(c.name, TermSym::ClassConstructorAndModule(id, module_id));
             }
             Some(sym) => report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym),
         }
@@ -357,20 +352,20 @@ impl<'x> Visitor for GlobalDef<'x> {
 
         self.map_struct_defs.insert(s.id, id);
 
-        let sym = SymStruct(id);
+        let sym = TypeSym::Struct(id);
         if let Some(sym) = self.insert_type(s.name, sym) {
             report_type_shadow(self.vm, s.name, self.file_id.into(), s.pos, sym);
             return;
         }
 
-        let level = self.current_level();
+        let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
         match level.get_term(s.name) {
             None => {
-                level.insert_term(s.name, SymStructConstructor(id));
+                level.insert_term(s.name, TermSym::StructConstructor(id));
             }
-            Some(SymModule(module_id)) => {
-                level.insert_term(s.name, SymStructConstructorAndModule(id, module_id));
+            Some(TermSym::Module(module_id)) => {
+                level.insert_term(s.name, TermSym::StructConstructorAndModule(id, module_id));
             }
             Some(sym) => report_term_shadow(self.vm, s.name, self.file_id.into(), s.pos, sym),
         }
@@ -393,7 +388,6 @@ impl<'x> Visitor for GlobalDef<'x> {
             param_types: Vec::new(),
             return_type: SourceType::Unit,
             parent: FctParent::None,
-            newcall: f.newcall,
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,
@@ -419,7 +413,7 @@ impl<'x> Visitor for GlobalDef<'x> {
         };
 
         let fctid = self.vm.add_fct(fct);
-        let sym = SymFct(fctid);
+        let sym = TermSym::Fct(fctid);
 
         if let Some(sym) = self.insert_term(f.name, sym) {
             report_term_shadow(self.vm, f.name, self.file_id.into(), f.pos, sym);
@@ -451,7 +445,7 @@ impl<'x> Visitor for GlobalDef<'x> {
         self.vm.enums.push(RwLock::new(xenum));
         self.map_enum_defs.insert(e.id, id);
 
-        let sym = SymEnum(id);
+        let sym = TypeSym::Enum(id);
         if let Some(sym) = self.insert_type(e.name, sym) {
             report_type_shadow(self.vm, e.name, self.file_id.into(), e.pos, sym);
         }
@@ -459,22 +453,14 @@ impl<'x> Visitor for GlobalDef<'x> {
 }
 
 impl<'x> GlobalDef<'x> {
-    fn current_level(&self) -> Arc<RwLock<SymTable>> {
-        if let Some(namespace_id) = self.namespace_id {
-            self.vm.namespaces[namespace_id.to_usize()].table.clone()
-        } else {
-            self.vm.global_namespace.clone()
-        }
-    }
-
     fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
-        let level = self.current_level();
+        let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
         level.insert_type(name, sym)
     }
 
     fn insert_term(&mut self, name: Name, sym: TermSym) -> Option<TermSym> {
-        let level = self.current_level();
+        let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
         level.insert_term(name, sym)
     }
@@ -484,10 +470,10 @@ pub fn report_type_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym:
     let name = vm.interner.str(name).to_string();
 
     let msg = match sym {
-        SymClass(_) => SemError::ShadowClass(name),
-        SymStruct(_) => SemError::ShadowStruct(name),
-        SymTrait(_) => SemError::ShadowTrait(name),
-        SymEnum(_) => SemError::ShadowEnum(name),
+        TypeSym::Class(_) => SemError::ShadowClass(name),
+        TypeSym::Struct(_) => SemError::ShadowStruct(name),
+        TypeSym::Trait(_) => SemError::ShadowTrait(name),
+        TypeSym::Enum(_) => SemError::ShadowEnum(name),
         _ => unimplemented!(),
     };
 
@@ -498,18 +484,18 @@ pub fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym:
     let name = vm.interner.str(name).to_string();
 
     let msg = match sym {
-        SymFct(_) => SemError::ShadowFunction(name),
-        SymGlobal(_) => SemError::ShadowGlobal(name),
-        SymConst(_) => SemError::ShadowConst(name),
-        SymModule(_) => SemError::ShadowModule(name),
-        SymVar(_) => SemError::ShadowParam(name),
-        SymClassConstructor(_) | SymClassConstructorAndModule(_, _) => {
+        TermSym::Fct(_) => SemError::ShadowFunction(name),
+        TermSym::Global(_) => SemError::ShadowGlobal(name),
+        TermSym::Const(_) => SemError::ShadowConst(name),
+        TermSym::Module(_) => SemError::ShadowModule(name),
+        TermSym::Var(_) => SemError::ShadowParam(name),
+        TermSym::ClassConstructor(_) | TermSym::ClassConstructorAndModule(_, _) => {
             SemError::ShadowClassConstructor(name)
         }
-        SymStructConstructor(_) | SymStructConstructorAndModule(_, _) => {
+        TermSym::StructConstructor(_) | TermSym::StructConstructorAndModule(_, _) => {
             SemError::ShadowStructConstructor(name)
         }
-        SymNamespace(_) => SemError::ShadowNamespace(name),
+        TermSym::Namespace(_) => SemError::ShadowNamespace(name),
         x => unimplemented!("{:?}", x),
     };
 

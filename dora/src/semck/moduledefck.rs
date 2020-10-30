@@ -75,7 +75,7 @@ impl<'x> ModuleCheck<'x> {
         let sym = self.sym.get_type(parent_class.name);
 
         match sym {
-            Some(TypeSym::SymClass(cls_id)) => {
+            Some(TypeSym::Class(cls_id)) => {
                 let super_cls = self.vm.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 
@@ -205,7 +205,6 @@ impl<'x> Visitor for ModuleCheck<'x> {
             is_static: false,
             is_abstract: false,
             is_test: f.is_test,
-            newcall: f.newcall,
             use_cannon: f.use_cannon,
             internal: f.internal,
             internal_resolved: false,
@@ -262,7 +261,6 @@ impl<'x> Visitor for ModuleCheck<'x> {
             is_static: f.is_static,
             is_abstract: f.is_abstract,
             is_test: f.is_test,
-            newcall: f.newcall,
             use_cannon: f.use_cannon,
             internal: f.internal,
             internal_resolved: false,

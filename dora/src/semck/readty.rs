@@ -1,6 +1,5 @@
 use crate::error::msg::SemError;
-use crate::sym::SymTables;
-use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait, SymTypeParam};
+use crate::sym::{SymTables, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
@@ -46,9 +45,9 @@ fn read_type_basic(
     let sym = sym.unwrap();
 
     match sym {
-        SymClass(cls_id) => read_type_class(vm, table, file, basic, cls_id),
+        TypeSym::Class(cls_id) => read_type_class(vm, table, file, basic, cls_id),
 
-        SymTrait(trait_id) => {
+        TypeSym::Trait(trait_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
                 vm.diag.lock().report(file, basic.pos, msg);
@@ -57,7 +56,7 @@ fn read_type_basic(
             Some(SourceType::TraitObject(trait_id))
         }
 
-        SymStruct(struct_id) => {
+        TypeSym::Struct(struct_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
                 vm.diag.lock().report(file, basic.pos, msg);
@@ -67,9 +66,9 @@ fn read_type_basic(
             Some(SourceType::Struct(struct_id, list_id))
         }
 
-        SymEnum(enum_id) => read_type_enum(vm, table, file, basic, enum_id),
+        TypeSym::Enum(enum_id) => read_type_enum(vm, table, file, basic, enum_id),
 
-        SymTypeParam(type_param_id) => {
+        TypeSym::TypeParam(type_param_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
                 vm.diag.lock().report(file, basic.pos, msg);
@@ -161,7 +160,7 @@ fn read_type_class(
     }
 
     if type_params.len() == 0 {
-        return Some(cls.ty);
+        return Some(cls.ty.clone());
     }
 
     for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {

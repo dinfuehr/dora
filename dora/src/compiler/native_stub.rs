@@ -278,7 +278,7 @@ fn analyze(
     let mut freg_idx = 0;
     let mut stack_idx = 0;
 
-    for &ty in args {
+    for ty in args {
         if ty.is_float() {
             let source = if freg_idx < FREG_PARAMS.len() {
                 save_temporaries.push(TemporaryStore::FloatRegister(

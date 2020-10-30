@@ -72,7 +72,6 @@ impl<'a> Visitor for GlobalDefCheck<'a> {
                 is_static: initializer.is_static,
                 is_abstract: initializer.is_abstract,
                 is_test: initializer.is_test,
-                newcall: false,
                 use_cannon: initializer.use_cannon,
                 internal: initializer.internal,
                 internal_resolved: false,

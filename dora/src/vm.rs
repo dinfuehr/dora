@@ -293,6 +293,14 @@ impl VM {
         fctid
     }
 
+    pub fn namespace_table(&self, namespace_id: Option<NamespaceId>) -> Arc<RwLock<SymTable>> {
+        if let Some(namespace_id) = namespace_id {
+            self.namespaces[namespace_id.to_usize()].table.clone()
+        } else {
+            self.global_namespace.clone()
+        }
+    }
+
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassId {
         let name = self.interner.intern(name);

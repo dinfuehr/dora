@@ -60,7 +60,7 @@ impl<'x> ImplCheck<'x> {
 
         if let Some(ref trait_type) = i.trait_type {
             if let Some(trait_name) = trait_type.to_basic_without_type_params() {
-                if let Some(TypeSym::SymTrait(trait_id)) = self.sym.get_type(trait_name) {
+                if let Some(TypeSym::Trait(trait_id)) = self.sym.get_type(trait_name) {
                     ximpl.trait_id = Some(trait_id);
                 } else {
                     let name = self.vm.interner.str(trait_name).to_string();
@@ -159,7 +159,6 @@ impl<'x> Visitor for ImplCheck<'x> {
             use_cannon: f.use_cannon,
             internal: f.internal,
             internal_resolved: false,
-            newcall: f.newcall,
             overrides: None,
             is_constructor: false,
             vtable_index: None,

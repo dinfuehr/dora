@@ -172,7 +172,7 @@ impl Class {
                 }
             }
 
-            if let Some(parent_class) = cls.parent_class {
+            if let Some(ref parent_class) = cls.parent_class {
                 classid = parent_class.cls_id(vm).expect("no class");
             } else {
                 return None;
@@ -219,7 +219,7 @@ impl Class {
             let cls = cls.read();
 
             match cls.parent_class {
-                Some(parent_class) => {
+                Some(ref parent_class) => {
                     cls_id = parent_class.cls_id(vm).expect("no class");
                 }
 
@@ -256,14 +256,14 @@ pub fn find_field_in_class(
                 return Some((
                     class,
                     field.id,
-                    replace_type_param(vm, field.ty, &type_list, None),
+                    replace_type_param(vm, field.ty.clone(), &type_list, None),
                 ));
             }
         }
 
-        if let Some(parent_class) = cls.parent_class {
+        if let Some(ref parent_class) = cls.parent_class {
             let type_list = parent_class.type_params(vm);
-            class = replace_type_param(vm, parent_class, &type_list, None);
+            class = replace_type_param(vm, parent_class.clone(), &type_list, None);
         } else {
             return None;
         }
@@ -289,9 +289,9 @@ pub fn find_method_in_class(
             }
         }
 
-        if let Some(parent_class) = cls.parent_class {
+        if let Some(ref parent_class) = cls.parent_class {
             let type_list = parent_class.type_params(vm);
-            class = replace_type_param(vm, parent_class, &type_list, None);
+            class = replace_type_param(vm, parent_class.clone(), &type_list, None);
         } else {
             return None;
         }
@@ -307,7 +307,7 @@ pub fn find_methods_in_class(
     let mut candidates = Vec::new();
     let mut ignores = HashSet::new();
 
-    let mut class_type = object_type;
+    let mut class_type = object_type.clone();
 
     loop {
         let cls_id = class_type.cls_id(vm).expect("no class");
@@ -329,9 +329,9 @@ pub fn find_methods_in_class(
             }
         }
 
-        if let Some(parent_class) = cls.parent_class {
+        if let Some(ref parent_class) = cls.parent_class {
             let type_list = class_type.type_params(vm);
-            class_type = replace_type_param(vm, parent_class, &type_list, None);
+            class_type = replace_type_param(vm, parent_class.clone(), &type_list, None);
         } else {
             break;
         }
@@ -357,7 +357,7 @@ pub fn find_methods_in_class(
             };
 
             if let Some(&fct_id) = table.get(&name) {
-                return vec![(extension.ty, fct_id)];
+                return vec![(extension.ty.clone(), fct_id)];
             }
         }
     }
@@ -381,12 +381,12 @@ pub fn find_methods_in_class(
                 let method = method.read();
 
                 if method.name == name && method.is_static == is_static {
-                    candidates.push((class_type, method.id));
+                    candidates.push((class_type.clone(), method.id));
                 }
             }
         }
 
-        if let Some(parent_class) = cls.parent_class {
+        if let Some(parent_class) = cls.parent_class.clone() {
             let type_list = class_type.type_params(vm);
             class_type = replace_type_param(vm, parent_class, &type_list, None);
         } else {

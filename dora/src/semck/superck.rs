@@ -22,7 +22,7 @@ fn cycle_detection(vm: &mut VM) {
         let mut map: HashSet<ClassId> = HashSet::new();
         map.insert(cls.id);
 
-        let mut parent_class = cls.parent_class;
+        let mut parent_class = cls.parent_class.clone();
 
         while parent_class.is_some() {
             let parent_class_id = parent_class.unwrap().cls_id(vm).expect("no class");
@@ -36,7 +36,7 @@ fn cycle_detection(vm: &mut VM) {
 
             let cls = vm.classes.idx(parent_class_id);
             let cls = cls.read();
-            parent_class = cls.parent_class;
+            parent_class = cls.parent_class.clone();
         }
     }
 }
@@ -53,7 +53,7 @@ fn determine_vtables(vm: &VM) {
 }
 
 fn determine_vtable(vm: &VM, lens: &mut HashSet<ClassId>, cls: &mut Class) {
-    if let Some(parent_class) = cls.parent_class {
+    if let Some(parent_class) = cls.parent_class.clone() {
         let parent_cls_id = parent_class.cls_id(vm).expect("no class");
         let parent = vm.classes.idx(parent_cls_id);
         if !lens.contains(&parent_cls_id) {
@@ -135,7 +135,7 @@ fn check_fct_modifier(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
         return None;
     }
 
-    let result = find_method_in_class(vm, cls.parent_class.unwrap(), fct.name);
+    let result = find_method_in_class(vm, cls.parent_class.clone().unwrap(), fct.name);
 
     if let Some((super_type, super_method)) = result {
         let super_method = vm.fcts.idx(super_method);
@@ -160,11 +160,11 @@ fn check_fct_modifier(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
         let super_method_params: Vec<_> = super_method
             .params_without_self()
             .iter()
-            .map(|&param_type| replace_type_param(vm, param_type, &type_params, None))
+            .map(|param_type| replace_type_param(vm, param_type.clone(), &type_params, None))
             .collect();
 
         let super_method_return_type =
-            replace_type_param(vm, super_method.return_type, &type_params, None);
+            replace_type_param(vm, super_method.return_type.clone(), &type_params, None);
 
         if super_method_params != fct.params_without_self()
             || super_method_return_type != fct.return_type

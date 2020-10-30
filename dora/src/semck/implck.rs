@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::ty::SourceType;
 use crate::vm::{FileId, VM};
 
 use dora_parser::lexer::position::Position;
@@ -12,7 +11,7 @@ pub fn check(vm: &mut VM) {
         let xtrait = vm.traits[ximpl.trait_id()].read();
         let cls = vm.classes.idx(ximpl.cls_id(vm));
         let cls = cls.read();
-        let cls = cls.ty;
+        let cls = cls.ty.clone();
 
         let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
         let mut defined = HashSet::new();
@@ -25,7 +24,7 @@ pub fn check(vm: &mut VM) {
                 vm,
                 method.is_static,
                 method.name,
-                Some(cls),
+                Some(cls.clone()),
                 method.params_without_self(),
             ) {
                 method.impl_for = Some(fid);
@@ -35,10 +34,10 @@ pub fn check(vm: &mut VM) {
                 let trait_method = trait_method.read();
 
                 let return_type_valid = method.return_type
-                    == if trait_method.return_type == SourceType::This {
-                        cls
+                    == if trait_method.return_type.is_self() {
+                        cls.clone()
                     } else {
-                        trait_method.return_type
+                        trait_method.return_type.clone()
                     };
 
                 if !return_type_valid {

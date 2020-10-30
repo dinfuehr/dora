@@ -54,7 +54,7 @@ impl TraitData {
 
             if method.name == name
                 && method.is_static == is_static
-                && params_match(replace, method.params_without_self(), args)
+                && params_match(replace.clone(), method.params_without_self(), args)
             {
                 return Some(method.id);
             }
@@ -73,11 +73,12 @@ fn params_match(
         return false;
     }
 
-    for (ind, &ty) in trait_args.iter().enumerate() {
-        let other = args[ind];
+    for (ind, ty) in trait_args.iter().enumerate() {
+        let ty = ty.clone();
+        let other = args[ind].clone();
 
-        let found = if ty == SourceType::This {
-            replace.is_none() || replace.unwrap() == other
+        let found = if ty.is_self() {
+            replace.is_none() || replace.clone().unwrap() == other
         } else {
             ty == other
         };

@@ -67,7 +67,7 @@ impl<'a> ConstCheck<'a> {
             }
         };
 
-        if !self.xconst.ty.allows(self.vm, ty) {
+        if !self.xconst.ty.allows(self.vm, ty.clone()) {
             let name = self.vm.interner.str(self.xconst.name).to_string();
             let const_ty = self.xconst.ty.name(self.vm);
             let ty = ty.name(self.vm);

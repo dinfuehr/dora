@@ -253,7 +253,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn has_result_address(&self) -> bool {
-        let return_type = self.specialize_type(self.fct.return_type);
+        let return_type = self.specialize_type(self.fct.return_type.clone());
         return_type.is_tuple()
     }
 
@@ -273,8 +273,8 @@ impl<'a> CannonCodeGen<'a> {
 
         let params = self.fct.params_with_self();
 
-        for (idx, &param_ty) in params.iter().enumerate() {
-            let param_ty = self.specialize_type(param_ty);
+        for (idx, param_ty) in params.iter().enumerate() {
+            let param_ty = self.specialize_type(param_ty.clone());
             assert!(param_ty.is_concrete_type(self.vm));
 
             let dest = Register(idx);
@@ -287,7 +287,7 @@ impl<'a> CannonCodeGen<'a> {
             } else {
                 assert_eq!(
                     self.specialize_register_type(dest),
-                    BytecodeType::from_ty(self.vm, param_ty)
+                    BytecodeType::from_ty(self.vm, param_ty.clone())
                 );
                 param_ty
             };
@@ -1376,7 +1376,7 @@ impl<'a> CannonCodeGen<'a> {
                     return;
                 }
 
-                let bty = BytecodeType::from_ty(self.vm, field.ty);
+                let bty = BytecodeType::from_ty(self.vm, field.ty.clone());
                 assert_eq!(bty, self.specialize_register_type(dest));
 
                 if let BytecodeType::Tuple(tuple_id) = bty {
@@ -1459,10 +1459,10 @@ impl<'a> CannonCodeGen<'a> {
             .offsets()
             .to_owned();
 
-        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+        for (subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
             let src = src.offset(subtype_offset);
             let dest = dest.offset(subtype_offset);
-            self.copy_ty(subtype, dest, src);
+            self.copy_ty(subtype.clone(), dest, src);
         }
     }
 
@@ -1575,8 +1575,8 @@ impl<'a> CannonCodeGen<'a> {
             .offsets()
             .to_owned();
 
-        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
-            self.zero_ty(subtype, dest.offset(subtype_offset));
+        for (subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+            self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
         }
     }
 
@@ -1638,8 +1638,8 @@ impl<'a> CannonCodeGen<'a> {
             .offsets()
             .to_owned();
 
-        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
-            self.zero_refs_ty(subtype, dest.offset(subtype_offset));
+        for (subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+            self.zero_refs_ty(subtype.clone(), dest.offset(subtype_offset));
         }
     }
 
@@ -1718,7 +1718,10 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
         if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
-            assert_eq!(bytecode_type, BytecodeType::from_ty(self.vm, field.ty));
+            assert_eq!(
+                bytecode_type,
+                BytecodeType::from_ty(self.vm, field.ty.clone())
+            );
             let dest = self.reg(dest);
             let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
             self.copy_bytecode_ty(bytecode_type, dest, src);
@@ -1754,7 +1757,10 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
         if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
-            assert_eq!(bytecode_type, BytecodeType::from_ty(self.vm, field.ty));
+            assert_eq!(
+                bytecode_type,
+                BytecodeType::from_ty(self.vm, field.ty.clone())
+            );
 
             let needs_write_barrier;
 
@@ -1836,7 +1842,7 @@ impl<'a> CannonCodeGen<'a> {
 
         assert_eq!(
             self.bytecode.register_type(dest),
-            BytecodeType::from_ty(self.vm, glob.ty)
+            BytecodeType::from_ty(self.vm, glob.ty.clone())
         );
 
         if glob.needs_initialization() {
@@ -1863,7 +1869,7 @@ impl<'a> CannonCodeGen<'a> {
 
         assert_eq!(
             self.bytecode.register_type(src),
-            BytecodeType::from_ty(self.vm, glob.ty)
+            BytecodeType::from_ty(self.vm, glob.ty.clone())
         );
 
         let disp = self.asm.add_addr(glob.address_value.to_ptr());
@@ -2313,7 +2319,7 @@ impl<'a> CannonCodeGen<'a> {
         let mut arg_idx = 0;
         let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
 
-        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+        for (subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
             if subtype.is_unit() {
                 continue;
             }
@@ -2321,7 +2327,7 @@ impl<'a> CannonCodeGen<'a> {
             let src = arguments[arg_idx];
             let src = self.reg(src);
             let dest = RegOrOffset::Offset(dest_offset + subtype_offset);
-            self.copy_ty(subtype, dest, src);
+            self.copy_ty(subtype.clone(), dest, src);
             arg_idx += 1;
         }
     }
@@ -2746,8 +2752,11 @@ impl<'a> CannonCodeGen<'a> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let fct_return_type =
-            self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
+        let fct_return_type = self.specialize_type(specialize_type(
+            self.vm,
+            fct.return_type.clone(),
+            &type_params,
+        ));
         assert!(fct_return_type.is_concrete_type(self.vm));
 
         let result_register = match fct_return_type {
@@ -2837,8 +2846,11 @@ impl<'a> CannonCodeGen<'a> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let fct_return_type =
-            self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
+        let fct_return_type = self.specialize_type(specialize_type(
+            self.vm,
+            fct.return_type.clone(),
+            &type_params,
+        ));
         assert!(fct_return_type.is_concrete_type(self.vm));
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
@@ -2934,8 +2946,11 @@ impl<'a> CannonCodeGen<'a> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let fct_return_type =
-            self.specialize_type(specialize_type(self.vm, fct.return_type, &type_params));
+        let fct_return_type = self.specialize_type(specialize_type(
+            self.vm,
+            fct.return_type.clone(),
+            &type_params,
+        ));
         assert!(fct_return_type.is_concrete_type(self.vm));
 
         let result_register = match fct_return_type {
@@ -2989,7 +3004,7 @@ impl<'a> CannonCodeGen<'a> {
             .fct
             .type_param_id(self.vm, id, |tp, _| tp.trait_bounds.contains(&trait_id)));
 
-        let ty = self.type_params[id.to_usize()];
+        let ty = self.type_params[id.to_usize()].clone();
         let callee_id = self.find_trait_impl(trait_fct_id, trait_id, ty);
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
@@ -3433,7 +3448,7 @@ impl<'a> CannonCodeGen<'a> {
                 let dest_offset = self.register_offset(dest.expect("dest missing"));
 
                 self.copy_ty(
-                    field.ty,
+                    field.ty.clone(),
                     RegOrOffset::Offset(dest_offset),
                     RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
                 );
@@ -3467,7 +3482,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(2, arguments.len());
         assert!(dest.is_none());
 
-        let ty = type_params[0];
+        let ty = type_params[0].clone();
 
         if ty.is_unit() {
             return;
@@ -3523,7 +3538,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(1, type_params.len());
         assert_eq!(1, arguments.len());
 
-        let ty = type_params[0];
+        let ty = type_params[0].clone();
         let dest_reg = dest.expect("missing dest");
 
         if ty.is_unit() {
@@ -3764,7 +3779,7 @@ impl<'a> CannonCodeGen<'a> {
                     let internal_fct = NativeFct {
                         ptr,
                         args: fct.params_with_self(),
-                        return_type: fct.return_type,
+                        return_type: fct.return_type.clone(),
                         desc: NativeFctDescriptor::NativeStub(fid),
                     };
 
@@ -3807,7 +3822,7 @@ impl<'a> CannonCodeGen<'a> {
     fn specialize_bytecode_type_unit(&self, ty: BytecodeType) -> Option<BytecodeType> {
         match ty {
             BytecodeType::TypeParam(id) => {
-                let ty = self.type_params[id as usize];
+                let ty = self.type_params[id as usize].clone();
 
                 if ty.is_unit() {
                     None

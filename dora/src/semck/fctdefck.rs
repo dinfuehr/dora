@@ -31,7 +31,7 @@ pub fn check(vm: &VM) {
                 let mut type_param_id = 0;
 
                 for param in &cls.type_params {
-                    let sym = TypeSym::SymTypeParam(type_param_id.into());
+                    let sym = TypeSym::TypeParam(type_param_id.into());
                     sym_table.insert_type(param.name, sym);
                     type_param_id += 1;
                 }
@@ -39,7 +39,7 @@ pub fn check(vm: &VM) {
                 cls_type_params_count = type_param_id;
 
                 if fct.has_self() {
-                    fct.param_types.push(cls.ty);
+                    fct.param_types.push(cls.ty.clone());
                 }
             }
 
@@ -49,7 +49,7 @@ pub fn check(vm: &VM) {
                 let cls = cls.read();
 
                 if fct.has_self() {
-                    fct.param_types.push(cls.ty);
+                    fct.param_types.push(cls.ty.clone());
                 }
             }
 
@@ -58,7 +58,7 @@ pub fn check(vm: &VM) {
                 let mut type_param_id = 0;
 
                 for param in &extension.type_params {
-                    let sym = TypeSym::SymTypeParam(type_param_id.into());
+                    let sym = TypeSym::TypeParam(type_param_id.into());
                     sym_table.insert_type(param.name, sym);
                     type_param_id += 1;
                 }
@@ -66,7 +66,7 @@ pub fn check(vm: &VM) {
                 cls_type_params_count = type_param_id;
 
                 if fct.has_self() {
-                    fct.param_types.push(extension.ty);
+                    fct.param_types.push(extension.ty.clone());
                 }
             }
 
@@ -117,7 +117,7 @@ pub fn check(vm: &VM) {
                         }
                     }
 
-                    let sym = TypeSym::SymTypeParam((cls_type_params_count + type_param_id).into());
+                    let sym = TypeSym::TypeParam((cls_type_params_count + type_param_id).into());
                     sym_table.insert_type(type_param.name, sym);
                     type_param_id += 1;
                 }

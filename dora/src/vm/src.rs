@@ -130,7 +130,7 @@ where
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct ConvInfo {
     pub check_type: SourceType,
     pub valid: bool,
@@ -198,7 +198,7 @@ pub enum IdentType {
     EnumType(EnumId, TypeList),
 
     // specific value in enum
-    EnumValue(SourceType, usize),
+    EnumValueType(EnumId, TypeList, usize),
 
     // namespace
     Namespace(NamespaceId),

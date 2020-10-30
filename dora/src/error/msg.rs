@@ -71,7 +71,6 @@ pub enum SemError {
     ModuleUsedAsIdentifier,
     TypeParamUsedAsIdentifier,
     EnumUsedAsIdentifier,
-    TypeParamUsedAsCallee,
     UnderivableType(String),
     CycleInHierarchy,
     SuperfluousOverride(String),
@@ -318,7 +317,6 @@ impl SemError {
             }
             SemError::EnumUsedAsIdentifier => "enum cannot be used as identifier.".into(),
             SemError::InvalidLhsAssignment => "invalid left-hand-side of assignment.".into(),
-            SemError::TypeParamUsedAsCallee => "type param cannot be used as callee.".into(),
             SemError::UnderivableType(ref name) => {
                 format!("type `{}` cannot be used as super class.", name)
             }

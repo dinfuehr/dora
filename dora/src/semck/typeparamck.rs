@@ -60,7 +60,7 @@ pub fn check_enum<'a>(vm: &VM, fct: &Fct, ty: SourceType, error: ErrorReporting)
 }
 
 pub fn check_super<'a>(vm: &VM, cls: &Class, error: ErrorReporting) -> bool {
-    let object_type = cls.parent_class.expect("parent_class missing");
+    let object_type = cls.parent_class.clone().expect("parent_class missing");
 
     let tp_defs = {
         let cls_id = object_type.cls_id(vm).expect("no class");
@@ -123,8 +123,8 @@ impl<'a> TypeParamCheck<'a> {
         for (tp_def, ty) in self.tp_defs.iter().zip(tps.iter()) {
             if let SourceType::TypeParam(id) = ty {
                 let ok = if let Some(use_fct) = self.use_fct {
-                    use_fct.type_param_ty(self.vm, ty, |tp_arg, _| {
-                        self.tp_against_definition(tp_def, tp_arg, ty)
+                    use_fct.type_param_ty(self.vm, ty.clone(), |tp_arg, _| {
+                        self.tp_against_definition(tp_def, tp_arg, ty.clone())
                     })
                 } else if let Some(use_cls_id) = self.use_cls_id {
                     let cls = self.vm.classes.idx(use_cls_id);
@@ -151,7 +151,7 @@ impl<'a> TypeParamCheck<'a> {
         for &trait_bound in &tp.trait_bounds {
             if !ty.implements_trait(self.vm, trait_bound) {
                 if let ErrorReporting::Yes(file_id, pos) = self.error {
-                    self.fail_trait_bound(file_id, pos, trait_bound, ty);
+                    self.fail_trait_bound(file_id, pos, trait_bound, ty.clone());
                 }
                 succeeded = false;
             }
@@ -172,7 +172,7 @@ impl<'a> TypeParamCheck<'a> {
         for &trait_bound in &tp.trait_bounds {
             if !traits_set.contains(&trait_bound) {
                 if let ErrorReporting::Yes(file_id, pos) = self.error {
-                    self.fail_trait_bound(file_id, pos, trait_bound, arg_ty);
+                    self.fail_trait_bound(file_id, pos, trait_bound, arg_ty.clone());
                 }
                 succeeded = false;
             }

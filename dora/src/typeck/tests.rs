@@ -1564,7 +1564,7 @@ fn test_type_param_call() {
         "trait X { fun foo(): Int32; }
         fun f[T: X]() { T(); }",
         pos(2, 25),
-        SemError::TypeParamUsedAsCallee,
+        SemError::TypeParamUsedAsIdentifier,
     );
 
     err(
@@ -1573,7 +1573,7 @@ fn test_type_param_call() {
             fun f() { T(); }
         }",
         pos(3, 23),
-        SemError::TypeParamUsedAsCallee,
+        SemError::TypeParamUsedAsIdentifier,
     );
 }
 
@@ -2257,4 +2257,45 @@ fn namespace_fct_call() {
         fun f() { foo::g(); }
         namespace foo { fun g() {} }
     ");
+}
+
+#[test]
+fn different_fct_call_kinds() {
+    ok("fun f() { g(); } fun g() {}");
+    ok("fun f() { g[Int32](); } fun g[T]() {}");
+    ok("fun f(g: Array[Int32]) { g(0L); }");
+    err(
+        "fun f(g: Array[Int32]) { g[Float32](0L); }",
+        pos(1, 27),
+        SemError::NoTypeParamsExpected,
+    );
+    ok("class Foo fun f() { Foo(); }");
+    ok("module Foo { fun bar() {} } fun f() { Foo::bar(); }");
+    err(
+        "module Foo { fun bar() {} } fun f() { Foo[Int32]::bar(); }",
+        pos(1, 42),
+        SemError::NoTypeParamsExpected,
+    );
+    ok("class Foo module Foo { fun bar() {} } fun f() { Foo::bar(); }");
+    errors(
+        "fun f() { 1[Int32](); }",
+        &[
+            (pos(1, 12), SemError::NoTypeParamsExpected),
+            (
+                pos(1, 19),
+                SemError::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
+            ),
+        ],
+    );
+    ok("enum Foo { A(Int32), B } fun f() { Foo::A(1); }");
+    ok("enum Foo[T] { A(Int32), B } fun f() { Foo[Int32]::A(1); }");
+    ok("enum Foo[T] { A(Int32), B } fun f() { Foo::A[Int32](1); }");
+    err(
+        "enum Foo[T] { A(Int32), B } fun f() { Foo[Int32]::A[Int32](1); }",
+        pos(1, 42),
+        SemError::NoTypeParamsExpected,
+    );
+    ok("trait MyTrait { @static fun foo(); } fun f[T: MyTrait]() { T::foo(); }");
+    ok("class Foo { fun bar() {} } fun f(g: Foo) { g.bar(); }");
+    ok("class Foo { fun bar[T]() {} } fun f(g: Foo) { g.bar[Int32](); }");
 }

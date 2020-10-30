@@ -8,7 +8,7 @@ use crate::vm::module::ModuleId;
 use crate::vm::VM;
 use crate::vm::{Class, ClassId, EnumData, EnumId, EnumLayout, Fct, StructId, TraitId, TupleId};
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
     // couldn't determine type because of error
     Error,
@@ -107,6 +107,13 @@ impl SourceType {
     pub fn is_float(&self) -> bool {
         match self {
             &SourceType::Float32 | &SourceType::Float64 => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_int32(&self) -> bool {
+        match self {
+            &SourceType::Int32 => true,
             _ => false,
         }
     }
@@ -259,7 +266,7 @@ impl SourceType {
             use_enum: None,
         };
 
-        writer.name(*self)
+        writer.name(self.clone())
     }
 
     pub fn name_fct(&self, vm: &VM, fct: &Fct) -> String {
@@ -270,7 +277,7 @@ impl SourceType {
             use_enum: None,
         };
 
-        writer.name(*self)
+        writer.name(self.clone())
     }
 
     pub fn name_cls(&self, vm: &VM, cls: &Class) -> String {
@@ -281,7 +288,7 @@ impl SourceType {
             use_enum: None,
         };
 
-        writer.name(*self)
+        writer.name(self.clone())
     }
 
     pub fn name_enum(&self, vm: &VM, xenum: &EnumData) -> String {
@@ -292,7 +299,7 @@ impl SourceType {
             use_enum: Some(xenum),
         };
 
-        writer.name(*self)
+        writer.name(self.clone())
     }
 
     pub fn allows(&self, vm: &VM, other: SourceType) -> bool {
@@ -314,7 +321,7 @@ impl SourceType {
             }
             SourceType::Ptr => panic!("ptr does not allow any other types"),
             SourceType::This => unreachable!(),
-            SourceType::Class(_, _) => *self == other || other.subclass_from(vm, *self),
+            SourceType::Class(_, _) => *self == other || other.subclass_from(vm, self.clone()),
             SourceType::Tuple(tuple_id) => match other {
                 SourceType::Tuple(other_tuple_id) => {
                     if tuple_id == other_tuple_id {
@@ -331,8 +338,8 @@ impl SourceType {
                     let len = subtypes.len();
 
                     for idx in 0..len {
-                        let ty = subtypes[idx];
-                        let other_ty = other_subtypes[idx];
+                        let ty = subtypes[idx].clone();
+                        let other_ty = other_subtypes[idx].clone();
 
                         if !ty.allows(vm, other_ty) {
                             return false;
@@ -707,7 +714,7 @@ impl<'a> Iterator for TypeListIter<'a> {
 
             &TypeList::List(ref params) => {
                 if self.idx < params.len() {
-                    let ret = params[self.idx];
+                    let ret = params[self.idx].clone();
                     self.idx += 1;
 
                     Some(ret)
@@ -911,10 +918,10 @@ impl<'a> BuiltinTypePrinter<'a> {
                 let params = lambda
                     .params
                     .iter()
-                    .map(|&ty| self.name(ty))
+                    .map(|ty| self.name(ty.clone()))
                     .collect::<Vec<_>>()
                     .join(", ");
-                let ret = self.name(lambda.ret);
+                let ret = self.name(lambda.ret.clone());
 
                 format!("({}) -> {}", params, ret)
             }
@@ -924,7 +931,7 @@ impl<'a> BuiltinTypePrinter<'a> {
 
                 let types = types
                     .iter()
-                    .map(|&ty| self.name(ty))
+                    .map(|ty| self.name(ty.clone()))
                     .collect::<Vec<_>>()
                     .join(", ");
 

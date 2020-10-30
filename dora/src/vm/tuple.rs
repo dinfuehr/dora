@@ -90,13 +90,13 @@ impl Tuples {
 
     pub fn get_ty(&self, id: TupleId, idx: usize) -> SourceType {
         let tuple = self.get_tuple(id);
-        tuple.args[idx]
+        tuple.args[idx].clone()
     }
 
     pub fn get_ty_and_offset(&self, id: TupleId, idx: usize) -> (SourceType, i32) {
         let tuple = self.get_tuple(id);
         (
-            tuple.args[idx],
+            tuple.args[idx].clone(),
             tuple
                 .concrete
                 .as_ref()
@@ -195,7 +195,7 @@ fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> Option<ConcreteTupl
         } else {
             element_size = ty.size(vm);
             element_align = ty.align(vm);
-            element_ty = *ty;
+            element_ty = ty.clone();
         }
 
         let element_offset = mem::align_i32(size, element_align);

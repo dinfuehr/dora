@@ -65,7 +65,7 @@ impl<'x> ClsDefCheck<'x> {
         self.check_if_symbol_exists(name, pos, &cls.table);
 
         cls.fields.push(field);
-        cls.table.insert_term(name, TermSym::SymField(fid));
+        cls.table.insert_term(name, TermSym::Field(fid));
     }
 
     fn check_type_params(&mut self, c: &ast::Class, type_params: &[ast::TypeParam]) {
@@ -108,7 +108,7 @@ impl<'x> ClsDefCheck<'x> {
                     }
                 }
 
-                let sym = TypeSym::SymTypeParam(type_param_id.into());
+                let sym = TypeSym::TypeParam(type_param_id.into());
                 self.sym.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
@@ -127,7 +127,7 @@ impl<'x> ClsDefCheck<'x> {
         let sym = self.sym.get_type(parent_class.name);
 
         match sym {
-            Some(TypeSym::SymClass(cls_id)) => {
+            Some(TypeSym::Class(cls_id)) => {
                 let super_cls = self.vm.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 
@@ -186,7 +186,7 @@ impl<'x> ClsDefCheck<'x> {
             let file: FileId = self.file_id.into();
 
             match sym {
-                TermSym::SymFct(method) => {
+                TermSym::Fct(method) => {
                     let method = self.vm.fcts.idx(method);
                     let method = method.read();
 
@@ -195,7 +195,7 @@ impl<'x> ClsDefCheck<'x> {
                     self.vm.diag.lock().report(file, pos, msg);
                 }
 
-                TermSym::SymField(_) => {
+                TermSym::Field(_) => {
                     let name = self.vm.interner.str(name).to_string();
                     self.vm
                         .diag
@@ -281,7 +281,6 @@ impl<'x> Visitor for ClsDefCheck<'x> {
             use_cannon: f.use_cannon,
             internal: f.internal,
             internal_resolved: false,
-            newcall: f.newcall,
             overrides: None,
             is_constructor: f.is_constructor,
             vtable_index: None,
@@ -335,7 +334,6 @@ impl<'x> Visitor for ClsDefCheck<'x> {
             is_abstract: f.is_abstract,
             is_test: f.is_test,
             use_cannon: f.use_cannon,
-            newcall: f.newcall,
             internal: f.internal,
             internal_resolved: false,
             overrides: None,
@@ -357,7 +355,7 @@ impl<'x> Visitor for ClsDefCheck<'x> {
         let mut cls = cls.write();
 
         self.check_if_symbol_exists(f.name, f.pos, &cls.table);
-        cls.table.insert_term(f.name, TermSym::SymFct(fctid));
+        cls.table.insert_term(f.name, TermSym::Fct(fctid));
 
         cls.methods.push(fctid);
     }

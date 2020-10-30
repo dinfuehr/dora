@@ -122,8 +122,8 @@ impl EnumDef {
         }];
         let mut ref_fields = Vec::new();
 
-        for &ty in &variant.types {
-            let ty = replace_type_param(vm, ty, &self.type_params, None);
+        for ty in &variant.types {
+            let ty = replace_type_param(vm, ty.clone(), &self.type_params, None);
             assert!(ty.is_concrete_type(vm));
 
             if ty.is_unit() {
@@ -134,7 +134,10 @@ impl EnumDef {
             let field_align = ty.align(vm);
 
             let offset = mem::align_i32(csize, field_align);
-            fields.push(FieldDef { offset, ty });
+            fields.push(FieldDef {
+                offset,
+                ty: ty.clone(),
+            });
 
             csize = offset + field_size;
 
@@ -183,7 +186,7 @@ impl EnumDef {
         let variant = &xenum.variants[variant_id];
         let mut units = 0;
 
-        for &ty in &variant.types[0..element as usize] {
+        for ty in &variant.types[0..element as usize] {
             if ty.is_unit() {
                 units += 1;
             }

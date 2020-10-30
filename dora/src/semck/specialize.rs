@@ -27,8 +27,8 @@ pub fn specialize_type_list(vm: &VM, list: &TypeList, type_params: &TypeList) ->
 
     let mut specialized_types = Vec::with_capacity(types.len());
 
-    for &ty in types {
-        let ty = replace_type_param(vm, ty, type_params, None);
+    for ty in types {
+        let ty = replace_type_param(vm, ty.clone(), type_params, None);
         specialized_types.push(ty);
     }
 
@@ -92,14 +92,17 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
     let mut ref_fields = Vec::new();
 
     for f in &struc.fields {
-        let ty = specialize_type(vm, f.ty, &type_params);
+        let ty = specialize_type(vm, f.ty.clone(), &type_params);
         debug_assert!(!ty.contains_type_param(vm));
 
         let field_size = ty.size(vm);
         let field_align = ty.align(vm);
 
         let offset = mem::align_i32(size, field_align);
-        fields.push(StructFieldDef { offset, ty });
+        fields.push(StructFieldDef {
+            offset,
+            ty: ty.clone(),
+        });
 
         size = offset + field_size;
         align = max(align, field_align);
@@ -199,7 +202,8 @@ fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &TypeList) -> bool {
 
     none_variant.types.len() == 0
         && some_variant.types.len() == 1
-        && specialize_type(vm, *some_variant.types.first().unwrap(), type_params).reference_type()
+        && specialize_type(vm, some_variant.types.first().unwrap().clone(), type_params)
+            .reference_type()
 }
 
 pub fn specialize_class_id(vm: &VM, cls_id: ClassId) -> ClassDefId {
@@ -267,7 +271,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         ref_fields = Vec::new();
 
         size = if cls.is_array {
-            let element_ty = type_params[0];
+            let element_ty = type_params[0].clone();
 
             match element_ty {
                 SourceType::Unit => InstanceSize::UnitArray,
@@ -309,13 +313,14 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
 
         let parent_class = cls
             .parent_class
+            .clone()
             .expect("Array & String should have super class");
         let id = specialize_class_ty(vm, parent_class);
         parent_id = Some(id);
     } else {
         let mut csize;
 
-        if let Some(parent_class) = cls.parent_class {
+        if let Some(parent_class) = cls.parent_class.clone() {
             let parent_class = specialize_type(vm, parent_class, type_params);
             let id = specialize_class_ty(vm, parent_class);
             let cls_def = vm.class_defs.idx(id);
@@ -336,14 +341,17 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         };
 
         for f in &cls.fields {
-            let ty = specialize_type(vm, f.ty, &type_params);
+            let ty = specialize_type(vm, f.ty.clone(), &type_params);
             debug_assert!(!ty.contains_type_param(vm));
 
             let field_size = ty.size(vm);
             let field_align = ty.align(vm);
 
             let offset = mem::align_i32(csize, field_align);
-            fields.push(FieldDef { offset, ty });
+            fields.push(FieldDef {
+                offset,
+                ty: ty.clone(),
+            });
 
             csize = offset + field_size;
 
@@ -354,7 +362,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
                 for &ref_offset in tuple.references() {
                     ref_fields.push(offset + ref_offset);
                 }
-            } else if let SourceType::Enum(enum_id, type_params_id) = ty {
+            } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
                 let type_params = vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
                 let edef = vm.enum_defs.idx(edef_id);
@@ -473,7 +481,7 @@ pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &TypeList) -> T
 
     let new_subtypes = subtypes
         .iter()
-        .map(|&t| specialize_type(vm, t, type_params))
+        .map(|t| specialize_type(vm, t.clone(), type_params))
         .collect::<Vec<_>>();
 
     ensure_tuple(vm, new_subtypes)
@@ -486,7 +494,7 @@ pub fn replace_type_param(
     self_ty: Option<SourceType>,
 ) -> SourceType {
     match ty {
-        SourceType::TypeParam(tpid) => type_params[tpid.to_usize()],
+        SourceType::TypeParam(tpid) => type_params[tpid.to_usize()].clone(),
 
         SourceType::Class(cls_id, list_id) => {
             let params = vm.lists.lock().get(list_id);
@@ -494,7 +502,7 @@ pub fn replace_type_param(
             let params = TypeList::with(
                 params
                     .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty))
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
@@ -508,7 +516,7 @@ pub fn replace_type_param(
             let new_type_params = TypeList::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty))
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
@@ -534,7 +542,7 @@ pub fn replace_type_param(
 
             let new_subtypes = subtypes
                 .iter()
-                .map(|&t| replace_type_param(vm, t, type_params, self_ty))
+                .map(|t| replace_type_param(vm, t.clone(), type_params, self_ty.clone()))
                 .collect::<Vec<_>>();
 
             let tuple_id = ensure_tuple(vm, new_subtypes);
