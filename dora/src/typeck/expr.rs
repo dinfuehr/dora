@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
@@ -30,7 +29,6 @@ pub struct TypeCheck<'a> {
     pub file: FileId,
     pub src: &'a mut FctSrc,
     pub ast: &'a Function,
-    pub used_in_call: HashSet<NodeId>,
     pub symtable: SymTables,
 }
 
@@ -679,12 +677,10 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 IdentType::Fct(_) => {
-                    if !self.used_in_call.contains(&e.id) {
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file, e.pos, SemError::FctUsedAsIdentifier);
-                    }
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, e.pos, SemError::FctUsedAsIdentifier);
 
                     self.src.set_ty(e.id, SourceType::Error);
 
@@ -692,12 +688,10 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 IdentType::Class(_) => {
-                    if !self.used_in_call.contains(&e.id) {
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file, e.pos, SemError::ClsUsedAsIdentifier);
-                    }
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, e.pos, SemError::ClsUsedAsIdentifier);
 
                     self.src.set_ty(e.id, SourceType::Error);
 
@@ -2014,26 +2008,7 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         };
 
-        let ident_type = match ident_type {
-            Some(IdentType::Class(cls_id)) if type_params.is_none() => {
-                let list = self.vm.lists.lock().insert(TypeList::empty());
-                let cls_ty = SourceType::Class(cls_id, list);
-
-                IdentType::StaticMethod(cls_ty, name)
-            }
-
-            Some(IdentType::Module(module_id)) | Some(IdentType::ClassAndModule(_, module_id))
-                if type_params.is_none() =>
-            {
-                let module_ty = SourceType::Module(module_id);
-
-                IdentType::Method(module_ty, name)
-            }
-
-            Some(IdentType::TypeParam(ty)) if type_params.is_none() => {
-                IdentType::TypeParamStaticMethod(ty, name)
-            }
-
+        match ident_type {
             Some(IdentType::Enum(id)) => {
                 let type_params = type_params.unwrap_or_else(|| TypeList::empty());
                 return self.check_expr_path_enum(e, expected_ty, id, type_params, name);
@@ -2046,19 +2021,7 @@ impl<'a> TypeCheck<'a> {
                 self.src.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
             }
-        };
-
-        if self.used_in_call.contains(&e.id) {
-            self.src.map_idents.insert(e.id, ident_type);
-            return SourceType::Error;
         }
-
-        self.vm
-            .diag
-            .lock()
-            .report(self.file, e.pos, SemError::FctUsedAsIdentifier);
-
-        SourceType::Error
     }
 
     fn check_expr_path_enum(
@@ -2083,7 +2046,7 @@ impl<'a> TypeCheck<'a> {
         if let Some(&value) = xenum.name_to_value.get(&name) {
             let variant = &xenum.variants[value as usize];
 
-            if !self.used_in_call.contains(&e.id) && !variant.types.is_empty() {
+            if !variant.types.is_empty() {
                 let enum_name = self.vm.interner.str(xenum.name).to_string();
                 let variant_name = self.vm.interner.str(variant.name).to_string();
                 let variant_types = variant
@@ -2122,10 +2085,6 @@ impl<'a> TypeCheck<'a> {
         e: &ExprTypeParamType,
         _expected_ty: SourceType,
     ) -> SourceType {
-        if self.used_in_call.contains(&e.id) {
-            self.used_in_call.insert(e.callee.id());
-        }
-
         let expr_type = self.check_expr(&e.callee, SourceType::Any);
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
@@ -2195,13 +2154,6 @@ impl<'a> TypeCheck<'a> {
                 return SourceType::Error;
             }
         };
-
-        if self.used_in_call.contains(&e.id) {
-            self.src
-                .map_idents
-                .insert(e.id, IdentType::Method(object_type, name));
-            return SourceType::Error;
-        }
 
         if object_type.cls_id(self.vm).is_some() {
             if let Some((cls_ty, field_id, _)) =

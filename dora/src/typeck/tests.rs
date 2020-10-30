@@ -1544,8 +1544,8 @@ fn test_type_param_with_name_but_no_call() {
     err(
         "trait X { fun foo(): Int32; }
         fun f[T: X]() { T::foo; }",
-        pos(2, 26),
-        SemError::FctUsedAsIdentifier,
+        pos(2, 25),
+        SemError::InvalidLeftSideOfSeparator,
     );
 
     err(
@@ -1553,8 +1553,8 @@ fn test_type_param_with_name_but_no_call() {
         class SomeClass[T: X] {
             fun f() { T::foo; }
         }",
-        pos(3, 24),
-        SemError::FctUsedAsIdentifier,
+        pos(3, 23),
+        SemError::InvalidLeftSideOfSeparator,
     );
 }
 
