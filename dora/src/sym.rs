@@ -210,6 +210,7 @@ pub enum TermSym {
     ClassConstructor(ClassId),
     StructConstructor(StructId),
     Namespace(NamespaceId),
+    EnumValue(EnumId, usize),
 }
 
 impl TypeSym {

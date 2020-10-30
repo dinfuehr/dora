@@ -1984,34 +1984,45 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_path(&mut self, e: &ExprPathType, expected_ty: SourceType) -> SourceType {
-        let (ident_type, type_params) = if let Some(lhs_ident) = e.lhs.to_ident() {
-            (self.get_ident_type_expr(lhs_ident), None)
-        } else if let Some(tp) = e.lhs.to_type_param() {
-            if let Some(ident_type) = tp.callee.to_ident() {
-                let type_params: Vec<SourceType> =
-                    tp.args.iter().map(|p| self.read_type(p)).collect();
-                let type_params: TypeList = TypeList::with(type_params);
+        let (container_expr, type_params) = if let Some(expr_type_params) = e.lhs.to_type_param() {
+            let type_params: Vec<SourceType> = expr_type_params
+                .args
+                .iter()
+                .map(|p| self.read_type(p))
+                .collect();
+            let type_params: TypeList = TypeList::with(type_params);
 
-                (self.get_ident_type_expr(ident_type), Some(type_params))
-            } else {
-                (None, None)
-            }
+            (&expr_type_params.callee, type_params)
         } else {
-            (None, None)
+            (&e.lhs, TypeList::empty())
         };
 
-        let name = if let Some(ident) = e.rhs.to_ident() {
+        let container_name = if let Some(container_expr) = container_expr.to_ident() {
+            container_expr.name
+        } else {
+            let msg = SemError::ExpectedSomeIdentifier;
+            self.vm
+                .diag
+                .lock()
+                .report(self.file, container_expr.pos(), msg);
+
+            self.src.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
+        };
+
+        let method_name = if let Some(ident) = e.rhs.to_ident() {
             ident.name
         } else {
-            let msg = SemError::NameOfStaticMethodExpected;
+            let msg = SemError::ExpectedSomeIdentifier;
             self.vm.diag.lock().report(self.file, e.rhs.pos(), msg);
             return SourceType::Error;
         };
 
-        match ident_type {
-            Some(IdentType::Enum(id)) => {
-                let type_params = type_params.unwrap_or_else(|| TypeList::empty());
-                return self.check_expr_path_enum(e, expected_ty, id, type_params, name);
+        let sym_type = self.symtable.get_type(container_name);
+
+        match sym_type {
+            Some(TypeSym::Enum(id)) => {
+                self.check_expr_path_enum(e.id, e.pos, expected_ty, id, type_params, method_name)
             }
 
             _ => {
@@ -2019,14 +2030,15 @@ impl<'a> TypeCheck<'a> {
                 self.vm.diag.lock().report(self.file, e.lhs.pos(), msg);
 
                 self.src.set_ty(e.id, SourceType::Error);
-                return SourceType::Error;
+                SourceType::Error
             }
         }
     }
 
     fn check_expr_path_enum(
         &mut self,
-        e: &ExprPathType,
+        expr_id: NodeId,
+        expr_pos: Position,
         _expected_ty: SourceType,
         enum_id: EnumId,
         type_params: TypeList,
@@ -2040,7 +2052,7 @@ impl<'a> TypeCheck<'a> {
             self.vm,
             self.fct,
             ty.clone(),
-            ErrorReporting::Yes(self.file, e.pos),
+            ErrorReporting::Yes(self.file, expr_pos),
         );
 
         if let Some(&value) = xenum.name_to_value.get(&name) {
@@ -2061,11 +2073,11 @@ impl<'a> TypeCheck<'a> {
                     variant_types,
                     arg_types,
                 );
-                self.vm.diag.lock().report(self.file, e.pos, msg);
+                self.vm.diag.lock().report(self.file, expr_pos, msg);
             }
 
             self.src.map_idents.insert(
-                e.id,
+                expr_id,
                 IdentType::EnumValueType(enum_id, type_params, value as usize),
             );
         } else {
@@ -2073,63 +2085,138 @@ impl<'a> TypeCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.file, e.pos, SemError::UnknownEnumValue(name));
+                .report(self.file, expr_pos, SemError::UnknownEnumValue(name));
         }
 
-        self.src.set_ty(e.id, ty.clone());
+        self.src.set_ty(expr_id, ty.clone());
         ty
     }
 
     fn check_expr_type_param(
         &mut self,
         e: &ExprTypeParamType,
-        _expected_ty: SourceType,
+        expected_ty: SourceType,
     ) -> SourceType {
-        let expr_type = self.check_expr(&e.callee, SourceType::Any);
-        let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
-
         let type_params: Vec<SourceType> = e.args.iter().map(|p| self.read_type(p)).collect();
         let type_params: TypeList = TypeList::with(type_params);
 
-        match ident_type {
-            Some(IdentType::Class(cls_id)) | Some(IdentType::ClassAndModule(cls_id, _)) => {
-                self.src
-                    .map_idents
-                    .insert(e.id, IdentType::ClassType(cls_id, type_params));
-            }
+        if let Some(ident) = e.callee.to_ident() {
+            let method_name = ident.name;
 
-            Some(IdentType::Fct(fct_id)) => {
-                self.src
-                    .map_idents
-                    .insert(e.id, IdentType::FctType(fct_id, type_params));
-            }
+            let sym_term = self.symtable.get_term(method_name);
 
-            Some(IdentType::Method(ty, name)) => {
-                self.src
-                    .map_idents
-                    .insert(e.id, IdentType::MethodType(ty, name, type_params));
-            }
+            match sym_term {
+                Some(TermSym::EnumValue(enum_id, variant_id)) => self.check_expr_type_param_enum(
+                    e,
+                    expected_ty,
+                    enum_id,
+                    variant_id,
+                    type_params,
+                ),
 
-            Some(IdentType::StaticMethod(cls_ty, name)) => {
-                self.src
-                    .map_idents
-                    .insert(e.id, IdentType::StaticMethodType(cls_ty, name, type_params));
-            }
+                _ => {
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, e.pos, SemError::NoTypeParamsExpected);
 
-            Some(IdentType::Enum(id)) => {
-                self.src
-                    .map_idents
-                    .insert(e.id, IdentType::EnumType(id, type_params));
+                    self.src.set_ty(e.id, SourceType::Error);
+                    SourceType::Error
+                }
             }
+        } else if let Some(path) = e.callee.to_path() {
+            let container_name = if let Some(container_expr) = path.lhs.to_ident() {
+                container_expr.name
+            } else {
+                let msg = SemError::ExpectedSomeIdentifier;
+                self.vm.diag.lock().report(self.file, path.lhs.pos(), msg);
 
-            _ => {
-                let msg = SemError::InvalidUseOfTypeParams;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
-                return expr_type;
+                self.src.set_ty(e.id, SourceType::Error);
+                return SourceType::Error;
+            };
+
+            let method_name = if let Some(ident) = path.rhs.to_ident() {
+                ident.name
+            } else {
+                let msg = SemError::ExpectedSomeIdentifier;
+                self.vm.diag.lock().report(self.file, path.rhs.pos(), msg);
+
+                self.src.set_ty(e.id, SourceType::Error);
+                return SourceType::Error;
+            };
+
+            let sym_type = self.symtable.get_type(container_name);
+
+            match sym_type {
+                Some(TypeSym::Enum(enum_id)) => self.check_expr_path_enum(
+                    e.id,
+                    e.pos,
+                    expected_ty,
+                    enum_id,
+                    type_params,
+                    method_name,
+                ),
+
+                _ => {
+                    let msg = SemError::NoTypeParamsExpected;
+                    self.vm.diag.lock().report(self.file, e.pos, msg);
+
+                    self.src.set_ty(e.id, SourceType::Error);
+                    SourceType::Error
+                }
             }
+        } else {
+            self.vm
+                .diag
+                .lock()
+                .report(self.file, e.pos, SemError::NoTypeParamsExpected);
+            self.src.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
+        }
+    }
+
+    fn check_expr_type_param_enum(
+        &mut self,
+        e: &ExprTypeParamType,
+        _expected_ty: SourceType,
+        enum_id: EnumId,
+        variant_id: usize,
+        type_params: TypeList,
+    ) -> SourceType {
+        let xenum = self.vm.enums[enum_id].read();
+
+        let list_id = self.vm.lists.lock().insert(type_params.clone());
+        let ty = SourceType::Enum(enum_id, list_id);
+        typeparamck::check_enum(
+            self.vm,
+            self.fct,
+            ty.clone(),
+            ErrorReporting::Yes(self.file, e.pos),
+        );
+
+        let variant = &xenum.variants[variant_id];
+
+        if !variant.types.is_empty() {
+            let enum_name = self.vm.interner.str(xenum.name).to_string();
+            let variant_name = self.vm.interner.str(variant.name).to_string();
+            let variant_types = variant
+                .types
+                .iter()
+                .map(|a| a.name_fct(self.vm, self.fct))
+                .collect::<Vec<_>>();
+            let arg_types = Vec::new();
+            let msg =
+                SemError::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
+            self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        expr_type
+        self.src.map_idents.insert(
+            e.id,
+            IdentType::EnumValueType(enum_id, type_params, variant_id),
+        );
+
+        self.src.set_ty(e.id, ty.clone());
+        ty
     }
 
     fn check_expr_dot(&mut self, e: &ExprDotType, _expected_ty: SourceType) -> SourceType {

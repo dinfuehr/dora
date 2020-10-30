@@ -12,8 +12,8 @@ use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
-    CallType, ConstId, Fct, FctId, FctSrc, GlobalId, IdentType, Intrinsic, TraitId, TupleId, VarId,
-    VM,
+    CallType, ConstId, EnumId, Fct, FctId, FctSrc, GlobalId, IdentType, Intrinsic, TraitId,
+    TupleId, VarId, VM,
 };
 
 pub struct LoopLabels {
@@ -558,7 +558,7 @@ impl<'a> AstBytecodeGen<'a> {
             ExprBlock(ref block) => self.visit_expr_block(block, dest),
             ExprIf(ref expr) => self.visit_expr_if(expr, dest),
             ExprTemplate(ref template) => self.visit_expr_template(template, dest),
-            ExprTypeParam(_) => unreachable!(),
+            ExprTypeParam(ref expr) => self.visit_expr_type_param(expr, dest),
             ExprPath(ref path) => self.visit_expr_path(path, dest),
             ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest, false),
@@ -581,6 +581,18 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_expr_for_effect(&mut self, expr: &Expr) {
         let reg = self.visit_expr(expr, DataDest::Effect);
         self.free_if_temp(reg);
+    }
+
+    fn visit_expr_type_param(&mut self, expr: &ExprTypeParamType, dest: DataDest) -> Register {
+        let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
+
+        match ident_type {
+            IdentType::EnumValueType(enum_id, type_params, variant_id) => {
+                self.emit_new_enum(enum_id, type_params, variant_id, expr.pos, dest)
+            }
+
+            _ => unreachable!(),
+        }
     }
 
     fn visit_expr_template(&mut self, expr: &ExprTemplateType, dest: DataDest) -> Register {
@@ -673,26 +685,37 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
-            IdentType::EnumValueType(enum_id, type_list, variant_id) => {
-                let xenum = &self.vm.enums[enum_id];
-                let xenum = xenum.read();
-
-                if xenum.simple_enumeration {
-                    let dest = self.ensure_register(dest, BytecodeType::Int32);
-                    self.gen.emit_const_int32(dest, variant_id as i32);
-                    dest
-                } else {
-                    let bty = BytecodeType::Enum(enum_id, type_list.clone());
-                    let dest = self.ensure_register(dest, bty);
-                    let idx = self
-                        .gen
-                        .add_const_enum_variant(enum_id, type_list, variant_id);
-                    self.gen.emit_new_enum(dest, idx, expr.pos);
-                    dest
-                }
+            IdentType::EnumValueType(enum_id, type_params, variant_id) => {
+                self.emit_new_enum(enum_id, type_params, variant_id, expr.pos, dest)
             }
 
             _ => unreachable!(),
+        }
+    }
+
+    fn emit_new_enum(
+        &mut self,
+        enum_id: EnumId,
+        type_params: TypeList,
+        variant_id: usize,
+        pos: Position,
+        dest: DataDest,
+    ) -> Register {
+        let xenum = &self.vm.enums[enum_id];
+        let xenum = xenum.read();
+
+        if xenum.simple_enumeration {
+            let dest = self.ensure_register(dest, BytecodeType::Int32);
+            self.gen.emit_const_int32(dest, variant_id as i32);
+            dest
+        } else {
+            let bty = BytecodeType::Enum(enum_id, type_params.clone());
+            let dest = self.ensure_register(dest, bty);
+            let idx = self
+                .gen
+                .add_const_enum_variant(enum_id, type_params, variant_id);
+            self.gen.emit_new_enum(dest, idx, pos);
+            dest
         }
     }
 

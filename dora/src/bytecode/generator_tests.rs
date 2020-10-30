@@ -2502,6 +2502,21 @@ fn gen_new_enum() {
             assert_eq!(expected, code);
         },
     );
+
+    gen_fct(
+        "
+        enum Foo[T] { A(T), B }
+        fun f(): Foo[Int32] { Foo::B[Int32] }
+    ",
+        |vm, code, _fct| {
+            let enum_id = vm.enum_by_name("Foo");
+            let expected = vec![
+                NewEnum(r(0), enum_id, TypeList::single(SourceType::Int32), 1),
+                Ret(r(0)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
 }
 
 #[test]

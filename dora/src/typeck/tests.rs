@@ -1674,6 +1674,17 @@ fn test_enum() {
 }
 
 #[test]
+fn test_enum_value_with_type_param() {
+    ok("enum A[T] { V1, V2 } fun f(): A[Int32] { A::V2[Int32] }");
+    ok("enum A[T] { V1, V2 } fun f(): A[Int32] { A[Int32]::V2 }");
+    err(
+        "enum A[T] { V1, V2 } fun f(): A[Int32] { A[Int32]::V2[Int32] }",
+        pos(1, 43),
+        SemError::ExpectedSomeIdentifier,
+    );
+}
+
+#[test]
 fn test_block_value() {
     ok("fun f(): Int32 { 1 }");
     ok("fun f() { let x = { 1 }; }");
