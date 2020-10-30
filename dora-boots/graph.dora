@@ -1,6 +1,6 @@
 class Graph {
-    var entryBlock: Option[Block] = Option[Block]::None;
-    var exitBlock: Option[Block] = Option[Block]::None;
+    var entryBlock: Option[Block] = Option::None[Block];
+    var exitBlock: Option[Block] = Option::None[Block];
 
     var blocks: Vec[Block] = Vec[Block]();
     var postOrder: Vec[Block] = Vec[Block]();
@@ -11,7 +11,7 @@ class Graph {
     fun addBlock(block: Block) {
         assert(block.graph.isNone() && block.id == -1);
 
-        block.graph = Option[Graph]::Some(self);
+        block.graph = Option::Some[Graph](self);
         block.id = self.nextBlockId();
         self.blocks.push(block);
     }
@@ -21,7 +21,7 @@ class Graph {
     }
 
     fun setEntryBlock(block: Block) {
-        self.entryBlock = Option[Block]::Some(block);
+        self.entryBlock = Option::Some[Block](block);
     }
 
     fun getEntryBlock(): Block {
@@ -29,7 +29,7 @@ class Graph {
     }
 
     fun setExitBlock(block: Block) {
-        self.exitBlock = Option[Block]::Some(block);
+        self.exitBlock = Option::Some[Block](block);
     }
 
     fun getExitBlock(): Block {
@@ -120,9 +120,9 @@ class Block() {
     var phis: InstLinkedList = InstLinkedList();
     var instructions: InstLinkedList = InstLinkedList();
 
-    var graph: Option[Graph] = Option[Graph]::None;
+    var graph: Option[Graph] = Option::None[Graph];
 
-    var dominator: Option[Block] = Option[Block]::None;
+    var dominator: Option[Block] = Option::None[Block];
     var dominatedBlocks: Vec[Block] = Vec[Block]();
 
     var predecessors: Vec[Edge] = Vec[Edge]();
@@ -131,7 +131,7 @@ class Block() {
     var backwardPredecessors: Int32 = 0;
     var backwardSuccessors: Int32 = 0;
 
-    var loopHeader: Option[LoopHeader] = Option[LoopHeader]::None;
+    var loopHeader: Option[LoopHeader] = Option::None[LoopHeader];
 
     var postOrderIdx: Int32 = -1;
 
@@ -140,7 +140,7 @@ class Block() {
     }
 
     fun setDominator(block: Block) {
-        self.dominator = Option[Block]::Some(block);
+        self.dominator = Option::Some[Block](block);
     }
 
     fun dominates(other: Block): Bool {
@@ -180,7 +180,7 @@ class Block() {
     fun appendPhi(phi: PhiInst): PhiInst {
         assert(phi.block.isNone() && phi.id == -1);
 
-        phi.block = Option[Block]::Some(self);
+        phi.block = Option::Some[Block](self);
         phi.id = self.graph.unwrap().nextInstId();
 
         self.phis.appendInst(phi);
@@ -192,7 +192,7 @@ class Block() {
     fun appendInst(inst: Inst): Inst {
         assert(inst.block.isNone() && inst.id == -1);
 
-        inst.block = Option[Block]::Some(self);
+        inst.block = Option::Some[Block](self);
         inst.id = self.graph.unwrap().nextInstId();
 
         self.instructions.appendInst(inst);
@@ -203,7 +203,7 @@ class Block() {
 
     fun addBackEdge(block: Block) {
         if self.loopHeader.isNone() {
-            self.loopHeader = Option[LoopHeader]::Some(LoopHeader(self));
+            self.loopHeader = Option::Some[LoopHeader](LoopHeader(self));
         }
         self.loopHeader.unwrap().addBackEdge(block);
     }
@@ -278,21 +278,21 @@ class LoopHeader(let header: Block) {
 }
 
 class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
-    var previousUse: Option[Input] = Option[Input]::None;
-    var nextUse: Option[Input] = Option[Input]::None;
+    var previousUse: Option[Input] = Option::None[Input];
+    var nextUse: Option[Input] = Option::None[Input];
 }
 
 @abstract @open class Inst {
     var id: Int32 = -1;
-    var block: Option[Block] = Option[Block]::None;
+    var block: Option[Block] = Option::None[Block];
 
-    var previous: Option[Inst] = Option[Inst]::None;
-    var next: Option[Inst] = Option[Inst]::None;
+    var previous: Option[Inst] = Option::None[Inst];
+    var next: Option[Inst] = Option::None[Inst];
 
     var ty: Type = typeUnit;
 
-    var useListHead: Option[Input] = Option[Input]::None;
-    var useListTail: Option[Input] = Option[Input]::None;
+    var useListHead: Option[Input] = Option::None[Input];
+    var useListTail: Option[Input] = Option::None[Input];
 
     var inputs: Vec[Input] = Vec[Input]();
 
@@ -310,21 +310,21 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
 
         if self.useListHead.isNone() {
             assert(self.useListTail.isNone());
-            input.previousUse = Option[Input]::None;
-            input.nextUse = Option[Input]::None;
+            input.previousUse = Option::None[Input];
+            input.nextUse = Option::None[Input];
 
-            self.useListHead = Option[Input]::Some(input);
-            self.useListTail = Option[Input]::Some(input);
+            self.useListHead = Option::Some[Input](input);
+            self.useListTail = Option::Some[Input](input);
         } else {
             assert(self.useListHead.isSome());
             assert(self.useListTail.isSome());
 
-            self.useListTail.unwrap().nextUse = Option[Input]::Some(input);
+            self.useListTail.unwrap().nextUse = Option::Some[Input](input);
 
             input.previousUse = self.useListTail;
-            input.nextUse = Option[Input]::None;
+            input.nextUse = Option::None[Input];
 
-            self.useListTail = Option[Input]::Some(input);
+            self.useListTail = Option::Some[Input](input);
         }
     }
 
@@ -345,8 +345,8 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
 
         assert(self.useListHead.isSome() == self.useListTail.isSome());
 
-        input.previousUse = Option[Input]::None;
-        input.nextUse = Option[Input]::None;
+        input.previousUse = Option::None[Input];
+        input.nextUse = Option::None[Input];
     }
 
     fun remove() {
@@ -362,7 +362,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
             block.instructions.removeInst(self);
         }
 
-        self.block = Option[Block]::None;
+        self.block = Option::None[Block];
     }
 
     fun registerUses() {
@@ -620,8 +620,8 @@ fun unOpName(op: UnOp): String {
 }
 
 class InstLinkedList {
-    var first: Option[Inst] = Option[Inst]::None;
-    var last: Option[Inst] = Option[Inst]::None;
+    var first: Option[Inst] = Option::None[Inst];
+    var last: Option[Inst] = Option::None[Inst];
 
     fun isEmpty(): Bool {
         self.first.isNone()
@@ -637,18 +637,18 @@ class InstLinkedList {
 
     fun appendInst(inst: Inst) {
         if self.first.isNone() {
-            inst.previous = Option[Inst]::None;
-            inst.next = Option[Inst]::None;
+            inst.previous = Option::None[Inst];
+            inst.next = Option::None[Inst];
 
-            self.first = Option[Inst]::Some(inst);
-            self.last = Option[Inst]::Some(inst);
+            self.first = Option::Some[Inst](inst);
+            self.last = Option::Some[Inst](inst);
         } else {
-            self.last.unwrap().next = Option[Inst]::Some(inst);
+            self.last.unwrap().next = Option::Some[Inst](inst);
 
             inst.previous = self.last;
-            inst.next = Option[Inst]::None;
+            inst.next = Option::None[Inst];
 
-            self.last = Option[Inst]::Some(inst);
+            self.last = Option::Some[Inst](inst);
         }
     }
 

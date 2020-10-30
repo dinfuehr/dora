@@ -35,7 +35,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun prepare() {
-        self.currentBlock = Option[Block]::Some(self.graph.getEntryBlock());
+        self.currentBlock = Option::Some[Block](self.graph.getEntryBlock());
 
         self.currentDef = Array::ofSizeUnsafe[HashMap[Block, Inst]](self.bc.registers.size());
 
@@ -133,11 +133,11 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
                 return phi;
             }
 
-            same = Option[Inst]::Some(op);
+            same = Option::Some[Inst](op);
         }
 
         if same.isNone() {
-            same = Option[Inst]::Some(UndefInst());
+            same = Option::Some[Inst](UndefInst());
         }
 
         let users = phi.users();
