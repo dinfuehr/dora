@@ -2487,24 +2487,14 @@ impl<'a> AstBytecodeGen<'a> {
         match ident_type {
             &IdentType::Var(varid) => self.visit_expr_ident_var(varid, dest),
             &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest),
+            &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
+            &IdentType::Module(_) => unimplemented!(),
 
             &IdentType::Field(_, _) => unreachable!(),
-            &IdentType::Struct(_) => unimplemented!(),
-            &IdentType::Namespace(_) => unimplemented!(),
-            &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
-
-            &IdentType::Enum(_)
-            | &IdentType::EnumType(_, _)
-            | &IdentType::EnumValueType(_, _, _) => unreachable!(),
-            &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
-            &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
-            &IdentType::Module(_) => unreachable!(),
-            &IdentType::ClassAndModule(_, _) | &IdentType::StructAndModule(_, _) => unreachable!(),
-            &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
-            &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
-                unreachable!()
-            }
+            &IdentType::Struct(_) => unreachable!(),
+            &IdentType::EnumValueType(_, _, _) => unreachable!(),
+            &IdentType::FctType(_, _) => unreachable!(),
+            &IdentType::ClassType(_, _) => unreachable!(),
         }
     }
 

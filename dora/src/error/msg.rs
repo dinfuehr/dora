@@ -63,14 +63,6 @@ pub enum SemError {
     ReferenceTypeExpected(String),
     LetMissingInitialization,
     LetReassigned,
-    FctReassigned,
-    ClassReassigned,
-    TypeParamReassigned,
-    FctUsedAsIdentifier,
-    ClsUsedAsIdentifier,
-    ModuleUsedAsIdentifier,
-    TypeParamUsedAsIdentifier,
-    EnumUsedAsIdentifier,
     UnderivableType(String),
     CycleInHierarchy,
     SuperfluousOverride(String),
@@ -99,6 +91,7 @@ pub enum SemError {
     LetPatternShouldBeUnit,
     LetPatternExpectedTupleWithLength(String, usize, usize),
     MisplacedElse,
+    ValueExpected,
     IoError,
     ExpectedClassElement(String),
     MisplacedAnnotation(String),
@@ -121,7 +114,6 @@ pub enum SemError {
     WrongNumberTypeParams(usize, usize),
     ClassExpected,
     ClassExpectedAsTypeParam,
-    AssignmentToConst,
     BoundExpected,
     NoTypeParamsExpected,
     DuplicateTraitBound,
@@ -274,6 +266,7 @@ impl SemError {
                 def, expr
             ),
             SemError::LvalueExpected => format!("lvalue expected for assignment"),
+            SemError::ValueExpected => format!("value expected"),
             SemError::AssignType(ref name, ref def, ref expr) => format!(
                 "cannot assign `{}` to variable `{}` of type `{}`.",
                 expr, name, def
@@ -306,16 +299,6 @@ impl SemError {
             }
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
-            SemError::FctReassigned => "function cannot be reassigned.".into(),
-            SemError::ClassReassigned => "class cannot be reassigned.".into(),
-            SemError::TypeParamReassigned => "type param cannot be reassigned.".into(),
-            SemError::FctUsedAsIdentifier => "function cannot be used as identifier.".into(),
-            SemError::ClsUsedAsIdentifier => "class cannot be used as identifier.".into(),
-            SemError::ModuleUsedAsIdentifier => "module cannot be used as identifier.".into(),
-            SemError::TypeParamUsedAsIdentifier => {
-                "type param cannot be used as identifier.".into()
-            }
-            SemError::EnumUsedAsIdentifier => "enum cannot be used as identifier.".into(),
             SemError::InvalidLhsAssignment => "invalid left-hand-side of assignment.".into(),
             SemError::UnderivableType(ref name) => {
                 format!("type `{}` cannot be used as super class.", name)
@@ -446,7 +429,6 @@ impl SemError {
             }
             SemError::ClassExpected => "expected class.".into(),
             SemError::ClassExpectedAsTypeParam => "class as type parameter expected.".into(),
-            SemError::AssignmentToConst => "cannot assign to const variable.".into(),
             SemError::BoundExpected => "class or trait bound expected".into(),
             SemError::NoTypeParamsExpected => "no type params allowed".into(),
             SemError::DuplicateTraitBound => "duplicate trait bound".into(),

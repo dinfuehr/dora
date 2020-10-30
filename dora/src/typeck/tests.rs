@@ -704,23 +704,6 @@ fn super_as_normal_expression() {
 }
 
 #[test]
-fn struct_lit() {
-    ok("struct Foo {} fun foo(): Foo { return Foo; }");
-    ok("struct Foo {} fun foo() { let x = Foo; }");
-    ok("struct Foo {} fun foo() { let x: Foo = Foo; }");
-    err(
-        "struct Foo {} fun foo() { let x: Int32 = Foo; }",
-        pos(1, 27),
-        SemError::AssignType("x".into(), "Int32".into(), "Foo".into()),
-    );
-    err(
-        "struct Foo {} fun foo(): Int32 { return Foo; }",
-        pos(1, 34),
-        SemError::ReturnType("Int32".into(), "Foo".into()),
-    );
-}
-
-#[test]
 fn lit_int64() {
     ok("fun f(): Int64 { return 1L; }");
     ok("fun f(): Int32 { return 1; }");
@@ -1081,8 +1064,8 @@ fn test_assignment_to_const() {
     err(
         "const one: Int32 = 1;
             fun f() { one = 2; }",
-        pos(2, 27),
-        SemError::AssignmentToConst,
+        pos(2, 23),
+        SemError::LvalueExpected,
     );
 }
 
@@ -1290,7 +1273,7 @@ fn test_fct_used_as_identifier() {
     err(
         "fun foo() {} fun bar() { foo; }",
         pos(1, 26),
-        SemError::FctUsedAsIdentifier,
+        SemError::ValueExpected,
     );
 }
 
@@ -1299,7 +1282,7 @@ fn test_cls_used_as_identifier() {
     err(
         "class X fun f() { X; }",
         pos(1, 19),
-        SemError::ClsUsedAsIdentifier,
+        SemError::ValueExpected,
     );
 }
 
@@ -1307,8 +1290,8 @@ fn test_cls_used_as_identifier() {
 fn test_assign_fct() {
     err(
         "fun foo() {} fun bar() { foo = 1; }",
-        pos(1, 30),
-        SemError::FctReassigned,
+        pos(1, 26),
+        SemError::LvalueExpected,
     );
 }
 
@@ -1316,8 +1299,8 @@ fn test_assign_fct() {
 fn test_assign_class() {
     err(
         "class X fun foo() { X = 2; }",
-        pos(1, 23),
-        SemError::ClassReassigned,
+        pos(1, 21),
+        SemError::LvalueExpected,
     );
 }
 
@@ -1510,7 +1493,7 @@ fn test_type_param_used_as_value() {
     err(
         "fun f[T](): Int32 { return T; }",
         pos(1, 28),
-        SemError::TypeParamUsedAsIdentifier,
+        SemError::ValueExpected,
     );
 
     err(
@@ -1518,7 +1501,7 @@ fn test_type_param_used_as_value() {
             fun f(): Int32 { return T; }
         }",
         pos(2, 37),
-        SemError::TypeParamUsedAsIdentifier,
+        SemError::ValueExpected,
     );
 }
 
@@ -1526,16 +1509,16 @@ fn test_type_param_used_as_value() {
 fn test_assign_to_type_param() {
     err(
         "fun f[T]() { T = 10; }",
-        pos(1, 16),
-        SemError::TypeParamReassigned,
+        pos(1, 14),
+        SemError::LvalueExpected,
     );
 
     err(
         "class SomeClass[T] {
             fun f() { T = 10; }
         }",
-        pos(2, 25),
-        SemError::TypeParamReassigned,
+        pos(2, 23),
+        SemError::LvalueExpected,
     );
 }
 
@@ -1564,7 +1547,7 @@ fn test_type_param_call() {
         "trait X { fun foo(): Int32; }
         fun f[T: X]() { T(); }",
         pos(2, 25),
-        SemError::TypeParamUsedAsIdentifier,
+        SemError::ValueExpected,
     );
 
     err(
@@ -1573,7 +1556,7 @@ fn test_type_param_call() {
             fun f() { T(); }
         }",
         pos(3, 23),
-        SemError::TypeParamUsedAsIdentifier,
+        SemError::ValueExpected,
     );
 }
 
@@ -1657,13 +1640,13 @@ fn test_enum() {
     err(
         "enum A { V1 } fun f(): A { return A; }",
         pos(1, 35),
-        SemError::EnumUsedAsIdentifier,
+        SemError::ValueExpected,
     );
 
     err(
         "enum A { V1 } fun f() { A = 1; }",
-        pos(1, 27),
-        SemError::InvalidLhsAssignment,
+        pos(1, 25),
+        SemError::LvalueExpected,
     );
 
     err(

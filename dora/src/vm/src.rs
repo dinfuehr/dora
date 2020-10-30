@@ -8,9 +8,8 @@ use dora_parser::interner::Name;
 
 use crate::compiler::fct::JitFctId;
 use crate::ty::{SourceType, TypeList, TypeListId};
-use crate::vm::module::ModuleId;
 use crate::vm::{
-    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, NamespaceId, StructId, TraitId,
+    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId, StructId, TraitId,
 };
 
 #[derive(Debug)]
@@ -140,6 +139,7 @@ pub struct ConvInfo {
 pub enum IdentType {
     /// name of local variable
     Var(VarId),
+
     /// name of a global variable
     Global(GlobalId),
 
@@ -152,56 +152,17 @@ pub enum IdentType {
     // name of constant
     Const(ConstId),
 
-    // name of function
-    Fct(FctId),
+    // name of module
+    Module(ModuleId),
 
     // name of function with type params: some_fct[T1, T2, ...]
     FctType(FctId, TypeList),
 
-    // name of class
-    Class(ClassId),
-
     // name of class with type params: SomeClass[T1, T2, ...]
     ClassType(ClassId, TypeList),
 
-    // name of module
-    Module(ModuleId),
-
-    // name of class and module
-    ClassAndModule(ClassId, ModuleId),
-
-    // name of struct and module
-    StructAndModule(StructId, ModuleId),
-
-    // method expression: <expr>.<method_name>
-    Method(SourceType, Name),
-
-    // method expression with type params: <expr>.<method_name>[T1, T2, ...]
-    MethodType(SourceType, Name, TypeList),
-
-    // static method expression: SomeClass[T1, T2, ...]::<name>
-    StaticMethod(SourceType, Name),
-
-    // static method expression: SomeClass[T1, T2, ...]::<name>[T1, T2, ...]
-    StaticMethodType(SourceType, Name, TypeList),
-
-    // function or class type param: e.g. T
-    TypeParam(SourceType),
-
-    // static method call on type param: <T>::<name>
-    TypeParamStaticMethod(SourceType, Name),
-
-    // name of enum
-    Enum(EnumId),
-
-    // name of enum with type params
-    EnumType(EnumId, TypeList),
-
     // specific value in enum
     EnumValueType(EnumId, TypeList, usize),
-
-    // namespace
-    Namespace(NamespaceId),
 }
 
 impl IdentType {
@@ -235,7 +196,6 @@ impl IdentType {
 
     pub fn is_class(&self) -> bool {
         match *self {
-            IdentType::Class(_) => true,
             IdentType::ClassType(_, _) => true,
             _ => false,
         }
@@ -243,7 +203,6 @@ impl IdentType {
 
     pub fn is_fct(&self) -> bool {
         match *self {
-            IdentType::Fct(_) => true,
             IdentType::FctType(_, _) => true,
             _ => false,
         }
