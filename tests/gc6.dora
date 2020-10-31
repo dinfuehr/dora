@@ -1,8 +1,8 @@
 fun main() {
-  let mut x : Option[Foo] = Option[Foo]::None;
+  let mut x : Option[Foo] = None[Foo];
 
   if false {
-    x = Option[Foo]::Some(Foo());
+    x = Some[Foo](Foo());
   }
 
   forceCollect();

@@ -1,6 +1,6 @@
 class BlockBuilder(let graph: Graph, let bc: BytecodeFunction) extends EmptyBytecodeVisitor {
     var offset: Int32 = 0;
-    var currentBlock: Option[Block] = Option[Block]::None;
+    var currentBlock: Option[Block] = None[Block];
     var blockTerminated: Bool = false;
     var blocks: HashMap[Int32, Block] = HashMap[Int32, Block]();
 
@@ -30,7 +30,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction) extends EmptyByte
             offset = offset + 1L;
         }
 
-        Option[Block]::None
+        None[Block]
     }
 
     fun markBlockTerminated() {

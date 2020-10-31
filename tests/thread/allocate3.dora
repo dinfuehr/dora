@@ -21,11 +21,11 @@ fun allocator() {
 
     while i < 10_000 {
         let foo = {
-            let v1 = Foo(i, Option[Foo]::None);
-            let v2 = Foo(i + 1, Option[Foo]::Some(v1));
-            let v3 = Foo(i + 2, Option[Foo]::Some(v2));
-            let v4 = Foo(i + 3, Option[Foo]::Some(v3));
-            Foo(i + 4, Option[Foo]::Some(v4))
+            let v1 = Foo(i, None[Foo]);
+            let v2 = Foo(i + 1, Some[Foo](v1));
+            let v3 = Foo(i + 2, Some[Foo](v2));
+            let v4 = Foo(i + 3, Some[Foo](v3));
+            Foo(i + 4, Some[Foo](v4))
         };
 
         if i % 500 == 0 { forceMinorCollect(); }

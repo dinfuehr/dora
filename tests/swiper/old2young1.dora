@@ -1,11 +1,11 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Foo(1, Option[Foo]::None);
+  let x = Foo(1, None[Foo]);
   forceMinorCollect();
   forceMinorCollect();
   // write into old object x reference to young object
-  x.next = Option[Foo]::Some(Foo(2, Option[Foo]::None));
+  x.next = Some[Foo](Foo(2, None[Foo]));
   forceMinorCollect();
   assert(x.next.unwrap().a == 2);
 }

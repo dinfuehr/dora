@@ -1,10 +1,10 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Foo(1, Option[Foo]::None);
+  let x = Foo(1, None[Foo]);
   forceMinorCollect();
-  x.next = Option[Foo]::Some(Foo(2, Option[Foo]::None));
-  x.next.unwrap().next = Option[Foo]::Some(Foo(3, Option[Foo]::None));
+  x.next = Some[Foo](Foo(2, None[Foo]));
+  x.next.unwrap().next = Some[Foo](Foo(3, None[Foo]));
   forceMinorCollect();
   assert(x.a == 1);
   assert(x.next.unwrap().a == 2);

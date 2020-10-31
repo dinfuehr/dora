@@ -18,10 +18,10 @@ fun main() {
 
 fun allocator() {
     var i = 1;
-    var list = Foo(0, Option[Foo]::None);
+    var list = Foo(0, None[Foo]);
 
     while i < 10_000 {
-        list = Foo(i, Option[Foo]::Some(list));
+        list = Foo(i, Some[Foo](list));
         i = i + 1;
     }
 

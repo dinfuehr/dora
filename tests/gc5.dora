@@ -6,9 +6,9 @@ fun main() {
 }
 
 fun nested(): Foo {
-  let x = Foo(3, Option[Foo]::None);
-  let y = Foo(2, Option[Foo]::Some(x));
-  let z = Foo(1, Option[Foo]::Some(y));
+  let x = Foo(3, None[Foo]);
+  let y = Foo(2, Some[Foo](x));
+  let z = Foo(1, Some[Foo](y));
 
   return z;
 }

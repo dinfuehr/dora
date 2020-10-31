@@ -1,7 +1,7 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fun main() {
-    let x = Foo(Option[Foo]::Some(Foo(Option[Foo]::None)));
+    let x = Foo(Some[Foo](Foo(None[Foo])));
     forceMinorCollect();
     assert(x.next.unwrap().next.isNone());
     forceMinorCollect();
