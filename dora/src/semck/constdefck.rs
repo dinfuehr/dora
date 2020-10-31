@@ -40,7 +40,8 @@ impl<'x> Visitor for ConstCheck<'x> {
         let xconst = self.vm.consts.idx(const_id);
         let mut xconst = xconst.lock();
         xconst.ty =
-            semck::read_type(self.vm, xconst.file, &c.data_type).unwrap_or(SourceType::Unit);
+            semck::read_type_namespace(self.vm, xconst.file, xconst.namespace_id, &c.data_type)
+                .unwrap_or(SourceType::Unit);
     }
 }
 

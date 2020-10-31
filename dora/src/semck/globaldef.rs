@@ -157,6 +157,7 @@ impl<'x> Visitor for GlobalDef<'x> {
             let ximpl = ImplData {
                 id,
                 file: self.file_id.into(),
+                namespace_id: self.namespace_id,
                 pos: i.pos,
                 trait_id: None,
                 class_ty: SourceType::Error,

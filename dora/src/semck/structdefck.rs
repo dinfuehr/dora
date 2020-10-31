@@ -47,8 +47,10 @@ impl<'x> Visitor for StructCheck<'x> {
         let id = self.struct_id.unwrap();
         let struc = self.vm.structs.idx(id);
         let file = struc.lock().file;
+        let namespace_id = struc.lock().namespace_id;
 
-        let ty = semck::read_type(self.vm, file, &f.data_type).unwrap_or(SourceType::Unit);
+        let ty = semck::read_type_namespace(self.vm, file, namespace_id, &f.data_type)
+            .unwrap_or(SourceType::Unit);
 
         let mut struc = struc.lock();
 

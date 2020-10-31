@@ -8,7 +8,7 @@ use dora_parser::ast::{Expr, ExprBlockType, Stmt};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub use readty::{read_type, read_type_table};
+pub use readty::{read_type_namespace, read_type_table};
 
 mod abstractck;
 mod clsdefck;

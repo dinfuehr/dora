@@ -62,7 +62,8 @@ impl<'x> EnumCheck<'x> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type(self.vm, xenum.file, bound);
+                    let ty =
+                        semck::read_type_namespace(self.vm, xenum.file, xenum.namespace_id, bound);
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {

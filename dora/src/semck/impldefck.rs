@@ -79,7 +79,12 @@ impl<'x> ImplCheck<'x> {
             return;
         }
 
-        if let Some(class_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
+        if let Some(class_ty) = semck::read_type_namespace(
+            self.vm,
+            self.file_id.into(),
+            ximpl.namespace_id,
+            &i.class_type,
+        ) {
             if class_ty.cls_id(self.vm).is_some() {
                 ximpl.class_ty = class_ty;
             } else {

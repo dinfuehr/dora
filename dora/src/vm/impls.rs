@@ -5,7 +5,7 @@ use std::ops::Index;
 use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
-use crate::vm::{ClassId, FctId, FileId, TraitId, VM};
+use crate::vm::{ClassId, FctId, FileId, NamespaceId, TraitId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplId(u32);
@@ -20,6 +20,7 @@ impl From<u32> for ImplId {
 pub struct ImplData {
     pub id: ImplId,
     pub file: FileId,
+    pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub trait_id: Option<TraitId>,
     pub class_ty: SourceType,

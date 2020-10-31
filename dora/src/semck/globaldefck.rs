@@ -51,7 +51,8 @@ impl<'a> Visitor for GlobalDefCheck<'a> {
         let mut glob = glob.write();
         let file = glob.file;
 
-        let ty = semck::read_type(self.vm, file, &g.data_type).unwrap_or(SourceType::Error);
+        let ty = semck::read_type_namespace(self.vm, file, glob.namespace_id, &g.data_type)
+            .unwrap_or(SourceType::Error);
         glob.ty = ty;
 
         if let Some(ref initializer) = g.initializer {
