@@ -356,6 +356,7 @@ pub struct TypeBasicType {
     pub span: Span,
 
     pub name: Name,
+    pub path: Vec<Name>,
     pub params: Vec<Box<Type>>,
 }
 
@@ -369,6 +370,7 @@ impl Type {
         pos: Position,
         span: Span,
         name: Name,
+        path: Vec<Name>,
         params: Vec<Box<Type>>,
     ) -> Type {
         Type::TypeBasic(TypeBasicType {
@@ -376,6 +378,7 @@ impl Type {
             pos,
             span,
             name,
+            path,
             params,
         })
     }

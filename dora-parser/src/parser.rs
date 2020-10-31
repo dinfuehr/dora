@@ -1150,6 +1150,13 @@ impl<'a> Parser<'a> {
                 let pos = self.token.position;
                 let start = self.token.span.start();
                 let name = self.expect_identifier()?;
+                let mut path = vec![name];
+
+                while self.token.is(TokenKind::ColonColon) {
+                    self.advance_token()?;
+                    let name = self.expect_identifier()?;
+                    path.push(name);
+                }
 
                 let params = if self.token.is(TokenKind::LBracket) {
                     self.advance_token()?;
@@ -1166,6 +1173,7 @@ impl<'a> Parser<'a> {
                     pos,
                     span,
                     name,
+                    path,
                     params,
                 ))
             }
@@ -3065,6 +3073,16 @@ mod tests {
 
         assert_eq!(0, basic.params.len());
         assert_eq!("bla", *interner.str(basic.name));
+    }
+
+    #[test]
+    fn parse_type_basic_namespace() {
+        let (ty, interner) = parse_type("foo::bla");
+        let basic = ty.to_basic().unwrap();
+
+        assert_eq!(0, basic.params.len());
+        assert_eq!(2, basic.path.len());
+        assert_eq!("foo", *interner.str(basic.name));
     }
 
     #[test]
