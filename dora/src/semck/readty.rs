@@ -6,7 +6,7 @@ use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 
 pub fn read_type_table(vm: &VM, table: &SymTables, file: FileId, t: &Type) -> Option<SourceType> {
-    read_type_raw(vm, Some(table), None, file, t)
+    read_type_raw(vm, TypeContext::Table(table), file, t)
 }
 
 pub fn read_type_namespace(
@@ -15,35 +15,36 @@ pub fn read_type_namespace(
     namespace_id: Option<NamespaceId>,
     t: &Type,
 ) -> Option<SourceType> {
-    read_type_raw(vm, None, namespace_id, file, t)
+    read_type_raw(vm, TypeContext::Namespace(namespace_id), file, t)
 }
 
-fn read_type_raw(
-    vm: &VM,
-    table: Option<&SymTables>,
-    namespace_id: Option<NamespaceId>,
-    file: FileId,
-    t: &Type,
-) -> Option<SourceType> {
+#[derive(Clone)]
+enum TypeContext<'a> {
+    Table(&'a SymTables),
+    Namespace(Option<NamespaceId>),
+}
+
+fn read_type_raw(vm: &VM, context: TypeContext, file: FileId, t: &Type) -> Option<SourceType> {
     match *t {
         TypeSelf(_) => Some(SourceType::This),
-        TypeBasic(ref basic) => read_type_basic(vm, table, namespace_id, file, basic),
-        TypeTuple(ref tuple) => read_type_tuple(vm, table, namespace_id, file, tuple),
-        TypeLambda(ref lambda) => read_type_lambda(vm, table, namespace_id, file, lambda),
+        TypeBasic(ref basic) => read_type_basic(vm, context, file, basic),
+        TypeTuple(ref tuple) => read_type_tuple(vm, context, file, tuple),
+        TypeLambda(ref lambda) => read_type_lambda(vm, context, file, lambda),
     }
 }
 
 fn read_type_basic(
     vm: &VM,
-    table: Option<&SymTables>,
-    namespace_id: Option<NamespaceId>,
+    context: TypeContext,
     file: FileId,
     basic: &TypeBasicType,
 ) -> Option<SourceType> {
-    let sym = if let Some(table) = table {
-        table.get_type(basic.name)
-    } else {
-        vm.namespace_table(namespace_id).read().get_type(basic.name)
+    let sym = match context {
+        TypeContext::Table(table) => table.get_type(basic.name),
+
+        TypeContext::Namespace(namespace_id) => {
+            vm.namespace_table(namespace_id).read().get_type(basic.name)
+        }
     };
 
     if sym.is_none() {
@@ -57,7 +58,7 @@ fn read_type_basic(
     let sym = sym.unwrap();
 
     match sym {
-        TypeSym::Class(cls_id) => read_type_class(vm, table, namespace_id, file, basic, cls_id),
+        TypeSym::Class(cls_id) => read_type_class(vm, context, file, basic, cls_id),
 
         TypeSym::Trait(trait_id) => {
             if basic.params.len() > 0 {
@@ -78,7 +79,7 @@ fn read_type_basic(
             Some(SourceType::Struct(struct_id, list_id))
         }
 
-        TypeSym::Enum(enum_id) => read_type_enum(vm, table, namespace_id, file, basic, enum_id),
+        TypeSym::Enum(enum_id) => read_type_enum(vm, context, file, basic, enum_id),
 
         TypeSym::TypeParam(type_param_id) => {
             if basic.params.len() > 0 {
@@ -93,8 +94,7 @@ fn read_type_basic(
 
 fn read_type_enum(
     vm: &VM,
-    table: Option<&SymTables>,
-    namespace_id: Option<NamespaceId>,
+    context: TypeContext,
     file: FileId,
     basic: &TypeBasicType,
     enum_id: EnumId,
@@ -102,7 +102,7 @@ fn read_type_enum(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_raw(vm, table, namespace_id, file, param);
+        let param = read_type_raw(vm, context.clone(), file, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -146,8 +146,7 @@ fn read_type_enum(
 
 fn read_type_class(
     vm: &VM,
-    table: Option<&SymTables>,
-    namespace_id: Option<NamespaceId>,
+    context: TypeContext,
     file: FileId,
     basic: &TypeBasicType,
     cls_id: ClassId,
@@ -155,7 +154,7 @@ fn read_type_class(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_raw(vm, table, namespace_id, file, param);
+        let param = read_type_raw(vm, context.clone(), file, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -205,8 +204,7 @@ fn read_type_class(
 
 fn read_type_tuple(
     vm: &VM,
-    table: Option<&SymTables>,
-    namespace_id: Option<NamespaceId>,
+    context: TypeContext,
     file: FileId,
     tuple: &TypeTupleType,
 ) -> Option<SourceType> {
@@ -216,7 +214,7 @@ fn read_type_tuple(
         let mut subtypes = Vec::new();
 
         for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type_raw(vm, table, namespace_id, file, subtype) {
+            if let Some(ty) = read_type_raw(vm, context.clone(), file, subtype) {
                 subtypes.push(ty);
             } else {
                 return None;
@@ -230,22 +228,21 @@ fn read_type_tuple(
 
 fn read_type_lambda(
     vm: &VM,
-    table: Option<&SymTables>,
-    namespace_id: Option<NamespaceId>,
+    context: TypeContext,
     file: FileId,
     lambda: &TypeLambdaType,
 ) -> Option<SourceType> {
     let mut params = vec![];
 
     for param in &lambda.params {
-        if let Some(p) = read_type_raw(vm, table, namespace_id, file, param) {
+        if let Some(p) = read_type_raw(vm, context.clone(), file, param) {
             params.push(p);
         } else {
             return None;
         }
     }
 
-    let ret = if let Some(ret) = read_type_raw(vm, table, namespace_id, file, &lambda.ret) {
+    let ret = if let Some(ret) = read_type_raw(vm, context.clone(), file, &lambda.ret) {
         ret
     } else {
         return None;
