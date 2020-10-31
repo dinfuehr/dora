@@ -123,6 +123,7 @@ pub enum Elem {
     ElemEnum(Enum),
     ElemAlias(Alias),
     ElemNamespace(Namespace),
+    ElemImport(Import),
 }
 
 impl Elem {
@@ -140,6 +141,7 @@ impl Elem {
             &ElemEnum(ref e) => e.id,
             &ElemAlias(ref e) => e.id,
             &ElemNamespace(ref e) => e.id,
+            &ElemImport(ref e) => e.id,
         }
     }
 
@@ -246,6 +248,15 @@ pub struct Namespace {
     pub span: Span,
     pub name: Name,
     pub elements: Vec<Elem>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Import {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub container_name: Name,
+    pub element_name: Name,
 }
 
 #[derive(Clone, Debug)]

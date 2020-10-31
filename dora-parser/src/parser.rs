@@ -179,11 +179,35 @@ impl<'a> Parser<'a> {
                 Ok(ElemNamespace(namespace))
             }
 
+            TokenKind::Import => {
+                self.ban_modifiers(&modifiers)?;
+                let import = self.parse_import()?;
+                Ok(ElemImport(import))
+            }
+
             _ => {
                 let msg = ParseError::ExpectedTopLevelElement(self.token.name());
                 return Err(ParseErrorAndPos::new(self.token.position, msg));
             }
         }
+    }
+
+    fn parse_import(&mut self) -> Result<Import, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.expect_token(TokenKind::Import)?.position;
+        let container_name = self.expect_identifier()?;
+        self.expect_token(TokenKind::ColonColon)?;
+        let element_name = self.expect_identifier()?;
+        self.expect_semicolon()?;
+        let span = self.span_from(start);
+
+        Ok(Import {
+            id: self.generate_id(),
+            pos,
+            span,
+            container_name,
+            element_name,
+        })
     }
 
     fn parse_enum(&mut self) -> Result<Enum, ParseErrorAndPos> {

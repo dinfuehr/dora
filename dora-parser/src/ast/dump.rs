@@ -80,6 +80,7 @@ impl<'a> AstDumper<'a> {
             ElemEnum(ref xenum) => self.dump_enum(xenum),
             ElemAlias(ref alias) => self.dump_alias(alias),
             ElemNamespace(ref namespace) => self.dump_namespace(namespace),
+            ElemImport(ref import) => self.dump_import(import),
         }
     }
 
@@ -116,6 +117,17 @@ impl<'a> AstDumper<'a> {
             d.dump_type(&xconst.data_type);
             d.dump_expr(&xconst.expr);
         });
+    }
+
+    fn dump_import(&mut self, import: &Import) {
+        dump!(
+            self,
+            "import {}::{} @ {} {}",
+            self.str(import.container_name),
+            self.str(import.element_name),
+            import.pos,
+            import.id
+        );
     }
 
     fn dump_alias(&mut self, alias: &Alias) {

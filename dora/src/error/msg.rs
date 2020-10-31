@@ -41,6 +41,7 @@ pub enum SemError {
     NoEnumValue,
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
+    EnumExpected,
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     WhileCondType(String),
@@ -242,6 +243,7 @@ impl SemError {
             SemError::EnumArgsNoParens(ref name, ref variant) => {
                 format!("{}::{} needs to be used without parens.", name, variant)
             }
+            SemError::EnumExpected => format!("enum expected."),
             SemError::VarNeedsTypeInfo(ref name) => format!(
                 "variable `{}` needs either type declaration or expression.",
                 name

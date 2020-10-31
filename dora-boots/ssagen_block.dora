@@ -8,7 +8,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction) extends EmptyByte
         let blockCreator = SsagenCreateBlocks(self.graph, self.bc, self.blocks);
         blockCreator.run();
 
-        self.currentBlock = Option::Some[Block](self.graph.getEntryBlock());
+        self.currentBlock = Some[Block](self.graph.getEntryBlock());
 
         // iterate all bytecodes
         readBytecode(self.bc.code, self);
@@ -49,7 +49,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction) extends EmptyByte
                 self.currentBlock.unwrap().addSuccessor(nextBlock);
             }
 
-            self.currentBlock = Option::Some[Block](nextBlock);
+            self.currentBlock = Some[Block](nextBlock);
         }
 
         self.blockTerminated = false;

@@ -3,6 +3,9 @@ enum Option[T] {
   None,
 }
 
+import Option::Some;
+import Option::None;
+
 impl[T] Option[T] {
   fun isNone(): Bool {
     unsafeLoadEnumVariant[Option[T]](self) == 1

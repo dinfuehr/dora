@@ -587,7 +587,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
-            IdentType::EnumValueType(enum_id, type_params, variant_id) => {
+            IdentType::EnumValue(enum_id, type_params, variant_id) => {
                 self.emit_new_enum(enum_id, type_params, variant_id, expr.pos, dest)
             }
 
@@ -685,7 +685,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
-            IdentType::EnumValueType(enum_id, type_params, variant_id) => {
+            IdentType::EnumValue(enum_id, type_params, variant_id) => {
                 self.emit_new_enum(enum_id, type_params, variant_id, expr.pos, dest)
             }
 
@@ -2492,9 +2492,9 @@ impl<'a> AstBytecodeGen<'a> {
 
             &IdentType::Field(_, _) => unreachable!(),
             &IdentType::Struct(_) => unreachable!(),
-            &IdentType::EnumValueType(_, _, _) => unreachable!(),
-            &IdentType::FctType(_, _) => unreachable!(),
-            &IdentType::ClassType(_, _) => unreachable!(),
+            &IdentType::EnumValue(_, _, _) => unreachable!(),
+            &IdentType::Fct(_, _) => unreachable!(),
+            &IdentType::Class(_, _) => unreachable!(),
         }
     }
 

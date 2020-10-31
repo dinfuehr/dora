@@ -1654,6 +1654,50 @@ fn test_enum() {
         pos(1, 40),
         SemError::UnknownEnumValue("V3".into()),
     );
+
+    err(
+        "enum A[T] { V1, V2 } fun f(): A[Int32] { return A::V1; }",
+        pos(1, 50),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+}
+
+#[test]
+fn test_import_enum_value() {
+    ok("enum A { V1(Int32), V2 } import A::V1; fun f(): A { V1(1) }");
+    ok("enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1[Int32](1) }");
+    err(
+        "enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1(1) }",
+        pos(1, 65),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+
+    ok("enum A { V1, V2 } import A::V2; fun f(): A { V2 }");
+
+    err(
+        "enum A { V1(Int32), V2 } import A::V1; fun f(): A { V1 }",
+        pos(1, 53),
+        SemError::EnumArgsIncompatible("A".into(), "V1".into(), vec!["Int32".into()], Vec::new()),
+    );
+
+    err(
+        "enum A { V1(Int32), V2 } import A::V2; fun f(): A { V2(Int32) }",
+        pos(1, 55),
+        SemError::EnumArgsIncompatible("A".into(), "V2".into(), Vec::new(), vec!["Int32".into()]),
+    );
+
+    err(
+        "enum A[T] { V1(Int32), V2 } import A::V2; fun f(): A[Int32] { V2 }",
+        pos(1, 63),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+
+    ok("enum A[T] { V1, V2 } import A::V2; fun f(): A[Int32] { V2[Int32] }");
+    err(
+        "enum A[T] { V1, V2 } import A::V2; fun f(): A[Int32] { V2[Int32, Float32] }",
+        pos(1, 58),
+        SemError::WrongNumberTypeParams(1, 2),
+    );
 }
 
 #[test]

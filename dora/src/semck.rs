@@ -1,10 +1,12 @@
 use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
-use crate::sym::SymTable;
+use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::typeck;
-use crate::vm::{NodeMap, VM};
+use crate::vm::{FileId, NodeMap, VM};
 use dora_parser::ast::{Expr, ExprBlockType, Stmt};
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
 
 pub use readty::{read_type, read_type_table};
 
@@ -19,6 +21,7 @@ mod globaldef;
 mod globaldefck;
 mod implck;
 mod impldefck;
+mod importck;
 mod moduledefck;
 pub(crate) mod prelude;
 mod readty;
@@ -81,6 +84,7 @@ pub fn check(vm: &mut VM) {
     constdefck::check(vm, &map_const_defs);
     enumck::check(vm, &map_enum_defs);
     extensiondefck::check(vm, &map_extension_defs);
+    importck::check(vm, &map_namespaces);
     return_on_error!(vm);
 
     // check super class definition of classes
@@ -204,6 +208,42 @@ pub fn expr_always_returns(e: &Expr) -> bool {
 
 pub fn expr_block_always_returns(e: &ExprBlockType) -> bool {
     returnck::expr_block_returns_value(e).is_ok()
+}
+
+pub fn report_type_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: TypeSym) {
+    let name = vm.interner.str(name).to_string();
+
+    let msg = match sym {
+        TypeSym::Class(_) => SemError::ShadowClass(name),
+        TypeSym::Struct(_) => SemError::ShadowStruct(name),
+        TypeSym::Trait(_) => SemError::ShadowTrait(name),
+        TypeSym::Enum(_) => SemError::ShadowEnum(name),
+        _ => unimplemented!(),
+    };
+
+    vm.diag.lock().report(file, pos, msg);
+}
+
+pub fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: TermSym) {
+    let name = vm.interner.str(name).to_string();
+
+    let msg = match sym {
+        TermSym::Fct(_) => SemError::ShadowFunction(name),
+        TermSym::Global(_) => SemError::ShadowGlobal(name),
+        TermSym::Const(_) => SemError::ShadowConst(name),
+        TermSym::Module(_) => SemError::ShadowModule(name),
+        TermSym::Var(_) => SemError::ShadowParam(name),
+        TermSym::ClassConstructor(_) | TermSym::ClassConstructorAndModule(_, _) => {
+            SemError::ShadowClassConstructor(name)
+        }
+        TermSym::StructConstructor(_) | TermSym::StructConstructorAndModule(_, _) => {
+            SemError::ShadowStructConstructor(name)
+        }
+        TermSym::Namespace(_) => SemError::ShadowNamespace(name),
+        x => unimplemented!("{:?}", x),
+    };
+
+    vm.diag.lock().report(file, pos, msg);
 }
 
 struct SemanticAnalysis {

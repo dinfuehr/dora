@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::{f32, f64};
 
 use crate::error::msg::SemError;
+use crate::semck::report_term_shadow;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type_table};
@@ -622,7 +623,7 @@ impl<'a> TypeCheck<'a> {
         merged_type
     }
 
-    fn check_expr_ident(&mut self, e: &ExprIdentType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_ident(&mut self, e: &ExprIdentType, expected_ty: SourceType) -> SourceType {
         let sym_term = self.symtable.get_term(e.name);
         let sym_type = self.symtable.get_type(e.name);
 
@@ -658,6 +659,16 @@ impl<'a> TypeCheck<'a> {
 
                 xconst.ty.clone()
             }
+
+            (Some(TermSym::EnumValue(enum_id, variant_id)), _) => self
+                .check_enum_value_without_args_id(
+                    e.id,
+                    e.pos,
+                    expected_ty,
+                    enum_id,
+                    TypeList::empty(),
+                    variant_id,
+                ),
 
             (Some(TermSym::ClassConstructorAndModule(_, module_id)), _)
             | (Some(TermSym::Module(module_id)), _)
@@ -1197,12 +1208,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 (Some(TermSym::EnumValue(enum_id, variant_id)), _) => {
-                    if !type_params.is_empty() {
-                        let msg = SemError::NoTypeParamsExpected;
-                        self.vm.diag.lock().report(self.file, e.callee.pos(), msg);
-                    }
-
-                    self.check_expr_call_enum(e, enum_id, type_params, variant_id, &arg_types)
+                    self.check_enum_value_with_args(e, enum_id, type_params, variant_id, &arg_types)
                 }
 
                 (_, _) => {
@@ -1247,7 +1253,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_call_enum(
+    fn check_enum_value_with_args(
         &mut self,
         e: &ExprCallType,
         enum_id: EnumId,
@@ -1257,6 +1263,15 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let xenum = self.vm.enums[enum_id].read();
         let variant = &xenum.variants[variant_id as usize];
+
+        let list_id = self.vm.lists.lock().insert(type_params.clone());
+        let ty = SourceType::Enum(enum_id, list_id);
+        let type_params_ok = typeparamck::check_enum(
+            self.vm,
+            self.fct,
+            ty.clone(),
+            ErrorReporting::Yes(self.file, e.pos),
+        );
 
         if !self.check_expr_call_enum_args(enum_id, type_params.clone(), variant, arg_types) {
             let enum_name = self.vm.interner.str(xenum.name).to_string();
@@ -1280,15 +1295,17 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        let list_id = self.vm.lists.lock().insert(type_params);
-        let enum_ty = SourceType::Enum(enum_id, list_id);
+        if type_params_ok {
+            self.src
+                .map_calls
+                .insert(e.id, Arc::new(CallType::Enum(ty.clone(), variant_id)));
 
-        self.src
-            .map_calls
-            .insert(e.id, Arc::new(CallType::Enum(enum_ty.clone(), variant_id)));
-
-        self.src.set_ty(e.id, enum_ty.clone());
-        enum_ty
+            self.src.set_ty(e.id, ty.clone());
+            ty
+        } else {
+            self.src.set_ty(e.id, SourceType::Error);
+            SourceType::Error
+        }
     }
 
     fn check_expr_call_enum_args(
@@ -1785,7 +1802,7 @@ impl<'a> TypeCheck<'a> {
                 };
 
                 if let Some(&variant_id) = xenum.name_to_value.get(&method_name) {
-                    self.check_expr_call_enum(
+                    self.check_enum_value_with_args(
                         e,
                         enum_id,
                         used_type_params,
@@ -1933,9 +1950,14 @@ impl<'a> TypeCheck<'a> {
         let sym_type = self.symtable.get_type(container_name);
 
         match sym_type {
-            Some(TypeSym::Enum(id)) => {
-                self.check_expr_path_enum(e.id, e.pos, expected_ty, id, type_params, method_name)
-            }
+            Some(TypeSym::Enum(id)) => self.check_enum_value_without_args(
+                e.id,
+                e.pos,
+                expected_ty,
+                id,
+                type_params,
+                method_name,
+            ),
 
             _ => {
                 let msg = SemError::InvalidLeftSideOfSeparator;
@@ -1947,7 +1969,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_path_enum(
+    fn check_enum_value_without_args(
         &mut self,
         expr_id: NodeId,
         expr_pos: Position,
@@ -1960,7 +1982,7 @@ impl<'a> TypeCheck<'a> {
 
         let list_id = self.vm.lists.lock().insert(type_params.clone());
         let ty = SourceType::Enum(enum_id, list_id);
-        typeparamck::check_enum(
+        let type_params_ok = typeparamck::check_enum(
             self.vm,
             self.fct,
             ty.clone(),
@@ -1990,7 +2012,7 @@ impl<'a> TypeCheck<'a> {
 
             self.src.map_idents.insert(
                 expr_id,
-                IdentType::EnumValueType(enum_id, type_params, value as usize),
+                IdentType::EnumValue(enum_id, type_params, value as usize),
             );
         } else {
             let name = self.vm.interner.str(name).to_string();
@@ -2000,8 +2022,13 @@ impl<'a> TypeCheck<'a> {
                 .report(self.file, expr_pos, SemError::UnknownEnumValue(name));
         }
 
-        self.src.set_ty(expr_id, ty.clone());
-        ty
+        if type_params_ok {
+            self.src.set_ty(expr_id, ty.clone());
+            ty
+        } else {
+            self.src.set_ty(expr_id, SourceType::Error);
+            SourceType::Error
+        }
     }
 
     fn check_expr_type_param(
@@ -2018,13 +2045,15 @@ impl<'a> TypeCheck<'a> {
             let sym_term = self.symtable.get_term(method_name);
 
             match sym_term {
-                Some(TermSym::EnumValue(enum_id, variant_id)) => self.check_expr_type_param_enum(
-                    e,
-                    expected_ty,
-                    enum_id,
-                    variant_id,
-                    type_params,
-                ),
+                Some(TermSym::EnumValue(enum_id, variant_id)) => self
+                    .check_enum_value_without_args_id(
+                        e.id,
+                        e.pos,
+                        expected_ty,
+                        enum_id,
+                        type_params,
+                        variant_id,
+                    ),
 
                 _ => {
                     self.vm
@@ -2060,7 +2089,7 @@ impl<'a> TypeCheck<'a> {
             let sym_type = self.symtable.get_type(container_name);
 
             match sym_type {
-                Some(TypeSym::Enum(enum_id)) => self.check_expr_path_enum(
+                Some(TypeSym::Enum(enum_id)) => self.check_enum_value_without_args(
                     e.id,
                     e.pos,
                     expected_ty,
@@ -2087,23 +2116,24 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_type_param_enum(
+    fn check_enum_value_without_args_id(
         &mut self,
-        e: &ExprTypeParamType,
+        expr_id: NodeId,
+        expr_pos: Position,
         _expected_ty: SourceType,
         enum_id: EnumId,
-        variant_id: usize,
         type_params: TypeList,
+        variant_id: usize,
     ) -> SourceType {
         let xenum = self.vm.enums[enum_id].read();
 
         let list_id = self.vm.lists.lock().insert(type_params.clone());
         let ty = SourceType::Enum(enum_id, list_id);
-        typeparamck::check_enum(
+        let type_params_ok = typeparamck::check_enum(
             self.vm,
             self.fct,
             ty.clone(),
-            ErrorReporting::Yes(self.file, e.pos),
+            ErrorReporting::Yes(self.file, expr_pos),
         );
 
         let variant = &xenum.variants[variant_id];
@@ -2119,16 +2149,21 @@ impl<'a> TypeCheck<'a> {
             let arg_types = Vec::new();
             let msg =
                 SemError::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file, expr_pos, msg);
         }
 
         self.src.map_idents.insert(
-            e.id,
-            IdentType::EnumValueType(enum_id, type_params, variant_id),
+            expr_id,
+            IdentType::EnumValue(enum_id, type_params, variant_id),
         );
 
-        self.src.set_ty(e.id, ty.clone());
-        ty
+        if type_params_ok {
+            self.src.set_ty(expr_id, ty.clone());
+            ty
+        } else {
+            self.src.set_ty(expr_id, SourceType::Error);
+            SourceType::Error
+        }
     }
 
     fn check_expr_dot(&mut self, e: &ExprDotType, _expected_ty: SourceType) -> SourceType {
@@ -2767,26 +2802,4 @@ pub fn lookup_method(
     }
 
     None
-}
-
-fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: TermSym) {
-    let name = vm.interner.str(name).to_string();
-
-    let msg = match sym {
-        TermSym::Fct(_) => SemError::ShadowFunction(name),
-        TermSym::Global(_) => SemError::ShadowGlobal(name),
-        TermSym::Const(_) => SemError::ShadowConst(name),
-        TermSym::Module(_) => SemError::ShadowModule(name),
-        TermSym::Var(_) => SemError::ShadowParam(name),
-        TermSym::ClassConstructor(_) | TermSym::ClassConstructorAndModule(_, _) => {
-            SemError::ShadowClassConstructor(name)
-        }
-        TermSym::StructConstructor(_) | TermSym::StructConstructorAndModule(_, _) => {
-            SemError::ShadowStructConstructor(name)
-        }
-        TermSym::Namespace(_) => SemError::ShadowNamespace(name),
-        _ => unimplemented!("{:?}", sym),
-    };
-
-    vm.diag.lock().report(file, pos, msg);
 }

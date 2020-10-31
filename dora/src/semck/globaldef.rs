@@ -2,21 +2,19 @@ use parking_lot::{Mutex, RwLock};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::error::msg::SemError;
 use crate::gc::Address;
+use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::module::ModuleId;
 use crate::vm::{
     class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
-    ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData,
-    ImplId, NamespaceData, NamespaceId, NodeMap, StructData, StructId, TraitData, TraitId,
-    TypeParam, VM,
+    ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, GlobalData, GlobalId, ImplData, ImplId,
+    NamespaceData, NamespaceId, NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
 
 pub fn check(
     vm: &mut VM,
@@ -464,42 +462,6 @@ impl<'x> GlobalDef<'x> {
         let mut level = level.write();
         level.insert_term(name, sym)
     }
-}
-
-pub fn report_type_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: TypeSym) {
-    let name = vm.interner.str(name).to_string();
-
-    let msg = match sym {
-        TypeSym::Class(_) => SemError::ShadowClass(name),
-        TypeSym::Struct(_) => SemError::ShadowStruct(name),
-        TypeSym::Trait(_) => SemError::ShadowTrait(name),
-        TypeSym::Enum(_) => SemError::ShadowEnum(name),
-        _ => unimplemented!(),
-    };
-
-    vm.diag.lock().report(file, pos, msg);
-}
-
-pub fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: TermSym) {
-    let name = vm.interner.str(name).to_string();
-
-    let msg = match sym {
-        TermSym::Fct(_) => SemError::ShadowFunction(name),
-        TermSym::Global(_) => SemError::ShadowGlobal(name),
-        TermSym::Const(_) => SemError::ShadowConst(name),
-        TermSym::Module(_) => SemError::ShadowModule(name),
-        TermSym::Var(_) => SemError::ShadowParam(name),
-        TermSym::ClassConstructor(_) | TermSym::ClassConstructorAndModule(_, _) => {
-            SemError::ShadowClassConstructor(name)
-        }
-        TermSym::StructConstructor(_) | TermSym::StructConstructorAndModule(_, _) => {
-            SemError::ShadowStructConstructor(name)
-        }
-        TermSym::Namespace(_) => SemError::ShadowNamespace(name),
-        x => unimplemented!("{:?}", x),
-    };
-
-    vm.diag.lock().report(file, pos, msg);
 }
 
 #[cfg(test)]

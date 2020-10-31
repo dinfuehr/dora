@@ -20,33 +20,33 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
 @open @abstract class ConstPoolEntry {
     fun toInt32(): Option[Int32] {
         if self is ConstPoolInt32 {
-            Option::Some[Int32]((self as ConstPoolInt32).value)
+            Some[Int32]((self as ConstPoolInt32).value)
         } else {
-            Option::None[Int32]
+            None[Int32]
         }
     }
 
     fun toInt64(): Option[Int64] {
         if self is ConstPoolInt64 {
-            Option::Some[Int64]((self as ConstPoolInt64).value)
+            Some[Int64]((self as ConstPoolInt64).value)
         } else {
-            Option::None[Int64]
+            None[Int64]
         }
     }
 
     fun toFloat32(): Option[Float32] {
         if self is ConstPoolFloat32 {
-            Option::Some[Float32]((self as ConstPoolFloat32).value)
+            Some[Float32]((self as ConstPoolFloat32).value)
         } else {
-            Option::None[Float32]
+            None[Float32]
         }
     }
 
     fun toFloat64(): Option[Float64] {
         if self is ConstPoolFloat64 {
-            Option::Some[Float64]((self as ConstPoolFloat64).value)
+            Some[Float64]((self as ConstPoolFloat64).value)
         } else {
-            Option::None[Float64]
+            None[Float64]
         }
     }
 

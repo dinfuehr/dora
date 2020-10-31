@@ -156,13 +156,13 @@ pub enum IdentType {
     Module(ModuleId),
 
     // name of function with type params: some_fct[T1, T2, ...]
-    FctType(FctId, TypeList),
+    Fct(FctId, TypeList),
 
     // name of class with type params: SomeClass[T1, T2, ...]
-    ClassType(ClassId, TypeList),
+    Class(ClassId, TypeList),
 
     // specific value in enum
-    EnumValueType(EnumId, TypeList, usize),
+    EnumValue(EnumId, TypeList, usize),
 }
 
 impl IdentType {
@@ -196,14 +196,14 @@ impl IdentType {
 
     pub fn is_class(&self) -> bool {
         match *self {
-            IdentType::ClassType(_, _) => true,
+            IdentType::Class(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_fct(&self) -> bool {
         match *self {
-            IdentType::FctType(_, _) => true,
+            IdentType::Fct(_, _) => true,
             _ => false,
         }
     }
