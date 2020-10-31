@@ -12,8 +12,8 @@ use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
-    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, Var, VarId,
-    VM,
+    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId,
+    Var, VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -1864,12 +1864,9 @@ impl<'a> TypeCheck<'a> {
 
                 let (sym_term, sym_type) = {
                     let namespace = &self.vm.namespaces[namespace_id.to_usize()];
-                    let namespace = namespace.table.read();
+                    let table = namespace.table.read();
 
-                    (
-                        namespace.get_term(method_name),
-                        namespace.get_type(method_name),
-                    )
+                    (table.get_term(method_name), table.get_type(method_name))
                 };
 
                 self.check_expr_call_sym(e, callee, sym_term, sym_type, type_params, arg_types)
@@ -1975,7 +1972,7 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         };
 
-        let method_name = if let Some(ident) = e.rhs.to_ident() {
+        let element_name = if let Some(ident) = e.rhs.to_ident() {
             ident.name
         } else {
             let msg = SemError::ExpectedSomeIdentifier;
@@ -1983,23 +1980,96 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         };
 
+        let sym_term = self.symtable.get_term(container_name);
         let sym_type = self.symtable.get_type(container_name);
 
-        match sym_type {
-            Some(TypeSym::Enum(id)) => self.check_enum_value_without_args(
+        match (sym_term, sym_type) {
+            (_, Some(TypeSym::Enum(id))) => self.check_enum_value_without_args(
                 e.id,
                 e.pos,
                 expected_ty,
                 id,
                 type_params,
-                method_name,
+                element_name,
             ),
+
+            (Some(TermSym::Namespace(namespace_id)), _) => {
+                self.check_expr_path_namespace(e, expected_ty, namespace_id, element_name)
+            }
 
             _ => {
                 let msg = SemError::InvalidLeftSideOfSeparator;
                 self.vm.diag.lock().report(self.file, e.lhs.pos(), msg);
 
                 self.src.set_ty(e.id, SourceType::Error);
+                SourceType::Error
+            }
+        }
+    }
+
+    fn check_expr_path_namespace(
+        &mut self,
+        e: &ExprPathType,
+        expected_ty: SourceType,
+        namespace_id: NamespaceId,
+        element_name: Name,
+    ) -> SourceType {
+        let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+        let table = namespace.table.read();
+
+        let sym_term = table.get_term(element_name);
+        let sym_type = table.get_type(element_name);
+
+        match (sym_term, sym_type) {
+            (Some(TermSym::Global(globalid)), _) => {
+                let glob = self.vm.globals.idx(globalid);
+                let ty = glob.read().ty.clone();
+                self.src.set_ty(e.id, ty.clone());
+
+                self.src
+                    .map_idents
+                    .insert(e.id, IdentType::Global(globalid));
+
+                ty
+            }
+
+            (Some(TermSym::Const(const_id)), _) => {
+                let xconst = self.vm.consts.idx(const_id);
+                let xconst = xconst.lock();
+
+                self.src.set_ty(e.id, xconst.ty.clone());
+
+                self.src.map_idents.insert(e.id, IdentType::Const(const_id));
+
+                xconst.ty.clone()
+            }
+
+            (Some(TermSym::EnumValue(enum_id, variant_id)), _) => self
+                .check_enum_value_without_args_id(
+                    e.id,
+                    e.pos,
+                    expected_ty,
+                    enum_id,
+                    TypeList::empty(),
+                    variant_id,
+                ),
+
+            (None, None) => {
+                let namespace = namespace.name(self.vm);
+                let name = self.vm.interner.str(element_name).to_string();
+                self.vm.diag.lock().report(
+                    self.fct.file,
+                    e.pos,
+                    SemError::UnknownIdentifierInNamespace(namespace, name),
+                );
+                SourceType::Error
+            }
+
+            (_, _) => {
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.fct.file, e.pos, SemError::ValueExpected);
                 SourceType::Error
             }
         }

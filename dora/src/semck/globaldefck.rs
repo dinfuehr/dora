@@ -5,8 +5,7 @@ use crate::semck;
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, GlobalId, NodeMap, VM};
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::Elem::ElemGlobal;
-use dora_parser::ast::{File, Global};
+use dora_parser::ast::Global;
 
 pub fn check<'a>(vm: &mut VM, map_global_defs: &NodeMap<GlobalId>) {
     let mut checker = GlobalDefCheck {
@@ -36,15 +35,6 @@ impl<'a> GlobalDefCheck<'a> {
 }
 
 impl<'a> Visitor for GlobalDefCheck<'a> {
-    fn visit_file(&mut self, f: &File) {
-        for e in &f.elements {
-            match *e {
-                ElemGlobal(ref g) => self.visit_global(g),
-                _ => {}
-            }
-        }
-    }
-
     fn visit_global(&mut self, g: &Global) {
         let global_id = *self.map_global_defs.get(g.id).unwrap();
         let glob = self.vm.globals.idx(global_id);

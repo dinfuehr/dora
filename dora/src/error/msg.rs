@@ -127,6 +127,7 @@ pub enum SemError {
     GlobalInitializerNotSupported,
     TypeNotUsableInForIn(String),
     UnknownStructField(String, String),
+    UnknownIdentifierInNamespace(String, String),
     StructFieldNotInitialized(String, String),
     InvalidLeftSideOfSeparator,
     InvalidUseOfTypeParams,
@@ -461,6 +462,10 @@ impl SemError {
             SemError::UnknownStructField(ref struc, ref field) => {
                 format!("struct `{}` does not have field named `{}`.", struc, field)
             }
+            SemError::UnknownIdentifierInNamespace(ref namespace, ref element) => format!(
+                "namespace `{}` does not have field named `{}`.",
+                namespace, element
+            ),
             SemError::StructFieldNotInitialized(ref struc, ref field) => {
                 format!("field `{}` in struct `{}` not initialized.", field, struc)
             }

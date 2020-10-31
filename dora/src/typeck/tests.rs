@@ -2305,6 +2305,23 @@ fn namespace_ctor_call() {
 }
 
 #[test]
+#[ignore]
+fn namespace_global() {
+    ok("
+        fun f(): Int32 { foo::x }
+        namespace foo { var x: Int32 = 1; }
+    ");
+}
+
+#[test]
+fn namespace_enum_value() {
+    ok("
+        fun f() { foo::A; }
+        namespace foo { enum Foo { A, B } import Foo::A; }
+    ");
+}
+
+#[test]
 fn namespace_inside() {
     ok("
         namespace foo { fun f() { g() } fun g() {} }
