@@ -2297,6 +2297,14 @@ fn namespace_fct_call() {
 }
 
 #[test]
+fn namespace_ctor_call() {
+    ok("
+        fun f() { foo::Foo(); }
+        namespace foo { class Foo }
+    ");
+}
+
+#[test]
 fn namespace_inside() {
     ok("
         namespace foo { fun f() { g() } fun g() {} }
