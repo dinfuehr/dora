@@ -1197,30 +1197,7 @@ impl<'a> TypeCheck<'a> {
             let sym_term = self.symtable.get_term(expr_ident.name);
             let sym_type = self.symtable.get_type(expr_ident.name);
 
-            match (sym_term, sym_type) {
-                (Some(TermSym::Fct(fct_id)), _) => {
-                    self.check_expr_call_ident(e, fct_id, type_params, &arg_types)
-                }
-
-                (Some(TermSym::ClassConstructor(cls_id)), _)
-                | (Some(TermSym::ClassConstructorAndModule(cls_id, _)), _) => {
-                    self.check_expr_call_ctor(e, cls_id, type_params, &arg_types)
-                }
-
-                (Some(TermSym::EnumValue(enum_id, variant_id)), _) => {
-                    self.check_enum_value_with_args(e, enum_id, type_params, variant_id, &arg_types)
-                }
-
-                (_, _) => {
-                    if !type_params.is_empty() {
-                        let msg = SemError::NoTypeParamsExpected;
-                        self.vm.diag.lock().report(self.file, e.callee.pos(), msg);
-                    }
-
-                    let expr_type = self.check_expr(callee, SourceType::Any);
-                    self.check_expr_call_expr(e, expr_type, &arg_types)
-                }
-            }
+            self.check_expr_call_sym(e, callee, sym_term, sym_type, type_params, &arg_types)
         } else if let Some(expr_dot) = callee.to_dot() {
             let object_type = if expr_dot.lhs.is_super() {
                 self.super_type(expr_dot.lhs.pos())
@@ -1240,8 +1217,8 @@ impl<'a> TypeCheck<'a> {
                 }
             };
             self.check_expr_call_method(e, object_type, method_name, type_params, &arg_types)
-        } else if let Some(expr_path) = callee.to_path() {
-            self.check_expr_call_path(e, expr_path, type_params, &arg_types)
+        } else if let Some(_expr_path) = callee.to_path() {
+            self.check_expr_call_path(e, callee, type_params, &arg_types)
         } else {
             if !type_params.is_empty() {
                 let msg = SemError::NoTypeParamsExpected;
@@ -1250,6 +1227,41 @@ impl<'a> TypeCheck<'a> {
 
             let expr_type = self.check_expr(callee, SourceType::Any);
             self.check_expr_call_expr(e, expr_type, &arg_types)
+        }
+    }
+
+    fn check_expr_call_sym(
+        &mut self,
+        e: &ExprCallType,
+        callee: &Expr,
+        sym_term: Option<TermSym>,
+        sym_type: Option<TypeSym>,
+        type_params: TypeList,
+        arg_types: &[SourceType],
+    ) -> SourceType {
+        match (sym_term, sym_type) {
+            (Some(TermSym::Fct(fct_id)), _) => {
+                self.check_expr_call_fct(e, fct_id, type_params, &arg_types)
+            }
+
+            (Some(TermSym::ClassConstructor(cls_id)), _)
+            | (Some(TermSym::ClassConstructorAndModule(cls_id, _)), _) => {
+                self.check_expr_call_ctor(e, cls_id, type_params, &arg_types)
+            }
+
+            (Some(TermSym::EnumValue(enum_id, variant_id)), _) => {
+                self.check_enum_value_with_args(e, enum_id, type_params, variant_id, &arg_types)
+            }
+
+            (_, _) => {
+                if !type_params.is_empty() {
+                    let msg = SemError::NoTypeParamsExpected;
+                    self.vm.diag.lock().report(self.file, e.callee.pos(), msg);
+                }
+
+                let expr_type = self.check_expr(callee, SourceType::Any);
+                self.check_expr_call_expr(e, expr_type, &arg_types)
+            }
         }
     }
 
@@ -1445,7 +1457,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_call_ident(
+    fn check_expr_call_fct(
         &mut self,
         e: &ExprCallType,
         fct_id: FctId,
@@ -1716,12 +1728,14 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_path(
         &mut self,
         e: &ExprCallType,
-        path: &ExprPathType,
+        callee: &Expr,
         type_params: TypeList,
         arg_types: &[SourceType],
     ) -> SourceType {
+        let callee_as_path = callee.to_path().unwrap();
+
         let (container_expr, container_type_params) =
-            if let Some(expr_type_params) = path.lhs.to_type_param() {
+            if let Some(expr_type_params) = callee_as_path.lhs.to_type_param() {
                 let container_type_params: Vec<SourceType> = expr_type_params
                     .args
                     .iter()
@@ -1731,9 +1745,9 @@ impl<'a> TypeCheck<'a> {
 
                 (&expr_type_params.callee, container_type_params)
             } else {
-                (&path.lhs, TypeList::empty())
+                (&callee_as_path.lhs, TypeList::empty())
             };
-        let method_expr = &path.rhs;
+        let method_expr = &callee_as_path.rhs;
 
         let container_name = if let Some(container_expr) = container_expr.to_ident() {
             container_expr.name
@@ -1769,7 +1783,10 @@ impl<'a> TypeCheck<'a> {
             | (_, Some(TermSym::Module(module_id))) => {
                 if !container_type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
-                    self.vm.diag.lock().report(self.file, path.lhs.pos(), msg);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, callee_as_path.lhs.pos(), msg);
                 }
 
                 let module_ty = SourceType::Module(module_id);
@@ -1792,7 +1809,10 @@ impl<'a> TypeCheck<'a> {
 
                 if !container_type_params.is_empty() && !type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
-                    self.vm.diag.lock().report(self.file, path.lhs.pos(), msg);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, callee_as_path.lhs.pos(), msg);
                 }
 
                 let used_type_params = if type_params.is_empty() {
@@ -1823,20 +1843,36 @@ impl<'a> TypeCheck<'a> {
             (Some(TypeSym::TypeParam(id)), _) => {
                 if !container_type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
-                    self.vm.diag.lock().report(self.file, path.lhs.pos(), msg);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, callee_as_path.lhs.pos(), msg);
                 }
 
                 let ty = SourceType::TypeParam(id);
                 self.check_expr_call_generic_static_method(e, ty, method_name, &arg_types)
             }
 
-            (_, Some(TermSym::Namespace(_namespace_id))) => {
+            (_, Some(TermSym::Namespace(namespace_id))) => {
                 if !container_type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
-                    self.vm.diag.lock().report(self.file, path.lhs.pos(), msg);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, callee_as_path.lhs.pos(), msg);
                 }
 
-                unimplemented!()
+                let (sym_term, sym_type) = {
+                    let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+                    let namespace = namespace.table.read();
+
+                    (
+                        namespace.get_term(method_name),
+                        namespace.get_type(method_name),
+                    )
+                };
+
+                self.check_expr_call_sym(e, callee, sym_term, sym_type, type_params, arg_types)
             }
 
             (_, _) => {

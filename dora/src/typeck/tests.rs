@@ -1638,8 +1638,8 @@ fn test_enum() {
     ok("enum A { V1, V2 } fun f(): Bool { return A::V1 != A::V2; }");
 
     err(
-        "enum A { V1 } fun f(): A { return A; }",
-        pos(1, 35),
+        "enum A { V1 } fun f(): A { A }",
+        pos(1, 28),
         SemError::ValueExpected,
     );
 
@@ -1650,14 +1650,14 @@ fn test_enum() {
     );
 
     err(
-        "enum A { V1, V2 } fun f(): A { return A::V3; }",
-        pos(1, 40),
+        "enum A { V1, V2 } fun f(): A { A::V3 }",
+        pos(1, 33),
         SemError::UnknownEnumValue("V3".into()),
     );
 
     err(
-        "enum A[T] { V1, V2 } fun f(): A[Int32] { return A::V1; }",
-        pos(1, 50),
+        "enum A[T] { V1, V2 } fun f(): A[Int32] { A::V1 }",
+        pos(1, 43),
         SemError::WrongNumberTypeParams(1, 0),
     );
 }
@@ -2289,12 +2289,27 @@ fn for_var() {
 }
 
 #[test]
-#[ignore]
 fn namespace_fct_call() {
     ok("
         fun f() { foo::g(); }
         namespace foo { fun g() {} }
     ");
+}
+
+#[test]
+fn namespace_inside() {
+    ok("
+        namespace foo { fun f() { g() } fun g() {} }
+    ");
+
+    ok("
+        namespace foo { class Foo fun g(x: Foo) {} }
+    ");
+
+    // ok("
+    //     fun f(x: foo::Foo) {}
+    //     namespace foo { class Foo }
+    // ");
 }
 
 #[test]
