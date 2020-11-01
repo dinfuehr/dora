@@ -51,7 +51,7 @@ impl<'a> Visitor for GlobalDefCheck<'a> {
                 pos: initializer.pos,
                 ast: initializer.clone(),
                 name: initializer.name,
-                namespace_id: None,
+                namespace_id: glob.namespace_id,
                 param_types: Vec::new(),
                 return_type: SourceType::Unit,
                 parent: FctParent::None,

@@ -63,12 +63,14 @@ impl<'x> Visitor for TraitCheck<'x> {
                 .report(self.file_id.into(), f.pos, SemError::TraitMethodWithBody);
         }
 
+        let namespace_id = self.vm.traits[self.trait_id.unwrap()].read().namespace_id;
+
         let fct = Fct {
             id: FctId(0),
             ast: f.clone(),
             pos: f.pos,
             name: f.name,
-            namespace_id: None,
+            namespace_id: namespace_id,
             param_types: Vec::new(),
             return_type: SourceType::Unit,
             parent: FctParent::Trait(self.trait_id.unwrap()),

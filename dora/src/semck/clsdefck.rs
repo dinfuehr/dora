@@ -17,13 +17,12 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub fn check(vm: &VM, map_cls_defs: &NodeMap<ClassId>) {
-    let global_namespace = vm.global_namespace.clone();
     let mut clsck = ClsDefCheck {
         vm,
         cls_id: None,
         map_cls_defs,
         file_id: 0,
-        sym: SymTables::new(global_namespace),
+        sym: None,
     };
 
     clsck.check();
@@ -33,7 +32,7 @@ struct ClsDefCheck<'x> {
     vm: &'x VM,
     map_cls_defs: &'x NodeMap<ClassId>,
     file_id: u32,
-    sym: SymTables,
+    sym: Option<SymTables<'x>>,
 
     cls_id: Option<ClassId>,
 }
@@ -87,7 +86,12 @@ impl<'x> ClsDefCheck<'x> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type_table(self.vm, &self.sym, cls.file, bound);
+                    let ty = semck::read_type_table(
+                        self.vm,
+                        self.sym.as_ref().unwrap(),
+                        cls.file,
+                        bound,
+                    );
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {
@@ -109,7 +113,7 @@ impl<'x> ClsDefCheck<'x> {
                 }
 
                 let sym = TypeSym::TypeParam(type_param_id.into());
-                self.sym.insert_type(type_param.name, sym);
+                self.sym.as_mut().unwrap().insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
 
@@ -124,7 +128,7 @@ impl<'x> ClsDefCheck<'x> {
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
         let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.sym.get_type(parent_class.name);
+        let sym = self.sym.as_mut().unwrap().get_type(parent_class.name);
 
         match sym {
             Some(TypeSym::Class(cls_id)) => {
@@ -142,8 +146,13 @@ impl<'x> ClsDefCheck<'x> {
                 let mut types = Vec::new();
 
                 for tp in &parent_class.type_params {
-                    let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), tp)
-                        .unwrap_or(SourceType::Error);
+                    let ty = semck::read_type_table(
+                        self.vm,
+                        self.sym.as_ref().unwrap(),
+                        self.file_id.into(),
+                        tp,
+                    )
+                    .unwrap_or(SourceType::Error);
                     types.push(ty);
                 }
 
@@ -218,7 +227,15 @@ impl<'x> Visitor for ClsDefCheck<'x> {
     fn visit_class(&mut self, c: &Arc<ast::Class>) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
-        self.sym.push_level();
+        let namespace_id = self
+            .vm
+            .classes
+            .idx(self.cls_id.unwrap())
+            .read()
+            .namespace_id;
+
+        self.sym = Some(SymTables::current(self.vm, namespace_id));
+        self.sym.as_mut().unwrap().push_level();
 
         if let Some(ref type_params) = c.type_params {
             self.check_type_params(c, type_params);
@@ -233,14 +250,19 @@ impl<'x> Visitor for ClsDefCheck<'x> {
         }
 
         self.cls_id = None;
-        self.sym.pop_level();
+        self.sym.as_mut().unwrap().pop_level();
     }
 
     fn visit_module(&mut self, _: &ast::Module) {}
 
     fn visit_field(&mut self, f: &ast::Field) {
-        let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
-            .unwrap_or(SourceType::Unit);
+        let ty = semck::read_type_table(
+            self.vm,
+            self.sym.as_ref().unwrap(),
+            self.file_id.into(),
+            &f.data_type,
+        )
+        .unwrap_or(SourceType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.primary_ctor && f.expr.is_none() {
@@ -261,12 +283,19 @@ impl<'x> Visitor for ClsDefCheck<'x> {
             FctKind::Definition
         };
 
+        let namespace_id = self
+            .vm
+            .classes
+            .idx(self.cls_id.unwrap())
+            .read()
+            .namespace_id;
+
         let fct = Fct {
             id: FctId(0),
             pos: f.pos,
             ast: f.clone(),
             name: f.name,
-            namespace_id: None,
+            namespace_id,
             param_types: Vec::new(),
             return_type: SourceType::Unit,
             parent: FctParent::Class(clsid),
@@ -313,12 +342,19 @@ impl<'x> Visitor for ClsDefCheck<'x> {
             FctKind::Definition
         };
 
+        let namespace_id = self
+            .vm
+            .classes
+            .idx(self.cls_id.unwrap())
+            .read()
+            .namespace_id;
+
         let fct = Fct {
             id: FctId(0),
             ast: f.clone(),
             pos: f.pos,
             name: f.name,
-            namespace_id: None,
+            namespace_id,
             param_types: Vec::new(),
             return_type: SourceType::Unit,
             parent: FctParent::Class(self.cls_id.unwrap()),

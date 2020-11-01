@@ -2305,7 +2305,6 @@ fn namespace_ctor_call() {
 }
 
 #[test]
-#[ignore]
 fn namespace_global() {
     ok("
         fun f(): Int32 { foo::x }
@@ -2314,10 +2313,58 @@ fn namespace_global() {
 }
 
 #[test]
+fn namespace_trait() {
+    ok("
+        namespace foo { class Foo trait Bar { fun f(x: Foo); } }
+    ");
+}
+
+#[test]
+fn namespace_impl() {
+    ok("
+        namespace foo {
+            class Foo
+            trait Bar { fun f(x: Foo); }
+            class AnotherClass
+            impl Bar for AnotherClass {
+                fun f(x: Foo) {}
+            }
+        }
+    ");
+}
+
+#[test]
+fn namespace_class() {
+    ok("
+        namespace foo {
+            class Foo(let x: Bar) {
+                fun foo(x: Bar) {}
+            }
+            class Bar
+        }
+    ");
+}
+
+#[test]
+fn namespace_const() {
+    ok("
+        fun f(): Int32 { foo::x }
+        namespace foo { const x: Int32 = 1; }
+    ");
+}
+
+#[test]
 fn namespace_enum_value() {
     ok("
         fun f() { foo::A; }
         namespace foo { enum Foo { A, B } import Foo::A; }
+    ");
+}
+
+#[test]
+fn namespace_enum() {
+    ok("
+        namespace foo { enum Foo { A(Bar), B } class Bar }
     ");
 }
 

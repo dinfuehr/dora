@@ -13,12 +13,11 @@ use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::lexer::position::Position;
 
 pub fn check(vm: &VM, map_extension_defs: &NodeMap<ExtensionId>) {
-    let global_namespace = vm.global_namespace.clone();
     let mut clsck = ExtensionCheck {
         vm,
         extension_id: None,
         map_extension_defs,
-        sym: SymTables::new(global_namespace),
+        sym: SymTables::global(vm),
 
         file_id: 0,
         extension_ty: SourceType::Error,
@@ -31,7 +30,7 @@ struct ExtensionCheck<'x> {
     vm: &'x VM,
     map_extension_defs: &'x NodeMap<ExtensionId>,
     file_id: u32,
-    sym: SymTables,
+    sym: SymTables<'x>,
 
     extension_id: Option<ExtensionId>,
     extension_ty: SourceType,

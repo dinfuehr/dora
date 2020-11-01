@@ -30,7 +30,7 @@ pub struct TypeCheck<'a> {
     pub file: FileId,
     pub src: &'a mut FctSrc,
     pub ast: &'a Function,
-    pub symtable: SymTables,
+    pub symtable: SymTables<'a>,
 }
 
 impl<'a> TypeCheck<'a> {

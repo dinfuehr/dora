@@ -14,10 +14,9 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub fn check(vm: &VM, map_module_defs: &NodeMap<ModuleId>) {
-    let global_namespace = vm.global_namespace.clone();
     let mut module_check = ModuleCheck {
         vm,
-        sym: SymTables::new(global_namespace),
+        sym: SymTables::global(vm),
         module_id: None,
         map_module_defs,
         file_id: 0,
@@ -30,7 +29,7 @@ struct ModuleCheck<'x> {
     vm: &'x VM,
     map_module_defs: &'x NodeMap<ModuleId>,
     file_id: u32,
-    sym: SymTables,
+    sym: SymTables<'x>,
 
     module_id: Option<ModuleId>,
 }

@@ -1,7 +1,4 @@
-use parking_lot::RwLock;
-
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use self::TypeSym::*;
 
@@ -15,29 +12,25 @@ use crate::vm::{
 };
 use dora_parser::interner::Name;
 
-#[derive(Debug)]
-pub struct SymTables {
-    namespace: Arc<RwLock<SymTable>>,
+pub struct SymTables<'a> {
+    vm: &'a VM,
+    namespace_id: Option<NamespaceId>,
     levels: Vec<SymTable>,
 }
 
-impl SymTables {
-    pub fn new(namespace: Arc<RwLock<SymTable>>) -> SymTables {
+impl<'a> SymTables<'a> {
+    pub fn global(vm: &'a VM) -> SymTables {
         SymTables {
-            namespace,
+            vm,
+            namespace_id: None,
             levels: Vec::new(),
         }
     }
 
-    pub fn current(vm: &VM, namespace_id: Option<NamespaceId>) -> SymTables {
-        let namespace = if let Some(namespace_id) = namespace_id {
-            vm.namespaces[namespace_id.to_usize()].table.clone()
-        } else {
-            vm.global_namespace.clone()
-        };
-
+    pub fn current(vm: &'a VM, namespace_id: Option<NamespaceId>) -> SymTables {
         SymTables {
-            namespace,
+            vm,
+            namespace_id,
             levels: Vec::new(),
         }
     }
@@ -62,7 +55,20 @@ impl SymTables {
             }
         }
 
-        self.namespace.read().get_type(name)
+        let mut current_namespace_id = self.namespace_id;
+
+        while let Some(namespace_id) = current_namespace_id {
+            let ns = &self.vm.namespaces[namespace_id.to_usize()];
+            let sym = ns.table.read().get_type(name);
+
+            if let Some(sym) = sym {
+                return Some(sym.clone());
+            }
+
+            current_namespace_id = ns.namespace_id;
+        }
+
+        self.vm.global_namespace.read().get_type(name)
     }
 
     pub fn get_term(&self, name: Name) -> Option<TermSym> {
@@ -72,9 +78,21 @@ impl SymTables {
             }
         }
 
-        self.namespace.read().get_term(name)
-    }
+        let mut current_namespace_id = self.namespace_id;
 
+        while let Some(namespace_id) = current_namespace_id {
+            let ns = &self.vm.namespaces[namespace_id.to_usize()];
+            let sym = ns.table.read().get_term(name);
+
+            if let Some(sym) = sym {
+                return Some(sym.clone());
+            }
+
+            current_namespace_id = ns.namespace_id;
+        }
+
+        self.vm.global_namespace.read().get_term(name)
+    }
     pub fn get_class(&self, name: Name) -> Option<ClassId> {
         self.get_type(name).and_then(|n| n.to_class())
     }

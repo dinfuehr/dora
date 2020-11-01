@@ -10,12 +10,10 @@ use crate::ty::SourceType;
 use crate::vm::{EnumId, EnumVariant, NodeMap, VM};
 
 pub fn check(vm: &VM, map_enum_defs: &NodeMap<EnumId>) {
-    let global_namespace = vm.global_namespace.clone();
     let mut enumck = EnumCheck {
         vm,
         map_enum_defs,
         file_id: 0,
-        sym: SymTables::new(global_namespace),
 
         enum_id: None,
     };
@@ -27,7 +25,6 @@ struct EnumCheck<'x> {
     vm: &'x VM,
     map_enum_defs: &'x NodeMap<EnumId>,
     file_id: u32,
-    sym: SymTables,
 
     enum_id: Option<EnumId>,
 }
@@ -42,7 +39,12 @@ impl<'x> EnumCheck<'x> {
         }
     }
 
-    fn check_type_params(&mut self, ast: &Enum, type_params: &[TypeParam]) {
+    fn check_type_params(
+        &mut self,
+        ast: &Enum,
+        type_params: &[TypeParam],
+        symtable: &mut SymTables,
+    ) {
         let enum_id = self.enum_id.expect("missing enum_id");
         let xenum = &self.vm.enums[enum_id];
         let mut xenum = xenum.write();
@@ -62,8 +64,7 @@ impl<'x> EnumCheck<'x> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty =
-                        semck::read_type_namespace(self.vm, xenum.file, xenum.namespace_id, bound);
+                    let ty = semck::read_type_table(self.vm, symtable, xenum.file, bound);
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {
@@ -88,7 +89,7 @@ impl<'x> EnumCheck<'x> {
                 }
 
                 let sym = TypeSym::TypeParam(type_param_id.into());
-                self.sym.insert_type(type_param.name, sym);
+                symtable.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
         } else {
@@ -108,10 +109,13 @@ impl<'x> Visitor for EnumCheck<'x> {
         let enum_id = *self.map_enum_defs.get(e.id).unwrap();
         self.enum_id = Some(enum_id);
 
-        self.sym.push_level();
+        let namespace_id = self.vm.enums[enum_id].read().namespace_id;
+        let mut symtable = SymTables::current(self.vm, namespace_id);
+
+        symtable.push_level();
 
         if let Some(ref type_params) = e.type_params {
-            self.check_type_params(e, type_params);
+            self.check_type_params(e, type_params, &mut symtable);
         }
 
         let xenum = &self.vm.enums[enum_id];
@@ -126,7 +130,7 @@ impl<'x> Visitor for EnumCheck<'x> {
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {
                     let variant_ty =
-                        semck::read_type_table(self.vm, &self.sym, self.file_id.into(), ty)
+                        semck::read_type_table(self.vm, &symtable, self.file_id.into(), ty)
                             .unwrap_or(SourceType::Error);
                     types.push(variant_ty);
                 }
@@ -164,7 +168,7 @@ impl<'x> Visitor for EnumCheck<'x> {
         }
 
         self.enum_id = None;
-        self.sym.pop_level();
+        symtable.pop_level();
     }
 }
 

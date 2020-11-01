@@ -12,14 +12,11 @@ use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::lexer::position::Position;
 
 pub fn check(vm: &VM, map_impl_defs: &NodeMap<ImplId>) {
-    let global_namespace = vm.global_namespace.clone();
-
     let mut clsck = ImplCheck {
         vm,
         impl_id: None,
         map_impl_defs,
         file_id: 0,
-        sym: SymTables::new(global_namespace),
     };
 
     clsck.check();
@@ -30,7 +27,6 @@ struct ImplCheck<'x> {
     map_impl_defs: &'x NodeMap<ImplId>,
     file_id: u32,
     impl_id: Option<ImplId>,
-    sym: SymTables,
 }
 
 impl<'x> ImplCheck<'x> {
@@ -60,7 +56,8 @@ impl<'x> ImplCheck<'x> {
 
         if let Some(ref trait_type) = i.trait_type {
             if let Some(trait_name) = trait_type.to_basic_without_type_params() {
-                if let Some(TypeSym::Trait(trait_id)) = self.sym.get_type(trait_name) {
+                let symtable = SymTables::current(self.vm, ximpl.namespace_id);
+                if let Some(TypeSym::Trait(trait_id)) = symtable.get_type(trait_name) {
                     ximpl.trait_id = Some(trait_id);
                 } else {
                     let name = self.vm.interner.str(trait_name).to_string();
@@ -143,13 +140,14 @@ impl<'x> Visitor for ImplCheck<'x> {
         };
 
         let parent = FctParent::Impl(impl_id);
+        let namespace_id = self.vm.impls[impl_id].read().namespace_id;
 
         let fct = Fct {
             id: FctId(0),
             ast: f.clone(),
             pos: f.pos,
             name: f.name,
-            namespace_id: None,
+            namespace_id,
             param_types: Vec::new(),
             return_type: SourceType::Unit,
             parent: parent,

@@ -11,7 +11,7 @@ mod lookup;
 #[cfg(test)]
 mod tests;
 
-pub fn check<'a>(vm: &VM) {
+pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 
@@ -22,13 +22,15 @@ pub fn check<'a>(vm: &VM) {
         let src = fct.src();
         let mut src = src.write();
 
+        let symtable = SymTables::current(vm, fct.namespace_id);
+
         let mut typeck = TypeCheck {
             vm,
             fct: &fct,
             file: fct.file,
             src: &mut src,
             ast: &fct.ast,
-            symtable: SymTables::current(vm, fct.namespace_id),
+            symtable: symtable,
         };
 
         typeck.check();
