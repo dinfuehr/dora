@@ -48,7 +48,6 @@ pub fn check(vm: &mut VM) {
     let mut map_module_defs = NodeMap::new(); // get ModuleId from ast node
     let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
     let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
-    let mut map_enum_defs = NodeMap::new(); // get EnumId from ast node
     let mut map_extension_defs = NodeMap::new(); // get ExtensionId from ast node
     let mut map_namespaces = NodeMap::new(); // get NamespaceId from ast node
 
@@ -63,7 +62,6 @@ pub fn check(vm: &mut VM) {
         &mut map_module_defs,
         &mut map_global_defs,
         &mut map_const_defs,
-        &mut map_enum_defs,
         &mut map_extension_defs,
         &mut map_namespaces,
     );

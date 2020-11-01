@@ -25,7 +25,6 @@ pub fn check(
     map_module_defs: &mut NodeMap<ModuleId>,
     map_global_defs: &mut NodeMap<GlobalId>,
     map_const_defs: &mut NodeMap<ConstId>,
-    map_enum_defs: &mut NodeMap<EnumId>,
     map_extension_defs: &mut NodeMap<ExtensionId>,
     map_namespaces: &mut NodeMap<NamespaceId>,
 ) {
@@ -42,7 +41,6 @@ pub fn check(
         map_module_defs,
         map_global_defs,
         map_const_defs,
-        map_enum_defs,
         map_extension_defs,
         map_namespaces,
     };
@@ -64,7 +62,6 @@ struct GlobalDef<'x> {
     map_module_defs: &'x mut NodeMap<ModuleId>,
     map_global_defs: &'x mut NodeMap<GlobalId>,
     map_const_defs: &'x mut NodeMap<ConstId>,
-    map_enum_defs: &'x mut NodeMap<EnumId>,
     map_extension_defs: &'x mut NodeMap<ExtensionId>,
     map_namespaces: &'x mut NodeMap<NamespaceId>,
 }
@@ -443,7 +440,6 @@ impl<'x> Visitor for GlobalDef<'x> {
         }
 
         self.vm.enums.push(RwLock::new(xenum));
-        self.map_enum_defs.insert(e.id, id);
 
         let sym = TypeSym::Enum(id);
         if let Some(sym) = self.insert_type(e.name, sym) {
