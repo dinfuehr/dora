@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use crate::ast::*;
 
-use crate::ast::Expr::*;
-use crate::ast::Stmt::*;
 use crate::interner::{ArcStr, Interner, Name};
 
 macro_rules! dump {
@@ -68,19 +66,19 @@ impl<'a> AstDumper<'a> {
 
     fn dump_elem(&mut self, el: &Elem) {
         match *el {
-            ElemFunction(ref fct) => self.dump_fct(fct),
-            ElemClass(ref cls) => self.dump_class(cls),
-            ElemStruct(ref struc) => self.dump_struct(struc),
-            ElemTrait(ref xtrait) => self.dump_trait(xtrait),
-            ElemImpl(ref ximpl) => self.dump_impl(ximpl),
-            ElemModule(ref module) => self.dump_module(module),
-            ElemAnnotation(ref annotation) => self.dump_annotation(annotation),
-            ElemGlobal(ref global) => self.dump_global(global),
-            ElemConst(ref xconst) => self.dump_const(xconst),
-            ElemEnum(ref xenum) => self.dump_enum(xenum),
-            ElemAlias(ref alias) => self.dump_alias(alias),
-            ElemNamespace(ref namespace) => self.dump_namespace(namespace),
-            ElemImport(ref import) => self.dump_import(import),
+            Elem::Function(ref fct) => self.dump_fct(fct),
+            Elem::Class(ref cls) => self.dump_class(cls),
+            Elem::Struct(ref struc) => self.dump_struct(struc),
+            Elem::Trait(ref xtrait) => self.dump_trait(xtrait),
+            Elem::Impl(ref ximpl) => self.dump_impl(ximpl),
+            Elem::Module(ref module) => self.dump_module(module),
+            Elem::Annotation(ref annotation) => self.dump_annotation(annotation),
+            Elem::Global(ref global) => self.dump_global(global),
+            Elem::Const(ref xconst) => self.dump_const(xconst),
+            Elem::Enum(ref xenum) => self.dump_enum(xenum),
+            Elem::Alias(ref alias) => self.dump_alias(alias),
+            Elem::Namespace(ref namespace) => self.dump_namespace(namespace),
+            Elem::Import(ref import) => self.dump_import(import),
         }
     }
 
@@ -432,13 +430,13 @@ impl<'a> AstDumper<'a> {
 
     fn dump_stmt(&mut self, stmt: &Stmt) {
         match *stmt {
-            StmtReturn(ref ret) => self.dump_stmt_return(ret),
-            StmtBreak(ref stmt) => self.dump_stmt_break(stmt),
-            StmtContinue(ref stmt) => self.dump_stmt_continue(stmt),
-            StmtExpr(ref expr) => self.dump_stmt_expr(expr),
-            StmtLet(ref stmt) => self.dump_stmt_let(stmt),
-            StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
-            StmtFor(ref stmt) => self.dump_stmt_for(stmt),
+            Stmt::Return(ref ret) => self.dump_stmt_return(ret),
+            Stmt::Break(ref stmt) => self.dump_stmt_break(stmt),
+            Stmt::Continue(ref stmt) => self.dump_stmt_continue(stmt),
+            Stmt::Expr(ref expr) => self.dump_stmt_expr(expr),
+            Stmt::Let(ref stmt) => self.dump_stmt_let(stmt),
+            Stmt::While(ref stmt) => self.dump_stmt_while(stmt),
+            Stmt::For(ref stmt) => self.dump_stmt_for(stmt),
         }
     }
 
@@ -543,29 +541,29 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr(&mut self, expr: &Expr) {
         match *expr {
-            ExprUn(ref un) => self.dump_expr_un(un),
-            ExprBin(ref bin) => self.dump_expr_bin(bin),
-            ExprDot(ref field) => self.dump_expr_dot(field),
-            ExprLitChar(ref lit) => self.dump_expr_lit_char(lit),
-            ExprLitInt(ref lit) => self.dump_expr_lit_int(lit),
-            ExprLitFloat(ref lit) => self.dump_expr_lit_float(lit),
-            ExprLitStr(ref lit) => self.dump_expr_lit_str(lit),
-            ExprTemplate(ref tmpl) => self.dump_expr_template(tmpl),
-            ExprLitBool(ref lit) => self.dump_expr_lit_bool(lit),
-            ExprIdent(ref ident) => self.dump_expr_ident(ident),
-            ExprCall(ref call) => self.dump_expr_call(call),
-            ExprTypeParam(ref expr) => self.dump_expr_type_param(expr),
-            ExprPath(ref path) => self.dump_expr_path(path),
-            ExprDelegation(ref call) => self.dump_expr_delegation(call),
-            ExprSelf(ref selfie) => self.dump_expr_self(selfie),
-            ExprSuper(ref expr) => self.dump_expr_super(expr),
-            ExprConv(ref expr) => self.dump_expr_conv(expr),
-            ExprLambda(ref expr) => self.dump_expr_lambda(expr),
-            ExprBlock(ref expr) => self.dump_expr_block(expr),
-            ExprIf(ref expr) => self.dump_expr_if(expr),
-            ExprTuple(ref expr) => self.dump_expr_tuple(expr),
-            ExprParen(ref expr) => self.dump_expr_paren(expr),
-            ExprMatch(ref expr) => self.dump_expr_match(expr),
+            Expr::Un(ref un) => self.dump_expr_un(un),
+            Expr::Bin(ref bin) => self.dump_expr_bin(bin),
+            Expr::Dot(ref field) => self.dump_expr_dot(field),
+            Expr::LitChar(ref lit) => self.dump_expr_lit_char(lit),
+            Expr::LitInt(ref lit) => self.dump_expr_lit_int(lit),
+            Expr::LitFloat(ref lit) => self.dump_expr_lit_float(lit),
+            Expr::LitStr(ref lit) => self.dump_expr_lit_str(lit),
+            Expr::Template(ref tmpl) => self.dump_expr_template(tmpl),
+            Expr::LitBool(ref lit) => self.dump_expr_lit_bool(lit),
+            Expr::Ident(ref ident) => self.dump_expr_ident(ident),
+            Expr::Call(ref call) => self.dump_expr_call(call),
+            Expr::TypeParam(ref expr) => self.dump_expr_type_param(expr),
+            Expr::Path(ref path) => self.dump_expr_path(path),
+            Expr::Delegation(ref call) => self.dump_expr_delegation(call),
+            Expr::This(ref selfie) => self.dump_expr_self(selfie),
+            Expr::Super(ref expr) => self.dump_expr_super(expr),
+            Expr::Conv(ref expr) => self.dump_expr_conv(expr),
+            Expr::Lambda(ref expr) => self.dump_expr_lambda(expr),
+            Expr::Block(ref expr) => self.dump_expr_block(expr),
+            Expr::If(ref expr) => self.dump_expr_if(expr),
+            Expr::Tuple(ref expr) => self.dump_expr_tuple(expr),
+            Expr::Paren(ref expr) => self.dump_expr_paren(expr),
+            Expr::Match(ref expr) => self.dump_expr_match(expr),
         }
     }
 

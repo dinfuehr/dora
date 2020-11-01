@@ -1,9 +1,5 @@
 use crate::ast::*;
 
-use crate::ast::Expr::*;
-use crate::ast::Stmt::*;
-use crate::ast::Type::*;
-
 pub trait Visitor: Sized {
     fn visit_file(&mut self, a: &File) {
         walk_file(self, a);
@@ -102,19 +98,19 @@ pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
 
 pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
     match e {
-        ElemFunction(f) => v.visit_fct(f),
-        ElemClass(ref c) => v.visit_class(c),
-        ElemStruct(ref s) => v.visit_struct(s),
-        ElemTrait(ref t) => v.visit_trait(t),
-        ElemImpl(ref i) => v.visit_impl(i),
-        ElemModule(ref m) => v.visit_module(m),
-        ElemAnnotation(ref a) => v.visit_annotation(a),
-        ElemGlobal(ref g) => v.visit_global(g),
-        ElemConst(ref c) => v.visit_const(c),
-        ElemEnum(ref e) => v.visit_enum(e),
-        ElemAlias(ref e) => v.visit_alias(e),
-        ElemNamespace(ref e) => v.visit_namespace(e),
-        ElemImport(ref i) => v.visit_import(i),
+        Elem::Function(f) => v.visit_fct(f),
+        Elem::Class(ref c) => v.visit_class(c),
+        Elem::Struct(ref s) => v.visit_struct(s),
+        Elem::Trait(ref t) => v.visit_trait(t),
+        Elem::Impl(ref i) => v.visit_impl(i),
+        Elem::Module(ref m) => v.visit_module(m),
+        Elem::Annotation(ref a) => v.visit_annotation(a),
+        Elem::Global(ref g) => v.visit_global(g),
+        Elem::Const(ref c) => v.visit_const(c),
+        Elem::Enum(ref e) => v.visit_enum(e),
+        Elem::Alias(ref e) => v.visit_alias(e),
+        Elem::Namespace(ref e) => v.visit_namespace(e),
+        Elem::Import(ref i) => v.visit_import(i),
     }
 }
 
@@ -231,15 +227,15 @@ pub fn walk_param<V: Visitor>(v: &mut V, p: &Param) {
 
 pub fn walk_type<V: Visitor>(v: &mut V, t: &Type) {
     match *t {
-        TypeSelf(_) => {}
-        TypeBasic(_) => {}
-        TypeTuple(ref tuple) => {
+        Type::This(_) => {}
+        Type::Basic(_) => {}
+        Type::Tuple(ref tuple) => {
             for ty in &tuple.subtypes {
                 v.visit_type(ty);
             }
         }
 
-        TypeLambda(ref fct) => {
+        Type::Lambda(ref fct) => {
             for ty in &fct.params {
                 v.visit_type(ty);
             }
@@ -251,7 +247,7 @@ pub fn walk_type<V: Visitor>(v: &mut V, t: &Type) {
 
 pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) {
     match *s {
-        StmtLet(ref value) => {
+        Stmt::Let(ref value) => {
             if let Some(ref ty) = value.data_type {
                 v.visit_type(ty);
             }
@@ -261,43 +257,43 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) {
             }
         }
 
-        StmtFor(ref value) => {
+        Stmt::For(ref value) => {
             v.visit_expr(&value.expr);
             v.visit_stmt(&value.block);
         }
 
-        StmtWhile(ref value) => {
+        Stmt::While(ref value) => {
             v.visit_expr(&value.cond);
             v.visit_stmt(&value.block);
         }
 
-        StmtExpr(ref value) => {
+        Stmt::Expr(ref value) => {
             v.visit_expr(&value.expr);
         }
 
-        StmtReturn(ref value) => {
+        Stmt::Return(ref value) => {
             if let Some(ref e) = value.expr {
                 v.visit_expr(e);
             }
         }
 
-        StmtBreak(_) => {}
-        StmtContinue(_) => {}
+        Stmt::Break(_) => {}
+        Stmt::Continue(_) => {}
     }
 }
 
 pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
     match *e {
-        ExprUn(ref value) => {
+        Expr::Un(ref value) => {
             v.visit_expr(&value.opnd);
         }
 
-        ExprBin(ref value) => {
+        Expr::Bin(ref value) => {
             v.visit_expr(&value.lhs);
             v.visit_expr(&value.rhs);
         }
 
-        ExprCall(ref call) => {
+        Expr::Call(ref call) => {
             v.visit_expr(&call.callee);
 
             for arg in &call.args {
@@ -305,7 +301,7 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             }
         }
 
-        ExprTypeParam(ref expr) => {
+        Expr::TypeParam(ref expr) => {
             v.visit_expr(&expr.callee);
 
             for arg in &expr.args {
@@ -313,28 +309,28 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             }
         }
 
-        ExprPath(ref path) => {
+        Expr::Path(ref path) => {
             v.visit_expr(&path.lhs);
             v.visit_expr(&path.rhs);
         }
 
-        ExprDelegation(ref call) => {
+        Expr::Delegation(ref call) => {
             for arg in &call.args {
                 v.visit_expr(arg);
             }
         }
 
-        ExprDot(ref value) => {
+        Expr::Dot(ref value) => {
             v.visit_expr(&value.lhs);
             v.visit_expr(&value.rhs);
         }
 
-        ExprConv(ref value) => {
+        Expr::Conv(ref value) => {
             v.visit_expr(&value.object);
             v.visit_type(&value.data_type);
         }
 
-        ExprLambda(ref value) => {
+        Expr::Lambda(ref value) => {
             for param in &value.params {
                 v.visit_type(&param.data_type);
             }
@@ -346,7 +342,7 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             v.visit_stmt(&value.block);
         }
 
-        ExprBlock(ref value) => {
+        Expr::Block(ref value) => {
             for stmt in &value.stmts {
                 v.visit_stmt(stmt);
             }
@@ -356,13 +352,13 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             }
         }
 
-        ExprTemplate(ref value) => {
+        Expr::Template(ref value) => {
             for part in &value.parts {
                 v.visit_expr(part);
             }
         }
 
-        ExprIf(ref value) => {
+        Expr::If(ref value) => {
             v.visit_expr(&value.cond);
             v.visit_expr(&value.then_block);
 
@@ -371,27 +367,27 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             }
         }
 
-        ExprTuple(ref value) => {
+        Expr::Tuple(ref value) => {
             for expr in &value.values {
                 v.visit_expr(expr);
             }
         }
 
-        ExprParen(ref value) => {
+        Expr::Paren(ref value) => {
             v.visit_expr(&value.expr);
         }
 
-        ExprMatch(ref value) => {
+        Expr::Match(ref value) => {
             v.visit_expr(&value.expr);
         }
 
-        ExprSuper(_) => {}
-        ExprSelf(_) => {}
-        ExprLitChar(_) => {}
-        ExprLitInt(_) => {}
-        ExprLitFloat(_) => {}
-        ExprLitStr(_) => {}
-        ExprLitBool(_) => {}
-        ExprIdent(_) => {}
+        Expr::Super(_) => {}
+        Expr::This(_) => {}
+        Expr::LitChar(_) => {}
+        Expr::LitInt(_) => {}
+        Expr::LitFloat(_) => {}
+        Expr::LitStr(_) => {}
+        Expr::LitBool(_) => {}
+        Expr::Ident(_) => {}
     }
 }

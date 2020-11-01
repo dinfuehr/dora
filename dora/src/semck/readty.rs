@@ -2,7 +2,6 @@ use crate::error::msg::SemError;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, NamespaceId, VM};
-use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 
 pub fn read_type_table(vm: &VM, table: &SymTables, file: FileId, t: &Type) -> Option<SourceType> {
@@ -21,10 +20,10 @@ pub fn read_type_namespace(
 
 fn read_type_raw(vm: &VM, table: &SymTables, file: FileId, t: &Type) -> Option<SourceType> {
     match *t {
-        TypeSelf(_) => Some(SourceType::This),
-        TypeBasic(ref basic) => read_type_basic(vm, table, file, basic),
-        TypeTuple(ref tuple) => read_type_tuple(vm, table, file, tuple),
-        TypeLambda(ref lambda) => read_type_lambda(vm, table, file, lambda),
+        Type::This(_) => Some(SourceType::This),
+        Type::Basic(ref basic) => read_type_basic(vm, table, file, basic),
+        Type::Tuple(ref tuple) => read_type_tuple(vm, table, file, tuple),
+        Type::Lambda(ref lambda) => read_type_lambda(vm, table, file, lambda),
     }
 }
 

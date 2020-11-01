@@ -1,8 +1,6 @@
 use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 
-use dora_parser::ast::Expr::*;
-use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
 use crate::bytecode::{
@@ -149,13 +147,13 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_stmt(&mut self, stmt: &Stmt) {
         match *stmt {
-            StmtReturn(ref ret) => self.visit_stmt_return(ret),
-            StmtBreak(ref stmt) => self.visit_stmt_break(stmt),
-            StmtContinue(ref stmt) => self.visit_stmt_continue(stmt),
-            StmtExpr(ref expr) => self.visit_stmt_expr(expr),
-            StmtLet(ref stmt) => self.visit_stmt_let(stmt),
-            StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
-            StmtFor(ref stmt) => self.visit_stmt_for(stmt),
+            Stmt::Return(ref ret) => self.visit_stmt_return(ret),
+            Stmt::Break(ref stmt) => self.visit_stmt_break(stmt),
+            Stmt::Continue(ref stmt) => self.visit_stmt_continue(stmt),
+            Stmt::Expr(ref expr) => self.visit_stmt_expr(expr),
+            Stmt::Let(ref stmt) => self.visit_stmt_let(stmt),
+            Stmt::While(ref stmt) => self.visit_stmt_while(stmt),
+            Stmt::For(ref stmt) => self.visit_stmt_for(stmt),
         }
     }
 
@@ -552,29 +550,29 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr(&mut self, expr: &Expr, dest: DataDest) -> Register {
         match *expr {
-            ExprUn(ref un) => self.visit_expr_un(un, dest),
-            ExprBin(ref bin) => self.visit_expr_bin(bin, dest),
-            ExprDot(ref field) => self.visit_expr_dot(field, dest),
-            ExprBlock(ref block) => self.visit_expr_block(block, dest),
-            ExprIf(ref expr) => self.visit_expr_if(expr, dest),
-            ExprTemplate(ref template) => self.visit_expr_template(template, dest),
-            ExprTypeParam(ref expr) => self.visit_expr_type_param(expr, dest),
-            ExprPath(ref path) => self.visit_expr_path(path, dest),
-            ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
-            ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest, false),
-            ExprLitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
-            ExprLitStr(ref lit) => self.visit_expr_lit_string(lit, dest),
-            ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
-            ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
-            ExprCall(ref call) => self.visit_expr_call(call, dest),
-            ExprDelegation(ref call) => self.visit_expr_delegation(call, dest),
-            ExprSelf(_) => self.visit_expr_self(dest),
-            ExprSuper(_) => self.visit_expr_self(dest),
-            ExprConv(ref conv) => self.visit_expr_conv(conv, dest),
-            ExprTuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
-            ExprParen(ref paren) => self.visit_expr(&paren.expr, dest),
-            ExprMatch(_) => unimplemented!(),
-            ExprLambda(_) => unimplemented!(),
+            Expr::Un(ref un) => self.visit_expr_un(un, dest),
+            Expr::Bin(ref bin) => self.visit_expr_bin(bin, dest),
+            Expr::Dot(ref field) => self.visit_expr_dot(field, dest),
+            Expr::Block(ref block) => self.visit_expr_block(block, dest),
+            Expr::If(ref expr) => self.visit_expr_if(expr, dest),
+            Expr::Template(ref template) => self.visit_expr_template(template, dest),
+            Expr::TypeParam(ref expr) => self.visit_expr_type_param(expr, dest),
+            Expr::Path(ref path) => self.visit_expr_path(path, dest),
+            Expr::LitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
+            Expr::LitInt(ref lit) => self.visit_expr_lit_int(lit, dest, false),
+            Expr::LitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
+            Expr::LitStr(ref lit) => self.visit_expr_lit_string(lit, dest),
+            Expr::LitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
+            Expr::Ident(ref ident) => self.visit_expr_ident(ident, dest),
+            Expr::Call(ref call) => self.visit_expr_call(call, dest),
+            Expr::Delegation(ref call) => self.visit_expr_delegation(call, dest),
+            Expr::This(_) => self.visit_expr_self(dest),
+            Expr::Super(_) => self.visit_expr_self(dest),
+            Expr::Conv(ref conv) => self.visit_expr_conv(conv, dest),
+            Expr::Tuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
+            Expr::Paren(ref paren) => self.visit_expr(&paren.expr, dest),
+            Expr::Match(_) => unimplemented!(),
+            Expr::Lambda(_) => unimplemented!(),
         }
     }
 
@@ -2359,8 +2357,8 @@ impl<'a> AstBytecodeGen<'a> {
             }
         } else {
             match *expr.lhs {
-                ExprDot(ref dot) => self.visit_expr_assign_dot(expr, dot),
-                ExprCall(ref call) => self.visit_expr_assign_call(expr, call),
+                Expr::Dot(ref dot) => self.visit_expr_assign_dot(expr, dot),
+                Expr::Call(ref call) => self.visit_expr_assign_call(expr, call),
                 _ => unreachable!(),
             };
         }

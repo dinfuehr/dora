@@ -3,7 +3,6 @@ use std::mem;
 use std::sync::Arc;
 
 use crate::ast;
-use crate::ast::Elem::*;
 use crate::ast::*;
 use crate::builder::Builder;
 use crate::error::{ParseError, ParseErrorAndPos};
@@ -103,7 +102,7 @@ impl<'a> Parser<'a> {
                     ],
                 )?;
                 let fct = self.parse_function(&modifiers)?;
-                Ok(ElemFunction(Arc::new(fct)))
+                Ok(Elem::Function(Arc::new(fct)))
             }
 
             TokenKind::Class => {
@@ -117,72 +116,72 @@ impl<'a> Parser<'a> {
                     ],
                 )?;
                 let class = self.parse_class(&modifiers)?;
-                Ok(ElemClass(Arc::new(class)))
+                Ok(Elem::Class(Arc::new(class)))
             }
 
             TokenKind::Struct => {
                 self.ban_modifiers(&modifiers)?;
                 let struc = self.parse_struct()?;
-                Ok(ElemStruct(struc))
+                Ok(Elem::Struct(struc))
             }
 
             TokenKind::Trait => {
                 self.ban_modifiers(&modifiers)?;
                 let xtrait = self.parse_trait()?;
-                Ok(ElemTrait(xtrait))
+                Ok(Elem::Trait(xtrait))
             }
 
             TokenKind::Impl => {
                 self.ban_modifiers(&modifiers)?;
                 let ximpl = self.parse_impl()?;
-                Ok(ElemImpl(ximpl))
+                Ok(Elem::Impl(ximpl))
             }
 
             TokenKind::Module => {
                 self.ban_modifiers(&modifiers)?;
                 let module = self.parse_module(&modifiers)?;
-                Ok(ElemModule(module))
+                Ok(Elem::Module(module))
             }
 
             TokenKind::Annotation => {
                 let annotation = self.parse_annotation(&modifiers)?;
-                Ok(ElemAnnotation(annotation))
+                Ok(Elem::Annotation(annotation))
             }
 
             TokenKind::Alias => {
                 self.ban_modifiers(&modifiers)?;
                 let alias = self.parse_alias()?;
-                Ok(ElemAlias(alias))
+                Ok(Elem::Alias(alias))
             }
 
             TokenKind::Let | TokenKind::Var => {
                 self.ban_modifiers(&modifiers)?;
                 let global = self.parse_global()?;
-                Ok(ElemGlobal(global))
+                Ok(Elem::Global(global))
             }
 
             TokenKind::Const => {
                 self.ban_modifiers(&modifiers)?;
                 let xconst = self.parse_const()?;
-                Ok(ElemConst(xconst))
+                Ok(Elem::Const(xconst))
             }
 
             TokenKind::Enum => {
                 self.ban_modifiers(&modifiers)?;
                 let xenum = self.parse_enum()?;
-                Ok(ElemEnum(Arc::new(xenum)))
+                Ok(Elem::Enum(Arc::new(xenum)))
             }
 
             TokenKind::Namespace => {
                 self.ban_modifiers(&modifiers)?;
                 let namespace = self.parse_namespace()?;
-                Ok(ElemNamespace(namespace))
+                Ok(Elem::Namespace(namespace))
             }
 
             TokenKind::Import => {
                 self.ban_modifiers(&modifiers)?;
                 let import = self.parse_import()?;
-                Ok(ElemImport(import))
+                Ok(Elem::Import(import))
             }
 
             _ => {
@@ -1100,7 +1099,7 @@ impl<'a> Parser<'a> {
         } else {
             let block = self.parse_block()?;
 
-            if let Expr::ExprBlock(block_type) = *block {
+            if let Expr::Block(block_type) = *block {
                 Ok(Some(Box::new(block_type)))
             } else {
                 unreachable!()

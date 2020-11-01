@@ -25,7 +25,7 @@ impl<'a> Builder<'a> {
     pub fn build_this(&self) -> Box<Expr> {
         let id = self.id_generator.next();
 
-        Box::new(Expr::ExprSelf(ExprSelfType {
+        Box::new(Expr::This(ExprSelfType {
             id,
             pos: Position::new(1, 1),
             span: Span::invalid(),
@@ -35,7 +35,7 @@ impl<'a> Builder<'a> {
     pub fn build_initializer_assign(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         let id = self.id_generator.next();
 
-        Box::new(Expr::ExprBin(ExprBinType {
+        Box::new(Expr::Bin(ExprBinType {
             id,
             pos: Position::new(1, 1),
             span: Span::invalid(),
@@ -50,7 +50,7 @@ impl<'a> Builder<'a> {
     pub fn build_dot(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         let id = self.id_generator.next();
 
-        Box::new(Expr::ExprDot(ExprDotType {
+        Box::new(Expr::Dot(ExprDotType {
             id,
             pos: Position::new(1, 1),
             span: Span::invalid(),
@@ -63,7 +63,7 @@ impl<'a> Builder<'a> {
     pub fn build_ident(&self, name: Name) -> Box<Expr> {
         let id = self.id_generator.next();
 
-        Box::new(Expr::ExprIdent(ExprIdentType {
+        Box::new(Expr::Ident(ExprIdentType {
             id,
             pos: Position::new(1, 1),
             span: Span::invalid(),
@@ -196,7 +196,7 @@ impl<'a> BuilderBlock<'a> {
     pub fn add_expr(&mut self, expr: Box<Expr>) -> &mut BuilderBlock<'a> {
         let id = self.id_generator.next();
 
-        let stmt = Box::new(Stmt::StmtExpr(StmtExprType {
+        let stmt = Box::new(Stmt::Expr(StmtExprType {
             id,
             pos: Position::new(1, 1),
             span: Span::invalid(),

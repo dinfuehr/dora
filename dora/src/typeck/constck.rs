@@ -3,7 +3,6 @@ use crate::ty::SourceType;
 use crate::typeck::expr::{check_lit_float, check_lit_int};
 use crate::vm::{ConstData, ConstValue, VM};
 
-use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::token::IntSuffix;
 
@@ -16,19 +15,19 @@ pub struct ConstCheck<'a> {
 impl<'a> ConstCheck<'a> {
     pub fn check_expr(&mut self, expr: &Expr) -> (SourceType, ConstValue) {
         let (ty, lit) = match expr {
-            &ExprLitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
-            &ExprLitInt(ref expr) => {
+            &Expr::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
+            &Expr::LitInt(ref expr) => {
                 let (ty, val) =
                     check_lit_int(self.vm, self.xconst.file, expr, false, SourceType::Any);
                 (ty, ConstValue::Int(val))
             }
-            &ExprLitFloat(ref expr) => {
+            &Expr::LitFloat(ref expr) => {
                 let (ty, val) = check_lit_float(self.vm, self.xconst.file, expr, false);
                 (ty, ConstValue::Float(val))
             }
-            &ExprLitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
+            &Expr::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
 
-            &ExprUn(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
+            &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
 
                 if lit_int.suffix == IntSuffix::UInt8 {
@@ -47,7 +46,7 @@ impl<'a> ConstCheck<'a> {
                 (ty, ConstValue::Int(val))
             }
 
-            &ExprUn(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {
+            &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {
                 let (ty, val) = check_lit_float(
                     self.vm,
                     self.xconst.file,

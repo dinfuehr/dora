@@ -2,7 +2,6 @@ use crate::vm::{Fct, FctSrc, VM};
 use std::sync::Arc;
 
 use dora_parser::ast::visit::*;
-use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
@@ -55,20 +54,20 @@ impl<'a> Visitor for ReturnCheck<'a> {
 
 pub fn returns_value(s: &Stmt) -> Result<(), Position> {
     match *s {
-        StmtReturn(_) => Ok(()),
-        StmtFor(ref stmt) => Err(stmt.pos),
-        StmtWhile(ref stmt) => Err(stmt.pos),
-        StmtBreak(ref stmt) => Err(stmt.pos),
-        StmtContinue(ref stmt) => Err(stmt.pos),
-        StmtLet(ref stmt) => Err(stmt.pos),
-        StmtExpr(ref stmt) => expr_returns_value(&stmt.expr),
+        Stmt::Return(_) => Ok(()),
+        Stmt::For(ref stmt) => Err(stmt.pos),
+        Stmt::While(ref stmt) => Err(stmt.pos),
+        Stmt::Break(ref stmt) => Err(stmt.pos),
+        Stmt::Continue(ref stmt) => Err(stmt.pos),
+        Stmt::Let(ref stmt) => Err(stmt.pos),
+        Stmt::Expr(ref stmt) => expr_returns_value(&stmt.expr),
     }
 }
 
 pub fn expr_returns_value(e: &Expr) -> Result<(), Position> {
     match *e {
-        Expr::ExprBlock(ref block) => expr_block_returns_value(block),
-        Expr::ExprIf(ref expr) => expr_if_returns_value(expr),
+        Expr::Block(ref block) => expr_block_returns_value(block),
+        Expr::If(ref expr) => expr_if_returns_value(expr),
         _ => Err(e.pos()),
     }
 }

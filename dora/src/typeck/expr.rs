@@ -17,8 +17,6 @@ use crate::vm::{
 };
 
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::Expr::*;
-use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -2570,29 +2568,29 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr(&mut self, e: &Expr, expected_ty: SourceType) -> SourceType {
         match *e {
-            ExprLitChar(ref expr) => self.check_expr_lit_char(expr, expected_ty),
-            ExprLitInt(ref expr) => self.check_expr_lit_int(expr, false, expected_ty),
-            ExprLitFloat(ref expr) => self.check_expr_lit_float(expr, false, expected_ty),
-            ExprLitStr(ref expr) => self.check_expr_lit_str(expr, expected_ty),
-            ExprTemplate(ref expr) => self.check_expr_template(expr, expected_ty),
-            ExprLitBool(ref expr) => self.check_expr_lit_bool(expr, expected_ty),
-            ExprIdent(ref expr) => self.check_expr_ident(expr, expected_ty),
-            ExprUn(ref expr) => self.check_expr_un(expr, expected_ty),
-            ExprBin(ref expr) => self.check_expr_bin(expr, expected_ty),
-            ExprCall(ref expr) => self.check_expr_call(expr, expected_ty),
-            ExprTypeParam(ref expr) => self.check_expr_type_param(expr, expected_ty),
-            ExprPath(ref expr) => self.check_expr_path(expr, expected_ty),
-            ExprDelegation(ref expr) => self.check_expr_delegation(expr, expected_ty),
-            ExprDot(ref expr) => self.check_expr_dot(expr, expected_ty),
-            ExprSelf(ref expr) => self.check_expr_this(expr, expected_ty),
-            ExprSuper(ref expr) => self.check_expr_super(expr, expected_ty),
-            ExprConv(ref expr) => self.check_expr_conv(expr, expected_ty),
-            ExprLambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
-            ExprBlock(ref expr) => self.check_expr_block(expr, expected_ty),
-            ExprIf(ref expr) => self.check_expr_if(expr, expected_ty),
-            ExprTuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
-            ExprParen(ref expr) => self.check_expr_paren(expr, expected_ty),
-            ExprMatch(_) => unimplemented!(),
+            Expr::LitChar(ref expr) => self.check_expr_lit_char(expr, expected_ty),
+            Expr::LitInt(ref expr) => self.check_expr_lit_int(expr, false, expected_ty),
+            Expr::LitFloat(ref expr) => self.check_expr_lit_float(expr, false, expected_ty),
+            Expr::LitStr(ref expr) => self.check_expr_lit_str(expr, expected_ty),
+            Expr::Template(ref expr) => self.check_expr_template(expr, expected_ty),
+            Expr::LitBool(ref expr) => self.check_expr_lit_bool(expr, expected_ty),
+            Expr::Ident(ref expr) => self.check_expr_ident(expr, expected_ty),
+            Expr::Un(ref expr) => self.check_expr_un(expr, expected_ty),
+            Expr::Bin(ref expr) => self.check_expr_bin(expr, expected_ty),
+            Expr::Call(ref expr) => self.check_expr_call(expr, expected_ty),
+            Expr::TypeParam(ref expr) => self.check_expr_type_param(expr, expected_ty),
+            Expr::Path(ref expr) => self.check_expr_path(expr, expected_ty),
+            Expr::Delegation(ref expr) => self.check_expr_delegation(expr, expected_ty),
+            Expr::Dot(ref expr) => self.check_expr_dot(expr, expected_ty),
+            Expr::This(ref expr) => self.check_expr_this(expr, expected_ty),
+            Expr::Super(ref expr) => self.check_expr_super(expr, expected_ty),
+            Expr::Conv(ref expr) => self.check_expr_conv(expr, expected_ty),
+            Expr::Lambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
+            Expr::Block(ref expr) => self.check_expr_block(expr, expected_ty),
+            Expr::If(ref expr) => self.check_expr_if(expr, expected_ty),
+            Expr::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
+            Expr::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
+            Expr::Match(_) => unimplemented!(),
         }
     }
 }
@@ -2604,15 +2602,15 @@ impl<'a> Visitor for TypeCheck<'a> {
 
     fn visit_stmt(&mut self, s: &Stmt) {
         match *s {
-            StmtLet(ref stmt) => self.check_stmt_let(stmt),
-            StmtWhile(ref stmt) => self.check_stmt_while(stmt),
-            StmtFor(ref stmt) => self.check_stmt_for(stmt),
-            StmtReturn(ref stmt) => self.check_stmt_return(stmt),
+            Stmt::Let(ref stmt) => self.check_stmt_let(stmt),
+            Stmt::While(ref stmt) => self.check_stmt_while(stmt),
+            Stmt::For(ref stmt) => self.check_stmt_for(stmt),
+            Stmt::Return(ref stmt) => self.check_stmt_return(stmt),
 
             // for the rest of the statements, no special handling is necessary
-            StmtBreak(_) => visit::walk_stmt(self, s),
-            StmtContinue(_) => visit::walk_stmt(self, s),
-            StmtExpr(ref stmt) => {
+            Stmt::Break(_) => visit::walk_stmt(self, s),
+            Stmt::Continue(_) => visit::walk_stmt(self, s),
+            Stmt::Expr(ref stmt) => {
                 self.check_expr(&stmt.expr, SourceType::Any);
             }
         }

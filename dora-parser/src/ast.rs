@@ -2,7 +2,6 @@ use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use crate::ast::Elem::*;
 use crate::interner::{Interner, Name};
 use crate::lexer::position::{Position, Span};
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix};
@@ -111,120 +110,120 @@ impl fmt::Display for NodeId {
 
 #[derive(Clone, Debug)]
 pub enum Elem {
-    ElemFunction(Arc<Function>),
-    ElemClass(Arc<Class>),
-    ElemStruct(Struct),
-    ElemTrait(Trait),
-    ElemImpl(Impl),
-    ElemModule(Module),
-    ElemAnnotation(Annotation),
-    ElemGlobal(Global),
-    ElemConst(Const),
-    ElemEnum(Arc<Enum>),
-    ElemAlias(Alias),
-    ElemNamespace(Namespace),
-    ElemImport(Import),
+    Function(Arc<Function>),
+    Class(Arc<Class>),
+    Struct(Struct),
+    Trait(Trait),
+    Impl(Impl),
+    Module(Module),
+    Annotation(Annotation),
+    Global(Global),
+    Const(Const),
+    Enum(Arc<Enum>),
+    Alias(Alias),
+    Namespace(Namespace),
+    Import(Import),
 }
 
 impl Elem {
     pub fn id(&self) -> NodeId {
         match self {
-            &ElemFunction(ref f) => f.id,
-            &ElemClass(ref c) => c.id,
-            &ElemStruct(ref s) => s.id,
-            &ElemTrait(ref t) => t.id,
-            &ElemImpl(ref i) => i.id,
-            &ElemModule(ref m) => m.id,
-            &ElemAnnotation(ref a) => a.id,
-            &ElemGlobal(ref g) => g.id,
-            &ElemConst(ref c) => c.id,
-            &ElemEnum(ref e) => e.id,
-            &ElemAlias(ref e) => e.id,
-            &ElemNamespace(ref e) => e.id,
-            &ElemImport(ref e) => e.id,
+            &Elem::Function(ref f) => f.id,
+            &Elem::Class(ref c) => c.id,
+            &Elem::Struct(ref s) => s.id,
+            &Elem::Trait(ref t) => t.id,
+            &Elem::Impl(ref i) => i.id,
+            &Elem::Module(ref m) => m.id,
+            &Elem::Annotation(ref a) => a.id,
+            &Elem::Global(ref g) => g.id,
+            &Elem::Const(ref c) => c.id,
+            &Elem::Enum(ref e) => e.id,
+            &Elem::Alias(ref e) => e.id,
+            &Elem::Namespace(ref e) => e.id,
+            &Elem::Import(ref e) => e.id,
         }
     }
 
     pub fn to_function(&self) -> Option<&Function> {
         match self {
-            &ElemFunction(ref fct) => Some(fct),
+            &Elem::Function(ref fct) => Some(fct),
             _ => None,
         }
     }
 
     pub fn to_class(&self) -> Option<&Class> {
         match self {
-            &ElemClass(ref class) => Some(class),
+            &Elem::Class(ref class) => Some(class),
             _ => None,
         }
     }
 
     pub fn to_enum(&self) -> Option<&Enum> {
         match self {
-            &ElemEnum(ref xenum) => Some(xenum),
+            &Elem::Enum(ref xenum) => Some(xenum),
             _ => None,
         }
     }
 
     pub fn to_alias(&self) -> Option<&Alias> {
         match self {
-            &ElemAlias(ref alias) => Some(alias),
+            &Elem::Alias(ref alias) => Some(alias),
             _ => None,
         }
     }
 
     pub fn to_namespace(&self) -> Option<&Namespace> {
         match self {
-            &ElemNamespace(ref namespace) => Some(namespace),
+            &Elem::Namespace(ref namespace) => Some(namespace),
             _ => None,
         }
     }
 
     pub fn to_struct(&self) -> Option<&Struct> {
         match self {
-            &ElemStruct(ref struc) => Some(struc),
+            &Elem::Struct(ref struc) => Some(struc),
             _ => None,
         }
     }
 
     pub fn to_trait(&self) -> Option<&Trait> {
         match self {
-            &ElemTrait(ref trai) => Some(trai),
+            &Elem::Trait(ref trai) => Some(trai),
             _ => None,
         }
     }
 
     pub fn to_impl(&self) -> Option<&Impl> {
         match self {
-            &ElemImpl(ref ximpl) => Some(ximpl),
+            &Elem::Impl(ref ximpl) => Some(ximpl),
             _ => None,
         }
     }
 
     pub fn to_module(&self) -> Option<&Module> {
         match self {
-            &ElemModule(ref module) => Some(module),
+            &Elem::Module(ref module) => Some(module),
             _ => None,
         }
     }
 
     pub fn to_annotation(&self) -> Option<&Annotation> {
         match self {
-            &ElemAnnotation(ref annotation) => Some(annotation),
+            &Elem::Annotation(ref annotation) => Some(annotation),
             _ => None,
         }
     }
 
     pub fn to_global(&self) -> Option<&Global> {
         match self {
-            &ElemGlobal(ref global) => Some(global),
+            &Elem::Global(ref global) => Some(global),
             _ => None,
         }
     }
 
     pub fn to_const(&self) -> Option<&Const> {
         match self {
-            &ElemConst(ref konst) => Some(konst),
+            &Elem::Const(ref konst) => Some(konst),
             _ => None,
         }
     }
@@ -317,10 +316,10 @@ pub struct StructField {
 
 #[derive(Clone, Debug)]
 pub enum Type {
-    TypeSelf(TypeSelfType),
-    TypeBasic(TypeBasicType),
-    TypeTuple(TypeTupleType),
-    TypeLambda(TypeLambdaType),
+    This(TypeSelfType),
+    Basic(TypeBasicType),
+    Tuple(TypeTupleType),
+    Lambda(TypeLambdaType),
 }
 
 #[derive(Clone, Debug)]
@@ -362,7 +361,7 @@ pub struct TypeBasicType {
 
 impl Type {
     pub fn create_self(id: NodeId, pos: Position, span: Span) -> Type {
-        Type::TypeSelf(TypeSelfType { id, pos, span })
+        Type::This(TypeSelfType { id, pos, span })
     }
 
     pub fn create_basic(
@@ -373,7 +372,7 @@ impl Type {
         path: Vec<Name>,
         params: Vec<Box<Type>>,
     ) -> Type {
-        Type::TypeBasic(TypeBasicType {
+        Type::Basic(TypeBasicType {
             id,
             pos,
             span,
@@ -390,7 +389,7 @@ impl Type {
         params: Vec<Box<Type>>,
         ret: Box<Type>,
     ) -> Type {
-        Type::TypeLambda(TypeLambdaType {
+        Type::Lambda(TypeLambdaType {
             id,
             pos,
             span,
@@ -400,7 +399,7 @@ impl Type {
     }
 
     pub fn create_tuple(id: NodeId, pos: Position, span: Span, subtypes: Vec<Box<Type>>) -> Type {
-        Type::TypeTuple(TypeTupleType {
+        Type::Tuple(TypeTupleType {
             id,
             pos,
             span,
@@ -410,14 +409,14 @@ impl Type {
 
     pub fn to_basic(&self) -> Option<&TypeBasicType> {
         match *self {
-            Type::TypeBasic(ref val) => Some(val),
+            Type::Basic(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn to_basic_without_type_params(&self) -> Option<Name> {
         match *self {
-            Type::TypeBasic(ref basic) => {
+            Type::Basic(ref basic) => {
                 if basic.params.len() == 0 {
                     Some(basic.name)
                 } else {
@@ -431,14 +430,14 @@ impl Type {
 
     pub fn to_tuple(&self) -> Option<&TypeTupleType> {
         match *self {
-            Type::TypeTuple(ref val) => Some(val),
+            Type::Tuple(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn to_fct(&self) -> Option<&TypeLambdaType> {
         match *self {
-            Type::TypeLambda(ref val) => Some(val),
+            Type::Lambda(ref val) => Some(val),
             _ => None,
         }
     }
@@ -446,24 +445,24 @@ impl Type {
     #[cfg(test)]
     pub fn is_unit(&self) -> bool {
         match self {
-            &Type::TypeTuple(ref val) if val.subtypes.len() == 0 => true,
+            &Type::Tuple(ref val) if val.subtypes.len() == 0 => true,
             _ => false,
         }
     }
 
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
-            Type::TypeSelf(_) => "Self".into(),
-            Type::TypeBasic(ref val) => format!("{}", *interner.str(val.name)),
+            Type::This(_) => "Self".into(),
+            Type::Basic(ref val) => format!("{}", *interner.str(val.name)),
 
-            Type::TypeTuple(ref val) => {
+            Type::Tuple(ref val) => {
                 let types: Vec<String> =
                     val.subtypes.iter().map(|t| t.to_string(interner)).collect();
 
                 format!("({})", types.join(", "))
             }
 
-            Type::TypeLambda(ref val) => {
+            Type::Lambda(ref val) => {
                 let types: Vec<String> = val.params.iter().map(|t| t.to_string(interner)).collect();
                 let ret = val.ret.to_string(interner);
 
@@ -474,19 +473,19 @@ impl Type {
 
     pub fn pos(&self) -> Position {
         match *self {
-            Type::TypeSelf(ref val) => val.pos,
-            Type::TypeBasic(ref val) => val.pos,
-            Type::TypeTuple(ref val) => val.pos,
-            Type::TypeLambda(ref val) => val.pos,
+            Type::This(ref val) => val.pos,
+            Type::Basic(ref val) => val.pos,
+            Type::Tuple(ref val) => val.pos,
+            Type::Lambda(ref val) => val.pos,
         }
     }
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Type::TypeSelf(ref val) => val.id,
-            Type::TypeBasic(ref val) => val.id,
-            Type::TypeTuple(ref val) => val.id,
-            Type::TypeLambda(ref val) => val.id,
+            Type::This(ref val) => val.id,
+            Type::Basic(ref val) => val.id,
+            Type::Tuple(ref val) => val.id,
+            Type::Lambda(ref val) => val.id,
         }
     }
 }
@@ -782,13 +781,13 @@ pub struct Param {
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    StmtLet(StmtLetType),
-    StmtWhile(StmtWhileType),
-    StmtExpr(StmtExprType),
-    StmtBreak(StmtBreakType),
-    StmtContinue(StmtContinueType),
-    StmtReturn(StmtReturnType),
-    StmtFor(StmtForType),
+    Let(StmtLetType),
+    While(StmtWhileType),
+    Expr(StmtExprType),
+    Break(StmtBreakType),
+    Continue(StmtContinueType),
+    Return(StmtReturnType),
+    For(StmtForType),
 }
 
 impl Stmt {
@@ -801,7 +800,7 @@ impl Stmt {
         data_type: Option<Type>,
         expr: Option<Box<Expr>>,
     ) -> Stmt {
-        Stmt::StmtLet(StmtLetType {
+        Stmt::Let(StmtLetType {
             id,
             pos,
             span,
@@ -821,7 +820,7 @@ impl Stmt {
         expr: Box<Expr>,
         block: Box<Stmt>,
     ) -> Stmt {
-        Stmt::StmtFor(StmtForType {
+        Stmt::For(StmtForType {
             id,
             pos,
             span,
@@ -839,7 +838,7 @@ impl Stmt {
         cond: Box<Expr>,
         block: Box<Stmt>,
     ) -> Stmt {
-        Stmt::StmtWhile(StmtWhileType {
+        Stmt::While(StmtWhileType {
             id,
             pos,
             span,
@@ -850,7 +849,7 @@ impl Stmt {
     }
 
     pub fn create_expr(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
-        Stmt::StmtExpr(StmtExprType {
+        Stmt::Expr(StmtExprType {
             id,
             pos,
             span,
@@ -860,15 +859,15 @@ impl Stmt {
     }
 
     pub fn create_break(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::StmtBreak(StmtBreakType { id, pos, span })
+        Stmt::Break(StmtBreakType { id, pos, span })
     }
 
     pub fn create_continue(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::StmtContinue(StmtContinueType { id, pos, span })
+        Stmt::Continue(StmtContinueType { id, pos, span })
     }
 
     pub fn create_return(id: NodeId, pos: Position, span: Span, expr: Option<Box<Expr>>) -> Stmt {
-        Stmt::StmtReturn(StmtReturnType {
+        Stmt::Return(StmtReturnType {
             id,
             pos,
             span,
@@ -879,134 +878,134 @@ impl Stmt {
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Stmt::StmtLet(ref stmt) => stmt.id,
-            Stmt::StmtWhile(ref stmt) => stmt.id,
-            Stmt::StmtFor(ref stmt) => stmt.id,
-            Stmt::StmtExpr(ref stmt) => stmt.id,
-            Stmt::StmtBreak(ref stmt) => stmt.id,
-            Stmt::StmtContinue(ref stmt) => stmt.id,
-            Stmt::StmtReturn(ref stmt) => stmt.id,
+            Stmt::Let(ref stmt) => stmt.id,
+            Stmt::While(ref stmt) => stmt.id,
+            Stmt::For(ref stmt) => stmt.id,
+            Stmt::Expr(ref stmt) => stmt.id,
+            Stmt::Break(ref stmt) => stmt.id,
+            Stmt::Continue(ref stmt) => stmt.id,
+            Stmt::Return(ref stmt) => stmt.id,
         }
     }
 
     pub fn pos(&self) -> Position {
         match *self {
-            Stmt::StmtLet(ref stmt) => stmt.pos,
-            Stmt::StmtWhile(ref stmt) => stmt.pos,
-            Stmt::StmtFor(ref stmt) => stmt.pos,
-            Stmt::StmtExpr(ref stmt) => stmt.pos,
-            Stmt::StmtBreak(ref stmt) => stmt.pos,
-            Stmt::StmtContinue(ref stmt) => stmt.pos,
-            Stmt::StmtReturn(ref stmt) => stmt.pos,
+            Stmt::Let(ref stmt) => stmt.pos,
+            Stmt::While(ref stmt) => stmt.pos,
+            Stmt::For(ref stmt) => stmt.pos,
+            Stmt::Expr(ref stmt) => stmt.pos,
+            Stmt::Break(ref stmt) => stmt.pos,
+            Stmt::Continue(ref stmt) => stmt.pos,
+            Stmt::Return(ref stmt) => stmt.pos,
         }
     }
 
     pub fn span(&self) -> Span {
         match *self {
-            Stmt::StmtLet(ref stmt) => stmt.span,
-            Stmt::StmtWhile(ref stmt) => stmt.span,
-            Stmt::StmtFor(ref stmt) => stmt.span,
-            Stmt::StmtExpr(ref stmt) => stmt.span,
-            Stmt::StmtBreak(ref stmt) => stmt.span,
-            Stmt::StmtContinue(ref stmt) => stmt.span,
-            Stmt::StmtReturn(ref stmt) => stmt.span,
+            Stmt::Let(ref stmt) => stmt.span,
+            Stmt::While(ref stmt) => stmt.span,
+            Stmt::For(ref stmt) => stmt.span,
+            Stmt::Expr(ref stmt) => stmt.span,
+            Stmt::Break(ref stmt) => stmt.span,
+            Stmt::Continue(ref stmt) => stmt.span,
+            Stmt::Return(ref stmt) => stmt.span,
         }
     }
 
     pub fn to_let(&self) -> Option<&StmtLetType> {
         match *self {
-            Stmt::StmtLet(ref val) => Some(val),
+            Stmt::Let(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_let(&self) -> bool {
         match *self {
-            Stmt::StmtLet(_) => true,
+            Stmt::Let(_) => true,
             _ => false,
         }
     }
 
     pub fn to_while(&self) -> Option<&StmtWhileType> {
         match *self {
-            Stmt::StmtWhile(ref val) => Some(val),
+            Stmt::While(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_while(&self) -> bool {
         match *self {
-            Stmt::StmtWhile(_) => true,
+            Stmt::While(_) => true,
             _ => false,
         }
     }
 
     pub fn to_for(&self) -> Option<&StmtForType> {
         match *self {
-            Stmt::StmtFor(ref val) => Some(val),
+            Stmt::For(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_for(&self) -> bool {
         match *self {
-            Stmt::StmtFor(_) => true,
+            Stmt::For(_) => true,
             _ => false,
         }
     }
 
     pub fn to_expr(&self) -> Option<&StmtExprType> {
         match *self {
-            Stmt::StmtExpr(ref val) => Some(val),
+            Stmt::Expr(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_expr(&self) -> bool {
         match *self {
-            Stmt::StmtExpr(_) => true,
+            Stmt::Expr(_) => true,
             _ => false,
         }
     }
 
     pub fn to_return(&self) -> Option<&StmtReturnType> {
         match *self {
-            Stmt::StmtReturn(ref val) => Some(val),
+            Stmt::Return(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_return(&self) -> bool {
         match *self {
-            Stmt::StmtReturn(_) => true,
+            Stmt::Return(_) => true,
             _ => false,
         }
     }
 
     pub fn to_break(&self) -> Option<&StmtBreakType> {
         match *self {
-            Stmt::StmtBreak(ref val) => Some(val),
+            Stmt::Break(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_break(&self) -> bool {
         match *self {
-            Stmt::StmtBreak(_) => true,
+            Stmt::Break(_) => true,
             _ => false,
         }
     }
 
     pub fn to_continue(&self) -> Option<&StmtContinueType> {
         match *self {
-            Stmt::StmtContinue(ref val) => Some(val),
+            Stmt::Continue(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_continue(&self) -> bool {
         match *self {
-            Stmt::StmtContinue(_) => true,
+            Stmt::Continue(_) => true,
             _ => false,
         }
     }
@@ -1254,29 +1253,29 @@ impl BinOp {
 
 #[derive(Clone, Debug)]
 pub enum Expr {
-    ExprUn(ExprUnType),
-    ExprBin(ExprBinType),
-    ExprLitChar(ExprLitCharType),
-    ExprLitInt(ExprLitIntType),
-    ExprLitFloat(ExprLitFloatType),
-    ExprLitStr(ExprLitStrType),
-    ExprTemplate(ExprTemplateType),
-    ExprLitBool(ExprLitBoolType),
-    ExprIdent(ExprIdentType),
-    ExprCall(ExprCallType),
-    ExprTypeParam(ExprTypeParamType),
-    ExprPath(ExprPathType),
-    ExprDelegation(ExprDelegationType),
-    ExprDot(ExprDotType),
-    ExprSelf(ExprSelfType),
-    ExprSuper(ExprSuperType),
-    ExprConv(ExprConvType),
-    ExprLambda(ExprLambdaType),
-    ExprBlock(ExprBlockType),
-    ExprIf(ExprIfType),
-    ExprTuple(ExprTupleType),
-    ExprParen(ExprParenType),
-    ExprMatch(ExprMatchType),
+    Un(ExprUnType),
+    Bin(ExprBinType),
+    LitChar(ExprLitCharType),
+    LitInt(ExprLitIntType),
+    LitFloat(ExprLitFloatType),
+    LitStr(ExprLitStrType),
+    Template(ExprTemplateType),
+    LitBool(ExprLitBoolType),
+    Ident(ExprIdentType),
+    Call(ExprCallType),
+    TypeParam(ExprTypeParamType),
+    Path(ExprPathType),
+    Delegation(ExprDelegationType),
+    Dot(ExprDotType),
+    This(ExprSelfType),
+    Super(ExprSuperType),
+    Conv(ExprConvType),
+    Lambda(ExprLambdaType),
+    Block(ExprBlockType),
+    If(ExprIfType),
+    Tuple(ExprTupleType),
+    Paren(ExprParenType),
+    Match(ExprMatchType),
 }
 
 impl Expr {
@@ -1287,7 +1286,7 @@ impl Expr {
         stmts: Vec<Box<Stmt>>,
         expr: Option<Box<Expr>>,
     ) -> Expr {
-        Expr::ExprBlock(ExprBlockType {
+        Expr::Block(ExprBlockType {
             id,
             pos,
             span,
@@ -1305,7 +1304,7 @@ impl Expr {
         then_block: Box<Expr>,
         else_block: Option<Box<Expr>>,
     ) -> Expr {
-        Expr::ExprIf(ExprIfType {
+        Expr::If(ExprIfType {
             id,
             pos,
             span,
@@ -1317,7 +1316,7 @@ impl Expr {
     }
 
     pub fn create_un(id: NodeId, pos: Position, span: Span, op: UnOp, opnd: Box<Expr>) -> Expr {
-        Expr::ExprUn(ExprUnType {
+        Expr::Un(ExprUnType {
             id,
             pos,
             span,
@@ -1335,7 +1334,7 @@ impl Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     ) -> Expr {
-        Expr::ExprBin(ExprBinType {
+        Expr::Bin(ExprBinType {
             id,
             pos,
             span,
@@ -1355,7 +1354,7 @@ impl Expr {
         data_type: Box<Type>,
         is: bool,
     ) -> Expr {
-        Expr::ExprConv(ExprConvType {
+        Expr::Conv(ExprConvType {
             id,
             pos,
             span,
@@ -1367,7 +1366,7 @@ impl Expr {
     }
 
     pub fn create_lit_char(id: NodeId, pos: Position, span: Span, value: char) -> Expr {
-        Expr::ExprLitChar(ExprLitCharType {
+        Expr::LitChar(ExprLitCharType {
             id,
             pos,
             span,
@@ -1384,7 +1383,7 @@ impl Expr {
         base: IntBase,
         suffix: IntSuffix,
     ) -> Expr {
-        Expr::ExprLitInt(ExprLitIntType {
+        Expr::LitInt(ExprLitIntType {
             id,
             pos,
             span,
@@ -1402,7 +1401,7 @@ impl Expr {
         value: f64,
         suffix: FloatSuffix,
     ) -> Expr {
-        Expr::ExprLitFloat(ExprLitFloatType {
+        Expr::LitFloat(ExprLitFloatType {
             id,
             pos,
             span,
@@ -1412,7 +1411,7 @@ impl Expr {
     }
 
     pub fn create_lit_str(id: NodeId, pos: Position, span: Span, value: String) -> Expr {
-        Expr::ExprLitStr(ExprLitStrType {
+        Expr::LitStr(ExprLitStrType {
             id,
             pos,
             span,
@@ -1422,7 +1421,7 @@ impl Expr {
     }
 
     pub fn create_template(id: NodeId, pos: Position, span: Span, parts: Vec<Box<Expr>>) -> Expr {
-        Expr::ExprTemplate(ExprTemplateType {
+        Expr::Template(ExprTemplateType {
             id,
             pos,
             span,
@@ -1432,7 +1431,7 @@ impl Expr {
     }
 
     pub fn create_lit_bool(id: NodeId, pos: Position, span: Span, value: bool) -> Expr {
-        Expr::ExprLitBool(ExprLitBoolType {
+        Expr::LitBool(ExprLitBoolType {
             id,
             pos,
             span,
@@ -1442,11 +1441,11 @@ impl Expr {
     }
 
     pub fn create_this(id: NodeId, pos: Position, span: Span) -> Expr {
-        Expr::ExprSelf(ExprSelfType { id, pos, span })
+        Expr::This(ExprSelfType { id, pos, span })
     }
 
     pub fn create_super(id: NodeId, pos: Position, span: Span) -> Expr {
-        Expr::ExprSuper(ExprSuperType { id, pos, span })
+        Expr::Super(ExprSuperType { id, pos, span })
     }
 
     pub fn create_ident(
@@ -1456,7 +1455,7 @@ impl Expr {
         name: Name,
         type_params: Option<Vec<Type>>,
     ) -> Expr {
-        Expr::ExprIdent(ExprIdentType {
+        Expr::Ident(ExprIdentType {
             id,
             pos,
             span,
@@ -1467,7 +1466,7 @@ impl Expr {
     }
 
     pub fn create_paren(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Expr {
-        Expr::ExprParen(ExprParenType {
+        Expr::Paren(ExprParenType {
             id,
             pos,
             span,
@@ -1483,7 +1482,7 @@ impl Expr {
         callee: Box<Expr>,
         args: Vec<Box<Expr>>,
     ) -> Expr {
-        Expr::ExprCall(ExprCallType {
+        Expr::Call(ExprCallType {
             id,
             pos,
             span,
@@ -1500,7 +1499,7 @@ impl Expr {
         callee: Box<Expr>,
         args: Vec<Type>,
     ) -> Expr {
-        Expr::ExprTypeParam(ExprTypeParamType {
+        Expr::TypeParam(ExprTypeParamType {
             id,
             pos,
             span,
@@ -1517,7 +1516,7 @@ impl Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     ) -> Expr {
-        Expr::ExprPath(ExprPathType {
+        Expr::Path(ExprPathType {
             id,
             pos,
             span,
@@ -1528,7 +1527,7 @@ impl Expr {
     }
 
     pub fn create_delegation(id: NodeId, pos: Position, span: Span, args: Vec<Box<Expr>>) -> Expr {
-        Expr::ExprDelegation(ExprDelegationType {
+        Expr::Delegation(ExprDelegationType {
             id,
             pos,
             span,
@@ -1544,7 +1543,7 @@ impl Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     ) -> Expr {
-        Expr::ExprDot(ExprDotType {
+        Expr::Dot(ExprDotType {
             id,
             pos,
             span,
@@ -1562,7 +1561,7 @@ impl Expr {
         ret: Option<Box<Type>>,
         block: Box<Stmt>,
     ) -> Expr {
-        Expr::ExprLambda(ExprLambdaType {
+        Expr::Lambda(ExprLambdaType {
             id,
             pos,
             span,
@@ -1574,7 +1573,7 @@ impl Expr {
     }
 
     pub fn create_tuple(id: NodeId, pos: Position, span: Span, values: Vec<Box<Expr>>) -> Expr {
-        Expr::ExprTuple(ExprTupleType {
+        Expr::Tuple(ExprTupleType {
             id,
             pos,
             span,
@@ -1584,401 +1583,401 @@ impl Expr {
 
     pub fn to_un(&self) -> Option<&ExprUnType> {
         match *self {
-            Expr::ExprUn(ref val) => Some(val),
+            Expr::Un(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_un(&self) -> bool {
         match *self {
-            Expr::ExprUn(_) => true,
+            Expr::Un(_) => true,
             _ => false,
         }
     }
 
     pub fn to_bin(&self) -> Option<&ExprBinType> {
         match *self {
-            Expr::ExprBin(ref val) => Some(val),
+            Expr::Bin(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_bin(&self) -> bool {
         match *self {
-            Expr::ExprBin(_) => true,
+            Expr::Bin(_) => true,
             _ => false,
         }
     }
 
     pub fn to_paren(&self) -> Option<&ExprParenType> {
         match *self {
-            Expr::ExprParen(ref val) => Some(val),
+            Expr::Paren(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_paren(&self) -> bool {
         match *self {
-            Expr::ExprParen(_) => true,
+            Expr::Paren(_) => true,
             _ => false,
         }
     }
 
     pub fn to_ident(&self) -> Option<&ExprIdentType> {
         match *self {
-            Expr::ExprIdent(ref val) => Some(val),
+            Expr::Ident(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_ident(&self) -> bool {
         match *self {
-            Expr::ExprIdent(_) => true,
+            Expr::Ident(_) => true,
             _ => false,
         }
     }
 
     pub fn to_call(&self) -> Option<&ExprCallType> {
         match *self {
-            Expr::ExprCall(ref val) => Some(val),
+            Expr::Call(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_call(&self) -> bool {
         match *self {
-            Expr::ExprCall(_) => true,
+            Expr::Call(_) => true,
             _ => false,
         }
     }
 
     pub fn to_path(&self) -> Option<&ExprPathType> {
         match *self {
-            Expr::ExprPath(ref val) => Some(val),
+            Expr::Path(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_path(&self) -> bool {
         match *self {
-            Expr::ExprPath(_) => true,
+            Expr::Path(_) => true,
             _ => false,
         }
     }
 
     pub fn to_type_param(&self) -> Option<&ExprTypeParamType> {
         match *self {
-            Expr::ExprTypeParam(ref val) => Some(val),
+            Expr::TypeParam(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_type_param(&self) -> bool {
         match *self {
-            Expr::ExprTypeParam(_) => true,
+            Expr::TypeParam(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_char(&self) -> Option<&ExprLitCharType> {
         match *self {
-            Expr::ExprLitChar(ref val) => Some(val),
+            Expr::LitChar(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_char(&self) -> bool {
         match *self {
-            Expr::ExprLitChar(_) => true,
+            Expr::LitChar(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_int(&self) -> Option<&ExprLitIntType> {
         match *self {
-            Expr::ExprLitInt(ref val) => Some(val),
+            Expr::LitInt(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_int(&self) -> bool {
         match *self {
-            Expr::ExprLitInt(_) => true,
+            Expr::LitInt(_) => true,
             _ => false,
         }
     }
 
     pub fn to_template(&self) -> Option<&ExprTemplateType> {
         match *self {
-            Expr::ExprTemplate(ref val) => Some(val),
+            Expr::Template(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_template(&self) -> bool {
         match *self {
-            Expr::ExprTemplate(_) => true,
+            Expr::Template(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_float(&self) -> Option<&ExprLitFloatType> {
         match *self {
-            Expr::ExprLitFloat(ref val) => Some(val),
+            Expr::LitFloat(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_float(&self) -> bool {
         match *self {
-            Expr::ExprLitFloat(_) => true,
+            Expr::LitFloat(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_str(&self) -> Option<&ExprLitStrType> {
         match *self {
-            Expr::ExprLitStr(ref val) => Some(val),
+            Expr::LitStr(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_str(&self) -> bool {
         match *self {
-            Expr::ExprLitStr(_) => true,
+            Expr::LitStr(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_bool(&self) -> Option<&ExprLitBoolType> {
         match *self {
-            Expr::ExprLitBool(ref val) => Some(val),
+            Expr::LitBool(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_bool(&self) -> bool {
         match *self {
-            Expr::ExprLitBool(_) => true,
+            Expr::LitBool(_) => true,
             _ => false,
         }
     }
 
     pub fn is_lit_true(&self) -> bool {
         match *self {
-            Expr::ExprLitBool(ref lit) if lit.value => true,
+            Expr::LitBool(ref lit) if lit.value => true,
             _ => false,
         }
     }
 
     pub fn to_dot(&self) -> Option<&ExprDotType> {
         match *self {
-            Expr::ExprDot(ref val) => Some(val),
+            Expr::Dot(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_dot(&self) -> bool {
         match *self {
-            Expr::ExprDot(_) => true,
+            Expr::Dot(_) => true,
             _ => false,
         }
     }
 
     pub fn to_delegation(&self) -> Option<&ExprDelegationType> {
         match *self {
-            Expr::ExprDelegation(ref val) => Some(val),
+            Expr::Delegation(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_delegation(&self) -> bool {
         match *self {
-            Expr::ExprDelegation(_) => true,
+            Expr::Delegation(_) => true,
             _ => false,
         }
     }
 
     pub fn is_this(&self) -> bool {
         match *self {
-            Expr::ExprSelf(_) => true,
+            Expr::This(_) => true,
             _ => false,
         }
     }
 
     pub fn is_super(&self) -> bool {
         match *self {
-            Expr::ExprSuper(_) => true,
+            Expr::Super(_) => true,
             _ => false,
         }
     }
 
     pub fn to_super(&self) -> Option<&ExprSuperType> {
         match *self {
-            Expr::ExprSuper(ref val) => Some(val),
+            Expr::Super(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn to_conv(&self) -> Option<&ExprConvType> {
         match *self {
-            Expr::ExprConv(ref val) => Some(val),
+            Expr::Conv(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_conv(&self) -> bool {
         match *self {
-            Expr::ExprConv(_) => true,
+            Expr::Conv(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lambda(&self) -> Option<&ExprLambdaType> {
         match *self {
-            Expr::ExprLambda(ref val) => Some(val),
+            Expr::Lambda(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lambda(&self) -> bool {
         match self {
-            &Expr::ExprLambda(_) => true,
+            &Expr::Lambda(_) => true,
             _ => false,
         }
     }
 
     pub fn to_tuple(&self) -> Option<&ExprTupleType> {
         match *self {
-            Expr::ExprTuple(ref val) => Some(val),
+            Expr::Tuple(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_tuple(&self) -> bool {
         match *self {
-            Expr::ExprTuple(_) => true,
+            Expr::Tuple(_) => true,
             _ => false,
         }
     }
 
     pub fn to_block(&self) -> Option<&ExprBlockType> {
         match *self {
-            Expr::ExprBlock(ref val) => Some(val),
+            Expr::Block(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_block(&self) -> bool {
         match self {
-            &Expr::ExprBlock(_) => true,
+            &Expr::Block(_) => true,
             _ => false,
         }
     }
 
     pub fn to_if(&self) -> Option<&ExprIfType> {
         match *self {
-            Expr::ExprIf(ref val) => Some(val),
+            Expr::If(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_if(&self) -> bool {
         match *self {
-            Expr::ExprIf(_) => true,
+            Expr::If(_) => true,
             _ => false,
         }
     }
 
     pub fn needs_semicolon(&self) -> bool {
         match self {
-            &Expr::ExprBlock(_) => false,
-            &Expr::ExprIf(_) => false,
+            &Expr::Block(_) => false,
+            &Expr::If(_) => false,
             _ => true,
         }
     }
 
     pub fn pos(&self) -> Position {
         match *self {
-            Expr::ExprUn(ref val) => val.pos,
-            Expr::ExprBin(ref val) => val.pos,
-            Expr::ExprLitChar(ref val) => val.pos,
-            Expr::ExprLitInt(ref val) => val.pos,
-            Expr::ExprLitFloat(ref val) => val.pos,
-            Expr::ExprLitStr(ref val) => val.pos,
-            Expr::ExprTemplate(ref val) => val.pos,
-            Expr::ExprLitBool(ref val) => val.pos,
-            Expr::ExprIdent(ref val) => val.pos,
-            Expr::ExprCall(ref val) => val.pos,
-            Expr::ExprTypeParam(ref val) => val.pos,
-            Expr::ExprPath(ref val) => val.pos,
-            Expr::ExprDelegation(ref val) => val.pos,
-            Expr::ExprDot(ref val) => val.pos,
-            Expr::ExprSelf(ref val) => val.pos,
-            Expr::ExprSuper(ref val) => val.pos,
-            Expr::ExprConv(ref val) => val.pos,
-            Expr::ExprLambda(ref val) => val.pos,
-            Expr::ExprBlock(ref val) => val.pos,
-            Expr::ExprIf(ref val) => val.pos,
-            Expr::ExprTuple(ref val) => val.pos,
-            Expr::ExprParen(ref val) => val.pos,
-            Expr::ExprMatch(ref val) => val.pos,
+            Expr::Un(ref val) => val.pos,
+            Expr::Bin(ref val) => val.pos,
+            Expr::LitChar(ref val) => val.pos,
+            Expr::LitInt(ref val) => val.pos,
+            Expr::LitFloat(ref val) => val.pos,
+            Expr::LitStr(ref val) => val.pos,
+            Expr::Template(ref val) => val.pos,
+            Expr::LitBool(ref val) => val.pos,
+            Expr::Ident(ref val) => val.pos,
+            Expr::Call(ref val) => val.pos,
+            Expr::TypeParam(ref val) => val.pos,
+            Expr::Path(ref val) => val.pos,
+            Expr::Delegation(ref val) => val.pos,
+            Expr::Dot(ref val) => val.pos,
+            Expr::This(ref val) => val.pos,
+            Expr::Super(ref val) => val.pos,
+            Expr::Conv(ref val) => val.pos,
+            Expr::Lambda(ref val) => val.pos,
+            Expr::Block(ref val) => val.pos,
+            Expr::If(ref val) => val.pos,
+            Expr::Tuple(ref val) => val.pos,
+            Expr::Paren(ref val) => val.pos,
+            Expr::Match(ref val) => val.pos,
         }
     }
 
     pub fn span(&self) -> Span {
         match *self {
-            Expr::ExprUn(ref val) => val.span,
-            Expr::ExprBin(ref val) => val.span,
-            Expr::ExprLitChar(ref val) => val.span,
-            Expr::ExprLitInt(ref val) => val.span,
-            Expr::ExprLitFloat(ref val) => val.span,
-            Expr::ExprLitStr(ref val) => val.span,
-            Expr::ExprTemplate(ref val) => val.span,
-            Expr::ExprLitBool(ref val) => val.span,
-            Expr::ExprIdent(ref val) => val.span,
-            Expr::ExprCall(ref val) => val.span,
-            Expr::ExprTypeParam(ref val) => val.span,
-            Expr::ExprPath(ref val) => val.span,
-            Expr::ExprDelegation(ref val) => val.span,
-            Expr::ExprDot(ref val) => val.span,
-            Expr::ExprSelf(ref val) => val.span,
-            Expr::ExprSuper(ref val) => val.span,
-            Expr::ExprConv(ref val) => val.span,
-            Expr::ExprLambda(ref val) => val.span,
-            Expr::ExprBlock(ref val) => val.span,
-            Expr::ExprIf(ref val) => val.span,
-            Expr::ExprTuple(ref val) => val.span,
-            Expr::ExprParen(ref val) => val.span,
-            Expr::ExprMatch(ref val) => val.span,
+            Expr::Un(ref val) => val.span,
+            Expr::Bin(ref val) => val.span,
+            Expr::LitChar(ref val) => val.span,
+            Expr::LitInt(ref val) => val.span,
+            Expr::LitFloat(ref val) => val.span,
+            Expr::LitStr(ref val) => val.span,
+            Expr::Template(ref val) => val.span,
+            Expr::LitBool(ref val) => val.span,
+            Expr::Ident(ref val) => val.span,
+            Expr::Call(ref val) => val.span,
+            Expr::TypeParam(ref val) => val.span,
+            Expr::Path(ref val) => val.span,
+            Expr::Delegation(ref val) => val.span,
+            Expr::Dot(ref val) => val.span,
+            Expr::This(ref val) => val.span,
+            Expr::Super(ref val) => val.span,
+            Expr::Conv(ref val) => val.span,
+            Expr::Lambda(ref val) => val.span,
+            Expr::Block(ref val) => val.span,
+            Expr::If(ref val) => val.span,
+            Expr::Tuple(ref val) => val.span,
+            Expr::Paren(ref val) => val.span,
+            Expr::Match(ref val) => val.span,
         }
     }
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Expr::ExprUn(ref val) => val.id,
-            Expr::ExprBin(ref val) => val.id,
-            Expr::ExprLitChar(ref val) => val.id,
-            Expr::ExprLitInt(ref val) => val.id,
-            Expr::ExprLitFloat(ref val) => val.id,
-            Expr::ExprLitStr(ref val) => val.id,
-            Expr::ExprTemplate(ref val) => val.id,
-            Expr::ExprLitBool(ref val) => val.id,
-            Expr::ExprIdent(ref val) => val.id,
-            Expr::ExprCall(ref val) => val.id,
-            Expr::ExprTypeParam(ref val) => val.id,
-            Expr::ExprPath(ref val) => val.id,
-            Expr::ExprDelegation(ref val) => val.id,
-            Expr::ExprDot(ref val) => val.id,
-            Expr::ExprSelf(ref val) => val.id,
-            Expr::ExprSuper(ref val) => val.id,
-            Expr::ExprConv(ref val) => val.id,
-            Expr::ExprLambda(ref val) => val.id,
-            Expr::ExprBlock(ref val) => val.id,
-            Expr::ExprIf(ref val) => val.id,
-            Expr::ExprTuple(ref val) => val.id,
-            Expr::ExprParen(ref val) => val.id,
-            Expr::ExprMatch(ref val) => val.id,
+            Expr::Un(ref val) => val.id,
+            Expr::Bin(ref val) => val.id,
+            Expr::LitChar(ref val) => val.id,
+            Expr::LitInt(ref val) => val.id,
+            Expr::LitFloat(ref val) => val.id,
+            Expr::LitStr(ref val) => val.id,
+            Expr::Template(ref val) => val.id,
+            Expr::LitBool(ref val) => val.id,
+            Expr::Ident(ref val) => val.id,
+            Expr::Call(ref val) => val.id,
+            Expr::TypeParam(ref val) => val.id,
+            Expr::Path(ref val) => val.id,
+            Expr::Delegation(ref val) => val.id,
+            Expr::Dot(ref val) => val.id,
+            Expr::This(ref val) => val.id,
+            Expr::Super(ref val) => val.id,
+            Expr::Conv(ref val) => val.id,
+            Expr::Lambda(ref val) => val.id,
+            Expr::Block(ref val) => val.id,
+            Expr::If(ref val) => val.id,
+            Expr::Tuple(ref val) => val.id,
+            Expr::Paren(ref val) => val.id,
+            Expr::Match(ref val) => val.id,
         }
     }
 }

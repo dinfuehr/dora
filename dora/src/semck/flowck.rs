@@ -2,7 +2,6 @@ use crate::error::msg::SemError;
 use crate::vm::{Fct, FctSrc, VM};
 
 use dora_parser::ast::visit::*;
-use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
 pub fn check(vm: &VM) {
@@ -60,10 +59,10 @@ impl<'a> FlowCheck<'a> {
 impl<'a> Visitor for FlowCheck<'a> {
     fn visit_stmt(&mut self, s: &Stmt) {
         match *s {
-            StmtWhile(_) => self.handle_loop(s),
-            StmtFor(_) => self.handle_loop(s),
-            StmtBreak(_) => self.handle_flow(s),
-            StmtContinue(_) => self.handle_flow(s),
+            Stmt::While(_) => self.handle_loop(s),
+            Stmt::For(_) => self.handle_loop(s),
+            Stmt::Break(_) => self.handle_flow(s),
+            Stmt::Continue(_) => self.handle_flow(s),
 
             _ => visit::walk_stmt(self, s),
         }
