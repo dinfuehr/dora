@@ -542,16 +542,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.pos = offset;
     }
 
-    fn visit_push(&mut self, opnd: Register) {
-        self.emit_reg1("Push", opnd);
-    }
-    fn visit_pop(&mut self, dest: Register) {
-        self.emit_reg1("Pop", dest);
-    }
-
-    fn visit_add_int32_stack(&mut self) {
-        self.emit_inst("AddInt32");
-    }
     fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("AddInt32", dest, lhs, rhs);
     }

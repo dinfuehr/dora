@@ -181,11 +181,6 @@ impl BytecodeType {
 pub enum BytecodeOpcode {
     Wide,
 
-    Push,
-    Pop,
-
-    AddInt32Stack,
-
     AddInt32,
     AddInt64,
     AddFloat32,

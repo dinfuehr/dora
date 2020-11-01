@@ -3852,19 +3852,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.current_offset = offset;
     }
 
-    fn visit_push(&mut self, opnd: Register) {
-        comment!(self, format!("Push {}", opnd));
-        self.emit_push(opnd);
-    }
-    fn visit_pop(&mut self, dest: Register) {
-        comment!(self, format!("Pop {}", dest));
-        self.emit_pop(dest);
-    }
-
-    fn visit_add_int32_stack(&mut self) {
-        comment!(self, format!("AddInt32"));
-        self.emit_add_int_stack();
-    }
     fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("AddInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);

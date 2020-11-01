@@ -262,7 +262,7 @@ impl<'x> Visitor for ClsDefCheck<'x> {
             self.file_id.into(),
             &f.data_type,
         )
-        .unwrap_or(SourceType::Unit);
+        .unwrap_or(SourceType::Error);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.primary_ctor && f.expr.is_none() {

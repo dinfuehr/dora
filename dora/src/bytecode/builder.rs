@@ -98,20 +98,6 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::Class(id, type_params))
     }
 
-    pub fn emit_push(&mut self, opnd: Register) {
-        assert!(self.used(opnd));
-        self.writer.emit_push(opnd);
-    }
-
-    pub fn emit_pop(&mut self, dest: Register) {
-        assert!(self.def(dest));
-        self.writer.emit_pop(dest);
-    }
-
-    pub fn emit_add_int32_stack(&mut self) {
-        self.writer.emit_add_int32_stack();
-    }
-
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_add_int32(dest, lhs, rhs);
