@@ -462,9 +462,9 @@ where
             }
 
             BytecodeOpcode::StoreGlobal => {
-                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
                 let glob = self.read_global(wide);
-                self.visitor.visit_store_global(dest, glob);
+                self.visitor.visit_store_global(src, glob);
             }
 
             BytecodeOpcode::PushRegister => {
@@ -1758,5 +1758,271 @@ pub trait BytecodeVisitor {
     }
     fn visit_ret(&mut self, _opnd: Register) {
         unimplemented!();
+    }
+}
+
+struct BytecodeInst<'a> {
+    data: &'a [u8],
+    pos: usize,
+    opcode: BytecodeOpcode,
+    is_wide: bool,
+}
+
+impl<'a> BytecodeInst<'a> {
+    pub fn opcode(&self) -> BytecodeOpcode {
+        self.opcode
+    }
+
+    pub fn inputs(&self) -> Vec<Register> {
+        match self.opcode {
+            BytecodeOpcode::Wide => unreachable!(),
+
+            BytecodeOpcode::AddInt32
+            | BytecodeOpcode::AddInt64
+            | BytecodeOpcode::AddFloat32
+            | BytecodeOpcode::AddFloat64
+            | BytecodeOpcode::SubInt32
+            | BytecodeOpcode::SubInt64
+            | BytecodeOpcode::SubFloat32
+            | BytecodeOpcode::SubFloat64
+            | BytecodeOpcode::MulInt32
+            | BytecodeOpcode::MulInt64
+            | BytecodeOpcode::MulFloat32
+            | BytecodeOpcode::MulFloat64
+            | BytecodeOpcode::DivInt32
+            | BytecodeOpcode::DivInt64
+            | BytecodeOpcode::DivFloat32
+            | BytecodeOpcode::DivFloat64
+            | BytecodeOpcode::ModInt32
+            | BytecodeOpcode::ModInt64
+            | BytecodeOpcode::AndInt32
+            | BytecodeOpcode::AndInt64
+            | BytecodeOpcode::OrInt32
+            | BytecodeOpcode::OrInt64
+            | BytecodeOpcode::XorInt32
+            | BytecodeOpcode::XorInt64
+            | BytecodeOpcode::ShlInt32
+            | BytecodeOpcode::ShrInt32
+            | BytecodeOpcode::SarInt32
+            | BytecodeOpcode::ShlInt64
+            | BytecodeOpcode::ShrInt64
+            | BytecodeOpcode::SarInt64
+            | BytecodeOpcode::RorInt32
+            | BytecodeOpcode::RolInt32
+            | BytecodeOpcode::RorInt64
+            | BytecodeOpcode::RolInt64
+            | BytecodeOpcode::TestIdentity
+            | BytecodeOpcode::TestEqBool
+            | BytecodeOpcode::TestNeBool
+            | BytecodeOpcode::TestEqUInt8
+            | BytecodeOpcode::TestNeUInt8
+            | BytecodeOpcode::TestGtUInt8
+            | BytecodeOpcode::TestGeUInt8
+            | BytecodeOpcode::TestLtUInt8
+            | BytecodeOpcode::TestLeUInt8
+            | BytecodeOpcode::TestEqChar
+            | BytecodeOpcode::TestNeChar
+            | BytecodeOpcode::TestGtChar
+            | BytecodeOpcode::TestGeChar
+            | BytecodeOpcode::TestLtChar
+            | BytecodeOpcode::TestLeChar
+            | BytecodeOpcode::TestEqEnum
+            | BytecodeOpcode::TestNeEnum
+            | BytecodeOpcode::TestEqInt64
+            | BytecodeOpcode::TestNeInt64
+            | BytecodeOpcode::TestGtInt64
+            | BytecodeOpcode::TestGeInt64
+            | BytecodeOpcode::TestLtInt64
+            | BytecodeOpcode::TestLeInt64
+            | BytecodeOpcode::TestEqInt32
+            | BytecodeOpcode::TestNeInt32
+            | BytecodeOpcode::TestGtInt32
+            | BytecodeOpcode::TestGeInt32
+            | BytecodeOpcode::TestLtInt32
+            | BytecodeOpcode::TestLeInt32
+            | BytecodeOpcode::TestEqFloat32
+            | BytecodeOpcode::TestNeFloat32
+            | BytecodeOpcode::TestGtFloat32
+            | BytecodeOpcode::TestGeFloat32
+            | BytecodeOpcode::TestLtFloat32
+            | BytecodeOpcode::TestLeFloat32
+            | BytecodeOpcode::TestEqFloat64
+            | BytecodeOpcode::TestNeFloat64
+            | BytecodeOpcode::TestGtFloat64
+            | BytecodeOpcode::TestGeFloat64
+            | BytecodeOpcode::TestLtFloat64
+            | BytecodeOpcode::TestLeFloat64
+            | BytecodeOpcode::LoadArrayBool
+            | BytecodeOpcode::LoadArrayUInt8
+            | BytecodeOpcode::LoadArrayChar
+            | BytecodeOpcode::LoadArrayInt32
+            | BytecodeOpcode::LoadArrayInt64
+            | BytecodeOpcode::LoadArrayFloat32
+            | BytecodeOpcode::LoadArrayFloat64
+            | BytecodeOpcode::LoadArrayPtr
+            | BytecodeOpcode::LoadArrayTuple
+            | BytecodeOpcode::LoadArrayGeneric
+            | BytecodeOpcode::LoadArrayEnum => {
+                let lhs = self.read_register(1);
+                let rhs = self.read_register(2);
+                vec![lhs, rhs]
+            }
+
+            BytecodeOpcode::StoreArrayBool
+            | BytecodeOpcode::StoreArrayUInt8
+            | BytecodeOpcode::StoreArrayChar
+            | BytecodeOpcode::StoreArrayInt32
+            | BytecodeOpcode::StoreArrayInt64
+            | BytecodeOpcode::StoreArrayFloat32
+            | BytecodeOpcode::StoreArrayFloat64
+            | BytecodeOpcode::StoreArrayPtr
+            | BytecodeOpcode::StoreArrayTuple
+            | BytecodeOpcode::StoreArrayGeneric
+            | BytecodeOpcode::StoreArrayEnum => {
+                let src = self.read_register(0);
+                let lhs = self.read_register(1);
+                let rhs = self.read_register(2);
+                vec![src, lhs, rhs]
+            }
+
+            BytecodeOpcode::NegFloat32
+            | BytecodeOpcode::NegFloat64
+            | BytecodeOpcode::NegInt32
+            | BytecodeOpcode::NegInt64
+            | BytecodeOpcode::NotBool
+            | BytecodeOpcode::NotInt32
+            | BytecodeOpcode::NotInt64
+            | BytecodeOpcode::ExtendUInt8ToChar
+            | BytecodeOpcode::ExtendUInt8ToInt32
+            | BytecodeOpcode::ExtendUInt8ToInt64
+            | BytecodeOpcode::ExtendInt32ToInt64
+            | BytecodeOpcode::ExtendCharToInt64
+            | BytecodeOpcode::CastCharToInt32
+            | BytecodeOpcode::CastInt32ToUInt8
+            | BytecodeOpcode::CastInt32ToChar
+            | BytecodeOpcode::CastInt64ToUInt8
+            | BytecodeOpcode::CastInt64ToChar
+            | BytecodeOpcode::CastInt64ToInt32
+            | BytecodeOpcode::InstanceOf
+            | BytecodeOpcode::MovBool
+            | BytecodeOpcode::MovUInt8
+            | BytecodeOpcode::MovChar
+            | BytecodeOpcode::MovInt32
+            | BytecodeOpcode::MovInt64
+            | BytecodeOpcode::MovFloat32
+            | BytecodeOpcode::MovFloat64
+            | BytecodeOpcode::MovPtr
+            | BytecodeOpcode::MovGeneric
+            | BytecodeOpcode::MovTuple
+            | BytecodeOpcode::MovEnum
+            | BytecodeOpcode::LoadTupleElement
+            | BytecodeOpcode::LoadEnumElement
+            | BytecodeOpcode::LoadEnumVariant
+            | BytecodeOpcode::LoadField
+            | BytecodeOpcode::ArrayLength => {
+                let opnd = self.read_register(1);
+                vec![opnd]
+            }
+
+            BytecodeOpcode::StoreField | BytecodeOpcode::ArrayBoundCheck => {
+                let src = self.read_register(0);
+                let obj = self.read_register(1);
+                vec![src, obj]
+            }
+
+            BytecodeOpcode::CheckedCast
+            | BytecodeOpcode::StoreGlobal
+            | BytecodeOpcode::PushRegister
+            | BytecodeOpcode::Assert
+            | BytecodeOpcode::JumpIfFalse
+            | BytecodeOpcode::JumpIfFalseConst
+            | BytecodeOpcode::JumpIfTrue
+            | BytecodeOpcode::JumpIfTrueConst
+            | BytecodeOpcode::InvokeDirect
+            | BytecodeOpcode::InvokeVirtual
+            | BytecodeOpcode::InvokeStatic
+            | BytecodeOpcode::InvokeGenericDirect
+            | BytecodeOpcode::InvokeGenericStatic
+            | BytecodeOpcode::NilCheck
+            | BytecodeOpcode::Ret => {
+                let opnd = self.read_register(0);
+                vec![opnd]
+            }
+
+            BytecodeOpcode::LoadGlobal
+            | BytecodeOpcode::ConstTrue
+            | BytecodeOpcode::ConstFalse
+            | BytecodeOpcode::ConstZeroInt32
+            | BytecodeOpcode::ConstZeroInt64
+            | BytecodeOpcode::ConstZeroFloat32
+            | BytecodeOpcode::ConstZeroFloat64
+            | BytecodeOpcode::ConstZeroChar
+            | BytecodeOpcode::ConstZeroUInt8
+            | BytecodeOpcode::ConstInt32
+            | BytecodeOpcode::ConstInt64
+            | BytecodeOpcode::ConstFloat32
+            | BytecodeOpcode::ConstFloat64
+            | BytecodeOpcode::ConstChar
+            | BytecodeOpcode::ConstUInt8
+            | BytecodeOpcode::ConstString
+            | BytecodeOpcode::JumpLoop
+            | BytecodeOpcode::LoopStart
+            | BytecodeOpcode::Jump
+            | BytecodeOpcode::JumpConst
+            | BytecodeOpcode::InvokeDirectVoid
+            | BytecodeOpcode::InvokeGenericDirectVoid
+            | BytecodeOpcode::InvokeGenericStaticVoid
+            | BytecodeOpcode::InvokeStaticVoid
+            | BytecodeOpcode::InvokeVirtualVoid
+            | BytecodeOpcode::NewTuple
+            | BytecodeOpcode::NewEnum
+            | BytecodeOpcode::RetVoid
+            | BytecodeOpcode::NewObject => Vec::new(),
+
+            BytecodeOpcode::NewArray => {
+                let length = self.read_register(2);
+                vec![length]
+            }
+        }
+    }
+
+    fn read_register(&self, idx: usize) -> Register {
+        Register(self.read_index(idx) as usize)
+    }
+
+    fn read_index(&self, idx: usize) -> u32 {
+        let offset = self.offset_first_operand() + idx * self.operand_size();
+
+        if self.is_wide {
+            self.read_wide(offset)
+        } else {
+            self.read_byte(offset)
+        }
+    }
+
+    fn operand_size(&self) -> usize {
+        if self.is_wide {
+            4
+        } else {
+            1
+        }
+    }
+
+    fn offset_first_operand(&self) -> usize {
+        self.pos + if self.is_wide { 2 } else { 1 }
+    }
+
+    fn read_byte(&self, offset: usize) -> u32 {
+        let value = self.data[offset];
+        value as u32
+    }
+
+    fn read_wide(&self, offset: usize) -> u32 {
+        let v1 = self.read_byte(offset);
+        let v2 = self.read_byte(offset + 1);
+        let v3 = self.read_byte(offset + 2);
+        let v4 = self.read_byte(offset + 3);
+
+        (v4 << 24) | (v3 << 16) | (v2 << 8) | v1
     }
 }
