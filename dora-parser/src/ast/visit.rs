@@ -41,7 +41,7 @@ pub trait Visitor: Sized {
         walk_const(self, c);
     }
 
-    fn visit_enum(&mut self, e: &Enum) {
+    fn visit_enum(&mut self, e: &Arc<Enum>) {
         walk_enum(self, e);
     }
 
@@ -173,7 +173,7 @@ pub fn walk_const<V: Visitor>(v: &mut V, c: &Const) {
     v.visit_expr(&c.expr);
 }
 
-pub fn walk_enum<V: Visitor>(_v: &mut V, _e: &Enum) {
+pub fn walk_enum<V: Visitor>(_v: &mut V, _e: &Arc<Enum>) {
     // nothing to do
 }
 

@@ -5,6 +5,7 @@ use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
+use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -41,6 +42,7 @@ pub struct EnumData {
     pub id: EnumId,
     pub file: FileId,
     pub namespace_id: Option<NamespaceId>,
+    pub ast: Arc<ast::Enum>,
     pub pos: Position,
     pub name: Name,
     pub type_params: Vec<TypeParam>,

@@ -120,7 +120,7 @@ pub enum Elem {
     ElemAnnotation(Annotation),
     ElemGlobal(Global),
     ElemConst(Const),
-    ElemEnum(Enum),
+    ElemEnum(Arc<Enum>),
     ElemAlias(Alias),
     ElemNamespace(Namespace),
     ElemImport(Import),

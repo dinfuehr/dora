@@ -170,7 +170,7 @@ impl<'a> Parser<'a> {
             TokenKind::Enum => {
                 self.ban_modifiers(&modifiers)?;
                 let xenum = self.parse_enum()?;
-                Ok(ElemEnum(xenum))
+                Ok(ElemEnum(Arc::new(xenum)))
             }
 
             TokenKind::Namespace => {

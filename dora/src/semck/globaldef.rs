@@ -419,12 +419,13 @@ impl<'x> Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_enum(&mut self, e: &Enum) {
+    fn visit_enum(&mut self, e: &Arc<Enum>) {
         let id: EnumId = self.vm.enums.len().into();
         let mut xenum = EnumData {
             id,
             file: self.file_id.into(),
             namespace_id: self.namespace_id,
+            ast: e.clone(),
             pos: e.pos,
             name: e.name,
             type_params: Vec::new(),

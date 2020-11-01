@@ -1,130 +1,52 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
-use dora_parser::ast::visit::{walk_file, Visitor};
-use dora_parser::ast::{Enum, File, TypeParam};
+use dora_parser::ast;
+use dora_parser::ast::TypeParam;
 
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{EnumId, EnumVariant, NodeMap, VM};
+use crate::vm::{EnumData, EnumVariant, FileId, VM};
 
-pub fn check(vm: &VM, map_enum_defs: &NodeMap<EnumId>) {
-    let mut enumck = EnumCheck {
-        vm,
-        map_enum_defs,
-        file_id: 0,
+pub fn check(vm: &VM) {
+    for xenum in &vm.enums {
+        let mut xenum = xenum.write();
+        let ast = xenum.ast.clone();
 
-        enum_id: None,
-    };
+        let mut enumck = EnumCheck {
+            vm,
+            file_id: xenum.file,
+            ast: &ast,
+            xenum: &mut *xenum,
+        };
 
-    enumck.check();
+        enumck.check();
+    }
 }
 
 struct EnumCheck<'x> {
     vm: &'x VM,
-    map_enum_defs: &'x NodeMap<EnumId>,
-    file_id: u32,
-
-    enum_id: Option<EnumId>,
+    file_id: FileId,
+    ast: &'x Arc<ast::Enum>,
+    xenum: &'x mut EnumData,
 }
 
 impl<'x> EnumCheck<'x> {
     fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
-
-        for file in files.iter() {
-            self.visit_file(file);
-        }
-    }
-
-    fn check_type_params(
-        &mut self,
-        ast: &Enum,
-        type_params: &[TypeParam],
-        symtable: &mut SymTables,
-    ) {
-        let enum_id = self.enum_id.expect("missing enum_id");
-        let xenum = &self.vm.enums[enum_id];
-        let mut xenum = xenum.write();
-
-        if type_params.len() > 0 {
-            let mut names = HashSet::new();
-            let mut type_param_id = 0;
-            let mut params = Vec::new();
-
-            for type_param in type_params {
-                if !names.insert(type_param.name) {
-                    let name = self.vm.interner.str(type_param.name).to_string();
-                    let msg = SemError::TypeParamNameNotUnique(name);
-                    self.vm.diag.lock().report(xenum.file, type_param.pos, msg);
-                }
-
-                params.push(SourceType::TypeParam(type_param_id.into()));
-
-                for bound in &type_param.bounds {
-                    let ty = semck::read_type_table(self.vm, symtable, xenum.file, bound);
-
-                    match ty {
-                        Some(SourceType::TraitObject(trait_id)) => {
-                            if !xenum.type_params[type_param_id]
-                                .trait_bounds
-                                .insert(trait_id)
-                            {
-                                let msg = SemError::DuplicateTraitBound;
-                                self.vm.diag.lock().report(xenum.file, type_param.pos, msg);
-                            }
-                        }
-
-                        None => {
-                            // unknown type, error is already thrown
-                        }
-
-                        _ => {
-                            let msg = SemError::BoundExpected;
-                            self.vm.diag.lock().report(xenum.file, bound.pos(), msg);
-                        }
-                    }
-                }
-
-                let sym = TypeSym::TypeParam(type_param_id.into());
-                symtable.insert_type(type_param.name, sym);
-                type_param_id += 1;
-            }
-        } else {
-            let msg = SemError::TypeParamsExpected;
-            self.vm.diag.lock().report(xenum.file, ast.pos, msg);
-        }
-    }
-}
-
-impl<'x> Visitor for EnumCheck<'x> {
-    fn visit_file(&mut self, f: &File) {
-        walk_file(self, f);
-        self.file_id += 1;
-    }
-
-    fn visit_enum(&mut self, e: &Enum) {
-        let enum_id = *self.map_enum_defs.get(e.id).unwrap();
-        self.enum_id = Some(enum_id);
-
-        let namespace_id = self.vm.enums[enum_id].read().namespace_id;
-        let mut symtable = SymTables::current(self.vm, namespace_id);
+        let mut symtable = SymTables::current(self.vm, self.xenum.namespace_id);
 
         symtable.push_level();
 
-        if let Some(ref type_params) = e.type_params {
-            self.check_type_params(e, type_params, &mut symtable);
+        if let Some(ref type_params) = self.ast.type_params {
+            self.check_type_params(type_params, &mut symtable);
         }
-
-        let xenum = &self.vm.enums[enum_id];
-        let mut xenum = xenum.write();
 
         let mut next_variant_id: u32 = 0;
         let mut simple_enumeration = true;
 
-        for value in &e.variants {
+        for value in &self.ast.variants {
             let mut types: Vec<SourceType> = Vec::new();
 
             if let Some(ref variant_types) = value.types {
@@ -144,31 +66,87 @@ impl<'x> Visitor for EnumCheck<'x> {
                 name: value.name,
                 types: types,
             };
-            xenum.variants.push(variant);
-            let result = xenum.name_to_value.insert(value.name, next_variant_id);
+            self.xenum.variants.push(variant);
+            let result = self.xenum.name_to_value.insert(value.name, next_variant_id);
 
             if result.is_some() {
                 let name = self.vm.interner.str(value.name).to_string();
-                self.vm
-                    .diag
-                    .lock()
-                    .report(xenum.file, value.pos, SemError::ShadowEnumValue(name));
+                self.vm.diag.lock().report(
+                    self.xenum.file,
+                    value.pos,
+                    SemError::ShadowEnumValue(name),
+                );
             }
 
             next_variant_id += 1;
         }
 
-        xenum.simple_enumeration = simple_enumeration;
+        self.xenum.simple_enumeration = simple_enumeration;
 
-        if e.variants.is_empty() {
+        if self.ast.variants.is_empty() {
             self.vm
                 .diag
                 .lock()
-                .report(xenum.file, e.pos, SemError::NoEnumValue);
+                .report(self.xenum.file, self.ast.pos, SemError::NoEnumValue);
         }
 
-        self.enum_id = None;
         symtable.pop_level();
+    }
+
+    fn check_type_params(&mut self, type_params: &[TypeParam], symtable: &mut SymTables) {
+        if type_params.len() > 0 {
+            let mut names = HashSet::new();
+            let mut type_param_id = 0;
+            let mut params = Vec::new();
+
+            for type_param in type_params {
+                if !names.insert(type_param.name) {
+                    let name = self.vm.interner.str(type_param.name).to_string();
+                    let msg = SemError::TypeParamNameNotUnique(name);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file_id, type_param.pos, msg);
+                }
+
+                params.push(SourceType::TypeParam(type_param_id.into()));
+
+                for bound in &type_param.bounds {
+                    let ty = semck::read_type_table(self.vm, symtable, self.file_id, bound);
+
+                    match ty {
+                        Some(SourceType::TraitObject(trait_id)) => {
+                            if !self.xenum.type_params[type_param_id]
+                                .trait_bounds
+                                .insert(trait_id)
+                            {
+                                let msg = SemError::DuplicateTraitBound;
+                                self.vm
+                                    .diag
+                                    .lock()
+                                    .report(self.file_id, type_param.pos, msg);
+                            }
+                        }
+
+                        None => {
+                            // unknown type, error is already thrown
+                        }
+
+                        _ => {
+                            let msg = SemError::BoundExpected;
+                            self.vm.diag.lock().report(self.file_id, bound.pos(), msg);
+                        }
+                    }
+                }
+
+                let sym = TypeSym::TypeParam(type_param_id.into());
+                symtable.insert_type(type_param.name, sym);
+                type_param_id += 1;
+            }
+        } else {
+            let msg = SemError::TypeParamsExpected;
+            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+        }
     }
 }
 

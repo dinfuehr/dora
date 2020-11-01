@@ -82,7 +82,7 @@ pub fn check(vm: &mut VM) {
     traitdefck::check(vm, &map_trait_defs);
     globaldefck::check(vm, &map_global_defs);
     constdefck::check(vm, &map_const_defs);
-    enumck::check(vm, &map_enum_defs);
+    enumck::check(vm);
     extensiondefck::check(vm, &map_extension_defs);
     importck::check(vm, &map_namespaces);
     return_on_error!(vm);
