@@ -19,9 +19,7 @@ use dora_parser::interner::Name;
 pub fn check(
     vm: &mut VM,
     map_cls_defs: &mut NodeMap<ClassId>,
-    map_impl_defs: &mut NodeMap<ImplId>,
     map_module_defs: &mut NodeMap<ModuleId>,
-    map_extension_defs: &mut NodeMap<ExtensionId>,
     map_namespaces: &mut NodeMap<NamespaceId>,
 ) {
     let files = vm.files.clone();
@@ -31,9 +29,7 @@ pub fn check(
         file_id: 0,
         namespace_id: None,
         map_cls_defs,
-        map_impl_defs,
         map_module_defs,
-        map_extension_defs,
         map_namespaces,
     };
 
@@ -48,9 +44,7 @@ struct GlobalDef<'x> {
     file_id: u32,
     namespace_id: Option<NamespaceId>,
     map_cls_defs: &'x mut NodeMap<ClassId>,
-    map_impl_defs: &'x mut NodeMap<ImplId>,
     map_module_defs: &'x mut NodeMap<ModuleId>,
-    map_extension_defs: &'x mut NodeMap<ExtensionId>,
     map_namespaces: &'x mut NodeMap<NamespaceId>,
 }
 
@@ -148,7 +142,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 methods: Vec::new(),
             };
             self.vm.impls.push(RwLock::new(ximpl));
-            self.map_impl_defs.insert(ast.id, id);
         } else {
             let id: ExtensionId = self.vm.extensions.len().into();
             let mut extension_type_params = Vec::new();
@@ -160,6 +153,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let extension = ExtensionData {
                 id,
                 file_id: self.file_id.into(),
+                namespace_id: self.namespace_id,
                 ast: ast.clone(),
                 pos: ast.pos,
                 type_params: extension_type_params,
@@ -169,7 +163,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 static_names: HashMap::new(),
             };
             self.vm.extensions.push(RwLock::new(extension));
-            self.map_extension_defs.insert(ast.id, id);
         }
     }
 

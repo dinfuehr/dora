@@ -42,9 +42,7 @@ macro_rules! return_on_error {
 
 pub fn check(vm: &mut VM) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
-    let mut map_impl_defs = NodeMap::new(); // get ImplId from ast node
     let mut map_module_defs = NodeMap::new(); // get ModuleId from ast node
-    let mut map_extension_defs = NodeMap::new(); // get ExtensionId from ast node
     let mut map_namespaces = NodeMap::new(); // get NamespaceId from ast node
 
     // add user defined fcts and classes to vm
@@ -52,9 +50,7 @@ pub fn check(vm: &mut VM) {
     globaldef::check(
         vm,
         &mut map_cls_defs,
-        &mut map_impl_defs,
         &mut map_module_defs,
-        &mut map_extension_defs,
         &mut map_namespaces,
     );
     return_on_error!(vm);
@@ -63,7 +59,7 @@ pub fn check(vm: &mut VM) {
     prelude::internal_classes(vm);
 
     // find all trait implementations for classes
-    impldefck::check(vm, &map_impl_defs);
+    impldefck::check(vm);
 
     // checks class/struct/trait definitions/bodies
     clsdefck::check(vm, &map_cls_defs);
@@ -73,7 +69,7 @@ pub fn check(vm: &mut VM) {
     globaldefck::check(vm);
     constdefck::check(vm);
     enumck::check(vm);
-    extensiondefck::check(vm, &map_extension_defs);
+    extensiondefck::check(vm);
     importck::check(vm, &map_namespaces);
     return_on_error!(vm);
 

@@ -5,7 +5,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::ty::{SourceType, TypeListId};
-use crate::vm::{FctId, FileId, TypeParam};
+use crate::vm::{FctId, FileId, NamespaceId, TypeParam};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -31,6 +31,7 @@ pub struct ExtensionData {
     pub id: ExtensionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Impl>,
+    pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub ty: SourceType,

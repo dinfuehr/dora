@@ -5,76 +5,81 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, VM};
+use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, ImplId, NamespaceId, VM};
 
 use dora_parser::ast;
-use dora_parser::ast::visit::{self, Visitor};
 
-pub fn check(vm: &VM, map_impl_defs: &NodeMap<ImplId>) {
-    let mut clsck = ImplCheck {
-        vm,
-        impl_id: None,
-        map_impl_defs,
-        file_id: 0,
-    };
+pub fn check(vm: &VM) {
+    for ximpl in vm.impls.iter() {
+        let (impl_id, file_id, namespace_id, ast) = {
+            let ximpl = ximpl.read();
 
-    clsck.check();
+            (
+                ximpl.id,
+                ximpl.file_id,
+                ximpl.namespace_id,
+                ximpl.ast.clone(),
+            )
+        };
+
+        let mut implck = ImplCheck {
+            vm,
+            impl_id,
+            file_id,
+            namespace_id,
+            ast: &ast,
+        };
+
+        implck.check();
+    }
 }
 
 struct ImplCheck<'x> {
     vm: &'x VM,
-    map_impl_defs: &'x NodeMap<ImplId>,
-    file_id: u32,
-    impl_id: Option<ImplId>,
+    file_id: FileId,
+    impl_id: ImplId,
+    namespace_id: Option<NamespaceId>,
+    ast: &'x ast::Impl,
 }
 
 impl<'x> ImplCheck<'x> {
     fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
+        assert!(self.ast.trait_type.is_some());
 
-        for file in files.iter() {
-            self.visit_file(file);
+        for method in &self.ast.methods {
+            self.visit_method(method);
         }
-    }
 
-    fn add_impl(&mut self, i: &Arc<ast::Impl>) {
-        assert!(i.trait_type.is_some());
-        self.impl_id = Some(*self.map_impl_defs.get(i.id).unwrap());
+        let mut ximpl = self.vm.impls[self.impl_id].write();
 
-        visit::walk_impl(self, i);
-
-        let mut ximpl = self.vm.impls[self.impl_id.unwrap()].write();
-
-        if i.type_params.is_some() {
+        if self.ast.type_params.is_some() {
             // We don't support type parameters for impl-blocks yet.
             self.vm
                 .diag
                 .lock()
-                .report(ximpl.file_id, i.pos, SemError::Unimplemented);
-            self.impl_id = None;
+                .report(self.file_id, self.ast.pos, SemError::Unimplemented);
             return;
         }
 
-        if let Some(ref trait_type) = i.trait_type {
+        if let Some(ref trait_type) = self.ast.trait_type {
             if let Some(trait_name) = trait_type.to_basic_without_type_params() {
                 let symtable = SymTables::current(self.vm, ximpl.namespace_id);
                 if let Some(TypeSym::Trait(trait_id)) = symtable.get_type(trait_name) {
                     ximpl.trait_id = Some(trait_id);
                 } else {
                     let name = self.vm.interner.str(trait_name).to_string();
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(ximpl.file_id, i.pos, SemError::ExpectedTrait(name));
+                    self.vm.diag.lock().report(
+                        self.file_id,
+                        self.ast.pos,
+                        SemError::ExpectedTrait(name),
+                    );
                 }
             } else {
                 // We don't support type parameters for traits yet.
                 self.vm
                     .diag
                     .lock()
-                    .report(ximpl.file_id, i.pos, SemError::Unimplemented);
-                self.impl_id = None;
+                    .report(self.file_id, self.ast.pos, SemError::Unimplemented);
                 return;
             }
         } else {
@@ -82,23 +87,22 @@ impl<'x> ImplCheck<'x> {
             self.vm
                 .diag
                 .lock()
-                .report(ximpl.file_id, i.pos, SemError::Unimplemented);
-            self.impl_id = None;
+                .report(self.file_id, self.ast.pos, SemError::Unimplemented);
             return;
         }
 
         if let Some(class_ty) = semck::read_type_namespace(
             self.vm,
             self.file_id.into(),
-            ximpl.namespace_id,
-            &i.class_type,
+            self.namespace_id,
+            &self.ast.class_type,
         ) {
             if class_ty.cls_id(self.vm).is_some() {
                 ximpl.class_ty = class_ty;
             } else {
                 self.vm.diag.lock().report(
-                    ximpl.file_id,
-                    i.class_type.pos(),
+                    self.file_id,
+                    self.ast.class_type.pos(),
                     SemError::ClassExpected,
                 );
             }
@@ -110,65 +114,43 @@ impl<'x> ImplCheck<'x> {
             cls.traits.push(ximpl.trait_id());
             cls.impls.push(ximpl.id);
         }
-
-        self.impl_id = None;
-    }
-}
-
-impl<'x> Visitor for ImplCheck<'x> {
-    fn visit_file(&mut self, f: &ast::File) {
-        visit::walk_file(self, f);
-        self.file_id += 1;
     }
 
-    fn visit_impl(&mut self, i: &Arc<ast::Impl>) {
-        if i.trait_type.is_some() {
-            self.add_impl(i);
-        }
-    }
-
-    fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        if self.impl_id.is_none() {
-            return;
-        }
-
-        let impl_id = self.impl_id.unwrap();
-
-        if f.block.is_none() && !f.internal {
+    fn visit_method(&mut self, method: &Arc<ast::Function>) {
+        if method.block.is_none() && !method.internal {
             self.vm
                 .diag
                 .lock()
-                .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
+                .report(self.file_id.into(), method.pos, SemError::MissingFctBody);
         }
 
-        let kind = if f.internal {
+        let kind = if method.internal {
             FctKind::Definition
         } else {
             FctKind::Source(RwLock::new(FctSrc::new()))
         };
 
-        let parent = FctParent::Impl(impl_id);
-        let namespace_id = self.vm.impls[impl_id].read().namespace_id;
+        let parent = FctParent::Impl(self.impl_id);
 
         let fct = Fct {
             id: FctId(0),
-            ast: f.clone(),
-            pos: f.pos,
-            name: f.name,
-            namespace_id,
+            ast: method.clone(),
+            pos: method.pos,
+            name: method.name,
+            namespace_id: self.namespace_id,
             param_types: Vec::new(),
             return_type: SourceType::Unit,
             parent: parent,
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
+            has_override: method.has_override,
+            has_open: method.has_open,
+            has_final: method.has_final,
+            has_optimize_immediately: method.has_optimize_immediately,
+            is_pub: method.is_pub,
+            is_static: method.is_static,
             is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
+            is_test: method.is_test,
+            use_cannon: method.use_cannon,
+            internal: method.internal,
             internal_resolved: false,
             overrides: None,
             is_constructor: false,
@@ -186,7 +168,7 @@ impl<'x> Visitor for ImplCheck<'x> {
 
         let fctid = self.vm.add_fct(fct);
 
-        let mut ximpl = self.vm.impls[impl_id].write();
+        let mut ximpl = self.vm.impls[self.impl_id].write();
         ximpl.methods.push(fctid);
     }
 }

@@ -6,91 +6,173 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
+use crate::vm::{
+    EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NamespaceId, VM,
+};
 
 use dora_parser::ast;
-use dora_parser::ast::visit::{self, Visitor};
 
-pub fn check(vm: &VM, map_extension_defs: &NodeMap<ExtensionId>) {
-    let mut clsck = ExtensionCheck {
-        vm,
-        extension_id: None,
-        map_extension_defs,
-        sym: SymTables::global(vm),
+pub fn check(vm: &VM) {
+    for extension in &vm.extensions {
+        let (extension_id, file_id, namespace_id, ast) = {
+            let extension = extension.read();
 
-        file_id: 0,
-        extension_ty: SourceType::Error,
-    };
+            (
+                extension.id,
+                extension.file_id,
+                extension.namespace_id,
+                extension.ast.clone(),
+            )
+        };
 
-    clsck.check();
+        let mut extck = ExtensionCheck {
+            vm,
+            extension_id,
+            sym: SymTables::current(vm, namespace_id),
+            namespace_id,
+            file_id,
+            ast: &ast,
+            extension_ty: SourceType::Error,
+        };
+
+        extck.check();
+    }
 }
 
 struct ExtensionCheck<'x> {
     vm: &'x VM,
-    map_extension_defs: &'x NodeMap<ExtensionId>,
-    file_id: u32,
+    file_id: FileId,
+    namespace_id: Option<NamespaceId>,
     sym: SymTables<'x>,
-
-    extension_id: Option<ExtensionId>,
+    extension_id: ExtensionId,
     extension_ty: SourceType,
+    ast: &'x ast::Impl,
 }
 
 impl<'x> ExtensionCheck<'x> {
     fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
-
-        for file in files.iter() {
-            self.visit_file(file);
-        }
-    }
-
-    fn visit_extension(&mut self, i: &Arc<ast::Impl>) {
-        assert!(i.trait_type.is_none());
-        self.extension_id = Some(*self.map_extension_defs.get(i.id).unwrap());
+        assert!(self.ast.trait_type.is_none());
 
         self.sym.push_level();
 
-        if let Some(ref type_params) = i.type_params {
-            self.check_type_params(i, self.extension_id.unwrap(), type_params);
+        if let Some(ref type_params) = self.ast.type_params {
+            self.check_type_params(type_params);
         }
 
-        if let Some(extension_ty) =
-            semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &i.class_type)
-        {
+        if let Some(extension_ty) = semck::read_type_table(
+            self.vm,
+            &self.sym,
+            self.file_id.into(),
+            &self.ast.class_type,
+        ) {
             self.extension_ty = extension_ty.clone();
 
             match extension_ty {
                 SourceType::Enum(enum_id, _) => {
                     let mut xenum = self.vm.enums[enum_id].write();
-                    xenum.extensions.push(self.extension_id.unwrap());
+                    xenum.extensions.push(self.extension_id);
                 }
 
                 _ => {
                     let cls_id = extension_ty.cls_id(self.vm).unwrap();
                     let cls = self.vm.classes.idx(cls_id);
                     let mut cls = cls.write();
-                    cls.extensions.push(self.extension_id.unwrap());
+                    cls.extensions.push(self.extension_id);
                 }
             }
 
-            let mut extension = self.vm.extensions[self.extension_id.unwrap()].write();
+            let mut extension = self.vm.extensions[self.extension_id].write();
             extension.ty = extension_ty;
         }
 
-        visit::walk_impl(self, i);
+        for method in &self.ast.methods {
+            self.visit_method(method);
+        }
 
-        self.extension_id = None;
         self.sym.pop_level();
     }
 
-    fn check_type_params(
-        &mut self,
-        ximpl: &ast::Impl,
-        extension_id: ExtensionId,
-        type_params: &[ast::TypeParam],
-    ) {
-        let extension = &self.vm.extensions[extension_id];
+    fn visit_method(&mut self, f: &Arc<ast::Function>) {
+        if f.block.is_none() && !f.internal {
+            self.vm
+                .diag
+                .lock()
+                .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
+        }
+
+        let kind = if f.block.is_some() {
+            FctKind::Source(RwLock::new(FctSrc::new()))
+        } else {
+            FctKind::Definition
+        };
+
+        let parent = FctParent::Extension(self.extension_id);
+
+        let fct = Fct {
+            id: FctId(0),
+            ast: f.clone(),
+            pos: f.pos,
+            name: f.name,
+            namespace_id: None,
+            param_types: Vec::new(),
+            return_type: SourceType::Unit,
+            parent: parent,
+            has_override: f.has_override,
+            has_open: f.has_open,
+            has_final: f.has_final,
+            has_optimize_immediately: f.has_optimize_immediately,
+            is_pub: f.is_pub,
+            is_static: f.is_static,
+            is_abstract: false,
+            is_test: f.is_test,
+            use_cannon: f.use_cannon,
+            internal: f.internal,
+            internal_resolved: false,
+            overrides: None,
+            is_constructor: false,
+            vtable_index: None,
+            initialized: false,
+            impl_for: None,
+            file_id: self.file_id.into(),
+            variadic_arguments: false,
+
+            type_params: Vec::new(),
+            kind,
+            bytecode: None,
+            intrinsic: None,
+        };
+
+        let fct_id = self.vm.add_fct(fct);
+
+        if self.extension_ty.is_error() {
+            return;
+        }
+
+        let success = match self.extension_ty {
+            SourceType::Enum(enum_id, _) => self.check_in_enum(&f, enum_id),
+            _ => self.check_in_class(&f),
+        };
+
+        if !success {
+            return;
+        }
+
+        let mut extension = self.vm.extensions[self.extension_id].write();
+        extension.methods.push(fct_id);
+
+        let table = if f.is_static {
+            &mut extension.static_names
+        } else {
+            &mut extension.instance_names
+        };
+
+        if !table.contains_key(&f.name) {
+            table.insert(f.name, fct_id);
+        }
+    }
+
+    fn check_type_params(&mut self, type_params: &[ast::TypeParam]) {
+        let extension = &self.vm.extensions[self.extension_id];
         let extension = extension.read();
 
         if type_params.len() > 0 {
@@ -118,7 +200,7 @@ impl<'x> ExtensionCheck<'x> {
             self.vm
                 .diag
                 .lock()
-                .report(extension.file_id, ximpl.pos, msg);
+                .report(extension.file_id, self.ast.pos, msg);
         }
     }
 
@@ -182,104 +264,6 @@ impl<'x> ExtensionCheck<'x> {
             false
         } else {
             true
-        }
-    }
-}
-
-impl<'x> Visitor for ExtensionCheck<'x> {
-    fn visit_file(&mut self, f: &ast::File) {
-        visit::walk_file(self, f);
-        self.file_id += 1;
-    }
-
-    fn visit_impl(&mut self, i: &Arc<ast::Impl>) {
-        if i.trait_type.is_none() {
-            self.visit_extension(i);
-        }
-    }
-
-    fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        if self.extension_id.is_none() {
-            return;
-        }
-
-        let extension_id = self.extension_id.unwrap();
-
-        if f.block.is_none() && !f.internal {
-            self.vm
-                .diag
-                .lock()
-                .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
-        }
-
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(FctSrc::new()))
-        } else {
-            FctKind::Definition
-        };
-
-        let parent = FctParent::Extension(extension_id);
-
-        let fct = Fct {
-            id: FctId(0),
-            ast: f.clone(),
-            pos: f.pos,
-            name: f.name,
-            namespace_id: None,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: parent,
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            variadic_arguments: false,
-
-            type_params: Vec::new(),
-            kind,
-            bytecode: None,
-            intrinsic: None,
-        };
-
-        let fct_id = self.vm.add_fct(fct);
-
-        if self.extension_ty.is_error() {
-            return;
-        }
-
-        let success = match self.extension_ty {
-            SourceType::Enum(enum_id, _) => self.check_in_enum(&f, enum_id),
-            _ => self.check_in_class(&f),
-        };
-
-        if !success {
-            return;
-        }
-
-        let mut extension = self.vm.extensions[extension_id].write();
-        extension.methods.push(fct_id);
-
-        let table = if f.is_static {
-            &mut extension.static_names
-        } else {
-            &mut extension.instance_names
-        };
-
-        if !table.contains_key(&f.name) {
-            table.insert(f.name, fct_id);
         }
     }
 }
