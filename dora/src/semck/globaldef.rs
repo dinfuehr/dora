@@ -20,7 +20,6 @@ pub fn check(
     vm: &mut VM,
     map_cls_defs: &mut NodeMap<ClassId>,
     map_struct_defs: &mut NodeMap<StructId>,
-    map_trait_defs: &mut NodeMap<TraitId>,
     map_impl_defs: &mut NodeMap<ImplId>,
     map_module_defs: &mut NodeMap<ModuleId>,
     map_global_defs: &mut NodeMap<GlobalId>,
@@ -36,7 +35,6 @@ pub fn check(
         namespace_id: None,
         map_cls_defs,
         map_struct_defs,
-        map_trait_defs,
         map_impl_defs,
         map_module_defs,
         map_global_defs,
@@ -57,7 +55,6 @@ struct GlobalDef<'x> {
     namespace_id: Option<NamespaceId>,
     map_cls_defs: &'x mut NodeMap<ClassId>,
     map_struct_defs: &'x mut NodeMap<StructId>,
-    map_trait_defs: &'x mut NodeMap<TraitId>,
     map_impl_defs: &'x mut NodeMap<ImplId>,
     map_module_defs: &'x mut NodeMap<ModuleId>,
     map_global_defs: &'x mut NodeMap<GlobalId>,
@@ -72,7 +69,7 @@ impl<'x> Visitor for GlobalDef<'x> {
         self.file_id += 1;
     }
 
-    fn visit_namespace(&mut self, n: &Namespace) {
+    fn visit_namespace(&mut self, n: &Arc<Namespace>) {
         let id: NamespaceId = self.vm.namespaces.len().into();
         let namespace = NamespaceData {
             id,
@@ -97,11 +94,12 @@ impl<'x> Visitor for GlobalDef<'x> {
         self.namespace_id = saved_namespace_id;
     }
 
-    fn visit_trait(&mut self, t: &Trait) {
+    fn visit_trait(&mut self, t: &Arc<Trait>) {
         let id: TraitId = (self.vm.traits.len() as u32).into();
         let xtrait = TraitData {
             id,
             file: self.file_id.into(),
+            ast: t.clone(),
             namespace_id: self.namespace_id,
             pos: t.pos,
             name: t.name,
@@ -110,15 +108,13 @@ impl<'x> Visitor for GlobalDef<'x> {
 
         self.vm.traits.push(RwLock::new(xtrait));
 
-        self.map_trait_defs.insert(t.id, id);
-
         let sym = TypeSym::Trait(id);
         if let Some(sym) = self.insert_type(t.name, sym) {
             report_type_shadow(self.vm, t.name, self.file_id.into(), t.pos, sym);
         }
     }
 
-    fn visit_global(&mut self, g: &Global) {
+    fn visit_global(&mut self, g: &Arc<Global>) {
         let id = {
             let mut globals = self.vm.globals.lock();
             let id: GlobalId = (globals.len() as u32).into();
@@ -148,7 +144,7 @@ impl<'x> Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_impl(&mut self, i: &Impl) {
+    fn visit_impl(&mut self, i: &Arc<Impl>) {
         if i.trait_type.is_some() {
             let id: ImplId = (self.vm.impls.len() as u32).into();
             let ximpl = ImplData {
@@ -230,7 +226,7 @@ impl<'x> Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_const(&mut self, c: &Const) {
+    fn visit_const(&mut self, c: &Arc<Const>) {
         let id = {
             let mut consts = self.vm.consts.lock();
             let id: ConstId = consts.len().into();
@@ -327,7 +323,7 @@ impl<'x> Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_struct(&mut self, s: &Struct) {
+    fn visit_struct(&mut self, s: &Arc<Struct>) {
         let id = {
             let mut structs = self.vm.structs.lock();
             let id: StructId = (structs.len() as u32).into();

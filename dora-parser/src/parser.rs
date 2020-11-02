@@ -122,48 +122,48 @@ impl<'a> Parser<'a> {
             TokenKind::Struct => {
                 self.ban_modifiers(&modifiers)?;
                 let struc = self.parse_struct()?;
-                Ok(Elem::Struct(struc))
+                Ok(Elem::Struct(Arc::new(struc)))
             }
 
             TokenKind::Trait => {
                 self.ban_modifiers(&modifiers)?;
                 let xtrait = self.parse_trait()?;
-                Ok(Elem::Trait(xtrait))
+                Ok(Elem::Trait(Arc::new(xtrait)))
             }
 
             TokenKind::Impl => {
                 self.ban_modifiers(&modifiers)?;
                 let ximpl = self.parse_impl()?;
-                Ok(Elem::Impl(ximpl))
+                Ok(Elem::Impl(Arc::new(ximpl)))
             }
 
             TokenKind::Module => {
                 self.ban_modifiers(&modifiers)?;
                 let module = self.parse_module(&modifiers)?;
-                Ok(Elem::Module(module))
+                Ok(Elem::Module(Arc::new(module)))
             }
 
             TokenKind::Annotation => {
                 let annotation = self.parse_annotation(&modifiers)?;
-                Ok(Elem::Annotation(annotation))
+                Ok(Elem::Annotation(Arc::new(annotation)))
             }
 
             TokenKind::Alias => {
                 self.ban_modifiers(&modifiers)?;
                 let alias = self.parse_alias()?;
-                Ok(Elem::Alias(alias))
+                Ok(Elem::Alias(Arc::new(alias)))
             }
 
             TokenKind::Let | TokenKind::Var => {
                 self.ban_modifiers(&modifiers)?;
                 let global = self.parse_global()?;
-                Ok(Elem::Global(global))
+                Ok(Elem::Global(Arc::new(global)))
             }
 
             TokenKind::Const => {
                 self.ban_modifiers(&modifiers)?;
                 let xconst = self.parse_const()?;
-                Ok(Elem::Const(xconst))
+                Ok(Elem::Const(Arc::new(xconst)))
             }
 
             TokenKind::Enum => {
@@ -175,13 +175,13 @@ impl<'a> Parser<'a> {
             TokenKind::Namespace => {
                 self.ban_modifiers(&modifiers)?;
                 let namespace = self.parse_namespace()?;
-                Ok(Elem::Namespace(namespace))
+                Ok(Elem::Namespace(Arc::new(namespace)))
             }
 
             TokenKind::Import => {
                 self.ban_modifiers(&modifiers)?;
                 let import = self.parse_import()?;
-                Ok(Elem::Import(import))
+                Ok(Elem::Import(Arc::new(import)))
             }
 
             _ => {

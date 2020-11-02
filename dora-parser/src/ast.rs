@@ -112,17 +112,17 @@ impl fmt::Display for NodeId {
 pub enum Elem {
     Function(Arc<Function>),
     Class(Arc<Class>),
-    Struct(Struct),
-    Trait(Trait),
-    Impl(Impl),
-    Module(Module),
-    Annotation(Annotation),
-    Global(Global),
-    Const(Const),
+    Struct(Arc<Struct>),
+    Trait(Arc<Trait>),
+    Impl(Arc<Impl>),
+    Module(Arc<Module>),
+    Annotation(Arc<Annotation>),
+    Global(Arc<Global>),
+    Const(Arc<Const>),
     Enum(Arc<Enum>),
-    Alias(Alias),
-    Namespace(Namespace),
-    Import(Import),
+    Alias(Arc<Alias>),
+    Namespace(Arc<Namespace>),
+    Import(Arc<Import>),
 }
 
 impl Elem {

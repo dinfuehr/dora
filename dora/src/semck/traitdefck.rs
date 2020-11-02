@@ -2,88 +2,77 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
+use crate::vm::{Fct, FctId, FctKind, FctParent, FileId, NamespaceId, TraitId, VM};
 
 use dora_parser::ast;
-use dora_parser::ast::visit::{self, Visitor};
 
-pub fn check(vm: &mut VM, map_trait_defs: &NodeMap<TraitId>) {
-    let mut clsck = TraitCheck {
-        vm,
-        trait_id: None,
-        map_trait_defs,
-        file_id: 0,
-    };
+pub fn check(vm: &VM) {
+    for xtrait in &vm.traits {
+        let (trait_id, file_id, ast, namespace_id) = {
+            let xtrait = xtrait.read();
+            (
+                xtrait.id,
+                xtrait.file,
+                xtrait.ast.clone(),
+                xtrait.namespace_id,
+            )
+        };
 
-    clsck.check();
+        let mut clsck = TraitCheck {
+            vm,
+            trait_id,
+            file_id,
+            ast: &ast,
+            namespace_id,
+        };
+
+        clsck.check();
+    }
 }
 
 struct TraitCheck<'x> {
-    vm: &'x mut VM,
-    map_trait_defs: &'x NodeMap<TraitId>,
-    file_id: u32,
-
-    trait_id: Option<TraitId>,
+    vm: &'x VM,
+    file_id: FileId,
+    trait_id: TraitId,
+    ast: &'x ast::Trait,
+    namespace_id: Option<NamespaceId>,
 }
 
 impl<'x> TraitCheck<'x> {
     fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
-
-        for file in files.iter() {
-            self.visit_file(file);
+        for method in &self.ast.methods {
+            self.visit_method(method);
         }
     }
-}
 
-impl<'x> Visitor for TraitCheck<'x> {
-    fn visit_file(&mut self, f: &ast::File) {
-        visit::walk_file(self, f);
-        self.file_id += 1;
-    }
-
-    fn visit_trait(&mut self, t: &ast::Trait) {
-        self.trait_id = Some(*self.map_trait_defs.get(t.id).unwrap());
-
-        visit::walk_trait(self, t);
-
-        self.trait_id = None;
-    }
-
-    fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        if self.trait_id.is_none() {
-            return;
+    fn visit_method(&mut self, node: &Arc<ast::Function>) {
+        if node.block.is_some() {
+            self.vm.diag.lock().report(
+                self.file_id.into(),
+                node.pos,
+                SemError::TraitMethodWithBody,
+            );
         }
-
-        if f.block.is_some() {
-            self.vm
-                .diag
-                .lock()
-                .report(self.file_id.into(), f.pos, SemError::TraitMethodWithBody);
-        }
-
-        let namespace_id = self.vm.traits[self.trait_id.unwrap()].read().namespace_id;
 
         let fct = Fct {
             id: FctId(0),
-            ast: f.clone(),
-            pos: f.pos,
-            name: f.name,
-            namespace_id: namespace_id,
+            ast: node.clone(),
+            pos: node.pos,
+            name: node.name,
+            namespace_id: self.namespace_id,
             param_types: Vec::new(),
             return_type: SourceType::Unit,
-            parent: FctParent::Trait(self.trait_id.unwrap()),
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
+            parent: FctParent::Trait(self.trait_id),
+            has_override: node.has_override,
+            has_open: node.has_open,
+            has_final: node.has_final,
+            has_optimize_immediately: node.has_optimize_immediately,
+            is_pub: node.is_pub,
+            is_static: node.is_static,
             is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
+            is_test: node.is_test,
+            use_cannon: node.use_cannon,
+            internal: node.internal,
             internal_resolved: false,
             overrides: None,
             is_constructor: false,
@@ -101,7 +90,7 @@ impl<'x> Visitor for TraitCheck<'x> {
 
         let fctid = self.vm.add_fct(fct);
 
-        let mut xtrait = self.vm.traits[self.trait_id.unwrap()].write();
+        let mut xtrait = self.vm.traits[self.trait_id].write();
         xtrait.methods.push(fctid);
     }
 }

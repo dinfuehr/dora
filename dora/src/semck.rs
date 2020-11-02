@@ -43,7 +43,6 @@ macro_rules! return_on_error {
 pub fn check(vm: &mut VM) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
-    let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
     let mut map_impl_defs = NodeMap::new(); // get ImplId from ast node
     let mut map_module_defs = NodeMap::new(); // get ModuleId from ast node
     let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
@@ -57,7 +56,6 @@ pub fn check(vm: &mut VM) {
         vm,
         &mut map_cls_defs,
         &mut map_struct_defs,
-        &mut map_trait_defs,
         &mut map_impl_defs,
         &mut map_module_defs,
         &mut map_global_defs,
@@ -77,7 +75,7 @@ pub fn check(vm: &mut VM) {
     clsdefck::check(vm, &map_cls_defs);
     moduledefck::check(vm, &map_module_defs);
     structdefck::check(vm, &map_struct_defs);
-    traitdefck::check(vm, &map_trait_defs);
+    traitdefck::check(vm);
     globaldefck::check(vm, &map_global_defs);
     constdefck::check(vm, &map_const_defs);
     enumck::check(vm);

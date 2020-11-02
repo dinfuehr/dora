@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::error::msg::SemError;
 use crate::semck::report_term_shadow;
 use crate::sym::{TermSym, TypeSym};
@@ -40,7 +42,7 @@ impl<'a> Visitor for ImportCheck<'a> {
         self.file_id += 1;
     }
 
-    fn visit_namespace(&mut self, namespace: &Namespace) {
+    fn visit_namespace(&mut self, namespace: &Arc<Namespace>) {
         let namespace_id = self.map_namespaces.get(namespace.id).cloned().unwrap();
 
         let old_namespace_id = self.namespace_id;
@@ -49,7 +51,7 @@ impl<'a> Visitor for ImportCheck<'a> {
         self.namespace_id = old_namespace_id;
     }
 
-    fn visit_import(&mut self, import: &Import) {
+    fn visit_import(&mut self, import: &Arc<Import>) {
         let table = self.vm.namespace_table(self.namespace_id);
 
         let sym_type = table.read().get_type(import.container_name);

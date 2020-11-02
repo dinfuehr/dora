@@ -1,4 +1,5 @@
 use parking_lot::RwLock;
+use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
@@ -35,7 +36,7 @@ impl<'a> GlobalDefCheck<'a> {
 }
 
 impl<'a> Visitor for GlobalDefCheck<'a> {
-    fn visit_global(&mut self, g: &Global) {
+    fn visit_global(&mut self, g: &Arc<Global>) {
         let global_id = *self.map_global_defs.get(g.id).unwrap();
         let glob = self.vm.globals.idx(global_id);
         let mut glob = glob.write();

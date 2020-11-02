@@ -5,15 +5,15 @@ pub trait Visitor: Sized {
         walk_file(self, a);
     }
 
-    fn visit_global(&mut self, g: &Global) {
+    fn visit_global(&mut self, g: &Arc<Global>) {
         walk_global(self, g);
     }
 
-    fn visit_trait(&mut self, t: &Trait) {
+    fn visit_trait(&mut self, t: &Arc<Trait>) {
         walk_trait(self, t);
     }
 
-    fn visit_impl(&mut self, i: &Impl) {
+    fn visit_impl(&mut self, i: &Arc<Impl>) {
         walk_impl(self, i);
     }
 
@@ -25,15 +25,15 @@ pub trait Visitor: Sized {
         walk_module(self, m);
     }
 
-    fn visit_struct(&mut self, s: &Struct) {
+    fn visit_struct(&mut self, s: &Arc<Struct>) {
         walk_struct(self, s);
     }
 
-    fn visit_annotation(&mut self, a: &Annotation) {
+    fn visit_annotation(&mut self, a: &Arc<Annotation>) {
         walk_annotation(self, a);
     }
 
-    fn visit_const(&mut self, c: &Const) {
+    fn visit_const(&mut self, c: &Arc<Const>) {
         walk_const(self, c);
     }
 
@@ -41,15 +41,15 @@ pub trait Visitor: Sized {
         walk_enum(self, e);
     }
 
-    fn visit_alias(&mut self, e: &Alias) {
+    fn visit_alias(&mut self, e: &Arc<Alias>) {
         walk_alias(self, e);
     }
 
-    fn visit_namespace(&mut self, e: &Namespace) {
+    fn visit_namespace(&mut self, e: &Arc<Namespace>) {
         walk_namespace(self, e);
     }
 
-    fn visit_import(&mut self, i: &Import) {
+    fn visit_import(&mut self, i: &Arc<Import>) {
         walk_import(self, i);
     }
 
@@ -122,13 +122,13 @@ pub fn walk_global<V: Visitor>(v: &mut V, g: &Global) {
     }
 }
 
-pub fn walk_trait<V: Visitor>(v: &mut V, t: &Trait) {
+pub fn walk_trait<V: Visitor>(v: &mut V, t: &Arc<Trait>) {
     for m in &t.methods {
         v.visit_method(m);
     }
 }
 
-pub fn walk_impl<V: Visitor>(v: &mut V, i: &Impl) {
+pub fn walk_impl<V: Visitor>(v: &mut V, i: &Arc<Impl>) {
     for m in &i.methods {
         v.visit_method(m);
     }
@@ -162,9 +162,9 @@ pub fn walk_module<V: Visitor>(v: &mut V, m: &Module) {
     }
 }
 
-pub fn walk_annotation<V: Visitor>(_v: &mut V, _a: &Annotation) {}
+pub fn walk_annotation<V: Visitor>(_v: &mut V, _a: &Arc<Annotation>) {}
 
-pub fn walk_const<V: Visitor>(v: &mut V, c: &Const) {
+pub fn walk_const<V: Visitor>(v: &mut V, c: &Arc<Const>) {
     v.visit_type(&c.data_type);
     v.visit_expr(&c.expr);
 }
@@ -173,17 +173,17 @@ pub fn walk_enum<V: Visitor>(_v: &mut V, _e: &Arc<Enum>) {
     // nothing to do
 }
 
-pub fn walk_alias<V: Visitor>(v: &mut V, a: &Alias) {
+pub fn walk_alias<V: Visitor>(v: &mut V, a: &Arc<Alias>) {
     v.visit_type(&a.ty);
 }
 
-pub fn walk_namespace<V: Visitor>(v: &mut V, namespace: &Namespace) {
+pub fn walk_namespace<V: Visitor>(v: &mut V, namespace: &Arc<Namespace>) {
     for e in &namespace.elements {
         walk_elem(v, e);
     }
 }
 
-pub fn walk_import<V: Visitor>(_v: &mut V, _import: &Import) {
+pub fn walk_import<V: Visitor>(_v: &mut V, _import: &Arc<Import>) {
     // nothing to do
 }
 

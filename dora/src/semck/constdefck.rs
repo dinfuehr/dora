@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::semck;
 use crate::ty::SourceType;
 use crate::vm::{ConstId, NodeMap, VM};
@@ -34,7 +36,7 @@ impl<'x> ConstCheck<'x> {
 }
 
 impl<'x> Visitor for ConstCheck<'x> {
-    fn visit_const(&mut self, c: &ast::Const) {
+    fn visit_const(&mut self, c: &Arc<ast::Const>) {
         let const_id = *self.map_const_defs.get(c.id).unwrap();
 
         let xconst = self.vm.consts.idx(const_id);

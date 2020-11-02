@@ -46,7 +46,7 @@ impl<'x> ExtensionCheck<'x> {
         }
     }
 
-    fn visit_extension(&mut self, i: &ast::Impl) {
+    fn visit_extension(&mut self, i: &Arc<ast::Impl>) {
         assert!(i.trait_type.is_none());
         self.extension_id = Some(*self.map_extension_defs.get(i.id).unwrap());
 
@@ -190,7 +190,7 @@ impl<'x> Visitor for ExtensionCheck<'x> {
         self.file_id += 1;
     }
 
-    fn visit_impl(&mut self, i: &ast::Impl) {
+    fn visit_impl(&mut self, i: &Arc<ast::Impl>) {
         if i.trait_type.is_none() {
             self.visit_extension(i);
         }

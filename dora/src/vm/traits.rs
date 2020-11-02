@@ -1,6 +1,8 @@
 use parking_lot::RwLock;
 use std::ops::Index;
+use std::sync::Arc;
 
+use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -21,6 +23,7 @@ pub struct TraitData {
     pub id: TraitId,
     pub file: FileId,
     pub namespace_id: Option<NamespaceId>,
+    pub ast: Arc<ast::Trait>,
     pub pos: Position,
     pub name: Name,
     pub methods: Vec<FctId>,

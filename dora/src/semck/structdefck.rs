@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::SourceType;
@@ -35,7 +37,7 @@ impl<'x> StructCheck<'x> {
 }
 
 impl<'x> Visitor for StructCheck<'x> {
-    fn visit_struct(&mut self, s: &ast::Struct) {
+    fn visit_struct(&mut self, s: &Arc<ast::Struct>) {
         self.struct_id = Some(*self.map_struct_defs.get(s.id).unwrap());
 
         visit::walk_struct(self, s);
