@@ -4,9 +4,10 @@ use std::sync::Arc;
 
 use crate::mem;
 use crate::semck;
-use crate::vm::module::ModuleId;
 use crate::vm::VM;
-use crate::vm::{Class, ClassId, EnumData, EnumId, EnumLayout, Fct, StructId, TraitId, TupleId};
+use crate::vm::{
+    Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ModuleId, StructId, TraitId, TupleId,
+};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
@@ -404,7 +405,7 @@ impl SourceType {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
-                let struc = struc.lock();
+                let struc = struc.read();
 
                 struc.size
             }
@@ -446,7 +447,7 @@ impl SourceType {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
-                let struc = struc.lock();
+                let struc = struc.read();
 
                 struc.align
             }
@@ -854,7 +855,7 @@ impl<'a> BuiltinTypePrinter<'a> {
             }
             SourceType::Struct(sid, list_id) => {
                 let struc = self.vm.structs.idx(sid);
-                let struc = struc.lock();
+                let struc = struc.read();
                 let name = struc.name;
                 let name = self.vm.interner.str(name).to_string();
 

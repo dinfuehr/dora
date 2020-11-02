@@ -80,7 +80,7 @@ impl<'x> ClsDefCheck<'x> {
                 if !names.insert(type_param.name) {
                     let name = self.vm.interner.str(type_param.name).to_string();
                     let msg = SemError::TypeParamNameNotUnique(name);
-                    self.vm.diag.lock().report(cls.file, type_param.pos, msg);
+                    self.vm.diag.lock().report(cls.file_id, type_param.pos, msg);
                 }
 
                 params.push(SourceType::TypeParam(type_param_id.into()));
@@ -89,7 +89,7 @@ impl<'x> ClsDefCheck<'x> {
                     let ty = semck::read_type_table(
                         self.vm,
                         self.sym.as_ref().unwrap(),
-                        cls.file,
+                        cls.file_id,
                         bound,
                     );
 
@@ -97,7 +97,7 @@ impl<'x> ClsDefCheck<'x> {
                         Some(SourceType::TraitObject(trait_id)) => {
                             if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                 let msg = SemError::DuplicateTraitBound;
-                                self.vm.diag.lock().report(cls.file, type_param.pos, msg);
+                                self.vm.diag.lock().report(cls.file_id, type_param.pos, msg);
                             }
                         }
 
@@ -107,7 +107,7 @@ impl<'x> ClsDefCheck<'x> {
 
                         _ => {
                             let msg = SemError::BoundExpected;
-                            self.vm.diag.lock().report(cls.file, bound.pos(), msg);
+                            self.vm.diag.lock().report(cls.file_id, bound.pos(), msg);
                         }
                     }
                 }
@@ -122,7 +122,7 @@ impl<'x> ClsDefCheck<'x> {
             cls.ty = SourceType::Class(cls.id, list_id);
         } else {
             let msg = SemError::TypeParamsExpected;
-            self.vm.diag.lock().report(cls.file, c.pos, msg);
+            self.vm.diag.lock().report(cls.file_id, c.pos, msg);
         }
     }
 
@@ -315,7 +315,7 @@ impl<'x> Visitor for ClsDefCheck<'x> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
-            file: self.file_id.into(),
+            file_id: self.file_id.into(),
             variadic_arguments: false,
 
             type_params: Vec::new(),
@@ -377,7 +377,7 @@ impl<'x> Visitor for ClsDefCheck<'x> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
-            file: self.file_id.into(),
+            file_id: self.file_id.into(),
 
             type_params: Vec::new(),
             kind,

@@ -12,7 +12,7 @@ pub fn check(vm: &VM) {
             let xtrait = xtrait.read();
             (
                 xtrait.id,
-                xtrait.file,
+                xtrait.file_id,
                 xtrait.ast.clone(),
                 xtrait.namespace_id,
             )
@@ -79,7 +79,7 @@ impl<'x> TraitCheck<'x> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
-            file: self.file_id.into(),
+            file_id: self.file_id.into(),
             variadic_arguments: false,
 
             type_params: Vec::new(),

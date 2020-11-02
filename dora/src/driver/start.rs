@@ -335,7 +335,7 @@ fn find_main(vm: &VM) -> Option<FctId> {
         let pos = fct.ast.pos;
         vm.diag
             .lock()
-            .report(fct.file, pos, SemError::WrongMainDefinition);
+            .report(fct.file_id, pos, SemError::WrongMainDefinition);
         return None;
     }
 

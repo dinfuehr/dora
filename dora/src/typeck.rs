@@ -27,7 +27,7 @@ pub fn check(vm: &VM) {
         let mut typeck = TypeCheck {
             vm,
             fct: &fct,
-            file: fct.file,
+            file: fct.file_id,
             src: &mut src,
             ast: &fct.ast,
             symtable: symtable,
@@ -37,7 +37,7 @@ pub fn check(vm: &VM) {
     }
 
     for xconst in vm.consts.iter() {
-        let mut xconst = xconst.lock();
+        let mut xconst = xconst.write();
 
         let (_, value) = {
             let mut constck = ConstCheck {

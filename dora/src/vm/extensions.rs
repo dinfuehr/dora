@@ -1,14 +1,15 @@
 use parking_lot::RwLock;
 
-use std::ops::Index;
-
-use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
-
 use std::collections::HashMap;
+use std::ops::Index;
+use std::sync::Arc;
 
 use crate::ty::{SourceType, TypeListId};
 use crate::vm::{FctId, FileId, TypeParam};
+
+use dora_parser::ast;
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ExtensionId(u32);
@@ -28,7 +29,8 @@ impl ExtensionId {
 #[derive(Debug)]
 pub struct ExtensionData {
     pub id: ExtensionId,
-    pub file: FileId,
+    pub file_id: FileId,
+    pub ast: Arc<ast::Impl>,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub ty: SourceType,

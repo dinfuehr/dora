@@ -90,19 +90,19 @@ pub fn check(vm: &VM) {
                     if !names.insert(type_param.name) {
                         let name = vm.interner.str(type_param.name).to_string();
                         let msg = SemError::TypeParamNameNotUnique(name);
-                        vm.diag.lock().report(fct.file, type_param.pos, msg);
+                        vm.diag.lock().report(fct.file_id, type_param.pos, msg);
                     }
 
                     fct.type_params.push(vm::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type_table(vm, &sym_table, fct.file, bound);
+                        let ty = semck::read_type_table(vm, &sym_table, fct.file_id, bound);
 
                         match ty {
                             Some(SourceType::TraitObject(trait_id)) => {
                                 if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = SemError::DuplicateTraitBound;
-                                    vm.diag.lock().report(fct.file, type_param.pos, msg);
+                                    vm.diag.lock().report(fct.file_id, type_param.pos, msg);
                                 }
                             }
 
@@ -112,7 +112,7 @@ pub fn check(vm: &VM) {
 
                             _ => {
                                 let msg = SemError::BoundExpected;
-                                vm.diag.lock().report(fct.file, bound.pos(), msg);
+                                vm.diag.lock().report(fct.file_id, bound.pos(), msg);
                             }
                         }
                     }
@@ -123,7 +123,7 @@ pub fn check(vm: &VM) {
                 }
             } else {
                 let msg = SemError::TypeParamsExpected;
-                vm.diag.lock().report(fct.file, fct.pos, msg);
+                vm.diag.lock().report(fct.file_id, fct.pos, msg);
             }
         }
 
@@ -131,16 +131,18 @@ pub fn check(vm: &VM) {
             if fct.variadic_arguments {
                 vm.diag
                     .lock()
-                    .report(fct.file, p.pos, SemError::VariadicParameterNeedsToBeLast);
+                    .report(fct.file_id, p.pos, SemError::VariadicParameterNeedsToBeLast);
             }
 
-            let ty = semck::read_type_table(vm, &sym_table, fct.file, &p.data_type)
+            let ty = semck::read_type_table(vm, &sym_table, fct.file_id, &p.data_type)
                 .unwrap_or(SourceType::Error);
 
             if ty == SourceType::This && !fct.in_trait() {
-                vm.diag
-                    .lock()
-                    .report(fct.file, p.data_type.pos(), SemError::SelfTypeUnavailable);
+                vm.diag.lock().report(
+                    fct.file_id,
+                    p.data_type.pos(),
+                    SemError::SelfTypeUnavailable,
+                );
             }
 
             fct.param_types.push(ty);
@@ -151,13 +153,13 @@ pub fn check(vm: &VM) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty =
-                semck::read_type_table(vm, &sym_table, fct.file, ret).unwrap_or(SourceType::Unit);
+            let ty = semck::read_type_table(vm, &sym_table, fct.file_id, ret)
+                .unwrap_or(SourceType::Unit);
 
             if ty == SourceType::This && !fct.in_trait() {
                 vm.diag
                     .lock()
-                    .report(fct.file, ret.pos(), SemError::SelfTypeUnavailable);
+                    .report(fct.file_id, ret.pos(), SemError::SelfTypeUnavailable);
             }
 
             fct.return_type = ty;
@@ -204,12 +206,12 @@ fn check_abstract(vm: &VM, fct: &Fct) {
 
     if !fct.kind.is_definition() {
         let msg = SemError::AbstractMethodWithImplementation;
-        vm.diag.lock().report(fct.file, fct.pos, msg);
+        vm.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 
     if !cls.is_abstract {
         let msg = SemError::AbstractMethodNotInAbstractClass;
-        vm.diag.lock().report(fct.file, fct.pos, msg);
+        vm.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 }
 
@@ -231,7 +233,7 @@ fn check_static(vm: &VM, fct: &Fct) {
         };
 
         let msg = SemError::ModifierNotAllowedForStaticMethod(modifier.into());
-        vm.diag.lock().report(fct.file, fct.pos, msg);
+        vm.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 }
 
@@ -248,7 +250,7 @@ fn check_against_methods(vm: &VM, fct: &Fct, methods: &[FctId]) {
             let method_name = vm.interner.str(method.name).to_string();
 
             let msg = SemError::MethodExists(method_name, method.pos);
-            vm.diag.lock().report(fct.file, fct.ast.pos, msg);
+            vm.diag.lock().report(fct.file_id, fct.ast.pos, msg);
             return;
         }
     }

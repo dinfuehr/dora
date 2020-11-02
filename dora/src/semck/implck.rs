@@ -45,7 +45,7 @@ pub fn check(vm: &mut VM) {
                     let trait_return_type = trait_method.return_type.name_fct(vm, &*trait_method);
 
                     let msg = SemError::ReturnTypeMismatch(impl_return_type, trait_return_type);
-                    vm.diag.lock().report(ximpl.file, method.pos, msg);
+                    vm.diag.lock().report(ximpl.file_id, method.pos, msg);
                 }
             } else {
                 let args = method
@@ -62,7 +62,7 @@ pub fn check(vm: &mut VM) {
                     SemError::MethodNotInTrait(trait_name, mtd_name, args)
                 };
 
-                report(vm, ximpl.file, method.pos, msg);
+                report(vm, ximpl.file_id, method.pos, msg);
             }
         }
 
@@ -84,7 +84,7 @@ pub fn check(vm: &mut VM) {
                 SemError::MethodMissingFromTrait(trait_name, mtd_name, args)
             };
 
-            report(vm, ximpl.file, ximpl.pos, msg);
+            report(vm, ximpl.file_id, ximpl.pos, msg);
         }
     }
 }

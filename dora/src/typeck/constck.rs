@@ -18,11 +18,11 @@ impl<'a> ConstCheck<'a> {
             &Expr::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
             &Expr::LitInt(ref expr) => {
                 let (ty, val) =
-                    check_lit_int(self.vm, self.xconst.file, expr, false, SourceType::Any);
+                    check_lit_int(self.vm, self.xconst.file_id, expr, false, SourceType::Any);
                 (ty, ConstValue::Int(val))
             }
             &Expr::LitFloat(ref expr) => {
-                let (ty, val) = check_lit_float(self.vm, self.xconst.file, expr, false);
+                let (ty, val) = check_lit_float(self.vm, self.xconst.file_id, expr, false);
                 (ty, ConstValue::Float(val))
             }
             &Expr::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
@@ -33,12 +33,15 @@ impl<'a> ConstCheck<'a> {
                 if lit_int.suffix == IntSuffix::UInt8 {
                     let ty = SourceType::UInt8.name(self.vm);
                     let msg = SemError::UnOpType(expr.op.as_str().into(), ty);
-                    self.vm.diag.lock().report(self.xconst.file, expr.pos, msg);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.xconst.file_id, expr.pos, msg);
                 }
 
                 let (ty, val) = check_lit_int(
                     self.vm,
-                    self.xconst.file,
+                    self.xconst.file_id,
                     expr.opnd.to_lit_int().unwrap(),
                     true,
                     SourceType::Any,
@@ -49,7 +52,7 @@ impl<'a> ConstCheck<'a> {
             &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {
                 let (ty, val) = check_lit_float(
                     self.vm,
-                    self.xconst.file,
+                    self.xconst.file_id,
                     expr.opnd.to_lit_float().unwrap(),
                     true,
                 );
@@ -61,7 +64,7 @@ impl<'a> ConstCheck<'a> {
                 self.vm
                     .diag
                     .lock()
-                    .report(self.xconst.file, expr.pos(), msg);
+                    .report(self.xconst.file_id, expr.pos(), msg);
                 return (SourceType::Error, ConstValue::None);
             }
         };
@@ -74,7 +77,7 @@ impl<'a> ConstCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.xconst.file, expr.pos(), msg);
+                .report(self.xconst.file_id, expr.pos(), msg);
         }
 
         (ty, lit)

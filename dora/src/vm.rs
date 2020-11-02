@@ -20,51 +20,50 @@ use crate::sym::SymTable;
 use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{LambdaTypes, SourceType, TypeList, TypeLists};
 use crate::utils::GrowableVec;
-use crate::vm::module::{Module, ModuleDef, ModuleId};
 
 use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
-pub use self::class::{
+pub use self::classes::{
     find_field_in_class, find_method_in_class, find_methods_in_class, Class, ClassDef, ClassDefId,
-    ClassId, TypeParam,
+    ClassId, Field, FieldDef, FieldId, TypeParam,
 };
-pub use self::cnst::{ConstData, ConstId, ConstValue};
+pub use self::consts::{ConstData, ConstId, ConstValue};
 pub use self::enums::{
     find_methods_in_enum, EnumData, EnumDef, EnumDefId, EnumId, EnumLayout, EnumVariant,
 };
-pub use self::extension::{ExtensionData, ExtensionId};
-pub use self::fct::{Fct, FctId, FctKind, FctParent, Intrinsic};
-pub use self::field::{Field, FieldDef, FieldId};
-pub use self::global::{init_global_addresses, GlobalData, GlobalId};
+pub use self::extensions::{ExtensionData, ExtensionId};
+pub use self::functions::{Fct, FctId, FctKind, FctParent, Intrinsic};
+pub use self::globals::{init_global_addresses, GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
 pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
 };
+pub use self::modules::{find_methods_in_module, Module, ModuleDef, ModuleDefId, ModuleId};
 pub use self::namespaces::{NamespaceData, NamespaceId};
 pub use self::src::{CallType, ConvInfo, FctSrc, ForTypeInfo, IdentType, NodeMap, Var, VarId};
-pub use self::strct::{
+pub use self::structs::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,
 };
 pub use self::traits::{TraitData, TraitId};
-pub use self::tuple::{ensure_tuple, TupleId, Tuples};
+pub use self::tuples::{ensure_tuple, TupleId, Tuples};
 
-pub mod class;
-mod cnst;
+mod annotations;
+mod classes;
+mod consts;
 mod enums;
-mod extension;
-mod fct;
-mod field;
-mod global;
+mod extensions;
+mod functions;
+mod globals;
 mod impls;
 mod known;
-pub mod module;
+mod modules;
 mod namespaces;
 mod src;
-mod strct;
+mod structs;
 mod traits;
-mod tuple;
+mod tuples;
 
 static mut VM_GLOBAL: *const u8 = ptr::null();
 
@@ -94,25 +93,25 @@ pub struct VM {
     pub diag: Mutex<Diagnostic>,
     pub global_namespace: Arc<RwLock<SymTable>>,
     pub known: KnownElements,
-    pub consts: GrowableVec<Mutex<ConstData>>, // stores all const definitions
-    pub structs: GrowableVec<Mutex<StructData>>, // stores all struct source definitions
-    pub struct_defs: GrowableVec<Mutex<StructDef>>, // stores all struct definitions
-    pub classes: GrowableVec<RwLock<Class>>,   // stores all class source definitions
+    pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
+    pub structs: GrowableVec<RwLock<StructData>>, // stores all struct source definitions
+    pub struct_defs: GrowableVec<RwLock<StructDef>>, // stores all struct definitions
+    pub classes: GrowableVec<RwLock<Class>>,    // stores all class source definitions
     pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
-    pub tuples: Mutex<Tuples>,                 // stores all tuple definitions
-    pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
+    pub tuples: Mutex<Tuples>,                  // stores all tuple definitions
+    pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
-    pub namespaces: Vec<NamespaceData>,        // storer all namespace definitions
-    pub fcts: GrowableVec<RwLock<Fct>>,        // stores all function source definitions
-    pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
-    pub enums: Vec<RwLock<EnumData>>,          // store all enum source definitions
+    pub namespaces: Vec<NamespaceData>,         // storer all namespace definitions
+    pub fcts: GrowableVec<RwLock<Fct>>,         // stores all function source definitions
+    pub jit_fcts: GrowableVec<JitFct>,          // stores all function implementations
+    pub enums: Vec<RwLock<EnumData>>,           // store all enum source definitions
     pub enum_defs: GrowableVec<RwLock<EnumDef>>, // stores all enum definitions
-    pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,          // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,              // stores all compiled functions
+    pub traits: Vec<RwLock<TraitData>>,         // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,           // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,               // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalData>>, // stores all global variables
-    pub gc: Gc,                                // garbage collector
+    pub gc: Gc,                                 // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lists: Mutex<TypeLists>,
     pub lambda_types: Mutex<LambdaTypes>,

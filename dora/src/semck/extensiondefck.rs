@@ -6,11 +6,10 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
+use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use dora_parser::lexer::position::Position;
 
 pub fn check(vm: &VM, map_extension_defs: &NodeMap<ExtensionId>) {
     let mut clsck = ExtensionCheck {
@@ -105,7 +104,7 @@ impl<'x> ExtensionCheck<'x> {
                     self.vm
                         .diag
                         .lock()
-                        .report(extension.file, type_param.pos, msg);
+                        .report(extension.file_id, type_param.pos, msg);
                 }
 
                 assert!(type_param.bounds.is_empty());
@@ -116,7 +115,10 @@ impl<'x> ExtensionCheck<'x> {
             }
         } else {
             let msg = SemError::TypeParamsExpected;
-            self.vm.diag.lock().report(extension.file, ximpl.pos, msg);
+            self.vm
+                .diag
+                .lock()
+                .report(extension.file_id, ximpl.pos, msg);
         }
     }
 
@@ -204,12 +206,10 @@ impl<'x> Visitor for ExtensionCheck<'x> {
         let extension_id = self.extension_id.unwrap();
 
         if f.block.is_none() && !f.internal {
-            report(
-                self.vm,
-                self.file_id.into(),
-                f.pos,
-                SemError::MissingFctBody,
-            );
+            self.vm
+                .diag
+                .lock()
+                .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
         }
 
         let kind = if f.block.is_some() {
@@ -245,7 +245,7 @@ impl<'x> Visitor for ExtensionCheck<'x> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
-            file: self.file_id.into(),
+            file_id: self.file_id.into(),
             variadic_arguments: false,
 
             type_params: Vec::new(),
@@ -282,10 +282,6 @@ impl<'x> Visitor for ExtensionCheck<'x> {
             table.insert(f.name, fct_id);
         }
     }
-}
-
-fn report(vm: &VM, file: FileId, pos: Position, msg: SemError) {
-    vm.diag.lock().report(file, pos, msg);
 }
 
 #[cfg(test)]

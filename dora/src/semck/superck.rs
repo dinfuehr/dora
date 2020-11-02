@@ -30,7 +30,7 @@ fn cycle_detection(vm: &mut VM) {
             if !map.insert(parent_class_id) {
                 vm.diag
                     .lock()
-                    .report(cls.file, cls.pos, SemError::CycleInHierarchy);
+                    .report(cls.file_id, cls.pos, SemError::CycleInHierarchy);
                 break;
             }
 
@@ -119,7 +119,7 @@ fn check_fct_modifier(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
         let name = vm.interner.str(fct.name).to_string();
         vm.diag
             .lock()
-            .report(fct.file, fct.pos(), SemError::SuperfluousOpen(name));
+            .report(fct.file_id, fct.pos(), SemError::SuperfluousOpen(name));
         return None;
     }
 
@@ -128,7 +128,7 @@ fn check_fct_modifier(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report(fct.file, fct.pos(), SemError::SuperfluousOverride(name));
+                .report(fct.file_id, fct.pos(), SemError::SuperfluousOverride(name));
             return None;
         }
 
@@ -145,14 +145,14 @@ fn check_fct_modifier(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report(fct.file, fct.pos(), SemError::MissingOverride(name));
+                .report(fct.file_id, fct.pos(), SemError::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report(fct.file, fct.pos(), SemError::MethodNotOverridable(name));
+                .report(fct.file_id, fct.pos(), SemError::MethodNotOverridable(name));
         }
 
         let type_params = super_type.type_params(vm);
@@ -171,7 +171,7 @@ fn check_fct_modifier(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
         {
             vm.diag
                 .lock()
-                .report(fct.file, fct.pos(), SemError::OverrideMismatch);
+                .report(fct.file_id, fct.pos(), SemError::OverrideMismatch);
         }
 
         Some(super_method.id)
@@ -180,7 +180,7 @@ fn check_fct_modifier(vm: &VM, cls: &Class, fct: &Fct) -> Option<FctId> {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report(fct.file, fct.pos(), SemError::SuperfluousOverride(name));
+                .report(fct.file_id, fct.pos(), SemError::SuperfluousOverride(name));
         }
 
         None

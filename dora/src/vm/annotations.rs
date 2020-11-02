@@ -1,4 +1,4 @@
-use crate::ty::BuiltinType;
+use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{FileId, TypeParam};
 use dora_parser::ast::{AnnotationParam, Modifier};
@@ -37,10 +37,10 @@ impl GrowableVec<RwLock<Annotation>> {
 #[derive(Debug)]
 pub struct Annotation {
     pub id: AnnotationId,
-    pub file: FileId,
+    pub file_id: FileId,
     pub pos: Position,
     pub name: Name,
-    pub ty: BuiltinType,
+    pub ty: SourceType,
     pub internal: Option<Modifier>,
 
     pub type_params: Option<Vec<TypeParam>>,

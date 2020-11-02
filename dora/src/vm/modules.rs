@@ -44,7 +44,7 @@ pub static DISPLAY_SIZE: usize = 6;
 #[derive(Debug)]
 pub struct Module {
     pub id: ModuleId,
-    pub file: FileId,
+    pub file_id: FileId,
     pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,

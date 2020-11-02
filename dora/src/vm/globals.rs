@@ -1,5 +1,3 @@
-use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
 use parking_lot::RwLock;
 use std::sync::Arc;
 
@@ -8,6 +6,10 @@ use crate::mem;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{FctId, FileId, NamespaceId, VM};
+
+use dora_parser::ast;
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlobalId(u32);
@@ -27,7 +29,8 @@ impl From<u32> for GlobalId {
 #[derive(Debug)]
 pub struct GlobalData {
     pub id: GlobalId,
-    pub file: FileId,
+    pub file_id: FileId,
+    pub ast: Arc<ast::Global>,
     pub pos: Position,
     pub namespace_id: Option<NamespaceId>,
     pub ty: SourceType,

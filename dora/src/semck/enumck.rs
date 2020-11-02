@@ -17,7 +17,7 @@ pub fn check(vm: &VM) {
 
         let mut enumck = EnumCheck {
             vm,
-            file_id: xenum.file,
+            file_id: xenum.file_id,
             ast: &ast,
             xenum: &mut *xenum,
         };
@@ -72,7 +72,7 @@ impl<'x> EnumCheck<'x> {
             if result.is_some() {
                 let name = self.vm.interner.str(value.name).to_string();
                 self.vm.diag.lock().report(
-                    self.xenum.file,
+                    self.xenum.file_id,
                     value.pos,
                     SemError::ShadowEnumValue(name),
                 );
@@ -87,7 +87,7 @@ impl<'x> EnumCheck<'x> {
             self.vm
                 .diag
                 .lock()
-                .report(self.xenum.file, self.ast.pos, SemError::NoEnumValue);
+                .report(self.xenum.file_id, self.ast.pos, SemError::NoEnumValue);
         }
 
         symtable.pop_level();

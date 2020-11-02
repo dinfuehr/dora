@@ -1,80 +1,75 @@
-use std::sync::Arc;
-
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::SourceType;
-use crate::vm::{NodeMap, StructFieldData, StructId, VM};
+use crate::vm::{FileId, NamespaceId, StructFieldData, StructId, VM};
 
 use dora_parser::ast;
-use dora_parser::ast::visit::{self, Visitor};
 
-pub fn check(vm: &mut VM, map_struct_defs: &NodeMap<StructId>) {
-    let mut clsck = StructCheck {
-        vm,
-        struct_id: None,
-        map_struct_defs,
-    };
+pub fn check(vm: &VM) {
+    for xstruct in vm.structs.iter() {
+        let (struct_id, file_id, ast, namespace_id) = {
+            let xstruct = xstruct.read();
+            (
+                xstruct.id,
+                xstruct.file_id,
+                xstruct.ast.clone(),
+                xstruct.namespace_id,
+            )
+        };
 
-    clsck.check();
+        let mut clsck = StructCheck {
+            vm,
+            struct_id,
+            file_id,
+            ast: &ast,
+            namespace_id,
+        };
+
+        clsck.check();
+    }
 }
 
 struct StructCheck<'x> {
-    vm: &'x mut VM,
-    map_struct_defs: &'x NodeMap<StructId>,
-
-    struct_id: Option<StructId>,
+    vm: &'x VM,
+    struct_id: StructId,
+    file_id: FileId,
+    ast: &'x ast::Struct,
+    namespace_id: Option<NamespaceId>,
 }
 
 impl<'x> StructCheck<'x> {
     fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
-
-        for file in files.iter() {
-            self.visit_file(file);
+        for field in &self.ast.fields {
+            self.visit_struct_field(field);
         }
-    }
-}
-
-impl<'x> Visitor for StructCheck<'x> {
-    fn visit_struct(&mut self, s: &Arc<ast::Struct>) {
-        self.struct_id = Some(*self.map_struct_defs.get(s.id).unwrap());
-
-        visit::walk_struct(self, s);
-
-        self.struct_id = None;
     }
 
     fn visit_struct_field(&mut self, f: &ast::StructField) {
-        let id = self.struct_id.unwrap();
-        let struc = self.vm.structs.idx(id);
-        let file = struc.lock().file;
-        let namespace_id = struc.lock().namespace_id;
+        let ty = semck::read_type_namespace(self.vm, self.file_id, self.namespace_id, &f.data_type)
+            .unwrap_or(SourceType::Error);
 
-        let ty = semck::read_type_namespace(self.vm, file, namespace_id, &f.data_type)
-            .unwrap_or(SourceType::Unit);
+        let xstruct = self.vm.structs.idx(self.struct_id);
+        let mut xstruct = xstruct.write();
 
-        let mut struc = struc.lock();
-
-        for field in &struc.fields {
+        for field in &xstruct.fields {
             if field.name == f.name {
                 let name = self.vm.interner.str(f.name).to_string();
                 self.vm
                     .diag
                     .lock()
-                    .report(struc.file, f.pos, SemError::ShadowField(name));
+                    .report(self.file_id, f.pos, SemError::ShadowField(name));
                 return;
             }
         }
 
         let field = StructFieldData {
-            id: (struc.fields.len() as u32).into(),
+            id: (xstruct.fields.len() as u32).into(),
             pos: f.pos,
             name: f.name,
             ty,
         };
 
-        struc.fields.push(field);
+        xstruct.fields.push(field);
     }
 }
 

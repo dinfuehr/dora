@@ -10,9 +10,8 @@ use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::ty::{SourceType, TypeListId};
 use crate::utils::GrowableVec;
-use crate::vm::module::ModuleId;
 use crate::vm::{
-    ClassId, ExtensionId, FctSrc, FileId, ImplId, NamespaceId, TraitId, TypeParam, VM,
+    ClassId, ExtensionId, FctSrc, FileId, ImplId, ModuleId, NamespaceId, TraitId, TypeParam, VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -58,7 +57,7 @@ pub struct Fct {
     pub param_types: Vec<SourceType>,
     pub return_type: SourceType,
     pub is_constructor: bool,
-    pub file: FileId,
+    pub file_id: FileId,
     pub variadic_arguments: bool,
 
     pub vtable_index: Option<u32>,

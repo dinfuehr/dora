@@ -5,11 +5,10 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, ImplId, NodeMap, VM};
+use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, VM};
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use dora_parser::lexer::position::Position;
 
 pub fn check(vm: &VM, map_impl_defs: &NodeMap<ImplId>) {
     let mut clsck = ImplCheck {
@@ -49,7 +48,10 @@ impl<'x> ImplCheck<'x> {
 
         if i.type_params.is_some() {
             // We don't support type parameters for impl-blocks yet.
-            report(self.vm, ximpl.file, i.pos, SemError::Unimplemented);
+            self.vm
+                .diag
+                .lock()
+                .report(ximpl.file_id, i.pos, SemError::Unimplemented);
             self.impl_id = None;
             return;
         }
@@ -61,17 +63,26 @@ impl<'x> ImplCheck<'x> {
                     ximpl.trait_id = Some(trait_id);
                 } else {
                     let name = self.vm.interner.str(trait_name).to_string();
-                    report(self.vm, ximpl.file, i.pos, SemError::ExpectedTrait(name));
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(ximpl.file_id, i.pos, SemError::ExpectedTrait(name));
                 }
             } else {
                 // We don't support type parameters for traits yet.
-                report(self.vm, ximpl.file, i.pos, SemError::Unimplemented);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(ximpl.file_id, i.pos, SemError::Unimplemented);
                 self.impl_id = None;
                 return;
             }
         } else {
             // We don't support extension blocks yet.
-            report(self.vm, ximpl.file, i.pos, SemError::Unimplemented);
+            self.vm
+                .diag
+                .lock()
+                .report(ximpl.file_id, i.pos, SemError::Unimplemented);
             self.impl_id = None;
             return;
         }
@@ -85,9 +96,8 @@ impl<'x> ImplCheck<'x> {
             if class_ty.cls_id(self.vm).is_some() {
                 ximpl.class_ty = class_ty;
             } else {
-                report(
-                    self.vm,
-                    ximpl.file,
+                self.vm.diag.lock().report(
+                    ximpl.file_id,
                     i.class_type.pos(),
                     SemError::ClassExpected,
                 );
@@ -125,12 +135,10 @@ impl<'x> Visitor for ImplCheck<'x> {
         let impl_id = self.impl_id.unwrap();
 
         if f.block.is_none() && !f.internal {
-            report(
-                self.vm,
-                self.file_id.into(),
-                f.pos,
-                SemError::MissingFctBody,
-            );
+            self.vm
+                .diag
+                .lock()
+                .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
         }
 
         let kind = if f.internal {
@@ -167,7 +175,7 @@ impl<'x> Visitor for ImplCheck<'x> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
-            file: self.file_id.into(),
+            file_id: self.file_id.into(),
             variadic_arguments: false,
 
             type_params: Vec::new(),
@@ -181,10 +189,6 @@ impl<'x> Visitor for ImplCheck<'x> {
         let mut ximpl = self.vm.impls[impl_id].write();
         ximpl.methods.push(fctid);
     }
-}
-
-fn report(vm: &VM, file: FileId, pos: Position, msg: SemError) {
-    vm.diag.lock().report(file, pos, msg);
 }
 
 #[cfg(test)]

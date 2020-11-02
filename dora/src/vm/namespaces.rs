@@ -25,7 +25,7 @@ impl From<usize> for NamespaceId {
 #[derive(Debug)]
 pub struct NamespaceData {
     pub id: NamespaceId,
-    pub file: FileId,
+    pub file_id: FileId,
     pub pos: Position,
     pub namespace_id: Option<NamespaceId>,
     pub name: Name,

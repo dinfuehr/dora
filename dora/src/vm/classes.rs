@@ -3,6 +3,7 @@ use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::iter::Iterator;
+use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use crate::semck::specialize::replace_type_param;
@@ -11,9 +12,7 @@ use crate::sym::SymTable;
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{
-    ExtensionId, FctId, Field, FieldDef, FieldId, FileId, ImplId, NamespaceId, TraitId,
-};
+use crate::vm::{ExtensionId, FctId, FileId, ImplId, NamespaceId, TraitId};
 use crate::vtable::VTableBox;
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -51,7 +50,7 @@ pub static DISPLAY_SIZE: usize = 6;
 #[derive(Debug)]
 pub struct Class {
     pub id: ClassId,
-    pub file: FileId,
+    pub file_id: FileId,
     pub ast: Arc<ast::Class>,
     pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
@@ -467,4 +466,52 @@ impl ClassDef {
             "<Unknown>".into()
         }
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct FieldId(usize);
+
+impl FieldId {
+    pub fn idx(self) -> usize {
+        self.0
+    }
+
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for FieldId {
+    fn from(data: usize) -> FieldId {
+        FieldId(data)
+    }
+}
+
+#[derive(Debug)]
+pub struct Field {
+    pub id: FieldId,
+    pub name: Name,
+    pub ty: SourceType,
+    pub offset: i32,
+    pub reassignable: bool,
+}
+
+impl Index<FieldId> for Vec<Field> {
+    type Output = Field;
+
+    fn index(&self, index: FieldId) -> &Field {
+        &self[index.0]
+    }
+}
+
+impl IndexMut<FieldId> for Vec<Field> {
+    fn index_mut(&mut self, index: FieldId) -> &mut Field {
+        &mut self[index.0]
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldDef {
+    pub offset: i32,
+    pub ty: SourceType,
 }

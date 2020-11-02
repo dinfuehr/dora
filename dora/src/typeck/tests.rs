@@ -1010,49 +1010,49 @@ fn test_const_values() {
             {
                 let id = vm.const_by_name("yes");
                 let xconst = vm.consts.idx(id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
                 assert_eq!(ConstValue::Bool(true), xconst.value);
             }
 
             {
                 let id = vm.const_by_name("x");
                 let xconst = vm.consts.idx(id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
                 assert_eq!(ConstValue::Int(255), xconst.value);
             }
 
             {
                 let id = vm.const_by_name("a");
                 let xconst = vm.consts.idx(id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
                 assert_eq!(ConstValue::Int(100), xconst.value);
             }
 
             {
                 let id = vm.const_by_name("b");
                 let xconst = vm.consts.idx(id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
                 assert_eq!(ConstValue::Int(200), xconst.value);
             }
 
             {
                 let id = vm.const_by_name("c");
                 let xconst = vm.consts.idx(id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
                 assert_eq!(ConstValue::Char('A'), xconst.value);
             }
 
             {
                 let id = vm.const_by_name("d");
                 let xconst = vm.consts.idx(id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
                 assert_eq!(ConstValue::Float(3.0), xconst.value);
             }
 
             {
                 let id = vm.const_by_name("e");
                 let xconst = vm.consts.idx(id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
                 assert_eq!(ConstValue::Float(6.0), xconst.value);
             }
         },

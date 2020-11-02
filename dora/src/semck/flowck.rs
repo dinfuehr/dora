@@ -51,7 +51,7 @@ impl<'a> FlowCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.fct.file, s.pos(), SemError::OutsideLoop);
+                .report(self.fct.file_id, s.pos(), SemError::OutsideLoop);
         }
     }
 }

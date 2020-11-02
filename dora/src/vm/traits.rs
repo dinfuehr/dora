@@ -21,7 +21,7 @@ impl From<u32> for TraitId {
 #[derive(Debug)]
 pub struct TraitData {
     pub id: TraitId,
-    pub file: FileId,
+    pub file_id: FileId,
     pub namespace_id: Option<NamespaceId>,
     pub ast: Arc<ast::Trait>,
     pub pos: Position,

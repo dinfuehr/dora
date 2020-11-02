@@ -6,9 +6,9 @@ use crate::sym::TermSym::{
     ClassConstructorAndModule, Const, Fct, Global, Module, StructConstructorAndModule, Var,
 };
 use crate::ty::TypeListId;
-use crate::vm::module::ModuleId;
 use crate::vm::{
-    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, NamespaceId, StructId, TraitId, VarId, VM,
+    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId, NamespaceId, StructId, TraitId,
+    VarId, VM,
 };
 use dora_parser::interner::Name;
 

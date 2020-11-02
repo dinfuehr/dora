@@ -42,11 +42,8 @@ macro_rules! return_on_error {
 
 pub fn check(vm: &mut VM) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
-    let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_impl_defs = NodeMap::new(); // get ImplId from ast node
     let mut map_module_defs = NodeMap::new(); // get ModuleId from ast node
-    let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
-    let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
     let mut map_extension_defs = NodeMap::new(); // get ExtensionId from ast node
     let mut map_namespaces = NodeMap::new(); // get NamespaceId from ast node
 
@@ -55,11 +52,8 @@ pub fn check(vm: &mut VM) {
     globaldef::check(
         vm,
         &mut map_cls_defs,
-        &mut map_struct_defs,
         &mut map_impl_defs,
         &mut map_module_defs,
-        &mut map_global_defs,
-        &mut map_const_defs,
         &mut map_extension_defs,
         &mut map_namespaces,
     );
@@ -74,10 +68,10 @@ pub fn check(vm: &mut VM) {
     // checks class/struct/trait definitions/bodies
     clsdefck::check(vm, &map_cls_defs);
     moduledefck::check(vm, &map_module_defs);
-    structdefck::check(vm, &map_struct_defs);
+    structdefck::check(vm);
     traitdefck::check(vm);
-    globaldefck::check(vm, &map_global_defs);
-    constdefck::check(vm, &map_const_defs);
+    globaldefck::check(vm);
+    constdefck::check(vm);
     enumck::check(vm);
     extensiondefck::check(vm, &map_extension_defs);
     importck::check(vm, &map_namespaces);
@@ -156,13 +150,13 @@ fn internalck(vm: &VM) {
         if fct.internal && !fct.internal_resolved && fct.kind.is_definition() {
             vm.diag
                 .lock()
-                .report(fct.file, fct.pos, SemError::UnresolvedInternal);
+                .report(fct.file_id, fct.pos, SemError::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() && !fct.internal {
             vm.diag
                 .lock()
-                .report(fct.file, fct.pos, SemError::MissingFctBody);
+                .report(fct.file_id, fct.pos, SemError::MissingFctBody);
         }
     }
 
@@ -172,7 +166,7 @@ fn internalck(vm: &VM) {
         if cls.internal && !cls.internal_resolved {
             vm.diag
                 .lock()
-                .report(cls.file, cls.pos, SemError::UnresolvedInternal);
+                .report(cls.file_id, cls.pos, SemError::UnresolvedInternal);
         }
 
         for method in &cls.methods {
@@ -182,13 +176,13 @@ fn internalck(vm: &VM) {
             if method.internal && !method.internal_resolved && method.kind.is_definition() {
                 vm.diag
                     .lock()
-                    .report(method.file, method.pos, SemError::UnresolvedInternal);
+                    .report(method.file_id, method.pos, SemError::UnresolvedInternal);
             }
 
             if method.kind.is_definition() && !method.is_abstract && !method.internal {
                 vm.diag
                     .lock()
-                    .report(method.file, method.pos, SemError::MissingFctBody);
+                    .report(method.file_id, method.pos, SemError::MissingFctBody);
             }
         }
     }

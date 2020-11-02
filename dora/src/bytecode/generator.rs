@@ -2502,7 +2502,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let xconst = self.vm.consts.idx(const_id);
-        let xconst = xconst.lock();
+        let xconst = xconst.read();
         let ty = xconst.ty.clone();
 
         let bytecode_ty = BytecodeType::from_ty(self.vm, ty.clone());

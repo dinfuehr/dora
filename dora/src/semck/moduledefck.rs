@@ -6,8 +6,7 @@ use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::{SourceType, TypeList};
 
-use crate::vm::module::ModuleId;
-use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, Field, NodeMap, VM};
+use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, Field, ModuleId, NodeMap, VM};
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::interner::Name;
@@ -54,7 +53,7 @@ impl<'x> ModuleCheck<'x> {
                 self.vm
                     .diag
                     .lock()
-                    .report(module.file, pos, SemError::ShadowField(name));
+                    .report(module.file_id, pos, SemError::ShadowField(name));
             }
         }
 
@@ -212,7 +211,7 @@ impl<'x> Visitor for ModuleCheck<'x> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
-            file: self.file_id.into(),
+            file_id: self.file_id.into(),
             variadic_arguments: false,
 
             type_params: Vec::new(),
@@ -268,7 +267,7 @@ impl<'x> Visitor for ModuleCheck<'x> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
-            file: self.file_id.into(),
+            file_id: self.file_id.into(),
 
             type_params: Vec::new(),
             kind,

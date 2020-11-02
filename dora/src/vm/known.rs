@@ -2,8 +2,7 @@ use parking_lot::Mutex;
 
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{SourceType, TypeList};
-use crate::vm::module::ModuleId;
-use crate::vm::{ClassDefId, ClassId, EnumId, FctId, TraitId, VM};
+use crate::vm::{ClassDefId, ClassId, EnumId, FctId, ModuleId, TraitId, VM};
 
 #[derive(Debug)]
 pub struct KnownElements {

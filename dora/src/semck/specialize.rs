@@ -1,4 +1,4 @@
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
@@ -43,7 +43,7 @@ pub enum SpecializeFor {
 
 pub fn specialize_struct_id(vm: &VM, struct_id: StructId) -> StructDefId {
     let struc = vm.structs.idx(struct_id);
-    let struc = struc.lock();
+    let struc = struc.read();
     specialize_struct(vm, &*struc, TypeList::empty())
 }
 
@@ -53,7 +53,7 @@ pub fn specialize_struct_id_params(
     type_params: TypeList,
 ) -> StructDefId {
     let struc = vm.structs.idx(struct_id);
-    let struc = struc.lock();
+    let struc = struc.read();
     specialize_struct(vm, &*struc, type_params)
 }
 
@@ -76,7 +76,7 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
             .insert(type_params.clone(), id);
         assert!(old.is_none());
 
-        struct_defs.push(Arc::new(Mutex::new(StructDef {
+        struct_defs.push(Arc::new(RwLock::new(StructDef {
             size: 0,
             align: 0,
             fields: Vec::new(),
@@ -113,7 +113,7 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
     }
 
     let struct_def = vm.struct_defs.idx(id);
-    let mut struct_def = struct_def.lock();
+    let mut struct_def = struct_def.write();
     struct_def.size = size;
     struct_def.align = align;
     struct_def.fields = fields;

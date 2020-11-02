@@ -1,7 +1,9 @@
 use parking_lot::RwLock;
 
 use std::ops::Index;
+use std::sync::Arc;
 
+use dora_parser::ast;
 use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
@@ -19,7 +21,8 @@ impl From<u32> for ImplId {
 #[derive(Debug)]
 pub struct ImplData {
     pub id: ImplId,
-    pub file: FileId,
+    pub file_id: FileId,
+    pub ast: Arc<ast::Impl>,
     pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub trait_id: Option<TraitId>,

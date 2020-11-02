@@ -1,4 +1,4 @@
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use std::sync::Arc;
 
 use dora_parser::ast;
@@ -18,8 +18,8 @@ impl From<usize> for ConstId {
     }
 }
 
-impl GrowableVec<Mutex<ConstData>> {
-    pub fn idx(&self, index: ConstId) -> Arc<Mutex<ConstData>> {
+impl GrowableVec<RwLock<ConstData>> {
+    pub fn idx(&self, index: ConstId) -> Arc<RwLock<ConstData>> {
         self.idx_usize(index.0 as usize)
     }
 }
@@ -27,7 +27,8 @@ impl GrowableVec<Mutex<ConstData>> {
 #[derive(Clone, Debug)]
 pub struct ConstData {
     pub id: ConstId,
-    pub file: FileId,
+    pub file_id: FileId,
+    pub ast: Arc<ast::Const>,
     pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,

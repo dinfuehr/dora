@@ -1,58 +1,64 @@
 use parking_lot::RwLock;
-use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, GlobalId, NodeMap, VM};
-use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::Global;
+use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, GlobalId, NamespaceId, VM};
+use dora_parser::ast;
 
-pub fn check<'a>(vm: &mut VM, map_global_defs: &NodeMap<GlobalId>) {
-    let mut checker = GlobalDefCheck {
-        vm,
-        current_type: SourceType::Unit,
-        map_global_defs,
-    };
+pub fn check<'a>(vm: &VM) {
+    for global in vm.globals.iter() {
+        let (global_id, file_id, ast, namespace_id) = {
+            let global = global.read();
+            (
+                global.id,
+                global.file_id,
+                global.ast.clone(),
+                global.namespace_id,
+            )
+        };
 
-    checker.check();
+        let mut checker = GlobalDefCheck {
+            vm,
+            file_id,
+            ast: &ast,
+            namespace_id,
+            global_id,
+        };
+
+        checker.check();
+    }
 }
 
 struct GlobalDefCheck<'a> {
-    vm: &'a mut VM,
-    current_type: SourceType,
-    map_global_defs: &'a NodeMap<GlobalId>,
+    vm: &'a VM,
+    file_id: FileId,
+    namespace_id: Option<NamespaceId>,
+    global_id: GlobalId,
+    ast: &'a ast::Global,
 }
 
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
+        let ty = semck::read_type_namespace(
+            self.vm,
+            self.file_id,
+            self.namespace_id,
+            &self.ast.data_type,
+        )
+        .unwrap_or(SourceType::Error);
 
-        for file in files.iter() {
-            self.visit_file(file);
-        }
-    }
-}
-
-impl<'a> Visitor for GlobalDefCheck<'a> {
-    fn visit_global(&mut self, g: &Arc<Global>) {
-        let global_id = *self.map_global_defs.get(g.id).unwrap();
-        let glob = self.vm.globals.idx(global_id);
+        let glob = self.vm.globals.idx(self.global_id);
         let mut glob = glob.write();
-        let file = glob.file;
-
-        let ty = semck::read_type_namespace(self.vm, file, glob.namespace_id, &g.data_type)
-            .unwrap_or(SourceType::Error);
         glob.ty = ty;
 
-        if let Some(ref initializer) = g.initializer {
+        if let Some(ref initializer) = self.ast.initializer {
             let fct = Fct {
                 id: FctId(0),
                 pos: initializer.pos,
                 ast: initializer.clone(),
                 name: initializer.name,
-                namespace_id: glob.namespace_id,
+                namespace_id: self.namespace_id,
                 param_types: Vec::new(),
                 return_type: SourceType::Unit,
                 parent: FctParent::None,
@@ -72,7 +78,7 @@ impl<'a> Visitor for GlobalDefCheck<'a> {
                 vtable_index: None,
                 initialized: false,
                 impl_for: None,
-                file: file,
+                file_id: self.file_id,
                 variadic_arguments: false,
 
                 type_params: Vec::new(),
@@ -85,7 +91,7 @@ impl<'a> Visitor for GlobalDefCheck<'a> {
             glob.initializer = Some(fct_id);
         } else {
             let msg = SemError::LetMissingInitialization;
-            self.vm.diag.lock().report(file, g.pos, msg);
+            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
         }
     }
 }

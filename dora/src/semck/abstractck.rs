@@ -61,7 +61,7 @@ pub fn check_abstract(
             let mtd_name = vm.interner.str(mtd.name).to_string();
 
             vm.diag.lock().report(
-                cls.file,
+                cls.file_id,
                 cls.pos,
                 SemError::MissingAbstractOverride(cls_name, mtd_name),
             );

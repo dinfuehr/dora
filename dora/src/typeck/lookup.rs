@@ -8,7 +8,7 @@ use crate::vm::{
     TraitId, TypeParam, VM,
 };
 
-use crate::vm::module::find_methods_in_module;
+use crate::vm::find_methods_in_module;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -47,7 +47,7 @@ impl<'a> MethodLookup<'a> {
         MethodLookup {
             vm,
             caller,
-            file: caller.file,
+            file: caller.file_id,
             kind: None,
             name: None,
             args: None,

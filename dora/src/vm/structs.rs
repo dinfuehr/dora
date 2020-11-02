@@ -1,7 +1,8 @@
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use std::collections::hash_map::HashMap;
 use std::sync::Arc;
 
+use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -12,8 +13,8 @@ use crate::vm::{FileId, NamespaceId, TypeList};
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
 
-impl GrowableVec<Mutex<StructData>> {
-    pub fn idx(&self, index: StructId) -> Arc<Mutex<StructData>> {
+impl GrowableVec<RwLock<StructData>> {
+    pub fn idx(&self, index: StructId) -> Arc<RwLock<StructData>> {
         self.idx_usize(index.0 as usize)
     }
 }
@@ -27,7 +28,8 @@ impl From<u32> for StructId {
 #[derive(Debug)]
 pub struct StructData {
     pub id: StructId,
-    pub file: FileId,
+    pub file_id: FileId,
+    pub ast: Arc<ast::Struct>,
     pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,
@@ -61,8 +63,8 @@ impl From<usize> for StructDefId {
     }
 }
 
-impl GrowableVec<Mutex<StructDef>> {
-    pub fn idx(&self, index: StructDefId) -> Arc<Mutex<StructDef>> {
+impl GrowableVec<RwLock<StructDef>> {
+    pub fn idx(&self, index: StructDefId) -> Arc<RwLock<StructDef>> {
         self.idx_usize(index.0)
     }
 }

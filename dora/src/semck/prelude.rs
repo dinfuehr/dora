@@ -9,8 +9,9 @@ use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
 use crate::ty::{SourceType, TypeList};
-use crate::vm::module::ModuleId;
-use crate::vm::{ClassDef, ClassDefId, ClassId, EnumId, FctId, FctKind, Intrinsic, TraitId, VM};
+use crate::vm::{
+    ClassDef, ClassDefId, ClassId, EnumId, FctId, FctKind, Intrinsic, ModuleId, TraitId, VM,
+};
 use crate::vtable::VTableBox;
 
 pub fn internal_classes(vm: &mut VM) {

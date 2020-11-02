@@ -155,9 +155,13 @@ impl<'a> TypeCheck<'a> {
                 Some(TermSym::Fct(_)) | None => {
                     self.symtable.insert_term(param.name, TermSym::Var(var_id));
                 }
-                Some(conflict_sym) => {
-                    report_term_shadow(self.vm, param.name, self.fct.file, param.pos, conflict_sym)
-                }
+                Some(conflict_sym) => report_term_shadow(
+                    self.vm,
+                    param.name,
+                    self.fct.file_id,
+                    param.pos,
+                    conflict_sym,
+                ),
             }
         }
     }
@@ -211,7 +215,7 @@ impl<'a> TypeCheck<'a> {
         let var_id = self.add_var(var);
         match self.symtable.insert_term(name, TermSym::Var(var_id)) {
             Some(TermSym::Var(_)) | None => {}
-            Some(sym) => report_term_shadow(self.vm, name, self.fct.file, pos, sym),
+            Some(sym) => report_term_shadow(self.vm, name, self.fct.file_id, pos, sym),
         }
         var_id
     }
@@ -287,7 +291,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn read_type(&mut self, t: &Type) -> SourceType {
-        read_type_table(self.vm, &self.symtable, self.fct.file, t).unwrap_or(SourceType::Error)
+        read_type_table(self.vm, &self.symtable, self.fct.file_id, t).unwrap_or(SourceType::Error)
     }
 
     fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: SourceType, reassignable: bool) {
@@ -649,7 +653,7 @@ impl<'a> TypeCheck<'a> {
 
             (Some(TermSym::Const(const_id)), _) => {
                 let xconst = self.vm.consts.idx(const_id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
 
                 self.src.set_ty(e.id, xconst.ty.clone());
 
@@ -684,10 +688,11 @@ impl<'a> TypeCheck<'a> {
 
             (None, None) => {
                 let name = self.vm.interner.str(e.name).to_string();
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.fct.file, e.pos, SemError::UnknownIdentifier(name));
+                self.vm.diag.lock().report(
+                    self.fct.file_id,
+                    e.pos,
+                    SemError::UnknownIdentifier(name),
+                );
                 SourceType::Error
             }
 
@@ -695,7 +700,7 @@ impl<'a> TypeCheck<'a> {
                 self.vm
                     .diag
                     .lock()
-                    .report(self.fct.file, e.pos, SemError::ValueExpected);
+                    .report(self.fct.file_id, e.pos, SemError::ValueExpected);
                 SourceType::Error
             }
         }
@@ -762,7 +767,7 @@ impl<'a> TypeCheck<'a> {
             (None, None) => {
                 let name = self.vm.interner.str(lhs_ident.name).to_string();
                 self.vm.diag.lock().report(
-                    self.fct.file,
+                    self.fct.file_id,
                     lhs_ident.pos,
                     SemError::UnknownIdentifier(name),
                 );
@@ -771,10 +776,11 @@ impl<'a> TypeCheck<'a> {
             }
 
             (_, _) => {
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.fct.file, lhs_ident.pos, SemError::LvalueExpected);
+                self.vm.diag.lock().report(
+                    self.fct.file_id,
+                    lhs_ident.pos,
+                    SemError::LvalueExpected,
+                );
 
                 return;
             }
@@ -2033,7 +2039,7 @@ impl<'a> TypeCheck<'a> {
 
             (Some(TermSym::Const(const_id)), _) => {
                 let xconst = self.vm.consts.idx(const_id);
-                let xconst = xconst.lock();
+                let xconst = xconst.read();
 
                 self.src.set_ty(e.id, xconst.ty.clone());
 
@@ -2056,7 +2062,7 @@ impl<'a> TypeCheck<'a> {
                 let namespace = namespace.name(self.vm);
                 let name = self.vm.interner.str(element_name).to_string();
                 self.vm.diag.lock().report(
-                    self.fct.file,
+                    self.fct.file_id,
                     e.pos,
                     SemError::UnknownIdentifierInNamespace(namespace, name),
                 );
@@ -2067,7 +2073,7 @@ impl<'a> TypeCheck<'a> {
                 self.vm
                     .diag
                     .lock()
-                    .report(self.fct.file, e.pos, SemError::ValueExpected);
+                    .report(self.fct.file_id, e.pos, SemError::ValueExpected);
                 SourceType::Error
             }
         }
