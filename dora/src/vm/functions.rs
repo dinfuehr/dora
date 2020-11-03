@@ -1,5 +1,6 @@
 use parking_lot::RwLock;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use dora_parser::ast;
@@ -7,11 +8,13 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType};
+use crate::compiler::fct::JitFctId;
 use crate::gc::Address;
-use crate::ty::{SourceType, TypeListId};
+use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    ClassId, ExtensionId, FctSrc, FileId, ImplId, ModuleId, NamespaceId, TraitId, TypeParam, VM,
+    AnalysisData, ClassId, ExtensionId, FileId, ImplId, ModuleId, NamespaceId, TraitId, TypeParam,
+    VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -63,6 +66,7 @@ pub struct Fct {
     pub vtable_index: Option<u32>,
     pub impl_for: Option<FctId>,
     pub initialized: bool,
+    pub specializations: RwLock<HashMap<TypeList, JitFctId>>,
 
     pub type_params: Vec<TypeParam>,
     pub kind: FctKind,
@@ -283,7 +287,7 @@ impl Fct {
         self.pos
     }
 
-    pub fn src(&self) -> &RwLock<FctSrc> {
+    pub fn src(&self) -> &RwLock<AnalysisData> {
         match self.kind {
             FctKind::Source(ref src) => src,
             _ => panic!("source expected"),
@@ -349,7 +353,7 @@ impl FctParent {
 
 #[derive(Debug)]
 pub enum FctKind {
-    Source(RwLock<FctSrc>),
+    Source(RwLock<AnalysisData>),
     Definition,
     Native(Address),
 }

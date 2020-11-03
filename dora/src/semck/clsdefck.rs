@@ -1,5 +1,5 @@
 use parking_lot::RwLock;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -8,47 +8,191 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::sym::{SymTable, SymTables, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
-    ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM,
+    AnalysisData, ClassId, Fct, FctId, FctKind, FctParent, Field, FieldId, FileId, NamespaceId, VM,
 };
 
 use dora_parser::ast;
-use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check(vm: &VM, map_cls_defs: &NodeMap<ClassId>) {
-    let mut clsck = ClsDefCheck {
-        vm,
-        cls_id: None,
-        map_cls_defs,
-        file_id: 0,
-        sym: None,
-    };
+pub fn check(vm: &VM) {
+    for cls in vm.classes.iter() {
+        let (cls_id, file_id, ast, namespace_id) = {
+            let cls = cls.read();
+            (cls.id, cls.file_id, cls.ast.clone(), cls.namespace_id)
+        };
 
-    clsck.check();
+        let mut clsck = ClsDefCheck {
+            vm,
+            cls_id,
+            file_id,
+            ast: &ast,
+            namespace_id,
+            sym: SymTables::current(vm, namespace_id),
+        };
+
+        clsck.check();
+    }
 }
 
 struct ClsDefCheck<'x> {
     vm: &'x VM,
-    map_cls_defs: &'x NodeMap<ClassId>,
-    file_id: u32,
-    sym: Option<SymTables<'x>>,
-
-    cls_id: Option<ClassId>,
+    cls_id: ClassId,
+    file_id: FileId,
+    ast: &'x ast::Class,
+    namespace_id: Option<NamespaceId>,
+    sym: SymTables<'x>,
 }
 
 impl<'x> ClsDefCheck<'x> {
     fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
+        self.sym.push_level();
 
-        for file in files.iter() {
-            self.visit_file(file);
+        if let Some(ref type_params) = self.ast.type_params {
+            self.check_type_params(type_params);
+        }
+
+        for field in &self.ast.fields {
+            self.visit_field(field);
+        }
+
+        if let Some(ctor) = &self.ast.constructor {
+            self.visit_ctor(ctor);
+        }
+
+        for method in &self.ast.methods {
+            self.visit_method(method);
+        }
+
+        if let Some(ref parent_class) = self.ast.parent_class {
+            self.check_parent_class(parent_class);
+        } else {
+            self.use_object_class_as_parent();
+        }
+
+        self.sym.pop_level();
+    }
+
+    fn visit_field(&mut self, f: &ast::Field) {
+        let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
+            .unwrap_or(SourceType::Error);
+        self.add_field(f.pos, f.name, ty, f.reassignable);
+
+        if !f.primary_ctor && f.expr.is_none() {
+            self.vm.diag.lock().report(
+                self.file_id.into(),
+                f.pos,
+                SemError::LetMissingInitialization,
+            );
         }
     }
 
+    fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
+        let kind = if f.block.is_some() {
+            FctKind::Source(RwLock::new(AnalysisData::new()))
+        } else {
+            FctKind::Definition
+        };
+
+        let fct = Fct {
+            id: FctId(0),
+            pos: f.pos,
+            ast: f.clone(),
+            name: f.name,
+            namespace_id: self.namespace_id,
+            param_types: Vec::new(),
+            return_type: SourceType::Unit,
+            parent: FctParent::Class(self.cls_id),
+            has_override: f.has_override,
+            has_open: f.has_open,
+            has_final: f.has_final,
+            has_optimize_immediately: f.has_optimize_immediately,
+            is_pub: true,
+            is_static: false,
+            is_abstract: false,
+            is_test: f.is_test,
+            use_cannon: f.use_cannon,
+            internal: f.internal,
+            internal_resolved: false,
+            overrides: None,
+            is_constructor: f.is_constructor,
+            vtable_index: None,
+            initialized: false,
+            impl_for: None,
+            file_id: self.file_id.into(),
+            variadic_arguments: false,
+            specializations: RwLock::new(HashMap::new()),
+
+            type_params: Vec::new(),
+            kind,
+            bytecode: None,
+            intrinsic: None,
+        };
+
+        let fctid = self.vm.add_fct(fct);
+
+        let cls = self.vm.classes.idx(self.cls_id);
+        let mut cls = cls.write();
+        cls.constructor = Some(fctid);
+    }
+
+    fn visit_method(&mut self, f: &Arc<ast::Function>) {
+        let kind = if f.block.is_some() {
+            FctKind::Source(RwLock::new(AnalysisData::new()))
+        } else {
+            FctKind::Definition
+        };
+
+        let fct = Fct {
+            id: FctId(0),
+            ast: f.clone(),
+            pos: f.pos,
+            name: f.name,
+            namespace_id: self.namespace_id,
+            param_types: Vec::new(),
+            return_type: SourceType::Unit,
+            parent: FctParent::Class(self.cls_id),
+            has_override: f.has_override,
+            has_optimize_immediately: f.has_optimize_immediately,
+            variadic_arguments: false,
+
+            // abstract for methods also means that method is open to override
+            has_open: f.has_open || f.is_abstract,
+            has_final: f.has_final,
+            is_pub: f.is_pub,
+            is_static: f.is_static,
+            is_abstract: f.is_abstract,
+            is_test: f.is_test,
+            use_cannon: f.use_cannon,
+            internal: f.internal,
+            internal_resolved: false,
+            overrides: None,
+            is_constructor: false,
+            vtable_index: None,
+            initialized: false,
+            impl_for: None,
+            file_id: self.file_id.into(),
+            specializations: RwLock::new(HashMap::new()),
+
+            type_params: Vec::new(),
+            kind,
+            bytecode: None,
+            intrinsic: None,
+        };
+
+        let fctid = self.vm.add_fct(fct);
+
+        let cls = self.vm.classes.idx(self.cls_id);
+        let mut cls = cls.write();
+
+        self.check_if_symbol_exists(f.name, f.pos, &cls.table);
+        cls.table.insert_term(f.name, TermSym::Fct(fctid));
+
+        cls.methods.push(fctid);
+    }
+
     fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, reassignable: bool) {
-        let cls = self.vm.classes.idx(self.cls_id.unwrap());
+        let cls = self.vm.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
         let fid: FieldId = cls.fields.len().into();
@@ -67,8 +211,8 @@ impl<'x> ClsDefCheck<'x> {
         cls.table.insert_term(name, TermSym::Field(fid));
     }
 
-    fn check_type_params(&mut self, c: &ast::Class, type_params: &[ast::TypeParam]) {
-        let cls = self.vm.classes.idx(self.cls_id.unwrap());
+    fn check_type_params(&mut self, type_params: &[ast::TypeParam]) {
+        let cls = self.vm.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
         if type_params.len() > 0 {
@@ -86,12 +230,7 @@ impl<'x> ClsDefCheck<'x> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type_table(
-                        self.vm,
-                        self.sym.as_ref().unwrap(),
-                        cls.file_id,
-                        bound,
-                    );
+                    let ty = semck::read_type_table(self.vm, &self.sym, cls.file_id, bound);
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {
@@ -113,7 +252,7 @@ impl<'x> ClsDefCheck<'x> {
                 }
 
                 let sym = TypeSym::TypeParam(type_param_id.into());
-                self.sym.as_mut().unwrap().insert_type(type_param.name, sym);
+                self.sym.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
 
@@ -122,13 +261,13 @@ impl<'x> ClsDefCheck<'x> {
             cls.ty = SourceType::Class(cls.id, list_id);
         } else {
             let msg = SemError::TypeParamsExpected;
-            self.vm.diag.lock().report(cls.file_id, c.pos, msg);
+            self.vm.diag.lock().report(cls.file_id, self.ast.pos, msg);
         }
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
         let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.sym.as_mut().unwrap().get_type(parent_class.name);
+        let sym = self.sym.get_type(parent_class.name);
 
         match sym {
             Some(TypeSym::Class(cls_id)) => {
@@ -146,13 +285,8 @@ impl<'x> ClsDefCheck<'x> {
                 let mut types = Vec::new();
 
                 for tp in &parent_class.type_params {
-                    let ty = semck::read_type_table(
-                        self.vm,
-                        self.sym.as_ref().unwrap(),
-                        self.file_id.into(),
-                        tp,
-                    )
-                    .unwrap_or(SourceType::Error);
+                    let ty = semck::read_type_table(self.vm, &self.sym, self.file_id, tp)
+                        .unwrap_or(SourceType::Error);
                     types.push(ty);
                 }
 
@@ -160,7 +294,7 @@ impl<'x> ClsDefCheck<'x> {
                 let list_id = self.vm.lists.lock().insert(list);
 
                 let super_class = SourceType::Class(cls_id, list_id);
-                let cls = self.vm.classes.idx(self.cls_id.unwrap());
+                let cls = self.vm.classes.idx(self.cls_id);
                 let mut cls = cls.write();
                 cls.parent_class = Some(super_class);
             }
@@ -177,10 +311,9 @@ impl<'x> ClsDefCheck<'x> {
 
     fn use_object_class_as_parent(&mut self) {
         let object_cls = self.vm.known.classes.object;
-        let cls_id = self.cls_id.unwrap();
 
-        if cls_id != object_cls {
-            let cls = self.vm.classes.idx(cls_id);
+        if self.cls_id != object_cls {
+            let cls = self.vm.classes.idx(self.cls_id);
             let mut cls = cls.write();
 
             let list = TypeList::empty();
@@ -218,232 +351,14 @@ impl<'x> ClsDefCheck<'x> {
     }
 }
 
-impl<'x> Visitor for ClsDefCheck<'x> {
-    fn visit_file(&mut self, f: &ast::File) {
-        visit::walk_file(self, f);
-        self.file_id += 1;
-    }
+pub fn check_super_definition(vm: &VM) {
+    for cls in vm.classes.iter() {
+        let cls = cls.read();
 
-    fn visit_class(&mut self, c: &Arc<ast::Class>) {
-        self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
-
-        let namespace_id = self
-            .vm
-            .classes
-            .idx(self.cls_id.unwrap())
-            .read()
-            .namespace_id;
-
-        self.sym = Some(SymTables::current(self.vm, namespace_id));
-        self.sym.as_mut().unwrap().push_level();
-
-        if let Some(ref type_params) = c.type_params {
-            self.check_type_params(c, type_params);
+        if let Some(ref parent_class) = &cls.ast.parent_class {
+            let error = ErrorReporting::Yes(cls.file_id, parent_class.pos);
+            typeparamck::check_super(vm, &*cls, error);
         }
-
-        visit::walk_class(self, c);
-
-        if let Some(ref parent_class) = c.parent_class {
-            self.check_parent_class(parent_class);
-        } else {
-            self.use_object_class_as_parent();
-        }
-
-        self.cls_id = None;
-        self.sym.as_mut().unwrap().pop_level();
-    }
-
-    fn visit_module(&mut self, _: &ast::Module) {}
-
-    fn visit_field(&mut self, f: &ast::Field) {
-        let ty = semck::read_type_table(
-            self.vm,
-            self.sym.as_ref().unwrap(),
-            self.file_id.into(),
-            &f.data_type,
-        )
-        .unwrap_or(SourceType::Error);
-        self.add_field(f.pos, f.name, ty, f.reassignable);
-
-        if !f.primary_ctor && f.expr.is_none() {
-            self.vm.diag.lock().report(
-                self.file_id.into(),
-                f.pos,
-                SemError::LetMissingInitialization,
-            );
-        }
-    }
-
-    fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
-        let clsid = self.cls_id.unwrap();
-
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(FctSrc::new()))
-        } else {
-            FctKind::Definition
-        };
-
-        let namespace_id = self
-            .vm
-            .classes
-            .idx(self.cls_id.unwrap())
-            .read()
-            .namespace_id;
-
-        let fct = Fct {
-            id: FctId(0),
-            pos: f.pos,
-            ast: f.clone(),
-            name: f.name,
-            namespace_id,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Class(clsid),
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: true,
-            is_static: false,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: f.is_constructor,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            variadic_arguments: false,
-
-            type_params: Vec::new(),
-            kind,
-            bytecode: None,
-            intrinsic: None,
-        };
-
-        let fctid = self.vm.add_fct(fct);
-
-        let cls = self.vm.classes.idx(self.cls_id.unwrap());
-        let mut cls = cls.write();
-        cls.constructor = Some(fctid);
-    }
-
-    fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        if self.cls_id.is_none() {
-            return;
-        }
-
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(FctSrc::new()))
-        } else {
-            FctKind::Definition
-        };
-
-        let namespace_id = self
-            .vm
-            .classes
-            .idx(self.cls_id.unwrap())
-            .read()
-            .namespace_id;
-
-        let fct = Fct {
-            id: FctId(0),
-            ast: f.clone(),
-            pos: f.pos,
-            name: f.name,
-            namespace_id,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Class(self.cls_id.unwrap()),
-            has_override: f.has_override,
-            has_optimize_immediately: f.has_optimize_immediately,
-            variadic_arguments: false,
-
-            // abstract for methods also means that method is open to override
-            has_open: f.has_open || f.is_abstract,
-            has_final: f.has_final,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: f.is_abstract,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-
-            type_params: Vec::new(),
-            kind,
-            bytecode: None,
-            intrinsic: None,
-        };
-
-        let fctid = self.vm.add_fct(fct);
-
-        let cls = self.vm.classes.idx(self.cls_id.unwrap());
-        let mut cls = cls.write();
-
-        self.check_if_symbol_exists(f.name, f.pos, &cls.table);
-        cls.table.insert_term(f.name, TermSym::Fct(fctid));
-
-        cls.methods.push(fctid);
-    }
-}
-
-pub fn check_super_definition(vm: &mut VM, map_cls_defs: &NodeMap<ClassId>) {
-    let mut clsck = ClsSuperDefinitionCheck {
-        vm,
-        cls_id: None,
-        map_cls_defs,
-        file_id: 0,
-    };
-
-    clsck.check();
-}
-
-struct ClsSuperDefinitionCheck<'x> {
-    vm: &'x mut VM,
-    map_cls_defs: &'x NodeMap<ClassId>,
-    file_id: u32,
-
-    cls_id: Option<ClassId>,
-}
-
-impl<'x> ClsSuperDefinitionCheck<'x> {
-    fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
-
-        for file in files.iter() {
-            self.visit_file(file);
-        }
-    }
-}
-
-impl<'x> Visitor for ClsSuperDefinitionCheck<'x> {
-    fn visit_file(&mut self, f: &ast::File) {
-        visit::walk_file(self, f);
-        self.file_id += 1;
-    }
-
-    fn visit_class(&mut self, c: &Arc<ast::Class>) {
-        self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
-
-        if let Some(ref parent_class) = c.parent_class {
-            let cls = self.vm.classes.idx(self.cls_id.unwrap());
-            let cls = cls.read();
-            let error = ErrorReporting::Yes(self.file_id.into(), parent_class.pos);
-            typeparamck::check_super(self.vm, &*cls, error);
-        }
-
-        self.cls_id = None;
     }
 }
 

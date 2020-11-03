@@ -1,11 +1,12 @@
 use parking_lot::RwLock;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, ImplId, NamespaceId, VM};
+use crate::vm::{AnalysisData, Fct, FctId, FctKind, FctParent, FileId, ImplId, NamespaceId, VM};
 
 use dora_parser::ast;
 
@@ -127,7 +128,7 @@ impl<'x> ImplCheck<'x> {
         let kind = if method.internal {
             FctKind::Definition
         } else {
-            FctKind::Source(RwLock::new(FctSrc::new()))
+            FctKind::Source(RwLock::new(AnalysisData::new()))
         };
 
         let parent = FctParent::Impl(self.impl_id);
@@ -159,6 +160,7 @@ impl<'x> ImplCheck<'x> {
             impl_for: None,
             file_id: self.file_id.into(),
             variadic_arguments: false,
+            specializations: RwLock::new(HashMap::new()),
 
             type_params: Vec::new(),
             kind,

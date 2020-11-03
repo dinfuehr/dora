@@ -10,7 +10,7 @@ use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
-    CallType, ConstId, EnumId, Fct, FctId, FctSrc, GlobalId, IdentType, Intrinsic, TraitId,
+    AnalysisData, CallType, ConstId, EnumId, Fct, FctId, GlobalId, IdentType, Intrinsic, TraitId,
     TupleId, VarId, VM,
 };
 
@@ -34,7 +34,12 @@ pub fn generate_fct(vm: &VM, id: FctId, type_params: &TypeList) -> BytecodeFunct
     generate(vm, &fct, &src, type_params)
 }
 
-pub fn generate(vm: &VM, fct: &Fct, src: &FctSrc, type_params: &TypeList) -> BytecodeFunction {
+pub fn generate(
+    vm: &VM,
+    fct: &Fct,
+    src: &AnalysisData,
+    type_params: &TypeList,
+) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
         fct,
@@ -58,7 +63,7 @@ pub fn generate_generic_fct(vm: &VM, id: FctId) -> BytecodeFunction {
     generate_generic(vm, &fct, &src)
 }
 
-pub fn generate_generic(vm: &VM, fct: &Fct, src: &FctSrc) -> BytecodeFunction {
+pub fn generate_generic(vm: &VM, fct: &Fct, src: &AnalysisData) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
         fct,
@@ -76,7 +81,7 @@ pub fn generate_generic(vm: &VM, fct: &Fct, src: &FctSrc) -> BytecodeFunction {
 struct AstBytecodeGen<'a> {
     vm: &'a VM,
     fct: &'a Fct,
-    src: &'a FctSrc,
+    src: &'a AnalysisData,
 
     type_params: &'a TypeList,
 

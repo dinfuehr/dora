@@ -1,6 +1,6 @@
 # Dora
 
-[![Join the chat at https://gitter.im/dora-lang/dora](https://badges.gitter.im/dora-lang/Lobby.svg)](https://gitter.im/dora-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/dinfuehr/dora.svg?branch=master)](https://travis-ci.org/dinfuehr/dora) [![Actions Status](https://github.com/dinfuehr/dora/workflows/lint-and-test/badge.svg)](https://github.com/dinfuehr/dora/actions)
+[![Join the chat at https://gitter.im/dora-lang/dora](https://badges.gitter.im/dora-lang/Lobby.svg)](https://gitter.im/dora-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Actions Status](https://github.com/dinfuehr/dora/workflows/lint-and-test/badge.svg)](https://github.com/dinfuehr/dora/actions)
 
 JIT-compiler for the programming language Dora implemented in Rust.
 Works on Linux, Windows and macOS (x86\_64 and aarch64).

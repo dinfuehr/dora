@@ -1,4 +1,3 @@
-use parking_lot::RwLock;
 use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
@@ -6,14 +5,13 @@ use std::sync::Arc;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 
-use crate::compiler::fct::JitFctId;
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId, StructId, TraitId,
 };
 
 #[derive(Debug)]
-pub struct FctSrc {
+pub struct AnalysisData {
     pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
@@ -22,33 +20,13 @@ pub struct FctSrc {
     pub map_cls: NodeMap<ClassId>,
     pub map_fors: NodeMap<ForTypeInfo>,
 
-    pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
-    pub specializations: RwLock<HashMap<TypeList, JitFctId>>,
     pub vars: Vec<Var>, // variables in functions
 }
 
-impl Clone for FctSrc {
-    fn clone(&self) -> FctSrc {
-        FctSrc {
-            map_calls: self.map_calls.clone(),
-            map_idents: self.map_idents.clone(),
-            map_tys: self.map_tys.clone(),
-            map_vars: self.map_vars.clone(),
-            map_convs: self.map_convs.clone(),
-            map_cls: self.map_cls.clone(),
-            map_fors: self.map_fors.clone(),
-
-            vars: self.vars.clone(),
-            always_returns: self.always_returns,
-            specializations: RwLock::new(HashMap::new()),
-        }
-    }
-}
-
-impl FctSrc {
-    pub fn new() -> FctSrc {
-        FctSrc {
+impl AnalysisData {
+    pub fn new() -> AnalysisData {
+        AnalysisData {
             map_calls: NodeMap::new(),
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
@@ -58,8 +36,6 @@ impl FctSrc {
             map_fors: NodeMap::new(),
 
             vars: Vec::new(),
-            always_returns: false,
-            specializations: RwLock::new(HashMap::new()),
         }
     }
 

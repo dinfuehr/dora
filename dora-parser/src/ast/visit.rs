@@ -21,7 +21,7 @@ pub trait Visitor: Sized {
         walk_class(self, c);
     }
 
-    fn visit_module(&mut self, m: &Module) {
+    fn visit_module(&mut self, m: &Arc<Module>) {
         walk_module(self, m);
     }
 
@@ -148,7 +148,7 @@ pub fn walk_class<V: Visitor>(v: &mut V, c: &Arc<Class>) {
     }
 }
 
-pub fn walk_module<V: Visitor>(v: &mut V, m: &Module) {
+pub fn walk_module<V: Visitor>(v: &mut V, m: &Arc<Module>) {
     for f in &m.fields {
         v.visit_field(f);
     }

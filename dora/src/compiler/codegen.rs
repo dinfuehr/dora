@@ -13,7 +13,7 @@ use crate::mem;
 use crate::os;
 use crate::ty::{MachineMode, TypeList};
 use crate::vm::VM;
-use crate::vm::{Fct, FctId, FctSrc};
+use crate::vm::{AnalysisData, Fct, FctId};
 
 pub fn generate(vm: &VM, id: FctId, type_params: &TypeList) -> Address {
     let fct = vm.fcts.idx(id);
@@ -24,11 +24,11 @@ pub fn generate(vm: &VM, id: FctId, type_params: &TypeList) -> Address {
     generate_fct(vm, &fct, &src, type_params)
 }
 
-pub fn generate_fct(vm: &VM, fct: &Fct, src: &FctSrc, type_params: &TypeList) -> Address {
+pub fn generate_fct(vm: &VM, fct: &Fct, src: &AnalysisData, type_params: &TypeList) -> Address {
     debug_assert!(type_params.iter().all(|ty| !ty.contains_type_param(vm)));
 
     {
-        let specials = src.specializations.read();
+        let specials = fct.specializations.read();
 
         if let Some(&jit_fct_id) = specials.get(&type_params) {
             let jit_fct = vm.jit_fcts.idx(jit_fct_id);
@@ -80,7 +80,7 @@ pub fn generate_fct(vm: &VM, fct: &Fct, src: &FctSrc, type_params: &TypeList) ->
     };
 
     {
-        let mut specials = src.specializations.write();
+        let mut specials = fct.specializations.write();
         specials.insert(type_params.clone(), jit_fct_id);
     }
 

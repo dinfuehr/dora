@@ -3,7 +3,7 @@ use parking_lot::RwLock;
 use crate::error::msg::SemError;
 use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::typeck;
-use crate::vm::{FileId, NodeMap, VM};
+use crate::vm::{FileId, VM};
 use dora_parser::ast::{Expr, ExprBlockType, Stmt};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -41,18 +41,9 @@ macro_rules! return_on_error {
 }
 
 pub fn check(vm: &mut VM) {
-    let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
-    let mut map_module_defs = NodeMap::new(); // get ModuleId from ast node
-    let mut map_namespaces = NodeMap::new(); // get NamespaceId from ast node
-
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
-    globaldef::check(
-        vm,
-        &mut map_cls_defs,
-        &mut map_module_defs,
-        &mut map_namespaces,
-    );
+    globaldef::check(vm);
     return_on_error!(vm);
 
     // define internal classes
@@ -62,19 +53,19 @@ pub fn check(vm: &mut VM) {
     impldefck::check(vm);
 
     // checks class/struct/trait definitions/bodies
-    clsdefck::check(vm, &map_cls_defs);
-    moduledefck::check(vm, &map_module_defs);
+    clsdefck::check(vm);
+    moduledefck::check(vm);
     structdefck::check(vm);
     traitdefck::check(vm);
     globaldefck::check(vm);
     constdefck::check(vm);
     enumck::check(vm);
     extensiondefck::check(vm);
-    importck::check(vm, &map_namespaces);
+    importck::check(vm);
     return_on_error!(vm);
 
     // check super class definition of classes
-    clsdefck::check_super_definition(vm, &map_cls_defs);
+    clsdefck::check_super_definition(vm);
     return_on_error!(vm);
 
     // check type definitions of params and return types in functions
@@ -92,15 +83,9 @@ pub fn check(vm: &mut VM) {
     prelude::internal_functions(vm);
     prelude::known_methods(vm);
 
-    // check types of expressions in functions
-    typeck::check(vm);
+    // check for internal functions or classes
+    internalck(vm);
     return_on_error!(vm);
-
-    // are break and continue used in the right places?
-    flowck::check(vm);
-
-    // checks if function has a return value
-    returnck::check(vm);
 
     // add size of super classes to field offsets
     superck::check(vm);
@@ -108,9 +93,12 @@ pub fn check(vm: &mut VM) {
 
     abstractck::check(vm);
 
-    // check for internal functions or classes
-    internalck(vm);
+    // check types of expressions in functions
+    typeck::check(vm);
     return_on_error!(vm);
+
+    // are break and continue used in the right places?
+    flowck::check(vm);
 }
 
 pub fn bytecode(vm: &VM) {

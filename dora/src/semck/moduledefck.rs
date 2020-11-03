@@ -1,4 +1,5 @@
 use parking_lot::RwLock;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -6,45 +7,189 @@ use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::{SourceType, TypeList};
 
-use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, Field, ModuleId, NodeMap, VM};
+use crate::vm::{
+    AnalysisData, Fct, FctId, FctKind, FctParent, Field, FileId, ModuleId, NamespaceId, VM,
+};
 use dora_parser::ast;
-use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check(vm: &VM, map_module_defs: &NodeMap<ModuleId>) {
-    let mut module_check = ModuleCheck {
-        vm,
-        sym: SymTables::global(vm),
-        module_id: None,
-        map_module_defs,
-        file_id: 0,
-    };
+pub fn check(vm: &VM) {
+    for module in vm.modules.iter() {
+        let (module_id, file_id, ast, namespace_id) = {
+            let module = module.read();
+            (
+                module.id,
+                module.file_id,
+                module.ast.clone(),
+                module.namespace_id,
+            )
+        };
 
-    module_check.check();
+        let mut module_check = ModuleCheck {
+            vm,
+            module_id,
+            file_id,
+            namespace_id,
+            ast: &ast,
+            sym: SymTables::current(vm, namespace_id),
+        };
+
+        module_check.check();
+    }
 }
 
 struct ModuleCheck<'x> {
     vm: &'x VM,
-    map_module_defs: &'x NodeMap<ModuleId>,
-    file_id: u32,
+    module_id: ModuleId,
+    namespace_id: Option<NamespaceId>,
+    file_id: FileId,
+    ast: &'x ast::Module,
     sym: SymTables<'x>,
-
-    module_id: Option<ModuleId>,
 }
 
 impl<'x> ModuleCheck<'x> {
     fn check(&mut self) {
-        let files = self.vm.files.clone();
-        let files = files.read();
+        self.sym.push_level();
 
-        for file in files.iter() {
-            self.visit_file(file);
+        for field in &self.ast.fields {
+            self.visit_field(field);
+        }
+
+        if let Some(ctor) = &self.ast.constructor {
+            self.visit_ctor(ctor);
+        }
+
+        for method in &self.ast.methods {
+            self.visit_method(method);
+        }
+
+        if let Some(ref parent_class) = self.ast.parent_class {
+            self.check_parent_class(parent_class);
+        } else {
+            self.use_object_class_as_parent();
+        }
+
+        self.sym.pop_level();
+    }
+
+    fn visit_field(&mut self, f: &ast::Field) {
+        let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
+            .unwrap_or(SourceType::Error);
+        self.add_field(f.pos, f.name, ty, f.reassignable);
+
+        if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
+            self.vm.diag.lock().report(
+                self.file_id.into(),
+                f.pos,
+                SemError::LetMissingInitialization,
+            );
         }
     }
 
+    fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
+        let kind = if f.block.is_some() {
+            FctKind::Source(RwLock::new(AnalysisData::new()))
+        } else {
+            FctKind::Definition
+        };
+
+        let fct = Fct {
+            id: FctId(0),
+            pos: f.pos,
+            ast: f.clone(),
+            name: f.name,
+            namespace_id: None,
+            param_types: Vec::new(),
+            return_type: SourceType::Unit,
+            parent: FctParent::Module(self.module_id),
+            has_override: f.has_override,
+            has_open: f.has_open,
+            has_final: f.has_final,
+            has_optimize_immediately: f.has_optimize_immediately,
+            is_pub: true,
+            is_static: false,
+            is_abstract: false,
+            is_test: f.is_test,
+            use_cannon: f.use_cannon,
+            internal: f.internal,
+            internal_resolved: false,
+            overrides: None,
+            is_constructor: f.is_constructor,
+            vtable_index: None,
+            initialized: false,
+            impl_for: None,
+            file_id: self.file_id.into(),
+            variadic_arguments: false,
+            specializations: RwLock::new(HashMap::new()),
+
+            type_params: Vec::new(),
+            kind,
+            bytecode: None,
+            intrinsic: None,
+        };
+
+        let fctid = self.vm.add_fct(fct);
+
+        let module = self.vm.modules.idx(self.module_id);
+        let mut module = module.write();
+        module.constructor = Some(fctid);
+    }
+
+    fn visit_method(&mut self, f: &Arc<ast::Function>) {
+        let kind = if f.block.is_some() {
+            FctKind::Source(RwLock::new(AnalysisData::new()))
+        } else {
+            FctKind::Definition
+        };
+
+        let fct = Fct {
+            id: FctId(0),
+            ast: f.clone(),
+            pos: f.pos,
+            name: f.name,
+            namespace_id: None,
+            param_types: Vec::new(),
+            return_type: SourceType::Unit,
+            parent: FctParent::Module(self.module_id),
+            has_override: f.has_override,
+            has_optimize_immediately: f.has_optimize_immediately,
+            variadic_arguments: false,
+
+            // abstract for methods also means that method is open to
+            // override
+            has_open: f.has_open || f.is_abstract,
+            has_final: f.has_final,
+            is_pub: f.is_pub,
+            is_static: f.is_static,
+            is_abstract: f.is_abstract,
+            is_test: f.is_test,
+            use_cannon: f.use_cannon,
+            internal: f.internal,
+            internal_resolved: false,
+            overrides: None,
+            is_constructor: false,
+            vtable_index: None,
+            initialized: false,
+            impl_for: None,
+            file_id: self.file_id.into(),
+            specializations: RwLock::new(HashMap::new()),
+
+            type_params: Vec::new(),
+            kind,
+            bytecode: None,
+            intrinsic: None,
+        };
+
+        let fctid = self.vm.add_fct(fct);
+
+        let module = self.vm.modules.idx(self.module_id);
+        let mut module = module.write();
+        module.methods.push(fctid);
+    }
+
     fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, reassignable: bool) {
-        let module = self.vm.modules.idx(self.module_id.unwrap());
+        let module = self.vm.modules.idx(self.module_id);
         let mut module = module.write();
 
         for field in &module.fields {
@@ -109,7 +254,7 @@ impl<'x> ModuleCheck<'x> {
                     let list = TypeList::with(types);
                     let list_id = self.vm.lists.lock().insert(list);
 
-                    let module = self.vm.modules.idx(self.module_id.unwrap());
+                    let module = self.vm.modules.idx(self.module_id);
                     let mut module = module.write();
                     module.parent_class = Some(SourceType::Class(cls_id, list_id));
                 }
@@ -127,159 +272,13 @@ impl<'x> ModuleCheck<'x> {
 
     fn use_object_class_as_parent(&mut self) {
         let object_cls = self.vm.known.classes.object;
-        let module_id = self.module_id.unwrap();
 
-        let module = self.vm.modules.idx(module_id);
+        let module = self.vm.modules.idx(self.module_id);
         let mut module = module.write();
 
         let list = TypeList::empty();
         let list_id = self.vm.lists.lock().insert(list);
         module.parent_class = Some(SourceType::Class(object_cls, list_id));
-    }
-}
-
-impl<'x> Visitor for ModuleCheck<'x> {
-    fn visit_file(&mut self, f: &ast::File) {
-        visit::walk_file(self, f);
-        self.file_id += 1;
-    }
-
-    fn visit_class(&mut self, _: &Arc<ast::Class>) {}
-
-    fn visit_module(&mut self, m: &ast::Module) {
-        self.module_id = Some(*self.map_module_defs.get(m.id).unwrap());
-
-        self.sym.push_level();
-
-        visit::walk_module(self, m);
-
-        if let Some(ref parent_class) = m.parent_class {
-            self.check_parent_class(parent_class);
-        } else {
-            self.use_object_class_as_parent();
-        }
-
-        self.module_id = None;
-        self.sym.pop_level();
-    }
-
-    fn visit_field(&mut self, f: &ast::Field) {
-        let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
-            .unwrap_or(SourceType::Unit);
-        self.add_field(f.pos, f.name, ty, f.reassignable);
-
-        if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
-            self.vm.diag.lock().report(
-                self.file_id.into(),
-                f.pos,
-                SemError::LetMissingInitialization,
-            );
-        }
-    }
-
-    fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
-        let module_id = self.module_id.unwrap();
-
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(FctSrc::new()))
-        } else {
-            FctKind::Definition
-        };
-
-        let fct = Fct {
-            id: FctId(0),
-            pos: f.pos,
-            ast: f.clone(),
-            name: f.name,
-            namespace_id: None,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Module(module_id),
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: true,
-            is_static: false,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: f.is_constructor,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            variadic_arguments: false,
-
-            type_params: Vec::new(),
-            kind,
-            bytecode: None,
-            intrinsic: None,
-        };
-
-        let fctid = self.vm.add_fct(fct);
-
-        let module = self.vm.modules.idx(self.module_id.unwrap());
-        let mut module = module.write();
-        module.constructor = Some(fctid);
-    }
-
-    fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        if self.module_id.is_none() {
-            return;
-        }
-
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(FctSrc::new()))
-        } else {
-            FctKind::Definition
-        };
-
-        let fct = Fct {
-            id: FctId(0),
-            ast: f.clone(),
-            pos: f.pos,
-            name: f.name,
-            namespace_id: None,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Module(self.module_id.unwrap()),
-            has_override: f.has_override,
-            has_optimize_immediately: f.has_optimize_immediately,
-            variadic_arguments: false,
-
-            // abstract for methods also means that method is open to
-            // override
-            has_open: f.has_open || f.is_abstract,
-            has_final: f.has_final,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: f.is_abstract,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-
-            type_params: Vec::new(),
-            kind,
-            bytecode: None,
-            intrinsic: None,
-        };
-
-        let fctid = self.vm.add_fct(fct);
-
-        let module = self.vm.modules.idx(self.module_id.unwrap());
-        let mut module = module.write();
-        module.methods.push(fctid);
     }
 }
 

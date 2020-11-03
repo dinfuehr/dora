@@ -9,7 +9,7 @@ use capstone::prelude::*;
 use crate::compiler::Code;
 use crate::driver::cmd::AsmSyntax;
 use crate::ty::TypeList;
-use crate::vm::{Fct, FctSrc, VM};
+use crate::vm::{AnalysisData, Fct, VM};
 
 pub fn supported() -> bool {
     true
@@ -20,7 +20,7 @@ pub fn disassemble(
     fct: &Fct,
     type_params: &TypeList,
     code: &Code,
-    fct_src: Option<&FctSrc>,
+    fct_src: Option<&AnalysisData>,
     asm_syntax: AsmSyntax,
 ) {
     let instruction_length = code.instruction_end().offset_from(code.instruction_start());

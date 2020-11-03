@@ -1,9 +1,11 @@
 use parking_lot::RwLock;
 
+use std::collections::HashMap;
+
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, GlobalId, NamespaceId, VM};
+use crate::vm::{AnalysisData, Fct, FctId, FctKind, FctParent, FileId, GlobalId, NamespaceId, VM};
 use dora_parser::ast;
 
 pub fn check<'a>(vm: &VM) {
@@ -80,9 +82,10 @@ impl<'a> GlobalDefCheck<'a> {
                 impl_for: None,
                 file_id: self.file_id,
                 variadic_arguments: false,
+                specializations: RwLock::new(HashMap::new()),
 
                 type_params: Vec::new(),
-                kind: FctKind::Source(RwLock::new(FctSrc::new())),
+                kind: FctKind::Source(RwLock::new(AnalysisData::new())),
                 bytecode: None,
                 intrinsic: None,
             };

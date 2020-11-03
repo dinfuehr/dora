@@ -8,6 +8,7 @@ use crate::utils::GrowableVec;
 use crate::vm::{FctId, Field, FieldDef, FileId, NamespaceId, TraitId, VM};
 
 use crate::vtable::VTableBox;
+use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use std::collections::HashSet;
@@ -45,6 +46,7 @@ pub static DISPLAY_SIZE: usize = 6;
 pub struct Module {
     pub id: ModuleId,
     pub file_id: FileId,
+    pub ast: Arc<ast::Module>,
     pub namespace_id: Option<NamespaceId>,
     pub pos: Position,
     pub name: Name,

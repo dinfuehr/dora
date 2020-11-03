@@ -11,9 +11,9 @@ use crate::sym::{SymTables, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
-    self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
-    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId,
-    Var, VarId, VM,
+    self, ensure_tuple, find_field_in_class, find_methods_in_class, AnalysisData, CallType,
+    ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic,
+    NamespaceId, Var, VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -26,7 +26,7 @@ pub struct TypeCheck<'a> {
     pub vm: &'a VM,
     pub fct: &'a Fct,
     pub file: FileId,
-    pub src: &'a mut FctSrc,
+    pub src: &'a mut AnalysisData,
     pub ast: &'a Function,
     pub symtable: SymTables<'a>,
 }

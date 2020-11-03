@@ -37,12 +37,15 @@ pub use self::extensions::{ExtensionData, ExtensionId};
 pub use self::functions::{Fct, FctId, FctKind, FctParent, Intrinsic};
 pub use self::globals::{init_global_addresses, GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
+pub use self::imports::ImportData;
 pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
 };
 pub use self::modules::{find_methods_in_module, Module, ModuleDef, ModuleDefId, ModuleId};
 pub use self::namespaces::{NamespaceData, NamespaceId};
-pub use self::src::{CallType, ConvInfo, FctSrc, ForTypeInfo, IdentType, NodeMap, Var, VarId};
+pub use self::src::{
+    AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
+};
 pub use self::structs::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,
 };
@@ -57,6 +60,7 @@ mod extensions;
 mod functions;
 mod globals;
 mod impls;
+mod imports;
 mod known;
 mod modules;
 mod namespaces;
@@ -111,6 +115,7 @@ pub struct VM {
     pub impls: Vec<RwLock<ImplData>>,           // stores all impl definitions
     pub code_map: Mutex<CodeMap>,               // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalData>>, // stores all global variables
+    pub imports: Vec<ImportData>,               // stores all imports
     pub gc: Gc,                                 // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lists: Mutex<TypeLists>,
@@ -150,6 +155,7 @@ impl VM {
             traits: Vec::new(),
             impls: Vec::new(),
             globals: GrowableVec::new(),
+            imports: Vec::new(),
             interner: Interner::new(),
             known: KnownElements {
                 classes: KnownClasses {

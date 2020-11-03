@@ -1,3 +1,6 @@
+use parking_lot::RwLock;
+
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -81,6 +84,7 @@ impl<'x> TraitCheck<'x> {
             impl_for: None,
             file_id: self.file_id.into(),
             variadic_arguments: false,
+            specializations: RwLock::new(HashMap::new()),
 
             type_params: Vec::new(),
             kind: FctKind::Definition,

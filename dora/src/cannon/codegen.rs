@@ -27,7 +27,7 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, TypeList};
 use crate::vm::{
-    EnumLayout, Fct, FctId, FctKind, FctSrc, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM,
+    AnalysisData, EnumLayout, Fct, FctId, FctKind, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -51,7 +51,7 @@ pub struct CannonCodeGen<'a> {
     vm: &'a VM,
     fct: &'a Fct,
     asm: BaselineAssembler<'a>,
-    src: &'a FctSrc,
+    src: &'a AnalysisData,
     bytecode: &'a BytecodeFunction,
     temporary_stack: Vec<BytecodeType>,
     temporary_stack_size: i32,
@@ -89,7 +89,7 @@ impl<'a> CannonCodeGen<'a> {
     pub fn new(
         vm: &'a VM,
         fct: &'a Fct,
-        src: &'a FctSrc,
+        src: &'a AnalysisData,
         bytecode: &'a BytecodeFunction,
         type_params: &'a TypeList,
     ) -> CannonCodeGen<'a> {
@@ -3761,18 +3761,13 @@ impl<'a> CannonCodeGen<'a> {
     fn ptr_for_fct_id(&mut self, fid: FctId, type_params: TypeList) -> Address {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(self.src, self.vm, type_params)
+            ensure_jit_or_stub_ptr(self.fct, self.vm, type_params)
         } else {
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
 
             match fct.kind {
-                FctKind::Source(_) => {
-                    let src = fct.src();
-                    let src = src.read();
-
-                    ensure_jit_or_stub_ptr(&src, self.vm, type_params)
-                }
+                FctKind::Source(_) => ensure_jit_or_stub_ptr(&fct, self.vm, type_params),
 
                 FctKind::Native(ptr) => {
                     assert!(type_params.is_empty());
@@ -5043,8 +5038,8 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
     }
 }
 
-fn ensure_jit_or_stub_ptr(src: &FctSrc, vm: &VM, type_params: TypeList) -> Address {
-    let specials = src.specializations.read();
+fn ensure_jit_or_stub_ptr(fct: &Fct, vm: &VM, type_params: TypeList) -> Address {
+    let specials = fct.specializations.read();
 
     if let Some(&jit_fct_id) = specials.get(&type_params) {
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);

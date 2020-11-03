@@ -7,30 +7,22 @@ use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{
-    self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
-    Fct, FctId, FctKind, FctParent, FctSrc, GlobalData, GlobalId, ImplData, ImplId, Module,
-    ModuleId, NamespaceData, NamespaceId, NodeMap, StructData, StructId, TraitData, TraitId,
-    TypeParam, VM,
+    self, AnalysisData, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
+    ExtensionId, Fct, FctId, FctKind, FctParent, GlobalData, GlobalId, ImplData, ImplId,
+    ImportData, Module, ModuleId, NamespaceData, NamespaceId, StructData, StructId, TraitData,
+    TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;
 
-pub fn check(
-    vm: &mut VM,
-    map_cls_defs: &mut NodeMap<ClassId>,
-    map_module_defs: &mut NodeMap<ModuleId>,
-    map_namespaces: &mut NodeMap<NamespaceId>,
-) {
+pub fn check(vm: &mut VM) {
     let files = vm.files.clone();
 
     let mut gdef = GlobalDef {
         vm,
         file_id: 0,
         namespace_id: None,
-        map_cls_defs,
-        map_module_defs,
-        map_namespaces,
     };
 
     let files = files.read();
@@ -43,9 +35,6 @@ struct GlobalDef<'x> {
     vm: &'x mut VM,
     file_id: u32,
     namespace_id: Option<NamespaceId>,
-    map_cls_defs: &'x mut NodeMap<ClassId>,
-    map_module_defs: &'x mut NodeMap<ModuleId>,
-    map_namespaces: &'x mut NodeMap<NamespaceId>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
@@ -66,7 +55,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         };
 
         self.vm.namespaces.push(namespace);
-        self.map_namespaces.insert(n.id, id);
 
         let sym = TermSym::Namespace(id);
         if let Some(sym) = self.insert_term(n.name, sym) {
@@ -97,6 +85,16 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         if let Some(sym) = self.insert_type(t.name, sym) {
             report_type_shadow(self.vm, t.name, self.file_id.into(), t.pos, sym);
         }
+    }
+
+    fn visit_import(&mut self, node: &Arc<ast::Import>) {
+        let import = ImportData {
+            namespace_id: self.namespace_id,
+            file_id: self.file_id.into(),
+            ast: node.clone(),
+        };
+
+        self.vm.imports.push(import);
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
@@ -166,22 +164,23 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_module(&mut self, m: &ast::Module) {
+    fn visit_module(&mut self, node: &Arc<ast::Module>) {
         let id = {
             let mut modules = self.vm.modules.lock();
 
             let id: ModuleId = modules.len().into();
             let module = Module {
                 id: id,
-                name: m.name,
+                name: node.name,
                 file_id: self.file_id.into(),
                 namespace_id: self.namespace_id,
-                pos: m.pos,
+                ast: node.clone(),
+                pos: node.pos,
                 ty: self.vm.modu(id),
                 parent_class: None,
-                internal: m.internal,
+                internal: node.internal,
                 internal_resolved: false,
-                has_constructor: m.has_constructor,
+                has_constructor: node.has_constructor,
 
                 constructor: None,
                 fields: Vec::new(),
@@ -196,18 +195,16 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             id
         };
 
-        self.map_module_defs.insert(m.id, id);
-
         let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
-        match level.get_term(m.name) {
+        match level.get_term(node.name) {
             None => {
-                level.insert_term(m.name, TermSym::Module(id));
+                level.insert_term(node.name, TermSym::Module(id));
             }
             Some(TermSym::ClassConstructor(class_id)) => {
-                level.insert_term(m.name, TermSym::ClassConstructorAndModule(class_id, id));
+                level.insert_term(node.name, TermSym::ClassConstructorAndModule(class_id, id));
             }
-            Some(sym) => report_term_shadow(self.vm, m.name, self.file_id.into(), m.pos, sym),
+            Some(sym) => report_term_shadow(self.vm, node.name, self.file_id.into(), node.pos, sym),
         }
     }
 
@@ -286,8 +283,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             id
         };
 
-        self.map_cls_defs.insert(c.id, id);
-
         let sym = TypeSym::Class(id);
         if let Some(sym) = self.insert_type(c.name, sym) {
             report_type_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym);
@@ -351,7 +346,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_fct(&mut self, f: &Arc<ast::Function>) {
         let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(FctSrc::new()))
+            FctKind::Source(RwLock::new(AnalysisData::new()))
         } else {
             FctKind::Definition
         };
@@ -383,6 +378,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             initialized: false,
             impl_for: None,
             variadic_arguments: false,
+            specializations: RwLock::new(HashMap::new()),
 
             type_params: Vec::new(),
             kind,

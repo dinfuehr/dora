@@ -1,56 +1,5 @@
-use crate::vm::{Fct, FctSrc, VM};
-use std::sync::Arc;
-
-use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
-
-pub fn check(vm: &VM) {
-    for fct in vm.fcts.iter() {
-        let fct = fct.read();
-
-        if !fct.is_src() {
-            continue;
-        }
-
-        let src = fct.src();
-        let mut src = src.write();
-
-        let mut returnck = ReturnCheck {
-            vm,
-            fct: &fct,
-            src: &mut src,
-        };
-
-        returnck.check();
-    }
-}
-
-struct ReturnCheck<'a> {
-    vm: &'a VM,
-    fct: &'a Fct,
-    src: &'a mut FctSrc,
-}
-
-impl<'a> ReturnCheck<'a> {
-    fn check(&mut self) {
-        self.visit_fct(&self.fct.ast);
-    }
-}
-
-impl<'a> Visitor for ReturnCheck<'a> {
-    fn visit_fct(&mut self, f: &Arc<Function>) {
-        let returns = expr_block_returns_value(f.block()).is_ok();
-
-        if returns {
-            // otherwise the function is always finished with a return statement
-            // save this information for the function, this information is useful
-            // for code generation
-
-            self.src.always_returns = true;
-        }
-    }
-}
 
 pub fn returns_value(s: &Stmt) -> Result<(), Position> {
     match *s {
@@ -102,38 +51,12 @@ fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Position> {
 mod tests {
     use crate::error::msg::SemError;
     use crate::semck::tests::*;
-    use crate::test::parse;
-
-    fn test_always_returns(code: &'static str, value: bool) {
-        parse(code, |vm| {
-            let name = vm.interner.intern("f");
-            let fct_id = vm.global_namespace.read().get_fct(name).unwrap();
-
-            let fct = vm.fcts.idx(fct_id);
-            let fct = fct.read();
-            let src = fct.src();
-            let src = src.read();
-
-            assert_eq!(value, src.always_returns);
-        });
-    }
 
     #[test]
     fn returns_unit() {
         ok("fun f() {}");
         ok("fun f() { if true { return; } }");
         ok("fun f() { while true { return; } }");
-    }
-
-    #[test]
-    fn always_returns() {
-        test_always_returns("fun f() {}", false);
-        test_always_returns("fun f() { return; }", true);
-        test_always_returns("fun f(): Int32 { return 1; }", true);
-        test_always_returns(
-            "fun f(): Int32 { if true { return 1; } else { return 2; } }",
-            true,
-        );
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use parking_lot::RwLock;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -7,7 +7,7 @@ use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{
-    EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NamespaceId, VM,
+    AnalysisData, EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FileId, NamespaceId, VM,
 };
 
 use dora_parser::ast;
@@ -101,7 +101,7 @@ impl<'x> ExtensionCheck<'x> {
         }
 
         let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(FctSrc::new()))
+            FctKind::Source(RwLock::new(AnalysisData::new()))
         } else {
             FctKind::Definition
         };
@@ -135,6 +135,7 @@ impl<'x> ExtensionCheck<'x> {
             impl_for: None,
             file_id: self.file_id.into(),
             variadic_arguments: false,
+            specializations: RwLock::new(HashMap::new()),
 
             type_params: Vec::new(),
             kind,
