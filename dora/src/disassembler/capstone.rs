@@ -9,20 +9,13 @@ use capstone::prelude::*;
 use crate::compiler::Code;
 use crate::driver::cmd::AsmSyntax;
 use crate::ty::TypeList;
-use crate::vm::{AnalysisData, Fct, VM};
+use crate::vm::{Fct, VM};
 
 pub fn supported() -> bool {
     true
 }
 
-pub fn disassemble(
-    vm: &VM,
-    fct: &Fct,
-    type_params: &TypeList,
-    code: &Code,
-    fct_src: Option<&AnalysisData>,
-    asm_syntax: AsmSyntax,
-) {
+pub fn disassemble(vm: &VM, fct: &Fct, type_params: &TypeList, code: &Code, asm_syntax: AsmSyntax) {
     let instruction_length = code.instruction_end().offset_from(code.instruction_start());
     let buf: &[u8] =
         unsafe { slice::from_raw_parts(code.instruction_start().to_ptr(), instruction_length) };
@@ -70,23 +63,6 @@ pub fn disassemble(
         &name, type_params, start_addr, end_addr
     )
     .unwrap();
-
-    if let Some(fct_src) = fct_src {
-        for var in &fct_src.vars {
-            let name = vm.interner.str(var.name);
-            writeln!(
-                &mut w,
-                "  var `{}`: type {}",
-                name,
-                var.ty.name_fct(vm, fct)
-            )
-            .unwrap();
-        }
-
-        if fct_src.vars.len() > 0 {
-            writeln!(&mut w).unwrap();
-        }
-    }
 
     for instr in instrs.iter() {
         let addr = (instr.address() - start_addr) as u32;

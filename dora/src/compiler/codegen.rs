@@ -19,7 +19,7 @@ pub fn generate(vm: &VM, id: FctId, type_params: &TypeList) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
-    let src = src.write();
+    let src = src.read();
 
     generate_fct(vm, &fct, &src, type_params)
 }
@@ -59,7 +59,6 @@ pub fn generate_fct(vm: &VM, fct: &Fct, src: &AnalysisData, type_params: &TypeLi
             &*fct,
             &type_params,
             &code,
-            Some(&src),
             vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
         );
     }
@@ -234,7 +233,6 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
                     &*fct,
                     &TypeList::empty(),
                     jit_fct.to_code().expect("still uncompiled"),
-                    None,
                     vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
                 );
             }
