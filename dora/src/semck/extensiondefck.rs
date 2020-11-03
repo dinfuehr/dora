@@ -1,5 +1,5 @@
 use parking_lot::RwLock;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -7,7 +7,7 @@ use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{
-    AnalysisData, EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FileId, NamespaceId, VM,
+    AnalysisData, EnumId, ExtensionId, Fct, FctKind, FctParent, FileId, NamespaceId, VM,
 };
 
 use dora_parser::ast;
@@ -106,42 +106,13 @@ impl<'x> ExtensionCheck<'x> {
             FctKind::Definition
         };
 
-        let parent = FctParent::Extension(self.extension_id);
-
-        let fct = Fct {
-            id: FctId(0),
-            ast: f.clone(),
-            pos: f.pos,
-            name: f.name,
-            namespace_id: None,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: parent,
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            variadic_arguments: false,
-            specializations: RwLock::new(HashMap::new()),
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.file_id,
+            self.namespace_id,
+            f,
+            FctParent::Extension(self.extension_id),
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
+        );
 
         let fct_id = self.vm.add_fct(fct);
 

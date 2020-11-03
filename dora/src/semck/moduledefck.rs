@@ -1,5 +1,4 @@
 use parking_lot::RwLock;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -7,9 +6,7 @@ use crate::semck;
 use crate::sym::{SymTables, TypeSym};
 use crate::ty::{SourceType, TypeList};
 
-use crate::vm::{
-    AnalysisData, Fct, FctId, FctKind, FctParent, Field, FileId, ModuleId, NamespaceId, VM,
-};
+use crate::vm::{AnalysisData, Fct, FctKind, FctParent, Field, FileId, ModuleId, NamespaceId, VM};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -94,41 +91,13 @@ impl<'x> ModuleCheck<'x> {
             FctKind::Definition
         };
 
-        let fct = Fct {
-            id: FctId(0),
-            pos: f.pos,
-            ast: f.clone(),
-            name: f.name,
-            namespace_id: None,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Module(self.module_id),
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: true,
-            is_static: false,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: f.is_constructor,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            variadic_arguments: false,
-            specializations: RwLock::new(HashMap::new()),
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.file_id,
+            self.namespace_id,
+            f,
+            FctParent::Module(self.module_id),
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
-
+        );
         let fctid = self.vm.add_fct(fct);
 
         let module = self.vm.modules.idx(self.module_id);
@@ -143,43 +112,13 @@ impl<'x> ModuleCheck<'x> {
             FctKind::Definition
         };
 
-        let fct = Fct {
-            id: FctId(0),
-            ast: f.clone(),
-            pos: f.pos,
-            name: f.name,
-            namespace_id: None,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Module(self.module_id),
-            has_override: f.has_override,
-            has_optimize_immediately: f.has_optimize_immediately,
-            variadic_arguments: false,
-
-            // abstract for methods also means that method is open to
-            // override
-            has_open: f.has_open || f.is_abstract,
-            has_final: f.has_final,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: f.is_abstract,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            specializations: RwLock::new(HashMap::new()),
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.file_id,
+            self.namespace_id,
+            f,
+            FctParent::Module(self.module_id),
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
+        );
 
         let fctid = self.vm.add_fct(fct);
 

@@ -8,9 +8,9 @@ use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{
     self, AnalysisData, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
-    ExtensionId, Fct, FctId, FctKind, FctParent, GlobalData, GlobalId, ImplData, ImplId,
-    ImportData, Module, ModuleId, NamespaceData, NamespaceId, StructData, StructId, TraitData,
-    TraitId, TypeParam, VM,
+    ExtensionId, Fct, FctKind, FctParent, GlobalData, GlobalId, ImplData, ImplId, ImportData,
+    Module, ModuleId, NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId,
+    TypeParam, VM,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -351,41 +351,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             FctKind::Definition
         };
 
-        let fct = Fct {
-            id: FctId(0),
-            file_id: self.file_id.into(),
-            pos: f.pos,
-            ast: f.clone(),
-            name: f.name,
-            namespace_id: self.namespace_id,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::None,
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: true,
-            is_static: false,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            variadic_arguments: false,
-            specializations: RwLock::new(HashMap::new()),
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.file_id.into(),
+            self.namespace_id,
+            f,
+            FctParent::None,
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
-
+        );
         let fctid = self.vm.add_fct(fct);
         let sym = TermSym::Fct(fctid);
 

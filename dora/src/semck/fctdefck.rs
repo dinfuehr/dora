@@ -163,6 +163,8 @@ pub fn check(vm: &VM) {
             }
 
             fct.return_type = ty;
+        } else {
+            fct.return_type = SourceType::Unit;
         }
 
         fct.initialized = true;

@@ -1,12 +1,10 @@
 use parking_lot::RwLock;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{SymTables, TypeSym};
-use crate::ty::SourceType;
-use crate::vm::{AnalysisData, Fct, FctId, FctKind, FctParent, FileId, ImplId, NamespaceId, VM};
+use crate::vm::{AnalysisData, Fct, FctKind, FctParent, FileId, ImplId, NamespaceId, VM};
 
 use dora_parser::ast;
 
@@ -133,41 +131,7 @@ impl<'x> ImplCheck<'x> {
 
         let parent = FctParent::Impl(self.impl_id);
 
-        let fct = Fct {
-            id: FctId(0),
-            ast: method.clone(),
-            pos: method.pos,
-            name: method.name,
-            namespace_id: self.namespace_id,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: parent,
-            has_override: method.has_override,
-            has_open: method.has_open,
-            has_final: method.has_final,
-            has_optimize_immediately: method.has_optimize_immediately,
-            is_pub: method.is_pub,
-            is_static: method.is_static,
-            is_abstract: false,
-            is_test: method.is_test,
-            use_cannon: method.use_cannon,
-            internal: method.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            variadic_arguments: false,
-            specializations: RwLock::new(HashMap::new()),
-
-            type_params: Vec::new(),
-            kind,
-            bytecode: None,
-            intrinsic: None,
-        };
-
+        let fct = Fct::new(self.file_id.into(), self.namespace_id, method, parent, kind);
         let fctid = self.vm.add_fct(fct);
 
         let mut ximpl = self.vm.impls[self.impl_id].write();

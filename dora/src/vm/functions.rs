@@ -75,6 +75,49 @@ pub struct Fct {
 }
 
 impl Fct {
+    pub fn new(
+        file_id: FileId,
+        namespace_id: Option<NamespaceId>,
+        ast: &Arc<ast::Function>,
+        parent: FctParent,
+        kind: FctKind,
+    ) -> Fct {
+        Fct {
+            id: FctId(0),
+            file_id,
+            pos: ast.pos,
+            ast: ast.clone(),
+            name: ast.name,
+            namespace_id,
+            param_types: Vec::new(),
+            return_type: SourceType::Error,
+            parent,
+            has_override: ast.has_override,
+            has_open: ast.has_open || ast.is_abstract,
+            has_final: ast.has_final,
+            has_optimize_immediately: ast.has_optimize_immediately,
+            is_pub: ast.is_pub,
+            is_static: ast.is_static,
+            is_abstract: ast.is_abstract,
+            is_test: ast.is_test,
+            use_cannon: ast.use_cannon,
+            internal: ast.internal,
+            internal_resolved: false,
+            overrides: None,
+            is_constructor: ast.is_constructor,
+            vtable_index: None,
+            initialized: false,
+            impl_for: None,
+            variadic_arguments: false,
+            specializations: RwLock::new(HashMap::new()),
+
+            type_params: Vec::new(),
+            kind,
+            bytecode: None,
+            intrinsic: None,
+        }
+    }
+
     pub fn type_param(&self, id: TypeListId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }

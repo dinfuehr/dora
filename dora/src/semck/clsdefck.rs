@@ -1,5 +1,5 @@
 use parking_lot::RwLock;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -8,7 +8,7 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::sym::{SymTable, SymTables, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
-    AnalysisData, ClassId, Fct, FctId, FctKind, FctParent, Field, FieldId, FileId, NamespaceId, VM,
+    AnalysisData, ClassId, Fct, FctKind, FctParent, Field, FieldId, FileId, NamespaceId, VM,
 };
 
 use dora_parser::ast;
@@ -87,47 +87,20 @@ impl<'x> ClsDefCheck<'x> {
         }
     }
 
-    fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
-        let kind = if f.block.is_some() {
+    fn visit_ctor(&mut self, node: &Arc<ast::Function>) {
+        let kind = if node.block.is_some() {
             FctKind::Source(RwLock::new(AnalysisData::new()))
         } else {
             FctKind::Definition
         };
 
-        let fct = Fct {
-            id: FctId(0),
-            pos: f.pos,
-            ast: f.clone(),
-            name: f.name,
-            namespace_id: self.namespace_id,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Class(self.cls_id),
-            has_override: f.has_override,
-            has_open: f.has_open,
-            has_final: f.has_final,
-            has_optimize_immediately: f.has_optimize_immediately,
-            is_pub: true,
-            is_static: false,
-            is_abstract: false,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: f.is_constructor,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            variadic_arguments: false,
-            specializations: RwLock::new(HashMap::new()),
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.file_id,
+            self.namespace_id,
+            node,
+            FctParent::Class(self.cls_id),
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
+        );
 
         let fctid = self.vm.add_fct(fct);
 
@@ -143,42 +116,13 @@ impl<'x> ClsDefCheck<'x> {
             FctKind::Definition
         };
 
-        let fct = Fct {
-            id: FctId(0),
-            ast: f.clone(),
-            pos: f.pos,
-            name: f.name,
-            namespace_id: self.namespace_id,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Class(self.cls_id),
-            has_override: f.has_override,
-            has_optimize_immediately: f.has_optimize_immediately,
-            variadic_arguments: false,
-
-            // abstract for methods also means that method is open to override
-            has_open: f.has_open || f.is_abstract,
-            has_final: f.has_final,
-            is_pub: f.is_pub,
-            is_static: f.is_static,
-            is_abstract: f.is_abstract,
-            is_test: f.is_test,
-            use_cannon: f.use_cannon,
-            internal: f.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            specializations: RwLock::new(HashMap::new()),
-
-            type_params: Vec::new(),
+        let fct = Fct::new(
+            self.file_id,
+            self.namespace_id,
+            f,
+            FctParent::Class(self.cls_id),
             kind,
-            bytecode: None,
-            intrinsic: None,
-        };
+        );
 
         let fctid = self.vm.add_fct(fct);
 

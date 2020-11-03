@@ -1,11 +1,7 @@
-use parking_lot::RwLock;
-
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctKind, FctParent, FileId, NamespaceId, TraitId, VM};
+use crate::vm::{Fct, FctKind, FctParent, FileId, NamespaceId, TraitId, VM};
 
 use dora_parser::ast;
 
@@ -57,40 +53,13 @@ impl<'x> TraitCheck<'x> {
             );
         }
 
-        let fct = Fct {
-            id: FctId(0),
-            ast: node.clone(),
-            pos: node.pos,
-            name: node.name,
-            namespace_id: self.namespace_id,
-            param_types: Vec::new(),
-            return_type: SourceType::Unit,
-            parent: FctParent::Trait(self.trait_id),
-            has_override: node.has_override,
-            has_open: node.has_open,
-            has_final: node.has_final,
-            has_optimize_immediately: node.has_optimize_immediately,
-            is_pub: node.is_pub,
-            is_static: node.is_static,
-            is_abstract: false,
-            is_test: node.is_test,
-            use_cannon: node.use_cannon,
-            internal: node.internal,
-            internal_resolved: false,
-            overrides: None,
-            is_constructor: false,
-            vtable_index: None,
-            initialized: false,
-            impl_for: None,
-            file_id: self.file_id.into(),
-            variadic_arguments: false,
-            specializations: RwLock::new(HashMap::new()),
-
-            type_params: Vec::new(),
-            kind: FctKind::Definition,
-            bytecode: None,
-            intrinsic: None,
-        };
+        let fct = Fct::new(
+            self.file_id,
+            self.namespace_id,
+            node,
+            FctParent::Trait(self.trait_id),
+            FctKind::Definition,
+        );
 
         let fctid = self.vm.add_fct(fct);
 

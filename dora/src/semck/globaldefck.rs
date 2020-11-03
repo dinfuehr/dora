@@ -1,11 +1,9 @@
 use parking_lot::RwLock;
 
-use std::collections::HashMap;
-
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::SourceType;
-use crate::vm::{AnalysisData, Fct, FctId, FctKind, FctParent, FileId, GlobalId, NamespaceId, VM};
+use crate::vm::{AnalysisData, Fct, FctKind, FctParent, FileId, GlobalId, NamespaceId, VM};
 use dora_parser::ast;
 
 pub fn check<'a>(vm: &VM) {
@@ -55,40 +53,13 @@ impl<'a> GlobalDefCheck<'a> {
         glob.ty = ty;
 
         if let Some(ref initializer) = self.ast.initializer {
-            let fct = Fct {
-                id: FctId(0),
-                pos: initializer.pos,
-                ast: initializer.clone(),
-                name: initializer.name,
-                namespace_id: self.namespace_id,
-                param_types: Vec::new(),
-                return_type: SourceType::Unit,
-                parent: FctParent::None,
-                has_override: initializer.has_override,
-                has_open: initializer.has_open,
-                has_final: initializer.has_final,
-                has_optimize_immediately: initializer.has_optimize_immediately,
-                is_pub: initializer.is_pub,
-                is_static: initializer.is_static,
-                is_abstract: initializer.is_abstract,
-                is_test: initializer.is_test,
-                use_cannon: initializer.use_cannon,
-                internal: initializer.internal,
-                internal_resolved: false,
-                overrides: None,
-                is_constructor: initializer.is_constructor,
-                vtable_index: None,
-                initialized: false,
-                impl_for: None,
-                file_id: self.file_id,
-                variadic_arguments: false,
-                specializations: RwLock::new(HashMap::new()),
-
-                type_params: Vec::new(),
-                kind: FctKind::Source(RwLock::new(AnalysisData::new())),
-                bytecode: None,
-                intrinsic: None,
-            };
+            let fct = Fct::new(
+                self.file_id,
+                self.namespace_id,
+                initializer,
+                FctParent::None,
+                FctKind::Source(RwLock::new(AnalysisData::new())),
+            );
 
             let fct_id = self.vm.add_fct(fct);
             glob.initializer = Some(fct_id);
