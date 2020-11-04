@@ -62,7 +62,7 @@ mod tests {
         err(
             "const x: Foo = 0;",
             pos(1, 10),
-            SemError::UnknownType("Foo".into()),
+            SemError::UnknownIdentifier("Foo".into()),
         );
 
         ok("const x: Int32 = 0;");

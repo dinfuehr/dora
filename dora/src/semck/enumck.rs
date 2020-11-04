@@ -280,7 +280,7 @@ mod tests {
         err(
             "enum MyOption[X: NonExistingTrait] { A, B }",
             pos(1, 18),
-            SemError::UnknownType("NonExistingTrait".into()),
+            SemError::UnknownIdentifier("NonExistingTrait".into()),
         );
     }
 

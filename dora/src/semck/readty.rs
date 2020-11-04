@@ -1,9 +1,12 @@
+use parking_lot::RwLock;
+use std::sync::Arc;
+
 use crate::error::msg::SemError;
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, NamespaceId, VM};
+
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
-use dora_parser::interner::Name;
 
 pub fn read_type_table(
     vm: &VM,
@@ -39,13 +42,21 @@ fn read_type_basic(
     file: FileId,
     basic: &TypeBasicType,
 ) -> Option<SourceType> {
-    let sym = read_type_path(vm, table, file, &basic.path);
+    let sym = read_type_path(vm, table, file, basic);
+
+    if sym.is_err() {
+        return None;
+    }
+
+    let sym = sym.unwrap();
 
     if sym.is_none() {
-        let name = vm.interner.str(basic.name).to_string();
-        let msg = SemError::UnknownType(name);
+        let name = vm
+            .interner
+            .str(basic.path.last().cloned().unwrap())
+            .to_string();
+        let msg = SemError::UnknownIdentifier(name);
         vm.diag.lock().report(file, basic.pos, msg);
-
         return None;
     }
 
@@ -87,15 +98,45 @@ fn read_type_basic(
 }
 
 fn read_type_path(
-    _vm: &VM,
+    vm: &VM,
     table: &NestedSymTable,
-    _file: FileId,
-    path: &[Name],
-) -> Option<TypeSym> {
-    if path.len() > 1 {
-        unimplemented!()
+    file: FileId,
+    basic: &TypeBasicType,
+) -> Result<Option<TypeSym>, ()> {
+    if basic.path.len() > 1 {
+        let first_name = basic.path.first().cloned().unwrap();
+        let last_name = basic.path.last().cloned().unwrap();
+        let mut namespace_table = table_for_namespace(vm, file, basic, table.get_term(first_name))?;
+
+        for &name in &basic.path[1..basic.path.len() - 1] {
+            let sym = namespace_table.read().get_term(name);
+            namespace_table = table_for_namespace(vm, file, basic, sym)?;
+        }
+
+        let sym = namespace_table.read().get_type(last_name);
+        Ok(sym)
     } else {
-        table.get_type(path.last().cloned().unwrap())
+        let name = basic.path.last().cloned().unwrap();
+        Ok(table.get_type(name))
+    }
+}
+
+fn table_for_namespace(
+    vm: &VM,
+    file: FileId,
+    basic: &TypeBasicType,
+    sym: Option<TermSym>,
+) -> Result<Arc<RwLock<SymTable>>, ()> {
+    match sym {
+        Some(TermSym::Namespace(namespace_id)) => {
+            Ok(vm.namespaces[namespace_id.to_usize()].table.clone())
+        }
+
+        _ => {
+            let msg = SemError::ExpectedNamespace;
+            vm.diag.lock().report(file, basic.pos, msg);
+            Err(())
+        }
     }
 }
 

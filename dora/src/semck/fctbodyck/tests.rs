@@ -239,7 +239,7 @@ fn type_def_for_return_type() {
     err(
         "fun a(): unknown {}",
         pos(1, 10),
-        SemError::UnknownType("unknown".into()),
+        SemError::UnknownIdentifier("unknown".into()),
     );
 }
 
@@ -249,7 +249,7 @@ fn type_def_for_param() {
     err(
         "fun a(b: foo) {}",
         pos(1, 10),
-        SemError::UnknownType("foo".into()),
+        SemError::UnknownIdentifier("foo".into()),
     );
 }
 
@@ -259,7 +259,7 @@ fn type_def_for_var() {
     err(
         "fun a() { let a : test = 1; }",
         pos(1, 19),
-        SemError::UnknownType("test".into()),
+        SemError::UnknownIdentifier("test".into()),
     );
 }
 
@@ -2302,6 +2302,40 @@ fn namespace_ctor_call() {
         fun f() { foo::Foo(); }
         namespace foo { class Foo }
     ");
+}
+
+#[test]
+fn namespace_path_in_type() {
+    ok("
+        fun f(): foo::Foo { foo::Foo() }
+        namespace foo { class Foo }
+    ");
+
+    err(
+        "
+        fun f(): bar::Foo { 1 }
+    ",
+        pos(2, 18),
+        SemError::ExpectedNamespace,
+    );
+
+    err(
+        "
+        fun bar() {}
+        fun f(): bar::Foo { 1 }
+    ",
+        pos(3, 18),
+        SemError::ExpectedNamespace,
+    );
+
+    err(
+        "
+        fun f(): foo::bar::Foo { 1 }
+        namespace foo {}
+    ",
+        pos(2, 18),
+        SemError::ExpectedNamespace,
+    );
 }
 
 #[test]

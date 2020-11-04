@@ -88,7 +88,7 @@ mod tests {
         err(
             "var x: Foo = 0;",
             pos(1, 8),
-            SemError::UnknownType("Foo".into()),
+            SemError::UnknownIdentifier("Foo".into()),
         );
     }
 }

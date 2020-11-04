@@ -87,7 +87,7 @@ mod tests {
         err(
             "struct Bar { a: Unknown }",
             pos(1, 17),
-            SemError::UnknownType("Unknown".into()),
+            SemError::UnknownIdentifier("Unknown".into()),
         );
         err(
             "struct Foo { a: Int32, a: Int32 }",

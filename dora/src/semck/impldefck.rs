@@ -182,7 +182,7 @@ mod tests {
         err(
             "trait Foo {} impl Foo for A {}",
             pos(1, 27),
-            SemError::UnknownType("A".into()),
+            SemError::UnknownIdentifier("A".into()),
         );
 
         err(

@@ -93,7 +93,7 @@ mod tests {
         err(
             "trait Bar { fun foo(): Unknown; }",
             pos(1, 24),
-            SemError::UnknownType("Unknown".into()),
+            SemError::UnknownIdentifier("Unknown".into()),
         );
         err(
             "trait Foo { fun foo(); fun foo(): Int32; }",

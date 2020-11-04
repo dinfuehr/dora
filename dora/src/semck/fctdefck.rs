@@ -369,12 +369,12 @@ mod tests {
         err(
             "fun f() { || -> Foo { }; }",
             pos(1, 17),
-            SemError::UnknownType("Foo".into()),
+            SemError::UnknownIdentifier("Foo".into()),
         );
         err(
             "fun f() { |a: Foo| { }; }",
             pos(1, 15),
-            SemError::UnknownType("Foo".into()),
+            SemError::UnknownIdentifier("Foo".into()),
         );
     }
 
@@ -383,7 +383,7 @@ mod tests {
         err(
             "fun f[T: Foo]() {}",
             pos(1, 10),
-            SemError::UnknownType("Foo".into()),
+            SemError::UnknownIdentifier("Foo".into()),
         );
         err(
             "class Foo fun f[T: Foo]() {}",
@@ -406,7 +406,7 @@ mod tests {
         err(
             "fun f(a: T) {}",
             pos(1, 10),
-            SemError::UnknownType("T".into()),
+            SemError::UnknownIdentifier("T".into()),
         );
     }
 }

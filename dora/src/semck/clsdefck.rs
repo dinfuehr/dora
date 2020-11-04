@@ -305,7 +305,7 @@ mod tests {
         err(
             "class Foo(let a: Unknown)",
             pos(1, 18),
-            SemError::UnknownType("Unknown".into()),
+            SemError::UnknownIdentifier("Unknown".into()),
         );
         err(
             "class Foo(let a: Int32, let a: Int32)",
@@ -433,7 +433,7 @@ mod tests {
         err(
             "class A[T: Foo]",
             pos(1, 12),
-            SemError::UnknownType("Foo".into()),
+            SemError::UnknownIdentifier("Foo".into()),
         );
         err(
             "class Foo class A[T: Foo]",
