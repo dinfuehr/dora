@@ -1,8 +1,8 @@
 use crate::error::msg::SemError;
+use crate::fctbodyck::expr::args_compatible;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, TypeList};
-use crate::typeck::expr::args_compatible;
 use crate::vm::{
     find_methods_in_class, find_methods_in_enum, ClassId, EnumId, Fct, FctId, FctParent, FileId,
     TraitId, TypeParam, VM,

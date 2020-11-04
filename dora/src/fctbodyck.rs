@@ -1,6 +1,6 @@
+use crate::fctbodyck::constck::ConstCheck;
+use crate::fctbodyck::expr::TypeCheck;
 use crate::sym::NestedSymTable;
-use crate::typeck::constck::ConstCheck;
-use crate::typeck::expr::TypeCheck;
 use crate::vm::{AnalysisData, VM};
 
 use dora_parser::ast::NodeId;
@@ -30,6 +30,7 @@ pub fn check(vm: &VM) {
                 analysis: &mut analysis,
                 ast: &fct.ast,
                 symtable: symtable,
+                in_loop: false,
             };
 
             typeck.check();

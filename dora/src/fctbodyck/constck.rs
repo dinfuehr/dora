@@ -1,6 +1,6 @@
 use crate::error::msg::SemError;
+use crate::fctbodyck::expr::{check_lit_float, check_lit_int};
 use crate::ty::SourceType;
-use crate::typeck::expr::{check_lit_float, check_lit_int};
 use crate::vm::{ConstData, ConstValue, VM};
 
 use dora_parser::ast::*;

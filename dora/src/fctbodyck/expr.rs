@@ -3,13 +3,13 @@ use std::sync::Arc;
 use std::{f32, f64};
 
 use crate::error::msg::SemError;
+use crate::fctbodyck::lookup::MethodLookup;
 use crate::semck::report_term_shadow;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type_table};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
-use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, AnalysisData, CallType,
     ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic,
@@ -29,6 +29,7 @@ pub struct TypeCheck<'a> {
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a Function,
     pub symtable: NestedSymTable<'a>,
+    pub in_loop: bool,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -386,7 +387,7 @@ impl<'a> TypeCheck<'a> {
 
                 self.symtable.push_level();
                 self.check_stmt_let_pattern(&stmt.pattern, var_ty, false);
-                self.visit_stmt(&stmt.block);
+                self.check_loop_body(&stmt.block);
                 self.symtable.pop_level();
                 return;
             }
@@ -400,7 +401,7 @@ impl<'a> TypeCheck<'a> {
             self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
             // store fct ids for code generation
             self.analysis.map_fors.insert(stmt.id, for_type_info);
-            self.visit_stmt(&stmt.block);
+            self.check_loop_body(&stmt.block);
             self.symtable.pop_level();
             return;
         }
@@ -419,7 +420,7 @@ impl<'a> TypeCheck<'a> {
                 for_type_info.make_iterator = Some(make_iterator);
                 self.analysis.map_fors.insert(stmt.id, for_type_info);
 
-                self.visit_stmt(&stmt.block);
+                self.check_loop_body(&stmt.block);
                 self.symtable.pop_level();
                 return;
             }
@@ -432,8 +433,15 @@ impl<'a> TypeCheck<'a> {
         // set invalid error type
         self.symtable.push_level();
         self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error, false);
-        self.visit_stmt(&stmt.block);
+        self.check_loop_body(&stmt.block);
         self.symtable.pop_level();
+    }
+
+    fn check_loop_body(&mut self, stmt: &Stmt) {
+        let old_in_loop = self.in_loop;
+        self.in_loop = true;
+        self.visit_stmt(&stmt);
+        self.in_loop = old_in_loop;
     }
 
     fn type_supports_make_iterator(
@@ -503,16 +511,16 @@ impl<'a> TypeCheck<'a> {
         ))
     }
 
-    fn check_stmt_while(&mut self, s: &StmtWhileType) {
-        let expr_type = self.check_expr(&s.cond, SourceType::Any);
+    fn check_stmt_while(&mut self, stmt: &StmtWhileType) {
+        let expr_type = self.check_expr(&stmt.cond, SourceType::Any);
 
         if !expr_type.is_error() && !expr_type.is_bool() {
             let expr_type = expr_type.name_fct(self.vm, self.fct);
             let msg = SemError::WhileCondType(expr_type);
-            self.vm.diag.lock().report(self.file, s.pos, msg);
+            self.vm.diag.lock().report(self.file, stmt.pos, msg);
         }
 
-        self.visit_stmt(&s.block);
+        self.check_loop_body(&stmt.block);
     }
 
     fn check_stmt_return(&mut self, s: &StmtReturnType) {
@@ -2603,6 +2611,15 @@ impl<'a> TypeCheck<'a> {
             Expr::Match(_) => unimplemented!(),
         }
     }
+
+    fn check_stmt_break_and_continue(&mut self, stmt: &Stmt) {
+        if !self.in_loop {
+            self.vm
+                .diag
+                .lock()
+                .report(self.fct.file_id, stmt.pos(), SemError::OutsideLoop);
+        }
+    }
 }
 
 impl<'a> Visitor for TypeCheck<'a> {
@@ -2618,8 +2635,9 @@ impl<'a> Visitor for TypeCheck<'a> {
             Stmt::Return(ref stmt) => self.check_stmt_return(stmt),
 
             // for the rest of the statements, no special handling is necessary
-            Stmt::Break(_) => visit::walk_stmt(self, s),
-            Stmt::Continue(_) => visit::walk_stmt(self, s),
+            Stmt::Break(_) | Stmt::Continue(_) => {
+                self.check_stmt_break_and_continue(s);
+            }
             Stmt::Expr(ref stmt) => {
                 self.check_expr(&stmt.expr, SourceType::Any);
             }

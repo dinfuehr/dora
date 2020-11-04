@@ -1,8 +1,8 @@
 use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
+use crate::fctbodyck;
 use crate::sym::{SymTable, TermSym, TypeSym};
-use crate::typeck;
 use crate::vm::{FileId, VM};
 use dora_parser::ast::{Expr, ExprBlockType, Stmt};
 use dora_parser::interner::Name;
@@ -16,7 +16,6 @@ mod constdefck;
 mod enumck;
 mod extensiondefck;
 mod fctdefck;
-mod flowck;
 mod globaldef;
 mod globaldefck;
 mod implck;
@@ -94,11 +93,8 @@ pub fn check(vm: &mut VM) {
     abstractck::check(vm);
 
     // check types of expressions in functions
-    typeck::check(vm);
+    fctbodyck::check(vm);
     return_on_error!(vm);
-
-    // are break and continue used in the right places?
-    flowck::check(vm);
 }
 
 pub fn bytecode(vm: &VM) {
