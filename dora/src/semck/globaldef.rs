@@ -7,10 +7,9 @@ use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{
-    self, AnalysisData, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
-    ExtensionId, Fct, FctKind, FctParent, GlobalData, GlobalId, ImplData, ImplId, ImportData,
-    Module, ModuleId, NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId,
-    TypeParam, VM,
+    self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
+    Fct, FctParent, GlobalData, GlobalId, ImplData, ImplId, ImportData, Module, ModuleId,
+    NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -345,19 +344,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_fct(&mut self, f: &Arc<ast::Function>) {
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(AnalysisData::new()))
-        } else {
-            FctKind::Definition
-        };
-
-        let fct = Fct::new(
-            self.file_id.into(),
-            self.namespace_id,
-            f,
-            FctParent::None,
-            kind,
-        );
+        let fct = Fct::new(self.file_id.into(), self.namespace_id, f, FctParent::None);
         let fctid = self.vm.add_fct(fct);
         let sym = TermSym::Fct(fctid);
 

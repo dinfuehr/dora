@@ -67,11 +67,12 @@ pub struct Fct {
     pub impl_for: Option<FctId>,
     pub initialized: bool,
     pub specializations: RwLock<HashMap<TypeList, JitFctId>>,
+    pub analysis: Option<AnalysisData>,
 
     pub type_params: Vec<TypeParam>,
-    pub kind: FctKind,
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
+    pub native_pointer: Option<Address>,
 }
 
 impl Fct {
@@ -80,7 +81,6 @@ impl Fct {
         namespace_id: Option<NamespaceId>,
         ast: &Arc<ast::Function>,
         parent: FctParent,
-        kind: FctKind,
     ) -> Fct {
         Fct {
             id: FctId(0),
@@ -110,11 +110,11 @@ impl Fct {
             impl_for: None,
             variadic_arguments: false,
             specializations: RwLock::new(HashMap::new()),
-
+            analysis: None,
             type_params: Vec::new(),
-            kind,
             bytecode: None,
             intrinsic: None,
+            native_pointer: None,
         }
     }
 
@@ -319,22 +319,16 @@ impl Fct {
         repr
     }
 
-    pub fn is_src(&self) -> bool {
-        match self.kind {
-            FctKind::Source(_) => true,
-            _ => false,
-        }
+    pub fn has_body(&self) -> bool {
+        self.ast.block.is_some()
     }
 
     pub fn pos(&self) -> Position {
         self.pos
     }
 
-    pub fn src(&self) -> &RwLock<AnalysisData> {
-        match self.kind {
-            FctKind::Source(ref src) => src,
-            _ => panic!("source expected"),
-        }
+    pub fn analysis(&self) -> &AnalysisData {
+        self.analysis.as_ref().unwrap()
     }
 
     pub fn has_self(&self) -> bool {
@@ -390,29 +384,6 @@ impl FctParent {
         match self {
             &FctParent::Class(id) => id,
             _ => unreachable!(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum FctKind {
-    Source(RwLock<AnalysisData>),
-    Definition,
-    Native(Address),
-}
-
-impl FctKind {
-    pub fn is_src(&self) -> bool {
-        match *self {
-            FctKind::Source(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_definition(&self) -> bool {
-        match *self {
-            FctKind::Definition => true,
-            _ => false,
         }
     }
 }

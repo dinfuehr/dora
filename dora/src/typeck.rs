@@ -1,7 +1,7 @@
-use crate::sym::SymTables;
+use crate::sym::NestedSymTable;
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::expr::TypeCheck;
-use crate::vm::VM;
+use crate::vm::{AnalysisData, VM};
 
 use dora_parser::ast::NodeId;
 
@@ -13,27 +13,31 @@ mod tests;
 
 pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
-        let fct = fct.read();
+        let analysis = {
+            let fct = fct.read();
 
-        if !fct.is_src() {
-            continue;
-        }
+            if !fct.has_body() {
+                continue;
+            }
 
-        let src = fct.src();
-        let mut src = src.write();
+            let mut analysis = AnalysisData::new();
+            let symtable = NestedSymTable::new(vm, fct.namespace_id);
 
-        let symtable = SymTables::current(vm, fct.namespace_id);
+            let mut typeck = TypeCheck {
+                vm,
+                fct: &fct,
+                file: fct.file_id,
+                analysis: &mut analysis,
+                ast: &fct.ast,
+                symtable: symtable,
+            };
 
-        let mut typeck = TypeCheck {
-            vm,
-            fct: &fct,
-            file: fct.file_id,
-            src: &mut src,
-            ast: &fct.ast,
-            symtable: symtable,
+            typeck.check();
+
+            analysis
         };
 
-        typeck.check();
+        fct.write().analysis = Some(analysis);
     }
 
     for xconst in vm.consts.iter() {

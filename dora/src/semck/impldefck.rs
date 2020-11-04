@@ -1,10 +1,9 @@
-use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::{SymTables, TypeSym};
-use crate::vm::{AnalysisData, Fct, FctKind, FctParent, FileId, ImplId, NamespaceId, VM};
+use crate::sym::{NestedSymTable, TypeSym};
+use crate::vm::{Fct, FctParent, FileId, ImplId, NamespaceId, VM};
 
 use dora_parser::ast;
 
@@ -62,7 +61,7 @@ impl<'x> ImplCheck<'x> {
 
         if let Some(ref trait_type) = self.ast.trait_type {
             if let Some(trait_name) = trait_type.to_basic_without_type_params() {
-                let symtable = SymTables::current(self.vm, ximpl.namespace_id);
+                let symtable = NestedSymTable::new(self.vm, ximpl.namespace_id);
                 if let Some(TypeSym::Trait(trait_id)) = symtable.get_type(trait_name) {
                     ximpl.trait_id = Some(trait_id);
                 } else {
@@ -123,15 +122,9 @@ impl<'x> ImplCheck<'x> {
                 .report(self.file_id.into(), method.pos, SemError::MissingFctBody);
         }
 
-        let kind = if method.internal {
-            FctKind::Definition
-        } else {
-            FctKind::Source(RwLock::new(AnalysisData::new()))
-        };
-
         let parent = FctParent::Impl(self.impl_id);
 
-        let fct = Fct::new(self.file_id.into(), self.namespace_id, method, parent, kind);
+        let fct = Fct::new(self.file_id.into(), self.namespace_id, method, parent);
         let fctid = self.vm.add_fct(fct);
 
         let mut ximpl = self.vm.impls[self.impl_id].write();

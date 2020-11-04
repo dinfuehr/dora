@@ -9,9 +9,7 @@ use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
 use crate::ty::{SourceType, TypeList};
-use crate::vm::{
-    ClassDef, ClassDefId, ClassId, EnumId, FctId, FctKind, Intrinsic, ModuleId, TraitId, VM,
-};
+use crate::vm::{ClassDef, ClassDefId, ClassId, EnumId, FctId, Intrinsic, ModuleId, TraitId, VM};
 use crate::vtable::VTableBox;
 
 pub fn internal_classes(vm: &mut VM) {
@@ -497,7 +495,9 @@ fn internal_class_method(vm: &mut VM, clsid: ClassId, name: &str, kind: FctImple
             if mtd.internal {
                 match kind {
                     FctImplementation::Intrinsic(intrinsic) => mtd.intrinsic = Some(intrinsic),
-                    FctImplementation::Native(address) => mtd.kind = FctKind::Native(address),
+                    FctImplementation::Native(address) => {
+                        mtd.native_pointer = Some(address);
+                    }
                 }
                 mtd.internal_resolved = true;
                 break;
@@ -554,7 +554,9 @@ fn internal_module_method(vm: &mut VM, module_id: ModuleId, name: &str, kind: Fc
             if mtd.internal {
                 match kind {
                     FctImplementation::Intrinsic(intrinsic) => mtd.intrinsic = Some(intrinsic),
-                    FctImplementation::Native(address) => mtd.kind = FctKind::Native(address),
+                    FctImplementation::Native(address) => {
+                        mtd.native_pointer = Some(address);
+                    }
                 }
                 mtd.internal_resolved = true;
                 break;
@@ -608,7 +610,9 @@ fn internal_fct(vm: &mut VM, name: &str, kind: FctImplementation) {
         if fct.internal {
             match kind {
                 FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
-                FctImplementation::Native(address) => fct.kind = FctKind::Native(address),
+                FctImplementation::Native(address) => {
+                    fct.native_pointer = Some(address);
+                }
             }
             fct.internal_resolved = true;
         }
@@ -646,7 +650,9 @@ fn internal_impl(vm: &mut VM, clsid: ClassId, tid: TraitId, name: &str, kind: Fc
                 if fct.internal && fct.name == name {
                     match kind {
                         FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
-                        FctImplementation::Native(address) => fct.kind = FctKind::Native(address),
+                        FctImplementation::Native(address) => {
+                            fct.native_pointer = Some(address);
+                        }
                     }
                     fct.internal_resolved = true;
                     return;
@@ -675,7 +681,9 @@ fn internal_impl_enum(vm: &mut VM, enum_id: EnumId, name: &str, kind: FctImpleme
             if fct.name == name {
                 match kind {
                     FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
-                    FctImplementation::Native(address) => fct.kind = FctKind::Native(address),
+                    FctImplementation::Native(address) => {
+                        fct.native_pointer = Some(address);
+                    }
                 }
                 fct.internal_resolved = true;
                 return;

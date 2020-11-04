@@ -7,7 +7,7 @@ use crate::semck::report_term_shadow;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type_table};
-use crate::sym::{SymTables, TermSym, TypeSym};
+use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
@@ -26,9 +26,9 @@ pub struct TypeCheck<'a> {
     pub vm: &'a VM,
     pub fct: &'a Fct,
     pub file: FileId,
-    pub src: &'a mut AnalysisData,
+    pub analysis: &'a mut AnalysisData,
     pub ast: &'a Function,
-    pub symtable: SymTables<'a>,
+    pub symtable: NestedSymTable<'a>,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -147,7 +147,7 @@ impl<'a> TypeCheck<'a> {
             };
 
             let var_id = self.add_var(var_ctxt);
-            self.src.map_vars.insert(param.id, var_id);
+            self.analysis.map_vars.insert(param.id, var_id);
 
             // params are only allowed to replace functions, vars cannot be replaced
             let term_sym = self.symtable.get_term(param.name);
@@ -206,8 +206,8 @@ impl<'a> TypeCheck<'a> {
             node_id: ast_id,
         };
 
-        assert!(self.src.vars.is_empty());
-        self.src.vars.push(var);
+        assert!(self.analysis.vars.is_empty());
+        self.analysis.vars.push(var);
     }
 
     fn add_local(&mut self, var: Var, pos: Position) -> VarId {
@@ -221,10 +221,10 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_var(&mut self, mut var: Var) -> VarId {
-        let var_id = VarId(self.src.vars.len());
+        let var_id = VarId(self.analysis.vars.len());
 
         var.id = var_id;
-        self.src.vars.push(var);
+        self.analysis.vars.push(var);
 
         var_id
     }
@@ -306,7 +306,7 @@ impl<'a> TypeCheck<'a> {
                 };
 
                 let var_id = self.add_local(var_ctxt, ident.pos);
-                self.src.map_vars.insert(ident.id, var_id);
+                self.analysis.map_vars.insert(ident.id, var_id);
             }
 
             LetPattern::Underscore(_) => {
@@ -399,7 +399,7 @@ impl<'a> TypeCheck<'a> {
             // set variable type to return type of next
             self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
             // store fct ids for code generation
-            self.src.map_fors.insert(stmt.id, for_type_info);
+            self.analysis.map_fors.insert(stmt.id, for_type_info);
             self.visit_stmt(&stmt.block);
             self.symtable.pop_level();
             return;
@@ -417,7 +417,7 @@ impl<'a> TypeCheck<'a> {
 
                 // store fct ids for code generation
                 for_type_info.make_iterator = Some(make_iterator);
-                self.src.map_fors.insert(stmt.id, for_type_info);
+                self.analysis.map_fors.insert(stmt.id, for_type_info);
 
                 self.visit_stmt(&stmt.block);
                 self.symtable.pop_level();
@@ -551,7 +551,7 @@ impl<'a> TypeCheck<'a> {
             SourceType::Unit
         };
 
-        self.src.set_ty(block.id, ty.clone());
+        self.analysis.set_ty(block.id, ty.clone());
         self.symtable.pop_level();
 
         ty
@@ -561,7 +561,7 @@ impl<'a> TypeCheck<'a> {
         let mut subtypes = Vec::new();
 
         if tuple.values.is_empty() {
-            self.src.set_ty(tuple.id, SourceType::Unit);
+            self.analysis.set_ty(tuple.id, SourceType::Unit);
             return SourceType::Unit;
         }
 
@@ -573,14 +573,14 @@ impl<'a> TypeCheck<'a> {
         let tuple_id = ensure_tuple(self.vm, subtypes);
 
         let ty = SourceType::Tuple(tuple_id);
-        self.src.set_ty(tuple.id, ty.clone());
+        self.analysis.set_ty(tuple.id, ty.clone());
 
         ty
     }
 
     fn check_expr_paren(&mut self, paren: &ExprParenType, _expected_ty: SourceType) -> SourceType {
         let ty = self.check_expr(&paren.expr, SourceType::Any);
-        self.src.set_ty(paren.id, ty.clone());
+        self.analysis.set_ty(paren.id, ty.clone());
 
         ty
     }
@@ -620,7 +620,7 @@ impl<'a> TypeCheck<'a> {
             SourceType::Unit
         };
 
-        self.src.set_ty(expr.id, merged_type.clone());
+        self.analysis.set_ty(expr.id, merged_type.clone());
 
         merged_type
     }
@@ -631,10 +631,10 @@ impl<'a> TypeCheck<'a> {
 
         match (sym_term, sym_type) {
             (Some(TermSym::Var(varid)), _) => {
-                let ty = self.src.vars[varid].ty.clone();
-                self.src.set_ty(e.id, ty.clone());
+                let ty = self.analysis.vars[varid].ty.clone();
+                self.analysis.set_ty(e.id, ty.clone());
 
-                self.src.map_idents.insert(e.id, IdentType::Var(varid));
+                self.analysis.map_idents.insert(e.id, IdentType::Var(varid));
 
                 ty
             }
@@ -642,9 +642,9 @@ impl<'a> TypeCheck<'a> {
             (Some(TermSym::Global(globalid)), _) => {
                 let glob = self.vm.globals.idx(globalid);
                 let ty = glob.read().ty.clone();
-                self.src.set_ty(e.id, ty.clone());
+                self.analysis.set_ty(e.id, ty.clone());
 
-                self.src
+                self.analysis
                     .map_idents
                     .insert(e.id, IdentType::Global(globalid));
 
@@ -655,9 +655,11 @@ impl<'a> TypeCheck<'a> {
                 let xconst = self.vm.consts.idx(const_id);
                 let xconst = xconst.read();
 
-                self.src.set_ty(e.id, xconst.ty.clone());
+                self.analysis.set_ty(e.id, xconst.ty.clone());
 
-                self.src.map_idents.insert(e.id, IdentType::Const(const_id));
+                self.analysis
+                    .map_idents
+                    .insert(e.id, IdentType::Const(const_id));
 
                 xconst.ty.clone()
             }
@@ -677,9 +679,9 @@ impl<'a> TypeCheck<'a> {
             | (Some(TermSym::StructConstructorAndModule(_, module_id)), _) => {
                 let module = self.vm.modules.idx(module_id);
                 let ty = module.read().ty.clone();
-                self.src.set_ty(e.id, ty.clone());
+                self.analysis.set_ty(e.id, ty.clone());
 
-                self.src
+                self.analysis
                     .map_idents
                     .insert(e.id, IdentType::Module(module_id));
 
@@ -720,13 +722,13 @@ impl<'a> TypeCheck<'a> {
                 .report(self.file, e.pos, SemError::LvalueExpected);
         }
 
-        self.src.set_ty(e.id, SourceType::Unit);
+        self.analysis.set_ty(e.id, SourceType::Unit);
     }
 
     fn check_expr_assign_ident(&mut self, e: &ExprBinType) {
         let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
 
-        self.src.set_ty(e.id, SourceType::Unit);
+        self.analysis.set_ty(e.id, SourceType::Unit);
 
         let lhs_ident = e.lhs.to_ident().unwrap();
         let sym_term = self.symtable.get_term(lhs_ident.name);
@@ -734,17 +736,17 @@ impl<'a> TypeCheck<'a> {
 
         let lhs_type = match (sym_term, sym_type) {
             (Some(TermSym::Var(varid)), _) => {
-                if !self.src.vars[varid].reassignable {
+                if !self.analysis.vars[varid].reassignable {
                     self.vm
                         .diag
                         .lock()
                         .report(self.file, e.pos, SemError::LetReassigned);
                 }
 
-                self.src
+                self.analysis
                     .map_idents
                     .insert(e.lhs.id(), IdentType::Var(varid));
-                self.src.vars[varid].ty.clone()
+                self.analysis.vars[varid].ty.clone()
             }
 
             (Some(TermSym::Global(global_id)), _) => {
@@ -758,7 +760,7 @@ impl<'a> TypeCheck<'a> {
                         .report(self.file, e.pos, SemError::LetReassigned);
                 }
 
-                self.src
+                self.analysis
                     .map_idents
                     .insert(e.lhs.id(), IdentType::Global(global_id));
                 glob.ty.clone()
@@ -795,7 +797,7 @@ impl<'a> TypeCheck<'a> {
             let lhs_type = lhs_type.name_fct(self.vm, self.fct);
             let rhs_type = rhs_type.name_fct(self.vm, self.fct);
 
-            self.src.set_ty(e.id, SourceType::Unit);
+            self.analysis.set_ty(e.id, SourceType::Unit);
 
             let msg = SemError::AssignType(name, lhs_type, rhs_type);
             self.vm.diag.lock().report(self.file, e.pos, msg);
@@ -826,7 +828,7 @@ impl<'a> TypeCheck<'a> {
             &TypeList::empty(),
         ) {
             let call_type = CallType::Expr(expr_type, fct_id);
-            self.src
+            self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
         }
@@ -842,7 +844,7 @@ impl<'a> TypeCheck<'a> {
                 let msg = SemError::NameExpected;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                self.src.set_ty(e.id, SourceType::Error);
+                self.analysis.set_ty(e.id, SourceType::Error);
                 return;
             }
         };
@@ -855,7 +857,7 @@ impl<'a> TypeCheck<'a> {
                 find_field_in_class(self.vm, object_type.clone(), name)
             {
                 let ident_type = IdentType::Field(cls_ty.clone(), field_id);
-                self.src
+                self.analysis
                     .map_idents
                     .insert_or_replace(e.lhs.id(), ident_type);
 
@@ -888,7 +890,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm.diag.lock().report(self.file, e.pos, msg);
                 }
 
-                self.src.set_ty(e.id, SourceType::Unit);
+                self.analysis.set_ty(e.id, SourceType::Unit);
                 return;
             }
         }
@@ -899,7 +901,7 @@ impl<'a> TypeCheck<'a> {
         let msg = SemError::UnknownField(field_name, expr_name);
         self.vm.diag.lock().report(self.file, field_expr.pos, msg);
 
-        self.src.set_ty(e.id, SourceType::Unit);
+        self.analysis.set_ty(e.id, SourceType::Unit);
     }
 
     fn find_method(
@@ -944,7 +946,7 @@ impl<'a> TypeCheck<'a> {
         if e.op == UnOp::Neg && e.opnd.is_lit_int() {
             let expr_type =
                 self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, SourceType::Any);
-            self.src.set_ty(e.id, expr_type.clone());
+            self.analysis.set_ty(e.id, expr_type.clone());
             return expr_type;
         }
 
@@ -978,9 +980,9 @@ impl<'a> TypeCheck<'a> {
                 None,
             ) {
                 let call_type = CallType::Method(ty.clone(), fct_id, TypeList::empty());
-                self.src.map_calls.insert(e.id, Arc::new(call_type));
+                self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
-                self.src.set_ty(e.id, return_type.clone());
+                self.analysis.set_ty(e.id, return_type.clone());
                 return return_type;
             }
 
@@ -990,7 +992,7 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        self.src.set_ty(e.id, SourceType::Error);
+        self.analysis.set_ty(e.id, SourceType::Error);
 
         SourceType::Error
     }
@@ -1005,7 +1007,7 @@ impl<'a> TypeCheck<'a> {
         let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
 
         if lhs_type.is_error() || rhs_type.is_error() {
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
 
@@ -1039,7 +1041,7 @@ impl<'a> TypeCheck<'a> {
         rhs_type: SourceType,
     ) -> SourceType {
         self.check_type(e, op, lhs_type, rhs_type, SourceType::Bool);
-        self.src.set_ty(e.id, SourceType::Bool);
+        self.analysis.set_ty(e.id, SourceType::Bool);
 
         SourceType::Bool
     }
@@ -1065,11 +1067,11 @@ impl<'a> TypeCheck<'a> {
             None,
         ) {
             let call_type = CallType::Method(lhs_type, fct_id, TypeList::empty());
-            self.src
+            self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
 
-            self.src.set_ty(e.id, return_type.clone());
+            self.analysis.set_ty(e.id, return_type.clone());
 
             return_type
         } else {
@@ -1079,7 +1081,7 @@ impl<'a> TypeCheck<'a> {
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
 
             SourceType::Error
         }
@@ -1106,7 +1108,7 @@ impl<'a> TypeCheck<'a> {
                     );
                 }
 
-                self.src.set_ty(e.id, SourceType::Bool);
+                self.analysis.set_ty(e.id, SourceType::Bool);
                 return SourceType::Bool;
             }
 
@@ -1123,7 +1125,7 @@ impl<'a> TypeCheck<'a> {
             }
         }
 
-        self.src.set_ty(e.id, SourceType::Bool);
+        self.analysis.set_ty(e.id, SourceType::Bool);
 
         SourceType::Bool
     }
@@ -1142,11 +1144,11 @@ impl<'a> TypeCheck<'a> {
                 _ => unreachable!(),
             };
             let call_type = CallType::Intrinsic(intrinsic);
-            self.src
+            self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
 
-            self.src.set_ty(e.id, SourceType::Bool);
+            self.analysis.set_ty(e.id, SourceType::Bool);
         } else {
             let lhs_type = lhs_type.name_fct(self.vm, self.fct);
             let rhs_type = rhs_type.name_fct(self.vm, self.fct);
@@ -1154,7 +1156,7 @@ impl<'a> TypeCheck<'a> {
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
         }
     }
 
@@ -1216,7 +1218,7 @@ impl<'a> TypeCheck<'a> {
                     let msg = SemError::NameExpected;
                     self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                    self.src.set_ty(e.id, SourceType::Error);
+                    self.analysis.set_ty(e.id, SourceType::Error);
                     return SourceType::Error;
                 }
             };
@@ -1312,14 +1314,14 @@ impl<'a> TypeCheck<'a> {
         }
 
         if type_params_ok {
-            self.src
+            self.analysis
                 .map_calls
                 .insert(e.id, Arc::new(CallType::Enum(ty.clone(), variant_id)));
 
-            self.src.set_ty(e.id, ty.clone());
+            self.analysis.set_ty(e.id, ty.clone());
             ty
         } else {
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             SourceType::Error
         }
     }
@@ -1376,12 +1378,12 @@ impl<'a> TypeCheck<'a> {
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
 
         if arg_types.contains(&SourceType::Error) {
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
 
@@ -1411,7 +1413,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let call_type = CallType::GenericStaticMethod(tp_id, trait_id, fct_id);
-        self.src.map_calls.insert(e.id, Arc::new(call_type));
+        self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
         let return_type = replace_type_param(
             self.vm,
@@ -1420,7 +1422,7 @@ impl<'a> TypeCheck<'a> {
             Some(tp),
         );
 
-        self.src.set_ty(e.id, return_type.clone());
+        self.analysis.set_ty(e.id, return_type.clone());
 
         return_type
     }
@@ -1432,7 +1434,7 @@ impl<'a> TypeCheck<'a> {
         arg_types: &[SourceType],
     ) -> SourceType {
         if expr_type.is_error() {
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
 
@@ -1447,15 +1449,15 @@ impl<'a> TypeCheck<'a> {
             &TypeList::empty(),
         ) {
             let call_type = CallType::Expr(expr_type.clone(), fct_id);
-            self.src
+            self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
 
-            self.src.set_ty(e.id, return_type.clone());
+            self.analysis.set_ty(e.id, return_type.clone());
 
             return_type
         } else {
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
 
             SourceType::Error
         }
@@ -1476,14 +1478,14 @@ impl<'a> TypeCheck<'a> {
 
         let ty = if lookup.find() {
             let call_type = CallType::Fct(fct_id, TypeList::empty(), type_params.clone());
-            self.src.map_calls.insert(e.id, Arc::new(call_type));
+            self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
             lookup.found_ret().unwrap()
         } else {
             SourceType::Error
         };
 
-        self.src.set_ty(e.id, ty.clone());
+        self.analysis.set_ty(e.id, ty.clone());
 
         ty
     }
@@ -1514,13 +1516,13 @@ impl<'a> TypeCheck<'a> {
                 TypeList::empty(),
                 type_params.clone(),
             ));
-            self.src.map_calls.insert(e.id, call_type.clone());
+            self.analysis.map_calls.insert(e.id, call_type.clone());
 
-            self.src.set_ty(e.id, return_type.clone());
+            self.analysis.set_ty(e.id, return_type.clone());
 
             return_type
         } else {
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
 
             SourceType::Error
         }
@@ -1540,7 +1542,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         if object_type.is_error() {
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
 
             return SourceType::Error;
         }
@@ -1567,10 +1569,10 @@ impl<'a> TypeCheck<'a> {
                 }
             };
 
-            self.src
+            self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
-            self.src.set_ty(e.id, return_type.clone());
+            self.analysis.set_ty(e.id, return_type.clone());
 
             return_type
         } else if lookup.found_fct_id().is_none() {
@@ -1587,7 +1589,7 @@ impl<'a> TypeCheck<'a> {
 
             assert!(!lookup.find());
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
 
             SourceType::Error
         }
@@ -1604,8 +1606,8 @@ impl<'a> TypeCheck<'a> {
         if let Some((actual_type, field_id, field_type)) =
             find_field_in_class(self.vm, object_type.clone(), method_name)
         {
-            self.src.set_ty(e.callee.id(), field_type.clone());
-            self.src
+            self.analysis.set_ty(e.callee.id(), field_type.clone());
+            self.analysis
                 .map_idents
                 .insert_or_replace(e.callee.id(), IdentType::Field(actual_type, field_id));
 
@@ -1621,7 +1623,7 @@ impl<'a> TypeCheck<'a> {
             .args(arg_types);
         assert!(!lookup.find());
 
-        self.src.set_ty(e.id, SourceType::Error);
+        self.analysis.set_ty(e.id, SourceType::Error);
 
         SourceType::Error
     }
@@ -1646,7 +1648,7 @@ impl<'a> TypeCheck<'a> {
 
             let cls_ty = self.vm.cls_with_type_list(cls_id, type_params.clone());
             let call_type = CallType::Ctor(cls_ty, fct_id);
-            self.src.map_calls.insert(e.id, Arc::new(call_type));
+            self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
             if cls.is_abstract {
                 let msg = SemError::NewAbstractClass;
@@ -1658,7 +1660,7 @@ impl<'a> TypeCheck<'a> {
             SourceType::Error
         };
 
-        self.src.set_ty(e.id, ty.clone());
+        self.analysis.set_ty(e.id, ty.clone());
 
         ty
     }
@@ -1702,10 +1704,10 @@ impl<'a> TypeCheck<'a> {
             let fct = fct.read();
             let return_type = fct.return_type.clone();
 
-            self.src.set_ty(e.id, return_type.clone());
+            self.analysis.set_ty(e.id, return_type.clone());
 
             let call_type = CallType::GenericMethod(_id, fct.trait_id(), fid);
-            self.src.map_calls.insert(e.id, Arc::new(call_type));
+            self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
             return_type
         } else {
@@ -1723,7 +1725,7 @@ impl<'a> TypeCheck<'a> {
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
 
             SourceType::Error
         }
@@ -1762,7 +1764,7 @@ impl<'a> TypeCheck<'a> {
                 .lock()
                 .report(self.file, container_expr.pos(), msg);
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         };
 
@@ -1775,7 +1777,7 @@ impl<'a> TypeCheck<'a> {
                 .lock()
                 .report(self.file, method_expr.pos(), msg);
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         };
 
@@ -1880,7 +1882,7 @@ impl<'a> TypeCheck<'a> {
                 let msg = SemError::ClassExpected;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                self.src.set_ty(e.id, SourceType::Error);
+                self.analysis.set_ty(e.id, SourceType::Error);
 
                 SourceType::Error
             }
@@ -1913,11 +1915,11 @@ impl<'a> TypeCheck<'a> {
             let parent_class_type_params = parent_class.type_params(self.vm);
 
             if args_compatible(self.vm, &*ctor, &arg_types, &parent_class_type_params, None) {
-                self.src.map_tys.insert(e.id, parent_class);
+                self.analysis.map_tys.insert(e.id, parent_class);
 
                 let cls_ty = self.vm.cls_with_type_list(cls_id, parent_class_type_params);
                 let call_type = CallType::CtorParent(cls_ty, ctor.id);
-                self.src.map_calls.insert(e.id, Arc::new(call_type));
+                self.analysis.map_calls.insert(e.id, Arc::new(call_type));
                 return SourceType::Error;
             }
         }
@@ -1972,7 +1974,7 @@ impl<'a> TypeCheck<'a> {
                 .lock()
                 .report(self.file, container_expr.pos(), msg);
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         };
 
@@ -2005,7 +2007,7 @@ impl<'a> TypeCheck<'a> {
                 let msg = SemError::InvalidLeftSideOfSeparator;
                 self.vm.diag.lock().report(self.file, e.lhs.pos(), msg);
 
-                self.src.set_ty(e.id, SourceType::Error);
+                self.analysis.set_ty(e.id, SourceType::Error);
                 SourceType::Error
             }
         }
@@ -2028,9 +2030,9 @@ impl<'a> TypeCheck<'a> {
             (Some(TermSym::Global(globalid)), _) => {
                 let glob = self.vm.globals.idx(globalid);
                 let ty = glob.read().ty.clone();
-                self.src.set_ty(e.id, ty.clone());
+                self.analysis.set_ty(e.id, ty.clone());
 
-                self.src
+                self.analysis
                     .map_idents
                     .insert(e.id, IdentType::Global(globalid));
 
@@ -2041,9 +2043,11 @@ impl<'a> TypeCheck<'a> {
                 let xconst = self.vm.consts.idx(const_id);
                 let xconst = xconst.read();
 
-                self.src.set_ty(e.id, xconst.ty.clone());
+                self.analysis.set_ty(e.id, xconst.ty.clone());
 
-                self.src.map_idents.insert(e.id, IdentType::Const(const_id));
+                self.analysis
+                    .map_idents
+                    .insert(e.id, IdentType::Const(const_id));
 
                 xconst.ty.clone()
             }
@@ -2120,7 +2124,7 @@ impl<'a> TypeCheck<'a> {
                 self.vm.diag.lock().report(self.file, expr_pos, msg);
             }
 
-            self.src.map_idents.insert(
+            self.analysis.map_idents.insert(
                 expr_id,
                 IdentType::EnumValue(enum_id, type_params, value as usize),
             );
@@ -2133,10 +2137,10 @@ impl<'a> TypeCheck<'a> {
         }
 
         if type_params_ok {
-            self.src.set_ty(expr_id, ty.clone());
+            self.analysis.set_ty(expr_id, ty.clone());
             ty
         } else {
-            self.src.set_ty(expr_id, SourceType::Error);
+            self.analysis.set_ty(expr_id, SourceType::Error);
             SourceType::Error
         }
     }
@@ -2171,7 +2175,7 @@ impl<'a> TypeCheck<'a> {
                         .lock()
                         .report(self.file, e.pos, SemError::NoTypeParamsExpected);
 
-                    self.src.set_ty(e.id, SourceType::Error);
+                    self.analysis.set_ty(e.id, SourceType::Error);
                     SourceType::Error
                 }
             }
@@ -2182,7 +2186,7 @@ impl<'a> TypeCheck<'a> {
                 let msg = SemError::ExpectedSomeIdentifier;
                 self.vm.diag.lock().report(self.file, path.lhs.pos(), msg);
 
-                self.src.set_ty(e.id, SourceType::Error);
+                self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
             };
 
@@ -2192,7 +2196,7 @@ impl<'a> TypeCheck<'a> {
                 let msg = SemError::ExpectedSomeIdentifier;
                 self.vm.diag.lock().report(self.file, path.rhs.pos(), msg);
 
-                self.src.set_ty(e.id, SourceType::Error);
+                self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
             };
 
@@ -2212,7 +2216,7 @@ impl<'a> TypeCheck<'a> {
                     let msg = SemError::NoTypeParamsExpected;
                     self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                    self.src.set_ty(e.id, SourceType::Error);
+                    self.analysis.set_ty(e.id, SourceType::Error);
                     SourceType::Error
                 }
             }
@@ -2221,7 +2225,7 @@ impl<'a> TypeCheck<'a> {
                 .diag
                 .lock()
                 .report(self.file, e.pos, SemError::NoTypeParamsExpected);
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
     }
@@ -2262,16 +2266,16 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file, expr_pos, msg);
         }
 
-        self.src.map_idents.insert(
+        self.analysis.map_idents.insert(
             expr_id,
             IdentType::EnumValue(enum_id, type_params, variant_id),
         );
 
         if type_params_ok {
-            self.src.set_ty(expr_id, ty.clone());
+            self.analysis.set_ty(expr_id, ty.clone());
             ty
         } else {
-            self.src.set_ty(expr_id, SourceType::Error);
+            self.analysis.set_ty(expr_id, SourceType::Error);
             SourceType::Error
         }
     }
@@ -2294,7 +2298,7 @@ impl<'a> TypeCheck<'a> {
                 let msg = SemError::NameExpected;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                self.src.set_ty(e.id, SourceType::Error);
+                self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
             }
         };
@@ -2304,7 +2308,7 @@ impl<'a> TypeCheck<'a> {
                 find_field_in_class(self.vm, object_type.clone(), name)
             {
                 let ident_type = IdentType::Field(cls_ty.clone(), field_id);
-                self.src.map_idents.insert_or_replace(e.id, ident_type);
+                self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let cls = self
                     .vm
@@ -2316,7 +2320,7 @@ impl<'a> TypeCheck<'a> {
                 let class_type_params = cls_ty.type_params(self.vm);
                 let fty = replace_type_param(self.vm, field.ty.clone(), &class_type_params, None);
 
-                self.src.set_ty(e.id, fty.clone());
+                self.analysis.set_ty(e.id, fty.clone());
                 return fty;
             }
         }
@@ -2329,7 +2333,7 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        self.src.set_ty(e.id, SourceType::Error);
+        self.analysis.set_ty(e.id, SourceType::Error);
 
         SourceType::Error
     }
@@ -2342,7 +2346,7 @@ impl<'a> TypeCheck<'a> {
                 let msg = SemError::IndexExpected;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
 
-                self.src.set_ty(e.id, SourceType::Error);
+                self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
             }
         };
@@ -2358,12 +2362,12 @@ impl<'a> TypeCheck<'a> {
             let msg = SemError::IllegalTupleIndex(index, object_type.name_fct(self.vm, self.fct));
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
-            self.src.set_ty(e.id, SourceType::Error);
+            self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
 
         let ty = tuple[usize::try_from(index).unwrap()].clone();
-        self.src.set_ty(e.id, ty.clone());
+        self.analysis.set_ty(e.id, ty.clone());
 
         ty
     }
@@ -2374,7 +2378,7 @@ impl<'a> TypeCheck<'a> {
                 let cls = self.vm.classes.idx(clsid);
                 let cls = cls.read();
                 let ty = cls.ty.clone();
-                self.src.set_ty(e.id, ty.clone());
+                self.analysis.set_ty(e.id, ty.clone());
 
                 ty
             }
@@ -2384,7 +2388,7 @@ impl<'a> TypeCheck<'a> {
                 let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
                 let cls = cls.read();
                 let ty = cls.ty.clone();
-                self.src.set_ty(e.id, ty.clone());
+                self.analysis.set_ty(e.id, ty.clone());
 
                 ty
             }
@@ -2392,7 +2396,7 @@ impl<'a> TypeCheck<'a> {
             FctParent::Extension(extension_id) => {
                 let extension = self.vm.extensions[extension_id].read();
                 let ty = extension.ty.clone();
-                self.src.set_ty(e.id, ty.clone());
+                self.analysis.set_ty(e.id, ty.clone());
 
                 ty
             }
@@ -2400,7 +2404,7 @@ impl<'a> TypeCheck<'a> {
             _ => {
                 let msg = SemError::ThisUnavailable;
                 self.vm.diag.lock().report(self.file, e.pos, msg);
-                self.src.set_ty(e.id, SourceType::Unit);
+                self.analysis.set_ty(e.id, SourceType::Unit);
 
                 SourceType::Unit
             }
@@ -2410,7 +2414,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_super(&mut self, e: &ExprSuperType, _expected_ty: SourceType) -> SourceType {
         let msg = SemError::SuperNeedsMethodCall;
         self.vm.diag.lock().report(self.file, e.pos, msg);
-        self.src.set_ty(e.id, SourceType::Unit);
+        self.analysis.set_ty(e.id, SourceType::Unit);
 
         SourceType::Unit
     }
@@ -2431,14 +2435,14 @@ impl<'a> TypeCheck<'a> {
         let ty = self.vm.lambda_types.lock().insert(params, ret);
         let ty = SourceType::Lambda(ty);
 
-        self.src.set_ty(e.id, ty.clone());
+        self.analysis.set_ty(e.id, ty.clone());
 
         ty
     }
 
     fn check_expr_conv(&mut self, e: &ExprConvType, _expected_ty: SourceType) -> SourceType {
         let object_type = self.check_expr(&e.object, SourceType::Any);
-        self.src.set_ty(e.object.id(), object_type.clone());
+        self.analysis.set_ty(e.object.id(), object_type.clone());
 
         let check_type = self.read_type(&e.data_type);
 
@@ -2453,7 +2457,7 @@ impl<'a> TypeCheck<'a> {
             } else {
                 SourceType::Error
             };
-            self.src.set_ty(e.id, ty.clone());
+            self.analysis.set_ty(e.id, ty.clone());
             return ty;
         }
 
@@ -2473,7 +2477,7 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        self.src.map_convs.insert(
+        self.analysis.map_convs.insert(
             e.id,
             ConvInfo {
                 check_type: check_type.clone(),
@@ -2483,7 +2487,7 @@ impl<'a> TypeCheck<'a> {
 
         let ty = if e.is { SourceType::Bool } else { check_type };
 
-        self.src.set_ty(e.id, ty.clone());
+        self.analysis.set_ty(e.id, ty.clone());
 
         ty
     }
@@ -2496,7 +2500,7 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let (ty, _) = check_lit_int(self.vm, self.file, e, negate, expected_ty);
 
-        self.src.set_ty(e.id, ty.clone());
+        self.analysis.set_ty(e.id, ty.clone());
 
         ty
     }
@@ -2509,26 +2513,26 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let (ty, _) = check_lit_float(self.vm, self.file, e, negate);
 
-        self.src.set_ty(e.id, ty.clone());
+        self.analysis.set_ty(e.id, ty.clone());
 
         ty
     }
 
     fn check_expr_lit_str(&mut self, e: &ExprLitStrType, _expected_ty: SourceType) -> SourceType {
         let str_ty = self.vm.cls(self.vm.known.classes.string);
-        self.src.set_ty(e.id, str_ty.clone());
+        self.analysis.set_ty(e.id, str_ty.clone());
 
         str_ty
     }
 
     fn check_expr_lit_bool(&mut self, e: &ExprLitBoolType, _expected_ty: SourceType) -> SourceType {
-        self.src.set_ty(e.id, SourceType::Bool);
+        self.analysis.set_ty(e.id, SourceType::Bool);
 
         SourceType::Bool
     }
 
     fn check_expr_lit_char(&mut self, e: &ExprLitCharType, _expected_ty: SourceType) -> SourceType {
-        self.src.set_ty(e.id, SourceType::Char);
+        self.analysis.set_ty(e.id, SourceType::Char);
 
         SourceType::Char
     }
@@ -2567,7 +2571,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let str_ty = self.vm.cls(self.vm.known.classes.string);
-        self.src.set_ty(e.id, str_ty.clone());
+        self.analysis.set_ty(e.id, str_ty.clone());
 
         str_ty
     }
@@ -2621,7 +2625,7 @@ impl<'a> Visitor for TypeCheck<'a> {
             }
         }
 
-        self.src.set_ty(s.id(), SourceType::Unit);
+        self.analysis.set_ty(s.id(), SourceType::Unit);
     }
 }
 

@@ -1,9 +1,7 @@
-use parking_lot::RwLock;
-
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::SourceType;
-use crate::vm::{AnalysisData, Fct, FctKind, FctParent, FileId, GlobalId, NamespaceId, VM};
+use crate::vm::{Fct, FctParent, FileId, GlobalId, NamespaceId, VM};
 use dora_parser::ast;
 
 pub fn check<'a>(vm: &VM) {
@@ -58,7 +56,6 @@ impl<'a> GlobalDefCheck<'a> {
                 self.namespace_id,
                 initializer,
                 FctParent::None,
-                FctKind::Source(RwLock::new(AnalysisData::new())),
             );
 
             let fct_id = self.vm.add_fct(fct);

@@ -1,14 +1,11 @@
-use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::{SymTables, TypeSym};
+use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{
-    AnalysisData, EnumId, ExtensionId, Fct, FctKind, FctParent, FileId, NamespaceId, VM,
-};
+use crate::vm::{EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, VM};
 
 use dora_parser::ast;
 
@@ -28,7 +25,7 @@ pub fn check(vm: &VM) {
         let mut extck = ExtensionCheck {
             vm,
             extension_id,
-            sym: SymTables::current(vm, namespace_id),
+            sym: NestedSymTable::new(vm, namespace_id),
             namespace_id,
             file_id,
             ast: &ast,
@@ -43,7 +40,7 @@ struct ExtensionCheck<'x> {
     vm: &'x VM,
     file_id: FileId,
     namespace_id: Option<NamespaceId>,
-    sym: SymTables<'x>,
+    sym: NestedSymTable<'x>,
     extension_id: ExtensionId,
     extension_ty: SourceType,
     ast: &'x ast::Impl,
@@ -100,18 +97,11 @@ impl<'x> ExtensionCheck<'x> {
                 .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
         }
 
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(AnalysisData::new()))
-        } else {
-            FctKind::Definition
-        };
-
         let fct = Fct::new(
             self.file_id,
             self.namespace_id,
             f,
             FctParent::Extension(self.extension_id),
-            kind,
         );
 
         let fct_id = self.vm.add_fct(fct);

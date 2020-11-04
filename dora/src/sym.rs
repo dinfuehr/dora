@@ -12,23 +12,15 @@ use crate::vm::{
 };
 use dora_parser::interner::Name;
 
-pub struct SymTables<'a> {
+pub struct NestedSymTable<'a> {
     vm: &'a VM,
     namespace_id: Option<NamespaceId>,
     levels: Vec<SymTable>,
 }
 
-impl<'a> SymTables<'a> {
-    pub fn global(vm: &'a VM) -> SymTables {
-        SymTables {
-            vm,
-            namespace_id: None,
-            levels: Vec::new(),
-        }
-    }
-
-    pub fn current(vm: &'a VM, namespace_id: Option<NamespaceId>) -> SymTables {
-        SymTables {
+impl<'a> NestedSymTable<'a> {
+    pub fn new(vm: &'a VM, namespace_id: Option<NamespaceId>) -> NestedSymTable {
+        NestedSymTable {
             vm,
             namespace_id,
             levels: Vec::new(),

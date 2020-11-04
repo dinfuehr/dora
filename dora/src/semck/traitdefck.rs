@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::vm::{Fct, FctKind, FctParent, FileId, NamespaceId, TraitId, VM};
+use crate::vm::{Fct, FctParent, FileId, NamespaceId, TraitId, VM};
 
 use dora_parser::ast;
 
@@ -58,7 +58,6 @@ impl<'x> TraitCheck<'x> {
             self.namespace_id,
             node,
             FctParent::Trait(self.trait_id),
-            FctKind::Definition,
         );
 
         let fctid = self.vm.add_fct(fct);

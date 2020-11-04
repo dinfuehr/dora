@@ -6,7 +6,7 @@ use dora_parser::ast::TypeParam;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::{SymTables, TypeSym};
+use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{EnumData, EnumVariant, FileId, VM};
 
@@ -35,7 +35,7 @@ struct EnumCheck<'x> {
 
 impl<'x> EnumCheck<'x> {
     fn check(&mut self) {
-        let mut symtable = SymTables::current(self.vm, self.xenum.namespace_id);
+        let mut symtable = NestedSymTable::new(self.vm, self.xenum.namespace_id);
 
         symtable.push_level();
 
@@ -93,7 +93,7 @@ impl<'x> EnumCheck<'x> {
         symtable.pop_level();
     }
 
-    fn check_type_params(&mut self, type_params: &[TypeParam], symtable: &mut SymTables) {
+    fn check_type_params(&mut self, type_params: &[TypeParam], symtable: &mut NestedSymTable) {
         if type_params.len() > 0 {
             let mut names = HashSet::new();
             let mut type_param_id = 0;

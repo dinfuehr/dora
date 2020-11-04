@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::vm::{AnalysisData, Fct, VM};
+use crate::vm::{Fct, VM};
 
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
@@ -8,17 +8,13 @@ pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 
-        if !fct.is_src() {
+        if !fct.has_body() {
             continue;
         }
-
-        let src = fct.src();
-        let mut src = src.write();
 
         let mut flowck = FlowCheck {
             vm,
             fct: &fct,
-            src: &mut src,
             in_loop: false,
         };
 
@@ -29,7 +25,6 @@ pub fn check(vm: &VM) {
 struct FlowCheck<'a> {
     vm: &'a VM,
     fct: &'a Fct,
-    src: &'a mut AnalysisData,
     in_loop: bool,
 }
 

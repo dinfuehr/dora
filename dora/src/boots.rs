@@ -59,10 +59,9 @@ pub fn bytecode(vm: &VM, name: &str) -> Ref<Obj> {
 
     let fct = vm.fcts.idx(bc_fct_id);
     let fct = fct.read();
-    let src = fct.src();
-    let src = src.read();
+    let analysis = fct.analysis();
 
-    let bytecode_fct = bytecode::generate(vm, &*fct, &*src, &TypeList::empty());
+    let bytecode_fct = bytecode::generate(vm, &*fct, &*analysis, &TypeList::empty());
 
     if should_emit_bytecode(vm, &*fct) {
         bytecode::dump(vm, Some(&*fct), &bytecode_fct);

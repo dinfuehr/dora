@@ -1,10 +1,15 @@
 use crate::error::msg::SemError;
-use crate::sym::{SymTables, TypeSym};
+use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, NamespaceId, VM};
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 
-pub fn read_type_table(vm: &VM, table: &SymTables, file: FileId, t: &Type) -> Option<SourceType> {
+pub fn read_type_table(
+    vm: &VM,
+    table: &NestedSymTable,
+    file: FileId,
+    t: &Type,
+) -> Option<SourceType> {
     read_type_raw(vm, table, file, t)
 }
 
@@ -14,11 +19,11 @@ pub fn read_type_namespace(
     namespace_id: Option<NamespaceId>,
     t: &Type,
 ) -> Option<SourceType> {
-    let symtable = SymTables::current(vm, namespace_id);
+    let symtable = NestedSymTable::new(vm, namespace_id);
     read_type_raw(vm, &symtable, file, t)
 }
 
-fn read_type_raw(vm: &VM, table: &SymTables, file: FileId, t: &Type) -> Option<SourceType> {
+fn read_type_raw(vm: &VM, table: &NestedSymTable, file: FileId, t: &Type) -> Option<SourceType> {
     match *t {
         Type::This(_) => Some(SourceType::This),
         Type::Basic(ref basic) => read_type_basic(vm, table, file, basic),
@@ -29,7 +34,7 @@ fn read_type_raw(vm: &VM, table: &SymTables, file: FileId, t: &Type) -> Option<S
 
 fn read_type_basic(
     vm: &VM,
-    table: &SymTables,
+    table: &NestedSymTable,
     file: FileId,
     basic: &TypeBasicType,
 ) -> Option<SourceType> {
@@ -82,7 +87,7 @@ fn read_type_basic(
 
 fn read_type_enum(
     vm: &VM,
-    table: &SymTables,
+    table: &NestedSymTable,
     file: FileId,
     basic: &TypeBasicType,
     enum_id: EnumId,
@@ -134,7 +139,7 @@ fn read_type_enum(
 
 fn read_type_class(
     vm: &VM,
-    table: &SymTables,
+    table: &NestedSymTable,
     file: FileId,
     basic: &TypeBasicType,
     cls_id: ClassId,
@@ -192,7 +197,7 @@ fn read_type_class(
 
 fn read_type_tuple(
     vm: &VM,
-    table: &SymTables,
+    table: &NestedSymTable,
     file: FileId,
     tuple: &TypeTupleType,
 ) -> Option<SourceType> {
@@ -216,7 +221,7 @@ fn read_type_tuple(
 
 fn read_type_lambda(
     vm: &VM,
-    table: &SymTables,
+    table: &NestedSymTable,
     file: FileId,
     lambda: &TypeLambdaType,
 ) -> Option<SourceType> {

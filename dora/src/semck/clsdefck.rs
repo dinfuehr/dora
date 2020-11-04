@@ -1,15 +1,12 @@
-use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::sym::{SymTable, SymTables, TermSym, TypeSym};
+use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
-use crate::vm::{
-    AnalysisData, ClassId, Fct, FctKind, FctParent, Field, FieldId, FileId, NamespaceId, VM,
-};
+use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -28,7 +25,7 @@ pub fn check(vm: &VM) {
             file_id,
             ast: &ast,
             namespace_id,
-            sym: SymTables::current(vm, namespace_id),
+            sym: NestedSymTable::new(vm, namespace_id),
         };
 
         clsck.check();
@@ -41,7 +38,7 @@ struct ClsDefCheck<'x> {
     file_id: FileId,
     ast: &'x ast::Class,
     namespace_id: Option<NamespaceId>,
-    sym: SymTables<'x>,
+    sym: NestedSymTable<'x>,
 }
 
 impl<'x> ClsDefCheck<'x> {
@@ -88,18 +85,11 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_ctor(&mut self, node: &Arc<ast::Function>) {
-        let kind = if node.block.is_some() {
-            FctKind::Source(RwLock::new(AnalysisData::new()))
-        } else {
-            FctKind::Definition
-        };
-
         let fct = Fct::new(
             self.file_id,
             self.namespace_id,
             node,
             FctParent::Class(self.cls_id),
-            kind,
         );
 
         let fctid = self.vm.add_fct(fct);
@@ -110,18 +100,11 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(AnalysisData::new()))
-        } else {
-            FctKind::Definition
-        };
-
         let fct = Fct::new(
             self.file_id,
             self.namespace_id,
             f,
             FctParent::Class(self.cls_id),
-            kind,
         );
 
         let fctid = self.vm.add_fct(fct);

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::{SymTables, TypeSym};
+use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{self, Fct, FctId, FctParent, VM};
 
@@ -15,11 +15,7 @@ pub fn check(vm: &VM) {
         check_abstract(vm, &*fct);
         check_static(vm, &*fct);
 
-        if !(fct.is_src() || fct.kind.is_definition()) {
-            continue;
-        }
-
-        let mut sym_table = SymTables::current(vm, fct.namespace_id);
+        let mut sym_table = NestedSymTable::new(vm, fct.namespace_id);
         sym_table.push_level();
 
         let mut cls_type_params_count = 0;
@@ -206,7 +202,7 @@ fn check_abstract(vm: &VM, fct: &Fct) {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
-    if !fct.kind.is_definition() {
+    if fct.has_body() {
         let msg = SemError::AbstractMethodWithImplementation;
         vm.diag.lock().report(fct.file_id, fct.pos, msg);
     }

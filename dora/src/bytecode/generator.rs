@@ -28,10 +28,9 @@ impl LoopLabels {
 pub fn generate_fct(vm: &VM, id: FctId, type_params: &TypeList) -> BytecodeFunction {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
-    let src = fct.src();
-    let src = src.read();
+    let analysis = fct.analysis();
 
-    generate(vm, &fct, &src, type_params)
+    generate(vm, &fct, &analysis, type_params)
 }
 
 pub fn generate(
@@ -57,10 +56,9 @@ pub fn generate(
 pub fn generate_generic_fct(vm: &VM, id: FctId) -> BytecodeFunction {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
-    let src = fct.src();
-    let src = src.read();
+    let analysis = fct.analysis();
 
-    generate_generic(vm, &fct, &src)
+    generate_generic(vm, &fct, analysis)
 }
 
 pub fn generate_generic(vm: &VM, fct: &Fct, src: &AnalysisData) -> BytecodeFunction {

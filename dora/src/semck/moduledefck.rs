@@ -1,12 +1,11 @@
-use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::{SymTables, TypeSym};
+use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::{SourceType, TypeList};
 
-use crate::vm::{AnalysisData, Fct, FctKind, FctParent, Field, FileId, ModuleId, NamespaceId, VM};
+use crate::vm::{Fct, FctParent, Field, FileId, ModuleId, NamespaceId, VM};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -29,7 +28,7 @@ pub fn check(vm: &VM) {
             file_id,
             namespace_id,
             ast: &ast,
-            sym: SymTables::current(vm, namespace_id),
+            sym: NestedSymTable::new(vm, namespace_id),
         };
 
         module_check.check();
@@ -42,7 +41,7 @@ struct ModuleCheck<'x> {
     namespace_id: Option<NamespaceId>,
     file_id: FileId,
     ast: &'x ast::Module,
-    sym: SymTables<'x>,
+    sym: NestedSymTable<'x>,
 }
 
 impl<'x> ModuleCheck<'x> {
@@ -85,18 +84,11 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(AnalysisData::new()))
-        } else {
-            FctKind::Definition
-        };
-
         let fct = Fct::new(
             self.file_id,
             self.namespace_id,
             f,
             FctParent::Module(self.module_id),
-            kind,
         );
         let fctid = self.vm.add_fct(fct);
 
@@ -106,18 +98,11 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        let kind = if f.block.is_some() {
-            FctKind::Source(RwLock::new(AnalysisData::new()))
-        } else {
-            FctKind::Definition
-        };
-
         let fct = Fct::new(
             self.file_id,
             self.namespace_id,
             f,
             FctParent::Module(self.module_id),
-            kind,
         );
 
         let fctid = self.vm.add_fct(fct);

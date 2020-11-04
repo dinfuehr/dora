@@ -27,7 +27,7 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, TypeList};
 use crate::vm::{
-    AnalysisData, EnumLayout, Fct, FctId, FctKind, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM,
+    AnalysisData, EnumLayout, Fct, FctId, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -3766,22 +3766,19 @@ impl<'a> CannonCodeGen<'a> {
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
 
-            match fct.kind {
-                FctKind::Source(_) => ensure_jit_or_stub_ptr(&fct, self.vm, type_params),
+            if let Some(native_pointer) = fct.native_pointer {
+                assert!(type_params.is_empty());
+                let internal_fct = NativeFct {
+                    ptr: native_pointer,
+                    args: fct.params_with_self(),
+                    return_type: fct.return_type.clone(),
+                    desc: NativeFctDescriptor::NativeStub(fid),
+                };
 
-                FctKind::Native(ptr) => {
-                    assert!(type_params.is_empty());
-                    let internal_fct = NativeFct {
-                        ptr,
-                        args: fct.params_with_self(),
-                        return_type: fct.return_type.clone(),
-                        desc: NativeFctDescriptor::NativeStub(fid),
-                    };
-
-                    ensure_native_stub(self.vm, Some(fid), internal_fct)
-                }
-
-                FctKind::Definition => panic!("prototype for fct call"),
+                ensure_native_stub(self.vm, Some(fid), internal_fct)
+            } else {
+                debug_assert!(fct.has_body());
+                ensure_jit_or_stub_ptr(&fct, self.vm, type_params)
             }
         }
     }

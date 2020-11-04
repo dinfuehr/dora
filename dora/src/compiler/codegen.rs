@@ -18,10 +18,8 @@ use crate::vm::{AnalysisData, Fct, FctId};
 pub fn generate(vm: &VM, id: FctId, type_params: &TypeList) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
-    let src = fct.src();
-    let src = src.read();
-
-    generate_fct(vm, &fct, &src, type_params)
+    let analysis = fct.analysis();
+    generate_fct(vm, &fct, analysis, type_params)
 }
 
 pub fn generate_fct(vm: &VM, fct: &Fct, src: &AnalysisData, type_params: &TypeList) -> Address {

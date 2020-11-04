@@ -108,14 +108,12 @@ pub fn bytecode(vm: &VM) {
         let bc = {
             let fct = fct.read();
 
-            if !fct.is_src() {
+            if !fct.has_body() {
                 continue;
             }
 
-            let src = fct.src();
-            let src = src.read();
-
-            bytecode::generate_generic(vm, &*fct, &*src)
+            let analysis = fct.analysis();
+            bytecode::generate_generic(vm, &*fct, analysis)
         };
 
         let mut fct = fct.write();
@@ -131,13 +129,13 @@ fn internalck(vm: &VM) {
             continue;
         }
 
-        if fct.internal && !fct.internal_resolved && fct.kind.is_definition() {
+        if fct.internal && !fct.internal_resolved && !fct.has_body() {
             vm.diag
                 .lock()
                 .report(fct.file_id, fct.pos, SemError::UnresolvedInternal);
         }
 
-        if fct.kind.is_definition() && !fct.in_trait() && !fct.internal {
+        if !fct.has_body() && !fct.in_trait() && !fct.internal {
             vm.diag
                 .lock()
                 .report(fct.file_id, fct.pos, SemError::MissingFctBody);
@@ -157,13 +155,13 @@ fn internalck(vm: &VM) {
             let method = vm.fcts.idx(*method);
             let method = method.read();
 
-            if method.internal && !method.internal_resolved && method.kind.is_definition() {
+            if method.internal && !method.internal_resolved && !method.has_body() {
                 vm.diag
                     .lock()
                     .report(method.file_id, method.pos, SemError::UnresolvedInternal);
             }
 
-            if method.kind.is_definition() && !method.is_abstract && !method.internal {
+            if !method.has_body() && !method.is_abstract && !method.internal {
                 vm.diag
                     .lock()
                     .report(method.file_id, method.pos, SemError::MissingFctBody);
