@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::ty::SourceType;
 use crate::vm::{Fct, FctParent, FileId, ImplId, NamespaceId, VM};
 
 use dora_parser::ast;
@@ -59,26 +59,26 @@ impl<'x> ImplCheck<'x> {
             return;
         }
 
-        if let Some(ref trait_type) = self.ast.trait_type {
-            if let Some(trait_name) = trait_type.to_basic_without_type_params() {
-                let symtable = NestedSymTable::new(self.vm, ximpl.namespace_id);
-                if let Some(TypeSym::Trait(trait_id)) = symtable.get_type(trait_name) {
-                    ximpl.trait_id = Some(trait_id);
-                } else {
-                    let name = self.vm.interner.str(trait_name).to_string();
-                    self.vm.diag.lock().report(
-                        self.file_id,
-                        self.ast.pos,
-                        SemError::ExpectedTrait(name),
-                    );
+        if let Some(ref expr_trait_type) = self.ast.trait_type {
+            if let Some(trait_ty) = semck::read_type_namespace(
+                self.vm,
+                self.file_id.into(),
+                self.namespace_id,
+                expr_trait_type,
+            ) {
+                match trait_ty {
+                    SourceType::TraitObject(trait_id) => {
+                        ximpl.trait_id = Some(trait_id);
+                    }
+
+                    _ => {
+                        self.vm.diag.lock().report(
+                            self.file_id,
+                            self.ast.pos,
+                            SemError::ExpectedTrait,
+                        );
+                    }
                 }
-            } else {
-                // We don't support type parameters for traits yet.
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.file_id, self.ast.pos, SemError::Unimplemented);
-                return;
             }
         } else {
             // We don't support extension blocks yet.
@@ -172,8 +172,8 @@ mod tests {
     fn impl_for_unknown_trait() {
         err(
             "class A {} impl Foo for A {}",
-            pos(1, 12),
-            SemError::ExpectedTrait("Foo".into()),
+            pos(1, 17),
+            SemError::UnknownIdentifier("Foo".into()),
         );
     }
 

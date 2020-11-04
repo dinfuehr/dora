@@ -83,7 +83,7 @@ pub enum SemError {
     ExpectedFactor(String),
     ExpectedToken(String, String),
     ExpectedTopLevelElement(String),
-    ExpectedTrait(String),
+    ExpectedTrait,
     ExpectedType(String),
     ExpectedIdentifier(String),
     ExpectedStringable(String),
@@ -337,7 +337,7 @@ impl SemError {
             SemError::NumberOverflow(ref ty) => format!("number does not fit into type {}.", ty),
             SemError::ExpectedClass(ref cls) => format!("expected class name but got {}.", cls),
             SemError::ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
-            SemError::ExpectedTrait(ref trt) => format!("expected trait name but got {}.", trt),
+            SemError::ExpectedTrait => format!("expected trait."),
             SemError::ExpectedType(ref got) => format!("type expected but got {}.", got),
             SemError::ExpectedIdentifier(ref tok) => {
                 format!("identifier expected but got {}.", tok)

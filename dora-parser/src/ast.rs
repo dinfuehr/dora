@@ -354,9 +354,15 @@ pub struct TypeBasicType {
     pub pos: Position,
     pub span: Span,
 
-    pub name: Name,
     pub path: Vec<Name>,
     pub params: Vec<Box<Type>>,
+}
+
+impl TypeBasicType {
+    pub fn name(&self) -> Name {
+        assert_eq!(self.path.len(), 1);
+        self.path.last().cloned().unwrap()
+    }
 }
 
 impl Type {
@@ -368,7 +374,6 @@ impl Type {
         id: NodeId,
         pos: Position,
         span: Span,
-        name: Name,
         path: Vec<Name>,
         params: Vec<Box<Type>>,
     ) -> Type {
@@ -376,7 +381,6 @@ impl Type {
             id,
             pos,
             span,
-            name,
             path,
             params,
         })
@@ -414,20 +418,6 @@ impl Type {
         }
     }
 
-    pub fn to_basic_without_type_params(&self) -> Option<Name> {
-        match *self {
-            Type::Basic(ref basic) => {
-                if basic.params.len() == 0 {
-                    Some(basic.name)
-                } else {
-                    None
-                }
-            }
-
-            _ => None,
-        }
-    }
-
     pub fn to_tuple(&self) -> Option<&TypeTupleType> {
         match *self {
             Type::Tuple(ref val) => Some(val),
@@ -453,7 +443,7 @@ impl Type {
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
             Type::This(_) => "Self".into(),
-            Type::Basic(ref val) => format!("{}", *interner.str(val.name)),
+            Type::Basic(ref val) => format!("{}", *interner.str(val.name())),
 
             Type::Tuple(ref val) => {
                 let types: Vec<String> =
