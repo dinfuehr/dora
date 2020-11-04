@@ -29,7 +29,6 @@ mod disassembler;
 mod driver;
 mod dseg;
 mod error;
-mod fctbodyck;
 mod gc;
 mod handle;
 mod masm;

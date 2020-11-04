@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::fctbodyck::expr::args_compatible;
+use crate::semck::fctbodyck::body::args_compatible;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, TypeList};

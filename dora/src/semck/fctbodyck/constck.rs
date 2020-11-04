@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::fctbodyck::expr::{check_lit_float, check_lit_int};
+use crate::semck::fctbodyck::body::{check_lit_float, check_lit_int};
 use crate::ty::SourceType;
 use crate::vm::{ConstData, ConstValue, VM};
 

@@ -1,12 +1,12 @@
-use crate::fctbodyck::constck::ConstCheck;
-use crate::fctbodyck::expr::TypeCheck;
+use crate::semck::fctbodyck::body::TypeCheck;
+use crate::semck::fctbodyck::constck::ConstCheck;
 use crate::sym::NestedSymTable;
 use crate::vm::{AnalysisData, VM};
 
 use dora_parser::ast::NodeId;
 
+pub mod body;
 mod constck;
-pub mod expr;
 mod lookup;
 #[cfg(test)]
 mod tests;

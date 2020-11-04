@@ -1,7 +1,6 @@
 use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
-use crate::fctbodyck;
 use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::vm::{FileId, VM};
 use dora_parser::ast::{Expr, ExprBlockType, Stmt};
@@ -15,6 +14,7 @@ mod clsdefck;
 mod constdefck;
 mod enumck;
 mod extensiondefck;
+mod fctbodyck;
 mod fctdefck;
 mod globaldef;
 mod globaldefck;
