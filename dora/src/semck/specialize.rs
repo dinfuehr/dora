@@ -244,7 +244,13 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         let mut class_defs = vm.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
 
-        let old = cls.specializations.write().insert(type_params.clone(), id);
+        let mut specializations = cls.specializations.write();
+
+        if let Some(&id) = specializations.get(type_params) {
+            return id;
+        }
+
+        let old = specializations.insert(type_params.clone(), id);
         assert!(old.is_none());
 
         class_defs.push(Arc::new(RwLock::new(ClassDef {

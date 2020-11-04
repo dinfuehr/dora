@@ -3,6 +3,7 @@ use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, NamespaceId, VM};
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
+use dora_parser::interner::Name;
 
 pub fn read_type_table(
     vm: &VM,
@@ -38,7 +39,7 @@ fn read_type_basic(
     file: FileId,
     basic: &TypeBasicType,
 ) -> Option<SourceType> {
-    let sym = table.get_type(basic.name);
+    let sym = read_type_path(vm, table, file, &basic.path);
 
     if sym.is_none() {
         let name = vm.interner.str(basic.name).to_string();
@@ -82,6 +83,19 @@ fn read_type_basic(
 
             Some(SourceType::TypeParam(type_param_id))
         }
+    }
+}
+
+fn read_type_path(
+    _vm: &VM,
+    table: &NestedSymTable,
+    _file: FileId,
+    path: &[Name],
+) -> Option<TypeSym> {
+    if path.len() > 1 {
+        unimplemented!()
+    } else {
+        table.get_type(path.last().cloned().unwrap())
     }
 }
 

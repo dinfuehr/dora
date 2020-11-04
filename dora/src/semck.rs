@@ -91,8 +91,9 @@ pub fn check(vm: &mut VM) {
     return_on_error!(vm);
 
     abstractck::check(vm);
+    return_on_error!(vm);
 
-    // check types of expressions in functions
+    // check function body
     fctbodyck::check(vm);
     return_on_error!(vm);
 }
