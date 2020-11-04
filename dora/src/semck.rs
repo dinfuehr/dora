@@ -113,11 +113,10 @@ pub fn bytecode(vm: &VM) {
             }
 
             let analysis = fct.analysis();
-            bytecode::generate_generic(vm, &*fct, analysis)
+            bytecode::generate(vm, &*fct, analysis)
         };
 
-        let mut fct = fct.write();
-        fct.bytecode = Some(bc);
+        fct.write().bytecode = Some(bc);
     }
 }
 

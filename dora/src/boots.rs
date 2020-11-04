@@ -13,8 +13,8 @@ use crate::threads::THREAD;
 use crate::ty::TypeList;
 use crate::vm::{AnalysisData, Fct, VM};
 
-pub fn compile<'a>(vm: &'a VM, fct: &Fct, src: &'a AnalysisData, type_params: &TypeList) -> Code {
-    let bytecode_fct = bytecode::generate(vm, fct, src, type_params);
+pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &TypeList) -> Code {
+    let bytecode_fct = bytecode::generate(vm, fct, src);
 
     if should_emit_bytecode(vm, fct) {
         bytecode::dump(vm, Some(fct), &bytecode_fct);
@@ -61,7 +61,7 @@ pub fn bytecode(vm: &VM, name: &str) -> Ref<Obj> {
     let fct = fct.read();
     let analysis = fct.analysis();
 
-    let bytecode_fct = bytecode::generate(vm, &*fct, &*analysis, &TypeList::empty());
+    let bytecode_fct = bytecode::generate(vm, &*fct, &*analysis);
 
     if should_emit_bytecode(vm, &*fct) {
         bytecode::dump(vm, Some(&*fct), &bytecode_fct);

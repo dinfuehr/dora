@@ -25,49 +25,19 @@ impl LoopLabels {
     }
 }
 
-pub fn generate_fct(vm: &VM, id: FctId, type_params: &TypeList) -> BytecodeFunction {
+pub fn generate_fct(vm: &VM, id: FctId) -> BytecodeFunction {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let analysis = fct.analysis();
 
-    generate(vm, &fct, &analysis, type_params)
+    generate(vm, &fct, analysis)
 }
 
-pub fn generate(
-    vm: &VM,
-    fct: &Fct,
-    src: &AnalysisData,
-    type_params: &TypeList,
-) -> BytecodeFunction {
+pub fn generate(vm: &VM, fct: &Fct, src: &AnalysisData) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
         fct,
         src,
-
-        type_params,
-
-        gen: BytecodeBuilder::new(&vm.args),
-        loops: Vec::new(),
-        var_registers: HashMap::new(),
-    };
-    ast_bytecode_generator.generate(&fct.ast)
-}
-
-pub fn generate_generic_fct(vm: &VM, id: FctId) -> BytecodeFunction {
-    let fct = vm.fcts.idx(id);
-    let fct = fct.read();
-    let analysis = fct.analysis();
-
-    generate_generic(vm, &fct, analysis)
-}
-
-pub fn generate_generic(vm: &VM, fct: &Fct, src: &AnalysisData) -> BytecodeFunction {
-    let ast_bytecode_generator = AstBytecodeGen {
-        vm,
-        fct,
-        src,
-
-        type_params: &TypeList::empty(),
 
         gen: BytecodeBuilder::new(&vm.args),
         loops: Vec::new(),
@@ -80,8 +50,6 @@ struct AstBytecodeGen<'a> {
     vm: &'a VM,
     fct: &'a Fct,
     src: &'a AnalysisData,
-
-    type_params: &'a TypeList,
 
     gen: BytecodeBuilder,
     loops: Vec<LoopLabels>,
