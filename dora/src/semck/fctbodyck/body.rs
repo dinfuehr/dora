@@ -1763,17 +1763,12 @@ impl<'a> TypeCheck<'a> {
             };
         let method_expr = &callee_as_path.rhs;
 
-        let container_name = if let Some(container_expr) = container_expr.to_ident() {
-            container_expr.name
-        } else {
-            let msg = SemError::ExpectedSomeIdentifier;
-            self.vm
-                .diag
-                .lock()
-                .report(self.file, container_expr.pos(), msg);
-
-            self.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
+        let (sym_term, sym_type) = match self.read_path(container_expr) {
+            Ok((sym_term, sym_type)) => (sym_term, sym_type),
+            Err(()) => {
+                self.analysis.set_ty(e.id, SourceType::Error);
+                return SourceType::Error;
+            }
         };
 
         let method_name = if let Some(method_name_expr) = method_expr.to_ident() {
@@ -1788,9 +1783,6 @@ impl<'a> TypeCheck<'a> {
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         };
-
-        let sym_type = self.symtable.get_type(container_name);
-        let sym_term = self.symtable.get_term(container_name);
 
         match (sym_type, sym_term) {
             (_, Some(TermSym::ClassConstructorAndModule(_, module_id)))
@@ -1973,17 +1965,12 @@ impl<'a> TypeCheck<'a> {
             (&e.lhs, TypeList::empty())
         };
 
-        let container_name = if let Some(container_expr) = container_expr.to_ident() {
-            container_expr.name
-        } else {
-            let msg = SemError::ExpectedSomeIdentifier;
-            self.vm
-                .diag
-                .lock()
-                .report(self.file, container_expr.pos(), msg);
-
-            self.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
+        let (sym_term, sym_type) = match self.read_path(container_expr) {
+            Ok((sym_term, sym_type)) => (sym_term, sym_type),
+            Err(()) => {
+                self.analysis.set_ty(e.id, SourceType::Error);
+                return SourceType::Error;
+            }
         };
 
         let element_name = if let Some(ident) = e.rhs.to_ident() {
@@ -1993,9 +1980,6 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file, e.rhs.pos(), msg);
             return SourceType::Error;
         };
-
-        let sym_term = self.symtable.get_term(container_name);
-        let sym_type = self.symtable.get_type(container_name);
 
         match (sym_term, sym_type) {
             (_, Some(TypeSym::Enum(id))) => self.check_enum_value_without_args(
@@ -2018,6 +2002,50 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.set_ty(e.id, SourceType::Error);
                 SourceType::Error
             }
+        }
+    }
+
+    fn read_path(&mut self, expr: &Expr) -> Result<(Option<TermSym>, Option<TypeSym>), ()> {
+        if let Some(expr_path) = expr.to_path() {
+            let (sym_term, sym_type) = self.read_path(&expr_path.lhs)?;
+
+            let element_name = if let Some(ident) = expr_path.rhs.to_ident() {
+                ident.name
+            } else {
+                let msg = SemError::ExpectedSomeIdentifier;
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file, expr_path.rhs.pos(), msg);
+                return Err(());
+            };
+
+            match (sym_term, sym_type) {
+                (Some(TermSym::Namespace(namespace_id)), _) => {
+                    let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+                    let symtable = namespace.table.read();
+                    let sym_term = symtable.get_term(element_name);
+                    let sym_type = symtable.get_type(element_name);
+
+                    Ok((sym_term, sym_type))
+                }
+
+                _ => {
+                    let msg = SemError::ExpectedNamespace;
+                    self.vm.diag.lock().report(self.file, expr.pos(), msg);
+                    Err(())
+                }
+            }
+        } else if let Some(expr_ident) = expr.to_ident() {
+            let container_name = expr_ident.name;
+            let sym_term = self.symtable.get_term(container_name);
+            let sym_type = self.symtable.get_type(container_name);
+
+            Ok((sym_term, sym_type))
+        } else {
+            let msg = SemError::ExpectedSomeIdentifier;
+            self.vm.diag.lock().report(self.file, expr.pos(), msg);
+            Err(())
         }
     }
 

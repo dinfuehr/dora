@@ -89,11 +89,17 @@ pub fn stack_pointer() -> Address {
     Address::from_ptr(&local as *const i32)
 }
 
+pub struct File {
+    pub id: FileId,
+    pub namespace_id: Option<NamespaceId>,
+    pub ast: Arc<ast::File>,
+}
+
 pub struct VM {
     pub args: Args,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
-    pub files: Arc<RwLock<Vec<Arc<ast::File>>>>,
+    pub files: Arc<RwLock<Vec<File>>>,
     pub diag: Mutex<Diagnostic>,
     pub global_namespace: Arc<RwLock<SymTable>>,
     pub known: KnownElements,
@@ -265,6 +271,16 @@ impl VM {
         let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr, testing);
+    }
+
+    pub fn add_file(&self, ast: Arc<ast::File>) {
+        let mut files = self.files.write();
+        let file_id = (files.len() as u32).into();
+        files.push(File {
+            id: file_id,
+            namespace_id: None,
+            ast,
+        });
     }
 
     pub fn ensure_compiled(&self, fct_id: FctId) -> Address {
@@ -532,7 +548,7 @@ impl VM {
     }
 
     pub fn file(&self, idx: FileId) -> Arc<ast::File> {
-        self.files.read().get(idx.to_usize()).unwrap().clone()
+        self.files.read().get(idx.to_usize()).unwrap().ast.clone()
     }
 }
 

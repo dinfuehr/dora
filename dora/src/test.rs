@@ -37,8 +37,8 @@ where
         let reader = Reader::from_string(filename, code);
         let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
         match parser.parse() {
-            Ok(file) => {
-                vm.files.write().push(Arc::new(file));
+            Ok(ast) => {
+                vm.add_file(Arc::new(ast));
             }
 
             Err(error) => {

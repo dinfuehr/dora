@@ -2,7 +2,10 @@ use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use crate::interner::{Interner, Name};
+#[cfg(test)]
+use crate::interner::Interner;
+
+use crate::interner::Name;
 use crate::lexer::position::{Position, Span};
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 
@@ -359,6 +362,7 @@ pub struct TypeBasicType {
 }
 
 impl TypeBasicType {
+    #[cfg(test)]
     pub fn name(&self) -> Name {
         assert_eq!(self.path.len(), 1);
         self.path.last().cloned().unwrap()
@@ -440,6 +444,7 @@ impl Type {
         }
     }
 
+    #[cfg(test)]
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
             Type::This(_) => "Self".into(),

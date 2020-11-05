@@ -14,15 +14,13 @@ macro_rules! dump {
     }};
 }
 
-pub fn dump_files(files: &[Arc<File>], interner: &Interner) {
+pub fn dump_file(ast: &Arc<File>, interner: &Interner) {
     let mut dumper = AstDumper {
         interner,
         indent: 0,
     };
 
-    for file in files {
-        dumper.dump_file(file);
-    }
+    dumper.dump_file(ast);
 }
 
 pub fn dump_fct(fct: &Function, interner: &Interner) {
@@ -419,13 +417,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_type(&mut self, ty: &Type) {
-        dump!(
-            self,
-            "type `{}` @ {:?} {}",
-            ty.to_string(self.interner),
-            ty.pos(),
-            ty.id()
-        );
+        dump!(self, "type @ {:?} {}", ty.pos(), ty.id());
     }
 
     fn dump_stmt(&mut self, stmt: &Stmt) {

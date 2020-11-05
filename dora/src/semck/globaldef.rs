@@ -8,7 +8,7 @@ use crate::sym::{SymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{
     self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
-    Fct, FctParent, GlobalData, GlobalId, ImplData, ImplId, ImportData, Module, ModuleId,
+    Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData, Module, ModuleId,
     NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::Visitor;
@@ -17,36 +17,31 @@ use dora_parser::interner::Name;
 
 pub fn check(vm: &mut VM) {
     let files = vm.files.clone();
-
-    let mut gdef = GlobalDef {
-        vm,
-        file_id: 0,
-        namespace_id: None,
-    };
-
     let files = files.read();
+
     for file in files.iter() {
-        gdef.visit_file(file);
+        let mut gdef = GlobalDef {
+            vm,
+            file_id: file.id,
+            namespace_id: file.namespace_id,
+        };
+
+        gdef.visit_file(&file.ast);
     }
 }
 
 struct GlobalDef<'x> {
     vm: &'x mut VM,
-    file_id: u32,
+    file_id: FileId,
     namespace_id: Option<NamespaceId>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
-    fn visit_file(&mut self, f: &ast::File) {
-        visit::walk_file(self, f);
-        self.file_id += 1;
-    }
-
     fn visit_namespace(&mut self, n: &Arc<ast::Namespace>) {
         let id: NamespaceId = self.vm.namespaces.len().into();
         let namespace = NamespaceData {
             id,
-            file_id: self.file_id.into(),
+            file_id: self.file_id,
             pos: n.pos,
             name: n.name,
             namespace_id: self.namespace_id,
@@ -57,7 +52,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = TermSym::Namespace(id);
         if let Some(sym) = self.insert_term(n.name, sym) {
-            report_term_shadow(self.vm, n.name, self.file_id.into(), n.pos, sym);
+            report_term_shadow(self.vm, n.name, self.file_id, n.pos, sym);
         }
 
         let saved_namespace_id = self.namespace_id;
@@ -70,7 +65,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id: TraitId = (self.vm.traits.len() as u32).into();
         let xtrait = TraitData {
             id,
-            file_id: self.file_id.into(),
+            file_id: self.file_id,
             ast: t.clone(),
             namespace_id: self.namespace_id,
             pos: t.pos,
@@ -82,14 +77,14 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = TypeSym::Trait(id);
         if let Some(sym) = self.insert_type(t.name, sym) {
-            report_type_shadow(self.vm, t.name, self.file_id.into(), t.pos, sym);
+            report_type_shadow(self.vm, t.name, self.file_id, t.pos, sym);
         }
     }
 
     fn visit_import(&mut self, node: &Arc<ast::Import>) {
         let import = ImportData {
             namespace_id: self.namespace_id,
-            file_id: self.file_id.into(),
+            file_id: self.file_id,
             ast: node.clone(),
         };
 
@@ -102,7 +97,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let id: GlobalId = (globals.len() as u32).into();
             let global = GlobalData {
                 id,
-                file_id: self.file_id.into(),
+                file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
                 pos: node.pos,
@@ -121,7 +116,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = TermSym::Global(id);
         if let Some(sym) = self.insert_term(node.name, sym) {
-            report_term_shadow(self.vm, node.name, self.file_id.into(), node.pos, sym);
+            report_term_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -130,7 +125,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let id: ImplId = (self.vm.impls.len() as u32).into();
             let ximpl = ImplData {
                 id,
-                file_id: self.file_id.into(),
+                file_id: self.file_id,
                 ast: ast.clone(),
                 namespace_id: self.namespace_id,
                 pos: ast.pos,
@@ -149,7 +144,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             }
             let extension = ExtensionData {
                 id,
-                file_id: self.file_id.into(),
+                file_id: self.file_id,
                 namespace_id: self.namespace_id,
                 ast: ast.clone(),
                 pos: ast.pos,
@@ -171,7 +166,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let module = Module {
                 id: id,
                 name: node.name,
-                file_id: self.file_id.into(),
+                file_id: self.file_id,
                 namespace_id: self.namespace_id,
                 ast: node.clone(),
                 pos: node.pos,
@@ -203,7 +198,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             Some(TermSym::ClassConstructor(class_id)) => {
                 level.insert_term(node.name, TermSym::ClassConstructorAndModule(class_id, id));
             }
-            Some(sym) => report_term_shadow(self.vm, node.name, self.file_id.into(), node.pos, sym),
+            Some(sym) => report_term_shadow(self.vm, node.name, self.file_id, node.pos, sym),
         }
     }
 
@@ -213,7 +208,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let id: ConstId = consts.len().into();
             let xconst = ConstData {
                 id,
-                file_id: self.file_id.into(),
+                file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
                 pos: node.pos,
@@ -230,7 +225,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = TermSym::Const(id);
         if let Some(sym) = self.insert_term(node.name, sym) {
-            report_term_shadow(self.vm, node.name, self.file_id.into(), node.pos, sym);
+            report_term_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -243,7 +238,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 id,
                 name: c.name,
                 ast: c.clone(),
-                file_id: self.file_id.into(),
+                file_id: self.file_id,
                 namespace_id: self.namespace_id,
                 pos: c.pos,
                 ty: self.vm.cls(id),
@@ -284,7 +279,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = TypeSym::Class(id);
         if let Some(sym) = self.insert_type(c.name, sym) {
-            report_type_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym);
+            report_type_shadow(self.vm, c.name, self.file_id, c.pos, sym);
             return;
         }
 
@@ -297,7 +292,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             Some(TermSym::Module(module_id)) => {
                 level.insert_term(c.name, TermSym::ClassConstructorAndModule(id, module_id));
             }
-            Some(sym) => report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym),
+            Some(sym) => report_term_shadow(self.vm, c.name, self.file_id, c.pos, sym),
         }
     }
 
@@ -307,7 +302,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let id: StructId = (structs.len() as u32).into();
             let struc = StructData {
                 id,
-                file_id: self.file_id.into(),
+                file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
                 pos: node.pos,
@@ -323,7 +318,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = TypeSym::Struct(id);
         if let Some(sym) = self.insert_type(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id.into(), node.pos, sym);
+            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
             return;
         }
 
@@ -339,17 +334,17 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                     TermSym::StructConstructorAndModule(id, module_id),
                 );
             }
-            Some(sym) => report_term_shadow(self.vm, node.name, self.file_id.into(), node.pos, sym),
+            Some(sym) => report_term_shadow(self.vm, node.name, self.file_id, node.pos, sym),
         }
     }
 
     fn visit_fct(&mut self, f: &Arc<ast::Function>) {
-        let fct = Fct::new(self.file_id.into(), self.namespace_id, f, FctParent::None);
+        let fct = Fct::new(self.file_id, self.namespace_id, f, FctParent::None);
         let fctid = self.vm.add_fct(fct);
         let sym = TermSym::Fct(fctid);
 
         if let Some(sym) = self.insert_term(f.name, sym) {
-            report_term_shadow(self.vm, f.name, self.file_id.into(), f.pos, sym);
+            report_term_shadow(self.vm, f.name, self.file_id, f.pos, sym);
         }
     }
 
@@ -357,7 +352,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id: EnumId = self.vm.enums.len().into();
         let mut xenum = EnumData {
             id,
-            file_id: self.file_id.into(),
+            file_id: self.file_id,
             namespace_id: self.namespace_id,
             ast: e.clone(),
             pos: e.pos,
@@ -380,7 +375,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = TypeSym::Enum(id);
         if let Some(sym) = self.insert_type(e.name, sym) {
-            report_type_shadow(self.vm, e.name, self.file_id.into(), e.pos, sym);
+            report_type_shadow(self.vm, e.name, self.file_id, e.pos, sym);
         }
     }
 }

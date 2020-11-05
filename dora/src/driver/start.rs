@@ -32,7 +32,10 @@ pub fn start() -> i32 {
 
     if vm.args.flag_emit_ast {
         let files = vm.files.read();
-        ast::dump::dump_files(&files, &vm.interner);
+
+        for file in files.iter() {
+            ast::dump::dump_file(&file.ast, &vm.interner);
+        }
     }
 
     semck::check(&mut vm);
@@ -297,8 +300,8 @@ fn parse_reader(reader: Reader, vm: &mut VM) -> Result<(), i32> {
     let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
 
     match parser.parse() {
-        Ok(file) => {
-            vm.files.write().push(Arc::new(file));
+        Ok(ast) => {
+            vm.add_file(Arc::new(ast));
             Ok(())
         }
 
