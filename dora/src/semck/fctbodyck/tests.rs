@@ -2440,6 +2440,18 @@ fn namespace_import() {
         namespace foo { fun bar() {} }
     ");
 
+    ok("
+        import foo::bar;
+        fun f(): Int32 { bar }
+        namespace foo { var bar: Int32 = 10; }
+    ");
+
+    ok("
+        import foo::bar;
+        fun f(): Int32 { bar }
+        namespace foo { var bar: Int32 = 10; }
+    ");
+
     // ok("
     //     import foo::Bar;
     //     fun f() { Bar(); }

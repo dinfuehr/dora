@@ -62,6 +62,20 @@ fn import_namespace(
             }
         }
 
+        (Some(TermSym::Global(global_id)), _) => {
+            let new_sym = TermSym::Global(global_id);
+            if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
+                report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+            }
+        }
+
+        (Some(TermSym::Const(const_id)), _) => {
+            let new_sym = TermSym::Const(const_id);
+            if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
+                report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+            }
+        }
+
         (_, Some(TypeSym::Class(cls_id))) => {
             let new_sym = TypeSym::Class(cls_id);
             if let Some(old_sym) = table.write().insert_type(target_name, new_sym) {
