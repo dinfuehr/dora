@@ -201,9 +201,20 @@ impl<'a> Parser<'a> {
     fn parse_import(&mut self) -> Result<Import, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Import)?.position;
-        let container_name = self.expect_identifier()?;
-        self.expect_token(TokenKind::ColonColon)?;
-        let element_name = self.expect_identifier()?;
+        let mut path = Vec::new();
+
+        loop {
+            let name = self.expect_identifier()?;
+            path.push(name);
+
+            if self.token.is(TokenKind::ColonColon) {
+                self.advance_token()?;
+            } else {
+                break;
+            }
+        }
+
+        let element_name = path.pop().unwrap();
 
         let target_name = if self.token.is(TokenKind::As) {
             self.advance_token()?;
@@ -219,7 +230,7 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             pos,
             span,
-            container_name,
+            path,
             element_name,
             target_name,
         })

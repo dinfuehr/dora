@@ -257,7 +257,7 @@ pub struct Import {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
-    pub container_name: Name,
+    pub path: Vec<Name>,
     pub element_name: Name,
     pub target_name: Option<Name>,
 }

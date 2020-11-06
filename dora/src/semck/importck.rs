@@ -16,12 +16,15 @@ pub fn check<'a>(vm: &VM) {
 fn check_import(vm: &VM, import: &ImportData) {
     let table = vm.namespace_table(import.namespace_id);
 
-    let container_name = import.ast.container_name;
+    let (sym_term, sym_type) = match read_path(vm, import, &table) {
+        Ok((sym_term, sym_type)) => (sym_term, sym_type),
+        Err(()) => {
+            return;
+        }
+    };
+
     let element_name = import.ast.element_name;
     let target_name = import.ast.target_name.unwrap_or(element_name);
-
-    let sym_term = table.read().get_term(container_name);
-    let sym_type = table.read().get_type(container_name);
 
     match (sym_term, sym_type) {
         (Some(TermSym::Namespace(namespace_id)), _) => {
@@ -39,6 +42,43 @@ fn check_import(vm: &VM, import: &ImportData) {
                 SemError::EnumExpected,
             );
         }
+    }
+}
+
+fn read_path(
+    vm: &VM,
+    import: &ImportData,
+    symtable: &RwLock<SymTable>,
+) -> Result<(Option<TermSym>, Option<TypeSym>), ()> {
+    if !import.ast.path.is_empty() {
+        let path = &import.ast.path;
+        let first_name = path.first().cloned().unwrap();
+
+        let mut sym_term = symtable.read().get_term(first_name);
+        let mut sym_type = symtable.read().get_type(first_name);
+
+        for &name in &path[1..] {
+            match (sym_term, sym_type) {
+                (Some(TermSym::Namespace(namespace_id)), _) => {
+                    let namespace = &vm.namespaces[namespace_id.to_usize()];
+                    let symtable = namespace.table.read();
+                    sym_term = symtable.get_term(name);
+                    sym_type = symtable.get_type(name);
+                }
+
+                _ => {
+                    let msg = SemError::ExpectedNamespace;
+                    vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+                    return Err(());
+                }
+            }
+        }
+
+        Ok((sym_term, sym_type))
+    } else {
+        let msg = SemError::ExpectedPath;
+        vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+        Err(())
     }
 }
 

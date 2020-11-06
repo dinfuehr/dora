@@ -2435,6 +2435,14 @@ fn namespace_import() {
     ");
 
     ok("
+        import foo::bar::baz;
+        fun f() { baz(); }
+        namespace foo { namespace bar {
+            fun baz() {}
+        } }
+    ");
+
+    ok("
         import foo::bar as baz;
         fun f() { baz(); }
         namespace foo { fun bar() {} }
@@ -2444,6 +2452,14 @@ fn namespace_import() {
         import foo::bar;
         fun f(): Int32 { bar }
         namespace foo { var bar: Int32 = 10; }
+    ");
+
+    ok("
+        import foo::bar::baz;
+        fun f(): Int32 { baz }
+        namespace foo { namespace bar {
+            var baz: Int32 = 10;
+        } }
     ");
 
     ok("

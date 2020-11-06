@@ -116,14 +116,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_import(&mut self, import: &Import) {
-        dump!(
-            self,
-            "import {}::{} @ {} {}",
-            self.str(import.container_name),
-            self.str(import.element_name),
-            import.pos,
-            import.id
-        );
+        dump!(self, "import @ {} {}", import.pos, import.id);
     }
 
     fn dump_alias(&mut self, alias: &Alias) {

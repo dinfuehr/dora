@@ -89,6 +89,7 @@ pub enum SemError {
     ExpectedStringable(String),
     ExpectedSomeIdentifier,
     ExpectedNamespace,
+    ExpectedPath,
     LetPatternExpectedTuple(String),
     LetPatternShouldBeUnit,
     LetPatternExpectedTupleWithLength(String, usize, usize),
@@ -344,6 +345,7 @@ impl SemError {
             }
             SemError::ExpectedSomeIdentifier => "identifier expected.".into(),
             SemError::ExpectedNamespace => "namespace expected.".into(),
+            SemError::ExpectedPath => "path expected.".into(),
             SemError::LetPatternExpectedTuple(ref ty) => {
                 format!("tuple expected but got type {}.", ty)
             }
