@@ -2427,6 +2427,27 @@ fn namespace_enum() {
 }
 
 #[test]
+fn namespace_import() {
+    ok("
+        import foo::bar;
+        fun f() { bar(); }
+        namespace foo { fun bar() {} }
+    ");
+
+    ok("
+        import foo::bar as baz;
+        fun f() { baz(); }
+        namespace foo { fun bar() {} }
+    ");
+
+    // ok("
+    //     import foo::Bar;
+    //     fun f() { Bar(); }
+    //     namespace foo { class Bar }
+    // ");
+}
+
+#[test]
 fn namespace_inside() {
     ok("
         namespace foo { fun f() { g() } fun g() {} }

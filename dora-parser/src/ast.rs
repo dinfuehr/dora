@@ -259,6 +259,7 @@ pub struct Import {
     pub span: Span,
     pub container_name: Name,
     pub element_name: Name,
+    pub target_name: Option<Name>,
 }
 
 #[derive(Clone, Debug)]

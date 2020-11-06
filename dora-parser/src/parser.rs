@@ -99,6 +99,7 @@ impl<'a> Parser<'a> {
                         Modifier::OptimizeImmediately,
                         Modifier::Test,
                         Modifier::Cannon,
+                        Modifier::Pub,
                     ],
                 )?;
                 let fct = self.parse_function(&modifiers)?;
@@ -113,6 +114,7 @@ impl<'a> Parser<'a> {
                         Modifier::Open,
                         Modifier::Internal,
                         Modifier::Cannon,
+                        Modifier::Pub,
                     ],
                 )?;
                 let class = self.parse_class(&modifiers)?;
@@ -120,13 +122,13 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Struct => {
-                self.ban_modifiers(&modifiers)?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 let struc = self.parse_struct()?;
                 Ok(Elem::Struct(Arc::new(struc)))
             }
 
             TokenKind::Trait => {
-                self.ban_modifiers(&modifiers)?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 let xtrait = self.parse_trait()?;
                 Ok(Elem::Trait(Arc::new(xtrait)))
             }
@@ -138,7 +140,7 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Module => {
-                self.ban_modifiers(&modifiers)?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 let module = self.parse_module(&modifiers)?;
                 Ok(Elem::Module(Arc::new(module)))
             }
@@ -149,30 +151,35 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Alias => {
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 self.ban_modifiers(&modifiers)?;
                 let alias = self.parse_alias()?;
                 Ok(Elem::Alias(Arc::new(alias)))
             }
 
             TokenKind::Let | TokenKind::Var => {
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 self.ban_modifiers(&modifiers)?;
                 let global = self.parse_global()?;
                 Ok(Elem::Global(Arc::new(global)))
             }
 
             TokenKind::Const => {
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 self.ban_modifiers(&modifiers)?;
                 let xconst = self.parse_const()?;
                 Ok(Elem::Const(Arc::new(xconst)))
             }
 
             TokenKind::Enum => {
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 self.ban_modifiers(&modifiers)?;
                 let xenum = self.parse_enum()?;
                 Ok(Elem::Enum(Arc::new(xenum)))
             }
 
             TokenKind::Namespace => {
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 self.ban_modifiers(&modifiers)?;
                 let namespace = self.parse_namespace()?;
                 Ok(Elem::Namespace(Arc::new(namespace)))
@@ -197,6 +204,14 @@ impl<'a> Parser<'a> {
         let container_name = self.expect_identifier()?;
         self.expect_token(TokenKind::ColonColon)?;
         let element_name = self.expect_identifier()?;
+
+        let target_name = if self.token.is(TokenKind::As) {
+            self.advance_token()?;
+            Some(self.expect_identifier()?)
+        } else {
+            None
+        };
+
         self.expect_semicolon()?;
         let span = self.span_from(start);
 
@@ -206,6 +221,7 @@ impl<'a> Parser<'a> {
             span,
             container_name,
             element_name,
+            target_name,
         })
     }
 
