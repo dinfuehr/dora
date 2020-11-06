@@ -2467,12 +2467,90 @@ fn namespace_import() {
         fun f(): Int32 { bar }
         namespace foo { var bar: Int32 = 10; }
     ");
+}
 
-    // ok("
-    //     import foo::Bar;
-    //     fun f() { Bar(); }
-    //     namespace foo { class Bar }
-    // ");
+#[test]
+fn namespace_import_class() {
+    ok("
+        import foo::Bar;
+        fun f() { Bar(); }
+        namespace foo { class Bar }
+    ");
+
+    ok("
+        import foo::Bar;
+        fun f() {
+            Bar();
+            Bar::baz();
+        }
+        namespace foo {
+            class Bar
+            module Bar {
+                fun baz() {}
+            }
+        }
+    ");
+}
+
+#[test]
+fn namespace_import_module() {
+    ok("
+        import foo::Bar;
+        fun f() {
+            Bar::baz();
+        }
+        namespace foo {
+            module Bar {
+                fun baz() {}
+            }
+        }
+    ");
+}
+
+#[test]
+fn namespace_import_errors() {
+    err(
+        "
+        import foo::bar::baz;
+        namespace foo { namespace bar {} }
+    ",
+        pos(2, 9),
+        SemError::UnknownIdentifierInNamespace("foo::bar".into(), "baz".into()),
+    );
+
+    err(
+        "
+        import foo::bar;
+    ",
+        pos(2, 9),
+        SemError::ExpectedPath,
+    );
+
+    err(
+        "
+        import foo::bar::baz;
+    ",
+        pos(2, 9),
+        SemError::ExpectedPath,
+    );
+
+    err(
+        "
+        import foo::bar::baz;
+        fun foo() {}
+    ",
+        pos(2, 9),
+        SemError::ExpectedNamespace,
+    );
+
+    err(
+        "
+        import foo::bar;
+        fun foo() {}
+    ",
+        pos(2, 9),
+        SemError::ExpectedPath,
+    );
 }
 
 #[test]

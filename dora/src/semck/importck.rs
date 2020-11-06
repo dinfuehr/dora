@@ -39,7 +39,7 @@ fn check_import(vm: &VM, import: &ImportData) {
             vm.diag.lock().report(
                 import.file_id.into(),
                 import.ast.pos,
-                SemError::EnumExpected,
+                SemError::ExpectedPath,
             );
         }
     }
@@ -64,6 +64,12 @@ fn read_path(
                     let symtable = namespace.table.read();
                     sym_term = symtable.get_term(name);
                     sym_type = symtable.get_type(name);
+                }
+
+                (None, None) => {
+                    let msg = SemError::ExpectedPath;
+                    vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+                    return Err(());
                 }
 
                 _ => {
@@ -116,14 +122,41 @@ fn import_namespace(
             }
         }
 
-        (_, Some(TypeSym::Class(cls_id))) => {
+        (Some(sym_term), Some(TypeSym::Class(cls_id))) => {
             let new_sym = TypeSym::Class(cls_id);
-            if let Some(old_sym) = table.write().insert_type(target_name, new_sym) {
+            let old_sym = table.write().insert_type(target_name, new_sym);
+            if let Some(old_sym) = old_sym {
                 report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+            } else {
+                let result = table.write().insert_term(target_name, sym_term);
+                assert!(result.is_none());
             }
         }
 
-        (_, _) => unimplemented!(),
+        (Some(TermSym::Module(module_id)), None) => {
+            let new_sym = TermSym::Module(module_id);
+            if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
+                report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+            }
+        }
+
+        (None, None) => {
+            let name = vm.interner.str(element_name).to_string();
+            let namespace_name = namespace.name(vm);
+            vm.diag.lock().report(
+                import.file_id.into(),
+                import.ast.pos,
+                SemError::UnknownIdentifierInNamespace(namespace_name, name),
+            );
+        }
+
+        (_, _) => {
+            vm.diag.lock().report(
+                import.file_id.into(),
+                import.ast.pos,
+                SemError::ExpectedPath,
+            );
+        }
     }
 }
 
