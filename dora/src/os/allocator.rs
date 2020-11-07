@@ -273,21 +273,21 @@ pub fn discard(ptr: Address, size: usize) {
 }
 
 #[cfg(target_family = "unix")]
-pub fn protect(start: Address, size: usize, access: Access) {
+pub fn protect(start: Address, size: usize, permissions: MemoryPermissions) {
     debug_assert!(start.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    if access.is_none() {
+    if permissions == MemoryPermissions::None {
         discard(start, size);
         return;
     }
 
-    let protection = match access {
-        Access::None => unreachable!(),
-        Access::Read => libc::PROT_READ,
-        Access::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
-        Access::ReadExecutable => libc::PROT_READ | libc::PROT_EXEC,
-        Access::ReadWriteExecutable => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+    let protection = match permissions {
+        MemoryPermissions::None => libc::PROT_NONE,
+        MemoryPermissions::Read => libc::PROT_READ,
+        MemoryPermissions::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
+        MemoryPermissions::ReadExecute => libc::PROT_READ | libc::PROT_EXEC,
+        MemoryPermissions::ReadWriteExecute => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
     };
 
     let res = unsafe { libc::mprotect(start.to_mut_ptr(), size, protection) };
@@ -298,7 +298,7 @@ pub fn protect(start: Address, size: usize, access: Access) {
 }
 
 #[cfg(target_family = "windows")]
-pub fn protect(start: Address, size: usize, access: Access) {
+pub fn protect(start: Address, size: usize, access: MemoryPermissions) {
     debug_assert!(start.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
@@ -307,17 +307,17 @@ pub fn protect(start: Address, size: usize, access: Access) {
         MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_READONLY, PAGE_READWRITE,
     };
 
-    if access.is_none() {
+    if access == MemoryPermissions::None {
         discard(start, size);
         return;
     }
 
     let protection = match access {
-        Access::None => unreachable!(),
-        Access::Read => PAGE_READONLY,
-        Access::ReadWrite => PAGE_READWRITE,
-        Access::ReadExecutable => PAGE_EXECUTE_READ,
-        Access::ReadWriteExecutable => PAGE_EXECUTE_READWRITE,
+        MemoryPermissions::None => unreachable!(),
+        MemoryPermissions::Read => PAGE_READONLY,
+        MemoryPermissions::ReadWrite => PAGE_READWRITE,
+        MemoryPermissions::ReadExecute => PAGE_EXECUTE_READ,
+        MemoryPermissions::ReadWriteExecute => PAGE_EXECUTE_READWRITE,
     };
 
     let ptr = unsafe { VirtualAlloc(start.to_mut_ptr(), size, MEM_COMMIT, protection) };
@@ -327,19 +327,11 @@ pub fn protect(start: Address, size: usize, access: Access) {
     }
 }
 
-pub enum Access {
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum MemoryPermissions {
     None,
     Read,
     ReadWrite,
-    ReadExecutable,
-    ReadWriteExecutable,
-}
-
-impl Access {
-    fn is_none(&self) -> bool {
-        match self {
-            Access::None => true,
-            _ => false,
-        }
-    }
+    ReadExecute,
+    ReadWriteExecute,
 }

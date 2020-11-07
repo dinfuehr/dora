@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::gc::bump::BumpAllocator;
 use crate::gc::{gen_aligned, Address, Region};
 use crate::mem;
-use crate::os::{self, Access};
+use crate::os::{self, MemoryPermissions};
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
@@ -308,7 +308,11 @@ impl SemiSpace {
         if cfg!(debug_assertions) || self.protect {
             let from_space = self.from_committed();
 
-            os::protect(from_space.start, from_space.size(), Access::ReadWrite);
+            os::protect(
+                from_space.start,
+                from_space.size(),
+                MemoryPermissions::ReadWrite,
+            );
         }
     }
 
@@ -318,7 +322,7 @@ impl SemiSpace {
         // Since this has some overhead, do it only in debug builds.
         if cfg!(debug_assertions) || self.protect {
             let from_space = self.from_committed();
-            os::protect(from_space.start, from_space.size(), Access::None);
+            os::protect(from_space.start, from_space.size(), MemoryPermissions::None);
         }
     }
 
