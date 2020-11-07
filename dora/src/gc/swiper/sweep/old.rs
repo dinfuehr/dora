@@ -7,7 +7,7 @@ use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
 use crate::gc::{Address, Region};
-use crate::os;
+use crate::os::{self, MemoryPermissions};
 
 // Choose 128K as chunk size for now
 const CHUNK_SIZE_BITS: usize = 17;
@@ -76,7 +76,11 @@ impl OldGen {
 
             if let Some(chunk) = prot.free_chunks.remove_leftmost() {
                 prot.used_chunks.add(chunk);
-                os::commit_at(chunk_addr(chunk, self.total.start), CHUNK_SIZE, false);
+                os::commit_at(
+                    chunk_addr(chunk, self.total.start),
+                    CHUNK_SIZE,
+                    MemoryPermissions::ReadWrite,
+                );
                 return true;
             }
         }

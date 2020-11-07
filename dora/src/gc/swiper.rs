@@ -23,7 +23,7 @@ use crate::gc::{align_gen, fill_region, formatted_size, Address, Region, K};
 use crate::gc::{GcReason, GEN_SIZE};
 use crate::mem;
 use crate::object::Obj;
-use crate::os;
+use crate::os::{self, MemoryPermissions};
 use crate::safepoint;
 use crate::vm::VM;
 
@@ -118,13 +118,13 @@ impl Swiper {
         let card_start = heap_end;
         let card_end = card_start.offset(card_size);
 
-        os::commit_at(card_start, card_size, false);
+        os::commit_at(card_start, card_size, MemoryPermissions::ReadWrite);
 
         // determine boundaries for crossing map
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
 
-        os::commit_at(crossing_start, crossing_size, false);
+        os::commit_at(crossing_start, crossing_size, MemoryPermissions::ReadWrite);
 
         // determine boundaries of young generation
         let young_start = heap_start;

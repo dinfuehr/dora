@@ -2,6 +2,7 @@ use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 
 use crate::driver::cmd::{Args, CollectorName};
+use crate::gc::code::CodeSpace;
 use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
 use crate::gc::space::{Space, SpaceConfig};
@@ -17,6 +18,7 @@ use crate::vm::VM;
 use crate::vtable::VTable;
 
 pub mod bump;
+pub mod code;
 pub mod compact;
 pub mod copy;
 pub mod freelist;
@@ -44,19 +46,12 @@ pub struct Gc {
     collector: Box<dyn Collector + Sync>,
     supports_tlab: bool,
 
-    code_space: Space,
+    code_space: CodeSpace,
     perm_space: Space,
 }
 
 impl Gc {
     pub fn new(args: &Args) -> Gc {
-        let code_config = SpaceConfig {
-            executable: true,
-            chunk: CHUNK_SIZE,
-            limit: args.code_size(),
-            align: 64,
-        };
-
         let perm_config = SpaceConfig {
             executable: false,
             chunk: CHUNK_SIZE,
@@ -81,7 +76,7 @@ impl Gc {
             collector,
             supports_tlab,
 
-            code_space: Space::new(code_config, "code"),
+            code_space: CodeSpace::new(),
             perm_space: Space::new(perm_config, "perm"),
         }
     }

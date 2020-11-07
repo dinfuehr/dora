@@ -409,7 +409,7 @@ impl Block {
         let size = self.committed_size();
 
         if size > 0 {
-            os::commit_at(self.start, size, false);
+            os::commit_at(self.start, size, MemoryPermissions::ReadWrite);
         }
     }
 
@@ -447,7 +447,7 @@ impl Block {
 
         if old_committed < new_committed {
             let size = new_committed - old_committed;
-            os::commit_at(old_committed.into(), size, false);
+            os::commit_at(old_committed.into(), size, MemoryPermissions::ReadWrite);
         } else if old_committed > new_committed {
             let size = old_committed - new_committed;
             os::discard(new_committed.into(), size);

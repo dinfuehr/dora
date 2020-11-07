@@ -165,21 +165,23 @@ pub fn commit(size: usize, executable: bool) -> Address {
 }
 
 #[cfg(target_family = "unix")]
-pub fn commit_at(ptr: Address, size: usize, executable: bool) {
+pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermissions) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    let mut prot = libc::PROT_READ | libc::PROT_WRITE;
-
-    if executable {
-        prot |= libc::PROT_EXEC;
-    }
+    let protection = match permissions {
+        MemoryPermissions::None => libc::PROT_NONE,
+        MemoryPermissions::Read => libc::PROT_READ,
+        MemoryPermissions::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
+        MemoryPermissions::ReadExecute => libc::PROT_READ | libc::PROT_EXEC,
+        MemoryPermissions::ReadWriteExecute => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+    };
 
     let val = unsafe {
         libc::mmap(
             ptr.to_mut_ptr(),
             size,
-            prot,
+            protection,
             libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_FIXED,
             -1,
             0,
@@ -192,20 +194,25 @@ pub fn commit_at(ptr: Address, size: usize, executable: bool) {
 }
 
 #[cfg(target_family = "windows")]
-pub fn commit_at(ptr: Address, size: usize, executable: bool) {
+pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermissions) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualAlloc;
-    use winapi::um::winnt::{MEM_COMMIT, PAGE_EXECUTE_READWRITE, PAGE_READWRITE};
-
-    let prot = if executable {
-        PAGE_EXECUTE_READWRITE
-    } else {
-        PAGE_READWRITE
+    use winapi::um::winnt::{
+        MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_NOACCESS, PAGE_READONLY,
+        PAGE_READWRITE,
     };
 
-    let result = unsafe { VirtualAlloc(ptr.to_mut_ptr(), size, MEM_COMMIT, prot) };
+    let protection = match permissions {
+        MemoryPermissions::None => PAGE_NOACCESS,
+        MemoryPermissions::Read => PAGE_READONLY,
+        MemoryPermissions::ReadWrite => PAGE_READWRITE,
+        MemoryPermissions::ReadExecute => PAGE_EXECUTE_READ,
+        MemoryPermissions::ReadWriteExecute => PAGE_EXECUTE_READWRITE,
+    };
+
+    let result = unsafe { VirtualAlloc(ptr.to_mut_ptr(), size, MEM_COMMIT, protection) };
 
     if result != ptr.to_mut_ptr() {
         panic!("VirtualAlloc failed");

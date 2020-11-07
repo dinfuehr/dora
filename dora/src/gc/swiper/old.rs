@@ -7,7 +7,7 @@ use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
 use crate::gc::{Address, Region, GEN_SIZE};
-use crate::os;
+use crate::os::{self, MemoryPermissions};
 
 pub struct OldGen {
     total: Region,
@@ -148,7 +148,7 @@ impl OldGenProtected {
 
             if mapping_end > last_mapped {
                 let size = mapping_end.offset_from(last_mapped);
-                os::commit_at(last_mapped, size, false);
+                os::commit_at(last_mapped, size, MemoryPermissions::ReadWrite);
             }
 
             if mapping_end == limit {
@@ -160,7 +160,7 @@ impl OldGenProtected {
 
         if limit > last_mapped {
             let size = limit.offset_from(last_mapped);
-            os::commit_at(last_mapped, size, false);
+            os::commit_at(last_mapped, size, MemoryPermissions::ReadWrite);
         }
     }
 
@@ -240,7 +240,7 @@ impl OldGenProtected {
                     // memory needs to be committed
                     if start < old.mapping_start() {
                         let size = old.mapping_start().offset_from(start);
-                        os::commit_at(start, size, false);
+                        os::commit_at(start, size, MemoryPermissions::ReadWrite);
                     }
 
                     start = old.mapping_end();
@@ -250,7 +250,7 @@ impl OldGenProtected {
 
             if start < end {
                 let size = end.offset_from(start);
-                os::commit_at(start, size, false);
+                os::commit_at(start, size, MemoryPermissions::ReadWrite);
             }
         }
     }
@@ -521,7 +521,7 @@ impl OldGenRegion {
         let new_mapping_top = self.mapping_top.offset(size);
 
         if new_mapping_top <= self.total_mapping.end {
-            os::commit_at(self.mapping_top, size, false);
+            os::commit_at(self.mapping_top, size, MemoryPermissions::ReadWrite);
             self.mapping_top = new_mapping_top;
 
             true
