@@ -4,7 +4,6 @@ use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
 use crate::driver::cmd::Args;
-use crate::driver::start::parse_bundled_stdlib;
 use crate::semck;
 use crate::vm::VM;
 
@@ -29,8 +28,7 @@ where
 {
     let args: Args = Default::default();
     let mut vm = VM::new(args);
-
-    parse_bundled_stdlib(&mut vm).expect("failed parsing stdlib");
+    vm.parse_arg_file = false;
 
     {
         let filename = "<<code>>";

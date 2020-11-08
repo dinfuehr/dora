@@ -2181,9 +2181,9 @@ fn redefine_function() {
 #[test]
 fn shadow_type_with_function() {
     err(
-        "fun Int32() {}",
-        pos(1, 1),
-        SemError::ShadowClassConstructor("Int32".into()),
+        "class FooBar fun FooBar() {}",
+        pos(1, 14),
+        SemError::ShadowClassConstructor("FooBar".into()),
     );
 }
 

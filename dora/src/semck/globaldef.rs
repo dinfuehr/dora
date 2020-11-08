@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -12,7 +12,7 @@ use crate::ty::SourceType;
 use crate::vm::{
     self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
     Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData, Module, ModuleId,
-    NamespaceData, NamespaceId, ParseFile, StructData, StructId, TraitData, TraitId, TypeParam, VM,
+    NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -21,18 +21,9 @@ use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
 pub fn check(vm: &mut VM) -> Result<(), i32> {
+    parse_initial_files(vm)?;
+
     let mut next_file = 0;
-
-    let boots_dir = vm.args.flag_boots.clone();
-
-    if let Some(boots) = boots_dir {
-        parse_dir(vm, &boots)?;
-    }
-
-    let files_to_parse = std::mem::replace(&mut vm.files_to_parse, Vec::new());
-    for file in files_to_parse {
-        parse_file(vm, file)?;
-    }
 
     loop {
         let (next, files_to_parse) = check_files(vm, next_file);
@@ -44,6 +35,42 @@ pub fn check(vm: &mut VM) -> Result<(), i32> {
 
         for file in files_to_parse {
             parse_file(vm, file)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_initial_files(vm: &mut VM) -> Result<(), i32> {
+    let stdlib_dir = vm.args.flag_stdlib.clone();
+
+    if let Some(stdlib) = stdlib_dir {
+        parse_dir(vm, &stdlib)?;
+    } else {
+        parse_bundled_stdlib(vm)?;
+    }
+
+    let boots_dir = vm.args.flag_boots.clone();
+
+    if let Some(boots) = boots_dir {
+        parse_dir(vm, &boots)?;
+    }
+
+    if vm.parse_arg_file {
+        let arg_file = vm.args.arg_file.clone();
+        let path = Path::new(&arg_file);
+
+        if path.is_file() {
+            let file = ParseFile {
+                path: PathBuf::from(path),
+                namespace_id: None,
+            };
+            parse_file(vm, file)?;
+        } else if path.is_dir() {
+            parse_dir(vm, &arg_file)?;
+        } else {
+            println!("file or directory `{}` does not exist.", &arg_file);
+            return Err(1);
         }
     }
 
@@ -81,7 +108,11 @@ fn parse_dir(vm: &mut VM, dirname: &str) -> Result<(), i32> {
             let path = entry.unwrap().path();
 
             if should_file_be_parsed(&path) {
-                vm.add_parse_file(path, None);
+                let file = ParseFile {
+                    path: PathBuf::from(path),
+                    namespace_id: None,
+                };
+                parse_file(vm, file)?;
             }
         }
 
@@ -126,6 +157,45 @@ fn parse_file(vm: &mut VM, file: ParseFile) -> Result<(), i32> {
             Err(1)
         }
     }
+}
+
+pub fn parse_bundled_stdlib(vm: &mut VM) -> Result<(), i32> {
+    use crate::driver::start::STDLIB;
+
+    for (filename, content) in STDLIB {
+        parse_bundled_stdlib_file(vm, filename, content)?;
+    }
+
+    Ok(())
+}
+
+fn parse_bundled_stdlib_file(vm: &mut VM, filename: &str, content: &str) -> Result<(), i32> {
+    let reader = Reader::from_string(filename, content);
+    let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
+
+    match parser.parse() {
+        Ok(ast) => {
+            vm.add_file(None, None, Arc::new(ast));
+            Ok(())
+        }
+
+        Err(error) => {
+            println!(
+                "error in {} at {}: {}",
+                filename,
+                error.pos,
+                error.error.message()
+            );
+            println!("error during parsing.");
+
+            Err(1)
+        }
+    }
+}
+
+struct ParseFile {
+    path: PathBuf,
+    namespace_id: Option<NamespaceId>,
 }
 
 struct GlobalDef<'x> {

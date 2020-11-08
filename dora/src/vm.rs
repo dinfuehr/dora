@@ -97,11 +97,6 @@ pub struct File {
     pub ast: Arc<ast::File>,
 }
 
-pub struct ParseFile {
-    pub path: PathBuf,
-    pub namespace_id: Option<NamespaceId>,
-}
-
 pub struct VM {
     pub args: Args,
     pub interner: Interner,
@@ -138,7 +133,7 @@ pub struct VM {
     pub trap_stub: Mutex<Address>,
     pub guard_check_stub: Mutex<Address>,
     pub threads: Threads,
-    pub files_to_parse: Vec<ParseFile>,
+    pub parse_arg_file: bool,
 }
 
 impl VM {
@@ -239,7 +234,7 @@ impl VM {
             trap_stub: Mutex::new(Address::null()),
             guard_check_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
-            files_to_parse: Vec::new(),
+            parse_arg_file: true,
         });
 
         set_vm(&vm);
@@ -296,10 +291,6 @@ impl VM {
             namespace_id,
             ast,
         });
-    }
-
-    pub fn add_parse_file(&mut self, path: PathBuf, namespace_id: Option<NamespaceId>) {
-        self.files_to_parse.push(ParseFile { path, namespace_id });
     }
 
     pub fn ensure_compiled(&self, fct_id: FctId) -> Address {
