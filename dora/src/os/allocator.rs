@@ -10,8 +10,8 @@ fn reserve(size: usize, jitting: bool) -> Address {
 
     let mut flags = libc::MAP_PRIVATE | libc::MAP_ANON;
 
-    if jitting && cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
-        flags |= libc::MAP_JIT;
+    if jitting {
+        flags |= map_jit_flag();
     }
 
     let ptr = unsafe {
@@ -23,6 +23,16 @@ fn reserve(size: usize, jitting: bool) -> Address {
     }
 
     Address::from_ptr(ptr)
+}
+
+#[cfg(target_os = "macos")]
+fn map_jit_flag() -> i32 {
+    libc::MAP_JIT
+}
+
+#[cfg(not(target_os = "macos"))]
+fn map_jit_flag() -> i32 {
+    0
 }
 
 #[cfg(target_family = "windows")]
