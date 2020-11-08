@@ -23,6 +23,12 @@ use dora_parser::parser::Parser;
 pub fn check(vm: &mut VM) -> Result<(), i32> {
     let mut next_file = 0;
 
+    let boots_dir = vm.args.flag_boots.clone();
+
+    if let Some(boots) = boots_dir {
+        parse_dir(vm, &boots)?;
+    }
+
     let files_to_parse = std::mem::replace(&mut vm.files_to_parse, Vec::new());
     for file in files_to_parse {
         parse_file(vm, file)?;
@@ -65,6 +71,26 @@ fn check_files(vm: &mut VM, start: usize) -> (usize, Vec<ParseFile>) {
     }
 
     (files.len(), all_files_to_parse)
+}
+
+fn parse_dir(vm: &mut VM, dirname: &str) -> Result<(), i32> {
+    let path = Path::new(dirname);
+
+    if path.is_dir() {
+        for entry in fs::read_dir(path).unwrap() {
+            let path = entry.unwrap().path();
+
+            if should_file_be_parsed(&path) {
+                vm.add_parse_file(path, None);
+            }
+        }
+
+        Ok(())
+    } else {
+        println!("directory `{}` does not exist.", dirname);
+
+        Err(1)
+    }
 }
 
 fn parse_file(vm: &mut VM, file: ParseFile) -> Result<(), i32> {

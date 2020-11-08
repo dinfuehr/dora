@@ -104,12 +104,6 @@ fn parse_all_files(vm: &mut VM) -> Result<(), i32> {
         parse_bundled_stdlib(vm)?;
     }
 
-    let boots_dir = vm.args.flag_boots.clone();
-
-    if let Some(boots) = boots_dir {
-        parse_dir(&boots, vm)?;
-    }
-
     let arg_file = vm.args.arg_file.clone();
     let path = Path::new(&arg_file);
 
