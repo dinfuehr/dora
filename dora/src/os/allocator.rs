@@ -203,7 +203,7 @@ pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
 }
 
 #[cfg(target_family = "windows")]
-pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermissions) {
+pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
@@ -214,11 +214,11 @@ pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermissions) {
     };
 
     let protection = match permissions {
-        MemoryPermissions::None => PAGE_NOACCESS,
-        MemoryPermissions::Read => PAGE_READONLY,
-        MemoryPermissions::ReadWrite => PAGE_READWRITE,
-        MemoryPermissions::ReadExecute => PAGE_EXECUTE_READ,
-        MemoryPermissions::ReadWriteExecute => PAGE_EXECUTE_READWRITE,
+        MemoryPermission::None => PAGE_NOACCESS,
+        MemoryPermission::Read => PAGE_READONLY,
+        MemoryPermission::ReadWrite => PAGE_READWRITE,
+        MemoryPermission::ReadExecute => PAGE_EXECUTE_READ,
+        MemoryPermission::ReadWriteExecute => PAGE_EXECUTE_READWRITE,
     };
 
     let result = unsafe { VirtualAlloc(ptr.to_mut_ptr(), size, MEM_COMMIT, protection) };
