@@ -5,18 +5,17 @@ use crate::mem;
 use crate::os::page_size;
 
 #[cfg(target_family = "unix")]
-fn reserve(size: usize) -> Address {
+fn reserve(size: usize, jitting: bool) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
+    let mut flags = libc::MAP_PRIVATE | libc::MAP_ANON;
+
+    if jitting && cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        flags |= libc::MAP_JIT;
+    }
+
     let ptr = unsafe {
-        libc::mmap(
-            ptr::null_mut(),
-            size,
-            libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
-            -1,
-            0,
-        ) as *mut libc::c_void
+        libc::mmap(ptr::null_mut(), size, libc::PROT_NONE, flags, -1, 0) as *mut libc::c_void
     };
 
     if ptr == libc::MAP_FAILED {
@@ -27,7 +26,7 @@ fn reserve(size: usize) -> Address {
 }
 
 #[cfg(target_family = "windows")]
-fn reserve(size: usize) -> Address {
+fn reserve(size: usize, _jitting: bool) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualAlloc;
@@ -76,14 +75,14 @@ pub struct Reservation {
     pub unaligned_size: usize,
 }
 
-pub fn reserve_align(size: usize, align: usize) -> Reservation {
+pub fn reserve_align(size: usize, align: usize, jitting: bool) -> Reservation {
     debug_assert!(mem::is_page_aligned(size));
     debug_assert!(mem::is_page_aligned(align));
 
     let align = if align == 0 { page_size() } else { align };
     let unaligned_size = size + align - page_size();
 
-    let unaligned_start = reserve(unaligned_size);
+    let unaligned_start = reserve(unaligned_size, jitting);
     let aligned_start: Address = mem::align_usize(unaligned_start.to_usize(), align).into();
 
     let gap_start = aligned_start.offset_from(unaligned_start);
@@ -165,16 +164,16 @@ pub fn commit(size: usize, executable: bool) -> Address {
 }
 
 #[cfg(target_family = "unix")]
-pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermissions) {
+pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
     let protection = match permissions {
-        MemoryPermissions::None => libc::PROT_NONE,
-        MemoryPermissions::Read => libc::PROT_READ,
-        MemoryPermissions::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
-        MemoryPermissions::ReadExecute => libc::PROT_READ | libc::PROT_EXEC,
-        MemoryPermissions::ReadWriteExecute => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+        MemoryPermission::None => libc::PROT_NONE,
+        MemoryPermission::Read => libc::PROT_READ,
+        MemoryPermission::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
+        MemoryPermission::ReadExecute => libc::PROT_READ | libc::PROT_EXEC,
+        MemoryPermission::ReadWriteExecute => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
     };
 
     let val = unsafe {
@@ -217,6 +216,38 @@ pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermissions) {
     if result != ptr.to_mut_ptr() {
         panic!("VirtualAlloc failed");
     }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub fn jit_writable() {
+    extern "C" {
+        fn pthread_jit_write_protect_np(value: libc::c_int);
+    }
+
+    unsafe {
+        pthread_jit_write_protect_np(0);
+    }
+}
+
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+pub fn jit_writable() {
+    // nothing
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub fn jit_executable() {
+    extern "C" {
+        fn pthread_jit_write_protect_np(value: libc::c_int);
+    }
+
+    unsafe {
+        pthread_jit_write_protect_np(1);
+    }
+}
+
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+pub fn jit_executable() {
+    // nothing
 }
 
 #[cfg(target_family = "unix")]
@@ -280,21 +311,21 @@ pub fn discard(ptr: Address, size: usize) {
 }
 
 #[cfg(target_family = "unix")]
-pub fn protect(start: Address, size: usize, permissions: MemoryPermissions) {
+pub fn protect(start: Address, size: usize, permission: MemoryPermission) {
     debug_assert!(start.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    if permissions == MemoryPermissions::None {
+    if permission == MemoryPermission::None {
         discard(start, size);
         return;
     }
 
-    let protection = match permissions {
-        MemoryPermissions::None => libc::PROT_NONE,
-        MemoryPermissions::Read => libc::PROT_READ,
-        MemoryPermissions::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
-        MemoryPermissions::ReadExecute => libc::PROT_READ | libc::PROT_EXEC,
-        MemoryPermissions::ReadWriteExecute => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+    let protection = match permission {
+        MemoryPermission::None => libc::PROT_NONE,
+        MemoryPermission::Read => libc::PROT_READ,
+        MemoryPermission::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
+        MemoryPermission::ReadExecute => libc::PROT_READ | libc::PROT_EXEC,
+        MemoryPermission::ReadWriteExecute => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
     };
 
     let res = unsafe { libc::mprotect(start.to_mut_ptr(), size, protection) };
@@ -305,7 +336,7 @@ pub fn protect(start: Address, size: usize, permissions: MemoryPermissions) {
 }
 
 #[cfg(target_family = "windows")]
-pub fn protect(start: Address, size: usize, access: MemoryPermissions) {
+pub fn protect(start: Address, size: usize, access: MemoryPermission) {
     debug_assert!(start.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
@@ -314,17 +345,17 @@ pub fn protect(start: Address, size: usize, access: MemoryPermissions) {
         MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_READONLY, PAGE_READWRITE,
     };
 
-    if access == MemoryPermissions::None {
+    if access == MemoryPermission::None {
         discard(start, size);
         return;
     }
 
     let protection = match access {
-        MemoryPermissions::None => unreachable!(),
-        MemoryPermissions::Read => PAGE_READONLY,
-        MemoryPermissions::ReadWrite => PAGE_READWRITE,
-        MemoryPermissions::ReadExecute => PAGE_EXECUTE_READ,
-        MemoryPermissions::ReadWriteExecute => PAGE_EXECUTE_READWRITE,
+        MemoryPermission::None => unreachable!(),
+        MemoryPermission::Read => PAGE_READONLY,
+        MemoryPermission::ReadWrite => PAGE_READWRITE,
+        MemoryPermission::ReadExecute => PAGE_EXECUTE_READ,
+        MemoryPermission::ReadWriteExecute => PAGE_EXECUTE_READWRITE,
     };
 
     let ptr = unsafe { VirtualAlloc(start.to_mut_ptr(), size, MEM_COMMIT, protection) };
@@ -335,7 +366,7 @@ pub fn protect(start: Address, size: usize, access: MemoryPermissions) {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub enum MemoryPermissions {
+pub enum MemoryPermission {
     None,
     Read,
     ReadWrite,

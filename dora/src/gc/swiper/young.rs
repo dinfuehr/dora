@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::gc::bump::BumpAllocator;
 use crate::gc::{gen_aligned, Address, Region};
 use crate::mem;
-use crate::os::{self, MemoryPermissions};
+use crate::os::{self, MemoryPermission};
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
@@ -311,7 +311,7 @@ impl SemiSpace {
             os::protect(
                 from_space.start,
                 from_space.size(),
-                MemoryPermissions::ReadWrite,
+                MemoryPermission::ReadWrite,
             );
         }
     }
@@ -322,7 +322,7 @@ impl SemiSpace {
         // Since this has some overhead, do it only in debug builds.
         if cfg!(debug_assertions) || self.protect {
             let from_space = self.from_committed();
-            os::protect(from_space.start, from_space.size(), MemoryPermissions::None);
+            os::protect(from_space.start, from_space.size(), MemoryPermission::None);
         }
     }
 
@@ -409,7 +409,7 @@ impl Block {
         let size = self.committed_size();
 
         if size > 0 {
-            os::commit_at(self.start, size, MemoryPermissions::ReadWrite);
+            os::commit_at(self.start, size, MemoryPermission::ReadWrite);
         }
     }
 
@@ -447,7 +447,7 @@ impl Block {
 
         if old_committed < new_committed {
             let size = new_committed - old_committed;
-            os::commit_at(old_committed.into(), size, MemoryPermissions::ReadWrite);
+            os::commit_at(old_committed.into(), size, MemoryPermission::ReadWrite);
         } else if old_committed > new_committed {
             let size = old_committed - new_committed;
             os::discard(new_committed.into(), size);

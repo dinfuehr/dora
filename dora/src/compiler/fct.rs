@@ -6,6 +6,7 @@ use std::sync::Arc;
 use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
 use crate::gc::Address;
+use crate::os;
 use crate::ty::TypeList;
 use crate::utils::GrowableVec;
 use crate::vm::FctId;
@@ -186,6 +187,8 @@ impl Code {
             panic!("out of memory: not enough executable memory left!");
         }
 
+        os::jit_writable();
+
         dseg.finish(ptr.to_ptr());
 
         let instruction_start = ptr.offset(dseg.size() as usize);
@@ -198,6 +201,8 @@ impl Code {
                 buffer.len(),
             );
         }
+
+        os::jit_executable();
 
         flush_icache(ptr.to_ptr(), size);
 

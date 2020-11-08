@@ -11,6 +11,7 @@ use crate::gc::Address;
 use crate::masm::MacroAssembler;
 use crate::mem;
 use crate::object::Obj;
+use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, TypeList};
@@ -268,9 +269,11 @@ fn patch_fct_call(vm: &VM, ra: usize, fct_id: FctId, type_params: &TypeList, dis
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // update function pointer in data segment
+    os::jit_writable();
     unsafe {
         *fct_addr = fct_ptr.to_usize();
     }
+    os::jit_executable();
 
     fct_ptr
 }

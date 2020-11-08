@@ -5,7 +5,7 @@ use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::{Address, Region};
 use crate::mem;
-use crate::os::{self, MemoryPermissions};
+use crate::os::{self, MemoryPermission};
 
 pub struct LargeSpace {
     total: Region,
@@ -161,7 +161,7 @@ impl LargeSpaceProtected {
                     self.elements[i] = Region::new(range.start.offset(size), range.end);
                 }
 
-                os::commit_at(addr, size, MemoryPermissions::ReadWrite);
+                os::commit_at(addr, size, MemoryPermission::ReadWrite);
                 self.append_large_alloc(addr, size);
                 self.committed_size += size;
 

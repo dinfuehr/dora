@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 
 use crate::gc::{Address, Region, K, M};
 use crate::mem;
-use crate::os::{self, MemoryPermissions};
+use crate::os::{self, MemoryPermission};
 
 const TOTAL_SIZE: usize = 1 * M;
 const CHUNK_SIZE: usize = 8 * K;
@@ -23,7 +23,7 @@ struct AllocData {
 
 impl CodeSpace {
     pub fn new() -> CodeSpace {
-        let reservation = os::reserve_align(TOTAL_SIZE, 0);
+        let reservation = os::reserve_align(TOTAL_SIZE, 0, true);
         let space_start = reservation.start;
         let space_end = space_start.offset(TOTAL_SIZE);
 
@@ -56,7 +56,13 @@ impl CodeSpace {
                 panic!("OOM in code space");
             }
 
-            os::commit_at(data.limit, size, MemoryPermissions::ReadWriteExecute);
+            let permissions = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+                MemoryPermission::ReadExecute
+            } else {
+                MemoryPermission::ReadWriteExecute
+            };
+
+            os::protect(data.limit, size, permissions);
             data.limit = new_limit;
         }
 

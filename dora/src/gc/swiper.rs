@@ -23,7 +23,7 @@ use crate::gc::{align_gen, fill_region, formatted_size, Address, Region, K};
 use crate::gc::{GcReason, GEN_SIZE};
 use crate::mem;
 use crate::object::Obj;
-use crate::os::{self, MemoryPermissions};
+use crate::os::{self, MemoryPermission};
 use crate::safepoint;
 use crate::vm::VM;
 
@@ -100,7 +100,7 @@ impl Swiper {
         let reserve_size = max_heap_size * 4 + card_size + crossing_size;
 
         // reserve full memory
-        let reservation = os::reserve_align(reserve_size, GEN_SIZE);
+        let reservation = os::reserve_align(reserve_size, GEN_SIZE, false);
         let heap_start = reservation.start;
         assert!(heap_start.is_gen_aligned());
 
@@ -118,13 +118,13 @@ impl Swiper {
         let card_start = heap_end;
         let card_end = card_start.offset(card_size);
 
-        os::commit_at(card_start, card_size, MemoryPermissions::ReadWrite);
+        os::commit_at(card_start, card_size, MemoryPermission::ReadWrite);
 
         // determine boundaries for crossing map
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
 
-        os::commit_at(crossing_start, crossing_size, MemoryPermissions::ReadWrite);
+        os::commit_at(crossing_start, crossing_size, MemoryPermission::ReadWrite);
 
         // determine boundaries of young generation
         let young_start = heap_start;

@@ -7,7 +7,7 @@ use crate::gc::tlab;
 use crate::gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
 use crate::mem;
 use crate::object::Obj;
-use crate::os::{self, MemoryPermissions};
+use crate::os::{self, MemoryPermission};
 use crate::safepoint;
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -139,11 +139,7 @@ impl CopyCollector {
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {
             let to_space = self.to_space();
-            os::protect(
-                to_space.start,
-                to_space.size(),
-                MemoryPermissions::ReadWrite,
-            );
+            os::protect(to_space.start, to_space.size(), MemoryPermission::ReadWrite);
         }
 
         // empty to-space
@@ -181,7 +177,7 @@ impl CopyCollector {
         // disable access in current from-space
         // makes sure that no pointer into from-space is left (in debug-builds)
         if cfg!(debug_assertions) {
-            os::protect(from_space.start, from_space.size(), MemoryPermissions::None);
+            os::protect(from_space.start, from_space.size(), MemoryPermission::None);
         }
 
         self.alloc.reset(top, to_space.end);

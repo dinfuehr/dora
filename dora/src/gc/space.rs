@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::{Address, Region};
 use crate::mem;
-use crate::os::{self, MemoryPermissions};
+use crate::os::{self, MemoryPermission};
 
 /// Configuration for a space.
 /// This makes it possible to use `Space` both for the
@@ -42,14 +42,14 @@ impl Space {
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let config = adapt_to_page_size(config);
 
-        let reservation = os::reserve_align(config.limit, os::page_size());
+        let reservation = os::reserve_align(config.limit, 0, false);
         let space_start = reservation.start;
         let space_end = space_start.offset(config.limit);
 
         let permissions = if config.executable {
-            MemoryPermissions::ReadWriteExecute
+            MemoryPermission::ReadWriteExecute
         } else {
-            MemoryPermissions::ReadWrite
+            MemoryPermission::ReadWrite
         };
 
         os::commit_at(space_start, config.chunk, permissions);
@@ -127,9 +127,9 @@ impl Space {
 
         if new_end <= self.total.end.to_usize() {
             let permissions = if self.config.executable {
-                MemoryPermissions::ReadWriteExecute
+                MemoryPermission::ReadWriteExecute
             } else {
-                MemoryPermissions::ReadWrite
+                MemoryPermission::ReadWrite
             };
 
             os::commit_at(end.into(), size, permissions);
