@@ -1,5 +1,6 @@
 use parking_lot::{Mutex, RwLock};
 use std::mem;
+use std::path::PathBuf;
 use std::ptr;
 use std::sync::Arc;
 
@@ -91,8 +92,14 @@ pub fn stack_pointer() -> Address {
 
 pub struct File {
     pub id: FileId,
+    pub path: Option<PathBuf>,
     pub namespace_id: Option<NamespaceId>,
     pub ast: Arc<ast::File>,
+}
+
+pub struct ParseFile {
+    pub path: PathBuf,
+    pub namespace_id: Option<NamespaceId>,
 }
 
 pub struct VM {
@@ -131,6 +138,7 @@ pub struct VM {
     pub trap_stub: Mutex<Address>,
     pub guard_check_stub: Mutex<Address>,
     pub threads: Threads,
+    pub files_to_parse: Vec<ParseFile>,
 }
 
 impl VM {
@@ -231,6 +239,7 @@ impl VM {
             trap_stub: Mutex::new(Address::null()),
             guard_check_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
+            files_to_parse: Vec::new(),
         });
 
         set_vm(&vm);
@@ -273,14 +282,24 @@ impl VM {
         fct(tld, ptr, testing);
     }
 
-    pub fn add_file(&self, ast: Arc<ast::File>) {
+    pub fn add_file(
+        &self,
+        path: Option<PathBuf>,
+        namespace_id: Option<NamespaceId>,
+        ast: Arc<ast::File>,
+    ) {
         let mut files = self.files.write();
         let file_id = (files.len() as u32).into();
         files.push(File {
             id: file_id,
-            namespace_id: None,
+            path,
+            namespace_id,
             ast,
         });
+    }
+
+    pub fn add_parse_file(&mut self, path: PathBuf, namespace_id: Option<NamespaceId>) {
+        self.files_to_parse.push(ParseFile { path, namespace_id });
     }
 
     pub fn ensure_compiled(&self, fct_id: FctId) -> Address {
@@ -564,7 +583,7 @@ impl From<u32> for FileId {
 }
 
 impl FileId {
-    fn to_usize(self) -> usize {
+    pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }

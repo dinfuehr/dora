@@ -249,7 +249,7 @@ pub struct Namespace {
     pub pos: Position,
     pub span: Span,
     pub name: Name,
-    pub elements: Vec<Elem>,
+    pub elements: Option<Vec<Elem>>,
 }
 
 #[derive(Clone, Debug)]

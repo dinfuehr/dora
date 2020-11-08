@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
@@ -38,7 +38,9 @@ pub fn start() -> i32 {
         }
     }
 
-    semck::check(&mut vm);
+    if !semck::check(&mut vm) {
+        return 1;
+    }
 
     let main = if vm.args.cmd_test {
         None
@@ -218,8 +220,8 @@ fn parse_dir(dirname: &str, vm: &mut VM) -> Result<(), i32> {
         for entry in fs::read_dir(path).unwrap() {
             let path = entry.unwrap().path();
 
-            if should_file_be_parsed(&path) {
-                parse_file(path.to_str().unwrap(), vm)?;
+            if semck::should_file_be_parsed(&path) {
+                vm.add_parse_file(path, None);
             }
         }
 
@@ -231,30 +233,10 @@ fn parse_dir(dirname: &str, vm: &mut VM) -> Result<(), i32> {
     }
 }
 
-fn should_file_be_parsed(path: &Path) -> bool {
-    if !path.is_file() {
-        return false;
-    }
-
-    let name = path.to_string_lossy();
-
-    if !name.ends_with(".dora") {
-        return false;
-    }
-
-    if name.ends_with("_x64.dora") {
-        cfg!(target_arch = "x86_64")
-    } else if name.ends_with("_arm64.dora") {
-        cfg!(target_arch = "aarch64")
-    } else {
-        true
-    }
-}
-
 fn parse_file(filename: &str, vm: &mut VM) -> Result<(), i32> {
-    let reader = if filename == "-" {
+    let (reader, path) = if filename == "-" {
         match Reader::from_input() {
-            Ok(reader) => reader,
+            Ok(reader) => (reader, None),
 
             Err(_) => {
                 println!("unable to read from stdin.");
@@ -263,7 +245,7 @@ fn parse_file(filename: &str, vm: &mut VM) -> Result<(), i32> {
         }
     } else {
         match Reader::from_file(filename) {
-            Ok(reader) => reader,
+            Ok(reader) => (reader, Some(PathBuf::from(filename))),
 
             Err(_) => {
                 println!("unable to read file `{}`", filename);
@@ -272,7 +254,7 @@ fn parse_file(filename: &str, vm: &mut VM) -> Result<(), i32> {
         }
     };
 
-    parse_reader(reader, vm)
+    parse_reader(path, reader, vm)
 }
 
 const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
@@ -287,21 +269,16 @@ pub fn parse_bundled_stdlib(vm: &mut VM) -> Result<(), i32> {
 
 fn parse_bundled_stdlib_file(filename: &str, content: &str, vm: &mut VM) -> Result<(), i32> {
     let reader = Reader::from_string(filename, content);
-    parse_reader(reader, vm)
+    parse_reader(None, reader, vm)
 }
 
-fn parse_str(file: &str, vm: &mut VM) -> Result<(), i32> {
-    let reader = Reader::from_string("<<code>>", file);
-    parse_reader(reader, vm)
-}
-
-fn parse_reader(reader: Reader, vm: &mut VM) -> Result<(), i32> {
+fn parse_reader(path: Option<PathBuf>, reader: Reader, vm: &mut VM) -> Result<(), i32> {
     let filename: String = reader.path().into();
     let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
 
     match parser.parse() {
         Ok(ast) => {
-            vm.add_file(Arc::new(ast));
+            vm.add_file(path, None, Arc::new(ast));
             Ok(())
         }
 

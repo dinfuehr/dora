@@ -178,8 +178,10 @@ pub fn walk_alias<V: Visitor>(v: &mut V, a: &Arc<Alias>) {
 }
 
 pub fn walk_namespace<V: Visitor>(v: &mut V, namespace: &Arc<Namespace>) {
-    for e in &namespace.elements {
-        walk_elem(v, e);
+    if let Some(ref elements) = namespace.elements {
+        for e in elements {
+            walk_elem(v, e);
+        }
     }
 }
 

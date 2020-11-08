@@ -139,6 +139,7 @@ pub enum SemError {
     IndexExpected,
     IllegalTupleIndex(u64, String),
     UninitializedVar,
+    DirectoryNotFound,
 }
 
 impl SemError {
@@ -490,6 +491,7 @@ impl SemError {
                 format!("illegal index `{}` for type `{}`", idx, ty)
             }
             SemError::UninitializedVar => "cannot read uninitialized variable.".into(),
+            SemError::DirectoryNotFound => "directory not found.".into(),
         }
     }
 }

@@ -143,8 +143,10 @@ impl<'a> AstDumper<'a> {
         );
 
         self.indent(|d| {
-            for e in &namespace.elements {
-                d.dump_elem(e);
+            if let Some(ref elements) = namespace.elements {
+                for e in elements {
+                    d.dump_elem(e);
+                }
             }
         });
     }

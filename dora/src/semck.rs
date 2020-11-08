@@ -7,6 +7,7 @@ use dora_parser::ast::{Expr, ExprBlockType, Stmt};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
+pub use globaldef::should_file_be_parsed;
 pub use readty::{read_type_namespace, read_type_table};
 
 mod abstractck;
@@ -34,15 +35,17 @@ pub mod typeparamck;
 macro_rules! return_on_error {
     ($vm: ident) => {{
         if $vm.diag.lock().has_errors() {
-            return;
+            return true;
         }
     }};
 }
 
-pub fn check(vm: &mut VM) {
+pub fn check(vm: &mut VM) -> bool {
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
-    globaldef::check(vm);
+    if let Err(_) = globaldef::check(vm) {
+        return false;
+    }
     return_on_error!(vm);
 
     // define internal classes
@@ -96,6 +99,7 @@ pub fn check(vm: &mut VM) {
     // check function body
     fctbodyck::check(vm);
     return_on_error!(vm);
+    true
 }
 
 pub fn bytecode(vm: &VM) {

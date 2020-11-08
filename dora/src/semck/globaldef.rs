@@ -1,7 +1,10 @@
 use parking_lot::RwLock;
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use std::sync::Arc;
 
+use crate::error::msg::SemError;
 use crate::gc::Address;
 use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{SymTable, TermSym, TypeSym};
@@ -9,24 +12,93 @@ use crate::ty::SourceType;
 use crate::vm::{
     self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
     Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData, Module, ModuleId,
-    NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId, TypeParam, VM,
+    NamespaceData, NamespaceId, ParseFile, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;
+use dora_parser::lexer::reader::Reader;
+use dora_parser::parser::Parser;
 
-pub fn check(vm: &mut VM) {
+pub fn check(vm: &mut VM) -> Result<(), i32> {
+    let mut next_file = 0;
+
+    let files_to_parse = std::mem::replace(&mut vm.files_to_parse, Vec::new());
+    for file in files_to_parse {
+        parse_file(vm, file)?;
+    }
+
+    loop {
+        let (next, files_to_parse) = check_files(vm, next_file);
+        next_file = next;
+
+        if files_to_parse.is_empty() {
+            break;
+        }
+
+        for file in files_to_parse {
+            parse_file(vm, file)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn check_files(vm: &mut VM, start: usize) -> (usize, Vec<ParseFile>) {
     let files = vm.files.clone();
     let files = files.read();
 
-    for file in files.iter() {
+    let mut all_files_to_parse = Vec::new();
+
+    for file in &files[start..] {
         let mut gdef = GlobalDef {
             vm,
             file_id: file.id,
             namespace_id: file.namespace_id,
+            files_to_parse: Vec::new(),
         };
 
         gdef.visit_file(&file.ast);
+
+        let files_to_parse = std::mem::replace(&mut gdef.files_to_parse, Vec::new());
+        all_files_to_parse.extend(files_to_parse);
+    }
+
+    (files.len(), all_files_to_parse)
+}
+
+fn parse_file(vm: &mut VM, file: ParseFile) -> Result<(), i32> {
+    let namespace_id = file.namespace_id;
+    let path = file.path;
+
+    let reader = match Reader::from_file(path.to_str().unwrap()) {
+        Ok(reader) => reader,
+
+        Err(_) => {
+            println!("unable to read file `{}`", path.to_str().unwrap());
+            return Err(1);
+        }
+    };
+
+    let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
+
+    match parser.parse() {
+        Ok(ast) => {
+            vm.add_file(Some(path), namespace_id, Arc::new(ast));
+            Ok(())
+        }
+
+        Err(error) => {
+            println!(
+                "error in {} at {}: {}",
+                path.to_str().unwrap(),
+                error.pos,
+                error.error.message()
+            );
+            println!("error during parsing.");
+
+            Err(1)
+        }
     }
 }
 
@@ -34,16 +106,17 @@ struct GlobalDef<'x> {
     vm: &'x mut VM,
     file_id: FileId,
     namespace_id: Option<NamespaceId>,
+    files_to_parse: Vec<ParseFile>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
-    fn visit_namespace(&mut self, n: &Arc<ast::Namespace>) {
+    fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
         let id: NamespaceId = self.vm.namespaces.len().into();
         let namespace = NamespaceData {
             id,
             file_id: self.file_id,
-            pos: n.pos,
-            name: n.name,
+            pos: node.pos,
+            name: node.name,
             namespace_id: self.namespace_id,
             table: Arc::new(RwLock::new(SymTable::new())),
         };
@@ -51,14 +124,18 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         self.vm.namespaces.push(namespace);
 
         let sym = TermSym::Namespace(id);
-        if let Some(sym) = self.insert_term(n.name, sym) {
-            report_term_shadow(self.vm, n.name, self.file_id, n.pos, sym);
+        if let Some(sym) = self.insert_term(node.name, sym) {
+            report_term_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
 
-        let saved_namespace_id = self.namespace_id;
-        self.namespace_id = Some(id);
-        visit::walk_namespace(self, n);
-        self.namespace_id = saved_namespace_id;
+        if node.elements.is_none() {
+            self.parse_directory_into_namespace(node, id);
+        } else {
+            let saved_namespace_id = self.namespace_id;
+            self.namespace_id = Some(id);
+            visit::walk_namespace(self, node);
+            self.namespace_id = saved_namespace_id;
+        }
     }
 
     fn visit_trait(&mut self, t: &Arc<ast::Trait>) {
@@ -381,6 +458,38 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 }
 
 impl<'x> GlobalDef<'x> {
+    fn parse_directory_into_namespace(&mut self, node: &ast::Namespace, namespace_id: NamespaceId) {
+        let files = self.vm.files.clone();
+        let files = files.read();
+        let file = &files[self.file_id.to_usize()];
+
+        if let Some(mut path) = file.path.clone() {
+            path.pop();
+            let name = self.vm.interner.str(node.name).to_string();
+            path.push(&name);
+
+            if path.is_dir() {
+                for entry in fs::read_dir(path).unwrap() {
+                    let path = entry.unwrap().path();
+
+                    if should_file_be_parsed(&path) {
+                        self.files_to_parse.push(ParseFile {
+                            path,
+                            namespace_id: Some(namespace_id),
+                        });
+                    }
+                }
+            } else {
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file_id, node.pos, SemError::DirectoryNotFound);
+            }
+        } else {
+            unimplemented!();
+        }
+    }
+
     fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
         let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
@@ -391,6 +500,26 @@ impl<'x> GlobalDef<'x> {
         let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
         level.insert_term(name, sym)
+    }
+}
+
+pub fn should_file_be_parsed(path: &Path) -> bool {
+    if !path.is_file() {
+        return false;
+    }
+
+    let name = path.to_string_lossy();
+
+    if !name.ends_with(".dora") {
+        return false;
+    }
+
+    if name.ends_with("_x64.dora") {
+        cfg!(target_arch = "x86_64")
+    } else if name.ends_with("_arm64.dora") {
+        cfg!(target_arch = "aarch64")
+    } else {
+        true
     }
 }
 

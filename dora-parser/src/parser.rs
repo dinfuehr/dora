@@ -263,15 +263,22 @@ impl<'a> Parser<'a> {
         let pos = self.expect_token(TokenKind::Namespace)?.position;
         let name = self.expect_identifier()?;
 
-        self.expect_token(TokenKind::LBrace)?;
+        let elements = if self.token.is(TokenKind::LBrace) {
+            self.expect_token(TokenKind::LBrace)?;
 
-        let mut elements = Vec::new();
+            let mut elements = Vec::new();
 
-        while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-            elements.push(self.parse_top_level_element()?);
-        }
+            while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
+                elements.push(self.parse_top_level_element()?);
+            }
 
-        self.expect_token(TokenKind::RBrace)?;
+            self.expect_token(TokenKind::RBrace)?;
+            Some(elements)
+        } else {
+            self.expect_token(TokenKind::Semicolon)?;
+            None
+        };
+
         let span = self.span_from(start);
 
         Ok(Namespace {
@@ -3989,8 +3996,16 @@ mod tests {
     fn parse_namespace() {
         let (prog, _) = parse("namespace foo { fun bar() {} fun baz() {} }");
         let namespace = prog.namespace0();
-        assert_eq!(namespace.elements.len(), 2);
-        assert!(namespace.elements[0].to_function().is_some());
-        assert!(namespace.elements[1].to_function().is_some());
+        let elements = namespace.elements.as_ref().unwrap();
+        assert_eq!(elements.len(), 2);
+        assert!(elements[0].to_function().is_some());
+        assert!(elements[1].to_function().is_some());
+    }
+
+    #[test]
+    fn parse_namespace_without_body() {
+        let (prog, _) = parse("namespace foo;");
+        let namespace = prog.namespace0();
+        assert!(namespace.elements.is_none());
     }
 }

@@ -38,7 +38,7 @@ where
         let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
         match parser.parse() {
             Ok(ast) => {
-                vm.add_file(Arc::new(ast));
+                vm.add_file(None, None, Arc::new(ast));
             }
 
             Err(error) => {
@@ -53,7 +53,7 @@ where
         }
     }
 
-    semck::check(&mut vm);
+    assert!(semck::check(&mut vm));
 
     f(&vm)
 }
