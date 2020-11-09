@@ -31,7 +31,7 @@ pub struct ExtensionData {
     pub id: ExtensionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Impl>,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub ty: SourceType,

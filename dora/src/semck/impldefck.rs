@@ -36,7 +36,7 @@ struct ImplCheck<'x> {
     vm: &'x VM,
     file_id: FileId,
     impl_id: ImplId,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
     ast: &'x ast::Impl,
 }
 

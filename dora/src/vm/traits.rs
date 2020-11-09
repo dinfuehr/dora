@@ -22,7 +22,7 @@ impl From<u32> for TraitId {
 pub struct TraitData {
     pub id: TraitId,
     pub file_id: FileId,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub ast: Arc<ast::Trait>,
     pub pos: Position,
     pub name: Name,

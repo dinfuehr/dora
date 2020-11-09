@@ -41,7 +41,7 @@ impl Index<EnumId> for Vec<RwLock<EnumData>> {
 pub struct EnumData {
     pub id: EnumId,
     pub file_id: FileId,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub ast: Arc<ast::Enum>,
     pub pos: Position,
     pub name: Name,

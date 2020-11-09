@@ -23,7 +23,7 @@ pub struct ImplData {
     pub id: ImplId,
     pub file_id: FileId,
     pub ast: Arc<ast::Impl>,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub pos: Position,
     pub trait_id: Option<TraitId>,
     pub class_ty: SourceType,

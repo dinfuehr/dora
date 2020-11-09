@@ -32,7 +32,7 @@ pub struct GlobalData {
     pub file_id: FileId,
     pub ast: Arc<ast::Global>,
     pub pos: Position,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub ty: SourceType,
     pub reassignable: bool,
     pub name: Name,

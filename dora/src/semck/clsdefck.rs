@@ -37,7 +37,7 @@ struct ClsDefCheck<'x> {
     cls_id: ClassId,
     file_id: FileId,
     ast: &'x ast::Class,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
     sym: NestedSymTable<'x>,
 }
 

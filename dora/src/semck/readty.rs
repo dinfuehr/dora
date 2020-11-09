@@ -20,7 +20,7 @@ pub fn read_type_table(
 pub fn read_type_namespace(
     vm: &VM,
     file: FileId,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
     t: &Type,
 ) -> Option<SourceType> {
     let symtable = NestedSymTable::new(vm, namespace_id);

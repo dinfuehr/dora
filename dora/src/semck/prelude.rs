@@ -121,7 +121,10 @@ fn internal_free_classes(vm: &mut VM) {
 
 fn internal_class(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ClassId {
     let iname = vm.interner.intern(name);
-    let clsid = vm.global_namespace.read().get_class(iname);
+    let clsid = vm
+        .namespace_table(vm.global_namespace_id)
+        .read()
+        .get_class(iname);
 
     if let Some(clsid) = clsid {
         let cls = vm.classes.idx(clsid);
@@ -143,7 +146,10 @@ fn internal_class(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ClassId {
 
 fn internal_module(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ModuleId {
     let iname = vm.interner.intern(name);
-    let module_id = vm.global_namespace.read().get_module(iname);
+    let module_id = vm
+        .namespace_table(vm.global_namespace_id)
+        .read()
+        .get_module(iname);
 
     if let Some(module_id) = module_id {
         let module = vm.modules.idx(module_id);
@@ -166,7 +172,7 @@ fn internal_module(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ModuleId 
 fn find_trait(vm: &mut VM, name: &str) -> TraitId {
     let iname = vm.interner.intern(name);
 
-    vm.global_namespace
+    vm.namespace_table(vm.global_namespace_id)
         .read()
         .get_trait(iname)
         .expect("trait not found")
@@ -175,7 +181,7 @@ fn find_trait(vm: &mut VM, name: &str) -> TraitId {
 fn find_enum(vm: &mut VM, name: &str) -> EnumId {
     let iname = vm.interner.intern(name);
 
-    vm.global_namespace
+    vm.namespace_table(vm.global_namespace_id)
         .read()
         .get_enum(iname)
         .expect("enum not found")
@@ -440,7 +446,10 @@ pub fn internal_functions(vm: &mut VM) {
     );
 
     let iname = vm.interner.intern("Thread");
-    let clsid = vm.global_namespace.read().get_class(iname);
+    let clsid = vm
+        .namespace_table(vm.global_namespace_id)
+        .read()
+        .get_class(iname);
 
     if let Some(clsid) = clsid {
         native_class_method(vm, clsid, "start", stdlib::spawn_thread as *const u8);
@@ -601,7 +610,10 @@ fn intrinsic_fct(vm: &mut VM, name: &str, intrinsic: Intrinsic) {
 
 fn internal_fct(vm: &mut VM, name: &str, kind: FctImplementation) {
     let name = vm.interner.intern(name);
-    let fctid = vm.global_namespace.read().get_fct(name);
+    let fctid = vm
+        .namespace_table(vm.global_namespace_id)
+        .read()
+        .get_fct(name);
 
     if let Some(fctid) = fctid {
         let fct = vm.fcts.idx(fctid);

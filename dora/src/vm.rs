@@ -93,7 +93,7 @@ pub fn stack_pointer() -> Address {
 pub struct File {
     pub id: FileId,
     pub path: Option<PathBuf>,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub ast: Arc<ast::File>,
 }
 
@@ -103,7 +103,6 @@ pub struct VM {
     pub id_generator: NodeIdGenerator,
     pub files: Arc<RwLock<Vec<File>>>,
     pub diag: Mutex<Diagnostic>,
-    pub global_namespace: Arc<RwLock<SymTable>>,
     pub known: KnownElements,
     pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
     pub structs: GrowableVec<RwLock<StructData>>, // stores all struct source definitions
@@ -134,6 +133,7 @@ pub struct VM {
     pub guard_check_stub: Mutex<Address>,
     pub threads: Threads,
     pub parse_arg_file: bool,
+    pub global_namespace_id: NamespaceId,
 }
 
 impl VM {
@@ -145,6 +145,13 @@ impl VM {
         let empty_fct_id: FctId = 0.into();
         let empty_enum_id: EnumId = 0.into();
         let gc = Gc::new(&args);
+
+        let namespaces = vec![NamespaceData {
+            id: NamespaceId(0),
+            parent_namespace_id: None,
+            name: None,
+            table: Arc::new(RwLock::new(SymTable::new())),
+        }];
 
         let vm = Box::new(VM {
             args,
@@ -158,7 +165,7 @@ impl VM {
             tuples: Mutex::new(Tuples::new()),
             modules: GrowableVec::new(),
             module_defs: GrowableVec::new(),
-            namespaces: Vec::new(),
+            namespaces,
             enums: Vec::new(),
             enum_defs: GrowableVec::new(),
             traits: Vec::new(),
@@ -222,7 +229,6 @@ impl VM {
             gc,
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
-            global_namespace: Arc::new(RwLock::new(SymTable::new())),
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
@@ -235,6 +241,7 @@ impl VM {
             guard_check_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
             parse_arg_file: true,
+            global_namespace_id: NamespaceId(0),
         });
 
         set_vm(&vm);
@@ -277,12 +284,7 @@ impl VM {
         fct(tld, ptr, testing);
     }
 
-    pub fn add_file(
-        &self,
-        path: Option<PathBuf>,
-        namespace_id: Option<NamespaceId>,
-        ast: Arc<ast::File>,
-    ) {
+    pub fn add_file(&self, path: Option<PathBuf>, namespace_id: NamespaceId, ast: Arc<ast::File>) {
         let mut files = self.files.write();
         let file_id = (files.len() as u32).into();
         files.push(File {
@@ -324,18 +326,14 @@ impl VM {
         fctid
     }
 
-    pub fn namespace_table(&self, namespace_id: Option<NamespaceId>) -> Arc<RwLock<SymTable>> {
-        if let Some(namespace_id) = namespace_id {
-            self.namespaces[namespace_id.to_usize()].table.clone()
-        } else {
-            self.global_namespace.clone()
-        }
+    pub fn namespace_table(&self, namespace_id: NamespaceId) -> Arc<RwLock<SymTable>> {
+        self.namespaces[namespace_id.to_usize()].table.clone()
     }
 
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassId {
         let name = self.interner.intern(name);
-        self.global_namespace
+        self.namespace_table(self.global_namespace_id)
             .read()
             .get_class(name)
             .expect("class not found")
@@ -344,7 +342,7 @@ impl VM {
     #[cfg(test)]
     pub fn enum_by_name(&self, name: &'static str) -> EnumId {
         let name = self.interner.intern(name);
-        self.global_namespace
+        self.namespace_table(self.global_namespace_id)
             .read()
             .get_enum(name)
             .expect("class not found")
@@ -353,7 +351,7 @@ impl VM {
     #[cfg(test)]
     pub fn const_by_name(&self, name: &'static str) -> ConstId {
         let name = self.interner.intern(name);
-        self.global_namespace
+        self.namespace_table(self.global_namespace_id)
             .read()
             .get_const(name)
             .expect("class not found")
@@ -370,7 +368,7 @@ impl VM {
         let function_name = self.interner.intern(function_name);
 
         let cls_id = self
-            .global_namespace
+            .namespace_table(self.global_namespace_id)
             .read()
             .get_class(class_name)
             .expect("class not found");
@@ -389,7 +387,7 @@ impl VM {
 
         let name = self.interner.intern(name);
         let cls_id = self
-            .global_namespace
+            .namespace_table(self.global_namespace_id)
             .read()
             .get_class(name)
             .expect("class not found");
@@ -406,7 +404,7 @@ impl VM {
 
         let name = self.interner.intern(name);
         let cls_id = self
-            .global_namespace
+            .namespace_table(self.global_namespace_id)
             .read()
             .get_class(name)
             .expect("class not found");
@@ -436,7 +434,7 @@ impl VM {
         let field_name = self.interner.intern(field_name);
 
         let cls_id = self
-            .global_namespace
+            .namespace_table(self.global_namespace_id)
             .read()
             .get_class(class_name)
             .expect("class not found");
@@ -449,14 +447,16 @@ impl VM {
 
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
-        self.global_namespace.read().get_fct(name)
+        self.namespace_table(self.global_namespace_id)
+            .read()
+            .get_fct(name)
     }
 
     #[cfg(test)]
     pub fn ctor_by_name(&self, name: &str) -> FctId {
         let name = self.interner.intern(name);
         let cls_id = self
-            .global_namespace
+            .namespace_table(self.global_namespace_id)
             .read()
             .get_class(name)
             .expect("class not found");
@@ -469,7 +469,7 @@ impl VM {
     #[cfg(test)]
     pub fn global_by_name(&self, name: &str) -> GlobalId {
         let name = self.interner.intern(name);
-        self.global_namespace
+        self.namespace_table(self.global_namespace_id)
             .read()
             .get_global(name)
             .expect("global not found")

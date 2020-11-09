@@ -38,7 +38,7 @@ pub fn check(vm: &VM) {
 struct ModuleCheck<'x> {
     vm: &'x VM,
     module_id: ModuleId,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
     file_id: FileId,
     ast: &'x ast::Module,
     sym: NestedSymTable<'x>,

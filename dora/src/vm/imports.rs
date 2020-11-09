@@ -5,6 +5,6 @@ use dora_parser::ast;
 
 pub struct ImportData {
     pub ast: Arc<ast::Import>,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub file_id: FileId,
 }

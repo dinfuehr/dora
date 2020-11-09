@@ -30,7 +30,7 @@ pub struct StructData {
     pub id: StructId,
     pub file_id: FileId,
     pub ast: Arc<ast::Struct>,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,

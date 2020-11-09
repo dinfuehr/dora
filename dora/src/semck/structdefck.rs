@@ -34,7 +34,7 @@ struct StructCheck<'x> {
     struct_id: StructId,
     file_id: FileId,
     ast: &'x ast::Struct,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
 }
 
 impl<'x> StructCheck<'x> {

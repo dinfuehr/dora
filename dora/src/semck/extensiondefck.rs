@@ -39,7 +39,7 @@ pub fn check(vm: &VM) {
 struct ExtensionCheck<'x> {
     vm: &'x VM,
     file_id: FileId,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
     sym: NestedSymTable<'x>,
     extension_id: ExtensionId,
     extension_ty: SourceType,

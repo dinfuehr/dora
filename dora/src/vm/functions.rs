@@ -43,7 +43,7 @@ pub struct Fct {
     pub ast: Arc<ast::Function>,
     pub pos: Position,
     pub name: Name,
-    pub namespace_id: Option<NamespaceId>,
+    pub namespace_id: NamespaceId,
     pub parent: FctParent,
     pub has_open: bool,
     pub has_override: bool,
@@ -78,7 +78,7 @@ pub struct Fct {
 impl Fct {
     pub fn new(
         file_id: FileId,
-        namespace_id: Option<NamespaceId>,
+        namespace_id: NamespaceId,
         ast: &Arc<ast::Function>,
         parent: FctParent,
     ) -> Fct {

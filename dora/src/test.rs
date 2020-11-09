@@ -36,7 +36,7 @@ where
         let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
         match parser.parse() {
             Ok(ast) => {
-                vm.add_file(None, None, Arc::new(ast));
+                vm.add_file(None, vm.global_namespace_id, Arc::new(ast));
             }
 
             Err(error) => {

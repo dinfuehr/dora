@@ -45,7 +45,7 @@ fn parse_initial_files(vm: &mut VM) -> Result<(), i32> {
     let stdlib_dir = vm.args.flag_stdlib.clone();
 
     if let Some(stdlib) = stdlib_dir {
-        parse_dir(vm, &stdlib)?;
+        parse_dir(vm, &stdlib, vm.global_namespace_id)?;
     } else {
         parse_bundled_stdlib(vm)?;
     }
@@ -53,7 +53,7 @@ fn parse_initial_files(vm: &mut VM) -> Result<(), i32> {
     let boots_dir = vm.args.flag_boots.clone();
 
     if let Some(boots) = boots_dir {
-        parse_dir(vm, &boots)?;
+        parse_dir(vm, &boots, vm.global_namespace_id)?;
     }
 
     if vm.parse_arg_file {
@@ -63,11 +63,11 @@ fn parse_initial_files(vm: &mut VM) -> Result<(), i32> {
         if path.is_file() {
             let file = ParseFile {
                 path: PathBuf::from(path),
-                namespace_id: None,
+                namespace_id: vm.global_namespace_id,
             };
             parse_file(vm, file)?;
         } else if path.is_dir() {
-            parse_dir(vm, &arg_file)?;
+            parse_dir(vm, &arg_file, vm.global_namespace_id)?;
         } else {
             println!("file or directory `{}` does not exist.", &arg_file);
             return Err(1);
@@ -97,7 +97,7 @@ fn check_files(vm: &mut VM, start: usize) -> (usize, Vec<ParseFile>) {
     (files.len(), files_to_parse)
 }
 
-fn parse_dir(vm: &mut VM, dirname: &str) -> Result<(), i32> {
+fn parse_dir(vm: &mut VM, dirname: &str, namespace_id: NamespaceId) -> Result<(), i32> {
     let path = Path::new(dirname);
 
     if path.is_dir() {
@@ -107,7 +107,7 @@ fn parse_dir(vm: &mut VM, dirname: &str) -> Result<(), i32> {
             if should_file_be_parsed(&path) {
                 let file = ParseFile {
                     path: PathBuf::from(path),
-                    namespace_id: None,
+                    namespace_id,
                 };
                 parse_file(vm, file)?;
             }
@@ -172,7 +172,7 @@ fn parse_bundled_stdlib_file(vm: &mut VM, filename: &str, content: &str) -> Resu
 
     match parser.parse() {
         Ok(ast) => {
-            vm.add_file(None, None, Arc::new(ast));
+            vm.add_file(None, vm.global_namespace_id, Arc::new(ast));
             Ok(())
         }
 
@@ -192,13 +192,13 @@ fn parse_bundled_stdlib_file(vm: &mut VM, filename: &str, content: &str) -> Resu
 
 struct ParseFile {
     path: PathBuf,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
 }
 
 struct GlobalDef<'x> {
     vm: &'x mut VM,
     file_id: FileId,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
     files_to_parse: &'x mut Vec<ParseFile>,
 }
 
@@ -207,10 +207,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id: NamespaceId = self.vm.namespaces.len().into();
         let namespace = NamespaceData {
             id,
-            file_id: self.file_id,
-            pos: node.pos,
-            name: node.name,
-            namespace_id: self.namespace_id,
+            name: Some(node.name),
+            parent_namespace_id: Some(self.namespace_id),
             table: Arc::new(RwLock::new(SymTable::new())),
         };
 
@@ -225,7 +223,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             self.parse_directory_into_namespace(node, id);
         } else {
             let saved_namespace_id = self.namespace_id;
-            self.namespace_id = Some(id);
+            self.namespace_id = id;
             visit::walk_namespace(self, node);
             self.namespace_id = saved_namespace_id;
         }
@@ -568,7 +566,7 @@ impl<'x> GlobalDef<'x> {
                     if should_file_be_parsed(&path) {
                         self.files_to_parse.push(ParseFile {
                             path,
-                            namespace_id: Some(namespace_id),
+                            namespace_id: namespace_id,
                         });
                     }
                 }

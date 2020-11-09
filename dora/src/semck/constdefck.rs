@@ -33,7 +33,7 @@ struct ConstCheck<'x> {
     const_id: ConstId,
     file_id: FileId,
     ast: &'x ast::Const,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
 }
 
 impl<'x> ConstCheck<'x> {

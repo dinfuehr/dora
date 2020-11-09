@@ -34,7 +34,7 @@ struct TraitCheck<'x> {
     file_id: FileId,
     trait_id: TraitId,
     ast: &'x ast::Trait,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
 }
 
 impl<'x> TraitCheck<'x> {

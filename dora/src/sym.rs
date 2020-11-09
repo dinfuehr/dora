@@ -14,12 +14,12 @@ use dora_parser::interner::Name;
 
 pub struct NestedSymTable<'a> {
     vm: &'a VM,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
     levels: Vec<SymTable>,
 }
 
 impl<'a> NestedSymTable<'a> {
-    pub fn new(vm: &'a VM, namespace_id: Option<NamespaceId>) -> NestedSymTable {
+    pub fn new(vm: &'a VM, namespace_id: NamespaceId) -> NestedSymTable {
         NestedSymTable {
             vm,
             namespace_id,
@@ -49,18 +49,22 @@ impl<'a> NestedSymTable<'a> {
 
         let mut current_namespace_id = self.namespace_id;
 
-        while let Some(namespace_id) = current_namespace_id {
-            let ns = &self.vm.namespaces[namespace_id.to_usize()];
+        loop {
+            let ns = &self.vm.namespaces[current_namespace_id.to_usize()];
             let sym = ns.table.read().get_type(name);
 
             if let Some(sym) = sym {
                 return Some(sym.clone());
             }
 
-            current_namespace_id = ns.namespace_id;
+            current_namespace_id = if let Some(parent_namespace_id) = ns.parent_namespace_id {
+                parent_namespace_id
+            } else {
+                break;
+            };
         }
 
-        self.vm.global_namespace.read().get_type(name)
+        None
     }
 
     pub fn get_term(&self, name: Name) -> Option<TermSym> {
@@ -72,18 +76,22 @@ impl<'a> NestedSymTable<'a> {
 
         let mut current_namespace_id = self.namespace_id;
 
-        while let Some(namespace_id) = current_namespace_id {
-            let ns = &self.vm.namespaces[namespace_id.to_usize()];
+        loop {
+            let ns = &self.vm.namespaces[current_namespace_id.to_usize()];
             let sym = ns.table.read().get_term(name);
 
             if let Some(sym) = sym {
                 return Some(sym.clone());
             }
 
-            current_namespace_id = ns.namespace_id;
+            current_namespace_id = if let Some(parent_namespace_id) = ns.parent_namespace_id {
+                parent_namespace_id
+            } else {
+                break;
+            };
         }
 
-        self.vm.global_namespace.read().get_term(name)
+        None
     }
     pub fn get_class(&self, name: Name) -> Option<ClassId> {
         self.get_type(name).and_then(|n| n.to_class())

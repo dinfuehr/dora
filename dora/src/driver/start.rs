@@ -170,7 +170,11 @@ pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_st
 
 fn find_main(vm: &VM) -> Option<FctId> {
     let name = vm.interner.intern("main");
-    let fctid = if let Some(id) = vm.global_namespace.read().get_fct(name) {
+    let fctid = if let Some(id) = vm
+        .namespace_table(vm.global_namespace_id)
+        .read()
+        .get_fct(name)
+    {
         id
     } else {
         return None;

@@ -31,7 +31,7 @@ pub fn check<'a>(vm: &VM) {
 struct GlobalDefCheck<'a> {
     vm: &'a VM,
     file_id: FileId,
-    namespace_id: Option<NamespaceId>,
+    namespace_id: NamespaceId,
     global_id: GlobalId,
     ast: &'a ast::Global,
 }
