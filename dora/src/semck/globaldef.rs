@@ -81,23 +81,20 @@ fn check_files(vm: &mut VM, start: usize) -> (usize, Vec<ParseFile>) {
     let files = vm.files.clone();
     let files = files.read();
 
-    let mut all_files_to_parse = Vec::new();
+    let mut files_to_parse = Vec::new();
 
     for file in &files[start..] {
         let mut gdef = GlobalDef {
             vm,
             file_id: file.id,
             namespace_id: file.namespace_id,
-            files_to_parse: Vec::new(),
+            files_to_parse: &mut files_to_parse,
         };
 
         gdef.visit_file(&file.ast);
-
-        let files_to_parse = std::mem::replace(&mut gdef.files_to_parse, Vec::new());
-        all_files_to_parse.extend(files_to_parse);
     }
 
-    (files.len(), all_files_to_parse)
+    (files.len(), files_to_parse)
 }
 
 fn parse_dir(vm: &mut VM, dirname: &str) -> Result<(), i32> {
@@ -202,7 +199,7 @@ struct GlobalDef<'x> {
     vm: &'x mut VM,
     file_id: FileId,
     namespace_id: Option<NamespaceId>,
-    files_to_parse: Vec<ParseFile>,
+    files_to_parse: &'x mut Vec<ParseFile>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {

@@ -5,6 +5,18 @@ pub mod asm;
 pub mod param;
 pub mod reg;
 
+#[cfg(target_os = "macos")]
+pub fn flush_icache(start: *const u8, len: usize) {
+    extern "C" {
+        fn sys_icache_invalidate(data: *const u8, len: usize);
+    }
+
+    unsafe {
+        sys_icache_invalidate(start, len);
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
 pub fn flush_icache(start: *const u8, len: usize) {
     let start = start as usize;
     let end = start + len;
@@ -44,6 +56,7 @@ pub fn flush_icache(start: *const u8, len: usize) {
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 pub fn cacheline_sizes() -> (usize, usize) {
     let value: usize;
 

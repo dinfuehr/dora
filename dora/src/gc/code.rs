@@ -56,13 +56,7 @@ impl CodeSpace {
                 panic!("OOM in code space");
             }
 
-            let permissions = if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
-                MemoryPermission::ReadExecute
-            } else {
-                MemoryPermission::ReadWriteExecute
-            };
-
-            os::protect(data.limit, size, permissions);
+            os::protect(data.limit, size, MemoryPermission::ReadWriteExecute);
             data.limit = new_limit;
         }
 
