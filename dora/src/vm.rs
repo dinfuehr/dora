@@ -146,8 +146,10 @@ impl VM {
         let empty_enum_id: EnumId = 0.into();
         let gc = Gc::new(&args);
 
+        let global_namespace_id = NamespaceId(0);
+
         let namespaces = vec![NamespaceData {
-            id: NamespaceId(0),
+            id: global_namespace_id,
             parent_namespace_id: None,
             name: None,
             table: Arc::new(RwLock::new(SymTable::new())),
@@ -241,7 +243,7 @@ impl VM {
             guard_check_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
             parse_arg_file: true,
-            global_namespace_id: NamespaceId(0),
+            global_namespace_id,
         });
 
         set_vm(&vm);
