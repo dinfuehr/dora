@@ -2493,6 +2493,21 @@ fn namespace_import_class() {
 }
 
 #[test]
+fn namespace_import_trait() {
+    ok("
+        import foo::Bar;
+        namespace foo { trait Bar{} }
+    ");
+}
+
+#[test]
+fn namespace_import_std() {
+    ok("
+        import std::HashMap;
+    ");
+}
+
+#[test]
 fn namespace_import_module() {
     ok("
         import foo::Bar;

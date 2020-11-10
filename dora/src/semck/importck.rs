@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
 use crate::semck::{report_term_shadow, report_type_shadow};
-use crate::sym::{SymTable, TermSym, TypeSym};
+use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::vm::{EnumId, ImportData, NamespaceId, VM};
 
 use dora_parser::interner::Name;
@@ -15,8 +15,9 @@ pub fn check<'a>(vm: &VM) {
 
 fn check_import(vm: &VM, import: &ImportData) {
     let table = vm.namespace_table(import.namespace_id);
+    let symtable = NestedSymTable::new(vm, import.namespace_id);
 
-    let (sym_term, sym_type) = match read_path(vm, import, &table) {
+    let (sym_term, sym_type) = match read_path(vm, import, &symtable) {
         Ok((sym_term, sym_type)) => (sym_term, sym_type),
         Err(()) => {
             return;
@@ -48,14 +49,14 @@ fn check_import(vm: &VM, import: &ImportData) {
 fn read_path(
     vm: &VM,
     import: &ImportData,
-    symtable: &RwLock<SymTable>,
+    symtable: &NestedSymTable,
 ) -> Result<(Option<TermSym>, Option<TypeSym>), ()> {
     if !import.ast.path.is_empty() {
         let path = &import.ast.path;
         let first_name = path.first().cloned().unwrap();
 
-        let mut sym_term = symtable.read().get_term(first_name);
-        let mut sym_type = symtable.read().get_type(first_name);
+        let mut sym_term = symtable.get_term(first_name);
+        let mut sym_type = symtable.get_type(first_name);
 
         for &name in &path[1..] {
             match (sym_term, sym_type) {
@@ -137,6 +138,14 @@ fn import_namespace(
             let new_sym = TermSym::Module(module_id);
             if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
                 report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+            }
+        }
+
+        (None, Some(TypeSym::Trait(trait_id))) => {
+            let new_sym = TypeSym::Trait(trait_id);
+            let old_sym = table.write().insert_type(target_name, new_sym);
+            if let Some(old_sym) = old_sym {
+                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
