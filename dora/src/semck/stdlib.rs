@@ -8,7 +8,7 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
-use crate::sym::{NestedSymTable, TermSym};
+use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
     ClassDef, ClassDefId, ClassId, EnumId, FctId, Intrinsic, ModuleId, NamespaceId, TraitId, VM,
@@ -91,6 +91,27 @@ pub fn fill_prelude(vm: &mut VM) {
 
     let stdlib_name = vm.interner.intern("std");
     prelude.insert_term(stdlib_name, TermSym::Namespace(vm.stdlib_namespace_id));
+
+    {
+        // include None and Some from Option
+        let option_name = vm.interner.intern("Option");
+        let option_id = stdlib.get_type(option_name);
+
+        match option_id {
+            Some(TypeSym::Enum(enum_id)) => {
+                let xenum = &vm.enums[enum_id];
+                let xenum = xenum.read();
+
+                for variant in &xenum.variants {
+                    let old_sym =
+                        prelude.insert_term(variant.name, TermSym::EnumValue(enum_id, variant.id));
+                    assert!(old_sym.is_none());
+                }
+            }
+
+            _ => unreachable!(),
+        }
+    }
 }
 
 pub fn discover_known_methods(vm: &mut VM) {

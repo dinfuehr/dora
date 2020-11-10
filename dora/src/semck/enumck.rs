@@ -63,6 +63,7 @@ impl<'x> EnumCheck<'x> {
             }
 
             let variant = EnumVariant {
+                id: next_variant_id as usize,
                 name: value.name,
                 types: types,
             };

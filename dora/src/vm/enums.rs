@@ -77,6 +77,7 @@ impl EnumData {
 
 #[derive(Debug)]
 pub struct EnumVariant {
+    pub id: usize,
     pub name: Name,
     pub types: Vec<SourceType>,
 }
