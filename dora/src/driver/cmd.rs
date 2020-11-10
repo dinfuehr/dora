@@ -18,7 +18,7 @@ pub fn parse() -> Args {
 
 // Write the Docopt usage string.
 static USAGE: &'static str = "
-Usage: dora test [options] <file>
+Usage: dora test [options] [<file>]
        dora [options] <file> [--] [<argument>...]
        dora (--version | --help)
 
@@ -71,6 +71,7 @@ Options:
 
     --stdlib=<path>         Load standard library from the given path.
     --boots=<path>          Load boots source from the given path.
+    --test-boots            Run unit tests for boots.
 ";
 
 #[derive(Debug, Deserialize)]
@@ -120,6 +121,7 @@ pub struct Args {
     pub flag_clear_regs: bool,
 
     pub cmd_test: bool,
+    pub flag_test_boots: bool,
 }
 
 impl Args {
@@ -225,6 +227,7 @@ impl Default for Args {
             flag_clear_regs: false,
 
             cmd_test: false,
+            flag_test_boots: false,
         }
     }
 }

@@ -17,7 +17,7 @@ use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
-use crate::sym::SymTable;
+use crate::sym::{NestedSymTable, SymTable};
 use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{LambdaTypes, SourceType, TypeList, TypeLists};
 use crate::utils::GrowableVec;
@@ -133,7 +133,10 @@ pub struct VM {
     pub guard_check_stub: Mutex<Address>,
     pub threads: Threads,
     pub parse_arg_file: bool,
+    pub prelude_namespace_id: NamespaceId,
+    pub stdlib_namespace_id: NamespaceId,
     pub global_namespace_id: NamespaceId,
+    pub boots_namespace_id: NamespaceId,
 }
 
 impl VM {
@@ -146,14 +149,21 @@ impl VM {
         let empty_enum_id: EnumId = 0.into();
         let gc = Gc::new(&args);
 
-        let global_namespace_id = NamespaceId(0);
+        let prelude_namespace_id = NamespaceId(0);
+        let stdlib_namespace_id = NamespaceId(1);
+        let global_namespace_id = NamespaceId(2);
+        let boots_namespace_id = NamespaceId(3);
 
-        let namespaces = vec![NamespaceData {
-            id: global_namespace_id,
-            parent_namespace_id: None,
-            name: None,
-            table: Arc::new(RwLock::new(SymTable::new())),
-        }];
+        let interner = Interner::new();
+        let _stdlib_name = interner.intern("std");
+        let boots_name = interner.intern("boots");
+
+        let namespaces = vec![
+            NamespaceData::new(prelude_namespace_id, None),
+            NamespaceData::new(stdlib_namespace_id, Some(prelude_namespace_id)),
+            NamespaceData::new(global_namespace_id, Some(stdlib_namespace_id)),
+            NamespaceData::new_with_name(boots_namespace_id, Some(stdlib_namespace_id), boots_name),
+        ];
 
         let vm = Box::new(VM {
             args,
@@ -174,7 +184,7 @@ impl VM {
             impls: Vec::new(),
             globals: GrowableVec::new(),
             imports: Vec::new(),
-            interner: Interner::new(),
+            interner,
             known: KnownElements {
                 classes: KnownClasses {
                     unit: empty_class_id,
@@ -243,7 +253,10 @@ impl VM {
             guard_check_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
             parse_arg_file: true,
+            prelude_namespace_id,
+            stdlib_namespace_id,
             global_namespace_id,
+            boots_namespace_id,
         });
 
         set_vm(&vm);
@@ -332,11 +345,23 @@ impl VM {
         self.namespaces[namespace_id.to_usize()].table.clone()
     }
 
+    pub fn stdlib_namespace(&self) -> Arc<RwLock<SymTable>> {
+        self.namespaces[self.stdlib_namespace_id.to_usize()]
+            .table
+            .clone()
+    }
+
+    pub fn prelude_namespace(&self) -> Arc<RwLock<SymTable>> {
+        self.namespaces[self.prelude_namespace_id.to_usize()]
+            .table
+            .clone()
+    }
+
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassId {
         let name = self.interner.intern(name);
-        self.namespace_table(self.global_namespace_id)
-            .read()
+
+        NestedSymTable::new(self, self.global_namespace_id)
             .get_class(name)
             .expect("class not found")
     }
@@ -344,8 +369,7 @@ impl VM {
     #[cfg(test)]
     pub fn enum_by_name(&self, name: &'static str) -> EnumId {
         let name = self.interner.intern(name);
-        self.namespace_table(self.global_namespace_id)
-            .read()
+        NestedSymTable::new(self, self.global_namespace_id)
             .get_enum(name)
             .expect("class not found")
     }
@@ -353,8 +377,7 @@ impl VM {
     #[cfg(test)]
     pub fn const_by_name(&self, name: &'static str) -> ConstId {
         let name = self.interner.intern(name);
-        self.namespace_table(self.global_namespace_id)
-            .read()
+        NestedSymTable::new(self, self.global_namespace_id)
             .get_const(name)
             .expect("class not found")
     }
@@ -369,9 +392,7 @@ impl VM {
         let class_name = self.interner.intern(class_name);
         let function_name = self.interner.intern(function_name);
 
-        let cls_id = self
-            .namespace_table(self.global_namespace_id)
-            .read()
+        let cls_id = NestedSymTable::new(self, self.global_namespace_id)
             .get_class(class_name)
             .expect("class not found");
         let cls = self.cls(cls_id);
@@ -384,13 +405,11 @@ impl VM {
         }
     }
 
-    pub fn cls_def_by_name(&self, name: &'static str) -> ClassDefId {
+    pub fn cls_def_by_name(&self, namespace_id: NamespaceId, name: &'static str) -> ClassDefId {
         use crate::semck::specialize::specialize_class_id;
 
         let name = self.interner.intern(name);
-        let cls_id = self
-            .namespace_table(self.global_namespace_id)
-            .read()
+        let cls_id = NestedSymTable::new(self, namespace_id)
             .get_class(name)
             .expect("class not found");
 
@@ -405,9 +424,7 @@ impl VM {
         use crate::semck::specialize::specialize_class_id_params;
 
         let name = self.interner.intern(name);
-        let cls_id = self
-            .namespace_table(self.global_namespace_id)
-            .read()
+        let cls_id = NestedSymTable::new(self, self.global_namespace_id)
             .get_class(name)
             .expect("class not found");
 
@@ -435,9 +452,7 @@ impl VM {
         let class_name = self.interner.intern(class_name);
         let field_name = self.interner.intern(field_name);
 
-        let cls_id = self
-            .namespace_table(self.global_namespace_id)
-            .read()
+        let cls_id = NestedSymTable::new(self, self.global_namespace_id)
             .get_class(class_name)
             .expect("class not found");
         let cls = self.classes.idx(cls_id);
@@ -449,17 +464,13 @@ impl VM {
 
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
-        self.namespace_table(self.global_namespace_id)
-            .read()
-            .get_fct(name)
+        NestedSymTable::new(self, self.global_namespace_id).get_fct(name)
     }
 
     #[cfg(test)]
     pub fn ctor_by_name(&self, name: &str) -> FctId {
         let name = self.interner.intern(name);
-        let cls_id = self
-            .namespace_table(self.global_namespace_id)
-            .read()
+        let cls_id = NestedSymTable::new(self, self.global_namespace_id)
             .get_class(name)
             .expect("class not found");
         let cls = self.classes.idx(cls_id);
@@ -471,8 +482,7 @@ impl VM {
     #[cfg(test)]
     pub fn global_by_name(&self, name: &str) -> GlobalId {
         let name = self.interner.intern(name);
-        self.namespace_table(self.global_namespace_id)
-            .read()
+        NestedSymTable::new(self, self.global_namespace_id)
             .get_global(name)
             .expect("global not found")
     }

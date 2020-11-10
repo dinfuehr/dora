@@ -8,6 +8,7 @@ use crate::timer::Timer;
 
 use crate::semck;
 use crate::semck::specialize::specialize_class_id;
+use crate::vm::NamespaceId;
 
 pub fn start() -> i32 {
     let args = cmd::parse();
@@ -60,7 +61,13 @@ pub fn start() -> i32 {
     vm.threads.attach_current_thread();
 
     let code = if vm.args.cmd_test {
-        run_tests(&vm)
+        let namespace_id = if vm.args.flag_test_boots {
+            vm.boots_namespace_id
+        } else {
+            vm.global_namespace_id
+        };
+
+        run_tests(&vm, namespace_id)
     } else {
         run_main(&vm, main.unwrap())
     };
@@ -76,14 +83,17 @@ pub fn start() -> i32 {
     code
 }
 
-fn run_tests(vm: &VM) -> i32 {
+fn run_tests(vm: &VM, namespace_id: NamespaceId) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 
-        if !is_test_fct(vm, &*fct) || !test_filter_matches(vm, &*fct) {
+        if fct.namespace_id != namespace_id
+            || !is_test_fct(vm, &*fct)
+            || !test_filter_matches(vm, &*fct)
+        {
             continue;
         }
 

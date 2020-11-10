@@ -23,10 +23,10 @@ mod implck;
 mod impldefck;
 mod importck;
 mod moduledefck;
-pub(crate) mod prelude;
 mod readty;
 mod returnck;
 pub mod specialize;
+pub(crate) mod stdlib;
 mod structdefck;
 mod superck;
 mod traitdefck;
@@ -49,7 +49,10 @@ pub fn check(vm: &mut VM) -> bool {
     return_on_error!(vm);
 
     // define internal classes
-    prelude::internal_classes(vm);
+    stdlib::resolve_internal_classes(vm);
+
+    // fill prelude with important types and functions
+    stdlib::fill_prelude(vm);
 
     // find all trait implementations for classes
     impldefck::check(vm);
@@ -82,8 +85,8 @@ pub fn check(vm: &mut VM) -> bool {
     return_on_error!(vm);
 
     // define internal functions & methods
-    prelude::internal_functions(vm);
-    prelude::known_methods(vm);
+    stdlib::resolve_internal_functions(vm);
+    stdlib::discover_known_methods(vm);
 
     // check for internal functions or classes
     internalck(vm);

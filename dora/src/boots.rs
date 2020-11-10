@@ -9,6 +9,7 @@ use crate::handle::{root, Handle};
 use crate::object::{
     self, byte_array_from_buffer, int_array_alloc_heap, Int32Array, Obj, Ref, UInt8Array,
 };
+use crate::sym::NestedSymTable;
 use crate::threads::THREAD;
 use crate::ty::TypeList;
 use crate::vm::{AnalysisData, Fct, VM};
@@ -20,7 +21,10 @@ pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &TypeList) 
         bytecode::dump(vm, Some(fct), &bytecode_fct);
     }
 
-    let compile_fct_id = vm.fct_by_name("compile").expect("compile()-method missing");
+    let compile_name = vm.interner.intern("compile");
+    let compile_fct_id = NestedSymTable::new(vm, vm.boots_namespace_id)
+        .get_fct(compile_name)
+        .expect("compile()-method missing");
     let compile_fct = vm.ensure_compiled(compile_fct_id);
 
     let encoded_compilation_info = root(allocate_compilation_info(vm, &bytecode_fct));
@@ -55,7 +59,10 @@ pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &TypeList) 
 }
 
 pub fn bytecode(vm: &VM, name: &str) -> Ref<Obj> {
-    let bc_fct_id = vm.fct_by_name(name).expect("compile()-method missing");
+    let fct_name = vm.interner.intern(name);
+    let bc_fct_id = NestedSymTable::new(vm, vm.boots_namespace_id)
+        .get_fct(fct_name)
+        .expect("compile()-method missing");
 
     let fct = vm.fcts.idx(bc_fct_id);
     let fct = fct.read();
@@ -149,7 +156,7 @@ fn allocate_encoded_compilation_info(
     registers_array: Handle<Int32Array>,
     arguments: i32,
 ) -> Ref<Obj> {
-    let cls_id = vm.cls_def_by_name("EncodedCompilationInfo");
+    let cls_id = vm.cls_def_by_name(vm.boots_namespace_id, "EncodedCompilationInfo");
     let obj = object::alloc(vm, cls_id);
 
     let fid = vm.field_in_class(cls_id, "code");

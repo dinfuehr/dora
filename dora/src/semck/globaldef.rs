@@ -43,20 +43,21 @@ pub fn check(vm: &mut VM) -> Result<(), i32> {
 
 fn parse_initial_files(vm: &mut VM) -> Result<(), i32> {
     let stdlib_dir = vm.args.flag_stdlib.clone();
+    let namespace_id = vm.stdlib_namespace_id;
 
     if let Some(stdlib) = stdlib_dir {
-        parse_dir(vm, &stdlib, vm.global_namespace_id)?;
+        parse_dir(vm, &stdlib, namespace_id)?;
     } else {
-        parse_bundled_stdlib(vm)?;
+        parse_bundled_stdlib(vm, namespace_id)?;
     }
 
     let boots_dir = vm.args.flag_boots.clone();
 
     if let Some(boots) = boots_dir {
-        parse_dir(vm, &boots, vm.global_namespace_id)?;
+        parse_dir(vm, &boots, vm.boots_namespace_id)?;
     }
 
-    if vm.parse_arg_file {
+    if vm.parse_arg_file && !vm.args.arg_file.is_empty() {
         let arg_file = vm.args.arg_file.clone();
         let path = Path::new(&arg_file);
 
@@ -156,23 +157,28 @@ fn parse_file(vm: &mut VM, file: ParseFile) -> Result<(), i32> {
     }
 }
 
-pub fn parse_bundled_stdlib(vm: &mut VM) -> Result<(), i32> {
+pub fn parse_bundled_stdlib(vm: &mut VM, namespace_id: NamespaceId) -> Result<(), i32> {
     use crate::driver::start::STDLIB;
 
     for (filename, content) in STDLIB {
-        parse_bundled_stdlib_file(vm, filename, content)?;
+        parse_bundled_stdlib_file(vm, namespace_id, filename, content)?;
     }
 
     Ok(())
 }
 
-fn parse_bundled_stdlib_file(vm: &mut VM, filename: &str, content: &str) -> Result<(), i32> {
+fn parse_bundled_stdlib_file(
+    vm: &mut VM,
+    namespace_id: NamespaceId,
+    filename: &str,
+    content: &str,
+) -> Result<(), i32> {
     let reader = Reader::from_string(filename, content);
     let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
 
     match parser.parse() {
         Ok(ast) => {
-            vm.add_file(None, vm.global_namespace_id, Arc::new(ast));
+            vm.add_file(None, namespace_id, Arc::new(ast));
             Ok(())
         }
 

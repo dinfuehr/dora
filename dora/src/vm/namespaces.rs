@@ -30,6 +30,28 @@ pub struct NamespaceData {
 }
 
 impl NamespaceData {
+    pub fn new(id: NamespaceId, parent_id: Option<NamespaceId>) -> NamespaceData {
+        NamespaceData {
+            id,
+            parent_namespace_id: parent_id,
+            name: None,
+            table: Arc::new(RwLock::new(SymTable::new())),
+        }
+    }
+
+    pub fn new_with_name(
+        id: NamespaceId,
+        parent_id: Option<NamespaceId>,
+        name: Name,
+    ) -> NamespaceData {
+        NamespaceData {
+            id,
+            parent_namespace_id: parent_id,
+            name: Some(name),
+            table: Arc::new(RwLock::new(SymTable::new())),
+        }
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         let mut path = Vec::new();
         let mut owner_namespace_id = self.parent_namespace_id;

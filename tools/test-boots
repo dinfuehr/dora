@@ -2,4 +2,4 @@
 
 set -e
 
-cargo run -- --compiler=cannon test dora-boots && ruby tools/tester.rb tests/boots
+cargo run -- test --test-boots --boots=dora-boots --gc-verify && ruby tools/tester.rb tests/boots

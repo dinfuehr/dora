@@ -8,11 +8,14 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
+use crate::sym::{NestedSymTable, TermSym};
 use crate::ty::{SourceType, TypeList};
-use crate::vm::{ClassDef, ClassDefId, ClassId, EnumId, FctId, Intrinsic, ModuleId, TraitId, VM};
+use crate::vm::{
+    ClassDef, ClassDefId, ClassId, EnumId, FctId, Intrinsic, ModuleId, NamespaceId, TraitId, VM,
+};
 use crate::vtable::VTableBox;
 
-pub fn internal_classes(vm: &mut VM) {
+pub fn resolve_internal_classes(vm: &mut VM) {
     vm.known.classes.unit = internal_class(vm, "Unit", Some(SourceType::Unit));
     vm.known.classes.bool = internal_class(vm, "Bool", Some(SourceType::Bool));
 
@@ -56,7 +59,41 @@ pub fn internal_classes(vm: &mut VM) {
     internal_free_classes(vm);
 }
 
-pub fn known_methods(vm: &mut VM) {
+pub fn fill_prelude(vm: &mut VM) {
+    let symbols = [
+        "Unit", "Bool", "UInt8", "Char", "Int32", "Int64", "Float32", "Float64", "Object",
+        "String", "Array", "Vec", "print", "println", "Option",
+    ];
+
+    let stdlib = vm.stdlib_namespace();
+    let stdlib = stdlib.read();
+
+    let prelude = vm.prelude_namespace();
+    let mut prelude = prelude.write();
+
+    for sym in &symbols {
+        let name = vm.interner.intern(sym);
+        let sym_term = stdlib.get_term(name);
+        let sym_type = stdlib.get_type(name);
+
+        assert!(sym_term.is_some() || sym_type.is_some());
+
+        if let Some(sym_term) = sym_term {
+            let old_sym = prelude.insert_term(name, sym_term);
+            assert!(old_sym.is_none());
+        }
+
+        if let Some(sym_type) = sym_type {
+            let old_sym = prelude.insert_type(name, sym_type);
+            assert!(old_sym.is_none());
+        }
+    }
+
+    let stdlib_name = vm.interner.intern("std");
+    prelude.insert_term(stdlib_name, TermSym::Namespace(vm.stdlib_namespace_id));
+}
+
+pub fn discover_known_methods(vm: &mut VM) {
     vm.known.functions.string_buffer_empty =
         find_module_method(vm, vm.known.modules.string_buffer, "empty");
     vm.known.functions.string_buffer_append =
@@ -121,10 +158,7 @@ fn internal_free_classes(vm: &mut VM) {
 
 fn internal_class(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ClassId {
     let iname = vm.interner.intern(name);
-    let clsid = vm
-        .namespace_table(vm.global_namespace_id)
-        .read()
-        .get_class(iname);
+    let clsid = vm.stdlib_namespace().read().get_class(iname);
 
     if let Some(clsid) = clsid {
         let cls = vm.classes.idx(clsid);
@@ -146,10 +180,7 @@ fn internal_class(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ClassId {
 
 fn internal_module(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ModuleId {
     let iname = vm.interner.intern(name);
-    let module_id = vm
-        .namespace_table(vm.global_namespace_id)
-        .read()
-        .get_module(iname);
+    let module_id = vm.stdlib_namespace().read().get_module(iname);
 
     if let Some(module_id) = module_id {
         let module = vm.modules.idx(module_id);
@@ -172,7 +203,7 @@ fn internal_module(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ModuleId 
 fn find_trait(vm: &mut VM, name: &str) -> TraitId {
     let iname = vm.interner.intern(name);
 
-    vm.namespace_table(vm.global_namespace_id)
+    vm.stdlib_namespace()
         .read()
         .get_trait(iname)
         .expect("trait not found")
@@ -181,47 +212,56 @@ fn find_trait(vm: &mut VM, name: &str) -> TraitId {
 fn find_enum(vm: &mut VM, name: &str) -> EnumId {
     let iname = vm.interner.intern(name);
 
-    vm.namespace_table(vm.global_namespace_id)
+    vm.stdlib_namespace()
         .read()
         .get_enum(iname)
         .expect("enum not found")
 }
 
-pub fn internal_functions(vm: &mut VM) {
-    native_fct(vm, "fatalError", stdlib::fatal_error as *const u8);
-    native_fct(vm, "abort", stdlib::abort as *const u8);
-    native_fct(vm, "exit", stdlib::exit as *const u8);
-    intrinsic_fct(vm, "unreachable", Intrinsic::Unreachable);
+pub fn resolve_internal_functions(vm: &mut VM) {
+    let stdlib = vm.stdlib_namespace_id;
+    native_fct(vm, "fatalError", stdlib::fatal_error as *const u8, stdlib);
+    native_fct(vm, "abort", stdlib::abort as *const u8, stdlib);
+    native_fct(vm, "exit", stdlib::exit as *const u8, stdlib);
+    intrinsic_fct(vm, "unreachable", Intrinsic::Unreachable, stdlib);
 
-    native_fct(vm, "print", stdlib::print as *const u8);
-    native_fct(vm, "println", stdlib::println as *const u8);
-    intrinsic_fct(vm, "assert", Intrinsic::Assert);
-    intrinsic_fct(vm, "debug", Intrinsic::Debug);
-    native_fct(vm, "argc", stdlib::argc as *const u8);
-    native_fct(vm, "argv", stdlib::argv as *const u8);
-    native_fct(vm, "forceCollect", stdlib::gc_collect as *const u8);
-    native_fct(vm, "timestamp", stdlib::timestamp as *const u8);
+    native_fct(vm, "print", stdlib::print as *const u8, stdlib);
+    native_fct(vm, "println", stdlib::println as *const u8, stdlib);
+    intrinsic_fct(vm, "assert", Intrinsic::Assert, stdlib);
+    intrinsic_fct(vm, "debug", Intrinsic::Debug, stdlib);
+    native_fct(vm, "argc", stdlib::argc as *const u8, stdlib);
+    native_fct(vm, "argv", stdlib::argv as *const u8, stdlib);
+    native_fct(vm, "forceCollect", stdlib::gc_collect as *const u8, stdlib);
+    native_fct(vm, "timestamp", stdlib::timestamp as *const u8, stdlib);
     native_fct(
         vm,
         "forceMinorCollect",
         stdlib::gc_minor_collect as *const u8,
+        stdlib,
     );
-    native_fct(vm, "sleep", stdlib::sleep as *const u8);
-    native_fct(vm, "encodedBytecode", stdlib::bytecode as *const u8);
+    native_fct(vm, "sleep", stdlib::sleep as *const u8, stdlib);
+    native_fct(
+        vm,
+        "encodedBytecode",
+        stdlib::bytecode as *const u8,
+        vm.boots_namespace_id,
+    );
 
-    native_fct(vm, "call", stdlib::call as *const u8);
+    native_fct(vm, "call", stdlib::call as *const u8, stdlib);
 
-    intrinsic_fct(vm, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
-    intrinsic_fct(vm, "unsafeIsNull", Intrinsic::UnsafeIsNull);
+    intrinsic_fct(vm, "unsafeKillRefs", Intrinsic::UnsafeKillRefs, stdlib);
+    intrinsic_fct(vm, "unsafeIsNull", Intrinsic::UnsafeIsNull, stdlib);
     intrinsic_fct(
         vm,
         "unsafeLoadEnumVariant",
         Intrinsic::UnsafeLoadEnumVariant,
+        stdlib,
     );
     intrinsic_fct(
         vm,
         "unsafeLoadEnumElement",
         Intrinsic::UnsafeLoadEnumElement,
+        stdlib,
     );
 
     let clsid = vm.known.classes.uint8;
@@ -446,10 +486,7 @@ pub fn internal_functions(vm: &mut VM) {
     );
 
     let iname = vm.interner.intern("Thread");
-    let clsid = vm
-        .namespace_table(vm.global_namespace_id)
-        .read()
-        .get_class(iname);
+    let clsid = vm.stdlib_namespace().read().get_class(iname);
 
     if let Some(clsid) = clsid {
         native_class_method(vm, clsid, "start", stdlib::spawn_thread as *const u8);
@@ -596,24 +633,27 @@ fn find_module_method(vm: &VM, module_id: ModuleId, name: &str) -> FctId {
     panic!("cannot find module method `{}`", name)
 }
 
-fn native_fct(vm: &mut VM, name: &str, fctptr: *const u8) {
+fn native_fct(vm: &mut VM, name: &str, fctptr: *const u8, namespace_id: NamespaceId) {
     internal_fct(
         vm,
         name,
         FctImplementation::Native(Address::from_ptr(fctptr)),
+        namespace_id,
     );
 }
 
-fn intrinsic_fct(vm: &mut VM, name: &str, intrinsic: Intrinsic) {
-    internal_fct(vm, name, FctImplementation::Intrinsic(intrinsic));
+fn intrinsic_fct(vm: &mut VM, name: &str, intrinsic: Intrinsic, namespace_id: NamespaceId) {
+    internal_fct(
+        vm,
+        name,
+        FctImplementation::Intrinsic(intrinsic),
+        namespace_id,
+    );
 }
 
-fn internal_fct(vm: &mut VM, name: &str, kind: FctImplementation) {
+fn internal_fct(vm: &mut VM, name: &str, kind: FctImplementation, namespace_id: NamespaceId) {
     let name = vm.interner.intern(name);
-    let fctid = vm
-        .namespace_table(vm.global_namespace_id)
-        .read()
-        .get_fct(name);
+    let fctid = NestedSymTable::new(vm, namespace_id).get_fct(name);
 
     if let Some(fctid) = fctid {
         let fct = vm.fcts.idx(fctid);
