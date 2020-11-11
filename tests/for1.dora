@@ -1,7 +1,7 @@
 //= stdout "01234"
 
 fun main() {
-    for i in range(0, 5) {
+    for i in std::range(0, 5) {
         print(i.toString());
     }
 }

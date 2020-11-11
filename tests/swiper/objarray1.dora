@@ -4,12 +4,12 @@ fun main() {
   let x = Foo(100);
   let y = Foo(101);
   let z = Array::ofSizeUnsafe[Foo](512L);
-  forceMinorCollect();
-  forceMinorCollect();
+  std::forceMinorCollect();
+  std::forceMinorCollect();
   // write into old object x reference to young object
   z(0L) = Foo(2);
   z(511L) = Foo(3);
-  forceMinorCollect();
+  std::forceMinorCollect();
   assert(z(0L).a == 2);
   assert(z(511L).a == 3);
 }

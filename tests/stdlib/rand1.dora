@@ -1,5 +1,5 @@
 fun main() {
-    let rnd = Random(0L);
+    let rnd = std::Random(0L);
 
     assert(rnd.nextInt32() == -1155484576);
     assert(rnd.nextInt32() == -723955400);

@@ -6,6 +6,6 @@ fun main() {
 class A(let x: Int32)
 
 fun test(a: A): Int32 {
-    forceCollect();
+    std::forceCollect();
     return a.x;
 }

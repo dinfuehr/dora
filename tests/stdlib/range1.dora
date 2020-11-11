@@ -1,5 +1,5 @@
 fun main() {
-    let x = range(0, 5).makeIterator();
+    let x = std::range(0, 5).makeIterator();
 
     assert(x.hasNext());
     assert(x.next() == 0);

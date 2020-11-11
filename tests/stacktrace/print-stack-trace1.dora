@@ -2,6 +2,6 @@
 //= stdout "0: main(): 5\n"
 
 fun main() {
-  let e = Stacktrace();
+  let e = std::Stacktrace();
   e.printStacktrace();
 }

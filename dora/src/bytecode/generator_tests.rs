@@ -3459,10 +3459,10 @@ fn gen_enum_mov_generic() {
 #[test]
 fn gen_kill_refs() {
     gen_fct(
-        "fun f(arr: Array[Int32], idx: Int64) { unsafeKillRefs[Int32](arr, idx); }",
+        "fun f(arr: Array[Int32], idx: Int64) { std::unsafeKillRefs[Int32](arr, idx); }",
         |vm, code, fct| {
             let fct_id = vm
-                .fct_by_name("unsafeKillRefs")
+                .fct_by_name_and_namespace("unsafeKillRefs", vm.stdlib_namespace_id)
                 .expect("unsafeKillRefs not found");
             let expected = vec![
                 PushRegister(r(0)),

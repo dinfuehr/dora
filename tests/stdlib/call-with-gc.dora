@@ -1,6 +1,6 @@
 fun main() {
     let bar = Bar(101);
-    call("foo");
+    std::call("foo");
     assert(bar.value == 101);
 }
 
@@ -8,6 +8,6 @@ class Bar(let value: Int32)
 
 fun foo() {
     let bar2 = Bar(102);
-    forceCollect();
+    std::forceCollect();
     assert(bar2.value == 102);
 }

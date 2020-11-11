@@ -2,14 +2,14 @@
 
 fun main() {
     let x = build_vec();
-    forceCollect();
+    std::forceCollect();
     assert(x.size() == 3L);
     pop_vec(x, "ghi");
-    forceCollect();
+    std::forceCollect();
     pop_vec(x, "def");
-    forceCollect();
+    std::forceCollect();
     pop_vec(x, "abc");
-    forceCollect();
+    std::forceCollect();
     assert(x.size() == 0L);
 }
 
@@ -20,5 +20,5 @@ fun build_vec(): Vec[(Int32, String)] {
 fun pop_vec(vec: Vec[(Int32, String)], expected: String) {
     let (_, str) = vec.pop();
     assert(str == expected);
-    assert(unsafeIsNull[String](vec.array(vec.size()).1));
+    assert(std::unsafeIsNull[String](vec.array(vec.size()).1));
 }

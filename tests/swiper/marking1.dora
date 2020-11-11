@@ -9,11 +9,11 @@ fun main() {
         i = i + 1;
     }
 
-    forceCollect();
-    forceCollect();
-    forceCollect();
-    forceCollect();
-    forceCollect();
+    std::forceCollect();
+    std::forceCollect();
+    std::forceCollect();
+    std::forceCollect();
+    std::forceCollect();
 }
 
 fun tree(depth: Int32): Foo {

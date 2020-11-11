@@ -1,6 +1,6 @@
 fun main() {
   let x = Foo(1);
-  forceCollect();
+  std::forceCollect();
   assert(x.a == 1);
 }
 

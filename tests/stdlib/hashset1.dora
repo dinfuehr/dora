@@ -1,5 +1,5 @@
 fun main() {
-    let set = HashSet[Int32]();
+    let set = std::HashSet[Int32]();
     set.insert(1);
     set.insert(10000);
     set.insert(7);

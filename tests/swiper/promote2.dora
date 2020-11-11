@@ -2,10 +2,10 @@
 
 fun main() {
   let x = Foo(1, None[Foo]);
-  forceMinorCollect();
+  std::forceMinorCollect();
   x.next = Some[Foo](Foo(2, None[Foo]));
   x.next.unwrap().next = Some[Foo](Foo(3, None[Foo]));
-  forceMinorCollect();
+  std::forceMinorCollect();
   assert(x.a == 1);
   assert(x.next.unwrap().a == 2);
   assert(x.next.unwrap().next.unwrap().a == 3);

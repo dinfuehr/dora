@@ -1,7 +1,7 @@
 //= error
 
 fun main() {
-    call("foo");
+    std::call("foo");
 }
 
 fun foo(a: Int32) {

@@ -2,5 +2,5 @@
 //= stderr "fatal error: bla\n2: fatalError(String): 1\n1: main(): 5\n"
 
 fun main() {
-    fatalError("bla");
+    std::fatalError("bla");
 }

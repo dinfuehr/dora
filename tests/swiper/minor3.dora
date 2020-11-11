@@ -13,7 +13,7 @@ fun main() {
         x.push(Array::ofSizeUnsafe[Int32](512L));
         x.push(Array::ofSizeUnsafe[Int32](2048L));
         if i % 5 == 0 {
-            forceMinorCollect();
+            std::forceMinorCollect();
         }
         i = i + 1;
     }

@@ -1,8 +1,10 @@
 //= stdout "one\ntwo\n"
 
+import std::Thread;
+
 class MyThread() extends Thread {
     @override fun run() {
-        sleep(2);
+        std::sleep(2);
         println("two");
     }
 }

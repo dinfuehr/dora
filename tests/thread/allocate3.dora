@@ -1,6 +1,8 @@
 //= stdout "done\ndone\n"
 //= vm-args "--gc-young-size=64M --max-heap-size=128M --gc-verify"
 
+import std::Thread;
+
 class MyThread() extends Thread {
     @override fun run() {
         allocator();
@@ -28,7 +30,7 @@ fun allocator() {
             Foo(i + 4, Some[Foo](v4))
         };
 
-        if i % 500 == 0 { forceMinorCollect(); }
+        if i % 500 == 0 { std::forceMinorCollect(); }
 
         var tmp = foo;
         assert(tmp.value == i + 4);

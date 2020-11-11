@@ -6,15 +6,15 @@ fun main() {
 
   // this should test if backtrace in Exception is created the right way
   // by retrieveStackTrace (as Array[Int32])
-  forceCollect();
+  std::forceCollect();
 
   e.printStacktrace();
 }
 
-fun a(): Stacktrace {
+fun a(): std::Stacktrace {
   return b();
 }
 
-fun b(): Stacktrace {
-  return Stacktrace();
+fun b(): std::Stacktrace {
+  return std::Stacktrace();
 }

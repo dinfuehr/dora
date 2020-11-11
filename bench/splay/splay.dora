@@ -1,12 +1,16 @@
+import std::fatalError;
+import std::Random;
+import std::timestamp;
+
 fun main() {
-    if argc() != 3 {
+    if std::argc() != 3 {
         println("usage: splay <seed> <tree-size> <iterations>");
-        exit(1);
+        std::exit(1);
     }
 
-    rnd = Random(argv(0).toInt64().unwrap());
-    splayTreeSize = argv(1).toInt32().unwrap();
-    let iterations = argv(2).toInt32().unwrap();
+    rnd = std::Random(std::argv(0).toInt64().unwrap());
+    splayTreeSize = std::argv(1).toInt32().unwrap();
+    let iterations = std::argv(2).toInt32().unwrap();
 
     let bench = Benchmark();
     bench.setup();

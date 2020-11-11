@@ -2,7 +2,7 @@
 
 fun main() {
     let x = id[(String, Foo)](("f" + "o" + "o", Foo(17)));
-    forceCollect();
+    std::forceCollect();
     assert(x.0 == "foo");
     assert(x.1.value == 17);
 }

@@ -1,5 +1,7 @@
 //= stdout "done\n"
 
+import std::Thread;
+
 class MyThread(var executed: Bool) extends Thread {
     @override fun run() {
         self.f();

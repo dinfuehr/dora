@@ -1,11 +1,11 @@
 fun main() {
-    let q = Queue[Int32]();
+    let q = std::Queue[Int32]();
 
-    for i in range(0, 100) {
+    for i in std::range(0, 100) {
         q.enqueue(i);
     }
 
-    for i in range(0, 100) {
+    for i in std::range(0, 100) {
         assert(q.dequeue() == i);
     }
 }

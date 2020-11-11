@@ -1,4 +1,4 @@
-fun stringify[T: Stringable](t: T): String {
+fun stringify[T: std::Stringable](t: T): String {
     return "${t}";
 }
 

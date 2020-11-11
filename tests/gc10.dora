@@ -10,7 +10,7 @@ fun main() {
 
 class A(let a: Int32) {
     fun test(): Int32 {
-        forceCollect();
+        std::forceCollect();
         return self.a;
     }
 }

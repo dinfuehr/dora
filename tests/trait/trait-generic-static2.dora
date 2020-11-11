@@ -6,13 +6,13 @@ trait X {
     @static fun foo(): Self;
 }
 
-fun f[T: X + Stringable](): String {
+fun f[T: X + std::Stringable](): String {
     return T::foo().toString();
 }
 
 class Bar(let x: Int32)
 
-impl Stringable for Bar {
+impl std::Stringable for Bar {
     fun toString(): String {
         return "BAR${self.x}";
     }
@@ -26,7 +26,7 @@ impl X for Bar {
 
 class Baz(let x: Int32)
 
-impl Stringable for Baz {
+impl std::Stringable for Baz {
     fun toString(): String {
         return "BAZ${self.x}";
     }

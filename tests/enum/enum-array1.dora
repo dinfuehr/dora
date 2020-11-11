@@ -4,11 +4,11 @@ enum Foo { A(Int32, String, Float32), B }
 
 fun main() {
     let array = createArray();
-    forceCollect();
-    assert(unsafeLoadEnumVariant[Foo](array(0L)) == 0);
-    assert(unsafeLoadEnumElement[Foo, Int32](array(0L), 0, 0) == 112);
-    assert(unsafeLoadEnumElement[Foo, String](array(0L), 0, 1) == "abc");
-    assert(unsafeLoadEnumElement[Foo, Float32](array(0L), 0, 2) == 17.5F);
+    std::forceCollect();
+    assert(std::unsafeLoadEnumVariant[Foo](array(0L)) == 0);
+    assert(std::unsafeLoadEnumElement[Foo, Int32](array(0L), 0, 0) == 112);
+    assert(std::unsafeLoadEnumElement[Foo, String](array(0L), 0, 1) == "abc");
+    assert(std::unsafeLoadEnumElement[Foo, Float32](array(0L), 0, 2) == 17.5F);
 }
 
 fun createArray(): Array[Foo] {

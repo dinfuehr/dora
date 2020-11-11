@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 class Foo(let value: Int32) {
-    forceCollect();
+    std::forceCollect();
 }
 
 fun main() {
@@ -13,24 +13,24 @@ fun main() {
 
 fun tpl1(): Int32 {
     let x = (Foo(1), Foo(2), Foo(3));
-    forceCollect();
+    std::forceCollect();
     x.0.value
 }
 
 fun tpl2(): Int32 {
     let x = (Foo(1), Foo(2), Foo(3));
-    forceCollect();
+    std::forceCollect();
     x.1.value
 }
 
 fun tpl3(): Int32 {
     let x = (Foo(1), Foo(2), Foo(3));
-    forceCollect();
+    std::forceCollect();
     x.2.value
 }
 
 fun tplsum(): Int32 {
     let x = (Foo(1), Foo(2), Foo(3));
-    forceCollect();
+    std::forceCollect();
     x.0.value + x.1.value + x.2.value
 }

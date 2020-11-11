@@ -3,11 +3,11 @@
 var x: (Foo, Foo) = (Foo(0), Foo(0));
 
 fun main() {
-    forceCollect();
+    std::forceCollect();
     x = (Foo(17), Foo(42));
     assert(x.0.value == 17);
     assert(x.1.value == 42);
-    forceCollect();
+    std::forceCollect();
     assert(x.0.value == 17);
     assert(x.1.value == 42);
 }

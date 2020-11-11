@@ -1,9 +1,9 @@
 //= args 1 2 3
 
 fun main() {
-  let val = argc().toString();
+  let val = std::argc().toString();
   println(val);
-  println(argv(0));
-  println(argv(1));
-  println(argv(2));
+  println(std::argv(0));
+  println(std::argv(1));
+  println(std::argv(2));
 }

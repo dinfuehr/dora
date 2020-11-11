@@ -4,5 +4,5 @@ fun main() {
   let c = true;
   let d = false;
 
-  forceCollect();
+  std::forceCollect();
 }

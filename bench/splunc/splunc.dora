@@ -1,3 +1,8 @@
+import std::argc;
+import std::argv;
+import std::exit;
+import std::Random;
+
 @open @abstract class Node {
     var birthday: Int32 = 0;
     var value: Int32 = 0;

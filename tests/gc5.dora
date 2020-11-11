@@ -1,6 +1,6 @@
 fun main() {
   let a = nested();
-  forceCollect();
+  std::forceCollect();
 
   assert(a.next.unwrap().next.unwrap().value == 3);
 }

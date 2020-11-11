@@ -93,7 +93,7 @@ fn type_module_method_call() {
             fun g(): Int32 { return Foo::baz(); }");
 
     ok("module Foo {
-                fun bar[T : Equals + Hash](t: T): T = t;
+                fun bar[T : std::Equals + std::Hash](t: T): T = t;
             }
 
             fun foo() { Foo::bar[Int32](1); }");
@@ -1217,7 +1217,7 @@ fn test_generic_ctor_without_type_params() {
 #[test]
 fn test_generic_argument_with_trait_bound() {
     err(
-        "fun f[X: Comparable](x: X) {}
+        "fun f[X: std::Comparable](x: X) {}
             fun g[T](t: T) { f[T](t); }",
         pos(2, 34),
         SemError::TraitBoundNotSatisfied("T".into(), "Comparable".into()),
@@ -1243,7 +1243,7 @@ fn test_for_supports_make_iterator() {
     ok(
         "class Foo { fun makeIterator(): FooIter { return FooIter(); } }
             class FooIter
-            impl Iterator for FooIter {
+            impl std::Iterator for FooIter {
                 fun hasNext(): Bool { return false; }
                 fun next(): Int32 { return 0; }
             }
@@ -1405,7 +1405,7 @@ fn test_new_call_method_wrong_params() {
 
 #[test]
 fn test_new_call_method_generic() {
-    ok("fun f[T: Hash](t: T) { t.hash(); }");
+    ok("fun f[T: std::Hash](t: T) { t.hash(); }");
 }
 
 #[test]
@@ -1473,7 +1473,7 @@ fn test_template() {
         pos(1, 49),
         SemError::ExpectedStringable("Foo".into()),
     );
-    ok("fun f[T: Stringable](x: T): String { return \"${x}\"; }");
+    ok("fun f[T: std::Stringable](x: T): String { return \"${x}\"; }");
 }
 
 #[test]
@@ -2285,7 +2285,7 @@ fn const_value() {
 
 #[test]
 fn for_var() {
-    ok("fun f() { for i in range(0, 4) { i; } }");
+    ok("fun f() { for i in std::range(0, 4) { i; } }");
 }
 
 #[test]

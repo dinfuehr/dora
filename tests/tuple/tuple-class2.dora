@@ -8,7 +8,7 @@ class Foo(let value: Int32)
 
 fun main() {
     let tpl = TupleClass();
-    forceCollect();
+    std::forceCollect();
     assert(tpl.value.0.value == 4711);
     assert(tpl.value.1 == 4712L);
 }

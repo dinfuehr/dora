@@ -3,10 +3,10 @@
 fun main() {
   let default = Foo(42);
   var x = Array::fill[Foo](128L, default);
-  forceMinorCollect();
+  std::forceMinorCollect();
   x(0L) = Foo(1);
   x(127L) = Foo(2);
-  forceMinorCollect();
+  std::forceMinorCollect();
   assert(x(0L).a == 1);
   assert(x(1L) === default);
   assert(x(126L) === default);

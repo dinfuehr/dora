@@ -2,6 +2,6 @@
 
 fun main() {
   let x = "perm";
-  forceMinorCollect();
+  std::forceMinorCollect();
   assert(x.size() == 4L);
 }

@@ -1,6 +1,8 @@
 //= stdout "done\ndone\n"
 //= vm-args "--gc-young-size=64M --max-heap-size=128M"
 
+import std::Thread;
+
 class MyThread() extends Thread {
     @override fun run() {
         allocator();

@@ -8,8 +8,8 @@ fun main() {
         i = i + 1L;
     }
 
-    forceCollect();
-    forceCollect();
+    std::forceCollect();
+    std::forceCollect();
 }
 
 class Foo

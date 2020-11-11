@@ -1,5 +1,5 @@
 fun main() {
-    let set = HashSet[Int32]();
+    let set = std::HashSet[Int32]();
     assert(set.isEmpty());
 
     var i = 0;

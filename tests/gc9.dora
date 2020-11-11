@@ -2,7 +2,7 @@ fun main() {
     let x = A(10);
     let y = x;
 
-    forceCollect();
+    std::forceCollect();
 
     assert(x === y);
     assert(x.a == 10);

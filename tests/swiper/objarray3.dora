@@ -3,7 +3,7 @@
 fun main() {
     let a = Array::ofSizeUnsafe[Foo](16L * 1024L);
     a(16L * 1024L - 1L) = Foo();
-    forceCollect();
+    std::forceCollect();
 }
 
 class Foo()

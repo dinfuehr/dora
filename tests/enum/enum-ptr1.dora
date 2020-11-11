@@ -3,11 +3,11 @@ enum Foo[T] { A(T), B }
 fun main() {
     let value = Foo[String]::A("abc");
     foo(value);
-    assert(unsafeLoadEnumVariant[Foo[String]](value) == 0);
-    assert(unsafeLoadEnumElement[Foo[String], String](value, 0, 0) == "abc");
+    assert(std::unsafeLoadEnumVariant[Foo[String]](value) == 0);
+    assert(std::unsafeLoadEnumElement[Foo[String], String](value, 0, 0) == "abc");
 
     let value = Foo[String]::B;
-    assert(unsafeLoadEnumVariant[Foo[String]](value) == 1);
+    assert(std::unsafeLoadEnumVariant[Foo[String]](value) == 1);
 }
 
 fun foo(x: Foo[String]): Foo[String] {

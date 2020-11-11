@@ -1,5 +1,5 @@
 fun main() {
-    let set = BitSet(64L);
+    let set = std::BitSet(64L);
     set.insert(0L);
     set.insert(63L);
     assert(set.contains(0L));

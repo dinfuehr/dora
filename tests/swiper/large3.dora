@@ -4,15 +4,15 @@ class Foo(let x: Int32)
 
 fun main() {
     let x = Array::ofSizeUnsafe[Foo](16L * 1024L);
-    forceCollect();
-    assert(unsafeIsNull[Foo](x(0L)));
+    std::forceCollect();
+    assert(std::unsafeIsNull[Foo](x(0L)));
 
     x(0L) = Foo(1);
-    forceMinorCollect();
+    std::forceMinorCollect();
     assert(x(0L).x == 1);
 
     x(16L * 1024L - 1L) = Foo(2);
-    forceMinorCollect();
+    std::forceMinorCollect();
     assert(x(0L).x == 1);
     assert(x(16L * 1024L - 1L).x == 2);
 }

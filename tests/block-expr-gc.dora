@@ -6,7 +6,7 @@ fun main() {
     let tpl: Foo = if false {
         createFoo()
     } else {
-        forceCollect();
+        std::forceCollect();
         createFoo()
     };
 }

@@ -2,11 +2,11 @@
 
 fun main() {
     let x = Foo(Some[Foo](Foo(None[Foo])));
-    forceMinorCollect();
+    std::forceMinorCollect();
     assert(x.next.unwrap().next.isNone());
-    forceMinorCollect();
+    std::forceMinorCollect();
     assert(x.next.unwrap().next.isNone());
-    forceMinorCollect();
+    std::forceMinorCollect();
     assert(x.next.unwrap().next.isNone());
 }
 

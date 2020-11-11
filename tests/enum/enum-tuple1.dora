@@ -4,9 +4,9 @@ enum Foo { A(Int32, String, Float32), B }
 
 fun main() {
     let tuple = createTuple();
-    assert(unsafeLoadEnumVariant[Foo](tuple.0) == 0);
-    forceCollect();
-    assert(unsafeLoadEnumVariant[Foo](tuple.0) == 0);
+    assert(std::unsafeLoadEnumVariant[Foo](tuple.0) == 0);
+    std::forceCollect();
+    assert(std::unsafeLoadEnumVariant[Foo](tuple.0) == 0);
 }
 
 fun createTuple(): (Foo, Float32) {

@@ -1,6 +1,6 @@
 fun main() {
   let node = Node(10, Some[Node](Node(9, None[Node], None[Node])), Some[Node](Node(11, None[Node], None[Node])));
-  forceCollect();
+  std::forceCollect();
   assert(node.lhs.unwrap().value == 9);
   assert(node.value == 10);
   assert(node.rhs.unwrap().value == 11);

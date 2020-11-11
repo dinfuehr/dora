@@ -1,5 +1,5 @@
 fun main() {
-    let q = Queue[Int32]();
+    let q = std::Queue[Int32]();
     assert(q.size() == 0L);
     assert(q.isEmpty());
     q.enqueue(1);

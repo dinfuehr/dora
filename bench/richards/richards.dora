@@ -5,8 +5,8 @@
 fun main() {
     var iterations = 8200;
 
-    if argc() > 0 {
-        iterations = argv(0).toInt32().unwrap();
+    if std::argc() > 0 {
+        iterations = std::argv(0).toInt32().unwrap();
     }  
 
     let bench = Benchmark();
@@ -49,7 +49,7 @@ class Benchmark() {
 
         if scheduler.queueCount != EXPECTED_QUEUE_COUNT || scheduler.holdCount != EXPECTED_HOLD_COUNT {
             println("Error during execution: queueCount = ${scheduler.queueCount}, holdCount = ${scheduler.holdCount}.");
-            exit(1);
+            std::exit(1);
         }
     }
 }
@@ -196,7 +196,7 @@ class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let pr
     }
 }
 
-impl Stringable for TaskControlBlock {
+impl std::Stringable for TaskControlBlock {
     fun toString(): String {
         return "tcb { ${self.task.toString()}@${self.state} }";
     }

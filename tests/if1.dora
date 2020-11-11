@@ -25,7 +25,7 @@ fun g(x: Bool): Int32 {
 }
 
 fun h(x: Bool, y: Int32): String {
-    (if x { "t${y}" } else { "f${y}" }) + { forceCollect(); "end" }
+    (if x { "t${y}" } else { "f${y}" }) + { std::forceCollect(); "end" }
 }
 
 fun i(x: Bool): String {

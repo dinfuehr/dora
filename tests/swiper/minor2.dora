@@ -10,7 +10,7 @@ fun main() {
         i = i + 1;
     }
 
-    forceMinorCollect();
+    std::forceMinorCollect();
     assert(x.next.unwrap().next.isSome());
 
     i = 0;
@@ -21,9 +21,9 @@ fun main() {
         i = i + 1;
     }
 
-    forceMinorCollect();
+    std::forceMinorCollect();
     assert(x.next.unwrap().next.isSome());
-    forceMinorCollect();
+    std::forceMinorCollect();
     assert(x.next.unwrap().next.isSome());
 }
 

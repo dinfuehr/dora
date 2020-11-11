@@ -2,10 +2,10 @@
 
 fun main() {
   var x = foo(1, foo(2, foo(3, None[Foo])));
-  forceMinorCollect();
+  std::forceMinorCollect();
   x.unwrap().next.unwrap().next.unwrap().next = foo(4, None[Foo]);
   x = foo(100, x);
-  forceMinorCollect();
+  std::forceMinorCollect();
   assert(x.unwrap().a == 100);
   assert(x.unwrap().next.unwrap().a == 1);
   assert(x.unwrap().next.unwrap().next.unwrap().a == 2);

@@ -17,6 +17,6 @@ fun t2() {
 }
 
 fun t3() {
-    let x: String = "x${1}y" + { forceCollect(); "end" };
+    let x: String = "x${1}y" + { std::forceCollect(); "end" };
     assert(x == "x1yend");
 }

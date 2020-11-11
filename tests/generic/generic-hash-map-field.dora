@@ -1,15 +1,15 @@
 class MyOwnType
 
-impl Equals for MyOwnType {
+impl std::Equals for MyOwnType {
     fun equals(other: MyOwnType): Bool = true;
 }
 
-impl Hash for MyOwnType {
+impl std::Hash for MyOwnType {
     fun hash(): Int32 = 0;
 }
 
 class Foo {
-    let x: HashMap[MyOwnType, String] = HashMap[MyOwnType, String]();
+    let x: std::HashMap[MyOwnType, String] = std::HashMap[MyOwnType, String]();
 }
 
 fun main() {

@@ -3,11 +3,11 @@
 fun main() {
     let a = Array::ofSizeUnsafe[Foo](60L);
     let b = Array::ofSizeUnsafe[Foo](60L);
-    forceMinorCollect();
-    forceMinorCollect();
+    std::forceMinorCollect();
+    std::forceMinorCollect();
     // a(5) = Foo(2);
     b(5L) = Foo(1);
-    forceMinorCollect();
+    std::forceMinorCollect();
     // assert(a(5).a == 2);
     assert(b(5L).a == 1);
 }

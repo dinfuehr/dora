@@ -6,7 +6,7 @@ fun main() {
     x.push(2.toString());
     x.push(3.toString());
 
-    forceCollect();
+    std::forceCollect();
 
     print(x.pop());
     print(x.pop());

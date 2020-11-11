@@ -11,7 +11,7 @@ fun main() {
     x(0L) = "a" + "b";
     x(1L) = "x" + "y";
 
-    forceCollect();
+    std::forceCollect();
 
     print(x(0L));
     println(x(1L));

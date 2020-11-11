@@ -5,7 +5,7 @@ fun main() {
     x(2L) = 0;
     x(3L) = 4;
 
-    bubbleSort[Int32](x);
+    std::bubbleSort[Int32](x);
 
     assert(x(0L) == 0);
     assert(x(1L) == 2);

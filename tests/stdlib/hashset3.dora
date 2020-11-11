@@ -1,5 +1,5 @@
 fun main() {
-    let set = HashSet[Int32](1, 10_000, 7);
+    let set = std::HashSet[Int32](1, 10_000, 7);
     assert(set.size() == 3L);
     assert(set.contains(1));
     assert(set.contains(10_000));

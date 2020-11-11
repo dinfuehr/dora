@@ -2,11 +2,11 @@
 
 fun main() {
   let x = Foo(1, None[Foo]);
-  forceMinorCollect();
-  forceMinorCollect();
+  std::forceMinorCollect();
+  std::forceMinorCollect();
   // write into old object x reference to young object
   x.next = Some[Foo](Foo(2, None[Foo]));
-  forceMinorCollect();
+  std::forceMinorCollect();
   assert(x.next.unwrap().a == 2);
 }
 

@@ -1,3 +1,6 @@
+import std::Locale;
+import std::Text;
+
 fun main() {
   let hallo = Text("hallo ", Locale::de());
   let welt = Text("welt!", Locale::de());

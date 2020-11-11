@@ -4,9 +4,9 @@ fun main() {
     let x = Array::ofSizeUnsafe[Object](16L * 1024L);
     let y = Array::ofSizeUnsafe[Object](16L * 1024L);
     let z = Array::ofSizeUnsafe[Object](16L * 1024L);
-    forceCollect();
-    assert(unsafeIsNull[Object](x(0L)));
+    std::forceCollect();
+    assert(std::unsafeIsNull[Object](x(0L)));
     x(0L) = Object();
-    forceCollect();
-    assert(!unsafeIsNull[Object](x(0L)));
+    std::forceCollect();
+    assert(!std::unsafeIsNull[Object](x(0L)));
 }

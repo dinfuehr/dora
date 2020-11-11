@@ -2,7 +2,7 @@ fun main() {
   let x = Array::fill[Foo](5L, Foo(17));
   x(0L) = Foo(1);
   x(4L) = Foo(2);
-  forceCollect();
+  std::forceCollect();
   assert(x(0L).x == 1);
   assert(x(4L).x == 2);
 }

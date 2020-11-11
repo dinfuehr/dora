@@ -2,7 +2,7 @@
 
 fun main() {
   let a = A[String](foo(1));
-  forceCollect();
+  std::forceCollect();
   print(a.getx());
 }
 

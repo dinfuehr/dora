@@ -1,12 +1,12 @@
 var a: A = A(42);
 
 fun main() {
-    forceCollect();
+    std::forceCollect();
     assert(a.val == 42);
-    forceCollect();
+    std::forceCollect();
     assert(a.val == 42);
     a = A(10);
-    forceCollect();
+    std::forceCollect();
     assert(a.val == 10);
 }
 

@@ -2,5 +2,5 @@
 //= stderr "program aborted.\n"
 
 fun main() {
-    abort();
+    std::abort();
 }

@@ -1,3 +1,7 @@
+import std::argc;
+import std::argv;
+import std::timestamp;
+
 class Node(var left: Option[Node], var right: Option[Node]) {
     var i: Int32 = 0;
     var j: Int32 = 0;
@@ -76,7 +80,7 @@ fun timeConstruction(depth: Int32) {
 fun main() {
     if argc() != 1 {
         println("usage: gcbench <depth>");
-        exit(1);
+        std::exit(1);
     }
 
     let depth = argv(0).toInt32().unwrap();

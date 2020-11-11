@@ -7,7 +7,7 @@ fun main() {
 
 fun bar[T: Foo](obj: T): Int32 {
     let tmp = obj;
-    forceCollect();
+    std::forceCollect();
     tmp.baz() * obj.baz()
 }
 

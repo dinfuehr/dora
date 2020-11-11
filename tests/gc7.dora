@@ -1,6 +1,6 @@
 fun main() {
   foo();
-  forceCollect();
+  std::forceCollect();
   foo();
 }
 

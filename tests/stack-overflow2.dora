@@ -1,5 +1,7 @@
 //= error stack-overflow
 
+import std::Thread;
+
 fun main() {
     let thread = MyThread();
     thread.start();

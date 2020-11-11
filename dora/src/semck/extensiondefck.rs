@@ -247,8 +247,8 @@ mod tests {
 
         ok("class A[T] impl A[Int32] {} impl A[String] {}");
         err(
-            "class A[T: Zero] impl A[Int32] {} impl A[String] {}",
-            pos(1, 40),
+            "class A[T: std::Zero] impl A[Int32] {} impl A[String] {}",
+            pos(1, 45),
             SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
         );
     }

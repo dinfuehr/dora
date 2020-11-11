@@ -1,5 +1,8 @@
 //= vm-args "--gc=swiper --gc-verify"
 
+import std::forceCollect;
+import std::forceMinorCollect;
+
 class Foo(let x: Int32)
 
 fun main() {

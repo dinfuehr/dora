@@ -1,3 +1,5 @@
+import std::HashMap;
+
 fun main() {
     let map = HashMap[Int32, String]();
     assert(map.isEmpty());

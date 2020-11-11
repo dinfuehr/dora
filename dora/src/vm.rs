@@ -155,13 +155,13 @@ impl VM {
         let boots_namespace_id = NamespaceId(3);
 
         let interner = Interner::new();
-        let _stdlib_name = interner.intern("std");
+        let stdlib_name = interner.intern("std");
         let boots_name = interner.intern("boots");
 
         let namespaces = vec![
             NamespaceData::new(prelude_namespace_id, None),
-            NamespaceData::new(stdlib_namespace_id, Some(prelude_namespace_id)),
-            NamespaceData::new(global_namespace_id, Some(stdlib_namespace_id)),
+            NamespaceData::new_with_name(stdlib_namespace_id, None, stdlib_name),
+            NamespaceData::new(global_namespace_id, Some(prelude_namespace_id)),
             NamespaceData::new_with_name(
                 boots_namespace_id,
                 Some(prelude_namespace_id),
@@ -469,6 +469,15 @@ impl VM {
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id).get_fct(name)
+    }
+
+    pub fn fct_by_name_and_namespace(
+        &self,
+        name: &str,
+        namespace_id: NamespaceId,
+    ) -> Option<FctId> {
+        let name = self.interner.intern(name);
+        NestedSymTable::new(self, namespace_id).get_fct(name)
     }
 
     #[cfg(test)]

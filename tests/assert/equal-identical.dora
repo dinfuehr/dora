@@ -1,3 +1,5 @@
+import std::Assert;
+
 fun main() {
   Assert.equal[String]("a", "a");
   //Assert.equal[String]("a", "b"); // values are not equal (actual: a, expected: b)

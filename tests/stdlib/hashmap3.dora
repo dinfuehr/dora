@@ -1,5 +1,5 @@
 fun main() {
-    let map = HashMap[Int32, String]((1, "a"), (2, "b"), (3, "c"), (4, "d"));
+    let map = std::HashMap[Int32, String]((1, "a"), (2, "b"), (3, "c"), (4, "d"));
     assert(map.size() == 4L);
 
     assert(map.contains(1));
