@@ -51,8 +51,14 @@ pub fn check(vm: &mut VM) -> bool {
     // define internal classes
     stdlib::resolve_internal_classes(vm);
 
+    // discover all enum variants
+    enumck::check_variants(vm);
+
     // fill prelude with important types and functions
     stdlib::fill_prelude(vm);
+
+    // discover all types
+    importck::check(vm);
 
     // find all trait implementations for classes
     impldefck::check(vm);
@@ -66,7 +72,6 @@ pub fn check(vm: &mut VM) -> bool {
     constdefck::check(vm);
     enumck::check(vm);
     extensiondefck::check(vm);
-    importck::check(vm);
     return_on_error!(vm);
 
     // check super class definition of classes

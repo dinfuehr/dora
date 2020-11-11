@@ -43,7 +43,7 @@ impl<'x> EnumCheck<'x> {
             self.check_type_params(type_params, &mut symtable);
         }
 
-        let mut next_variant_id: u32 = 0;
+        let mut variant_id: usize = 0;
         let mut simple_enumeration = true;
 
         for value in &self.ast.variants {
@@ -62,34 +62,11 @@ impl<'x> EnumCheck<'x> {
                 simple_enumeration = false;
             }
 
-            let variant = EnumVariant {
-                id: next_variant_id as usize,
-                name: value.name,
-                types: types,
-            };
-            self.xenum.variants.push(variant);
-            let result = self.xenum.name_to_value.insert(value.name, next_variant_id);
-
-            if result.is_some() {
-                let name = self.vm.interner.str(value.name).to_string();
-                self.vm.diag.lock().report(
-                    self.xenum.file_id,
-                    value.pos,
-                    SemError::ShadowEnumValue(name),
-                );
-            }
-
-            next_variant_id += 1;
+            self.xenum.variants[variant_id].types = types;
+            variant_id += 1;
         }
 
         self.xenum.simple_enumeration = simple_enumeration;
-
-        if self.ast.variants.is_empty() {
-            self.vm
-                .diag
-                .lock()
-                .report(self.xenum.file_id, self.ast.pos, SemError::NoEnumValue);
-        }
 
         symtable.pop_level();
     }
@@ -147,6 +124,63 @@ impl<'x> EnumCheck<'x> {
         } else {
             let msg = SemError::TypeParamsExpected;
             self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+        }
+    }
+}
+
+pub fn check_variants(vm: &VM) {
+    for xenum in &vm.enums {
+        let mut xenum = xenum.write();
+        let ast = xenum.ast.clone();
+
+        let mut enumck = EnumCheckVariants {
+            vm,
+            file_id: xenum.file_id,
+            ast: &ast,
+            xenum: &mut *xenum,
+        };
+
+        enumck.check();
+    }
+}
+
+struct EnumCheckVariants<'x> {
+    vm: &'x VM,
+    file_id: FileId,
+    ast: &'x Arc<ast::Enum>,
+    xenum: &'x mut EnumData,
+}
+
+impl<'x> EnumCheckVariants<'x> {
+    fn check(&mut self) {
+        let mut next_variant_id: u32 = 0;
+
+        for value in &self.ast.variants {
+            let variant = EnumVariant {
+                id: next_variant_id as usize,
+                name: value.name,
+                types: Vec::new(),
+            };
+            self.xenum.variants.push(variant);
+            let result = self.xenum.name_to_value.insert(value.name, next_variant_id);
+
+            if result.is_some() {
+                let name = self.vm.interner.str(value.name).to_string();
+                self.vm.diag.lock().report(
+                    self.xenum.file_id,
+                    value.pos,
+                    SemError::ShadowEnumValue(name),
+                );
+            }
+
+            next_variant_id += 1;
+        }
+
+        if self.ast.variants.is_empty() {
+            self.vm
+                .diag
+                .lock()
+                .report(self.xenum.file_id, self.ast.pos, SemError::NoEnumValue);
         }
     }
 }

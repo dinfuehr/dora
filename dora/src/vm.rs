@@ -162,7 +162,11 @@ impl VM {
             NamespaceData::new(prelude_namespace_id, None),
             NamespaceData::new(stdlib_namespace_id, Some(prelude_namespace_id)),
             NamespaceData::new(global_namespace_id, Some(stdlib_namespace_id)),
-            NamespaceData::new_with_name(boots_namespace_id, Some(stdlib_namespace_id), boots_name),
+            NamespaceData::new_with_name(
+                boots_namespace_id,
+                Some(prelude_namespace_id),
+                boots_name,
+            ),
         ];
 
         let vm = Box::new(VM {

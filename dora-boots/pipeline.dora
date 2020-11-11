@@ -1,3 +1,15 @@
+import std::BitSet;
+import std::CodepointIterator;
+import std::Equals;
+import std::fatalError;
+import std::Hash;
+import std::HashMap;
+import std::range;
+import std::Stringable;
+import std::StringBuffer;
+import std::Testing;
+import std::VecIter;
+
 class CompilationJob(let compilation_info: CompilationInfo) {
     var graph: Option[Graph] = None[Graph];
 

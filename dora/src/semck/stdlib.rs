@@ -61,8 +61,24 @@ pub fn resolve_internal_classes(vm: &mut VM) {
 
 pub fn fill_prelude(vm: &mut VM) {
     let symbols = [
-        "Unit", "Bool", "UInt8", "Char", "Int32", "Int64", "Float32", "Float64", "Object",
-        "String", "Array", "Vec", "print", "println", "Option",
+        "Unit",
+        "Bool",
+        "UInt8",
+        "Char",
+        "Int32",
+        "Int64",
+        "Float32",
+        "Float64",
+        "Object",
+        "String",
+        "Array",
+        "Vec",
+        "print",
+        "println",
+        "Option",
+        "unimplemented",
+        "unreachable",
+        "assert",
     ];
 
     let stdlib = vm.stdlib_namespace();
