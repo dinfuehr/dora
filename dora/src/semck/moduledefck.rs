@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::sym::NestedSymTable;
 use crate::ty::{SourceType, TypeList};
 
 use crate::vm::{Fct, FctParent, Field, FileId, ModuleId, NamespaceId, VM};
@@ -138,54 +138,34 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
-        let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.sym.get_type(parent_class.name);
+        let parent_ty =
+            semck::read_type_table(self.vm, &self.sym, self.file_id, &parent_class.parent_ty)
+                .unwrap_or(SourceType::Error);
 
-        match sym {
-            Some(TypeSym::Class(cls_id)) => {
+        match parent_ty.clone() {
+            SourceType::Class(cls_id, _type_list_id) => {
                 let super_cls = self.vm.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 
                 if !super_cls.has_open {
-                    let msg = SemError::UnderivableType(name);
+                    let msg = SemError::UnderivableType(super_cls.long_name(self.vm));
                     self.vm
                         .diag
                         .lock()
                         .report(self.file_id.into(), parent_class.pos, msg);
                 }
 
-                let number_type_params = parent_class.type_params.len();
+                let module = self.vm.modules.idx(self.module_id);
+                let mut module = module.write();
+                module.parent_class = Some(parent_ty);
+            }
 
-                if number_type_params != super_cls.type_params.len() {
-                    let msg = SemError::WrongNumberTypeParams(
-                        super_cls.type_params.len(),
-                        number_type_params,
-                    );
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file_id.into(), parent_class.pos, msg);
-                } else {
-                    let mut types = Vec::new();
-
-                    for tp in &parent_class.type_params {
-                        let ty =
-                            semck::read_type_table(self.vm, &self.sym, self.file_id.into(), tp)
-                                .unwrap_or(SourceType::Error);
-                        types.push(ty);
-                    }
-
-                    let list = TypeList::with(types);
-                    let list_id = self.vm.lists.lock().insert(list);
-
-                    let module = self.vm.modules.idx(self.module_id);
-                    let mut module = module.write();
-                    module.parent_class = Some(SourceType::Class(cls_id, list_id));
-                }
+            SourceType::Error => {
+                // error was already reported
             }
 
             _ => {
-                let msg = SemError::UnknownClass(name);
+                let msg = SemError::ClassExpected;
                 self.vm
                     .diag
                     .lock()
@@ -244,13 +224,9 @@ mod tests {
         err(
             "module B : A {}",
             pos(1, 12),
-            SemError::UnknownClass("A".into()),
+            SemError::UnknownIdentifier("A".into()),
         );
-        err(
-            "module B : Int32 {}",
-            pos(1, 12),
-            SemError::UnderivableType("Int32".into()),
-        );
+        err("module B : Int32 {}", pos(1, 12), SemError::ClassExpected);
     }
 
     #[test]

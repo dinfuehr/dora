@@ -1,6 +1,4 @@
-import std::Thread;
-
-class MyThread() extends Thread {
+class MyThread() extends std::Thread {
     @override fun run() {
         nativeCalls();
     }

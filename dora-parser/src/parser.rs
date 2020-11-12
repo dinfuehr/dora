@@ -535,26 +535,14 @@ impl<'a> Parser<'a> {
 
             let start = self.token.span.start();
             let pos = self.token.position;
-            let name = self.expect_identifier()?;
-            let type_params = self.parse_class_parent_type_params()?;
+            let parent_ty = self.parse_type()?;
             let params = self.parse_parent_class_params()?;
             let span = self.span_from(start);
 
-            Ok(Some(ParentClass::new(name, pos, span, type_params, params)))
+            Ok(Some(ParentClass::new(pos, span, parent_ty, params)))
         } else {
             Ok(None)
         }
-    }
-
-    fn parse_class_parent_type_params(&mut self) -> Result<Vec<Type>, ParseErrorAndPos> {
-        let mut types = Vec::new();
-
-        if self.token.is(TokenKind::LBracket) {
-            self.advance_token()?;
-            types = self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
-        }
-
-        Ok(types)
     }
 
     fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ParseErrorAndPos> {
@@ -582,12 +570,11 @@ impl<'a> Parser<'a> {
 
             let start = self.token.span.start();
             let pos = self.token.position;
-            let name = self.expect_identifier()?;
-            let type_params = self.parse_class_parent_type_params()?;
+            let parent_ty = self.parse_type()?;
             let params = self.parse_parent_class_params()?;
             let span = self.span_from(start);
 
-            Some(ParentClass::new(name, pos, span, type_params, params))
+            Some(ParentClass::new(pos, span, parent_ty, params))
         } else {
             None
         };
@@ -3341,15 +3328,10 @@ mod tests {
 
     #[test]
     fn parse_class_with_parent_class() {
-        let (prog, interner) = parse("class Foo extends Bar");
+        let (prog, _interner) = parse("class Foo extends Bar");
         let class = prog.cls0();
 
-        assert_eq!(
-            "Bar",
-            interner
-                .str(class.parent_class.as_ref().unwrap().name)
-                .to_string()
-        );
+        assert!(class.parent_class.is_some());
     }
 
     #[test]
@@ -3372,15 +3354,10 @@ mod tests {
 
     #[test]
     fn parse_module_with_parent() {
-        let (prog, interner) = parse("module Foo : Bar");
+        let (prog, _interner) = parse("module Foo : Bar");
         let module = prog.mod0();
 
-        assert_eq!(
-            "Bar",
-            interner
-                .str(module.parent_class.as_ref().unwrap().name)
-                .to_string()
-        );
+        assert!(module.parent_class.is_some());
     }
 
     #[test]
@@ -3824,8 +3801,7 @@ mod tests {
         let (prog, _) = parse("class A extends B[SomeType, SomeOtherType]");
         let cls = prog.cls0();
 
-        let parent = cls.parent_class.as_ref().unwrap();
-        assert_eq!(2, parent.type_params.len());
+        assert!(cls.parent_class.is_some());
     }
 
     #[test]
@@ -3833,8 +3809,7 @@ mod tests {
         let (prog, _) = parse("class A extends B[SomeType[SomeOtherType[Int]]]");
         let cls = prog.cls0();
 
-        let parent = cls.parent_class.as_ref().unwrap();
-        assert_eq!(1, parent.type_params.len());
+        assert!(cls.parent_class.is_some());
     }
 
     #[test]

@@ -1,7 +1,6 @@
 import std::argc;
 import std::argv;
 import std::exit;
-import std::Random;
 
 @open @abstract class Node {
     var birthday: Int32 = 0;
@@ -179,7 +178,7 @@ fun main() {
         exit(1);
     }
 
-    let rnd = Random(argv(0).toInt64().unwrap());
+    let rnd = std::Random(argv(0).toInt64().unwrap());
     let max_size = argv(1).toInt32().unwrap();
     var date = 0;
 

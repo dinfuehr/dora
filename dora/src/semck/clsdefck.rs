@@ -193,41 +193,34 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
-        let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.sym.get_type(parent_class.name);
+        let parent_ty =
+            semck::read_type_table(self.vm, &self.sym, self.file_id, &parent_class.parent_ty)
+                .unwrap_or(SourceType::Error);
 
-        match sym {
-            Some(TypeSym::Class(cls_id)) => {
+        match parent_ty.clone() {
+            SourceType::Class(cls_id, _type_list_id) => {
                 let super_cls = self.vm.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 
                 if !super_cls.has_open {
-                    let msg = SemError::UnderivableType(name);
+                    let msg = SemError::UnderivableType(super_cls.long_name(self.vm));
                     self.vm
                         .diag
                         .lock()
                         .report(self.file_id.into(), parent_class.pos, msg);
                 }
 
-                let mut types = Vec::new();
-
-                for tp in &parent_class.type_params {
-                    let ty = semck::read_type_table(self.vm, &self.sym, self.file_id, tp)
-                        .unwrap_or(SourceType::Error);
-                    types.push(ty);
-                }
-
-                let list = TypeList::with(types);
-                let list_id = self.vm.lists.lock().insert(list);
-
-                let super_class = SourceType::Class(cls_id, list_id);
                 let cls = self.vm.classes.idx(self.cls_id);
                 let mut cls = cls.write();
-                cls.parent_class = Some(super_class);
+                cls.parent_class = Some(parent_ty);
+            }
+
+            SourceType::Error => {
+                // error was already reported
             }
 
             _ => {
-                let msg = SemError::UnknownClass(name);
+                let msg = SemError::ClassExpected;
                 self.vm
                     .diag
                     .lock()
@@ -319,17 +312,17 @@ mod tests {
         err(
             "class B extends A {}",
             pos(1, 17),
-            SemError::UnknownClass("A".into()),
+            SemError::UnknownIdentifier("A".into()),
         );
         err(
             "@open class B extends A {}",
             pos(1, 23),
-            SemError::UnknownClass("A".into()),
+            SemError::UnknownIdentifier("A".into()),
         );
         err(
             "class B extends Int32 {}",
             pos(1, 17),
-            SemError::UnderivableType("Int32".into()),
+            SemError::ClassExpected,
         );
     }
 

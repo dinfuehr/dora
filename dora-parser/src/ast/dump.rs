@@ -245,12 +245,11 @@ impl<'a> AstDumper<'a> {
             dump!(d, "open = {}", cls.has_open);
 
             if let Some(ref parent_class) = cls.parent_class {
-                dump!(
-                    d,
-                    "super (name={} @ {})",
-                    d.str(parent_class.name),
-                    parent_class.pos
-                );
+                d.dump_type(&parent_class.parent_ty);
+
+                for param in &parent_class.params {
+                    d.dump_expr(param);
+                }
             }
 
             dump!(d, "fields");
@@ -286,12 +285,11 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             if let Some(ref parent_class) = modu.parent_class {
-                dump!(
-                    d,
-                    "super (name={} @ {})",
-                    d.str(parent_class.name),
-                    parent_class.pos
-                );
+                d.dump_type(&parent_class.parent_ty);
+
+                for param in &parent_class.params {
+                    d.dump_expr(param);
+                }
             }
 
             dump!(d, "fields");

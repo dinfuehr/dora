@@ -1,5 +1,4 @@
 import std::fatalError;
-import std::Random;
 import std::timestamp;
 
 fun main() {
@@ -24,7 +23,7 @@ fun main() {
     bench.tearDown();
 }
 
-var rnd: Random = Random(0L);
+var rnd: std::Random = std::Random(0L);
 
 var splayTreeSize: Int32 = 0;
 const splayTreeModifications: Int32 = 1000;

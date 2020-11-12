@@ -582,26 +582,18 @@ pub struct AnnotationParam {
 
 #[derive(Clone, Debug)]
 pub struct ParentClass {
-    pub name: Name,
     pub pos: Position,
     pub span: Span,
-    pub type_params: Vec<Type>,
+    pub parent_ty: Type,
     pub params: Vec<Box<Expr>>,
 }
 
 impl ParentClass {
-    pub fn new(
-        name: Name,
-        pos: Position,
-        span: Span,
-        type_params: Vec<Type>,
-        params: Vec<Box<Expr>>,
-    ) -> ParentClass {
+    pub fn new(pos: Position, span: Span, parent_ty: Type, params: Vec<Box<Expr>>) -> ParentClass {
         ParentClass {
-            name,
             pos,
             span,
-            type_params,
+            parent_ty,
             params,
         }
     }

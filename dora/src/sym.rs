@@ -47,21 +47,20 @@ impl<'a> NestedSymTable<'a> {
             }
         }
 
-        let mut current_namespace_id = self.namespace_id;
+        {
+            let namespace = &self.vm.namespaces[self.namespace_id.to_usize()];
 
-        loop {
-            let ns = &self.vm.namespaces[current_namespace_id.to_usize()];
-            let sym = ns.table.read().get_type(name);
-
-            if let Some(sym) = sym {
+            if let Some(sym) = namespace.table.read().get_type(name) {
                 return Some(sym.clone());
             }
+        }
 
-            current_namespace_id = if let Some(parent_namespace_id) = ns.parent_namespace_id {
-                parent_namespace_id
-            } else {
-                break;
-            };
+        {
+            let namespace = &self.vm.namespaces[self.vm.prelude_namespace_id.to_usize()];
+
+            if let Some(sym) = namespace.table.read().get_type(name) {
+                return Some(sym.clone());
+            }
         }
 
         None
@@ -74,21 +73,20 @@ impl<'a> NestedSymTable<'a> {
             }
         }
 
-        let mut current_namespace_id = self.namespace_id;
+        {
+            let namespace = &self.vm.namespaces[self.namespace_id.to_usize()];
 
-        loop {
-            let ns = &self.vm.namespaces[current_namespace_id.to_usize()];
-            let sym = ns.table.read().get_term(name);
-
-            if let Some(sym) = sym {
+            if let Some(sym) = namespace.table.read().get_term(name) {
                 return Some(sym.clone());
             }
+        }
 
-            current_namespace_id = if let Some(parent_namespace_id) = ns.parent_namespace_id {
-                parent_namespace_id
-            } else {
-                break;
-            };
+        {
+            let namespace = &self.vm.namespaces[self.vm.prelude_namespace_id.to_usize()];
+
+            if let Some(sym) = namespace.table.read().get_term(name) {
+                return Some(sym.clone());
+            }
         }
 
         None
