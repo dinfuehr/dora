@@ -258,8 +258,16 @@ pub struct Import {
     pub pos: Position,
     pub span: Span,
     pub path: Vec<Name>,
+    pub context: ImportContext,
     pub element_name: Name,
     pub target_name: Option<Name>,
+}
+
+#[derive(Clone, Debug)]
+pub enum ImportContext {
+    This,
+    Super,
+    Package,
 }
 
 #[derive(Clone, Debug)]

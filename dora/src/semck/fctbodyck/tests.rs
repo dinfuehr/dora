@@ -2508,6 +2508,42 @@ fn namespace_import_std() {
 }
 
 #[test]
+fn namespace_import_package() {
+    ok("
+        class Foo
+        namespace bar {
+            import package::Foo;
+            fun getfoo(): Foo { Foo() }
+        }
+    ");
+}
+
+#[test]
+fn namespace_import_super() {
+    ok("
+        namespace baz {
+            class Foo
+            namespace bar {
+                import super::Foo;
+
+                fun getfoo(): Foo { Foo() }
+            }
+        }
+    ");
+
+    err("import super::Foo;", pos(1, 1), SemError::NoSuperNamespace);
+}
+
+#[test]
+fn namespace_import_self() {
+    ok("
+        import self::bar::Foo;
+        fun getfoo(): Foo { Foo() }
+        namespace bar { class Foo }
+    ");
+}
+
+#[test]
 fn namespace_import_module() {
     ok("
         import foo::Bar;

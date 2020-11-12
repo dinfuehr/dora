@@ -59,6 +59,7 @@ pub fn check(vm: &mut VM) -> bool {
 
     // discover all types
     importck::check(vm);
+    return_on_error!(vm);
 
     // find all trait implementations for classes
     impldefck::check(vm);

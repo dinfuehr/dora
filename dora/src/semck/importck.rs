@@ -5,6 +5,7 @@ use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::vm::{EnumId, ImportData, NamespaceId, VM};
 
+use dora_parser::ast::ImportContext;
 use dora_parser::interner::Name;
 
 pub fn check<'a>(vm: &VM) {
@@ -15,33 +16,56 @@ pub fn check<'a>(vm: &VM) {
 
 fn check_import(vm: &VM, import: &ImportData) {
     let table = vm.namespace_table(import.namespace_id);
-    let symtable = NestedSymTable::new(vm, import.namespace_id);
 
-    let (sym_term, sym_type) = match read_path(vm, import, &symtable) {
-        Ok((sym_term, sym_type)) => (sym_term, sym_type),
-        Err(()) => {
-            return;
+    let namespace_id = match import.ast.context {
+        ImportContext::This => import.namespace_id,
+        ImportContext::Package => vm.global_namespace_id,
+        ImportContext::Super => {
+            let namespace = &vm.namespaces[import.namespace_id.to_usize()];
+            if let Some(namespace_id) = namespace.parent_namespace_id {
+                namespace_id
+            } else {
+                vm.diag.lock().report(
+                    import.file_id.into(),
+                    import.ast.pos,
+                    SemError::NoSuperNamespace,
+                );
+                return;
+            }
         }
     };
+
+    let symtable = NestedSymTable::new(vm, namespace_id);
 
     let element_name = import.ast.element_name;
     let target_name = import.ast.target_name.unwrap_or(element_name);
 
-    match (sym_term, sym_type) {
-        (Some(TermSym::Namespace(namespace_id)), _) => {
-            import_namespace(vm, import, &table, namespace_id, element_name, target_name)
-        }
+    if import.ast.path.is_empty() {
+        import_namespace(vm, import, &table, namespace_id, element_name, target_name);
+    } else {
+        let (sym_term, sym_type) = match read_path(vm, import, &symtable) {
+            Ok((sym_term, sym_type)) => (sym_term, sym_type),
+            Err(()) => {
+                return;
+            }
+        };
 
-        (_, Some(TypeSym::Enum(enum_id))) => {
-            import_enum(vm, import, &table, enum_id, element_name, target_name)
-        }
+        match (sym_term.clone(), sym_type.clone()) {
+            (Some(TermSym::Namespace(namespace_id)), _) => {
+                import_namespace(vm, import, &table, namespace_id, element_name, target_name)
+            }
 
-        _ => {
-            vm.diag.lock().report(
-                import.file_id.into(),
-                import.ast.pos,
-                SemError::ExpectedPath,
-            );
+            (_, Some(TypeSym::Enum(enum_id))) => {
+                import_enum(vm, import, &table, enum_id, element_name, target_name)
+            }
+
+            _ => {
+                vm.diag.lock().report(
+                    import.file_id.into(),
+                    import.ast.pos,
+                    SemError::ExpectedPath,
+                );
+            }
         }
     }
 }

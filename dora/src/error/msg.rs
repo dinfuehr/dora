@@ -62,6 +62,7 @@ pub enum SemError {
     SuperUnavailable,
     SuperNeedsMethodCall,
     ReferenceTypeExpected(String),
+    NoSuperNamespace,
     LetMissingInitialization,
     LetReassigned,
     UnderivableType(String),
@@ -303,6 +304,7 @@ impl SemError {
             SemError::ReferenceTypeExpected(ref name) => {
                 format!("`{}` is not a reference type.", name)
             }
+            SemError::NoSuperNamespace => "no super namespace.".into(),
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
             SemError::InvalidLhsAssignment => "invalid left-hand-side of assignment.".into(),

@@ -203,6 +203,23 @@ impl<'a> Parser<'a> {
         let pos = self.expect_token(TokenKind::Import)?.position;
         let mut path = Vec::new();
 
+        let context = if self.token.is(TokenKind::This) {
+            self.expect_token(TokenKind::This)?;
+            ImportContext::This
+        } else if self.token.is(TokenKind::Package) {
+            self.expect_token(TokenKind::Package)?;
+            ImportContext::Package
+        } else if self.token.is(TokenKind::Super) {
+            self.expect_token(TokenKind::Super)?;
+            ImportContext::Super
+        } else {
+            let name = self.expect_identifier()?;
+            path.push(name);
+            ImportContext::This
+        };
+
+        self.expect_token(TokenKind::ColonColon)?;
+
         loop {
             let name = self.expect_identifier()?;
             path.push(name);
@@ -231,6 +248,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             path,
+            context,
             element_name,
             target_name,
         })
