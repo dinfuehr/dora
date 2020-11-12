@@ -43,7 +43,7 @@ pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
 };
 pub use self::modules::{find_methods_in_module, Module, ModuleDef, ModuleDefId, ModuleId};
-pub use self::namespaces::{NamespaceData, NamespaceId};
+pub use self::namespaces::{namespace_contains, NamespaceData, NamespaceId};
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
@@ -161,12 +161,8 @@ impl VM {
         let namespaces = vec![
             NamespaceData::new(prelude_namespace_id, None),
             NamespaceData::new_with_name(stdlib_namespace_id, None, stdlib_name),
-            NamespaceData::new(global_namespace_id, Some(prelude_namespace_id)),
-            NamespaceData::new_with_name(
-                boots_namespace_id,
-                Some(prelude_namespace_id),
-                boots_name,
-            ),
+            NamespaceData::new(global_namespace_id, None),
+            NamespaceData::new_with_name(boots_namespace_id, None, boots_name),
         ];
 
         let vm = Box::new(VM {

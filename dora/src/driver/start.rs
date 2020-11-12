@@ -8,7 +8,7 @@ use crate::timer::Timer;
 
 use crate::semck;
 use crate::semck::specialize::specialize_class_id;
-use crate::vm::NamespaceId;
+use crate::vm::{namespace_contains, NamespaceId};
 
 pub fn start() -> i32 {
     let args = cmd::parse();
@@ -90,7 +90,7 @@ fn run_tests(vm: &VM, namespace_id: NamespaceId) -> i32 {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 
-        if fct.namespace_id != namespace_id
+        if !namespace_contains(vm, namespace_id, fct.namespace_id)
             || !is_test_fct(vm, &*fct)
             || !test_filter_matches(vm, &*fct)
         {

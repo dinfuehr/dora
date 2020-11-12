@@ -87,3 +87,19 @@ impl NamespaceData {
         }
     }
 }
+
+pub fn namespace_contains(vm: &VM, parent_id: NamespaceId, mut namespace_id: NamespaceId) -> bool {
+    loop {
+        if parent_id == namespace_id {
+            return true;
+        }
+
+        let namespace = &vm.namespaces[namespace_id.to_usize()];
+
+        if let Some(parent_namespace_id) = namespace.parent_namespace_id {
+            namespace_id = parent_namespace_id;
+        } else {
+            return false;
+        }
+    }
+}
