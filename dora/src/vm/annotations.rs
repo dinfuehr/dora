@@ -1,6 +1,6 @@
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FileId, TypeParam};
+use crate::vm::{FileId, NamespaceId, TypeParam};
 use dora_parser::ast::{AnnotationParam, Modifier};
 use dora_parser::interner::Name;
 use dora_parser::Position;
@@ -40,6 +40,7 @@ pub struct Annotation {
     pub file_id: FileId,
     pub pos: Position,
     pub name: Name,
+    pub namespace_id: NamespaceId,
     pub ty: SourceType,
     pub internal: Option<Modifier>,
 
