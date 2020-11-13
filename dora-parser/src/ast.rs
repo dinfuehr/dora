@@ -250,6 +250,7 @@ pub struct Namespace {
     pub span: Span,
     pub name: Name,
     pub elements: Option<Vec<Elem>>,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -278,6 +279,7 @@ pub struct Const {
     pub name: Name,
     pub data_type: Type,
     pub expr: Box<Expr>,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -288,6 +290,7 @@ pub struct Enum {
     pub name: Name,
     pub type_params: Option<Vec<TypeParam>>,
     pub variants: Vec<EnumVariant>,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]

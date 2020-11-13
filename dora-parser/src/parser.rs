@@ -166,22 +166,19 @@ impl<'a> Parser<'a> {
 
             TokenKind::Const => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                self.ban_modifiers(&modifiers)?;
-                let xconst = self.parse_const()?;
+                let xconst = self.parse_const(&modifiers)?;
                 Ok(Elem::Const(Arc::new(xconst)))
             }
 
             TokenKind::Enum => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                self.ban_modifiers(&modifiers)?;
-                let xenum = self.parse_enum()?;
+                let xenum = self.parse_enum(&modifiers)?;
                 Ok(Elem::Enum(Arc::new(xenum)))
             }
 
             TokenKind::Namespace => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                self.ban_modifiers(&modifiers)?;
-                let namespace = self.parse_namespace()?;
+                let namespace = self.parse_namespace(&modifiers)?;
                 Ok(Elem::Namespace(Arc::new(namespace)))
             }
 
@@ -254,7 +251,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_enum(&mut self) -> Result<Enum, ParseErrorAndPos> {
+    fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Enum)?.position;
         let name = self.expect_identifier()?;
@@ -273,10 +270,11 @@ impl<'a> Parser<'a> {
             name,
             type_params,
             variants,
+            is_pub: modifiers.contains(Modifier::Pub),
         })
     }
 
-    fn parse_namespace(&mut self) -> Result<Namespace, ParseErrorAndPos> {
+    fn parse_namespace(&mut self, modifiers: &Modifiers) -> Result<Namespace, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Namespace)?.position;
         let name = self.expect_identifier()?;
@@ -305,6 +303,7 @@ impl<'a> Parser<'a> {
             span,
             name,
             elements,
+            is_pub: modifiers.contains(Modifier::Pub),
         })
     }
 
@@ -331,7 +330,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_const(&mut self) -> Result<Const, ParseErrorAndPos> {
+    fn parse_const(&mut self, modifiers: &Modifiers) -> Result<Const, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Const)?.position;
         let name = self.expect_identifier()?;
@@ -349,6 +348,7 @@ impl<'a> Parser<'a> {
             name,
             data_type: ty,
             expr,
+            is_pub: modifiers.contains(Modifier::Pub),
         })
     }
 
