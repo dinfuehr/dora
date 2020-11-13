@@ -43,7 +43,7 @@ pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
 };
 pub use self::modules::{find_methods_in_module, Module, ModuleDef, ModuleDefId, ModuleId};
-pub use self::namespaces::{namespace_contains, NamespaceData, NamespaceId};
+pub use self::namespaces::{namespace_contains, package_namespace, NamespaceData, NamespaceId};
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };

@@ -103,3 +103,15 @@ pub fn namespace_contains(vm: &VM, parent_id: NamespaceId, mut namespace_id: Nam
         }
     }
 }
+
+pub fn package_namespace(vm: &VM, mut namespace_id: NamespaceId) -> NamespaceId {
+    loop {
+        let namespace = &vm.namespaces[namespace_id.to_usize()];
+
+        if let Some(parent_namespace_id) = namespace.parent_namespace_id {
+            namespace_id = parent_namespace_id;
+        } else {
+            return namespace.id;
+        }
+    }
+}

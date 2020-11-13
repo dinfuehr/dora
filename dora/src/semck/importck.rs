@@ -3,7 +3,7 @@ use parking_lot::RwLock;
 use crate::error::msg::SemError;
 use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
-use crate::vm::{EnumId, ImportData, NamespaceId, VM};
+use crate::vm::{package_namespace, EnumId, ImportData, NamespaceId, VM};
 
 use dora_parser::ast::ImportContext;
 use dora_parser::interner::Name;
@@ -19,7 +19,7 @@ fn check_import(vm: &VM, import: &ImportData) {
 
     let namespace_id = match import.ast.context {
         ImportContext::This => import.namespace_id,
-        ImportContext::Package => vm.global_namespace_id,
+        ImportContext::Package => package_namespace(vm, import.namespace_id),
         ImportContext::Super => {
             let namespace = &vm.namespaces[import.namespace_id.to_usize()];
             if let Some(namespace_id) = namespace.parent_namespace_id {
