@@ -2437,7 +2437,7 @@ fn namespace_import() {
     ok("
         import foo::bar::baz;
         fun f() { baz(); }
-        namespace foo { namespace bar {
+        namespace foo { @pub namespace bar {
             fun baz() {}
         } }
     ");
@@ -2457,7 +2457,7 @@ fn namespace_import() {
     ok("
         import foo::bar::baz;
         fun f(): Int32 { baz }
-        namespace foo { namespace bar {
+        namespace foo { @pub namespace bar {
             var baz: Int32 = 10;
         } }
     ");
@@ -2563,7 +2563,7 @@ fn namespace_import_errors() {
     err(
         "
         import foo::bar::baz;
-        namespace foo { namespace bar {} }
+        namespace foo { @pub namespace bar {} }
     ",
         pos(2, 9),
         SemError::UnknownIdentifierInNamespace("foo::bar".into(), "baz".into()),

@@ -241,6 +241,7 @@ pub struct Global {
     pub reassignable: bool,
     pub data_type: Type,
     pub initializer: Option<Arc<Function>>,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -309,6 +310,7 @@ pub struct Alias {
     pub span: Span,
     pub name: Name,
     pub ty: Type,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -318,6 +320,7 @@ pub struct Struct {
     pub span: Span,
     pub name: Name,
     pub fields: Vec<StructField>,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -516,6 +519,7 @@ pub struct Trait {
     pub pos: Position,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]

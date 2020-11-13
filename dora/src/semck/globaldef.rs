@@ -211,12 +211,8 @@ struct GlobalDef<'x> {
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
         let id: NamespaceId = self.vm.namespaces.len().into();
-        let namespace = NamespaceData {
-            id,
-            name: Some(node.name),
-            parent_namespace_id: Some(self.namespace_id),
-            table: Arc::new(RwLock::new(SymTable::new())),
-        };
+        let namespace =
+            NamespaceData::new(id, Some(self.namespace_id), Some(node.name), node.is_pub);
 
         self.vm.namespaces.push(namespace);
 

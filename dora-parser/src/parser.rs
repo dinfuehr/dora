@@ -123,13 +123,13 @@ impl<'a> Parser<'a> {
 
             TokenKind::Struct => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let struc = self.parse_struct()?;
+                let struc = self.parse_struct(&modifiers)?;
                 Ok(Elem::Struct(Arc::new(struc)))
             }
 
             TokenKind::Trait => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let xtrait = self.parse_trait()?;
+                let xtrait = self.parse_trait(&modifiers)?;
                 Ok(Elem::Trait(Arc::new(xtrait)))
             }
 
@@ -152,15 +152,13 @@ impl<'a> Parser<'a> {
 
             TokenKind::Alias => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                self.ban_modifiers(&modifiers)?;
-                let alias = self.parse_alias()?;
+                let alias = self.parse_alias(&modifiers)?;
                 Ok(Elem::Alias(Arc::new(alias)))
             }
 
             TokenKind::Let | TokenKind::Var => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                self.ban_modifiers(&modifiers)?;
-                let global = self.parse_global()?;
+                let global = self.parse_global(&modifiers)?;
                 Ok(Elem::Global(Arc::new(global)))
             }
 
@@ -395,7 +393,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_global(&mut self) -> Result<Global, ParseErrorAndPos> {
+    fn parse_global(&mut self, modifiers: &Modifiers) -> Result<Global, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
         let reassignable = self.token.is(TokenKind::Var);
@@ -424,6 +422,7 @@ impl<'a> Parser<'a> {
             data_type,
             reassignable,
             initializer: None,
+            is_pub: modifiers.contains(Modifier::Pub),
         };
 
         if let Some(expr) = expr {
@@ -434,7 +433,7 @@ impl<'a> Parser<'a> {
         Ok(global)
     }
 
-    fn parse_trait(&mut self) -> Result<Trait, ParseErrorAndPos> {
+    fn parse_trait(&mut self, modifiers: &Modifiers) -> Result<Trait, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Trait)?.position;
         let ident = self.expect_identifier()?;
@@ -461,10 +460,11 @@ impl<'a> Parser<'a> {
             pos,
             span,
             methods,
+            is_pub: modifiers.contains(Modifier::Pub),
         })
     }
 
-    fn parse_struct(&mut self) -> Result<Struct, ParseErrorAndPos> {
+    fn parse_struct(&mut self, modifiers: &Modifiers) -> Result<Struct, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Struct)?.position;
         let ident = self.expect_identifier()?;
@@ -481,6 +481,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             fields,
+            is_pub: modifiers.contains(Modifier::Pub),
         })
     }
 
@@ -663,7 +664,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_alias(&mut self) -> Result<Alias, ParseErrorAndPos> {
+    fn parse_alias(&mut self, modifiers: &Modifiers) -> Result<Alias, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Alias)?.position;
         let name = self.expect_identifier()?;
@@ -678,6 +679,7 @@ impl<'a> Parser<'a> {
             name,
             span,
             ty,
+            is_pub: modifiers.contains(Modifier::Pub),
         })
     }
 

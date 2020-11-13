@@ -43,7 +43,9 @@ pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
 };
 pub use self::modules::{find_methods_in_module, Module, ModuleDef, ModuleDefId, ModuleId};
-pub use self::namespaces::{namespace_contains, package_namespace, NamespaceData, NamespaceId};
+pub use self::namespaces::{
+    namespace_accessible_from, namespace_contains, package_namespace, NamespaceData, NamespaceId,
+};
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
@@ -159,10 +161,10 @@ impl VM {
         let boots_name = interner.intern("boots");
 
         let namespaces = vec![
-            NamespaceData::new(prelude_namespace_id, None),
-            NamespaceData::new_with_name(stdlib_namespace_id, None, stdlib_name),
-            NamespaceData::new(global_namespace_id, None),
-            NamespaceData::new_with_name(boots_namespace_id, None, boots_name),
+            NamespaceData::new(prelude_namespace_id, None, None, false),
+            NamespaceData::new(stdlib_namespace_id, None, Some(stdlib_name), true),
+            NamespaceData::new(global_namespace_id, None, None, false),
+            NamespaceData::new(boots_namespace_id, None, Some(boots_name), false),
         ];
 
         let vm = Box::new(VM {

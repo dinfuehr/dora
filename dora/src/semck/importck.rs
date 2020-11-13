@@ -3,7 +3,9 @@ use parking_lot::RwLock;
 use crate::error::msg::SemError;
 use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
-use crate::vm::{package_namespace, EnumId, ImportData, NamespaceId, VM};
+use crate::vm::{
+    namespace_accessible_from, package_namespace, EnumId, ImportData, NamespaceId, VM,
+};
 
 use dora_parser::ast::ImportContext;
 use dora_parser::interner::Name;
@@ -52,6 +54,13 @@ fn check_import(vm: &VM, import: &ImportData) {
 
         match (sym_term.clone(), sym_type.clone()) {
             (Some(TermSym::Namespace(namespace_id)), _) => {
+                if !namespace_accessible_from(vm, namespace_id, import.namespace_id) {
+                    let namespace = &vm.namespaces[namespace_id.to_usize()];
+                    let msg = SemError::NotAccessible(namespace.name(vm));
+                    vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+                    return;
+                }
+
                 import_namespace(vm, import, &table, namespace_id, element_name, target_name)
             }
 
@@ -87,6 +96,14 @@ fn read_path(
                 (Some(TermSym::Namespace(namespace_id)), _) => {
                     let namespace = &vm.namespaces[namespace_id.to_usize()];
                     let symtable = namespace.table.read();
+
+                    if !namespace_accessible_from(vm, namespace_id, import.namespace_id) {
+                        let namespace = &vm.namespaces[namespace_id.to_usize()];
+                        let msg = SemError::NotAccessible(namespace.name(vm));
+                        vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+                        return Err(());
+                    }
+
                     sym_term = symtable.get_term(name);
                     sym_type = symtable.get_type(name);
                 }
@@ -128,6 +145,19 @@ fn import_namespace(
     match (sym_term, sym_type) {
         (Some(TermSym::Fct(fct_id)), _) => {
             let new_sym = TermSym::Fct(fct_id);
+            if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
+                report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+            }
+        }
+
+        (Some(TermSym::Namespace(namespace_id)), _) => {
+            if !namespace_accessible_from(vm, namespace_id, import.namespace_id) {
+                let namespace = &vm.namespaces[namespace_id.to_usize()];
+                let msg = SemError::NotAccessible(namespace.name(vm));
+                vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            }
+
+            let new_sym = TermSym::Namespace(namespace_id);
             if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
                 report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
@@ -241,5 +271,30 @@ mod tests {
             pos(1, 8),
             SemError::UnknownIdentifier("Foo".into()),
         );
+    }
+
+    #[test]
+    fn import_namespace() {
+        err(
+            "
+            import foo::bar::Foo;
+            namespace foo {
+                namespace bar {
+                    class Foo
+                }
+            }
+        ",
+            pos(2, 13),
+            SemError::NotAccessible("foo::bar".into()),
+        );
+
+        ok("
+            import foo::bar::Foo;
+            namespace foo {
+                @pub namespace bar {
+                    class Foo
+                }
+            }
+        ");
     }
 }

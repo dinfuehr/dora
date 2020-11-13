@@ -27,28 +27,22 @@ pub struct NamespaceData {
     pub parent_namespace_id: Option<NamespaceId>,
     pub name: Option<Name>,
     pub table: Arc<RwLock<SymTable>>,
+    pub is_pub: bool,
 }
 
 impl NamespaceData {
-    pub fn new(id: NamespaceId, parent_id: Option<NamespaceId>) -> NamespaceData {
-        NamespaceData {
-            id,
-            parent_namespace_id: parent_id,
-            name: None,
-            table: Arc::new(RwLock::new(SymTable::new())),
-        }
-    }
-
-    pub fn new_with_name(
+    pub fn new(
         id: NamespaceId,
-        parent_id: Option<NamespaceId>,
-        name: Name,
+        parent_namespace_id: Option<NamespaceId>,
+        name: Option<Name>,
+        is_pub: bool,
     ) -> NamespaceData {
         NamespaceData {
             id,
-            parent_namespace_id: parent_id,
-            name: Some(name),
+            parent_namespace_id,
+            name,
             table: Arc::new(RwLock::new(SymTable::new())),
+            is_pub,
         }
     }
 
@@ -112,6 +106,40 @@ pub fn package_namespace(vm: &VM, mut namespace_id: NamespaceId) -> NamespaceId 
             namespace_id = parent_namespace_id;
         } else {
             return namespace.id;
+        }
+    }
+}
+
+pub fn namespace_accessible_from(
+    vm: &VM,
+    namespace_id: NamespaceId,
+    mut from_id: NamespaceId,
+) -> bool {
+    {
+        let namespace = &vm.namespaces[namespace_id.to_usize()];
+
+        if namespace.is_pub {
+            // public namespaces are available everywhere
+            return true;
+        }
+
+        // namespace is available in its immediate parent
+        if namespace.parent_namespace_id == Some(from_id) {
+            return true;
+        }
+    }
+
+    loop {
+        if from_id == namespace_id {
+            return true;
+        }
+
+        let namespace = &vm.namespaces[from_id.to_usize()];
+
+        if let Some(parent_namespace_id) = namespace.parent_namespace_id {
+            from_id = parent_namespace_id;
+        } else {
+            return false;
         }
     }
 }

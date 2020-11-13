@@ -107,6 +107,7 @@ pub enum SemError {
     ThisOrSuperExpected(String),
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
+    NotAccessible(String),
     RecursiveStructure,
     TraitMethodWithBody,
     TypeParamsExpected,
@@ -305,6 +306,7 @@ impl SemError {
                 format!("`{}` is not a reference type.", name)
             }
             SemError::NoSuperNamespace => "no super namespace.".into(),
+            SemError::NotAccessible(ref name) => format!("`{}` is not accessible.", name),
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
             SemError::InvalidLhsAssignment => "invalid left-hand-side of assignment.".into(),
