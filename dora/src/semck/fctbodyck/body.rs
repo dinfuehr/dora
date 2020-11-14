@@ -11,9 +11,10 @@ use crate::semck::{always_returns, expr_always_returns, read_type_table};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::vm::{
-    self, const_accessible_from, ensure_tuple, find_field_in_class, find_methods_in_class,
-    global_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
-    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, Var, VarId, VM,
+    self, const_accessible_from, ensure_tuple, enum_accessible_from, find_field_in_class,
+    find_methods_in_class, global_accessible_from, AnalysisData, CallType, ClassId, ConvInfo,
+    EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, Var,
+    VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -1303,6 +1304,11 @@ impl<'a> TypeCheck<'a> {
         let xenum = self.vm.enums[enum_id].read();
         let variant = &xenum.variants[variant_id as usize];
 
+        if !enum_accessible_from(self.vm, enum_id, self.namespace_id) {
+            let msg = SemError::NotAccessible(xenum.name(self.vm));
+            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+        }
+
         let list_id = self.vm.lists.lock().insert(type_params.clone());
         let ty = SourceType::Enum(enum_id, list_id);
         let type_params_ok = typeparamck::check_enum(
@@ -2158,6 +2164,11 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let xenum = self.vm.enums[enum_id].read();
 
+        if !enum_accessible_from(self.vm, enum_id, self.namespace_id) {
+            let msg = SemError::NotAccessible(xenum.name(self.vm));
+            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+        }
+
         let list_id = self.vm.lists.lock().insert(type_params.clone());
         let ty = SourceType::Enum(enum_id, list_id);
         let type_params_ok = typeparamck::check_enum(
@@ -2310,6 +2321,11 @@ impl<'a> TypeCheck<'a> {
         variant_id: usize,
     ) -> SourceType {
         let xenum = self.vm.enums[enum_id].read();
+
+        if !enum_accessible_from(self.vm, enum_id, self.namespace_id) {
+            let msg = SemError::NotAccessible(xenum.name(self.vm));
+            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+        }
 
         let list_id = self.vm.lists.lock().insert(type_params.clone());
         let ty = SourceType::Enum(enum_id, list_id);

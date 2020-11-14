@@ -1,4 +1,4 @@
-enum Option[T] {
+@pub enum Option[T] {
   Some(T),
   None,
 }
