@@ -3,7 +3,7 @@
 @pub @internal fun exit(status: Int32);
 @pub @internal fun unreachable[T](): T;
 
-fun unimplemented() = fatalError("not yet implemented");
+@pub fun unimplemented() = fatalError("not yet implemented");
 
 @pub @internal fun print(text: String);
 @pub @internal fun println(text: String);
@@ -107,9 +107,9 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
   return true;
 }
 
-@internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
-@internal fun unsafeLoadEnumVariant[T](xenum: T): Int32;
-@internal fun unsafeLoadEnumElement[T, R](xenum: T, variant_id: Int32, element: Int32): R;
-@internal fun unsafeIsNull[T](value: T): Bool;
+@pub @internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
+@pub @internal fun unsafeLoadEnumVariant[T](xenum: T): Int32;
+@pub @internal fun unsafeLoadEnumElement[T, R](xenum: T, variant_id: Int32, element: Int32): R;
+@pub @internal fun unsafeIsNull[T](value: T): Bool;
 
 @pub @internal fun sleep(seconds: Int32);

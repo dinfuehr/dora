@@ -31,7 +31,7 @@ class ArrayEnumerator[T](let array: Array[T]) {
 // Some languages use the workaround to define a "fake" new generic parameter that subtypes the old one, like
 // `[S <: T : Identity + Equals]`. I hope that a better solution can be found.
 
-fun arrayContains[T : Identity + Equals](array: Array[T], value: T): Bool {
+@pub fun arrayContains[T : Identity + Equals](array: Array[T], value: T): Bool {
   var i = 0L;
 
   while i < array.size() {
@@ -45,7 +45,7 @@ fun arrayContains[T : Identity + Equals](array: Array[T], value: T): Bool {
   return false;
 }
 
-fun arrayHas[T : Identity](array: Array[T], value: T): Bool {
+@pub fun arrayHas[T : Identity](array: Array[T], value: T): Bool {
   var i = 0L;
 
   while i < array.size() {

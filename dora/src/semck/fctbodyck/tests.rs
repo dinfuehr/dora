@@ -2290,19 +2290,41 @@ fn for_var() {
 
 #[test]
 fn namespace_fct_call() {
-    ok("
+    err(
+        "
         fun f() { foo::g(); }
         namespace foo { fun g() {} }
+    ",
+        pos(2, 9),
+        SemError::NotAccessible("foo::g".into()),
+    );
+
+    ok("
+        fun f() { foo::g(); }
+        namespace foo { @pub fun g() {} }
     ");
 
     ok("
         fun f() { foo::bar::baz(); }
         namespace foo {
-            namespace bar {
-                fun baz() {}
+            @pub namespace bar {
+                @pub fun baz() {}
             }
         }
     ");
+
+    err(
+        "
+        fun f() { foo::bar::baz(); }
+        namespace foo {
+            @pub namespace bar {
+                fun baz() {}
+            }
+        }
+    ",
+        pos(2, 9),
+        SemError::NotAccessible("foo::bar::baz".into()),
+    );
 }
 
 #[test]

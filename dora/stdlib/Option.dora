@@ -48,7 +48,7 @@ impl[T] Option[T] {
   }
 }
 
-fun optionContains[T: Equals](lhs: Option[T], rhs: T): Bool {
+@pub fun optionContains[T: Equals](lhs: Option[T], rhs: T): Bool {
   if lhs.isSome() {
     let lhs = lhs.unwrap();
     lhs === rhs || lhs.equals(rhs)
@@ -57,7 +57,7 @@ fun optionContains[T: Equals](lhs: Option[T], rhs: T): Bool {
   }
 }
 
-fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]): Bool {
+@pub fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]): Bool {
   if lhs.isSome() {
     if rhs.isSome() {
       let lhs = lhs.unwrap();
@@ -71,7 +71,7 @@ fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]): Bool {
   }
 }
 
-fun optionToString[T: Stringable](lhs: Option[T]): String {
+@pub fun optionToString[T: Stringable](lhs: Option[T]): String {
   if lhs.isSome() {
     "Some(${lhs.unwrap()})"
   } else {

@@ -11,10 +11,10 @@ use crate::semck::{always_returns, expr_always_returns, read_type_table};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::vm::{
-    self, const_accessible_from, ensure_tuple, enum_accessible_from, find_field_in_class,
-    find_methods_in_class, global_accessible_from, AnalysisData, CallType, ClassId, ConvInfo,
-    EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, Var,
-    VarId, VM,
+    self, const_accessible_from, ensure_tuple, enum_accessible_from, fct_accessible_from,
+    find_field_in_class, find_methods_in_class, global_accessible_from, AnalysisData, CallType,
+    ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic,
+    NamespaceId, Var, VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -1497,6 +1497,13 @@ impl<'a> TypeCheck<'a> {
         type_params: TypeList,
         arg_types: &[SourceType],
     ) -> SourceType {
+        if !fct_accessible_from(self.vm, fct_id, self.namespace_id) {
+            let fct = self.vm.fcts.idx(fct_id);
+            let fct = fct.read();
+            let msg = SemError::NotAccessible(fct.name(self.vm));
+            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+        }
+
         let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
             .callee(fct_id)
