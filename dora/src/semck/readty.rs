@@ -5,8 +5,8 @@ use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
-    class_accessible_from, ensure_tuple, enum_accessible_from, ClassId, EnumId, FileId,
-    NamespaceId, VM,
+    class_accessible_from, ensure_tuple, enum_accessible_from, trait_accessible_from, ClassId,
+    EnumId, FileId, NamespaceId, VM,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -14,20 +14,20 @@ use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 pub fn read_type_table(
     vm: &VM,
     table: &NestedSymTable,
-    file: FileId,
+    file_id: FileId,
     t: &Type,
 ) -> Option<SourceType> {
-    read_type_common(vm, table, file, t)
+    read_type_common(vm, table, file_id, t)
 }
 
 pub fn read_type_namespace(
     vm: &VM,
-    file: FileId,
+    file_id: FileId,
     namespace_id: NamespaceId,
     t: &Type,
 ) -> Option<SourceType> {
     let symtable = NestedSymTable::new(vm, namespace_id);
-    read_type_common(vm, &symtable, file, t)
+    read_type_common(vm, &symtable, file_id, t)
 }
 
 fn read_type_common(vm: &VM, table: &NestedSymTable, file: FileId, t: &Type) -> Option<SourceType> {
@@ -42,10 +42,10 @@ fn read_type_common(vm: &VM, table: &NestedSymTable, file: FileId, t: &Type) -> 
 fn read_type_basic(
     vm: &VM,
     table: &NestedSymTable,
-    file: FileId,
+    file_id: FileId,
     basic: &TypeBasicType,
 ) -> Option<SourceType> {
-    let sym = read_type_path(vm, table, file, basic);
+    let sym = read_type_path(vm, table, file_id, basic);
 
     if sym.is_err() {
         return None;
@@ -59,19 +59,25 @@ fn read_type_basic(
             .str(basic.path.last().cloned().unwrap())
             .to_string();
         let msg = SemError::UnknownIdentifier(name);
-        vm.diag.lock().report(file, basic.pos, msg);
+        vm.diag.lock().report(file_id, basic.pos, msg);
         return None;
     }
 
     let sym = sym.unwrap();
 
     match sym {
-        TypeSym::Class(cls_id) => read_type_class(vm, table, file, basic, cls_id),
+        TypeSym::Class(cls_id) => read_type_class(vm, table, file_id, basic, cls_id),
 
         TypeSym::Trait(trait_id) => {
+            if !trait_accessible_from(vm, trait_id, table.namespace_id()) {
+                let xtrait = vm.traits[trait_id].read();
+                let msg = SemError::NotAccessible(xtrait.name(vm));
+                vm.diag.lock().report(file_id, basic.pos, msg);
+            }
+
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
-                vm.diag.lock().report(file, basic.pos, msg);
+                vm.diag.lock().report(file_id, basic.pos, msg);
             }
 
             Some(SourceType::TraitObject(trait_id))
@@ -80,19 +86,19 @@ fn read_type_basic(
         TypeSym::Struct(struct_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
-                vm.diag.lock().report(file, basic.pos, msg);
+                vm.diag.lock().report(file_id, basic.pos, msg);
             }
 
             let list_id = vm.lists.lock().insert(TypeList::empty());
             Some(SourceType::Struct(struct_id, list_id))
         }
 
-        TypeSym::Enum(enum_id) => read_type_enum(vm, table, file, basic, enum_id),
+        TypeSym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id),
 
         TypeSym::TypeParam(type_param_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
-                vm.diag.lock().report(file, basic.pos, msg);
+                vm.diag.lock().report(file_id, basic.pos, msg);
             }
 
             Some(SourceType::TypeParam(type_param_id))
@@ -103,17 +109,18 @@ fn read_type_basic(
 fn read_type_path(
     vm: &VM,
     table: &NestedSymTable,
-    file: FileId,
+    file_id: FileId,
     basic: &TypeBasicType,
 ) -> Result<Option<TypeSym>, ()> {
     if basic.path.len() > 1 {
         let first_name = basic.path.first().cloned().unwrap();
         let last_name = basic.path.last().cloned().unwrap();
-        let mut namespace_table = table_for_namespace(vm, file, basic, table.get_term(first_name))?;
+        let mut namespace_table =
+            table_for_namespace(vm, file_id, basic, table.get_term(first_name))?;
 
         for &name in &basic.path[1..basic.path.len() - 1] {
             let sym = namespace_table.read().get_term(name);
-            namespace_table = table_for_namespace(vm, file, basic, sym)?;
+            namespace_table = table_for_namespace(vm, file_id, basic, sym)?;
         }
 
         let sym = namespace_table.read().get_type(last_name);
@@ -126,7 +133,7 @@ fn read_type_path(
 
 fn table_for_namespace(
     vm: &VM,
-    file: FileId,
+    file_id: FileId,
     basic: &TypeBasicType,
     sym: Option<TermSym>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
@@ -137,7 +144,7 @@ fn table_for_namespace(
 
         _ => {
             let msg = SemError::ExpectedNamespace;
-            vm.diag.lock().report(file, basic.pos, msg);
+            vm.diag.lock().report(file_id, basic.pos, msg);
             Err(())
         }
     }
@@ -146,20 +153,20 @@ fn table_for_namespace(
 fn read_type_enum(
     vm: &VM,
     table: &NestedSymTable,
-    file: FileId,
+    file_id: FileId,
     basic: &TypeBasicType,
     enum_id: EnumId,
 ) -> Option<SourceType> {
     if !enum_accessible_from(vm, enum_id, table.namespace_id()) {
         let xenum = vm.enums[enum_id].read();
         let msg = SemError::NotAccessible(xenum.name(vm));
-        vm.diag.lock().report(file, basic.pos, msg);
+        vm.diag.lock().report(file_id, basic.pos, msg);
     }
 
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_common(vm, table, file, param);
+        let param = read_type_common(vm, table, file_id, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -173,7 +180,7 @@ fn read_type_enum(
 
     if xenum.type_params.len() != type_params.len() {
         let msg = SemError::WrongNumberTypeParams(xenum.type_params.len(), type_params.len());
-        vm.diag.lock().report(file, basic.pos, msg);
+        vm.diag.lock().report(file_id, basic.pos, msg);
         return None;
     }
 
@@ -186,7 +193,7 @@ fn read_type_enum(
                 let trait_name = vm.interner.str(bound.name).to_string();
                 let name = ty.name(vm);
                 let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-                vm.diag.lock().report(file, basic.pos, msg);
+                vm.diag.lock().report(file_id, basic.pos, msg);
                 failed = true;
             }
         }
@@ -204,7 +211,7 @@ fn read_type_enum(
 fn read_type_class(
     vm: &VM,
     table: &NestedSymTable,
-    file: FileId,
+    file_id: FileId,
     basic: &TypeBasicType,
     cls_id: ClassId,
 ) -> Option<SourceType> {
@@ -212,13 +219,13 @@ fn read_type_class(
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
         let msg = SemError::NotAccessible(cls.name(vm));
-        vm.diag.lock().report(file, basic.pos, msg);
+        vm.diag.lock().report(file_id, basic.pos, msg);
     }
 
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_common(vm, table, file, param);
+        let param = read_type_common(vm, table, file_id, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -232,7 +239,7 @@ fn read_type_class(
 
     if cls.type_params.len() != type_params.len() {
         let msg = SemError::WrongNumberTypeParams(cls.type_params.len(), type_params.len());
-        vm.diag.lock().report(file, basic.pos, msg);
+        vm.diag.lock().report(file_id, basic.pos, msg);
         return None;
     }
 
@@ -256,7 +263,7 @@ fn read_type_class(
                 let name = ty.name_cls(vm, &*cls);
                 let trait_name = vm.interner.str(bound.name).to_string();
                 let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-                vm.diag.lock().report(file, basic.pos, msg);
+                vm.diag.lock().report(file_id, basic.pos, msg);
             }
         }
     }
@@ -269,7 +276,7 @@ fn read_type_class(
 fn read_type_tuple(
     vm: &VM,
     table: &NestedSymTable,
-    file: FileId,
+    file_id: FileId,
     tuple: &TypeTupleType,
 ) -> Option<SourceType> {
     if tuple.subtypes.len() == 0 {
@@ -278,7 +285,7 @@ fn read_type_tuple(
         let mut subtypes = Vec::new();
 
         for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type_common(vm, table, file, subtype) {
+            if let Some(ty) = read_type_common(vm, table, file_id, subtype) {
                 subtypes.push(ty);
             } else {
                 return None;
@@ -293,20 +300,20 @@ fn read_type_tuple(
 fn read_type_lambda(
     vm: &VM,
     table: &NestedSymTable,
-    file: FileId,
+    file_id: FileId,
     lambda: &TypeLambdaType,
 ) -> Option<SourceType> {
     let mut params = vec![];
 
     for param in &lambda.params {
-        if let Some(p) = read_type_common(vm, table, file, param) {
+        if let Some(p) = read_type_common(vm, table, file_id, param) {
             params.push(p);
         } else {
             return None;
         }
     }
 
-    let ret = if let Some(ret) = read_type_common(vm, table, file, &lambda.ret) {
+    let ret = if let Some(ret) = read_type_common(vm, table, file_id, &lambda.ret) {
         ret
     } else {
         return None;
@@ -351,6 +358,23 @@ mod tests {
             "
             fun f(x: foo::Foo) {}
             namespace foo { enum Foo { A, B } }
+        ",
+            pos(2, 22),
+            SemError::NotAccessible("foo::Foo".into()),
+        );
+    }
+
+    #[test]
+    fn namespace_trait() {
+        ok("
+            fun f(x: foo::Foo) {}
+            namespace foo { @pub trait Foo {} }
+        ");
+
+        err(
+            "
+            fun f(x: foo::Foo) {}
+            namespace foo { trait Foo {} }
         ",
             pos(2, 22),
             SemError::NotAccessible("foo::Foo".into()),

@@ -1,5 +1,5 @@
 /* partial order */
-trait Comparable {
+@pub trait Comparable {
   fun compareTo(other: Self): Int32;
   // fun <  (other: Self): Int32;
   // fun <= (other: Self): Int32;

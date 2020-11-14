@@ -19,6 +19,6 @@
 
 
 // @restricted / @internal
-trait Zero {
+@pub trait Zero {
   @static fun zero(): Self; // should be `let` instead of `fun`
 }

@@ -1,4 +1,4 @@
-trait Iterator {
+@pub trait Iterator {
   fun hasNext(): Bool;
   fun next(): Int32; // this should be made generic
 }
