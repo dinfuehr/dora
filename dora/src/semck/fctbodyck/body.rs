@@ -14,7 +14,7 @@ use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
     fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
     AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo,
-    IdentType, Intrinsic, NamespaceId, Var, VarId, VM,
+    IdentType, Intrinsic, NamespaceId, StructId, Var, VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -1274,6 +1274,10 @@ impl<'a> TypeCheck<'a> {
                 self.check_expr_call_ctor(e, cls_id, type_params, &arg_types)
             }
 
+            (_, Some(TypeSym::Struct(struct_id))) => {
+                self.check_expr_call_struct(e, struct_id, type_params, &arg_types)
+            }
+
             (Some(TermSym::EnumValue(enum_id, variant_id)), _) => {
                 self.check_enum_value_with_args(e, enum_id, type_params, variant_id, &arg_types)
             }
@@ -1660,6 +1664,16 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(e.id, SourceType::Error);
 
         SourceType::Error
+    }
+
+    fn check_expr_call_struct(
+        &mut self,
+        _e: &ExprCallType,
+        _struct_id: StructId,
+        _type_params: TypeList,
+        _arg_types: &[SourceType],
+    ) -> SourceType {
+        unimplemented!()
     }
 
     fn check_expr_call_ctor(

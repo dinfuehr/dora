@@ -8,7 +8,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FileId, NamespaceId, TypeList};
+use crate::vm::{accessible_from, FileId, NamespaceId, TypeList, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
@@ -31,6 +31,7 @@ pub struct StructData {
     pub file_id: FileId,
     pub ast: Arc<ast::Struct>,
     pub namespace_id: NamespaceId,
+    pub is_pub: bool,
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,
@@ -80,4 +81,11 @@ pub struct StructDef {
 pub struct StructFieldDef {
     pub offset: i32,
     pub ty: SourceType,
+}
+
+pub fn struct_accessible_from(vm: &VM, struct_id: StructId, namespace_id: NamespaceId) -> bool {
+    let xstruct = vm.structs.idx(struct_id);
+    let xstruct = xstruct.read();
+
+    accessible_from(vm, xstruct.namespace_id, xstruct.is_pub, namespace_id)
 }

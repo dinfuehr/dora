@@ -476,6 +476,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
+                is_pub: node.is_pub,
                 pos: node.pos,
                 name: node.name,
                 fields: Vec::new(),
