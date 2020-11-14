@@ -380,6 +380,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 namespace_id: self.namespace_id,
                 pos: node.pos,
                 name: node.name,
+                is_pub: node.is_pub,
                 ty: SourceType::Error,
                 expr: node.expr.clone(),
                 value: ConstValue::None,

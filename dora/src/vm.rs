@@ -30,7 +30,7 @@ pub use self::classes::{
     class_accessible_from, find_field_in_class, find_method_in_class, find_methods_in_class, Class,
     ClassDef, ClassDefId, ClassId, Field, FieldDef, FieldId, TypeParam,
 };
-pub use self::consts::{ConstData, ConstId, ConstValue};
+pub use self::consts::{const_accessible_from, ConstData, ConstId, ConstValue};
 pub use self::enums::{
     find_methods_in_enum, EnumData, EnumDef, EnumDefId, EnumId, EnumLayout, EnumVariant,
 };

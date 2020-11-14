@@ -4,8 +4,8 @@ use crate::error::msg::SemError;
 use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::vm::{
-    class_accessible_from, fct_accessible_from, global_accessible_from, namespace_accessible_from,
-    namespace_package, EnumId, ImportData, NamespaceId, VM,
+    class_accessible_from, const_accessible_from, fct_accessible_from, global_accessible_from,
+    namespace_accessible_from, namespace_package, EnumId, ImportData, NamespaceId, VM,
 };
 
 use dora_parser::ast::ImportContext;
@@ -186,6 +186,13 @@ fn import_namespace(
         }
 
         (Some(TermSym::Const(const_id)), _) => {
+            if !const_accessible_from(vm, const_id, import.namespace_id) {
+                let xconst = &vm.consts.idx(const_id);
+                let xconst = xconst.read();
+                let msg = SemError::NotAccessible(xconst.name(vm));
+                vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            }
+
             let new_sym = TermSym::Const(const_id);
             if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
                 report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
@@ -348,6 +355,35 @@ mod tests {
             import foo::bar;
             namespace foo {
                 var bar: Int32 = 12;
+            }
+        ",
+            pos(2, 13),
+            SemError::NotAccessible("foo::bar".into()),
+        );
+    }
+
+    #[test]
+    fn import_const() {
+        err(
+            "
+            import foo::bar;
+            namespace foo {
+                const bar: Int32 = 12;
+            }
+        ",
+            pos(2, 13),
+            SemError::NotAccessible("foo::bar".into()),
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn import_enum() {
+        err(
+            "
+            import foo::Bar;
+            namespace foo {
+                enum Bar { A, B, C }
             }
         ",
             pos(2, 13),
