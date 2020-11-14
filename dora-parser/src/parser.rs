@@ -568,6 +568,7 @@ impl<'a> Parser<'a> {
 
     fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ParseErrorAndPos> {
         let internal = modifiers.contains(Modifier::Internal);
+        let is_pub = modifiers.contains(Modifier::Pub);
 
         let pos = self.expect_token(TokenKind::Module)?.position;
         let ident = self.expect_identifier()?;
@@ -578,6 +579,7 @@ impl<'a> Parser<'a> {
             parent_class: None,
             internal: internal,
             has_constructor: false,
+            is_pub,
             constructor: None,
             fields: Vec::new(),
             methods: Vec::new(),

@@ -4,8 +4,9 @@ use crate::error::msg::SemError;
 use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::vm::{
-    class_accessible_from, const_accessible_from, fct_accessible_from, global_accessible_from,
-    namespace_accessible_from, namespace_package, EnumId, ImportData, NamespaceId, VM,
+    class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
+    global_accessible_from, module_accessible_from, namespace_accessible_from, namespace_package,
+    trait_accessible_from, EnumId, ImportData, NamespaceId, VM,
 };
 
 use dora_parser::ast::ImportContext;
@@ -217,7 +218,27 @@ fn import_namespace(
             }
         }
 
+        (_, Some(TypeSym::Enum(enum_id))) => {
+            if !enum_accessible_from(vm, enum_id, import.namespace_id) {
+                let xenum = vm.enums[enum_id].read();
+                let msg = SemError::NotAccessible(xenum.name(vm));
+                vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            }
+
+            let new_sym = TypeSym::Enum(enum_id);
+            if let Some(old_sym) = table.write().insert_type(target_name, new_sym) {
+                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+            }
+        }
+
         (Some(TermSym::Module(module_id)), None) => {
+            if !module_accessible_from(vm, module_id, import.namespace_id) {
+                let module = vm.modules.idx(module_id);
+                let module = module.read();
+                let msg = SemError::NotAccessible(module.name(vm));
+                vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            }
+
             let new_sym = TermSym::Module(module_id);
             if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
                 report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
@@ -225,6 +246,12 @@ fn import_namespace(
         }
 
         (None, Some(TypeSym::Trait(trait_id))) => {
+            if !trait_accessible_from(vm, trait_id, import.namespace_id) {
+                let xtrait = vm.traits[trait_id].read();
+                let msg = SemError::NotAccessible(xtrait.name(vm));
+                vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            }
+
             let new_sym = TypeSym::Trait(trait_id);
             let old_sym = table.write().insert_type(target_name, new_sym);
             if let Some(old_sym) = old_sym {
@@ -261,6 +288,11 @@ fn import_enum(
     target_name: Name,
 ) {
     let xenum = vm.enums[enum_id].read();
+
+    if !enum_accessible_from(vm, enum_id, import.namespace_id) {
+        let msg = SemError::NotAccessible(xenum.name(vm));
+        vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+    }
 
     if let Some(&variant_id) = xenum.name_to_value.get(&element_name) {
         let sym = TermSym::EnumValue(enum_id, variant_id as usize);
@@ -377,7 +409,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn import_enum() {
         err(
             "
@@ -387,7 +418,35 @@ mod tests {
             }
         ",
             pos(2, 13),
-            SemError::NotAccessible("foo::bar".into()),
+            SemError::NotAccessible("foo::Bar".into()),
+        );
+    }
+
+    #[test]
+    fn import_enum_value() {
+        err(
+            "
+            import foo::Bar::A;
+            namespace foo {
+                enum Bar { A, B, C }
+            }
+        ",
+            pos(2, 13),
+            SemError::NotAccessible("foo::Bar".into()),
+        );
+    }
+
+    #[test]
+    fn import_trait() {
+        err(
+            "
+            import foo::Bar;
+            namespace foo {
+                trait Bar {}
+            }
+        ",
+            pos(2, 13),
+            SemError::NotAccessible("foo::Bar".into()),
         );
     }
 }

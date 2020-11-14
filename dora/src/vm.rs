@@ -32,7 +32,8 @@ pub use self::classes::{
 };
 pub use self::consts::{const_accessible_from, ConstData, ConstId, ConstValue};
 pub use self::enums::{
-    find_methods_in_enum, EnumData, EnumDef, EnumDefId, EnumId, EnumLayout, EnumVariant,
+    enum_accessible_from, find_methods_in_enum, EnumData, EnumDef, EnumDefId, EnumId, EnumLayout,
+    EnumVariant,
 };
 pub use self::extensions::{ExtensionData, ExtensionId};
 pub use self::functions::{fct_accessible_from, Fct, FctId, FctParent, Intrinsic};
@@ -42,7 +43,9 @@ pub use self::imports::ImportData;
 pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
 };
-pub use self::modules::{find_methods_in_module, Module, ModuleDef, ModuleDefId, ModuleId};
+pub use self::modules::{
+    find_methods_in_module, module_accessible_from, Module, ModuleDef, ModuleDefId, ModuleId,
+};
 pub use self::namespaces::{
     accessible_from, namespace_accessible_from, namespace_contains, namespace_package,
     namespace_path, NamespaceData, NamespaceId,
@@ -53,7 +56,7 @@ pub use self::src::{
 pub use self::structs::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,
 };
-pub use self::traits::{TraitData, TraitId};
+pub use self::traits::{trait_accessible_from, TraitData, TraitId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};
 
 mod annotations;

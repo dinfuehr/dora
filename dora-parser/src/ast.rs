@@ -550,6 +550,7 @@ pub struct Module {
     pub parent_class: Option<ParentClass>,
     pub internal: bool,
     pub has_constructor: bool,
+    pub is_pub: bool,
 
     pub constructor: Option<Arc<Function>>,
     pub fields: Vec<Field>,

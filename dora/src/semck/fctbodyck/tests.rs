@@ -2496,7 +2496,7 @@ fn namespace_import_class() {
 fn namespace_import_trait() {
     ok("
         import foo::Bar;
-        namespace foo { trait Bar{} }
+        namespace foo { @pub trait Bar{} }
     ");
 }
 
@@ -2551,7 +2551,7 @@ fn namespace_import_module() {
             Bar::baz();
         }
         namespace foo {
-            module Bar {
+            @pub module Bar {
                 fun baz() {}
             }
         }

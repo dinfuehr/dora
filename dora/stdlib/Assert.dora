@@ -1,4 +1,4 @@
-module Assert {
+@pub module Assert {
   fun equal[T : Equals + Stringable](actual: T, expected: T) {
     if actual.equals(expected).not() {
       fatalError("values are not equal (actual: ${actual}, expected: ${expected})");

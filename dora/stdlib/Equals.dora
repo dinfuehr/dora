@@ -1,4 +1,4 @@
-trait Equals {
+@pub trait Equals {
   fun equals(other: Self): Bool;
 }
 

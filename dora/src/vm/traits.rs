@@ -7,7 +7,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
-use crate::vm::{FctId, FileId, NamespaceId, VM};
+use crate::vm::{accessible_from, namespace_path, FctId, FileId, NamespaceId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitId(u32);
@@ -23,6 +23,7 @@ pub struct TraitData {
     pub id: TraitId,
     pub file_id: FileId,
     pub namespace_id: NamespaceId,
+    pub is_pub: bool,
     pub ast: Arc<ast::Trait>,
     pub pos: Position,
     pub name: Name,
@@ -30,6 +31,10 @@ pub struct TraitData {
 }
 
 impl TraitData {
+    pub fn name(&self, vm: &VM) -> String {
+        namespace_path(vm, self.namespace_id, self.name)
+    }
+
     pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
         for &method in &self.methods {
             let method = vm.fcts.idx(method);
@@ -100,4 +105,10 @@ impl Index<TraitId> for Vec<RwLock<TraitData>> {
     fn index(&self, index: TraitId) -> &RwLock<TraitData> {
         &self[index.0 as usize]
     }
+}
+
+pub fn trait_accessible_from(vm: &VM, trait_id: TraitId, namespace_id: NamespaceId) -> bool {
+    let xtrait = vm.traits[trait_id].read();
+
+    accessible_from(vm, xtrait.namespace_id, xtrait.is_pub, namespace_id)
 }

@@ -234,6 +234,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             file_id: self.file_id,
             ast: node.clone(),
             namespace_id: self.namespace_id,
+            is_pub: node.is_pub,
             pos: node.pos,
             name: node.name,
             methods: Vec::new(),
@@ -342,6 +343,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 internal: node.internal,
                 internal_resolved: false,
                 has_constructor: node.has_constructor,
+                is_pub: node.is_pub,
 
                 constructor: None,
                 fields: Vec::new(),
@@ -527,6 +529,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             pos: node.pos,
             name: node.name,
             type_params: Vec::new(),
+            is_pub: node.is_pub,
             variants: Vec::new(),
             name_to_value: HashMap::new(),
             extensions: Vec::new(),

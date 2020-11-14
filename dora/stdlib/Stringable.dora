@@ -1,4 +1,4 @@
-trait Stringable {
+@pub trait Stringable {
   fun toString(): String;
 }
 

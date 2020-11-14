@@ -1,4 +1,4 @@
-trait Hash {
+@pub trait Hash {
   fun hash(): Int32;
   // fun hashTo(hasher: Hasher);
 }

@@ -16,7 +16,8 @@ use crate::size::InstanceSize;
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    ClassDef, ClassDefId, ExtensionId, FctId, FieldDef, FileId, NamespaceId, TypeParam, VM,
+    accessible_from, namespace_path, ClassDef, ClassDefId, ExtensionId, FctId, FieldDef, FileId,
+    NamespaceId, TypeParam, VM,
 };
 use crate::vtable::VTableBox;
 
@@ -45,6 +46,7 @@ pub struct EnumData {
     pub ast: Arc<ast::Enum>,
     pub pos: Position,
     pub name: Name,
+    pub is_pub: bool,
     pub type_params: Vec<TypeParam>,
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
@@ -56,6 +58,10 @@ pub struct EnumData {
 impl EnumData {
     pub fn type_param(&self, id: TypeListId) -> &TypeParam {
         &self.type_params[id.to_usize()]
+    }
+
+    pub fn name(&self, vm: &VM) -> String {
+        namespace_path(vm, self.namespace_id, self.name)
     }
 
     pub fn name_with_params(&self, vm: &VM, type_list: &TypeList) -> String {
@@ -235,4 +241,10 @@ pub fn find_methods_in_enum(
     }
 
     Vec::new()
+}
+
+pub fn enum_accessible_from(vm: &VM, enum_id: EnumId, namespace_id: NamespaceId) -> bool {
+    let xenum = vm.enums[enum_id].read();
+
+    accessible_from(vm, xenum.namespace_id, xenum.is_pub, namespace_id)
 }

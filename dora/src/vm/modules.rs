@@ -5,7 +5,9 @@ use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, Field, FieldDef, FileId, NamespaceId, TraitId, VM};
+use crate::vm::{
+    accessible_from, namespace_path, FctId, Field, FieldDef, FileId, NamespaceId, TraitId, VM,
+};
 
 use crate::vtable::VTableBox;
 use dora_parser::ast;
@@ -55,6 +57,7 @@ pub struct Module {
     pub internal: bool,
     pub internal_resolved: bool,
     pub has_constructor: bool,
+    pub is_pub: bool,
 
     pub constructor: Option<FctId>,
     pub fields: Vec<Field>,
@@ -62,6 +65,12 @@ pub struct Module {
     pub virtual_fcts: Vec<FctId>,
 
     pub traits: Vec<TraitId>,
+}
+
+impl Module {
+    pub fn name(&self, vm: &VM) -> String {
+        namespace_path(vm, self.namespace_id, self.name)
+    }
 }
 
 pub fn find_methods_in_module(
@@ -148,4 +157,11 @@ impl ModuleDef {
             "<Unknown>".into()
         }
     }
+}
+
+pub fn module_accessible_from(vm: &VM, module_id: ModuleId, namespace_id: NamespaceId) -> bool {
+    let module = vm.modules.idx(module_id);
+    let module = module.read();
+
+    accessible_from(vm, module.namespace_id, module.is_pub, namespace_id)
 }
