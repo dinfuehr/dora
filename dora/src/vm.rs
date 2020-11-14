@@ -35,7 +35,7 @@ pub use self::enums::{
     find_methods_in_enum, EnumData, EnumDef, EnumDefId, EnumId, EnumLayout, EnumVariant,
 };
 pub use self::extensions::{ExtensionData, ExtensionId};
-pub use self::functions::{Fct, FctId, FctParent, Intrinsic};
+pub use self::functions::{fct_accessible_from, Fct, FctId, FctParent, Intrinsic};
 pub use self::globals::{init_global_addresses, GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
 pub use self::imports::ImportData;

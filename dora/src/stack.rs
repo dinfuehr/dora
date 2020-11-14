@@ -31,7 +31,7 @@ impl NativeStacktrace {
             let fct_id = jit_fct.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
-            let name = fct.full_name(vm);
+            let name = fct.name_with_params(vm);
             print!("{}: {}: ", frames - ind, name);
 
             if elem.lineno == 0 {
@@ -49,7 +49,7 @@ impl NativeStacktrace {
             let fct_id = jit_fct.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
-            let name = fct.full_name(vm);
+            let name = fct.name_with_params(vm);
             eprint!("{}: {}: ", frames - ind, name);
 
             if elem.lineno == 0 {
@@ -213,7 +213,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     let jit_fct = vm.jit_fcts.idx(jit_fct_id);
     let fct = vm.fcts.idx(jit_fct.fct_id());
     let fct = fct.read();
-    let name = fct.full_name(vm);
+    let name = fct.name_with_params(vm);
     ste.name = Str::from_buffer(vm, name.as_bytes());
 
     ste.direct()

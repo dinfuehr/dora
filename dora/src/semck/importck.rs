@@ -4,8 +4,8 @@ use crate::error::msg::SemError;
 use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::vm::{
-    class_accessible_from, namespace_accessible_from, namespace_package, EnumId, ImportData,
-    NamespaceId, VM,
+    class_accessible_from, fct_accessible_from, namespace_accessible_from, namespace_package,
+    EnumId, ImportData, NamespaceId, VM,
 };
 
 use dora_parser::ast::ImportContext;
@@ -145,6 +145,13 @@ fn import_namespace(
 
     match (sym_term, sym_type) {
         (Some(TermSym::Fct(fct_id)), _) => {
+            if !fct_accessible_from(vm, fct_id, import.namespace_id) {
+                let fct = &vm.fcts.idx(fct_id);
+                let fct = fct.read();
+                let msg = SemError::NotAccessible(fct.name(vm));
+                vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            }
+
             let new_sym = TermSym::Fct(fct_id);
             if let Some(old_sym) = table.write().insert_term(target_name, new_sym) {
                 report_term_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
@@ -310,6 +317,20 @@ mod tests {
         ",
             pos(2, 13),
             SemError::NotAccessible("foo::bar::Foo".into()),
+        );
+    }
+
+    #[test]
+    fn import_fct() {
+        err(
+            "
+            import foo::bar;
+            namespace foo {
+                fun bar() {}
+            }
+        ",
+            pos(2, 13),
+            SemError::NotAccessible("foo::bar".into()),
         );
     }
 }

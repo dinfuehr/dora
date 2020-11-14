@@ -155,7 +155,7 @@ fn test_filter_matches(vm: &VM, fct: &Fct) -> bool {
     }
 
     let filter = vm.args.flag_test_filter.as_ref().unwrap();
-    let name = fct.full_name(vm);
+    let name = fct.name_with_params(vm);
 
     name.contains(filter)
 }

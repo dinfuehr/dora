@@ -9,7 +9,7 @@ use crate::vm::{Fct, GlobalId, TupleId, VM};
 pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
-        println!("{}", fct.full_name(vm));
+        println!("{}", fct.name_with_params(vm));
     }
     let mut visitor = BytecodeDumper {
         bc,
@@ -101,11 +101,11 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
                         "{}{} => Fct {} with [{}]",
                         align,
                         idx,
-                        fct.full_name(vm),
+                        fct.name_with_params(vm),
                         type_params
                     );
                 } else {
-                    println!("{}{} => Fct {}", align, idx, fct.full_name(vm));
+                    println!("{}{} => Fct {}", align, idx, fct.name_with_params(vm));
                 }
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
@@ -123,7 +123,7 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
                         align,
                         idx,
                         id.to_usize(),
-                        fct.full_name(vm),
+                        fct.name_with_params(vm),
                         type_params
                     );
                 } else {
@@ -132,7 +132,7 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
                         align,
                         idx,
                         id.to_usize(),
-                        fct.full_name(vm)
+                        fct.name_with_params(vm)
                     );
                 }
             }
@@ -451,9 +451,9 @@ impl<'a> BytecodeDumper<'a> {
                 .map(|n| n.name(self.vm))
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("{} with [{}]", fct.full_name(self.vm), type_params)
+            format!("{} with [{}]", fct.name_with_params(self.vm), type_params)
         } else {
-            format!("{}", fct.full_name(self.vm))
+            format!("{}", fct.name_with_params(self.vm))
         }
     }
 
