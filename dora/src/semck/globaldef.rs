@@ -210,11 +210,7 @@ struct GlobalDef<'x> {
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let id: NamespaceId = self.vm.namespaces.len().into();
-        let namespace =
-            NamespaceData::new(id, Some(self.namespace_id), Some(node.name), node.is_pub);
-
-        self.vm.namespaces.push(namespace);
+        let id = NamespaceData::new(self.vm, self.namespace_id, node.name, node.is_pub);
 
         let sym = TermSym::Namespace(id);
         if let Some(sym) = self.insert_term(node.name, sym) {
@@ -231,23 +227,23 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_trait(&mut self, t: &Arc<ast::Trait>) {
+    fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
         let id: TraitId = (self.vm.traits.len() as u32).into();
         let xtrait = TraitData {
             id,
             file_id: self.file_id,
-            ast: t.clone(),
+            ast: node.clone(),
             namespace_id: self.namespace_id,
-            pos: t.pos,
-            name: t.name,
+            pos: node.pos,
+            name: node.name,
             methods: Vec::new(),
         };
 
         self.vm.traits.push(RwLock::new(xtrait));
 
         let sym = TypeSym::Trait(id);
-        if let Some(sym) = self.insert_type(t.name, sym) {
-            report_type_shadow(self.vm, t.name, self.file_id, t.pos, sym);
+        if let Some(sym) = self.insert_type(node.name, sym) {
+            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -290,15 +286,15 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_impl(&mut self, ast: &Arc<ast::Impl>) {
-        if ast.trait_type.is_some() {
+    fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
+        if node.trait_type.is_some() {
             let id: ImplId = (self.vm.impls.len() as u32).into();
             let ximpl = ImplData {
                 id,
                 file_id: self.file_id,
-                ast: ast.clone(),
+                ast: node.clone(),
                 namespace_id: self.namespace_id,
-                pos: ast.pos,
+                pos: node.pos,
                 trait_id: None,
                 class_ty: SourceType::Error,
                 methods: Vec::new(),
@@ -307,7 +303,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         } else {
             let id: ExtensionId = self.vm.extensions.len().into();
             let mut extension_type_params = Vec::new();
-            if let Some(ref type_params) = ast.type_params {
+            if let Some(ref type_params) = node.type_params {
                 for param in type_params {
                     extension_type_params.push(TypeParam::new(param.name));
                 }
@@ -316,8 +312,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 id,
                 file_id: self.file_id,
                 namespace_id: self.namespace_id,
-                ast: ast.clone(),
-                pos: ast.pos,
+                ast: node.clone(),
+                pos: node.pos,
                 type_params: extension_type_params,
                 ty: SourceType::Error,
                 methods: Vec::new(),
@@ -399,26 +395,27 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_class(&mut self, c: &Arc<ast::Class>) {
+    fn visit_class(&mut self, node: &Arc<ast::Class>) {
         let id = {
             let mut classes = self.vm.classes.lock();
 
             let id: ClassId = classes.len().into();
             let mut cls = vm::Class {
                 id,
-                name: c.name,
-                ast: c.clone(),
+                name: node.name,
+                ast: node.clone(),
                 file_id: self.file_id,
                 namespace_id: self.namespace_id,
-                pos: c.pos,
+                pos: node.pos,
                 ty: self.vm.cls(id),
                 parent_class: None,
-                has_open: c.has_open,
-                is_abstract: c.is_abstract,
-                internal: c.internal,
+                has_open: node.has_open,
+                is_abstract: node.is_abstract,
+                internal: node.internal,
                 internal_resolved: false,
-                has_constructor: c.has_constructor,
+                has_constructor: node.has_constructor,
                 table: SymTable::new(),
+                is_pub: node.is_pub,
 
                 constructor: None,
                 fields: Vec::new(),
@@ -436,7 +433,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 is_str: false,
             };
 
-            if let Some(ref type_params) = c.type_params {
+            if let Some(ref type_params) = node.type_params {
                 for param in type_params {
                     cls.type_params.push(TypeParam::new(param.name));
                 }
@@ -448,21 +445,21 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         };
 
         let sym = TypeSym::Class(id);
-        if let Some(sym) = self.insert_type(c.name, sym) {
-            report_type_shadow(self.vm, c.name, self.file_id, c.pos, sym);
+        if let Some(sym) = self.insert_type(node.name, sym) {
+            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
             return;
         }
 
         let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
-        match level.get_term(c.name) {
+        match level.get_term(node.name) {
             None => {
-                level.insert_term(c.name, TermSym::ClassConstructor(id));
+                level.insert_term(node.name, TermSym::ClassConstructor(id));
             }
             Some(TermSym::Module(module_id)) => {
-                level.insert_term(c.name, TermSym::ClassConstructorAndModule(id, module_id));
+                level.insert_term(node.name, TermSym::ClassConstructorAndModule(id, module_id));
             }
-            Some(sym) => report_term_shadow(self.vm, c.name, self.file_id, c.pos, sym),
+            Some(sym) => report_term_shadow(self.vm, node.name, self.file_id, node.pos, sym),
         }
     }
 
@@ -508,25 +505,25 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_fct(&mut self, f: &Arc<ast::Function>) {
-        let fct = Fct::new(self.file_id, self.namespace_id, f, FctParent::None);
+    fn visit_fct(&mut self, node: &Arc<ast::Function>) {
+        let fct = Fct::new(self.file_id, self.namespace_id, node, FctParent::None);
         let fctid = self.vm.add_fct(fct);
         let sym = TermSym::Fct(fctid);
 
-        if let Some(sym) = self.insert_term(f.name, sym) {
-            report_term_shadow(self.vm, f.name, self.file_id, f.pos, sym);
+        if let Some(sym) = self.insert_term(node.name, sym) {
+            report_term_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
-    fn visit_enum(&mut self, e: &Arc<ast::Enum>) {
+    fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
         let id: EnumId = self.vm.enums.len().into();
         let mut xenum = EnumData {
             id,
             file_id: self.file_id,
             namespace_id: self.namespace_id,
-            ast: e.clone(),
-            pos: e.pos,
-            name: e.name,
+            ast: node.clone(),
+            pos: node.pos,
+            name: node.name,
             type_params: Vec::new(),
             variants: Vec::new(),
             name_to_value: HashMap::new(),
@@ -535,7 +532,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             simple_enumeration: false,
         };
 
-        if let Some(ref type_params) = e.type_params {
+        if let Some(ref type_params) = node.type_params {
             for param in type_params {
                 xenum.type_params.push(TypeParam::new(param.name));
             }
@@ -544,8 +541,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         self.vm.enums.push(RwLock::new(xenum));
 
         let sym = TypeSym::Enum(id);
-        if let Some(sym) = self.insert_type(e.name, sym) {
-            report_type_shadow(self.vm, e.name, self.file_id, e.pos, sym);
+        if let Some(sym) = self.insert_type(node.name, sym) {
+            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 }

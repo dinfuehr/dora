@@ -28,22 +28,39 @@ pub struct NamespaceData {
     pub name: Option<Name>,
     pub table: Arc<RwLock<SymTable>>,
     pub is_pub: bool,
+    pub parents: Vec<NamespaceId>,
 }
 
 impl NamespaceData {
-    pub fn new(
-        id: NamespaceId,
-        parent_namespace_id: Option<NamespaceId>,
-        name: Option<Name>,
-        is_pub: bool,
-    ) -> NamespaceData {
+    pub fn predefined(id: NamespaceId, name: Option<Name>, is_pub: bool) -> NamespaceData {
         NamespaceData {
             id,
-            parent_namespace_id,
+            parent_namespace_id: None,
             name,
             table: Arc::new(RwLock::new(SymTable::new())),
             is_pub,
+            parents: Vec::new(),
         }
+    }
+
+    pub fn new(vm: &mut VM, parent_id: NamespaceId, name: Name, is_pub: bool) -> NamespaceId {
+        let id: NamespaceId = vm.namespaces.len().into();
+
+        let parent = &vm.namespaces[parent_id.to_usize()];
+        let mut parents = parent.parents.clone();
+        parents.push(parent_id);
+
+        let data = NamespaceData {
+            id,
+            parent_namespace_id: Some(parent_id),
+            name: Some(name),
+            table: Arc::new(RwLock::new(SymTable::new())),
+            is_pub,
+            parents,
+        };
+
+        vm.namespaces.push(data);
+        id
     }
 
     pub fn name(&self, vm: &VM) -> String {
@@ -68,34 +85,15 @@ impl NamespaceData {
 
         path.join("::")
     }
-
-    pub fn path_with_name(vm: &VM, namespace_id: Option<NamespaceId>, name: Name) -> String {
-        if let Some(namespace_id) = namespace_id {
-            let ns = &vm.namespaces[namespace_id.to_usize()];
-            let mut result = ns.name(vm);
-            result.push_str("::");
-            result.push_str(&vm.interner.str(name));
-            result
-        } else {
-            vm.interner.str(name).to_string()
-        }
-    }
 }
 
-pub fn namespace_contains(vm: &VM, parent_id: NamespaceId, mut namespace_id: NamespaceId) -> bool {
-    loop {
-        if parent_id == namespace_id {
-            return true;
-        }
-
-        let namespace = &vm.namespaces[namespace_id.to_usize()];
-
-        if let Some(parent_namespace_id) = namespace.parent_namespace_id {
-            namespace_id = parent_namespace_id;
-        } else {
-            return false;
-        }
+pub fn namespace_contains(vm: &VM, parent_id: NamespaceId, namespace_id: NamespaceId) -> bool {
+    if parent_id == namespace_id {
+        return true;
     }
+
+    let namespace = &vm.namespaces[namespace_id.to_usize()];
+    namespace.parents.contains(&parent_id)
 }
 
 pub fn package_namespace(vm: &VM, mut namespace_id: NamespaceId) -> NamespaceId {
@@ -108,6 +106,18 @@ pub fn package_namespace(vm: &VM, mut namespace_id: NamespaceId) -> NamespaceId 
             return namespace.id;
         }
     }
+}
+
+pub fn namespace_path(vm: &VM, namespace_id: NamespaceId, name: Name) -> String {
+    let namespace = &vm.namespaces[namespace_id.to_usize()];
+    let mut result = namespace.name(vm);
+
+    if !result.is_empty() {
+        result.push_str("::");
+    }
+
+    result.push_str(&vm.interner.str(name));
+    result
 }
 
 pub fn namespace_accessible_from(

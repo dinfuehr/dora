@@ -148,7 +148,7 @@ impl<'x> ModuleCheck<'x> {
                 let super_cls = super_cls.read();
 
                 if !super_cls.has_open {
-                    let msg = SemError::UnderivableType(super_cls.long_name(self.vm));
+                    let msg = SemError::UnderivableType(super_cls.name(self.vm));
                     self.vm
                         .diag
                         .lock()

@@ -178,6 +178,13 @@ fn import_namespace(
         }
 
         (Some(sym_term), Some(TypeSym::Class(cls_id))) => {
+            // if !class_accessible_from(vm, cls_id, import.namespace_id) {
+            //     let cls = &vm.classes.idx(cls_id);
+            //     let cls = cls.read();
+            //     let msg = SemError::NotAccessible(cls.name(vm));
+            //     vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            // }
+
             let new_sym = TypeSym::Class(cls_id);
             let old_sym = table.write().insert_type(target_name, new_sym);
             if let Some(old_sym) = old_sym {
@@ -287,14 +294,22 @@ mod tests {
             pos(2, 13),
             SemError::NotAccessible("foo::bar".into()),
         );
+    }
 
-        ok("
+    #[test]
+    #[ignore]
+    fn import_class() {
+        err(
+            "
             import foo::bar::Foo;
             namespace foo {
                 @pub namespace bar {
                     class Foo
                 }
             }
-        ");
+        ",
+            pos(2, 13),
+            SemError::NotAccessible("foo::bar::Foo".into()),
+        );
     }
 }

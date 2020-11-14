@@ -12,7 +12,10 @@ use crate::sym::SymTable;
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{ExtensionId, FctId, FileId, ImplId, NamespaceId, TraitId};
+use crate::vm::{
+    namespace_accessible_from, namespace_path, ExtensionId, FctId, FileId, ImplId, NamespaceId,
+    TraitId,
+};
 use crate::vtable::VTableBox;
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -62,6 +65,7 @@ pub struct Class {
     pub internal: bool,
     pub internal_resolved: bool,
     pub has_constructor: bool,
+    pub is_pub: bool,
     pub table: SymTable,
 
     pub constructor: Option<FctId>,
@@ -110,8 +114,8 @@ impl Class {
         panic!("field not found!")
     }
 
-    pub fn long_name(&self, vm: &VM) -> String {
-        let name = vm.interner.str(self.name);
+    pub fn name(&self, vm: &VM) -> String {
+        let mut name = namespace_path(vm, self.namespace_id, self.name);
 
         if self.type_params.len() > 0 {
             let type_params = self
@@ -121,10 +125,10 @@ impl Class {
                 .collect::<Vec<_>>()
                 .join(", ");
 
-            format!("{}[{}]", name, type_params)
-        } else {
-            name.to_string()
+            name.push_str(&type_params)
         }
+
+        name
     }
 
     pub fn name_with_params(&self, vm: &VM, type_list: &TypeList) -> String {
@@ -514,4 +518,19 @@ impl IndexMut<FieldId> for Vec<Field> {
 pub struct FieldDef {
     pub offset: i32,
     pub ty: SourceType,
+}
+
+pub fn class_accessible_from(vm: &VM, cls_id: ClassId, namespace_id: NamespaceId) -> bool {
+    let cls = vm.classes.idx(cls_id);
+    let cls = cls.read();
+
+    if cls.namespace_id == namespace_id {
+        return true;
+    }
+
+    println!(
+        "namespace_accessible_from cls.namespace_id={:?} namespace_id={:?}",
+        cls.namespace_id, namespace_id
+    );
+    namespace_accessible_from(vm, cls.namespace_id, namespace_id)
 }

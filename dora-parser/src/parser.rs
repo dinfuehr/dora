@@ -508,6 +508,7 @@ impl<'a> Parser<'a> {
         let has_open = modifiers.contains(Modifier::Open);
         let internal = modifiers.contains(Modifier::Internal);
         let is_abstract = modifiers.contains(Modifier::Abstract);
+        let is_pub = modifiers.contains(Modifier::Pub);
 
         let pos = self.expect_token(TokenKind::Class)?.position;
         let ident = self.expect_identifier()?;
@@ -521,6 +522,7 @@ impl<'a> Parser<'a> {
             has_open,
             internal,
             is_abstract,
+            is_pub,
             has_constructor: false,
             parent_class: None,
             constructor: None,

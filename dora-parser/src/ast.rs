@@ -533,6 +533,7 @@ pub struct Class {
     pub is_abstract: bool,
     pub internal: bool,
     pub has_constructor: bool,
+    pub is_pub: bool,
 
     pub constructor: Option<Arc<Function>>,
     pub fields: Vec<Field>,

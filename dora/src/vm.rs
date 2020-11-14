@@ -27,8 +27,8 @@ use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
 pub use self::classes::{
-    find_field_in_class, find_method_in_class, find_methods_in_class, Class, ClassDef, ClassDefId,
-    ClassId, Field, FieldDef, FieldId, TypeParam,
+    class_accessible_from, find_field_in_class, find_method_in_class, find_methods_in_class, Class,
+    ClassDef, ClassDefId, ClassId, Field, FieldDef, FieldId, TypeParam,
 };
 pub use self::consts::{ConstData, ConstId, ConstValue};
 pub use self::enums::{
@@ -44,7 +44,8 @@ pub use self::known::{
 };
 pub use self::modules::{find_methods_in_module, Module, ModuleDef, ModuleDefId, ModuleId};
 pub use self::namespaces::{
-    namespace_accessible_from, namespace_contains, package_namespace, NamespaceData, NamespaceId,
+    namespace_accessible_from, namespace_contains, namespace_path, package_namespace,
+    NamespaceData, NamespaceId,
 };
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
@@ -161,10 +162,10 @@ impl VM {
         let boots_name = interner.intern("boots");
 
         let namespaces = vec![
-            NamespaceData::new(prelude_namespace_id, None, None, false),
-            NamespaceData::new(stdlib_namespace_id, None, Some(stdlib_name), true),
-            NamespaceData::new(global_namespace_id, None, None, false),
-            NamespaceData::new(boots_namespace_id, None, Some(boots_name), false),
+            NamespaceData::predefined(prelude_namespace_id, None, false),
+            NamespaceData::predefined(stdlib_namespace_id, Some(stdlib_name), true),
+            NamespaceData::predefined(global_namespace_id, None, false),
+            NamespaceData::predefined(boots_namespace_id, Some(boots_name), false),
         ];
 
         let vm = Box::new(VM {
