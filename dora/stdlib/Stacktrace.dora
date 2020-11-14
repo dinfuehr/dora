@@ -1,4 +1,4 @@
-class Stacktrace() {
+@pub class Stacktrace() {
   var backtrace: Option[Array[Int32]] = Option[Array[Int32]]::None;
   var elements: Option[Array[StacktraceElement]] = Option[Array[StacktraceElement]]::None;
 

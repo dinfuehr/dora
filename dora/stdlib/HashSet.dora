@@ -1,4 +1,4 @@
-class HashSet[K: Hash + Equals](keys: K...) {
+@pub class HashSet[K: Hash + Equals](keys: K...) {
     let map: HashMap[K, ()] = HashMap[K, ()]();
     for key in keys {
         self.insert(key);

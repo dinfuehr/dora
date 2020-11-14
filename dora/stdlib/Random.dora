@@ -2,7 +2,7 @@ const RANDOM_MULTIPLIER: Int64 = 25214903917L;
 const RANDOM_INCREMENT: Int64 = 11L;
 const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
 
-class Random(var seed: Int64) {
+@pub class Random(var seed: Int64) {
   self.seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
 
   fun nextInt32WithBound(bound: Int32): Int32 {

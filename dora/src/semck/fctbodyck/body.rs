@@ -11,10 +11,10 @@ use crate::semck::{always_returns, expr_always_returns, read_type_table};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::vm::{
-    self, const_accessible_from, ensure_tuple, enum_accessible_from, fct_accessible_from,
-    find_field_in_class, find_methods_in_class, global_accessible_from, AnalysisData, CallType,
-    ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic,
-    NamespaceId, Var, VarId, VM,
+    self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
+    fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
+    AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo,
+    IdentType, Intrinsic, NamespaceId, Var, VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -1306,7 +1306,7 @@ impl<'a> TypeCheck<'a> {
 
         if !enum_accessible_from(self.vm, enum_id, self.namespace_id) {
             let msg = SemError::NotAccessible(xenum.name(self.vm));
-            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
         let list_id = self.vm.lists.lock().insert(type_params.clone());
@@ -1501,7 +1501,7 @@ impl<'a> TypeCheck<'a> {
             let fct = self.vm.fcts.idx(fct_id);
             let fct = fct.read();
             let msg = SemError::NotAccessible(fct.name(self.vm));
-            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
         let mut lookup = MethodLookup::new(self.vm, self.fct)
@@ -1669,6 +1669,13 @@ impl<'a> TypeCheck<'a> {
         type_params: TypeList,
         arg_types: &[SourceType],
     ) -> SourceType {
+        if !class_accessible_from(self.vm, cls_id, self.namespace_id) {
+            let cls = self.vm.classes.idx(cls_id);
+            let cls = cls.read();
+            let msg = SemError::NotAccessible(cls.name(self.vm));
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
+        }
+
         let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
             .ctor(cls_id)
@@ -2095,7 +2102,7 @@ impl<'a> TypeCheck<'a> {
                     let global = &self.vm.globals.idx(global_id);
                     let global = global.read();
                     let msg = SemError::NotAccessible(global.name(self.vm));
-                    self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+                    self.vm.diag.lock().report(self.file_id, e.pos, msg);
                 }
 
                 let glob = self.vm.globals.idx(global_id);
@@ -2114,7 +2121,7 @@ impl<'a> TypeCheck<'a> {
                     let xconst = self.vm.consts.idx(const_id);
                     let xconst = xconst.read();
                     let msg = SemError::NotAccessible(xconst.name(self.vm));
-                    self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+                    self.vm.diag.lock().report(self.file_id, e.pos, msg);
                 }
 
                 let xconst = self.vm.consts.idx(const_id);
@@ -2173,7 +2180,7 @@ impl<'a> TypeCheck<'a> {
 
         if !enum_accessible_from(self.vm, enum_id, self.namespace_id) {
             let msg = SemError::NotAccessible(xenum.name(self.vm));
-            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+            self.vm.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
         let list_id = self.vm.lists.lock().insert(type_params.clone());
@@ -2331,7 +2338,7 @@ impl<'a> TypeCheck<'a> {
 
         if !enum_accessible_from(self.vm, enum_id, self.namespace_id) {
             let msg = SemError::NotAccessible(xenum.name(self.vm));
-            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+            self.vm.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
         let list_id = self.vm.lists.lock().insert(type_params.clone());

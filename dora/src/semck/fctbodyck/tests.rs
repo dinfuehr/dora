@@ -2295,7 +2295,7 @@ fn namespace_fct_call() {
         fun f() { foo::g(); }
         namespace foo { fun g() {} }
     ",
-        pos(2, 9),
+        pos(2, 25),
         SemError::NotAccessible("foo::g".into()),
     );
 
@@ -2322,7 +2322,7 @@ fn namespace_fct_call() {
             }
         }
     ",
-        pos(2, 9),
+        pos(2, 32),
         SemError::NotAccessible("foo::bar::baz".into()),
     );
 }
@@ -2331,20 +2331,38 @@ fn namespace_fct_call() {
 fn namespace_ctor_call() {
     ok("
         fun f() { foo::Foo(); }
-        namespace foo { class Foo }
+        namespace foo { @pub class Foo }
     ");
+
+    err(
+        "
+        fun f() { foo::Foo(); }
+        namespace foo { class Foo }
+    ",
+        pos(2, 27),
+        SemError::NotAccessible("foo::Foo".into()),
+    );
 
     ok("
         fun f() { foo::bar::Foo(); }
-        namespace foo { namespace bar { class Foo } }
+        namespace foo { @pub namespace bar { @pub class Foo } }
     ");
+
+    err(
+        "
+        fun f() { foo::bar::Foo(); }
+        namespace foo { @pub namespace bar { class Foo } }
+    ",
+        pos(2, 32),
+        SemError::NotAccessible("foo::bar::Foo".into()),
+    );
 }
 
 #[test]
 fn namespace_path_in_type() {
     ok("
         fun f(): foo::Foo { foo::Foo() }
-        namespace foo { class Foo }
+        namespace foo { @pub class Foo }
     ");
 
     err(
@@ -2386,7 +2404,7 @@ fn namespace_global() {
         fun f(): Int32 { foo::x }
         namespace foo { var x: Int32 = 1; }
     ",
-        pos(2, 9),
+        pos(2, 29),
         SemError::NotAccessible("foo::x".into()),
     );
 }
@@ -2436,7 +2454,7 @@ fn namespace_const() {
         fun f(): Int32 { foo::x }
         namespace foo { const x: Int32 = 1; }
     ",
-        pos(2, 9),
+        pos(2, 29),
         SemError::NotAccessible("foo::x".into()),
     );
 
@@ -2458,7 +2476,7 @@ fn namespace_enum_value() {
         fun f() { foo::A; }
         namespace foo { enum Foo { A, B } import Foo::A; }
     ",
-        pos(2, 9),
+        pos(2, 22),
         SemError::NotAccessible("foo::Foo".into()),
     );
 
@@ -2472,7 +2490,7 @@ fn namespace_enum_value() {
         fun f() { foo::bar::A; }
         namespace foo { @pub namespace bar { enum Foo { A, B } import Foo::A; } }
     ",
-        pos(2, 9),
+        pos(2, 27),
         SemError::NotAccessible("foo::bar::Foo".into()),
     );
 }
@@ -2486,7 +2504,7 @@ fn namespace_enum() {
         }
         namespace foo { enum Foo { A(Bar), B } class Bar }
     ",
-        pos(2, 9),
+        pos(3, 21),
         SemError::NotAccessible("foo::Foo".into()),
     );
 
@@ -2511,7 +2529,7 @@ fn namespace_enum() {
         }
         namespace foo { enum Foo { A(Int32), B } }
     ",
-        pos(2, 9),
+        pos(3, 24),
         SemError::NotAccessible("foo::Foo".into()),
     );
 }

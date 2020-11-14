@@ -1,4 +1,4 @@
-class BitVec {
+@pub class BitVec {
     var data: Array[Int32] = Array::empty[Int32]();
 
     fun contains(idx: Int64): Bool {

@@ -1,4 +1,4 @@
-class Queue[T] {
+@pub class Queue[T] {
   var elements: Array[T] = Array::ofSizeUnsafe[T](4L);
   var front: Int64 = 0L;
   var count: Int64 = 0L;

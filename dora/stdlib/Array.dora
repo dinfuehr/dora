@@ -1,4 +1,4 @@
-@internal class Array[T](values: T...) {
+@pub @internal class Array[T](values: T...) {
 
   @internal fun size(): Int64;
   @internal fun get(idx: Int64): T;
@@ -58,7 +58,7 @@ class ArrayEnumerator[T](let array: Array[T]) {
   return false;
 }
 
-module Array {
+@pub module Array {
   fun empty[T](): Array[T] = Array::ofSizeUnsafe[T](0L);
 
   @internal
