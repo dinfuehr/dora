@@ -21,7 +21,6 @@ pub struct Parser<'a> {
     interner: &'a mut Interner,
     param_idx: u32,
     in_class_or_module: bool,
-    parse_struct_lit: bool,
     last_end: Option<u32>,
 }
 
@@ -50,7 +49,6 @@ impl<'a> Parser<'a> {
             interner,
             param_idx: 0,
             in_class_or_module: false,
-            parse_struct_lit: true,
             last_end: Some(0),
         };
 
@@ -1467,7 +1465,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::If)?.position;
 
-        let cond = self.parse_expression_no_struct_lit()?;
+        let cond = self.parse_expression()?;
 
         let then_block = self.parse_block()?;
 
@@ -1499,7 +1497,7 @@ impl<'a> Parser<'a> {
         let _start = self.token.span.start();
         let _pos = self.expect_token(TokenKind::Match)?.position;
 
-        let _cond = self.parse_expression_no_struct_lit()?;
+        let _cond = self.parse_expression()?;
 
         unimplemented!()
     }
@@ -1509,7 +1507,7 @@ impl<'a> Parser<'a> {
         let pos = self.expect_token(TokenKind::For)?.position;
         let pattern = self.parse_let_pattern()?;
         self.expect_token(TokenKind::In)?;
-        let expr = self.parse_expression_no_struct_lit()?;
+        let expr = self.parse_expression()?;
         let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
@@ -1526,7 +1524,7 @@ impl<'a> Parser<'a> {
     fn parse_while(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::While)?.position;
-        let expr = self.parse_expression_no_struct_lit()?;
+        let expr = self.parse_expression()?;
         let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
@@ -1583,25 +1581,12 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self) -> ExprResult {
-        self.parse_expression_struct_lit(true)
-    }
-
-    fn parse_expression_no_struct_lit(&mut self) -> ExprResult {
-        self.parse_expression_struct_lit(false)
-    }
-
-    fn parse_expression_struct_lit(&mut self, struct_lit: bool) -> ExprResult {
-        let old = self.parse_struct_lit;
-        self.parse_struct_lit = struct_lit;
-
         let result = match self.token.kind {
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
             TokenKind::Match => self.parse_match(),
             _ => self.parse_binary(0),
         };
-
-        self.parse_struct_lit = old;
 
         result
     }

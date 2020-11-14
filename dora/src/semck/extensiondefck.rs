@@ -331,4 +331,21 @@ mod tests {
             fun test(x: MyFoo[Int32]) { x.test(1); }
         ");
     }
+
+    #[test]
+    fn extension_namespace() {
+        err(
+            "
+            impl foo::MyFoo { fun bar() {} }
+            namespace foo { class MyFoo }
+        ",
+            pos(2, 18),
+            SemError::NotAccessible("foo::MyFoo".into()),
+        );
+
+        ok("
+            impl foo::MyFoo { fun bar() {} }
+            namespace foo { @pub class MyFoo }
+        ");
+    }
 }

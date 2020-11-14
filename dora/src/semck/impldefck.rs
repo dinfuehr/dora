@@ -204,4 +204,25 @@ mod tests {
     fn impl_class_type_params() {
         ok("trait MyTrait {} class Foo[T] impl MyTrait for Foo[String] {}");
     }
+
+    #[test]
+    fn impl_namespace() {
+        err(
+            "
+            namespace foo { trait MyTrait {} }
+            class Foo
+            impl foo::MyTrait for Foo {}",
+            pos(4, 18),
+            SemError::NotAccessible("foo::MyTrait".into()),
+        );
+
+        err(
+            "
+            namespace foo { class Foo }
+            trait MyTrait {}
+            impl MyTrait for foo::Foo {}",
+            pos(4, 30),
+            SemError::NotAccessible("foo::Foo".into()),
+        );
+    }
 }
