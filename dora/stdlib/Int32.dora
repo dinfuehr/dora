@@ -1,4 +1,4 @@
-@internal class Int32 {
+@pub @internal class Int32 {
   @internal fun toUInt8(): UInt8;
   fun toChar(): Option[Char] {
     if self >= 0 && self <= 0x10FFFFI && (self < 0xD800 || self > 0xDFFFI) {

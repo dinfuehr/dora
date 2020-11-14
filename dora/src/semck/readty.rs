@@ -4,7 +4,10 @@ use std::sync::Arc;
 use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
-use crate::vm::{ensure_tuple, ClassId, EnumId, FileId, NamespaceId, VM};
+use crate::vm::{
+    class_accessible_from, ensure_tuple, enum_accessible_from, ClassId, EnumId, FileId,
+    NamespaceId, VM,
+};
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 
@@ -14,7 +17,7 @@ pub fn read_type_table(
     file: FileId,
     t: &Type,
 ) -> Option<SourceType> {
-    read_type_raw(vm, table, file, t)
+    read_type_common(vm, table, file, t)
 }
 
 pub fn read_type_namespace(
@@ -24,10 +27,10 @@ pub fn read_type_namespace(
     t: &Type,
 ) -> Option<SourceType> {
     let symtable = NestedSymTable::new(vm, namespace_id);
-    read_type_raw(vm, &symtable, file, t)
+    read_type_common(vm, &symtable, file, t)
 }
 
-fn read_type_raw(vm: &VM, table: &NestedSymTable, file: FileId, t: &Type) -> Option<SourceType> {
+fn read_type_common(vm: &VM, table: &NestedSymTable, file: FileId, t: &Type) -> Option<SourceType> {
     match *t {
         Type::This(_) => Some(SourceType::This),
         Type::Basic(ref basic) => read_type_basic(vm, table, file, basic),
@@ -147,10 +150,16 @@ fn read_type_enum(
     basic: &TypeBasicType,
     enum_id: EnumId,
 ) -> Option<SourceType> {
+    if !enum_accessible_from(vm, enum_id, table.namespace_id()) {
+        let xenum = vm.enums[enum_id].read();
+        let msg = SemError::NotAccessible(xenum.name(vm));
+        vm.diag.lock().report(file, basic.pos, msg);
+    }
+
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_raw(vm, table, file, param);
+        let param = read_type_common(vm, table, file, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -199,10 +208,17 @@ fn read_type_class(
     basic: &TypeBasicType,
     cls_id: ClassId,
 ) -> Option<SourceType> {
+    if !class_accessible_from(vm, cls_id, table.namespace_id()) {
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+        let msg = SemError::NotAccessible(cls.name(vm));
+        vm.diag.lock().report(file, basic.pos, msg);
+    }
+
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_raw(vm, table, file, param);
+        let param = read_type_common(vm, table, file, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -262,7 +278,7 @@ fn read_type_tuple(
         let mut subtypes = Vec::new();
 
         for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type_raw(vm, table, file, subtype) {
+            if let Some(ty) = read_type_common(vm, table, file, subtype) {
                 subtypes.push(ty);
             } else {
                 return None;
@@ -283,14 +299,14 @@ fn read_type_lambda(
     let mut params = vec![];
 
     for param in &lambda.params {
-        if let Some(p) = read_type_raw(vm, table, file, param) {
+        if let Some(p) = read_type_common(vm, table, file, param) {
             params.push(p);
         } else {
             return None;
         }
     }
 
-    let ret = if let Some(ret) = read_type_raw(vm, table, file, &lambda.ret) {
+    let ret = if let Some(ret) = read_type_common(vm, table, file, &lambda.ret) {
         ret
     } else {
         return None;
@@ -300,4 +316,44 @@ fn read_type_lambda(
     let ty = SourceType::Lambda(ty);
 
     Some(ty)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::error::msg::SemError;
+    use crate::semck::tests::*;
+
+    #[test]
+    fn namespace_class() {
+        ok("
+            fun f(x: foo::Foo) {}
+            namespace foo { @pub class Foo }
+        ");
+
+        err(
+            "
+            fun f(x: foo::Foo) {}
+            namespace foo { class Foo }
+        ",
+            pos(2, 22),
+            SemError::NotAccessible("foo::Foo".into()),
+        );
+    }
+
+    #[test]
+    fn namespace_enum() {
+        ok("
+            fun f(x: foo::Foo) {}
+            namespace foo { @pub enum Foo { A, B } }
+        ");
+
+        err(
+            "
+            fun f(x: foo::Foo) {}
+            namespace foo { enum Foo { A, B } }
+        ",
+            pos(2, 22),
+            SemError::NotAccessible("foo::Foo".into()),
+        );
+    }
 }

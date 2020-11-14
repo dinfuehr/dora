@@ -1,4 +1,4 @@
-@internal class Float64 {
+@pub @internal class Float64 {
   @internal fun toInt32(): Int32;
   @internal fun toInt64(): Int64;
   @internal fun toFloat32(): Float32;

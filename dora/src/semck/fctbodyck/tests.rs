@@ -2724,8 +2724,17 @@ fn namespace_inside() {
 
     ok("
         fun f(x: foo::Foo) {}
-        namespace foo { class Foo }
+        namespace foo { @pub class Foo }
     ");
+
+    err(
+        "
+        fun f(x: foo::Foo) {}
+        namespace foo { class Foo }
+    ",
+        pos(2, 18),
+        SemError::NotAccessible("foo::Foo".into()),
+    );
 }
 
 #[test]

@@ -1,4 +1,4 @@
-@internal class String {
+@pub @internal class String {
   fun equals(rhs: String): Bool {
     var i = 0L;
 

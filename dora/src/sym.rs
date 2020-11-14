@@ -27,6 +27,10 @@ impl<'a> NestedSymTable<'a> {
         }
     }
 
+    pub fn namespace_id(&self) -> NamespaceId {
+        self.namespace_id
+    }
+
     pub fn push_level(&mut self) {
         self.levels.push(SymTable::new());
     }

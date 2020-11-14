@@ -1,4 +1,4 @@
-@internal class UInt8 {
+@pub @internal class UInt8 {
   @internal fun toChar(): Char;
   @internal fun toInt32(): Int32;
   @internal fun toInt64(): Int64;

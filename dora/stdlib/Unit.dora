@@ -1,1 +1,1 @@
-@internal class Unit
+@pub @internal class Unit
