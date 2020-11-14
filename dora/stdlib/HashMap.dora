@@ -1,4 +1,4 @@
-class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
+@pub class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
     var inserted_and_deleted: BitSet = BitSet(0L);

@@ -1,4 +1,4 @@
-class Testing {
+@pub class Testing {
     var failed: Bool = false;
 
     fun fail() {

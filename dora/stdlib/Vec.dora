@@ -1,4 +1,4 @@
-class Vec[T](values: T...) {
+@pub class Vec[T](values: T...) {
   var array: Array[T] = values;
   var len: Int64 = values.size();
 
@@ -146,7 +146,7 @@ class Vec[T](values: T...) {
   }
 }
 
-class VecEnumerator[T](let data: Vec[T]) {
+@pub class VecEnumerator[T](let data: Vec[T]) {
   var idx: Int64 = 0L;
 
   fun hasNext(): Bool {
@@ -160,7 +160,7 @@ class VecEnumerator[T](let data: Vec[T]) {
   }
 }
 
-class VecIter[T](let data: Vec[T]) {
+@pub class VecIter[T](let data: Vec[T]) {
   var idx: Int64 = 0L;
 
   fun hasNext(): Bool {
@@ -174,7 +174,7 @@ class VecIter[T](let data: Vec[T]) {
   }
 }
 
-class ReverseVecIter[T](let data: Vec[T]) {
+@pub class ReverseVecIter[T](let data: Vec[T]) {
   var idx: Int64 = data.size() - 1L;
 
   fun hasNext(): Bool {
@@ -188,7 +188,7 @@ class ReverseVecIter[T](let data: Vec[T]) {
   }
 }
 
-fun removeItem[T: Equals](vec: Vec[T], elem: T) {
+@pub fun removeItem[T: Equals](vec: Vec[T], elem: T) {
   var i = 0L;
 
   while i < vec.size() {

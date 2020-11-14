@@ -4,7 +4,8 @@ use crate::error::msg::SemError;
 use crate::semck::{report_term_shadow, report_type_shadow};
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::vm::{
-    namespace_accessible_from, package_namespace, EnumId, ImportData, NamespaceId, VM,
+    class_accessible_from, namespace_accessible_from, namespace_package, EnumId, ImportData,
+    NamespaceId, VM,
 };
 
 use dora_parser::ast::ImportContext;
@@ -21,7 +22,7 @@ fn check_import(vm: &VM, import: &ImportData) {
 
     let namespace_id = match import.ast.context {
         ImportContext::This => import.namespace_id,
-        ImportContext::Package => package_namespace(vm, import.namespace_id),
+        ImportContext::Package => namespace_package(vm, import.namespace_id),
         ImportContext::Super => {
             let namespace = &vm.namespaces[import.namespace_id.to_usize()];
             if let Some(namespace_id) = namespace.parent_namespace_id {
@@ -178,12 +179,12 @@ fn import_namespace(
         }
 
         (Some(sym_term), Some(TypeSym::Class(cls_id))) => {
-            // if !class_accessible_from(vm, cls_id, import.namespace_id) {
-            //     let cls = &vm.classes.idx(cls_id);
-            //     let cls = cls.read();
-            //     let msg = SemError::NotAccessible(cls.name(vm));
-            //     vm.diag.lock().report(import.file_id, import.ast.pos, msg);
-            // }
+            if !class_accessible_from(vm, cls_id, import.namespace_id) {
+                let cls = &vm.classes.idx(cls_id);
+                let cls = cls.read();
+                let msg = SemError::NotAccessible(cls.name(vm));
+                vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            }
 
             let new_sym = TypeSym::Class(cls_id);
             let old_sym = table.write().insert_type(target_name, new_sym);
@@ -297,7 +298,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn import_class() {
         err(
             "

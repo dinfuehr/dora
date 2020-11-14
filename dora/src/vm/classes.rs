@@ -13,8 +13,7 @@ use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
-    namespace_accessible_from, namespace_path, ExtensionId, FctId, FileId, ImplId, NamespaceId,
-    TraitId,
+    accessible_from, namespace_path, ExtensionId, FctId, FileId, ImplId, NamespaceId, TraitId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast;
@@ -124,8 +123,9 @@ impl Class {
                 .map(|p| vm.interner.str(p.name).to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
-
-            name.push_str(&type_params)
+            name.push('[');
+            name.push_str(&type_params);
+            name.push(']');
         }
 
         name
@@ -524,13 +524,5 @@ pub fn class_accessible_from(vm: &VM, cls_id: ClassId, namespace_id: NamespaceId
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
-    if cls.namespace_id == namespace_id {
-        return true;
-    }
-
-    println!(
-        "namespace_accessible_from cls.namespace_id={:?} namespace_id={:?}",
-        cls.namespace_id, namespace_id
-    );
-    namespace_accessible_from(vm, cls.namespace_id, namespace_id)
+    accessible_from(vm, cls.namespace_id, cls.is_pub, namespace_id)
 }

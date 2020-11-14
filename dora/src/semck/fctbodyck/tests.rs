@@ -2474,7 +2474,7 @@ fn namespace_import_class() {
     ok("
         import foo::Bar;
         fun f() { Bar(); }
-        namespace foo { class Bar }
+        namespace foo { @pub class Bar }
     ");
 
     ok("
@@ -2484,7 +2484,7 @@ fn namespace_import_class() {
             Bar::baz();
         }
         namespace foo {
-            class Bar
+            @pub class Bar
             module Bar {
                 fun baz() {}
             }
@@ -2539,7 +2539,7 @@ fn namespace_import_self() {
     ok("
         import self::bar::Foo;
         fun getfoo(): Foo { Foo() }
-        namespace bar { class Foo }
+        namespace bar { @pub class Foo }
     ");
 }
 

@@ -1,4 +1,4 @@
-class Text(let value: String, let locale: Locale) {
+@pub class Text(let value: String, let locale: Locale) {
 
   fun plus(rhs: Text): Text {
     if self.locale != rhs.locale {

@@ -4,7 +4,7 @@ module Locale {
   fun fr(): Locale = Locale("fr");
 }
 
-class Locale(let value: String) {}
+@pub class Locale(let value: String) {}
 
 impl Equals for Locale {
   fun equals(rhs: Locale): Bool = self.value == rhs.value;

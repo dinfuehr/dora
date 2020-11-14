@@ -1,4 +1,4 @@
-class CodepointIterator(let value: String, var start: Int64) {
+@pub class CodepointIterator(let value: String, var start: Int64) {
     fun hasNext(): Bool = self.start < self.value.size();
 
     fun next(): Char {
