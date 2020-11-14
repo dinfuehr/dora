@@ -11,9 +11,9 @@ use crate::semck::{always_returns, expr_always_returns, read_type_table};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::vm::{
-    self, ensure_tuple, find_field_in_class, find_methods_in_class, AnalysisData, CallType,
-    ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic,
-    NamespaceId, Var, VarId, VM,
+    self, const_accessible_from, ensure_tuple, find_field_in_class, find_methods_in_class,
+    global_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
+    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, Var, VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -25,7 +25,8 @@ use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 pub struct TypeCheck<'a> {
     pub vm: &'a VM,
     pub fct: &'a Fct,
-    pub file: FileId,
+    pub file_id: FileId,
+    pub namespace_id: NamespaceId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a Function,
     pub symtable: NestedSymTable<'a>,
@@ -258,7 +259,7 @@ impl<'a> TypeCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.file, s.pos, SemError::VarNeedsTypeInfo(tyname));
+                .report(self.file_id, s.pos, SemError::VarNeedsTypeInfo(tyname));
 
             return;
         }
@@ -279,7 +280,7 @@ impl<'a> TypeCheck<'a> {
                 let defined_type = defined_type.name_fct(self.vm, self.fct);
                 let expr_type = expr_type.name_fct(self.vm, self.fct);
                 let msg = SemError::AssignType(name, defined_type, expr_type);
-                self.vm.diag.lock().report(self.file, s.pos, msg);
+                self.vm.diag.lock().report(self.file_id, s.pos, msg);
             }
 
         // let variable binding needs to be assigned
@@ -287,7 +288,7 @@ impl<'a> TypeCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.file, s.pos, SemError::LetMissingInitialization);
+                .report(self.file_id, s.pos, SemError::LetMissingInitialization);
         }
     }
 
@@ -318,7 +319,7 @@ impl<'a> TypeCheck<'a> {
                 if !ty.is_tuple_or_unit() && !ty.is_error() {
                     let ty_name = ty.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
-                        self.file,
+                        self.file_id,
                         tuple.pos,
                         SemError::LetPatternExpectedTuple(ty_name),
                     );
@@ -329,7 +330,7 @@ impl<'a> TypeCheck<'a> {
                     // () doesn't have any subparts
                     if tuple.parts.len() != 0 {
                         self.vm.diag.lock().report(
-                            self.file,
+                            self.file_id,
                             tuple.pos,
                             SemError::LetPatternShouldBeUnit,
                         );
@@ -350,7 +351,7 @@ impl<'a> TypeCheck<'a> {
                 if parts != tuple.parts.len() {
                     let ty_name = ty.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
-                        self.file,
+                        self.file_id,
                         tuple.pos,
                         SemError::LetPatternExpectedTupleWithLength(
                             ty_name,
@@ -428,7 +429,10 @@ impl<'a> TypeCheck<'a> {
 
         let name = object_type.name_fct(self.vm, self.fct);
         let msg = SemError::TypeNotUsableInForIn(name);
-        self.vm.diag.lock().report(self.file, stmt.expr.pos(), msg);
+        self.vm
+            .diag
+            .lock()
+            .report(self.file_id, stmt.expr.pos(), msg);
 
         // set invalid error type
         self.symtable.push_level();
@@ -517,7 +521,7 @@ impl<'a> TypeCheck<'a> {
         if !expr_type.is_error() && !expr_type.is_bool() {
             let expr_type = expr_type.name_fct(self.vm, self.fct);
             let msg = SemError::WhileCondType(expr_type);
-            self.vm.diag.lock().report(self.file, stmt.pos, msg);
+            self.vm.diag.lock().report(self.file_id, stmt.pos, msg);
         }
 
         self.check_loop_body(&stmt.block);
@@ -542,7 +546,7 @@ impl<'a> TypeCheck<'a> {
 
             let msg = SemError::ReturnType(fct_type, expr_type);
 
-            self.vm.diag.lock().report(self.file, pos, msg);
+            self.vm.diag.lock().report(self.file_id, pos, msg);
         }
     }
 
@@ -599,7 +603,7 @@ impl<'a> TypeCheck<'a> {
         if !expr_type.is_bool() && !expr_type.is_error() {
             let expr_type = expr_type.name_fct(self.vm, self.fct);
             let msg = SemError::IfCondType(expr_type);
-            self.vm.diag.lock().report(self.file, expr.pos, msg);
+            self.vm.diag.lock().report(self.file_id, expr.pos, msg);
         }
 
         let then_type = self.check_expr(&expr.then_block, SourceType::Any);
@@ -619,7 +623,7 @@ impl<'a> TypeCheck<'a> {
                 let then_type_name = then_type.name_fct(self.vm, self.fct);
                 let else_type_name = else_type.name_fct(self.vm, self.fct);
                 let msg = SemError::IfBranchTypesIncompatible(then_type_name, else_type_name);
-                self.vm.diag.lock().report(self.file, expr.pos, msg);
+                self.vm.diag.lock().report(self.file_id, expr.pos, msg);
                 then_type
             } else {
                 then_type
@@ -727,7 +731,7 @@ impl<'a> TypeCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.file, e.pos, SemError::LvalueExpected);
+                .report(self.file_id, e.pos, SemError::LvalueExpected);
         }
 
         self.analysis.set_ty(e.id, SourceType::Unit);
@@ -748,7 +752,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm
                         .diag
                         .lock()
-                        .report(self.file, e.pos, SemError::LetReassigned);
+                        .report(self.file_id, e.pos, SemError::LetReassigned);
                 }
 
                 self.analysis
@@ -765,7 +769,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm
                         .diag
                         .lock()
-                        .report(self.file, e.pos, SemError::LetReassigned);
+                        .report(self.file_id, e.pos, SemError::LetReassigned);
                 }
 
                 self.analysis
@@ -808,7 +812,7 @@ impl<'a> TypeCheck<'a> {
             self.analysis.set_ty(e.id, SourceType::Unit);
 
             let msg = SemError::AssignType(name, lhs_type, rhs_type);
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
     }
 
@@ -850,7 +854,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let msg = SemError::NameExpected;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return;
@@ -884,7 +888,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm
                         .diag
                         .lock()
-                        .report(self.file, e.pos, SemError::LetReassigned);
+                        .report(self.file_id, e.pos, SemError::LetReassigned);
                 }
 
                 if !fty.allows(self.vm, rhs_type.clone()) && !rhs_type.is_error() {
@@ -895,7 +899,7 @@ impl<'a> TypeCheck<'a> {
                     let rhs_type = rhs_type.name_fct(self.vm, self.fct);
 
                     let msg = SemError::AssignField(name, object_type, lhs_type, rhs_type);
-                    self.vm.diag.lock().report(self.file, e.pos, msg);
+                    self.vm.diag.lock().report(self.file_id, e.pos, msg);
                 }
 
                 self.analysis.set_ty(e.id, SourceType::Unit);
@@ -907,7 +911,10 @@ impl<'a> TypeCheck<'a> {
         let field_name = self.vm.interner.str(name).to_string();
         let expr_name = object_type.name_fct(self.vm, self.fct);
         let msg = SemError::UnknownField(field_name, expr_name);
-        self.vm.diag.lock().report(self.file, field_expr.pos, msg);
+        self.vm
+            .diag
+            .lock()
+            .report(self.file_id, field_expr.pos, msg);
 
         self.analysis.set_ty(e.id, SourceType::Unit);
     }
@@ -944,7 +951,7 @@ impl<'a> TypeCheck<'a> {
                 SemError::UnknownMethod(type_name, name, param_names)
             };
 
-            self.vm.diag.lock().report(self.file, pos, msg);
+            self.vm.diag.lock().report(self.file_id, pos, msg);
         }
 
         result
@@ -997,7 +1004,7 @@ impl<'a> TypeCheck<'a> {
             let ty = ty.name_fct(self.vm, self.fct);
             let msg = SemError::UnOpType(op.as_str().into(), ty);
 
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
         self.analysis.set_ty(e.id, SourceType::Error);
@@ -1087,7 +1094,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.vm, self.fct);
             let msg = SemError::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
 
@@ -1110,7 +1117,7 @@ impl<'a> TypeCheck<'a> {
                     let lhs_type = lhs_type.name_fct(self.vm, self.fct);
                     let rhs_type = rhs_type.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
-                        self.file,
+                        self.file_id,
                         e.pos,
                         SemError::TypesIncompatible(lhs_type, rhs_type),
                     );
@@ -1162,7 +1169,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.vm, self.fct);
             let msg = SemError::BinOpType("equals".into(), lhs_type, rhs_type);
 
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
         }
@@ -1184,7 +1191,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.vm, self.fct);
             let msg = SemError::BinOpType(op, lhs_type, rhs_type);
 
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
     }
 
@@ -1224,7 +1231,7 @@ impl<'a> TypeCheck<'a> {
 
                 None => {
                     let msg = SemError::NameExpected;
-                    self.vm.diag.lock().report(self.file, e.pos, msg);
+                    self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
                     self.analysis.set_ty(e.id, SourceType::Error);
                     return SourceType::Error;
@@ -1236,7 +1243,10 @@ impl<'a> TypeCheck<'a> {
         } else {
             if !type_params.is_empty() {
                 let msg = SemError::NoTypeParamsExpected;
-                self.vm.diag.lock().report(self.file, e.callee.pos(), msg);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file_id, e.callee.pos(), msg);
             }
 
             let expr_type = self.check_expr(callee, SourceType::Any);
@@ -1270,7 +1280,10 @@ impl<'a> TypeCheck<'a> {
             (_, _) => {
                 if !type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
-                    self.vm.diag.lock().report(self.file, e.callee.pos(), msg);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file_id, e.callee.pos(), msg);
                 }
 
                 let expr_type = self.check_expr(callee, SourceType::Any);
@@ -1296,7 +1309,7 @@ impl<'a> TypeCheck<'a> {
             self.vm,
             self.fct,
             ty.clone(),
-            ErrorReporting::Yes(self.file, e.pos),
+            ErrorReporting::Yes(self.file_id, e.pos),
         );
 
         if !self.check_expr_call_enum_args(enum_id, type_params.clone(), variant, arg_types) {
@@ -1313,12 +1326,12 @@ impl<'a> TypeCheck<'a> {
                 .collect::<Vec<_>>();
             let msg =
                 SemError::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         } else if variant.types.is_empty() {
             let enum_name = self.vm.interner.str(xenum.name).to_string();
             let variant_name = self.vm.interner.str(variant.name).to_string();
             let msg = SemError::EnumArgsNoParens(enum_name, variant_name);
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
         if type_params_ok {
@@ -1384,7 +1397,7 @@ impl<'a> TypeCheck<'a> {
                 SemError::UnknownStaticMethodWithTypeParam
             };
 
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
@@ -1417,7 +1430,7 @@ impl<'a> TypeCheck<'a> {
                 .map(|a| a.name_fct(self.vm, self.fct))
                 .collect::<Vec<_>>();
             let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, arg_types);
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
         let call_type = CallType::GenericStaticMethod(tp_id, trait_id, fct_id);
@@ -1660,7 +1673,7 @@ impl<'a> TypeCheck<'a> {
 
             if cls.is_abstract {
                 let msg = SemError::NewAbstractClass;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
             }
 
             lookup.found_ret().unwrap()
@@ -1731,7 +1744,7 @@ impl<'a> TypeCheck<'a> {
                 SemError::MultipleCandidatesForTypeParam(type_name, name, param_names)
             };
 
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
 
@@ -1778,7 +1791,7 @@ impl<'a> TypeCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.file, method_expr.pos(), msg);
+                .report(self.file_id, method_expr.pos(), msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
@@ -1792,7 +1805,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm
                         .diag
                         .lock()
-                        .report(self.file, callee_as_path.lhs.pos(), msg);
+                        .report(self.file_id, callee_as_path.lhs.pos(), msg);
                 }
 
                 let module_ty = SourceType::Module(module_id);
@@ -1818,7 +1831,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm
                         .diag
                         .lock()
-                        .report(self.file, callee_as_path.lhs.pos(), msg);
+                        .report(self.file_id, callee_as_path.lhs.pos(), msg);
                 }
 
                 let used_type_params = if type_params.is_empty() {
@@ -1837,10 +1850,11 @@ impl<'a> TypeCheck<'a> {
                     )
                 } else {
                     let name = self.vm.interner.str(method_name).to_string();
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file, e.pos, SemError::UnknownEnumValue(name));
+                    self.vm.diag.lock().report(
+                        self.file_id,
+                        e.pos,
+                        SemError::UnknownEnumValue(name),
+                    );
 
                     SourceType::Error
                 }
@@ -1852,7 +1866,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm
                         .diag
                         .lock()
-                        .report(self.file, callee_as_path.lhs.pos(), msg);
+                        .report(self.file_id, callee_as_path.lhs.pos(), msg);
                 }
 
                 let ty = SourceType::TypeParam(id);
@@ -1865,7 +1879,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm
                         .diag
                         .lock()
-                        .report(self.file, callee_as_path.lhs.pos(), msg);
+                        .report(self.file_id, callee_as_path.lhs.pos(), msg);
                 }
 
                 let (sym_term, sym_type) = {
@@ -1880,7 +1894,7 @@ impl<'a> TypeCheck<'a> {
 
             (_, _) => {
                 let msg = SemError::ClassExpected;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
 
@@ -1930,7 +1944,7 @@ impl<'a> TypeCheck<'a> {
             .map(|t| t.name_fct(self.vm, self.fct))
             .collect();
         let msg = SemError::UnknownCtor(name, arg_types);
-        self.vm.diag.lock().report(self.file, e.pos, msg);
+        self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
         SourceType::Error
     }
@@ -1946,7 +1960,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let msg = SemError::SuperUnavailable;
-        self.vm.diag.lock().report(self.file, pos, msg);
+        self.vm.diag.lock().report(self.file_id, pos, msg);
 
         SourceType::Error
     }
@@ -1977,7 +1991,7 @@ impl<'a> TypeCheck<'a> {
             ident.name
         } else {
             let msg = SemError::ExpectedSomeIdentifier;
-            self.vm.diag.lock().report(self.file, e.rhs.pos(), msg);
+            self.vm.diag.lock().report(self.file_id, e.rhs.pos(), msg);
             return SourceType::Error;
         };
 
@@ -1997,7 +2011,7 @@ impl<'a> TypeCheck<'a> {
 
             _ => {
                 let msg = SemError::InvalidLeftSideOfSeparator;
-                self.vm.diag.lock().report(self.file, e.lhs.pos(), msg);
+                self.vm.diag.lock().report(self.file_id, e.lhs.pos(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 SourceType::Error
@@ -2016,7 +2030,7 @@ impl<'a> TypeCheck<'a> {
                 self.vm
                     .diag
                     .lock()
-                    .report(self.file, expr_path.rhs.pos(), msg);
+                    .report(self.file_id, expr_path.rhs.pos(), msg);
                 return Err(());
             };
 
@@ -2032,7 +2046,7 @@ impl<'a> TypeCheck<'a> {
 
                 _ => {
                     let msg = SemError::ExpectedNamespace;
-                    self.vm.diag.lock().report(self.file, expr.pos(), msg);
+                    self.vm.diag.lock().report(self.file_id, expr.pos(), msg);
                     Err(())
                 }
             }
@@ -2044,7 +2058,7 @@ impl<'a> TypeCheck<'a> {
             Ok((sym_term, sym_type))
         } else {
             let msg = SemError::ExpectedSomeIdentifier;
-            self.vm.diag.lock().report(self.file, expr.pos(), msg);
+            self.vm.diag.lock().report(self.file_id, expr.pos(), msg);
             Err(())
         }
     }
@@ -2063,19 +2077,33 @@ impl<'a> TypeCheck<'a> {
         let sym_type = table.get_type(element_name);
 
         match (sym_term, sym_type) {
-            (Some(TermSym::Global(globalid)), _) => {
-                let glob = self.vm.globals.idx(globalid);
+            (Some(TermSym::Global(global_id)), _) => {
+                if !global_accessible_from(self.vm, global_id, self.namespace_id) {
+                    let global = &self.vm.globals.idx(global_id);
+                    let global = global.read();
+                    let msg = SemError::NotAccessible(global.name(self.vm));
+                    self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+                }
+
+                let glob = self.vm.globals.idx(global_id);
                 let ty = glob.read().ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
 
                 self.analysis
                     .map_idents
-                    .insert(e.id, IdentType::Global(globalid));
+                    .insert(e.id, IdentType::Global(global_id));
 
                 ty
             }
 
             (Some(TermSym::Const(const_id)), _) => {
+                if !const_accessible_from(self.vm, const_id, self.namespace_id) {
+                    let xconst = self.vm.consts.idx(const_id);
+                    let xconst = xconst.read();
+                    let msg = SemError::NotAccessible(xconst.name(self.vm));
+                    self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+                }
+
                 let xconst = self.vm.consts.idx(const_id);
                 let xconst = xconst.read();
 
@@ -2136,7 +2164,7 @@ impl<'a> TypeCheck<'a> {
             self.vm,
             self.fct,
             ty.clone(),
-            ErrorReporting::Yes(self.file, expr_pos),
+            ErrorReporting::Yes(self.file_id, expr_pos),
         );
 
         if let Some(&value) = xenum.name_to_value.get(&name) {
@@ -2157,7 +2185,7 @@ impl<'a> TypeCheck<'a> {
                     variant_types,
                     arg_types,
                 );
-                self.vm.diag.lock().report(self.file, expr_pos, msg);
+                self.vm.diag.lock().report(self.file_id, expr_pos, msg);
             }
 
             self.analysis.map_idents.insert(
@@ -2169,7 +2197,7 @@ impl<'a> TypeCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.file, expr_pos, SemError::UnknownEnumValue(name));
+                .report(self.file_id, expr_pos, SemError::UnknownEnumValue(name));
         }
 
         if type_params_ok {
@@ -2209,7 +2237,7 @@ impl<'a> TypeCheck<'a> {
                     self.vm
                         .diag
                         .lock()
-                        .report(self.file, e.pos, SemError::NoTypeParamsExpected);
+                        .report(self.file_id, e.pos, SemError::NoTypeParamsExpected);
 
                     self.analysis.set_ty(e.id, SourceType::Error);
                     SourceType::Error
@@ -2220,7 +2248,10 @@ impl<'a> TypeCheck<'a> {
                 container_expr.name
             } else {
                 let msg = SemError::ExpectedSomeIdentifier;
-                self.vm.diag.lock().report(self.file, path.lhs.pos(), msg);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file_id, path.lhs.pos(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -2230,7 +2261,10 @@ impl<'a> TypeCheck<'a> {
                 ident.name
             } else {
                 let msg = SemError::ExpectedSomeIdentifier;
-                self.vm.diag.lock().report(self.file, path.rhs.pos(), msg);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file_id, path.rhs.pos(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -2250,7 +2284,7 @@ impl<'a> TypeCheck<'a> {
 
                 _ => {
                     let msg = SemError::NoTypeParamsExpected;
-                    self.vm.diag.lock().report(self.file, e.pos, msg);
+                    self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
                     self.analysis.set_ty(e.id, SourceType::Error);
                     SourceType::Error
@@ -2260,7 +2294,7 @@ impl<'a> TypeCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.file, e.pos, SemError::NoTypeParamsExpected);
+                .report(self.file_id, e.pos, SemError::NoTypeParamsExpected);
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
@@ -2283,7 +2317,7 @@ impl<'a> TypeCheck<'a> {
             self.vm,
             self.fct,
             ty.clone(),
-            ErrorReporting::Yes(self.file, expr_pos),
+            ErrorReporting::Yes(self.file_id, expr_pos),
         );
 
         let variant = &xenum.variants[variant_id];
@@ -2299,7 +2333,7 @@ impl<'a> TypeCheck<'a> {
             let arg_types = Vec::new();
             let msg =
                 SemError::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
-            self.vm.diag.lock().report(self.file, expr_pos, msg);
+            self.vm.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
         self.analysis.map_idents.insert(
@@ -2332,7 +2366,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let msg = SemError::NameExpected;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -2366,7 +2400,7 @@ impl<'a> TypeCheck<'a> {
             let field_name = self.vm.interner.str(name).to_string();
             let expr_name = object_type.name_fct(self.vm, self.fct);
             let msg = SemError::UnknownField(field_name, expr_name);
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
         self.analysis.set_ty(e.id, SourceType::Error);
@@ -2380,7 +2414,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let msg = SemError::IndexExpected;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -2396,7 +2430,7 @@ impl<'a> TypeCheck<'a> {
 
         if index >= tuple.len() as u64 {
             let msg = SemError::IllegalTupleIndex(index, object_type.name_fct(self.vm, self.fct));
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
@@ -2439,7 +2473,7 @@ impl<'a> TypeCheck<'a> {
 
             _ => {
                 let msg = SemError::ThisUnavailable;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
                 self.analysis.set_ty(e.id, SourceType::Unit);
 
                 SourceType::Unit
@@ -2449,7 +2483,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_super(&mut self, e: &ExprSuperType, _expected_ty: SourceType) -> SourceType {
         let msg = SemError::SuperNeedsMethodCall;
-        self.vm.diag.lock().report(self.file, e.pos, msg);
+        self.vm.diag.lock().report(self.file_id, e.pos, msg);
         self.analysis.set_ty(e.id, SourceType::Unit);
 
         SourceType::Unit
@@ -2487,7 +2521,7 @@ impl<'a> TypeCheck<'a> {
             self.vm
                 .diag
                 .lock()
-                .report(self.file, e.pos, SemError::ReferenceTypeExpected(name));
+                .report(self.file_id, e.pos, SemError::ReferenceTypeExpected(name));
             let ty = if e.is {
                 SourceType::Bool
             } else {
@@ -2510,7 +2544,7 @@ impl<'a> TypeCheck<'a> {
             let object_type = object_type.name_fct(self.vm, self.fct);
             let check_type = check_type.name_fct(self.vm, self.fct);
             let msg = SemError::TypesIncompatible(object_type, check_type);
-            self.vm.diag.lock().report(self.file, e.pos, msg);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
         self.analysis.map_convs.insert(
@@ -2534,7 +2568,7 @@ impl<'a> TypeCheck<'a> {
         negate: bool,
         expected_ty: SourceType,
     ) -> SourceType {
-        let (ty, _) = check_lit_int(self.vm, self.file, e, negate, expected_ty);
+        let (ty, _) = check_lit_int(self.vm, self.file_id, e, negate, expected_ty);
 
         self.analysis.set_ty(e.id, ty.clone());
 
@@ -2547,7 +2581,7 @@ impl<'a> TypeCheck<'a> {
         negate: bool,
         _expected_ty: SourceType,
     ) -> SourceType {
-        let (ty, _) = check_lit_float(self.vm, self.file, e, negate);
+        let (ty, _) = check_lit_float(self.vm, self.file_id, e, negate);
 
         self.analysis.set_ty(e.id, ty.clone());
 
@@ -2597,10 +2631,11 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let ty = part_expr.name_fct(self.vm, self.fct);
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.file, part.pos(), SemError::ExpectedStringable(ty));
+                self.vm.diag.lock().report(
+                    self.file_id,
+                    part.pos(),
+                    SemError::ExpectedStringable(ty),
+                );
             } else {
                 assert!(part.is_lit_str());
             }

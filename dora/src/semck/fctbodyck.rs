@@ -26,7 +26,8 @@ pub fn check(vm: &VM) {
             let mut typeck = TypeCheck {
                 vm,
                 fct: &fct,
-                file: fct.file_id,
+                file_id: fct.file_id,
+                namespace_id: fct.namespace_id,
                 analysis: &mut analysis,
                 ast: &fct.ast,
                 symtable: symtable,

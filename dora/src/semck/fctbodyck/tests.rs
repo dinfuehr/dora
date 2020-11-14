@@ -2356,8 +2356,17 @@ fn namespace_path_in_type() {
 fn namespace_global() {
     ok("
         fun f(): Int32 { foo::x }
-        namespace foo { var x: Int32 = 1; }
+        namespace foo { @pub var x: Int32 = 1; }
     ");
+
+    err(
+        "
+        fun f(): Int32 { foo::x }
+        namespace foo { var x: Int32 = 1; }
+    ",
+        pos(2, 9),
+        SemError::NotAccessible("foo::x".into()),
+    );
 }
 
 #[test]
@@ -2397,12 +2406,21 @@ fn namespace_class() {
 fn namespace_const() {
     ok("
         fun f(): Int32 { foo::x }
-        namespace foo { const x: Int32 = 1; }
+        namespace foo { @pub const x: Int32 = 1; }
     ");
+
+    err(
+        "
+        fun f(): Int32 { foo::x }
+        namespace foo { const x: Int32 = 1; }
+    ",
+        pos(2, 9),
+        SemError::NotAccessible("foo::x".into()),
+    );
 
     ok("
         fun f(): Int32 { foo::bar::x }
-        namespace foo { namespace bar { const x: Int32 = 1; } }
+        namespace foo { @pub namespace bar { @pub const x: Int32 = 1; } }
     ");
 }
 
