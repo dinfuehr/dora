@@ -2431,41 +2431,41 @@ fn namespace_import() {
     ok("
         import foo::bar;
         fun f() { bar(); }
-        namespace foo { fun bar() {} }
+        namespace foo { @pub fun bar() {} }
     ");
 
     ok("
         import foo::bar::baz;
         fun f() { baz(); }
         namespace foo { @pub namespace bar {
-            fun baz() {}
+            @pub fun baz() {}
         } }
     ");
 
     ok("
         import foo::bar as baz;
         fun f() { baz(); }
-        namespace foo { fun bar() {} }
+        namespace foo { @pub fun bar() {} }
     ");
 
     ok("
         import foo::bar;
         fun f(): Int32 { bar }
-        namespace foo { var bar: Int32 = 10; }
+        namespace foo { @pub var bar: Int32 = 10; }
     ");
 
     ok("
         import foo::bar::baz;
         fun f(): Int32 { baz }
         namespace foo { @pub namespace bar {
-            var baz: Int32 = 10;
+            @pub var baz: Int32 = 10;
         } }
     ");
 
     ok("
         import foo::bar;
         fun f(): Int32 { bar }
-        namespace foo { var bar: Int32 = 10; }
+        namespace foo { @pub var bar: Int32 = 10; }
     ");
 }
 

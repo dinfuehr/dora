@@ -1,26 +1,26 @@
-@internal fun fatalError(msg: String);
-@internal fun abort();
-@internal fun exit(status: Int32);
-@internal fun unreachable[T](): T;
+@pub @internal fun fatalError(msg: String);
+@pub @internal fun abort();
+@pub @internal fun exit(status: Int32);
+@pub @internal fun unreachable[T](): T;
 
 fun unimplemented() = fatalError("not yet implemented");
 
-@internal fun print(text: String);
-@internal fun println(text: String);
-@internal fun assert(val: Bool);
-@internal fun debug();
-@internal fun argc(): Int32;
-@internal fun argv(idx: Int32): String;
-@internal fun forceCollect();
-@internal fun forceMinorCollect();
+@pub @internal fun print(text: String);
+@pub @internal fun println(text: String);
+@pub @internal fun assert(val: Bool);
+@pub @internal fun debug();
+@pub @internal fun argc(): Int32;
+@pub @internal fun argv(idx: Int32): String;
+@pub @internal fun forceCollect();
+@pub @internal fun forceMinorCollect();
 
-@internal fun call(fct: String);
+@pub @internal fun call(fct: String);
 
-@internal fun timestamp(): Int64;
+@pub @internal fun timestamp(): Int64;
 
-class Object
+@pub class Object
 
-fun bubbleSort[T: Comparable](array: Array[T]) {
+@pub fun bubbleSort[T: Comparable](array: Array[T]) {
   let len = array.size();
   var swapped = true;
 
@@ -112,4 +112,4 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
 @internal fun unsafeLoadEnumElement[T, R](xenum: T, variant_id: Int32, element: Int32): R;
 @internal fun unsafeIsNull[T](value: T): Bool;
 
-@internal fun sleep(seconds: Int32);
+@pub @internal fun sleep(seconds: Int32);

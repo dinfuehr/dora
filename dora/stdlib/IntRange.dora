@@ -4,7 +4,7 @@ class IntRange(let lower: Int32, let upper: Int32) {
   }
 }
 
-fun range(lower: Int32, upper: Int32): IntRange = IntRange(lower, upper);
+@pub fun range(lower: Int32, upper: Int32): IntRange = IntRange(lower, upper);
 
 class IntRangeIter(let range: IntRange) {
   var value: Int32 = range.lower;

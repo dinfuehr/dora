@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::mem;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, FileId, NamespaceId, VM};
+use crate::vm::{accessible_from, namespace_path, FctId, FileId, NamespaceId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -33,6 +33,7 @@ pub struct GlobalData {
     pub ast: Arc<ast::Global>,
     pub pos: Position,
     pub namespace_id: NamespaceId,
+    pub is_pub: bool,
     pub ty: SourceType,
     pub reassignable: bool,
     pub name: Name,
@@ -44,6 +45,10 @@ pub struct GlobalData {
 impl GlobalData {
     pub fn needs_initialization(&self) -> bool {
         self.initializer.is_some() && !self.is_initialized()
+    }
+
+    pub fn name(&self, vm: &VM) -> String {
+        namespace_path(vm, self.namespace_id, self.name)
     }
 
     fn is_initialized(&self) -> bool {
@@ -85,4 +90,11 @@ pub fn init_global_addresses(vm: &VM) {
         glob.address_init = ptr.offset(initialized as usize);
         glob.address_value = ptr.offset(value as usize);
     }
+}
+
+pub fn global_accessible_from(vm: &VM, global_id: GlobalId, namespace_id: NamespaceId) -> bool {
+    let global = vm.globals.idx(global_id);
+    let global = global.read();
+
+    accessible_from(vm, global.namespace_id, global.is_pub, namespace_id)
 }
