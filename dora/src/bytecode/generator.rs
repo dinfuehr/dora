@@ -1191,6 +1191,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
+            CallType::Struct(_, _) => unreachable!(),
         }
     }
 
@@ -2639,8 +2640,9 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::GenericMethod(_, _, _) => TypeList::empty(),
             CallType::GenericStaticMethod(_, _, _) => TypeList::empty(),
 
-            CallType::Enum(_, _) => unimplemented!(),
+            CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
+            CallType::Struct(_, _) => unreachable!(),
         }
     }
 
@@ -2701,8 +2703,9 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            CallType::Enum(_, _) => unimplemented!(),
+            CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
+            CallType::Struct(_, _) => unreachable!(),
         };
 
         self.specialize_type(ty)

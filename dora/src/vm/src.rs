@@ -225,6 +225,9 @@ pub enum CallType {
     // Construct enum value
     Enum(SourceType, usize),
 
+    // Struct constructor call Struct(<args>)
+    Struct(StructId, TypeList),
+
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),
 }
@@ -285,6 +288,7 @@ impl CallType {
             CallType::GenericStaticMethod(_, _, fctid) => Some(fctid),
             CallType::Intrinsic(_) => None,
             CallType::Enum(_, _) => None,
+            CallType::Struct(_, _) => None,
         }
     }
 }
