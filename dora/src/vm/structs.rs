@@ -8,7 +8,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{accessible_from, FileId, NamespaceId, TypeList, TypeParam, VM};
+use crate::vm::{accessible_from, namespace_path, FileId, NamespaceId, TypeList, TypeParam, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
@@ -37,6 +37,12 @@ pub struct StructData {
     pub name: Name,
     pub fields: Vec<StructFieldData>,
     pub specializations: RwLock<HashMap<TypeList, StructDefId>>,
+}
+
+impl StructData {
+    pub fn name(&self, vm: &VM) -> String {
+        namespace_path(vm, self.namespace_id, self.name)
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

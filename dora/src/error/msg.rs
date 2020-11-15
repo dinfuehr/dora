@@ -40,6 +40,7 @@ pub enum SemError {
     InvalidLhsAssignment,
     NoEnumValue,
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
+    StructArgsIncompatible(String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
     EnumExpected,
     VarNeedsTypeInfo(String),
@@ -244,6 +245,15 @@ impl SemError {
                 format!(
                     "enum `{}::{}({})` cannot be called as `{}({})`",
                     xenum, name, def, name, expr
+                )
+            }
+            SemError::StructArgsIncompatible(ref xstruct, ref def, ref expr) => {
+                let def = def.join(", ");
+                let expr = expr.join(", ");
+
+                format!(
+                    "struct `{}({})` cannot be called as `{}({})`",
+                    xstruct, def, xstruct, expr
                 )
             }
             SemError::EnumArgsNoParens(ref name, ref variant) => {

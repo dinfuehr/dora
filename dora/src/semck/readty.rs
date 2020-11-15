@@ -5,8 +5,8 @@ use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
-    class_accessible_from, ensure_tuple, enum_accessible_from, trait_accessible_from, ClassId,
-    EnumId, FileId, NamespaceId, VM,
+    class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
+    trait_accessible_from, ClassId, EnumId, FileId, NamespaceId, StructId, VM,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -83,15 +83,7 @@ fn read_type_basic(
             Some(SourceType::TraitObject(trait_id))
         }
 
-        TypeSym::Struct(struct_id) => {
-            if basic.params.len() > 0 {
-                let msg = SemError::NoTypeParamsExpected;
-                vm.diag.lock().report(file_id, basic.pos, msg);
-            }
-
-            let list_id = vm.lists.lock().insert(TypeList::empty());
-            Some(SourceType::Struct(struct_id, list_id))
-        }
+        TypeSym::Struct(struct_id) => read_type_struct(vm, table, file_id, basic, struct_id),
 
         TypeSym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id),
 
@@ -206,6 +198,73 @@ fn read_type_enum(
     let list = TypeList::with(type_params);
     let list_id = vm.lists.lock().insert(list);
     Some(SourceType::Enum(xenum.id, list_id))
+}
+
+fn read_type_struct(
+    vm: &VM,
+    table: &NestedSymTable,
+    file_id: FileId,
+    basic: &TypeBasicType,
+    struct_id: StructId,
+) -> Option<SourceType> {
+    if !struct_accessible_from(vm, struct_id, table.namespace_id()) {
+        let xstruct = vm.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+        let msg = SemError::NotAccessible(xstruct.name(vm));
+        vm.diag.lock().report(file_id, basic.pos, msg);
+    }
+
+    let mut type_params = Vec::new();
+
+    for param in &basic.params {
+        let param = read_type_common(vm, table, file_id, param);
+
+        if let Some(param) = param {
+            type_params.push(param);
+        } else {
+            return None;
+        }
+    }
+
+    let xstruct = vm.structs.idx(struct_id);
+    let xstruct = xstruct.read();
+
+    if xstruct.type_params.len() != type_params.len() {
+        let msg = SemError::WrongNumberTypeParams(xstruct.type_params.len(), type_params.len());
+        vm.diag.lock().report(file_id, basic.pos, msg);
+        return None;
+    }
+
+    if type_params.len() == 0 {
+        let list_id = vm.lists.lock().insert(TypeList::empty());
+        let ty = SourceType::Struct(struct_id, list_id);
+        return Some(ty);
+    }
+
+    for (tp, ty) in xstruct.type_params.iter().zip(type_params.iter()) {
+        let cls_id = if let Some(cls_id) = ty.cls_id(vm) {
+            cls_id
+        } else {
+            continue;
+        };
+
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &trait_bound in &tp.trait_bounds {
+            if !cls.implements_trait(vm, trait_bound) {
+                let bound = vm.traits[trait_bound].read();
+                let name = ty.name_cls(vm, &*cls);
+                let trait_name = vm.interner.str(bound.name).to_string();
+                let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+                vm.diag.lock().report(file_id, basic.pos, msg);
+            }
+        }
+    }
+
+    let list = TypeList::with(type_params);
+    let list_id = vm.lists.lock().insert(list);
+    Some(SourceType::Struct(struct_id, list_id))
 }
 
 fn read_type_class(

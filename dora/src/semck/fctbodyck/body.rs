@@ -13,8 +13,9 @@ use crate::ty::{SourceType, TypeList, TypeListId};
 use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
     fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
-    AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo,
-    IdentType, Intrinsic, NamespaceId, StructId, Var, VarId, VM,
+    struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
+    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId, Var,
+    VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -1668,12 +1669,78 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_struct(
         &mut self,
-        _e: &ExprCallType,
-        _struct_id: StructId,
-        _type_params: TypeList,
-        _arg_types: &[SourceType],
+        e: &ExprCallType,
+        struct_id: StructId,
+        type_params: TypeList,
+        arg_types: &[SourceType],
     ) -> SourceType {
-        unimplemented!()
+        if !struct_accessible_from(self.vm, struct_id, self.namespace_id) {
+            let xstruct = self.vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+            let msg = SemError::NotAccessible(xstruct.name(self.vm));
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
+        }
+
+        let xstruct = self.vm.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+
+        let list_id = self.vm.lists.lock().insert(type_params.clone());
+        let ty = SourceType::Struct(struct_id, list_id);
+        let type_params_ok = typeparamck::check_struct(
+            self.vm,
+            self.fct,
+            struct_id,
+            &type_params,
+            ErrorReporting::Yes(self.file_id, e.pos),
+        );
+
+        if !self.check_expr_call_struct_args(&*xstruct, type_params.clone(), arg_types) {
+            let struct_name = self.vm.interner.str(xstruct.name).to_string();
+            let field_types = xstruct
+                .fields
+                .iter()
+                .map(|field| field.ty.name_fct(self.vm, self.fct))
+                .collect::<Vec<_>>();
+            let arg_types = arg_types
+                .iter()
+                .map(|a| a.name_fct(self.vm, self.fct))
+                .collect::<Vec<_>>();
+            let msg = SemError::StructArgsIncompatible(struct_name, field_types, arg_types);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
+        }
+
+        if type_params_ok {
+            self.analysis
+                .map_calls
+                .insert(e.id, Arc::new(CallType::Struct(struct_id, type_params)));
+
+            self.analysis.set_ty(e.id, ty.clone());
+            ty
+        } else {
+            self.analysis.set_ty(e.id, SourceType::Error);
+            SourceType::Error
+        }
+    }
+
+    fn check_expr_call_struct_args(
+        &mut self,
+        xstruct: &StructData,
+        type_params: TypeList,
+        arg_types: &[SourceType],
+    ) -> bool {
+        if xstruct.fields.len() != arg_types.len() {
+            return false;
+        }
+
+        for (def_ty, arg_ty) in xstruct.fields.iter().zip(arg_types) {
+            let def_ty = replace_type_param(self.vm, def_ty.ty.clone(), &type_params, None);
+
+            if !def_ty.allows(self.vm, arg_ty.clone()) {
+                return false;
+            }
+        }
+
+        true
     }
 
     fn check_expr_call_ctor(

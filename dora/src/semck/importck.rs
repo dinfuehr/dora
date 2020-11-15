@@ -6,7 +6,7 @@ use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::vm::{
     class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
     global_accessible_from, module_accessible_from, namespace_accessible_from, namespace_package,
-    trait_accessible_from, EnumId, ImportData, NamespaceId, VM,
+    struct_accessible_from, trait_accessible_from, EnumId, ImportData, NamespaceId, VM,
 };
 
 use dora_parser::ast::ImportContext;
@@ -231,6 +231,24 @@ fn import_namespace(
             }
         }
 
+        (Some(sym_term), Some(TypeSym::Struct(struct_id))) => {
+            if !struct_accessible_from(vm, struct_id, import.namespace_id) {
+                let xstruct = vm.structs.idx(struct_id);
+                let xstruct = xstruct.read();
+                let msg = SemError::NotAccessible(xstruct.name(vm));
+                vm.diag.lock().report(import.file_id, import.ast.pos, msg);
+            }
+
+            let new_sym = TypeSym::Struct(struct_id);
+            let old_sym = table.write().insert_type(target_name, new_sym);
+            if let Some(old_sym) = old_sym {
+                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+            } else {
+                let result = table.write().insert_term(target_name, sym_term);
+                assert!(result.is_none());
+            }
+        }
+
         (Some(TermSym::Module(module_id)), None) => {
             if !module_accessible_from(vm, module_id, import.namespace_id) {
                 let module = vm.modules.idx(module_id);
@@ -443,6 +461,27 @@ mod tests {
             import foo::Bar;
             namespace foo {
                 trait Bar {}
+            }
+        ",
+            pos(2, 13),
+            SemError::NotAccessible("foo::Bar".into()),
+        );
+    }
+
+    #[test]
+    fn import_struct() {
+        ok("
+            import foo::Bar;
+            namespace foo {
+                @pub struct Bar { f: Int32 }
+            }
+        ");
+
+        err(
+            "
+            import foo::Bar;
+            namespace foo {
+                struct Bar { f: Int32 }
             }
         ",
             pos(2, 13),

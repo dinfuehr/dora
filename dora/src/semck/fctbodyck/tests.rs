@@ -1629,6 +1629,16 @@ fn test_subtyping() {
 }
 
 #[test]
+fn test_struct() {
+    ok("struct Foo { f1: Int32 } fun f(): Foo { Foo(1) }");
+    err(
+        "struct Foo { f1: Int32 } fun f(): Foo { Foo(1) }",
+        pos(1, 1),
+        SemError::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], vec!["String".into()]),
+    );
+}
+
+#[test]
 fn test_enum() {
     ok("enum A { V1, V2 }");
     ok("enum A { V1, V2 } fun f(a: A): A { return a; }");
@@ -2440,6 +2450,45 @@ fn namespace_class() {
             class Bar
         }
     ");
+}
+
+#[test]
+fn namespace_struct() {
+    err(
+        "
+        fun f() { foo::Foo(1); }
+        namespace foo {
+            struct Foo { f: Int32 }
+        }
+    ",
+        pos(2, 27),
+        SemError::NotAccessible("foo::Foo".into()),
+    );
+
+    ok("
+        fun f() { foo::Foo(1); }
+        namespace foo {
+            @pub struct Foo { f: Int32 }
+        }
+    ");
+
+    ok("
+        fun f(value: foo::Foo) {}
+        namespace foo {
+            @pub struct Foo { f: Int32 }
+        }
+    ");
+
+    err(
+        "
+        fun f(value: foo::Foo) {}
+        namespace foo {
+            struct Foo { f: Int32 }
+        }
+    ",
+        pos(2, 22),
+        SemError::NotAccessible("foo::Foo".into()),
+    );
 }
 
 #[test]

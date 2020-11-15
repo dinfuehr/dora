@@ -4,7 +4,7 @@ use std::collections::hash_set::HashSet;
 
 use crate::error::msg::SemError;
 use crate::ty::{SourceType, TypeList};
-use crate::vm::{Class, ClassId, Fct, FileId, TraitId, TypeParam, VM};
+use crate::vm::{Class, ClassId, Fct, FileId, StructId, TraitId, TypeParam, VM};
 
 pub enum ErrorReporting {
     Yes(FileId, Position),
@@ -57,6 +57,30 @@ pub fn check_enum(vm: &VM, fct: &Fct, ty: SourceType, error: ErrorReporting) -> 
     let params = ty.type_params(vm);
 
     checker.check(&params)
+}
+
+pub fn check_struct(
+    vm: &VM,
+    fct: &Fct,
+    struct_id: StructId,
+    type_params: &TypeList,
+    error: ErrorReporting,
+) -> bool {
+    let tp_defs = {
+        let xstruct = vm.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+        xstruct.type_params.to_vec()
+    };
+
+    let checker = TypeParamCheck {
+        vm,
+        use_fct: Some(fct),
+        use_cls_id: None,
+        error,
+        tp_defs: &tp_defs,
+    };
+
+    checker.check(type_params)
 }
 
 pub fn check_super<'a>(vm: &VM, cls: &Class, error: ErrorReporting) -> bool {
