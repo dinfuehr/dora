@@ -1629,6 +1629,7 @@ fn test_subtyping() {
 }
 
 #[test]
+#[ignore]
 fn test_struct() {
     ok("struct Foo { f1: Int32 } fun f(): Foo { Foo(1) }");
     err(
