@@ -466,6 +466,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Struct)?.position;
         let ident = self.expect_identifier()?;
+        let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace)?;
         let fields = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
@@ -480,6 +481,7 @@ impl<'a> Parser<'a> {
             span,
             fields,
             is_pub: modifiers.contains(Modifier::Pub),
+            type_params,
         })
     }
 
@@ -3551,6 +3553,20 @@ mod tests {
 
         let f2 = &struc.fields[1];
         assert_eq!("fb", *interner.str(f2.name));
+    }
+
+    #[test]
+    fn parse_struct_with_type_params() {
+        let (prog, interner) = parse(
+            "struct Bar[T1, T2] {
+            f1: T1, f2: T2,
+        }",
+        );
+        let xstruct = prog.struct0();
+        assert_eq!(2, xstruct.fields.len());
+        assert_eq!("Bar", *interner.str(xstruct.name));
+
+        assert_eq!(2, xstruct.type_params.as_ref().unwrap().len());
     }
 
     #[test]

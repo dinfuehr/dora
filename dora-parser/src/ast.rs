@@ -321,6 +321,7 @@ pub struct Struct {
     pub name: Name,
     pub fields: Vec<StructField>,
     pub is_pub: bool,
+    pub type_params: Option<Vec<TypeParam>>,
 }
 
 #[derive(Clone, Debug)]

@@ -37,7 +37,7 @@ pub fn check_in_fct<'a>(
     checker.check(&params)
 }
 
-pub fn check_enum<'a>(vm: &VM, fct: &Fct, ty: SourceType, error: ErrorReporting) -> bool {
+pub fn check_enum(vm: &VM, fct: &Fct, ty: SourceType, error: ErrorReporting) -> bool {
     let enum_id = ty.enum_id().expect("not an enum");
 
     let tp_defs = {

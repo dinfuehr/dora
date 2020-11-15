@@ -471,7 +471,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id = {
             let mut structs = self.vm.structs.lock();
             let id: StructId = (structs.len() as u32).into();
-            let struc = StructData {
+            let mut xstruct = StructData {
                 id,
                 file_id: self.file_id,
                 ast: node.clone(),
@@ -479,11 +479,18 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 is_pub: node.is_pub,
                 pos: node.pos,
                 name: node.name,
+                type_params: Vec::new(),
                 fields: Vec::new(),
                 specializations: RwLock::new(HashMap::new()),
             };
 
-            structs.push(Arc::new(RwLock::new(struc)));
+            if let Some(ref type_params) = node.type_params {
+                for param in type_params {
+                    xstruct.type_params.push(TypeParam::new(param.name));
+                }
+            }
+
+            structs.push(Arc::new(RwLock::new(xstruct)));
 
             id
         };
