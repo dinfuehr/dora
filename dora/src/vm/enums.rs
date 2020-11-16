@@ -169,7 +169,7 @@ impl EnumDef {
 
         self.variants[variant_id] = Some(id);
 
-        let class_def = Arc::new(RwLock::new(ClassDef {
+        let class_def = Arc::new(ClassDef {
             id,
             cls_id: None,
             type_params: TypeList::empty(),
@@ -178,11 +178,9 @@ impl EnumDef {
             fields,
             ref_fields,
             vtable: RwLock::new(None),
-        }));
+        });
 
         class_defs.push(class_def.clone());
-
-        let class_def = class_def.read();
 
         let clsptr = &*class_def as *const ClassDef as *mut ClassDef;
         let vtable = VTableBox::new(clsptr, instance_size as usize, 0, &[]);

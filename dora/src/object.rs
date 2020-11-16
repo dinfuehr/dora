@@ -634,7 +634,6 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
 
     let clsid = vm.known.byte_array(vm);
     let cls = vm.class_defs.idx(clsid);
-    let cls = cls.read();
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<UInt8Array> = ptr.into();
@@ -657,7 +656,6 @@ pub fn int_array_alloc_heap(vm: &VM, len: usize) -> Ref<Int32Array> {
 
     let clsid = vm.known.int_array(vm);
     let cls = vm.class_defs.idx(clsid);
-    let cls = cls.read();
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<Int32Array> = ptr.into();
@@ -691,7 +689,6 @@ where
 
     let clsid = vm.known.str(vm);
     let cls = vm.class_defs.idx(clsid);
-    let cls = cls.read();
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<Str> = ptr.into();
@@ -791,7 +788,6 @@ where
 
         let ptr = vm.gc.alloc(vm, size, T::REF).to_usize();
         let cls = vm.class_defs.idx(clsid);
-        let cls = cls.read();
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let mut handle: Ref<Array<T>> = ptr.into();
@@ -830,7 +826,6 @@ pub type StrArray = Array<Ref<Str>>;
 
 pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
     let cls_def = vm.class_defs.idx(clsid);
-    let cls_def = cls_def.read();
 
     let size = match cls_def.size {
         InstanceSize::Fixed(size) => size as usize,
@@ -851,7 +846,6 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
 
 pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: Ref<Obj>) {
     let cls_def = vm.class_defs.idx(cls_id);
-    let cls_def = cls_def.read();
     let field = &cls_def.fields[fid.idx()];
     let slot = obj.address().offset(field.offset as usize);
     assert!(field.ty.reference_type());
@@ -863,7 +857,6 @@ pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value
 
 pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: i32) {
     let cls_def = vm.class_defs.idx(cls_id);
-    let cls_def = cls_def.read();
     let field = &cls_def.fields[fid.idx()];
     let slot = obj.address().offset(field.offset as usize);
     assert!(field.ty == SourceType::Int32);

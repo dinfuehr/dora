@@ -1058,7 +1058,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
-        let cls = cls.read();
 
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
@@ -1354,7 +1353,6 @@ impl<'a> CannonCodeGen<'a> {
                 let cls_def_id = edef.ensure_class_for_variant(self.vm, &*xenum, variant_id);
 
                 let cls = self.vm.class_defs.idx(cls_def_id);
-                let cls = cls.read();
 
                 self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.load_mem(
@@ -1707,7 +1705,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
-        let cls = cls.read();
 
         let field = &cls.fields[field_id.idx()];
 
@@ -1746,7 +1743,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
-        let cls = cls.read();
 
         let field = &cls.fields[field_id.idx()];
 
@@ -2151,7 +2147,6 @@ impl<'a> CannonCodeGen<'a> {
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
 
         let cls = self.vm.class_defs.idx(class_def_id);
-        let cls = cls.read();
 
         let alloc_size = match cls.size {
             InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
@@ -2213,7 +2208,6 @@ impl<'a> CannonCodeGen<'a> {
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
 
         let cls = self.vm.class_defs.idx(class_def_id);
-        let cls = cls.read();
 
         self.emit_load_register(length, REG_TMP1.into());
 
@@ -2388,7 +2382,6 @@ impl<'a> CannonCodeGen<'a> {
                 let cls_def_id = edef.ensure_class_for_variant(self.vm, &*xenum, variant_id);
 
                 let cls = self.vm.class_defs.idx(cls_def_id);
-                let cls = cls.read();
 
                 let alloc_size = match cls.size {
                     InstanceSize::Fixed(size) => size as usize,
@@ -3449,7 +3442,6 @@ impl<'a> CannonCodeGen<'a> {
                     edef.ensure_class_for_variant(self.vm, &*xenum, some_variant_id as usize);
 
                 let cls = self.vm.class_defs.idx(cdef_id);
-                let cls = cls.read();
 
                 let field = &cls.fields[1];
                 let dest_offset = self.register_offset(dest.expect("dest missing"));

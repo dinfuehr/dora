@@ -115,7 +115,7 @@ pub struct VM {
     pub structs: GrowableVec<RwLock<StructData>>, // stores all struct source definitions
     pub struct_defs: GrowableVec<RwLock<StructDef>>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<Class>>,    // stores all class source definitions
-    pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
+    pub class_defs: GrowableVec<ClassDef>,      // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,                  // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
@@ -440,7 +440,6 @@ impl VM {
 
     pub fn field_in_class(&self, cls_def_id: ClassDefId, name: &'static str) -> FieldId {
         let cls_def = self.class_defs.idx(cls_def_id);
-        let cls_def = cls_def.read();
 
         let cls_id = cls_def.cls_id.unwrap();
         let cls = self.classes.idx(cls_id);

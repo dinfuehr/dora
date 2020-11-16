@@ -430,8 +430,8 @@ impl From<usize> for ClassDefId {
     }
 }
 
-impl GrowableVec<RwLock<ClassDef>> {
-    pub fn idx(&self, index: ClassDefId) -> Arc<RwLock<ClassDef>> {
+impl GrowableVec<ClassDef> {
+    pub fn idx(&self, index: ClassDefId) -> Arc<ClassDef> {
         self.idx_usize(index.0)
     }
 }

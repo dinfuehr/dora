@@ -225,7 +225,6 @@ mod tests {
         ok_with_test(code, |vm| {
             let id = vm.cls_def_by_name(vm.global_namespace_id, name);
             let cls = vm.class_defs.idx(id);
-            let cls = cls.read();
             cls.size.clone()
         })
     }
@@ -244,7 +243,6 @@ mod tests {
     fn class_size_name(vm: &VM, name: &'static str) -> InstanceSize {
         let id = vm.cls_def_by_name(vm.global_namespace_id, name);
         let cls = vm.class_defs.idx(id);
-        let cls = cls.read();
         cls.size.clone()
     }
 

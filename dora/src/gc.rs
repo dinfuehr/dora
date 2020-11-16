@@ -499,7 +499,6 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
         // fill with object
         let cls_id = vm.known.obj(vm);
         let cls = vm.class_defs.idx(cls_id);
-        let cls = cls.read();
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
 
@@ -510,7 +509,6 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
         // fill with int array
         let cls_id = vm.known.int_array(vm);
         let cls = vm.class_defs.idx(cls_id);
-        let cls = cls.read();
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
 
@@ -534,7 +532,6 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
         // fill with FreeObject
         let cls_id = vm.known.free_object_class_def;
         let cls = vm.class_defs.idx(cls_id);
-        let cls = cls.read();
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
 
@@ -546,7 +543,6 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
         // fill with FreeArray
         let cls_id = vm.known.free_array_class_def;
         let cls = vm.class_defs.idx(cls_id);
-        let cls = cls.read();
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
 
