@@ -334,6 +334,19 @@ fn create_specialized_class_regular(vm: &VM, cls: &Class, type_params: &TypeList
     let stub = vm.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
+    let (instance_size, element_size) = match size {
+        InstanceSize::Fixed(instance_size) => (instance_size as usize, 0),
+        _ => unreachable!(),
+    };
+
+    let mut vtable = VTableBox::new(
+        std::ptr::null(),
+        instance_size,
+        element_size,
+        &vtable_entries,
+    );
+    ensure_display(vm, &mut vtable, parent_id);
+
     let mut class_defs = vm.class_defs.lock();
     let id: ClassDefId = class_defs.len().into();
 
@@ -357,22 +370,10 @@ fn create_specialized_class_regular(vm: &VM, cls: &Class, type_params: &TypeList
         vtable: RwLock::new(None),
     });
 
+    vtable.initialize_classptr(Arc::as_ptr(&class_def));
+    *class_def.vtable.write() = Some(vtable);
+
     class_defs.push(class_def.clone());
-
-    let class_def_ptr = Arc::as_ptr(&class_def);
-    let mut class_def_vtable = class_def.vtable.write();
-
-    std::mem::drop(specializations);
-    std::mem::drop(class_defs);
-
-    let (instance_size, element_size) = match size {
-        InstanceSize::Fixed(instance_size) => (instance_size as usize, 0),
-        _ => unreachable!(),
-    };
-
-    let mut vtable = VTableBox::new(class_def_ptr, instance_size, element_size, &vtable_entries);
-    ensure_display(vm, &mut vtable, parent_id);
-    *class_def_vtable = Some(vtable);
 
     id
 }
@@ -434,6 +435,24 @@ fn create_specialized_class_array(vm: &VM, cls: &Class, type_params: &TypeList) 
     let stub = vm.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
+    let (instance_size, element_size) = match size {
+        InstanceSize::Fixed(_) => unreachable!(),
+        InstanceSize::PrimitiveArray(element_size) => (0, element_size as usize),
+        InstanceSize::ObjArray => (0, mem::ptr_width_usize()),
+        InstanceSize::UnitArray => (Header::size() as usize + mem::ptr_width_usize(), 0),
+        InstanceSize::FreeArray => (0, mem::ptr_width_usize()),
+        InstanceSize::Str => (0, 1),
+        InstanceSize::TupleArray(element_size) => (0, element_size as usize),
+    };
+
+    let mut vtable = VTableBox::new(
+        std::ptr::null(),
+        instance_size,
+        element_size,
+        &vtable_entries,
+    );
+    ensure_display(vm, &mut vtable, Some(parent_cls_def_id));
+
     let mut class_defs = vm.class_defs.lock();
     let id: ClassDefId = class_defs.len().into();
 
@@ -442,6 +461,9 @@ fn create_specialized_class_array(vm: &VM, cls: &Class, type_params: &TypeList) 
     if let Some(&id) = specializations.get(type_params) {
         return id;
     }
+
+    let old = specializations.insert(type_params.clone(), id);
+    assert!(old.is_none());
 
     let class_def = Arc::new(ClassDef {
         id,
@@ -454,30 +476,10 @@ fn create_specialized_class_array(vm: &VM, cls: &Class, type_params: &TypeList) 
         vtable: RwLock::new(None),
     });
 
+    vtable.initialize_classptr(Arc::as_ptr(&class_def));
+    *class_def.vtable.write() = Some(vtable);
+
     class_defs.push(class_def.clone());
-
-    let old = specializations.insert(type_params.clone(), id);
-    assert!(old.is_none());
-
-    let class_def_ptr = Arc::as_ptr(&class_def);
-    let mut class_def_vtable = class_def.vtable.write();
-
-    std::mem::drop(specializations);
-    std::mem::drop(class_defs);
-
-    let (instance_size, element_size) = match size {
-        InstanceSize::Fixed(_) => unreachable!(),
-        InstanceSize::PrimitiveArray(element_size) => (0, element_size as usize),
-        InstanceSize::ObjArray => (0, mem::ptr_width_usize()),
-        InstanceSize::UnitArray => (Header::size() as usize + mem::ptr_width_usize(), 0),
-        InstanceSize::FreeArray => (0, mem::ptr_width_usize()),
-        InstanceSize::Str => (0, 1),
-        InstanceSize::TupleArray(element_size) => (0, element_size as usize),
-    };
-
-    let mut vtable = VTableBox::new(class_def_ptr, instance_size, element_size, &vtable_entries);
-    ensure_display(vm, &mut vtable, Some(parent_cls_def_id));
-    *class_def_vtable = Some(vtable);
 
     id
 }

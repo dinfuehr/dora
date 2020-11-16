@@ -95,6 +95,10 @@ impl VTable {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
+    pub fn initialize_classptr(&mut self, classptr: *const ClassDef) {
+        self.classptr = classptr;
+    }
+
     pub fn classptr(&self) -> *const ClassDef {
         self.classptr
     }
