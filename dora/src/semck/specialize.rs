@@ -362,10 +362,9 @@ fn create_specialized_class_regular(
     };
 
     let clsptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
-    let vtable = VTableBox::new(clsptr, instance_size, element_size, &vtable_entries);
+    let mut vtable = VTableBox::new(clsptr, instance_size, element_size, &vtable_entries);
+    ensure_display(vm, &mut vtable, parent_id);
     cls_def.vtable = Some(vtable);
-
-    ensure_display(vm, &mut cls_def);
 
     id
 }
@@ -449,29 +448,27 @@ fn create_specialized_class_array(
         InstanceSize::TupleArray(element_size) => (0, element_size as usize),
     };
 
-    let clsptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
-    let vtable = VTableBox::new(clsptr, instance_size, element_size, &vtable_entries);
+    let cls_def_ptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
+    let mut vtable = VTableBox::new(cls_def_ptr, instance_size, element_size, &vtable_entries);
+    ensure_display(vm, &mut vtable, Some(parent_cls_def_id));
     cls_def.vtable = Some(vtable);
-
-    ensure_display(vm, &mut cls_def);
 
     id
 }
 
-fn ensure_display(vm: &VM, cls_def: &mut ClassDef) -> usize {
-    let vtable = cls_def.vtable.as_mut().unwrap();
-
+fn ensure_display(vm: &VM, vtable: &mut VTableBox, parent_id: Option<ClassDefId>) -> usize {
     // if subtype_display[0] is set, vtable was already initialized
-    if !vtable.subtype_display[0].is_null() {
-        return vtable.subtype_depth as usize;
-    }
+    assert!(vtable.subtype_display[0].is_null());
 
-    if let Some(parent_id) = cls_def.parent_id {
+    if let Some(parent_id) = parent_id {
         let parent = vm.class_defs.idx(parent_id);
-        let mut parent = parent.write();
-        let depth = 1 + ensure_display(vm, &mut *parent);
+        let parent = parent.read();
 
         let parent_vtable = parent.vtable.as_ref().unwrap();
+        assert!(!parent_vtable.subtype_display[0].is_null());
+
+        let depth = 1 + parent_vtable.subtype_depth;
+
         let depth_fixed;
 
         if depth >= DISPLAY_SIZE {
