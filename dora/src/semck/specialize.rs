@@ -240,6 +240,32 @@ pub fn specialize_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDe
 fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
 
+    if cls.is_array || cls.is_str {
+        create_specialized_class_array(vm, cls, type_params)
+    } else {
+        create_specialized_class_regular(vm, cls, type_params)
+    }
+}
+
+fn create_specialized_class_regular(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
+    if let Some(parent_class) = cls.parent_class.clone() {
+        let parent_class = specialize_type(vm, parent_class, type_params);
+        specialize_class_ty(vm, parent_class);
+    }
+
+    for f in &cls.fields {
+        let ty = specialize_type(vm, f.ty.clone(), &type_params);
+        debug_assert!(!ty.contains_type_param(vm));
+
+        if let Some(tuple_id) = ty.tuple_id() {
+            let tuples = vm.tuples.lock();
+            tuples.get_tuple(tuple_id);
+        } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
+            let type_params = vm.lists.lock().get(type_params_id);
+            specialize_enum_id_params(vm, enum_id, type_params);
+        }
+    }
+
     let id = {
         let mut class_defs = vm.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
@@ -261,25 +287,12 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
             size: InstanceSize::Fixed(0),
             fields: Vec::new(),
             ref_fields: Vec::new(),
-            vtable: None,
+            vtable: RwLock::new(None),
         })));
 
         id
     };
 
-    if cls.is_array || cls.is_str {
-        create_specialized_class_array(vm, id, cls, type_params)
-    } else {
-        create_specialized_class_regular(vm, id, cls, type_params)
-    }
-}
-
-fn create_specialized_class_regular(
-    vm: &VM,
-    id: ClassDefId,
-    cls: &Class,
-    type_params: &TypeList,
-) -> ClassDefId {
     let mut csize;
     let mut fields;
     let mut ref_fields;
@@ -361,20 +374,48 @@ fn create_specialized_class_regular(
         _ => unreachable!(),
     };
 
-    let clsptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
-    let mut vtable = VTableBox::new(clsptr, instance_size, element_size, &vtable_entries);
+    let class_def_ptr = &*cls_def as *const ClassDef;
+    let mut vtable = VTableBox::new(class_def_ptr, instance_size, element_size, &vtable_entries);
     ensure_display(vm, &mut vtable, parent_id);
-    cls_def.vtable = Some(vtable);
+    *cls_def.vtable.write() = Some(vtable);
 
     id
 }
 
-fn create_specialized_class_array(
-    vm: &VM,
-    id: ClassDefId,
-    cls: &Class,
-    type_params: &TypeList,
-) -> ClassDefId {
+fn create_specialized_class_array(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
+    let parent_class = cls
+        .parent_class
+        .clone()
+        .expect("Array & String should have super class");
+    let parent_cls_def_id = specialize_class_ty(vm, parent_class);
+
+    let id = {
+        let mut class_defs = vm.class_defs.lock();
+        let id: ClassDefId = class_defs.len().into();
+
+        let mut specializations = cls.specializations.write();
+
+        if let Some(&id) = specializations.get(type_params) {
+            return id;
+        }
+
+        let old = specializations.insert(type_params.clone(), id);
+        assert!(old.is_none());
+
+        class_defs.push(Arc::new(RwLock::new(ClassDef {
+            id,
+            cls_id: Some(cls.id),
+            type_params: type_params.clone(),
+            parent_id: None,
+            size: InstanceSize::Fixed(0),
+            fields: Vec::new(),
+            ref_fields: Vec::new(),
+            vtable: RwLock::new(None),
+        })));
+
+        id
+    };
+
     let fields = Vec::new();
     let mut ref_fields = Vec::new();
 
@@ -422,12 +463,6 @@ fn create_specialized_class_array(
         InstanceSize::Str
     };
 
-    let parent_class = cls
-        .parent_class
-        .clone()
-        .expect("Array & String should have super class");
-    let parent_cls_def_id = specialize_class_ty(vm, parent_class);
-
     let stub = vm.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
@@ -448,10 +483,10 @@ fn create_specialized_class_array(
         InstanceSize::TupleArray(element_size) => (0, element_size as usize),
     };
 
-    let cls_def_ptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
+    let cls_def_ptr = &*cls_def as *const ClassDef;
     let mut vtable = VTableBox::new(cls_def_ptr, instance_size, element_size, &vtable_entries);
     ensure_display(vm, &mut vtable, Some(parent_cls_def_id));
-    cls_def.vtable = Some(vtable);
+    *cls_def.vtable.write() = Some(vtable);
 
     id
 }
@@ -464,7 +499,8 @@ fn ensure_display(vm: &VM, vtable: &mut VTableBox, parent_id: Option<ClassDefId>
         let parent = vm.class_defs.idx(parent_id);
         let parent = parent.read();
 
-        let parent_vtable = parent.vtable.as_ref().unwrap();
+        let parent_vtable = parent.vtable.read();
+        let parent_vtable = parent_vtable.as_ref().unwrap();
         assert!(!parent_vtable.subtype_display[0].is_null());
 
         let depth = 1 + parent_vtable.subtype_depth;

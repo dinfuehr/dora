@@ -445,7 +445,7 @@ pub struct ClassDef {
     pub fields: Vec<FieldDef>,
     pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
-    pub vtable: Option<VTableBox>,
+    pub vtable: RwLock<Option<VTableBox>>,
 }
 
 impl ClassDef {

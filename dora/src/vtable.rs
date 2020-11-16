@@ -13,7 +13,7 @@ pub struct VTableBox(*mut VTable);
 
 impl VTableBox {
     pub fn new(
-        classptr: *mut ClassDef,
+        classptr: *const ClassDef,
         instance_size: usize,
         element_size: usize,
         entries: &[usize],
@@ -80,7 +80,7 @@ impl Drop for VTableBox {
 #[derive(Debug)]
 #[repr(C)]
 pub struct VTable {
-    pub classptr: *mut ClassDef,
+    pub classptr: *const ClassDef,
     pub instance_size: usize,
     pub element_size: usize,
     pub subtype_depth: usize,
@@ -95,12 +95,12 @@ impl VTable {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
-    pub fn classptr(&self) -> *mut ClassDef {
+    pub fn classptr(&self) -> *const ClassDef {
         self.classptr
     }
 
-    pub fn class(&self) -> &mut ClassDef {
-        unsafe { &mut *self.classptr }
+    pub fn class(&self) -> &ClassDef {
+        unsafe { &*self.classptr }
     }
 
     pub fn instance_size(&self) -> usize {

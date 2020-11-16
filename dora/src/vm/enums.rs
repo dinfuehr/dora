@@ -177,16 +177,16 @@ impl EnumDef {
             size: InstanceSize::Fixed(instance_size),
             fields,
             ref_fields,
-            vtable: None,
+            vtable: RwLock::new(None),
         }));
 
         class_defs.push(class_def.clone());
 
-        let mut class_def = class_def.write();
+        let class_def = class_def.read();
 
         let clsptr = &*class_def as *const ClassDef as *mut ClassDef;
         let vtable = VTableBox::new(clsptr, instance_size as usize, 0, &[]);
-        class_def.vtable = Some(vtable);
+        *class_def.vtable.write() = Some(vtable);
 
         id
     }

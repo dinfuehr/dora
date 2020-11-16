@@ -158,7 +158,7 @@ fn internal_free_classes(vm: &mut VM) {
             size: InstanceSize::Fixed(Header::size()),
             fields: Vec::new(),
             ref_fields: Vec::new(),
-            vtable: None,
+            vtable: RwLock::new(None),
         })));
 
         class_defs.push(Arc::new(RwLock::new(ClassDef {
@@ -169,23 +169,23 @@ fn internal_free_classes(vm: &mut VM) {
             size: InstanceSize::FreeArray,
             fields: Vec::new(),
             ref_fields: Vec::new(),
-            vtable: None,
+            vtable: RwLock::new(None),
         })));
 
         {
             let free_object_class_def = &class_defs[free_object.to_usize()];
-            let mut free_object_class_def = free_object_class_def.write();
+            let free_object_class_def = free_object_class_def.read();
             let clsptr = (&*free_object_class_def) as *const ClassDef as *mut ClassDef;
             let vtable = VTableBox::new(clsptr, Header::size() as usize, 0, &[]);
-            free_object_class_def.vtable = Some(vtable);
+            *free_object_class_def.vtable.write() = Some(vtable);
         }
 
         {
             let free_array_class_def = &class_defs[free_array.to_usize()];
-            let mut free_array_class_def = free_array_class_def.write();
+            let free_array_class_def = free_array_class_def.read();
             let clsptr = (&*free_array_class_def) as *const ClassDef as *mut ClassDef;
             let vtable = VTableBox::new(clsptr, 0, mem::ptr_width_usize(), &[]);
-            free_array_class_def.vtable = Some(vtable);
+            *free_array_class_def.vtable.write() = Some(vtable);
         }
     }
 

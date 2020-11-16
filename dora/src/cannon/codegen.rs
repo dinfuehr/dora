@@ -1060,7 +1060,8 @@ impl<'a> CannonCodeGen<'a> {
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
 
-        let vtable: &VTable = cls.vtable.as_ref().unwrap();
+        let vtable = cls.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
         let position = if instanceof {
             None
         } else {
@@ -2169,7 +2170,9 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
 
         // store classptr in object
-        let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
+        let vtable = cls.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
+        let cptr = vtable as *const VTable as *const u8;
         let disp = self.asm.add_addr(cptr);
         let pos = self.asm.pos() as i32;
 
@@ -2246,7 +2249,9 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
 
         // store classptr in object
-        let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
+        let vtable = cls.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
+        let cptr = vtable as *const VTable as *const u8;
         let disp = self.asm.add_addr(cptr);
         let pos = self.asm.pos() as i32;
 
@@ -2412,7 +2417,9 @@ impl<'a> CannonCodeGen<'a> {
 
                 // store classptr in object
                 comment!(self, format!("NewEnum: initialize object header"));
-                let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
+                let vtable = cls.vtable.read();
+                let vtable: &VTable = vtable.as_ref().unwrap();
+                let cptr = vtable as *const VTable as *const u8;
                 let disp = self.asm.add_addr(cptr);
                 let pos = self.asm.pos() as i32;
 
