@@ -1648,6 +1648,54 @@ fn test_struct() {
 }
 
 #[test]
+fn test_struct_with_type_params() {
+    ok("
+        struct Foo[T] { f1: Int32 }
+        fun f(): Foo[Int32] { Foo[Int32](1) }
+    ");
+    err(
+        "
+        struct Foo[T] { f1: Int32 }
+        fun f(): Foo[Int32] { Foo(1) }
+    ",
+        pos(3, 34),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+    err(
+        "
+        struct Foo[T] { f1: Int32 }
+        fun f(): Foo[Int32] { Foo[Int32, Bool](1) }
+    ",
+        pos(3, 47),
+        SemError::WrongNumberTypeParams(1, 2),
+    );
+    err(
+        "
+        trait MyTrait {}
+        struct Foo[T: MyTrait] { f1: Int32 }
+        fun f(): Foo[Int32] { Foo[Int32](1) }
+    ",
+        pos(4, 18),
+        SemError::TraitBoundNotSatisfied("Int32".into(), "MyTrait".into()),
+    );
+    ok("
+        trait MyTrait {}
+        class Bar
+        impl MyTrait for Bar {}
+        struct Foo[T: MyTrait] { f1: Int32 }
+        fun f(): Foo[Bar] { Foo[Bar](1) }
+    ");
+    err(
+        "
+        struct Foo[T] { f1: Int32 }
+        fun f(): Foo[Int32] { Foo[Bool](1) }
+    ",
+        pos(3, 29),
+        SemError::ReturnType("Foo[Int32]".into(), "Foo[Bool]".into()),
+    );
+}
+
+#[test]
 fn test_struct_namespace() {
     err(
         "
