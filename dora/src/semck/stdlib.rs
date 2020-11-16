@@ -174,14 +174,14 @@ fn internal_free_classes(vm: &mut VM) {
 
         {
             let free_object_class_def = &class_defs[free_object.to_usize()];
-            let clsptr = (&**free_object_class_def) as *const ClassDef;
+            let clsptr = Arc::as_ptr(free_object_class_def);
             let vtable = VTableBox::new(clsptr, Header::size() as usize, 0, &[]);
             *free_object_class_def.vtable.write() = Some(vtable);
         }
 
         {
             let free_array_class_def = &class_defs[free_array.to_usize()];
-            let clsptr = (&**free_array_class_def) as *const ClassDef;
+            let clsptr = Arc::as_ptr(free_array_class_def);
             let vtable = VTableBox::new(clsptr, 0, mem::ptr_width_usize(), &[]);
             *free_array_class_def.vtable.write() = Some(vtable);
         }

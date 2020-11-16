@@ -359,7 +359,7 @@ fn create_specialized_class_regular(vm: &VM, cls: &Class, type_params: &TypeList
 
     class_defs.push(class_def.clone());
 
-    let class_def_ptr = &*class_def as *const ClassDef;
+    let class_def_ptr = Arc::as_ptr(&class_def);
     let mut class_def_vtable = class_def.vtable.write();
 
     std::mem::drop(specializations);
@@ -459,7 +459,7 @@ fn create_specialized_class_array(vm: &VM, cls: &Class, type_params: &TypeList) 
     let old = specializations.insert(type_params.clone(), id);
     assert!(old.is_none());
 
-    let class_def_ptr = &*class_def as *const ClassDef;
+    let class_def_ptr = Arc::as_ptr(&class_def);
     let mut class_def_vtable = class_def.vtable.write();
 
     std::mem::drop(specializations);
