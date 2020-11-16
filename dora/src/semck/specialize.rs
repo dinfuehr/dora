@@ -267,126 +267,84 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         id
     };
 
+    if cls.is_array || cls.is_str {
+        create_specialized_class_array(vm, id, cls, type_params)
+    } else {
+        create_specialized_class_regular(vm, id, cls, type_params)
+    }
+}
+
+fn create_specialized_class_regular(
+    vm: &VM,
+    id: ClassDefId,
+    cls: &Class,
+    type_params: &TypeList,
+) -> ClassDefId {
+    let mut csize;
     let mut fields;
     let mut ref_fields;
-    let size;
     let parent_id;
 
-    if cls.is_array || cls.is_str {
-        fields = Vec::new();
-        ref_fields = Vec::new();
-
-        size = if cls.is_array {
-            let element_ty = type_params[0].clone();
-
-            match element_ty {
-                SourceType::Unit => InstanceSize::UnitArray,
-                SourceType::Ptr | SourceType::Class(_, _) | SourceType::TraitObject(_) => {
-                    InstanceSize::ObjArray
-                }
-                SourceType::Tuple(tuple_id) => {
-                    let tuples = vm.tuples.lock();
-                    let tuple = tuples.get_tuple(tuple_id);
-
-                    if tuple.contains_references() {
-                        for &offset in tuple.references() {
-                            ref_fields.push(offset);
-                        }
-
-                        InstanceSize::TupleArray(tuple.size())
-                    } else {
-                        InstanceSize::PrimitiveArray(tuple.size())
-                    }
-                }
-
-                SourceType::Enum(enum_id, type_params_id) => {
-                    let type_params = vm.lists.lock().get(type_params_id);
-                    let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
-                    let edef = vm.enum_defs.idx(edef_id);
-                    let edef = edef.read();
-
-                    match edef.layout {
-                        EnumLayout::Int => InstanceSize::PrimitiveArray(4),
-                        EnumLayout::Ptr | EnumLayout::Tagged => InstanceSize::ObjArray,
-                    }
-                }
-
-                _ => InstanceSize::PrimitiveArray(element_ty.size(vm)),
-            }
-        } else {
-            InstanceSize::Str
-        };
-
-        let parent_class = cls
-            .parent_class
-            .clone()
-            .expect("Array & String should have super class");
+    if let Some(parent_class) = cls.parent_class.clone() {
+        let parent_class = specialize_type(vm, parent_class, type_params);
         let id = specialize_class_ty(vm, parent_class);
+        let cls_def = vm.class_defs.idx(id);
+        let cls_def = cls_def.read();
+
+        fields = Vec::new();
+        ref_fields = cls_def.ref_fields.clone();
+        csize = match cls_def.size {
+            InstanceSize::Fixed(size) => size,
+            _ => unreachable!(),
+        };
         parent_id = Some(id);
     } else {
-        let mut csize;
+        fields = Vec::with_capacity(cls.fields.len());
+        ref_fields = Vec::new();
+        csize = Header::size();
+        parent_id = None;
+    };
 
-        if let Some(parent_class) = cls.parent_class.clone() {
-            let parent_class = specialize_type(vm, parent_class, type_params);
-            let id = specialize_class_ty(vm, parent_class);
-            let cls_def = vm.class_defs.idx(id);
-            let cls_def = cls_def.read();
+    for f in &cls.fields {
+        let ty = specialize_type(vm, f.ty.clone(), &type_params);
+        debug_assert!(!ty.contains_type_param(vm));
 
-            fields = Vec::new();
-            ref_fields = cls_def.ref_fields.clone();
-            csize = match cls_def.size {
-                InstanceSize::Fixed(size) => size,
-                _ => unreachable!(),
-            };
-            parent_id = Some(id);
-        } else {
-            fields = Vec::with_capacity(cls.fields.len());
-            ref_fields = Vec::new();
-            csize = Header::size();
-            parent_id = None;
-        };
+        let field_size = ty.size(vm);
+        let field_align = ty.align(vm);
 
-        for f in &cls.fields {
-            let ty = specialize_type(vm, f.ty.clone(), &type_params);
-            debug_assert!(!ty.contains_type_param(vm));
+        let offset = mem::align_i32(csize, field_align);
+        fields.push(FieldDef {
+            offset,
+            ty: ty.clone(),
+        });
 
-            let field_size = ty.size(vm);
-            let field_align = ty.align(vm);
+        csize = offset + field_size;
 
-            let offset = mem::align_i32(csize, field_align);
-            fields.push(FieldDef {
-                offset,
-                ty: ty.clone(),
-            });
+        if let Some(tuple_id) = ty.tuple_id() {
+            let tuples = vm.tuples.lock();
+            let tuple = tuples.get_tuple(tuple_id);
 
-            csize = offset + field_size;
-
-            if let Some(tuple_id) = ty.tuple_id() {
-                let tuples = vm.tuples.lock();
-                let tuple = tuples.get_tuple(tuple_id);
-
-                for &ref_offset in tuple.references() {
-                    ref_fields.push(offset + ref_offset);
-                }
-            } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
-                let type_params = vm.lists.lock().get(type_params_id);
-                let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
-                let edef = vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
-
-                match edef.layout {
-                    EnumLayout::Int => {}
-                    EnumLayout::Ptr | EnumLayout::Tagged => {
-                        ref_fields.push(offset);
-                    }
-                }
-            } else if ty.reference_type() {
-                ref_fields.push(offset);
+            for &ref_offset in tuple.references() {
+                ref_fields.push(offset + ref_offset);
             }
-        }
+        } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
+            let type_params = vm.lists.lock().get(type_params_id);
+            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            let edef = vm.enum_defs.idx(edef_id);
+            let edef = edef.read();
 
-        size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
+            match edef.layout {
+                EnumLayout::Int => {}
+                EnumLayout::Ptr | EnumLayout::Tagged => {
+                    ref_fields.push(offset);
+                }
+            }
+        } else if ty.reference_type() {
+            ref_fields.push(offset);
+        }
     }
+
+    let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
 
     let stub = vm.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
@@ -400,6 +358,89 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
 
     let (instance_size, element_size) = match size {
         InstanceSize::Fixed(instance_size) => (instance_size as usize, 0),
+        _ => unreachable!(),
+    };
+
+    let clsptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
+    let vtable = VTableBox::new(clsptr, instance_size, element_size, &vtable_entries);
+    cls_def.vtable = Some(vtable);
+
+    ensure_display(vm, &mut cls_def);
+
+    id
+}
+
+fn create_specialized_class_array(
+    vm: &VM,
+    id: ClassDefId,
+    cls: &Class,
+    type_params: &TypeList,
+) -> ClassDefId {
+    let fields = Vec::new();
+    let mut ref_fields = Vec::new();
+
+    assert!(cls.fields.is_empty());
+    assert!(cls.is_array || cls.is_str);
+
+    let size = if cls.is_array {
+        let element_ty = type_params[0].clone();
+
+        match element_ty {
+            SourceType::Unit => InstanceSize::UnitArray,
+            SourceType::Ptr | SourceType::Class(_, _) | SourceType::TraitObject(_) => {
+                InstanceSize::ObjArray
+            }
+            SourceType::Tuple(tuple_id) => {
+                let tuples = vm.tuples.lock();
+                let tuple = tuples.get_tuple(tuple_id);
+
+                if tuple.contains_references() {
+                    for &offset in tuple.references() {
+                        ref_fields.push(offset);
+                    }
+
+                    InstanceSize::TupleArray(tuple.size())
+                } else {
+                    InstanceSize::PrimitiveArray(tuple.size())
+                }
+            }
+
+            SourceType::Enum(enum_id, type_params_id) => {
+                let type_params = vm.lists.lock().get(type_params_id);
+                let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+                let edef = vm.enum_defs.idx(edef_id);
+                let edef = edef.read();
+
+                match edef.layout {
+                    EnumLayout::Int => InstanceSize::PrimitiveArray(4),
+                    EnumLayout::Ptr | EnumLayout::Tagged => InstanceSize::ObjArray,
+                }
+            }
+
+            _ => InstanceSize::PrimitiveArray(element_ty.size(vm)),
+        }
+    } else {
+        InstanceSize::Str
+    };
+
+    let parent_class = cls
+        .parent_class
+        .clone()
+        .expect("Array & String should have super class");
+    let parent_cls_def_id = specialize_class_ty(vm, parent_class);
+
+    let stub = vm.compile_stub().to_usize();
+    let vtable_entries = vec![stub; cls.virtual_fcts.len()];
+
+    let cls_def = vm.class_defs.idx(id);
+    let mut cls_def = cls_def.write();
+    cls_def.size = size;
+    cls_def.fields = fields;
+    cls_def.ref_fields = ref_fields;
+    cls_def.parent_id = Some(parent_cls_def_id);
+
+    let (instance_size, element_size) = match size {
+        InstanceSize::Fixed(_) => unreachable!(),
         InstanceSize::PrimitiveArray(element_size) => (0, element_size as usize),
         InstanceSize::ObjArray => (0, mem::ptr_width_usize()),
         InstanceSize::UnitArray => (Header::size() as usize + mem::ptr_width_usize(), 0),
