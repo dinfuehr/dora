@@ -1629,13 +1629,33 @@ fn test_subtyping() {
 }
 
 #[test]
-#[ignore]
 fn test_struct() {
     ok("struct Foo { f1: Int32 } fun f(): Foo { Foo(1) }");
     err(
-        "struct Foo { f1: Int32 } fun f(): Foo { Foo(1) }",
-        pos(1, 1),
-        SemError::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], vec!["String".into()]),
+        "
+        struct Foo { f1: Int32 }
+        fun f(): Foo { Foo() }",
+        pos(3, 27),
+        SemError::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], Vec::new()),
+    );
+    err(
+        "
+        struct Foo { f1: Int32 }
+        fun f(): Foo { Foo(true) }",
+        pos(3, 27),
+        SemError::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], vec!["Bool".into()]),
+    );
+}
+
+#[test]
+fn test_struct_namespace() {
+    err(
+        "
+        fun f() { foo::Foo(1); }
+        namespace foo { struct Foo { f1: Int32 } }
+        ",
+        pos(2, 27),
+        SemError::NotAccessible("foo::Foo".into()),
     );
 }
 
