@@ -137,27 +137,6 @@ pub fn specialize_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> Enum
 }
 
 fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> EnumDefId {
-    let id = {
-        let mut enum_defs = vm.enum_defs.lock();
-        let id: EnumDefId = enum_defs.len().into();
-
-        let old = xenum
-            .specializations
-            .write()
-            .insert(type_params.clone(), id);
-        assert!(old.is_none());
-
-        enum_defs.push(Arc::new(RwLock::new(EnumDef {
-            id,
-            enum_id: xenum.id,
-            type_params: type_params.clone(),
-            layout: EnumLayout::Int,
-            variants: Vec::new(),
-        })));
-
-        id
-    };
-
     let layout = if enum_is_simple_integer(xenum) {
         EnumLayout::Int
     } else if enum_is_ptr(vm, xenum, &type_params) {
@@ -166,12 +145,33 @@ fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> 
         EnumLayout::Tagged
     };
 
-    let enum_def = vm.enum_defs.idx(id);
-    let mut enum_def = enum_def.write();
-    enum_def.layout = layout.clone();
-    if let EnumLayout::Tagged = layout {
-        enum_def.variants = vec![None; xenum.variants.len()];
+    let mut enum_defs = vm.enum_defs.lock();
+    let id: EnumDefId = enum_defs.len().into();
+
+    let mut specializations = xenum.specializations.write();
+
+    if let Some(&id) = specializations.get(&type_params) {
+        return id;
     }
+
+    let old = specializations.insert(type_params.clone(), id);
+    assert!(old.is_none());
+
+    let variants: Vec<Option<ClassDefId>> = if let EnumLayout::Tagged = layout {
+        vec![None; xenum.variants.len()]
+    } else {
+        Vec::new()
+    };
+
+    let enum_def = Arc::new(RwLock::new(EnumDef {
+        id,
+        enum_id: xenum.id,
+        type_params: type_params.clone(),
+        layout,
+        variants,
+    }));
+
+    enum_defs.push(enum_def);
 
     id
 }
