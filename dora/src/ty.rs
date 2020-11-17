@@ -388,7 +388,6 @@ impl SourceType {
                 let params = vm.lists.lock().get(list_id);
                 let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
                 let xenum = vm.enum_defs.idx(enum_def_id);
-                let xenum = xenum.read();
 
                 match xenum.layout {
                     EnumLayout::Int => SourceType::Int32.size(vm),
@@ -432,7 +431,6 @@ impl SourceType {
                 let params = vm.lists.lock().get(list_id);
                 let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
                 let xenum = vm.enum_defs.idx(enum_def_id);
-                let xenum = xenum.read();
 
                 match xenum.layout {
                     EnumLayout::Int => SourceType::Int32.align(vm),

@@ -221,7 +221,6 @@ impl<'a> CannonCodeGen<'a> {
                     BytecodeType::Enum(enum_id, type_params) => {
                         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                         let edef = self.vm.enum_defs.idx(enum_def_id);
-                        let edef = edef.read();
 
                         match edef.layout {
                             EnumLayout::Int => {
@@ -324,7 +323,6 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.vm.lists.lock().get(list_id);
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(enum_def_id);
-                let edef = edef.read();
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -1195,7 +1193,6 @@ impl<'a> CannonCodeGen<'a> {
                 BytecodeType::Enum(enum_id, type_params) => {
                     let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                     let edef = self.vm.enum_defs.idx(enum_def_id);
-                    let edef = edef.read();
 
                     match edef.layout {
                         EnumLayout::Int => {
@@ -1268,7 +1265,6 @@ impl<'a> CannonCodeGen<'a> {
                 BytecodeType::Enum(enum_id, type_params) => {
                     let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                     let edef = self.vm.enum_defs.idx(edef_id);
-                    let edef = edef.read();
 
                     let mode = match edef.layout {
                         EnumLayout::Int => MachineMode::Int32,
@@ -1330,7 +1326,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(edef_id);
-        let mut edef = edef.write();
 
         match edef.layout {
             EnumLayout::Int => {
@@ -1411,7 +1406,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(edef_id);
-        let edef = edef.read();
 
         match edef.layout {
             EnumLayout::Int => {
@@ -1479,7 +1473,6 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -1527,7 +1520,6 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -1593,7 +1585,6 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -1656,7 +1647,6 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
 
                 match edef.layout {
                     EnumLayout::Int => {}
@@ -1781,7 +1771,6 @@ impl<'a> CannonCodeGen<'a> {
                 BytecodeType::Enum(enum_id, type_params) => {
                     let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                     let edef = self.vm.enum_defs.idx(edef_id);
-                    let edef = edef.read();
 
                     let mode = match edef.layout {
                         EnumLayout::Int => MachineMode::Int32,
@@ -2084,7 +2073,6 @@ impl<'a> CannonCodeGen<'a> {
                 BytecodeType::Enum(enum_id, type_params) => {
                     let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                     let edef = self.vm.enum_defs.idx(enum_def_id);
-                    let edef = edef.read();
 
                     let mode = match edef.layout {
                         EnumLayout::Int => MachineMode::Int32,
@@ -2349,7 +2337,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(edef_id);
-        let mut edef = edef.write();
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -2563,7 +2550,6 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(enum_def_id);
-                let edef = edef.read();
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -2684,7 +2670,6 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(enum_def_id);
-                let edef = edef.read();
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -3403,7 +3388,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
         let edef = self.vm.enum_defs.idx(enum_def_id);
-        let mut edef = edef.write();
 
         match edef.layout {
             EnumLayout::Int => unreachable!(),
@@ -3590,7 +3574,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(enum_def_id);
-        let edef = edef.read();
 
         match edef.layout {
             EnumLayout::Int => unreachable!(),

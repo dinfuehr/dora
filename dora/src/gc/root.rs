@@ -48,7 +48,6 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
             let type_params = vm.lists.lock().get(type_params_id);
             let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
             let edef = vm.enum_defs.idx(edef_id);
-            let edef = edef.read();
 
             match edef.layout {
                 EnumLayout::Int => {}

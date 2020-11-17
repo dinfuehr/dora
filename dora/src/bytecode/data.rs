@@ -67,7 +67,6 @@ impl BytecodeType {
             BytecodeType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
                 let edef = vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
 
                 match edef.layout {
                     EnumLayout::Int => 4,
@@ -108,7 +107,6 @@ impl BytecodeType {
             BytecodeType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
                 let edef = vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
 
                 match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,

@@ -124,7 +124,7 @@ pub struct VM {
     pub fcts: GrowableVec<RwLock<Fct>>,         // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,          // stores all function implementations
     pub enums: Vec<RwLock<EnumData>>,           // store all enum source definitions
-    pub enum_defs: GrowableVec<RwLock<EnumDef>>, // stores all enum definitions
+    pub enum_defs: GrowableVec<EnumDef>,        // stores all enum definitions
     pub traits: Vec<RwLock<TraitData>>,         // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,           // stores all impl definitions
     pub code_map: Mutex<CodeMap>,               // stores all compiled functions

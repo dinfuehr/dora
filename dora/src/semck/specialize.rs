@@ -157,19 +157,19 @@ fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> 
     let old = specializations.insert(type_params.clone(), id);
     assert!(old.is_none());
 
-    let variants: Vec<Option<ClassDefId>> = if let EnumLayout::Tagged = layout {
+    let variants = if let EnumLayout::Tagged = layout {
         vec![None; xenum.variants.len()]
     } else {
         Vec::new()
     };
 
-    let enum_def = Arc::new(RwLock::new(EnumDef {
+    let enum_def = Arc::new(EnumDef {
         id,
         enum_id: xenum.id,
         type_params: type_params.clone(),
         layout,
-        variants,
-    }));
+        variants: RwLock::new(variants),
+    });
 
     enum_defs.push(enum_def);
 
@@ -316,7 +316,6 @@ fn create_specialized_class_regular(vm: &VM, cls: &Class, type_params: &TypeList
             let type_params = vm.lists.lock().get(type_params_id);
             let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
             let edef = vm.enum_defs.idx(edef_id);
-            let edef = edef.read();
 
             match edef.layout {
                 EnumLayout::Int => {}
@@ -418,7 +417,6 @@ fn create_specialized_class_array(vm: &VM, cls: &Class, type_params: &TypeList) 
                 let type_params = vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
                 let edef = vm.enum_defs.idx(edef_id);
-                let edef = edef.read();
 
                 match edef.layout {
                     EnumLayout::Int => InstanceSize::PrimitiveArray(4),

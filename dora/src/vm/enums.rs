@@ -97,8 +97,8 @@ impl From<usize> for EnumDefId {
     }
 }
 
-impl GrowableVec<RwLock<EnumDef>> {
-    pub fn idx(&self, index: EnumDefId) -> Arc<RwLock<EnumDef>> {
+impl GrowableVec<EnumDef> {
+    pub fn idx(&self, index: EnumDefId) -> Arc<EnumDef> {
         self.idx_usize(index.0 as usize)
     }
 }
@@ -109,21 +109,24 @@ pub struct EnumDef {
     pub enum_id: EnumId,
     pub type_params: TypeList,
     pub layout: EnumLayout,
-    pub variants: Vec<Option<ClassDefId>>,
+    pub variants: RwLock<Vec<Option<ClassDefId>>>,
 }
 
 impl EnumDef {
     pub fn ensure_class_for_variant(
-        &mut self,
+        &self,
         vm: &VM,
         xenum: &EnumData,
         variant_id: usize,
     ) -> ClassDefId {
-        if let Some(cls_def_id) = self.variants[variant_id] {
+        let mut variants = self.variants.write();
+        let variant = variants[variant_id];
+
+        if let Some(cls_def_id) = variant {
             return cls_def_id;
         }
 
-        let variant = &xenum.variants[variant_id];
+        let enum_variant = &xenum.variants[variant_id];
         let mut csize = Header::size() + 4;
         let mut fields = vec![FieldDef {
             offset: Header::size(),
@@ -131,7 +134,7 @@ impl EnumDef {
         }];
         let mut ref_fields = Vec::new();
 
-        for ty in &variant.types {
+        for ty in &enum_variant.types {
             let ty = replace_type_param(vm, ty.clone(), &self.type_params, None);
             assert!(ty.is_concrete_type(vm));
 
@@ -167,7 +170,7 @@ impl EnumDef {
         let mut class_defs = vm.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
 
-        self.variants[variant_id] = Some(id);
+        variants[variant_id] = Some(id);
 
         let class_def = Arc::new(ClassDef {
             id,
@@ -189,7 +192,7 @@ impl EnumDef {
         id
     }
 
-    pub fn field_id(&mut self, xenum: &EnumData, variant_id: usize, element: u32) -> u32 {
+    pub fn field_id(&self, xenum: &EnumData, variant_id: usize, element: u32) -> u32 {
         let variant = &xenum.variants[variant_id];
         let mut units = 0;
 
