@@ -66,26 +66,6 @@ pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: TypeList) -> 
 }
 
 fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList) -> StructDefId {
-    let id = {
-        let mut struct_defs = vm.struct_defs.lock();
-        let id: StructDefId = struct_defs.len().into();
-
-        let old = struc
-            .specializations
-            .write()
-            .insert(type_params.clone(), id);
-        assert!(old.is_none());
-
-        struct_defs.push(Arc::new(RwLock::new(StructDef {
-            size: 0,
-            align: 0,
-            fields: Vec::new(),
-            ref_fields: Vec::new(),
-        })));
-
-        id
-    };
-
     let mut size = 0;
     let mut align = 0;
     let mut fields = Vec::with_capacity(struc.fields.len());
@@ -112,12 +92,26 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
         }
     }
 
-    let struct_def = vm.struct_defs.idx(id);
-    let mut struct_def = struct_def.write();
-    struct_def.size = size;
-    struct_def.align = align;
-    struct_def.fields = fields;
-    struct_def.ref_fields = ref_fields;
+    size = mem::align_i32(size, align);
+
+    let mut struct_defs = vm.struct_defs.lock();
+    let id: StructDefId = struct_defs.len().into();
+
+    let mut specializations = struc.specializations.write();
+
+    if let Some(&id) = specializations.get(&type_params) {
+        return id;
+    }
+
+    let old = specializations.insert(type_params.clone(), id);
+    assert!(old.is_none());
+
+    struct_defs.push(Arc::new(StructDef {
+        size,
+        align,
+        fields,
+        ref_fields,
+    }));
 
     id
 }

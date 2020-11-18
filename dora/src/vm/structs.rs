@@ -71,8 +71,8 @@ impl From<usize> for StructDefId {
     }
 }
 
-impl GrowableVec<RwLock<StructDef>> {
-    pub fn idx(&self, index: StructDefId) -> Arc<RwLock<StructDef>> {
+impl GrowableVec<StructDef> {
+    pub fn idx(&self, index: StructDefId) -> Arc<StructDef> {
         self.idx_usize(index.0)
     }
 }

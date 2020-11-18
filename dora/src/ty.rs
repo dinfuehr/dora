@@ -404,7 +404,6 @@ impl SourceType {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
-                let struc = struc.read();
 
                 struc.size
             }
@@ -445,7 +444,6 @@ impl SourceType {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
-                let struc = struc.read();
 
                 struc.align
             }
