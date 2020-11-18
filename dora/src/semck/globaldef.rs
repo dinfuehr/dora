@@ -481,6 +481,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 name: node.name,
                 type_params: Vec::new(),
                 fields: Vec::new(),
+                field_names: HashMap::new(),
                 specializations: RwLock::new(HashMap::new()),
             };
 

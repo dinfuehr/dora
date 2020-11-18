@@ -4,7 +4,7 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{FileId, NamespaceId, StructFieldData, StructId, VM};
+use crate::vm::{FileId, NamespaceId, StructFieldData, StructFieldId, StructId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -53,8 +53,8 @@ impl<'x> StructCheck<'x> {
             self.check_type_params(type_params);
         }
 
-        for field in &self.ast.fields {
-            self.visit_struct_field(field);
+        for (idx, field) in self.ast.fields.iter().enumerate() {
+            self.visit_struct_field(field, idx.into());
         }
 
         self.symtable.pop_level();
@@ -118,7 +118,7 @@ impl<'x> StructCheck<'x> {
         }
     }
 
-    fn visit_struct_field(&mut self, f: &ast::StructField) {
+    fn visit_struct_field(&mut self, f: &ast::StructField, id: StructFieldId) {
         let ty = semck::read_type_table(self.vm, &self.symtable, self.file_id, &f.data_type)
             .unwrap_or(SourceType::Error);
 
@@ -135,13 +135,15 @@ impl<'x> StructCheck<'x> {
         }
 
         let field = StructFieldData {
-            id: (xstruct.fields.len() as u32).into(),
+            id,
             pos: f.pos,
             name: f.name,
             ty,
         };
 
         xstruct.fields.push(field);
+        let old = xstruct.field_names.insert(f.name, id);
+        assert!(old.is_none());
     }
 }
 

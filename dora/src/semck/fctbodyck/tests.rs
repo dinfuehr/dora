@@ -1648,6 +1648,32 @@ fn test_struct() {
 }
 
 #[test]
+fn test_struct_field() {
+    ok("
+        struct Foo { f1: Int32 }
+        fun f(x: Foo): Int32 { x.f1 }
+    ");
+
+    err(
+        "
+        struct Foo { f1: Bool }
+        fun f(x: Foo): Int32 { x.f1 }
+    ",
+        pos(3, 30),
+        SemError::ReturnType("Int32".into(), "Bool".into()),
+    );
+
+    err(
+        "
+        struct Foo { f1: Bool }
+        fun f(x: Foo): Int32 { x.unknown }
+    ",
+        pos(3, 33),
+        SemError::UnknownField("unknown".into(), "Foo".into()),
+    );
+}
+
+#[test]
 fn test_struct_with_type_params() {
     ok("
         struct Foo[T] { f1: Int32 }

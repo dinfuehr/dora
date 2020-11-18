@@ -55,7 +55,7 @@ pub use self::src::{
 };
 pub use self::structs::{
     struct_accessible_from, StructData, StructDef, StructDefId, StructFieldData, StructFieldDef,
-    StructId,
+    StructFieldId, StructId,
 };
 pub use self::traits::{trait_accessible_from, TraitData, TraitId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};

@@ -36,6 +36,7 @@ pub struct StructData {
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,
+    pub field_names: HashMap<Name, StructFieldId>,
     pub specializations: RwLock<HashMap<TypeList, StructDefId>>,
 }
 
@@ -64,11 +65,17 @@ impl StructData {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct StructFieldId(u32);
+pub struct StructFieldId(usize);
 
-impl From<u32> for StructFieldId {
-    fn from(data: u32) -> StructFieldId {
+impl From<usize> for StructFieldId {
+    fn from(data: usize) -> StructFieldId {
         StructFieldId(data)
+    }
+}
+
+impl StructFieldId {
+    pub fn to_usize(self) -> usize {
+        self.0
     }
 }
 

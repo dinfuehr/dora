@@ -2484,6 +2484,22 @@ impl<'a> TypeCheck<'a> {
             }
         };
 
+        if let Some(struct_id) = object_type.struct_id() {
+            let xstruct = self.vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+            if let Some(&field_id) = xstruct.field_names.get(&name) {
+                let ident_type = IdentType::StructField(object_type.clone(), field_id);
+                self.analysis.map_idents.insert_or_replace(e.id, ident_type);
+
+                let field = &xstruct.fields[field_id.to_usize()];
+                let struct_type_params = object_type.type_params(self.vm);
+                let fty = replace_type_param(self.vm, field.ty.clone(), &struct_type_params, None);
+
+                self.analysis.set_ty(e.id, fty.clone());
+                return fty;
+            }
+        }
+
         if object_type.cls_id(self.vm).is_some() {
             if let Some((cls_ty, field_id, _)) =
                 find_field_in_class(self.vm, object_type.clone(), name)

@@ -2505,6 +2505,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             &IdentType::Field(_, _) => unreachable!(),
             &IdentType::Struct(_) => unreachable!(),
+            &IdentType::StructField(_, _) => unreachable!(),
             &IdentType::EnumValue(_, _, _) => unreachable!(),
             &IdentType::Fct(_, _) => unreachable!(),
             &IdentType::Class(_, _) => unreachable!(),
