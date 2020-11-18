@@ -1278,7 +1278,10 @@ impl<'a> AstBytecodeGen<'a> {
                 let idx = self.gen.add_const_enum(enum_id, type_params);
                 self.gen.emit_mov_enum(dest, src, idx)
             }
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(struct_id, type_params) => {
+                let idx = self.gen.add_const_struct(struct_id, type_params);
+                self.gen.emit_mov_struct(dest, src, idx)
+            }
         }
     }
 

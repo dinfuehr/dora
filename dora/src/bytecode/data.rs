@@ -268,6 +268,7 @@ pub enum BytecodeOpcode {
     MovTuple,
     MovGeneric,
     MovEnum,
+    MovStruct,
 
     LoadTupleElement,
     LoadEnumElement,

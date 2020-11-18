@@ -2480,6 +2480,25 @@ fn gen_new_struct() {
 }
 
 #[test]
+fn gen_move_struct() {
+    gen_fct(
+        "
+        struct Foo { f1: Int32, f2: Bool }
+        fun f(x: Foo): Foo { let y = x; y }
+    ",
+        |vm, code, fct| {
+            let struct_id = vm.struct_by_name("Foo");
+            let expected = vec![MovStruct(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Struct(struct_id, TypeList::empty())
+            );
+        },
+    );
+}
+
+#[test]
 fn gen_new_enum() {
     gen_fct(
         "
@@ -4061,6 +4080,7 @@ pub enum Bytecode {
     MovTuple(Register, Register, TupleId),
     MovGeneric(Register, Register),
     MovEnum(Register, Register, ConstPoolIdx),
+    MovStruct(Register, Register, ConstPoolIdx),
 
     LoadTupleElement(Register, Register, TupleId, u32),
 
@@ -4480,6 +4500,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::MovEnum(dest, src, idx));
+    }
+    fn visit_mov_struct(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::MovStruct(dest, src, idx));
     }
 
     fn visit_load_tuple_element(

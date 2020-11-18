@@ -540,6 +540,11 @@ impl BytecodeBuilder {
         self.writer.emit_mov_enum(dest, src, idx);
     }
 
+    pub fn emit_mov_struct(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        assert!(self.def(dest) && self.used(src));
+        self.writer.emit_mov_struct(dest, src, idx);
+    }
+
     pub fn emit_load_tuple_element(
         &mut self,
         dest: Register,

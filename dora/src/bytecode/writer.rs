@@ -440,6 +440,10 @@ impl BytecodeWriter {
         self.emit_reg2_idx(BytecodeOpcode::MovEnum, dest, src, idx);
     }
 
+    pub fn emit_mov_struct(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_reg2_idx(BytecodeOpcode::MovStruct, dest, src, idx);
+    }
+
     pub fn emit_load_tuple_element(
         &mut self,
         dest: Register,

@@ -415,6 +415,12 @@ where
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_mov_enum(dest, src, idx);
             }
+            BytecodeOpcode::MovStruct => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                self.visitor.visit_mov_struct(dest, src, idx);
+            }
 
             BytecodeOpcode::LoadTupleElement => {
                 let dest = self.read_register(wide);
@@ -1369,6 +1375,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_mov_enum(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_mov_struct(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 
