@@ -182,6 +182,13 @@ impl SourceType {
         }
     }
 
+    pub fn struct_id(&self) -> Option<StructId> {
+        match *self {
+            SourceType::Struct(struct_id, _) => Some(struct_id),
+            _ => None,
+        }
+    }
+
     pub fn tuple_id(&self) -> Option<TupleId> {
         match *self {
             SourceType::Tuple(tuple_id) => Some(tuple_id),

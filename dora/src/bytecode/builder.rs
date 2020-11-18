@@ -8,7 +8,7 @@ use crate::bytecode::{
 };
 use crate::driver::cmd::Args;
 use crate::ty::{TypeList, TypeListId};
-use crate::vm::{ClassId, EnumId, FctId, FieldId, GlobalId, TupleId, VM};
+use crate::vm::{ClassId, EnumId, FctId, FieldId, GlobalId, StructId, TupleId, VM};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -62,6 +62,11 @@ impl BytecodeBuilder {
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_id))
+    }
+
+    pub fn add_const_struct(&mut self, id: StructId, type_params: TypeList) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::Struct(id, type_params))
     }
 
     pub fn add_const_fct_types(&mut self, id: FctId, type_params: TypeList) -> ConstPoolIdx {
@@ -887,6 +892,11 @@ impl BytecodeBuilder {
         assert!(self.def(dest));
         self.writer.set_position(pos);
         self.writer.emit_new_enum(dest, idx);
+    }
+    pub fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+        assert!(self.def(dest));
+        self.writer.set_position(pos);
+        self.writer.emit_new_struct(dest, idx);
     }
 
     pub fn emit_nil_check(&mut self, obj: Register, pos: Position) {

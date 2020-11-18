@@ -3,7 +3,7 @@ use std::fmt;
 use crate::mem::ptr_width;
 use crate::semck::specialize::specialize_enum_id_params;
 use crate::ty::{MachineMode, SourceType, TypeList, TypeListId};
-use crate::vm::{get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, TupleId, VM};
+use crate::vm::{get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -46,6 +46,7 @@ pub enum BytecodeType {
     Tuple(TupleId),
     TypeParam(u32),
     Enum(EnumId, TypeList),
+    Struct(StructId, TypeList),
 }
 
 impl BytecodeType {
@@ -73,6 +74,7 @@ impl BytecodeType {
                     EnumLayout::Ptr | EnumLayout::Tagged => ptr_width(),
                 }
             }
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
         }
     }
 
@@ -89,6 +91,7 @@ impl BytecodeType {
             BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
             BytecodeType::TypeParam(_) => unreachable!(),
             BytecodeType::Enum(_, _) => BytecodeTypeKind::Enum,
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
         }
     }
 
@@ -113,6 +116,7 @@ impl BytecodeType {
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 }
             }
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
         }
     }
 
@@ -165,6 +169,10 @@ impl BytecodeType {
                 }
 
                 BytecodeType::Int32
+            }
+            SourceType::Struct(id, list_id) => {
+                let type_params = vm.lists.lock().get(list_id);
+                BytecodeType::Struct(id, type_params)
             }
             SourceType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
             SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
@@ -372,6 +380,7 @@ pub enum BytecodeOpcode {
     NewArray,
     NewTuple,
     NewEnum,
+    NewStruct,
 
     NilCheck,
 
@@ -430,6 +439,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::NewEnum
             | BytecodeOpcode::NewTuple
+            | BytecodeOpcode::NewStruct
             | BytecodeOpcode::NilCheck
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck
@@ -583,6 +593,7 @@ pub enum ConstPoolEntry {
     Generic(TypeListId, FctId, TypeList),
     Enum(EnumId, TypeList),
     EnumVariant(EnumId, TypeList, usize),
+    Struct(StructId, TypeList),
 }
 
 impl ConstPoolEntry {

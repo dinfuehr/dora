@@ -218,6 +218,8 @@ impl<'a> CannonCodeGen<'a> {
                         }
                     }
 
+                    BytecodeType::Struct(_, _) => unimplemented!(),
+
                     BytecodeType::Enum(enum_id, type_params) => {
                         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                         let edef = self.vm.enum_defs.idx(enum_def_id);
@@ -1279,6 +1281,8 @@ impl<'a> CannonCodeGen<'a> {
                     self.emit_store_register_as(reg.into(), dest, mode);
                 }
 
+                BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+
                 BytecodeType::TypeParam(_) => unreachable!(),
 
                 BytecodeType::Ptr
@@ -1530,6 +1534,8 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.store_mem(mode, dest.mem(), REG_RESULT.into());
             }
 
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+
             BytecodeType::TypeParam(_) => unreachable!(),
 
             BytecodeType::Ptr => {
@@ -1767,6 +1773,8 @@ impl<'a> CannonCodeGen<'a> {
                         .get_tuple(tuple_id)
                         .contains_references()
                 }
+
+                BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
 
                 BytecodeType::Enum(enum_id, type_params) => {
                     let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -2069,6 +2077,8 @@ impl<'a> CannonCodeGen<'a> {
                         RegOrOffset::Offset(src_offset),
                     );
                 }
+
+                BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
 
                 BytecodeType::Enum(enum_id, type_params) => {
                     let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -2547,6 +2557,8 @@ impl<'a> CannonCodeGen<'a> {
                 }
             }
 
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(enum_def_id);
@@ -2666,6 +2678,8 @@ impl<'a> CannonCodeGen<'a> {
                     RegOrOffset::Reg(REG_TMP1),
                 );
             }
+
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -3503,6 +3517,8 @@ impl<'a> CannonCodeGen<'a> {
                 self.zero_refs_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));
             }
 
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+
             BytecodeType::Enum(_, _) => unimplemented!(),
 
             BytecodeType::TypeParam(_) => unreachable!(),
@@ -3542,7 +3558,8 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Float64
             | BytecodeType::Tuple(_)
             | BytecodeType::Enum(_, _)
-            | BytecodeType::TypeParam(_) => unreachable!(),
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::Struct(_, _) => unreachable!(),
 
             BytecodeType::Ptr => {
                 self.emit_load_register(arguments[0], REG_RESULT.into());

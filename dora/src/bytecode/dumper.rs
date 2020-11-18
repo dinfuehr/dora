@@ -51,6 +51,16 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
                     cls.name_with_params(vm, type_params)
                 )
             }
+            ConstPoolEntry::Struct(struct_id, type_params) => {
+                let xstruct = vm.structs.idx(*struct_id);
+                let xstruct = xstruct.read();
+                println!(
+                    "{}{} => Struct {}",
+                    align,
+                    idx,
+                    xstruct.name_with_params(vm, type_params)
+                )
+            }
             ConstPoolEntry::Enum(enum_id, type_params) => {
                 let xenum = &vm.enums[*enum_id];
                 let xenum = xenum.read();

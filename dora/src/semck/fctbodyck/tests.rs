@@ -1693,6 +1693,13 @@ fn test_struct_with_type_params() {
         pos(3, 29),
         SemError::ReturnType("Foo[Int32]".into(), "Foo[Bool]".into()),
     );
+    err(
+        "
+        struct Foo[T] { f1: T, f2: Bool }
+        fun f[T](val: T): Foo[T] { Foo(val, false) }",
+        pos(3, 39),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
 }
 
 #[test]
@@ -1737,6 +1744,14 @@ fn test_enum() {
     err(
         "enum A[T] { V1, V2 } fun f(): A[Int32] { A::V1 }",
         pos(1, 43),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+
+    err(
+        "
+        enum Foo[T] { A(T, Bool), B }
+        fun f[T](val: T): Foo[T] { Foo::A(val, false) }",
+        pos(3, 42),
         SemError::WrongNumberTypeParams(1, 0),
     );
 }

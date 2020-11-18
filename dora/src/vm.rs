@@ -374,6 +374,14 @@ impl VM {
     }
 
     #[cfg(test)]
+    pub fn struct_by_name(&self, name: &'static str) -> StructId {
+        let name = self.interner.intern(name);
+        NestedSymTable::new(self, self.global_namespace_id)
+            .get_struct(name)
+            .expect("class not found")
+    }
+
+    #[cfg(test)]
     pub fn enum_by_name(&self, name: &'static str) -> EnumId {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id)

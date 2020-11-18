@@ -712,6 +712,10 @@ impl BytecodeWriter {
         let values = [dest.to_usize() as u32, idx.to_usize() as u32];
         self.emit_values(BytecodeOpcode::NewEnum, &values);
     }
+    pub fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let values = [dest.to_usize() as u32, idx.to_usize() as u32];
+        self.emit_values(BytecodeOpcode::NewStruct, &values);
+    }
 
     pub fn emit_nil_check(&mut self, obj: Register) {
         self.emit_reg1(BytecodeOpcode::NilCheck, obj);

@@ -43,6 +43,24 @@ impl StructData {
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }
+
+    pub fn name_with_params(&self, vm: &VM, type_params: &TypeList) -> String {
+        let mut name = self.name(vm);
+
+        if type_params.len() > 0 {
+            let type_params = type_params
+                .iter()
+                .map(|p| p.name(vm))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            name.push('[');
+            name.push_str(&type_params);
+            name.push(']');
+        }
+
+        name
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

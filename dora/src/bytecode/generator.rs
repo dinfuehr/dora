@@ -10,8 +10,8 @@ use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{SourceType, TypeList};
 use crate::vm::{
-    AnalysisData, CallType, ConstId, EnumId, Fct, FctId, GlobalId, IdentType, Intrinsic, TraitId,
-    TupleId, VarId, VM,
+    AnalysisData, CallType, ConstId, EnumId, Fct, FctId, GlobalId, IdentType, Intrinsic, StructId,
+    TraitId, TupleId, VarId, VM,
 };
 
 pub struct LoopLabels {
@@ -872,8 +872,16 @@ impl<'a> AstBytecodeGen<'a> {
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
 
-        if let CallType::Enum(ref enum_ty, variant_id) = *call_type {
-            return self.visit_expr_call_enum(expr, enum_ty.clone(), variant_id, dest);
+        match *call_type {
+            CallType::Enum(ref enum_ty, variant_id) => {
+                return self.visit_expr_call_enum(expr, enum_ty.clone(), variant_id, dest);
+            }
+
+            CallType::Struct(struct_id, ref type_params) => {
+                return self.visit_expr_call_struct(expr, struct_id, type_params, dest);
+            }
+
+            _ => {}
         }
 
         // Find method that is called
@@ -964,6 +972,35 @@ impl<'a> AstBytecodeGen<'a> {
         let bytecode_ty = BytecodeType::from_ty(self.vm, enum_ty);
         let dest_reg = self.ensure_register(dest, bytecode_ty);
         self.gen.emit_new_enum(dest_reg, idx, expr.pos);
+
+        for arg_reg in arguments {
+            self.free_if_temp(arg_reg);
+        }
+
+        dest_reg
+    }
+
+    fn visit_expr_call_struct(
+        &mut self,
+        expr: &ExprCallType,
+        struct_id: StructId,
+        type_params: &TypeList,
+        dest: DataDest,
+    ) -> Register {
+        let mut arguments = Vec::new();
+
+        for arg in &expr.args {
+            arguments.push(self.visit_expr(arg, DataDest::Alloc));
+        }
+
+        for &arg_reg in &arguments {
+            self.gen.emit_push_register(arg_reg);
+        }
+
+        let idx = self.gen.add_const_struct(struct_id, type_params.clone());
+        let bytecode_ty = BytecodeType::Struct(struct_id, type_params.clone());
+        let dest_reg = self.ensure_register(dest, bytecode_ty);
+        self.gen.emit_new_struct(dest_reg, idx, expr.pos);
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg);
@@ -1241,6 +1278,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let idx = self.gen.add_const_enum(enum_id, type_params);
                 self.gen.emit_mov_enum(dest, src, idx)
             }
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
         }
     }
 
@@ -1267,6 +1305,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let enum_idx = self.gen.add_const_enum(enum_id, type_params);
                 self.gen.emit_load_array_enum(dest, arr, idx, enum_idx, pos)
             }
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
         }
     }
 
@@ -1947,6 +1986,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let enum_idx = self.gen.add_const_enum(enum_id, type_params);
                 self.gen.emit_store_array_enum(src, arr, idx, enum_idx, pos)
             }
+            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
         }
     }
 

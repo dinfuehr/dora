@@ -1323,6 +1323,11 @@ impl<'a> TypeCheck<'a> {
             ErrorReporting::Yes(self.file_id, e.pos),
         );
 
+        if !type_params_ok {
+            self.analysis.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
+        }
+
         if !self.check_expr_call_enum_args(enum_id, type_params.clone(), variant, arg_types) {
             let enum_name = self.vm.interner.str(xenum.name).to_string();
             let variant_name = self.vm.interner.str(variant.name).to_string();
@@ -1345,17 +1350,12 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        if type_params_ok {
-            self.analysis
-                .map_calls
-                .insert(e.id, Arc::new(CallType::Enum(ty.clone(), variant_id)));
+        self.analysis
+            .map_calls
+            .insert(e.id, Arc::new(CallType::Enum(ty.clone(), variant_id)));
 
-            self.analysis.set_ty(e.id, ty.clone());
-            ty
-        } else {
-            self.analysis.set_ty(e.id, SourceType::Error);
-            SourceType::Error
-        }
+        self.analysis.set_ty(e.id, ty.clone());
+        ty
     }
 
     fn check_expr_call_enum_args(
@@ -1694,6 +1694,11 @@ impl<'a> TypeCheck<'a> {
             ErrorReporting::Yes(self.file_id, e.pos),
         );
 
+        if !type_params_ok {
+            self.analysis.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
+        }
+
         if !self.check_expr_call_struct_args(&*xstruct, type_params.clone(), arg_types) {
             let struct_name = self.vm.interner.str(xstruct.name).to_string();
             let field_types = xstruct
@@ -1709,17 +1714,12 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        if type_params_ok {
-            self.analysis
-                .map_calls
-                .insert(e.id, Arc::new(CallType::Struct(struct_id, type_params)));
+        self.analysis
+            .map_calls
+            .insert(e.id, Arc::new(CallType::Struct(struct_id, type_params)));
 
-            self.analysis.set_ty(e.id, ty.clone());
-            ty
-        } else {
-            self.analysis.set_ty(e.id, SourceType::Error);
-            SourceType::Error
-        }
+        self.analysis.set_ty(e.id, ty.clone());
+        ty
     }
 
     fn check_expr_call_struct_args(

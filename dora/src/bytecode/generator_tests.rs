@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::{SourceType, TypeList};
-use crate::vm::{ensure_tuple, ClassId, EnumId, FieldId, GlobalId, TupleId, VM};
+use crate::vm::{ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -2436,6 +2436,50 @@ fn gen_virtual_method_call_int_with_3_args() {
 }
 
 #[test]
+fn gen_new_struct() {
+    gen_fct(
+        "
+        struct Foo { f1: Int32, f2: Bool }
+        fun f(): Foo { Foo(10, false) }
+    ",
+        |vm, code, _fct| {
+            let struct_id = vm.struct_by_name("Foo");
+            let expected = vec![
+                ConstInt32(r(0), 10),
+                ConstFalse(r(1)),
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                NewStruct(r(2), struct_id, TypeList::empty()),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+
+    gen_fct(
+        "
+        struct Foo[T] { f1: T, f2: Bool }
+        fun f[T](val: T): Foo[T] { Foo[T](val, false) }
+    ",
+        |vm, code, _fct| {
+            let struct_id = vm.struct_by_name("Foo");
+            let expected = vec![
+                ConstFalse(r(1)),
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                NewStruct(
+                    r(2),
+                    struct_id,
+                    TypeList::single(SourceType::TypeParam(0.into())),
+                ),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_new_enum() {
     gen_fct(
         "
@@ -4120,6 +4164,7 @@ pub enum Bytecode {
     NewArray(Register, ClassId, TypeList, Register),
     NewTuple(Register, TupleId),
     NewEnum(Register, EnumId, TypeList, usize),
+    NewStruct(Register, StructId, TypeList),
 
     NilCheck(Register),
 
@@ -4773,6 +4818,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
             _ => unreachable!(),
         };
         self.emit(Bytecode::NewEnum(dest, enum_id, type_params, variant_id));
+    }
+    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let (struct_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        self.emit(Bytecode::NewStruct(dest, struct_id, type_params));
     }
 
     fn visit_nil_check(&mut self, obj: Register) {
