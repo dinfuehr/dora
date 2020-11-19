@@ -63,7 +63,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         if self.fct.has_self() {
             let var_self = self.src.var_self();
-            let var_ty = self.specialize_type(var_self.ty.clone());
+            let var_ty = var_self.ty.clone();
 
             if !var_ty.is_unit() {
                 let var_id = var_self.id;
@@ -342,7 +342,7 @@ impl<'a> AstBytecodeGen<'a> {
             object_reg
         };
 
-        let iterator_type = self.specialize_type(for_type_info.iterator_type.clone());
+        let iterator_type = for_type_info.iterator_type.clone();
         let iterator_type_params = iterator_type.type_params(self.vm);
 
         self.gen.emit_push_register(iterator_reg);
@@ -361,7 +361,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_temp(cond_reg);
 
         // Emit: <var> = <iterator>.next()
-        let next_ty = self.specialize_type(for_type_info.next_type.clone());
+        let next_ty = for_type_info.next_type.clone();
         let fct_idx = self
             .gen
             .add_const_fct_types(for_type_info.next, iterator_type_params.clone());
@@ -499,7 +499,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn emit_ret_value(&mut self, result_reg: Register) {
-        let ret_ty = self.specialize_type(self.fct.return_type.clone());
+        let ret_ty = self.fct.return_type.clone();
 
         if ret_ty.is_unit() {
             self.gen.emit_ret_void();
@@ -690,7 +690,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_conv(&mut self, expr: &ExprConvType, dest: DataDest) -> Register {
         let conv = self.src.map_convs.get(expr.id).clone().unwrap();
-        let ty = self.specialize_type(conv.check_type.clone());
+        let ty = conv.check_type.clone();
         let cls_id = ty.cls_id(self.vm).expect("class expected");
         let type_params = ty.type_params(self.vm);
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
@@ -797,8 +797,6 @@ impl<'a> AstBytecodeGen<'a> {
             }
         };
 
-        let cls_ty = self.specialize_type(cls_ty);
-
         let cls_id = cls_ty.cls_id(self.vm).expect("class expected");
         let type_params = cls_ty.type_params(self.vm);
         let field_idx = self
@@ -814,7 +812,6 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         let field_ty = specialize_type(self.vm, field_ty, &type_params);
-        let field_ty = self.specialize_type(field_ty);
 
         if field_ty.is_unit() {
             assert!(dest.is_unit());
@@ -2471,8 +2468,6 @@ impl<'a> AstBytecodeGen<'a> {
             }
         };
 
-        let cls_ty = self.specialize_type(cls_ty);
-
         let cls_id = cls_ty.cls_id(self.vm).expect("class expected");
         let type_params = cls_ty.type_params(self.vm);
         let field_idx = self
@@ -2484,7 +2479,6 @@ impl<'a> AstBytecodeGen<'a> {
         let field = &cls.fields[field_id.idx()];
         let field_ty = field.ty.clone();
         let field_ty = specialize_type(self.vm, field_ty, &type_params);
-        let field_ty = self.specialize_type(field_ty);
 
         let field_ty: Option<BytecodeType> = if field_ty.is_unit() {
             None
@@ -2643,7 +2637,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let var_reg = self.var_reg(var_id);
-        let ty: BytecodeType = BytecodeType::from_ty(self.vm, self.specialize_type(ty));
+        let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
 
         if dest.is_alloc() {
             return var_reg;
@@ -2699,15 +2693,11 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => ty.type_params(self.vm),
 
             CallType::Method(ty, _, ref fct_type_params) => {
-                let ty = self.specialize_type(ty.clone());
-
                 let cls_type_params = ty.type_params(self.vm);
                 cls_type_params.append(fct_type_params)
             }
 
             CallType::ModuleMethod(ty, _, ref fct_type_params) => {
-                let ty = self.specialize_type(ty.clone());
-
                 let cls_type_params = ty.type_params(self.vm);
                 cls_type_params.append(fct_type_params)
             }
@@ -2718,11 +2708,7 @@ impl<'a> AstBytecodeGen<'a> {
                 cls_type_params.append(&fct_type_params)
             }
 
-            CallType::Expr(ty, _) => {
-                let ty = self.specialize_type(ty.clone());
-
-                ty.type_params(self.vm)
-            }
+            CallType::Expr(ty, _) => ty.type_params(self.vm),
 
             CallType::TraitObjectMethod(_, _) => TypeList::empty(),
             CallType::GenericMethod(_, _, _) => TypeList::empty(),
@@ -2737,12 +2723,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn specialize_call(&mut self, fct: &Fct, call_type: &CallType) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
 
-        let type_params = TypeList::with(
-            type_params
-                .iter()
-                .map(|ty| self.specialize_type(ty))
-                .collect::<Vec<_>>(),
-        );
+        let type_params = TypeList::with(type_params.iter().map(|ty| ty).collect::<Vec<_>>());
 
         match *call_type {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
@@ -2753,7 +2734,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: SourceType) -> SourceType {
-        let ty = match call_type {
+        match call_type {
             CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
                 let type_params = cls_type_params.append(fct_type_params);
                 specialize_type(self.vm, ty, &type_params)
@@ -2794,23 +2775,15 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
-        };
-
-        self.specialize_type(ty)
-    }
-
-    fn specialize_type(&self, ty: SourceType) -> SourceType {
-        ty
+        }
     }
 
     fn ty(&self, id: NodeId) -> SourceType {
-        let ty = self.src.ty(id);
-        self.specialize_type(ty)
+        self.src.ty(id)
     }
 
     fn var_ty(&self, id: VarId) -> SourceType {
-        let ty = self.src.vars[id].ty.clone();
-        self.specialize_type(ty)
+        self.src.vars[id].ty.clone()
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<IntrinsicInfo> {
