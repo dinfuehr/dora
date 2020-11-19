@@ -3725,12 +3725,6 @@ impl<'a> CannonCodeGen<'a> {
         fct_return_type: SourceType,
         arguments: Vec<Register>,
     ) -> i32 {
-        let result_register = if result_passed_as_argument(fct_return_type) {
-            Some(dest.expect("need register for tuple result"))
-        } else {
-            None
-        };
-
         let argsize = self.determine_argsize(&arguments);
 
         self.asm.increase_stack_frame(argsize);
@@ -3739,14 +3733,10 @@ impl<'a> CannonCodeGen<'a> {
         let mut freg_idx = 0;
         let mut sp_offset = 0;
 
-        match result_register {
-            Some(dest) => {
-                let offset = self.register_offset(dest);
-                self.asm.lea(REG_PARAMS[0], Mem::Local(offset));
-                reg_idx += 1;
-            }
-
-            _ => {}
+        if result_passed_as_argument(fct_return_type) {
+            let offset = self.register_offset(dest.expect("need register for tuple result"));
+            self.asm.lea(REG_PARAMS[0], Mem::Local(offset));
+            reg_idx += 1;
         }
 
         for src in arguments {
