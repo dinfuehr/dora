@@ -3,7 +3,9 @@ use std::fmt;
 use crate::mem::ptr_width;
 use crate::semck::specialize::specialize_enum_id_params;
 use crate::ty::{MachineMode, SourceType, TypeList, TypeListId};
-use crate::vm::{get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructId, TupleId, VM};
+use crate::vm::{
+    get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId, TupleId, VM,
+};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -273,6 +275,7 @@ pub enum BytecodeOpcode {
     LoadTupleElement,
     LoadEnumElement,
     LoadEnumVariant,
+    LoadStructField,
 
     LoadField,
     StoreField,
@@ -595,6 +598,7 @@ pub enum ConstPoolEntry {
     Enum(EnumId, TypeList),
     EnumVariant(EnumId, TypeList, usize),
     Struct(StructId, TypeList),
+    StructField(StructId, TypeList, StructFieldId),
 }
 
 impl ConstPoolEntry {

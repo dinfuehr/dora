@@ -61,6 +61,19 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
                     xstruct.name_with_params(vm, type_params)
                 )
             }
+            ConstPoolEntry::StructField(struct_id, type_params, field_idx) => {
+                let xstruct = vm.structs.idx(*struct_id);
+                let xstruct = xstruct.read();
+                let field = &xstruct.fields[field_idx.to_usize()];
+                let fname = vm.interner.str(field.name);
+                println!(
+                    "{}{} => StructField {}.{}",
+                    align,
+                    idx,
+                    xstruct.name_with_params(vm, type_params),
+                    fname
+                )
+            }
             ConstPoolEntry::Enum(enum_id, type_params) => {
                 let xenum = &vm.enums[*enum_id];
                 let xenum = xenum.read();

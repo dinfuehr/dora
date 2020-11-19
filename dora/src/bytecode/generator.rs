@@ -783,6 +783,11 @@ impl<'a> AstBytecodeGen<'a> {
             return self.visit_expr_dot_tuple(expr, tuple_id, dest);
         }
 
+        if let Some(struct_id) = object_ty.struct_id() {
+            let type_params = object_ty.type_params(self.vm);
+            return self.visit_expr_dot_struct(expr, struct_id, type_params, dest);
+        }
+
         let (cls_ty, field_id) = {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
@@ -826,6 +831,45 @@ impl<'a> AstBytecodeGen<'a> {
 
         self.gen.emit_load_field(dest, obj, field_idx, expr.pos);
         self.free_if_temp(obj);
+
+        dest
+    }
+
+    fn visit_expr_dot_struct(
+        &mut self,
+        expr: &ExprDotType,
+        struct_id: StructId,
+        type_params: TypeList,
+        dest: DataDest,
+    ) -> Register {
+        let struct_obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
+
+        let ident_type = self.src.map_idents.get(expr.id).unwrap();
+
+        let field_idx = match ident_type {
+            IdentType::StructField(_, field_idx) => *field_idx,
+            _ => unreachable!(),
+        };
+
+        let xstruct = self.vm.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+        let field = &xstruct.fields[field_idx.to_usize()];
+        let ty = specialize_type(self.vm, field.ty.clone(), &type_params);
+
+        if ty.is_unit() {
+            assert!(dest.is_unit());
+            self.free_if_temp(struct_obj);
+            return Register::invalid();
+        }
+
+        let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+        let dest = self.ensure_register(dest, ty);
+        let const_idx = self
+            .gen
+            .add_const_struct_field(struct_id, type_params, field_idx);
+        self.gen.emit_load_struct_field(dest, struct_obj, const_idx);
+
+        self.free_if_temp(struct_obj);
 
         dest
     }

@@ -137,6 +137,15 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::DivFloat64, dest, lhs, rhs);
     }
 
+    pub fn emit_load_struct_field(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        field_idx: ConstPoolIdx,
+    ) {
+        self.emit_access_field(BytecodeOpcode::LoadStructField, dest, obj, field_idx);
+    }
+
     pub fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         self.emit_access_field(BytecodeOpcode::LoadField, dest, obj, field_idx);
     }

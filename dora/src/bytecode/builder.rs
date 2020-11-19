@@ -8,7 +8,7 @@ use crate::bytecode::{
 };
 use crate::driver::cmd::Args;
 use crate::ty::{TypeList, TypeListId};
-use crate::vm::{ClassId, EnumId, FctId, FieldId, GlobalId, StructId, TupleId, VM};
+use crate::vm::{ClassId, EnumId, FctId, FieldId, GlobalId, StructFieldId, StructId, TupleId, VM};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -67,6 +67,16 @@ impl BytecodeBuilder {
     pub fn add_const_struct(&mut self, id: StructId, type_params: TypeList) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Struct(id, type_params))
+    }
+
+    pub fn add_const_struct_field(
+        &mut self,
+        id: StructId,
+        type_params: TypeList,
+        field_idx: StructFieldId,
+    ) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::StructField(id, type_params, field_idx))
     }
 
     pub fn add_const_fct_types(&mut self, id: FctId, type_params: TypeList) -> ConstPoolIdx {
@@ -173,6 +183,16 @@ impl BytecodeBuilder {
     pub fn emit_div_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_div_float64(dest, lhs, rhs);
+    }
+
+    pub fn emit_load_struct_field(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        field_idx: ConstPoolIdx,
+    ) {
+        assert!(self.def(dest) && self.used(obj));
+        self.writer.emit_load_struct_field(dest, obj, field_idx);
     }
 
     pub fn emit_load_field(

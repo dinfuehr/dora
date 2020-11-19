@@ -7,7 +7,9 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::{SourceType, TypeList};
-use crate::vm::{ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructId, TupleId, VM};
+use crate::vm::{
+    ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructFieldId, StructId, TupleId, VM,
+};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -2499,6 +2501,45 @@ fn gen_move_struct() {
 }
 
 #[test]
+fn gen_struct_field() {
+    gen_fct(
+        "
+        struct Foo { f1: Int32, f2: Bool }
+        fun f(x: Foo): Int32 { x.f1 }
+    ",
+        |vm, code, fct| {
+            let struct_id = vm.struct_by_name("Foo");
+            let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::StructField(struct_id, TypeList::empty(), StructFieldId(0))
+            );
+        },
+    );
+
+    gen_fct(
+        "
+        struct Foo[T] { f1: T, f2: Bool }
+        fun f(x: Foo[Int32]): Int32 { x.f1 }
+    ",
+        |vm, code, fct| {
+            let struct_id = vm.struct_by_name("Foo");
+            let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::StructField(
+                    struct_id,
+                    TypeList::single(SourceType::Int32),
+                    StructFieldId(0)
+                )
+            );
+        },
+    );
+}
+
+#[test]
 fn gen_new_enum() {
     gen_fct(
         "
@@ -4083,6 +4124,7 @@ pub enum Bytecode {
     MovStruct(Register, Register, ConstPoolIdx),
 
     LoadTupleElement(Register, Register, TupleId, u32),
+    LoadStructField(Register, Register, ConstPoolIdx),
 
     LoadField(Register, Register, ClassId, TypeList, FieldId),
     StoreField(Register, Register, ConstPoolIdx),
@@ -4513,6 +4555,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         element: u32,
     ) {
         self.emit(Bytecode::LoadTupleElement(src, dest, tuple_id, element));
+    }
+
+    fn visit_load_struct_field(&mut self, dest: Register, obj: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::LoadStructField(dest, obj, idx));
     }
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, idx: ConstPoolIdx) {

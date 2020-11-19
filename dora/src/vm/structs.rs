@@ -65,7 +65,7 @@ impl StructData {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct StructFieldId(usize);
+pub struct StructFieldId(pub usize);
 
 impl From<usize> for StructFieldId {
     fn from(data: usize) -> StructFieldId {
