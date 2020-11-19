@@ -263,7 +263,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn has_result_address(&self) -> bool {
         let return_type = self.specialize_type(self.fct.return_type.clone());
-        return_type.is_tuple() || return_type.is_struct()
+        result_passed_as_argument(return_type)
     }
 
     fn store_params_on_stack(&mut self) {
@@ -2836,36 +2836,31 @@ impl<'a> CannonCodeGen<'a> {
         ));
         assert!(fct_return_type.is_concrete_type(self.vm));
 
-        let result_register = match fct_return_type {
-            SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
-            _ => None,
-        };
-
-        let argsize = self.emit_invoke_arguments(result_register, arguments);
+        let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
         let vtable_index = fct.vtable_index.unwrap();
         let gcpoint = self.create_gcpoint();
 
-        let (reg, ty) = match bytecode_type {
-            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
-            Some(bytecode_type) => (
-                result_reg(self.vm, bytecode_type.clone()),
-                Some(bytecode_type.mode(self.vm)),
-            ),
-            None => (REG_RESULT.into(), None),
-        };
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
 
-        let self_index = if result_register.is_some() { 1 } else { 0 };
-        self.asm
-            .indirect_call(vtable_index, self_index, pos, gcpoint, ty, type_params, reg);
+        let self_index = if result_passed_as_argument(fct_return_type.clone()) {
+            1
+        } else {
+            0
+        };
+        self.asm.indirect_call(
+            vtable_index,
+            self_index,
+            pos,
+            gcpoint,
+            result_mode,
+            type_params,
+            result_reg,
+        );
 
         self.asm.decrease_stack_frame(argsize);
 
-        if let Some(dest) = dest {
-            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
-                self.emit_store_register(reg, dest);
-            }
-        }
+        self.store_call_result(dest, result_reg, fct_return_type);
     }
 
     fn emit_invoke_direct_from_bytecode(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
@@ -2939,35 +2934,26 @@ impl<'a> CannonCodeGen<'a> {
                 .test_if_nil_bailout(pos, REG_RESULT.into(), Trap::NIL);
         }
 
-        let result_register = match fct_return_type {
-            SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
-            _ => None,
-        };
-
-        let argsize = self.emit_invoke_arguments(result_register, arguments);
+        let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
         let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
-        let (reg, mode) = match dest_ty {
-            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
-            Some(bytecode_type) => (
-                result_reg(self.vm, bytecode_type.clone()),
-                Some(bytecode_type.mode(self.vm)),
-            ),
-            None => (REG_RESULT.into(), None),
-        };
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(dest_ty);
 
-        self.asm
-            .direct_call(fct_id, ptr.to_ptr(), type_params, pos, gcpoint, mode, reg);
+        self.asm.direct_call(
+            fct_id,
+            ptr.to_ptr(),
+            type_params,
+            pos,
+            gcpoint,
+            result_mode,
+            result_reg,
+        );
 
         self.asm.decrease_stack_frame(argsize);
 
-        if let Some(dest) = dest {
-            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
-                self.emit_store_register(reg, dest);
-            }
-        }
+        self.store_call_result(dest, result_reg, fct_return_type);
     }
 
     fn emit_invoke_static_from_bytecode(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
@@ -3030,18 +3016,41 @@ impl<'a> CannonCodeGen<'a> {
         ));
         assert!(fct_return_type.is_concrete_type(self.vm));
 
-        let result_register = match fct_return_type {
-            SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
-            SourceType::Struct(_, _) => Some(dest.expect("need register for tuple result")),
-            _ => None,
-        };
-
-        let argsize = self.emit_invoke_arguments(result_register, arguments);
+        let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
         let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
-        let (reg, mode) = match bytecode_type {
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
+
+        self.asm.direct_call(
+            fct_id,
+            ptr.to_ptr(),
+            type_params,
+            pos,
+            gcpoint,
+            result_mode,
+            result_reg,
+        );
+
+        self.asm.decrease_stack_frame(argsize);
+
+        self.store_call_result(dest, result_reg, fct_return_type);
+    }
+
+    fn store_call_result(&mut self, dest: Option<Register>, reg: AnyReg, ty: SourceType) {
+        if let Some(dest) = dest {
+            if !ty.is_struct() && !ty.is_tuple() && !ty.is_unit() {
+                self.emit_store_register(reg, dest);
+            }
+        }
+    }
+
+    fn call_result_reg_and_mode(
+        &self,
+        bytecode_type: Option<BytecodeType>,
+    ) -> (AnyReg, Option<MachineMode>) {
+        match bytecode_type {
             Some(BytecodeType::Struct(_, _)) => (REG_RESULT.into(), None),
             Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
             Some(bytecode_type) => (
@@ -3049,20 +3058,6 @@ impl<'a> CannonCodeGen<'a> {
                 Some(bytecode_type.mode(self.vm)),
             ),
             None => (REG_RESULT.into(), None),
-        };
-
-        self.asm
-            .direct_call(fct_id, ptr.to_ptr(), type_params, pos, gcpoint, mode, reg);
-
-        self.asm.decrease_stack_frame(argsize);
-
-        if let Some(dest) = dest {
-            if !fct_return_type.is_struct()
-                && !fct_return_type.is_tuple()
-                && !fct_return_type.is_unit()
-            {
-                self.emit_store_register(reg, dest);
-            }
         }
     }
 
@@ -3726,9 +3721,16 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_arguments(
         &mut self,
-        result_register: Option<Register>,
+        dest: Option<Register>,
+        fct_return_type: SourceType,
         arguments: Vec<Register>,
     ) -> i32 {
+        let result_register = match fct_return_type {
+            SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+            SourceType::Struct(_, _) => Some(dest.expect("need register for tuple result")),
+            _ => None,
+        };
+
         let argsize = self.determine_argsize(&arguments);
 
         self.asm.increase_stack_frame(argsize);
@@ -5118,6 +5120,10 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, format!("Ret {}", opnd));
         self.emit_return_generic(opnd);
     }
+}
+
+fn result_passed_as_argument(ty: SourceType) -> bool {
+    ty.is_struct() || ty.is_tuple()
 }
 
 fn result_reg(vm: &VM, bytecode_type: BytecodeType) -> AnyReg {
