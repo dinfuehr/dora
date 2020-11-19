@@ -1004,6 +1004,14 @@ where
                 self.visitor
                     .visit_load_array_enum(dest, array, index, enum_idx);
             }
+            BytecodeOpcode::LoadArrayStruct => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                let const_idx = self.read_const_pool_idx(wide);
+                self.visitor
+                    .visit_load_array_struct(dest, array, index, const_idx);
+            }
 
             BytecodeOpcode::StoreArrayBool => {
                 let src = self.read_register(wide);
@@ -1072,6 +1080,14 @@ where
                 let enum_idx = self.read_const_pool_idx(wide);
                 self.visitor
                     .visit_store_array_enum(dest, array, index, enum_idx);
+            }
+            BytecodeOpcode::StoreArrayStruct => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                let const_idx = self.read_const_pool_idx(wide);
+                self.visitor
+                    .visit_store_array_struct(dest, array, index, const_idx);
             }
 
             BytecodeOpcode::RetVoid => {
@@ -1740,6 +1756,15 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
+    fn visit_load_array_struct(
+        &mut self,
+        _dest: Register,
+        _arr: Register,
+        _idx: Register,
+        _struct_idx: ConstPoolIdx,
+    ) {
+        unimplemented!();
+    }
 
     fn visit_store_array_bool(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
@@ -1777,6 +1802,15 @@ pub trait BytecodeVisitor {
         _arr: Register,
         _idx: Register,
         _enum_idx: ConstPoolIdx,
+    ) {
+        unimplemented!();
+    }
+    fn visit_store_array_struct(
+        &mut self,
+        _dest: Register,
+        _arr: Register,
+        _idx: Register,
+        _struct_idx: ConstPoolIdx,
     ) {
         unimplemented!();
     }

@@ -780,6 +780,21 @@ impl BytecodeWriter {
     ) {
         self.emit_reg3_idx(BytecodeOpcode::StoreArrayEnum, src, array, index, enum_idx);
     }
+    pub fn emit_store_array_struct(
+        &mut self,
+        src: Register,
+        array: Register,
+        index: Register,
+        struct_idx: ConstPoolIdx,
+    ) {
+        self.emit_reg3_idx(
+            BytecodeOpcode::StoreArrayStruct,
+            src,
+            array,
+            index,
+            struct_idx,
+        );
+    }
 
     pub fn emit_load_array_uint8(&mut self, dest: Register, array: Register, idx: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayUInt8, dest, array, idx);
@@ -819,6 +834,21 @@ impl BytecodeWriter {
         enum_idx: ConstPoolIdx,
     ) {
         self.emit_reg3_idx(BytecodeOpcode::LoadArrayEnum, dest, array, index, enum_idx);
+    }
+    pub fn emit_load_array_struct(
+        &mut self,
+        dest: Register,
+        array: Register,
+        index: Register,
+        struct_idx: ConstPoolIdx,
+    ) {
+        self.emit_reg3_idx(
+            BytecodeOpcode::LoadArrayStruct,
+            dest,
+            array,
+            index,
+            struct_idx,
+        );
     }
 
     pub fn generate(mut self) -> BytecodeFunction {

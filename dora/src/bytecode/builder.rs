@@ -1064,6 +1064,19 @@ impl BytecodeBuilder {
         self.writer
             .emit_store_array_enum(src, array, index, enum_idx);
     }
+    pub fn emit_store_array_struct(
+        &mut self,
+        src: Register,
+        array: Register,
+        index: Register,
+        struct_idx: ConstPoolIdx,
+        pos: Position,
+    ) {
+        assert!(self.used(src) && self.used(array) && self.used(index));
+        self.writer.set_position(pos);
+        self.writer
+            .emit_store_array_struct(src, array, index, struct_idx);
+    }
 
     pub fn emit_load_array_uint8(
         &mut self,
@@ -1187,6 +1200,19 @@ impl BytecodeBuilder {
         self.writer.set_position(pos);
         self.writer
             .emit_load_array_enum(dest, array, index, enum_idx);
+    }
+    pub fn emit_load_array_struct(
+        &mut self,
+        dest: Register,
+        array: Register,
+        index: Register,
+        struct_idx: ConstPoolIdx,
+        pos: Position,
+    ) {
+        assert!(self.def(dest) && self.used(array) && self.used(index));
+        self.writer.set_position(pos);
+        self.writer
+            .emit_load_array_struct(dest, array, index, struct_idx);
     }
 
     pub fn generate(self, vm: &VM) -> BytecodeFunction {

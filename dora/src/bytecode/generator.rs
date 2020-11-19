@@ -1349,7 +1349,11 @@ impl<'a> AstBytecodeGen<'a> {
                 let enum_idx = self.gen.add_const_enum(enum_id, type_params);
                 self.gen.emit_load_array_enum(dest, arr, idx, enum_idx, pos)
             }
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(struct_id, type_params) => {
+                let struct_idx = self.gen.add_const_struct(struct_id, type_params);
+                self.gen
+                    .emit_load_array_struct(dest, arr, idx, struct_idx, pos)
+            }
         }
     }
 
@@ -2030,7 +2034,11 @@ impl<'a> AstBytecodeGen<'a> {
                 let enum_idx = self.gen.add_const_enum(enum_id, type_params);
                 self.gen.emit_store_array_enum(src, arr, idx, enum_idx, pos)
             }
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(struct_id, type_params) => {
+                let struct_idx = self.gen.add_const_struct(struct_id, type_params);
+                self.gen
+                    .emit_store_array_struct(src, arr, idx, struct_idx, pos)
+            }
         }
     }
 
