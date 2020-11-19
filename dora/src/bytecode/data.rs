@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::mem::ptr_width;
-use crate::semck::specialize::specialize_enum_id_params;
+use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
 use crate::ty::{MachineMode, SourceType, TypeList, TypeListId};
 use crate::vm::{
     get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId, TupleId, VM,
@@ -33,6 +33,7 @@ pub enum BytecodeTypeKind {
     Ptr,
     Tuple,
     Enum,
+    Struct,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -76,7 +77,12 @@ impl BytecodeType {
                     EnumLayout::Ptr | EnumLayout::Tagged => ptr_width(),
                 }
             }
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(struct_id, type_params) => {
+                let sdef_id = specialize_struct_id_params(vm, *struct_id, type_params.clone());
+                let sdef = vm.struct_defs.idx(sdef_id);
+
+                sdef.size
+            }
         }
     }
 
@@ -93,7 +99,7 @@ impl BytecodeType {
             BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
             BytecodeType::TypeParam(_) => unreachable!(),
             BytecodeType::Enum(_, _) => BytecodeTypeKind::Enum,
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(_, _) => BytecodeTypeKind::Struct,
         }
     }
 
@@ -118,7 +124,7 @@ impl BytecodeType {
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 }
             }
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(_struct_id, _type_params) => unreachable!(),
         }
     }
 

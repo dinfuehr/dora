@@ -20,14 +20,14 @@ use crate::masm::*;
 use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::{
-    specialize_class_id_params, specialize_enum_id_params, specialize_tuple, specialize_type,
-    specialize_type_list,
+    specialize_class_id_params, specialize_enum_id_params, specialize_struct_id_params,
+    specialize_tuple, specialize_type, specialize_type_list,
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, TypeList};
 use crate::vm::{
-    AnalysisData, EnumLayout, Fct, FctId, GlobalId, Intrinsic, TraitId, Trap, TupleId, VM,
+    AnalysisData, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId, TraitId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -218,7 +218,15 @@ impl<'a> CannonCodeGen<'a> {
                         }
                     }
 
-                    BytecodeType::Struct(_, _) => unimplemented!(),
+                    BytecodeType::Struct(struct_id, type_params) => {
+                        let offset = self.register_offset(Register(idx));
+                        let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+                        let sdef = self.vm.struct_defs.idx(sdef_id);
+
+                        for &ref_offset in &sdef.ref_fields {
+                            self.references.push(offset + ref_offset);
+                        }
+                    }
 
                     BytecodeType::Enum(enum_id, type_params) => {
                         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -255,7 +263,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn has_result_address(&self) -> bool {
         let return_type = self.specialize_type(self.fct.return_type.clone());
-        return_type.is_tuple()
+        return_type.is_tuple() || return_type.is_struct()
     }
 
     fn store_params_on_stack(&mut self) {
@@ -1463,6 +1471,23 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
+    fn copy_struct(
+        &mut self,
+        struct_id: StructId,
+        type_params: TypeList,
+        dest: RegOrOffset,
+        src: RegOrOffset,
+    ) {
+        let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let sdef = self.vm.struct_defs.idx(sdef_id);
+
+        for field in &sdef.fields {
+            let src = src.offset(field.offset);
+            let dest = dest.offset(field.offset);
+            self.copy_ty(field.ty.clone(), dest, src);
+        }
+    }
+
     fn copy_ty(&mut self, ty: SourceType, dest: RegOrOffset, src: RegOrOffset) {
         match ty {
             SourceType::Tuple(tuple_id) => {
@@ -1471,6 +1496,11 @@ impl<'a> CannonCodeGen<'a> {
 
             SourceType::Unit => {
                 // do nothing
+            }
+
+            SourceType::Struct(struct_id, type_params_id) => {
+                let type_params = self.vm.lists.lock().get(type_params_id);
+                self.copy_struct(struct_id, type_params, dest, src);
             }
 
             SourceType::Enum(enum_id, type_params_id) => {
@@ -1509,7 +1539,6 @@ impl<'a> CannonCodeGen<'a> {
             | SourceType::Error
             | SourceType::Any
             | SourceType::This
-            | SourceType::Struct(_, _)
             | SourceType::Module(_)
             | SourceType::Lambda(_) => unreachable!(),
         }
@@ -1534,7 +1563,9 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.store_mem(mode, dest.mem(), REG_RESULT.into());
             }
 
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(struct_id, type_params) => {
+                self.copy_struct(struct_id, type_params, dest, src);
+            }
 
             BytecodeType::TypeParam(_) => unreachable!(),
 
@@ -2078,7 +2109,22 @@ impl<'a> CannonCodeGen<'a> {
                     );
                 }
 
-                BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+                BytecodeType::Struct(struct_id, type_params) => {
+                    let src_offset = self.register_offset(src);
+
+                    self.asm.load_mem(
+                        MachineMode::Ptr,
+                        REG_TMP1.into(),
+                        Mem::Local(result_address_offset()),
+                    );
+
+                    self.copy_struct(
+                        struct_id,
+                        type_params.clone(),
+                        RegOrOffset::Reg(REG_TMP1),
+                        RegOrOffset::Offset(src_offset),
+                    );
+                }
 
                 BytecodeType::Enum(enum_id, type_params) => {
                     let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -2454,6 +2500,38 @@ impl<'a> CannonCodeGen<'a> {
                         field_idx += 1;
                     }
                 }
+            }
+        }
+    }
+
+    fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let sdef = self.vm.struct_defs.idx(sdef_id);
+
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
+        let dest_offset = self.register_offset(dest);
+        self.asm.lea(REG_TMP1, Mem::Local(dest_offset));
+
+        for (field_idx, &arg) in arguments.iter().enumerate() {
+            if let Some(ty) = self.specialize_register_type_unit(arg) {
+                let field = &sdef.fields[field_idx];
+                comment!(self, format!("NewStruct: store register {} in struct", arg));
+
+                let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+                let src = self.reg(arg);
+
+                self.copy_bytecode_ty(ty, dest, src);
             }
         }
     }
@@ -2954,6 +3032,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let result_register = match fct_return_type {
             SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+            SourceType::Struct(_, _) => Some(dest.expect("need register for tuple result")),
             _ => None,
         };
 
@@ -2963,6 +3042,7 @@ impl<'a> CannonCodeGen<'a> {
         let gcpoint = self.create_gcpoint();
 
         let (reg, mode) = match bytecode_type {
+            Some(BytecodeType::Struct(_, _)) => (REG_RESULT.into(), None),
             Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
             Some(bytecode_type) => (
                 result_reg(self.vm, bytecode_type.clone()),
@@ -2977,7 +3057,10 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.decrease_stack_frame(argsize);
 
         if let Some(dest) = dest {
-            if !fct_return_type.is_tuple() && !fct_return_type.is_unit() {
+            if !fct_return_type.is_struct()
+                && !fct_return_type.is_tuple()
+                && !fct_return_type.is_unit()
+            {
                 self.emit_store_register(reg, dest);
             }
         }
@@ -4890,6 +4973,25 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             )
         });
         self.emit_new_enum(dest, idx);
+    }
+
+    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, {
+            let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Struct(enum_id, type_params) => (*enum_id, type_params),
+                _ => unreachable!(),
+            };
+            let xstruct = self.vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+            let xstruct_name = xstruct.name_with_params(self.vm, type_params);
+            format!(
+                "NewStruct {}, ConstPoolIdx({}) # {}",
+                dest,
+                idx.to_usize(),
+                xstruct_name,
+            )
+        });
+        self.emit_new_struct(dest, idx);
     }
 
     fn visit_nil_check(&mut self, obj: Register) {

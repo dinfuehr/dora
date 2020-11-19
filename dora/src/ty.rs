@@ -140,6 +140,13 @@ impl SourceType {
         }
     }
 
+    pub fn is_struct(&self) -> bool {
+        match self {
+            &SourceType::Struct(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_tuple_or_unit(&self) -> bool {
         match self {
             &SourceType::Tuple(_) => true,
@@ -541,7 +548,9 @@ impl SourceType {
             | SourceType::Module(_)
             | SourceType::Ptr
             | SourceType::TraitObject(_) => true,
-            SourceType::Class(_, list_id) | SourceType::Enum(_, list_id) => {
+            SourceType::Class(_, list_id)
+            | SourceType::Enum(_, list_id)
+            | SourceType::Struct(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
                 for param in params.iter() {
@@ -553,7 +562,7 @@ impl SourceType {
                 true
             }
             SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
-            SourceType::Lambda(_) | SourceType::Struct(_, _) => unimplemented!(),
+            SourceType::Lambda(_) => unimplemented!(),
             SourceType::TypeParam(_) => false,
         }
     }
