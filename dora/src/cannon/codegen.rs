@@ -3725,10 +3725,10 @@ impl<'a> CannonCodeGen<'a> {
         fct_return_type: SourceType,
         arguments: Vec<Register>,
     ) -> i32 {
-        let result_register = match fct_return_type {
-            SourceType::Tuple(_) => Some(dest.expect("need register for tuple result")),
-            SourceType::Struct(_, _) => Some(dest.expect("need register for tuple result")),
-            _ => None,
+        let result_register = if result_passed_as_argument(fct_return_type) {
+            Some(dest.expect("need register for tuple result"))
+        } else {
+            None
         };
 
         let argsize = self.determine_argsize(&arguments);
