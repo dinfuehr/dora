@@ -27,7 +27,8 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    AnalysisData, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId, TraitId, Trap, TupleId, VM,
+    AnalysisData, EnumId, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId, TraitId, Trap,
+    TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -301,130 +302,222 @@ impl<'a> CannonCodeGen<'a> {
                 param_ty
             };
 
-            if let Some(tuple_id) = param_ty.tuple_id() {
-                let dest_offset = self.register_offset(dest);
-
-                if reg_idx < REG_PARAMS.len() {
-                    self.asm.copy(
-                        MachineMode::Ptr,
-                        REG_TMP1.into(),
-                        REG_PARAMS[reg_idx].into(),
-                    );
-                    self.copy_tuple(
+            match param_ty {
+                SourceType::Tuple(tuple_id) => {
+                    self.store_params_on_stack_tuple(
+                        &mut reg_idx,
+                        &mut freg_idx,
+                        &mut sp_offset,
+                        dest,
                         tuple_id,
-                        RegOrOffset::Offset(dest_offset),
-                        RegOrOffset::Reg(REG_TMP1),
                     );
-                    reg_idx += 1;
-                } else {
-                    self.asm
-                        .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(sp_offset));
-                    self.copy_tuple(
-                        tuple_id,
-                        RegOrOffset::Offset(dest_offset),
-                        RegOrOffset::Reg(REG_TMP1),
-                    );
-                    sp_offset += 8;
                 }
 
-                continue;
-            }
-
-            match param_ty {
                 SourceType::Struct(struct_id, type_params_id) => {
-                    let dest_offset = self.reg(dest);
                     let type_params = self.vm.lists.lock().get(type_params_id);
 
-                    if reg_idx < REG_PARAMS.len() {
-                        self.asm.copy(
-                            MachineMode::Ptr,
-                            REG_TMP1.into(),
-                            REG_PARAMS[reg_idx].into(),
-                        );
-                        self.copy_struct(
-                            struct_id,
-                            type_params,
-                            dest_offset,
-                            RegOrOffset::Reg(REG_TMP1),
-                        );
-                        reg_idx += 1;
-                    } else {
-                        self.asm
-                            .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(sp_offset));
-                        self.copy_struct(
-                            struct_id,
-                            type_params,
-                            dest_offset,
-                            RegOrOffset::Reg(REG_TMP1),
-                        );
-                        sp_offset += 8;
-                    }
-
-                    continue;
+                    self.store_params_on_stack_struct(
+                        &mut reg_idx,
+                        &mut freg_idx,
+                        &mut sp_offset,
+                        dest,
+                        struct_id,
+                        type_params,
+                    );
                 }
 
-                _ => {}
+                SourceType::Enum(enum_id, list_id) => {
+                    let type_params = self.vm.lists.lock().get(list_id);
+
+                    self.store_params_on_stack_enum(
+                        &mut reg_idx,
+                        &mut freg_idx,
+                        &mut sp_offset,
+                        dest,
+                        enum_id,
+                        type_params,
+                    );
+                }
+
+                SourceType::Float32 | SourceType::Float64 => {
+                    self.store_params_on_stack_float(
+                        &mut reg_idx,
+                        &mut freg_idx,
+                        &mut sp_offset,
+                        dest,
+                        param_ty,
+                    );
+                }
+
+                SourceType::Ptr
+                | SourceType::UInt8
+                | SourceType::Bool
+                | SourceType::Char
+                | SourceType::Int32
+                | SourceType::Int64
+                | SourceType::Class(_, _)
+                | SourceType::TraitObject(_) => {
+                    self.store_params_on_stack_core(
+                        &mut reg_idx,
+                        &mut freg_idx,
+                        &mut sp_offset,
+                        dest,
+                        param_ty,
+                    );
+                }
+
+                SourceType::TypeParam(_)
+                | SourceType::Error
+                | SourceType::Any
+                | SourceType::This
+                | SourceType::Module(_)
+                | SourceType::Lambda(_)
+                | SourceType::Unit => unreachable!(),
             }
+        }
+    }
 
-            if let SourceType::Enum(enum_id, list_id) = param_ty {
-                let type_params = self.vm.lists.lock().get(list_id);
-                let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(enum_def_id);
+    fn store_params_on_stack_tuple(
+        &mut self,
+        reg_idx: &mut usize,
+        _freg_idx: &mut usize,
+        sp_offset: &mut i32,
+        dest: Register,
+        tuple_id: TupleId,
+    ) {
+        let dest_offset = self.register_offset(dest);
 
-                let mode = match edef.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Tagged | EnumLayout::Ptr => MachineMode::Ptr,
-                };
+        if *reg_idx < REG_PARAMS.len() {
+            self.asm.copy(
+                MachineMode::Ptr,
+                REG_TMP1.into(),
+                REG_PARAMS[*reg_idx].into(),
+            );
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest_offset),
+                RegOrOffset::Reg(REG_TMP1),
+            );
+            *reg_idx += 1;
+        } else {
+            self.asm
+                .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest_offset),
+                RegOrOffset::Reg(REG_TMP1),
+            );
+            *sp_offset += 8;
+        }
+    }
 
-                if reg_idx < REG_PARAMS.len() {
-                    let reg = REG_PARAMS[reg_idx].into();
-                    reg_idx += 1;
-                    self.emit_store_register(reg, dest);
-                } else {
-                    self.asm
-                        .load_mem(mode, REG_RESULT.into(), Mem::Local(sp_offset));
-                    self.emit_store_register(REG_RESULT.into(), dest);
-                    sp_offset += 8;
-                }
+    fn store_params_on_stack_struct(
+        &mut self,
+        reg_idx: &mut usize,
+        _freg_idx: &mut usize,
+        sp_offset: &mut i32,
+        dest: Register,
+        struct_id: StructId,
+        type_params: SourceTypeArray,
+    ) {
+        let dest_offset = self.reg(dest);
 
-                continue;
-            }
+        if *reg_idx < REG_PARAMS.len() {
+            self.asm.copy(
+                MachineMode::Ptr,
+                REG_TMP1.into(),
+                REG_PARAMS[*reg_idx].into(),
+            );
+            self.copy_struct(
+                struct_id,
+                type_params,
+                dest_offset,
+                RegOrOffset::Reg(REG_TMP1),
+            );
+            *reg_idx += 1;
+        } else {
+            self.asm
+                .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
+            self.copy_struct(
+                struct_id,
+                type_params,
+                dest_offset,
+                RegOrOffset::Reg(REG_TMP1),
+            );
+            *sp_offset += 8;
+        }
+    }
 
-            let mode = param_ty.mode();
+    fn store_params_on_stack_enum(
+        &mut self,
+        reg_idx: &mut usize,
+        _freg_idx: &mut usize,
+        sp_offset: &mut i32,
+        dest: Register,
+        enum_id: EnumId,
+        type_params: SourceTypeArray,
+    ) {
+        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let edef = self.vm.enum_defs.idx(enum_def_id);
 
-            let register = if mode.is_float() {
-                if freg_idx < FREG_PARAMS.len() {
-                    let freg = FREG_PARAMS[freg_idx].into();
-                    freg_idx += 1;
-                    Some(freg)
-                } else {
-                    None
-                }
-            } else {
-                if reg_idx < REG_PARAMS.len() {
-                    let reg = REG_PARAMS[reg_idx].into();
-                    reg_idx += 1;
-                    Some(reg)
-                } else {
-                    None
-                }
-            };
+        let mode = match edef.layout {
+            EnumLayout::Int => MachineMode::Int32,
+            EnumLayout::Tagged | EnumLayout::Ptr => MachineMode::Ptr,
+        };
 
-            match register {
-                Some(src) => {
-                    self.emit_store_register(src, dest);
-                }
-                None => {
-                    let reg = if mode.is_float() {
-                        FREG_RESULT.into()
-                    } else {
-                        REG_RESULT.into()
-                    };
-                    self.asm.load_mem(mode, reg, Mem::Local(sp_offset));
-                    self.emit_store_register(reg, dest);
-                    sp_offset += 8;
-                }
-            }
+        if *reg_idx < REG_PARAMS.len() {
+            let reg = REG_PARAMS[*reg_idx].into();
+            *reg_idx += 1;
+            self.emit_store_register(reg, dest);
+        } else {
+            self.asm
+                .load_mem(mode, REG_RESULT.into(), Mem::Local(*sp_offset));
+            self.emit_store_register(REG_RESULT.into(), dest);
+            *sp_offset += 8;
+        }
+    }
+
+    fn store_params_on_stack_float(
+        &mut self,
+        _reg_idx: &mut usize,
+        freg_idx: &mut usize,
+        sp_offset: &mut i32,
+        dest: Register,
+        ty: SourceType,
+    ) {
+        let mode = ty.mode();
+
+        if *freg_idx < FREG_PARAMS.len() {
+            let freg = FREG_PARAMS[*freg_idx].into();
+            *freg_idx += 1;
+            self.emit_store_register(freg, dest);
+        } else {
+            self.asm
+                .load_mem(mode, FREG_RESULT.into(), Mem::Local(*sp_offset));
+            self.emit_store_register(FREG_RESULT.into(), dest);
+            *sp_offset += 8;
+        }
+    }
+
+    fn store_params_on_stack_core(
+        &mut self,
+        reg_idx: &mut usize,
+        _freg_idx: &mut usize,
+        sp_offset: &mut i32,
+        dest: Register,
+        ty: SourceType,
+    ) {
+        let mode = ty.mode();
+
+        if *reg_idx < REG_PARAMS.len() {
+            let reg = REG_PARAMS[*reg_idx].into();
+            *reg_idx += 1;
+            self.emit_store_register(reg, dest);
+        } else {
+            self.asm
+                .load_mem(mode, REG_RESULT.into(), Mem::Local(*sp_offset));
+            self.emit_store_register(REG_RESULT.into(), dest);
+            *sp_offset += 8;
         }
     }
 
