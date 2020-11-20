@@ -99,16 +99,16 @@ impl Stringable for BytecodeRegister {
     fun toString(): String = "r${self.value}";
 }
 
-class ClassDefId(let value: Int32)
-class FieldId(let value: Int32)
-class GlobalId(let value: Int32)
+struct ClassDefId { value: Int32 }
+struct FieldId { value: Int32 }
+struct GlobalId { value: Int32 }
 class ConstPoolId(let value: Int32) {
     fun equals(rhs: ConstPoolId): Bool {
         self.value == rhs.value
     }
 }
 
-class FctId(let value: Int32)
+struct FctId { value: Int32 }
 
 class BytecodeType(let value: Int32) {
     fun isBool(): Bool = self.value == BC_TYPE_BOOL;
