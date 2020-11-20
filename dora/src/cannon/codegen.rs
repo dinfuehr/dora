@@ -1195,54 +1195,10 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
-            match bytecode_type {
-                BytecodeType::Tuple(tuple_id) => {
-                    self.emit_mov_tuple(dest, src, tuple_id);
-                }
-
-                BytecodeType::Enum(enum_id, type_params) => {
-                    let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let edef = self.vm.enum_defs.idx(enum_def_id);
-
-                    match edef.layout {
-                        EnumLayout::Int => {
-                            let reg = REG_RESULT.into();
-                            let mode = MachineMode::Int32;
-                            self.emit_load_register_as(src, reg, mode);
-                            self.emit_store_register_as(reg, dest, mode);
-                        }
-                        EnumLayout::Ptr | EnumLayout::Tagged => {
-                            let reg = REG_RESULT.into();
-                            let mode = MachineMode::Ptr;
-                            self.emit_load_register_as(src, reg, mode);
-                            self.emit_store_register_as(reg, dest, mode);
-                        }
-                    }
-                }
-
-                _ => {
-                    let reg = result_reg(self.vm, bytecode_type);
-                    self.emit_load_register(src, reg.into());
-                    self.emit_store_register(reg.into(), dest);
-                }
-            }
+            let src = self.reg(src);
+            let dest = self.reg(dest);
+            self.copy_bytecode_ty(bytecode_type, dest, src);
         }
-    }
-
-    fn emit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
-        assert_eq!(
-            self.bytecode.register_type(src),
-            self.bytecode.register_type(dest)
-        );
-
-        let src_offset = self.register_offset(src);
-        let dest_offset = self.register_offset(dest);
-
-        self.copy_tuple(
-            tuple_id,
-            RegOrOffset::Offset(dest_offset),
-            RegOrOffset::Offset(src_offset),
-        );
     }
 
     fn emit_load_tuple_element(
@@ -4224,7 +4180,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             )
         });
 
-        self.emit_mov_tuple(dest, src, tuple_id);
+        self.emit_mov_generic(dest, src);
     }
     fn visit_mov_generic(&mut self, dest: Register, src: Register) {
         comment!(self, format!("MovGeneric {}, {}", dest, src));
@@ -4245,6 +4201,25 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 src,
                 idx.to_usize(),
                 xenum_name
+            )
+        });
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_struct(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        comment!(self, {
+            let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
+                _ => unreachable!(),
+            };
+            let xstruct = self.vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+            let xstruct_name = xstruct.name_with_params(self.vm, type_params);
+            format!(
+                "MovStruct {}, {}, ConstPoolIdx({}) # {}",
+                dest,
+                src,
+                idx.to_usize(),
+                xstruct_name
             )
         });
         self.emit_mov_generic(dest, src);

@@ -1,9 +1,0 @@
-//= ignore
-
-struct Foo {
-    a: Int32,
-}
-
-fun main() {
-    Foo { a: 1 };
-}
