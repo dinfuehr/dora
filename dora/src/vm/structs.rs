@@ -111,6 +111,12 @@ pub struct StructDef {
     pub ref_fields: Vec<i32>,
 }
 
+impl StructDef {
+    pub fn contains_references(&self) -> bool {
+        !self.ref_fields.is_empty()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct StructFieldDef {
     pub offset: i32,

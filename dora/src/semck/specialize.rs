@@ -431,6 +431,22 @@ fn create_specialized_class_array(
                 }
             }
 
+            SourceType::Struct(struct_id, type_params_id) => {
+                let type_params = vm.lists.lock().get(type_params_id);
+                let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+                let sdef = vm.struct_defs.idx(sdef_id);
+
+                if sdef.contains_references() {
+                    for &offset in &sdef.ref_fields {
+                        ref_fields.push(offset);
+                    }
+
+                    InstanceSize::StructArray(sdef.size)
+                } else {
+                    InstanceSize::PrimitiveArray(sdef.size)
+                }
+            }
+
             SourceType::Enum(enum_id, type_params_id) => {
                 let type_params = vm.lists.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
@@ -459,6 +475,7 @@ fn create_specialized_class_array(
         InstanceSize::FreeArray => (0, mem::ptr_width_usize()),
         InstanceSize::Str => (0, 1),
         InstanceSize::TupleArray(element_size) => (0, element_size as usize),
+        InstanceSize::StructArray(element_size) => (0, element_size as usize),
     };
 
     let mut vtable = VTableBox::new(

@@ -302,8 +302,8 @@ where
             visit_object_array_refs(object, range, f);
         }
 
-        InstanceSize::TupleArray(element_size) => {
-            visit_tuple_array_refs(object, cls, element_size as usize, range, f);
+        InstanceSize::TupleArray(element_size) | InstanceSize::StructArray(element_size) => {
+            visit_struct_array_refs(object, cls, element_size as usize, range, f);
         }
 
         InstanceSize::UnitArray
@@ -348,7 +348,7 @@ where
     }
 }
 
-fn visit_tuple_array_refs<F>(
+fn visit_struct_array_refs<F>(
     object: Address,
     cls: &ClassDef,
     element_size: usize,

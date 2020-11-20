@@ -2378,7 +2378,9 @@ impl<'a> CannonCodeGen<'a> {
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
         let alloc_size = match cls.size {
-            InstanceSize::PrimitiveArray(size) | InstanceSize::TupleArray(size) => {
+            InstanceSize::PrimitiveArray(size)
+            | InstanceSize::TupleArray(size)
+            | InstanceSize::StructArray(size) => {
                 assert_ne!(size, 0);
                 self.asm
                     .determine_array_size(REG_TMP1, REG_TMP1, size, true);
@@ -2435,7 +2437,9 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         match cls.size {
-            InstanceSize::PrimitiveArray(size) | InstanceSize::TupleArray(size) => {
+            InstanceSize::PrimitiveArray(size)
+            | InstanceSize::TupleArray(size)
+            | InstanceSize::StructArray(size) => {
                 self.emit_array_initialization(REG_RESULT, REG_TMP1, size);
             }
             InstanceSize::ObjArray => {
@@ -2755,7 +2759,28 @@ impl<'a> CannonCodeGen<'a> {
                 }
             }
 
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(struct_id, type_params) => {
+                let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+                let sdef = self.vm.struct_defs.idx(sdef_id);
+
+                self.asm
+                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, sdef.size);
+                let src_offset = self.register_offset(src);
+
+                self.copy_struct(
+                    struct_id,
+                    type_params,
+                    RegOrOffset::Reg(REG_TMP1),
+                    RegOrOffset::Offset(src_offset),
+                );
+
+                let needs_write_barrier = sdef.contains_references();
+
+                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    let card_table_offset = self.vm.gc.card_table_offset();
+                    self.asm.emit_barrier(REG_TMP1, card_table_offset);
+                }
+            }
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -2877,7 +2902,22 @@ impl<'a> CannonCodeGen<'a> {
                 );
             }
 
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+            BytecodeType::Struct(struct_id, type_params) => {
+                let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+                let sdef = self.vm.struct_defs.idx(sdef_id);
+
+                let element_size = sdef.size;
+                self.asm
+                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
+                let dest_offset = self.register_offset(dest);
+
+                self.copy_struct(
+                    struct_id,
+                    type_params,
+                    RegOrOffset::Offset(dest_offset),
+                    RegOrOffset::Reg(REG_TMP1),
+                );
+            }
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -5225,6 +5265,16 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, format!("LoadArrayEnum {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
+    fn visit_load_array_struct(
+        &mut self,
+        dest: Register,
+        arr: Register,
+        idx: Register,
+        _struct_idx: ConstPoolIdx,
+    ) {
+        comment!(self, format!("LoadArrayStruct {}, {}, {}", dest, arr, idx));
+        self.emit_load_array(dest, arr, idx);
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArrayBool {}, {}, {}", src, arr, idx));
@@ -5274,6 +5324,16 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         _enum_idx: ConstPoolIdx,
     ) {
         comment!(self, format!("StoreArrayEnum {}, {}, {}", src, arr, idx));
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_struct(
+        &mut self,
+        src: Register,
+        arr: Register,
+        idx: Register,
+        _struct_idx: ConstPoolIdx,
+    ) {
+        comment!(self, format!("StoreArrayStruct {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
 

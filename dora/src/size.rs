@@ -7,6 +7,7 @@ pub enum InstanceSize {
     ObjArray,
     UnitArray,
     TupleArray(i32),
+    StructArray(i32),
     FreeArray,
     Str,
 }
@@ -20,6 +21,7 @@ impl InstanceSize {
             InstanceSize::Fixed(_) => None,
             InstanceSize::FreeArray => unreachable!(),
             InstanceSize::TupleArray(esize) => Some(*esize),
+            InstanceSize::StructArray(esize) => Some(*esize),
             InstanceSize::UnitArray => None,
         }
     }
