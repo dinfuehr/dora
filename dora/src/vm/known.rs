@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{ClassDefId, ClassId, EnumId, FctId, ModuleId, TraitId, VM};
 
 #[derive(Debug)]
@@ -72,7 +72,7 @@ pub struct KnownFunctions {
 
 impl KnownElements {
     pub fn array_ty(&self, vm: &VM, element: SourceType) -> SourceType {
-        let list = TypeList::single(element);
+        let list = SourceTypeArray::single(element);
         let list_id = vm.lists.lock().insert(list);
         SourceType::Class(self.classes.array, list_id)
     }
@@ -83,7 +83,7 @@ impl KnownElements {
         if let Some(cls_id) = *byte_array_def {
             cls_id
         } else {
-            let type_args = TypeList::single(SourceType::UInt8);
+            let type_args = SourceTypeArray::single(SourceType::UInt8);
             let cls_id = specialize_class_id_params(vm, self.classes.array, &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
@@ -96,7 +96,7 @@ impl KnownElements {
         if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
-            let type_args = TypeList::single(SourceType::Int32);
+            let type_args = SourceTypeArray::single(SourceType::Int32);
             let cls_id = specialize_class_id_params(vm, self.classes.array, &type_args);
             *int_array_def = Some(cls_id);
             cls_id

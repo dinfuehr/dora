@@ -3,7 +3,7 @@ use self::codegen::CannonCodeGen;
 use crate::bytecode;
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::Code;
-use crate::ty::TypeList;
+use crate::ty::SourceTypeArray;
 use crate::vm::{AnalysisData, Fct, VM};
 
 mod codegen;
@@ -12,7 +12,7 @@ pub(super) fn compile<'a>(
     vm: &'a VM,
     fct: &Fct,
     src: &'a AnalysisData,
-    type_params: &TypeList,
+    type_params: &SourceTypeArray,
 ) -> Code {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 

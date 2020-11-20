@@ -19,7 +19,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
 use crate::sym::{NestedSymTable, SymTable};
 use crate::threads::{Threads, STACK_SIZE, THREAD};
-use crate::ty::{LambdaTypes, SourceType, TypeList, TypeLists};
+use crate::ty::{LambdaTypes, SourceType, SourceTypeArray, TypeLists};
 use crate::utils::GrowableVec;
 
 use dora_parser::ast;
@@ -319,7 +319,7 @@ impl VM {
 
     pub fn ensure_compiled(&self, fct_id: FctId) -> Address {
         let mut dtn = DoraToNativeInfo::new();
-        let type_params = TypeList::empty();
+        let type_params = SourceTypeArray::empty();
 
         THREAD.with(|thread| {
             thread
@@ -434,7 +434,7 @@ impl VM {
     pub fn cls_def_by_name_with_type_params(
         &self,
         name: &'static str,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
     ) -> ClassDefId {
         use crate::semck::specialize::specialize_class_id_params;
 
@@ -511,7 +511,7 @@ impl VM {
     }
 
     pub fn cls(&self, cls_id: ClassId) -> SourceType {
-        let list_id = self.lists.lock().insert(TypeList::empty());
+        let list_id = self.lists.lock().insert(SourceTypeArray::empty());
         SourceType::Class(cls_id, list_id)
     }
 
@@ -520,12 +520,12 @@ impl VM {
         cls_id: ClassId,
         type_params: Vec<SourceType>,
     ) -> SourceType {
-        let list = TypeList::with(type_params);
+        let list = SourceTypeArray::with(type_params);
         let list_id = self.lists.lock().insert(list);
         SourceType::Class(cls_id, list_id)
     }
 
-    pub fn cls_with_type_list(&self, cls_id: ClassId, type_list: TypeList) -> SourceType {
+    pub fn cls_with_type_list(&self, cls_id: ClassId, type_list: SourceTypeArray) -> SourceType {
         let list_id = self.lists.lock().insert(type_list);
         SourceType::Class(cls_id, list_id)
     }

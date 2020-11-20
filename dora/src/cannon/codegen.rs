@@ -25,7 +25,7 @@ use crate::semck::specialize::{
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
-use crate::ty::{MachineMode, SourceType, TypeList};
+use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
     AnalysisData, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId, TraitId, Trap, TupleId, VM,
 };
@@ -61,7 +61,7 @@ pub struct CannonCodeGen<'a> {
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
 
-    type_params: &'a TypeList,
+    type_params: &'a SourceTypeArray,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
 
@@ -80,7 +80,7 @@ pub struct CannonCodeGen<'a> {
         Option<Register>,
         FctId,
         Vec<Register>,
-        TypeList,
+        SourceTypeArray,
         Position,
     )>,
 }
@@ -91,7 +91,7 @@ impl<'a> CannonCodeGen<'a> {
         fct: &'a Fct,
         src: &'a AnalysisData,
         bytecode: &'a BytecodeFunction,
-        type_params: &'a TypeList,
+        type_params: &'a SourceTypeArray,
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
@@ -1474,7 +1474,7 @@ impl<'a> CannonCodeGen<'a> {
     fn copy_struct(
         &mut self,
         struct_id: StructId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         dest: RegOrOffset,
         src: RegOrOffset,
     ) {
@@ -1872,7 +1872,7 @@ impl<'a> CannonCodeGen<'a> {
 
         if glob.needs_initialization() {
             let fid = glob.initializer.unwrap();
-            let ptr = self.ptr_for_fct_id(fid, TypeList::empty());
+            let ptr = self.ptr_for_fct_id(fid, SourceTypeArray::empty());
             let gcpoint = self.create_gcpoint();
             self.asm.ensure_global(&*glob, fid, ptr, glob.pos, gcpoint);
         }
@@ -2811,7 +2811,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         dest: Option<Register>,
         fct_id: FctId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
@@ -2884,7 +2884,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         dest: Option<Register>,
         fct_id: FctId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
@@ -2903,7 +2903,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         dest: Option<Register>,
         fct_id: FctId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
@@ -2977,7 +2977,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         dest: Option<Register>,
         fct_id: FctId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
@@ -2996,7 +2996,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         dest: Option<Register>,
         fct_id: FctId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
@@ -3124,7 +3124,7 @@ impl<'a> CannonCodeGen<'a> {
         dest: Option<Register>,
         fct_id: FctId,
         intrinsic: Intrinsic,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
@@ -3359,7 +3359,7 @@ impl<'a> CannonCodeGen<'a> {
         _fct_id: FctId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         _pos: Position,
     ) {
         debug_assert_eq!(arguments.len(), 1);
@@ -3400,7 +3400,7 @@ impl<'a> CannonCodeGen<'a> {
         _fct_id: FctId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         _pos: Position,
     ) {
         debug_assert_eq!(arguments.len(), 1);
@@ -3441,7 +3441,7 @@ impl<'a> CannonCodeGen<'a> {
         _fct_id: FctId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         _pos: Position,
     ) {
         debug_assert_eq!(arguments.len(), 1);
@@ -3464,7 +3464,7 @@ impl<'a> CannonCodeGen<'a> {
         fct_id: FctId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         pos: Position,
     ) {
         assert_eq!(1, arguments.len());
@@ -3537,7 +3537,7 @@ impl<'a> CannonCodeGen<'a> {
         dest: Option<Register>,
         fct_id: FctId,
         arguments: Vec<Register>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         pos: Position,
     ) {
         self.slow_paths
@@ -3550,7 +3550,7 @@ impl<'a> CannonCodeGen<'a> {
         _fct_id: FctId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         _pos: Position,
     ) {
         assert_eq!(1, type_params.len());
@@ -3609,7 +3609,7 @@ impl<'a> CannonCodeGen<'a> {
         _fct_id: FctId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         _pos: Position,
     ) {
         assert_eq!(1, type_params.len());
@@ -3654,7 +3654,7 @@ impl<'a> CannonCodeGen<'a> {
         _fct_id: FctId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         pos: Position,
     ) {
         assert_eq!(1, type_params.len());
@@ -3832,7 +3832,7 @@ impl<'a> CannonCodeGen<'a> {
         mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
-    fn ptr_for_fct_id(&mut self, fid: FctId, type_params: TypeList) -> Address {
+    fn ptr_for_fct_id(&mut self, fid: FctId, type_params: SourceTypeArray) -> Address {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
             ensure_jit_or_stub_ptr(self.fct, self.vm, type_params)
@@ -5132,7 +5132,7 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
     }
 }
 
-fn ensure_jit_or_stub_ptr(fct: &Fct, vm: &VM, type_params: TypeList) -> Address {
+fn ensure_jit_or_stub_ptr(fct: &Fct, vm: &VM, type_params: SourceTypeArray) -> Address {
     let specials = fct.specializations.read();
 
     if let Some(&jit_fct_id) = specials.get(&type_params) {

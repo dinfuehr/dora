@@ -11,10 +11,10 @@ use crate::object::{
 };
 use crate::sym::NestedSymTable;
 use crate::threads::THREAD;
-use crate::ty::TypeList;
+use crate::ty::SourceTypeArray;
 use crate::vm::{AnalysisData, Fct, VM};
 
-pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &TypeList) -> Code {
+pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &SourceTypeArray) -> Code {
     let bytecode_fct = bytecode::generate(vm, fct, src);
 
     if should_emit_bytecode(vm, fct) {

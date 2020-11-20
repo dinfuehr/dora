@@ -2,7 +2,7 @@ use crate::error::msg::SemError;
 use crate::semck::fctbodyck::body::args_compatible;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     find_methods_in_class, find_methods_in_enum, ClassId, EnumId, Fct, FctId, FctParent, FileId,
     TraitId, TypeParam, VM,
@@ -29,8 +29,8 @@ pub struct MethodLookup<'a> {
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [SourceType]>,
-    container_tps: Option<&'a TypeList>,
-    fct_tps: Option<&'a TypeList>,
+    container_tps: Option<&'a SourceTypeArray>,
+    fct_tps: Option<&'a SourceTypeArray>,
     ret: Option<SourceType>,
     pos: Option<Position>,
     report_errors: bool,
@@ -116,12 +116,12 @@ impl<'a> MethodLookup<'a> {
         self
     }
 
-    pub fn container_type_params(mut self, cls_tps: &'a TypeList) -> MethodLookup<'a> {
+    pub fn container_type_params(mut self, cls_tps: &'a SourceTypeArray) -> MethodLookup<'a> {
         self.container_tps = Some(cls_tps);
         self
     }
 
-    pub fn fct_type_params(mut self, fct_tps: &'a TypeList) -> MethodLookup<'a> {
+    pub fn fct_type_params(mut self, fct_tps: &'a SourceTypeArray) -> MethodLookup<'a> {
         self.fct_tps = Some(fct_tps);
         self
     }
@@ -254,12 +254,12 @@ impl<'a> MethodLookup<'a> {
             _ => None,
         };
 
-        let container_tps: TypeList = if let Some(container_tps) = self.container_tps {
+        let container_tps: SourceTypeArray = if let Some(container_tps) = self.container_tps {
             container_tps.clone()
         } else if let LookupKind::Method(ref obj) = kind {
             obj.type_params(self.vm)
         } else {
-            TypeList::empty()
+            SourceTypeArray::empty()
         };
 
         if cls_id.is_some() && !self.check_cls_tps(cls_id.unwrap(), &container_tps) {
@@ -270,21 +270,21 @@ impl<'a> MethodLookup<'a> {
             return false;
         }
 
-        let fct_tps: TypeList = if let Some(fct_tps) = self.fct_tps {
+        let fct_tps: SourceTypeArray = if let Some(fct_tps) = self.fct_tps {
             if !self.check_fct_tps(fct_tps) {
                 return false;
             }
 
             fct_tps.clone()
         } else {
-            TypeList::empty()
+            SourceTypeArray::empty()
         };
 
         if args.contains(&SourceType::Error) {
             return false;
         }
 
-        let type_params = container_tps.append(&fct_tps);
+        let type_params = container_tps.connect(&fct_tps);
         if !args_compatible(self.vm, &*fct, args, &type_params, None) {
             if !self.report_errors {
                 return false;
@@ -314,7 +314,7 @@ impl<'a> MethodLookup<'a> {
                 SourceType::Class(cls_id, list_id)
             }
             _ => {
-                let type_list = container_tps.append(&fct_tps);
+                let type_list = container_tps.connect(&fct_tps);
                 replace_type_param(self.vm, fct.return_type.clone(), &type_list, None)
             }
         };
@@ -375,7 +375,7 @@ impl<'a> MethodLookup<'a> {
         xtrait.find_method(self.vm, name, is_static)
     }
 
-    fn check_cls_tps(&self, cls_id: ClassId, tps: &TypeList) -> bool {
+    fn check_cls_tps(&self, cls_id: ClassId, tps: &SourceTypeArray) -> bool {
         let cls_tps = {
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
@@ -385,7 +385,7 @@ impl<'a> MethodLookup<'a> {
         self.check_tps(&cls_tps, tps)
     }
 
-    fn check_enum_tps(&self, enum_id: EnumId, tps: &TypeList) -> bool {
+    fn check_enum_tps(&self, enum_id: EnumId, tps: &SourceTypeArray) -> bool {
         let enum_tps = {
             let xenum = &self.vm.enums[enum_id];
             let xenum = xenum.read();
@@ -395,7 +395,7 @@ impl<'a> MethodLookup<'a> {
         self.check_tps(&enum_tps, tps)
     }
 
-    fn check_fct_tps(&self, tps: &TypeList) -> bool {
+    fn check_fct_tps(&self, tps: &SourceTypeArray) -> bool {
         let fct_tps = {
             let fct_id = self.found_fct_id.expect("found_fct_id not set");
 
@@ -407,7 +407,7 @@ impl<'a> MethodLookup<'a> {
         self.check_tps(&fct_tps, tps)
     }
 
-    fn check_tps(&self, specified_tps: &[TypeParam], tps: &TypeList) -> bool {
+    fn check_tps(&self, specified_tps: &[TypeParam], tps: &SourceTypeArray) -> bool {
         let error = if self.report_errors {
             ErrorReporting::Yes(self.file, self.pos.expect("no pos"))
         } else {

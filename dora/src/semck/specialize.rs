@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ensure_tuple, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId, EnumId,
     EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, TupleId,
@@ -14,15 +14,19 @@ use crate::vm::{
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
-pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &TypeList) -> SourceType {
+pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
     replace_type_param(vm, ty, type_params, None)
 }
 
-pub fn specialize_type_list(vm: &VM, list: &TypeList, type_params: &TypeList) -> TypeList {
+pub fn specialize_type_list(
+    vm: &VM,
+    list: &SourceTypeArray,
+    type_params: &SourceTypeArray,
+) -> SourceTypeArray {
     let types = list.types();
 
     if types.is_empty() {
-        return TypeList::empty();
+        return SourceTypeArray::empty();
     }
 
     let mut specialized_types = Vec::with_capacity(types.len());
@@ -32,7 +36,7 @@ pub fn specialize_type_list(vm: &VM, list: &TypeList, type_params: &TypeList) ->
         specialized_types.push(ty);
     }
 
-    TypeList::with(specialized_types)
+    SourceTypeArray::with(specialized_types)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -44,20 +48,20 @@ pub enum SpecializeFor {
 pub fn specialize_struct_id(vm: &VM, struct_id: StructId) -> StructDefId {
     let struc = vm.structs.idx(struct_id);
     let struc = struc.read();
-    specialize_struct(vm, &*struc, TypeList::empty())
+    specialize_struct(vm, &*struc, SourceTypeArray::empty())
 }
 
 pub fn specialize_struct_id_params(
     vm: &VM,
     struct_id: StructId,
-    type_params: TypeList,
+    type_params: SourceTypeArray,
 ) -> StructDefId {
     let struc = vm.structs.idx(struct_id);
     let struc = struc.read();
     specialize_struct(vm, &*struc, type_params)
 }
 
-pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: TypeList) -> StructDefId {
+pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: SourceTypeArray) -> StructDefId {
     if let Some(&id) = struc.specializations.read().get(&type_params) {
         return id;
     }
@@ -65,7 +69,11 @@ pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: TypeList) -> 
     create_specialized_struct(vm, struc, type_params)
 }
 
-fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList) -> StructDefId {
+fn create_specialized_struct(
+    vm: &VM,
+    struc: &StructData,
+    type_params: SourceTypeArray,
+) -> StructDefId {
     let mut size = 0;
     let mut align = 0;
     let mut fields = Vec::with_capacity(struc.fields.len());
@@ -116,13 +124,17 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
     id
 }
 
-pub fn specialize_enum_id_params(vm: &VM, enum_id: EnumId, type_params: TypeList) -> EnumDefId {
+pub fn specialize_enum_id_params(
+    vm: &VM,
+    enum_id: EnumId,
+    type_params: SourceTypeArray,
+) -> EnumDefId {
     let xenum = &vm.enums[enum_id];
     let xenum = xenum.read();
     specialize_enum(vm, &*xenum, type_params)
 }
 
-pub fn specialize_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> EnumDefId {
+pub fn specialize_enum(vm: &VM, xenum: &EnumData, type_params: SourceTypeArray) -> EnumDefId {
     if let Some(&id) = xenum.specializations.read().get(&type_params) {
         return id;
     }
@@ -130,7 +142,7 @@ pub fn specialize_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> Enum
     create_specialized_enum(vm, xenum, type_params)
 }
 
-fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> EnumDefId {
+fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: SourceTypeArray) -> EnumDefId {
     let layout = if enum_is_simple_integer(xenum) {
         EnumLayout::Int
     } else if enum_is_ptr(vm, xenum, &type_params) {
@@ -180,7 +192,7 @@ fn enum_is_simple_integer(xenum: &EnumData) -> bool {
     true
 }
 
-fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &TypeList) -> bool {
+fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &SourceTypeArray) -> bool {
     if xenum.variants.len() != 2 {
         return false;
     }
@@ -203,10 +215,14 @@ fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &TypeList) -> bool {
 pub fn specialize_class_id(vm: &VM, cls_id: ClassId) -> ClassDefId {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(vm, &*cls, &TypeList::empty())
+    specialize_class(vm, &*cls, &SourceTypeArray::empty())
 }
 
-pub fn specialize_class_id_params(vm: &VM, cls_id: ClassId, type_params: &TypeList) -> ClassDefId {
+pub fn specialize_class_id_params(
+    vm: &VM,
+    cls_id: ClassId,
+    type_params: &SourceTypeArray,
+) -> ClassDefId {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
     specialize_class(vm, &*cls, &type_params)
@@ -223,7 +239,7 @@ pub fn specialize_class_ty(vm: &VM, ty: SourceType) -> ClassDefId {
     }
 }
 
-pub fn specialize_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
+pub fn specialize_class(vm: &VM, cls: &Class, type_params: &SourceTypeArray) -> ClassDefId {
     if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
     }
@@ -231,7 +247,7 @@ pub fn specialize_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDe
     create_specialized_class(vm, cls, type_params)
 }
 
-fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
+fn create_specialized_class(vm: &VM, cls: &Class, type_params: &SourceTypeArray) -> ClassDefId {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
 
     if cls.is_array || cls.is_str {
@@ -241,7 +257,11 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
     }
 }
 
-fn create_specialized_class_regular(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
+fn create_specialized_class_regular(
+    vm: &VM,
+    cls: &Class,
+    type_params: &SourceTypeArray,
+) -> ClassDefId {
     if let Some(parent_class) = cls.parent_class.clone() {
         let parent_class = specialize_type(vm, parent_class, type_params);
         specialize_class_ty(vm, parent_class);
@@ -371,7 +391,11 @@ fn create_specialized_class_regular(vm: &VM, cls: &Class, type_params: &TypeList
     id
 }
 
-fn create_specialized_class_array(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
+fn create_specialized_class_array(
+    vm: &VM,
+    cls: &Class,
+    type_params: &SourceTypeArray,
+) -> ClassDefId {
     let parent_class = cls
         .parent_class
         .clone()
@@ -531,7 +555,7 @@ fn ensure_display(vm: &VM, vtable: &mut VTableBox, parent_id: Option<ClassDefId>
     }
 }
 
-pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &TypeList) -> TupleId {
+pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArray) -> TupleId {
     let subtypes = {
         let tuples = vm.tuples.lock();
         let tuple = tuples.get_tuple(tuple_id);
@@ -554,7 +578,7 @@ pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &TypeList) -> T
 pub fn replace_type_param(
     vm: &VM,
     ty: SourceType,
-    type_params: &TypeList,
+    type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
 ) -> SourceType {
     match ty {
@@ -563,7 +587,7 @@ pub fn replace_type_param(
         SourceType::Class(cls_id, list_id) => {
             let params = vm.lists.lock().get(list_id);
 
-            let params = TypeList::with(
+            let params = SourceTypeArray::with(
                 params
                     .iter()
                     .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
@@ -577,7 +601,7 @@ pub fn replace_type_param(
         SourceType::Enum(enum_id, list_id) => {
             let old_type_params = vm.lists.lock().get(list_id);
 
-            let new_type_params = TypeList::with(
+            let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
                     .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))

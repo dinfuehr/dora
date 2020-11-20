@@ -8,7 +8,7 @@ use crate::bytecode::{
 };
 use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     AnalysisData, CallType, ConstId, EnumId, Fct, FctId, GlobalId, IdentType, Intrinsic, StructId,
     TraitId, TupleId, VarId, VM,
@@ -601,9 +601,11 @@ impl<'a> AstBytecodeGen<'a> {
                         .find_method(self.vm, name, false)
                         .expect("Stringable::toString() not found");
 
-                    let fct_idx =
-                        self.gen
-                            .add_const_generic(type_list_id, to_string_id, TypeList::empty());
+                    let fct_idx = self.gen.add_const_generic(
+                        type_list_id,
+                        to_string_id,
+                        SourceTypeArray::empty(),
+                    );
 
                     self.gen
                         .emit_invoke_generic_direct(part_register, fct_idx, part.pos());
@@ -665,7 +667,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_new_enum(
         &mut self,
         enum_id: EnumId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         variant_id: usize,
         pos: Position,
         dest: DataDest,
@@ -836,7 +838,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         expr: &ExprDotType,
         struct_id: StructId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         dest: DataDest,
     ) -> Register {
         let struct_obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
@@ -1025,7 +1027,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         expr: &ExprCallType,
         struct_id: StructId,
-        type_params: &TypeList,
+        type_params: &SourceTypeArray,
         dest: DataDest,
     ) -> Register {
         let mut arguments = Vec::new();
@@ -2696,31 +2698,31 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn determine_call_type_params(&self, call_type: &CallType) -> TypeList {
+    fn determine_call_type_params(&self, call_type: &CallType) -> SourceTypeArray {
         match call_type {
             CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => ty.type_params(self.vm),
 
             CallType::Method(ty, _, ref fct_type_params) => {
                 let cls_type_params = ty.type_params(self.vm);
-                cls_type_params.append(fct_type_params)
+                cls_type_params.connect(fct_type_params)
             }
 
             CallType::ModuleMethod(ty, _, ref fct_type_params) => {
                 let cls_type_params = ty.type_params(self.vm);
-                cls_type_params.append(fct_type_params)
+                cls_type_params.connect(fct_type_params)
             }
 
             CallType::Fct(_, ref cls_tps, ref fct_tps) => {
                 let cls_type_params = cls_tps.clone();
                 let fct_type_params = fct_tps.clone();
-                cls_type_params.append(&fct_type_params)
+                cls_type_params.connect(&fct_type_params)
             }
 
             CallType::Expr(ty, _) => ty.type_params(self.vm),
 
-            CallType::TraitObjectMethod(_, _) => TypeList::empty(),
-            CallType::GenericMethod(_, _, _) => TypeList::empty(),
-            CallType::GenericStaticMethod(_, _, _) => TypeList::empty(),
+            CallType::TraitObjectMethod(_, _) => SourceTypeArray::empty(),
+            CallType::GenericMethod(_, _, _) => SourceTypeArray::empty(),
+            CallType::GenericStaticMethod(_, _, _) => SourceTypeArray::empty(),
 
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
@@ -2731,7 +2733,8 @@ impl<'a> AstBytecodeGen<'a> {
     fn specialize_call(&mut self, fct: &Fct, call_type: &CallType) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
 
-        let type_params = TypeList::with(type_params.iter().map(|ty| ty).collect::<Vec<_>>());
+        let type_params =
+            SourceTypeArray::with(type_params.iter().map(|ty| ty).collect::<Vec<_>>());
 
         match *call_type {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
@@ -2744,19 +2747,19 @@ impl<'a> AstBytecodeGen<'a> {
     fn specialize_type_for_call(&self, call_type: &CallType, ty: SourceType) -> SourceType {
         match call_type {
             CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
-                let type_params = cls_type_params.append(fct_type_params);
+                let type_params = cls_type_params.connect(fct_type_params);
                 specialize_type(self.vm, ty, &type_params)
             }
 
             CallType::Method(cls_ty, _, ref fct_type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
-                let type_params = cls_type_params.append(fct_type_params);
+                let type_params = cls_type_params.connect(fct_type_params);
                 specialize_type(self.vm, ty, &type_params)
             }
 
             CallType::ModuleMethod(cls_ty, _, ref fct_type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
-                let type_params = cls_type_params.append(fct_type_params);
+                let type_params = cls_type_params.connect(fct_type_params);
                 specialize_type(self.vm, ty, &type_params)
             }
 

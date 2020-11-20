@@ -9,7 +9,7 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type_table};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, TypeList, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, TypeListId};
 use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
     fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
@@ -684,7 +684,7 @@ impl<'a> TypeCheck<'a> {
                     e.pos,
                     expected_ty,
                     enum_id,
-                    TypeList::empty(),
+                    SourceTypeArray::empty(),
                     variant_id,
                 ),
 
@@ -839,7 +839,7 @@ impl<'a> TypeCheck<'a> {
             false,
             name,
             &arg_types,
-            &TypeList::empty(),
+            &SourceTypeArray::empty(),
         ) {
             let call_type = CallType::Expr(expr_type, fct_id);
             self.analysis
@@ -928,7 +928,7 @@ impl<'a> TypeCheck<'a> {
         is_static: bool,
         name: Name,
         args: &[SourceType],
-        fct_type_params: &TypeList,
+        fct_type_params: &SourceTypeArray,
     ) -> Option<(ClassId, FctId, SourceType)> {
         let result = lookup_method(
             self.vm,
@@ -993,10 +993,10 @@ impl<'a> TypeCheck<'a> {
                 false,
                 name,
                 &call_types,
-                &TypeList::empty(),
+                &SourceTypeArray::empty(),
                 None,
             ) {
-                let call_type = CallType::Method(ty.clone(), fct_id, TypeList::empty());
+                let call_type = CallType::Method(ty.clone(), fct_id, SourceTypeArray::empty());
                 self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
                 self.analysis.set_ty(e.id, return_type.clone());
@@ -1080,10 +1080,10 @@ impl<'a> TypeCheck<'a> {
             false,
             name,
             &call_types,
-            &TypeList::empty(),
+            &SourceTypeArray::empty(),
             None,
         ) {
-            let call_type = CallType::Method(lhs_type, fct_id, TypeList::empty());
+            let call_type = CallType::Method(lhs_type, fct_id, SourceTypeArray::empty());
             self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
@@ -1204,10 +1204,10 @@ impl<'a> TypeCheck<'a> {
                 .iter()
                 .map(|p| self.read_type(p))
                 .collect();
-            let type_params: TypeList = TypeList::with(type_params);
+            let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
             (&expr_type_params.callee, type_params)
         } else {
-            (&e.callee, TypeList::empty())
+            (&e.callee, SourceTypeArray::empty())
         };
 
         let arg_types: Vec<SourceType> = e
@@ -1262,7 +1262,7 @@ impl<'a> TypeCheck<'a> {
         callee: &Expr,
         sym_term: Option<TermSym>,
         sym_type: Option<TypeSym>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         match (sym_term, sym_type) {
@@ -1302,7 +1302,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ExprCallType,
         enum_id: EnumId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         variant_id: usize,
         arg_types: &[SourceType],
     ) -> SourceType {
@@ -1361,7 +1361,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_enum_args(
         &mut self,
         _enum_id: EnumId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         variant: &vm::EnumVariant,
         arg_types: &[SourceType],
     ) -> bool {
@@ -1427,7 +1427,7 @@ impl<'a> TypeCheck<'a> {
             self.vm,
             &*fct,
             arg_types,
-            &TypeList::empty(),
+            &SourceTypeArray::empty(),
             Some(tp.clone()),
         ) {
             let fct_name = self.vm.interner.str(name).to_string();
@@ -1450,7 +1450,7 @@ impl<'a> TypeCheck<'a> {
         let return_type = replace_type_param(
             self.vm,
             fct.return_type.clone(),
-            &TypeList::empty(),
+            &SourceTypeArray::empty(),
             Some(tp),
         );
 
@@ -1478,7 +1478,7 @@ impl<'a> TypeCheck<'a> {
             false,
             get,
             arg_types,
-            &TypeList::empty(),
+            &SourceTypeArray::empty(),
         ) {
             let call_type = CallType::Expr(expr_type.clone(), fct_id);
             self.analysis
@@ -1499,7 +1499,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ExprCallType,
         fct_id: FctId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         if !fct_accessible_from(self.vm, fct_id, self.namespace_id) {
@@ -1516,7 +1516,7 @@ impl<'a> TypeCheck<'a> {
             .fct_type_params(&type_params);
 
         let ty = if lookup.find() {
-            let call_type = CallType::Fct(fct_id, TypeList::empty(), type_params.clone());
+            let call_type = CallType::Fct(fct_id, SourceTypeArray::empty(), type_params.clone());
             self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
             lookup.found_ret().unwrap()
@@ -1534,7 +1534,7 @@ impl<'a> TypeCheck<'a> {
         e: &ExprCallType,
         object_type: SourceType,
         method_name: Name,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         let cls_id = object_type.cls_id(self.vm).unwrap();
@@ -1552,7 +1552,7 @@ impl<'a> TypeCheck<'a> {
             let return_type = lookup.found_ret().unwrap();
             let call_type = Arc::new(CallType::Fct(
                 fct_id,
-                TypeList::empty(),
+                SourceTypeArray::empty(),
                 type_params.clone(),
             ));
             self.analysis.map_calls.insert(e.id, call_type.clone());
@@ -1572,7 +1572,7 @@ impl<'a> TypeCheck<'a> {
         e: &ExprCallType,
         object_type: SourceType,
         method_name: Name,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         if object_type.is_type_param() {
@@ -1639,7 +1639,7 @@ impl<'a> TypeCheck<'a> {
         e: &ExprCallType,
         object_type: SourceType,
         method_name: Name,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         if let Some((actual_type, field_id, field_type)) =
@@ -1671,7 +1671,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ExprCallType,
         struct_id: StructId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         if !struct_accessible_from(self.vm, struct_id, self.namespace_id) {
@@ -1725,7 +1725,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_struct_args(
         &mut self,
         xstruct: &StructData,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> bool {
         if xstruct.fields.len() != arg_types.len() {
@@ -1747,7 +1747,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ExprCallType,
         cls_id: ClassId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         if !class_accessible_from(self.vm, cls_id, self.namespace_id) {
@@ -1857,7 +1857,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ExprCallType,
         callee: &Expr,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         let callee_as_path = callee.to_path().unwrap();
@@ -1869,11 +1869,12 @@ impl<'a> TypeCheck<'a> {
                     .iter()
                     .map(|p| self.read_type(p))
                     .collect();
-                let container_type_params: TypeList = TypeList::with(container_type_params);
+                let container_type_params: SourceTypeArray =
+                    SourceTypeArray::with(container_type_params);
 
                 (&expr_type_params.callee, container_type_params)
             } else {
-                (&callee_as_path.lhs, TypeList::empty())
+                (&callee_as_path.lhs, SourceTypeArray::empty())
             };
         let method_expr = &callee_as_path.rhs;
 
@@ -2073,11 +2074,11 @@ impl<'a> TypeCheck<'a> {
                 .iter()
                 .map(|p| self.read_type(p))
                 .collect();
-            let type_params: TypeList = TypeList::with(type_params);
+            let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
             (&expr_type_params.callee, type_params)
         } else {
-            (&e.lhs, TypeList::empty())
+            (&e.lhs, SourceTypeArray::empty())
         };
 
         let (sym_term, sym_type) = match self.read_path(container_expr) {
@@ -2223,7 +2224,7 @@ impl<'a> TypeCheck<'a> {
                     e.pos,
                     expected_ty,
                     enum_id,
-                    TypeList::empty(),
+                    SourceTypeArray::empty(),
                     variant_id,
                 ),
 
@@ -2254,7 +2255,7 @@ impl<'a> TypeCheck<'a> {
         expr_pos: Position,
         _expected_ty: SourceType,
         enum_id: EnumId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         name: Name,
     ) -> SourceType {
         let xenum = self.vm.enums[enum_id].read();
@@ -2321,7 +2322,7 @@ impl<'a> TypeCheck<'a> {
         expected_ty: SourceType,
     ) -> SourceType {
         let type_params: Vec<SourceType> = e.args.iter().map(|p| self.read_type(p)).collect();
-        let type_params: TypeList = TypeList::with(type_params);
+        let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
         if let Some(ident) = e.callee.to_ident() {
             let method_name = ident.name;
@@ -2412,7 +2413,7 @@ impl<'a> TypeCheck<'a> {
         expr_pos: Position,
         _expected_ty: SourceType,
         enum_id: EnumId,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         variant_id: usize,
     ) -> SourceType {
         let xenum = self.vm.enums[enum_id].read();
@@ -2841,7 +2842,7 @@ pub fn args_compatible(
     vm: &VM,
     callee: &Fct,
     args: &[SourceType],
-    type_params: &TypeList,
+    type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
 ) -> bool {
     let def_args = callee.params_without_self();
@@ -3085,7 +3086,7 @@ pub fn lookup_method(
     is_static: bool,
     name: Name,
     args: &[SourceType],
-    fct_tps: &TypeList,
+    fct_tps: &SourceTypeArray,
     return_type: Option<SourceType>,
 ) -> Option<(ClassId, FctId, SourceType)> {
     let cls_id = object_type.cls_id(vm);
@@ -3109,10 +3110,10 @@ pub fn lookup_method(
             };
 
             let cls_type_params = object_type.type_params(vm);
-            let type_params = cls_type_params.append(fct_tps);
+            let type_params = cls_type_params.connect(fct_tps);
 
             if args_compatible(vm, &*method, args, &type_params, None) {
-                let combined_type_params = cls_type_params.append(fct_tps);
+                let combined_type_params = cls_type_params.connect(fct_tps);
                 let cmp_type =
                     replace_type_param(vm, method.return_type.clone(), &combined_type_params, None);
 

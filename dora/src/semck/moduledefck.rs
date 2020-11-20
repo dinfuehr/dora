@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::NestedSymTable;
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 
 use crate::vm::{Fct, FctParent, Field, FileId, ModuleId, NamespaceId, VM};
 use dora_parser::ast;
@@ -180,7 +180,7 @@ impl<'x> ModuleCheck<'x> {
         let module = self.vm.modules.idx(self.module_id);
         let mut module = module.write();
 
-        let list = TypeList::empty();
+        let list = SourceTypeArray::empty();
         let list_id = self.vm.lists.lock().insert(list);
         module.parent_class = Some(SourceType::Class(object_cls, list_id));
     }

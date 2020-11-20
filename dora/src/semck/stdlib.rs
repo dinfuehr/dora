@@ -9,7 +9,7 @@ use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDef, ClassDefId, ClassId, EnumId, FctId, Intrinsic, ModuleId, NamespaceId, TraitId, VM,
 };
@@ -153,7 +153,7 @@ fn internal_free_classes(vm: &mut VM) {
         class_defs.push(Arc::new(ClassDef {
             id: free_object,
             cls_id: None,
-            type_params: TypeList::empty(),
+            type_params: SourceTypeArray::empty(),
             parent_id: None,
             size: InstanceSize::Fixed(Header::size()),
             fields: Vec::new(),
@@ -164,7 +164,7 @@ fn internal_free_classes(vm: &mut VM) {
         class_defs.push(Arc::new(ClassDef {
             id: free_array,
             cls_id: None,
-            type_params: TypeList::empty(),
+            type_params: SourceTypeArray::empty(),
             parent_id: None,
             size: InstanceSize::FreeArray,
             fields: Vec::new(),

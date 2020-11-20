@@ -14,7 +14,7 @@ use crate::object::Obj;
 use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::ty::{MachineMode, TypeList};
+use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::FctId;
 use crate::vm::{get_vm, VM};
 
@@ -241,7 +241,7 @@ fn patch_vtable_call(
     receiver1: Address,
     receiver2: Address,
     vtable_index: u32,
-    type_params: &TypeList,
+    type_params: &SourceTypeArray,
 ) -> Address {
     let receiver = if receiver_is_first {
         receiver1
@@ -264,7 +264,13 @@ fn patch_vtable_call(
     fct_ptr
 }
 
-fn patch_fct_call(vm: &VM, ra: usize, fct_id: FctId, type_params: &TypeList, disp: i32) -> Address {
+fn patch_fct_call(
+    vm: &VM,
+    ra: usize,
+    fct_id: FctId,
+    type_params: &SourceTypeArray,
+    disp: i32,
+) -> Address {
     let fct_ptr = compiler::generate(vm, fct_id, type_params);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 

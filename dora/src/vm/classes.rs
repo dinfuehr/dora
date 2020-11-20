@@ -9,7 +9,7 @@ use std::sync::Arc;
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::sym::SymTable;
-use crate::ty::{SourceType, TypeList, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
@@ -78,7 +78,7 @@ pub struct Class {
 
     pub type_params: Vec<TypeParam>,
 
-    pub specializations: RwLock<HashMap<TypeList, ClassDefId>>,
+    pub specializations: RwLock<HashMap<SourceTypeArray, ClassDefId>>,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -131,7 +131,7 @@ impl Class {
         name
     }
 
-    pub fn name_with_params(&self, vm: &VM, type_list: &TypeList) -> String {
+    pub fn name_with_params(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
         let name = vm.interner.str(self.name);
 
         if type_list.len() > 0 {
@@ -440,7 +440,7 @@ impl GrowableVec<ClassDef> {
 pub struct ClassDef {
     pub id: ClassDefId,
     pub cls_id: Option<ClassId>,
-    pub type_params: TypeList,
+    pub type_params: SourceTypeArray,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,
     pub size: InstanceSize,

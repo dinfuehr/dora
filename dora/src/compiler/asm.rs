@@ -13,7 +13,7 @@ use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, ScratchReg};
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
-use crate::ty::{MachineMode, SourceType, TypeList};
+use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::FctId;
 use crate::vm::{GlobalData, Trap, VM};
 
@@ -488,7 +488,7 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         fct_id: FctId,
         ptr: *const u8,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         pos: Position,
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
@@ -505,7 +505,7 @@ impl<'a> BaselineAssembler<'a> {
         pos: Position,
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
-        type_params: TypeList,
+        type_params: SourceTypeArray,
         dest: AnyReg,
     ) {
         self.masm
@@ -809,7 +809,7 @@ impl<'a> BaselineAssembler<'a> {
         self.direct_call(
             fct_id,
             ptr.to_ptr(),
-            TypeList::empty(),
+            SourceTypeArray::empty(),
             pos,
             gcpoint,
             None,

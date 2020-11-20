@@ -11,18 +11,23 @@ use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
 use crate::os;
-use crate::ty::{MachineMode, TypeList};
+use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::VM;
 use crate::vm::{AnalysisData, Fct, FctId};
 
-pub fn generate(vm: &VM, id: FctId, type_params: &TypeList) -> Address {
+pub fn generate(vm: &VM, id: FctId, type_params: &SourceTypeArray) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let analysis = fct.analysis();
     generate_fct(vm, &fct, analysis, type_params)
 }
 
-pub fn generate_fct(vm: &VM, fct: &Fct, src: &AnalysisData, type_params: &TypeList) -> Address {
+pub fn generate_fct(
+    vm: &VM,
+    fct: &Fct,
+    src: &AnalysisData,
+    type_params: &SourceTypeArray,
+) -> Address {
     debug_assert!(type_params.iter().all(|ty| !ty.contains_type_param(vm)));
 
     {
@@ -229,7 +234,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
                 disassembler::disassemble(
                     vm,
                     &*fct,
-                    &TypeList::empty(),
+                    &SourceTypeArray::empty(),
                     jit_fct.to_code().expect("still uncompiled"),
                     vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
                 );

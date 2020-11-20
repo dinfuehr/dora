@@ -13,7 +13,7 @@ use crate::mem;
 use crate::object::Header;
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
-use crate::ty::{SourceType, TypeList, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, namespace_path, ClassDef, ClassDefId, ExtensionId, FctId, FieldDef, FileId,
@@ -51,7 +51,7 @@ pub struct EnumData {
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
     pub extensions: Vec<ExtensionId>,
-    pub specializations: RwLock<HashMap<TypeList, EnumDefId>>,
+    pub specializations: RwLock<HashMap<SourceTypeArray, EnumDefId>>,
     pub simple_enumeration: bool,
 }
 
@@ -64,7 +64,7 @@ impl EnumData {
         namespace_path(vm, self.namespace_id, self.name)
     }
 
-    pub fn name_with_params(&self, vm: &VM, type_list: &TypeList) -> String {
+    pub fn name_with_params(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
         let name = vm.interner.str(self.name);
 
         if type_list.len() > 0 {
@@ -107,7 +107,7 @@ impl GrowableVec<EnumDef> {
 pub struct EnumDef {
     pub id: EnumDefId,
     pub enum_id: EnumId,
-    pub type_params: TypeList,
+    pub type_params: SourceTypeArray,
     pub layout: EnumLayout,
     pub variants: RwLock<Vec<Option<ClassDefId>>>,
 }
@@ -175,7 +175,7 @@ impl EnumDef {
         let class_def = Arc::new(ClassDef {
             id,
             cls_id: None,
-            type_params: TypeList::empty(),
+            type_params: SourceTypeArray::empty(),
             parent_id: None,
             size: InstanceSize::Fixed(instance_size),
             fields,

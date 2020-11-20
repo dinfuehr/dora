@@ -6,7 +6,7 @@ use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::test;
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructFieldId, StructId, TupleId, VM,
 };
@@ -105,7 +105,7 @@ fn gen_load_field_uint8() {
         |vm, code, _fct| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
             let expected = vec![
-                LoadField(r(1), r(0), cls, TypeList::empty(), field),
+                LoadField(r(1), r(0), cls, SourceTypeArray::empty(), field),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -130,7 +130,7 @@ fn gen_store_field_uint8() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Field(cls, TypeList::empty(), field)
+                &ConstPoolEntry::Field(cls, SourceTypeArray::empty(), field)
             );
         },
     );
@@ -1019,7 +1019,7 @@ fn gen_fct_call_void_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1038,7 +1038,7 @@ fn gen_fct_call_int_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1057,7 +1057,7 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1081,7 +1081,7 @@ fn gen_fct_call_void_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1109,7 +1109,7 @@ fn gen_fct_call_void_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1133,7 +1133,7 @@ fn gen_fct_call_int_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1161,7 +1161,7 @@ fn gen_fct_call_int_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1188,7 +1188,7 @@ fn gen_method_call_void_check_correct_self() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1215,7 +1215,7 @@ fn gen_method_call_void_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1244,7 +1244,7 @@ fn gen_method_call_void_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1277,7 +1277,7 @@ fn gen_method_call_void_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1304,7 +1304,7 @@ fn gen_method_call_bool_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1331,7 +1331,7 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1360,7 +1360,7 @@ fn gen_method_call_bool_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1393,7 +1393,7 @@ fn gen_method_call_bool_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1420,7 +1420,7 @@ fn gen_method_call_byte_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1447,7 +1447,7 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1476,7 +1476,7 @@ fn gen_method_call_byte_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1509,7 +1509,7 @@ fn gen_method_call_byte_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1536,7 +1536,7 @@ fn gen_method_call_char_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1563,7 +1563,7 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1592,7 +1592,7 @@ fn gen_method_call_char_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1625,7 +1625,7 @@ fn gen_method_call_char_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1652,7 +1652,7 @@ fn gen_method_call_int_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1679,7 +1679,7 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1708,7 +1708,7 @@ fn gen_method_call_int_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1741,7 +1741,7 @@ fn gen_method_call_int_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1768,7 +1768,7 @@ fn gen_method_call_int64_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1795,7 +1795,7 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1824,7 +1824,7 @@ fn gen_method_call_int64_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1857,7 +1857,7 @@ fn gen_method_call_int64_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1884,7 +1884,7 @@ fn gen_method_call_float32_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1911,7 +1911,7 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1940,7 +1940,7 @@ fn gen_method_call_float32_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -1973,7 +1973,7 @@ fn gen_method_call_float32_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2000,7 +2000,7 @@ fn gen_method_call_float64_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2027,7 +2027,7 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2056,7 +2056,7 @@ fn gen_method_call_float64_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2089,7 +2089,7 @@ fn gen_method_call_float64_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2116,7 +2116,7 @@ fn gen_method_call_ptr_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2143,7 +2143,7 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2172,7 +2172,7 @@ fn gen_method_call_ptr_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2205,7 +2205,7 @@ fn gen_method_call_ptr_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2235,7 +2235,7 @@ fn gen_virtual_method_call_void_check_correct_self() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2265,7 +2265,7 @@ fn gen_virtual_method_call_void_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2297,7 +2297,7 @@ fn gen_virtual_method_call_void_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2333,7 +2333,7 @@ fn gen_virtual_method_call_void_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2363,7 +2363,7 @@ fn gen_virtual_method_call_int_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2395,7 +2395,7 @@ fn gen_virtual_method_call_int_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2431,7 +2431,7 @@ fn gen_virtual_method_call_int_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2451,7 +2451,7 @@ fn gen_new_struct() {
                 ConstFalse(r(1)),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                NewStruct(r(2), struct_id, TypeList::empty()),
+                NewStruct(r(2), struct_id, SourceTypeArray::empty()),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
@@ -2472,7 +2472,7 @@ fn gen_new_struct() {
                 NewStruct(
                     r(2),
                     struct_id,
-                    TypeList::single(SourceType::TypeParam(0.into())),
+                    SourceTypeArray::single(SourceType::TypeParam(0.into())),
                 ),
                 Ret(r(2)),
             ];
@@ -2494,7 +2494,7 @@ fn gen_move_struct() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Struct(struct_id, TypeList::empty())
+                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2513,7 +2513,7 @@ fn gen_struct_field() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::StructField(struct_id, TypeList::empty(), StructFieldId(0))
+                &ConstPoolEntry::StructField(struct_id, SourceTypeArray::empty(), StructFieldId(0))
             );
         },
     );
@@ -2531,7 +2531,7 @@ fn gen_struct_field() {
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::StructField(
                     struct_id,
-                    TypeList::single(SourceType::Int32),
+                    SourceTypeArray::single(SourceType::Int32),
                     StructFieldId(0)
                 )
             );
@@ -2555,7 +2555,7 @@ fn gen_struct_array() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Struct(struct_id, TypeList::empty())
+                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2571,7 +2571,7 @@ fn gen_struct_array() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Struct(struct_id, TypeList::empty())
+                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2589,7 +2589,7 @@ fn gen_new_enum() {
             let expected = vec![
                 ConstInt32(r(0), 10),
                 PushRegister(r(0)),
-                NewEnum(r(1), enum_id, TypeList::empty(), 0),
+                NewEnum(r(1), enum_id, SourceTypeArray::empty(), 0),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -2606,7 +2606,7 @@ fn gen_new_enum() {
             let expected = vec![
                 ConstInt32(r(0), 10),
                 PushRegister(r(0)),
-                NewEnum(r(1), enum_id, TypeList::single(SourceType::Int32), 0),
+                NewEnum(r(1), enum_id, SourceTypeArray::single(SourceType::Int32), 0),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -2620,7 +2620,10 @@ fn gen_new_enum() {
     ",
         |vm, code, _fct| {
             let enum_id = vm.enum_by_name("Foo");
-            let expected = vec![NewEnum(r(0), enum_id, TypeList::empty(), 1), Ret(r(0))];
+            let expected = vec![
+                NewEnum(r(0), enum_id, SourceTypeArray::empty(), 1),
+                Ret(r(0)),
+            ];
             assert_eq!(expected, code);
         },
     );
@@ -2633,7 +2636,7 @@ fn gen_new_enum() {
         |vm, code, _fct| {
             let enum_id = vm.enum_by_name("Foo");
             let expected = vec![
-                NewEnum(r(0), enum_id, TypeList::single(SourceType::Int32), 1),
+                NewEnum(r(0), enum_id, SourceTypeArray::single(SourceType::Int32), 1),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
@@ -2648,7 +2651,7 @@ fn gen_new_enum() {
         |vm, code, _fct| {
             let enum_id = vm.enum_by_name("Foo");
             let expected = vec![
-                NewEnum(r(0), enum_id, TypeList::single(SourceType::Int32), 1),
+                NewEnum(r(0), enum_id, SourceTypeArray::single(SourceType::Int32), 1),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
@@ -2662,7 +2665,7 @@ fn gen_new_object() {
         let cls_id = vm.cls_by_name("Object");
         let ctor_id = vm.ctor_by_name("Object");
         let expected = vec![
-            NewObject(r(0), cls_id, TypeList::empty()),
+            NewObject(r(0), cls_id, SourceTypeArray::empty()),
             PushRegister(r(0)),
             InvokeDirectVoid(ConstPoolIdx(0)),
             Ret(r(0)),
@@ -2670,11 +2673,11 @@ fn gen_new_object() {
         assert_eq!(expected, code);
         assert_eq!(
             fct.const_pool(ConstPoolIdx(1)),
-            &ConstPoolEntry::Class(cls_id, TypeList::empty())
+            &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
         );
         assert_eq!(
             fct.const_pool(ConstPoolIdx(0)),
-            &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
+            &ConstPoolEntry::Fct(ctor_id, SourceTypeArray::empty())
         );
     });
 }
@@ -2687,7 +2690,7 @@ fn gen_new_object_assign_to_var() {
             let cls_id = vm.cls_by_name("Object");
             let ctor_id = vm.ctor_by_name("Object");
             let expected = vec![
-                NewObject(r(1), cls_id, TypeList::empty()),
+                NewObject(r(1), cls_id, SourceTypeArray::empty()),
                 PushRegister(r(1)),
                 InvokeDirectVoid(ConstPoolIdx(0)),
                 MovPtr(r(0), r(1)),
@@ -2696,7 +2699,7 @@ fn gen_new_object_assign_to_var() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
+                &ConstPoolEntry::Fct(ctor_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2717,7 +2720,12 @@ fn gen_new_array() {
             let cls_id = vm.cls_by_name("Array");
             let expected = vec![
                 ConstInt64(r(1), 1),
-                NewArray(r(0), cls_id, TypeList::single(SourceType::Int32), r(1)),
+                NewArray(
+                    r(0),
+                    cls_id,
+                    SourceTypeArray::single(SourceType::Int32),
+                    r(1),
+                ),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
@@ -2730,7 +2738,12 @@ fn gen_new_array() {
             let cls_id = vm.cls_by_name("Array");
             let expected = vec![
                 ConstInt64(r(0), 3),
-                NewArray(r(1), cls_id, TypeList::single(SourceType::Int32), r(0)),
+                NewArray(
+                    r(1),
+                    cls_id,
+                    SourceTypeArray::single(SourceType::Int32),
+                    r(0),
+                ),
                 ConstInt32(r(3), 1),
                 ConstInt64(r(2), 0),
                 StoreArrayInt32(r(3), r(1), r(2)),
@@ -3042,7 +3055,7 @@ fn gen_new_object_with_multiple_args() {
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
                 ConstInt32(r(3), 3),
-                NewObject(r(0), cls_id, TypeList::empty()),
+                NewObject(r(0), cls_id, SourceTypeArray::empty()),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
@@ -3053,11 +3066,11 @@ fn gen_new_object_with_multiple_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(4)),
-                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
             );
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(ctor_id, TypeList::empty())
+                &ConstPoolEntry::Fct(ctor_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3270,7 +3283,7 @@ fn gen_reinterpret_float32_as_int32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3290,7 +3303,7 @@ fn gen_reinterpret_int32_as_float32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3310,7 +3323,7 @@ fn gen_reinterpret_float64_as_int64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3330,7 +3343,7 @@ fn gen_reinterpret_int64_as_float64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3378,7 +3391,7 @@ fn gen_convert_int32_to_float32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3398,7 +3411,7 @@ fn gen_convert_int32_to_float64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3418,7 +3431,7 @@ fn gen_convert_int64_to_float32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3438,7 +3451,7 @@ fn gen_convert_int64_to_float64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3458,7 +3471,7 @@ fn gen_truncate_float32_to_int32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3478,7 +3491,7 @@ fn gen_truncate_float32_to_int64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3498,7 +3511,7 @@ fn gen_truncate_float64_to_int32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3518,7 +3531,7 @@ fn gen_truncate_float64_to_int64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3534,7 +3547,7 @@ fn gen_instanceof() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3550,7 +3563,7 @@ fn gen_checked_cast() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3572,7 +3585,7 @@ fn gen_checked_cast_effect() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, TypeList::empty())
+                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3615,7 +3628,7 @@ fn gen_kill_refs() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::single(SourceType::Int32))
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::single(SourceType::Int32))
             );
         },
     );
@@ -3633,7 +3646,7 @@ fn gen_unreachable() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::single(SourceType::Int32))
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::single(SourceType::Int32))
             );
         },
     );
@@ -3649,7 +3662,7 @@ fn gen_enum_array() {
         |vm, code, _fct| {
             let enum_id = vm.enum_by_name("MyEnum");
             let expected = vec![
-                LoadArrayEnum(r(2), r(0), r(1), enum_id, TypeList::empty()),
+                LoadArrayEnum(r(2), r(0), r(1), enum_id, SourceTypeArray::empty()),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
@@ -3664,7 +3677,7 @@ fn gen_enum_array() {
         |vm, code, _fct| {
             let enum_id = vm.enum_by_name("MyEnum");
             let expected = vec![
-                StoreArrayEnum(r(2), r(0), r(1), enum_id, TypeList::empty()),
+                StoreArrayEnum(r(2), r(0), r(1), enum_id, SourceTypeArray::empty()),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -3725,7 +3738,7 @@ fn gen_string_concat() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3749,7 +3762,7 @@ fn gen_string_equals() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3771,7 +3784,7 @@ fn gen_bool_to_string() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3796,7 +3809,7 @@ fn gen_cmp_strings() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3874,7 +3887,7 @@ fn gen_compare_to_method() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3894,7 +3907,7 @@ fn gen_compare_to_method() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3914,7 +3927,7 @@ fn gen_compare_to_method() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3934,7 +3947,7 @@ fn gen_compare_to_method() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::empty())
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
             );
         },
     );
@@ -3969,7 +3982,7 @@ fn gen_vec_load() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::single(SourceType::Int32))
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::single(SourceType::Int32))
             );
         },
     );
@@ -3991,7 +4004,7 @@ fn gen_vec_store() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, TypeList::single(SourceType::Int32))
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::single(SourceType::Int32))
             );
         },
     );
@@ -4164,7 +4177,7 @@ pub enum Bytecode {
     LoadTupleElement(Register, Register, TupleId, u32),
     LoadStructField(Register, Register, ConstPoolIdx),
 
-    LoadField(Register, Register, ClassId, TypeList, FieldId),
+    LoadField(Register, Register, ClassId, SourceTypeArray, FieldId),
     StoreField(Register, Register, ConstPoolIdx),
 
     LoadGlobal(Register, GlobalId),
@@ -4260,11 +4273,11 @@ pub enum Bytecode {
     InvokeGenericDirectVoid(ConstPoolIdx),
     InvokeGenericDirect(Register, ConstPoolIdx),
 
-    NewObject(Register, ClassId, TypeList),
-    NewArray(Register, ClassId, TypeList, Register),
+    NewObject(Register, ClassId, SourceTypeArray),
+    NewArray(Register, ClassId, SourceTypeArray, Register),
     NewTuple(Register, TupleId),
-    NewEnum(Register, EnumId, TypeList, usize),
-    NewStruct(Register, StructId, TypeList),
+    NewEnum(Register, EnumId, SourceTypeArray, usize),
+    NewStruct(Register, StructId, SourceTypeArray),
 
     NilCheck(Register),
 
@@ -4280,7 +4293,7 @@ pub enum Bytecode {
     LoadArrayFloat64(Register, Register, Register),
     LoadArrayPtr(Register, Register, Register),
     LoadArrayGeneric(Register, Register, Register),
-    LoadArrayEnum(Register, Register, Register, EnumId, TypeList),
+    LoadArrayEnum(Register, Register, Register, EnumId, SourceTypeArray),
     LoadArrayStruct(Register, Register, Register, ConstPoolIdx),
 
     StoreArrayBool(Register, Register, Register),
@@ -4292,7 +4305,7 @@ pub enum Bytecode {
     StoreArrayFloat64(Register, Register, Register),
     StoreArrayPtr(Register, Register, Register),
     StoreArrayGeneric(Register, Register, Register),
-    StoreArrayEnum(Register, Register, Register, EnumId, TypeList),
+    StoreArrayEnum(Register, Register, Register, EnumId, SourceTypeArray),
     StoreArrayStruct(Register, Register, Register, ConstPoolIdx),
 
     RetVoid,

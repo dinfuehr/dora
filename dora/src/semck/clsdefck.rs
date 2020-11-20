@@ -5,7 +5,7 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
 
 use dora_parser::ast;
@@ -183,7 +183,7 @@ impl<'x> ClsDefCheck<'x> {
                 type_param_id += 1;
             }
 
-            let params = TypeList::with(params);
+            let params = SourceTypeArray::with(params);
             let list_id = self.vm.lists.lock().insert(params);
             cls.ty = SourceType::Class(cls.id, list_id);
         } else {
@@ -236,7 +236,7 @@ impl<'x> ClsDefCheck<'x> {
             let cls = self.vm.classes.idx(self.cls_id);
             let mut cls = cls.write();
 
-            let list = TypeList::empty();
+            let list = SourceTypeArray::empty();
             let list_id = self.vm.lists.lock().insert(list);
             cls.parent_class = Some(SourceType::Class(object_cls, list_id));
         }

@@ -14,7 +14,7 @@ use crate::handle::{scope as handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{DoraThread, STACK_SIZE, THREAD};
-use crate::ty::TypeList;
+use crate::ty::SourceTypeArray;
 use crate::vm::{get_vm, stack_pointer, Trap};
 
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
@@ -323,7 +323,7 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
-            let type_params = TypeList::empty();
+            let type_params = SourceTypeArray::empty();
 
             THREAD.with(|thread| {
                 thread

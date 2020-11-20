@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use std::collections::hash_set::HashSet;
 
 use crate::error::msg::SemError;
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{Class, ClassId, Fct, FileId, StructId, TraitId, TypeParam, VM};
 
 pub enum ErrorReporting {
@@ -63,7 +63,7 @@ pub fn check_struct(
     vm: &VM,
     fct: &Fct,
     struct_id: StructId,
-    type_params: &TypeList,
+    type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
     let tp_defs = {
@@ -111,7 +111,7 @@ pub fn check_params<'a>(
     fct: &'a Fct,
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],
-    params: &'a TypeList,
+    params: &'a SourceTypeArray,
 ) -> bool {
     let checker = TypeParamCheck {
         vm,
@@ -133,7 +133,7 @@ struct TypeParamCheck<'a> {
 }
 
 impl<'a> TypeParamCheck<'a> {
-    fn check(&self, tps: &TypeList) -> bool {
+    fn check(&self, tps: &SourceTypeArray) -> bool {
         if self.tp_defs.len() != tps.len() {
             if let ErrorReporting::Yes(file_id, pos) = self.error {
                 let msg = SemError::WrongNumberTypeParams(self.tp_defs.len(), tps.len());

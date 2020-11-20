@@ -8,14 +8,20 @@ use capstone::prelude::*;
 
 use crate::compiler::Code;
 use crate::driver::cmd::AsmSyntax;
-use crate::ty::TypeList;
+use crate::ty::SourceTypeArray;
 use crate::vm::{Fct, VM};
 
 pub fn supported() -> bool {
     true
 }
 
-pub fn disassemble(vm: &VM, fct: &Fct, type_params: &TypeList, code: &Code, asm_syntax: AsmSyntax) {
+pub fn disassemble(
+    vm: &VM,
+    fct: &Fct,
+    type_params: &SourceTypeArray,
+    code: &Code,
+    asm_syntax: AsmSyntax,
+) {
     let instruction_length = code.instruction_end().offset_from(code.instruction_start());
     let buf: &[u8] =
         unsafe { slice::from_raw_parts(code.instruction_start().to_ptr(), instruction_length) };

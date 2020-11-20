@@ -171,7 +171,7 @@ impl SourceType {
     }
 
     pub fn from_cls(cls_id: ClassId, vm: &VM) -> SourceType {
-        let list_id = vm.lists.lock().insert(TypeList::empty());
+        let list_id = vm.lists.lock().insert(SourceTypeArray::empty());
         SourceType::Class(cls_id, list_id)
     }
 
@@ -213,12 +213,12 @@ impl SourceType {
         false
     }
 
-    pub fn type_params(&self, vm: &VM) -> TypeList {
+    pub fn type_params(&self, vm: &VM) -> SourceTypeArray {
         match self {
             &SourceType::Class(_, list_id)
             | &SourceType::Enum(_, list_id)
             | &SourceType::Struct(_, list_id) => vm.lists.lock().get(list_id),
-            _ => TypeList::empty(),
+            _ => SourceTypeArray::empty(),
         }
     }
 
@@ -639,29 +639,29 @@ impl From<usize> for CombinedTypeListId {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum TypeList {
+pub enum SourceTypeArray {
     Empty,
     List(Arc<Vec<SourceType>>),
 }
 
-impl TypeList {
-    pub fn empty() -> TypeList {
-        TypeList::Empty
+impl SourceTypeArray {
+    pub fn empty() -> SourceTypeArray {
+        SourceTypeArray::Empty
     }
 
-    pub fn single(ty: SourceType) -> TypeList {
-        TypeList::List(Arc::new(vec![ty]))
+    pub fn single(ty: SourceType) -> SourceTypeArray {
+        SourceTypeArray::List(Arc::new(vec![ty]))
     }
 
-    pub fn with(type_params: Vec<SourceType>) -> TypeList {
+    pub fn with(type_params: Vec<SourceType>) -> SourceTypeArray {
         if type_params.len() == 0 {
-            TypeList::Empty
+            SourceTypeArray::Empty
         } else {
-            TypeList::List(Arc::new(type_params))
+            SourceTypeArray::List(Arc::new(type_params))
         }
     }
 
-    pub fn append(&self, other: &TypeList) -> TypeList {
+    pub fn connect(&self, other: &SourceTypeArray) -> SourceTypeArray {
         if self.is_empty() {
             return other.clone();
         }
@@ -673,13 +673,13 @@ impl TypeList {
         let mut params = self.types().to_vec();
         params.extend_from_slice(other.types());
 
-        TypeList::List(Arc::new(params))
+        SourceTypeArray::List(Arc::new(params))
     }
 
     pub fn types(&self) -> &[SourceType] {
         match self {
-            TypeList::Empty => &[],
-            TypeList::List(ref params) => (**params).as_slice(),
+            SourceTypeArray::Empty => &[],
+            SourceTypeArray::List(ref params) => (**params).as_slice(),
         }
     }
 
@@ -689,43 +689,43 @@ impl TypeList {
 
     pub fn len(&self) -> usize {
         match self {
-            &TypeList::Empty => 0,
-            &TypeList::List(ref params) => params.len(),
+            &SourceTypeArray::Empty => 0,
+            &SourceTypeArray::List(ref params) => params.len(),
         }
     }
 
-    pub fn iter(&self) -> TypeListIter {
-        TypeListIter {
+    pub fn iter(&self) -> SourceTypeArrayIter {
+        SourceTypeArrayIter {
             params: self,
             idx: 0,
         }
     }
 }
 
-impl Index<usize> for TypeList {
+impl Index<usize> for SourceTypeArray {
     type Output = SourceType;
 
     fn index(&self, idx: usize) -> &SourceType {
         match self {
-            &TypeList::Empty => panic!("type list index out-of-bounds"),
-            &TypeList::List(ref params) => &params[idx],
+            &SourceTypeArray::Empty => panic!("type list index out-of-bounds"),
+            &SourceTypeArray::List(ref params) => &params[idx],
         }
     }
 }
 
-pub struct TypeListIter<'a> {
-    params: &'a TypeList,
+pub struct SourceTypeArrayIter<'a> {
+    params: &'a SourceTypeArray,
     idx: usize,
 }
 
-impl<'a> Iterator for TypeListIter<'a> {
+impl<'a> Iterator for SourceTypeArrayIter<'a> {
     type Item = SourceType;
 
     fn next(&mut self) -> Option<SourceType> {
         match self.params {
-            &TypeList::Empty => None,
+            &SourceTypeArray::Empty => None,
 
-            &TypeList::List(ref params) => {
+            &SourceTypeArray::List(ref params) => {
                 if self.idx < params.len() {
                     let ret = params[self.idx].clone();
                     self.idx += 1;
@@ -740,8 +740,8 @@ impl<'a> Iterator for TypeListIter<'a> {
 }
 
 pub struct TypeLists {
-    lists: HashMap<TypeList, TypeListId>,
-    values: Vec<TypeList>,
+    lists: HashMap<SourceTypeArray, TypeListId>,
+    values: Vec<SourceTypeArray>,
     next_id: usize,
 }
 
@@ -754,7 +754,7 @@ impl TypeLists {
         }
     }
 
-    pub fn insert(&mut self, list: TypeList) -> TypeListId {
+    pub fn insert(&mut self, list: SourceTypeArray) -> TypeListId {
         if let Some(&val) = self.lists.get(&list) {
             return val;
         }
@@ -769,7 +769,7 @@ impl TypeLists {
         id
     }
 
-    pub fn get(&self, id: TypeListId) -> TypeList {
+    pub fn get(&self, id: TypeListId) -> SourceTypeArray {
         self.values[id.to_usize()].clone()
     }
 }
@@ -987,14 +987,14 @@ mod tests {
 
     #[test]
     fn append_type_lists() {
-        let e1 = TypeList::empty();
-        let e2 = TypeList::single(SourceType::Int32);
-        assert_eq!(e1.append(&e2).types(), &[SourceType::Int32]);
+        let e1 = SourceTypeArray::empty();
+        let e2 = SourceTypeArray::single(SourceType::Int32);
+        assert_eq!(e1.connect(&e2).types(), &[SourceType::Int32]);
 
-        let e1 = TypeList::single(SourceType::Float32);
-        let e2 = TypeList::single(SourceType::Int32);
+        let e1 = SourceTypeArray::single(SourceType::Float32);
+        let e2 = SourceTypeArray::single(SourceType::Int32);
         assert_eq!(
-            e1.append(&e2).types(),
+            e1.connect(&e2).types(),
             &[SourceType::Float32, SourceType::Int32]
         );
     }

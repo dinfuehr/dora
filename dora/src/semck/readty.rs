@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, TypeList};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
     trait_accessible_from, ClassId, EnumId, FileId, NamespaceId, StructId, VM,
@@ -195,7 +195,7 @@ fn read_type_enum(
         return None;
     }
 
-    let list = TypeList::with(type_params);
+    let list = SourceTypeArray::with(type_params);
     let list_id = vm.lists.lock().insert(list);
     Some(SourceType::Enum(xenum.id, list_id))
 }
@@ -236,7 +236,7 @@ fn read_type_struct(
     }
 
     if type_params.len() == 0 {
-        let list_id = vm.lists.lock().insert(TypeList::empty());
+        let list_id = vm.lists.lock().insert(SourceTypeArray::empty());
         let ty = SourceType::Struct(struct_id, list_id);
         return Some(ty);
     }
@@ -262,7 +262,7 @@ fn read_type_struct(
         }
     }
 
-    let list = TypeList::with(type_params);
+    let list = SourceTypeArray::with(type_params);
     let list_id = vm.lists.lock().insert(list);
     Some(SourceType::Struct(struct_id, list_id))
 }
@@ -327,7 +327,7 @@ fn read_type_class(
         }
     }
 
-    let list = TypeList::with(type_params);
+    let list = SourceTypeArray::with(type_params);
     let list_id = vm.lists.lock().insert(list);
     Some(SourceType::Class(cls.id, list_id))
 }

@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::mem::ptr_width;
 use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
-use crate::ty::{MachineMode, SourceType, TypeList, TypeListId};
+use crate::ty::{MachineMode, SourceType, SourceTypeArray, TypeListId};
 use crate::vm::{
     get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId, TupleId, VM,
 };
@@ -48,8 +48,8 @@ pub enum BytecodeType {
     Ptr,
     Tuple(TupleId),
     TypeParam(u32),
-    Enum(EnumId, TypeList),
-    Struct(StructId, TypeList),
+    Enum(EnumId, SourceTypeArray),
+    Struct(StructId, SourceTypeArray),
 }
 
 impl BytecodeType {
@@ -601,14 +601,14 @@ pub enum ConstPoolEntry {
     Int32(i32),
     Int64(i64),
     Char(char),
-    Class(ClassId, TypeList),
-    Field(ClassId, TypeList, FieldId),
-    Fct(FctId, TypeList),
-    Generic(TypeListId, FctId, TypeList),
-    Enum(EnumId, TypeList),
-    EnumVariant(EnumId, TypeList, usize),
-    Struct(StructId, TypeList),
-    StructField(StructId, TypeList, StructFieldId),
+    Class(ClassId, SourceTypeArray),
+    Field(ClassId, SourceTypeArray, FieldId),
+    Fct(FctId, SourceTypeArray),
+    Generic(TypeListId, FctId, SourceTypeArray),
+    Enum(EnumId, SourceTypeArray),
+    EnumVariant(EnumId, SourceTypeArray, usize),
+    Struct(StructId, SourceTypeArray),
+    StructField(StructId, SourceTypeArray, StructFieldId),
 }
 
 impl ConstPoolEntry {

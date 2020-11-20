@@ -5,7 +5,7 @@ use std::sync::Arc;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 
-use crate::ty::{SourceType, TypeList, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, TypeListId};
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId, StructFieldId,
     StructId, TraitId,
@@ -136,13 +136,13 @@ pub enum IdentType {
     Module(ModuleId),
 
     // name of function with type params: some_fct[T1, T2, ...]
-    Fct(FctId, TypeList),
+    Fct(FctId, SourceTypeArray),
 
     // name of class with type params: SomeClass[T1, T2, ...]
-    Class(ClassId, TypeList),
+    Class(ClassId, SourceTypeArray),
 
     // specific value in enum
-    EnumValue(EnumId, TypeList, usize),
+    EnumValue(EnumId, SourceTypeArray, usize),
 }
 
 impl IdentType {
@@ -201,13 +201,13 @@ pub struct ForTypeInfo {
 #[derive(Debug, Clone)]
 pub enum CallType {
     // Function calls, e.g. fct(<args>) or Class::static_fct(<args>)
-    Fct(FctId, TypeList, TypeList),
+    Fct(FctId, SourceTypeArray, SourceTypeArray),
 
     // Direct or virtual method calls, e.g. obj.method(<args>)
-    Method(SourceType, FctId, TypeList),
+    Method(SourceType, FctId, SourceTypeArray),
 
     // Module method call, e.g. Module::method(<args>)
-    ModuleMethod(SourceType, FctId, TypeList),
+    ModuleMethod(SourceType, FctId, SourceTypeArray),
 
     // Constructor call Class(<args>)
     Ctor(SourceType, FctId),
@@ -230,7 +230,7 @@ pub enum CallType {
     Enum(SourceType, usize),
 
     // Struct constructor call Struct(<args>)
-    Struct(StructId, TypeList),
+    Struct(StructId, SourceTypeArray),
 
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),

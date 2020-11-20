@@ -7,7 +7,7 @@ use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
 use crate::gc::Address;
 use crate::os;
-use crate::ty::TypeList;
+use crate::ty::SourceTypeArray;
 use crate::utils::GrowableVec;
 use crate::vm::FctId;
 use crate::vm::VM;
@@ -437,6 +437,6 @@ impl LazyCompilationData {
 
 #[derive(Clone, Debug)]
 pub enum LazyCompilationSite {
-    Compile(FctId, i32, TypeList),
-    VirtCompile(bool, u32, TypeList),
+    Compile(FctId, i32, SourceTypeArray),
+    VirtCompile(bool, u32, SourceTypeArray),
 }
