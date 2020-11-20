@@ -12,7 +12,7 @@ class Graph {
         assert(block.graph.isNone() && block.id == -1);
 
         block.graph = Some[Graph](self);
-        block.id = self.nextBlockId();
+        block.id = self.nextBlockId().value;
         self.blocks.push(block);
     }
 
@@ -43,11 +43,11 @@ class Graph {
         id
     }
 
-    fun nextBlockId(): Int32 {
+    fun nextBlockId(): BlockId {
         let id = self.nextBlockIdValue;
         self.nextBlockIdValue = id + 1;
 
-        id
+        BlockId(id)
     }
 
     fun numberBlocks(): Int32 {
@@ -113,6 +113,8 @@ class ReversePostOrderIterator(let postOrder: Vec[Block]) {
         block
     }
 }
+
+struct BlockId { value: Int32 }
 
 class Block() {
     var id: Int32 = -1;
