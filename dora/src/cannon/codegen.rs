@@ -315,6 +315,7 @@ impl<'a> CannonCodeGen<'a> {
                         RegOrOffset::Offset(dest_offset),
                         RegOrOffset::Reg(REG_TMP1),
                     );
+                    reg_idx += 1;
                 } else {
                     self.asm
                         .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(sp_offset));
@@ -327,6 +328,42 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 continue;
+            }
+
+            match param_ty {
+                SourceType::Struct(struct_id, type_params_id) => {
+                    let dest_offset = self.reg(dest);
+                    let type_params = self.vm.lists.lock().get(type_params_id);
+
+                    if reg_idx < REG_PARAMS.len() {
+                        self.asm.copy(
+                            MachineMode::Ptr,
+                            REG_TMP1.into(),
+                            REG_PARAMS[reg_idx].into(),
+                        );
+                        self.copy_struct(
+                            struct_id,
+                            type_params,
+                            dest_offset,
+                            RegOrOffset::Reg(REG_TMP1),
+                        );
+                        reg_idx += 1;
+                    } else {
+                        self.asm
+                            .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(sp_offset));
+                        self.copy_struct(
+                            struct_id,
+                            type_params,
+                            dest_offset,
+                            RegOrOffset::Reg(REG_TMP1),
+                        );
+                        sp_offset += 8;
+                    }
+
+                    continue;
+                }
+
+                _ => {}
             }
 
             if let SourceType::Enum(enum_id, list_id) = param_ty {
@@ -3734,7 +3771,7 @@ impl<'a> CannonCodeGen<'a> {
                 let offset = self.register_offset(src);
 
                 match bytecode_type {
-                    BytecodeType::Tuple(_tuple_id) => {
+                    BytecodeType::Tuple(_) | BytecodeType::Struct(_, _) => {
                         if reg_idx < REG_PARAMS.len() {
                             let reg = REG_PARAMS[reg_idx];
                             self.asm.lea(reg, Mem::Local(offset));
@@ -3772,7 +3809,14 @@ impl<'a> CannonCodeGen<'a> {
                             sp_offset += 8;
                         }
                     }
-                    _ => {
+
+                    BytecodeType::Bool
+                    | BytecodeType::UInt8
+                    | BytecodeType::Char
+                    | BytecodeType::Int32
+                    | BytecodeType::Int64
+                    | BytecodeType::Ptr
+                    | BytecodeType::Enum(_, _) => {
                         let mode = bytecode_type.mode(self.vm);
 
                         if reg_idx < REG_PARAMS.len() {
@@ -3786,6 +3830,8 @@ impl<'a> CannonCodeGen<'a> {
                             sp_offset += 8;
                         }
                     }
+
+                    BytecodeType::TypeParam(_) => unreachable!(),
                 }
             }
         }
