@@ -9,7 +9,8 @@ use dora_parser::lexer::position::Position;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, FileId, NamespaceId, SourceTypeArray, TypeParam, VM,
+    accessible_from, namespace_path, ExtensionId, FctId, FileId, NamespaceId, SourceTypeArray,
+    TypeParam, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -40,6 +41,7 @@ pub struct StructData {
     pub fields: Vec<StructFieldData>,
     pub field_names: HashMap<Name, StructFieldId>,
     pub specializations: RwLock<HashMap<SourceTypeArray, StructDefId>>,
+    pub extensions: Vec<ExtensionId>,
 }
 
 impl StructData {
@@ -128,4 +130,31 @@ pub fn struct_accessible_from(vm: &VM, struct_id: StructId, namespace_id: Namesp
     let xstruct = xstruct.read();
 
     accessible_from(vm, xstruct.namespace_id, xstruct.is_pub, namespace_id)
+}
+
+pub fn find_methods_in_struct(
+    vm: &VM,
+    object_type: SourceType,
+    name: Name,
+    is_static: bool,
+) -> Vec<(SourceType, FctId)> {
+    let struct_id = object_type.struct_id().unwrap();
+    let xstruct = vm.structs.idx(struct_id);
+    let xstruct = xstruct.read();
+
+    for &extension_id in &xstruct.extensions {
+        let extension = vm.extensions[extension_id].read();
+
+        let table = if is_static {
+            &extension.static_names
+        } else {
+            &extension.instance_names
+        };
+
+        if let Some(&fct_id) = table.get(&name) {
+            return vec![(object_type, fct_id)];
+        }
+    }
+
+    Vec::new()
 }

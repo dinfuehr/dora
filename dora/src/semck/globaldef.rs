@@ -483,6 +483,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 fields: Vec::new(),
                 field_names: HashMap::new(),
                 specializations: RwLock::new(HashMap::new()),
+                extensions: Vec::new(),
             };
 
             if let Some(ref type_params) = node.type_params {

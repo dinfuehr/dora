@@ -5,7 +5,7 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, VM};
+use crate::vm::{EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, StructId, VM};
 
 use dora_parser::ast;
 
@@ -70,6 +70,13 @@ impl<'x> ExtensionCheck<'x> {
                     xenum.extensions.push(self.extension_id);
                 }
 
+                SourceType::Struct(struct_id, _) => {
+                    let xstruct = self.vm.structs.idx(struct_id);
+                    let mut xstruct = xstruct.write();
+
+                    xstruct.extensions.push(self.extension_id);
+                }
+
                 _ => {
                     let cls_id = extension_ty.cls_id(self.vm).unwrap();
                     let cls = self.vm.classes.idx(cls_id);
@@ -112,6 +119,7 @@ impl<'x> ExtensionCheck<'x> {
 
         let success = match self.extension_ty {
             SourceType::Enum(enum_id, _) => self.check_in_enum(&f, enum_id),
+            SourceType::Struct(struct_id, _) => self.check_in_struct(&f, struct_id),
             _ => self.check_in_class(&f),
         };
 
@@ -170,6 +178,19 @@ impl<'x> ExtensionCheck<'x> {
         let xenum = self.vm.enums[enum_id].read();
 
         for &extension_id in &xenum.extensions {
+            if !self.check_extension(f, extension_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn check_in_struct(&self, f: &ast::Function, struct_id: StructId) -> bool {
+        let xstruct = self.vm.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+
+        for &extension_id in &xstruct.extensions {
             if !self.check_extension(f, extension_id) {
                 return false;
             }
@@ -329,6 +350,19 @@ mod tests {
                 fun test(x: T) {}
             }
             fun test(x: MyFoo[Int32]) { x.test(1); }
+        ");
+    }
+
+    #[test]
+    fn extension_struct() {
+        ok("
+            struct Foo { f1: Int32, f2: Int32 }
+            impl Foo {
+                fun sum(): Int32 {
+                    self.f1 + self.f2
+                }
+            }
+            fun test(x: Foo): Int32 { x.sum() }
         ");
     }
 

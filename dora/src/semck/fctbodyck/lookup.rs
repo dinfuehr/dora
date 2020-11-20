@@ -4,8 +4,8 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    find_methods_in_class, find_methods_in_enum, ClassId, EnumId, Fct, FctId, FctParent, FileId,
-    TraitId, TypeParam, VM,
+    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, ClassId, EnumId, Fct,
+    FctId, FctParent, FileId, TraitId, TypeParam, VM,
 };
 
 use crate::vm::find_methods_in_module;
@@ -83,6 +83,8 @@ impl<'a> MethodLookup<'a> {
         } else if let SourceType::TraitObject(trait_id) = obj {
             Some(LookupKind::Trait(trait_id))
         } else if obj.is_enum() {
+            Some(LookupKind::Method(obj))
+        } else if obj.is_struct() {
             Some(LookupKind::Method(obj))
         } else {
             panic!("neither object nor trait object: {:?}", obj);
@@ -348,6 +350,8 @@ impl<'a> MethodLookup<'a> {
             find_methods_in_module(self.vm, object_type, name)
         } else if object_type.is_enum() {
             find_methods_in_enum(self.vm, object_type, name, is_static)
+        } else if object_type.is_struct() {
+            find_methods_in_struct(self.vm, object_type, name, is_static)
         } else {
             find_methods_in_class(self.vm, object_type, name, is_static)
         };
