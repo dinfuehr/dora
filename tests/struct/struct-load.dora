@@ -1,0 +1,16 @@
+struct Foo { f1: Int32, f2: Bool }
+
+fun f(): Int32 {
+    let x = Foo(10, false);
+    x.f1
+}
+
+fun g(): Bool {
+    let x = Foo(10, false);
+    x.f2
+}
+
+fun main() {
+    assert(f() == 10);
+    assert(!g());
+}

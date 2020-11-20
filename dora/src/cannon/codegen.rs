@@ -1671,6 +1671,40 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
+    fn emit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        let (struct_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                (*struct_id, type_params.clone(), *field_id)
+            }
+            _ => unreachable!(),
+        };
+
+        debug_assert_eq!(
+            self.bytecode.register_type(obj),
+            BytecodeType::Struct(struct_id, type_params.clone())
+        );
+
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+        let sdef = self.vm.struct_defs.idx(sdef_id);
+
+        let field = &sdef.fields[field_id.to_usize()];
+
+        if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
+            assert_eq!(
+                bytecode_type,
+                BytecodeType::from_ty(self.vm, field.ty.clone())
+            );
+            let dest = self.reg(dest);
+            let src = self.reg(obj).offset(field.offset);
+            self.copy_bytecode_ty(bytecode_type, dest, src);
+        }
+    }
+
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
@@ -1689,7 +1723,7 @@ impl<'a> CannonCodeGen<'a> {
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
 
-        let field = &cls.fields[field_id.idx()];
+        let field = &cls.fields[field_id.to_usize()];
 
         assert!(self.bytecode.register_type(obj).is_ptr());
         let obj_reg = REG_TMP1;
@@ -1727,7 +1761,7 @@ impl<'a> CannonCodeGen<'a> {
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
 
-        let field = &cls.fields[field_id.idx()];
+        let field = &cls.fields[field_id.to_usize()];
 
         assert!(self.bytecode.register_type(obj).is_ptr());
         let obj_reg = REG_TMP1;
@@ -4300,6 +4334,33 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_load_enum_variant(dest, src, idx);
     }
 
+    fn visit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        comment!(self, {
+            let (struct_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+                ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                    (*struct_id, type_params, *field_id)
+                }
+                _ => unreachable!(),
+            };
+            let xstruct = self.vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+            let xstruct_name = xstruct.name_with_params(self.vm, type_params);
+
+            let field = &xstruct.fields[field_id.to_usize()];
+            let fname = self.vm.interner.str(field.name);
+
+            format!(
+                "LoadStructField {}, {}, ConstPoolIdx({}) # {}.{}",
+                dest,
+                obj,
+                field_idx.to_usize(),
+                xstruct_name,
+                fname
+            )
+        });
+        self.emit_load_struct_field(dest, obj, field_idx);
+    }
+
     fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
             let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
@@ -4312,7 +4373,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let cls = cls.read();
             let cname = cls.name_with_params(self.vm, type_params);
 
-            let field = &cls.fields[field_id.idx()];
+            let field = &cls.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);
 
             format!(
@@ -4339,7 +4400,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let cls = cls.read();
             let cname = cls.name_with_params(self.vm, type_params);
 
-            let field = &cls.fields[field_id.idx()];
+            let field = &cls.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);
 
             format!(

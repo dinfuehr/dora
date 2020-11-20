@@ -846,7 +846,7 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
 
 pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: Ref<Obj>) {
     let cls_def = vm.class_defs.idx(cls_id);
-    let field = &cls_def.fields[fid.idx()];
+    let field = &cls_def.fields[fid.to_usize()];
     let slot = obj.address().offset(field.offset as usize);
     assert!(field.ty.reference_type());
 
@@ -857,7 +857,7 @@ pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value
 
 pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: i32) {
     let cls_def = vm.class_defs.idx(cls_id);
-    let field = &cls_def.fields[fid.idx()];
+    let field = &cls_def.fields[fid.to_usize()];
     let slot = obj.address().offset(field.offset as usize);
     assert!(field.ty == SourceType::Int32);
 

@@ -809,7 +809,7 @@ impl<'a> AstBytecodeGen<'a> {
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
 
-            let field = &cls.fields[field_id.idx()];
+            let field = &cls.fields[field_id.to_usize()];
             field.ty.clone()
         };
 
@@ -2486,7 +2486,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
-        let field = &cls.fields[field_id.idx()];
+        let field = &cls.fields[field_id.to_usize()];
         let field_ty = field.ty.clone();
         let field_ty = specialize_type(self.vm, field_ty, &type_params);
 

@@ -100,7 +100,7 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let cls = vm.classes.idx(*cls_id);
                 let cls = cls.read();
-                let field = &cls.fields[field_id.idx()];
+                let field = &cls.fields[field_id.to_usize()];
                 let fname = vm.interner.str(field.name);
                 println!(
                     "{}{} => Field {}.{}",
@@ -416,7 +416,7 @@ impl<'a> BytecodeDumper<'a> {
         let cls = cls.read();
         let cname = cls.name_with_params(self.vm, type_params);
 
-        let field = &cls.fields[field_id.idx()];
+        let field = &cls.fields[field_id.to_usize()];
         let fname = self.vm.interner.str(field.name);
         writeln!(
             self.w,
