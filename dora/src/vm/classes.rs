@@ -9,7 +9,7 @@ use std::sync::Arc;
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::sym::SymTable;
-use crate::ty::{SourceType, SourceTypeArray, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
@@ -90,7 +90,7 @@ impl Class {
         self.type_params.len() > 0
     }
 
-    pub fn type_param(&self, id: TypeListId) -> &TypeParam {
+    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 

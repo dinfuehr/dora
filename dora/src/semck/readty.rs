@@ -196,7 +196,7 @@ fn read_type_enum(
     }
 
     let list = SourceTypeArray::with(type_params);
-    let list_id = vm.lists.lock().insert(list);
+    let list_id = vm.source_type_arrays.lock().insert(list);
     Some(SourceType::Enum(xenum.id, list_id))
 }
 
@@ -236,7 +236,10 @@ fn read_type_struct(
     }
 
     if type_params.len() == 0 {
-        let list_id = vm.lists.lock().insert(SourceTypeArray::empty());
+        let list_id = vm
+            .source_type_arrays
+            .lock()
+            .insert(SourceTypeArray::empty());
         let ty = SourceType::Struct(struct_id, list_id);
         return Some(ty);
     }
@@ -263,7 +266,7 @@ fn read_type_struct(
     }
 
     let list = SourceTypeArray::with(type_params);
-    let list_id = vm.lists.lock().insert(list);
+    let list_id = vm.source_type_arrays.lock().insert(list);
     Some(SourceType::Struct(struct_id, list_id))
 }
 
@@ -328,7 +331,7 @@ fn read_type_class(
     }
 
     let list = SourceTypeArray::with(type_params);
-    let list_id = vm.lists.lock().insert(list);
+    let list_id = vm.source_type_arrays.lock().insert(list);
     Some(SourceType::Class(cls.id, list_id))
 }
 

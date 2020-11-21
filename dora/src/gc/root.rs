@@ -34,7 +34,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
 
         match glob.ty {
             SourceType::Struct(struct_id, type_params_id) => {
-                let type_params = vm.lists.lock().get(type_params_id);
+                let type_params = vm.source_type_arrays.lock().get(type_params_id);
                 let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
                 let sdef = vm.struct_defs.idx(sdef_id);
 
@@ -46,7 +46,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
             }
 
             SourceType::Enum(enum_id, type_params_id) => {
-                let type_params = vm.lists.lock().get(type_params_id);
+                let type_params = vm.source_type_arrays.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
                 let edef = vm.enum_defs.idx(edef_id);
 

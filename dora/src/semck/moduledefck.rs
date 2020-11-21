@@ -181,7 +181,7 @@ impl<'x> ModuleCheck<'x> {
         let mut module = module.write();
 
         let list = SourceTypeArray::empty();
-        let list_id = self.vm.lists.lock().insert(list);
+        let list_id = self.vm.source_type_arrays.lock().insert(list);
         module.parent_class = Some(SourceType::Class(object_cls, list_id));
     }
 }

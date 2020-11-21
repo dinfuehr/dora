@@ -38,10 +38,10 @@ pub enum SourceType {
     This,
 
     // some class
-    Class(ClassId, TypeListId),
+    Class(ClassId, SourceTypeArrayId),
 
     // some struct
-    Struct(StructId, TypeListId),
+    Struct(StructId, SourceTypeArrayId),
 
     // some tuple
     Tuple(TupleId),
@@ -53,13 +53,13 @@ pub enum SourceType {
     Module(ModuleId),
 
     // some type variable
-    TypeParam(TypeListId),
+    TypeParam(SourceTypeArrayId),
 
     // some lambda
     Lambda(LambdaId),
 
     // some enum
-    Enum(EnumId, TypeListId),
+    Enum(EnumId, SourceTypeArrayId),
 }
 
 impl SourceType {
@@ -171,7 +171,10 @@ impl SourceType {
     }
 
     pub fn from_cls(cls_id: ClassId, vm: &VM) -> SourceType {
-        let list_id = vm.lists.lock().insert(SourceTypeArray::empty());
+        let list_id = vm
+            .source_type_arrays
+            .lock()
+            .insert(SourceTypeArray::empty());
         SourceType::Class(cls_id, list_id)
     }
 
@@ -217,7 +220,7 @@ impl SourceType {
         match self {
             &SourceType::Class(_, list_id)
             | &SourceType::Enum(_, list_id)
-            | &SourceType::Struct(_, list_id) => vm.lists.lock().get(list_id),
+            | &SourceType::Struct(_, list_id) => vm.source_type_arrays.lock().get(list_id),
             _ => SourceTypeArray::empty(),
         }
     }
@@ -227,7 +230,7 @@ impl SourceType {
             &SourceType::TypeParam(_) => true,
 
             &SourceType::Class(_, list_id) => {
-                let params = vm.lists.lock().get(list_id);
+                let params = vm.source_type_arrays.lock().get(list_id);
                 params.iter().any(|t| t.contains_type_param(vm))
             }
 
@@ -399,7 +402,7 @@ impl SourceType {
             SourceType::Float32 => 4,
             SourceType::Float64 => 8,
             SourceType::Enum(eid, list_id) => {
-                let params = vm.lists.lock().get(list_id);
+                let params = vm.source_type_arrays.lock().get(list_id);
                 let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
                 let xenum = vm.enum_defs.idx(enum_def_id);
 
@@ -415,7 +418,7 @@ impl SourceType {
             | SourceType::Lambda(_)
             | SourceType::Ptr => mem::ptr_width(),
             SourceType::Struct(sid, list_id) => {
-                let params = vm.lists.lock().get(list_id);
+                let params = vm.source_type_arrays.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
 
@@ -441,7 +444,7 @@ impl SourceType {
             SourceType::This => panic!("no alignment for Self."),
             SourceType::Any => panic!("no alignment for Any."),
             SourceType::Enum(eid, list_id) => {
-                let params = vm.lists.lock().get(list_id);
+                let params = vm.source_type_arrays.lock().get(list_id);
                 let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
                 let xenum = vm.enum_defs.idx(enum_def_id);
 
@@ -455,7 +458,7 @@ impl SourceType {
             | SourceType::Lambda(_)
             | SourceType::Ptr => mem::ptr_width(),
             SourceType::Struct(sid, list_id) => {
-                let params = vm.lists.lock().get(list_id);
+                let params = vm.source_type_arrays.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
 
@@ -510,7 +513,7 @@ impl SourceType {
             SourceType::Enum(_, list_id)
             | SourceType::Class(_, list_id)
             | SourceType::Struct(_, list_id) => {
-                let params = vm.lists.lock().get(list_id);
+                let params = vm.source_type_arrays.lock().get(list_id);
 
                 for param in params.iter() {
                     if !param.is_defined_type(vm) {
@@ -551,7 +554,7 @@ impl SourceType {
             SourceType::Class(_, list_id)
             | SourceType::Enum(_, list_id)
             | SourceType::Struct(_, list_id) => {
-                let params = vm.lists.lock().get(list_id);
+                let params = vm.source_type_arrays.lock().get(list_id);
 
                 for param in params.iter() {
                     if !param.is_concrete_type(vm) {
@@ -607,34 +610,18 @@ impl MachineMode {
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct TypeListId(u32);
+pub struct SourceTypeArrayId(u32);
 
-impl TypeListId {
+impl SourceTypeArrayId {
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
 
-impl From<usize> for TypeListId {
-    fn from(data: usize) -> TypeListId {
+impl From<usize> for SourceTypeArrayId {
+    fn from(data: usize) -> SourceTypeArrayId {
         assert!(data < u32::max_value() as usize);
-        TypeListId(data as u32)
-    }
-}
-
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct CombinedTypeListId(u32);
-
-impl CombinedTypeListId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl From<usize> for CombinedTypeListId {
-    fn from(data: usize) -> CombinedTypeListId {
-        assert!(data < u32::max_value() as usize);
-        CombinedTypeListId(data as u32)
+        SourceTypeArrayId(data as u32)
     }
 }
 
@@ -739,27 +726,27 @@ impl<'a> Iterator for SourceTypeArrayIter<'a> {
     }
 }
 
-pub struct TypeLists {
-    lists: HashMap<SourceTypeArray, TypeListId>,
+pub struct SourceTypeArrays {
+    lists: HashMap<SourceTypeArray, SourceTypeArrayId>,
     values: Vec<SourceTypeArray>,
     next_id: usize,
 }
 
-impl TypeLists {
-    pub fn new() -> TypeLists {
-        TypeLists {
+impl SourceTypeArrays {
+    pub fn new() -> SourceTypeArrays {
+        SourceTypeArrays {
             lists: HashMap::new(),
             values: Vec::new(),
             next_id: 0,
         }
     }
 
-    pub fn insert(&mut self, list: SourceTypeArray) -> TypeListId {
+    pub fn insert(&mut self, list: SourceTypeArray) -> SourceTypeArrayId {
         if let Some(&val) = self.lists.get(&list) {
             return val;
         }
 
-        let id: TypeListId = self.next_id.into();
+        let id: SourceTypeArrayId = self.next_id.into();
         self.lists.insert(list.clone(), id);
 
         self.values.push(list);
@@ -769,7 +756,7 @@ impl TypeLists {
         id
     }
 
-    pub fn get(&self, id: TypeListId) -> SourceTypeArray {
+    pub fn get(&self, id: SourceTypeArrayId) -> SourceTypeArray {
         self.values[id.to_usize()].clone()
     }
 }
@@ -848,7 +835,7 @@ impl<'a> SourceTypePrinter<'a> {
             SourceType::Ptr => panic!("type Ptr only for internal use."),
             SourceType::This => "Self".into(),
             SourceType::Class(id, list_id) => {
-                let params = self.vm.lists.lock().get(list_id);
+                let params = self.vm.source_type_arrays.lock().get(list_id);
                 let cls = self.vm.classes.idx(id);
                 let cls = cls.read();
                 let base = self.vm.interner.str(cls.name);
@@ -871,7 +858,7 @@ impl<'a> SourceTypePrinter<'a> {
                 let name = struc.name;
                 let name = self.vm.interner.str(name).to_string();
 
-                let params = self.vm.lists.lock().get(list_id);
+                let params = self.vm.source_type_arrays.lock().get(list_id);
 
                 if params.len() == 0 {
                     name
@@ -893,7 +880,7 @@ impl<'a> SourceTypePrinter<'a> {
                 let xenum = self.vm.enums[id].read();
                 let name = self.vm.interner.str(xenum.name).to_string();
 
-                let params = self.vm.lists.lock().get(list_id);
+                let params = self.vm.source_type_arrays.lock().get(list_id);
 
                 if params.len() == 0 {
                     name

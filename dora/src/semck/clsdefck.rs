@@ -184,7 +184,7 @@ impl<'x> ClsDefCheck<'x> {
             }
 
             let params = SourceTypeArray::with(params);
-            let list_id = self.vm.lists.lock().insert(params);
+            let list_id = self.vm.source_type_arrays.lock().insert(params);
             cls.ty = SourceType::Class(cls.id, list_id);
         } else {
             let msg = SemError::TypeParamsExpected;
@@ -237,7 +237,7 @@ impl<'x> ClsDefCheck<'x> {
             let mut cls = cls.write();
 
             let list = SourceTypeArray::empty();
-            let list_id = self.vm.lists.lock().insert(list);
+            let list_id = self.vm.source_type_arrays.lock().insert(list);
             cls.parent_class = Some(SourceType::Class(object_cls, list_id));
         }
     }

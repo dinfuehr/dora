@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::compiler::fct::JitFctId;
 use crate::gc::Address;
-use crate::ty::{SourceType, SourceTypeArray, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, namespace_path, AnalysisData, ClassId, ExtensionId, FileId, ImplId, ModuleId,
@@ -118,20 +118,20 @@ impl Fct {
         }
     }
 
-    pub fn type_param(&self, id: TypeListId) -> &TypeParam {
+    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 
-    pub fn type_param_id<F: FnOnce(&TypeParam, TypeListId) -> R, R>(
+    pub fn type_param_id<F: FnOnce(&TypeParam, SourceTypeArrayId) -> R, R>(
         &self,
         vm: &VM,
-        id: TypeListId,
+        id: SourceTypeArrayId,
         callback: F,
     ) -> R {
         self.type_param_ty(vm, SourceType::TypeParam(id), callback)
     }
 
-    pub fn type_param_ty<F: FnOnce(&TypeParam, TypeListId) -> R, R>(
+    pub fn type_param_ty<F: FnOnce(&TypeParam, SourceTypeArrayId) -> R, R>(
         &self,
         vm: &VM,
         ty: SourceType,

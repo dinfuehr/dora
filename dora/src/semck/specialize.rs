@@ -231,7 +231,7 @@ pub fn specialize_class_id_params(
 pub fn specialize_class_ty(vm: &VM, ty: SourceType) -> ClassDefId {
     match ty {
         SourceType::Class(cls_id, list_id) => {
-            let params = vm.lists.lock().get(list_id);
+            let params = vm.source_type_arrays.lock().get(list_id);
             specialize_class_id_params(vm, cls_id, &params)
         }
 
@@ -275,7 +275,7 @@ fn create_specialized_class_regular(
             let tuples = vm.tuples.lock();
             tuples.get_tuple(tuple_id);
         } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
-            let type_params = vm.lists.lock().get(type_params_id);
+            let type_params = vm.source_type_arrays.lock().get(type_params_id);
             specialize_enum_id_params(vm, enum_id, type_params);
         }
     }
@@ -327,7 +327,7 @@ fn create_specialized_class_regular(
                 ref_fields.push(offset + ref_offset);
             }
         } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
-            let type_params = vm.lists.lock().get(type_params_id);
+            let type_params = vm.source_type_arrays.lock().get(type_params_id);
             let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
             let edef = vm.enum_defs.idx(edef_id);
 
@@ -432,7 +432,7 @@ fn create_specialized_class_array(
             }
 
             SourceType::Struct(struct_id, type_params_id) => {
-                let type_params = vm.lists.lock().get(type_params_id);
+                let type_params = vm.source_type_arrays.lock().get(type_params_id);
                 let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
                 let sdef = vm.struct_defs.idx(sdef_id);
 
@@ -448,7 +448,7 @@ fn create_specialized_class_array(
             }
 
             SourceType::Enum(enum_id, type_params_id) => {
-                let type_params = vm.lists.lock().get(type_params_id);
+                let type_params = vm.source_type_arrays.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
                 let edef = vm.enum_defs.idx(edef_id);
 
@@ -602,7 +602,7 @@ pub fn replace_type_param(
         SourceType::TypeParam(tpid) => type_params[tpid.to_usize()].clone(),
 
         SourceType::Class(cls_id, list_id) => {
-            let params = vm.lists.lock().get(list_id);
+            let params = vm.source_type_arrays.lock().get(list_id);
 
             let params = SourceTypeArray::with(
                 params
@@ -611,12 +611,12 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let list_id = vm.lists.lock().insert(params);
+            let list_id = vm.source_type_arrays.lock().insert(params);
             SourceType::Class(cls_id, list_id)
         }
 
         SourceType::Enum(enum_id, list_id) => {
-            let old_type_params = vm.lists.lock().get(list_id);
+            let old_type_params = vm.source_type_arrays.lock().get(list_id);
 
             let new_type_params = SourceTypeArray::with(
                 old_type_params
@@ -625,7 +625,7 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.lists.lock().insert(new_type_params);
+            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
             SourceType::Enum(enum_id, new_type_params_id)
         }
 

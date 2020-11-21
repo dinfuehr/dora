@@ -5,7 +5,7 @@ use self::TypeSym::*;
 use crate::sym::TermSym::{
     ClassConstructorAndModule, Const, Fct, Global, Module, StructConstructorAndModule, Var,
 };
-use crate::ty::TypeListId;
+use crate::ty::SourceTypeArrayId;
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId, NamespaceId, StructId, TraitId,
     VarId, VM,
@@ -213,7 +213,7 @@ pub enum TypeSym {
     Class(ClassId),
     Struct(StructId),
     Trait(TraitId),
-    TypeParam(TypeListId),
+    TypeParam(SourceTypeArrayId),
     Enum(EnumId),
 }
 

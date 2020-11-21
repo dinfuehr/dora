@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::mem::ptr_width;
 use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
-use crate::ty::{MachineMode, SourceType, SourceTypeArray, TypeListId};
+use crate::ty::{MachineMode, SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId, TupleId, VM,
 };
@@ -171,7 +171,7 @@ impl BytecodeType {
 
                 for variant in &xenum.variants {
                     if !variant.types.is_empty() {
-                        let type_params = vm.lists.lock().get(list_id);
+                        let type_params = vm.source_type_arrays.lock().get(list_id);
                         return BytecodeType::Enum(id, type_params);
                     }
                 }
@@ -179,7 +179,7 @@ impl BytecodeType {
                 BytecodeType::Int32
             }
             SourceType::Struct(id, list_id) => {
-                let type_params = vm.lists.lock().get(list_id);
+                let type_params = vm.source_type_arrays.lock().get(list_id);
                 BytecodeType::Struct(id, type_params)
             }
             SourceType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
@@ -604,7 +604,7 @@ pub enum ConstPoolEntry {
     Class(ClassId, SourceTypeArray),
     Field(ClassId, SourceTypeArray, FieldId),
     Fct(FctId, SourceTypeArray),
-    Generic(TypeListId, FctId, SourceTypeArray),
+    Generic(SourceTypeArrayId, FctId, SourceTypeArray),
     Enum(EnumId, SourceTypeArray),
     EnumVariant(EnumId, SourceTypeArray, usize),
     Struct(StructId, SourceTypeArray),

@@ -73,7 +73,7 @@ pub struct KnownFunctions {
 impl KnownElements {
     pub fn array_ty(&self, vm: &VM, element: SourceType) -> SourceType {
         let list = SourceTypeArray::single(element);
-        let list_id = vm.lists.lock().insert(list);
+        let list_id = vm.source_type_arrays.lock().insert(list);
         SourceType::Class(self.classes.array, list_id)
     }
 

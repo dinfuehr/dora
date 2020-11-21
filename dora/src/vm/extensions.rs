@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::ty::{SourceType, TypeListId};
+use crate::ty::{SourceType, SourceTypeArrayId};
 use crate::vm::{FctId, FileId, NamespaceId, TypeParam};
 
 use dora_parser::ast;
@@ -41,7 +41,7 @@ pub struct ExtensionData {
 }
 
 impl ExtensionData {
-    pub fn type_param(&self, id: TypeListId) -> &TypeParam {
+    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 }

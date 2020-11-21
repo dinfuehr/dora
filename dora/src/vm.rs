@@ -19,7 +19,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
 use crate::sym::{NestedSymTable, SymTable};
 use crate::threads::{Threads, STACK_SIZE, THREAD};
-use crate::ty::{LambdaTypes, SourceType, SourceTypeArray, TypeLists};
+use crate::ty::{LambdaTypes, SourceType, SourceTypeArray, SourceTypeArrays};
 use crate::utils::GrowableVec;
 
 use dora_parser::ast;
@@ -132,7 +132,7 @@ pub struct VM {
     pub imports: Vec<ImportData>,               // stores all imports
     pub gc: Gc,                                 // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
-    pub lists: Mutex<TypeLists>,
+    pub source_type_arrays: Mutex<SourceTypeArrays>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub compile_stub: Mutex<Address>,
     pub dora_stub: Mutex<Address>,
@@ -251,7 +251,7 @@ impl VM {
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
-            lists: Mutex::new(TypeLists::new()),
+            source_type_arrays: Mutex::new(SourceTypeArrays::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
             compile_stub: Mutex::new(Address::null()),
@@ -511,7 +511,10 @@ impl VM {
     }
 
     pub fn cls(&self, cls_id: ClassId) -> SourceType {
-        let list_id = self.lists.lock().insert(SourceTypeArray::empty());
+        let list_id = self
+            .source_type_arrays
+            .lock()
+            .insert(SourceTypeArray::empty());
         SourceType::Class(cls_id, list_id)
     }
 
@@ -521,12 +524,12 @@ impl VM {
         type_params: Vec<SourceType>,
     ) -> SourceType {
         let list = SourceTypeArray::with(type_params);
-        let list_id = self.lists.lock().insert(list);
+        let list_id = self.source_type_arrays.lock().insert(list);
         SourceType::Class(cls_id, list_id)
     }
 
     pub fn cls_with_type_list(&self, cls_id: ClassId, type_list: SourceTypeArray) -> SourceType {
-        let list_id = self.lists.lock().insert(type_list);
+        let list_id = self.source_type_arrays.lock().insert(type_list);
         SourceType::Class(cls_id, list_id)
     }
 

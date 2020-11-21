@@ -175,7 +175,7 @@ fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> Option<ConcreteTupl
 
             continue;
         } else if let SourceType::Enum(enum_id, type_params_id) = ty {
-            let type_params = vm.lists.lock().get(*type_params_id);
+            let type_params = vm.source_type_arrays.lock().get(*type_params_id);
             let edef_id = specialize_enum_id_params(vm, *enum_id, type_params);
             let edef = vm.enum_defs.idx(edef_id);
 

@@ -13,7 +13,7 @@ use crate::mem;
 use crate::object::Header;
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
-use crate::ty::{SourceType, SourceTypeArray, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, namespace_path, ClassDef, ClassDefId, ExtensionId, FctId, FieldDef, FileId,
@@ -56,7 +56,7 @@ pub struct EnumData {
 }
 
 impl EnumData {
-    pub fn type_param(&self, id: TypeListId) -> &TypeParam {
+    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 

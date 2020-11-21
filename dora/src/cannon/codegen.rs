@@ -314,7 +314,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 SourceType::Struct(struct_id, type_params_id) => {
-                    let type_params = self.vm.lists.lock().get(type_params_id);
+                    let type_params = self.vm.source_type_arrays.lock().get(type_params_id);
 
                     self.store_params_on_stack_struct(
                         &mut reg_idx,
@@ -327,7 +327,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 SourceType::Enum(enum_id, list_id) => {
-                    let type_params = self.vm.lists.lock().get(list_id);
+                    let type_params = self.vm.source_type_arrays.lock().get(list_id);
 
                     self.store_params_on_stack_enum(
                         &mut reg_idx,
@@ -1585,12 +1585,12 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             SourceType::Struct(struct_id, type_params_id) => {
-                let type_params = self.vm.lists.lock().get(type_params_id);
+                let type_params = self.vm.source_type_arrays.lock().get(type_params_id);
                 self.copy_struct(struct_id, type_params, dest, src);
             }
 
             SourceType::Enum(enum_id, type_params_id) => {
-                let type_params = self.vm.lists.lock().get(type_params_id);
+                let type_params = self.vm.source_type_arrays.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
 
@@ -1705,7 +1705,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             SourceType::Enum(enum_id, type_params_id) => {
-                let type_params = self.vm.lists.lock().get(type_params_id);
+                let type_params = self.vm.source_type_arrays.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
 
@@ -1767,7 +1767,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             SourceType::Enum(enum_id, type_params_id) => {
-                let type_params = self.vm.lists.lock().get(type_params_id);
+                let type_params = self.vm.source_type_arrays.lock().get(type_params_id);
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let edef = self.vm.enum_defs.idx(edef_id);
 

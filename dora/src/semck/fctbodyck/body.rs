@@ -9,7 +9,7 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type_table};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, SourceTypeArray, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
     fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
@@ -1314,7 +1314,11 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let list_id = self.vm.lists.lock().insert(type_params.clone());
+        let list_id = self
+            .vm
+            .source_type_arrays
+            .lock()
+            .insert(type_params.clone());
         let ty = SourceType::Enum(enum_id, list_id);
         let type_params_ok = typeparamck::check_enum(
             self.vm,
@@ -1684,7 +1688,11 @@ impl<'a> TypeCheck<'a> {
         let xstruct = self.vm.structs.idx(struct_id);
         let xstruct = xstruct.read();
 
-        let list_id = self.vm.lists.lock().insert(type_params.clone());
+        let list_id = self
+            .vm
+            .source_type_arrays
+            .lock()
+            .insert(type_params.clone());
         let ty = SourceType::Struct(struct_id, list_id);
         let type_params_ok = typeparamck::check_struct(
             self.vm,
@@ -1804,7 +1812,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ExprCallType,
         object_type: SourceType,
-        _id: TypeListId,
+        _id: SourceTypeArrayId,
         tp: &vm::TypeParam,
         name: Name,
         args: &[SourceType],
@@ -1915,7 +1923,11 @@ impl<'a> TypeCheck<'a> {
             }
 
             (Some(TypeSym::Class(cls_id)), _) => {
-                let list_id = self.vm.lists.lock().insert(container_type_params);
+                let list_id = self
+                    .vm
+                    .source_type_arrays
+                    .lock()
+                    .insert(container_type_params);
                 self.check_expr_call_static_method(
                     e,
                     SourceType::Class(cls_id, list_id),
@@ -2265,7 +2277,11 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
-        let list_id = self.vm.lists.lock().insert(type_params.clone());
+        let list_id = self
+            .vm
+            .source_type_arrays
+            .lock()
+            .insert(type_params.clone());
         let ty = SourceType::Enum(enum_id, list_id);
         let type_params_ok = typeparamck::check_enum(
             self.vm,
@@ -2423,7 +2439,11 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
-        let list_id = self.vm.lists.lock().insert(type_params.clone());
+        let list_id = self
+            .vm
+            .source_type_arrays
+            .lock()
+            .insert(type_params.clone());
         let ty = SourceType::Enum(enum_id, list_id);
         let type_params_ok = typeparamck::check_enum(
             self.vm,
@@ -2926,8 +2946,8 @@ fn arg_allows(vm: &VM, def: SourceType, arg: SourceType, self_ty: Option<SourceT
                 }
             };
 
-            let params = vm.lists.lock().get(list_id);
-            let other_params = vm.lists.lock().get(other_list_id);
+            let params = vm.source_type_arrays.lock().get(list_id);
+            let other_params = vm.source_type_arrays.lock().get(other_list_id);
 
             if params.len() == 0 && other_params.len() == 0 {
                 return arg.subclass_from(vm, def);

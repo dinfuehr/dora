@@ -312,7 +312,7 @@ impl<'a> MethodLookup<'a> {
 
         let cmp_type = match kind {
             LookupKind::Ctor(cls_id) => {
-                let list_id = self.vm.lists.lock().insert(container_tps);
+                let list_id = self.vm.source_type_arrays.lock().insert(container_tps);
                 SourceType::Class(cls_id, list_id)
             }
             _ => {

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 
-use crate::ty::{SourceType, SourceTypeArray, TypeListId};
+use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId, StructFieldId,
     StructId, TraitId,
@@ -221,10 +221,10 @@ pub enum CallType {
     TraitObjectMethod(TraitId, FctId),
 
     // Invoke trait method on type param, e.g. (T: SomeTrait).method()
-    GenericMethod(TypeListId, TraitId, FctId),
+    GenericMethod(SourceTypeArrayId, TraitId, FctId),
 
     // Invoke static trait method on type param, e.g. T::method()
-    GenericStaticMethod(TypeListId, TraitId, FctId),
+    GenericStaticMethod(SourceTypeArrayId, TraitId, FctId),
 
     // Construct enum value
     Enum(SourceType, usize),
