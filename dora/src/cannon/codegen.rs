@@ -20,8 +20,8 @@ use crate::masm::*;
 use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::{
-    specialize_class_id_params, specialize_enum_id_params, specialize_struct_id_params,
-    specialize_tuple, specialize_type, specialize_type_list,
+    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
+    specialize_struct_id_params, specialize_tuple, specialize_type, specialize_type_list,
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
@@ -1443,7 +1443,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = edef.ensure_class_for_variant(self.vm, &*xenum, variant_id);
+                let cls_def_id = specialize_enum_class(self.vm, &*edef, &*xenum, variant_id);
 
                 let cls = self.vm.class_defs.idx(cls_def_id);
 
@@ -2558,7 +2558,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = edef.ensure_class_for_variant(self.vm, &*xenum, variant_id);
+                let cls_def_id = specialize_enum_class(self.vm, &*edef, &*xenum, variant_id);
 
                 let cls = self.vm.class_defs.idx(cls_def_id);
 
@@ -3691,7 +3691,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
 
                 let cdef_id =
-                    edef.ensure_class_for_variant(self.vm, &*xenum, some_variant_id as usize);
+                    specialize_enum_class(self.vm, &*edef, &*xenum, some_variant_id as usize);
 
                 let cls = self.vm.class_defs.idx(cdef_id);
 

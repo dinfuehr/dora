@@ -1,0 +1,17 @@
+//= vm-args "--gc=copy --disable-tlab"
+
+enum Foo { A(Bar), B }
+enum Bar { C(MyClass), D }
+class MyClass(let value: Int32)
+
+fun main() {
+    let f = foo();
+    std::forceCollect();
+    let bar = std::unsafeLoadEnumElement[Foo, Bar](f, 0, 0);
+    let myclass = std::unsafeLoadEnumElement[Bar, MyClass](bar, 0, 0);
+    assert(myclass.value == 17);
+}
+
+fun foo(): Foo {
+    Foo::A(Bar::C(MyClass(17)))
+}

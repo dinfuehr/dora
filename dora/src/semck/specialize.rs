@@ -210,6 +210,76 @@ fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &SourceTypeArray) -> bool
             .reference_type()
 }
 
+pub fn specialize_enum_class(
+    vm: &VM,
+    edef: &EnumDef,
+    xenum: &EnumData,
+    variant_id: usize,
+) -> ClassDefId {
+    let mut variants = edef.variants.write();
+    let variant = variants[variant_id];
+
+    if let Some(cls_def_id) = variant {
+        return cls_def_id;
+    }
+
+    let enum_variant = &xenum.variants[variant_id];
+    let mut csize = Header::size() + 4;
+    let mut fields = vec![FieldDef {
+        offset: Header::size(),
+        ty: SourceType::Int32,
+    }];
+    let mut ref_fields = Vec::new();
+
+    for ty in &enum_variant.types {
+        let ty = replace_type_param(vm, ty.clone(), &edef.type_params, None);
+        assert!(ty.is_concrete_type(vm));
+
+        if ty.is_unit() {
+            continue;
+        }
+
+        let field_size = ty.size(vm);
+        let field_align = ty.align(vm);
+
+        let offset = mem::align_i32(csize, field_align);
+        fields.push(FieldDef {
+            offset,
+            ty: ty.clone(),
+        });
+
+        csize = offset + field_size;
+
+        add_ref_fields(vm, &mut ref_fields, offset, ty);
+    }
+
+    let instance_size = mem::align_i32(csize, mem::ptr_width());
+
+    let mut class_defs = vm.class_defs.lock();
+    let id: ClassDefId = class_defs.len().into();
+
+    variants[variant_id] = Some(id);
+
+    let class_def = Arc::new(ClassDef {
+        id,
+        cls_id: None,
+        type_params: SourceTypeArray::empty(),
+        parent_id: None,
+        size: InstanceSize::Fixed(instance_size),
+        fields,
+        ref_fields,
+        vtable: RwLock::new(None),
+    });
+
+    class_defs.push(class_def.clone());
+
+    let clsptr = &*class_def as *const ClassDef as *mut ClassDef;
+    let vtable = VTableBox::new(clsptr, instance_size as usize, 0, &[]);
+    *class_def.vtable.write() = Some(vtable);
+
+    id
+}
+
 pub fn specialize_class_id(vm: &VM, cls_id: ClassId) -> ClassDefId {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
