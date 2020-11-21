@@ -1630,17 +1630,20 @@ fn test_subtyping() {
 
 #[test]
 fn test_struct() {
-    ok("struct Foo { f1: Int32 } fun f(): Foo { Foo(1) }");
+    ok("
+        struct Foo(f1: Int32)
+        fun f(): Foo { Foo(1) }
+    ");
     err(
         "
-        struct Foo { f1: Int32 }
+        struct Foo(f1: Int32)
         fun f(): Foo { Foo() }",
         pos(3, 27),
         SemError::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], Vec::new()),
     );
     err(
         "
-        struct Foo { f1: Int32 }
+        struct Foo(f1: Int32)
         fun f(): Foo { Foo(true) }",
         pos(3, 27),
         SemError::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], vec!["Bool".into()]),
@@ -1650,13 +1653,13 @@ fn test_struct() {
 #[test]
 fn test_struct_field() {
     ok("
-        struct Foo { f1: Int32 }
+        struct Foo(f1: Int32)
         fun f(x: Foo): Int32 { x.f1 }
     ");
 
     err(
         "
-        struct Foo { f1: Bool }
+        struct Foo(f1: Bool)
         fun f(x: Foo): Int32 { x.f1 }
     ",
         pos(3, 30),
@@ -1665,7 +1668,7 @@ fn test_struct_field() {
 
     err(
         "
-        struct Foo { f1: Bool }
+        struct Foo(f1: Bool)
         fun f(x: Foo): Int32 { x.unknown }
     ",
         pos(3, 33),
@@ -1676,12 +1679,12 @@ fn test_struct_field() {
 #[test]
 fn test_struct_with_type_params() {
     ok("
-        struct Foo[T] { f1: Int32 }
+        struct Foo[T](f1: Int32)
         fun f(): Foo[Int32] { Foo[Int32](1) }
     ");
     err(
         "
-        struct Foo[T] { f1: Int32 }
+        struct Foo[T](f1: Int32)
         fun f(): Foo[Int32] { Foo(1) }
     ",
         pos(3, 34),
@@ -1689,7 +1692,7 @@ fn test_struct_with_type_params() {
     );
     err(
         "
-        struct Foo[T] { f1: Int32 }
+        struct Foo[T](f1: Int32)
         fun f(): Foo[Int32] { Foo[Int32, Bool](1) }
     ",
         pos(3, 47),
@@ -1698,7 +1701,7 @@ fn test_struct_with_type_params() {
     err(
         "
         trait MyTrait {}
-        struct Foo[T: MyTrait] { f1: Int32 }
+        struct Foo[T: MyTrait](f1: Int32)
         fun f(): Foo[Int32] { Foo[Int32](1) }
     ",
         pos(4, 18),
@@ -1708,12 +1711,12 @@ fn test_struct_with_type_params() {
         trait MyTrait {}
         class Bar
         impl MyTrait for Bar {}
-        struct Foo[T: MyTrait] { f1: Int32 }
+        struct Foo[T: MyTrait](f1: Int32)
         fun f(): Foo[Bar] { Foo[Bar](1) }
     ");
     err(
         "
-        struct Foo[T] { f1: Int32 }
+        struct Foo[T](f1: Int32)
         fun f(): Foo[Int32] { Foo[Bool](1) }
     ",
         pos(3, 29),
@@ -1721,7 +1724,7 @@ fn test_struct_with_type_params() {
     );
     err(
         "
-        struct Foo[T] { f1: T, f2: Bool }
+        struct Foo[T](f1: T, f2: Bool)
         fun f[T](val: T): Foo[T] { Foo(val, false) }",
         pos(3, 39),
         SemError::WrongNumberTypeParams(1, 0),
@@ -1733,7 +1736,7 @@ fn test_struct_namespace() {
     err(
         "
         fun f() { foo::Foo(1); }
-        namespace foo { struct Foo { f1: Int32 } }
+        namespace foo { struct Foo(f1: Int32) }
         ",
         pos(2, 27),
         SemError::NotAccessible("foo::Foo".into()),
@@ -2568,7 +2571,7 @@ fn namespace_struct() {
         "
         fun f() { foo::Foo(1); }
         namespace foo {
-            struct Foo { f: Int32 }
+            struct Foo(f: Int32)
         }
     ",
         pos(2, 27),
@@ -2578,14 +2581,14 @@ fn namespace_struct() {
     ok("
         fun f() { foo::Foo(1); }
         namespace foo {
-            @pub struct Foo { f: Int32 }
+            @pub struct Foo(f: Int32)
         }
     ");
 
     ok("
         fun f(value: foo::Foo) {}
         namespace foo {
-            @pub struct Foo { f: Int32 }
+            @pub struct Foo(f: Int32)
         }
     ");
 
@@ -2593,7 +2596,7 @@ fn namespace_struct() {
         "
         fun f(value: foo::Foo) {}
         namespace foo {
-            struct Foo { f: Int32 }
+            struct Foo(f: Int32)
         }
     ",
         pos(2, 22),
