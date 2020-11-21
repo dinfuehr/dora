@@ -1,0 +1,18 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+fun main() {
+    let x = Bar(42).tpl1();
+    std::forceCollect();
+    assert(x.second.value == 17);
+}
+
+struct Pair(first: Int32, second: Foo)
+
+class Bar(let value: Int32) {
+    fun tpl1(): Pair {
+        assert(self.value == 42);
+        Pair(1, Foo(17))
+    }
+}
+
+class Foo(let value: Int32)

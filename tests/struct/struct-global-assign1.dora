@@ -1,4 +1,4 @@
-struct Bar { first: String, second: Bool }
+struct Bar(first: String, second: Bool)
 
 var x: Bar = Bar("", false);
 var y: Bar = Bar("", false);

@@ -1,7 +1,4 @@
-struct Foo {
-    f1: Int32,
-    f2: Int32,
-}
+struct Foo(f1: Int32, f2: Int32)
 
 fun main() {
     let arr = Array::fill[Foo](10L, Foo(10, 17));

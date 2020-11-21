@@ -1,7 +1,7 @@
 //= ignore
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-struct Bar { first: Foo, second: Foo }
+struct Bar(first: Foo, second: Foo)
 
 var x: Bar = Bar(Foo(0), Foo(0));
 

@@ -1,4 +1,4 @@
-struct Foo { f1: Int32, f2: Bool }
+struct Foo(f1: Int32, f2: Bool)
 
 fun f(): Int32 {
     let x = Foo(10, false);

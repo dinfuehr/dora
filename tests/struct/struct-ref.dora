@@ -1,0 +1,38 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+class Foo(let value: Int32) {
+    std::forceCollect();
+}
+
+struct Bar(f1: Foo, f2: Foo, f3: Foo)
+
+fun main() {
+    assert(tpl1() == 1);
+    assert(tpl2() == 2);
+    assert(tpl3() == 3);
+    assert(tplsum() == 6);
+}
+
+fun tpl1(): Int32 {
+    let x = Bar(Foo(1), Foo(2), Foo(3));
+    std::forceCollect();
+    x.f1.value
+}
+
+fun tpl2(): Int32 {
+    let x = Bar(Foo(1), Foo(2), Foo(3));
+    std::forceCollect();
+    x.f2.value
+}
+
+fun tpl3(): Int32 {
+    let x = Bar(Foo(1), Foo(2), Foo(3));
+    std::forceCollect();
+    x.f3.value
+}
+
+fun tplsum(): Int32 {
+    let x = Bar(Foo(1), Foo(2), Foo(3));
+    std::forceCollect();
+    x.f1.value + x.f2.value + x.f3.value
+}

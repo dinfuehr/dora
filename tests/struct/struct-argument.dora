@@ -1,4 +1,4 @@
-struct Foo { f1: Int32, f2: Bool }
+struct Foo(f1: Int32, f2: Bool)
 
 fun f1(x: Foo, control: Int32): Int32 {
     assert(control == 4711);

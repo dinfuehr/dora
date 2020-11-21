@@ -1,10 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-struct Foo {
-    f1: Int32,
-    f2: Bar,
-}
-
+struct Foo(f1: Int32, f2: Bar)
 class Bar(let value: Int32)
 
 fun main() {
