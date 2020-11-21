@@ -229,7 +229,7 @@ impl SourceType {
         match self {
             &SourceType::TypeParam(_) => true,
 
-            &SourceType::Class(_, list_id) => {
+            &SourceType::Class(_, list_id) | &SourceType::Struct(_, list_id) => {
                 let params = vm.source_type_arrays.lock().get(list_id);
                 params.iter().any(|t| t.contains_type_param(vm))
             }
@@ -686,6 +686,24 @@ impl SourceTypeArray {
             params: self,
             idx: 0,
         }
+    }
+
+    pub fn name(&self, vm: &VM) -> String {
+        let mut result = String::new();
+        let mut first = true;
+        result.push('[');
+
+        for ty in self.iter() {
+            if !first {
+                result.push_str(", ");
+            }
+            result.push_str(&ty.name(vm));
+            first = false;
+        }
+
+        result.push(']');
+
+        result
     }
 }
 

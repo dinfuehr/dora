@@ -1,0 +1,52 @@
+fun main() {
+    assert(3 == tpl1(Foo(1, 2), 4711));
+    assert(6 == tpl2(1, Foo(2, 3), 4711));
+    assert(10 == tpl3(1, 2, Foo(3, 4), 4711));
+    assert(15 == tpl4(1, 2, 3, Foo(4, 5), 4711));
+    assert(21 == tpl5(1, 2, 3, 4, Foo(5, 6), 4711));
+    assert(28 == tpl6(1, 2, 3, 4, 5, Foo(6, 7), 4711));
+    assert(36 == tpl7(1, 2, 3, 4, 5, 6, Foo(7, 8), 4711));
+    assert(45 == tpl8(1, 2, 3, 4, 5, 6, 7, Foo(8, 9), 4711));
+}
+
+struct Foo(first: Int32, second: Int32)
+
+fun tpl1(x: Foo, control: Int32): Int32 {
+    assert(control == 4711);
+    x.first + x.second
+}
+
+fun tpl2(a0: Int32, x: Foo, control: Int32): Int32 {
+    assert(control == 4711);
+    a0 + x.first + x.second
+}
+
+fun tpl3(a0: Int32, a1: Int32, x: Foo, control: Int32): Int32 {
+    assert(control == 4711);
+    a0 + a1 + x.first + x.second
+}
+
+fun tpl4(a0: Int32, a1: Int32, a2: Int32, x: Foo, control: Int32): Int32 {
+    assert(control == 4711);
+    a0 + a1 + a2 + x.first + x.second
+}
+
+fun tpl5(a0: Int32, a1: Int32, a2: Int32, a3: Int32, x: Foo, control: Int32): Int32 {
+    assert(control == 4711);
+    a0 + a1 + a2 + a3 + x.first + x.second
+}
+
+fun tpl6(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, x: Foo, control: Int32): Int32 {
+    assert(control == 4711);
+    a0 + a1 + a2 + a3 + a4 + x.first + x.second
+}
+
+fun tpl7(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, a5: Int32, x: Foo, control: Int32): Int32 {
+    assert(control == 4711);
+    a0 + a1 + a2 + a3 + a4 + a5 + x.first + x.second
+}
+
+fun tpl8(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, a5: Int32, a6: Int32, x: Foo, control: Int32): Int32 {
+    assert(control == 4711);
+    a0 + a1 + a2 + a3 + a4 + a5 + a6 + x.first + x.second
+}

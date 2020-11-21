@@ -1,0 +1,21 @@
+//= vm-args "--gc=copy --disable-tlab"
+
+struct Foo(f1: AnotherStruct, f2: MyClass, f3: MyEnum)
+
+struct AnotherStruct(first: Float32, second: MyClass)
+class MyClass(let value: Int32)
+enum MyEnum {
+    A(Int32),
+    B(MyClass)
+}
+
+fun main() {
+    let foo = Foo(
+        AnotherStruct(3.5F, MyClass(10)),
+        MyClass(11),
+        MyEnum::B(MyClass(12))
+    );
+    std::forceCollect();
+    assert(foo.f1.second.value == 10);
+    assert(foo.f2.value == 11);
+}

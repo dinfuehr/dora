@@ -590,7 +590,8 @@ impl Intrinsic {
             | Intrinsic::OptionIsNone
             | Intrinsic::OptionIsSome
             | Intrinsic::OptionUnwrap
-            | Intrinsic::UnsafeIsNull => true,
+            | Intrinsic::UnsafeIsNull
+            | Intrinsic::Debug => true,
             _ => false,
         }
     }

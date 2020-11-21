@@ -1925,7 +1925,19 @@ impl<'a> CannonCodeGen<'a> {
                         .contains_references()
                 }
 
-                BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
+                BytecodeType::Struct(struct_id, type_params) => {
+                    let src_offset = self.register_offset(src);
+                    self.copy_struct(
+                        struct_id,
+                        type_params.clone(),
+                        RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                        RegOrOffset::Offset(src_offset),
+                    );
+
+                    let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+                    let sdef = self.vm.struct_defs.idx(sdef_id);
+                    needs_write_barrier = sdef.contains_references();
+                }
 
                 BytecodeType::Enum(enum_id, type_params) => {
                     let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -3509,6 +3521,10 @@ impl<'a> CannonCodeGen<'a> {
                 );
             }
 
+            Intrinsic::Debug => {
+                self.asm.debug();
+            }
+
             _ => unreachable!(),
         }
     }
@@ -4073,6 +4089,11 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Enum(enum_id, type_params) => Some(BytecodeType::Enum(
                 enum_id,
+                specialize_type_list(self.vm, &type_params, &self.type_params),
+            )),
+
+            BytecodeType::Struct(struct_id, type_params) => Some(BytecodeType::Struct(
+                struct_id,
                 specialize_type_list(self.vm, &type_params, &self.type_params),
             )),
 

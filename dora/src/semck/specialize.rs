@@ -95,9 +95,7 @@ fn create_specialized_struct(
         size = offset + field_size;
         align = max(align, field_align);
 
-        if ty.reference_type() {
-            ref_fields.push(offset);
-        }
+        add_ref_fields(vm, &mut ref_fields, offset, ty);
     }
 
     size = mem::align_i32(size, align);
@@ -262,24 +260,6 @@ fn create_specialized_class_regular(
     cls: &Class,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
-    if let Some(parent_class) = cls.parent_class.clone() {
-        let parent_class = specialize_type(vm, parent_class, type_params);
-        specialize_class_ty(vm, parent_class);
-    }
-
-    for f in &cls.fields {
-        let ty = specialize_type(vm, f.ty.clone(), &type_params);
-        debug_assert!(!ty.contains_type_param(vm));
-
-        if let Some(tuple_id) = ty.tuple_id() {
-            let tuples = vm.tuples.lock();
-            tuples.get_tuple(tuple_id);
-        } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
-            let type_params = vm.source_type_arrays.lock().get(type_params_id);
-            specialize_enum_id_params(vm, enum_id, type_params);
-        }
-    }
-
     let mut csize;
     let mut fields;
     let mut ref_fields;
@@ -319,27 +299,7 @@ fn create_specialized_class_regular(
 
         csize = offset + field_size;
 
-        if let Some(tuple_id) = ty.tuple_id() {
-            let tuples = vm.tuples.lock();
-            let tuple = tuples.get_tuple(tuple_id);
-
-            for &ref_offset in tuple.references() {
-                ref_fields.push(offset + ref_offset);
-            }
-        } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
-            let type_params = vm.source_type_arrays.lock().get(type_params_id);
-            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
-            let edef = vm.enum_defs.idx(edef_id);
-
-            match edef.layout {
-                EnumLayout::Int => {}
-                EnumLayout::Ptr | EnumLayout::Tagged => {
-                    ref_fields.push(offset);
-                }
-            }
-        } else if ty.reference_type() {
-            ref_fields.push(offset);
-        }
+        add_ref_fields(vm, &mut ref_fields, offset, ty);
     }
 
     let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
@@ -389,6 +349,38 @@ fn create_specialized_class_regular(
     class_defs.push(class_def.clone());
 
     id
+}
+
+fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
+    if let Some(tuple_id) = ty.tuple_id() {
+        let tuples = vm.tuples.lock();
+        let tuple = tuples.get_tuple(tuple_id);
+
+        for &ref_offset in tuple.references() {
+            ref_fields.push(offset + ref_offset);
+        }
+    } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
+        let type_params = vm.source_type_arrays.lock().get(type_params_id);
+        let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+        let edef = vm.enum_defs.idx(edef_id);
+
+        match edef.layout {
+            EnumLayout::Int => {}
+            EnumLayout::Ptr | EnumLayout::Tagged => {
+                ref_fields.push(offset);
+            }
+        }
+    } else if let SourceType::Struct(struct_id, type_params_id) = ty.clone() {
+        let type_params = vm.source_type_arrays.lock().get(type_params_id);
+        let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+        let sdef = vm.struct_defs.idx(sdef_id);
+
+        for &ref_offset in &sdef.ref_fields {
+            ref_fields.push(offset + ref_offset);
+        }
+    } else if ty.reference_type() {
+        ref_fields.push(offset);
+    }
 }
 
 fn create_specialized_class_array(
@@ -613,6 +605,20 @@ pub fn replace_type_param(
 
             let list_id = vm.source_type_arrays.lock().insert(params);
             SourceType::Class(cls_id, list_id)
+        }
+
+        SourceType::Struct(struct_id, list_id) => {
+            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+
+            let new_type_params = SourceTypeArray::with(
+                old_type_params
+                    .iter()
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .collect::<Vec<_>>(),
+            );
+
+            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            SourceType::Struct(struct_id, new_type_params_id)
         }
 
         SourceType::Enum(enum_id, list_id) => {

@@ -1,0 +1,21 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+fun main() {
+    let result = tpl[String]("test");
+    std::forceCollect();
+    assert(result.first == "test");
+    assert(result.second);
+
+    let result = tpl[Bar](Bar(9));
+    std::forceCollect();
+    assert(result.first.value == 9);
+    assert(result.second);
+}
+
+fun tpl[T](value: T): Foo[T] {
+    Foo[T](value, true)
+}
+
+struct Foo[T](first: T, second: Bool)
+
+class Bar(let value: Int32)
