@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::compiler::map::CodeDescriptor;
 use crate::gc::Address;
-use crate::semck::specialize::specialize_enum_id_params;
+use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::ty::SourceType;
@@ -32,30 +32,65 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
     for glob in vm.globals.iter() {
         let glob = glob.read();
 
-        if glob.ty.reference_type() {
-            let slot = Slot::at(glob.address_value);
-            rootset.push(slot);
-        } else if let Some(tuple_id) = glob.ty.tuple_id() {
-            let tuples = vm.tuples.lock();
-            let tuple = tuples.get_tuple(tuple_id);
+        match glob.ty {
+            SourceType::Struct(struct_id, type_params_id) => {
+                let type_params = vm.lists.lock().get(type_params_id);
+                let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+                let sdef = vm.struct_defs.idx(sdef_id);
 
-            for &offset in tuple.offsets() {
-                let slot_address = glob.address_value.offset(offset as usize);
-                let slot = Slot::at(slot_address);
-                rootset.push(slot);
-            }
-        } else if let SourceType::Enum(enum_id, type_params_id) = glob.ty {
-            let type_params = vm.lists.lock().get(type_params_id);
-            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
-            let edef = vm.enum_defs.idx(edef_id);
-
-            match edef.layout {
-                EnumLayout::Int => {}
-                EnumLayout::Ptr | EnumLayout::Tagged => {
-                    let slot = Slot::at(glob.address_value);
+                for &offset in &sdef.ref_fields {
+                    let slot_address = glob.address_value.offset(offset as usize);
+                    let slot = Slot::at(slot_address);
                     rootset.push(slot);
                 }
             }
+
+            SourceType::Enum(enum_id, type_params_id) => {
+                let type_params = vm.lists.lock().get(type_params_id);
+                let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+                let edef = vm.enum_defs.idx(edef_id);
+
+                match edef.layout {
+                    EnumLayout::Int => {}
+                    EnumLayout::Ptr | EnumLayout::Tagged => {
+                        let slot = Slot::at(glob.address_value);
+                        rootset.push(slot);
+                    }
+                }
+            }
+
+            SourceType::Tuple(tuple_id) => {
+                let tuples = vm.tuples.lock();
+                let tuple = tuples.get_tuple(tuple_id);
+
+                for &offset in tuple.offsets() {
+                    let slot_address = glob.address_value.offset(offset as usize);
+                    let slot = Slot::at(slot_address);
+                    rootset.push(slot);
+                }
+            }
+
+            SourceType::Unit
+            | SourceType::UInt8
+            | SourceType::Bool
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64 => {}
+
+            SourceType::Class(_, _) | SourceType::TraitObject(_) => {
+                let slot = Slot::at(glob.address_value);
+                rootset.push(slot);
+            }
+
+            SourceType::TypeParam(_)
+            | SourceType::Error
+            | SourceType::Any
+            | SourceType::This
+            | SourceType::Module(_)
+            | SourceType::Lambda(_)
+            | SourceType::Ptr => unreachable!(),
         }
     }
 }

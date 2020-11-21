@@ -1,0 +1,18 @@
+//= ignore
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+struct Bar { first: Foo, second: Foo }
+
+var x: Bar = Bar(Foo(0), Foo(0));
+
+fun main() {
+    std::forceCollect();
+    x = Bar(Foo(17), Foo(42));
+    assert(x.first.value == 17);
+    assert(x.second.value == 42);
+    std::forceCollect();
+    assert(x.first.value == 17);
+    assert(x.second.value == 42);
+}
+
+class Foo(let value: Int32)

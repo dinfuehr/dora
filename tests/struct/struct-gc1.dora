@@ -1,0 +1,17 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+struct Bar { first: Foo, second: Foo }
+class Foo(let value: Int32)
+
+fun main() {
+    let tpl: Bar = if false {
+        Bar(createFoo(), createFoo())
+    } else {
+        std::forceCollect();
+        Bar(createFoo(), createFoo())
+    };
+}
+
+fun createFoo(): Foo {
+    Foo(1)
+}

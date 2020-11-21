@@ -1,0 +1,20 @@
+struct Bar { first: String, second: Bool }
+
+var x: Bar = Bar("", false);
+var y: Bar = Bar("", false);
+var tmp: Bar = Bar("", false);
+
+fun main() {
+    x = Bar("my string", true);
+    y = Bar("another string", false);
+    tmp = x;
+
+    x = y;
+    y = tmp;
+
+    assert(y.first == "my string");
+    assert(y.second);
+
+    assert(x.first == "another string");
+    assert(!x.second);
+}
