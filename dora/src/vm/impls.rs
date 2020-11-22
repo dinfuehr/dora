@@ -7,7 +7,7 @@ use dora_parser::ast;
 use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
-use crate::vm::{ClassId, FctId, FileId, NamespaceId, TraitId, VM};
+use crate::vm::{ClassId, FctId, FileId, NamespaceId, TraitId, TypeParam, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplId(u32);
@@ -25,8 +25,9 @@ pub struct ImplData {
     pub ast: Arc<ast::Impl>,
     pub namespace_id: NamespaceId,
     pub pos: Position,
+    pub type_params: Vec<TypeParam>,
     pub trait_id: Option<TraitId>,
-    pub class_ty: SourceType,
+    pub ty: SourceType,
     pub methods: Vec<FctId>,
 }
 
@@ -36,9 +37,7 @@ impl ImplData {
     }
 
     pub fn cls_id(&self, vm: &VM) -> ClassId {
-        self.class_ty
-            .cls_id(vm)
-            .expect("class_ty not initialized yet.")
+        self.ty.cls_id(vm).expect("class_ty not initialized yet.")
     }
 
     pub fn find_implements(&self, vm: &VM, fct_id: FctId) -> Option<FctId> {

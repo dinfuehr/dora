@@ -9,8 +9,8 @@ use dora_parser::lexer::position::Position;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, ExtensionId, FctId, FileId, NamespaceId, SourceTypeArray,
-    TypeParam, VM,
+    accessible_from, namespace_path, ExtensionId, FctId, FileId, ImplId, NamespaceId,
+    SourceTypeArray, TypeParam, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -41,6 +41,7 @@ pub struct StructData {
     pub fields: Vec<StructFieldData>,
     pub field_names: HashMap<Name, StructFieldId>,
     pub specializations: RwLock<HashMap<SourceTypeArray, StructDefId>>,
+    pub impls: Vec<ImplId>,
     pub extensions: Vec<ExtensionId>,
 }
 

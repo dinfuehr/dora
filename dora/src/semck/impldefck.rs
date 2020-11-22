@@ -95,8 +95,8 @@ impl<'x> ImplCheck<'x> {
             self.namespace_id,
             &self.ast.class_type,
         ) {
-            if class_ty.cls_id(self.vm).is_some() {
-                ximpl.class_ty = class_ty;
+            if class_ty.cls_id(self.vm).is_some() || class_ty.is_struct() {
+                ximpl.ty = class_ty;
             } else {
                 self.vm.diag.lock().report(
                     self.file_id,
@@ -106,7 +106,7 @@ impl<'x> ImplCheck<'x> {
             }
         }
 
-        if ximpl.trait_id.is_some() && !ximpl.class_ty.is_error() {
+        if ximpl.trait_id.is_some() && !ximpl.ty.is_error() {
             let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
             let mut cls = cls.write();
             cls.traits.push(ximpl.trait_id());
@@ -198,6 +198,12 @@ mod tests {
         ok("trait Foo { fun toBool(): Bool; }
             class A {}
             impl Foo for A { fun toBool(): Bool { return false; } }");
+    }
+
+    #[test]
+    #[ignore]
+    fn impl_struct() {
+        ok("trait Foo {} struct A(x: Int32) impl Foo for A {}");
     }
 
     #[test]

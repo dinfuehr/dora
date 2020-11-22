@@ -296,9 +296,10 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
+                type_params: Vec::new(),
                 pos: node.pos,
                 trait_id: None,
-                class_ty: SourceType::Error,
+                ty: SourceType::Error,
                 methods: Vec::new(),
             };
             self.vm.impls.push(RwLock::new(ximpl));
@@ -483,6 +484,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 fields: Vec::new(),
                 field_names: HashMap::new(),
                 specializations: RwLock::new(HashMap::new()),
+                impls: Vec::new(),
                 extensions: Vec::new(),
             };
 
@@ -542,6 +544,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             is_pub: node.is_pub,
             variants: Vec::new(),
             name_to_value: HashMap::new(),
+            impls: Vec::new(),
             extensions: Vec::new(),
             specializations: RwLock::new(HashMap::new()),
             simple_enumeration: false,

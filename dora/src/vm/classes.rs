@@ -147,18 +147,6 @@ impl Class {
         }
     }
 
-    pub fn find_impl_for_trait(&self, vm: &VM, trait_id: TraitId) -> Option<ImplId> {
-        for &impl_id in &self.impls {
-            let ximpl = vm.impls[impl_id].read();
-
-            if ximpl.trait_id == Some(trait_id) {
-                return Some(impl_id);
-            }
-        }
-
-        None
-    }
-
     pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
         let mut classid = self.id;
 
@@ -375,7 +363,7 @@ pub fn find_methods_in_class(
         for &impl_id in &cls.impls {
             let ximpl = vm.impls[impl_id].read();
 
-            if ximpl.class_ty.type_params(vm) != class_type.type_params(vm) {
+            if ximpl.ty.type_params(vm) != class_type.type_params(vm) {
                 continue;
             }
 
