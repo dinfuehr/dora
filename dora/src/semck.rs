@@ -1,8 +1,7 @@
-use parking_lot::RwLock;
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
+use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{FileId, TypeParam, VM};
 use dora_parser::ast;
@@ -293,10 +292,6 @@ fn check_type_params(
 
         Vec::new()
     }
-}
-
-struct SemanticAnalysis {
-    pub global_namespace: RwLock<SymTable>,
 }
 
 #[cfg(test)]
