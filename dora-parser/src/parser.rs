@@ -469,10 +469,12 @@ impl<'a> Parser<'a> {
         let type_params = self.parse_type_params()?;
 
         let fields = if self.token.is(TokenKind::LParen) {
+            self.expect_token(TokenKind::LParen)?;
             self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                 p.parse_struct_field()
             })?
         } else if self.token.is(TokenKind::LBrace) {
+            self.expect_token(TokenKind::LBrace)?;
             self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
                 p.parse_struct_field()
             })?

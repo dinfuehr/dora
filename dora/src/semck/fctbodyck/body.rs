@@ -77,34 +77,39 @@ impl<'a> TypeCheck<'a> {
             FctParent::Class(owner_class) => {
                 let cls = self.vm.classes.idx(owner_class);
                 let cls = cls.read();
-                let mut type_param_id = 0;
 
-                for param in &cls.type_params {
+                for (type_param_id, param) in cls.type_params.iter().enumerate() {
                     let sym = TypeSym::TypeParam(type_param_id.into());
                     self.symtable.insert_type(param.name, sym);
-                    type_param_id += 1;
                 }
 
-                type_param_id
+                cls.type_params.len()
             }
 
-            FctParent::Impl(_impl_id) => 0,
+            FctParent::Impl(impl_id) => {
+                let ximpl = self.vm.impls[impl_id].read();
+
+                for (type_param_id, param) in ximpl.type_params.iter().enumerate() {
+                    let sym = TypeSym::TypeParam(type_param_id.into());
+                    self.symtable.insert_type(param.name, sym);
+                }
+
+                ximpl.type_params.len()
+            }
 
             FctParent::Extension(extension_id) => {
                 let extension = self.vm.extensions[extension_id].read();
-                let mut type_param_id = 0;
 
-                for param in &extension.type_params {
+                for (type_param_id, param) in extension.type_params.iter().enumerate() {
                     let sym = TypeSym::TypeParam(type_param_id.into());
                     self.symtable.insert_type(param.name, sym);
-                    type_param_id += 1;
                 }
 
-                type_param_id
+                extension.type_params.len()
             }
 
             FctParent::Module(_) => 0,
-            FctParent::Trait(_) => 0,
+            FctParent::Trait(_) => unreachable!(),
             FctParent::None => 0,
         };
 
