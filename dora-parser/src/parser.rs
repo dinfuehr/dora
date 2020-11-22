@@ -468,17 +468,17 @@ impl<'a> Parser<'a> {
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
 
-        let final_token = if self.token.is(TokenKind::LParen) {
-            self.expect_token(TokenKind::LParen)?;
-            TokenKind::RParen
+        let fields = if self.token.is(TokenKind::LParen) {
+            self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+                p.parse_struct_field()
+            })?
+        } else if self.token.is(TokenKind::LBrace) {
+            self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+                p.parse_struct_field()
+            })?
         } else {
-            self.expect_token(TokenKind::LBrace)?;
-            TokenKind::RBrace
+            Vec::new()
         };
-
-        let fields = self.parse_list(TokenKind::Comma, final_token.clone(), |p| {
-            p.parse_struct_field()
-        })?;
 
         let span = self.span_from(start);
 

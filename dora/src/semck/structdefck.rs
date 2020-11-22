@@ -183,6 +183,15 @@ mod tests {
     }
 
     #[test]
+    fn struct_internal() {
+        err(
+            "@internal struct Foo",
+            pos(1, 11),
+            SemError::UnresolvedInternal,
+        );
+    }
+
+    #[test]
     fn struct_with_type_params_error() {
         err(
             "struct MyStruct[] { f1: Int32 }",
