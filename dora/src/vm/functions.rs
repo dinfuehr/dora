@@ -128,7 +128,47 @@ impl Fct {
         id: SourceTypeArrayId,
         callback: F,
     ) -> R {
-        self.type_param_ty(vm, SourceType::TypeParam(id), callback)
+        let id_in_fct = match self.parent {
+            FctParent::Extension(extension_id) => {
+                let extension = &vm.extensions[extension_id];
+                let extension = extension.read();
+                let len = extension.type_params.len();
+
+                if id.to_usize() < len {
+                    return callback(extension.type_param(id), id);
+                }
+
+                (id.to_usize() - len).into()
+            }
+
+            FctParent::Impl(impl_id) => {
+                let ximpl = &vm.impls[impl_id];
+                let ximpl = ximpl.read();
+                let len = ximpl.type_params.len();
+
+                if id.to_usize() < len {
+                    return callback(ximpl.type_param(id), id);
+                }
+
+                (id.to_usize() - len).into()
+            }
+
+            FctParent::Class(cls_id) => {
+                let cls = vm.classes.idx(cls_id);
+                let cls = cls.read();
+                let len = cls.type_params.len();
+
+                if id.to_usize() < len {
+                    return callback(cls.type_param(id), id);
+                }
+
+                (id.to_usize() - len).into()
+            }
+
+            _ => id,
+        };
+
+        callback(self.type_param(id_in_fct), id)
     }
 
     pub fn type_param_ty<F: FnOnce(&TypeParam, SourceTypeArrayId) -> R, R>(
@@ -138,34 +178,7 @@ impl Fct {
         callback: F,
     ) -> R {
         match ty {
-            SourceType::TypeParam(id) => {
-                let fct_id = if let Some(cls_id) = self.parent_cls_id() {
-                    let cls = vm.classes.idx(cls_id);
-                    let cls = cls.read();
-                    let len = cls.type_params.len();
-
-                    if id.to_usize() < len {
-                        return callback(cls.type_param(id), id);
-                    }
-
-                    (id.to_usize() - len).into()
-                } else if let FctParent::Extension(extension_id) = self.parent {
-                    let extension = &vm.extensions[extension_id];
-                    let extension = extension.read();
-                    let len = extension.type_params.len();
-
-                    if id.to_usize() < len {
-                        return callback(extension.type_param(id), id);
-                    }
-
-                    (id.to_usize() - len).into()
-                } else {
-                    id
-                };
-
-                callback(self.type_param(fct_id), id)
-            }
-
+            SourceType::TypeParam(id) => self.type_param_id(vm, id, callback),
             _ => unreachable!(),
         }
     }

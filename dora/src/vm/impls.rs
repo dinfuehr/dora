@@ -6,7 +6,7 @@ use std::sync::Arc;
 use dora_parser::ast;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::SourceType;
+use crate::ty::{SourceType, SourceTypeArrayId};
 use crate::vm::{ClassId, FctId, FileId, NamespaceId, TraitId, TypeParam, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -51,6 +51,10 @@ impl ImplData {
         }
 
         None
+    }
+
+    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
+        &self.type_params[id.to_usize()]
     }
 }
 

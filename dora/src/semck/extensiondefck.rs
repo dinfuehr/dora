@@ -143,7 +143,7 @@ impl<'x> ExtensionCheck<'x> {
 
     fn check_type_params(&mut self, type_params: &[ast::TypeParam]) {
         let extension = &self.vm.extensions[self.extension_id];
-        let extension = extension.read();
+        let mut extension = extension.write();
 
         if type_params.len() > 0 {
             let mut names = HashSet::new();
@@ -159,10 +159,40 @@ impl<'x> ExtensionCheck<'x> {
                         .report(extension.file_id, type_param.pos, msg);
                 }
 
-                assert!(type_param.bounds.is_empty());
-
                 let sym = TypeSym::TypeParam(type_param_id.into());
                 self.sym.insert_type(type_param.name, sym);
+
+                for bound in &type_param.bounds {
+                    let ty = semck::read_type_table(self.vm, &self.sym, extension.file_id, bound);
+
+                    match ty {
+                        Some(SourceType::TraitObject(trait_id)) => {
+                            if !extension.type_params[type_param_id]
+                                .trait_bounds
+                                .insert(trait_id)
+                            {
+                                let msg = SemError::DuplicateTraitBound;
+                                self.vm
+                                    .diag
+                                    .lock()
+                                    .report(extension.file_id, type_param.pos, msg);
+                            }
+                        }
+
+                        None => {
+                            // unknown type, error is already thrown
+                        }
+
+                        _ => {
+                            let msg = SemError::BoundExpected;
+                            self.vm
+                                .diag
+                                .lock()
+                                .report(extension.file_id, bound.pos(), msg);
+                        }
+                    }
+                }
+
                 type_param_id += 1;
             }
         } else {
@@ -363,6 +393,19 @@ mod tests {
                 }
             }
             fun test(x: Foo): Int32 { x.sum() }
+        ");
+    }
+
+    #[test]
+    fn extension_struct_type_params() {
+        ok("
+            struct Foo[T](value: T)
+            trait MyTrait { fun bar(): Int32; }
+            impl[X: MyTrait] Foo[X] {
+                fun getmyhash(): Int32 {
+                    self.value.bar()
+                }
+            }
         ");
     }
 
