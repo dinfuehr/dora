@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
+use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctParent, FileId, ImplId, NamespaceId, VM};
+use crate::vm::{Fct, FctId, FctParent, FileId, ImplId, NamespaceId, VM};
 
 use dora_parser::ast;
 
@@ -25,6 +26,7 @@ pub fn check(vm: &VM) {
             impl_id,
             file_id,
             namespace_id,
+            sym: NestedSymTable::new(vm, namespace_id),
             ast: &ast,
         };
 
@@ -37,6 +39,7 @@ struct ImplCheck<'x> {
     file_id: FileId,
     impl_id: ImplId,
     namespace_id: NamespaceId,
+    sym: NestedSymTable<'x>,
     ast: &'x ast::Impl,
 }
 
@@ -44,55 +47,33 @@ impl<'x> ImplCheck<'x> {
     fn check(&mut self) {
         assert!(self.ast.trait_type.is_some());
 
-        for method in &self.ast.methods {
-            self.visit_method(method);
-        }
+        self.sym.push_level();
 
         let mut ximpl = self.vm.impls[self.impl_id].write();
 
-        if self.ast.type_params.is_some() {
-            // We don't support type parameters for impl-blocks yet.
-            self.vm
-                .diag
-                .lock()
-                .report(self.file_id, self.ast.pos, SemError::Unimplemented);
-            return;
-        }
+        let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
-        if let Some(ref expr_trait_type) = self.ast.trait_type {
-            if let Some(trait_ty) = semck::read_type_namespace(
-                self.vm,
-                self.file_id.into(),
-                self.namespace_id,
-                expr_trait_type,
-            ) {
-                match trait_ty {
-                    SourceType::TraitObject(trait_id) => {
-                        ximpl.trait_id = Some(trait_id);
-                    }
+        if let Some(trait_ty) =
+            semck::read_type_table(self.vm, &self.sym, self.file_id.into(), ast_trait_type)
+        {
+            match trait_ty {
+                SourceType::TraitObject(trait_id) => {
+                    ximpl.trait_id = Some(trait_id);
+                }
 
-                    _ => {
-                        self.vm.diag.lock().report(
-                            self.file_id,
-                            self.ast.pos,
-                            SemError::ExpectedTrait,
-                        );
-                    }
+                _ => {
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file_id, self.ast.pos, SemError::ExpectedTrait);
                 }
             }
-        } else {
-            // We don't support extension blocks yet.
-            self.vm
-                .diag
-                .lock()
-                .report(self.file_id, self.ast.pos, SemError::Unimplemented);
-            return;
         }
 
-        if let Some(class_ty) = semck::read_type_namespace(
+        if let Some(class_ty) = semck::read_type_table(
             self.vm,
+            &self.sym,
             self.file_id.into(),
-            self.namespace_id,
             &self.ast.class_type,
         ) {
             if class_ty.cls_id(self.vm).is_some() || class_ty.is_struct() {
@@ -112,9 +93,16 @@ impl<'x> ImplCheck<'x> {
             cls.traits.push(ximpl.trait_id());
             cls.impls.push(ximpl.id);
         }
+
+        self.sym.pop_level();
+
+        for method in &self.ast.methods {
+            let method_id = self.visit_method(method);
+            ximpl.methods.push(method_id);
+        }
     }
 
-    fn visit_method(&mut self, method: &Arc<ast::Function>) {
+    fn visit_method(&mut self, method: &Arc<ast::Function>) -> FctId {
         if method.block.is_none() && !method.internal {
             self.vm
                 .diag
@@ -125,10 +113,7 @@ impl<'x> ImplCheck<'x> {
         let parent = FctParent::Impl(self.impl_id);
 
         let fct = Fct::new(self.file_id.into(), self.namespace_id, method, parent);
-        let fctid = self.vm.add_fct(fct);
-
-        let mut ximpl = self.vm.impls[self.impl_id].write();
-        ximpl.methods.push(fctid);
+        self.vm.add_fct(fct)
     }
 }
 
