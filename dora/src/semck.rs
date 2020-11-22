@@ -1,9 +1,11 @@
 use parking_lot::RwLock;
+use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::sym::{SymTable, TermSym, TypeSym};
-use crate::vm::{FileId, VM};
-use dora_parser::ast::{Expr, ExprBlockType, Stmt};
+use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
+use crate::ty::SourceType;
+use crate::vm::{FileId, TypeParam, VM};
+use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -189,15 +191,15 @@ fn internalck(vm: &VM) {
     }
 }
 
-pub fn always_returns(s: &Stmt) -> bool {
+pub fn always_returns(s: &ast::Stmt) -> bool {
     returnck::returns_value(s).is_ok()
 }
 
-pub fn expr_always_returns(e: &Expr) -> bool {
+pub fn expr_always_returns(e: &ast::Expr) -> bool {
     returnck::expr_returns_value(e).is_ok()
 }
 
-pub fn expr_block_always_returns(e: &ExprBlockType) -> bool {
+pub fn expr_block_always_returns(e: &ast::ExprBlockType) -> bool {
     returnck::expr_block_returns_value(e).is_ok()
 }
 
@@ -235,6 +237,62 @@ pub fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym:
     };
 
     vm.diag.lock().report(file, pos, msg);
+}
+
+fn check_type_params(
+    vm: &VM,
+    ast_type_params: &[ast::TypeParam],
+    type_params: &mut Vec<TypeParam>,
+    symtable: &mut NestedSymTable,
+    file_id: FileId,
+    pos: Position,
+) -> Vec<SourceType> {
+    if ast_type_params.len() > 0 {
+        let mut names = HashSet::new();
+        let mut params = Vec::new();
+
+        for (type_param_id, type_param) in ast_type_params.iter().enumerate() {
+            if !names.insert(type_param.name) {
+                let name = vm.interner.str(type_param.name).to_string();
+                let msg = SemError::TypeParamNameNotUnique(name);
+                vm.diag.lock().report(file_id, type_param.pos, msg);
+            }
+
+            params.push(SourceType::TypeParam(type_param_id.into()));
+
+            for bound in &type_param.bounds {
+                let ty = read_type_table(vm, symtable, file_id, bound);
+
+                match ty {
+                    Some(SourceType::TraitObject(trait_id)) => {
+                        if !type_params[type_param_id].trait_bounds.insert(trait_id) {
+                            let msg = SemError::DuplicateTraitBound;
+                            vm.diag.lock().report(file_id, type_param.pos, msg);
+                        }
+                    }
+
+                    None => {
+                        // unknown type, error is already thrown
+                    }
+
+                    _ => {
+                        let msg = SemError::BoundExpected;
+                        vm.diag.lock().report(file_id, bound.pos(), msg);
+                    }
+                }
+            }
+
+            let sym = TypeSym::TypeParam(type_param_id.into());
+            symtable.insert_type(type_param.name, sym);
+        }
+
+        params
+    } else {
+        let msg = SemError::TypeParamsExpected;
+        vm.diag.lock().report(file_id, pos, msg);
+
+        Vec::new()
+    }
 }
 
 struct SemanticAnalysis {

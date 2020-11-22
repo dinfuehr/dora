@@ -1,9 +1,8 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, StructId, VM};
 
@@ -141,67 +140,18 @@ impl<'x> ExtensionCheck<'x> {
         }
     }
 
-    fn check_type_params(&mut self, type_params: &[ast::TypeParam]) {
+    fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
         let extension = &self.vm.extensions[self.extension_id];
         let mut extension = extension.write();
 
-        if type_params.len() > 0 {
-            let mut names = HashSet::new();
-            let mut type_param_id = 0;
-
-            for type_param in type_params {
-                if !names.insert(type_param.name) {
-                    let name = self.vm.interner.str(type_param.name).to_string();
-                    let msg = SemError::TypeParamNameNotUnique(name);
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(extension.file_id, type_param.pos, msg);
-                }
-
-                let sym = TypeSym::TypeParam(type_param_id.into());
-                self.sym.insert_type(type_param.name, sym);
-
-                for bound in &type_param.bounds {
-                    let ty = semck::read_type_table(self.vm, &self.sym, extension.file_id, bound);
-
-                    match ty {
-                        Some(SourceType::TraitObject(trait_id)) => {
-                            if !extension.type_params[type_param_id]
-                                .trait_bounds
-                                .insert(trait_id)
-                            {
-                                let msg = SemError::DuplicateTraitBound;
-                                self.vm
-                                    .diag
-                                    .lock()
-                                    .report(extension.file_id, type_param.pos, msg);
-                            }
-                        }
-
-                        None => {
-                            // unknown type, error is already thrown
-                        }
-
-                        _ => {
-                            let msg = SemError::BoundExpected;
-                            self.vm
-                                .diag
-                                .lock()
-                                .report(extension.file_id, bound.pos(), msg);
-                        }
-                    }
-                }
-
-                type_param_id += 1;
-            }
-        } else {
-            let msg = SemError::TypeParamsExpected;
-            self.vm
-                .diag
-                .lock()
-                .report(extension.file_id, self.ast.pos, msg);
-        }
+        semck::check_type_params(
+            self.vm,
+            ast_type_params,
+            &mut extension.type_params,
+            &mut self.sym,
+            self.file_id,
+            self.ast.pos,
+        );
     }
 
     fn check_in_enum(&self, f: &ast::Function, enum_id: EnumId) -> bool {

@@ -49,6 +49,10 @@ impl<'x> ImplCheck<'x> {
 
         self.sym.push_level();
 
+        if let Some(ref type_params) = self.ast.type_params {
+            self.check_type_params(type_params);
+        }
+
         let mut ximpl = self.vm.impls[self.impl_id].write();
 
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
@@ -100,6 +104,20 @@ impl<'x> ImplCheck<'x> {
             let method_id = self.visit_method(method);
             ximpl.methods.push(method_id);
         }
+    }
+
+    fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
+        let ximpl = &self.vm.impls[self.impl_id];
+        let mut ximpl = ximpl.write();
+
+        semck::check_type_params(
+            self.vm,
+            ast_type_params,
+            &mut ximpl.type_params,
+            &mut self.sym,
+            self.file_id,
+            self.ast.pos,
+        );
     }
 
     fn visit_method(&mut self, method: &Arc<ast::Function>) -> FctId {

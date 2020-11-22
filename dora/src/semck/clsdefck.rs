@@ -1,10 +1,9 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
+use crate::sym::{NestedSymTable, SymTable, TermSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
 
@@ -138,58 +137,23 @@ impl<'x> ClsDefCheck<'x> {
         cls.table.insert_term(name, TermSym::Field(fid));
     }
 
-    fn check_type_params(&mut self, type_params: &[ast::TypeParam]) {
+    fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
         let cls = self.vm.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
-        if type_params.len() > 0 {
-            let mut names = HashSet::new();
-            let mut type_param_id = 0;
-            let mut params = Vec::new();
+        let type_params = semck::check_type_params(
+            self.vm,
+            ast_type_params,
+            &mut cls.type_params,
+            &mut self.sym,
+            self.file_id,
+            self.ast.pos,
+        );
 
-            for type_param in type_params {
-                if !names.insert(type_param.name) {
-                    let name = self.vm.interner.str(type_param.name).to_string();
-                    let msg = SemError::TypeParamNameNotUnique(name);
-                    self.vm.diag.lock().report(cls.file_id, type_param.pos, msg);
-                }
+        let params = SourceTypeArray::with(type_params);
+        let list_id = self.vm.source_type_arrays.lock().insert(params);
 
-                params.push(SourceType::TypeParam(type_param_id.into()));
-
-                for bound in &type_param.bounds {
-                    let ty = semck::read_type_table(self.vm, &self.sym, cls.file_id, bound);
-
-                    match ty {
-                        Some(SourceType::TraitObject(trait_id)) => {
-                            if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
-                                let msg = SemError::DuplicateTraitBound;
-                                self.vm.diag.lock().report(cls.file_id, type_param.pos, msg);
-                            }
-                        }
-
-                        None => {
-                            // unknown type, error is already thrown
-                        }
-
-                        _ => {
-                            let msg = SemError::BoundExpected;
-                            self.vm.diag.lock().report(cls.file_id, bound.pos(), msg);
-                        }
-                    }
-                }
-
-                let sym = TypeSym::TypeParam(type_param_id.into());
-                self.sym.insert_type(type_param.name, sym);
-                type_param_id += 1;
-            }
-
-            let params = SourceTypeArray::with(params);
-            let list_id = self.vm.source_type_arrays.lock().insert(params);
-            cls.ty = SourceType::Class(cls.id, list_id);
-        } else {
-            let msg = SemError::TypeParamsExpected;
-            self.vm.diag.lock().report(cls.file_id, self.ast.pos, msg);
-        }
+        cls.ty = SourceType::Class(self.cls_id, list_id);
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
