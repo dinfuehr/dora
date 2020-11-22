@@ -1,4 +1,3 @@
-//= ignore
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 struct Bar(first: Foo, second: Foo)

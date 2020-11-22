@@ -1,0 +1,28 @@
+fun main() {
+    assert(tpl1() == 1.0F);
+    assert(tpl2() == 2.0F);
+    assert(tpl3() == 3.0F);
+    assert(tplsum() == 6.0F);
+}
+
+fun tpl1(): Float32 {
+    let x = Floats(1.0F, 2.0F, 3.0F);
+    x.f1
+}
+
+fun tpl2(): Float32 {
+    let x = Floats(1.0F, 2.0F, 3.0F);
+    x.f2
+}
+
+fun tpl3(): Float32 {
+    let x = Floats(1.0F, 2.0F, 3.0F);
+    x.f3
+}
+
+fun tplsum(): Float32 {
+    let x = Floats(1.0F, 2.0F, 3.0F);
+    x.f1 + x.f2 + x.f3
+}
+
+struct Floats(f1: Float32, f2: Float32, f3: Float32)

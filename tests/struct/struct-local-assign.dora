@@ -1,0 +1,13 @@
+fun main() {
+    var x = Pair("my string", true);
+    var y = Pair("another string", false);
+    var tmp = x;
+    x = y;
+    y = tmp;
+    assert(y.first == "my string");
+    assert(y.second);
+    assert(x.first == "another string");
+    assert(!x.second);
+}
+
+struct Pair(first: String, second: Bool)
