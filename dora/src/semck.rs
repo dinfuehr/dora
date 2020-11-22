@@ -151,6 +151,16 @@ fn internalck(vm: &VM) {
         }
     }
 
+    for xstruct in vm.structs.iter() {
+        let xstruct = xstruct.read();
+
+        if xstruct.internal && !xstruct.internal_resolved {
+            vm.diag
+                .lock()
+                .report(xstruct.file_id, xstruct.pos, SemError::UnresolvedInternal);
+        }
+    }
+
     for cls in vm.classes.iter() {
         let cls = cls.read();
 

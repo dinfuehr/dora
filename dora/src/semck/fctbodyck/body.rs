@@ -2619,7 +2619,9 @@ impl<'a> TypeCheck<'a> {
                 ty
             }
 
-            _ => {
+            FctParent::Module(_) | FctParent::Trait(_) => unreachable!(),
+
+            FctParent::None => {
                 let msg = SemError::ThisUnavailable;
                 self.vm.diag.lock().report(self.file_id, e.pos, msg);
                 self.analysis.set_ty(e.id, SourceType::Unit);

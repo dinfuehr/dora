@@ -36,6 +36,8 @@ pub struct StructData {
     pub namespace_id: NamespaceId,
     pub type_params: Vec<TypeParam>,
     pub is_pub: bool,
+    pub internal: bool,
+    pub internal_resolved: bool,
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,

@@ -480,6 +480,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 is_pub: node.is_pub,
                 pos: node.pos,
                 name: node.name,
+                internal: node.internal,
+                internal_resolved: false,
                 type_params: Vec::new(),
                 fields: Vec::new(),
                 field_names: HashMap::new(),

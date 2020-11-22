@@ -120,7 +120,7 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Struct => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub, Modifier::Internal])?;
                 let struc = self.parse_struct(&modifiers)?;
                 Ok(Elem::Struct(Arc::new(struc)))
             }
@@ -489,6 +489,7 @@ impl<'a> Parser<'a> {
             span,
             fields,
             is_pub: modifiers.contains(Modifier::Pub),
+            internal: modifiers.contains(Modifier::Internal),
             type_params,
         })
     }
