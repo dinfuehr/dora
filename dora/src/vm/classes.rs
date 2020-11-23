@@ -222,7 +222,11 @@ impl Class {
     }
 
     pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
-        self.traits.contains(&trait_id) || vm.known.traits.zero == trait_id && !self.ty.is_cls()
+        if vm.known.traits.zero == trait_id && !self.ty.is_cls() {
+            return true;
+        }
+
+        self.traits.contains(&trait_id)
     }
 }
 

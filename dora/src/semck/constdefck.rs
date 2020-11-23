@@ -1,4 +1,5 @@
 use crate::semck;
+use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{ConstId, FileId, NamespaceId, VM};
 
@@ -22,6 +23,7 @@ pub fn check(vm: &VM) {
             file_id,
             ast: &ast,
             namespace_id,
+            symtable: NestedSymTable::new(vm, namespace_id),
         };
 
         clsck.check();
@@ -34,17 +36,13 @@ struct ConstCheck<'x> {
     file_id: FileId,
     ast: &'x ast::Const,
     namespace_id: NamespaceId,
+    symtable: NestedSymTable<'x>,
 }
 
 impl<'x> ConstCheck<'x> {
     fn check(&mut self) {
-        let ty = semck::read_type_namespace(
-            self.vm,
-            self.file_id,
-            self.namespace_id,
-            &self.ast.data_type,
-        )
-        .unwrap_or(SourceType::Error);
+        let ty = semck::read_type_table(self.vm, &self.symtable, self.file_id, &self.ast.data_type)
+            .unwrap_or(SourceType::Error);
 
         let xconst = self.vm.consts.idx(self.const_id);
         let mut xconst = xconst.write();

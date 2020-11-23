@@ -9,7 +9,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub use globaldef::should_file_be_parsed;
-pub use readty::{read_type_namespace, read_type_table};
+pub use readty::read_type_table;
 
 mod abstractck;
 mod clsdefck;

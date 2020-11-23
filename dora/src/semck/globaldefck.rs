@@ -1,5 +1,6 @@
 use crate::error::msg::SemError;
 use crate::semck;
+use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctParent, FileId, GlobalId, NamespaceId, VM};
 use dora_parser::ast;
@@ -16,12 +17,15 @@ pub fn check<'a>(vm: &VM) {
             )
         };
 
+        let symtable = NestedSymTable::new(vm, namespace_id);
+
         let mut checker = GlobalDefCheck {
             vm,
             file_id,
             ast: &ast,
             namespace_id,
             global_id,
+            symtable,
         };
 
         checker.check();
@@ -34,17 +38,13 @@ struct GlobalDefCheck<'a> {
     namespace_id: NamespaceId,
     global_id: GlobalId,
     ast: &'a ast::Global,
+    symtable: NestedSymTable<'a>,
 }
 
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
-        let ty = semck::read_type_namespace(
-            self.vm,
-            self.file_id,
-            self.namespace_id,
-            &self.ast.data_type,
-        )
-        .unwrap_or(SourceType::Error);
+        let ty = semck::read_type_table(self.vm, &self.symtable, self.file_id, &self.ast.data_type)
+            .unwrap_or(SourceType::Error);
 
         let glob = self.vm.globals.idx(self.global_id);
         let mut glob = glob.write();

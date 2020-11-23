@@ -6,7 +6,7 @@ use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassId, EnumId, FileId, NamespaceId, StructId, VM,
+    trait_accessible_from, ClassId, EnumId, FileId, StructId, VM,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -18,16 +18,6 @@ pub fn read_type_table(
     t: &Type,
 ) -> Option<SourceType> {
     read_type_common(vm, table, file_id, t)
-}
-
-pub fn read_type_namespace(
-    vm: &VM,
-    file_id: FileId,
-    namespace_id: NamespaceId,
-    t: &Type,
-) -> Option<SourceType> {
-    let symtable = NestedSymTable::new(vm, namespace_id);
-    read_type_common(vm, &symtable, file_id, t)
 }
 
 fn read_type_common(vm: &VM, table: &NestedSymTable, file: FileId, t: &Type) -> Option<SourceType> {
