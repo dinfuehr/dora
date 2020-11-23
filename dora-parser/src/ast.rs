@@ -518,6 +518,7 @@ pub struct Impl {
 pub struct Trait {
     pub id: NodeId,
     pub name: Name,
+    pub type_params: Option<Vec<TypeParam>>,
     pub pos: Position,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,

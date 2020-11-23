@@ -237,6 +237,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             is_pub: node.is_pub,
             pos: node.pos,
             name: node.name,
+            type_params: Vec::new(),
             methods: Vec::new(),
         };
 

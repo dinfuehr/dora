@@ -435,6 +435,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Trait)?.position;
         let ident = self.expect_identifier()?;
+        let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace)?;
 
@@ -455,6 +456,7 @@ impl<'a> Parser<'a> {
         Ok(Trait {
             id: self.generate_id(),
             name: ident,
+            type_params,
             pos,
             span,
             methods,

@@ -7,7 +7,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
-use crate::vm::{accessible_from, namespace_path, FctId, FileId, NamespaceId, VM};
+use crate::vm::{accessible_from, namespace_path, FctId, FileId, NamespaceId, TypeParam, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitId(u32);
@@ -27,6 +27,7 @@ pub struct TraitData {
     pub ast: Arc<ast::Trait>,
     pub pos: Position,
     pub name: Name,
+    pub type_params: Vec<TypeParam>,
     pub methods: Vec<FctId>,
 }
 

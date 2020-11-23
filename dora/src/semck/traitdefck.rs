@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::vm::{Fct, FctParent, FileId, NamespaceId, TraitId, VM};
+use crate::semck;
+use crate::sym::NestedSymTable;
+use crate::vm::{Fct, FctParent, FileId, NamespaceId, TraitData, TraitId, VM};
 
 use dora_parser::ast;
 
@@ -17,12 +19,17 @@ pub fn check(vm: &VM) {
             )
         };
 
+        let xtrait = &vm.traits[trait_id];
+        let mut xtrait = xtrait.write();
+
         let mut clsck = TraitCheck {
             vm,
             trait_id,
             file_id,
             ast: &ast,
             namespace_id,
+            xtrait: &mut *xtrait,
+            sym: NestedSymTable::new(vm, namespace_id),
         };
 
         clsck.check();
@@ -35,13 +42,34 @@ struct TraitCheck<'x> {
     trait_id: TraitId,
     ast: &'x ast::Trait,
     namespace_id: NamespaceId,
+    xtrait: &'x mut TraitData,
+    sym: NestedSymTable<'x>,
 }
 
 impl<'x> TraitCheck<'x> {
     fn check(&mut self) {
+        self.sym.push_level();
+
+        if let Some(ref type_params) = self.ast.type_params {
+            self.check_type_params(type_params);
+        }
+
+        self.sym.pop_level();
+
         for method in &self.ast.methods {
             self.visit_method(method);
         }
+    }
+
+    fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
+        semck::check_type_params(
+            self.vm,
+            ast_type_params,
+            &mut self.xtrait.type_params,
+            &mut self.sym,
+            self.file_id,
+            self.ast.pos,
+        );
     }
 
     fn visit_method(&mut self, node: &Arc<ast::Function>) {
@@ -62,8 +90,7 @@ impl<'x> TraitCheck<'x> {
 
         let fctid = self.vm.add_fct(fct);
 
-        let mut xtrait = self.vm.traits[self.trait_id].write();
-        xtrait.methods.push(fctid);
+        self.xtrait.methods.push(fctid);
     }
 }
 
