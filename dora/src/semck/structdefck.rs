@@ -4,7 +4,7 @@ use crate::error::msg::SemError;
 use crate::semck::{self, TypeParamContext};
 use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{FileId, NamespaceId, StructFieldData, StructFieldId, StructId, VM};
+use crate::vm::{FileId, NamespaceId, StructFieldData, StructFieldId, StructId, TypeParamId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -76,7 +76,7 @@ impl<'x> StructCheck<'x> {
                         .report(self.file_id, type_param.pos, msg);
                 }
 
-                params.push(SourceType::TypeParam(type_param_id.into()));
+                params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
 
                 for bound in &type_param.bounds {
                     let ty = semck::read_type(
@@ -114,7 +114,7 @@ impl<'x> StructCheck<'x> {
                     }
                 }
 
-                let sym = TypeSym::TypeParam(type_param_id.into());
+                let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
                 self.symtable.insert_type(type_param.name, sym);
                 type_param_id += 1;
             }

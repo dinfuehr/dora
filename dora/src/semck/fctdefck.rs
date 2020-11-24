@@ -4,7 +4,7 @@ use crate::error::msg::SemError;
 use crate::semck::{self, TypeParamContext};
 use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{self, Fct, FctId, FctParent, VM};
+use crate::vm::{self, Fct, FctId, FctParent, TypeParamId, VM};
 
 pub fn check(vm: &VM) {
     for fct in vm.fcts.iter() {
@@ -27,7 +27,7 @@ pub fn check(vm: &VM) {
                 let mut type_param_id = 0;
 
                 for param in &cls.type_params {
-                    let sym = TypeSym::TypeParam(type_param_id.into());
+                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert_type(param.name, sym);
                     type_param_id += 1;
                 }
@@ -54,7 +54,7 @@ pub fn check(vm: &VM) {
                 let mut type_param_id = 0;
 
                 for param in &extension.type_params {
-                    let sym = TypeSym::TypeParam(type_param_id.into());
+                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert_type(param.name, sym);
                     type_param_id += 1;
                 }
@@ -119,7 +119,8 @@ pub fn check(vm: &VM) {
                         }
                     }
 
-                    let sym = TypeSym::TypeParam((cls_type_params_count + type_param_id).into());
+                    let sym =
+                        TypeSym::TypeParam(TypeParamId(cls_type_params_count + type_param_id));
                     sym_table.insert_type(type_param.name, sym);
                     type_param_id += 1;
                 }

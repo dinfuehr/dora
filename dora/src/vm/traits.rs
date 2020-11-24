@@ -6,8 +6,10 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::{SourceType, SourceTypeArrayId};
-use crate::vm::{accessible_from, namespace_path, FctId, FileId, NamespaceId, TypeParam, VM};
+use crate::ty::SourceType;
+use crate::vm::{
+    accessible_from, namespace_path, FctId, FileId, NamespaceId, TypeParam, TypeParamId, VM,
+};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitId(u32);
@@ -72,7 +74,7 @@ impl TraitData {
         None
     }
 
-    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
+    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 }

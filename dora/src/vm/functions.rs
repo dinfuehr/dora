@@ -10,11 +10,11 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::compiler::fct::JitFctId;
 use crate::gc::Address;
-use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, namespace_path, AnalysisData, ClassId, ExtensionId, FileId, ImplId, ModuleId,
-    NamespaceId, TraitId, TypeParam, VM,
+    NamespaceId, TraitId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -118,14 +118,14 @@ impl Fct {
         }
     }
 
-    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
+    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 
-    pub fn type_param_id<F: FnOnce(&TypeParam, SourceTypeArrayId) -> R, R>(
+    pub fn type_param_id<F: FnOnce(&TypeParam, TypeParamId) -> R, R>(
         &self,
         vm: &VM,
-        id: SourceTypeArrayId,
+        id: TypeParamId,
         callback: F,
     ) -> R {
         let id_in_fct = match self.parent {
@@ -138,7 +138,7 @@ impl Fct {
                     return callback(extension.type_param(id), id);
                 }
 
-                (id.to_usize() - len).into()
+                TypeParamId(id.to_usize() - len)
             }
 
             FctParent::Impl(impl_id) => {
@@ -150,7 +150,7 @@ impl Fct {
                     return callback(ximpl.type_param(id), id);
                 }
 
-                (id.to_usize() - len).into()
+                TypeParamId(id.to_usize() - len)
             }
 
             FctParent::Class(cls_id) => {
@@ -162,7 +162,7 @@ impl Fct {
                     return callback(cls.type_param(id), id);
                 }
 
-                (id.to_usize() - len).into()
+                TypeParamId(id.to_usize() - len)
             }
 
             _ => id,
@@ -171,7 +171,7 @@ impl Fct {
         callback(self.type_param(id_in_fct), id)
     }
 
-    pub fn type_param_ty<F: FnOnce(&TypeParam, SourceTypeArrayId) -> R, R>(
+    pub fn type_param_ty<F: FnOnce(&TypeParam, TypeParamId) -> R, R>(
         &self,
         vm: &VM,
         ty: SourceType,

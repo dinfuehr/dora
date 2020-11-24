@@ -8,7 +8,8 @@ use crate::bytecode::{
 use crate::test;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructFieldId, StructId, TupleId, VM,
+    ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructFieldId, StructId, TupleId,
+    TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -2472,7 +2473,7 @@ fn gen_new_struct() {
                 NewStruct(
                     r(2),
                     struct_id,
-                    SourceTypeArray::single(SourceType::TypeParam(0.into())),
+                    SourceTypeArray::single(SourceType::TypeParam(TypeParamId(0))),
                 ),
                 Ret(r(2)),
             ];

@@ -3,11 +3,11 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
     trait_accessible_from, ClassId, EnumId, ExtensionId, FctId, FileId, ImplId, StructId, TraitId,
-    TypeParam, VM,
+    TypeParam, TypeParamId, VM,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -304,7 +304,7 @@ fn check_type_params(
 fn check_bounds_for_type_param_id(
     vm: &VM,
     tp_definition: &TypeParam,
-    tp_id: SourceTypeArrayId,
+    tp_id: TypeParamId,
     success: &mut bool,
     file_id: FileId,
     pos: Position,

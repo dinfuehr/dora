@@ -28,7 +28,7 @@ use dora_parser::parser::NodeIdGenerator;
 
 pub use self::classes::{
     class_accessible_from, find_field_in_class, find_method_in_class, find_methods_in_class, Class,
-    ClassDef, ClassDefId, ClassId, Field, FieldDef, FieldId, TypeParam,
+    ClassDef, ClassDefId, ClassId, Field, FieldDef, FieldId, TypeParam, TypeParamId,
 };
 pub use self::consts::{const_accessible_from, ConstData, ConstId, ConstValue};
 pub use self::enums::{

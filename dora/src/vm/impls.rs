@@ -6,8 +6,8 @@ use std::sync::Arc;
 use dora_parser::ast;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::{SourceType, SourceTypeArrayId};
-use crate::vm::{ClassId, FctId, FileId, NamespaceId, TraitId, TypeParam, VM};
+use crate::ty::SourceType;
+use crate::vm::{ClassId, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplId(u32);
@@ -53,7 +53,7 @@ impl ImplData {
         None
     }
 
-    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
+    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 }

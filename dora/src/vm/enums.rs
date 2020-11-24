@@ -9,11 +9,11 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, namespace_path, ClassDefId, ExtensionId, FctId, FileId, ImplId, NamespaceId,
-    TypeParam, VM,
+    TypeParam, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -52,7 +52,7 @@ pub struct EnumData {
 }
 
 impl EnumData {
-    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
+    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 

@@ -2,9 +2,10 @@ use std::fmt;
 
 use crate::mem::ptr_width;
 use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
-use crate::ty::{MachineMode, SourceType, SourceTypeArray, SourceTypeArrayId};
+use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId, TupleId, VM,
+    get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId, TupleId,
+    TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -604,7 +605,7 @@ pub enum ConstPoolEntry {
     Class(ClassId, SourceTypeArray),
     Field(ClassId, SourceTypeArray, FieldId),
     Fct(FctId, SourceTypeArray),
-    Generic(SourceTypeArrayId, FctId, SourceTypeArray),
+    Generic(TypeParamId, FctId, SourceTypeArray),
     Enum(EnumId, SourceTypeArray),
     EnumVariant(EnumId, SourceTypeArray, usize),
     Struct(StructId, SourceTypeArray),

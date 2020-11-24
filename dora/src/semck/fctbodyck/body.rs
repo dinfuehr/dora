@@ -9,13 +9,13 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type};
 use crate::semck::{report_term_shadow, TypeParamContext};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
     fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
     struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
-    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId, Var,
-    VarId, VM,
+    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId,
+    TypeParamId, Var, VarId, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -79,7 +79,7 @@ impl<'a> TypeCheck<'a> {
                 let cls = cls.read();
 
                 for (type_param_id, param) in cls.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(type_param_id.into());
+                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
                     self.symtable.insert_type(param.name, sym);
                 }
 
@@ -90,7 +90,7 @@ impl<'a> TypeCheck<'a> {
                 let ximpl = self.vm.impls[impl_id].read();
 
                 for (type_param_id, param) in ximpl.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(type_param_id.into());
+                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
                     self.symtable.insert_type(param.name, sym);
                 }
 
@@ -101,7 +101,7 @@ impl<'a> TypeCheck<'a> {
                 let extension = self.vm.extensions[extension_id].read();
 
                 for (type_param_id, param) in extension.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(type_param_id.into());
+                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
                     self.symtable.insert_type(param.name, sym);
                 }
 
@@ -117,7 +117,7 @@ impl<'a> TypeCheck<'a> {
             for (tpid, tp) in type_params.iter().enumerate() {
                 self.symtable.insert_type(
                     tp.name,
-                    TypeSym::TypeParam((cls_type_params_count + tpid).into()),
+                    TypeSym::TypeParam(TypeParamId(cls_type_params_count + tpid)),
                 );
             }
         }
@@ -1824,7 +1824,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ExprCallType,
         object_type: SourceType,
-        _id: SourceTypeArrayId,
+        id: TypeParamId,
         tp: &vm::TypeParam,
         name: Name,
         args: &[SourceType],
@@ -1848,7 +1848,7 @@ impl<'a> TypeCheck<'a> {
 
             self.analysis.set_ty(e.id, return_type.clone());
 
-            let call_type = CallType::GenericMethod(_id, fct.trait_id(), fid);
+            let call_type = CallType::GenericMethod(id, fct.trait_id(), fid);
             self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
             return_type

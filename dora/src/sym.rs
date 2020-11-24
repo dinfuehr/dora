@@ -5,10 +5,9 @@ use self::TypeSym::*;
 use crate::sym::TermSym::{
     ClassConstructorAndModule, Const, Fct, Global, Module, StructConstructorAndModule, Var,
 };
-use crate::ty::SourceTypeArrayId;
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId, NamespaceId, StructId, TraitId,
-    VarId, VM,
+    TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
@@ -213,7 +212,7 @@ pub enum TypeSym {
     Class(ClassId),
     Struct(StructId),
     Trait(TraitId),
-    TypeParam(SourceTypeArrayId),
+    TypeParam(TypeParamId),
     Enum(EnumId),
 }
 

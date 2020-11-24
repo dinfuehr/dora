@@ -7,6 +7,7 @@ use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
     Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ModuleId, StructId, TraitId, TupleId,
+    TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -53,7 +54,7 @@ pub enum SourceType {
     Module(ModuleId),
 
     // some type variable
-    TypeParam(SourceTypeArrayId),
+    TypeParam(TypeParamId),
 
     // some lambda
     Lambda(LambdaId),

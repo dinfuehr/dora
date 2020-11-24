@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::SourceType;
-use crate::vm::{FileId, TypeParam, VM};
+use crate::vm::{FileId, TypeParam, TypeParamId, VM};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -257,7 +257,7 @@ fn check_type_params(
                 vm.diag.lock().report(file_id, type_param.pos, msg);
             }
 
-            params.push(SourceType::TypeParam(type_param_id.into()));
+            params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
 
             for bound in &type_param.bounds {
                 let ty = read_type(vm, symtable, file_id, bound, TypeParamContext::None);
@@ -281,7 +281,7 @@ fn check_type_params(
                 }
             }
 
-            let sym = TypeSym::TypeParam(type_param_id.into());
+            let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
             symtable.insert_type(type_param.name, sym);
         }
 

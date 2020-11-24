@@ -7,8 +7,10 @@ use crate::bytecode::{
     Register,
 };
 use crate::driver::cmd::Args;
-use crate::ty::{SourceTypeArray, SourceTypeArrayId};
-use crate::vm::{ClassId, EnumId, FctId, FieldId, GlobalId, StructFieldId, StructId, TupleId, VM};
+use crate::ty::SourceTypeArray;
+use crate::vm::{
+    ClassId, EnumId, FctId, FieldId, GlobalId, StructFieldId, StructId, TupleId, TypeParamId, VM,
+};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -85,7 +87,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_generic(
         &mut self,
-        id: SourceTypeArrayId,
+        id: TypeParamId,
         fct_id: FctId,
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
