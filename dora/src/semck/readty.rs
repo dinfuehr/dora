@@ -6,10 +6,11 @@ use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassId, EnumId, FileId, StructId, VM,
+    trait_accessible_from, ClassId, EnumId, FileId, StructId, TypeParam, VM,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
+use dora_parser::lexer::position::Position;
 
 pub fn read_type_table(
     vm: &VM,
@@ -160,34 +161,13 @@ fn read_type_enum(
     let xenum = &vm.enums[enum_id];
     let xenum = xenum.read();
 
-    if xenum.type_params.len() != type_params.len() {
-        let msg = SemError::WrongNumberTypeParams(xenum.type_params.len(), type_params.len());
-        vm.diag.lock().report(file_id, basic.pos, msg);
-        return None;
+    if check_type_params(vm, &xenum.type_params, &type_params, file_id, basic.pos) {
+        let list = SourceTypeArray::with(type_params);
+        let list_id = vm.source_type_arrays.lock().insert(list);
+        Some(SourceType::Enum(enum_id, list_id))
+    } else {
+        None
     }
-
-    let mut failed = false;
-
-    for (tp, ty) in xenum.type_params.iter().zip(type_params.iter()) {
-        for &trait_bound in &tp.trait_bounds {
-            if !ty.implements_trait(vm, trait_bound) {
-                let bound = vm.traits[trait_bound].read();
-                let trait_name = vm.interner.str(bound.name).to_string();
-                let name = ty.name(vm);
-                let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-                vm.diag.lock().report(file_id, basic.pos, msg);
-                failed = true;
-            }
-        }
-    }
-
-    if failed {
-        return None;
-    }
-
-    let list = SourceTypeArray::with(type_params);
-    let list_id = vm.source_type_arrays.lock().insert(list);
-    Some(SourceType::Enum(xenum.id, list_id))
 }
 
 fn read_type_struct(
@@ -219,23 +199,32 @@ fn read_type_struct(
     let xstruct = vm.structs.idx(struct_id);
     let xstruct = xstruct.read();
 
-    if xstruct.type_params.len() != type_params.len() {
-        let msg = SemError::WrongNumberTypeParams(xstruct.type_params.len(), type_params.len());
-        vm.diag.lock().report(file_id, basic.pos, msg);
-        return None;
+    if check_type_params(vm, &xstruct.type_params, &type_params, file_id, basic.pos) {
+        let list = SourceTypeArray::with(type_params);
+        let list_id = vm.source_type_arrays.lock().insert(list);
+        Some(SourceType::Struct(struct_id, list_id))
+    } else {
+        None
+    }
+}
+
+fn check_type_params(
+    vm: &VM,
+    tp_definitions: &[TypeParam],
+    type_params: &[SourceType],
+    file_id: FileId,
+    pos: Position,
+) -> bool {
+    if tp_definitions.len() != type_params.len() {
+        let msg = SemError::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
+        vm.diag.lock().report(file_id, pos, msg);
+        return false;
     }
 
-    if type_params.len() == 0 {
-        let list_id = vm
-            .source_type_arrays
-            .lock()
-            .insert(SourceTypeArray::empty());
-        let ty = SourceType::Struct(struct_id, list_id);
-        return Some(ty);
-    }
+    let mut success = true;
 
-    for (tp, ty) in xstruct.type_params.iter().zip(type_params.iter()) {
-        let cls_id = if let Some(cls_id) = ty.cls_id(vm) {
+    for (tp_definition, tp_ty) in tp_definitions.iter().zip(type_params.iter()) {
+        let cls_id = if let Some(cls_id) = tp_ty.cls_id(vm) {
             cls_id
         } else {
             continue;
@@ -244,20 +233,19 @@ fn read_type_struct(
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
-        for &trait_bound in &tp.trait_bounds {
+        for &trait_bound in &tp_definition.trait_bounds {
             if !cls.implements_trait(vm, trait_bound) {
                 let bound = vm.traits[trait_bound].read();
-                let name = ty.name_cls(vm, &*cls);
+                let name = tp_ty.name_cls(vm, &*cls);
                 let trait_name = vm.interner.str(bound.name).to_string();
                 let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-                vm.diag.lock().report(file_id, basic.pos, msg);
+                vm.diag.lock().report(file_id, pos, msg);
+                success = false;
             }
         }
     }
 
-    let list = SourceTypeArray::with(type_params);
-    let list_id = vm.source_type_arrays.lock().insert(list);
-    Some(SourceType::Struct(struct_id, list_id))
+    success
 }
 
 fn read_type_class(
@@ -289,40 +277,17 @@ fn read_type_class(
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
-    if cls.type_params.len() != type_params.len() {
-        let msg = SemError::WrongNumberTypeParams(cls.type_params.len(), type_params.len());
-        vm.diag.lock().report(file_id, basic.pos, msg);
-        return None;
-    }
-
-    if type_params.len() == 0 {
-        return Some(cls.ty.clone());
-    }
-
-    for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
-        let cls_id = if let Some(cls_id) = ty.cls_id(vm) {
-            cls_id
+    if check_type_params(vm, &cls.type_params, &type_params, file_id, basic.pos) {
+        if cls.type_params.is_empty() {
+            Some(cls.ty.clone())
         } else {
-            continue;
-        };
-
-        let cls = vm.classes.idx(cls_id);
-        let cls = cls.read();
-
-        for &trait_bound in &tp.trait_bounds {
-            if !cls.implements_trait(vm, trait_bound) {
-                let bound = vm.traits[trait_bound].read();
-                let name = ty.name_cls(vm, &*cls);
-                let trait_name = vm.interner.str(bound.name).to_string();
-                let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-                vm.diag.lock().report(file_id, basic.pos, msg);
-            }
+            let list = SourceTypeArray::with(type_params);
+            let list_id = vm.source_type_arrays.lock().insert(list);
+            Some(SourceType::Class(cls_id, list_id))
         }
+    } else {
+        None
     }
-
-    let list = SourceTypeArray::with(type_params);
-    let list_id = vm.source_type_arrays.lock().insert(list);
-    Some(SourceType::Class(cls.id, list_id))
 }
 
 fn read_type_tuple(

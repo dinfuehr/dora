@@ -2695,7 +2695,7 @@ impl<'a> TypeCheck<'a> {
             valid = true;
         } else if check_type.subclass_from(self.vm, object_type.clone()) {
             // normal check
-        } else {
+        } else if !object_type.is_error() && !check_type.is_error() {
             let object_type = object_type.name_fct(self.vm, self.fct);
             let check_type = check_type.name_fct(self.vm, self.fct);
             let msg = SemError::TypesIncompatible(object_type, check_type);
