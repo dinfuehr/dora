@@ -70,7 +70,7 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn visit_field(&mut self, f: &ast::Field) {
-        let ty = semck::read_type_table(self.vm, &self.sym, self.file_id.into(), &f.data_type)
+        let ty = semck::read_type(self.vm, &self.sym, self.file_id.into(), &f.data_type)
             .unwrap_or(SourceType::Error);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
@@ -138,9 +138,8 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
-        let parent_ty =
-            semck::read_type_table(self.vm, &self.sym, self.file_id, &parent_class.parent_ty)
-                .unwrap_or(SourceType::Error);
+        let parent_ty = semck::read_type(self.vm, &self.sym, self.file_id, &parent_class.parent_ty)
+            .unwrap_or(SourceType::Error);
 
         match parent_ty.clone() {
             SourceType::Class(cls_id, _type_list_id) => {

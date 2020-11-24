@@ -92,7 +92,7 @@ pub fn check(vm: &VM) {
                     fct.type_params.push(vm::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type_table(vm, &sym_table, fct.file_id, bound);
+                        let ty = semck::read_type(vm, &sym_table, fct.file_id, bound);
 
                         match ty {
                             Some(SourceType::TraitObject(trait_id)) => {
@@ -130,7 +130,7 @@ pub fn check(vm: &VM) {
                     .report(fct.file_id, p.pos, SemError::VariadicParameterNeedsToBeLast);
             }
 
-            let ty = semck::read_type_table(vm, &sym_table, fct.file_id, &p.data_type)
+            let ty = semck::read_type(vm, &sym_table, fct.file_id, &p.data_type)
                 .unwrap_or(SourceType::Error);
 
             if ty == SourceType::This && !fct.in_trait() {
@@ -149,8 +149,7 @@ pub fn check(vm: &VM) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty = semck::read_type_table(vm, &sym_table, fct.file_id, ret)
-                .unwrap_or(SourceType::Unit);
+            let ty = semck::read_type(vm, &sym_table, fct.file_id, ret).unwrap_or(SourceType::Unit);
 
             if ty == SourceType::This && !fct.in_trait() {
                 vm.diag

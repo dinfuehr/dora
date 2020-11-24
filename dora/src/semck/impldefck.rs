@@ -58,7 +58,7 @@ impl<'x> ImplCheck<'x> {
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
         if let Some(trait_ty) =
-            semck::read_type_table(self.vm, &self.sym, self.file_id.into(), ast_trait_type)
+            semck::read_type(self.vm, &self.sym, self.file_id.into(), ast_trait_type)
         {
             match trait_ty {
                 SourceType::TraitObject(trait_id) => {
@@ -74,7 +74,7 @@ impl<'x> ImplCheck<'x> {
             }
         }
 
-        if let Some(class_ty) = semck::read_type_table(
+        if let Some(class_ty) = semck::read_type(
             self.vm,
             &self.sym,
             self.file_id.into(),

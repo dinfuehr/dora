@@ -43,7 +43,7 @@ struct GlobalDefCheck<'a> {
 
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
-        let ty = semck::read_type_table(self.vm, &self.symtable, self.file_id, &self.ast.data_type)
+        let ty = semck::read_type(self.vm, &self.symtable, self.file_id, &self.ast.data_type)
             .unwrap_or(SourceType::Error);
 
         let glob = self.vm.globals.idx(self.global_id);

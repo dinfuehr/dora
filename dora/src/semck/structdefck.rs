@@ -79,7 +79,7 @@ impl<'x> StructCheck<'x> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type_table(self.vm, &self.symtable, self.file_id, bound);
+                    let ty = semck::read_type(self.vm, &self.symtable, self.file_id, bound);
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {
@@ -119,7 +119,7 @@ impl<'x> StructCheck<'x> {
     }
 
     fn visit_struct_field(&mut self, f: &ast::StructField, id: StructFieldId) {
-        let ty = semck::read_type_table(self.vm, &self.symtable, self.file_id, &f.data_type)
+        let ty = semck::read_type(self.vm, &self.symtable, self.file_id, &f.data_type)
             .unwrap_or(SourceType::Error);
 
         let xstruct = self.vm.structs.idx(self.struct_id);

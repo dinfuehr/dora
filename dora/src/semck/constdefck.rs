@@ -41,7 +41,7 @@ struct ConstCheck<'x> {
 
 impl<'x> ConstCheck<'x> {
     fn check(&mut self) {
-        let ty = semck::read_type_table(self.vm, &self.symtable, self.file_id, &self.ast.data_type)
+        let ty = semck::read_type(self.vm, &self.symtable, self.file_id, &self.ast.data_type)
             .unwrap_or(SourceType::Error);
 
         let xconst = self.vm.consts.idx(self.const_id);

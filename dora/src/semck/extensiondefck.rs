@@ -55,7 +55,7 @@ impl<'x> ExtensionCheck<'x> {
             self.check_type_params(type_params);
         }
 
-        if let Some(extension_ty) = semck::read_type_table(
+        if let Some(extension_ty) = semck::read_type(
             self.vm,
             &self.sym,
             self.file_id.into(),

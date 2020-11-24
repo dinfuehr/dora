@@ -6,27 +6,26 @@ use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassId, EnumId, FileId, StructId, TypeParam, VM,
+    trait_accessible_from, ClassId, EnumId, FctId, FileId, StructId, TypeParam, VM,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 use dora_parser::lexer::position::Position;
 
-pub fn read_type_table(
-    vm: &VM,
-    table: &NestedSymTable,
-    file_id: FileId,
-    t: &Type,
-) -> Option<SourceType> {
-    read_type_common(vm, table, file_id, t)
+pub enum TypeParamContext {
+    Class(ClassId),
+    Enum(EnumId),
+    Struct(StructId),
+    Fct(FctId),
+    None,
 }
 
-fn read_type_common(vm: &VM, table: &NestedSymTable, file: FileId, t: &Type) -> Option<SourceType> {
+pub fn read_type(vm: &VM, table: &NestedSymTable, file_id: FileId, t: &Type) -> Option<SourceType> {
     match *t {
         Type::This(_) => Some(SourceType::This),
-        Type::Basic(ref basic) => read_type_basic(vm, table, file, basic),
-        Type::Tuple(ref tuple) => read_type_tuple(vm, table, file, tuple),
-        Type::Lambda(ref lambda) => read_type_lambda(vm, table, file, lambda),
+        Type::Basic(ref basic) => read_type_basic(vm, table, file_id, basic),
+        Type::Tuple(ref tuple) => read_type_tuple(vm, table, file_id, tuple),
+        Type::Lambda(ref lambda) => read_type_lambda(vm, table, file_id, lambda),
     }
 }
 
@@ -149,7 +148,7 @@ fn read_type_enum(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_common(vm, table, file_id, param);
+        let param = read_type(vm, table, file_id, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -187,7 +186,7 @@ fn read_type_struct(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_common(vm, table, file_id, param);
+        let param = read_type(vm, table, file_id, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -265,7 +264,7 @@ fn read_type_class(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type_common(vm, table, file_id, param);
+        let param = read_type(vm, table, file_id, param);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -302,7 +301,7 @@ fn read_type_tuple(
         let mut subtypes = Vec::new();
 
         for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type_common(vm, table, file_id, subtype) {
+            if let Some(ty) = read_type(vm, table, file_id, subtype) {
                 subtypes.push(ty);
             } else {
                 return None;
@@ -323,14 +322,14 @@ fn read_type_lambda(
     let mut params = vec![];
 
     for param in &lambda.params {
-        if let Some(p) = read_type_common(vm, table, file_id, param) {
+        if let Some(p) = read_type(vm, table, file_id, param) {
             params.push(p);
         } else {
             return None;
         }
     }
 
-    let ret = if let Some(ret) = read_type_common(vm, table, file_id, &lambda.ret) {
+    let ret = if let Some(ret) = read_type(vm, table, file_id, &lambda.ret) {
         ret
     } else {
         return None;

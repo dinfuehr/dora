@@ -51,9 +51,8 @@ impl<'x> EnumCheck<'x> {
 
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {
-                    let variant_ty =
-                        semck::read_type_table(self.vm, &symtable, self.file_id.into(), ty)
-                            .unwrap_or(SourceType::Error);
+                    let variant_ty = semck::read_type(self.vm, &symtable, self.file_id.into(), ty)
+                        .unwrap_or(SourceType::Error);
                     types.push(variant_ty);
                 }
             }
@@ -90,7 +89,7 @@ impl<'x> EnumCheck<'x> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type_table(self.vm, symtable, self.file_id, bound);
+                    let ty = semck::read_type(self.vm, symtable, self.file_id, bound);
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {
