@@ -1,4 +1,4 @@
-use crate::semck;
+use crate::semck::{self, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{ConstId, FileId, NamespaceId, VM};
@@ -41,8 +41,14 @@ struct ConstCheck<'x> {
 
 impl<'x> ConstCheck<'x> {
     fn check(&mut self) {
-        let ty = semck::read_type(self.vm, &self.symtable, self.file_id, &self.ast.data_type)
-            .unwrap_or(SourceType::Error);
+        let ty = semck::read_type(
+            self.vm,
+            &self.symtable,
+            self.file_id,
+            &self.ast.data_type,
+            TypeParamContext::None,
+        )
+        .unwrap_or(SourceType::Error);
 
         let xconst = self.vm.consts.idx(self.const_id);
         let mut xconst = xconst.write();

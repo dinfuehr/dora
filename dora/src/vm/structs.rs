@@ -6,7 +6,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::SourceType;
+use crate::ty::{SourceType, SourceTypeArrayId};
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, namespace_path, ExtensionId, FctId, FileId, ImplId, NamespaceId,
@@ -68,6 +68,10 @@ impl StructData {
         }
 
         name
+    }
+
+    pub fn type_param(&self, id: SourceTypeArrayId) -> &TypeParam {
+        &self.type_params[id.to_usize()]
     }
 }
 

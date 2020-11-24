@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::semck;
+use crate::semck::{self, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctParent, FileId, GlobalId, NamespaceId, VM};
@@ -43,8 +43,14 @@ struct GlobalDefCheck<'a> {
 
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
-        let ty = semck::read_type(self.vm, &self.symtable, self.file_id, &self.ast.data_type)
-            .unwrap_or(SourceType::Error);
+        let ty = semck::read_type(
+            self.vm,
+            &self.symtable,
+            self.file_id,
+            &self.ast.data_type,
+            TypeParamContext::None,
+        )
+        .unwrap_or(SourceType::Error);
 
         let glob = self.vm.globals.idx(self.global_id);
         let mut glob = glob.write();

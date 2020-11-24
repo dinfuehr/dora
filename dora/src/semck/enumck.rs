@@ -5,7 +5,7 @@ use dora_parser::ast;
 use dora_parser::ast::TypeParam;
 
 use crate::error::msg::SemError;
-use crate::semck;
+use crate::semck::{self, TypeParamContext};
 use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{EnumData, EnumVariant, FileId, VM};
@@ -51,8 +51,14 @@ impl<'x> EnumCheck<'x> {
 
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {
-                    let variant_ty = semck::read_type(self.vm, &symtable, self.file_id.into(), ty)
-                        .unwrap_or(SourceType::Error);
+                    let variant_ty = semck::read_type(
+                        self.vm,
+                        &symtable,
+                        self.file_id.into(),
+                        ty,
+                        TypeParamContext::Enum(self.xenum.id),
+                    )
+                    .unwrap_or(SourceType::Error);
                     types.push(variant_ty);
                 }
             }
@@ -89,7 +95,13 @@ impl<'x> EnumCheck<'x> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type(self.vm, symtable, self.file_id, bound);
+                    let ty = semck::read_type(
+                        self.vm,
+                        symtable,
+                        self.file_id,
+                        bound,
+                        TypeParamContext::Enum(self.xenum.id),
+                    );
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {

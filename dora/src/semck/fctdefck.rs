@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::semck;
+use crate::semck::{self, TypeParamContext};
 use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{self, Fct, FctId, FctParent, VM};
@@ -92,7 +92,13 @@ pub fn check(vm: &VM) {
                     fct.type_params.push(vm::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type(vm, &sym_table, fct.file_id, bound);
+                        let ty = semck::read_type(
+                            vm,
+                            &sym_table,
+                            fct.file_id,
+                            bound,
+                            TypeParamContext::Fct(fct.id),
+                        );
 
                         match ty {
                             Some(SourceType::TraitObject(trait_id)) => {
@@ -130,8 +136,14 @@ pub fn check(vm: &VM) {
                     .report(fct.file_id, p.pos, SemError::VariadicParameterNeedsToBeLast);
             }
 
-            let ty = semck::read_type(vm, &sym_table, fct.file_id, &p.data_type)
-                .unwrap_or(SourceType::Error);
+            let ty = semck::read_type(
+                vm,
+                &sym_table,
+                fct.file_id,
+                &p.data_type,
+                TypeParamContext::Fct(fct.id),
+            )
+            .unwrap_or(SourceType::Error);
 
             if ty == SourceType::This && !fct.in_trait() {
                 vm.diag.lock().report(
@@ -149,7 +161,14 @@ pub fn check(vm: &VM) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty = semck::read_type(vm, &sym_table, fct.file_id, ret).unwrap_or(SourceType::Unit);
+            let ty = semck::read_type(
+                vm,
+                &sym_table,
+                fct.file_id,
+                ret,
+                TypeParamContext::Fct(fct.id),
+            )
+            .unwrap_or(SourceType::Error);
 
             if ty == SourceType::This && !fct.in_trait() {
                 vm.diag

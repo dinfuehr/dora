@@ -4,10 +4,10 @@ use std::{f32, f64};
 
 use crate::error::msg::SemError;
 use crate::semck::fctbodyck::lookup::MethodLookup;
-use crate::semck::report_term_shadow;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type};
+use crate::semck::{report_term_shadow, TypeParamContext};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
@@ -300,7 +300,14 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn read_type(&mut self, t: &Type) -> SourceType {
-        read_type(self.vm, &self.symtable, self.fct.file_id, t).unwrap_or(SourceType::Error)
+        read_type(
+            self.vm,
+            &self.symtable,
+            self.fct.file_id,
+            t,
+            TypeParamContext::Fct(self.fct.id),
+        )
+        .unwrap_or(SourceType::Error)
     }
 
     fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: SourceType, reassignable: bool) {

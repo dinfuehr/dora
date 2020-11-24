@@ -9,6 +9,7 @@ use crate::vm::{Fct, FctParent, Field, FileId, ModuleId, NamespaceId, VM};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
+use semck::TypeParamContext;
 
 pub fn check(vm: &VM) {
     for module in vm.modules.iter() {
@@ -70,8 +71,14 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn visit_field(&mut self, f: &ast::Field) {
-        let ty = semck::read_type(self.vm, &self.sym, self.file_id.into(), &f.data_type)
-            .unwrap_or(SourceType::Error);
+        let ty = semck::read_type(
+            self.vm,
+            &self.sym,
+            self.file_id.into(),
+            &f.data_type,
+            TypeParamContext::None,
+        )
+        .unwrap_or(SourceType::Error);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
@@ -138,8 +145,14 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
-        let parent_ty = semck::read_type(self.vm, &self.sym, self.file_id, &parent_class.parent_ty)
-            .unwrap_or(SourceType::Error);
+        let parent_ty = semck::read_type(
+            self.vm,
+            &self.sym,
+            self.file_id,
+            &parent_class.parent_ty,
+            TypeParamContext::None,
+        )
+        .unwrap_or(SourceType::Error);
 
         match parent_ty.clone() {
             SourceType::Class(cls_id, _type_list_id) => {

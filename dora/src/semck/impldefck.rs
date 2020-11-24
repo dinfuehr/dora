@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::semck;
+use crate::semck::{self, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctParent, FileId, ImplId, NamespaceId, VM};
@@ -57,9 +57,13 @@ impl<'x> ImplCheck<'x> {
 
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
-        if let Some(trait_ty) =
-            semck::read_type(self.vm, &self.sym, self.file_id.into(), ast_trait_type)
-        {
+        if let Some(trait_ty) = semck::read_type(
+            self.vm,
+            &self.sym,
+            self.file_id.into(),
+            ast_trait_type,
+            TypeParamContext::Impl(self.impl_id),
+        ) {
             match trait_ty {
                 SourceType::TraitObject(trait_id) => {
                     ximpl.trait_id = Some(trait_id);
@@ -79,6 +83,7 @@ impl<'x> ImplCheck<'x> {
             &self.sym,
             self.file_id.into(),
             &self.ast.class_type,
+            TypeParamContext::Impl(self.impl_id),
         ) {
             if class_ty.cls_id(self.vm).is_some() || class_ty.is_struct() {
                 ximpl.ty = class_ty;

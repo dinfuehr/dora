@@ -3,29 +3,40 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassId, EnumId, FctId, FileId, StructId, TypeParam, VM,
+    trait_accessible_from, ClassId, EnumId, ExtensionId, FctId, FileId, ImplId, StructId, TraitId,
+    TypeParam, VM,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 use dora_parser::lexer::position::Position;
 
+#[derive(Copy, Clone)]
 pub enum TypeParamContext {
     Class(ClassId),
     Enum(EnumId),
     Struct(StructId),
     Fct(FctId),
+    Trait(TraitId),
+    Impl(ImplId),
+    Extension(ExtensionId),
     None,
 }
 
-pub fn read_type(vm: &VM, table: &NestedSymTable, file_id: FileId, t: &Type) -> Option<SourceType> {
+pub fn read_type(
+    vm: &VM,
+    table: &NestedSymTable,
+    file_id: FileId,
+    t: &Type,
+    ctxt: TypeParamContext,
+) -> Option<SourceType> {
     match *t {
         Type::This(_) => Some(SourceType::This),
-        Type::Basic(ref basic) => read_type_basic(vm, table, file_id, basic),
-        Type::Tuple(ref tuple) => read_type_tuple(vm, table, file_id, tuple),
-        Type::Lambda(ref lambda) => read_type_lambda(vm, table, file_id, lambda),
+        Type::Basic(ref basic) => read_type_basic(vm, table, file_id, basic, ctxt),
+        Type::Tuple(ref tuple) => read_type_tuple(vm, table, file_id, tuple, ctxt),
+        Type::Lambda(ref lambda) => read_type_lambda(vm, table, file_id, lambda, ctxt),
     }
 }
 
@@ -34,6 +45,7 @@ fn read_type_basic(
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
+    ctxt: TypeParamContext,
 ) -> Option<SourceType> {
     let sym = read_type_path(vm, table, file_id, basic);
 
@@ -56,7 +68,7 @@ fn read_type_basic(
     let sym = sym.unwrap();
 
     match sym {
-        TypeSym::Class(cls_id) => read_type_class(vm, table, file_id, basic, cls_id),
+        TypeSym::Class(cls_id) => read_type_class(vm, table, file_id, basic, cls_id, ctxt),
 
         TypeSym::Trait(trait_id) => {
             if !trait_accessible_from(vm, trait_id, table.namespace_id()) {
@@ -73,9 +85,9 @@ fn read_type_basic(
             Some(SourceType::TraitObject(trait_id))
         }
 
-        TypeSym::Struct(struct_id) => read_type_struct(vm, table, file_id, basic, struct_id),
+        TypeSym::Struct(struct_id) => read_type_struct(vm, table, file_id, basic, struct_id, ctxt),
 
-        TypeSym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id),
+        TypeSym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id, ctxt),
 
         TypeSym::TypeParam(type_param_id) => {
             if basic.params.len() > 0 {
@@ -138,6 +150,7 @@ fn read_type_enum(
     file_id: FileId,
     basic: &TypeBasicType,
     enum_id: EnumId,
+    ctxt: TypeParamContext,
 ) -> Option<SourceType> {
     if !enum_accessible_from(vm, enum_id, table.namespace_id()) {
         let xenum = vm.enums[enum_id].read();
@@ -148,7 +161,7 @@ fn read_type_enum(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param);
+        let param = read_type(vm, table, file_id, param, ctxt);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -160,7 +173,14 @@ fn read_type_enum(
     let xenum = &vm.enums[enum_id];
     let xenum = xenum.read();
 
-    if check_type_params(vm, &xenum.type_params, &type_params, file_id, basic.pos) {
+    if check_type_params(
+        vm,
+        &xenum.type_params,
+        &type_params,
+        file_id,
+        basic.pos,
+        ctxt,
+    ) {
         let list = SourceTypeArray::with(type_params);
         let list_id = vm.source_type_arrays.lock().insert(list);
         Some(SourceType::Enum(enum_id, list_id))
@@ -175,6 +195,7 @@ fn read_type_struct(
     file_id: FileId,
     basic: &TypeBasicType,
     struct_id: StructId,
+    ctxt: TypeParamContext,
 ) -> Option<SourceType> {
     if !struct_accessible_from(vm, struct_id, table.namespace_id()) {
         let xstruct = vm.structs.idx(struct_id);
@@ -186,7 +207,7 @@ fn read_type_struct(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param);
+        let param = read_type(vm, table, file_id, param, ctxt);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -198,7 +219,14 @@ fn read_type_struct(
     let xstruct = vm.structs.idx(struct_id);
     let xstruct = xstruct.read();
 
-    if check_type_params(vm, &xstruct.type_params, &type_params, file_id, basic.pos) {
+    if check_type_params(
+        vm,
+        &xstruct.type_params,
+        &type_params,
+        file_id,
+        basic.pos,
+        ctxt,
+    ) {
         let list = SourceTypeArray::with(type_params);
         let list_id = vm.source_type_arrays.lock().insert(list);
         Some(SourceType::Struct(struct_id, list_id))
@@ -213,6 +241,7 @@ fn check_type_params(
     type_params: &[SourceType],
     file_id: FileId,
     pos: Position,
+    _ctxt: TypeParamContext,
 ) -> bool {
     if tp_definitions.len() != type_params.len() {
         let msg = SemError::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
@@ -223,28 +252,202 @@ fn check_type_params(
     let mut success = true;
 
     for (tp_definition, tp_ty) in tp_definitions.iter().zip(type_params.iter()) {
-        let cls_id = if let Some(cls_id) = tp_ty.cls_id(vm) {
-            cls_id
-        } else {
-            continue;
-        };
+        match tp_ty {
+            SourceType::TypeParam(_) => continue,
+            SourceType::Enum(_, _)
+            | SourceType::Struct(_, _)
+            | SourceType::Tuple(_)
+            | SourceType::Unit
+            | SourceType::Module(_)
+            | SourceType::TraitObject(_)
+            | SourceType::Lambda(_) => fail_for_each_trait_bound(
+                vm,
+                tp_definition,
+                tp_ty.clone(),
+                &mut success,
+                file_id,
+                pos,
+            ),
+            SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => {
+                unreachable!()
+            }
+            SourceType::Bool
+            | SourceType::Char
+            | SourceType::UInt8
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Class(_, _) => {
+                let cls_id = tp_ty.cls_id(vm).expect("not a class");
 
-        let cls = vm.classes.idx(cls_id);
-        let cls = cls.read();
+                let cls = vm.classes.idx(cls_id);
+                let cls = cls.read();
 
-        for &trait_bound in &tp_definition.trait_bounds {
-            if !cls.implements_trait(vm, trait_bound) {
-                let bound = vm.traits[trait_bound].read();
-                let name = tp_ty.name_cls(vm, &*cls);
-                let trait_name = vm.interner.str(bound.name).to_string();
-                let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-                vm.diag.lock().report(file_id, pos, msg);
-                success = false;
+                for &trait_bound in &tp_definition.trait_bounds {
+                    if !cls.implements_trait(vm, trait_bound) {
+                        let bound = vm.traits[trait_bound].read();
+                        let name = tp_ty.name_cls(vm, &*cls);
+                        let trait_name = vm.interner.str(bound.name).to_string();
+                        let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+                        vm.diag.lock().report(file_id, pos, msg);
+                        success = false;
+                    }
+                }
             }
         }
     }
 
     success
+}
+
+fn check_bounds_for_type_param_id(
+    vm: &VM,
+    tp_definition: &TypeParam,
+    tp_id: SourceTypeArrayId,
+    success: &mut bool,
+    file_id: FileId,
+    pos: Position,
+    ctxt: TypeParamContext,
+) {
+    match ctxt {
+        TypeParamContext::Class(cls_id) => {
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            check_bounds_for_type_param(
+                vm,
+                tp_definition,
+                cls.type_param(tp_id),
+                success,
+                file_id,
+                pos,
+                ctxt,
+            )
+        }
+
+        TypeParamContext::Enum(enum_id) => {
+            let xenum = &vm.enums[enum_id];
+            let xenum = xenum.read();
+
+            check_bounds_for_type_param(
+                vm,
+                tp_definition,
+                xenum.type_param(tp_id),
+                success,
+                file_id,
+                pos,
+                ctxt,
+            )
+        }
+
+        TypeParamContext::Struct(struct_id) => {
+            let xstruct = &vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_bounds_for_type_param(
+                vm,
+                tp_definition,
+                xstruct.type_param(tp_id),
+                success,
+                file_id,
+                pos,
+                ctxt,
+            )
+        }
+
+        TypeParamContext::Impl(impl_id) => {
+            let ximpl = &vm.impls[impl_id];
+            let ximpl = ximpl.read();
+
+            check_bounds_for_type_param(
+                vm,
+                tp_definition,
+                ximpl.type_param(tp_id),
+                success,
+                file_id,
+                pos,
+                ctxt,
+            )
+        }
+
+        TypeParamContext::Extension(extension_id) => {
+            let extension = &vm.extensions[extension_id];
+            let extension = extension.read();
+
+            check_bounds_for_type_param(
+                vm,
+                tp_definition,
+                extension.type_param(tp_id),
+                success,
+                file_id,
+                pos,
+                ctxt,
+            )
+        }
+
+        TypeParamContext::Trait(trait_id) => {
+            let xtrait = &vm.traits[trait_id];
+            let xtrait = xtrait.read();
+
+            check_bounds_for_type_param(
+                vm,
+                tp_definition,
+                xtrait.type_param(tp_id),
+                success,
+                file_id,
+                pos,
+                ctxt,
+            )
+        }
+
+        TypeParamContext::Fct(fct_id) => {
+            let fct = vm.fcts.idx(fct_id);
+            let fct = fct.read();
+
+            check_bounds_for_type_param(
+                vm,
+                tp_definition,
+                fct.type_param(tp_id),
+                success,
+                file_id,
+                pos,
+                ctxt,
+            )
+        }
+
+        TypeParamContext::None => unreachable!(),
+    }
+}
+
+fn check_bounds_for_type_param(
+    _vm: &VM,
+    _tp_definition: &TypeParam,
+    _tp_definition_arg: &TypeParam,
+    _success: &mut bool,
+    _file_id: FileId,
+    _pos: Position,
+    _ctxt: TypeParamContext,
+) {
+    // TODO
+}
+
+fn fail_for_each_trait_bound(
+    vm: &VM,
+    tp_definition: &TypeParam,
+    tp_ty: SourceType,
+    success: &mut bool,
+    file_id: FileId,
+    pos: Position,
+) {
+    for &trait_bound in &tp_definition.trait_bounds {
+        let bound = vm.traits[trait_bound].read();
+        let name = tp_ty.name(vm);
+        let trait_name = vm.interner.str(bound.name).to_string();
+        let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+        vm.diag.lock().report(file_id, pos, msg);
+        *success = false;
+    }
 }
 
 fn read_type_class(
@@ -253,6 +456,7 @@ fn read_type_class(
     file_id: FileId,
     basic: &TypeBasicType,
     cls_id: ClassId,
+    ctxt: TypeParamContext,
 ) -> Option<SourceType> {
     if !class_accessible_from(vm, cls_id, table.namespace_id()) {
         let cls = vm.classes.idx(cls_id);
@@ -264,7 +468,7 @@ fn read_type_class(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param);
+        let param = read_type(vm, table, file_id, param, ctxt);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -276,7 +480,7 @@ fn read_type_class(
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
-    if check_type_params(vm, &cls.type_params, &type_params, file_id, basic.pos) {
+    if check_type_params(vm, &cls.type_params, &type_params, file_id, basic.pos, ctxt) {
         if cls.type_params.is_empty() {
             Some(cls.ty.clone())
         } else {
@@ -294,6 +498,7 @@ fn read_type_tuple(
     table: &NestedSymTable,
     file_id: FileId,
     tuple: &TypeTupleType,
+    ctxt: TypeParamContext,
 ) -> Option<SourceType> {
     if tuple.subtypes.len() == 0 {
         Some(SourceType::Unit)
@@ -301,7 +506,7 @@ fn read_type_tuple(
         let mut subtypes = Vec::new();
 
         for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type(vm, table, file_id, subtype) {
+            if let Some(ty) = read_type(vm, table, file_id, subtype, ctxt) {
                 subtypes.push(ty);
             } else {
                 return None;
@@ -318,18 +523,19 @@ fn read_type_lambda(
     table: &NestedSymTable,
     file_id: FileId,
     lambda: &TypeLambdaType,
+    ctxt: TypeParamContext,
 ) -> Option<SourceType> {
     let mut params = vec![];
 
     for param in &lambda.params {
-        if let Some(p) = read_type(vm, table, file_id, param) {
+        if let Some(p) = read_type(vm, table, file_id, param, ctxt) {
             params.push(p);
         } else {
             return None;
         }
     }
 
-    let ret = if let Some(ret) = read_type(vm, table, file_id, &lambda.ret) {
+    let ret = if let Some(ret) = read_type(vm, table, file_id, &lambda.ret, ctxt) {
         ret
     } else {
         return None;

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::semck;
 use crate::semck::typeparamck::{self, ErrorReporting};
+use crate::semck::{self, TypeParamContext};
 use crate::sym::{NestedSymTable, SymTable, TermSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
@@ -70,8 +70,14 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_field(&mut self, f: &ast::Field) {
-        let ty = semck::read_type(self.vm, &self.sym, self.file_id.into(), &f.data_type)
-            .unwrap_or(SourceType::Error);
+        let ty = semck::read_type(
+            self.vm,
+            &self.sym,
+            self.file_id.into(),
+            &f.data_type,
+            TypeParamContext::Class(self.cls_id),
+        )
+        .unwrap_or(SourceType::Error);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.primary_ctor && f.expr.is_none() {
@@ -157,8 +163,14 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
-        let parent_ty = semck::read_type(self.vm, &self.sym, self.file_id, &parent_class.parent_ty)
-            .unwrap_or(SourceType::Error);
+        let parent_ty = semck::read_type(
+            self.vm,
+            &self.sym,
+            self.file_id,
+            &parent_class.parent_ty,
+            TypeParamContext::Class(self.cls_id),
+        )
+        .unwrap_or(SourceType::Error);
 
         match parent_ty.clone() {
             SourceType::Class(cls_id, _type_list_id) => {

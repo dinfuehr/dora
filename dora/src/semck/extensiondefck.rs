@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::semck;
+use crate::semck::{self, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, StructId, VM};
@@ -60,6 +60,7 @@ impl<'x> ExtensionCheck<'x> {
             &self.sym,
             self.file_id.into(),
             &self.ast.class_type,
+            TypeParamContext::Extension(self.extension_id),
         ) {
             self.extension_ty = extension_ty.clone();
 

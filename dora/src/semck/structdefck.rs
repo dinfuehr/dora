@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::semck;
+use crate::semck::{self, TypeParamContext};
 use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{FileId, NamespaceId, StructFieldData, StructFieldId, StructId, VM};
@@ -79,7 +79,13 @@ impl<'x> StructCheck<'x> {
                 params.push(SourceType::TypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type(self.vm, &self.symtable, self.file_id, bound);
+                    let ty = semck::read_type(
+                        self.vm,
+                        &self.symtable,
+                        self.file_id,
+                        bound,
+                        TypeParamContext::Struct(self.struct_id),
+                    );
 
                     match ty {
                         Some(SourceType::TraitObject(trait_id)) => {
@@ -119,8 +125,14 @@ impl<'x> StructCheck<'x> {
     }
 
     fn visit_struct_field(&mut self, f: &ast::StructField, id: StructFieldId) {
-        let ty = semck::read_type(self.vm, &self.symtable, self.file_id, &f.data_type)
-            .unwrap_or(SourceType::Error);
+        let ty = semck::read_type(
+            self.vm,
+            &self.symtable,
+            self.file_id,
+            &f.data_type,
+            TypeParamContext::Struct(self.struct_id),
+        )
+        .unwrap_or(SourceType::Error);
 
         let xstruct = self.vm.structs.idx(self.struct_id);
         let mut xstruct = xstruct.write();
