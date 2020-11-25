@@ -980,6 +980,30 @@ fn test_fct_with_type_params() {
 }
 
 #[test]
+fn test_type_param_bounds_in_definition() {
+    err(
+        "
+            trait MyTrait {}
+            class Foo[T: MyTrait]
+            fun bar[T](arg: Foo[T]) {}
+        ",
+        pos(4, 29),
+        SemError::TraitBoundNotSatisfied("T".into(), "MyTrait".into()),
+    );
+
+    err(
+        "
+            trait MyTraitA {}
+            trait MyTraitB {}
+            class Foo[T: MyTraitA + MyTraitB]
+            fun bar[T: MyTraitA](arg: Foo[T]) {}
+        ",
+        pos(5, 39),
+        SemError::TraitBoundNotSatisfied("T".into(), "MyTraitB".into()),
+    );
+}
+
+#[test]
 fn test_const_check() {
     err(
         "const one: Int32 = 1;
