@@ -118,10 +118,6 @@ impl Fct {
         }
     }
 
-    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
-        &self.type_params[id.to_usize()]
-    }
-
     pub fn type_param_id<F: FnOnce(&TypeParam, TypeParamId) -> R, R>(
         &self,
         vm: &VM,
@@ -138,7 +134,7 @@ impl Fct {
                     return callback(extension.type_param(id), id);
                 }
 
-                TypeParamId(id.to_usize() - len)
+                id.to_usize() - len
             }
 
             FctParent::Impl(impl_id) => {
@@ -150,7 +146,7 @@ impl Fct {
                     return callback(ximpl.type_param(id), id);
                 }
 
-                TypeParamId(id.to_usize() - len)
+                id.to_usize() - len
             }
 
             FctParent::Class(cls_id) => {
@@ -162,13 +158,14 @@ impl Fct {
                     return callback(cls.type_param(id), id);
                 }
 
-                TypeParamId(id.to_usize() - len)
+                id.to_usize() - len
             }
 
-            _ => id,
+            _ => id.to_usize(),
         };
 
-        callback(self.type_param(id_in_fct), id)
+        let type_param = &self.type_params[id_in_fct];
+        callback(type_param, id)
     }
 
     pub fn type_param_ty<F: FnOnce(&TypeParam, TypeParamId) -> R, R>(

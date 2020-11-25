@@ -97,7 +97,7 @@ pub fn check(vm: &VM) {
                             &sym_table,
                             fct.file_id,
                             bound,
-                            TypeParamContext::Fct(fct.id),
+                            TypeParamContext::Fct(&*fct),
                         );
 
                         match ty {
@@ -142,7 +142,7 @@ pub fn check(vm: &VM) {
                 &sym_table,
                 fct.file_id,
                 &p.data_type,
-                TypeParamContext::Fct(fct.id),
+                TypeParamContext::Fct(&*fct),
             )
             .unwrap_or(SourceType::Error);
 
@@ -167,7 +167,7 @@ pub fn check(vm: &VM) {
                 &sym_table,
                 fct.file_id,
                 ret,
-                TypeParamContext::Fct(fct.id),
+                TypeParamContext::Fct(&*fct),
             )
             .unwrap_or(SourceType::Error);
 

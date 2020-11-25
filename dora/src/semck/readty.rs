@@ -6,7 +6,7 @@ use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassId, EnumId, ExtensionId, FctId, FileId, ImplId, StructId, TraitId,
+    trait_accessible_from, ClassId, EnumId, ExtensionId, Fct, FileId, ImplId, StructId, TraitId,
     TypeParam, TypeParamId, VM,
 };
 
@@ -14,11 +14,11 @@ use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone)]
-pub enum TypeParamContext {
+pub enum TypeParamContext<'a> {
     Class(ClassId),
     Enum(EnumId),
     Struct(StructId),
-    Fct(FctId),
+    Fct(&'a Fct),
     Trait(TraitId),
     Impl(ImplId),
     Extension(ExtensionId),
@@ -241,7 +241,7 @@ fn check_type_params(
     type_params: &[SourceType],
     file_id: FileId,
     pos: Position,
-    _ctxt: TypeParamContext,
+    ctxt: TypeParamContext,
 ) -> bool {
     if tp_definitions.len() != type_params.len() {
         let msg = SemError::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
@@ -253,7 +253,15 @@ fn check_type_params(
 
     for (tp_definition, tp_ty) in tp_definitions.iter().zip(type_params.iter()) {
         match tp_ty {
-            SourceType::TypeParam(_) => continue,
+            SourceType::TypeParam(tp_id) => check_bounds_for_type_param_id(
+                vm,
+                tp_definition,
+                *tp_id,
+                &mut success,
+                file_id,
+                pos,
+                ctxt,
+            ),
             SourceType::Enum(_, _)
             | SourceType::Struct(_, _)
             | SourceType::Tuple(_)
@@ -401,20 +409,17 @@ fn check_bounds_for_type_param_id(
             )
         }
 
-        TypeParamContext::Fct(fct_id) => {
-            let fct = vm.fcts.idx(fct_id);
-            let fct = fct.read();
-
+        TypeParamContext::Fct(fct) => fct.type_param_id(vm, tp_id, |tp_definition_arg, _| {
             check_bounds_for_type_param(
                 vm,
                 tp_definition,
-                fct.type_param(tp_id),
+                tp_definition_arg,
                 success,
                 file_id,
                 pos,
                 ctxt,
             )
-        }
+        }),
 
         TypeParamContext::None => unreachable!(),
     }

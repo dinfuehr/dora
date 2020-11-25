@@ -305,7 +305,7 @@ impl<'a> TypeCheck<'a> {
             &self.symtable,
             self.fct.file_id,
             t,
-            TypeParamContext::Fct(self.fct.id),
+            TypeParamContext::Fct(self.fct),
         )
         .unwrap_or(SourceType::Error)
     }
