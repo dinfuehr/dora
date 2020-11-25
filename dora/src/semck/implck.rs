@@ -9,9 +9,6 @@ pub fn check(vm: &mut VM) {
     for ximpl in &vm.impls {
         let ximpl = ximpl.read();
         let xtrait = vm.traits[ximpl.trait_id()].read();
-        let cls = vm.classes.idx(ximpl.cls_id(vm));
-        let cls = cls.read();
-        let cls = cls.ty.clone();
 
         let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
         let mut defined = HashSet::new();
@@ -24,7 +21,7 @@ pub fn check(vm: &mut VM) {
                 vm,
                 method.is_static,
                 method.name,
-                Some(cls.clone()),
+                Some(ximpl.ty.clone()),
                 method.params_without_self(),
             ) {
                 method.impl_for = Some(fid);
@@ -35,7 +32,7 @@ pub fn check(vm: &mut VM) {
 
                 let return_type_valid = method.return_type
                     == if trait_method.return_type.is_self() {
-                        cls.clone()
+                        ximpl.ty.clone()
                     } else {
                         trait_method.return_type.clone()
                     };

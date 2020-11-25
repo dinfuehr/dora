@@ -119,6 +119,7 @@ pub enum SemError {
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
     ClassExpected,
+    ClassEnumStructExpected,
     ClassExpectedAsTypeParam,
     BoundExpected,
     NoTypeParamsExpected,
@@ -450,6 +451,7 @@ impl SemError {
                 format!("expected {} type parameters but got {}.", exp, actual)
             }
             SemError::ClassExpected => "expected class.".into(),
+            SemError::ClassEnumStructExpected => "expected class, struct or enum.".into(),
             SemError::ClassExpectedAsTypeParam => "class as type parameter expected.".into(),
             SemError::BoundExpected => "class or trait bound expected".into(),
             SemError::NoTypeParamsExpected => "no type params allowed".into(),

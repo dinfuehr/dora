@@ -85,22 +85,38 @@ impl<'x> ImplCheck<'x> {
             &self.ast.class_type,
             TypeParamContext::Impl(self.impl_id),
         ) {
-            if class_ty.cls_id(self.vm).is_some() || class_ty.is_struct() {
+            if class_ty.cls_id(self.vm).is_some() || class_ty.is_struct() || class_ty.is_enum() {
                 ximpl.ty = class_ty;
             } else {
                 self.vm.diag.lock().report(
                     self.file_id,
                     self.ast.class_type.pos(),
-                    SemError::ClassExpected,
+                    SemError::ClassEnumStructExpected,
                 );
             }
         }
 
         if ximpl.trait_id.is_some() && !ximpl.ty.is_error() {
-            let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
-            let mut cls = cls.write();
-            cls.traits.push(ximpl.trait_id());
-            cls.impls.push(ximpl.id);
+            match ximpl.ty {
+                SourceType::Enum(enum_id, _) => {
+                    let xenum = &self.vm.enums[enum_id];
+                    let mut xenum = xenum.write();
+                    xenum.impls.push(ximpl.id);
+                }
+
+                SourceType::Struct(struct_id, _) => {
+                    let xstruct = self.vm.structs.idx(struct_id);
+                    let mut xstruct = xstruct.write();
+                    xstruct.impls.push(ximpl.id);
+                }
+
+                _ => {
+                    let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
+                    let mut cls = cls.write();
+                    cls.traits.push(ximpl.trait_id());
+                    cls.impls.push(ximpl.id);
+                }
+            }
         }
 
         self.sym.pop_level();
@@ -196,7 +212,7 @@ mod tests {
         err(
             "trait Foo {} trait A {} impl Foo for A {}",
             pos(1, 38),
-            SemError::ClassExpected,
+            SemError::ClassEnumStructExpected,
         );
     }
 
@@ -209,9 +225,13 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn impl_struct() {
         ok("trait Foo {} struct A(x: Int32) impl Foo for A {}");
+    }
+
+    #[test]
+    fn impl_enum() {
+        ok("trait Foo {} enum A { B, C } impl Foo for A {}");
     }
 
     #[test]
