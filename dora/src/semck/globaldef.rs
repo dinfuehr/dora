@@ -292,12 +292,18 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         if node.trait_type.is_some() {
             let id: ImplId = (self.vm.impls.len() as u32).into();
+            let mut impl_type_params = Vec::new();
+            if let Some(ref type_params) = node.type_params {
+                for param in type_params {
+                    impl_type_params.push(TypeParam::new(param.name));
+                }
+            }
             let ximpl = ImplData {
                 id,
                 file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
-                type_params: Vec::new(),
+                type_params: impl_type_params,
                 pos: node.pos,
                 trait_id: None,
                 ty: SourceType::Error,

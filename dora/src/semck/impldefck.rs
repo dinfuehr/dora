@@ -62,7 +62,7 @@ impl<'x> ImplCheck<'x> {
             &self.sym,
             self.file_id.into(),
             ast_trait_type,
-            TypeParamContext::Impl(self.impl_id),
+            TypeParamContext::Impl(&*ximpl),
         ) {
             match trait_ty {
                 SourceType::TraitObject(trait_id) => {
@@ -83,7 +83,7 @@ impl<'x> ImplCheck<'x> {
             &self.sym,
             self.file_id.into(),
             &self.ast.class_type,
-            TypeParamContext::Impl(self.impl_id),
+            TypeParamContext::Impl(&*ximpl),
         ) {
             if class_ty.cls_id(self.vm).is_some() || class_ty.is_struct() || class_ty.is_enum() {
                 ximpl.ty = class_ty;
@@ -226,12 +226,42 @@ mod tests {
 
     #[test]
     fn impl_struct() {
-        ok("trait Foo {} struct A(x: Int32) impl Foo for A {}");
+        ok("
+            trait Foo {}
+            struct A(x: Int32)
+            impl Foo for A {}
+        ");
+        ok("
+            trait Foo {}
+            struct A[T](x: Int32)
+            impl Foo for A[Int32] {}
+            impl Foo for A[Float32] {}
+        ");
+        ok("
+            trait Foo {}
+            struct A[T](x: Int32)
+            impl[T] Foo for A[T] {}
+        ");
     }
 
     #[test]
     fn impl_enum() {
-        ok("trait Foo {} enum A { B, C } impl Foo for A {}");
+        ok("
+            trait Foo {}
+            enum A { B, C }
+            impl Foo for A {}
+        ");
+        ok("
+            trait Foo {}
+            enum A[T] { A, B }
+            impl Foo for A[Int32] {}
+            impl Foo for A[Float32] {}
+        ");
+        ok("
+            trait Foo {}
+            enum A[T] { A, B }
+            impl[T] Foo for A[T] {}
+        ");
     }
 
     #[test]

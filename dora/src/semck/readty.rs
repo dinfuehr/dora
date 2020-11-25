@@ -6,7 +6,7 @@ use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassId, EnumId, ExtensionId, Fct, FileId, ImplId, StructId, TraitId,
+    trait_accessible_from, ClassId, EnumId, ExtensionId, Fct, FileId, ImplData, StructId, TraitId,
     TypeParam, TypeParamId, VM,
 };
 
@@ -20,7 +20,7 @@ pub enum TypeParamContext<'a> {
     Struct(StructId),
     Fct(&'a Fct),
     Trait(TraitId),
-    Impl(ImplId),
+    Impl(&'a ImplData),
     Extension(ExtensionId),
     None,
 }
@@ -360,20 +360,15 @@ fn check_bounds_for_type_param_id(
             )
         }
 
-        TypeParamContext::Impl(impl_id) => {
-            let ximpl = &vm.impls[impl_id];
-            let ximpl = ximpl.read();
-
-            check_bounds_for_type_param(
-                vm,
-                tp_definition,
-                ximpl.type_param(tp_id),
-                success,
-                file_id,
-                pos,
-                ctxt,
-            )
-        }
+        TypeParamContext::Impl(ximpl) => check_bounds_for_type_param(
+            vm,
+            tp_definition,
+            ximpl.type_param(tp_id),
+            success,
+            file_id,
+            pos,
+            ctxt,
+        ),
 
         TypeParamContext::Extension(extension_id) => {
             let extension = &vm.extensions[extension_id];
