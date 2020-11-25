@@ -262,9 +262,8 @@ fn check_type_params(
                 pos,
                 ctxt,
             ),
-            SourceType::Enum(_, _)
-            | SourceType::Struct(_, _)
-            | SourceType::Tuple(_)
+
+            SourceType::Tuple(_)
             | SourceType::Unit
             | SourceType::Module(_)
             | SourceType::TraitObject(_)
@@ -286,16 +285,13 @@ fn check_type_params(
             | SourceType::Int64
             | SourceType::Float32
             | SourceType::Float64
-            | SourceType::Class(_, _) => {
-                let cls_id = tp_ty.cls_id(vm).expect("not a class");
-
-                let cls = vm.classes.idx(cls_id);
-                let cls = cls.read();
-
+            | SourceType::Class(_, _)
+            | SourceType::Enum(_, _)
+            | SourceType::Struct(_, _) => {
                 for &trait_bound in &tp_definition.trait_bounds {
-                    if !cls.implements_trait(vm, trait_bound) {
+                    if !tp_ty.implements_trait(vm, trait_bound) {
                         let bound = vm.traits[trait_bound].read();
-                        let name = tp_ty.name_cls(vm, &*cls);
+                        let name = tp_ty.name(vm);
                         let trait_name = vm.interner.str(bound.name).to_string();
                         let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
                         vm.diag.lock().report(file_id, pos, msg);

@@ -208,13 +208,35 @@ impl SourceType {
     }
 
     pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
-        if let Some(cls_id) = self.cls_id(vm) {
-            let cls = vm.classes.idx(cls_id);
-            let cls = cls.read();
-            return cls.implements_trait(vm, trait_id);
-        }
+        match self {
+            SourceType::Enum(_, _)
+            | SourceType::Struct(_, _)
+            | SourceType::Tuple(_)
+            | SourceType::Unit
+            | SourceType::Module(_)
+            | SourceType::TraitObject(_)
+            | SourceType::Lambda(_) => false,
 
-        false
+            SourceType::Bool
+            | SourceType::Char
+            | SourceType::UInt8
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Class(_, _) => {
+                let cls_id = self.cls_id(vm).expect("class expected");
+                let cls = vm.classes.idx(cls_id);
+                let cls = cls.read();
+                cls.implements_trait(vm, trait_id)
+            }
+
+            SourceType::Error
+            | SourceType::Ptr
+            | SourceType::This
+            | SourceType::Any
+            | SourceType::TypeParam(_) => unreachable!(),
+        }
     }
 
     pub fn type_params(&self, vm: &VM) -> SourceTypeArray {

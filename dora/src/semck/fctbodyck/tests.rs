@@ -1001,6 +1001,19 @@ fn test_type_param_bounds_in_definition() {
         pos(5, 39),
         SemError::TraitBoundNotSatisfied("T".into(), "MyTraitB".into()),
     );
+
+    err(
+        "
+            trait MyTraitA {}
+            trait MyTraitB {}
+            class Foo[T: MyTraitA + MyTraitB]
+            class Baz[X] {
+                fun bar[T: MyTraitA](arg: Foo[T]) {}
+            }
+        ",
+        pos(6, 43),
+        SemError::TraitBoundNotSatisfied("T".into(), "MyTraitB".into()),
+    );
 }
 
 #[test]
