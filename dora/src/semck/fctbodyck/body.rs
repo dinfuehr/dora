@@ -9,7 +9,7 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type};
 use crate::semck::{report_term_shadow, TypeParamContext};
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
     fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
@@ -2785,7 +2785,7 @@ impl<'a> TypeCheck<'a> {
                         tp.trait_bounds.contains(&stringable_trait)
                     })
                 } else {
-                    part_expr.implements_trait(self.vm, stringable_trait)
+                    implements_trait(self.vm, part_expr.clone(), stringable_trait)
                 };
 
                 if implements_stringable || part_expr.is_error() {

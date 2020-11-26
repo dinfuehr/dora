@@ -434,7 +434,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 methods: Vec::new(),
                 virtual_fcts: Vec::new(),
 
-                traits: Vec::new(),
                 impls: Vec::new(),
                 extensions: Vec::new(),
 

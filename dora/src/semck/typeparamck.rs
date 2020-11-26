@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use std::collections::hash_set::HashSet;
 
 use crate::error::msg::SemError;
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{Class, ClassId, Fct, FileId, StructId, TraitId, TypeParam, VM};
 
 pub enum ErrorReporting {
@@ -173,7 +173,7 @@ impl<'a> TypeParamCheck<'a> {
         let mut succeeded = true;
 
         for &trait_bound in &tp.trait_bounds {
-            if !ty.implements_trait(self.vm, trait_bound) {
+            if !implements_trait(self.vm, ty.clone(), trait_bound) {
                 if let ErrorReporting::Yes(file_id, pos) = self.error {
                     self.fail_trait_bound(file_id, pos, trait_bound, ty.clone());
                 }

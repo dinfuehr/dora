@@ -72,7 +72,6 @@ pub struct Class {
     pub methods: Vec<FctId>,
     pub virtual_fcts: Vec<FctId>,
 
-    pub traits: Vec<TraitId>,
     pub impls: Vec<ImplId>,
     pub extensions: Vec<ExtensionId>,
 
@@ -219,14 +218,6 @@ impl Class {
                 }
             }
         }
-    }
-
-    pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
-        if vm.known.traits.zero == trait_id && !self.ty.is_cls() {
-            return true;
-        }
-
-        self.traits.contains(&trait_id)
     }
 }
 

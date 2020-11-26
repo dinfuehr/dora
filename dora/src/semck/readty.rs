@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
     trait_accessible_from, ClassId, EnumId, ExtensionId, Fct, FileId, ImplData, StructId, TraitId,
@@ -289,7 +289,7 @@ fn check_type_params(
             | SourceType::Enum(_, _)
             | SourceType::Struct(_, _) => {
                 for &trait_bound in &tp_definition.trait_bounds {
-                    if !tp_ty.implements_trait(vm, trait_bound) {
+                    if !implements_trait(vm, tp_ty.clone(), trait_bound) {
                         let bound = vm.traits[trait_bound].read();
                         let name = tp_ty.name(vm);
                         let trait_name = vm.interner.str(bound.name).to_string();

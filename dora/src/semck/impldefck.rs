@@ -113,7 +113,6 @@ impl<'x> ImplCheck<'x> {
                 _ => {
                     let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
                     let mut cls = cls.write();
-                    cls.traits.push(ximpl.trait_id());
                     cls.impls.push(ximpl.id);
                 }
             }

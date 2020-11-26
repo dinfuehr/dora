@@ -207,38 +207,6 @@ impl SourceType {
         }
     }
 
-    pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
-        match self {
-            SourceType::Enum(_, _)
-            | SourceType::Struct(_, _)
-            | SourceType::Tuple(_)
-            | SourceType::Unit
-            | SourceType::Module(_)
-            | SourceType::TraitObject(_)
-            | SourceType::Lambda(_) => false,
-
-            SourceType::Bool
-            | SourceType::Char
-            | SourceType::UInt8
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64
-            | SourceType::Class(_, _) => {
-                let cls_id = self.cls_id(vm).expect("class expected");
-                let cls = vm.classes.idx(cls_id);
-                let cls = cls.read();
-                cls.implements_trait(vm, trait_id)
-            }
-
-            SourceType::Error
-            | SourceType::Ptr
-            | SourceType::This
-            | SourceType::Any
-            | SourceType::TypeParam(_) => unreachable!(),
-        }
-    }
-
     pub fn type_params(&self, vm: &VM) -> SourceTypeArray {
         match self {
             &SourceType::Class(_, list_id)
@@ -591,6 +559,53 @@ impl SourceType {
             SourceType::Lambda(_) => unimplemented!(),
             SourceType::TypeParam(_) => false,
         }
+    }
+}
+
+pub fn implements_trait(vm: &VM, ty: SourceType, trait_id: TraitId) -> bool {
+    match ty {
+        SourceType::Enum(_, _)
+        | SourceType::Struct(_, _)
+        | SourceType::Tuple(_)
+        | SourceType::Unit
+        | SourceType::Module(_)
+        | SourceType::TraitObject(_)
+        | SourceType::Lambda(_) => false,
+
+        SourceType::Bool
+        | SourceType::Char
+        | SourceType::UInt8
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Class(_, _) => {
+            if vm.known.traits.zero == trait_id && !ty.is_cls() {
+                return true;
+            }
+
+            let cls_id = ty.cls_id(vm).expect("class expected");
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            for &impl_id in &cls.impls {
+                let ximpl = &vm.impls[impl_id];
+                let ximpl = ximpl.read();
+                debug_assert_eq!(ximpl.ty.cls_id(vm), Some(cls_id));
+
+                if ximpl.trait_id == Some(trait_id) {
+                    return true;
+                }
+            }
+
+            false
+        }
+
+        SourceType::Error
+        | SourceType::Ptr
+        | SourceType::This
+        | SourceType::Any
+        | SourceType::TypeParam(_) => unreachable!(),
     }
 }
 
