@@ -957,9 +957,7 @@ impl<'a> SourceTypePrinter<'a> {
             }
             SourceType::TypeParam(idx) => {
                 if let Some(fct) = self.use_fct {
-                    fct.type_param_ty(self.vm, ty, |tp, _| {
-                        self.vm.interner.str(tp.name).to_string()
-                    })
+                    self.vm.interner.str(fct.type_param(idx).name).to_string()
                 } else if let Some(cls) = self.use_class {
                     self.vm.interner.str(cls.type_param_ty(ty).name).to_string()
                 } else if let Some(xenum) = self.use_enum {

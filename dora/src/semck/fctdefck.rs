@@ -18,21 +18,16 @@ pub fn check(vm: &VM) {
         let mut sym_table = NestedSymTable::new(vm, fct.namespace_id);
         sym_table.push_level();
 
-        let mut cls_type_params_count = 0;
-
         match fct.parent {
             FctParent::Class(owner_class) => {
                 let cls = vm.classes.idx(owner_class);
                 let cls = cls.read();
-                let mut type_param_id = 0;
 
-                for param in &cls.type_params {
+                for (type_param_id, param) in cls.type_params.iter().enumerate() {
                     let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert_type(param.name, sym);
-                    type_param_id += 1;
+                    fct.type_params.push(param.clone());
                 }
-
-                cls_type_params_count = type_param_id;
 
                 if fct.has_self() {
                     fct.param_types.push(cls.ty.clone());
@@ -41,6 +36,13 @@ pub fn check(vm: &VM) {
 
             FctParent::Impl(impl_id) => {
                 let ximpl = vm.impls[impl_id].read();
+
+                for (type_param_id, param) in ximpl.type_params.iter().enumerate() {
+                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
+                    sym_table.insert_type(param.name, sym);
+                    fct.type_params.push(param.clone());
+                }
+
                 let cls = vm.classes.idx(ximpl.cls_id(vm));
                 let cls = cls.read();
 
@@ -51,15 +53,12 @@ pub fn check(vm: &VM) {
 
             FctParent::Extension(extension_id) => {
                 let extension = vm.extensions[extension_id].read();
-                let mut type_param_id = 0;
 
-                for param in &extension.type_params {
+                for (type_param_id, param) in extension.type_params.iter().enumerate() {
                     let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert_type(param.name, sym);
-                    type_param_id += 1;
+                    fct.type_params.push(param.clone());
                 }
-
-                cls_type_params_count = type_param_id;
 
                 if fct.has_self() {
                     fct.param_types.push(extension.ty.clone());
@@ -68,7 +67,15 @@ pub fn check(vm: &VM) {
 
             FctParent::Module(_) => {}
 
-            FctParent::Trait(_) => {
+            FctParent::Trait(trait_id) => {
+                let xtrait = vm.traits[trait_id].read();
+
+                for (type_param_id, param) in xtrait.type_params.iter().enumerate() {
+                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
+                    sym_table.insert_type(param.name, sym);
+                    fct.type_params.push(param.clone());
+                }
+
                 if fct.has_self() {
                     fct.param_types.push(SourceType::This);
                 }
@@ -77,12 +84,14 @@ pub fn check(vm: &VM) {
             FctParent::None => {}
         }
 
+        let container_type_params = fct.type_params.len();
+        fct.container_type_params = container_type_params;
+
         if let Some(ref type_params) = ast.type_params {
             if type_params.len() > 0 {
                 let mut names = HashSet::new();
-                let mut type_param_id = 0;
 
-                for type_param in type_params {
+                for (type_param_id, type_param) in type_params.iter().enumerate() {
                     if !names.insert(type_param.name) {
                         let name = vm.interner.str(type_param.name).to_string();
                         let msg = SemError::TypeParamNameNotUnique(name);
@@ -102,7 +111,10 @@ pub fn check(vm: &VM) {
 
                         match ty {
                             Some(SourceType::TraitObject(trait_id)) => {
-                                if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
+                                if !fct.type_params[container_type_params + type_param_id]
+                                    .trait_bounds
+                                    .insert(trait_id)
+                                {
                                     let msg = SemError::DuplicateTraitBound;
                                     vm.diag.lock().report(fct.file_id, type_param.pos, msg);
                                 }
@@ -120,9 +132,8 @@ pub fn check(vm: &VM) {
                     }
 
                     let sym =
-                        TypeSym::TypeParam(TypeParamId(cls_type_params_count + type_param_id));
+                        TypeSym::TypeParam(TypeParamId(container_type_params + type_param_id));
                     sym_table.insert_type(type_param.name, sym);
-                    type_param_id += 1;
                 }
             } else {
                 let msg = SemError::TypeParamsExpected;

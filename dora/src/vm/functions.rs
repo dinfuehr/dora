@@ -70,6 +70,7 @@ pub struct Fct {
     pub analysis: Option<AnalysisData>,
 
     pub type_params: Vec<TypeParam>,
+    pub container_type_params: usize,
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
     pub native_pointer: Option<Address>,
@@ -112,72 +113,23 @@ impl Fct {
             specializations: RwLock::new(HashMap::new()),
             analysis: None,
             type_params: Vec::new(),
+            container_type_params: 0,
             bytecode: None,
             intrinsic: None,
             native_pointer: None,
         }
     }
 
-    pub fn type_param_id<F: FnOnce(&TypeParam, TypeParamId) -> R, R>(
-        &self,
-        vm: &VM,
-        id: TypeParamId,
-        callback: F,
-    ) -> R {
-        let id_in_fct = match self.parent {
-            FctParent::Extension(extension_id) => {
-                let extension = &vm.extensions[extension_id];
-                let extension = extension.read();
-                let len = extension.type_params.len();
-
-                if id.to_usize() < len {
-                    return callback(extension.type_param(id), id);
-                }
-
-                id.to_usize() - len
-            }
-
-            FctParent::Impl(impl_id) => {
-                let ximpl = &vm.impls[impl_id];
-                let ximpl = ximpl.read();
-                let len = ximpl.type_params.len();
-
-                if id.to_usize() < len {
-                    return callback(ximpl.type_param(id), id);
-                }
-
-                id.to_usize() - len
-            }
-
-            FctParent::Class(cls_id) => {
-                let cls = vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let len = cls.type_params.len();
-
-                if id.to_usize() < len {
-                    return callback(cls.type_param(id), id);
-                }
-
-                id.to_usize() - len
-            }
-
-            _ => id.to_usize(),
-        };
-
-        let type_param = &self.type_params[id_in_fct];
-        callback(type_param, id)
+    pub fn container_type_params(&self) -> &[TypeParam] {
+        &self.type_params[0..self.container_type_params]
     }
 
-    pub fn type_param_ty<F: FnOnce(&TypeParam, TypeParamId) -> R, R>(
-        &self,
-        vm: &VM,
-        ty: SourceType,
-        callback: F,
-    ) -> R {
-        match ty {
-            SourceType::TypeParam(id) => self.type_param_id(vm, id, callback),
-            _ => unreachable!(),
-        }
+    pub fn fct_type_params(&self) -> &[TypeParam] {
+        &self.type_params[self.container_type_params..]
+    }
+
+    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
+        &self.type_params[id.to_usize()]
     }
 
     pub fn is_virtual(&self) -> bool {
@@ -296,12 +248,12 @@ impl Fct {
             repr.push_str(&vm.interner.str(self.name));
         }
 
-        if self.type_params.len() > 0 {
+        if !self.fct_type_params().is_empty() {
             repr.push('[');
 
             repr.push_str(
                 &self
-                    .type_params
+                    .fct_type_params()
                     .iter()
                     .map(|n| vm.interner.str(n.name).to_string())
                     .collect::<Vec<_>>()

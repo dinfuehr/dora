@@ -3249,9 +3249,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let trait_id = fct.trait_id();
 
-        assert!(self
-            .fct
-            .type_param_id(self.vm, id, |tp, _| tp.trait_bounds.contains(&trait_id)));
+        assert!(self.fct.type_param(id).trait_bounds.contains(&trait_id));
 
         let ty = self.type_params[id.to_usize()].clone();
         let callee_id = self.find_trait_impl(trait_fct_id, trait_id, ty);

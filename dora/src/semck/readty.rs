@@ -400,17 +400,15 @@ fn check_bounds_for_type_param_id(
             )
         }
 
-        TypeParamContext::Fct(fct) => fct.type_param_id(vm, tp_id, |tp_definition_arg, _| {
-            check_bounds_for_type_param(
-                vm,
-                tp_definition,
-                tp_definition_arg,
-                success,
-                file_id,
-                pos,
-                ctxt,
-            )
-        }),
+        TypeParamContext::Fct(fct) => check_bounds_for_type_param(
+            vm,
+            tp_definition,
+            fct.type_param(tp_id),
+            success,
+            file_id,
+            pos,
+            ctxt,
+        ),
 
         TypeParamContext::None => unreachable!(),
     }

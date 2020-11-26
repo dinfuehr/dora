@@ -147,9 +147,8 @@ impl<'a> TypeParamCheck<'a> {
         for (tp_def, ty) in self.tp_defs.iter().zip(tps.iter()) {
             if let SourceType::TypeParam(id) = ty {
                 let ok = if let Some(use_fct) = self.use_fct {
-                    use_fct.type_param_ty(self.vm, ty.clone(), |tp_arg, _| {
-                        self.tp_against_definition(tp_def, tp_arg, ty.clone())
-                    })
+                    let tp_arg = use_fct.type_param(id);
+                    self.tp_against_definition(tp_def, tp_arg, ty.clone())
                 } else if let Some(use_cls_id) = self.use_cls_id {
                     let cls = self.vm.classes.idx(use_cls_id);
                     let cls = cls.read();

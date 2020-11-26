@@ -73,53 +73,11 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_type_params(&mut self) {
-        let cls_type_params_count = match self.fct.parent {
-            FctParent::Class(owner_class) => {
-                let cls = self.vm.classes.idx(owner_class);
-                let cls = cls.read();
-
-                for (type_param_id, param) in cls.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-                    self.symtable.insert_type(param.name, sym);
-                }
-
-                cls.type_params.len()
-            }
-
-            FctParent::Impl(impl_id) => {
-                let ximpl = self.vm.impls[impl_id].read();
-
-                for (type_param_id, param) in ximpl.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-                    self.symtable.insert_type(param.name, sym);
-                }
-
-                ximpl.type_params.len()
-            }
-
-            FctParent::Extension(extension_id) => {
-                let extension = self.vm.extensions[extension_id].read();
-
-                for (type_param_id, param) in extension.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-                    self.symtable.insert_type(param.name, sym);
-                }
-
-                extension.type_params.len()
-            }
-
-            FctParent::Module(_) => 0,
-            FctParent::Trait(_) => unreachable!(),
-            FctParent::None => 0,
-        };
-
-        if let Some(ref type_params) = self.fct.ast.type_params {
-            for (tpid, tp) in type_params.iter().enumerate() {
-                self.symtable.insert_type(
-                    tp.name,
-                    TypeSym::TypeParam(TypeParamId(cls_type_params_count + tpid)),
-                );
-            }
+        for (type_param_id, type_param) in self.fct.type_params.iter().enumerate() {
+            self.symtable.insert_type(
+                type_param.name,
+                TypeSym::TypeParam(TypeParamId(type_param_id)),
+            );
         }
     }
 
@@ -1399,15 +1357,13 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_generic_static_method(
         &mut self,
         e: &ExprCallType,
-        tp: SourceType,
+        tp_id: TypeParamId,
         name: Name,
         arg_types: &[SourceType],
     ) -> SourceType {
         let mut fcts = Vec::new();
 
-        let (type_param, tp_id) = self
-            .fct
-            .type_param_ty(self.vm, tp.clone(), |tp, tp_id| (tp.clone(), tp_id));
+        let type_param = self.fct.type_param(tp_id);
 
         for &trait_id in &type_param.trait_bounds {
             let xtrait = self.vm.traits[trait_id].read();
@@ -1438,6 +1394,8 @@ impl<'a> TypeCheck<'a> {
         let (trait_id, fct_id) = fcts[0];
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
+
+        let tp = SourceType::TypeParam(tp_id);
 
         if !args_compatible(
             self.vm,
@@ -1591,9 +1549,9 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        if object_type.is_type_param() {
+        if let SourceType::TypeParam(id) = object_type {
             assert_eq!(type_params.len(), 0);
-            return self.check_expr_call_generic(e, object_type, method_name, arg_types);
+            return self.check_expr_call_generic(e, id, method_name, arg_types);
         }
 
         if object_type.is_error() {
@@ -1810,14 +1768,19 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_generic(
         &mut self,
         e: &ExprCallType,
-        object_type: SourceType,
+        tp_id: TypeParamId,
         name: Name,
         arg_types: &[SourceType],
     ) -> SourceType {
-        self.fct
-            .type_param_ty(self.vm, object_type.clone(), |tp, id| {
-                self.check_expr_call_generic_type_param(e, object_type, id, tp, name, arg_types)
-            })
+        let tp = self.fct.type_param(tp_id);
+        self.check_expr_call_generic_type_param(
+            e,
+            SourceType::TypeParam(tp_id),
+            tp_id,
+            tp,
+            name,
+            arg_types,
+        )
     }
 
     fn check_expr_call_generic_type_param(
@@ -1832,9 +1795,9 @@ impl<'a> TypeCheck<'a> {
         let mut found_fcts = Vec::new();
 
         for &trait_id in &tp.trait_bounds {
-            let trai = self.vm.traits[trait_id].read();
+            let xtrait = self.vm.traits[trait_id].read();
 
-            if let Some(fid) = trai.find_method_with_replace(self.vm, false, name, None, args) {
+            if let Some(fid) = xtrait.find_method_with_replace(self.vm, false, name, None, args) {
                 found_fcts.push(fid);
             }
         }
@@ -1995,8 +1958,7 @@ impl<'a> TypeCheck<'a> {
                         .report(self.file_id, callee_as_path.lhs.pos(), msg);
                 }
 
-                let ty = SourceType::TypeParam(id);
-                self.check_expr_call_generic_static_method(e, ty, method_name, &arg_types)
+                self.check_expr_call_generic_static_method(e, id, method_name, &arg_types)
             }
 
             (_, Some(TermSym::Namespace(namespace_id))) => {
@@ -2780,15 +2742,18 @@ impl<'a> TypeCheck<'a> {
             if idx % 2 != 0 {
                 let part_expr = self.check_expr(part, SourceType::Any);
 
-                let implements_stringable = if part_expr.is_type_param() {
-                    self.fct.type_param_ty(self.vm, part_expr.clone(), |tp, _| {
-                        tp.trait_bounds.contains(&stringable_trait)
-                    })
+                if part_expr.is_error() {
+                    continue;
+                }
+
+                let implements_stringable = if let SourceType::TypeParam(id) = part_expr {
+                    let tp = self.fct.type_param(id);
+                    tp.trait_bounds.contains(&stringable_trait)
                 } else {
                     implements_trait(self.vm, part_expr.clone(), stringable_trait)
                 };
 
-                if implements_stringable || part_expr.is_error() {
+                if implements_stringable {
                     continue;
                 }
 

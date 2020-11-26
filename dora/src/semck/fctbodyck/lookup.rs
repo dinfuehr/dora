@@ -405,7 +405,7 @@ impl<'a> MethodLookup<'a> {
 
             let fct = self.vm.fcts.idx(fct_id);
             let fct = fct.read();
-            fct.type_params.to_vec()
+            fct.fct_type_params().to_vec()
         };
 
         self.check_tps(&fct_tps, tps)
