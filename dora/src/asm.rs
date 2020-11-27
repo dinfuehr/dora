@@ -4,6 +4,12 @@ pub use self::x64::*;
 #[cfg(target_arch = "x86_64")]
 pub mod x64;
 
+#[cfg(target_arch = "aarch64")]
+use self::arm64::*;
+
+#[cfg(target_arch = "aarch64")]
+pub mod arm64;
+
 use std::convert::TryInto;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

@@ -1,4 +1,3 @@
-use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::AnyReg;
@@ -258,56 +257,12 @@ impl MacroAssembler {
         self.jump_if(cond, lbl);
     }
 
-    pub fn jump_if(&mut self, cond: CondCode, lbl: Label) {
-        let value = self.labels[lbl.index()];
-
-        match value {
-            Some(idx) => {
-                let current = self.pos();
-                let target = idx;
-
-                let diff = -((current - target) as i32);
-                assert!(diff % 4 == 0);
-                let diff = diff / 4;
-
-                self.emit_u32(asm::b_cond_imm(cond.into(), diff));
-            }
-
-            None => {
-                let pos = self.pos();
-                self.emit_u32(0);
-                self.jumps.push(ForwardJump {
-                    at: pos,
-                    to: lbl,
-                    ty: JumpType::JumpIf(cond),
-                });
-            }
-        }
+    pub fn jump_if(&mut self, cond: CondCode, target: Label) {
+        self.asm.bc(cond.into(), target);
     }
 
-    pub fn jump(&mut self, lbl: Label) {
-        let value = self.labels[lbl.index()];
-
-        match value {
-            Some(idx) => {
-                let current = self.pos();
-                let target = idx;
-
-                let diff = -((current - target) as i32);
-                assert!(diff % 4 == 0);
-                self.emit_u32(asm::b_imm(diff / 4));
-            }
-
-            None => {
-                let pos = self.pos();
-                self.emit_u32(0);
-                self.jumps.push(ForwardJump {
-                    at: pos,
-                    to: lbl,
-                    ty: JumpType::Jump,
-                });
-            }
-        }
+    pub fn jump(&mut self, target: Label) {
+        self.asm.b(target);
     }
 
     pub fn jump_reg(&mut self, reg: Reg) {
@@ -1279,23 +1234,6 @@ impl MacroAssembler {
     pub fn nop(&mut self) {
         self.emit_u32(asm::nop());
     }
-
-    pub fn fix_forward_jumps(&mut self) {
-        for jmp in &self.jumps {
-            let target = self.labels[jmp.to.0].expect("label not defined");
-            let diff = (target - jmp.at) as i32;
-            assert!(diff % 4 == 0);
-            let diff = diff / 4;
-
-            let insn = match jmp.ty {
-                JumpType::Jump => asm::b_imm(diff),
-                JumpType::JumpIf(cond) => asm::b_cond_imm(cond.into(), diff),
-            };
-
-            let mut slice = &mut self.asm.code_mut()[jmp.at..];
-            slice.write_u32::<LittleEndian>(insn).unwrap();
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -1323,6 +1261,7 @@ fn size_flag(mode: MachineMode) -> u32 {
 mod tests {
     use super::*;
     use crate::ty::MachineMode::{Int32, Int8, Ptr};
+    use byteorder::{LittleEndian, WriteBytesExt};
 
     macro_rules! assert_emit {
         (
