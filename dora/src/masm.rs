@@ -3,6 +3,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::asm::Assembler;
+pub use crate::asm::Label;
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::{
     Code, Comments, GcPoint, GcPoints, JitDescriptor, LazyCompilationData, LazyCompilationSite,
@@ -31,8 +32,6 @@ pub mod arm64;
 
 pub struct MacroAssembler {
     asm: Assembler,
-    labels: Vec<Option<usize>>,
-    jumps: Vec<ForwardJump>,
     bailouts: Vec<(Label, Trap, Position)>,
     lazy_compilation: LazyCompilationData,
     dseg: DSeg,
@@ -46,8 +45,6 @@ impl MacroAssembler {
     pub fn new() -> MacroAssembler {
         MacroAssembler {
             asm: Assembler::new(),
-            labels: Vec::new(),
-            jumps: Vec::new(),
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
             dseg: DSeg::new(),
@@ -65,10 +62,12 @@ impl MacroAssembler {
         // aligned to 16
         self.dseg.align(16);
 
+        let buffer = self.asm.finalize();
+
         Code::from_buffer(
             vm,
             &self.dseg,
-            self.asm.code_mut(),
+            &buffer,
             self.lazy_compilation,
             self.gcpoints,
             stacksize,
@@ -104,8 +103,6 @@ impl MacroAssembler {
         if bailouts.len() > 0 {
             self.nop();
         }
-
-        self.fix_forward_jumps();
     }
 
     pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
@@ -124,7 +121,7 @@ impl MacroAssembler {
     pub fn test_if_nil(&mut self, reg: Reg) -> Label {
         self.cmp_zero(MachineMode::Ptr, reg);
 
-        let lbl = self.create_label();
+        let lbl = self.asm.create_label();
         self.jump_if(CondCode::Equal, lbl);
 
         lbl
@@ -133,7 +130,7 @@ impl MacroAssembler {
     pub fn test_if_not_nil(&mut self, reg: Reg) -> Label {
         self.cmp_zero(MachineMode::Ptr, reg);
 
-        let lbl = self.create_label();
+        let lbl = self.asm.create_label();
         self.jump_if(CondCode::NotEqual, lbl);
 
         lbl
@@ -159,10 +156,7 @@ impl MacroAssembler {
     }
 
     pub fn create_label(&mut self) -> Label {
-        let idx = self.labels.len();
-        self.labels.push(None);
-
-        Label(idx)
+        self.asm.create_label()
     }
 
     pub fn emit_comment(&mut self, comment: String) {
@@ -171,15 +165,11 @@ impl MacroAssembler {
     }
 
     pub fn bind_label(&mut self, lbl: Label) {
-        self.bind_label_to(lbl, self.pos());
+        self.asm.bind_label(lbl);
     }
 
     pub fn bind_label_to(&mut self, lbl: Label, pos: usize) {
-        let lbl_idx = lbl.index();
-
-        assert!(self.labels[lbl_idx].is_none());
-        assert!(pos <= self.pos());
-        self.labels[lbl_idx] = Some(pos);
+        self.asm.bind_label_to(lbl, pos as u32);
     }
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, pos: Position) {
@@ -288,15 +278,6 @@ impl MacroAssembler {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Label(usize);
-
-impl Label {
-    pub fn index(&self) -> usize {
-        self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ScratchRegisters {
     regs: &'static [Reg],
@@ -397,8 +378,8 @@ mod tests {
     fn test_label() {
         let mut masm = MacroAssembler::new();
 
-        assert_eq!(Label(0), masm.create_label());
-        assert_eq!(Label(1), masm.create_label());
+        masm.create_label();
+        masm.create_label();
     }
 
     #[test]

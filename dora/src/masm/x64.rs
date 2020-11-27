@@ -1,4 +1,3 @@
-use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
 use crate::asm::{
@@ -50,7 +49,7 @@ impl MacroAssembler {
             RSP.into(),
         );
 
-        asm::emit_jcc(self, CondCode::UnsignedGreater, lbl_overflow);
+        self.asm.jcc(Condition::Above, lbl_overflow);
     }
 
     pub fn fix_result(&mut self, result: Reg, mode: MachineMode) {
@@ -150,20 +149,8 @@ impl MacroAssembler {
         );
     }
 
-    pub fn set(&mut self, dest: Reg, op: CondCode) {
-        let cond = match op {
-            CondCode::Zero => Condition::Zero,
-            CondCode::NonZero => Condition::NotZero,
-            CondCode::Equal => Condition::Equal,
-            CondCode::NotEqual => Condition::NotEqual,
-            CondCode::Less => Condition::Less,
-            CondCode::LessEq => Condition::LessOrEqual,
-            CondCode::Greater => Condition::Greater,
-            CondCode::GreaterEq => Condition::GreaterOrEqual,
-            _ => unreachable!("unknown condition {:?}", op),
-        };
-
-        self.asm.setcc_r(cond, dest.into());
+    pub fn set(&mut self, dest: Reg, cond: CondCode) {
+        self.asm.setcc_r(convert_into_condition(cond), dest.into());
         self.asm.movzxb_rr(dest.into(), dest.into());
     }
 
@@ -336,12 +323,12 @@ impl MacroAssembler {
         self.jump_if(cond, lbl);
     }
 
-    pub fn jump_if(&mut self, cond: CondCode, lbl: Label) {
-        asm::emit_jcc(self, cond, lbl);
+    pub fn jump_if(&mut self, cond: CondCode, target: Label) {
+        self.asm.jcc(convert_into_condition(cond), target)
     }
 
-    pub fn jump(&mut self, lbl: Label) {
-        asm::emit_jmp(self, lbl);
+    pub fn jump(&mut self, target: Label) {
+        self.asm.jmp(target);
     }
 
     pub fn jump_reg(&mut self, reg: Reg) {
@@ -1145,45 +1132,29 @@ impl MacroAssembler {
         self.asm.nop();
     }
 
-    pub fn emit_label(&mut self, lbl: Label) {
-        let value = self.labels[lbl.index()];
-
-        match value {
-            // backward jumps already know their target
-            Some(idx) => {
-                let current = self.pos() + 4;
-                let target = idx;
-
-                let diff = -((current - target) as i32);
-                self.emit_u32(diff as u32);
-            }
-
-            // forward jumps do not know their target yet
-            // we need to do this later...
-            None => {
-                let pos = self.pos();
-                self.emit_u32(0);
-                self.jumps.push(ForwardJump { at: pos, to: lbl });
-            }
-        }
-    }
-
-    pub fn fix_forward_jumps(&mut self) {
-        for jmp in &self.jumps {
-            let target = self.labels[jmp.to.0].expect("label not defined");
-            let diff = (target - jmp.at - 4) as i32;
-
-            let mut slice = &mut self.asm.code_mut()[jmp.at..];
-            slice.write_u32::<LittleEndian>(diff as u32).unwrap();
-        }
-    }
-
     fn mov_rr(&mut self, x64: bool, lhs: AsmRegister, rhs: AsmRegister) {
         if x64 {
             self.asm.movq_rr(lhs, rhs);
         } else {
             self.asm.movl_rr(lhs, rhs);
         }
+    }
+}
+
+fn convert_into_condition(cond: CondCode) -> Condition {
+    match cond {
+        CondCode::Zero => Condition::Zero,
+        CondCode::NonZero => Condition::NotZero,
+        CondCode::Equal => Condition::Equal,
+        CondCode::NotEqual => Condition::NotEqual,
+        CondCode::Less => Condition::Less,
+        CondCode::LessEq => Condition::LessOrEqual,
+        CondCode::Greater => Condition::Greater,
+        CondCode::GreaterEq => Condition::GreaterOrEqual,
+        CondCode::UnsignedGreater => Condition::Above, // above
+        CondCode::UnsignedGreaterEq => Condition::AboveOrEqual, // above or equal
+        CondCode::UnsignedLess => Condition::Below,    // below
+        CondCode::UnsignedLessEq => Condition::BelowOrEqual, // below or equal
     }
 }
 
@@ -1227,68 +1198,5 @@ fn address_from_mem(mem: Mem) -> Address {
             };
             Address::index(index.into(), factor, disp)
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct ForwardJump {
-    at: usize,
-    to: Label,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_backward() {
-        let mut masm = MacroAssembler::new();
-        let lbl = masm.create_label();
-        masm.bind_label(lbl);
-        masm.emit_label(lbl);
-
-        assert_eq!(vec![0xfc, 0xff, 0xff, 0xff], masm.data());
-    }
-
-    #[test]
-    fn test_forward_with_gap() {
-        let mut masm = MacroAssembler::new();
-        let lbl = masm.create_label();
-        masm.emit_label(lbl);
-        masm.emit_u8(0x11);
-        masm.bind_label(lbl);
-
-        assert_eq!(vec![1, 0, 0, 0, 0x11], masm.data());
-    }
-
-    #[test]
-    fn test_forward() {
-        let mut masm = MacroAssembler::new();
-        let lbl = masm.create_label();
-        masm.emit_label(lbl);
-        masm.bind_label(lbl);
-
-        assert_eq!(vec![0, 0, 0, 0], masm.data());
-    }
-
-    #[test]
-    fn test_backward_with_gap() {
-        let mut masm = MacroAssembler::new();
-        let lbl = masm.create_label();
-        masm.bind_label(lbl);
-        masm.emit_u8(0x33);
-        masm.emit_label(lbl);
-
-        assert_eq!(vec![0x33, 0xfb, 0xff, 0xff, 0xff], masm.data());
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_label_undefined() {
-        let mut masm = MacroAssembler::new();
-        let lbl = masm.create_label();
-
-        masm.emit_label(lbl);
-        masm.data();
     }
 }

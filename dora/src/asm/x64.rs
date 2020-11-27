@@ -1,4 +1,5 @@
-use crate::asm::{Assembler, Register};
+use crate::asm::{Assembler, JumpDistance, Label, Register};
+use std::convert::TryInto;
 
 impl Register {
     fn low_bits(self) -> u8 {
@@ -51,6 +52,29 @@ pub const XMM14: XmmRegister = XmmRegister(14);
 pub const XMM15: XmmRegister = XmmRegister(15);
 
 impl Assembler {
+    pub(super) fn resolve_jumps(&mut self) {
+        let unresolved_jumps = std::mem::replace(&mut self.unresolved_jumps, Vec::new());
+
+        for (pc, lbl, distance) in unresolved_jumps {
+            if let Some(lbl_offset) = self.offset(lbl) {
+                match distance {
+                    JumpDistance::Near => {
+                        let distance: i32 = lbl_offset as i32 - (pc as i32 + 1);
+                        assert!(-128 <= distance && distance < 128);
+                        self.patch_u8(pc, distance as u8);
+                    }
+
+                    JumpDistance::Far => {
+                        let distance: i32 = lbl_offset as i32 - (pc as i32 + 4);
+                        self.patch_u32(pc, distance as u32);
+                    }
+                }
+            } else {
+                panic!("unbound label");
+            }
+        }
+    }
+
     pub fn pushq_r(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0x50 + reg.low_bits());
@@ -702,6 +726,104 @@ impl Assembler {
         self.emit_modrm_opcode(0b010, reg);
     }
 
+    pub fn jcc(&mut self, condition: Condition, target: Label) {
+        if let Some(target_offset) = self.offset(target) {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let target_offset = target_offset as usize;
+            assert!(target_offset <= self.pc());
+            let distance = self.pc() + 2 - target_offset;
+            let distance = -(distance as isize);
+            assert!(distance <= -2);
+
+            if distance >= -128 {
+                self.emit_u8(0x70 + condition.int());
+                self.emit_u8(distance as u8);
+            } else {
+                let distance = self.pc() + 6 - target_offset;
+                let distance = -(distance as isize);
+                self.emit_u8(0x0F);
+                self.emit_u8(0x80 + condition.int());
+                self.emit_u32(distance as u32);
+            }
+        } else {
+            // forward jump - conservatively assume far jump
+            self.emit_u8(0x0F);
+            self.emit_u8(0x80 + condition.int());
+            self.unresolved_jumps
+                .push((self.pc().try_into().unwrap(), target, JumpDistance::Far));
+            self.emit_u32(0);
+        }
+    }
+
+    pub fn jcc_near(&mut self, condition: Condition, target: Label) {
+        if let Some(target_offset) = self.offset(target) {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let target_offset = target_offset as usize;
+            assert!(target_offset <= self.pc());
+            let distance = self.pc() + 2 - target_offset;
+            let distance = -(distance as isize);
+            assert!(-128 <= distance && distance <= -2);
+            self.emit_u8(0x70 + condition.int());
+            self.emit_u8(distance as u8);
+        } else {
+            // forward jump
+            self.emit_u8(0x70 + condition.int());
+            self.unresolved_jumps
+                .push((self.pc().try_into().unwrap(), target, JumpDistance::Near));
+            self.emit_u8(0);
+        }
+    }
+
+    pub fn jmp(&mut self, target: Label) {
+        if let Some(target_offset) = self.offset(target) {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let target_offset = target_offset as usize;
+            assert!(target_offset <= self.pc());
+            let distance = self.pc() + 2 - target_offset;
+            let distance = -(distance as isize);
+            assert!(distance <= -2);
+
+            if distance >= -128 {
+                self.emit_u8(0xEB);
+                self.emit_u8(distance as u8);
+            } else {
+                let distance = self.pc() + 5 - target_offset;
+                let distance = -(distance as isize);
+                self.emit_u8(0xE9);
+                self.emit_u32(distance as u32);
+            }
+        } else {
+            // forward jump - conservatively assume far jump
+            self.emit_u8(0xE9);
+            self.unresolved_jumps
+                .push((self.pc().try_into().unwrap(), target, JumpDistance::Far));
+            self.emit_u32(0);
+        }
+    }
+
+    pub fn jmp_near(&mut self, target: Label) {
+        if let Some(target_offset) = self.offset(target) {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let target_offset = target_offset as usize;
+            assert!(target_offset <= self.pc());
+            let distance = self.pc() + 2 - target_offset;
+            let distance = -(distance as isize);
+            assert!(-128 <= distance && distance <= -2);
+            self.emit_u8(0xEB);
+            self.emit_u8(distance as u8);
+        } else {
+            // forward jump - conservatively assume far jump
+            self.emit_u8(0xEB);
+            self.unresolved_jumps
+                .push((self.pc().try_into().unwrap(), target, JumpDistance::Near));
+            self.emit_u8(0);
+        }
+    }
+
     pub fn jmp_r(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0xff);
@@ -1169,7 +1291,7 @@ pub enum Condition {
 }
 
 impl Condition {
-    pub fn int(self) -> i32 {
+    pub fn int(self) -> u8 {
         match self {
             Condition::Overflow => 0b0000,
             Condition::NoOverflow => 0b0001,

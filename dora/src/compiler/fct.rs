@@ -139,11 +139,10 @@ pub struct Code {
     code_start: Address,
     code_end: Address,
 
-    desc: JitDescriptor,
-
     // pointer to beginning of function
-    instruction_start: Address,
-    instruction_end: Address,
+    function_entry: Address,
+
+    desc: JitDescriptor,
 
     framesize: i32,
     lazy_compilation: LazyCompilationData,
@@ -180,43 +179,38 @@ impl Code {
         positions: PositionTable,
         desc: JitDescriptor,
     ) -> Code {
-        let size = dseg.size() as usize + buffer.len();
-        let ptr = vm.gc.alloc_code(size);
+        let code_space_size = dseg.size() as usize + buffer.len();
+        let code_start = vm.gc.alloc_code(code_space_size);
+        let code_end = code_start.offset(code_space_size);
 
-        if ptr.is_null() {
+        if code_start.is_null() {
             panic!("out of memory: not enough executable memory left!");
         }
 
         os::jit_writable();
 
-        dseg.finish(ptr.to_ptr());
+        dseg.finish(code_start.to_ptr());
 
-        let instruction_start = ptr.offset(dseg.size() as usize);
-        let instruction_end = instruction_start.offset(buffer.len());
+        let function_entry = code_start.offset(dseg.size() as usize);
 
         unsafe {
-            ptr::copy_nonoverlapping(
-                buffer.as_ptr(),
-                instruction_start.to_mut_ptr(),
-                buffer.len(),
-            );
+            ptr::copy_nonoverlapping(buffer.as_ptr(), function_entry.to_mut_ptr(), buffer.len());
         }
 
         os::jit_executable();
 
-        flush_icache(ptr.to_ptr(), size);
+        flush_icache(code_start.to_ptr(), code_space_size);
 
         Code {
-            code_start: ptr,
-            code_end: ptr.offset(size as usize),
+            code_start,
+            code_end,
+            function_entry,
+            desc,
             lazy_compilation,
             gcpoints,
             comments,
             framesize,
-            instruction_start,
-            instruction_end,
             positions,
-            desc,
         }
     }
 
@@ -245,11 +239,11 @@ impl Code {
     }
 
     pub fn instruction_start(&self) -> Address {
-        self.instruction_start
+        self.function_entry
     }
 
     pub fn instruction_end(&self) -> Address {
-        self.instruction_end
+        self.code_end
     }
 
     pub fn framesize(&self) -> i32 {

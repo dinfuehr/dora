@@ -1,5 +1,5 @@
 use crate::cpu::*;
-use crate::masm::{CondCode, Label, MacroAssembler};
+use crate::masm::MacroAssembler;
 
 pub const VEXM_0F: u8 = 1;
 pub const VEXM_0F38: u8 = 2;
@@ -44,30 +44,6 @@ fn emit_modrm(buf: &mut MacroAssembler, mode: u8, reg: u8, rm: u8) {
     buf.emit_u8(mode << 6 | reg << 3 | rm);
 }
 
-pub fn emit_jcc(buf: &mut MacroAssembler, cond: CondCode, lbl: Label) {
-    let opcode = match cond {
-        CondCode::Zero | CondCode::Equal => 0x84,
-        CondCode::NonZero | CondCode::NotEqual => 0x85,
-        CondCode::Greater => 0x8F,
-        CondCode::GreaterEq => 0x8D,
-        CondCode::Less => 0x8C,
-        CondCode::LessEq => 0x8E,
-        CondCode::UnsignedGreater => 0x87,   // above
-        CondCode::UnsignedGreaterEq => 0x83, // above or equal
-        CondCode::UnsignedLess => 0x82,      // below
-        CondCode::UnsignedLessEq => 0x86,    // below or equal
-    };
-
-    emit_u8(buf, 0x0f);
-    emit_u8(buf, opcode);
-    buf.emit_label(lbl);
-}
-
-pub fn emit_jmp(buf: &mut MacroAssembler, lbl: Label) {
-    emit_u8(buf, 0xe9);
-    buf.emit_label(lbl);
-}
-
 pub fn emit_shlx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_vex3_rxbm(buf, dest.msb(), 0, lhs.msb(), VEXM_0F38);
     emit_vex3_wvlp(buf, x64, rhs.int(), VEXL_Z, VEXP_66);
@@ -92,7 +68,7 @@ pub fn emit_sarx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::masm::{CondCode, MacroAssembler};
+    use crate::masm::MacroAssembler;
 
     macro_rules! assert_emit {
         (
@@ -140,116 +116,6 @@ mod tests {
                 panic!("emitted code wrong.");
             }
         }};
-    }
-
-    #[test]
-    fn test_emit_jcc_zero() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::Zero, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x84, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_non_zero() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::NonZero, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x85, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_greater() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::Greater, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x8F, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_greater_or_equal() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::GreaterEq, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x8D, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_less() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::Less, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x8C, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_less_or_equal() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::LessEq, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x8E, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_unsigned_greater() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::UnsignedGreater, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x87, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_unsigned_greater_or_equal() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::UnsignedGreaterEq, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x83, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_unsigned_less() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::UnsignedLess, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x82, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jcc_unsigned_less_or_equal() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jcc(&mut buf, CondCode::UnsignedLessEq, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0x0f, 0x86, 1, 0, 0, 0, 0x90], buf.data());
-    }
-
-    #[test]
-    fn test_emit_jmp() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        emit_jmp(&mut buf, lbl);
-        buf.nop();
-        buf.bind_label(lbl);
-        assert_eq!(vec![0xe9, 1, 0, 0, 0, 0x90], buf.data());
     }
 
     #[test]
