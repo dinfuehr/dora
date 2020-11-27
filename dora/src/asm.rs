@@ -67,13 +67,13 @@ impl Assembler {
 
     pub fn bind_label(&mut self, lbl: Label) {
         let Label(idx) = lbl;
-        debug_assert!(self.labels[idx].is_none());
+        assert!(self.labels[idx].is_none());
         self.labels[idx] = Some(self.pc().try_into().unwrap());
     }
 
     pub fn bind_label_to(&mut self, lbl: Label, offset: u32) {
         let Label(idx) = lbl;
-        debug_assert!(self.labels[idx].is_none());
+        assert!(self.labels[idx].is_none());
         self.labels[idx] = Some(offset);
     }
 
