@@ -21,15 +21,10 @@ pub struct FloatRegister(u8);
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Label(usize);
 
-enum JumpDistance {
-    Near,
-    Far,
-}
-
 pub struct Assembler {
     code: Vec<u8>,
     labels: Vec<Option<u32>>,
-    unresolved_jumps: Vec<(u32, Label, JumpDistance)>,
+    unresolved_jumps: Vec<(u32, Label, JumpKind)>,
 }
 
 impl Assembler {

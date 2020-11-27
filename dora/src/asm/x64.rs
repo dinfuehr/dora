@@ -1,4 +1,4 @@
-use crate::asm::{Assembler, JumpDistance, Label, Register};
+use crate::asm::{Assembler, Label, Register};
 use std::convert::TryInto;
 
 impl Register {
@@ -51,6 +51,11 @@ pub const XMM13: XmmRegister = XmmRegister(13);
 pub const XMM14: XmmRegister = XmmRegister(14);
 pub const XMM15: XmmRegister = XmmRegister(15);
 
+pub(super) enum JumpKind {
+    Near,
+    Far,
+}
+
 impl Assembler {
     pub(super) fn resolve_jumps(&mut self) {
         let unresolved_jumps = std::mem::replace(&mut self.unresolved_jumps, Vec::new());
@@ -58,13 +63,13 @@ impl Assembler {
         for (pc, lbl, distance) in unresolved_jumps {
             if let Some(lbl_offset) = self.offset(lbl) {
                 match distance {
-                    JumpDistance::Near => {
+                    JumpKind::Near => {
                         let distance: i32 = lbl_offset as i32 - (pc as i32 + 1);
                         assert!(-128 <= distance && distance < 128);
                         self.patch_u8(pc, distance as u8);
                     }
 
-                    JumpDistance::Far => {
+                    JumpKind::Far => {
                         let distance: i32 = lbl_offset as i32 - (pc as i32 + 4);
                         self.patch_u32(pc, distance as u32);
                     }
@@ -751,7 +756,7 @@ impl Assembler {
             self.emit_u8(0x0F);
             self.emit_u8(0x80 + condition.int());
             self.unresolved_jumps
-                .push((self.pc().try_into().unwrap(), target, JumpDistance::Far));
+                .push((self.pc().try_into().unwrap(), target, JumpKind::Far));
             self.emit_u32(0);
         }
     }
@@ -771,7 +776,7 @@ impl Assembler {
             // forward jump
             self.emit_u8(0x70 + condition.int());
             self.unresolved_jumps
-                .push((self.pc().try_into().unwrap(), target, JumpDistance::Near));
+                .push((self.pc().try_into().unwrap(), target, JumpKind::Near));
             self.emit_u8(0);
         }
     }
@@ -799,7 +804,7 @@ impl Assembler {
             // forward jump - conservatively assume far jump
             self.emit_u8(0xE9);
             self.unresolved_jumps
-                .push((self.pc().try_into().unwrap(), target, JumpDistance::Far));
+                .push((self.pc().try_into().unwrap(), target, JumpKind::Far));
             self.emit_u32(0);
         }
     }
@@ -819,7 +824,7 @@ impl Assembler {
             // forward jump - conservatively assume far jump
             self.emit_u8(0xEB);
             self.unresolved_jumps
-                .push((self.pc().try_into().unwrap(), target, JumpDistance::Near));
+                .push((self.pc().try_into().unwrap(), target, JumpKind::Near));
             self.emit_u8(0);
         }
     }
