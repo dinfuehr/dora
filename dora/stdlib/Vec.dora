@@ -188,14 +188,16 @@
   }
 }
 
-@pub fun removeItem[T: Equals](vec: Vec[T], elem: T) {
-  var i = 0L;
+impl[T: Equals] Vec[T] {
+  @pub fun removeItem(elem: T) {
+    var i = 0L;
 
-  while i < vec.size() {
-    if vec(i).equals(elem) {
-      vec.removeAt(i);
-    } else {
-      i = i + 1L;
+    while i < self.size() {
+      if self(i).equals(elem) {
+        self.removeAt(i);
+      } else {
+        i = i + 1L;
+      }
     }
   }
 }

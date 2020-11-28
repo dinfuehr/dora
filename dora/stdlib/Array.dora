@@ -41,17 +41,19 @@ impl[T: Identity + Equals] Array[T] {
   }
 }
 
-@pub fun arrayHas[T : Identity](array: Array[T], value: T): Bool {
-  var i = 0L;
+impl[T: Identity] Array[T] {
+  @pub fun has(value: T): Bool {
+    var i = 0L;
 
-  while i < array.size() {
-    if array.get(i).identicalTo(value) {
-      return true;
+    while i < self.size() {
+      if self.get(i).identicalTo(value) {
+        return true;
+      }
+      i = i + 1L;
     }
-    i = i + 1L;
-  }
 
-  return false;
+    return false;
+  }
 }
 
 @pub module Array {
