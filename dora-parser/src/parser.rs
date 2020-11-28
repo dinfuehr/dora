@@ -370,7 +370,12 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(TokenKind::RBrace) {
             let modifiers = self.parse_annotation_usages()?;
-            let mods = &[Modifier::Static, Modifier::Internal, Modifier::Cannon];
+            let mods = &[
+                Modifier::Static,
+                Modifier::Internal,
+                Modifier::Cannon,
+                Modifier::Pub,
+            ];
             self.restrict_modifiers(&modifiers, mods)?;
 
             let method = self.parse_function(&modifiers)?;

@@ -569,6 +569,21 @@ impl SourceType {
     }
 }
 
+pub fn type_names(vm: &VM, types: &[SourceType]) -> String {
+    let mut result = String::new();
+    result.push('[');
+    let mut first = true;
+    for ty in types {
+        if !first {
+            result.push_str(", ");
+        }
+        result.push_str(&ty.name(vm));
+        first = false;
+    }
+    result.push(']');
+    result
+}
+
 pub fn implements_trait(vm: &VM, ty: SourceType, trait_id: TraitId) -> bool {
     match ty {
         SourceType::Enum(_, _)

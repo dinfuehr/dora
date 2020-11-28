@@ -25,24 +25,20 @@ class ArrayEnumerator[T](let array: Array[T]) {
   }
 }
 
-// The next two functions should be instance functions, but we cannot properly encode the fact that they put additional
-// constraints on the existing class-level `T` of `Array`, not introduce a new function-level `T` on `contains`:
-// fun contains[T : Identity + Equals](value: T): Bool /// wrong
-// Some languages use the workaround to define a "fake" new generic parameter that subtypes the old one, like
-// `[S <: T : Identity + Equals]`. I hope that a better solution can be found.
+impl[T: Identity + Equals] Array[T] {
+  @pub fun contains(value: T): Bool {
+    var i = 0L;
 
-@pub fun arrayContains[T : Identity + Equals](array: Array[T], value: T): Bool {
-  var i = 0L;
-
-  while i < array.size() {
-    let x = array.get(i);
-    if x.identicalTo(value) || x.equals(value) {
-      return true;
+    while i < self.size() {
+      let x = self.get(i);
+      if x.identicalTo(value) || x.equals(value) {
+        return true;
+      }
+      i = i + 1L;
     }
-    i = i + 1L;
-  }
 
-  return false;
+    return false;
+  }
 }
 
 @pub fun arrayHas[T : Identity](array: Array[T], value: T): Bool {

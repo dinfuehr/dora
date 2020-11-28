@@ -2144,7 +2144,6 @@ fn extension_method_call() {
 }
 
 #[test]
-#[ignore]
 fn extension_method_call_type_param() {
     ok("
         class Foo[T](let value: T)
@@ -2153,6 +2152,24 @@ fn extension_method_call_type_param() {
         impl MyTrait for Int32 {}
         fun bar(x: Foo[Int32]): Int32 { x.foo() }
     ");
+
+    ok("
+        class Foo[T](let value: T)
+        impl Foo[Int32] { fun foo() {} }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.foo() }
+        fun g(x: Foo[Float32]) { x.bar() }
+    ");
+
+    err(
+        "
+        class Foo[T](let value: T)
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.bar() }
+    ",
+        pos(4, 37),
+        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+    );
 }
 
 #[test]

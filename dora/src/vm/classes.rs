@@ -13,7 +13,8 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
-    accessible_from, namespace_path, ExtensionId, FctId, FileId, ImplId, NamespaceId, TraitId,
+    accessible_from, extension_matches, namespace_path, ExtensionId, FctId, FileId, ImplId,
+    NamespaceId, TraitId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast;
@@ -287,7 +288,7 @@ pub fn find_method_in_class(
 pub fn find_methods_in_class(
     vm: &VM,
     object_type: SourceType,
-    _type_param_defs: &[TypeParam],
+    type_param_defs: &[TypeParam],
     name: Name,
     is_static: bool,
 ) -> Vec<(SourceType, FctId)> {
@@ -333,7 +334,7 @@ pub fn find_methods_in_class(
         for &extension_id in &cls.extensions {
             let extension = vm.extensions[extension_id].read();
 
-            if extension.ty.type_params(vm) != object_type.type_params(vm) {
+            if !extension_matches(vm, object_type.clone(), type_param_defs, extension_id) {
                 continue;
             }
 
@@ -344,7 +345,10 @@ pub fn find_methods_in_class(
             };
 
             if let Some(&fct_id) = table.get(&name) {
-                return vec![(extension.ty.clone(), fct_id)];
+                let ext_ty = extension.ty.clone();
+                let type_params = object_type.type_params(vm);
+                let ext_ty = replace_type_param(vm, ext_ty, &type_params, None);
+                return vec![(ext_ty, fct_id)];
             }
         }
     }

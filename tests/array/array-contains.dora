@@ -1,13 +1,13 @@
 fun main() {
   let x = Array::fill[Bool](3L, true);
-  assert(std::arrayContains[Bool](x, true));
+  assert(x.contains(true));
 
   let x = Array::fill[Int32](3L, 3);
-  assert(std::arrayContains[Int32](x, 3));
+  assert(x.contains(3));
 
   let x = Array::fill[Int64](3L, 3L);
-  assert(std::arrayContains[Int64](x, 3L));
+  assert(x.contains(3L));
 
   let x = Array::fill[Float64](3L, 0.0/0.0);
-  assert(std::arrayContains[Float64](x, 0.0/0.0));
+  assert(x.contains(0.0/0.0));
 }

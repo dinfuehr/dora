@@ -2733,9 +2733,6 @@ impl<'a> AstBytecodeGen<'a> {
     fn specialize_call(&mut self, fct: &Fct, call_type: &CallType) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
 
-        let type_params =
-            SourceTypeArray::with(type_params.iter().map(|ty| ty).collect::<Vec<_>>());
-
         match *call_type {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
                 self.gen.add_const_generic(id, fct.id, type_params)
