@@ -2144,6 +2144,18 @@ fn extension_method_call() {
 }
 
 #[test]
+#[ignore]
+fn extension_method_call_type_param() {
+    ok("
+        class Foo[T](let value: T)
+        trait MyTrait {}
+        impl[T: MyTrait] Foo[T] { fun foo(): Int32 { 12 } }
+        impl MyTrait for Int32 {}
+        fun bar(x: Foo[Int32]): Int32 { x.foo() }
+    ");
+}
+
+#[test]
 fn impl_class_type_params() {
     err(
         "

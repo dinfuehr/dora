@@ -207,6 +207,13 @@ impl SourceType {
         }
     }
 
+    pub fn type_param_id(&self) -> Option<TypeParamId> {
+        match *self {
+            SourceType::TypeParam(id) => Some(id),
+            _ => None,
+        }
+    }
+
     pub fn type_params(&self, vm: &VM) -> SourceTypeArray {
         match self {
             &SourceType::Class(_, list_id)

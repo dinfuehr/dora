@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::ty::SourceType;
-use crate::vm::{FctId, FileId, NamespaceId, TypeParam, TypeParamId};
+use crate::ty::{implements_trait, SourceType};
+use crate::vm::{FctId, FileId, NamespaceId, TypeParam, TypeParamId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -52,4 +52,221 @@ impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {
     fn index(&self, index: ExtensionId) -> &RwLock<ExtensionData> {
         &self[index.to_usize()]
     }
+}
+
+pub fn extension_matches(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    extension_id: ExtensionId,
+) -> bool {
+    let extension = vm.extensions[extension_id].read();
+    extension_matches_ty(
+        vm,
+        check_ty,
+        check_type_param_defs,
+        extension.ty.clone(),
+        &extension.type_params,
+    )
+}
+
+pub fn extension_matches_ty(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    ext_ty: SourceType,
+    ext_type_param_defs: &[TypeParam],
+) -> bool {
+    if ext_ty.is_type_param() {
+        if check_ty.is_type_param() {
+            compare_type_param_bounds(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                ext_ty,
+                ext_type_param_defs,
+            )
+        } else {
+            concrete_type_fulfills_bounds(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                ext_ty,
+                ext_type_param_defs,
+            )
+        }
+    } else {
+        if check_ty.is_type_param() {
+            false
+        } else {
+            compare_concrete_types(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                ext_ty,
+                ext_type_param_defs,
+            )
+        }
+    }
+}
+
+fn compare_type_param_bounds(
+    _vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    ext_ty: SourceType,
+    ext_type_param_defs: &[TypeParam],
+) -> bool {
+    let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
+    let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
+
+    let check_tp_id = check_ty.type_param_id().expect("expected type param");
+    let check_tp_def = &check_type_param_defs[check_tp_id.to_usize()];
+
+    for &trait_id in &ext_tp_def.trait_bounds {
+        if !check_tp_def.trait_bounds.contains(&trait_id) {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn concrete_type_fulfills_bounds(
+    vm: &VM,
+    check_ty: SourceType,
+    _check_type_param_defs: &[TypeParam],
+    ext_ty: SourceType,
+    ext_type_param_defs: &[TypeParam],
+) -> bool {
+    let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
+    let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
+
+    for &trait_id in &ext_tp_def.trait_bounds {
+        if !implements_trait(vm, check_ty.clone(), trait_id) {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn compare_concrete_types(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    ext_ty: SourceType,
+    ext_type_param_defs: &[TypeParam],
+) -> bool {
+    match check_ty {
+        SourceType::Unit
+        | SourceType::Bool
+        | SourceType::Char
+        | SourceType::UInt8
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64 => check_ty == ext_ty,
+
+        SourceType::Module(_) | SourceType::Lambda(_) | SourceType::TraitObject(_) => {
+            unimplemented!()
+        }
+
+        SourceType::Tuple(_check_tuple_id) => unimplemented!(),
+
+        SourceType::Struct(check_struct_id, _) => {
+            let ext_struct_id = if let Some(struct_id) = ext_ty.struct_id() {
+                struct_id
+            } else {
+                return false;
+            };
+
+            if check_struct_id != ext_struct_id {
+                return false;
+            }
+
+            compare_type_params(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                ext_ty,
+                ext_type_param_defs,
+            )
+        }
+
+        SourceType::Enum(check_enum_id, _) => {
+            let ext_enum_id = if let Some(enum_id) = ext_ty.enum_id() {
+                enum_id
+            } else {
+                return false;
+            };
+
+            if check_enum_id != ext_enum_id {
+                return false;
+            }
+
+            compare_type_params(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                ext_ty,
+                ext_type_param_defs,
+            )
+        }
+
+        SourceType::Class(check_cls_id, _) => {
+            let ext_cls_id = if let Some(cls_id) = ext_ty.cls_id(vm) {
+                cls_id
+            } else {
+                return false;
+            };
+
+            if check_cls_id != ext_cls_id {
+                return false;
+            }
+
+            compare_type_params(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                ext_ty,
+                ext_type_param_defs,
+            )
+        }
+
+        SourceType::Ptr
+        | SourceType::Error
+        | SourceType::This
+        | SourceType::Any
+        | SourceType::TypeParam(_) => unreachable!(),
+    }
+}
+
+fn compare_type_params(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    ext_ty: SourceType,
+    ext_type_param_defs: &[TypeParam],
+) -> bool {
+    let check_tps = check_ty.type_params(vm);
+    let ext_tps = ext_ty.type_params(vm);
+
+    if check_tps.len() != ext_tps.len() {
+        return false;
+    }
+
+    for (check_tp, ext_tp) in check_tps.iter().zip(ext_tps.iter()) {
+        if !extension_matches_ty(
+            vm,
+            check_tp,
+            check_type_param_defs,
+            ext_tp,
+            ext_type_param_defs,
+        ) {
+            return false;
+        }
+    }
+
+    true
 }
