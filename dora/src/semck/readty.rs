@@ -288,21 +288,75 @@ fn check_type_params(
             | SourceType::Class(_, _)
             | SourceType::Enum(_, _)
             | SourceType::Struct(_, _) => {
-                for &trait_bound in &tp_definition.trait_bounds {
-                    if !implements_trait(vm, tp_ty.clone(), trait_bound) {
-                        let bound = vm.traits[trait_bound].read();
-                        let name = tp_ty.name(vm);
-                        let trait_name = vm.interner.str(bound.name).to_string();
-                        let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-                        vm.diag.lock().report(file_id, pos, msg);
-                        success = false;
+                use_type_params(vm, ctxt, |check_type_param_defs| {
+                    for &trait_bound in &tp_definition.trait_bounds {
+                        if !implements_trait(
+                            vm,
+                            tp_ty.clone(),
+                            Some(check_type_param_defs),
+                            trait_bound,
+                        ) {
+                            let bound = vm.traits[trait_bound].read();
+                            let name = tp_ty.name(vm);
+                            let trait_name = vm.interner.str(bound.name).to_string();
+                            let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+                            vm.diag.lock().report(file_id, pos, msg);
+                            success = false;
+                        }
                     }
-                }
+                });
             }
         }
     }
 
     success
+}
+
+fn use_type_params<F, R>(vm: &VM, ctxt: TypeParamContext, callback: F) -> R
+where
+    F: FnOnce(&[TypeParam]) -> R,
+{
+    match ctxt {
+        TypeParamContext::Class(cls_id) => {
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            callback(&cls.type_params)
+        }
+
+        TypeParamContext::Enum(enum_id) => {
+            let xenum = &vm.enums[enum_id];
+            let xenum = xenum.read();
+
+            callback(&xenum.type_params)
+        }
+
+        TypeParamContext::Struct(struct_id) => {
+            let xstruct = &vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            callback(&xstruct.type_params)
+        }
+
+        TypeParamContext::Impl(ximpl) => callback(&ximpl.type_params),
+
+        TypeParamContext::Extension(extension_id) => {
+            let extension = &vm.extensions[extension_id];
+            let extension = extension.read();
+
+            callback(&extension.type_params)
+        }
+
+        TypeParamContext::Trait(trait_id) => {
+            let xtrait = &vm.traits[trait_id];
+            let xtrait = xtrait.read();
+
+            callback(&xtrait.type_params)
+        }
+
+        TypeParamContext::Fct(fct) => callback(&fct.type_params),
+        TypeParamContext::None => callback(&[]),
+    }
 }
 
 fn check_bounds_for_type_param_id(

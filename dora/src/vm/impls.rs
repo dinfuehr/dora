@@ -7,7 +7,9 @@ use dora_parser::ast;
 use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
-use crate::vm::{ClassId, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamId, VM};
+use crate::vm::{
+    extension_matches_ty, ClassId, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
+};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplId(u32);
@@ -64,4 +66,20 @@ impl Index<ImplId> for Vec<RwLock<ImplData>> {
     fn index(&self, index: ImplId) -> &RwLock<ImplData> {
         &self[index.0 as usize]
     }
+}
+
+pub fn impl_matches(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    impl_id: ImplId,
+) -> bool {
+    let ximpl = vm.impls[impl_id].read();
+    extension_matches_ty(
+        vm,
+        check_ty,
+        check_type_param_defs,
+        ximpl.ty.clone(),
+        &ximpl.type_params,
+    )
 }

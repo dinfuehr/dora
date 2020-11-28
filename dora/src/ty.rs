@@ -7,7 +7,7 @@ use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
     Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ModuleId, StructId, TraitId, TupleId,
-    TypeParamId,
+    TypeParam, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -584,8 +584,13 @@ pub fn type_names(vm: &VM, types: &[SourceType]) -> String {
     result
 }
 
-pub fn implements_trait(vm: &VM, ty: SourceType, trait_id: TraitId) -> bool {
-    match ty {
+pub fn implements_trait(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: Option<&[TypeParam]>,
+    trait_id: TraitId,
+) -> bool {
+    match check_ty {
         SourceType::Enum(_, _)
         | SourceType::Struct(_, _)
         | SourceType::Tuple(_)
@@ -602,11 +607,11 @@ pub fn implements_trait(vm: &VM, ty: SourceType, trait_id: TraitId) -> bool {
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Class(_, _) => {
-            if vm.known.traits.zero == trait_id && !ty.is_cls() {
+            if vm.known.traits.zero == trait_id && !check_ty.is_cls() {
                 return true;
             }
 
-            let cls_id = ty.cls_id(vm).expect("class expected");
+            let cls_id = check_ty.cls_id(vm).expect("class expected");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
 
@@ -623,11 +628,13 @@ pub fn implements_trait(vm: &VM, ty: SourceType, trait_id: TraitId) -> bool {
             false
         }
 
-        SourceType::Error
-        | SourceType::Ptr
-        | SourceType::This
-        | SourceType::Any
-        | SourceType::TypeParam(_) => unreachable!(),
+        SourceType::TypeParam(tp_id) => {
+            let check_type_param_defs = check_type_param_defs.unwrap();
+            let tp = &check_type_param_defs[tp_id.to_usize()];
+            tp.trait_bounds.contains(&trait_id)
+        }
+
+        SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
     }
 }
 

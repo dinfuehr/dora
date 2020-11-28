@@ -2807,7 +2807,12 @@ impl<'a> TypeCheck<'a> {
                     let tp = self.fct.type_param(id);
                     tp.trait_bounds.contains(&stringable_trait)
                 } else {
-                    implements_trait(self.vm, part_expr.clone(), stringable_trait)
+                    implements_trait(
+                        self.vm,
+                        part_expr.clone(),
+                        Some(&self.fct.type_params),
+                        stringable_trait,
+                    )
                 };
 
                 if implements_stringable {

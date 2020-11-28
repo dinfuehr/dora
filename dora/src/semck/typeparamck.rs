@@ -11,32 +11,6 @@ pub enum ErrorReporting {
     No,
 }
 
-pub fn check_in_fct<'a>(
-    vm: &VM,
-    fct: &Fct,
-    error: ErrorReporting,
-    object_type: SourceType,
-) -> bool {
-    let tp_defs = {
-        let cls_id = object_type.cls_id(vm).expect("no class");
-        let cls = vm.classes.idx(cls_id);
-        let cls = cls.read();
-        cls.type_params.to_vec()
-    };
-
-    let checker = TypeParamCheck {
-        vm,
-        use_fct: Some(fct),
-        use_cls_id: fct.parent_cls_id(),
-        error,
-        tp_defs: &tp_defs,
-    };
-
-    let params = object_type.type_params(vm);
-
-    checker.check(&params)
-}
-
 pub fn check_enum(vm: &VM, fct: &Fct, ty: SourceType, error: ErrorReporting) -> bool {
     let enum_id = ty.enum_id().expect("not an enum");
 
@@ -172,7 +146,7 @@ impl<'a> TypeParamCheck<'a> {
         let mut succeeded = true;
 
         for &trait_bound in &tp.trait_bounds {
-            if !implements_trait(self.vm, ty.clone(), trait_bound) {
+            if !implements_trait(self.vm, ty.clone(), None, trait_bound) {
                 if let ErrorReporting::Yes(file_id, pos) = self.error {
                     self.fail_trait_bound(file_id, pos, trait_bound, ty.clone());
                 }

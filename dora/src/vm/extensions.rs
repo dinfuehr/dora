@@ -135,7 +135,7 @@ fn compare_type_param_bounds(
 fn concrete_type_fulfills_bounds(
     vm: &VM,
     check_ty: SourceType,
-    _check_type_param_defs: &[TypeParam],
+    check_type_param_defs: &[TypeParam],
     ext_ty: SourceType,
     ext_type_param_defs: &[TypeParam],
 ) -> bool {
@@ -143,7 +143,7 @@ fn concrete_type_fulfills_bounds(
     let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
 
     for &trait_id in &ext_tp_def.trait_bounds {
-        if !implements_trait(vm, check_ty.clone(), trait_id) {
+        if !implements_trait(vm, check_ty.clone(), Some(check_type_param_defs), trait_id) {
             return false;
         }
     }
