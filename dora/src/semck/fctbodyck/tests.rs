@@ -2144,7 +2144,7 @@ fn extension_method_call() {
 }
 
 #[test]
-fn extension_method_call_type_param() {
+fn extension_class_with_type_param() {
     ok("
         class Foo[T](let value: T)
         trait MyTrait {}
@@ -2164,6 +2164,64 @@ fn extension_method_call_type_param() {
     err(
         "
         class Foo[T](let value: T)
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.bar() }
+    ",
+        pos(4, 37),
+        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+    );
+}
+
+#[test]
+fn extension_struct_with_type_param() {
+    ok("
+        struct Foo[T](value: T)
+        trait MyTrait {}
+        impl[T: MyTrait] Foo[T] { fun foo(): Int32 { 12 } }
+        impl MyTrait for Int32 {}
+        fun bar(x: Foo[Int32]): Int32 { x.foo() }
+    ");
+
+    ok("
+        struct Foo[T](value: T)
+        impl Foo[Int32] { fun foo() {} }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.foo() }
+        fun g(x: Foo[Float32]) { x.bar() }
+    ");
+
+    err(
+        "
+        struct Foo[T](value: T)
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.bar() }
+    ",
+        pos(4, 37),
+        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+    );
+}
+
+#[test]
+fn extension_enum_with_type_param() {
+    ok("
+        enum Foo[T] { A(T), B }
+        trait MyTrait {}
+        impl[T: MyTrait] Foo[T] { fun foo(): Int32 { 12 } }
+        impl MyTrait for Int32 {}
+        fun bar(x: Foo[Int32]): Int32 { x.foo() }
+    ");
+
+    ok("
+        enum Foo[T] { A(T), B }
+        impl Foo[Int32] { fun foo() {} }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.foo() }
+        fun g(x: Foo[Float32]) { x.bar() }
+    ");
+
+    err(
+        "
+        enum Foo[T] { A(T), B }
         impl Foo[Float32] { fun bar() {} }
         fun f(x: Foo[Int32]) { x.bar() }
     ",

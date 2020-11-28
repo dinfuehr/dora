@@ -6,8 +6,8 @@ use crate::mem;
 use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
-    impl_matches, Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ModuleId, StructId, TraitId,
-    TupleId, TypeParam, TypeParamId,
+    impl_matches, Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ImplId, ModuleId, StructId,
+    TraitId, TupleId, TypeParam, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -592,13 +592,29 @@ pub fn implements_trait(
     trait_id: TraitId,
 ) -> bool {
     match check_ty {
-        SourceType::Enum(_, _)
-        | SourceType::Struct(_, _)
-        | SourceType::Tuple(_)
+        SourceType::Tuple(_)
         | SourceType::Unit
         | SourceType::Module(_)
         | SourceType::TraitObject(_)
         | SourceType::Lambda(_) => false,
+
+        SourceType::Enum(enum_id, _) => {
+            let xenum = vm.enums[enum_id].read();
+            check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls)
+        }
+
+        SourceType::Struct(struct_id, _) => {
+            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                trait_id,
+                &xstruct.impls,
+            )
+        }
 
         SourceType::Bool
         | SourceType::Char
@@ -616,21 +632,13 @@ pub fn implements_trait(
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
 
-            for &impl_id in &cls.impls {
-                if !impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_id) {
-                    continue;
-                }
-
-                let ximpl = &vm.impls[impl_id];
-                let ximpl = ximpl.read();
-                debug_assert_eq!(ximpl.ty.cls_id(vm), Some(cls_id));
-
-                if ximpl.trait_id == Some(trait_id) {
-                    return true;
-                }
-            }
-
-            false
+            check_impls(
+                vm,
+                check_ty.clone(),
+                check_type_param_defs,
+                trait_id,
+                &cls.impls,
+            )
         }
 
         SourceType::TypeParam(tp_id) => {
@@ -640,6 +648,29 @@ pub fn implements_trait(
 
         SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
     }
+}
+
+pub fn check_impls(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    trait_id: TraitId,
+    impls: &[ImplId],
+) -> bool {
+    for &impl_id in impls {
+        let ximpl = &vm.impls[impl_id];
+        let ximpl = ximpl.read();
+
+        if ximpl.trait_id != Some(trait_id) {
+            continue;
+        }
+
+        if impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_id) {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

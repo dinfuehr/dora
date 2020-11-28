@@ -356,9 +356,21 @@ impl<'a> MethodLookup<'a> {
         let candidates = if object_type.is_module() {
             find_methods_in_module(self.vm, object_type, name)
         } else if object_type.is_enum() {
-            find_methods_in_enum(self.vm, object_type, name, is_static)
+            find_methods_in_enum(
+                self.vm,
+                object_type,
+                self.type_param_defs.unwrap(),
+                name,
+                is_static,
+            )
         } else if object_type.is_struct() {
-            find_methods_in_struct(self.vm, object_type, name, is_static)
+            find_methods_in_struct(
+                self.vm,
+                object_type,
+                self.type_param_defs.unwrap(),
+                name,
+                is_static,
+            )
         } else {
             find_methods_in_class(
                 self.vm,

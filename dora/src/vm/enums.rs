@@ -9,11 +9,12 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
+use crate::semck::specialize::replace_type_param;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, ClassDefId, ExtensionId, FctId, FileId, ImplId, NamespaceId,
-    TypeParam, TypeParamId, VM,
+    accessible_from, extension_matches, namespace_path, ClassDefId, ExtensionId, FctId, FileId,
+    ImplId, NamespaceId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -138,6 +139,7 @@ pub struct EnumDefVariant {
 pub fn find_methods_in_enum(
     vm: &VM,
     object_type: SourceType,
+    type_param_defs: &[TypeParam],
     name: Name,
     is_static: bool,
 ) -> Vec<(SourceType, FctId)> {
@@ -145,6 +147,10 @@ pub fn find_methods_in_enum(
     let xenum = vm.enums[enum_id].read();
 
     for &extension_id in &xenum.extensions {
+        if !extension_matches(vm, object_type.clone(), type_param_defs, extension_id) {
+            continue;
+        }
+
         let extension = vm.extensions[extension_id].read();
 
         let table = if is_static {
@@ -154,7 +160,10 @@ pub fn find_methods_in_enum(
         };
 
         if let Some(&fct_id) = table.get(&name) {
-            return vec![(object_type, fct_id)];
+            let ext_ty = extension.ty.clone();
+            let type_params = object_type.type_params(vm);
+            let ext_ty = replace_type_param(vm, ext_ty, &type_params, None);
+            return vec![(ext_ty, fct_id)];
         }
     }
 
