@@ -2810,7 +2810,7 @@ impl<'a> TypeCheck<'a> {
                     implements_trait(
                         self.vm,
                         part_expr.clone(),
-                        Some(&self.fct.type_params),
+                        &self.fct.type_params,
                         stringable_trait,
                     )
                 };

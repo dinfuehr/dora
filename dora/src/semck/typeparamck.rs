@@ -1,10 +1,8 @@
 use dora_parser::lexer::position::Position;
 
-use std::collections::hash_set::HashSet;
-
 use crate::error::msg::SemError;
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
-use crate::vm::{Class, ClassId, Fct, FileId, StructId, TraitId, TypeParam, VM};
+use crate::vm::{Class, Fct, FileId, StructId, TraitId, TypeParam, VM};
 
 pub enum ErrorReporting {
     Yes(FileId, Position),
@@ -22,8 +20,7 @@ pub fn check_enum(vm: &VM, fct: &Fct, ty: SourceType, error: ErrorReporting) -> 
 
     let checker = TypeParamCheck {
         vm,
-        use_fct: Some(fct),
-        use_cls_id: None,
+        type_param_defs: &fct.type_params,
         error,
         tp_defs: &tp_defs,
     };
@@ -48,8 +45,7 @@ pub fn check_struct(
 
     let checker = TypeParamCheck {
         vm,
-        use_fct: Some(fct),
-        use_cls_id: None,
+        type_param_defs: &fct.type_params,
         error,
         tp_defs: &tp_defs,
     };
@@ -69,8 +65,7 @@ pub fn check_super<'a>(vm: &VM, cls: &Class, error: ErrorReporting) -> bool {
 
     let checker = TypeParamCheck {
         vm,
-        use_fct: None,
-        use_cls_id: Some(cls.id),
+        type_param_defs: &cls.type_params,
         error,
         tp_defs: &tp_defs,
     };
@@ -89,8 +84,7 @@ pub fn check_params<'a>(
 ) -> bool {
     let checker = TypeParamCheck {
         vm,
-        use_fct: Some(fct),
-        use_cls_id: fct.parent_cls_id(),
+        type_param_defs: &fct.type_params,
         error,
         tp_defs,
     };
@@ -100,8 +94,7 @@ pub fn check_params<'a>(
 
 struct TypeParamCheck<'a> {
     vm: &'a VM,
-    use_fct: Option<&'a Fct>,
-    use_cls_id: Option<ClassId>,
+    type_param_defs: &'a [TypeParam],
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],
 }
@@ -119,77 +112,23 @@ impl<'a> TypeParamCheck<'a> {
         let mut succeeded = true;
 
         for (tp_def, ty) in self.tp_defs.iter().zip(tps.iter()) {
-            if let SourceType::TypeParam(id) = ty {
-                let ok = if let Some(use_fct) = self.use_fct {
-                    let tp_arg = use_fct.type_param(id);
-                    self.tp_against_definition(tp_def, tp_arg, ty.clone())
-                } else if let Some(use_cls_id) = self.use_cls_id {
-                    let cls = self.vm.classes.idx(use_cls_id);
-                    let cls = cls.read();
-                    self.tp_against_definition(tp_def, cls.type_param(id), ty)
-                } else {
-                    unreachable!()
-                };
-
-                if !ok {
+            for &trait_bound in &tp_def.trait_bounds {
+                if !implements_trait(self.vm, ty.clone(), self.type_param_defs, trait_bound) {
+                    if let ErrorReporting::Yes(file_id, pos) = self.error {
+                        self.fail_trait_bound(file_id, pos, trait_bound, ty.clone());
+                    }
                     succeeded = false;
                 }
-            } else if !self.type_against_definition(tp_def, ty) {
-                succeeded = false;
             }
         }
 
-        succeeded
-    }
-
-    fn type_against_definition(&self, tp: &TypeParam, ty: SourceType) -> bool {
-        let mut succeeded = true;
-
-        for &trait_bound in &tp.trait_bounds {
-            if !implements_trait(self.vm, ty.clone(), None, trait_bound) {
-                if let ErrorReporting::Yes(file_id, pos) = self.error {
-                    self.fail_trait_bound(file_id, pos, trait_bound, ty.clone());
-                }
-                succeeded = false;
-            }
-        }
-
-        succeeded
-    }
-
-    fn tp_against_definition(&self, tp: &TypeParam, arg: &TypeParam, arg_ty: SourceType) -> bool {
-        let mut succeeded = true;
-
-        if tp.trait_bounds.len() == 0 {
-            return succeeded;
-        }
-
-        let traits_set = arg.trait_bounds.iter().collect::<HashSet<_>>();
-
-        for &trait_bound in &tp.trait_bounds {
-            if !traits_set.contains(&trait_bound) {
-                if let ErrorReporting::Yes(file_id, pos) = self.error {
-                    self.fail_trait_bound(file_id, pos, trait_bound, arg_ty.clone());
-                }
-                succeeded = false;
-            }
-        }
         succeeded
     }
 
     fn fail_trait_bound(&self, file_id: FileId, pos: Position, trait_id: TraitId, ty: SourceType) {
-        let bound = self.vm.traits[trait_id].read();
-        let name = if let Some(fct) = self.use_fct {
-            ty.name_fct(self.vm, fct)
-        } else {
-            let cls = self
-                .vm
-                .classes
-                .idx(self.use_cls_id.expect("cls_id missing"));
-            let cls = cls.read();
-            ty.name_cls(self.vm, &*cls)
-        };
-        let trait_name = self.vm.interner.str(bound.name).to_string();
+        let name = ty.name_with_params(self.vm, self.type_param_defs);
+        let xtrait = self.vm.traits[trait_id].read();
+        let trait_name = self.vm.interner.str(xtrait.name).to_string();
         let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
         self.vm.diag.lock().report(file_id, pos, msg);
     }

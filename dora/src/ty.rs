@@ -6,8 +6,8 @@ use crate::mem;
 use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
-    Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ModuleId, StructId, TraitId, TupleId,
-    TypeParam, TypeParamId,
+    impl_matches, Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ModuleId, StructId, TraitId,
+    TupleId, TypeParam, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -277,9 +277,16 @@ impl SourceType {
     pub fn name(&self, vm: &VM) -> String {
         let writer = SourceTypePrinter {
             vm,
-            use_fct: None,
-            use_class: None,
-            use_enum: None,
+            type_params: None,
+        };
+
+        writer.name(self.clone())
+    }
+
+    pub fn name_with_params(&self, vm: &VM, type_params: &[TypeParam]) -> String {
+        let writer = SourceTypePrinter {
+            vm,
+            type_params: Some(type_params),
         };
 
         writer.name(self.clone())
@@ -288,9 +295,7 @@ impl SourceType {
     pub fn name_fct(&self, vm: &VM, fct: &Fct) -> String {
         let writer = SourceTypePrinter {
             vm,
-            use_fct: Some(fct),
-            use_class: None,
-            use_enum: None,
+            type_params: Some(&fct.type_params),
         };
 
         writer.name(self.clone())
@@ -299,9 +304,7 @@ impl SourceType {
     pub fn name_cls(&self, vm: &VM, cls: &Class) -> String {
         let writer = SourceTypePrinter {
             vm,
-            use_fct: None,
-            use_class: Some(cls),
-            use_enum: None,
+            type_params: Some(&cls.type_params),
         };
 
         writer.name(self.clone())
@@ -310,9 +313,7 @@ impl SourceType {
     pub fn name_enum(&self, vm: &VM, xenum: &EnumData) -> String {
         let writer = SourceTypePrinter {
             vm,
-            use_fct: None,
-            use_class: None,
-            use_enum: Some(xenum),
+            type_params: Some(&xenum.type_params),
         };
 
         writer.name(self.clone())
@@ -587,7 +588,7 @@ pub fn type_names(vm: &VM, types: &[SourceType]) -> String {
 pub fn implements_trait(
     vm: &VM,
     check_ty: SourceType,
-    check_type_param_defs: Option<&[TypeParam]>,
+    check_type_param_defs: &[TypeParam],
     trait_id: TraitId,
 ) -> bool {
     match check_ty {
@@ -616,6 +617,10 @@ pub fn implements_trait(
             let cls = cls.read();
 
             for &impl_id in &cls.impls {
+                if !impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_id) {
+                    continue;
+                }
+
                 let ximpl = &vm.impls[impl_id];
                 let ximpl = ximpl.read();
                 debug_assert_eq!(ximpl.ty.cls_id(vm), Some(cls_id));
@@ -629,7 +634,6 @@ pub fn implements_trait(
         }
 
         SourceType::TypeParam(tp_id) => {
-            let check_type_param_defs = check_type_param_defs.unwrap();
             let tp = &check_type_param_defs[tp_id.to_usize()];
             tp.trait_bounds.contains(&trait_id)
         }
@@ -899,9 +903,7 @@ impl LambdaTypes {
 
 struct SourceTypePrinter<'a> {
     vm: &'a VM,
-    use_fct: Option<&'a Fct>,
-    use_class: Option<&'a Class>,
-    use_enum: Option<&'a EnumData>,
+    type_params: Option<&'a [TypeParam]>,
 }
 
 impl<'a> SourceTypePrinter<'a> {
@@ -985,12 +987,11 @@ impl<'a> SourceTypePrinter<'a> {
                 self.vm.interner.str(module.name).to_string()
             }
             SourceType::TypeParam(idx) => {
-                if let Some(fct) = self.use_fct {
-                    self.vm.interner.str(fct.type_param(idx).name).to_string()
-                } else if let Some(cls) = self.use_class {
-                    self.vm.interner.str(cls.type_param_ty(ty).name).to_string()
-                } else if let Some(xenum) = self.use_enum {
-                    self.vm.interner.str(xenum.type_param(idx).name).to_string()
+                if let Some(type_params) = self.type_params {
+                    self.vm
+                        .interner
+                        .str(type_params[idx.to_usize()].name)
+                        .to_string()
                 } else {
                     format!("TypeParam({})", idx.to_usize())
                 }

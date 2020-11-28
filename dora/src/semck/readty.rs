@@ -252,61 +252,18 @@ fn check_type_params(
     let mut success = true;
 
     for (tp_definition, tp_ty) in tp_definitions.iter().zip(type_params.iter()) {
-        match tp_ty {
-            SourceType::TypeParam(tp_id) => check_bounds_for_type_param_id(
-                vm,
-                tp_definition,
-                *tp_id,
-                &mut success,
-                file_id,
-                pos,
-                ctxt,
-            ),
-
-            SourceType::Tuple(_)
-            | SourceType::Unit
-            | SourceType::Module(_)
-            | SourceType::TraitObject(_)
-            | SourceType::Lambda(_) => fail_for_each_trait_bound(
-                vm,
-                tp_definition,
-                tp_ty.clone(),
-                &mut success,
-                file_id,
-                pos,
-            ),
-            SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => {
-                unreachable!()
+        use_type_params(vm, ctxt, |check_type_param_defs| {
+            for &trait_bound in &tp_definition.trait_bounds {
+                if !implements_trait(vm, tp_ty.clone(), check_type_param_defs, trait_bound) {
+                    let bound = vm.traits[trait_bound].read();
+                    let name = tp_ty.name_with_params(vm, check_type_param_defs);
+                    let trait_name = vm.interner.str(bound.name).to_string();
+                    let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+                    vm.diag.lock().report(file_id, pos, msg);
+                    success = false;
+                }
             }
-            SourceType::Bool
-            | SourceType::Char
-            | SourceType::UInt8
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64
-            | SourceType::Class(_, _)
-            | SourceType::Enum(_, _)
-            | SourceType::Struct(_, _) => {
-                use_type_params(vm, ctxt, |check_type_param_defs| {
-                    for &trait_bound in &tp_definition.trait_bounds {
-                        if !implements_trait(
-                            vm,
-                            tp_ty.clone(),
-                            Some(check_type_param_defs),
-                            trait_bound,
-                        ) {
-                            let bound = vm.traits[trait_bound].read();
-                            let name = tp_ty.name(vm);
-                            let trait_name = vm.interner.str(bound.name).to_string();
-                            let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-                            vm.diag.lock().report(file_id, pos, msg);
-                            success = false;
-                        }
-                    }
-                });
-            }
-        }
+        });
     }
 
     success

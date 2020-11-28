@@ -13,8 +13,8 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
-    accessible_from, extension_matches, namespace_path, ExtensionId, FctId, FileId, ImplId,
-    NamespaceId, TraitId,
+    accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctId, FileId,
+    ImplId, NamespaceId, TraitId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast;
@@ -332,11 +332,11 @@ pub fn find_methods_in_class(
         let cls = cls.read();
 
         for &extension_id in &cls.extensions {
-            let extension = vm.extensions[extension_id].read();
-
             if !extension_matches(vm, object_type.clone(), type_param_defs, extension_id) {
                 continue;
             }
+
+            let extension = vm.extensions[extension_id].read();
 
             let table = if is_static {
                 &extension.static_names
@@ -361,11 +361,11 @@ pub fn find_methods_in_class(
         let cls = cls.read();
 
         for &impl_id in &cls.impls {
-            let ximpl = vm.impls[impl_id].read();
-
-            if ximpl.ty.type_params(vm) != class_type.type_params(vm) {
+            if !impl_matches(vm, class_type.clone(), type_param_defs, impl_id) {
                 continue;
             }
+
+            let ximpl = vm.impls[impl_id].read();
 
             for &method in &ximpl.methods {
                 let method = vm.fcts.idx(method);
