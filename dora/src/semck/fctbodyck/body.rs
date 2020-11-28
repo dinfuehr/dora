@@ -148,10 +148,7 @@ impl<'a> TypeCheck<'a> {
 
             FctParent::Impl(impl_id) => {
                 let ximpl = self.vm.impls[impl_id].read();
-                let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
-                let cls = cls.read();
-
-                cls.ty.clone()
+                ximpl.ty.clone()
             }
 
             FctParent::Extension(extension_id) => {

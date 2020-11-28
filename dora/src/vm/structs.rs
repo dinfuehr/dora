@@ -10,8 +10,8 @@ use crate::semck::specialize::replace_type_param;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, extension_matches, namespace_path, ExtensionId, FctId, FileId, ImplId,
-    NamespaceId, SourceTypeArray, TypeParam, TypeParamId, VM,
+    accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctId, FileId,
+    ImplId, NamespaceId, SourceTypeArray, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -172,5 +172,27 @@ pub fn find_methods_in_struct(
         }
     }
 
-    Vec::new()
+    let mut candidates = Vec::new();
+
+    for &impl_id in &xstruct.impls {
+        if !impl_matches(vm, object_type.clone(), type_param_defs, impl_id) {
+            continue;
+        }
+
+        let ximpl = vm.impls[impl_id].read();
+
+        for &method in &ximpl.methods {
+            let method = vm.fcts.idx(method);
+            let method = method.read();
+
+            if method.name == name && method.is_static == is_static {
+                let impl_ty = ximpl.ty.clone();
+                let type_params = object_type.type_params(vm);
+                let impl_ty = replace_type_param(vm, impl_ty, &type_params, None);
+                candidates.push((impl_ty, method.id));
+            }
+        }
+    }
+
+    candidates
 }

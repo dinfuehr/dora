@@ -43,11 +43,8 @@ pub fn check(vm: &VM) {
                     fct.type_params.push(param.clone());
                 }
 
-                let cls = vm.classes.idx(ximpl.cls_id(vm));
-                let cls = cls.read();
-
                 if fct.has_self() {
-                    fct.param_types.push(cls.ty.clone());
+                    fct.param_types.push(ximpl.ty.clone());
                 }
             }
 

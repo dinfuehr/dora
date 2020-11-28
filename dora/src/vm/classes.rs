@@ -372,7 +372,10 @@ pub fn find_methods_in_class(
                 let method = method.read();
 
                 if method.name == name && method.is_static == is_static {
-                    candidates.push((class_type.clone(), method.id));
+                    let impl_ty = ximpl.ty.clone();
+                    let type_params = class_type.type_params(vm);
+                    let impl_ty = replace_type_param(vm, impl_ty, &type_params, None);
+                    candidates.push((impl_ty, method.id));
                 }
             }
         }

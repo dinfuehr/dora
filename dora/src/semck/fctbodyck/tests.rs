@@ -2242,6 +2242,35 @@ fn impl_class_type_params() {
         pos(5, 39),
         SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
+
+    ok("
+        trait MyTrait { fun bar(); }
+        class Foo[T]
+        impl MyTrait for Foo[Int32] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
+    ");
+}
+
+#[test]
+#[ignore]
+fn impl_struct_type_params() {
+    err(
+        "
+        trait MyTrait { fun bar(); }
+        struct Foo[T](value: T)
+        impl MyTrait for Foo[String] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
+    ",
+        pos(5, 39),
+        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+    );
+
+    ok("
+        trait MyTrait { fun bar(); }
+        struct Foo[T](value: T)
+        impl MyTrait for Foo[Int32] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
+    ");
 }
 
 #[test]
