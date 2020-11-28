@@ -410,9 +410,16 @@ impl VM {
         let cls_id = NestedSymTable::new(self, self.global_namespace_id)
             .get_class(class_name)
             .expect("class not found");
-        let cls = self.cls(cls_id);
+        let cls = self.classes.idx(cls_id);
+        let cls = cls.read();
 
-        let candidates = find_methods_in_class(self, cls, function_name, is_static);
+        let candidates = find_methods_in_class(
+            self,
+            cls.ty.clone(),
+            &cls.type_params,
+            function_name,
+            is_static,
+        );
         if candidates.len() == 1 {
             Some(candidates[0].1)
         } else {

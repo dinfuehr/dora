@@ -287,6 +287,7 @@ pub fn find_method_in_class(
 pub fn find_methods_in_class(
     vm: &VM,
     object_type: SourceType,
+    _type_param_defs: &[TypeParam],
     name: Name,
     is_static: bool,
 ) -> Vec<(SourceType, FctId)> {

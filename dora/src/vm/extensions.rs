@@ -252,9 +252,7 @@ fn compare_type_params(
     let check_tps = check_ty.type_params(vm);
     let ext_tps = ext_ty.type_params(vm);
 
-    if check_tps.len() != ext_tps.len() {
-        return false;
-    }
+    assert_eq!(check_tps.len(), ext_tps.len());
 
     for (check_tp, ext_tp) in check_tps.iter().zip(ext_tps.iter()) {
         if !extension_matches_ty(

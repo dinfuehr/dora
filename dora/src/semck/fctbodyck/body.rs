@@ -15,11 +15,11 @@ use crate::vm::{
     fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
     struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
     FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId,
-    TypeParamId, Var, VarId, VM,
+    TypeParam, TypeParamId, Var, VarId, VM,
 };
 
+use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
@@ -30,7 +30,7 @@ pub struct TypeCheck<'a> {
     pub file_id: FileId,
     pub namespace_id: NamespaceId,
     pub analysis: &'a mut AnalysisData,
-    pub ast: &'a Function,
+    pub ast: &'a ast::Function,
     pub symtable: NestedSymTable<'a>,
     pub in_loop: bool,
 }
@@ -196,7 +196,7 @@ impl<'a> TypeCheck<'a> {
         var_id
     }
 
-    fn check_stmt_let(&mut self, s: &StmtLetType) {
+    fn check_stmt_let(&mut self, s: &ast::StmtLetType) {
         let defined_type = if let Some(ref data_type) = s.data_type {
             self.read_type(data_type)
         } else {
@@ -257,7 +257,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn read_type(&mut self, t: &Type) -> SourceType {
+    fn read_type(&mut self, t: &ast::Type) -> SourceType {
         read_type(
             self.vm,
             &self.symtable,
@@ -268,9 +268,14 @@ impl<'a> TypeCheck<'a> {
         .unwrap_or(SourceType::Error)
     }
 
-    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: SourceType, reassignable: bool) {
+    fn check_stmt_let_pattern(
+        &mut self,
+        pattern: &ast::LetPattern,
+        ty: SourceType,
+        reassignable: bool,
+    ) {
         match pattern {
-            LetPattern::Ident(ref ident) => {
+            ast::LetPattern::Ident(ref ident) => {
                 let var_ctxt = Var {
                     id: VarId(0),
                     name: ident.name,
@@ -283,11 +288,11 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.map_vars.insert(ident.id, var_id);
             }
 
-            LetPattern::Underscore(_) => {
+            ast::LetPattern::Underscore(_) => {
                 // nothing to do
             }
 
-            LetPattern::Tuple(ref tuple) => {
+            ast::LetPattern::Tuple(ref tuple) => {
                 if !ty.is_tuple_or_unit() && !ty.is_error() {
                     let ty_name = ty.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
@@ -342,7 +347,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_stmt_for(&mut self, stmt: &StmtForType) {
+    fn check_stmt_for(&mut self, stmt: &ast::StmtForType) {
         let object_type = self.check_expr(&stmt.expr, SourceType::Any);
 
         if object_type.is_error() {
@@ -413,7 +418,7 @@ impl<'a> TypeCheck<'a> {
         self.symtable.pop_level();
     }
 
-    fn check_loop_body(&mut self, stmt: &Stmt) {
+    fn check_loop_body(&mut self, stmt: &ast::Stmt) {
         let old_in_loop = self.in_loop;
         self.in_loop = true;
         self.visit_stmt(&stmt);
@@ -430,6 +435,7 @@ impl<'a> TypeCheck<'a> {
             .no_error_reporting()
             .method(object_type)
             .name(make_iterator_name)
+            .type_param_defs(&self.fct.type_params)
             .args(&[]);
 
         if lookup.find() {
@@ -452,6 +458,7 @@ impl<'a> TypeCheck<'a> {
             .no_error_reporting()
             .method(object_type.clone())
             .name(has_next_name)
+            .type_param_defs(&self.fct.type_params)
             .args(&[]);
 
         if !has_next.find() {
@@ -467,6 +474,7 @@ impl<'a> TypeCheck<'a> {
             .no_error_reporting()
             .method(object_type.clone())
             .name(next_name)
+            .type_param_defs(&self.fct.type_params)
             .args(&[]);
 
         if !next.find() {
@@ -487,7 +495,7 @@ impl<'a> TypeCheck<'a> {
         ))
     }
 
-    fn check_stmt_while(&mut self, stmt: &StmtWhileType) {
+    fn check_stmt_while(&mut self, stmt: &ast::StmtWhileType) {
         let expr_type = self.check_expr(&stmt.cond, SourceType::Any);
 
         if !expr_type.is_error() && !expr_type.is_bool() {
@@ -499,7 +507,7 @@ impl<'a> TypeCheck<'a> {
         self.check_loop_body(&stmt.block);
     }
 
-    fn check_stmt_return(&mut self, s: &StmtReturnType) {
+    fn check_stmt_return(&mut self, s: &ast::StmtReturnType) {
         let expr_type = s
             .expr
             .as_ref()
@@ -522,7 +530,11 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_block(&mut self, block: &ExprBlockType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_block(
+        &mut self,
+        block: &ast::ExprBlockType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         self.symtable.push_level();
 
         for stmt in &block.stmts {
@@ -541,7 +553,11 @@ impl<'a> TypeCheck<'a> {
         ty
     }
 
-    fn check_expr_tuple(&mut self, tuple: &ExprTupleType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_tuple(
+        &mut self,
+        tuple: &ast::ExprTupleType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let mut subtypes = Vec::new();
 
         if tuple.values.is_empty() {
@@ -562,14 +578,18 @@ impl<'a> TypeCheck<'a> {
         ty
     }
 
-    fn check_expr_paren(&mut self, paren: &ExprParenType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_paren(
+        &mut self,
+        paren: &ast::ExprParenType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let ty = self.check_expr(&paren.expr, SourceType::Any);
         self.analysis.set_ty(paren.id, ty.clone());
 
         ty
     }
 
-    fn check_expr_if(&mut self, expr: &ExprIfType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_if(&mut self, expr: &ast::ExprIfType, _expected_ty: SourceType) -> SourceType {
         let expr_type = self.check_expr(&expr.cond, SourceType::Any);
 
         if !expr_type.is_bool() && !expr_type.is_error() {
@@ -609,7 +629,7 @@ impl<'a> TypeCheck<'a> {
         merged_type
     }
 
-    fn check_expr_ident(&mut self, e: &ExprIdentType, expected_ty: SourceType) -> SourceType {
+    fn check_expr_ident(&mut self, e: &ast::ExprIdentType, expected_ty: SourceType) -> SourceType {
         let sym_term = self.symtable.get_term(e.name);
         let sym_type = self.symtable.get_type(e.name);
 
@@ -692,7 +712,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_assign(&mut self, e: &ExprBinType) {
+    fn check_expr_assign(&mut self, e: &ast::ExprBinType) {
         if e.lhs.is_call() {
             self.check_expr_assign_call(e);
         } else if e.lhs.is_dot() {
@@ -709,7 +729,7 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(e.id, SourceType::Unit);
     }
 
-    fn check_expr_assign_ident(&mut self, e: &ExprBinType) {
+    fn check_expr_assign_ident(&mut self, e: &ast::ExprBinType) {
         let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
 
         self.analysis.set_ty(e.id, SourceType::Unit);
@@ -788,7 +808,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_assign_call(&mut self, e: &ExprBinType) {
+    fn check_expr_assign_call(&mut self, e: &ast::ExprBinType) {
         let call = e.lhs.to_call().unwrap();
         let expr_type = self.check_expr(&call.callee, SourceType::Any);
 
@@ -818,7 +838,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_assign_field(&mut self, e: &ExprBinType) {
+    fn check_expr_assign_field(&mut self, e: &ast::ExprBinType) {
         let field_expr = e.lhs.to_dot().unwrap();
 
         let name = match field_expr.rhs.to_ident() {
@@ -903,6 +923,7 @@ impl<'a> TypeCheck<'a> {
         let result = lookup_method(
             self.vm,
             object_type.clone(),
+            &self.fct.type_params,
             is_static,
             name,
             args,
@@ -929,8 +950,8 @@ impl<'a> TypeCheck<'a> {
         result
     }
 
-    fn check_expr_un(&mut self, e: &ExprUnType, _expected_ty: SourceType) -> SourceType {
-        if e.op == UnOp::Neg && e.opnd.is_lit_int() {
+    fn check_expr_un(&mut self, e: &ast::ExprUnType, _expected_ty: SourceType) -> SourceType {
+        if e.op == ast::UnOp::Neg && e.opnd.is_lit_int() {
             let expr_type =
                 self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, SourceType::Any);
             self.analysis.set_ty(e.id, expr_type.clone());
@@ -940,16 +961,16 @@ impl<'a> TypeCheck<'a> {
         let opnd = self.check_expr(&e.opnd, SourceType::Any);
 
         match e.op {
-            UnOp::Plus => self.check_expr_un_method(e, e.op, "unaryPlus", opnd),
-            UnOp::Neg => self.check_expr_un_method(e, e.op, "unaryMinus", opnd),
-            UnOp::Not => self.check_expr_un_method(e, e.op, "not", opnd),
+            ast::UnOp::Plus => self.check_expr_un_method(e, e.op, "unaryPlus", opnd),
+            ast::UnOp::Neg => self.check_expr_un_method(e, e.op, "unaryMinus", opnd),
+            ast::UnOp::Not => self.check_expr_un_method(e, e.op, "not", opnd),
         }
     }
 
     fn check_expr_un_method(
         &mut self,
-        e: &ExprUnType,
-        op: UnOp,
+        e: &ast::ExprUnType,
+        op: ast::UnOp,
         name: &str,
         ty: SourceType,
     ) -> SourceType {
@@ -960,6 +981,7 @@ impl<'a> TypeCheck<'a> {
             if let Some((_, fct_id, return_type)) = lookup_method(
                 self.vm,
                 ty.clone(),
+                &self.fct.type_params,
                 false,
                 name,
                 &call_types,
@@ -984,7 +1006,7 @@ impl<'a> TypeCheck<'a> {
         SourceType::Error
     }
 
-    fn check_expr_bin(&mut self, e: &ExprBinType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_bin(&mut self, e: &ast::ExprBinType, _expected_ty: SourceType) -> SourceType {
         if e.op.is_any_assign() {
             self.check_expr_assign(e);
             return SourceType::Unit;
@@ -999,31 +1021,41 @@ impl<'a> TypeCheck<'a> {
         }
 
         match e.op {
-            BinOp::Or | BinOp::And => self.check_expr_bin_bool(e, e.op, lhs_type, rhs_type),
-            BinOp::Cmp(cmp) => self.check_expr_bin_cmp(e, cmp, lhs_type, rhs_type),
-            BinOp::Add => self.check_expr_bin_method(e, e.op, "plus", lhs_type, rhs_type),
-            BinOp::Sub => self.check_expr_bin_method(e, e.op, "minus", lhs_type, rhs_type),
-            BinOp::Mul => self.check_expr_bin_method(e, e.op, "times", lhs_type, rhs_type),
-            BinOp::Div => self.check_expr_bin_method(e, e.op, "div", lhs_type, rhs_type),
-            BinOp::Mod => self.check_expr_bin_method(e, e.op, "mod", lhs_type, rhs_type),
-            BinOp::BitOr => self.check_expr_bin_method(e, e.op, "bitwiseOr", lhs_type, rhs_type),
-            BinOp::BitAnd => self.check_expr_bin_method(e, e.op, "bitwiseAnd", lhs_type, rhs_type),
-            BinOp::BitXor => self.check_expr_bin_method(e, e.op, "bitwiseXor", lhs_type, rhs_type),
-            BinOp::ShiftL => self.check_expr_bin_method(e, e.op, "shiftLeft", lhs_type, rhs_type),
-            BinOp::ArithShiftR => {
+            ast::BinOp::Or | ast::BinOp::And => {
+                self.check_expr_bin_bool(e, e.op, lhs_type, rhs_type)
+            }
+            ast::BinOp::Cmp(cmp) => self.check_expr_bin_cmp(e, cmp, lhs_type, rhs_type),
+            ast::BinOp::Add => self.check_expr_bin_method(e, e.op, "plus", lhs_type, rhs_type),
+            ast::BinOp::Sub => self.check_expr_bin_method(e, e.op, "minus", lhs_type, rhs_type),
+            ast::BinOp::Mul => self.check_expr_bin_method(e, e.op, "times", lhs_type, rhs_type),
+            ast::BinOp::Div => self.check_expr_bin_method(e, e.op, "div", lhs_type, rhs_type),
+            ast::BinOp::Mod => self.check_expr_bin_method(e, e.op, "mod", lhs_type, rhs_type),
+            ast::BinOp::BitOr => {
+                self.check_expr_bin_method(e, e.op, "bitwiseOr", lhs_type, rhs_type)
+            }
+            ast::BinOp::BitAnd => {
+                self.check_expr_bin_method(e, e.op, "bitwiseAnd", lhs_type, rhs_type)
+            }
+            ast::BinOp::BitXor => {
+                self.check_expr_bin_method(e, e.op, "bitwiseXor", lhs_type, rhs_type)
+            }
+            ast::BinOp::ShiftL => {
+                self.check_expr_bin_method(e, e.op, "shiftLeft", lhs_type, rhs_type)
+            }
+            ast::BinOp::ArithShiftR => {
                 self.check_expr_bin_method(e, e.op, "shiftRightSigned", lhs_type, rhs_type)
             }
-            BinOp::LogicalShiftR => {
+            ast::BinOp::LogicalShiftR => {
                 self.check_expr_bin_method(e, e.op, "shiftRight", lhs_type, rhs_type)
             }
-            BinOp::Assign => unreachable!(),
+            ast::BinOp::Assign => unreachable!(),
         }
     }
 
     fn check_expr_bin_bool(
         &mut self,
-        e: &ExprBinType,
-        op: BinOp,
+        e: &ast::ExprBinType,
+        op: ast::BinOp,
         lhs_type: SourceType,
         rhs_type: SourceType,
     ) -> SourceType {
@@ -1035,8 +1067,8 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_bin_method(
         &mut self,
-        e: &ExprBinType,
-        op: BinOp,
+        e: &ast::ExprBinType,
+        op: ast::BinOp,
         name: &str,
         lhs_type: SourceType,
         rhs_type: SourceType,
@@ -1047,6 +1079,7 @@ impl<'a> TypeCheck<'a> {
         if let Some((_, fct_id, return_type)) = lookup_method(
             self.vm,
             lhs_type.clone(),
+            &self.fct.type_params,
             false,
             name,
             &call_types,
@@ -1076,13 +1109,13 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_bin_cmp(
         &mut self,
-        e: &ExprBinType,
-        cmp: CmpOp,
+        e: &ast::ExprBinType,
+        cmp: ast::CmpOp,
         lhs_type: SourceType,
         rhs_type: SourceType,
     ) -> SourceType {
         match cmp {
-            CmpOp::Is | CmpOp::IsNot => {
+            ast::CmpOp::Is | ast::CmpOp::IsNot => {
                 if !lhs_type.allows(self.vm, rhs_type.clone())
                     && !rhs_type.allows(self.vm, lhs_type.clone())
                 {
@@ -1099,7 +1132,7 @@ impl<'a> TypeCheck<'a> {
                 return SourceType::Bool;
             }
 
-            CmpOp::Eq | CmpOp::Ne => {
+            ast::CmpOp::Eq | ast::CmpOp::Ne => {
                 if lhs_type.is_enum() {
                     self.check_expr_cmp_enum(e, cmp, lhs_type, rhs_type)
                 } else {
@@ -1119,15 +1152,15 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_cmp_enum(
         &mut self,
-        e: &ExprBinType,
-        op: CmpOp,
+        e: &ast::ExprBinType,
+        op: ast::CmpOp,
         lhs_type: SourceType,
         rhs_type: SourceType,
     ) {
         if lhs_type.allows(self.vm, rhs_type.clone()) {
             let intrinsic = match op {
-                CmpOp::Eq => Intrinsic::EnumEq,
-                CmpOp::Ne => Intrinsic::EnumNe,
+                ast::CmpOp::Eq => Intrinsic::EnumEq,
+                ast::CmpOp::Ne => Intrinsic::EnumNe,
                 _ => unreachable!(),
             };
             let call_type = CallType::Intrinsic(intrinsic);
@@ -1149,8 +1182,8 @@ impl<'a> TypeCheck<'a> {
 
     fn check_type(
         &mut self,
-        e: &ExprBinType,
-        op: BinOp,
+        e: &ast::ExprBinType,
+        op: ast::BinOp,
         lhs_type: SourceType,
         rhs_type: SourceType,
         expected_type: SourceType,
@@ -1167,7 +1200,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_call(&mut self, e: &ExprCallType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_call(&mut self, e: &ast::ExprCallType, _expected_ty: SourceType) -> SourceType {
         let (callee, type_params) = if let Some(expr_type_params) = e.callee.to_type_param() {
             let type_params: Vec<SourceType> = expr_type_params
                 .args
@@ -1228,8 +1261,8 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_sym(
         &mut self,
-        e: &ExprCallType,
-        callee: &Expr,
+        e: &ast::ExprCallType,
+        callee: &ast::Expr,
         sym_term: Option<TermSym>,
         sym_type: Option<TypeSym>,
         type_params: SourceTypeArray,
@@ -1270,7 +1303,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_enum_value_with_args(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         enum_id: EnumId,
         type_params: SourceTypeArray,
         variant_id: usize,
@@ -1356,7 +1389,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_generic_static_method(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         tp_id: TypeParamId,
         name: Name,
         arg_types: &[SourceType],
@@ -1435,7 +1468,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_expr(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         expr_type: SourceType,
         arg_types: &[SourceType],
     ) -> SourceType {
@@ -1471,7 +1504,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_fct(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         fct_id: FctId,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
@@ -1505,7 +1538,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_static_method(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         object_type: SourceType,
         method_name: Name,
         type_params: SourceTypeArray,
@@ -1519,7 +1552,8 @@ impl<'a> TypeCheck<'a> {
             .static_method(cls_id)
             .name(method_name)
             .args(arg_types)
-            .fct_type_params(&type_params);
+            .fct_type_params(&type_params)
+            .type_param_defs(&self.fct.type_params);
 
         if lookup.find() {
             let fct_id = lookup.found_fct_id().unwrap();
@@ -1543,7 +1577,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_method(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         object_type: SourceType,
         method_name: Name,
         type_params: SourceTypeArray,
@@ -1565,6 +1599,7 @@ impl<'a> TypeCheck<'a> {
             .method(object_type.clone())
             .name(method_name)
             .fct_type_params(&type_params)
+            .type_param_defs(&self.fct.type_params)
             .args(arg_types);
 
         if lookup.find() {
@@ -1597,6 +1632,7 @@ impl<'a> TypeCheck<'a> {
                 .method(object_type)
                 .name(method_name)
                 .fct_type_params(&type_params)
+                .type_param_defs(&self.fct.type_params)
                 .pos(e.pos)
                 .args(arg_types);
 
@@ -1610,7 +1646,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_field(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         object_type: SourceType,
         method_name: Name,
         type_params: SourceTypeArray,
@@ -1632,6 +1668,7 @@ impl<'a> TypeCheck<'a> {
             .method(object_type)
             .name(method_name)
             .fct_type_params(&type_params)
+            .type_param_defs(&self.fct.type_params)
             .pos(e.pos)
             .args(arg_types);
         assert!(!lookup.find());
@@ -1643,7 +1680,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_struct(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         struct_id: StructId,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
@@ -1723,7 +1760,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_ctor(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         cls_id: ClassId,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
@@ -1767,7 +1804,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_generic(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         tp_id: TypeParamId,
         name: Name,
         arg_types: &[SourceType],
@@ -1785,7 +1822,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_generic_type_param(
         &mut self,
-        e: &ExprCallType,
+        e: &ast::ExprCallType,
         object_type: SourceType,
         id: TypeParamId,
         tp: &vm::TypeParam,
@@ -1838,8 +1875,8 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_path(
         &mut self,
-        e: &ExprCallType,
-        callee: &Expr,
+        e: &ast::ExprCallType,
+        callee: &ast::Expr,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
@@ -1993,7 +2030,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_delegation(
         &mut self,
-        e: &ExprDelegationType,
+        e: &ast::ExprDelegationType,
         _expected_ty: SourceType,
     ) -> SourceType {
         let arg_types: Vec<SourceType> = e
@@ -2053,7 +2090,7 @@ impl<'a> TypeCheck<'a> {
         SourceType::Error
     }
 
-    fn check_expr_path(&mut self, e: &ExprPathType, expected_ty: SourceType) -> SourceType {
+    fn check_expr_path(&mut self, e: &ast::ExprPathType, expected_ty: SourceType) -> SourceType {
         let (container_expr, type_params) = if let Some(expr_type_params) = e.lhs.to_type_param() {
             let type_params: Vec<SourceType> = expr_type_params
                 .args
@@ -2107,7 +2144,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn read_path(&mut self, expr: &Expr) -> Result<(Option<TermSym>, Option<TypeSym>), ()> {
+    fn read_path(&mut self, expr: &ast::Expr) -> Result<(Option<TermSym>, Option<TypeSym>), ()> {
         if let Some(expr_path) = expr.to_path() {
             let (sym_term, sym_type) = self.read_path(&expr_path.lhs)?;
 
@@ -2153,7 +2190,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_path_namespace(
         &mut self,
-        e: &ExprPathType,
+        e: &ast::ExprPathType,
         expected_ty: SourceType,
         namespace_id: NamespaceId,
         element_name: Name,
@@ -2237,7 +2274,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_enum_value_without_args(
         &mut self,
-        expr_id: NodeId,
+        expr_id: ast::NodeId,
         expr_pos: Position,
         _expected_ty: SourceType,
         enum_id: EnumId,
@@ -2308,7 +2345,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_type_param(
         &mut self,
-        e: &ExprTypeParamType,
+        e: &ast::ExprTypeParamType,
         expected_ty: SourceType,
     ) -> SourceType {
         let type_params: Vec<SourceType> = e.args.iter().map(|p| self.read_type(p)).collect();
@@ -2399,7 +2436,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_enum_value_without_args_id(
         &mut self,
-        expr_id: NodeId,
+        expr_id: ast::NodeId,
         expr_pos: Position,
         _expected_ty: SourceType,
         enum_id: EnumId,
@@ -2456,7 +2493,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_dot(&mut self, e: &ExprDotType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_dot(&mut self, e: &ast::ExprDotType, _expected_ty: SourceType) -> SourceType {
         let object_type = if e.lhs.is_super() {
             self.super_type(e.lhs.pos())
         } else {
@@ -2530,7 +2567,11 @@ impl<'a> TypeCheck<'a> {
         SourceType::Error
     }
 
-    fn check_expr_dot_tuple(&mut self, e: &ExprDotType, object_type: SourceType) -> SourceType {
+    fn check_expr_dot_tuple(
+        &mut self,
+        e: &ast::ExprDotType,
+        object_type: SourceType,
+    ) -> SourceType {
         let index = match e.rhs.to_lit_int() {
             Some(ident) => ident.value,
 
@@ -2564,7 +2605,7 @@ impl<'a> TypeCheck<'a> {
         ty
     }
 
-    fn check_expr_this(&mut self, e: &ExprSelfType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_this(&mut self, e: &ast::ExprSelfType, _expected_ty: SourceType) -> SourceType {
         match self.fct.parent {
             FctParent::Class(clsid) => {
                 let cls = self.vm.classes.idx(clsid);
@@ -2605,7 +2646,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_super(&mut self, e: &ExprSuperType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_super(&mut self, e: &ast::ExprSuperType, _expected_ty: SourceType) -> SourceType {
         let msg = SemError::SuperNeedsMethodCall;
         self.vm.diag.lock().report(self.file_id, e.pos, msg);
         self.analysis.set_ty(e.id, SourceType::Unit);
@@ -2613,7 +2654,11 @@ impl<'a> TypeCheck<'a> {
         SourceType::Unit
     }
 
-    fn check_expr_lambda(&mut self, e: &ExprLambdaType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_lambda(
+        &mut self,
+        e: &ast::ExprLambdaType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let ret = if let Some(ref ret_type) = e.ret {
             self.read_type(ret_type)
         } else {
@@ -2634,7 +2679,7 @@ impl<'a> TypeCheck<'a> {
         ty
     }
 
-    fn check_expr_conv(&mut self, e: &ExprConvType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_conv(&mut self, e: &ast::ExprConvType, _expected_ty: SourceType) -> SourceType {
         let object_type = self.check_expr(&e.object, SourceType::Any);
         self.analysis.set_ty(e.object.id(), object_type.clone());
 
@@ -2688,7 +2733,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_lit_int(
         &mut self,
-        e: &ExprLitIntType,
+        e: &ast::ExprLitIntType,
         negate: bool,
         expected_ty: SourceType,
     ) -> SourceType {
@@ -2701,7 +2746,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_lit_float(
         &mut self,
-        e: &ExprLitFloatType,
+        e: &ast::ExprLitFloatType,
         negate: bool,
         _expected_ty: SourceType,
     ) -> SourceType {
@@ -2712,20 +2757,32 @@ impl<'a> TypeCheck<'a> {
         ty
     }
 
-    fn check_expr_lit_str(&mut self, e: &ExprLitStrType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_lit_str(
+        &mut self,
+        e: &ast::ExprLitStrType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let str_ty = self.vm.cls(self.vm.known.classes.string);
         self.analysis.set_ty(e.id, str_ty.clone());
 
         str_ty
     }
 
-    fn check_expr_lit_bool(&mut self, e: &ExprLitBoolType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_lit_bool(
+        &mut self,
+        e: &ast::ExprLitBoolType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         self.analysis.set_ty(e.id, SourceType::Bool);
 
         SourceType::Bool
     }
 
-    fn check_expr_lit_char(&mut self, e: &ExprLitCharType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_lit_char(
+        &mut self,
+        e: &ast::ExprLitCharType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         self.analysis.set_ty(e.id, SourceType::Char);
 
         SourceType::Char
@@ -2733,7 +2790,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_template(
         &mut self,
-        e: &ExprTemplateType,
+        e: &ast::ExprTemplateType,
         _expected_ty: SourceType,
     ) -> SourceType {
         let stringable_trait = self.vm.known.traits.stringable;
@@ -2774,35 +2831,35 @@ impl<'a> TypeCheck<'a> {
         str_ty
     }
 
-    fn check_expr(&mut self, e: &Expr, expected_ty: SourceType) -> SourceType {
+    fn check_expr(&mut self, e: &ast::Expr, expected_ty: SourceType) -> SourceType {
         match *e {
-            Expr::LitChar(ref expr) => self.check_expr_lit_char(expr, expected_ty),
-            Expr::LitInt(ref expr) => self.check_expr_lit_int(expr, false, expected_ty),
-            Expr::LitFloat(ref expr) => self.check_expr_lit_float(expr, false, expected_ty),
-            Expr::LitStr(ref expr) => self.check_expr_lit_str(expr, expected_ty),
-            Expr::Template(ref expr) => self.check_expr_template(expr, expected_ty),
-            Expr::LitBool(ref expr) => self.check_expr_lit_bool(expr, expected_ty),
-            Expr::Ident(ref expr) => self.check_expr_ident(expr, expected_ty),
-            Expr::Un(ref expr) => self.check_expr_un(expr, expected_ty),
-            Expr::Bin(ref expr) => self.check_expr_bin(expr, expected_ty),
-            Expr::Call(ref expr) => self.check_expr_call(expr, expected_ty),
-            Expr::TypeParam(ref expr) => self.check_expr_type_param(expr, expected_ty),
-            Expr::Path(ref expr) => self.check_expr_path(expr, expected_ty),
-            Expr::Delegation(ref expr) => self.check_expr_delegation(expr, expected_ty),
-            Expr::Dot(ref expr) => self.check_expr_dot(expr, expected_ty),
-            Expr::This(ref expr) => self.check_expr_this(expr, expected_ty),
-            Expr::Super(ref expr) => self.check_expr_super(expr, expected_ty),
-            Expr::Conv(ref expr) => self.check_expr_conv(expr, expected_ty),
-            Expr::Lambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
-            Expr::Block(ref expr) => self.check_expr_block(expr, expected_ty),
-            Expr::If(ref expr) => self.check_expr_if(expr, expected_ty),
-            Expr::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
-            Expr::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
-            Expr::Match(_) => unimplemented!(),
+            ast::Expr::LitChar(ref expr) => self.check_expr_lit_char(expr, expected_ty),
+            ast::Expr::LitInt(ref expr) => self.check_expr_lit_int(expr, false, expected_ty),
+            ast::Expr::LitFloat(ref expr) => self.check_expr_lit_float(expr, false, expected_ty),
+            ast::Expr::LitStr(ref expr) => self.check_expr_lit_str(expr, expected_ty),
+            ast::Expr::Template(ref expr) => self.check_expr_template(expr, expected_ty),
+            ast::Expr::LitBool(ref expr) => self.check_expr_lit_bool(expr, expected_ty),
+            ast::Expr::Ident(ref expr) => self.check_expr_ident(expr, expected_ty),
+            ast::Expr::Un(ref expr) => self.check_expr_un(expr, expected_ty),
+            ast::Expr::Bin(ref expr) => self.check_expr_bin(expr, expected_ty),
+            ast::Expr::Call(ref expr) => self.check_expr_call(expr, expected_ty),
+            ast::Expr::TypeParam(ref expr) => self.check_expr_type_param(expr, expected_ty),
+            ast::Expr::Path(ref expr) => self.check_expr_path(expr, expected_ty),
+            ast::Expr::Delegation(ref expr) => self.check_expr_delegation(expr, expected_ty),
+            ast::Expr::Dot(ref expr) => self.check_expr_dot(expr, expected_ty),
+            ast::Expr::This(ref expr) => self.check_expr_this(expr, expected_ty),
+            ast::Expr::Super(ref expr) => self.check_expr_super(expr, expected_ty),
+            ast::Expr::Conv(ref expr) => self.check_expr_conv(expr, expected_ty),
+            ast::Expr::Lambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
+            ast::Expr::Block(ref expr) => self.check_expr_block(expr, expected_ty),
+            ast::Expr::If(ref expr) => self.check_expr_if(expr, expected_ty),
+            ast::Expr::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
+            ast::Expr::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
+            ast::Expr::Match(_) => unimplemented!(),
         }
     }
 
-    fn check_stmt_break_and_continue(&mut self, stmt: &Stmt) {
+    fn check_stmt_break_and_continue(&mut self, stmt: &ast::Stmt) {
         if !self.in_loop {
             self.vm
                 .diag
@@ -2813,22 +2870,22 @@ impl<'a> TypeCheck<'a> {
 }
 
 impl<'a> Visitor for TypeCheck<'a> {
-    fn visit_expr(&mut self, _e: &Expr) {
+    fn visit_expr(&mut self, _e: &ast::Expr) {
         unreachable!();
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) {
+    fn visit_stmt(&mut self, s: &ast::Stmt) {
         match *s {
-            Stmt::Let(ref stmt) => self.check_stmt_let(stmt),
-            Stmt::While(ref stmt) => self.check_stmt_while(stmt),
-            Stmt::For(ref stmt) => self.check_stmt_for(stmt),
-            Stmt::Return(ref stmt) => self.check_stmt_return(stmt),
+            ast::Stmt::Let(ref stmt) => self.check_stmt_let(stmt),
+            ast::Stmt::While(ref stmt) => self.check_stmt_while(stmt),
+            ast::Stmt::For(ref stmt) => self.check_stmt_for(stmt),
+            ast::Stmt::Return(ref stmt) => self.check_stmt_return(stmt),
 
             // for the rest of the statements, no special handling is necessary
-            Stmt::Break(_) | Stmt::Continue(_) => {
+            ast::Stmt::Break(_) | ast::Stmt::Continue(_) => {
                 self.check_stmt_break_and_continue(s);
             }
-            Stmt::Expr(ref stmt) => {
+            ast::Stmt::Expr(ref stmt) => {
                 self.check_expr(&stmt.expr, SourceType::Any);
             }
         }
@@ -2989,7 +3046,7 @@ fn arg_allows(vm: &VM, def: SourceType, arg: SourceType, self_ty: Option<SourceT
 pub fn check_lit_int(
     vm: &VM,
     file: FileId,
-    e: &ExprLitIntType,
+    e: &ast::ExprLitIntType,
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, i64) {
@@ -3050,7 +3107,7 @@ pub fn check_lit_int(
 pub fn check_lit_float(
     vm: &VM,
     file: FileId,
-    e: &ExprLitFloatType,
+    e: &ast::ExprLitFloatType,
     negate: bool,
 ) -> (SourceType, f64) {
     let ty = match e.suffix {
@@ -3082,6 +3139,7 @@ pub fn check_lit_float(
 pub fn lookup_method(
     vm: &VM,
     object_type: SourceType,
+    type_param_defs: &[TypeParam],
     is_static: bool,
     name: Name,
     args: &[SourceType],
@@ -3091,7 +3149,8 @@ pub fn lookup_method(
     let cls_id = object_type.cls_id(vm);
 
     if cls_id.is_some() {
-        let candidates = find_methods_in_class(vm, object_type.clone(), name, is_static);
+        let candidates =
+            find_methods_in_class(vm, object_type.clone(), type_param_defs, name, is_static);
 
         if candidates.len() == 1 {
             let candidate = candidates[0].1;

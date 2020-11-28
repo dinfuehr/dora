@@ -31,6 +31,7 @@ pub struct MethodLookup<'a> {
     args: Option<&'a [SourceType]>,
     container_tps: Option<&'a SourceTypeArray>,
     fct_tps: Option<&'a SourceTypeArray>,
+    type_param_defs: Option<&'a [TypeParam]>,
     ret: Option<SourceType>,
     pos: Option<Position>,
     report_errors: bool,
@@ -56,6 +57,7 @@ impl<'a> MethodLookup<'a> {
             ret: None,
             pos: None,
             report_errors: true,
+            type_param_defs: None,
 
             found_fct_id: None,
             found_class_type: None,
@@ -125,6 +127,11 @@ impl<'a> MethodLookup<'a> {
 
     pub fn fct_type_params(mut self, fct_tps: &'a SourceTypeArray) -> MethodLookup<'a> {
         self.fct_tps = Some(fct_tps);
+        self
+    }
+
+    pub fn type_param_defs(mut self, tp_defs: &'a [TypeParam]) -> MethodLookup<'a> {
+        self.type_param_defs = Some(tp_defs);
         self
     }
 
@@ -353,7 +360,13 @@ impl<'a> MethodLookup<'a> {
         } else if object_type.is_struct() {
             find_methods_in_struct(self.vm, object_type, name, is_static)
         } else {
-            find_methods_in_class(self.vm, object_type, name, is_static)
+            find_methods_in_class(
+                self.vm,
+                object_type,
+                self.type_param_defs.unwrap(),
+                name,
+                is_static,
+            )
         };
 
         self.found_multiple_functions = candidates.len() > 1;
