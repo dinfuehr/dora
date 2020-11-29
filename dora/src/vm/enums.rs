@@ -147,50 +147,50 @@ pub fn find_methods_in_enum(
     let xenum = vm.enums[enum_id].read();
 
     for &extension_id in &xenum.extensions {
-        if !extension_matches(vm, object_type.clone(), type_param_defs, extension_id) {
-            continue;
-        }
+        if let Some(bindings) =
+            extension_matches(vm, object_type.clone(), type_param_defs, extension_id)
+        {
+            let extension = vm.extensions[extension_id].read();
 
-        let extension = vm.extensions[extension_id].read();
+            let table = if is_static {
+                &extension.static_names
+            } else {
+                &extension.instance_names
+            };
 
-        let table = if is_static {
-            &extension.static_names
-        } else {
-            &extension.instance_names
-        };
-
-        if let Some(&fct_id) = table.get(&name) {
-            let ext_ty = extension.ty.clone();
-            let type_params = object_type.type_params(vm);
-            let ext_ty = replace_type_param(vm, ext_ty, &type_params, None);
-            return vec![Candidate {
-                object_type: ext_ty,
-                fct_id,
-            }];
+            if let Some(&fct_id) = table.get(&name) {
+                let ext_ty = extension.ty.clone();
+                let type_params = object_type.type_params(vm);
+                let ext_ty = replace_type_param(vm, ext_ty, &type_params, None);
+                return vec![Candidate {
+                    object_type: ext_ty,
+                    container_type_params: bindings,
+                    fct_id,
+                }];
+            }
         }
     }
 
     let mut candidates = Vec::new();
 
     for &impl_id in &xenum.impls {
-        if !impl_matches(vm, object_type.clone(), type_param_defs, impl_id) {
-            continue;
-        }
+        if let Some(bindings) = impl_matches(vm, object_type.clone(), type_param_defs, impl_id) {
+            let ximpl = vm.impls[impl_id].read();
 
-        let ximpl = vm.impls[impl_id].read();
+            for &method in &ximpl.methods {
+                let method = vm.fcts.idx(method);
+                let method = method.read();
 
-        for &method in &ximpl.methods {
-            let method = vm.fcts.idx(method);
-            let method = method.read();
-
-            if method.name == name && method.is_static == is_static {
-                let impl_ty = ximpl.ty.clone();
-                let type_params = object_type.type_params(vm);
-                let impl_ty = replace_type_param(vm, impl_ty, &type_params, None);
-                candidates.push(Candidate {
-                    object_type: impl_ty,
-                    fct_id: method.id,
-                });
+                if method.name == name && method.is_static == is_static {
+                    let impl_ty = ximpl.ty.clone();
+                    let type_params = object_type.type_params(vm);
+                    let impl_ty = replace_type_param(vm, impl_ty, &type_params, None);
+                    candidates.push(Candidate {
+                        object_type: impl_ty,
+                        container_type_params: bindings.clone(),
+                        fct_id: method.id,
+                    });
+                }
             }
         }
     }

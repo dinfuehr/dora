@@ -39,6 +39,7 @@ pub struct MethodLookup<'a> {
     found_fct_id: Option<FctId>,
     found_class_type: Option<SourceType>,
     found_ret: Option<SourceType>,
+    found_container_type_params: Option<SourceTypeArray>,
 
     found_multiple_functions: bool,
 }
@@ -62,6 +63,7 @@ impl<'a> MethodLookup<'a> {
             found_fct_id: None,
             found_class_type: None,
             found_ret: None,
+            found_container_type_params: None,
 
             found_multiple_functions: false,
         }
@@ -366,6 +368,7 @@ impl<'a> MethodLookup<'a> {
         if candidates.len() == 1 {
             let candidate = candidates.first().unwrap();
             self.found_class_type = Some(candidate.object_type.clone());
+            self.found_container_type_params = Some(candidate.container_type_params.clone());
             Some(candidate.fct_id)
         } else {
             None
@@ -412,6 +415,10 @@ impl<'a> MethodLookup<'a> {
 
     pub fn found_class_type(&self) -> Option<SourceType> {
         self.found_class_type.clone()
+    }
+
+    pub fn found_container_type_params(&self) -> Option<SourceTypeArray> {
+        self.found_container_type_params.clone()
     }
 
     pub fn found_ret(&self) -> Option<SourceType> {

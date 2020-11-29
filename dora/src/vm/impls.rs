@@ -6,7 +6,7 @@ use std::sync::Arc;
 use dora_parser::ast;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::SourceType;
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     extension_matches_ty, ClassId, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
 };
@@ -73,7 +73,7 @@ pub fn impl_matches(
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
     impl_id: ImplId,
-) -> bool {
+) -> Option<SourceTypeArray> {
     let ximpl = vm.impls[impl_id].read();
     extension_matches_ty(
         vm,

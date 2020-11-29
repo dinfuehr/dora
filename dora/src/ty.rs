@@ -665,7 +665,7 @@ pub fn check_impls(
             continue;
         }
 
-        if impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_id) {
+        if impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
             return true;
         }
     }

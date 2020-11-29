@@ -56,7 +56,7 @@ impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {
 }
 
 mod matching {
-    use crate::ty::{implements_trait, SourceType};
+    use crate::ty::{implements_trait, SourceType, SourceTypeArray};
     use crate::vm::{ExtensionId, TypeParam, VM};
 
     pub fn extension_matches(
@@ -64,7 +64,7 @@ mod matching {
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         extension_id: ExtensionId,
-    ) -> bool {
+    ) -> Option<SourceTypeArray> {
         let extension = vm.extensions[extension_id].read();
         extension_matches_ty(
             vm,
@@ -81,17 +81,25 @@ mod matching {
         check_type_param_defs: &[TypeParam],
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
-    ) -> bool {
+    ) -> Option<SourceTypeArray> {
         let mut bindings = vec![None; ext_type_param_defs.len()];
 
-        matches(
+        let result = matches(
             vm,
             check_ty,
             check_type_param_defs,
             ext_ty.clone(),
             ext_type_param_defs,
             &mut bindings,
-        )
+        );
+
+        if result {
+            Some(SourceTypeArray::with(
+                bindings.into_iter().map(|t| t.unwrap()).collect(),
+            ))
+        } else {
+            None
+        }
     }
 
     fn matches(

@@ -95,7 +95,8 @@ pub fn find_methods_in_module(vm: &VM, object_type: SourceType, name: Name) -> V
 
                 if !ignores.contains(&method.id) {
                     return vec![Candidate {
-                        object_type: module_type,
+                        object_type: module_type.clone(),
+                        container_type_params: module_type.type_params(vm),
                         fct_id: method.id,
                     }];
                 }
