@@ -1,0 +1,19 @@
+//= stdout "self=1 another=101\nself=2 another=102\n"
+
+class MyClass[T](let value: Int32)
+class Foo
+
+impl MyClass[Foo] {
+    fun do[T](another: MyClass[T]) {
+        println("self=${self.value} another=${another.value}");
+    }
+}
+
+fun f() {
+    MyClass[Foo](1).do[Int32](MyClass[Int32](101));
+    MyClass[Foo](2).do[Float32](MyClass[Float32](102));
+}
+
+fun main() {
+    f();
+}
