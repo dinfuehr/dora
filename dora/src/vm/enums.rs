@@ -13,8 +13,8 @@ use crate::semck::specialize::replace_type_param;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, extension_matches, impl_matches, namespace_path, ClassDefId, ExtensionId,
-    FctId, FileId, ImplId, NamespaceId, TypeParam, TypeParamId, VM,
+    accessible_from, extension_matches, impl_matches, namespace_path, Candidate, ClassDefId,
+    ExtensionId, FileId, ImplId, NamespaceId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -142,7 +142,7 @@ pub fn find_methods_in_enum(
     type_param_defs: &[TypeParam],
     name: Name,
     is_static: bool,
-) -> Vec<(SourceType, FctId)> {
+) -> Vec<Candidate> {
     let enum_id = object_type.enum_id().unwrap();
     let xenum = vm.enums[enum_id].read();
 
@@ -163,7 +163,10 @@ pub fn find_methods_in_enum(
             let ext_ty = extension.ty.clone();
             let type_params = object_type.type_params(vm);
             let ext_ty = replace_type_param(vm, ext_ty, &type_params, None);
-            return vec![(ext_ty, fct_id)];
+            return vec![Candidate {
+                object_type: ext_ty,
+                fct_id,
+            }];
         }
     }
 
@@ -184,7 +187,10 @@ pub fn find_methods_in_enum(
                 let impl_ty = ximpl.ty.clone();
                 let type_params = object_type.type_params(vm);
                 let impl_ty = replace_type_param(vm, impl_ty, &type_params, None);
-                candidates.push((impl_ty, method.id));
+                candidates.push(Candidate {
+                    object_type: impl_ty,
+                    fct_id: method.id,
+                });
             }
         }
     }

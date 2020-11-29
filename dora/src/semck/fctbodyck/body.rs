@@ -3155,7 +3155,7 @@ pub fn lookup_method(
             find_methods_in_class(vm, object_type.clone(), type_param_defs, name, is_static);
 
         if candidates.len() == 1 {
-            let candidate = candidates[0].1;
+            let candidate = candidates[0].fct_id;
             let method = vm.fcts.idx(candidate);
             let method = method.read();
 

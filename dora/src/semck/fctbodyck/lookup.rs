@@ -365,8 +365,8 @@ impl<'a> MethodLookup<'a> {
 
         if candidates.len() == 1 {
             let candidate = candidates.first().unwrap();
-            self.found_class_type = Some(candidate.0.clone());
-            Some(candidate.1)
+            self.found_class_type = Some(candidate.object_type.clone());
+            Some(candidate.fct_id)
         } else {
             None
         }

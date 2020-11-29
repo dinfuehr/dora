@@ -285,13 +285,18 @@ pub fn find_method_in_class(
     }
 }
 
+pub struct Candidate {
+    pub object_type: SourceType,
+    pub fct_id: FctId,
+}
+
 pub fn find_methods_in_class(
     vm: &VM,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
     name: Name,
     is_static: bool,
-) -> Vec<(SourceType, FctId)> {
+) -> Vec<Candidate> {
     let mut candidates = Vec::new();
     let mut ignores = HashSet::new();
 
@@ -312,7 +317,10 @@ pub fn find_methods_in_class(
                 }
 
                 if !ignores.contains(&method.id) {
-                    return vec![(class_type, method.id)];
+                    return vec![Candidate {
+                        object_type: class_type,
+                        fct_id: method.id,
+                    }];
                 }
             }
         }
@@ -348,7 +356,10 @@ pub fn find_methods_in_class(
                 let ext_ty = extension.ty.clone();
                 let type_params = object_type.type_params(vm);
                 let ext_ty = replace_type_param(vm, ext_ty, &type_params, None);
-                return vec![(ext_ty, fct_id)];
+                return vec![Candidate {
+                    object_type: ext_ty,
+                    fct_id: fct_id,
+                }];
             }
         }
     }
@@ -375,7 +386,10 @@ pub fn find_methods_in_class(
                     let impl_ty = ximpl.ty.clone();
                     let type_params = class_type.type_params(vm);
                     let impl_ty = replace_type_param(vm, impl_ty, &type_params, None);
-                    candidates.push((impl_ty, method.id));
+                    candidates.push(Candidate {
+                        object_type: impl_ty,
+                        fct_id: method.id,
+                    });
                 }
             }
         }

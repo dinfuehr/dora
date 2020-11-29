@@ -6,7 +6,8 @@ use crate::size::InstanceSize;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, FctId, Field, FieldDef, FileId, NamespaceId, TraitId, VM,
+    accessible_from, namespace_path, Candidate, FctId, Field, FieldDef, FileId, NamespaceId,
+    TraitId, VM,
 };
 
 use crate::vtable::VTableBox;
@@ -73,11 +74,7 @@ impl Module {
     }
 }
 
-pub fn find_methods_in_module(
-    vm: &VM,
-    object_type: SourceType,
-    name: Name,
-) -> Vec<(SourceType, FctId)> {
+pub fn find_methods_in_module(vm: &VM, object_type: SourceType, name: Name) -> Vec<Candidate> {
     let mut ignores = HashSet::new();
 
     let mut module_type = object_type;
@@ -97,7 +94,10 @@ pub fn find_methods_in_module(
                 }
 
                 if !ignores.contains(&method.id) {
-                    return vec![(module_type, method.id)];
+                    return vec![Candidate {
+                        object_type: module_type,
+                        fct_id: method.id,
+                    }];
                 }
             }
         }
