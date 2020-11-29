@@ -9,7 +9,6 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::semck::specialize::replace_type_param;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
@@ -159,11 +158,8 @@ pub fn find_methods_in_enum(
             };
 
             if let Some(&fct_id) = table.get(&name) {
-                let ext_ty = extension.ty.clone();
-                let type_params = object_type.type_params(vm);
-                let ext_ty = replace_type_param(vm, ext_ty, &type_params, None);
                 return vec![Candidate {
-                    object_type: ext_ty,
+                    object_type: object_type.clone(),
                     container_type_params: bindings,
                     fct_id,
                 }];
@@ -182,11 +178,8 @@ pub fn find_methods_in_enum(
                 let method = method.read();
 
                 if method.name == name && method.is_static == is_static {
-                    let impl_ty = ximpl.ty.clone();
-                    let type_params = object_type.type_params(vm);
-                    let impl_ty = replace_type_param(vm, impl_ty, &type_params, None);
                     candidates.push(Candidate {
-                        object_type: impl_ty,
+                        object_type: object_type.clone(),
                         container_type_params: bindings.clone(),
                         fct_id: method.id,
                     });

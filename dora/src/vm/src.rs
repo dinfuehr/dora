@@ -201,7 +201,7 @@ pub struct ForTypeInfo {
 #[derive(Debug, Clone)]
 pub enum CallType {
     // Function calls, e.g. fct(<args>) or Class::static_fct(<args>)
-    Fct(FctId, SourceTypeArray, SourceTypeArray),
+    Fct(FctId, SourceTypeArray),
 
     // Direct or virtual method calls, e.g. obj.method(<args>)
     Method(SourceType, FctId, SourceTypeArray),
@@ -281,7 +281,7 @@ impl CallType {
 
     pub fn fct_id(&self) -> Option<FctId> {
         match *self {
-            CallType::Fct(fctid, _, _) => Some(fctid),
+            CallType::Fct(fctid, _) => Some(fctid),
             CallType::Method(_, fctid, _) => Some(fctid),
             CallType::ModuleMethod(_, fctid, _) => Some(fctid),
             CallType::Ctor(_, fctid) => Some(fctid),

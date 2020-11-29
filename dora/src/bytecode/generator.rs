@@ -1252,7 +1252,7 @@ impl<'a> AstBytecodeGen<'a> {
                     self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
                 }
             }
-            CallType::ModuleMethod(_, _, _) | CallType::Fct(_, _, _) => {
+            CallType::ModuleMethod(_, _, _) | CallType::Fct(_, _) => {
                 self.emit_invoke_static(return_type, return_reg, callee_idx, pos);
             }
             CallType::Expr(_, _) => {
@@ -2702,21 +2702,14 @@ impl<'a> AstBytecodeGen<'a> {
         match call_type {
             CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => ty.type_params(self.vm),
 
-            CallType::Method(ty, _, ref fct_type_params) => {
-                let cls_type_params = ty.type_params(self.vm);
-                cls_type_params.connect(fct_type_params)
-            }
+            CallType::Method(_, _, ref type_params) => type_params.clone(),
 
             CallType::ModuleMethod(ty, _, ref fct_type_params) => {
                 let cls_type_params = ty.type_params(self.vm);
                 cls_type_params.connect(fct_type_params)
             }
 
-            CallType::Fct(_, ref cls_tps, ref fct_tps) => {
-                let cls_type_params = cls_tps.clone();
-                let fct_type_params = fct_tps.clone();
-                cls_type_params.connect(&fct_type_params)
-            }
+            CallType::Fct(_, ref type_params) => type_params.clone(),
 
             CallType::Expr(ty, _) => ty.type_params(self.vm),
 
@@ -2732,6 +2725,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn specialize_call(&mut self, fct: &Fct, call_type: &CallType) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
+        assert_eq!(fct.type_params.len(), type_params.len());
 
         match *call_type {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
@@ -2743,16 +2737,9 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: SourceType) -> SourceType {
         match call_type {
-            CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
-                let type_params = cls_type_params.connect(fct_type_params);
-                specialize_type(self.vm, ty, &type_params)
-            }
+            CallType::Fct(_, ref type_params) => specialize_type(self.vm, ty, &type_params),
 
-            CallType::Method(cls_ty, _, ref fct_type_params) => {
-                let cls_type_params = cls_ty.type_params(self.vm);
-                let type_params = cls_type_params.connect(fct_type_params);
-                specialize_type(self.vm, ty, &type_params)
-            }
+            CallType::Method(_, _, ref type_params) => specialize_type(self.vm, ty, &type_params),
 
             CallType::ModuleMethod(cls_ty, _, ref fct_type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);

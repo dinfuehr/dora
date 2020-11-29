@@ -985,7 +985,7 @@ impl<'a> TypeCheck<'a> {
                 &SourceTypeArray::empty(),
                 None,
             ) {
-                let call_type = CallType::Method(ty.clone(), fct_id, SourceTypeArray::empty());
+                let call_type = CallType::Method(ty.clone(), fct_id, ty.type_params(self.vm));
                 self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
                 self.analysis.set_ty(e.id, return_type.clone());
@@ -1083,7 +1083,8 @@ impl<'a> TypeCheck<'a> {
             &SourceTypeArray::empty(),
             None,
         ) {
-            let call_type = CallType::Method(lhs_type, fct_id, SourceTypeArray::empty());
+            let call_type =
+                CallType::Method(lhs_type.clone(), fct_id, lhs_type.type_params(self.vm));
             self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
@@ -1520,7 +1521,7 @@ impl<'a> TypeCheck<'a> {
             .fct_type_params(&type_params);
 
         let ty = if lookup.find() {
-            let call_type = CallType::Fct(fct_id, SourceTypeArray::empty(), type_params.clone());
+            let call_type = CallType::Fct(fct_id, type_params.clone());
             self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
             lookup.found_ret().unwrap()
@@ -1555,11 +1556,7 @@ impl<'a> TypeCheck<'a> {
         if lookup.find() {
             let fct_id = lookup.found_fct_id().unwrap();
             let return_type = lookup.found_ret().unwrap();
-            let call_type = Arc::new(CallType::Fct(
-                fct_id,
-                SourceTypeArray::empty(),
-                type_params.clone(),
-            ));
+            let call_type = Arc::new(CallType::Fct(fct_id, type_params.clone()));
             self.analysis.map_calls.insert(e.id, call_type.clone());
 
             self.analysis.set_ty(e.id, return_type.clone());
@@ -1577,11 +1574,11 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprCallType,
         object_type: SourceType,
         method_name: Name,
-        type_params: SourceTypeArray,
+        fct_type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         if let SourceType::TypeParam(id) = object_type {
-            assert_eq!(type_params.len(), 0);
+            assert_eq!(fct_type_params.len(), 0);
             return self.check_expr_call_generic(e, id, method_name, arg_types);
         }
 
@@ -1595,7 +1592,7 @@ impl<'a> TypeCheck<'a> {
             .no_error_reporting()
             .method(object_type.clone())
             .name(method_name)
-            .fct_type_params(&type_params)
+            .fct_type_params(&fct_type_params)
             .type_param_defs(&self.fct.type_params)
             .args(arg_types);
 
@@ -1608,9 +1605,12 @@ impl<'a> TypeCheck<'a> {
             } else {
                 let method_type = lookup.found_class_type().unwrap();
                 if method_type.is_module() {
-                    CallType::ModuleMethod(method_type, fct_id, type_params.clone())
+                    CallType::ModuleMethod(method_type, fct_id, fct_type_params.clone())
                 } else {
-                    CallType::Method(method_type, fct_id, type_params.clone())
+                    let container_type_params =
+                        lookup.found_container_type_params().clone().unwrap();
+                    let type_params = container_type_params.connect(&fct_type_params);
+                    CallType::Method(method_type, fct_id, type_params)
                 }
             };
 
@@ -1622,13 +1622,13 @@ impl<'a> TypeCheck<'a> {
             return_type
         } else if lookup.found_fct_id().is_none() {
             // No method with this name found, so this might actually be a field
-            self.check_expr_call_field(e, object_type, method_name, type_params, arg_types)
+            self.check_expr_call_field(e, object_type, method_name, fct_type_params, arg_types)
         } else {
             // Lookup the method again, but this time with error reporting
             let mut lookup = MethodLookup::new(self.vm, self.fct)
                 .method(object_type)
                 .name(method_name)
-                .fct_type_params(&type_params)
+                .fct_type_params(&fct_type_params)
                 .type_param_defs(&self.fct.type_params)
                 .pos(e.pos)
                 .args(arg_types);

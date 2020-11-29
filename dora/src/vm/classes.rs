@@ -354,11 +354,8 @@ pub fn find_methods_in_class(
                 };
 
                 if let Some(&fct_id) = table.get(&name) {
-                    let ext_ty = extension.ty.clone();
-                    let type_params = object_type.type_params(vm);
-                    let ext_ty = replace_type_param(vm, ext_ty, &type_params, None);
                     return vec![Candidate {
-                        object_type: ext_ty,
+                        object_type,
                         container_type_params: bindings,
                         fct_id: fct_id,
                     }];
@@ -383,11 +380,8 @@ pub fn find_methods_in_class(
                     let method = method.read();
 
                     if method.name == name && method.is_static == is_static {
-                        let impl_ty = ximpl.ty.clone();
-                        let type_params = class_type.type_params(vm);
-                        let impl_ty = replace_type_param(vm, impl_ty, &type_params, None);
                         candidates.push(Candidate {
-                            object_type: impl_ty,
+                            object_type: class_type.clone(),
                             container_type_params: bindings.clone(),
                             fct_id: method.id,
                         });
