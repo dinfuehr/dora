@@ -2361,7 +2361,6 @@ fn impl_class_type_params() {
 }
 
 #[test]
-#[ignore]
 fn extension_with_fct_type_param() {
     ok("
         class MyClass[T]

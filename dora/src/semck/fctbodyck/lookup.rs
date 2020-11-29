@@ -261,8 +261,8 @@ impl<'a> MethodLookup<'a> {
             }
 
             container_tps.clone()
-        } else if let LookupKind::Method(ref obj) = kind {
-            obj.type_params(self.vm)
+        } else if let LookupKind::Method(_) = kind {
+            self.found_container_type_params.clone().unwrap()
         } else {
             SourceTypeArray::empty()
         };
