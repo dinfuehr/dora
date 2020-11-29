@@ -4,8 +4,8 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, ClassId, EnumId, Fct,
-    FctId, FctParent, FileId, TraitId, TypeParam, VM,
+    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, ClassId, Fct, FctId,
+    FileId, TraitId, TypeParam, VM,
 };
 
 use crate::vm::find_methods_in_module;
@@ -245,25 +245,19 @@ impl<'a> MethodLookup<'a> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let cls_id = match fct.parent {
-            FctParent::Class(cls_id) => Some(cls_id),
-            FctParent::Impl(impl_id) => {
-                let ximpl = self.vm.impls[impl_id].read();
-                Some(ximpl.cls_id(self.vm))
-            }
-            _ => None,
-        };
-
-        let enum_id = match fct.parent {
-            FctParent::Extension(extension_id) => {
-                let extension = &self.vm.extensions[extension_id];
-                let extension = extension.read();
-                extension.ty.enum_id()
-            }
-            _ => None,
+        let fct_tps: SourceTypeArray = if let Some(fct_tps) = self.fct_tps {
+            fct_tps.clone()
+        } else {
+            SourceTypeArray::empty()
         };
 
         let container_tps: SourceTypeArray = if let Some(container_tps) = self.container_tps {
+            let type_params = container_tps.connect(&fct_tps);
+
+            if !self.check_tps(fct.container_type_params(), &type_params) {
+                return false;
+            }
+
             container_tps.clone()
         } else if let LookupKind::Method(ref obj) = kind {
             obj.type_params(self.vm)
@@ -271,23 +265,9 @@ impl<'a> MethodLookup<'a> {
             SourceTypeArray::empty()
         };
 
-        if cls_id.is_some() && !self.check_cls_tps(cls_id.unwrap(), &container_tps) {
+        if !self.check_tps(fct.fct_type_params(), &fct_tps) {
             return false;
         }
-
-        if enum_id.is_some() && !self.check_enum_tps(enum_id.unwrap(), &container_tps) {
-            return false;
-        }
-
-        let fct_tps: SourceTypeArray = if let Some(fct_tps) = self.fct_tps {
-            if !self.check_fct_tps(fct_tps) {
-                return false;
-            }
-
-            fct_tps.clone()
-        } else {
-            SourceTypeArray::empty()
-        };
 
         if args.contains(&SourceType::Error) {
             return false;
@@ -402,26 +382,6 @@ impl<'a> MethodLookup<'a> {
         let xtrait = xtrait.read();
 
         xtrait.find_method(self.vm, name, is_static)
-    }
-
-    fn check_cls_tps(&self, cls_id: ClassId, tps: &SourceTypeArray) -> bool {
-        let cls_tps = {
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
-            cls.type_params.to_vec()
-        };
-
-        self.check_tps(&cls_tps, tps)
-    }
-
-    fn check_enum_tps(&self, enum_id: EnumId, tps: &SourceTypeArray) -> bool {
-        let enum_tps = {
-            let xenum = &self.vm.enums[enum_id];
-            let xenum = xenum.read();
-            xenum.type_params.to_vec()
-        };
-
-        self.check_tps(&enum_tps, tps)
     }
 
     fn check_fct_tps(&self, tps: &SourceTypeArray) -> bool {

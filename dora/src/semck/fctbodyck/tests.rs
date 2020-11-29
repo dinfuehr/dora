@@ -2252,7 +2252,6 @@ fn impl_class_type_params() {
 }
 
 #[test]
-#[ignore]
 fn impl_struct_type_params() {
     err(
         "
@@ -2268,6 +2267,27 @@ fn impl_struct_type_params() {
     ok("
         trait MyTrait { fun bar(); }
         struct Foo[T](value: T)
+        impl MyTrait for Foo[Int32] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
+    ");
+}
+
+#[test]
+fn impl_enum_type_params() {
+    err(
+        "
+        trait MyTrait { fun bar(); }
+        enum Foo[T] { A(T), B }
+        impl MyTrait for Foo[String] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
+    ",
+        pos(5, 39),
+        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+    );
+
+    ok("
+        trait MyTrait { fun bar(); }
+        enum Foo[T] { A(T), B }
         impl MyTrait for Foo[Int32] { fun bar() {} }
         fun bar(x: Foo[Int32]) { x.bar(); }
     ");
