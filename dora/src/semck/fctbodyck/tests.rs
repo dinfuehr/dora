@@ -2211,6 +2211,26 @@ fn extension_class_tuple() {
 }
 
 #[test]
+fn extension_nested() {
+    err(
+        "
+        class Foo[T]
+        impl Foo[Foo[Foo[Int32]]] {
+            fun bar() {}
+        }
+        fun f(value: Foo[Foo[Foo[Int32]]]) {
+            value.bar();
+        }
+        fun g(value: Foo[Foo[Int32]]) {
+            value.bar();
+        }
+    ",
+        pos(10, 22),
+        SemError::UnknownMethod("Foo[Foo[Int32]]".into(), "bar".into(), Vec::new()),
+    );
+}
+
+#[test]
 fn extension_bind_type_param_twice() {
     ok("
         class Foo[T]
