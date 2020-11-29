@@ -2176,37 +2176,88 @@ fn extension_class_with_type_param() {
 fn extension_class_tuple() {
     ok("
         class Foo[T](let value: T)
-        impl Vec[(Int32, Int32)] {
+        impl Foo[(Int32, Int32)] {
             fun bar() {}
         }
-        fun f(x: Vec[(Int32, Int32)]) {
+        fun f(x: Foo[(Int32, Int32)]) {
             x.bar();
         }
     ");
 
     ok("
-        class Foo[T](let value: T)
-        impl[T] Vec[(T, Int32)] {
+        class Foo[T]
+        impl[T] Foo[(T, Int32)] {
             fun bar() {}
         }
         fun f() {
-            Vec[(Int32, Int32)]().bar();
-            Vec[(Float32, Int32)]().bar();
+            Foo[(Int32, Int32)]().bar();
+            Foo[(Float32, Int32)]().bar();
         }
     ");
 
     err(
         "
-        class Foo[T](let value: T)
-        impl Vec[(Int32, Float32)] {
+        class Foo[T]
+        impl Foo[(Int32, Float32)] {
             fun bar() {}
         }
-        fun f(x: Vec[(Int32, Int32)]) {
+        fun f(x: Foo[(Int32, Int32)]) {
             x.bar();
         }
     ",
         pos(7, 18),
-        SemError::UnknownMethod("Vec[(Int32, Int32)]".into(), "bar".into(), Vec::new()),
+        SemError::UnknownMethod("Foo[(Int32, Int32)]".into(), "bar".into(), Vec::new()),
+    );
+}
+
+#[test]
+fn extension_bind_type_param_twice() {
+    ok("
+        class Foo[T]
+        impl[T] Foo[(T, T)] {
+            fun bar() {}
+        }
+        fun f(x: Foo[(Int32, Int32)]) {
+            x.bar();
+        }
+    ");
+
+    ok("
+        class Foo[T]
+        impl[T] Foo[(T, T)] {
+            fun bar() {}
+        }
+        fun f[T](x: Foo[(T, T)]) {
+            x.bar();
+        }
+    ");
+
+    err(
+        "
+        class Foo[T]
+        impl[T] Foo[(T, T)] {
+            fun bar() {}
+        }
+        fun f(x: Foo[(Int32, Float32)]) {
+            x.bar();
+        }
+    ",
+        pos(7, 18),
+        SemError::UnknownMethod("Foo[(Int32, Float32)]".into(), "bar".into(), Vec::new()),
+    );
+
+    err(
+        "
+        class Foo[T]
+        impl[T] Foo[(T, T)] {
+            fun bar() {}
+        }
+        fun f[T](x: Foo[(T, Float32)]) {
+            x.bar();
+        }
+    ",
+        pos(7, 18),
+        SemError::UnknownMethod("Foo[(T, Float32)]".into(), "bar".into(), Vec::new()),
     );
 }
 
