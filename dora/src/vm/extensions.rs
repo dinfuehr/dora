@@ -172,7 +172,35 @@ fn compare_concrete_types(
             unimplemented!()
         }
 
-        SourceType::Tuple(_check_tuple_id) => unimplemented!(),
+        SourceType::Tuple(check_tuple_id) => {
+            let check_subtypes = vm.tuples.lock().get(check_tuple_id);
+
+            let ext_tuple_id = if let Some(tuple_id) = ext_ty.tuple_id() {
+                tuple_id
+            } else {
+                return false;
+            };
+
+            let ext_subtypes = vm.tuples.lock().get(ext_tuple_id);
+
+            if check_subtypes.len() != ext_subtypes.len() {
+                return false;
+            }
+
+            for (check_subty, ext_subty) in check_subtypes.iter().zip(ext_subtypes.iter()) {
+                if !extension_matches_ty(
+                    vm,
+                    check_subty.clone(),
+                    check_type_param_defs,
+                    ext_subty.clone(),
+                    ext_type_param_defs,
+                ) {
+                    return false;
+                }
+            }
+
+            true
+        }
 
         SourceType::Struct(check_struct_id, _) => {
             let ext_struct_id = if let Some(struct_id) = ext_ty.struct_id() {

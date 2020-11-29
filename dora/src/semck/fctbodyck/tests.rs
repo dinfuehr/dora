@@ -2173,6 +2173,44 @@ fn extension_class_with_type_param() {
 }
 
 #[test]
+fn extension_class_tuple() {
+    ok("
+        class Foo[T](let value: T)
+        impl Vec[(Int32, Int32)] {
+            fun bar() {}
+        }
+        fun f(x: Vec[(Int32, Int32)]) {
+            x.bar();
+        }
+    ");
+
+    ok("
+        class Foo[T](let value: T)
+        impl[T] Vec[(T, Int32)] {
+            fun bar() {}
+        }
+        fun f() {
+            Vec[(Int32, Int32)]().bar();
+            Vec[(Float32, Int32)]().bar();
+        }
+    ");
+
+    err(
+        "
+        class Foo[T](let value: T)
+        impl Vec[(Int32, Float32)] {
+            fun bar() {}
+        }
+        fun f(x: Vec[(Int32, Int32)]) {
+            x.bar();
+        }
+    ",
+        pos(7, 18),
+        SemError::UnknownMethod("Vec[(Int32, Int32)]".into(), "bar".into(), Vec::new()),
+    );
+}
+
+#[test]
 fn extension_struct_with_type_param() {
     ok("
         struct Foo[T](value: T)
@@ -2248,6 +2286,22 @@ fn impl_class_type_params() {
         class Foo[T]
         impl MyTrait for Foo[Int32] { fun bar() {} }
         fun bar(x: Foo[Int32]) { x.bar(); }
+    ");
+}
+
+#[test]
+#[ignore]
+fn extension_with_fct_type_param() {
+    ok("
+        class MyClass[T]
+        class Foo
+        impl MyClass[Foo] {
+            fun do[T](another: MyClass[T]) {}
+        }
+        fun f() {
+            MyClass[Foo]().do[Int32](MyClass[Int32]());
+            MyClass[Foo]().do[Float32](MyClass[Float32]());
+        }
     ");
 }
 
