@@ -1,0 +1,35 @@
+//= stdout "self=Foo:1 another=Int32:101\nself=Int32:2 another=Float32:102\n"
+
+class MyClass[T](let value: Int32)
+class Foo
+
+impl[X: TypeDescriptor] MyClass[X] {
+    fun do[T: TypeDescriptor](another: MyClass[T]) {
+        println("self=${X::name()}:${self.value} another=${T::name()}:${another.value}");
+    }
+}
+
+trait TypeDescriptor {
+    @static fun name(): String;
+}
+
+impl TypeDescriptor for Foo {
+    @static fun name(): String { "Foo" }
+}
+
+impl TypeDescriptor for Int32 {
+    @static fun name(): String { "Int32" }
+}
+
+impl TypeDescriptor for Float32 {
+    @static fun name(): String { "Float32" }
+}
+
+fun f() {
+    MyClass[Foo](1).do[Int32](MyClass[Int32](101));
+    MyClass[Int32](2).do[Float32](MyClass[Float32](102));
+}
+
+fun main() {
+    f();
+}
