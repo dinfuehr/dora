@@ -185,14 +185,13 @@ impl Class {
                 continue;
             }
 
-            for &method in &ximpl.methods {
-                let method = vm.fcts.idx(method);
-                let method = method.read();
+            let table = if is_static {
+                &ximpl.static_names
+            } else {
+                &ximpl.instance_names
+            };
 
-                if method.name == name && method.is_static == is_static {
-                    return Some(method.id);
-                }
-            }
+            return table.get(&name).cloned();
         }
 
         None
@@ -375,17 +374,21 @@ pub fn find_methods_in_class(
             if let Some(bindings) = impl_matches(vm, class_type.clone(), type_param_defs, impl_id) {
                 let ximpl = vm.impls[impl_id].read();
 
-                for &method in &ximpl.methods {
-                    let method = vm.fcts.idx(method);
+                let table = if is_static {
+                    &ximpl.static_names
+                } else {
+                    &ximpl.instance_names
+                };
+
+                if let Some(&method_id) = table.get(&name) {
+                    let method = vm.fcts.idx(method_id);
                     let method = method.read();
 
-                    if method.name == name && method.is_static == is_static {
-                        candidates.push(Candidate {
-                            object_type: class_type.clone(),
-                            container_type_params: bindings.clone(),
-                            fct_id: method.id,
-                        });
-                    }
+                    candidates.push(Candidate {
+                        object_type: class_type.clone(),
+                        container_type_params: bindings.clone(),
+                        fct_id: method.id,
+                    });
                 }
             }
         }

@@ -123,6 +123,16 @@ impl<'x> ImplCheck<'x> {
         for method in &self.ast.methods {
             let method_id = self.visit_method(method);
             ximpl.methods.push(method_id);
+
+            let table = if method.is_static {
+                &mut ximpl.static_names
+            } else {
+                &mut ximpl.instance_names
+            };
+
+            if !table.contains_key(&method.name) {
+                table.insert(method.name, method_id);
+            }
         }
     }
 

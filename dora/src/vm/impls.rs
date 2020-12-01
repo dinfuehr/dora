@@ -1,9 +1,11 @@
 use parking_lot::RwLock;
 
+use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
 use dora_parser::ast;
+use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::ty::{SourceType, SourceTypeArray};
@@ -31,6 +33,8 @@ pub struct ImplData {
     pub trait_id: Option<TraitId>,
     pub ty: SourceType,
     pub methods: Vec<FctId>,
+    pub instance_names: HashMap<Name, FctId>,
+    pub static_names: HashMap<Name, FctId>,
 }
 
 impl ImplData {

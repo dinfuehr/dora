@@ -308,6 +308,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 trait_id: None,
                 ty: SourceType::Error,
                 methods: Vec::new(),
+                instance_names: HashMap::new(),
+                static_names: HashMap::new(),
             };
             self.vm.impls.push(RwLock::new(ximpl));
         } else {
