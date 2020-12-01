@@ -33,6 +33,7 @@ pub struct StructData {
     pub id: StructId,
     pub file_id: FileId,
     pub ast: Arc<ast::Struct>,
+    pub primitive_ty: Option<SourceType>,
     pub namespace_id: NamespaceId,
     pub type_params: Vec<TypeParam>,
     pub is_pub: bool,

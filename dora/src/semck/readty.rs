@@ -227,9 +227,13 @@ fn read_type_struct(
         basic.pos,
         ctxt,
     ) {
-        let list = SourceTypeArray::with(type_params);
-        let list_id = vm.source_type_arrays.lock().insert(list);
-        Some(SourceType::Struct(struct_id, list_id))
+        if let Some(ref primitive_ty) = xstruct.primitive_ty {
+            Some(primitive_ty.clone())
+        } else {
+            let list = SourceTypeArray::with(type_params);
+            let list_id = vm.source_type_arrays.lock().insert(list);
+            Some(SourceType::Struct(struct_id, list_id))
+        }
     } else {
         None
     }
