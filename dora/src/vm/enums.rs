@@ -180,13 +180,10 @@ pub fn find_methods_in_enum(
             };
 
             if let Some(&method_id) = table.get(&name) {
-                let method = vm.fcts.idx(method_id);
-                let method = method.read();
-
                 candidates.push(Candidate {
                     object_type: object_type.clone(),
                     container_type_params: bindings.clone(),
-                    fct_id: method.id,
+                    fct_id: method_id,
                 });
             }
         }
