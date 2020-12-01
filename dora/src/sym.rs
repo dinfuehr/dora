@@ -190,6 +190,10 @@ impl SymTable {
         self.get_type(name).and_then(|n| n.to_class())
     }
 
+    pub fn get_struct(&self, name: Name) -> Option<StructId> {
+        self.get_type(name).and_then(|n| n.to_struct())
+    }
+
     pub fn get_trait(&self, name: Name) -> Option<TraitId> {
         self.get_type(name).and_then(|n| n.to_trait())
     }

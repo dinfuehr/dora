@@ -11,7 +11,8 @@ use crate::stdlib;
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDef, ClassDefId, ClassId, EnumId, FctId, Intrinsic, ModuleId, NamespaceId, TraitId, VM,
+    ClassDef, ClassDefId, ClassId, EnumId, FctId, Intrinsic, ModuleId, NamespaceId, StructId,
+    TraitId, VM,
 };
 use crate::vtable::VTableBox;
 
@@ -210,6 +211,25 @@ fn internal_class(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ClassId {
         clsid
     } else {
         panic!("class {} not found!", name);
+    }
+}
+
+fn internal_struct(vm: &mut VM, name: &str, ty: Option<SourceType>) -> StructId {
+    let iname = vm.interner.intern(name);
+    let struct_id = vm.stdlib_namespace().read().get_struct(iname);
+
+    if let Some(struct_id) = struct_id {
+        let xstruct = vm.structs.idx(struct_id);
+        let mut xstruct = xstruct.write();
+
+        if xstruct.internal {
+            xstruct.primitive_ty = ty;
+            xstruct.internal_resolved = true;
+        }
+
+        struct_id
+    } else {
+        panic!("struct {} not found!", name);
     }
 }
 

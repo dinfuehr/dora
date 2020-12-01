@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::vm::{ClassDefId, ClassId, EnumId, FctId, ModuleId, TraitId, VM};
+use crate::vm::{ClassDefId, ClassId, EnumId, FctId, ModuleId, StructId, TraitId, VM};
 
 #[derive(Debug)]
 pub struct KnownElements {
@@ -11,6 +11,7 @@ pub struct KnownElements {
     pub traits: KnownTraits,
     pub functions: KnownFunctions,
     pub enums: KnownEnums,
+    pub structs: KnownStructs,
 
     pub byte_array_def: Mutex<Option<ClassDefId>>,
     pub int_array_def: Mutex<Option<ClassDefId>>,
@@ -45,6 +46,11 @@ pub struct KnownClasses {
     pub testing: ClassId,
     pub stacktrace: ClassId,
     pub stacktrace_element: ClassId,
+}
+
+#[derive(Debug)]
+pub struct KnownStructs {
+    pub int64: StructId,
 }
 
 #[derive(Debug)]

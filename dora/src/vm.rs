@@ -42,7 +42,8 @@ pub use self::globals::{global_accessible_from, init_global_addresses, GlobalDat
 pub use self::impls::{impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
 pub use self::known::{
-    KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownTraits,
+    KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownStructs,
+    KnownTraits,
 };
 pub use self::modules::{
     find_methods_in_module, module_accessible_from, Module, ModuleDef, ModuleDefId, ModuleId,
@@ -155,6 +156,7 @@ impl VM {
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctId = 0.into();
         let empty_enum_id: EnumId = 0.into();
+        let empty_struct_id = 0.into();
         let gc = Gc::new(&args);
 
         let prelude_namespace_id = NamespaceId(0);
@@ -234,6 +236,10 @@ impl VM {
 
                 enums: KnownEnums {
                     option: empty_enum_id,
+                },
+
+                structs: KnownStructs {
+                    int64: empty_struct_id,
                 },
 
                 byte_array_def: Mutex::new(None),
