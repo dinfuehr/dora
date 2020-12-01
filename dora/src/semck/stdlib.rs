@@ -11,8 +11,8 @@ use crate::stdlib;
 use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDef, ClassDefId, ClassId, EnumId, FctId, Intrinsic, ModuleId, NamespaceId, StructId,
-    TraitId, VM,
+    ClassDef, ClassDefId, ClassId, EnumId, ExtensionId, FctId, Intrinsic, ModuleId, NamespaceId,
+    StructId, TraitId, VM,
 };
 use crate::vtable::VTableBox;
 
@@ -222,10 +222,9 @@ fn internal_struct(vm: &mut VM, name: &str, ty: Option<SourceType>) -> StructId 
         let xstruct = vm.structs.idx(struct_id);
         let mut xstruct = xstruct.write();
 
-        if xstruct.internal {
-            xstruct.primitive_ty = ty;
-            xstruct.internal_resolved = true;
-        }
+        assert!(xstruct.internal);
+        xstruct.primitive_ty = ty;
+        xstruct.internal_resolved = true;
 
         struct_id
     } else {
@@ -295,12 +294,15 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib,
     );
     native_fct(vm, "sleep", stdlib::sleep as *const u8, stdlib);
-    native_fct(
-        vm,
-        "encodedBytecode",
-        stdlib::bytecode as *const u8,
-        vm.boots_namespace_id,
-    );
+
+    if vm.args.flag_boots.is_some() {
+        native_fct(
+            vm,
+            "encodedBytecode",
+            stdlib::bytecode as *const u8,
+            vm.boots_namespace_id,
+        );
+    }
 
     native_fct(vm, "call", stdlib::call as *const u8, stdlib);
 
@@ -319,189 +321,199 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib,
     );
 
-    let clsid = vm.known.classes.uint8;
-    native_class_method(vm, clsid, "toString", stdlib::uint8_to_string as *const u8);
+    let cls_id = vm.known.classes.uint8;
+    native_class_method(vm, cls_id, "toString", stdlib::uint8_to_string as *const u8);
 
-    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::ByteToInt64);
-    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::ByteToInt32);
-    intrinsic_class_method(vm, clsid, "toChar", Intrinsic::ByteToChar);
+    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::ByteToInt64);
+    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::ByteToInt32);
+    intrinsic_class_method(vm, cls_id, "toChar", Intrinsic::ByteToChar);
 
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::ByteEq);
-    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::ByteCmp);
-    intrinsic_class_method(vm, clsid, "not", Intrinsic::ByteNot);
+    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::ByteEq);
+    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::ByteCmp);
+    intrinsic_class_method(vm, cls_id, "not", Intrinsic::ByteNot);
 
-    let clsid = vm.known.classes.char;
-    native_class_method(vm, clsid, "toString", stdlib::char_to_string as *const u8);
+    let cls_id = vm.known.classes.char;
+    native_class_method(vm, cls_id, "toString", stdlib::char_to_string as *const u8);
 
-    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::CharToInt64);
-    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::CharToInt32);
+    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::CharToInt64);
+    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::CharToInt32);
 
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::CharEq);
-    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::CharCmp);
+    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::CharEq);
+    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::CharCmp);
 
-    let clsid = vm.known.classes.int32;
-    native_class_method(vm, clsid, "toString", stdlib::int32_to_string as *const u8);
+    let cls_id = vm.known.classes.int32;
+    native_class_method(vm, cls_id, "toString", stdlib::int32_to_string as *const u8);
 
-    intrinsic_class_method(vm, clsid, "toUInt8", Intrinsic::Int32ToByte);
-    intrinsic_class_method(vm, clsid, "toCharUnchecked", Intrinsic::Int32ToChar);
-    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::Int32ToInt64);
+    intrinsic_class_method(vm, cls_id, "toUInt8", Intrinsic::Int32ToByte);
+    intrinsic_class_method(vm, cls_id, "toCharUnchecked", Intrinsic::Int32ToChar);
+    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::Int32ToInt64);
 
-    intrinsic_class_method(vm, clsid, "toFloat32", Intrinsic::Int32ToFloat32);
-    intrinsic_class_method(vm, clsid, "toFloat64", Intrinsic::Int32ToFloat64);
+    intrinsic_class_method(vm, cls_id, "toFloat32", Intrinsic::Int32ToFloat32);
+    intrinsic_class_method(vm, cls_id, "toFloat64", Intrinsic::Int32ToFloat64);
 
-    intrinsic_class_method(vm, clsid, "asFloat32", Intrinsic::ReinterpretInt32AsFloat32);
+    intrinsic_class_method(
+        vm,
+        cls_id,
+        "asFloat32",
+        Intrinsic::ReinterpretInt32AsFloat32,
+    );
 
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::Int32Eq);
-    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Int32Cmp);
+    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::Int32Eq);
+    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::Int32Cmp);
 
-    intrinsic_class_method(vm, clsid, "plus", Intrinsic::Int32Add);
-    intrinsic_class_method(vm, clsid, "minus", Intrinsic::Int32Sub);
-    intrinsic_class_method(vm, clsid, "times", Intrinsic::Int32Mul);
-    intrinsic_class_method(vm, clsid, "div", Intrinsic::Int32Div);
-    intrinsic_class_method(vm, clsid, "mod", Intrinsic::Int32Mod);
+    intrinsic_class_method(vm, cls_id, "plus", Intrinsic::Int32Add);
+    intrinsic_class_method(vm, cls_id, "minus", Intrinsic::Int32Sub);
+    intrinsic_class_method(vm, cls_id, "times", Intrinsic::Int32Mul);
+    intrinsic_class_method(vm, cls_id, "div", Intrinsic::Int32Div);
+    intrinsic_class_method(vm, cls_id, "mod", Intrinsic::Int32Mod);
 
-    intrinsic_class_method(vm, clsid, "bitwiseOr", Intrinsic::Int32Or);
-    intrinsic_class_method(vm, clsid, "bitwiseAnd", Intrinsic::Int32And);
-    intrinsic_class_method(vm, clsid, "bitwiseXor", Intrinsic::Int32Xor);
+    intrinsic_class_method(vm, cls_id, "bitwiseOr", Intrinsic::Int32Or);
+    intrinsic_class_method(vm, cls_id, "bitwiseAnd", Intrinsic::Int32And);
+    intrinsic_class_method(vm, cls_id, "bitwiseXor", Intrinsic::Int32Xor);
 
-    intrinsic_class_method(vm, clsid, "shiftLeft", Intrinsic::Int32Shl);
-    intrinsic_class_method(vm, clsid, "shiftRight", Intrinsic::Int32Shr);
-    intrinsic_class_method(vm, clsid, "shiftRightSigned", Intrinsic::Int32Sar);
+    intrinsic_class_method(vm, cls_id, "shiftLeft", Intrinsic::Int32Shl);
+    intrinsic_class_method(vm, cls_id, "shiftRight", Intrinsic::Int32Shr);
+    intrinsic_class_method(vm, cls_id, "shiftRightSigned", Intrinsic::Int32Sar);
 
-    intrinsic_class_method(vm, clsid, "rotateLeft", Intrinsic::Int32RotateLeft);
-    intrinsic_class_method(vm, clsid, "rotateRight", Intrinsic::Int32RotateRight);
+    intrinsic_class_method(vm, cls_id, "rotateLeft", Intrinsic::Int32RotateLeft);
+    intrinsic_class_method(vm, cls_id, "rotateRight", Intrinsic::Int32RotateRight);
 
-    intrinsic_class_method(vm, clsid, "unaryPlus", Intrinsic::Int32Plus);
-    intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::Int32Neg);
-    intrinsic_class_method(vm, clsid, "not", Intrinsic::Int32Not);
+    intrinsic_class_method(vm, cls_id, "unaryPlus", Intrinsic::Int32Plus);
+    intrinsic_class_method(vm, cls_id, "unaryMinus", Intrinsic::Int32Neg);
+    intrinsic_class_method(vm, cls_id, "not", Intrinsic::Int32Not);
 
-    let clsid = vm.known.classes.int64;
-    native_class_method(vm, clsid, "toString", stdlib::int64_to_string as *const u8);
+    let cls_id = vm.known.classes.int64;
+    native_class_method(vm, cls_id, "toString", stdlib::int64_to_string as *const u8);
 
-    intrinsic_class_method(vm, clsid, "toCharUnchecked", Intrinsic::Int64ToChar);
-    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::Int64ToInt32);
-    intrinsic_class_method(vm, clsid, "toUInt8", Intrinsic::Int64ToByte);
+    intrinsic_class_method(vm, cls_id, "toCharUnchecked", Intrinsic::Int64ToChar);
+    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::Int64ToInt32);
+    intrinsic_class_method(vm, cls_id, "toUInt8", Intrinsic::Int64ToByte);
 
-    intrinsic_class_method(vm, clsid, "toFloat32", Intrinsic::Int64ToFloat32);
-    intrinsic_class_method(vm, clsid, "toFloat64", Intrinsic::Int64ToFloat64);
+    intrinsic_class_method(vm, cls_id, "toFloat32", Intrinsic::Int64ToFloat32);
+    intrinsic_class_method(vm, cls_id, "toFloat64", Intrinsic::Int64ToFloat64);
 
-    intrinsic_class_method(vm, clsid, "asFloat64", Intrinsic::ReinterpretInt64AsFloat64);
+    intrinsic_class_method(
+        vm,
+        cls_id,
+        "asFloat64",
+        Intrinsic::ReinterpretInt64AsFloat64,
+    );
 
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::Int64Eq);
-    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Int64Cmp);
+    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::Int64Eq);
+    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::Int64Cmp);
 
-    intrinsic_class_method(vm, clsid, "plus", Intrinsic::Int64Add);
-    intrinsic_class_method(vm, clsid, "minus", Intrinsic::Int64Sub);
-    intrinsic_class_method(vm, clsid, "times", Intrinsic::Int64Mul);
-    intrinsic_class_method(vm, clsid, "div", Intrinsic::Int64Div);
-    intrinsic_class_method(vm, clsid, "mod", Intrinsic::Int64Mod);
+    intrinsic_class_method(vm, cls_id, "plus", Intrinsic::Int64Add);
+    intrinsic_class_method(vm, cls_id, "minus", Intrinsic::Int64Sub);
+    intrinsic_class_method(vm, cls_id, "times", Intrinsic::Int64Mul);
+    intrinsic_class_method(vm, cls_id, "div", Intrinsic::Int64Div);
+    intrinsic_class_method(vm, cls_id, "mod", Intrinsic::Int64Mod);
 
-    intrinsic_class_method(vm, clsid, "bitwiseOr", Intrinsic::Int64Or);
-    intrinsic_class_method(vm, clsid, "bitwiseAnd", Intrinsic::Int64And);
-    intrinsic_class_method(vm, clsid, "bitwiseXor", Intrinsic::Int64Xor);
+    intrinsic_class_method(vm, cls_id, "bitwiseOr", Intrinsic::Int64Or);
+    intrinsic_class_method(vm, cls_id, "bitwiseAnd", Intrinsic::Int64And);
+    intrinsic_class_method(vm, cls_id, "bitwiseXor", Intrinsic::Int64Xor);
 
-    intrinsic_class_method(vm, clsid, "shiftLeft", Intrinsic::Int64Shl);
-    intrinsic_class_method(vm, clsid, "shiftRight", Intrinsic::Int64Shr);
-    intrinsic_class_method(vm, clsid, "shiftRightSigned", Intrinsic::Int64Sar);
+    intrinsic_class_method(vm, cls_id, "shiftLeft", Intrinsic::Int64Shl);
+    intrinsic_class_method(vm, cls_id, "shiftRight", Intrinsic::Int64Shr);
+    intrinsic_class_method(vm, cls_id, "shiftRightSigned", Intrinsic::Int64Sar);
 
-    intrinsic_class_method(vm, clsid, "rotateLeft", Intrinsic::Int64RotateLeft);
-    intrinsic_class_method(vm, clsid, "rotateRight", Intrinsic::Int64RotateRight);
+    intrinsic_class_method(vm, cls_id, "rotateLeft", Intrinsic::Int64RotateLeft);
+    intrinsic_class_method(vm, cls_id, "rotateRight", Intrinsic::Int64RotateRight);
 
-    intrinsic_class_method(vm, clsid, "unaryPlus", Intrinsic::Int64Plus);
-    intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::Int64Neg);
-    intrinsic_class_method(vm, clsid, "not", Intrinsic::Int64Not);
+    intrinsic_class_method(vm, cls_id, "unaryPlus", Intrinsic::Int64Plus);
+    intrinsic_class_method(vm, cls_id, "unaryMinus", Intrinsic::Int64Neg);
+    intrinsic_class_method(vm, cls_id, "not", Intrinsic::Int64Not);
 
-    let clsid = vm.known.classes.bool;
-    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::BoolToInt32);
-    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::BoolToInt64);
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::BoolEq);
-    intrinsic_class_method(vm, clsid, "not", Intrinsic::BoolNot);
+    let cls_id = vm.known.classes.bool;
+    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::BoolToInt32);
+    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::BoolToInt64);
+    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::BoolEq);
+    intrinsic_class_method(vm, cls_id, "not", Intrinsic::BoolNot);
 
-    let clsid = vm.known.classes.string;
-    native_class_method(vm, clsid, "compareTo", stdlib::strcmp as *const u8);
+    let cls_id = vm.known.classes.string;
+    native_class_method(vm, cls_id, "compareTo", stdlib::strcmp as *const u8);
     native_class_method(
         vm,
-        clsid,
+        cls_id,
         "toInt32Success",
         stdlib::str_to_int32_success as *const u8,
     );
     native_class_method(
         vm,
-        clsid,
+        cls_id,
         "toInt64Success",
         stdlib::str_to_int64_success as *const u8,
     );
     native_class_method(
         vm,
-        clsid,
+        cls_id,
         "toInt32OrZero",
         stdlib::str_to_int32 as *const u8,
     );
     native_class_method(
         vm,
-        clsid,
+        cls_id,
         "toInt64OrZero",
         stdlib::str_to_int64 as *const u8,
     );
-    native_class_method(vm, clsid, "plus", stdlib::strcat as *const u8);
+    native_class_method(vm, cls_id, "plus", stdlib::strcat as *const u8);
 
-    intrinsic_class_method(vm, clsid, "size", Intrinsic::StrLen);
-    intrinsic_class_method(vm, clsid, "getByte", Intrinsic::StrGet);
-    native_class_method(vm, clsid, "clone", stdlib::str_clone as *const u8);
+    intrinsic_class_method(vm, cls_id, "size", Intrinsic::StrLen);
+    intrinsic_class_method(vm, cls_id, "getByte", Intrinsic::StrGet);
+    native_class_method(vm, cls_id, "clone", stdlib::str_clone as *const u8);
 
-    let clsid = vm.known.classes.float32;
+    let cls_id = vm.known.classes.float32;
     native_class_method(
         vm,
-        clsid,
+        cls_id,
         "toString",
         stdlib::float32_to_string as *const u8,
     );
-    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::Float32ToInt32);
-    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::Float32ToInt64);
-    intrinsic_class_method(vm, clsid, "toFloat64", Intrinsic::PromoteFloat32ToFloat64);
+    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::Float32ToInt32);
+    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::Float32ToInt64);
+    intrinsic_class_method(vm, cls_id, "toFloat64", Intrinsic::PromoteFloat32ToFloat64);
 
-    intrinsic_class_method(vm, clsid, "asInt32", Intrinsic::ReinterpretFloat32AsInt32);
+    intrinsic_class_method(vm, cls_id, "asInt32", Intrinsic::ReinterpretFloat32AsInt32);
 
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::Float32Eq);
-    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Float32Cmp);
+    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::Float32Eq);
+    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::Float32Cmp);
 
-    intrinsic_class_method(vm, clsid, "plus", Intrinsic::Float32Add);
-    intrinsic_class_method(vm, clsid, "minus", Intrinsic::Float32Sub);
-    intrinsic_class_method(vm, clsid, "times", Intrinsic::Float32Mul);
-    intrinsic_class_method(vm, clsid, "div", Intrinsic::Float32Div);
+    intrinsic_class_method(vm, cls_id, "plus", Intrinsic::Float32Add);
+    intrinsic_class_method(vm, cls_id, "minus", Intrinsic::Float32Sub);
+    intrinsic_class_method(vm, cls_id, "times", Intrinsic::Float32Mul);
+    intrinsic_class_method(vm, cls_id, "div", Intrinsic::Float32Div);
 
-    intrinsic_class_method(vm, clsid, "unaryPlus", Intrinsic::Float32Plus);
-    intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::Float32Neg);
+    intrinsic_class_method(vm, cls_id, "unaryPlus", Intrinsic::Float32Plus);
+    intrinsic_class_method(vm, cls_id, "unaryMinus", Intrinsic::Float32Neg);
 
-    intrinsic_class_method(vm, clsid, "isNan", Intrinsic::Float32IsNan);
-    intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float32Sqrt);
+    intrinsic_class_method(vm, cls_id, "isNan", Intrinsic::Float32IsNan);
+    intrinsic_class_method(vm, cls_id, "sqrt", Intrinsic::Float32Sqrt);
 
-    let clsid = vm.known.classes.float64;
+    let cls_id = vm.known.classes.float64;
     native_class_method(
         vm,
-        clsid,
+        cls_id,
         "toString",
         stdlib::float64_to_string as *const u8,
     );
-    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::Float64ToInt32);
-    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::Float64ToInt64);
-    intrinsic_class_method(vm, clsid, "toFloat32", Intrinsic::DemoteFloat64ToFloat32);
+    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::Float64ToInt32);
+    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::Float64ToInt64);
+    intrinsic_class_method(vm, cls_id, "toFloat32", Intrinsic::DemoteFloat64ToFloat32);
 
-    intrinsic_class_method(vm, clsid, "asInt64", Intrinsic::ReinterpretFloat64AsInt64);
+    intrinsic_class_method(vm, cls_id, "asInt64", Intrinsic::ReinterpretFloat64AsInt64);
 
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::Float64Eq);
-    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Float64Cmp);
+    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::Float64Eq);
+    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::Float64Cmp);
 
-    intrinsic_class_method(vm, clsid, "plus", Intrinsic::Float64Add);
-    intrinsic_class_method(vm, clsid, "minus", Intrinsic::Float64Sub);
-    intrinsic_class_method(vm, clsid, "times", Intrinsic::Float64Mul);
-    intrinsic_class_method(vm, clsid, "div", Intrinsic::Float64Div);
+    intrinsic_class_method(vm, cls_id, "plus", Intrinsic::Float64Add);
+    intrinsic_class_method(vm, cls_id, "minus", Intrinsic::Float64Sub);
+    intrinsic_class_method(vm, cls_id, "times", Intrinsic::Float64Mul);
+    intrinsic_class_method(vm, cls_id, "div", Intrinsic::Float64Div);
 
-    intrinsic_class_method(vm, clsid, "unaryPlus", Intrinsic::Float64Plus);
-    intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::Float64Neg);
+    intrinsic_class_method(vm, cls_id, "unaryPlus", Intrinsic::Float64Plus);
+    intrinsic_class_method(vm, cls_id, "unaryMinus", Intrinsic::Float64Neg);
 
-    intrinsic_class_method(vm, clsid, "isNan", Intrinsic::Float64IsNan);
-    intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float64Sqrt);
+    intrinsic_class_method(vm, cls_id, "isNan", Intrinsic::Float64IsNan);
+    intrinsic_class_method(vm, cls_id, "sqrt", Intrinsic::Float64Sqrt);
 
     let module_id = vm.known.modules.string;
     native_module_method(
@@ -517,33 +529,33 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib::str_from_bytes as *const u8,
     );
 
-    let clsid = vm.known.classes.array;
-    intrinsic_ctor(vm, clsid, Intrinsic::ArrayWithValues);
-    intrinsic_class_method(vm, clsid, "size", Intrinsic::ArrayLen);
-    intrinsic_class_method(vm, clsid, "get", Intrinsic::ArrayGet);
-    intrinsic_class_method(vm, clsid, "set", Intrinsic::ArraySet);
+    let cls_id = vm.known.classes.array;
+    intrinsic_ctor(vm, cls_id, Intrinsic::ArrayWithValues);
+    intrinsic_class_method(vm, cls_id, "size", Intrinsic::ArrayLen);
+    intrinsic_class_method(vm, cls_id, "get", Intrinsic::ArrayGet);
+    intrinsic_class_method(vm, cls_id, "set", Intrinsic::ArraySet);
 
     let module_id = vm.known.modules.array;
     intrinsic_module_method(vm, module_id, "ofSizeUnsafe", Intrinsic::ArrayNewOfSize);
 
-    let clsid = vm.known.classes.stacktrace;
+    let cls_id = vm.known.classes.stacktrace;
     native_class_method(
         vm,
-        clsid,
+        cls_id,
         "retrieveStacktrace",
         stack::retrieve_stack_trace as *const u8,
     );
     native_class_method(
         vm,
-        clsid,
+        cls_id,
         "getStacktraceElement",
         stack::stack_element as *const u8,
     );
 
     let iname = vm.interner.intern("Thread");
-    let clsid = vm.stdlib_namespace().read().get_class(iname);
+    let cls_id = vm.stdlib_namespace().read().get_class(iname);
 
-    if let Some(clsid) = clsid {
+    if let Some(clsid) = cls_id {
         native_class_method(vm, clsid, "start", stdlib::spawn_thread as *const u8);
     }
 
@@ -556,17 +568,17 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_impl_enum(vm, vm.known.enums.option, "unwrap", Intrinsic::OptionUnwrap);
 }
 
-fn native_class_method(vm: &mut VM, clsid: ClassId, name: &str, fctptr: *const u8) {
+fn native_class_method(vm: &mut VM, cls_id: ClassId, name: &str, fctptr: *const u8) {
     internal_class_method(
         vm,
-        clsid,
+        cls_id,
         name,
         FctImplementation::Native(Address::from_ptr(fctptr)),
     );
 }
 
-fn intrinsic_ctor(vm: &mut VM, clsid: ClassId, intrinsic: Intrinsic) {
-    let cls = vm.classes.idx(clsid);
+fn intrinsic_ctor(vm: &mut VM, cls_id: ClassId, intrinsic: Intrinsic) {
+    let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
     if let Some(ctor_id) = cls.constructor {
@@ -579,12 +591,12 @@ fn intrinsic_ctor(vm: &mut VM, clsid: ClassId, intrinsic: Intrinsic) {
     }
 }
 
-fn intrinsic_class_method(vm: &mut VM, clsid: ClassId, name: &str, intrinsic: Intrinsic) {
-    internal_class_method(vm, clsid, name, FctImplementation::Intrinsic(intrinsic));
+fn intrinsic_class_method(vm: &mut VM, cls_id: ClassId, name: &str, intrinsic: Intrinsic) {
+    internal_class_method(vm, cls_id, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_class_method(vm: &mut VM, clsid: ClassId, name: &str, kind: FctImplementation) {
-    let cls = vm.classes.idx(clsid);
+fn internal_class_method(vm: &mut VM, cls_id: ClassId, name: &str, kind: FctImplementation) {
+    let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
     let name = vm.interner.intern(name);
 
@@ -612,8 +624,8 @@ fn internal_class_method(vm: &mut VM, clsid: ClassId, name: &str, kind: FctImple
     }
 }
 
-fn find_class_method(vm: &VM, clsid: ClassId, name: &str) -> FctId {
-    let cls = vm.classes.idx(clsid);
+fn find_class_method(vm: &VM, cls_id: ClassId, name: &str) -> FctId {
+    let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
     let intern_name = vm.interner.intern(name);
 
@@ -723,6 +735,8 @@ fn internal_fct(vm: &mut VM, name: &str, kind: FctImplementation, namespace_id: 
             }
             fct.internal_resolved = true;
         }
+    } else {
+        panic!("function not found");
     }
 }
 
@@ -731,27 +745,39 @@ enum FctImplementation {
     Native(Address),
 }
 
-fn intrinsic_impl(vm: &mut VM, clsid: ClassId, tid: TraitId, name: &str, intrinsic: Intrinsic) {
+fn intrinsic_impl(
+    vm: &mut VM,
+    cls_id: ClassId,
+    trait_id: TraitId,
+    name: &str,
+    intrinsic: Intrinsic,
+) {
     internal_impl(
         vm,
-        clsid,
-        tid,
+        cls_id,
+        trait_id,
         name,
         FctImplementation::Intrinsic(intrinsic),
     );
 }
 
-fn internal_impl(vm: &mut VM, clsid: ClassId, tid: TraitId, name: &str, kind: FctImplementation) {
+fn internal_impl(
+    vm: &mut VM,
+    cls_id: ClassId,
+    trait_id: TraitId,
+    name: &str,
+    kind: FctImplementation,
+) {
     let name = vm.interner.intern(name);
-    let cls = vm.classes.idx(clsid);
+    let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
-    for &iid in &cls.impls {
-        let i = vm.impls[iid].read();
+    for &impl_id in &cls.impls {
+        let ximpl = vm.impls[impl_id].read();
 
-        if Some(tid) == i.trait_id {
-            for &fid in &i.methods {
-                let fct = vm.fcts.idx(fid);
+        if Some(trait_id) == ximpl.trait_id {
+            if let Some(&method_id) = ximpl.instance_names.get(&name) {
+                let fct = vm.fcts.idx(method_id);
                 let mut fct = fct.write();
 
                 if fct.internal && fct.name == name {
@@ -767,36 +793,59 @@ fn internal_impl(vm: &mut VM, clsid: ClassId, tid: TraitId, name: &str, kind: Fc
             }
         }
     }
+
+    panic!("method not found");
 }
 
 fn intrinsic_impl_enum(vm: &mut VM, enum_id: EnumId, name: &str, intrinsic: Intrinsic) {
     internal_impl_enum(vm, enum_id, name, FctImplementation::Intrinsic(intrinsic));
 }
 
-fn internal_impl_enum(vm: &mut VM, enum_id: EnumId, name: &str, kind: FctImplementation) {
-    let name = vm.interner.intern(name);
+fn internal_impl_enum(vm: &VM, enum_id: EnumId, name: &str, kind: FctImplementation) {
     let xenum = &vm.enums[enum_id];
     let xenum = xenum.read();
 
-    for &eid in &xenum.extensions {
-        let ext = vm.extensions[eid].read();
+    internal_extension_method(vm, &xenum.extensions, name, kind);
+}
 
-        for &fid in &ext.methods {
-            let fct = vm.fcts.idx(fid);
+fn intrinsic_impl_struct(vm: &mut VM, struct_id: StructId, name: &str, intrinsic: Intrinsic) {
+    internal_impl_struct(vm, struct_id, name, FctImplementation::Intrinsic(intrinsic));
+}
+
+fn internal_impl_struct(vm: &VM, struct_id: StructId, name: &str, kind: FctImplementation) {
+    let xstruct = vm.structs.idx(struct_id);
+    let xstruct = xstruct.read();
+
+    internal_extension_method(vm, &xstruct.extensions, name, kind);
+}
+
+fn internal_extension_method(
+    vm: &VM,
+    extensions: &[ExtensionId],
+    name: &str,
+    kind: FctImplementation,
+) {
+    let name = vm.interner.intern(name);
+
+    for &extension_id in extensions {
+        let extension = vm.extensions[extension_id].read();
+
+        if let Some(&method_id) = extension.instance_names.get(&name) {
+            let fct = vm.fcts.idx(method_id);
             let mut fct = fct.write();
 
-            if fct.name == name {
-                match kind {
-                    FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
-                    FctImplementation::Native(address) => {
-                        fct.native_pointer = Some(address);
-                    }
+            match kind {
+                FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+                FctImplementation::Native(address) => {
+                    fct.native_pointer = Some(address);
                 }
-                fct.internal_resolved = true;
-                return;
             }
+            fct.internal_resolved = true;
+            return;
         }
     }
+
+    panic!("method not found!")
 }
 
 fn install_conditional_intrinsics(vm: &mut VM) {
