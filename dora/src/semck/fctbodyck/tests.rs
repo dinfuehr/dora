@@ -2397,6 +2397,15 @@ fn impl_struct_type_params() {
 }
 
 #[test]
+fn impl_struct_method_with_self() {
+    ok("
+        struct Foo(value: Int32)
+        trait AsInt32 { fun value(): Int32; }
+        impl AsInt32 for Foo { fun value(): Int32 { self.value } }
+    ");
+}
+
+#[test]
 fn impl_enum_type_params() {
     err(
         "

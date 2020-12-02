@@ -808,11 +808,20 @@ fn internal_impl_enum(vm: &VM, enum_id: EnumId, name: &str, kind: FctImplementat
     internal_extension_method(vm, &xenum.extensions, name, kind);
 }
 
-fn intrinsic_impl_struct(vm: &mut VM, struct_id: StructId, name: &str, intrinsic: Intrinsic) {
-    internal_impl_struct(vm, struct_id, name, FctImplementation::Intrinsic(intrinsic));
+fn native_struct_method(vm: &mut VM, struct_id: StructId, name: &str, fctptr: *const u8) {
+    internal_struct_method(
+        vm,
+        struct_id,
+        name,
+        FctImplementation::Native(Address::from_ptr(fctptr)),
+    );
 }
 
-fn internal_impl_struct(vm: &VM, struct_id: StructId, name: &str, kind: FctImplementation) {
+fn intrinsic_struct_method(vm: &mut VM, struct_id: StructId, name: &str, intrinsic: Intrinsic) {
+    internal_struct_method(vm, struct_id, name, FctImplementation::Intrinsic(intrinsic));
+}
+
+fn internal_struct_method(vm: &VM, struct_id: StructId, name: &str, kind: FctImplementation) {
     let xstruct = vm.structs.idx(struct_id);
     let xstruct = xstruct.read();
 

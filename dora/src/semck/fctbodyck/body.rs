@@ -2615,9 +2615,7 @@ impl<'a> TypeCheck<'a> {
 
             FctParent::Impl(impl_id) => {
                 let ximpl = self.vm.impls[impl_id].read();
-                let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
-                let cls = cls.read();
-                let ty = cls.ty.clone();
+                let ty = ximpl.ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
 
                 ty
