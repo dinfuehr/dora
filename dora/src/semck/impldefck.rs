@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
+use crate::semck::extensiondefck::check_for_unconstrained_type_params;
 use crate::semck::{self, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
@@ -86,7 +87,15 @@ impl<'x> ImplCheck<'x> {
             TypeParamContext::Impl(&*ximpl),
         ) {
             if class_ty.cls_id(self.vm).is_some() || class_ty.is_struct() || class_ty.is_enum() {
-                ximpl.ty = class_ty;
+                ximpl.ty = class_ty.clone();
+
+                check_for_unconstrained_type_params(
+                    self.vm,
+                    class_ty.clone(),
+                    &ximpl.type_params,
+                    self.file_id,
+                    self.ast.pos,
+                );
             } else {
                 self.vm.diag.lock().report(
                     self.file_id,
@@ -276,6 +285,19 @@ mod tests {
     #[test]
     fn impl_class_type_params() {
         ok("trait MyTrait {} class Foo[T] impl MyTrait for Foo[String] {}");
+    }
+
+    #[test]
+    fn impl_unconstrained_type_param() {
+        err(
+            "
+            struct MyFoo[T]
+            trait MyTrait {}
+            impl[T] MyTrait for MyFoo[Int32] {}
+        ",
+            pos(4, 13),
+            SemError::UnconstrainedTypeParam("T".into()),
+        );
     }
 
     #[test]

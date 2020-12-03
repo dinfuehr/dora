@@ -118,6 +118,7 @@ pub enum SemError {
     StaticMethodMissingFromTrait(String, String, Vec<String>),
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
+    UnconstrainedTypeParam(String),
     ClassExpected,
     ClassEnumStructExpected,
     ClassExpectedAsTypeParam,
@@ -449,6 +450,9 @@ impl SemError {
             }
             SemError::WrongNumberTypeParams(exp, actual) => {
                 format!("expected {} type parameters but got {}.", exp, actual)
+            }
+            SemError::UnconstrainedTypeParam(ref name) => {
+                format!("unconstrained type param `{}`.", name)
             }
             SemError::ClassExpected => "expected class.".into(),
             SemError::ClassEnumStructExpected => "expected class, struct or enum.".into(),

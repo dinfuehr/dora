@@ -4,9 +4,13 @@ use crate::error::msg::SemError;
 use crate::semck::{self, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, StructId, VM};
+use crate::vm::{
+    EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, StructId, TypeParam, VM,
+};
 
 use dora_parser::ast;
+use dora_parser::lexer::position::Position;
+use fixedbitset::FixedBitSet;
 
 pub fn check(vm: &VM) {
     for extension in &vm.extensions {
@@ -86,6 +90,15 @@ impl<'x> ExtensionCheck<'x> {
             }
 
             let mut extension = self.vm.extensions[self.extension_id].write();
+
+            check_for_unconstrained_type_params(
+                self.vm,
+                extension_ty.clone(),
+                &extension.type_params,
+                self.file_id,
+                self.ast.pos,
+            );
+
             extension.ty = extension_ty;
         }
 
@@ -232,6 +245,67 @@ impl<'x> ExtensionCheck<'x> {
     }
 }
 
+pub fn check_for_unconstrained_type_params(
+    vm: &VM,
+    ty: SourceType,
+    type_params_defs: &[TypeParam],
+    file_id: FileId,
+    pos: Position,
+) {
+    let mut bitset = FixedBitSet::with_capacity(type_params_defs.len());
+
+    discover_type_params(vm, ty, &mut bitset);
+
+    bitset.toggle_range(..);
+
+    for idx in bitset.ones() {
+        let type_param_def = &type_params_defs[idx];
+        let tp_name = vm.interner.str(type_param_def.name).to_string();
+        vm.diag
+            .lock()
+            .report(file_id, pos, SemError::UnconstrainedTypeParam(tp_name));
+    }
+}
+
+fn discover_type_params(vm: &VM, ty: SourceType, used_type_params: &mut FixedBitSet) {
+    match ty {
+        SourceType::Error
+        | SourceType::Unit
+        | SourceType::This
+        | SourceType::Any
+        | SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Module(_)
+        | SourceType::Ptr
+        | SourceType::TraitObject(_) => {}
+        SourceType::Class(_, list_id)
+        | SourceType::Enum(_, list_id)
+        | SourceType::Struct(_, list_id) => {
+            let params = vm.source_type_arrays.lock().get(list_id);
+
+            for param in params.iter() {
+                discover_type_params(vm, param, used_type_params);
+            }
+        }
+        SourceType::Tuple(tuple_id) => {
+            let subtypes = vm.tuples.lock().get(tuple_id);
+
+            for subtype in subtypes.iter() {
+                discover_type_params(vm, subtype.clone(), used_type_params);
+            }
+        }
+        SourceType::Lambda(_) => unimplemented!(),
+        SourceType::TypeParam(tp_id) => {
+            used_type_params.insert(tp_id.to_usize());
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::error::msg::SemError;
@@ -332,6 +406,27 @@ mod tests {
             }
             fun test(x: MyFoo[Int32]) { x.test(1); }
         ");
+    }
+
+    #[test]
+    fn extension_unconstrained_type_param() {
+        err(
+            "
+            struct MyFoo[T]
+            impl[T] MyFoo[Int32] {}
+        ",
+            pos(3, 13),
+            SemError::UnconstrainedTypeParam("T".into()),
+        );
+
+        err(
+            "
+            struct MyFoo[T]
+            impl[A, B] MyFoo[(A, A)] {}
+        ",
+            pos(3, 13),
+            SemError::UnconstrainedTypeParam("B".into()),
+        );
     }
 
     #[test]
