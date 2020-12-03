@@ -1090,7 +1090,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 Some(reg)
             }
-            CallType::Expr(_, _) => Some(self.visit_expr(&expr.callee, DataDest::Alloc)),
+            CallType::Expr(_, _, _) => Some(self.visit_expr(&expr.callee, DataDest::Alloc)),
             CallType::Ctor(_, _) => {
                 // Need to use new register for allocated object.
                 // Otherwise code like `x = SomeClass(x)` would break.
@@ -1112,7 +1112,7 @@ impl<'a> AstBytecodeGen<'a> {
         // self was already emitted, needs to be ignored here.
         let arg_start_offset = match *call_type {
             CallType::Ctor(_, _)
-            | CallType::Expr(_, _)
+            | CallType::Expr(_, _, _)
             | CallType::Method(_, _, _)
             | CallType::GenericMethod(_, _, _) => 1,
             _ => 0,
@@ -1255,7 +1255,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::ModuleMethod(_, _, _) | CallType::Fct(_, _) => {
                 self.emit_invoke_static(return_type, return_reg, callee_idx, pos);
             }
-            CallType::Expr(_, _) => {
+            CallType::Expr(_, _, _) => {
                 if fct.is_virtual() {
                     self.emit_invoke_virtual(return_type, return_reg, callee_idx, pos);
                 } else {
@@ -2706,12 +2706,13 @@ impl<'a> AstBytecodeGen<'a> {
 
             CallType::ModuleMethod(ty, _, ref fct_type_params) => {
                 let cls_type_params = ty.type_params(self.vm);
-                cls_type_params.connect(fct_type_params)
+                assert!(cls_type_params.is_empty());
+                fct_type_params.clone()
             }
 
             CallType::Fct(_, ref type_params) => type_params.clone(),
 
-            CallType::Expr(ty, _) => ty.type_params(self.vm),
+            CallType::Expr(_, _, ref type_params) => type_params.clone(),
 
             CallType::TraitObjectMethod(_, _) => SourceTypeArray::empty(),
             CallType::GenericMethod(_, _, _) => SourceTypeArray::empty(),
@@ -2737,9 +2738,9 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: SourceType) -> SourceType {
         match call_type {
-            CallType::Fct(_, ref type_params) => specialize_type(self.vm, ty, &type_params),
+            CallType::Fct(_, ref type_params) => specialize_type(self.vm, ty, type_params),
 
-            CallType::Method(_, _, ref type_params) => specialize_type(self.vm, ty, &type_params),
+            CallType::Method(_, _, ref type_params) => specialize_type(self.vm, ty, type_params),
 
             CallType::ModuleMethod(cls_ty, _, ref fct_type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
@@ -2752,10 +2753,7 @@ impl<'a> AstBytecodeGen<'a> {
                 specialize_type(self.vm, ty, &cls_type_params)
             }
 
-            CallType::Expr(object_ty, _) => {
-                let type_params = object_ty.type_params(self.vm);
-                specialize_type(self.vm, ty, &type_params)
-            }
+            CallType::Expr(_, _, ref type_params) => specialize_type(self.vm, ty, type_params),
 
             CallType::TraitObjectMethod(_, _) => unimplemented!(),
             CallType::GenericMethod(id, _, _) | CallType::GenericStaticMethod(id, _, _) => {

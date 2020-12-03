@@ -12,10 +12,10 @@ use crate::sym::{NestedSymTable, TermSym, TypeSym};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
-    fct_accessible_from, find_field_in_class, find_methods_in_class, global_accessible_from,
-    struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
-    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId,
-    TypeParam, TypeParamId, Var, VarId, VM,
+    fct_accessible_from, find_field_in_class, find_methods_in_class, find_methods_in_enum,
+    find_methods_in_struct, global_accessible_from, struct_accessible_from, AnalysisData, CallType,
+    ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic,
+    NamespaceId, StructData, StructId, TypeParam, TypeParamId, Var, VarId, VM,
 };
 
 use dora_parser::ast;
@@ -820,7 +820,7 @@ impl<'a> TypeCheck<'a> {
         let name = self.vm.interner.intern("set");
         arg_types.push(value_type);
 
-        if let Some((_, fct_id, _)) = self.find_method(
+        if let Some(descriptor) = self.find_method(
             e.pos,
             expr_type.clone(),
             false,
@@ -828,7 +828,7 @@ impl<'a> TypeCheck<'a> {
             &arg_types,
             &SourceTypeArray::empty(),
         ) {
-            let call_type = CallType::Expr(expr_type, fct_id);
+            let call_type = CallType::Expr(expr_type, descriptor.fct_id, descriptor.type_params);
             self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
@@ -916,8 +916,8 @@ impl<'a> TypeCheck<'a> {
         name: Name,
         args: &[SourceType],
         fct_type_params: &SourceTypeArray,
-    ) -> Option<(ClassId, FctId, SourceType)> {
-        let result = lookup_method(
+    ) -> Option<MethodDescriptor> {
+        let descriptor = lookup_method(
             self.vm,
             object_type.clone(),
             &self.fct.type_params,
@@ -925,10 +925,9 @@ impl<'a> TypeCheck<'a> {
             name,
             args,
             fct_type_params,
-            None,
         );
 
-        if result.is_none() {
+        if descriptor.is_none() {
             let type_name = object_type.name_fct(self.vm, self.fct);
             let name = self.vm.interner.str(name).to_string();
             let param_names = args
@@ -944,7 +943,7 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, pos, msg);
         }
 
-        result
+        descriptor
     }
 
     fn check_expr_un(&mut self, e: &ast::ExprUnType, _expected_ty: SourceType) -> SourceType {
@@ -975,7 +974,7 @@ impl<'a> TypeCheck<'a> {
         let call_types = [];
 
         if !ty.is_error() {
-            if let Some((_, fct_id, return_type)) = lookup_method(
+            if let Some(descriptor) = lookup_method(
                 self.vm,
                 ty.clone(),
                 &self.fct.type_params,
@@ -983,13 +982,13 @@ impl<'a> TypeCheck<'a> {
                 name,
                 &call_types,
                 &SourceTypeArray::empty(),
-                None,
             ) {
-                let call_type = CallType::Method(ty.clone(), fct_id, ty.type_params(self.vm));
+                let call_type =
+                    CallType::Method(ty.clone(), descriptor.fct_id, descriptor.type_params);
                 self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
-                self.analysis.set_ty(e.id, return_type.clone());
-                return return_type;
+                self.analysis.set_ty(e.id, descriptor.return_type.clone());
+                return descriptor.return_type;
             }
 
             let ty = ty.name_fct(self.vm, self.fct);
@@ -1073,7 +1072,7 @@ impl<'a> TypeCheck<'a> {
         let name = self.vm.interner.intern(name);
         let call_types = [rhs_type.clone()];
 
-        if let Some((_, fct_id, return_type)) = lookup_method(
+        if let Some(descriptor) = lookup_method(
             self.vm,
             lhs_type.clone(),
             &self.fct.type_params,
@@ -1081,17 +1080,16 @@ impl<'a> TypeCheck<'a> {
             name,
             &call_types,
             &SourceTypeArray::empty(),
-            None,
         ) {
             let call_type =
-                CallType::Method(lhs_type.clone(), fct_id, lhs_type.type_params(self.vm));
+                CallType::Method(lhs_type.clone(), descriptor.fct_id, descriptor.type_params);
             self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
 
-            self.analysis.set_ty(e.id, return_type.clone());
+            self.analysis.set_ty(e.id, descriptor.return_type.clone());
 
-            return_type
+            descriptor.return_type
         } else {
             let lhs_type = lhs_type.name_fct(self.vm, self.fct);
             let rhs_type = rhs_type.name_fct(self.vm, self.fct);
@@ -1477,7 +1475,7 @@ impl<'a> TypeCheck<'a> {
 
         let get = self.vm.interner.intern("get");
 
-        if let Some((_, fct_id, return_type)) = self.find_method(
+        if let Some(descriptor) = self.find_method(
             e.pos,
             expr_type.clone(),
             false,
@@ -1485,14 +1483,15 @@ impl<'a> TypeCheck<'a> {
             arg_types,
             &SourceTypeArray::empty(),
         ) {
-            let call_type = CallType::Expr(expr_type.clone(), fct_id);
+            let call_type =
+                CallType::Expr(expr_type.clone(), descriptor.fct_id, descriptor.type_params);
             self.analysis
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
 
-            self.analysis.set_ty(e.id, return_type.clone());
+            self.analysis.set_ty(e.id, descriptor.return_type.clone());
 
-            return_type
+            descriptor.return_type
         } else {
             self.analysis.set_ty(e.id, SourceType::Error);
 
@@ -3136,49 +3135,47 @@ pub fn check_lit_float(
     (ty, value)
 }
 
-pub fn lookup_method(
+struct MethodDescriptor {
+    fct_id: FctId,
+    type_params: SourceTypeArray,
+    return_type: SourceType,
+}
+
+fn lookup_method(
     vm: &VM,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
     is_static: bool,
     name: Name,
     args: &[SourceType],
-    fct_tps: &SourceTypeArray,
-    return_type: Option<SourceType>,
-) -> Option<(ClassId, FctId, SourceType)> {
-    let cls_id = object_type.cls_id(vm);
+    fct_type_params: &SourceTypeArray,
+) -> Option<MethodDescriptor> {
+    let candidates = if object_type.is_enum() {
+        find_methods_in_enum(vm, object_type, type_param_defs, name, is_static)
+    } else if object_type.is_struct() {
+        find_methods_in_struct(vm, object_type, type_param_defs, name, is_static)
+    } else if object_type.cls_id(vm).is_some() {
+        find_methods_in_class(vm, object_type, type_param_defs, name, is_static)
+    } else {
+        Vec::new()
+    };
 
-    if cls_id.is_some() {
-        let candidates =
-            find_methods_in_class(vm, object_type.clone(), type_param_defs, name, is_static);
+    if candidates.len() == 1 {
+        let method_id = candidates[0].fct_id;
+        let method = vm.fcts.idx(method_id);
+        let method = method.read();
 
-        if candidates.len() == 1 {
-            let candidate = candidates[0].fct_id;
-            let method = vm.fcts.idx(candidate);
-            let method = method.read();
+        let container_type_params = &candidates[0].container_type_params;
+        let type_params = container_type_params.connect(fct_type_params);
 
-            let cls_id = match method.parent {
-                FctParent::Class(cls_id) => cls_id,
-                FctParent::Impl(impl_id) => {
-                    let ximpl = vm.impls[impl_id].read();
-                    ximpl.cls_id(vm)
-                }
+        if args_compatible(vm, &*method, args, &type_params, None) {
+            let cmp_type = replace_type_param(vm, method.return_type.clone(), &type_params, None);
 
-                _ => unreachable!(),
-            };
-
-            let cls_type_params = object_type.type_params(vm);
-            let type_params = cls_type_params.connect(fct_tps);
-
-            if args_compatible(vm, &*method, args, &type_params, None) {
-                let combined_type_params = cls_type_params.connect(fct_tps);
-                let cmp_type =
-                    replace_type_param(vm, method.return_type.clone(), &combined_type_params, None);
-
-                if return_type.is_none() || return_type.unwrap() == cmp_type {
-                    return Some((cls_id, candidate, cmp_type));
-                }
-            }
+            return Some(MethodDescriptor {
+                fct_id: method_id,
+                type_params: type_params,
+                return_type: cmp_type,
+            });
         }
     }
 

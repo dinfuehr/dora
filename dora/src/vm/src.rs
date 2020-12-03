@@ -215,7 +215,7 @@ pub enum CallType {
     CtorParent(SourceType, FctId),
 
     // Invoke on expression, e.g. <expr>(<args>)
-    Expr(SourceType, FctId),
+    Expr(SourceType, FctId, SourceTypeArray),
 
     // Invoke method on trait object
     TraitObjectMethod(TraitId, FctId),
@@ -260,7 +260,7 @@ impl CallType {
 
     pub fn is_expr(&self) -> bool {
         match *self {
-            CallType::Expr(_, _) => true,
+            CallType::Expr(_, _, _) => true,
             _ => false,
         }
     }
@@ -286,7 +286,7 @@ impl CallType {
             CallType::ModuleMethod(_, fctid, _) => Some(fctid),
             CallType::Ctor(_, fctid) => Some(fctid),
             CallType::CtorParent(_, fctid) => Some(fctid),
-            CallType::Expr(_, fctid) => Some(fctid),
+            CallType::Expr(_, fctid, _) => Some(fctid),
             CallType::TraitObjectMethod(_, fctid) => Some(fctid),
             CallType::GenericMethod(_, _, fctid) => Some(fctid),
             CallType::GenericStaticMethod(_, _, fctid) => Some(fctid),

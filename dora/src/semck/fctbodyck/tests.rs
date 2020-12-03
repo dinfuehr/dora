@@ -2406,6 +2406,21 @@ fn impl_struct_method_with_self() {
 }
 
 #[test]
+fn impl_struct_with_method_overload() {
+    ok("
+        struct Foo(value: Int32)
+        impl Foo {
+            fun plus(other: Foo): Foo {
+                Foo(self.value + other.value)
+            }
+        }
+        fun f(a: Foo, b: Foo): Foo {
+            a + b
+        }
+    ");
+}
+
+#[test]
 fn impl_enum_type_params() {
     err(
         "
