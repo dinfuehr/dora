@@ -1781,6 +1781,19 @@ fn test_struct_namespace() {
 }
 
 #[test]
+fn test_struct_with_static_method() {
+    ok("
+        struct Foo(value: Int32)
+        impl Foo {
+            @static fun bar() {}
+        }
+        fun f() {
+            Foo::bar();
+        }
+        ");
+}
+
+#[test]
 fn test_enum() {
     ok("enum A { V1, V2 }");
     ok("enum A { V1, V2 } fun f(a: A): A { return a; }");

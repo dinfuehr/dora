@@ -16,7 +16,7 @@ use dora_parser::lexer::position::Position;
 enum LookupKind {
     Fct,
     Method(SourceType),
-    Static(ClassId),
+    Static(SourceType),
     Trait(TraitId),
     Callee(FctId),
     Ctor(ClassId),
@@ -102,8 +102,8 @@ impl<'a> MethodLookup<'a> {
         self
     }
 
-    pub fn static_method(mut self, cls_id: ClassId) -> MethodLookup<'a> {
-        self.kind = Some(LookupKind::Static(cls_id));
+    pub fn static_method(mut self, ty: SourceType) -> MethodLookup<'a> {
+        self.kind = Some(LookupKind::Static(ty));
         self
     }
 
@@ -170,10 +170,10 @@ impl<'a> MethodLookup<'a> {
                 self.find_method_in_trait(trait_id, name, false)
             }
 
-            LookupKind::Static(cls_id) => {
+            LookupKind::Static(ref obj) => {
                 assert!(self.container_tps.is_none());
                 let name = self.name.expect("name not set");
-                self.find_method(self.vm.cls(cls_id), name, true)
+                self.find_method(obj.clone(), name, true)
             }
 
             LookupKind::Ctor(cls_id) => {
@@ -222,8 +222,8 @@ impl<'a> MethodLookup<'a> {
                     SemError::UnknownMethod(type_name, name, param_names)
                 }
 
-                LookupKind::Static(cls_id) => {
-                    let type_name = self.vm.cls(cls_id).name_fct(self.vm, self.caller);
+                LookupKind::Static(ref obj) => {
+                    let type_name = obj.name_fct(self.vm, self.caller);
                     SemError::UnknownStaticMethod(type_name, name, param_names)
                 }
 

@@ -1544,12 +1544,9 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        let cls_id = object_type.cls_id(self.vm).unwrap();
-        assert_eq!(object_type.type_params(self.vm).len(), 0);
-
         let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
-            .static_method(cls_id)
+            .static_method(object_type)
             .name(method_name)
             .args(arg_types)
             .fct_type_params(&type_params)
@@ -1942,6 +1939,31 @@ impl<'a> TypeCheck<'a> {
                 self.check_expr_call_static_method(
                     e,
                     SourceType::Class(cls_id, list_id),
+                    method_name,
+                    type_params,
+                    &arg_types,
+                )
+            }
+
+            (Some(TypeSym::Struct(struct_id)), _) => {
+                let xstruct = self.vm.structs.idx(struct_id);
+                let xstruct = xstruct.read();
+
+                let object_ty = if let Some(ref primitive_ty) = xstruct.primitive_ty {
+                    assert!(container_type_params.is_empty());
+                    primitive_ty.clone()
+                } else {
+                    let list_id = self
+                        .vm
+                        .source_type_arrays
+                        .lock()
+                        .insert(container_type_params);
+                    SourceType::Struct(struct_id, list_id)
+                };
+
+                self.check_expr_call_static_method(
+                    e,
+                    object_ty,
                     method_name,
                     type_params,
                     &arg_types,
