@@ -1973,21 +1973,21 @@ impl<'a> TypeCheck<'a> {
             (Some(TypeSym::Enum(enum_id)), _) => {
                 let xenum = self.vm.enums[enum_id].read();
 
-                if !container_type_params.is_empty() && !type_params.is_empty() {
-                    let msg = SemError::NoTypeParamsExpected;
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file_id, callee_as_path.lhs.pos(), msg);
-                }
-
-                let used_type_params = if type_params.is_empty() {
-                    container_type_params
-                } else {
-                    type_params
-                };
-
                 if let Some(&variant_id) = xenum.name_to_value.get(&method_name) {
+                    if !container_type_params.is_empty() && !type_params.is_empty() {
+                        let msg = SemError::NoTypeParamsExpected;
+                        self.vm
+                            .diag
+                            .lock()
+                            .report(self.file_id, callee_as_path.lhs.pos(), msg);
+                    }
+
+                    let used_type_params = if type_params.is_empty() {
+                        container_type_params
+                    } else {
+                        type_params
+                    };
+
                     self.check_enum_value_with_args(
                         e,
                         enum_id,
@@ -1996,14 +1996,20 @@ impl<'a> TypeCheck<'a> {
                         &arg_types,
                     )
                 } else {
-                    let name = self.vm.interner.str(method_name).to_string();
-                    self.vm.diag.lock().report(
-                        self.file_id,
-                        e.pos,
-                        SemError::UnknownEnumValue(name),
-                    );
+                    let list_id = self
+                        .vm
+                        .source_type_arrays
+                        .lock()
+                        .insert(container_type_params);
+                    let object_ty = SourceType::Enum(enum_id, list_id);
 
-                    SourceType::Error
+                    self.check_expr_call_static_method(
+                        e,
+                        object_ty,
+                        method_name,
+                        type_params,
+                        &arg_types,
+                    )
                 }
             }
 

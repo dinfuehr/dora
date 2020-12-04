@@ -1794,6 +1794,19 @@ fn test_struct_with_static_method() {
 }
 
 #[test]
+fn test_enum_with_static_method() {
+    ok("
+        enum Foo { A, B }
+        impl Foo {
+            @static fun bar() {}
+        }
+        fun f() {
+            Foo::bar();
+        }
+        ");
+}
+
+#[test]
 fn test_enum() {
     ok("enum A { V1, V2 }");
     ok("enum A { V1, V2 } fun f(a: A): A { return a; }");
