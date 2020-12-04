@@ -171,7 +171,6 @@ impl<'a> MethodLookup<'a> {
             }
 
             LookupKind::Static(ref obj) => {
-                assert!(self.container_tps.is_none());
                 let name = self.name.expect("name not set");
                 self.find_method(obj.clone(), name, true)
             }
@@ -262,6 +261,8 @@ impl<'a> MethodLookup<'a> {
 
             container_tps.clone()
         } else if let LookupKind::Method(_) = kind {
+            self.found_container_type_params.clone().unwrap()
+        } else if let LookupKind::Static(_) = kind {
             self.found_container_type_params.clone().unwrap()
         } else {
             SourceTypeArray::empty()

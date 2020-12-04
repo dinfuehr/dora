@@ -1791,6 +1791,27 @@ fn test_struct_with_static_method() {
             Foo::bar();
         }
         ");
+
+    ok("
+        struct Foo[T](value: Int32)
+        impl[T] Foo[T] {
+            @static fun bar() {}
+        }
+        fun f() {
+            Foo[Int32]::bar();
+        }
+        ");
+
+    err(
+        "
+            struct Foo(value: Int32)
+            fun f() {
+                Foo[Int32]::bar();
+            }
+            ",
+        pos(4, 32),
+        SemError::WrongNumberTypeParams(0, 1),
+    );
 }
 
 #[test]
@@ -1804,6 +1825,17 @@ fn test_enum_with_static_method() {
             Foo::bar();
         }
         ");
+
+    err(
+        "
+        enum Foo { A, B }
+        fun f() {
+            Foo[Int32]::bar();
+        }
+        ",
+        pos(4, 28),
+        SemError::WrongNumberTypeParams(0, 1),
+    );
 }
 
 #[test]

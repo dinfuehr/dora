@@ -1316,16 +1316,11 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let list_id = self
-            .vm
-            .source_type_arrays
-            .lock()
-            .insert(type_params.clone());
-        let ty = SourceType::Enum(enum_id, list_id);
         let type_params_ok = typeparamck::check_enum(
             self.vm,
             self.fct,
-            ty.clone(),
+            enum_id,
+            &type_params,
             ErrorReporting::Yes(self.file_id, e.pos),
         );
 
@@ -1355,6 +1350,13 @@ impl<'a> TypeCheck<'a> {
             let msg = SemError::EnumArgsNoParens(enum_name, variant_name);
             self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
+
+        let list_id = self
+            .vm
+            .source_type_arrays
+            .lock()
+            .insert(type_params.clone());
+        let ty = SourceType::Enum(enum_id, list_id);
 
         self.analysis
             .map_calls
@@ -1949,25 +1951,35 @@ impl<'a> TypeCheck<'a> {
                 let xstruct = self.vm.structs.idx(struct_id);
                 let xstruct = xstruct.read();
 
-                let object_ty = if let Some(ref primitive_ty) = xstruct.primitive_ty {
-                    assert!(container_type_params.is_empty());
-                    primitive_ty.clone()
-                } else {
-                    let list_id = self
-                        .vm
-                        .source_type_arrays
-                        .lock()
-                        .insert(container_type_params);
-                    SourceType::Struct(struct_id, list_id)
-                };
+                if typeparamck::check_struct(
+                    self.vm,
+                    self.fct,
+                    struct_id,
+                    &container_type_params,
+                    ErrorReporting::Yes(self.file_id, e.pos),
+                ) {
+                    let object_ty = if let Some(ref primitive_ty) = xstruct.primitive_ty {
+                        assert!(container_type_params.is_empty());
+                        primitive_ty.clone()
+                    } else {
+                        let list_id = self
+                            .vm
+                            .source_type_arrays
+                            .lock()
+                            .insert(container_type_params);
+                        SourceType::Struct(struct_id, list_id)
+                    };
 
-                self.check_expr_call_static_method(
-                    e,
-                    object_ty,
-                    method_name,
-                    type_params,
-                    &arg_types,
-                )
+                    self.check_expr_call_static_method(
+                        e,
+                        object_ty,
+                        method_name,
+                        type_params,
+                        &arg_types,
+                    )
+                } else {
+                    SourceType::Error
+                }
             }
 
             (Some(TypeSym::Enum(enum_id)), _) => {
@@ -1996,20 +2008,30 @@ impl<'a> TypeCheck<'a> {
                         &arg_types,
                     )
                 } else {
-                    let list_id = self
-                        .vm
-                        .source_type_arrays
-                        .lock()
-                        .insert(container_type_params);
-                    let object_ty = SourceType::Enum(enum_id, list_id);
+                    if typeparamck::check_enum(
+                        self.vm,
+                        self.fct,
+                        enum_id,
+                        &container_type_params,
+                        ErrorReporting::Yes(self.file_id, e.pos),
+                    ) {
+                        let list_id = self
+                            .vm
+                            .source_type_arrays
+                            .lock()
+                            .insert(container_type_params);
+                        let object_ty = SourceType::Enum(enum_id, list_id);
 
-                    self.check_expr_call_static_method(
-                        e,
-                        object_ty,
-                        method_name,
-                        type_params,
-                        &arg_types,
-                    )
+                        self.check_expr_call_static_method(
+                            e,
+                            object_ty,
+                            method_name,
+                            type_params,
+                            &arg_types,
+                        )
+                    } else {
+                        SourceType::Error
+                    }
                 }
             }
 
@@ -2315,16 +2337,11 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
-        let list_id = self
-            .vm
-            .source_type_arrays
-            .lock()
-            .insert(type_params.clone());
-        let ty = SourceType::Enum(enum_id, list_id);
         let type_params_ok = typeparamck::check_enum(
             self.vm,
             self.fct,
-            ty.clone(),
+            enum_id,
+            &type_params,
             ErrorReporting::Yes(self.file_id, expr_pos),
         );
 
@@ -2351,7 +2368,7 @@ impl<'a> TypeCheck<'a> {
 
             self.analysis.map_idents.insert(
                 expr_id,
-                IdentType::EnumValue(enum_id, type_params, value as usize),
+                IdentType::EnumValue(enum_id, type_params.clone(), value as usize),
             );
         } else {
             let name = self.vm.interner.str(name).to_string();
@@ -2362,6 +2379,13 @@ impl<'a> TypeCheck<'a> {
         }
 
         if type_params_ok {
+            let list_id = self
+                .vm
+                .source_type_arrays
+                .lock()
+                .insert(type_params.clone());
+            let ty = SourceType::Enum(enum_id, list_id);
+
             self.analysis.set_ty(expr_id, ty.clone());
             ty
         } else {
@@ -2477,16 +2501,11 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
-        let list_id = self
-            .vm
-            .source_type_arrays
-            .lock()
-            .insert(type_params.clone());
-        let ty = SourceType::Enum(enum_id, list_id);
         let type_params_ok = typeparamck::check_enum(
             self.vm,
             self.fct,
-            ty.clone(),
+            enum_id,
+            &type_params,
             ErrorReporting::Yes(self.file_id, expr_pos),
         );
 
@@ -2508,10 +2527,17 @@ impl<'a> TypeCheck<'a> {
 
         self.analysis.map_idents.insert(
             expr_id,
-            IdentType::EnumValue(enum_id, type_params, variant_id),
+            IdentType::EnumValue(enum_id, type_params.clone(), variant_id),
         );
 
         if type_params_ok {
+            let list_id = self
+                .vm
+                .source_type_arrays
+                .lock()
+                .insert(type_params.clone());
+            let ty = SourceType::Enum(enum_id, list_id);
+
             self.analysis.set_ty(expr_id, ty.clone());
             ty
         } else {
