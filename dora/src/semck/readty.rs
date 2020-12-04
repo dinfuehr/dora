@@ -499,8 +499,9 @@ fn read_type_class(
     let cls = cls.read();
 
     if check_type_params(vm, &cls.type_params, &type_params, file_id, basic.pos, ctxt) {
-        if cls.type_params.is_empty() {
-            Some(cls.ty.clone())
+        if let Some(ref primitive_ty) = cls.primitive_type {
+            assert!(type_params.is_empty());
+            Some(primitive_ty.clone())
         } else {
             let list = SourceTypeArray::with(type_params);
             let list_id = vm.source_type_arrays.lock().insert(list);

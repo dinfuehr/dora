@@ -58,7 +58,8 @@ pub struct Class {
     pub namespace_id: NamespaceId,
     pub pos: Position,
     pub name: Name,
-    pub ty: SourceType,
+    pub primitive_type: Option<SourceType>,
+    pub ty: Option<SourceType>,
     pub parent_class: Option<SourceType>,
     pub has_open: bool,
     pub is_abstract: bool,
@@ -101,6 +102,14 @@ impl Class {
         };
 
         &self.type_params[id.to_usize()]
+    }
+
+    pub fn ty(&self) -> SourceType {
+        if let Some(ref primitive_ty) = self.primitive_type {
+            primitive_ty.clone()
+        } else {
+            self.ty.clone().expect("not initialized")
+        }
     }
 
     pub fn field_by_name(&self, name: Name) -> FieldId {

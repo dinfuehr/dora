@@ -46,6 +46,15 @@ impl<'x> ClsDefCheck<'x> {
 
         if let Some(ref type_params) = self.ast.type_params {
             self.check_type_params(type_params);
+        } else {
+            let cls = self.vm.classes.idx(self.cls_id);
+            let mut cls = cls.write();
+            let list_id = self
+                .vm
+                .source_type_arrays
+                .lock()
+                .insert(SourceTypeArray::empty());
+            cls.ty = Some(SourceType::Class(self.cls_id, list_id));
         }
 
         for field in &self.ast.fields {
@@ -159,7 +168,7 @@ impl<'x> ClsDefCheck<'x> {
         let params = SourceTypeArray::with(type_params);
         let list_id = self.vm.source_type_arrays.lock().insert(params);
 
-        cls.ty = SourceType::Class(self.cls_id, list_id);
+        cls.ty = Some(SourceType::Class(self.cls_id, list_id));
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {

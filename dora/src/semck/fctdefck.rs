@@ -30,7 +30,7 @@ pub fn check(vm: &VM) {
                 }
 
                 if fct.has_self() {
-                    fct.param_types.push(cls.ty.clone());
+                    fct.param_types.push(cls.ty());
                 }
             }
 

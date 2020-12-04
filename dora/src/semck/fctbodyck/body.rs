@@ -33,6 +33,7 @@ pub struct TypeCheck<'a> {
     pub ast: &'a ast::Function,
     pub symtable: NestedSymTable<'a>,
     pub in_loop: bool,
+    pub self_ty: Option<SourceType>,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -138,12 +139,12 @@ impl<'a> TypeCheck<'a> {
             return;
         }
 
-        let ty = match self.fct.parent {
+        let self_ty = match self.fct.parent {
             FctParent::Class(cls_id) => {
                 let cls = self.vm.classes.idx(cls_id);
                 let cls = cls.read();
 
-                cls.ty.clone()
+                cls.ty()
             }
 
             FctParent::Impl(impl_id) => {
@@ -156,8 +157,10 @@ impl<'a> TypeCheck<'a> {
                 extension.ty.clone()
             }
 
-            _ => unreachable!(),
+            FctParent::None | FctParent::Module(_) | FctParent::Trait(_) => unreachable!(),
         };
+
+        self.self_ty = Some(self_ty.clone());
 
         let ast_id = self.fct.ast.id;
         let name = self.vm.interner.intern("self");
@@ -165,7 +168,7 @@ impl<'a> TypeCheck<'a> {
         let var = Var {
             id: VarId(0),
             name,
-            ty,
+            ty: self_ty,
             reassignable: false,
             node_id: ast_id,
         };
@@ -2602,42 +2605,16 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_this(&mut self, e: &ast::ExprSelfType, _expected_ty: SourceType) -> SourceType {
-        match self.fct.parent {
-            FctParent::Class(clsid) => {
-                let cls = self.vm.classes.idx(clsid);
-                let cls = cls.read();
-                let ty = cls.ty.clone();
-                self.analysis.set_ty(e.id, ty.clone());
+        let self_ty = if let Some(ref self_ty) = self.self_ty {
+            self_ty.clone()
+        } else {
+            let msg = SemError::ThisUnavailable;
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
+            SourceType::Error
+        };
 
-                ty
-            }
-
-            FctParent::Impl(impl_id) => {
-                let ximpl = self.vm.impls[impl_id].read();
-                let ty = ximpl.ty.clone();
-                self.analysis.set_ty(e.id, ty.clone());
-
-                ty
-            }
-
-            FctParent::Extension(extension_id) => {
-                let extension = self.vm.extensions[extension_id].read();
-                let ty = extension.ty.clone();
-                self.analysis.set_ty(e.id, ty.clone());
-
-                ty
-            }
-
-            FctParent::Module(_) | FctParent::Trait(_) => unreachable!(),
-
-            FctParent::None => {
-                let msg = SemError::ThisUnavailable;
-                self.vm.diag.lock().report(self.file_id, e.pos, msg);
-                self.analysis.set_ty(e.id, SourceType::Unit);
-
-                SourceType::Unit
-            }
-        }
+        self.analysis.set_ty(e.id, self_ty.clone());
+        self_ty
     }
 
     fn check_expr_super(&mut self, e: &ast::ExprSuperType, _expected_ty: SourceType) -> SourceType {

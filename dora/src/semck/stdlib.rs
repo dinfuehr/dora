@@ -28,11 +28,11 @@ pub fn resolve_internal_classes(vm: &mut VM) {
     vm.known.classes.float32 = internal_class(vm, "Float32", Some(SourceType::Float32));
     vm.known.classes.float64 = internal_class(vm, "Float64", Some(SourceType::Float64));
 
-    vm.known.classes.object = internal_class(vm, "Object", None);
+    vm.known.classes.object = find_class(vm, "Object");
     vm.known.classes.string = internal_class(vm, "String", None);
     vm.known.modules.string = internal_module(vm, "String", None);
 
-    vm.known.classes.string_buffer = internal_class(vm, "StringBuffer", None);
+    vm.known.classes.string_buffer = find_class(vm, "StringBuffer");
     vm.known.modules.string_buffer = internal_module(vm, "StringBuffer", None);
 
     let cls = vm.classes.idx(vm.known.classes.string);
@@ -46,10 +46,10 @@ pub fn resolve_internal_classes(vm: &mut VM) {
     let mut cls = cls.write();
     cls.is_array = true;
 
-    vm.known.classes.testing = internal_class(vm, "Testing", None);
+    vm.known.classes.testing = find_class(vm, "Testing");
 
-    vm.known.classes.stacktrace = internal_class(vm, "Stacktrace", None);
-    vm.known.classes.stacktrace_element = internal_class(vm, "StacktraceElement", None);
+    vm.known.classes.stacktrace = find_class(vm, "Stacktrace");
+    vm.known.classes.stacktrace_element = find_class(vm, "StacktraceElement");
 
     vm.known.traits.stringable = find_trait(vm, "Stringable");
     vm.known.traits.zero = find_trait(vm, "Zero");
@@ -192,6 +192,14 @@ fn internal_free_classes(vm: &mut VM) {
     vm.known.free_array_class_def = free_array;
 }
 
+fn find_class(vm: &VM, name: &str) -> ClassId {
+    let iname = vm.interner.intern(name);
+    vm.stdlib_namespace()
+        .read()
+        .get_class(iname)
+        .expect("class not found")
+}
+
 fn internal_class(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ClassId {
     let iname = vm.interner.intern(name);
     let clsid = vm.stdlib_namespace().read().get_class(iname);
@@ -202,7 +210,7 @@ fn internal_class(vm: &mut VM, name: &str, ty: Option<SourceType>) -> ClassId {
 
         if cls.internal {
             if let Some(ty) = ty {
-                cls.ty = ty;
+                cls.primitive_type = Some(ty);
             }
 
             cls.internal_resolved = true;

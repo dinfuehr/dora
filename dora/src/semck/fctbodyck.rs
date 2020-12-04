@@ -32,6 +32,7 @@ pub fn check(vm: &VM) {
                 ast: &fct.ast,
                 symtable: symtable,
                 in_loop: false,
+                self_ty: None,
             };
 
             typeck.check();
