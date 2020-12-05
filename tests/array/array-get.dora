@@ -1,25 +1,25 @@
 fun main() {
-  let x = Array::fill[Int32](5L, 100);
+  let x = Array[Int32]::fill(5L, 100);
   assert(x(0L) == 100);
   assert(int32_array_get(x, 4L) == 100);
 
-  let x = Array::fill[Int64](7L, 200L);
+  let x = Array[Int64]::fill(7L, 200L);
   assert(x(6L) == 200L);
   assert(int64_array_get(x, 0L) == 200L);
 
-  let x = Array::fill[Float32](6L, 1.0F);
+  let x = Array[Float32]::fill(6L, 1.0F);
   assert(x(0L) == 1.0F);
   assert(float_array_get(x, 5L) == 1.0F);
 
-  let x = Array::fill[Float64](4L, 2.0);
+  let x = Array[Float64]::fill(4L, 2.0);
   assert(x(0L) == 2.0);
   assert(double_array_get(x, 3L) == 2.0);
 
-  let x = Array::fill[String](3L, "hello");
+  let x = Array[String]::fill(3L, "hello");
   assert(x(0L) == "hello");
   assert(str_array_get(x, 2L) == "hello");
 
-  let x = Array::fill[Foo](1L, Foo(1));
+  let x = Array[Foo]::fill(1L, Foo(1));
   assert(x(0L).y == 1);
   assert(foo_array_get(x, 0L).y == 1);
 }

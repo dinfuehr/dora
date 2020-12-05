@@ -4,7 +4,7 @@ fun main() {
 }
 
 class A[T] {
-    let x: Array[T] = Array::empty[T]();
+    let x: Array[T] = Array[T]::empty();
 }
 
 fun consume(x: Array[Int32]) {

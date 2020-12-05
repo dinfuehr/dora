@@ -1,5 +1,5 @@
 @pub class StringBuffer() {
-  var buf: Array[UInt8] = Array::empty[UInt8]();
+  var buf: Array[UInt8] = Array[UInt8]::empty();
   var len: Int64 = 0L;
 
   fun size(): Int64 {
@@ -18,7 +18,7 @@
     }
 
     let newcap = self.newCapacity(elements);
-    let newbuf = Array::zero[UInt8](newcap);
+    let newbuf = Array[UInt8]::zero(newcap);
     var i = 0L;
 
     while i < self.buf.size() {
@@ -74,8 +74,6 @@
   }
 
   fun toString(): String = String::fromBytesPart(self.buf, 0L, self.size()).unwrap();
-}
 
-module StringBuffer {
-  fun empty(): StringBuffer = StringBuffer();
+  @static fun empty(): StringBuffer = StringBuffer();
 }

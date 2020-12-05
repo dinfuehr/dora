@@ -3,7 +3,7 @@
 class Foo(let x: Int32)
 
 fun main() {
-    let a = Array::fill[Int64](70L, 0L);
+    let a = Array[Int64]::fill(70L, 0L);
     let f1 = Foo(3);
     let x = CardSpanningObject(f1);
     std::forceMinorCollect();

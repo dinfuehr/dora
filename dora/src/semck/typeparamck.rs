@@ -2,7 +2,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::error::msg::SemError;
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
-use crate::vm::{Class, EnumId, Fct, FileId, StructId, TraitId, TypeParam, VM};
+use crate::vm::{Class, ClassId, EnumId, Fct, FileId, StructId, TraitId, TypeParam, VM};
 
 pub enum ErrorReporting {
     Yes(FileId, Position),
@@ -43,6 +43,26 @@ pub fn check_struct(
         vm,
         caller_type_param_defs: &fct.type_params,
         callee_type_param_defs: &xstruct.type_params,
+        error,
+    };
+
+    checker.check(type_params)
+}
+
+pub fn check_class(
+    vm: &VM,
+    fct: &Fct,
+    cls_id: ClassId,
+    type_params: &SourceTypeArray,
+    error: ErrorReporting,
+) -> bool {
+    let cls = vm.classes.idx(cls_id);
+    let cls = cls.read();
+
+    let checker = TypeParamCheck {
+        vm,
+        caller_type_param_defs: &fct.type_params,
+        callee_type_param_defs: &cls.type_params,
         error,
     };
 

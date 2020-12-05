@@ -4,7 +4,7 @@ class Foo(let x: Int32)
 
 fun main() {
     let default = Foo(17);
-    let x = Array::fill[Foo](64L, default);
+    let x = Array[Foo]::fill(64L, default);
     std::forceMinorCollect();
     assert(x(0L) === default);
     assert(x(63L) === default);

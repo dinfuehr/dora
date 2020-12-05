@@ -2180,15 +2180,15 @@ fn test_incompatible_branches() {
 
 #[test]
 fn zero_trait_ok() {
-    ok("fun f() { Array::zero[Int32](12L); }");
+    ok("fun f() { Array[Int32]::zero(12L); }");
 }
 
 #[test]
 fn zero_trait_err() {
     err(
-        "fun f() { Array::zero[String](12L); }",
+        "fun f() { Array[String]::zero(12L); }",
         pos(1, 30),
-        SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
+        SemError::UnknownStaticMethod("Array[String]".into(), "zero".into(), vec!["Int64".into()]),
     );
 }
 

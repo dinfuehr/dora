@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Array::fill[Foo](2L, Foo(42));
+  let x = Array[Foo]::fill(2L, Foo(42));
   std::forceMinorCollect();
   std::forceMinorCollect();
   // array in old generation references object in

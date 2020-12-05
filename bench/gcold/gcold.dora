@@ -13,9 +13,9 @@ var youngBytes: Int64 = 0L;
 var nodes: Int64 = 0L;
 var actuallyMut: Int64 = 0L;
 var mutatorSum: Int64 = 0L;
-var aexport: Array[Int32] = Array::empty[Int32]();
+var aexport: Array[Int32] = Array[Int32]::empty();
 
-var trees: Array[TreeNode] = Array::empty[TreeNode]();
+var trees: Array[TreeNode] = Array[TreeNode]::empty();
 var where: Int32 = 0;
 var rnd: std::Random = std::Random(0L);
 
@@ -91,7 +91,7 @@ fun makeTree(h: Int32): TreeNode {
 fun initialize() {
     let ntrees = (size * MEG).toInt64() / treeSize;
     let default = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0);
-    trees = Array::fill[TreeNode](ntrees, default);
+    trees = Array[TreeNode]::fill(ntrees, default);
 
     println("Allocating " + ntrees.toString() + " trees.");
     println("  (" + (ntrees * treeSize).toString() + " bytes)");
@@ -248,7 +248,7 @@ fun doYoungGenAlloc(n: Int64, nwords: Int32) {
     var allocated = 0L;
 
     while allocated < n {
-        aexport = Array::ofSizeUnsafe[Int64](nwords.toInt64());
+        aexport = Array[Int64]::ofSizeUnsafe(nwords.toInt64());
         allocated = allocated + nbytes.toInt64();
     }
 

@@ -4,7 +4,7 @@ struct Foo(f1: Int32, f2: Bar)
 class Bar(let value: Int32)
 
 fun main() {
-    let x = Array::fill[Foo](10L, Foo(0, Bar(0)));
+    let x = Array[Foo]::fill(10L, Foo(0, Bar(0)));
     x(0L) = Foo(1, Bar(1));
     x(4L) = Foo(2, Bar(2));
     std::forceCollect();

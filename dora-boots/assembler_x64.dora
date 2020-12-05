@@ -1427,7 +1427,7 @@ impl ScaleFactor {
 class Address {
     var rex: UInt8 = 0Y;
     var length: Int64 = 0L;
-    let bytes: Array[UInt8] = Array::zero[UInt8](6L);
+    let bytes: Array[UInt8] = Array[UInt8]::zero(6L);
 
     fun set_modrm(mode: Int32, reg: Register) {
         assert(self.length == 0L);

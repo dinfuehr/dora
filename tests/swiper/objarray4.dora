@@ -1,8 +1,8 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-    let a = Array::ofSizeUnsafe[Foo](60L);
-    let b = Array::ofSizeUnsafe[Foo](60L);
+    let a = Array[Foo]::ofSizeUnsafe(60L);
+    let b = Array[Foo]::ofSizeUnsafe(60L);
     std::forceMinorCollect();
     std::forceMinorCollect();
     // a(5) = Foo(2);

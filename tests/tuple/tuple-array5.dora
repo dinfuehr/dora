@@ -3,7 +3,7 @@
 class Foo (let value: Int32)
 
 fun main() {
-    let x = Array::ofSizeUnsafe[(Int32, Foo)](7L);
+    let x = Array[(Int32, Foo)]::ofSizeUnsafe(7L);
     x(0L) = (1, Foo(1));
     x(4L) = (4, Foo(4));
     std::forceCollect();

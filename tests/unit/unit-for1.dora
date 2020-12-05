@@ -1,6 +1,6 @@
 fun main() {
     var sum = 0L;
-    for x in Array::fill[()](100L, ()) {
+    for x in Array[()]::fill(100L, ()) {
         sum = sum + 1L;
     }
     assert(sum == 100L);

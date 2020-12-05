@@ -4,5 +4,5 @@ fun main() {
 }
 
 fun newArray[T](): Array[T] {
-    Array::empty[T]()
+    Array[T]::empty()
 }

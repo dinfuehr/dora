@@ -1,7 +1,7 @@
 struct Foo(f1: Int32, f2: Int32)
 
 fun main() {
-    let arr = Array::fill[Foo](10L, Foo(10, 17));
+    let arr = Array[Foo]::fill(10L, Foo(10, 17));
     assert(arr.size() == 10L);
     assert(arr(0L).f1 == 10);
     assert(arr(0L).f2 == 17);
@@ -10,6 +10,6 @@ fun main() {
     assert(arr(0L).f1 == 100);
     assert(arr(0L).f2 == 170);
 
-    let arr = Array::empty[Foo]();
+    let arr = Array[Foo]::empty();
     assert(arr.size() == 0L);
 }

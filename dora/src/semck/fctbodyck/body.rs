@@ -1540,7 +1540,7 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprCallType,
         object_type: SourceType,
         method_name: Name,
-        type_params: SourceTypeArray,
+        fct_type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         let mut lookup = MethodLookup::new(self.vm, self.fct)
@@ -1548,13 +1548,15 @@ impl<'a> TypeCheck<'a> {
             .static_method(object_type)
             .name(method_name)
             .args(arg_types)
-            .fct_type_params(&type_params)
+            .fct_type_params(&fct_type_params)
             .type_param_defs(&self.fct.type_params);
 
         if lookup.find() {
             let fct_id = lookup.found_fct_id().unwrap();
             let return_type = lookup.found_ret().unwrap();
-            let call_type = Arc::new(CallType::Fct(fct_id, type_params.clone()));
+            let container_type_params = lookup.found_container_type_params().unwrap();
+            let type_params = container_type_params.connect(&fct_type_params);
+            let call_type = Arc::new(CallType::Fct(fct_id, type_params));
             self.analysis.map_calls.insert(e.id, call_type.clone());
 
             self.analysis.set_ty(e.id, return_type.clone());
@@ -1930,18 +1932,28 @@ impl<'a> TypeCheck<'a> {
             }
 
             (Some(TypeSym::Class(cls_id)), _) => {
-                let list_id = self
-                    .vm
-                    .source_type_arrays
-                    .lock()
-                    .insert(container_type_params);
-                self.check_expr_call_static_method(
-                    e,
-                    SourceType::Class(cls_id, list_id),
-                    method_name,
-                    type_params,
-                    &arg_types,
-                )
+                if typeparamck::check_class(
+                    self.vm,
+                    self.fct,
+                    cls_id,
+                    &container_type_params,
+                    ErrorReporting::Yes(self.file_id, e.pos),
+                ) {
+                    let list_id = self
+                        .vm
+                        .source_type_arrays
+                        .lock()
+                        .insert(container_type_params);
+                    self.check_expr_call_static_method(
+                        e,
+                        SourceType::Class(cls_id, list_id),
+                        method_name,
+                        type_params,
+                        &arg_types,
+                    )
+                } else {
+                    SourceType::Error
+                }
             }
 
             (Some(TypeSym::Struct(struct_id)), _) => {

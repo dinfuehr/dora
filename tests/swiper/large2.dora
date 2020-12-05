@@ -2,14 +2,14 @@
 
 fun main() {
     {
-        let x = Array::ofSizeUnsafe[Object](16L * 1024L);
+        let x = Array[Object]::ofSizeUnsafe(16L * 1024L);
         std::forceCollect();
     }
 
     std::forceCollect();
 
     {
-        let y = Array::ofSizeUnsafe[Object](16L * 1024L);
+        let y = Array[Object]::ofSizeUnsafe(16L * 1024L);
         std::forceCollect();
     }
 

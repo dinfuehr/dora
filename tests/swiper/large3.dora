@@ -3,7 +3,7 @@
 class Foo(let x: Int32)
 
 fun main() {
-    let x = Array::ofSizeUnsafe[Foo](16L * 1024L);
+    let x = Array[Foo]::ofSizeUnsafe(16L * 1024L);
     std::forceCollect();
     assert(std::unsafeIsNull[Foo](x(0L)));
 

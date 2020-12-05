@@ -1,5 +1,5 @@
 fun main() {
-  let x = Array::fill[Foo](5L, Foo(17));
+  let x = Array[Foo]::fill(5L, Foo(17));
   x(0L) = Foo(1);
   x(4L) = Foo(2);
   std::forceCollect();

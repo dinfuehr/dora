@@ -13,7 +13,7 @@
 
   fun asBytes(): Array[UInt8] {
     unimplemented();
-    return Array::empty[UInt8]();
+    return Array[UInt8]::empty();
   }
 
   fun isEmpty(): Bool = self.value.isEmpty();

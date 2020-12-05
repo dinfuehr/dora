@@ -1,11 +1,11 @@
 //= stdout "abxy\n"
 
 fun main() {
-    let x = Array::empty[String]();
+    let x = Array[String]::empty();
     assert(x.size() == 0L);
 
     let emptyString = "".clone();
-    let x = Array::fill[String](10L, emptyString);
+    let x = Array[String]::fill(10L, emptyString);
     assert(x.size() == 10L);
 
     x(0L) = "a" + "b";

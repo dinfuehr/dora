@@ -1,8 +1,8 @@
 fun main() {
-    let ba = Array::ofSizeUnsafe[Int64](0L);
+    let ba = Array[Int64]::ofSizeUnsafe(0L);
     assert(ba.size() == 0L);
 
-    let ba = Array::fill[Int64](10L, 2L);
+    let ba = Array[Int64]::fill(10L, 2L);
     assert(ba.size() == 10L);
 
     ba(0L) = 10L;

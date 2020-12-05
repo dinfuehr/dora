@@ -55,21 +55,19 @@
   fun isEmpty(): Bool = self.size() == 0L;
 
   fun codePoints(): CodepointIterator = CodepointIterator(self, 0L);
-}
 
-module String {
-  @internal fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] ;
+  @static @internal fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] ;
 
-  fun fromBytes(val: Array[UInt8]): Option[String] {
+  @static fun fromBytes(val: Array[UInt8]): Option[String] {
     String::fromBytesPart(val, 0L, val.size())
   }
 
-  @internal fun fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
+  @static @internal fun fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
 
-  fun binary(data: Int64): String {
+  @static fun binary(data: Int64): String {
     var data = data;
     if data == 0L { return "0"; }
-    let array = Array::zero[UInt8](64L);
+    let array = Array[UInt8]::zero(64L);
     var at = array.size();
     while data != 0L {
       array(at - 1L) = ('0'.toInt64() + (data & 1L)).toUInt8();
@@ -79,10 +77,10 @@ module String {
     return String::fromBytesPart(array, at, array.size() - at + 1L).unwrap();
   }
 
-  fun hex(data: Int64): String {
+  @static fun hex(data: Int64): String {
     var data = data;
     if data == 0L { return "0"; }
-    let array = Array::zero[UInt8](16L);
+    let array = Array[UInt8]::zero(16L);
     var at = array.size();
     while data != 0L {
       let digit = (data & 0xFL).toInt32();

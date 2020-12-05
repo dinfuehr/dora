@@ -1,8 +1,8 @@
 fun main() {
-    let x = Array::empty[Bool]();
+    let x = Array[Bool]::empty();
     assert(x.size() == 0L);
 
-    let y = Array::fill[Bool](10L, true);
+    let y = Array[Bool]::fill(10L, true);
     assert(y.size() == 10L);
     assert(y(0L) == true);
     assert(y(9L) == true);

@@ -1,5 +1,5 @@
 fun main() {
-  assert(0L == len(Array::empty[Int32]()));
+  assert(0L == len(Array[Int32]::empty()));
 }
 
 fun len(a: Array[Int32]): Int64 { return a.size(); }

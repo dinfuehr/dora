@@ -9,6 +9,54 @@
   fun enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T](self)
   }
+
+  @static fun empty(): Array[T] {
+    Array[T]::ofSizeUnsafe(0L)
+  }
+
+  @static @internal fun ofSizeUnsafe(size: Int64): Array[T];
+
+  @static fun fill(len: Int64, value: T): Array[T] {
+    let array = Array[T]::ofSizeUnsafe(len);
+    var i = 0L;
+
+    while i < len {
+      array(i) = value;
+      i = i + 1L;
+    }
+
+    return array;
+  }
+
+  @static fun copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
+    var i = 0L;
+
+    while i < len {
+      dest.set(destPos+i, src.get(srcPos+i));
+      i = i + 1L;
+    }
+  }
+}
+
+impl[T: Default] Array[T] {
+  @static fun new(len: Int64): Array[T] {
+    let array = Array[T]::ofSizeUnsafe(len);
+    var i = 0L;
+    let value = T::default();
+
+    while i < len {
+      array.set(i, value);
+      i = i + 1L;
+    }
+
+    return array;
+  }
+}
+
+impl[T: Zero] Array[T] {
+  @static fun zero(len: Int64): Array[T] {
+    Array[T]::ofSizeUnsafe(len)
+  }
 }
 
 class ArrayEnumerator[T](let array: Array[T]) {
@@ -53,48 +101,5 @@ impl[T: Identity] Array[T] {
     }
 
     return false;
-  }
-}
-
-@pub module Array {
-  fun empty[T](): Array[T] = Array::ofSizeUnsafe[T](0L);
-
-  @internal
-  fun ofSizeUnsafe[T](size: Int64): Array[T];
-
-  fun fill[T](len: Int64, value: T): Array[T] {
-    let array = Array::ofSizeUnsafe[T](len);
-    var i = 0L;
-
-    while i < len {
-      array(i) = value;
-      i = i + 1L;
-    }
-
-    return array;
-  }
-
-  fun new[T: Default](len: Int64): Array[T] {
-    let array = Array::ofSizeUnsafe[T](len);
-    var i = 0L;
-    let value = T::default();
-
-    while i < len {
-      array.set(i, value);
-      i = i + 1L;
-    }
-
-    return array;
-  }
-
-  fun zero[T: Zero](len: Int64): Array[T] = return Array::ofSizeUnsafe[T](len);
-
-  fun copy[T](src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
-    var i = 0L;
-
-    while i < len {
-      dest.set(destPos+i, src.get(srcPos+i));
-      i = i + 1L;
-    }
   }
 }

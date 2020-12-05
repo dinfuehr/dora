@@ -23,7 +23,7 @@ fun main() {
 }
 
 fun write(ch: Char): Array[UInt8] {
-    let buffer = Array::ofSizeUnsafe[UInt8](5L);
+    let buffer = Array[UInt8]::ofSizeUnsafe(5L);
     ch.encodeUtf8(buffer, 0L);
     return buffer;
 }

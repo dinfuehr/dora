@@ -555,6 +555,25 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
+    fn emit_new_struct(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
+        self.emit_start(name);
+        let (struct_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
+            _ => unreachable!(),
+        };
+        let xstruct = self.vm.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+        let xstruct_name = xstruct.name_with_params(self.vm, type_params);
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # {}",
+            r1,
+            idx.to_usize(),
+            xstruct_name,
+        )
+        .expect("write! failed");
+    }
+
     fn emit_start(&mut self, name: &str) {
         write!(self.w, "{:3}: {}", self.pos.to_usize(), name).expect("write! failed");
     }
@@ -1108,6 +1127,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_enum("NewEnum", dest, idx);
     }
+    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new_struct("NewStruct", dest, idx);
+    }
 
     fn visit_nil_check(&mut self, obj: Register) {
         self.emit_reg1("NilCheck", obj);
@@ -1152,6 +1174,15 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     ) {
         self.emit_reg3_idx("LoadArrayEnum", dest, arr, idx, enum_idx);
     }
+    fn visit_load_array_struct(
+        &mut self,
+        dest: Register,
+        arr: Register,
+        idx: Register,
+        struct_idx: ConstPoolIdx,
+    ) {
+        self.emit_reg3_idx("LoadArrayStruct", dest, arr, idx, struct_idx);
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayBool", src, arr, idx);
@@ -1191,6 +1222,15 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         enum_idx: ConstPoolIdx,
     ) {
         self.emit_reg3_idx("StoreArrayEnum", src, arr, idx, enum_idx);
+    }
+    fn visit_store_array_struct(
+        &mut self,
+        src: Register,
+        arr: Register,
+        idx: Register,
+        struct_idx: ConstPoolIdx,
+    ) {
+        self.emit_reg3_idx("StoreArrayStruct", src, arr, idx, struct_idx);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

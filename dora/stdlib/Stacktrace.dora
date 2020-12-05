@@ -10,7 +10,7 @@
     }
 
     if self.backtrace.isNone() {
-      let elements = Array::empty[StacktraceElement]();
+      let elements = Array[StacktraceElement]::empty();
       self.elements = Option[Array[StacktraceElement]]::Some(elements);
       return elements;
     }
@@ -18,7 +18,7 @@
     let backtraceLength = self.backtrace.unwrap().size();
     var i = 0L;
     let len = backtraceLength / 2L;
-    let elements = Array::ofSizeUnsafe[StacktraceElement](len);
+    let elements = Array[StacktraceElement]::ofSizeUnsafe(len);
 
     while i < len {
       elements.set(i, self.getStacktraceElement(i));

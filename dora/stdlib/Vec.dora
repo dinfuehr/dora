@@ -25,8 +25,8 @@
       return;
     }
 
-    let newarray = Array::ofSizeUnsafe[T](newcap);
-    Array::copy[T](self.array, 0L, newarray, 0L, self.len);
+    let newarray = Array[T]::ofSizeUnsafe(newcap);
+    Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
     self.array = newarray;
   }
 
@@ -40,8 +40,8 @@
         newcap = newcap * 2L;
       }
 
-      let newarray = Array::ofSizeUnsafe[T](newcap);
-      Array::copy[T](self.array, 0L, newarray, 0L, self.len);
+      let newarray = Array[T]::ofSizeUnsafe(newcap);
+      Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
       self.array = newarray;
     }
 
@@ -50,8 +50,8 @@
   }
 
   fun toArray(): Array[T] {
-    let newarray = Array::ofSizeUnsafe[T](self.len);
-    Array::copy[T](self.array, 0L, newarray, 0L, self.len);
+    let newarray = Array[T]::ofSizeUnsafe(self.len);
+    Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
     newarray
   }
 
@@ -74,10 +74,10 @@
   fun trimToLen() {
     if self.len != self.capacity() {
       if self.len == 0L {
-        self.array = Array::empty[T]();
+        self.array = Array[T]::empty();
       } else {
-        let newarray = Array::ofSizeUnsafe[T](self.len);
-        Array::copy[T](self.array, 0L, newarray, 0L, self.len);
+        let newarray = Array[T]::ofSizeUnsafe(self.len);
+        Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
         self.array = newarray;
       }
     }
@@ -130,7 +130,7 @@
 
   fun clear() {
     self.len = 0L;
-    self.array = Array::empty[T]();
+    self.array = Array[T]::empty();
   }
 
   fun makeIterator(): VecIter[T] {

@@ -2,6 +2,6 @@
 //= stderr "array index out of bounds\n1: main(): 6\n"
 
 fun main() {
-  let array = Array::empty[Int32]();
+  let array = Array[Int32]::empty();
   array(-1L);
 }

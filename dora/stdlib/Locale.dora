@@ -1,10 +1,8 @@
-module Locale {
-  fun de(): Locale = Locale("de");
-  fun en(): Locale = Locale("en");
-  fun fr(): Locale = Locale("fr");
+@pub class Locale(let value: String) {
+  @static fun de(): Locale = Locale("de");
+  @static fun en(): Locale = Locale("en");
+  @static fun fr(): Locale = Locale("fr");
 }
-
-@pub class Locale(let value: String) {}
 
 impl Equals for Locale {
   fun equals(rhs: Locale): Bool = self.value == rhs.value;

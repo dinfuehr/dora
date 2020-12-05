@@ -1,6 +1,6 @@
 fun main() {
-    let x = Array::ofSizeUnsafe[()](7L);
+    let x = Array[()]::ofSizeUnsafe(7L);
     assert(x.size() == 7L);
-    let y = Array::empty[()]();
+    let y = Array[()]::empty();
     assert(y.size() == 0L);
 }

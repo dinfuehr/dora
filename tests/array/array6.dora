@@ -1,5 +1,5 @@
 fun main() {
-  let array = Array::fill[Int32](5L, 1);
+  let array = Array[Int32]::fill(5L, 1);
   array(0L) = 2;
   assert(array(0L) == 2);
   assert(array(1L) == 1);

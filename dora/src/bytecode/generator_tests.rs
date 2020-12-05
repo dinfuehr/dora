@@ -2726,7 +2726,7 @@ fn gen_position_new_object() {
 #[test]
 fn gen_new_array() {
     gen_fct(
-        "fun f(): Array[Int32] { return Array::ofSizeUnsafe[Int32](1L); }",
+        "fun f(): Array[Int32] { return Array[Int32]::ofSizeUnsafe(1L); }",
         |vm, code, _fct| {
             let cls_id = vm.cls_by_name("Array");
             let expected = vec![
@@ -2773,7 +2773,7 @@ fn gen_new_array() {
 
 #[test]
 fn gen_position_new_array() {
-    let result = position("fun f(): Array[Int32] { return Array::ofSizeUnsafe[Int32](1L); }");
+    let result = position("fun f(): Array[Int32] { return Array[Int32]::ofSizeUnsafe(1L); }");
     let expected = vec![(3, p(1, 58))];
     assert_eq!(expected, result);
 }

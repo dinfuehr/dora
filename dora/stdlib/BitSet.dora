@@ -1,10 +1,10 @@
 @pub class BitSet(capacity: Int64) {
-    var data: Array[Int32] = Array::empty[Int32]();
+    var data: Array[Int32] = Array[Int32]::empty();
     var capacity: Int64 = 0L;
 
     if capacity > 0L {
         let entries = (capacity + 31L) / 32L;
-        self.data = Array::zero[Int32](entries);
+        self.data = Array[Int32]::zero(entries);
         self.capacity = capacity;
     }
 

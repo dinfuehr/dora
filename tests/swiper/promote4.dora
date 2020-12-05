@@ -2,7 +2,7 @@
 
 fun main() {
   let default = Foo(42);
-  var x = Array::fill[Foo](128L, default);
+  var x = Array[Foo]::fill(128L, default);
   std::forceMinorCollect();
   x(0L) = Foo(1);
   x(127L) = Foo(2);

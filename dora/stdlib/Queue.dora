@@ -1,17 +1,17 @@
 @pub class Queue[T] {
-  var elements: Array[T] = Array::ofSizeUnsafe[T](4L);
+  var elements: Array[T] = Array[T]::ofSizeUnsafe(4L);
   var front: Int64 = 0L;
   var count: Int64 = 0L;
 
   @pub fun enqueue(value: T) {
     if self.count == self.elements.size() {
       // copy into larger array
-      let newelements = Array::ofSizeUnsafe[T](self.elements.size() * 2L);
+      let newelements = Array[T]::ofSizeUnsafe(self.elements.size() * 2L);
       let len = self.elements.size() - self.front;
-      Array::copy[T](self.elements, self.front, newelements, 0L, len);
+      Array[T]::copy(self.elements, self.front, newelements, 0L, len);
 
       if len < self.count {
-        Array::copy[T](self.elements, 0L, newelements, len, self.count - len);
+        Array[T]::copy(self.elements, 0L, newelements, len, self.count - len);
       }
 
       self.front = 0L;

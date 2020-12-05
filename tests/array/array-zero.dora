@@ -1,29 +1,29 @@
 fun main() {
-    let array = Array::zero[Bool](10L);
+    let array = Array[Bool]::zero(10L);
     assert(array(0L) == false);
     assert(array(9L) == false);
 
-    let array = Array::zero[UInt8](10L);
+    let array = Array[UInt8]::zero(10L);
     assert(array(0L) == 0Y);
     assert(array(9L) == 0Y);
 
-    let array = Array::zero[Char](10L);
+    let array = Array[Char]::zero(10L);
     assert(array(0L) == '\0');
     assert(array(9L) == '\0');
 
-    let array = Array::zero[Int32](10L);
+    let array = Array[Int32]::zero(10L);
     assert(array(0L) == 0);
     assert(array(9L) == 0);
 
-    let array = Array::zero[Int64](10L);
+    let array = Array[Int64]::zero(10L);
     assert(array(0L) == 0L);
     assert(array(9L) == 0L);
 
-    let array = Array::zero[Float32](10L);
+    let array = Array[Float32]::zero(10L);
     assert(array(0L) == 0.0F);
     assert(array(9L) == 0.0F);
 
-    let array = Array::zero[Float64](10L);
+    let array = Array[Float64]::zero(10L);
     assert(array(0L) == 0.0);
     assert(array(9L) == 0.0);
 }

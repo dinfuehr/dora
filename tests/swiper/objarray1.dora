@@ -3,7 +3,7 @@
 fun main() {
   let x = Foo(100);
   let y = Foo(101);
-  let z = Array::ofSizeUnsafe[Foo](512L);
+  let z = Array[Foo]::ofSizeUnsafe(512L);
   std::forceMinorCollect();
   std::forceMinorCollect();
   // write into old object x reference to young object
