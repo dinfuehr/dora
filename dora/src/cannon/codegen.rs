@@ -3574,35 +3574,42 @@ impl<'a> CannonCodeGen<'a> {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
         let reg = REG_RESULT;
-        self.emit_load_register(arguments[0], reg.into());
 
         match intrinsic {
             Intrinsic::Int32CountZeroBits => {
                 if has_popcnt() {
+                    self.emit_load_register(arguments[0], reg.into());
                     self.asm.count_bits(MachineMode::Int32, reg, reg, false);
+                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
             Intrinsic::Int32CountOneBits => {
                 if has_popcnt() {
+                    self.emit_load_register(arguments[0], reg.into());
                     self.asm.count_bits(MachineMode::Int32, reg, reg, true);
+                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
             Intrinsic::Int32CountZeroBitsLeading => {
                 if has_lzcnt() {
+                    self.emit_load_register(arguments[0], reg.into());
                     self.asm
                         .count_bits_leading(MachineMode::Int32, reg, reg, false);
+                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
             Intrinsic::Int32CountOneBitsLeading => {
                 if has_lzcnt() {
+                    self.emit_load_register(arguments[0], reg.into());
                     self.asm
                         .count_bits_leading(MachineMode::Int32, reg, reg, true);
+                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
@@ -3610,24 +3617,26 @@ impl<'a> CannonCodeGen<'a> {
 
             Intrinsic::Int32CountZeroBitsTrailing => {
                 if has_tzcnt() {
+                    self.emit_load_register(arguments[0], reg.into());
                     self.asm
-                        .count_bits_trailing(MachineMode::Int32, reg, reg, false)
+                        .count_bits_trailing(MachineMode::Int32, reg, reg, false);
+                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
             Intrinsic::Int32CountOneBitsTrailing => {
                 if has_tzcnt() {
+                    self.emit_load_register(arguments[0], reg.into());
                     self.asm
                         .count_bits_trailing(MachineMode::Int32, reg, reg, true);
+                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
             _ => unreachable!(),
         }
-
-        self.emit_store_register(reg.into(), dest.expect("dest missing"));
     }
 
     fn emit_intrinsic_float_sqrt(
