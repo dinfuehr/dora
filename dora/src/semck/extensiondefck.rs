@@ -74,7 +74,10 @@ impl<'x> ExtensionCheck<'x> {
                     xenum.extensions.push(self.extension_id);
                 }
 
-                SourceType::Int32
+                SourceType::Bool
+                | SourceType::UInt8
+                | SourceType::Char
+                | SourceType::Int32
                 | SourceType::Int64
                 | SourceType::Float32
                 | SourceType::Float64 => {
@@ -145,7 +148,13 @@ impl<'x> ExtensionCheck<'x> {
 
         let success = match self.extension_ty {
             SourceType::Enum(enum_id, _) => self.check_in_enum(&f, enum_id),
-            SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
+            SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64 => {
                 let struct_id = self
                     .extension_ty
                     .primitive_struct_id(self.vm)

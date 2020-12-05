@@ -1,4 +1,6 @@
-@pub @internal class UInt8 {
+@pub @internal struct UInt8
+
+impl UInt8 {
   @internal fun toChar(): Char;
   @internal fun toInt32(): Int32;
   @internal fun toInt64(): Int64;
@@ -11,12 +13,10 @@
   @internal fun compareTo(rhs: UInt8): Int32;
 
   fun hash(): Int32 = self.toInt32();
-}
 
-module UInt8 {
-  fun bits(): Int32 = 8;
-  fun bytes(): Int32 = 1;
+  @static fun bits(): Int32 = 8;
+  @static fun bytes(): Int32 = 1;
 
-  fun maxValue(): UInt8 = 255Y;
-  fun minValue(): UInt8 = 0Y;
+  @static fun maxValue(): UInt8 = 255Y;
+  @static fun minValue(): UInt8 = 0Y;
 }

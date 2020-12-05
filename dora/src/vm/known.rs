@@ -32,9 +32,6 @@ pub struct KnownEnums {
 #[derive(Debug)]
 pub struct KnownClasses {
     pub unit: ClassId,
-    pub bool: ClassId,
-    pub uint8: ClassId,
-    pub char: ClassId,
     pub object: ClassId,
     pub array: ClassId,
     pub string: ClassId,
@@ -46,6 +43,9 @@ pub struct KnownClasses {
 
 #[derive(Debug)]
 pub struct KnownStructs {
+    pub bool: StructId,
+    pub uint8: StructId,
+    pub char: StructId,
     pub int32: StructId,
     pub int64: StructId,
     pub float32: StructId,

@@ -380,7 +380,6 @@ pub enum Intrinsic {
 
     ByteEq,
     ByteCmp,
-    ByteNot,
     ByteToChar,
     ByteToInt32,
     ByteToInt64,

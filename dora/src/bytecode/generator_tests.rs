@@ -3100,7 +3100,7 @@ fn gen_position_new_object_with_multiple_args() {
 
 #[test]
 fn gen_self_for_bool() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(): Self; }
             impl MyId for Bool { fun f(): Bool { return self; } }
             ",
@@ -3112,7 +3112,7 @@ fn gen_self_for_bool() {
 
 #[test]
 fn gen_self_for_uint8() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(): Self; }
             impl MyId for UInt8 { fun f(): UInt8 { return self; } }
             ",
@@ -3184,7 +3184,7 @@ fn gen_self_for_string() {
 
 #[test]
 fn gen_self_assign_for_bool() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(); }
             impl MyId for Bool { fun f() { let x = self; } }
             ",
@@ -3196,7 +3196,7 @@ fn gen_self_assign_for_bool() {
 
 #[test]
 fn gen_self_assign_for_uint8() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(); }
             impl MyId for UInt8 { fun f() { let x = self; } }
             ",
@@ -3809,7 +3809,7 @@ fn gen_bool_to_string() {
         "fun f(a: Bool): String { a.toString() }",
         |vm, code, fct| {
             let fct_id = vm
-                .cls_method_by_name("Bool", "toString", false)
+                .struct_method_by_name("Bool", "toString", false)
                 .expect("Bool::toString not found");
             let expected = vec![
                 PushRegister(r(0)),

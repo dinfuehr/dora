@@ -2694,7 +2694,7 @@ fn shadow_type_with_param() {
     err(
         "fun test(Bool: String) {}",
         pos(1, 10),
-        SemError::ShadowClassConstructor("Bool".into()),
+        SemError::ShadowStructConstructor("Bool".into()),
     );
 }
 

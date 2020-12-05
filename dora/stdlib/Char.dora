@@ -1,4 +1,6 @@
-@pub @internal class Char {
+@pub @internal struct Char
+
+impl Char {
   @internal fun toInt32(): Int32;
   @internal fun toInt64(): Int64;
   @internal fun toString(): String;

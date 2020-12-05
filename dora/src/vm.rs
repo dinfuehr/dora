@@ -198,9 +198,6 @@ impl VM {
             known: KnownElements {
                 classes: KnownClasses {
                     unit: empty_class_id,
-                    bool: empty_class_id,
-                    uint8: empty_class_id,
-                    char: empty_class_id,
                     object: empty_class_id,
                     array: empty_class_id,
                     string: empty_class_id,
@@ -235,6 +232,9 @@ impl VM {
                 },
 
                 structs: KnownStructs {
+                    bool: empty_struct_id,
+                    uint8: empty_struct_id,
+                    char: empty_struct_id,
                     int32: empty_struct_id,
                     int64: empty_struct_id,
                     float32: empty_struct_id,

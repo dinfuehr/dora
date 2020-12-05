@@ -18,10 +18,10 @@ use crate::vtable::VTableBox;
 
 pub fn resolve_internal_classes(vm: &mut VM) {
     vm.known.classes.unit = internal_class(vm, "Unit", Some(SourceType::Unit));
-    vm.known.classes.bool = internal_class(vm, "Bool", Some(SourceType::Bool));
+    vm.known.structs.bool = internal_struct(vm, "Bool", Some(SourceType::Bool));
 
-    vm.known.classes.uint8 = internal_class(vm, "UInt8", Some(SourceType::UInt8));
-    vm.known.classes.char = internal_class(vm, "Char", Some(SourceType::Char));
+    vm.known.structs.uint8 = internal_struct(vm, "UInt8", Some(SourceType::UInt8));
+    vm.known.structs.char = internal_struct(vm, "Char", Some(SourceType::Char));
     vm.known.structs.int32 = internal_struct(vm, "Int32", Some(SourceType::Int32));
     vm.known.structs.int64 = internal_struct(vm, "Int64", Some(SourceType::Int64));
 
@@ -329,25 +329,34 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib,
     );
 
-    let cls_id = vm.known.classes.uint8;
-    native_class_method(vm, cls_id, "toString", stdlib::uint8_to_string as *const u8);
+    let struct_id = vm.known.structs.uint8;
+    native_struct_method(
+        vm,
+        struct_id,
+        "toString",
+        stdlib::uint8_to_string as *const u8,
+    );
 
-    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::ByteToInt64);
-    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::ByteToInt32);
-    intrinsic_class_method(vm, cls_id, "toChar", Intrinsic::ByteToChar);
+    intrinsic_struct_method(vm, struct_id, "toInt64", Intrinsic::ByteToInt64);
+    intrinsic_struct_method(vm, struct_id, "toInt32", Intrinsic::ByteToInt32);
+    intrinsic_struct_method(vm, struct_id, "toChar", Intrinsic::ByteToChar);
 
-    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::ByteEq);
-    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::ByteCmp);
-    intrinsic_class_method(vm, cls_id, "not", Intrinsic::ByteNot);
+    intrinsic_struct_method(vm, struct_id, "equals", Intrinsic::ByteEq);
+    intrinsic_struct_method(vm, struct_id, "compareTo", Intrinsic::ByteCmp);
 
-    let cls_id = vm.known.classes.char;
-    native_class_method(vm, cls_id, "toString", stdlib::char_to_string as *const u8);
+    let struct_id = vm.known.structs.char;
+    native_struct_method(
+        vm,
+        struct_id,
+        "toString",
+        stdlib::char_to_string as *const u8,
+    );
 
-    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::CharToInt64);
-    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::CharToInt32);
+    intrinsic_struct_method(vm, struct_id, "toInt64", Intrinsic::CharToInt64);
+    intrinsic_struct_method(vm, struct_id, "toInt32", Intrinsic::CharToInt32);
 
-    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::CharEq);
-    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::CharCmp);
+    intrinsic_struct_method(vm, struct_id, "equals", Intrinsic::CharEq);
+    intrinsic_struct_method(vm, struct_id, "compareTo", Intrinsic::CharCmp);
 
     let struct_id = vm.known.structs.int32;
     native_struct_method(
@@ -441,11 +450,11 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_struct_method(vm, struct_id, "unaryMinus", Intrinsic::Int64Neg);
     intrinsic_struct_method(vm, struct_id, "not", Intrinsic::Int64Not);
 
-    let cls_id = vm.known.classes.bool;
-    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::BoolToInt32);
-    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::BoolToInt64);
-    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::BoolEq);
-    intrinsic_class_method(vm, cls_id, "not", Intrinsic::BoolNot);
+    let struct_id = vm.known.structs.bool;
+    intrinsic_struct_method(vm, struct_id, "toInt32", Intrinsic::BoolToInt32);
+    intrinsic_struct_method(vm, struct_id, "toInt64", Intrinsic::BoolToInt64);
+    intrinsic_struct_method(vm, struct_id, "equals", Intrinsic::BoolEq);
+    intrinsic_struct_method(vm, struct_id, "not", Intrinsic::BoolNot);
 
     let cls_id = vm.known.classes.string;
     native_class_method(vm, cls_id, "compareTo", stdlib::strcmp as *const u8);

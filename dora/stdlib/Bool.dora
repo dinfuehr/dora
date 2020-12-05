@@ -1,5 +1,8 @@
-@pub @internal class Bool {
+@pub @internal struct Bool
+
+impl Bool {
   @internal fun toInt32(): Int32;
+  @internal fun toInt64(): Int64;
 
   fun hash(): Int32 = self.toInt32();
 

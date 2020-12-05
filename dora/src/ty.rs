@@ -150,10 +150,13 @@ impl SourceType {
 
     pub fn is_primitive(&self) -> bool {
         match self {
-            &SourceType::Int32 => true,
-            &SourceType::Int64 => true,
-            &SourceType::Float32 => true,
-            &SourceType::Float64 => true,
+            &SourceType::Bool
+            | &SourceType::UInt8
+            | &SourceType::Char
+            | &SourceType::Int32
+            | &SourceType::Int64
+            | &SourceType::Float32
+            | &SourceType::Float64 => true,
             _ => false,
         }
     }
@@ -170,15 +173,15 @@ impl SourceType {
         match *self {
             SourceType::Class(cls_id, _) => Some(cls_id),
             SourceType::Unit => Some(vm.known.classes.unit),
-            SourceType::Bool => Some(vm.known.classes.bool),
-            SourceType::UInt8 => Some(vm.known.classes.uint8),
-            SourceType::Char => Some(vm.known.classes.char),
             _ => None,
         }
     }
 
     pub fn primitive_struct_id(&self, vm: &VM) -> Option<StructId> {
         match *self {
+            SourceType::Bool => Some(vm.known.structs.bool),
+            SourceType::UInt8 => Some(vm.known.structs.uint8),
+            SourceType::Char => Some(vm.known.structs.char),
             SourceType::Int32 => Some(vm.known.structs.int32),
             SourceType::Int64 => Some(vm.known.structs.int64),
             SourceType::Float32 => Some(vm.known.structs.float32),
@@ -619,7 +622,13 @@ pub fn implements_trait(
             check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls).is_some()
         }
 
-        SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
+        SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64 => {
             if vm.known.traits.zero == trait_id {
                 return true;
             }
@@ -654,7 +663,7 @@ pub fn implements_trait(
             .is_some()
         }
 
-        SourceType::Bool | SourceType::Char | SourceType::UInt8 | SourceType::Class(_, _) => {
+        SourceType::Class(_, _) => {
             if vm.known.traits.zero == trait_id && !check_ty.is_cls() {
                 return true;
             }
@@ -700,7 +709,13 @@ pub fn find_impl(
             check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls)
         }
 
-        SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
+        SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64 => {
             let struct_id = check_ty
                 .primitive_struct_id(vm)
                 .expect("primitive expected");
@@ -729,7 +744,7 @@ pub fn find_impl(
             )
         }
 
-        SourceType::Bool | SourceType::Char | SourceType::UInt8 | SourceType::Class(_, _) => {
+        SourceType::Class(_, _) => {
             let cls_id = check_ty.cls_id(vm).expect("class expected");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
