@@ -3309,8 +3309,14 @@ impl<'a> CannonCodeGen<'a> {
             | Intrinsic::Int32CountZeroBitsTrailing
             | Intrinsic::Int32CountOneBits
             | Intrinsic::Int32CountOneBitsLeading
-            | Intrinsic::Int32CountOneBitsTrailing => {
-                self.emit_intrinsic_int32_count_bits(
+            | Intrinsic::Int32CountOneBitsTrailing
+            | Intrinsic::Int64CountZeroBits
+            | Intrinsic::Int64CountZeroBitsLeading
+            | Intrinsic::Int64CountZeroBitsTrailing
+            | Intrinsic::Int64CountOneBits
+            | Intrinsic::Int64CountOneBitsLeading
+            | Intrinsic::Int64CountOneBitsTrailing => {
+                self.emit_intrinsic_count_bits(
                     dest,
                     fct_id,
                     intrinsic,
@@ -3329,22 +3335,6 @@ impl<'a> CannonCodeGen<'a> {
                 let src_reg = arguments[0];
 
                 self.emit_reinterpret(dest_reg, src_reg);
-            }
-
-            Intrinsic::Int64CountZeroBits
-            | Intrinsic::Int64CountZeroBitsLeading
-            | Intrinsic::Int64CountZeroBitsTrailing
-            | Intrinsic::Int64CountOneBits
-            | Intrinsic::Int64CountOneBitsLeading
-            | Intrinsic::Int64CountOneBitsTrailing => {
-                self.emit_intrinsic_int64_count_bits(
-                    dest,
-                    fct_id,
-                    intrinsic,
-                    arguments,
-                    type_params,
-                    pos,
-                );
             }
 
             Intrinsic::Unreachable => {
@@ -3521,48 +3511,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_intrinsic_int64_count_bits(
-        &mut self,
-        dest: Option<Register>,
-        _fct_id: FctId,
-        intrinsic: Intrinsic,
-        arguments: Vec<Register>,
-        type_params: SourceTypeArray,
-        _pos: Position,
-    ) {
-        debug_assert_eq!(arguments.len(), 1);
-        debug_assert!(type_params.is_empty());
-        let reg = REG_RESULT;
-        self.emit_load_register(arguments[0], reg.into());
-
-        match intrinsic {
-            Intrinsic::Int64CountZeroBits => {
-                self.asm.count_bits(MachineMode::Int64, reg, reg, false)
-            }
-            Intrinsic::Int64CountOneBits => self.asm.count_bits(MachineMode::Int64, reg, reg, true),
-            Intrinsic::Int64CountZeroBitsLeading => {
-                self.asm
-                    .count_bits_leading(MachineMode::Int64, reg, reg, false)
-            }
-            Intrinsic::Int64CountOneBitsLeading => {
-                self.asm
-                    .count_bits_leading(MachineMode::Int64, reg, reg, true)
-            }
-            Intrinsic::Int64CountZeroBitsTrailing => {
-                self.asm
-                    .count_bits_trailing(MachineMode::Int64, reg, reg, false)
-            }
-            Intrinsic::Int64CountOneBitsTrailing => {
-                self.asm
-                    .count_bits_trailing(MachineMode::Int64, reg, reg, true)
-            }
-            _ => unreachable!(),
-        }
-
-        self.emit_store_register(reg.into(), dest.expect("dest missing"));
-    }
-
-    fn emit_intrinsic_int32_count_bits(
+    fn emit_intrinsic_count_bits(
         &mut self,
         dest: Option<Register>,
         fct_id: FctId,
@@ -3575,61 +3524,73 @@ impl<'a> CannonCodeGen<'a> {
         debug_assert!(type_params.is_empty());
         let reg = REG_RESULT;
 
+        let mode = match intrinsic {
+            Intrinsic::Int64CountZeroBits
+            | Intrinsic::Int64CountOneBits
+            | Intrinsic::Int64CountZeroBitsLeading
+            | Intrinsic::Int64CountOneBitsLeading
+            | Intrinsic::Int64CountZeroBitsTrailing
+            | Intrinsic::Int64CountOneBitsTrailing => MachineMode::Int64,
+            Intrinsic::Int32CountZeroBits
+            | Intrinsic::Int32CountOneBits
+            | Intrinsic::Int32CountZeroBitsLeading
+            | Intrinsic::Int32CountOneBitsLeading
+            | Intrinsic::Int32CountZeroBitsTrailing
+            | Intrinsic::Int32CountOneBitsTrailing => MachineMode::Int32,
+            _ => unreachable!(),
+        };
+
         match intrinsic {
-            Intrinsic::Int32CountZeroBits => {
+            Intrinsic::Int32CountZeroBits | Intrinsic::Int64CountZeroBits => {
                 if has_popcnt() {
                     self.emit_load_register(arguments[0], reg.into());
-                    self.asm.count_bits(MachineMode::Int32, reg, reg, false);
+                    self.asm.count_bits(mode, reg, reg, false);
                     self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
-            Intrinsic::Int32CountOneBits => {
+            Intrinsic::Int32CountOneBits | Intrinsic::Int64CountOneBits => {
                 if has_popcnt() {
                     self.emit_load_register(arguments[0], reg.into());
-                    self.asm.count_bits(MachineMode::Int32, reg, reg, true);
+                    self.asm.count_bits(mode, reg, reg, true);
                     self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
-            Intrinsic::Int32CountZeroBitsLeading => {
+            Intrinsic::Int32CountZeroBitsLeading | Intrinsic::Int64CountZeroBitsLeading => {
                 if has_lzcnt() {
                     self.emit_load_register(arguments[0], reg.into());
-                    self.asm
-                        .count_bits_leading(MachineMode::Int32, reg, reg, false);
+                    self.asm.count_bits_leading(mode, reg, reg, false);
                     self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
-            Intrinsic::Int32CountOneBitsLeading => {
+            Intrinsic::Int32CountOneBitsLeading | Intrinsic::Int64CountOneBitsLeading => {
                 if has_lzcnt() {
                     self.emit_load_register(arguments[0], reg.into());
-                    self.asm
-                        .count_bits_leading(MachineMode::Int32, reg, reg, true);
+                    self.asm.count_bits_leading(mode, reg, reg, true);
                     self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
 
-            Intrinsic::Int32CountZeroBitsTrailing => {
+            Intrinsic::Int32CountZeroBitsTrailing | Intrinsic::Int64CountZeroBitsTrailing => {
                 if has_tzcnt() {
                     self.emit_load_register(arguments[0], reg.into());
-                    self.asm
-                        .count_bits_trailing(MachineMode::Int32, reg, reg, false);
+                    self.asm.count_bits_trailing(mode, reg, reg, false);
                     self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
             }
-            Intrinsic::Int32CountOneBitsTrailing => {
+            Intrinsic::Int32CountOneBitsTrailing | Intrinsic::Int64CountOneBitsTrailing => {
                 if has_tzcnt() {
                     self.emit_load_register(arguments[0], reg.into());
-                    self.asm
-                        .count_bits_trailing(MachineMode::Int32, reg, reg, true);
+                    self.asm.count_bits_trailing(mode, reg, reg, true);
                     self.emit_store_register(reg.into(), dest.expect("dest missing"));
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
