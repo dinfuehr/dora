@@ -230,46 +230,6 @@ mod tests {
     }
 
     #[test]
-    fn test_intrinsic_class_size() {
-        ok_with_test("", |vm| {
-            assert_eq!(InstanceSize::Str, class_size_name(vm, "String"));
-            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Bool"));
-            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int32"));
-            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "UInt8"));
-            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int64"));
-        });
-    }
-
-    fn class_size_name(vm: &VM, name: &'static str) -> InstanceSize {
-        let id = vm.cls_def_by_name(vm.global_namespace_id, name);
-        let cls = vm.class_defs.idx(id);
-        cls.size.clone()
-    }
-
-    // #[test]
-    // fn test_super_size() {
-    //     ok_with_test("@open class A { var a: int; }
-    //         open class B extends A { var b1: int; var b2: int; }
-    //         class C extends B { var c: String; }",
-    //                  |vm| {
-    //         check_class(vm, "A", mem::ptr_width(), Some("Object"));
-    //         check_field(vm, "A", "a", Header::size());
-    //         check_class(vm, "B", 2 * mem::ptr_width(), Some("A"));
-    //         check_field(vm, "B", "b1", Header::size() + 4);
-    //         check_field(vm, "B", "b2", Header::size() + 2 * 4);
-
-    //         // if pointer size is 32-bit, we need 4 words, on
-    //         // 64-bit systems we need 3 words
-    //         let words = if mem::ptr_width() == 4 { 4 } else { 3 };
-    //         check_class(vm, "C", words * mem::ptr_width(), Some("B"));
-
-    //         // if pointer size is 32-bit, we do not need padding
-    //         let offset = if mem::ptr_width() == 4 { 3 * 4 } else { 4 * 4 };
-    //         check_field(vm, "C", "c", Header::size() + offset);
-    //     });
-    // }
-
-    #[test]
     fn test_cycle() {
         errors(
             "@open class A extends B @open class B extends A",

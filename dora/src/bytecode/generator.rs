@@ -8,7 +8,7 @@ use crate::bytecode::{
 };
 use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
     AnalysisData, CallType, ConstId, EnumId, Fct, FctId, GlobalId, IdentType, Intrinsic, StructId,
     TraitId, TupleId, VarId, VM,
@@ -616,13 +616,20 @@ impl<'a> AstBytecodeGen<'a> {
                     self.gen.emit_push_register(expr_register);
 
                     // build toString() call
-                    let cls_id = ty.cls_id(self.vm).expect("no cls_id found for type");
-                    let cls = self.vm.classes.idx(cls_id);
-                    let cls = cls.read();
                     let name = self.vm.interner.intern("toString");
-                    let to_string_id = cls
-                        .find_trait_method(self.vm, self.vm.known.traits.stringable, name, false)
-                        .expect("toString() method not found");
+                    let stringable_impl_id = find_impl(
+                        self.vm,
+                        ty,
+                        &self.fct.type_params,
+                        self.vm.known.traits.stringable,
+                    )
+                    .expect("impl of Stringable not found");
+                    let ximpl = self.vm.impls[stringable_impl_id].read();
+                    let to_string_id = ximpl
+                        .instance_names
+                        .get(&name)
+                        .cloned()
+                        .expect("method toString() not found");
 
                     let fct_idx = self.gen.add_const_fct(to_string_id);
                     self.gen

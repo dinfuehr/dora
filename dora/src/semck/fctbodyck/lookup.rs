@@ -88,7 +88,7 @@ impl<'a> MethodLookup<'a> {
             Some(LookupKind::Trait(trait_id))
         } else if obj.is_enum() {
             Some(LookupKind::Method(obj))
-        } else if obj.is_struct() {
+        } else if obj.is_struct() || obj.is_struct_primitive() {
             Some(LookupKind::Method(obj))
         } else {
             panic!("neither object nor trait object: {:?}", obj);
@@ -346,7 +346,7 @@ impl<'a> MethodLookup<'a> {
                 name,
                 is_static,
             )
-        } else if object_type.is_struct() {
+        } else if object_type.is_struct() || object_type.is_struct_primitive() {
             find_methods_in_struct(
                 self.vm,
                 object_type,

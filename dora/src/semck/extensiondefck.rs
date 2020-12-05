@@ -74,6 +74,14 @@ impl<'x> ExtensionCheck<'x> {
                     xenum.extensions.push(self.extension_id);
                 }
 
+                SourceType::Int64 => {
+                    let struct_id = self.vm.known.structs.int64;
+                    let xstruct = self.vm.structs.idx(struct_id);
+                    let mut xstruct = xstruct.write();
+
+                    xstruct.extensions.push(self.extension_id);
+                }
+
                 SourceType::Struct(struct_id, _) => {
                     let xstruct = self.vm.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
@@ -132,6 +140,7 @@ impl<'x> ExtensionCheck<'x> {
 
         let success = match self.extension_ty {
             SourceType::Enum(enum_id, _) => self.check_in_enum(&f, enum_id),
+            SourceType::Int64 => self.check_in_struct(&f, self.vm.known.structs.int64),
             SourceType::Struct(struct_id, _) => self.check_in_struct(&f, struct_id),
             _ => self.check_in_class(&f),
         };

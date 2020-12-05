@@ -148,6 +148,13 @@ impl SourceType {
         }
     }
 
+    pub fn is_struct_primitive(&self) -> bool {
+        match self {
+            &SourceType::Int64 => true,
+            _ => false,
+        }
+    }
+
     pub fn is_tuple_or_unit(&self) -> bool {
         match self {
             &SourceType::Tuple(_) => true,
@@ -164,7 +171,6 @@ impl SourceType {
             SourceType::UInt8 => Some(vm.known.classes.uint8),
             SourceType::Char => Some(vm.known.classes.char),
             SourceType::Int32 => Some(vm.known.classes.int32),
-            SourceType::Int64 => Some(vm.known.classes.int64),
             SourceType::Float32 => Some(vm.known.classes.float32),
             SourceType::Float64 => Some(vm.known.classes.float64),
             _ => None,
@@ -600,7 +606,106 @@ pub fn implements_trait(
 
         SourceType::Enum(enum_id, _) => {
             let xenum = vm.enums[enum_id].read();
+            check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls).is_some()
+        }
+
+        SourceType::Int64 => {
+            if vm.known.traits.zero == trait_id {
+                return true;
+            }
+
+            let struct_id = vm.known.structs.int64;
+            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                trait_id,
+                &xstruct.impls,
+            )
+            .is_some()
+        }
+
+        SourceType::Struct(struct_id, _) => {
+            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                trait_id,
+                &xstruct.impls,
+            )
+            .is_some()
+        }
+
+        SourceType::Bool
+        | SourceType::Char
+        | SourceType::UInt8
+        | SourceType::Int32
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Class(_, _) => {
+            if vm.known.traits.zero == trait_id && !check_ty.is_cls() {
+                return true;
+            }
+
+            let cls_id = check_ty.cls_id(vm).expect("class expected");
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            check_impls(
+                vm,
+                check_ty.clone(),
+                check_type_param_defs,
+                trait_id,
+                &cls.impls,
+            )
+            .is_some()
+        }
+
+        SourceType::TypeParam(tp_id) => {
+            let tp = &check_type_param_defs[tp_id.to_usize()];
+            tp.trait_bounds.contains(&trait_id)
+        }
+
+        SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
+    }
+}
+
+pub fn find_impl(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    trait_id: TraitId,
+) -> Option<ImplId> {
+    match check_ty {
+        SourceType::Tuple(_)
+        | SourceType::Unit
+        | SourceType::Module(_)
+        | SourceType::TraitObject(_)
+        | SourceType::Lambda(_) => None,
+
+        SourceType::Enum(enum_id, _) => {
+            let xenum = vm.enums[enum_id].read();
             check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls)
+        }
+
+        SourceType::Int64 => {
+            let struct_id = vm.known.structs.int64;
+            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                trait_id,
+                &xstruct.impls,
+            )
         }
 
         SourceType::Struct(struct_id, _) => {
@@ -620,14 +725,9 @@ pub fn implements_trait(
         | SourceType::Char
         | SourceType::UInt8
         | SourceType::Int32
-        | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Class(_, _) => {
-            if vm.known.traits.zero == trait_id && !check_ty.is_cls() {
-                return true;
-            }
-
             let cls_id = check_ty.cls_id(vm).expect("class expected");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
@@ -641,11 +741,7 @@ pub fn implements_trait(
             )
         }
 
-        SourceType::TypeParam(tp_id) => {
-            let tp = &check_type_param_defs[tp_id.to_usize()];
-            tp.trait_bounds.contains(&trait_id)
-        }
-
+        SourceType::TypeParam(_) => unreachable!(),
         SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
     }
 }
@@ -656,7 +752,7 @@ pub fn check_impls(
     check_type_param_defs: &[TypeParam],
     trait_id: TraitId,
     impls: &[ImplId],
-) -> bool {
+) -> Option<ImplId> {
     for &impl_id in impls {
         let ximpl = &vm.impls[impl_id];
         let ximpl = ximpl.read();
@@ -666,11 +762,11 @@ pub fn check_impls(
         }
 
         if impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
-            return true;
+            return Some(impl_id);
         }
     }
 
-    false
+    None
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

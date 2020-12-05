@@ -86,7 +86,11 @@ impl<'x> ImplCheck<'x> {
             &self.ast.class_type,
             TypeParamContext::Impl(&*ximpl),
         ) {
-            if class_ty.cls_id(self.vm).is_some() || class_ty.is_struct() || class_ty.is_enum() {
+            if class_ty.cls_id(self.vm).is_some()
+                || class_ty.is_struct()
+                || class_ty.is_enum()
+                || class_ty.is_struct_primitive()
+            {
                 ximpl.ty = class_ty.clone();
 
                 check_for_unconstrained_type_params(
@@ -111,6 +115,13 @@ impl<'x> ImplCheck<'x> {
                     let xenum = &self.vm.enums[enum_id];
                     let mut xenum = xenum.write();
                     xenum.impls.push(ximpl.id);
+                }
+
+                SourceType::Int64 => {
+                    let struct_id = self.vm.known.structs.int64;
+                    let xstruct = self.vm.structs.idx(struct_id);
+                    let mut xstruct = xstruct.write();
+                    xstruct.impls.push(ximpl.id);
                 }
 
                 SourceType::Struct(struct_id, _) => {

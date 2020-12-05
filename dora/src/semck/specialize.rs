@@ -71,15 +71,17 @@ pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: SourceTypeArr
 
 fn create_specialized_struct(
     vm: &VM,
-    struc: &StructData,
+    xstruct: &StructData,
     type_params: SourceTypeArray,
 ) -> StructDefId {
+    assert!(xstruct.primitive_ty.is_none());
+
     let mut size = 0;
     let mut align = 0;
-    let mut fields = Vec::with_capacity(struc.fields.len());
+    let mut fields = Vec::with_capacity(xstruct.fields.len());
     let mut ref_fields = Vec::new();
 
-    for f in &struc.fields {
+    for f in &xstruct.fields {
         let ty = specialize_type(vm, f.ty.clone(), &type_params);
         debug_assert!(!ty.contains_type_param(vm));
 
@@ -103,7 +105,7 @@ fn create_specialized_struct(
     let mut struct_defs = vm.struct_defs.lock();
     let id: StructDefId = struct_defs.len().into();
 
-    let mut specializations = struc.specializations.write();
+    let mut specializations = xstruct.specializations.write();
 
     if let Some(&id) = specializations.get(&type_params) {
         return id;

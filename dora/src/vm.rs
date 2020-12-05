@@ -202,7 +202,6 @@ impl VM {
                     uint8: empty_class_id,
                     char: empty_class_id,
                     int32: empty_class_id,
-                    int64: empty_class_id,
                     float32: empty_class_id,
                     float64: empty_class_id,
                     object: empty_class_id,
@@ -429,6 +428,37 @@ impl VM {
         }
     }
 
+    #[cfg(test)]
+    pub fn struct_method_by_name(
+        &self,
+        struct_name: &'static str,
+        function_name: &'static str,
+        is_static: bool,
+    ) -> Option<FctId> {
+        let struct_name = self.interner.intern(struct_name);
+        let function_name = self.interner.intern(function_name);
+
+        let struct_id = NestedSymTable::new(self, self.global_namespace_id)
+            .get_struct(struct_name)
+            .expect("struct not found");
+        let xstruct = self.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+
+        let candidates = find_methods_in_struct(
+            self,
+            xstruct.ty(self),
+            &xstruct.type_params,
+            function_name,
+            is_static,
+        );
+
+        if candidates.len() == 1 {
+            Some(candidates[0].fct_id)
+        } else {
+            None
+        }
+    }
+
     pub fn cls_def_by_name(&self, namespace_id: NamespaceId, name: &'static str) -> ClassDefId {
         use crate::semck::specialize::specialize_class_id;
 
@@ -438,6 +468,17 @@ impl VM {
             .expect("class not found");
 
         specialize_class_id(self, cls_id)
+    }
+
+    pub fn struct_def_by_name(&self, namespace_id: NamespaceId, name: &'static str) -> StructDefId {
+        use crate::semck::specialize::specialize_struct_id;
+
+        let name = self.interner.intern(name);
+        let struct_id = NestedSymTable::new(self, namespace_id)
+            .get_struct(name)
+            .expect("struct not found");
+
+        specialize_struct_id(self, struct_id)
     }
 
     pub fn cls_def_by_name_with_type_params(

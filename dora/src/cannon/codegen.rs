@@ -25,7 +25,7 @@ use crate::semck::specialize::{
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
-use crate::ty::{MachineMode, SourceType, SourceTypeArray};
+use crate::ty::{find_impl, MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
     AnalysisData, EnumId, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId, TraitId, Trap,
     TupleId, VM,
@@ -3265,28 +3265,22 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: SourceType) -> FctId {
-        let cls_id = object_type.cls_id(self.vm).unwrap();
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
+        let impl_id = find_impl(self.vm, object_type, &self.fct.type_params, trait_id)
+            .expect("no impl found for generic trait method call");
 
-        for &impl_id in &cls.impls {
-            let ximpl = self.vm.impls[impl_id].read();
+        let ximpl = self.vm.impls[impl_id].read();
+        assert_eq!(ximpl.trait_id(), trait_id);
 
-            if ximpl.trait_id() != trait_id {
-                continue;
-            }
+        for &mtd_id in &ximpl.methods {
+            let mtd = self.vm.fcts.idx(mtd_id);
+            let mtd = mtd.read();
 
-            for &mtd_id in &ximpl.methods {
-                let mtd = self.vm.fcts.idx(mtd_id);
-                let mtd = mtd.read();
-
-                if mtd.impl_for == Some(fct_id) {
-                    return mtd_id;
-                }
+            if mtd.impl_for == Some(fct_id) {
+                return mtd_id;
             }
         }
 
-        panic!("no impl found for generic trait call")
+        panic!("no impl method found for generic trait call")
     }
 
     fn emit_invoke_intrinsic(

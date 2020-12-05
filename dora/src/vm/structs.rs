@@ -74,6 +74,22 @@ impl StructData {
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
+
+    pub fn ty(&self, vm: &VM) -> SourceType {
+        if let Some(ref primitive_ty) = self.primitive_ty {
+            primitive_ty.clone()
+        } else {
+            let type_params = (0..self.type_params.len())
+                .into_iter()
+                .map(|id| SourceType::TypeParam(TypeParamId(id)))
+                .collect();
+            let list_id = vm
+                .source_type_arrays
+                .lock()
+                .insert(SourceTypeArray::with(type_params));
+            SourceType::Struct(self.id, list_id)
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -147,7 +163,11 @@ pub fn find_methods_in_struct(
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
-    let struct_id = object_type.struct_id().unwrap();
+    let struct_id = match object_type {
+        SourceType::Int64 => vm.known.structs.int64,
+        _ => object_type.struct_id().expect("struct expected"),
+    };
+
     let xstruct = vm.structs.idx(struct_id);
     let xstruct = xstruct.read();
 
