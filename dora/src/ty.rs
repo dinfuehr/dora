@@ -21,14 +21,12 @@ pub enum SourceType {
     // type with only one value: ()
     Unit,
 
-    // value types
+    // primitives
     Bool,
-
     Char,
     UInt8,
     Int32,
     Int64,
-
     Float32,
     Float64,
 

@@ -12,8 +12,8 @@ use crate::compiler::codegen::{
 use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
-    Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1,
-    REG_TMP2, STACK_FRAME_ALIGNMENT,
+    has_lzcnt, has_popcnt, has_tzcnt, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
+    REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
 use crate::masm::*;
@@ -3565,11 +3565,11 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_int32_count_bits(
         &mut self,
         dest: Option<Register>,
-        _fct_id: FctId,
+        fct_id: FctId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
-        _pos: Position,
+        pos: Position,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3578,24 +3578,51 @@ impl<'a> CannonCodeGen<'a> {
 
         match intrinsic {
             Intrinsic::Int32CountZeroBits => {
-                self.asm.count_bits(MachineMode::Int32, reg, reg, false)
+                if has_popcnt() {
+                    self.asm.count_bits(MachineMode::Int32, reg, reg, false);
+                } else {
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                }
             }
-            Intrinsic::Int32CountOneBits => self.asm.count_bits(MachineMode::Int32, reg, reg, true),
+            Intrinsic::Int32CountOneBits => {
+                if has_popcnt() {
+                    self.asm.count_bits(MachineMode::Int32, reg, reg, true);
+                } else {
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                }
+            }
             Intrinsic::Int32CountZeroBitsLeading => {
-                self.asm
-                    .count_bits_leading(MachineMode::Int32, reg, reg, false)
+                if has_lzcnt() {
+                    self.asm
+                        .count_bits_leading(MachineMode::Int32, reg, reg, false);
+                } else {
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                }
             }
             Intrinsic::Int32CountOneBitsLeading => {
-                self.asm
-                    .count_bits_leading(MachineMode::Int32, reg, reg, true)
+                if has_lzcnt() {
+                    self.asm
+                        .count_bits_leading(MachineMode::Int32, reg, reg, true);
+                } else {
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                }
             }
+
             Intrinsic::Int32CountZeroBitsTrailing => {
-                self.asm
-                    .count_bits_trailing(MachineMode::Int32, reg, reg, false)
+                if has_tzcnt() {
+                    self.asm
+                        .count_bits_trailing(MachineMode::Int32, reg, reg, false)
+                } else {
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                }
             }
             Intrinsic::Int32CountOneBitsTrailing => {
-                self.asm
-                    .count_bits_trailing(MachineMode::Int32, reg, reg, true)
+                if has_tzcnt() {
+                    self.asm
+                        .count_bits_trailing(MachineMode::Int32, reg, reg, true);
+                } else {
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                }
             }
             _ => unreachable!(),
         }

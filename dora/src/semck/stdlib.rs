@@ -1,7 +1,6 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::cpu::{has_lzcnt, has_popcnt, has_tzcnt};
 use crate::gc::Address;
 use crate::mem;
 use crate::object::Header;
@@ -402,6 +401,38 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_struct_method(vm, struct_id, "unaryMinus", Intrinsic::Int32Neg);
     intrinsic_struct_method(vm, struct_id, "not", Intrinsic::Int32Not);
 
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countZeroBits",
+        Intrinsic::Int32CountZeroBits,
+    );
+    intrinsic_struct_method(vm, struct_id, "countOneBits", Intrinsic::Int32CountOneBits);
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countZeroBitsLeading",
+        Intrinsic::Int32CountZeroBitsLeading,
+    );
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countOneBitsLeading",
+        Intrinsic::Int32CountOneBitsLeading,
+    );
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countZeroBitsTrailing",
+        Intrinsic::Int32CountZeroBitsTrailing,
+    );
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countOneBitsTrailing",
+        Intrinsic::Int32CountOneBitsTrailing,
+    );
+
     let struct_id = vm.known.structs.int64;
     native_struct_method(
         vm,
@@ -447,6 +478,38 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_struct_method(vm, struct_id, "unaryPlus", Intrinsic::Int64Plus);
     intrinsic_struct_method(vm, struct_id, "unaryMinus", Intrinsic::Int64Neg);
     intrinsic_struct_method(vm, struct_id, "not", Intrinsic::Int64Not);
+
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countZeroBits",
+        Intrinsic::Int64CountZeroBits,
+    );
+    intrinsic_struct_method(vm, struct_id, "countOneBits", Intrinsic::Int64CountOneBits);
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countZeroBitsLeading",
+        Intrinsic::Int64CountZeroBitsLeading,
+    );
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countOneBitsLeading",
+        Intrinsic::Int64CountOneBitsLeading,
+    );
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countZeroBitsTrailing",
+        Intrinsic::Int64CountZeroBitsTrailing,
+    );
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "countOneBitsTrailing",
+        Intrinsic::Int64CountOneBitsTrailing,
+    );
 
     let struct_id = vm.known.structs.bool;
     intrinsic_struct_method(vm, struct_id, "toInt32", Intrinsic::BoolToInt32);
@@ -603,8 +666,6 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     if let Some(clsid) = cls_id {
         native_class_method(vm, clsid, "start", stdlib::spawn_thread as *const u8);
     }
-
-    install_conditional_intrinsics(vm);
 
     intrinsic_impl_enum(vm, vm.known.enums.option, "isNone", Intrinsic::OptionIsNone);
 
@@ -900,86 +961,6 @@ fn internal_extension_method(
     }
 
     panic!("method not found!")
-}
-
-fn install_conditional_intrinsics(vm: &mut VM) {
-    let struct_id = vm.known.structs.int32;
-    if has_popcnt() {
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countZeroBits",
-            Intrinsic::Int32CountZeroBits,
-        );
-        intrinsic_struct_method(vm, struct_id, "countOneBits", Intrinsic::Int32CountOneBits);
-    }
-    if has_lzcnt() {
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countZeroBitsLeading",
-            Intrinsic::Int32CountZeroBitsLeading,
-        );
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countOneBitsLeading",
-            Intrinsic::Int32CountOneBitsLeading,
-        );
-    }
-    if has_tzcnt() {
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countZeroBitsTrailing",
-            Intrinsic::Int32CountZeroBitsTrailing,
-        );
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countOneBitsTrailing",
-            Intrinsic::Int32CountOneBitsTrailing,
-        );
-    }
-
-    let struct_id = vm.known.structs.int64;
-    if has_popcnt() {
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countZeroBits",
-            Intrinsic::Int64CountZeroBits,
-        );
-        intrinsic_struct_method(vm, struct_id, "countOneBits", Intrinsic::Int64CountOneBits);
-    }
-    if has_lzcnt() {
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countZeroBitsLeading",
-            Intrinsic::Int64CountZeroBitsLeading,
-        );
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countOneBitsLeading",
-            Intrinsic::Int64CountOneBitsLeading,
-        );
-    }
-    if has_tzcnt() {
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countZeroBitsTrailing",
-            Intrinsic::Int64CountZeroBitsTrailing,
-        );
-        intrinsic_struct_method(
-            vm,
-            struct_id,
-            "countOneBitsTrailing",
-            Intrinsic::Int64CountOneBitsTrailing,
-        );
-    }
 }
 
 #[cfg(test)]
