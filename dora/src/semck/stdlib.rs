@@ -85,9 +85,9 @@ pub fn fill_prelude(vm: &mut VM) {
 
     for sym in &symbols {
         let name = vm.interner.intern(sym);
-        let sym_type = stdlib.get(name);
+        let sym = stdlib.get(name);
 
-        let old_sym = prelude.insert(name, sym_type.expect("missing sym"));
+        let old_sym = prelude.insert(name, sym.expect("missing sym"));
         assert!(old_sym.is_none());
     }
 
@@ -745,10 +745,10 @@ fn find_static(vm: &VM, namespace_id: NamespaceId, container_name: &str, name: &
     let container_name = vm.interner.intern(container_name);
 
     let symtable = NestedSymTable::new(vm, namespace_id);
-    let type_sym = symtable.get(container_name);
+    let sym = symtable.get(container_name);
     let intern_name = vm.interner.intern(name);
 
-    match type_sym {
+    match sym {
         Some(Sym::Module(module_id)) => {
             let module = vm.modules.idx(module_id);
             let module = module.read();
@@ -903,9 +903,9 @@ fn common_method(
     let container_name_interned = vm.interner.intern(container_name);
 
     let symtable = NestedSymTable::new(vm, namespace_id);
-    let type_sym = symtable.get(container_name_interned);
+    let sym = symtable.get(container_name_interned);
 
-    match type_sym {
+    match sym {
         Some(Sym::Class(cls_id)) => {
             internal_class_method(vm, cls_id, method_name, is_static, implementation);
         }

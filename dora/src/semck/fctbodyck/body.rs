@@ -116,8 +116,8 @@ impl<'a> TypeCheck<'a> {
             self.analysis.map_vars.insert(param.id, var_id);
 
             // params are only allowed to replace functions, vars cannot be replaced
-            let term_sym = self.symtable.get(param.name);
-            match term_sym {
+            let sym = self.symtable.get(param.name);
+            match sym {
                 Some(Sym::Fct(_)) | None => {
                     self.symtable.insert(param.name, Sym::Var(var_id));
                 }
@@ -628,9 +628,9 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_ident(&mut self, e: &ast::ExprIdentType, expected_ty: SourceType) -> SourceType {
-        let sym_type = self.symtable.get(e.name);
+        let sym = self.symtable.get(e.name);
 
-        match sym_type {
+        match sym {
             Some(Sym::Var(varid)) => {
                 let ty = self.analysis.vars[varid].ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
@@ -729,9 +729,9 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(e.id, SourceType::Unit);
 
         let lhs_ident = e.lhs.to_ident().unwrap();
-        let sym_type = self.symtable.get(lhs_ident.name);
+        let sym = self.symtable.get(lhs_ident.name);
 
-        let lhs_type = match sym_type {
+        let lhs_type = match sym {
             Some(Sym::Var(varid)) => {
                 if !self.analysis.vars[varid].reassignable {
                     self.vm
@@ -1209,9 +1209,9 @@ impl<'a> TypeCheck<'a> {
             .collect();
 
         if let Some(expr_ident) = callee.to_ident() {
-            let sym_type = self.symtable.get(expr_ident.name);
+            let sym = self.symtable.get(expr_ident.name);
 
-            self.check_expr_call_sym(e, callee, sym_type, type_params, &arg_types)
+            self.check_expr_call_sym(e, callee, sym, type_params, &arg_types)
         } else if let Some(expr_dot) = callee.to_dot() {
             let object_type = if expr_dot.lhs.is_super() {
                 self.super_type(expr_dot.lhs.pos())
@@ -1251,11 +1251,11 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         callee: &ast::Expr,
-        sym_type: Option<Sym>,
+        sym: Option<Sym>,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        match sym_type {
+        match sym {
             Some(Sym::Fct(fct_id)) => self.check_expr_call_fct(e, fct_id, type_params, &arg_types),
 
             Some(Sym::Class(cls_id)) => {
@@ -1883,8 +1883,8 @@ impl<'a> TypeCheck<'a> {
             };
         let method_expr = &callee_as_path.rhs;
 
-        let sym_type = match self.read_path(container_expr) {
-            Ok(sym_type) => sym_type,
+        let sym = match self.read_path(container_expr) {
+            Ok(sym) => sym,
             Err(()) => {
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -1904,7 +1904,7 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         };
 
-        match sym_type {
+        match sym {
             Some(Sym::Module(module_id)) => {
                 if !container_type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
@@ -2052,14 +2052,14 @@ impl<'a> TypeCheck<'a> {
                         .report(self.file_id, callee_as_path.lhs.pos(), msg);
                 }
 
-                let sym_type = {
+                let sym = {
                     let namespace = &self.vm.namespaces[namespace_id.to_usize()];
                     let table = namespace.table.read();
 
                     table.get(method_name)
                 };
 
-                self.check_expr_call_sym(e, callee, sym_type, type_params, arg_types)
+                self.check_expr_call_sym(e, callee, sym, type_params, arg_types)
             }
 
             _ => {
@@ -2149,8 +2149,8 @@ impl<'a> TypeCheck<'a> {
             (&e.lhs, SourceTypeArray::empty())
         };
 
-        let sym_type = match self.read_path(container_expr) {
-            Ok(sym_type) => sym_type,
+        let sym = match self.read_path(container_expr) {
+            Ok(sym) => sym,
             Err(()) => {
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -2165,7 +2165,7 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         };
 
-        match sym_type {
+        match sym {
             Some(Sym::Enum(id)) => self.check_enum_value_without_args(
                 e.id,
                 e.pos,
@@ -2191,7 +2191,7 @@ impl<'a> TypeCheck<'a> {
 
     fn read_path(&mut self, expr: &ast::Expr) -> Result<Option<Sym>, ()> {
         if let Some(expr_path) = expr.to_path() {
-            let sym_type = self.read_path(&expr_path.lhs)?;
+            let sym = self.read_path(&expr_path.lhs)?;
 
             let element_name = if let Some(ident) = expr_path.rhs.to_ident() {
                 ident.name
@@ -2204,13 +2204,13 @@ impl<'a> TypeCheck<'a> {
                 return Err(());
             };
 
-            match sym_type {
+            match sym {
                 Some(Sym::Namespace(namespace_id)) => {
                     let namespace = &self.vm.namespaces[namespace_id.to_usize()];
                     let symtable = namespace.table.read();
-                    let sym_type = symtable.get(element_name);
+                    let sym = symtable.get(element_name);
 
-                    Ok(sym_type)
+                    Ok(sym)
                 }
 
                 _ => {
@@ -2221,9 +2221,9 @@ impl<'a> TypeCheck<'a> {
             }
         } else if let Some(expr_ident) = expr.to_ident() {
             let container_name = expr_ident.name;
-            let sym_type = self.symtable.get(container_name);
+            let sym = self.symtable.get(container_name);
 
-            Ok(sym_type)
+            Ok(sym)
         } else {
             let msg = SemError::ExpectedSomeIdentifier;
             self.vm.diag.lock().report(self.file_id, expr.pos(), msg);
@@ -2241,9 +2241,9 @@ impl<'a> TypeCheck<'a> {
         let namespace = &self.vm.namespaces[namespace_id.to_usize()];
         let table = namespace.table.read();
 
-        let sym_type = table.get(element_name);
+        let sym = table.get(element_name);
 
-        match sym_type {
+        match sym {
             Some(Sym::Global(global_id)) => {
                 if !global_accessible_from(self.vm, global_id, self.namespace_id) {
                     let global = &self.vm.globals.idx(global_id);
@@ -2397,9 +2397,9 @@ impl<'a> TypeCheck<'a> {
         if let Some(ident) = e.callee.to_ident() {
             let method_name = ident.name;
 
-            let sym_term = self.symtable.get(method_name);
+            let sym = self.symtable.get(method_name);
 
-            match sym_term {
+            match sym {
                 Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
                     e.id,
                     e.pos,
@@ -2446,9 +2446,9 @@ impl<'a> TypeCheck<'a> {
                 return SourceType::Error;
             };
 
-            let sym_type = self.symtable.get(container_name);
+            let sym = self.symtable.get(container_name);
 
-            match sym_type {
+            match sym {
                 Some(Sym::Enum(enum_id)) => self.check_enum_value_without_args(
                     e.id,
                     e.pos,

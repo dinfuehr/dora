@@ -47,14 +47,14 @@ fn check_import(vm: &VM, import: &ImportData) {
     if import.ast.path.is_empty() {
         import_namespace(vm, import, &table, namespace_id, element_name, target_name);
     } else {
-        let sym_type = match read_path(vm, import, &symtable) {
-            Ok(sym_type) => sym_type,
+        let sym = match read_path(vm, import, &symtable) {
+            Ok(sym) => sym,
             Err(()) => {
                 return;
             }
         };
 
-        match sym_type {
+        match sym {
             Some(Sym::Namespace(namespace_id)) => {
                 if !namespace_accessible_from(vm, namespace_id, import.namespace_id) {
                     let namespace = &vm.namespaces[namespace_id.to_usize()];
@@ -86,10 +86,10 @@ fn read_path(vm: &VM, import: &ImportData, symtable: &NestedSymTable) -> Result<
         let path = &import.ast.path;
         let first_name = path.first().cloned().unwrap();
 
-        let mut sym_type = symtable.get(first_name);
+        let mut sym = symtable.get(first_name);
 
         for &name in &path[1..] {
-            match sym_type {
+            match sym {
                 Some(Sym::Namespace(namespace_id)) => {
                     let namespace = &vm.namespaces[namespace_id.to_usize()];
                     let symtable = namespace.table.read();
@@ -101,7 +101,7 @@ fn read_path(vm: &VM, import: &ImportData, symtable: &NestedSymTable) -> Result<
                         return Err(());
                     }
 
-                    sym_type = symtable.get(name);
+                    sym = symtable.get(name);
                 }
 
                 None => {
@@ -118,7 +118,7 @@ fn read_path(vm: &VM, import: &ImportData, symtable: &NestedSymTable) -> Result<
             }
         }
 
-        Ok(sym_type)
+        Ok(sym)
     } else {
         let msg = SemError::ExpectedPath;
         vm.diag.lock().report(import.file_id, import.ast.pos, msg);
@@ -135,9 +135,9 @@ fn import_namespace(
     target_name: Name,
 ) {
     let namespace = &vm.namespaces[namespace_id.to_usize()];
-    let sym_type = namespace.table.read().get(element_name);
+    let sym = namespace.table.read().get(element_name);
 
-    match sym_type {
+    match sym {
         Some(Sym::Fct(fct_id)) => {
             if !fct_accessible_from(vm, fct_id, import.namespace_id) {
                 let fct = &vm.fcts.idx(fct_id);
