@@ -89,7 +89,7 @@ impl<'x> ImplCheck<'x> {
             if class_ty.cls_id(self.vm).is_some()
                 || class_ty.is_struct()
                 || class_ty.is_enum()
-                || class_ty.is_struct_primitive()
+                || class_ty.is_primitive()
             {
                 ximpl.ty = class_ty.clone();
 
@@ -117,8 +117,11 @@ impl<'x> ImplCheck<'x> {
                     xenum.impls.push(ximpl.id);
                 }
 
-                SourceType::Int64 => {
-                    let struct_id = self.vm.known.structs.int64;
+                SourceType::Int32 | SourceType::Int64 => {
+                    let struct_id = ximpl
+                        .ty
+                        .primitive_struct_id(self.vm)
+                        .expect("primitive expected");
                     let xstruct = self.vm.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
                     xstruct.impls.push(ximpl.id);

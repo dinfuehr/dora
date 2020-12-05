@@ -3183,7 +3183,7 @@ fn lookup_method(
 ) -> Option<MethodDescriptor> {
     let candidates = if object_type.is_enum() {
         find_methods_in_enum(vm, object_type, type_param_defs, name, is_static)
-    } else if object_type.is_struct() || object_type.is_struct_primitive() {
+    } else if object_type.is_struct() || object_type.is_primitive() {
         find_methods_in_struct(vm, object_type, type_param_defs, name, is_static)
     } else if object_type.cls_id(vm).is_some() {
         find_methods_in_class(vm, object_type, type_param_defs, name, is_static)

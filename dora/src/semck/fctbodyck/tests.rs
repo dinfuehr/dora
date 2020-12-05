@@ -1899,7 +1899,7 @@ fn test_import_enum_value() {
     );
 
     err(
-        "enum A { V1(Int32), V2 } import A::V2; fun f(): A { V2(Int32) }",
+        "enum A { V1(Int32), V2 } import A::V2; fun f(): A { V2(0) }",
         pos(1, 55),
         SemError::EnumArgsIncompatible("A".into(), "V2".into(), Vec::new(), vec!["Int32".into()]),
     );

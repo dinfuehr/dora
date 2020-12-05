@@ -22,7 +22,7 @@ pub fn resolve_internal_classes(vm: &mut VM) {
 
     vm.known.classes.uint8 = internal_class(vm, "UInt8", Some(SourceType::UInt8));
     vm.known.classes.char = internal_class(vm, "Char", Some(SourceType::Char));
-    vm.known.classes.int32 = internal_class(vm, "Int32", Some(SourceType::Int32));
+    vm.known.structs.int32 = internal_struct(vm, "Int32", Some(SourceType::Int32));
     vm.known.structs.int64 = internal_struct(vm, "Int64", Some(SourceType::Int64));
 
     vm.known.classes.float32 = internal_class(vm, "Float32", Some(SourceType::Float32));
@@ -349,46 +349,51 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_class_method(vm, cls_id, "equals", Intrinsic::CharEq);
     intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::CharCmp);
 
-    let cls_id = vm.known.classes.int32;
-    native_class_method(vm, cls_id, "toString", stdlib::int32_to_string as *const u8);
-
-    intrinsic_class_method(vm, cls_id, "toUInt8", Intrinsic::Int32ToByte);
-    intrinsic_class_method(vm, cls_id, "toCharUnchecked", Intrinsic::Int32ToChar);
-    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::Int32ToInt64);
-
-    intrinsic_class_method(vm, cls_id, "toFloat32", Intrinsic::Int32ToFloat32);
-    intrinsic_class_method(vm, cls_id, "toFloat64", Intrinsic::Int32ToFloat64);
-
-    intrinsic_class_method(
+    let struct_id = vm.known.structs.int32;
+    native_struct_method(
         vm,
-        cls_id,
+        struct_id,
+        "toString",
+        stdlib::int32_to_string as *const u8,
+    );
+
+    intrinsic_struct_method(vm, struct_id, "toUInt8", Intrinsic::Int32ToByte);
+    intrinsic_struct_method(vm, struct_id, "toCharUnchecked", Intrinsic::Int32ToChar);
+    intrinsic_struct_method(vm, struct_id, "toInt64", Intrinsic::Int32ToInt64);
+
+    intrinsic_struct_method(vm, struct_id, "toFloat32", Intrinsic::Int32ToFloat32);
+    intrinsic_struct_method(vm, struct_id, "toFloat64", Intrinsic::Int32ToFloat64);
+
+    intrinsic_struct_method(
+        vm,
+        struct_id,
         "asFloat32",
         Intrinsic::ReinterpretInt32AsFloat32,
     );
 
-    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::Int32Eq);
-    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::Int32Cmp);
+    intrinsic_struct_method(vm, struct_id, "equals", Intrinsic::Int32Eq);
+    intrinsic_struct_method(vm, struct_id, "compareTo", Intrinsic::Int32Cmp);
 
-    intrinsic_class_method(vm, cls_id, "plus", Intrinsic::Int32Add);
-    intrinsic_class_method(vm, cls_id, "minus", Intrinsic::Int32Sub);
-    intrinsic_class_method(vm, cls_id, "times", Intrinsic::Int32Mul);
-    intrinsic_class_method(vm, cls_id, "div", Intrinsic::Int32Div);
-    intrinsic_class_method(vm, cls_id, "mod", Intrinsic::Int32Mod);
+    intrinsic_struct_method(vm, struct_id, "plus", Intrinsic::Int32Add);
+    intrinsic_struct_method(vm, struct_id, "minus", Intrinsic::Int32Sub);
+    intrinsic_struct_method(vm, struct_id, "times", Intrinsic::Int32Mul);
+    intrinsic_struct_method(vm, struct_id, "div", Intrinsic::Int32Div);
+    intrinsic_struct_method(vm, struct_id, "mod", Intrinsic::Int32Mod);
 
-    intrinsic_class_method(vm, cls_id, "bitwiseOr", Intrinsic::Int32Or);
-    intrinsic_class_method(vm, cls_id, "bitwiseAnd", Intrinsic::Int32And);
-    intrinsic_class_method(vm, cls_id, "bitwiseXor", Intrinsic::Int32Xor);
+    intrinsic_struct_method(vm, struct_id, "bitwiseOr", Intrinsic::Int32Or);
+    intrinsic_struct_method(vm, struct_id, "bitwiseAnd", Intrinsic::Int32And);
+    intrinsic_struct_method(vm, struct_id, "bitwiseXor", Intrinsic::Int32Xor);
 
-    intrinsic_class_method(vm, cls_id, "shiftLeft", Intrinsic::Int32Shl);
-    intrinsic_class_method(vm, cls_id, "shiftRight", Intrinsic::Int32Shr);
-    intrinsic_class_method(vm, cls_id, "shiftRightSigned", Intrinsic::Int32Sar);
+    intrinsic_struct_method(vm, struct_id, "shiftLeft", Intrinsic::Int32Shl);
+    intrinsic_struct_method(vm, struct_id, "shiftRight", Intrinsic::Int32Shr);
+    intrinsic_struct_method(vm, struct_id, "shiftRightSigned", Intrinsic::Int32Sar);
 
-    intrinsic_class_method(vm, cls_id, "rotateLeft", Intrinsic::Int32RotateLeft);
-    intrinsic_class_method(vm, cls_id, "rotateRight", Intrinsic::Int32RotateRight);
+    intrinsic_struct_method(vm, struct_id, "rotateLeft", Intrinsic::Int32RotateLeft);
+    intrinsic_struct_method(vm, struct_id, "rotateRight", Intrinsic::Int32RotateRight);
 
-    intrinsic_class_method(vm, cls_id, "unaryPlus", Intrinsic::Int32Plus);
-    intrinsic_class_method(vm, cls_id, "unaryMinus", Intrinsic::Int32Neg);
-    intrinsic_class_method(vm, cls_id, "not", Intrinsic::Int32Not);
+    intrinsic_struct_method(vm, struct_id, "unaryPlus", Intrinsic::Int32Plus);
+    intrinsic_struct_method(vm, struct_id, "unaryMinus", Intrinsic::Int32Neg);
+    intrinsic_struct_method(vm, struct_id, "not", Intrinsic::Int32Not);
 
     let struct_id = vm.known.structs.int64;
     native_struct_method(
@@ -871,35 +876,40 @@ fn internal_extension_method(
 }
 
 fn install_conditional_intrinsics(vm: &mut VM) {
-    let clsid = vm.known.classes.int32;
+    let struct_id = vm.known.structs.int32;
     if has_popcnt() {
-        intrinsic_class_method(vm, clsid, "countZeroBits", Intrinsic::Int32CountZeroBits);
-        intrinsic_class_method(vm, clsid, "countOneBits", Intrinsic::Int32CountOneBits);
+        intrinsic_struct_method(
+            vm,
+            struct_id,
+            "countZeroBits",
+            Intrinsic::Int32CountZeroBits,
+        );
+        intrinsic_struct_method(vm, struct_id, "countOneBits", Intrinsic::Int32CountOneBits);
     }
     if has_lzcnt() {
-        intrinsic_class_method(
+        intrinsic_struct_method(
             vm,
-            clsid,
+            struct_id,
             "countZeroBitsLeading",
             Intrinsic::Int32CountZeroBitsLeading,
         );
-        intrinsic_class_method(
+        intrinsic_struct_method(
             vm,
-            clsid,
+            struct_id,
             "countOneBitsLeading",
             Intrinsic::Int32CountOneBitsLeading,
         );
     }
     if has_tzcnt() {
-        intrinsic_class_method(
+        intrinsic_struct_method(
             vm,
-            clsid,
+            struct_id,
             "countZeroBitsTrailing",
             Intrinsic::Int32CountZeroBitsTrailing,
         );
-        intrinsic_class_method(
+        intrinsic_struct_method(
             vm,
-            clsid,
+            struct_id,
             "countOneBitsTrailing",
             Intrinsic::Int32CountOneBitsTrailing,
         );

@@ -148,9 +148,10 @@ impl SourceType {
         }
     }
 
-    pub fn is_struct_primitive(&self) -> bool {
+    pub fn is_primitive(&self) -> bool {
         match self {
             &SourceType::Int64 => true,
+            &SourceType::Int32 => true,
             _ => false,
         }
     }
@@ -170,9 +171,16 @@ impl SourceType {
             SourceType::Bool => Some(vm.known.classes.bool),
             SourceType::UInt8 => Some(vm.known.classes.uint8),
             SourceType::Char => Some(vm.known.classes.char),
-            SourceType::Int32 => Some(vm.known.classes.int32),
             SourceType::Float32 => Some(vm.known.classes.float32),
             SourceType::Float64 => Some(vm.known.classes.float64),
+            _ => None,
+        }
+    }
+
+    pub fn primitive_struct_id(&self, vm: &VM) -> Option<StructId> {
+        match *self {
+            SourceType::Int32 => Some(vm.known.structs.int32),
+            SourceType::Int64 => Some(vm.known.structs.int64),
             _ => None,
         }
     }
@@ -609,12 +617,14 @@ pub fn implements_trait(
             check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls).is_some()
         }
 
-        SourceType::Int64 => {
+        SourceType::Int32 | SourceType::Int64 => {
             if vm.known.traits.zero == trait_id {
                 return true;
             }
 
-            let struct_id = vm.known.structs.int64;
+            let struct_id = check_ty
+                .primitive_struct_id(vm)
+                .expect("primitive expected");
             let xstruct = vm.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
@@ -645,7 +655,6 @@ pub fn implements_trait(
         SourceType::Bool
         | SourceType::Char
         | SourceType::UInt8
-        | SourceType::Int32
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Class(_, _) => {
@@ -694,8 +703,10 @@ pub fn find_impl(
             check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls)
         }
 
-        SourceType::Int64 => {
-            let struct_id = vm.known.structs.int64;
+        SourceType::Int32 | SourceType::Int64 => {
+            let struct_id = check_ty
+                .primitive_struct_id(vm)
+                .expect("primitive expected");
             let xstruct = vm.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
@@ -724,7 +735,6 @@ pub fn find_impl(
         SourceType::Bool
         | SourceType::Char
         | SourceType::UInt8
-        | SourceType::Int32
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Class(_, _) => {

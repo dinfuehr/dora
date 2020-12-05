@@ -201,7 +201,6 @@ impl VM {
                     bool: empty_class_id,
                     uint8: empty_class_id,
                     char: empty_class_id,
-                    int32: empty_class_id,
                     float32: empty_class_id,
                     float64: empty_class_id,
                     object: empty_class_id,
@@ -238,6 +237,7 @@ impl VM {
                 },
 
                 structs: KnownStructs {
+                    int32: empty_struct_id,
                     int64: empty_struct_id,
                 },
 

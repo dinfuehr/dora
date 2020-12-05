@@ -3124,7 +3124,7 @@ fn gen_self_for_uint8() {
 
 #[test]
 fn gen_self_for_int() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(): Self; }
             impl MyId for Int32 { fun f(): Int32 { return self; } }
             ",
@@ -3208,7 +3208,7 @@ fn gen_self_assign_for_uint8() {
 
 #[test]
 fn gen_self_assign_for_int() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(); }
             impl MyId for Int32 { fun f() { let x = self; } }
             ",
@@ -3305,7 +3305,9 @@ fn gen_reinterpret_int32_as_float32() {
     gen_fct(
         "fun f(a: Int32): Float32 { a.asFloat32() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Int32", "asFloat32", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Int32", "asFloat32", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3395,7 +3397,9 @@ fn gen_convert_int32_to_float32() {
     gen_fct(
         "fun f(a: Int32): Float32 { a.toFloat32() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Int32", "toFloat32", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Int32", "toFloat32", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3415,7 +3419,9 @@ fn gen_convert_int32_to_float64() {
     gen_fct(
         "fun f(a: Int32): Float64 { a.toFloat64() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Int32", "toFloat64", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Int32", "toFloat64", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3913,7 +3919,7 @@ fn gen_compare_to_method() {
         "fun f(a: Int32, b: Int32): Int32 { a.compareTo(b) }",
         |vm, code, fct| {
             let fct_id = vm
-                .cls_method_by_name("Int32", "compareTo", false)
+                .struct_method_by_name("Int32", "compareTo", false)
                 .expect("Int32::compareTo not found");
             let expected = vec![
                 PushRegister(r(0)),

@@ -163,9 +163,12 @@ pub fn find_methods_in_struct(
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
-    let struct_id = match object_type {
-        SourceType::Int64 => vm.known.structs.int64,
-        _ => object_type.struct_id().expect("struct expected"),
+    let struct_id = if object_type.is_primitive() {
+        object_type
+            .primitive_struct_id(vm)
+            .expect("primitive expected")
+    } else {
+        object_type.struct_id().expect("struct expected")
     };
 
     let xstruct = vm.structs.idx(struct_id);

@@ -35,7 +35,6 @@ pub struct KnownClasses {
     pub bool: ClassId,
     pub uint8: ClassId,
     pub char: ClassId,
-    pub int32: ClassId,
     pub float32: ClassId,
     pub float64: ClassId,
     pub object: ClassId,
@@ -49,6 +48,7 @@ pub struct KnownClasses {
 
 #[derive(Debug)]
 pub struct KnownStructs {
+    pub int32: StructId,
     pub int64: StructId,
 }
 
@@ -149,7 +149,6 @@ impl KnownElements {
             SourceType::Bool => Some(self.classes.bool),
             SourceType::UInt8 => Some(self.classes.uint8),
             SourceType::Char => Some(self.classes.char),
-            SourceType::Int32 => Some(self.classes.int32),
             SourceType::Float32 => Some(self.classes.float32),
             SourceType::Float64 => Some(self.classes.float64),
             _ => None,
