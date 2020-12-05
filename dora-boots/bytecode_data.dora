@@ -119,17 +119,15 @@ class BytecodeType(let value: Int32) {
     fun isFloat32(): Bool = self.value == BC_TYPE_FLOAT32;
     fun isFloat64(): Bool = self.value == BC_TYPE_FLOAT64;
     fun isPtr(): Bool = self.value == BC_TYPE_PTR;
-}
 
-module BytecodeType {
-    fun bool(): BytecodeType = BytecodeType(BC_TYPE_BOOL);
-    fun uint8(): BytecodeType = BytecodeType(BC_TYPE_U_INT8);
-    fun char(): BytecodeType = BytecodeType(BC_TYPE_CHAR);
-    fun int32(): BytecodeType = BytecodeType(BC_TYPE_INT32);
-    fun int64(): BytecodeType = BytecodeType(BC_TYPE_INT64);
-    fun float32(): BytecodeType = BytecodeType(BC_TYPE_FLOAT32);
-    fun float64(): BytecodeType = BytecodeType(BC_TYPE_FLOAT64);
-    fun ptr(): BytecodeType = BytecodeType(BC_TYPE_PTR);
+    @static fun bool(): BytecodeType = BytecodeType(BC_TYPE_BOOL);
+    @static fun uint8(): BytecodeType = BytecodeType(BC_TYPE_U_INT8);
+    @static fun char(): BytecodeType = BytecodeType(BC_TYPE_CHAR);
+    @static fun int32(): BytecodeType = BytecodeType(BC_TYPE_INT32);
+    @static fun int64(): BytecodeType = BytecodeType(BC_TYPE_INT64);
+    @static fun float32(): BytecodeType = BytecodeType(BC_TYPE_FLOAT32);
+    @static fun float64(): BytecodeType = BytecodeType(BC_TYPE_FLOAT64);
+    @static fun ptr(): BytecodeType = BytecodeType(BC_TYPE_PTR);
 }
 
 impl Stringable for BytecodeType {

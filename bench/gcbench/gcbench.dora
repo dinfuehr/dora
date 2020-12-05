@@ -5,10 +5,8 @@ import std::timestamp;
 class Node(var left: Option[Node], var right: Option[Node]) {
     var i: Int32 = 0;
     var j: Int32 = 0;
-}
 
-module Node {
-    fun leaf(): Node = Node(Option[Node]::None, Option[Node]::None);
+    @static fun leaf(): Node = Node(Option[Node]::None, Option[Node]::None);
 }
 
 var stretchTreeDepth: Int32 = 0;

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::error::msg::SemError;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{self, TypeParamContext};
-use crate::sym::{NestedSymTable, SymTable, TermSym};
+use crate::sym::{NestedSymTable, SymTable, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
 
@@ -127,7 +127,7 @@ impl<'x> ClsDefCheck<'x> {
         let mut cls = cls.write();
 
         self.check_if_symbol_exists(f.name, f.pos, &cls.table);
-        cls.table.insert_term(f.name, TermSym::Fct(fctid));
+        cls.table.insert(f.name, TypeSym::Fct(fctid));
 
         cls.methods.push(fctid);
     }
@@ -149,7 +149,7 @@ impl<'x> ClsDefCheck<'x> {
         self.check_if_symbol_exists(name, pos, &cls.table);
 
         cls.fields.push(field);
-        cls.table.insert_term(name, TermSym::Field(fid));
+        cls.table.insert(name, TypeSym::Field(fid));
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
@@ -227,12 +227,11 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn check_if_symbol_exists(&mut self, name: Name, pos: Position, table: &SymTable) {
-        if table.contains_term(name) {
-            let sym = table.get_term(name).unwrap();
+        if let Some(sym) = table.get(name) {
             let file: FileId = self.file_id.into();
 
             match sym {
-                TermSym::Fct(method) => {
+                TypeSym::Fct(method) => {
                     let method = self.vm.fcts.idx(method);
                     let method = method.read();
 
@@ -241,7 +240,7 @@ impl<'x> ClsDefCheck<'x> {
                     self.vm.diag.lock().report(file, pos, msg);
                 }
 
-                TermSym::Field(_) => {
+                TypeSym::Field(_) => {
                     let name = self.vm.interner.str(name).to_string();
                     self.vm
                         .diag

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::sym::{NestedSymTable, TermSym, TypeSym};
+use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::SourceType;
 use crate::vm::{FileId, TypeParam, TypeParamId, VM};
 use dora_parser::ast;
@@ -210,29 +210,13 @@ pub fn report_type_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym:
         TypeSym::Struct(_) => SemError::ShadowStruct(name),
         TypeSym::Trait(_) => SemError::ShadowTrait(name),
         TypeSym::Enum(_) => SemError::ShadowEnum(name),
-        _ => unimplemented!(),
-    };
-
-    vm.diag.lock().report(file, pos, msg);
-}
-
-pub fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: TermSym) {
-    let name = vm.interner.str(name).to_string();
-
-    let msg = match sym {
-        TermSym::Fct(_) => SemError::ShadowFunction(name),
-        TermSym::Global(_) => SemError::ShadowGlobal(name),
-        TermSym::Const(_) => SemError::ShadowConst(name),
-        TermSym::Module(_) => SemError::ShadowModule(name),
-        TermSym::Var(_) => SemError::ShadowParam(name),
-        TermSym::ClassConstructor(_) | TermSym::ClassConstructorAndModule(_, _) => {
-            SemError::ShadowClassConstructor(name)
-        }
-        TermSym::StructConstructor(_) | TermSym::StructConstructorAndModule(_, _) => {
-            SemError::ShadowStructConstructor(name)
-        }
-        TermSym::Namespace(_) => SemError::ShadowNamespace(name),
-        x => unimplemented!("{:?}", x),
+        TypeSym::Fct(_) => SemError::ShadowFunction(name),
+        TypeSym::Global(_) => SemError::ShadowGlobal(name),
+        TypeSym::Const(_) => SemError::ShadowConst(name),
+        TypeSym::Module(_) => SemError::ShadowModule(name),
+        TypeSym::Var(_) => SemError::ShadowParam(name),
+        TypeSym::Namespace(_) => SemError::ShadowNamespace(name),
+        _ => unreachable!(),
     };
 
     vm.diag.lock().report(file, pos, msg);
@@ -282,7 +266,7 @@ fn check_type_params(
             }
 
             let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-            symtable.insert_type(type_param.name, sym);
+            symtable.insert(type_param.name, sym);
         }
 
         params

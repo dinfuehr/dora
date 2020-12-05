@@ -25,7 +25,7 @@ pub fn check(vm: &VM) {
 
                 for (type_param_id, param) in cls.type_params.iter().enumerate() {
                     let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-                    sym_table.insert_type(param.name, sym);
+                    sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
 
@@ -39,7 +39,7 @@ pub fn check(vm: &VM) {
 
                 for (type_param_id, param) in ximpl.type_params.iter().enumerate() {
                     let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-                    sym_table.insert_type(param.name, sym);
+                    sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
 
@@ -53,7 +53,7 @@ pub fn check(vm: &VM) {
 
                 for (type_param_id, param) in extension.type_params.iter().enumerate() {
                     let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-                    sym_table.insert_type(param.name, sym);
+                    sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
 
@@ -69,7 +69,7 @@ pub fn check(vm: &VM) {
 
                 for (type_param_id, param) in xtrait.type_params.iter().enumerate() {
                     let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-                    sym_table.insert_type(param.name, sym);
+                    sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
 
@@ -130,7 +130,7 @@ pub fn check(vm: &VM) {
 
                     let sym =
                         TypeSym::TypeParam(TypeParamId(container_type_params + type_param_id));
-                    sym_table.insert_type(type_param.name, sym);
+                    sym_table.insert(type_param.name, sym);
                 }
             } else {
                 let msg = SemError::TypeParamsExpected;

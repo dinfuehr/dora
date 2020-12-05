@@ -37,10 +37,8 @@ import std::exit;
             self.right.unwrap().printTree(date, prefix + "  ");
         }
     }
-}
 
-module Node {
-    fun splay(tree: Option[Node], node: Node): Option[Node] {
+    @static fun splay(tree: Option[Node], node: Node): Option[Node] {
         if tree.isNone() {
             return Option[Node]::None;
         }
@@ -107,7 +105,7 @@ module Node {
         Option[Node]::Some(tree)
     }
 
-    fun insert(tree: Option[Node], node: Node): Node {
+    @static fun insert(tree: Option[Node], node: Node): Node {
         if tree.isNone() {
             return node;
         }
@@ -127,7 +125,7 @@ module Node {
         return node;
     }
 
-    fun trunc(date: Int32, tree: Node, depth: Int32) {
+    @static fun trunc(date: Int32, tree: Node, depth: Int32) {
         if tree.left.isSome() {
             if depth == 0 {
                 /*if tree.left !== nil {
@@ -151,7 +149,7 @@ module Node {
         }
     }
 
-    fun countNodes(node: Option[Node]): Int32 {
+    @static fun countNodes(node: Option[Node]): Int32 {
         if node.isNone() {
             return 0;
         }

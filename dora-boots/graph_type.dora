@@ -21,20 +21,18 @@ class Type(let kind: TypeKind) {
     fun isAnyFloat(): Bool {
         return self.kind == TypeKind::Float32 || self.kind == TypeKind::Float64;
     }
-}
 
-module Type {
-    fun unit(): Type { return typeUnit; }
-    fun bool(): Type { return typeBool; }
-    fun uint8(): Type { return typeUInt8; }
-    fun char(): Type { return typeChar; }
-    fun int32(): Type { return typeInt32; }
-    fun int64(): Type { return typeInt64; }
-    fun float32(): Type { return typeFloat32; }
-    fun float64(): Type { return typeFloat64; }
-    fun ptr(): Type { return typePtr; }
+    @static fun unit(): Type { return typeUnit; }
+    @static fun bool(): Type { return typeBool; }
+    @static fun uint8(): Type { return typeUInt8; }
+    @static fun char(): Type { return typeChar; }
+    @static fun int32(): Type { return typeInt32; }
+    @static fun int64(): Type { return typeInt64; }
+    @static fun float32(): Type { return typeFloat32; }
+    @static fun float64(): Type { return typeFloat64; }
+    @static fun ptr(): Type { return typePtr; }
 
-    fun fromBytecodeType(ty: BytecodeType): Type {
+    @static fun fromBytecodeType(ty: BytecodeType): Type {
         if ty.isBool() {
             Type::bool()
         } else if ty.isUInt8() {

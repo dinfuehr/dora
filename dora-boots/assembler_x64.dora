@@ -1470,10 +1470,8 @@ class Address {
         self.bytes(self.length + 3L) = (imm >> 24).toUInt8();
         self.length = self.length + 4L;
     }
-}
 
-module Address {
-    fun offset(base: Register, offset: Int32): Address {
+    @static fun offset(base: Register, offset: Int32): Address {
         let address = Address();
 
         let mode = if offset == 0 && base != RBP {
@@ -1503,7 +1501,7 @@ module Address {
         address
     }
 
-    fun index(index: Register, factor: ScaleFactor, disp: Int32): Address {
+    @static fun index(index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address();
 
         address.set_modrm(0b00, RSP);
@@ -1515,7 +1513,7 @@ module Address {
         address
     }
 
-    fun array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
+    @static fun array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address();
 
         let mode = if disp == 0 && base != RBP {
@@ -1544,7 +1542,7 @@ module Address {
         address
     }
 
-    fun rip(disp: Int32): Address {
+    @static fun rip(disp: Int32): Address {
         let address = Address();
 
         address.set_modrm(0b00, RBP);

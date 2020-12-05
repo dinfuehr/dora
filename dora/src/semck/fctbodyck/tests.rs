@@ -74,19 +74,6 @@ fn type_module_method_call() {
     ok("module Foo {
                 fun bar() {}
                 fun baz(): Int32 { return 1; }
-                fun foo(): Foo = Foo();
-                fun foz() {
-                  let foo = Foo();
-                  foo.x();
-                  foo.y;
-                  foo.z;
-                }
-            }
-
-            class Foo() {
-              fun x(): Int32 = 1;
-              let y: Int32 = 2;
-              var z: Int32 = 3;
             }
 
             fun f2() { Foo::bar(); }
@@ -610,12 +597,6 @@ fn access_super_class_field() {
 fn same_names() {
     ok("class Foo { var Foo: Foo = Foo(); }");
     ok("class Foo fun foo() { let Foo: Int32 = 1; }");
-    ok("class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo(): Foo = Foo(); }");
-    ok("class Foo { fun Foo(): Foo { Foo::Foo(); return Foo(); } } module Foo { fun Foo(): Foo = Foo(); }");
-    ok("class Foo { fun Far(): Foo = Foo::bar(); } module Foo { fun bar(): Foo = Foo(); }");
-    ok("module Foo { fun Foo(): Foo = Foo(); } class Foo { var Foo: Foo = Foo(); }");
-    ok("module Foo { fun Foo(): Foo = Foo(); } class Foo { fun Foo(): Foo { Foo::Foo(); return Foo(); } }");
-    ok("module Foo { fun bar(): Foo = Foo(); } class Foo { fun Far(): Foo = Foo::bar(); }");
 }
 
 #[test]
@@ -2685,7 +2666,7 @@ fn shadow_type_with_function() {
     err(
         "class FooBar fun FooBar() {}",
         pos(1, 14),
-        SemError::ShadowClassConstructor("FooBar".into()),
+        SemError::ShadowClass("FooBar".into()),
     );
 }
 
@@ -2694,7 +2675,7 @@ fn shadow_type_with_param() {
     err(
         "fun test(Bool: String) {}",
         pos(1, 10),
-        SemError::ShadowStructConstructor("Bool".into()),
+        SemError::ShadowStruct("Bool".into()),
     );
 }
 
@@ -3133,9 +3114,8 @@ fn namespace_import_class() {
             Bar::baz();
         }
         namespace foo {
-            @pub class Bar
-            module Bar {
-                fun baz() {}
+            @pub class Bar {
+                @static fun baz() {}
             }
         }
     ");
@@ -3295,7 +3275,7 @@ fn different_fct_call_kinds() {
         pos(1, 42),
         SemError::NoTypeParamsExpected,
     );
-    ok("class Foo module Foo { fun bar() {} } fun f() { Foo::bar(); }");
+    ok("module Foo { fun bar() {} } fun f() { Foo::bar(); }");
     errors(
         "fun f() { 1[Int32](); }",
         &[

@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::sym::{NestedSymTable, SymTable, TermSym, TypeSym};
+use crate::sym::{NestedSymTable, SymTable, TypeSym};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
@@ -97,6 +97,8 @@ fn read_type_basic(
 
             Some(SourceType::TypeParam(type_param_id))
         }
+
+        _ => unreachable!(),
     }
 }
 
@@ -109,19 +111,18 @@ fn read_type_path(
     if basic.path.len() > 1 {
         let first_name = basic.path.first().cloned().unwrap();
         let last_name = basic.path.last().cloned().unwrap();
-        let mut namespace_table =
-            table_for_namespace(vm, file_id, basic, table.get_term(first_name))?;
+        let mut namespace_table = table_for_namespace(vm, file_id, basic, table.get(first_name))?;
 
         for &name in &basic.path[1..basic.path.len() - 1] {
-            let sym = namespace_table.read().get_term(name);
+            let sym = namespace_table.read().get(name);
             namespace_table = table_for_namespace(vm, file_id, basic, sym)?;
         }
 
-        let sym = namespace_table.read().get_type(last_name);
+        let sym = namespace_table.read().get(last_name);
         Ok(sym)
     } else {
         let name = basic.path.last().cloned().unwrap();
-        Ok(table.get_type(name))
+        Ok(table.get(name))
     }
 }
 
@@ -129,10 +130,10 @@ fn table_for_namespace(
     vm: &VM,
     file_id: FileId,
     basic: &TypeBasicType,
-    sym: Option<TermSym>,
+    sym: Option<TypeSym>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
-        Some(TermSym::Namespace(namespace_id)) => {
+        Some(TypeSym::Namespace(namespace_id)) => {
             Ok(vm.namespaces[namespace_id.to_usize()].table.clone())
         }
 

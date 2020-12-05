@@ -129,7 +129,7 @@ impl<'x> EnumCheck<'x> {
                 }
 
                 let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
-                symtable.insert_type(type_param.name, sym);
+                symtable.insert(type_param.name, sym);
                 type_param_id += 1;
             }
         } else {

@@ -194,6 +194,14 @@ class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let pr
         }
         return task;
     }
+
+    @static fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
+        if queue.isNone() {
+            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
+        } else {
+            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED_RUNNABLE);
+        }
+    }
 }
 
 impl std::Stringable for TaskControlBlock {
@@ -202,15 +210,7 @@ impl std::Stringable for TaskControlBlock {
     }
 }
 
-module TaskControlBlock {
-    fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
-        if queue.isNone() {
-            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
-        } else {
-            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED_RUNNABLE);
-        }
-    }
-}
+
 
 @open @abstract class Task {
     @abstract fun run(packet: Option[Packet]): Option[TaskControlBlock];
@@ -346,10 +346,8 @@ class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: I
         next.link = Option[Packet]::Some(self);
         return queue.unwrap();
     }
-}
 
-module Packet {
-    fun new(link: Option[Packet], id: Int32, kind: Int32): Packet {
+    @static fun new(link: Option[Packet], id: Int32, kind: Int32): Packet {
         let array: Array[Int32] = Array[Int32]::new(DATA_SIZE.toInt64());
         return Packet(link, id, kind, 0, array);
     }

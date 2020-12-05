@@ -7,11 +7,11 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
-use crate::sym::{NestedSymTable, TermSym, TypeSym};
+use crate::sym::{NestedSymTable, TypeSym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDef, ClassDefId, ClassId, EnumId, ExtensionId, FctId, Intrinsic, NamespaceId, StructId,
-    TraitId, VM,
+    ClassDef, ClassDefId, ClassId, EnumId, ExtensionId, FctId, Intrinsic, ModuleId, NamespaceId,
+    StructId, TraitId, VM,
 };
 use crate::vtable::VTableBox;
 
@@ -85,29 +85,19 @@ pub fn fill_prelude(vm: &mut VM) {
 
     for sym in &symbols {
         let name = vm.interner.intern(sym);
-        let sym_term = stdlib.get_term(name);
-        let sym_type = stdlib.get_type(name);
+        let sym_type = stdlib.get(name);
 
-        assert!(sym_term.is_some() || sym_type.is_some());
-
-        if let Some(sym_term) = sym_term {
-            let old_sym = prelude.insert_term(name, sym_term);
-            assert!(old_sym.is_none());
-        }
-
-        if let Some(sym_type) = sym_type {
-            let old_sym = prelude.insert_type(name, sym_type);
-            assert!(old_sym.is_none());
-        }
+        let old_sym = prelude.insert(name, sym_type.expect("missing sym"));
+        assert!(old_sym.is_none());
     }
 
     let stdlib_name = vm.interner.intern("std");
-    prelude.insert_term(stdlib_name, TermSym::Namespace(vm.stdlib_namespace_id));
+    prelude.insert(stdlib_name, TypeSym::Namespace(vm.stdlib_namespace_id));
 
     {
         // include None and Some from Option
         let option_name = vm.interner.intern("Option");
-        let option_id = stdlib.get_type(option_name);
+        let option_id = stdlib.get(option_name);
 
         match option_id {
             Some(TypeSym::Enum(enum_id)) => {
@@ -116,7 +106,7 @@ pub fn fill_prelude(vm: &mut VM) {
 
                 for variant in &xenum.variants {
                     let old_sym =
-                        prelude.insert_term(variant.name, TermSym::EnumValue(enum_id, variant.id));
+                        prelude.insert(variant.name, TypeSym::EnumValue(enum_id, variant.id));
                     assert!(old_sym.is_none());
                 }
             }
@@ -756,14 +746,11 @@ fn find_static(vm: &VM, namespace_id: NamespaceId, container_name: &str, name: &
     let container_name = vm.interner.intern(container_name);
 
     let symtable = NestedSymTable::new(vm, namespace_id);
-    let type_sym = symtable.get_type(container_name);
-    let term_sym = symtable.get_term(container_name);
+    let type_sym = symtable.get(container_name);
     let intern_name = vm.interner.intern(name);
 
-    match (type_sym.clone(), term_sym) {
-        (_, Some(TermSym::Module(module_id)))
-        | (_, Some(TermSym::ClassConstructorAndModule(_, module_id)))
-        | (_, Some(TermSym::StructConstructorAndModule(_, module_id))) => {
+    match type_sym {
+        Some(TypeSym::Module(module_id)) => {
             let module = vm.modules.idx(module_id);
             let module = module.read();
 
@@ -777,10 +764,6 @@ fn find_static(vm: &VM, namespace_id: NamespaceId, container_name: &str, name: &
             }
         }
 
-        _ => {}
-    }
-
-    match type_sym {
         Some(TypeSym::Class(cls_id)) => {
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
@@ -795,7 +778,7 @@ fn find_static(vm: &VM, namespace_id: NamespaceId, container_name: &str, name: &
             }
         }
 
-        _ => {}
+        _ => unreachable!(),
     }
 
     panic!("cannot find static method `{}`", name)
@@ -921,15 +904,18 @@ fn common_method(
     let container_name_interned = vm.interner.intern(container_name);
 
     let symtable = NestedSymTable::new(vm, namespace_id);
-    let type_sym = symtable.get_type(container_name_interned);
-    let term_sym = symtable.get_term(container_name_interned);
+    let type_sym = symtable.get(container_name_interned);
 
-    match (type_sym, term_sym) {
-        (Some(TypeSym::Class(cls_id)), term_sym) => {
-            internal_class_method(vm, cls_id, term_sym, method_name, is_static, implementation);
+    match type_sym {
+        Some(TypeSym::Class(cls_id)) => {
+            internal_class_method(vm, cls_id, method_name, is_static, implementation);
         }
 
-        (Some(TypeSym::Struct(struct_id)), _) => {
+        Some(TypeSym::Module(module_id)) => {
+            internal_module_method(vm, module_id, method_name, is_static, implementation);
+        }
+
+        Some(TypeSym::Struct(struct_id)) => {
             let xstruct = vm.structs.idx(struct_id);
             let xstruct = xstruct.read();
             internal_extension_method(
@@ -940,7 +926,7 @@ fn common_method(
                 implementation,
             );
         }
-        (Some(TypeSym::Enum(enum_id)), _) => {
+        Some(TypeSym::Enum(enum_id)) => {
             let xenum = &vm.enums[enum_id].read();
             internal_extension_method(
                 vm,
@@ -955,10 +941,37 @@ fn common_method(
     }
 }
 
+fn internal_module_method(
+    vm: &VM,
+    module_id: ModuleId,
+    name: &str,
+    _is_static: bool,
+    implementation: FctImplementation,
+) {
+    let module = vm.modules.idx(module_id);
+    let module = module.read();
+    let name_interned = vm.interner.intern(name);
+
+    for &mid in &module.methods {
+        let mtd = vm.fcts.idx(mid);
+        let mut mtd = mtd.write();
+
+        if mtd.name == name_interned {
+            match implementation {
+                FctImplementation::Intrinsic(intrinsic) => mtd.intrinsic = Some(intrinsic),
+                FctImplementation::Native(address) => {
+                    mtd.native_pointer = Some(address);
+                }
+            }
+            mtd.internal_resolved = true;
+            return;
+        }
+    }
+}
+
 fn internal_class_method(
     vm: &VM,
     cls_id: ClassId,
-    term_sym: Option<TermSym>,
     name: &str,
     is_static: bool,
     kind: FctImplementation,
@@ -980,36 +993,6 @@ fn internal_class_method(
             }
             mtd.internal_resolved = true;
             return;
-        }
-    }
-
-    if is_static {
-        let module_id = match term_sym {
-            Some(TermSym::ClassConstructorAndModule(_, module_id))
-            | Some(TermSym::StructConstructorAndModule(_, module_id))
-            | Some(TermSym::Module(module_id)) => Some(module_id),
-            _ => None,
-        };
-
-        if let Some(module_id) = module_id {
-            let module = vm.modules.idx(module_id);
-            let module = module.read();
-
-            for &mid in &module.methods {
-                let mtd = vm.fcts.idx(mid);
-                let mut mtd = mtd.write();
-
-                if mtd.name == name_interned {
-                    match kind {
-                        FctImplementation::Intrinsic(intrinsic) => mtd.intrinsic = Some(intrinsic),
-                        FctImplementation::Native(address) => {
-                            mtd.native_pointer = Some(address);
-                        }
-                    }
-                    mtd.internal_resolved = true;
-                    return;
-                }
-            }
         }
     }
 

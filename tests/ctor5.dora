@@ -9,8 +9,7 @@ fun main() {
 class X(a: Int32, b: Int32) {
     var a: Int32 = a;
     var b: Int32 = b;
-}
-
-module X {
-    fun empty(): X = X(3, 1);
+    @static fun empty(): X {
+        X(3, 1)
+    }
 }
