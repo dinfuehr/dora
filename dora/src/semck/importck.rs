@@ -1,8 +1,8 @@
 use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
-use crate::semck::report_type_shadow;
-use crate::sym::{NestedSymTable, SymTable, TypeSym};
+use crate::semck::report_sym_shadow;
+use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::{
     class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
     global_accessible_from, module_accessible_from, namespace_accessible_from, namespace_package,
@@ -55,7 +55,7 @@ fn check_import(vm: &VM, import: &ImportData) {
         };
 
         match sym_type {
-            Some(TypeSym::Namespace(namespace_id)) => {
+            Some(Sym::Namespace(namespace_id)) => {
                 if !namespace_accessible_from(vm, namespace_id, import.namespace_id) {
                     let namespace = &vm.namespaces[namespace_id.to_usize()];
                     let msg = SemError::NotAccessible(namespace.name(vm));
@@ -66,7 +66,7 @@ fn check_import(vm: &VM, import: &ImportData) {
                 import_namespace(vm, import, &table, namespace_id, element_name, target_name)
             }
 
-            Some(TypeSym::Enum(enum_id)) => {
+            Some(Sym::Enum(enum_id)) => {
                 import_enum(vm, import, &table, enum_id, element_name, target_name)
             }
 
@@ -81,11 +81,7 @@ fn check_import(vm: &VM, import: &ImportData) {
     }
 }
 
-fn read_path(
-    vm: &VM,
-    import: &ImportData,
-    symtable: &NestedSymTable,
-) -> Result<Option<TypeSym>, ()> {
+fn read_path(vm: &VM, import: &ImportData, symtable: &NestedSymTable) -> Result<Option<Sym>, ()> {
     if !import.ast.path.is_empty() {
         let path = &import.ast.path;
         let first_name = path.first().cloned().unwrap();
@@ -94,7 +90,7 @@ fn read_path(
 
         for &name in &path[1..] {
             match sym_type {
-                Some(TypeSym::Namespace(namespace_id)) => {
+                Some(Sym::Namespace(namespace_id)) => {
                     let namespace = &vm.namespaces[namespace_id.to_usize()];
                     let symtable = namespace.table.read();
 
@@ -142,7 +138,7 @@ fn import_namespace(
     let sym_type = namespace.table.read().get(element_name);
 
     match sym_type {
-        Some(TypeSym::Fct(fct_id)) => {
+        Some(Sym::Fct(fct_id)) => {
             if !fct_accessible_from(vm, fct_id, import.namespace_id) {
                 let fct = &vm.fcts.idx(fct_id);
                 let fct = fct.read();
@@ -150,26 +146,26 @@ fn import_namespace(
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Fct(fct_id);
+            let new_sym = Sym::Fct(fct_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
-        Some(TypeSym::Namespace(namespace_id)) => {
+        Some(Sym::Namespace(namespace_id)) => {
             if !namespace_accessible_from(vm, namespace_id, import.namespace_id) {
                 let namespace = &vm.namespaces[namespace_id.to_usize()];
                 let msg = SemError::NotAccessible(namespace.name(vm));
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Namespace(namespace_id);
+            let new_sym = Sym::Namespace(namespace_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
-        Some(TypeSym::Global(global_id)) => {
+        Some(Sym::Global(global_id)) => {
             if !global_accessible_from(vm, global_id, import.namespace_id) {
                 let global = &vm.globals.idx(global_id);
                 let global = global.read();
@@ -177,13 +173,13 @@ fn import_namespace(
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Global(global_id);
+            let new_sym = Sym::Global(global_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
-        Some(TypeSym::Const(const_id)) => {
+        Some(Sym::Const(const_id)) => {
             if !const_accessible_from(vm, const_id, import.namespace_id) {
                 let xconst = &vm.consts.idx(const_id);
                 let xconst = xconst.read();
@@ -191,13 +187,13 @@ fn import_namespace(
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Const(const_id);
+            let new_sym = Sym::Const(const_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
-        Some(TypeSym::Class(cls_id)) => {
+        Some(Sym::Class(cls_id)) => {
             if !class_accessible_from(vm, cls_id, import.namespace_id) {
                 let cls = &vm.classes.idx(cls_id);
                 let cls = cls.read();
@@ -205,27 +201,27 @@ fn import_namespace(
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Class(cls_id);
+            let new_sym = Sym::Class(cls_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
-        Some(TypeSym::Enum(enum_id)) => {
+        Some(Sym::Enum(enum_id)) => {
             if !enum_accessible_from(vm, enum_id, import.namespace_id) {
                 let xenum = vm.enums[enum_id].read();
                 let msg = SemError::NotAccessible(xenum.name(vm));
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Enum(enum_id);
+            let new_sym = Sym::Enum(enum_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
-        Some(TypeSym::Struct(struct_id)) => {
+        Some(Sym::Struct(struct_id)) => {
             if !struct_accessible_from(vm, struct_id, import.namespace_id) {
                 let xstruct = vm.structs.idx(struct_id);
                 let xstruct = xstruct.read();
@@ -233,14 +229,14 @@ fn import_namespace(
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Struct(struct_id);
+            let new_sym = Sym::Struct(struct_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
-        Some(TypeSym::Module(module_id)) => {
+        Some(Sym::Module(module_id)) => {
             if !module_accessible_from(vm, module_id, import.namespace_id) {
                 let module = vm.modules.idx(module_id);
                 let module = module.read();
@@ -248,23 +244,23 @@ fn import_namespace(
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Module(module_id);
+            let new_sym = Sym::Module(module_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
-        Some(TypeSym::Trait(trait_id)) => {
+        Some(Sym::Trait(trait_id)) => {
             if !trait_accessible_from(vm, trait_id, import.namespace_id) {
                 let xtrait = vm.traits[trait_id].read();
                 let msg = SemError::NotAccessible(xtrait.name(vm));
                 vm.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
 
-            let new_sym = TypeSym::Trait(trait_id);
+            let new_sym = Sym::Trait(trait_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_type_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(vm, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }
 
@@ -304,9 +300,9 @@ fn import_enum(
     }
 
     if let Some(&variant_id) = xenum.name_to_value.get(&element_name) {
-        let sym = TypeSym::EnumValue(enum_id, variant_id as usize);
+        let sym = Sym::EnumValue(enum_id, variant_id as usize);
         if let Some(sym) = table.write().insert(target_name, sym) {
-            report_type_shadow(vm, target_name, import.file_id.into(), import.ast.pos, sym);
+            report_sym_shadow(vm, target_name, import.file_id.into(), import.ast.pos, sym);
         }
     } else {
         let name = vm.interner.str(element_name).to_string();

@@ -7,8 +7,8 @@ use crate::semck::fctbodyck::lookup::MethodLookup;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type};
-use crate::semck::{report_type_shadow, TypeParamContext};
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::semck::{report_sym_shadow, TypeParamContext};
+use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
@@ -75,10 +75,8 @@ impl<'a> TypeCheck<'a> {
 
     fn add_type_params(&mut self) {
         for (type_param_id, type_param) in self.fct.type_params.iter().enumerate() {
-            self.symtable.insert(
-                type_param.name,
-                TypeSym::TypeParam(TypeParamId(type_param_id)),
-            );
+            self.symtable
+                .insert(type_param.name, Sym::TypeParam(TypeParamId(type_param_id)));
         }
     }
 
@@ -120,10 +118,10 @@ impl<'a> TypeCheck<'a> {
             // params are only allowed to replace functions, vars cannot be replaced
             let term_sym = self.symtable.get(param.name);
             match term_sym {
-                Some(TypeSym::Fct(_)) | None => {
-                    self.symtable.insert(param.name, TypeSym::Var(var_id));
+                Some(Sym::Fct(_)) | None => {
+                    self.symtable.insert(param.name, Sym::Var(var_id));
                 }
-                Some(conflict_sym) => report_type_shadow(
+                Some(conflict_sym) => report_sym_shadow(
                     self.vm,
                     param.name,
                     self.fct.file_id,
@@ -180,9 +178,9 @@ impl<'a> TypeCheck<'a> {
     fn add_local(&mut self, var: Var, pos: Position) -> VarId {
         let name = var.name;
         let var_id = self.add_var(var);
-        match self.symtable.insert(name, TypeSym::Var(var_id)) {
-            Some(TypeSym::Var(_)) | None => {}
-            Some(sym) => report_type_shadow(self.vm, name, self.fct.file_id, pos, sym),
+        match self.symtable.insert(name, Sym::Var(var_id)) {
+            Some(Sym::Var(_)) | None => {}
+            Some(sym) => report_sym_shadow(self.vm, name, self.fct.file_id, pos, sym),
         }
         var_id
     }
@@ -633,7 +631,7 @@ impl<'a> TypeCheck<'a> {
         let sym_type = self.symtable.get(e.name);
 
         match sym_type {
-            Some(TypeSym::Var(varid)) => {
+            Some(Sym::Var(varid)) => {
                 let ty = self.analysis.vars[varid].ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
 
@@ -642,7 +640,7 @@ impl<'a> TypeCheck<'a> {
                 ty
             }
 
-            Some(TypeSym::Global(globalid)) => {
+            Some(Sym::Global(globalid)) => {
                 let glob = self.vm.globals.idx(globalid);
                 let ty = glob.read().ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
@@ -654,7 +652,7 @@ impl<'a> TypeCheck<'a> {
                 ty
             }
 
-            Some(TypeSym::Const(const_id)) => {
+            Some(Sym::Const(const_id)) => {
                 let xconst = self.vm.consts.idx(const_id);
                 let xconst = xconst.read();
 
@@ -667,7 +665,7 @@ impl<'a> TypeCheck<'a> {
                 xconst.ty.clone()
             }
 
-            Some(TypeSym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
+            Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
                 e.id,
                 e.pos,
                 expected_ty,
@@ -676,7 +674,7 @@ impl<'a> TypeCheck<'a> {
                 variant_id,
             ),
 
-            Some(TypeSym::Module(module_id)) => {
+            Some(Sym::Module(module_id)) => {
                 let module = self.vm.modules.idx(module_id);
                 let ty = module.read().ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
@@ -734,7 +732,7 @@ impl<'a> TypeCheck<'a> {
         let sym_type = self.symtable.get(lhs_ident.name);
 
         let lhs_type = match sym_type {
-            Some(TypeSym::Var(varid)) => {
+            Some(Sym::Var(varid)) => {
                 if !self.analysis.vars[varid].reassignable {
                     self.vm
                         .diag
@@ -748,7 +746,7 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.vars[varid].ty.clone()
             }
 
-            Some(TypeSym::Global(global_id)) => {
+            Some(Sym::Global(global_id)) => {
                 let glob = self.vm.globals.idx(global_id);
                 let glob = glob.read();
 
@@ -1253,24 +1251,22 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         callee: &ast::Expr,
-        sym_type: Option<TypeSym>,
+        sym_type: Option<Sym>,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
         match sym_type {
-            Some(TypeSym::Fct(fct_id)) => {
-                self.check_expr_call_fct(e, fct_id, type_params, &arg_types)
-            }
+            Some(Sym::Fct(fct_id)) => self.check_expr_call_fct(e, fct_id, type_params, &arg_types),
 
-            Some(TypeSym::Class(cls_id)) => {
+            Some(Sym::Class(cls_id)) => {
                 self.check_expr_call_ctor(e, cls_id, type_params, &arg_types)
             }
 
-            Some(TypeSym::Struct(struct_id)) => {
+            Some(Sym::Struct(struct_id)) => {
                 self.check_expr_call_struct(e, struct_id, type_params, &arg_types)
             }
 
-            Some(TypeSym::EnumValue(enum_id, variant_id)) => {
+            Some(Sym::EnumValue(enum_id, variant_id)) => {
                 self.check_enum_value_with_args(e, enum_id, type_params, variant_id, &arg_types)
             }
 
@@ -1909,7 +1905,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         match sym_type {
-            Some(TypeSym::Module(module_id)) => {
+            Some(Sym::Module(module_id)) => {
                 if !container_type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
                     self.vm
@@ -1922,7 +1918,7 @@ impl<'a> TypeCheck<'a> {
                 self.check_expr_call_method(e, module_ty, method_name, type_params, &arg_types)
             }
 
-            Some(TypeSym::Class(cls_id)) => {
+            Some(Sym::Class(cls_id)) => {
                 if typeparamck::check_class(
                     self.vm,
                     self.fct,
@@ -1947,7 +1943,7 @@ impl<'a> TypeCheck<'a> {
                 }
             }
 
-            Some(TypeSym::Struct(struct_id)) => {
+            Some(Sym::Struct(struct_id)) => {
                 let xstruct = self.vm.structs.idx(struct_id);
                 let xstruct = xstruct.read();
 
@@ -1982,7 +1978,7 @@ impl<'a> TypeCheck<'a> {
                 }
             }
 
-            Some(TypeSym::Enum(enum_id)) => {
+            Some(Sym::Enum(enum_id)) => {
                 let xenum = self.vm.enums[enum_id].read();
 
                 if let Some(&variant_id) = xenum.name_to_value.get(&method_name) {
@@ -2035,7 +2031,7 @@ impl<'a> TypeCheck<'a> {
                 }
             }
 
-            Some(TypeSym::TypeParam(id)) => {
+            Some(Sym::TypeParam(id)) => {
                 if !container_type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
                     self.vm
@@ -2047,7 +2043,7 @@ impl<'a> TypeCheck<'a> {
                 self.check_expr_call_generic_static_method(e, id, method_name, &arg_types)
             }
 
-            Some(TypeSym::Namespace(namespace_id)) => {
+            Some(Sym::Namespace(namespace_id)) => {
                 if !container_type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
                     self.vm
@@ -2170,7 +2166,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         match sym_type {
-            Some(TypeSym::Enum(id)) => self.check_enum_value_without_args(
+            Some(Sym::Enum(id)) => self.check_enum_value_without_args(
                 e.id,
                 e.pos,
                 expected_ty,
@@ -2179,7 +2175,7 @@ impl<'a> TypeCheck<'a> {
                 element_name,
             ),
 
-            Some(TypeSym::Namespace(namespace_id)) => {
+            Some(Sym::Namespace(namespace_id)) => {
                 self.check_expr_path_namespace(e, expected_ty, namespace_id, element_name)
             }
 
@@ -2193,7 +2189,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn read_path(&mut self, expr: &ast::Expr) -> Result<Option<TypeSym>, ()> {
+    fn read_path(&mut self, expr: &ast::Expr) -> Result<Option<Sym>, ()> {
         if let Some(expr_path) = expr.to_path() {
             let sym_type = self.read_path(&expr_path.lhs)?;
 
@@ -2209,7 +2205,7 @@ impl<'a> TypeCheck<'a> {
             };
 
             match sym_type {
-                Some(TypeSym::Namespace(namespace_id)) => {
+                Some(Sym::Namespace(namespace_id)) => {
                     let namespace = &self.vm.namespaces[namespace_id.to_usize()];
                     let symtable = namespace.table.read();
                     let sym_type = symtable.get(element_name);
@@ -2248,7 +2244,7 @@ impl<'a> TypeCheck<'a> {
         let sym_type = table.get(element_name);
 
         match sym_type {
-            Some(TypeSym::Global(global_id)) => {
+            Some(Sym::Global(global_id)) => {
                 if !global_accessible_from(self.vm, global_id, self.namespace_id) {
                     let global = &self.vm.globals.idx(global_id);
                     let global = global.read();
@@ -2267,7 +2263,7 @@ impl<'a> TypeCheck<'a> {
                 ty
             }
 
-            Some(TypeSym::Const(const_id)) => {
+            Some(Sym::Const(const_id)) => {
                 if !const_accessible_from(self.vm, const_id, self.namespace_id) {
                     let xconst = self.vm.consts.idx(const_id);
                     let xconst = xconst.read();
@@ -2287,7 +2283,7 @@ impl<'a> TypeCheck<'a> {
                 xconst.ty.clone()
             }
 
-            Some(TypeSym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
+            Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
                 e.id,
                 e.pos,
                 expected_ty,
@@ -2404,15 +2400,14 @@ impl<'a> TypeCheck<'a> {
             let sym_term = self.symtable.get(method_name);
 
             match sym_term {
-                Some(TypeSym::EnumValue(enum_id, variant_id)) => self
-                    .check_enum_value_without_args_id(
-                        e.id,
-                        e.pos,
-                        expected_ty,
-                        enum_id,
-                        type_params,
-                        variant_id,
-                    ),
+                Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
+                    e.id,
+                    e.pos,
+                    expected_ty,
+                    enum_id,
+                    type_params,
+                    variant_id,
+                ),
 
                 _ => {
                     self.vm
@@ -2454,7 +2449,7 @@ impl<'a> TypeCheck<'a> {
             let sym_type = self.symtable.get(container_name);
 
             match sym_type {
-                Some(TypeSym::Enum(enum_id)) => self.check_enum_value_without_args(
+                Some(Sym::Enum(enum_id)) => self.check_enum_value_without_args(
                     e.id,
                     e.pos,
                     expected_ty,

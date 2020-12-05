@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck::{self, TypeParamContext};
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{FileId, NamespaceId, StructFieldData, StructFieldId, StructId, TypeParamId, VM};
 
@@ -114,7 +114,7 @@ impl<'x> StructCheck<'x> {
                     }
                 }
 
-                let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
+                let sym = Sym::TypeParam(TypeParamId(type_param_id));
                 self.symtable.insert(type_param.name, sym);
                 type_param_id += 1;
             }

@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::sym::{NestedSymTable, SymTable, TypeSym};
+use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
@@ -68,9 +68,9 @@ fn read_type_basic(
     let sym = sym.unwrap();
 
     match sym {
-        TypeSym::Class(cls_id) => read_type_class(vm, table, file_id, basic, cls_id, ctxt),
+        Sym::Class(cls_id) => read_type_class(vm, table, file_id, basic, cls_id, ctxt),
 
-        TypeSym::Trait(trait_id) => {
+        Sym::Trait(trait_id) => {
             if !trait_accessible_from(vm, trait_id, table.namespace_id()) {
                 let xtrait = vm.traits[trait_id].read();
                 let msg = SemError::NotAccessible(xtrait.name(vm));
@@ -85,11 +85,11 @@ fn read_type_basic(
             Some(SourceType::TraitObject(trait_id))
         }
 
-        TypeSym::Struct(struct_id) => read_type_struct(vm, table, file_id, basic, struct_id, ctxt),
+        Sym::Struct(struct_id) => read_type_struct(vm, table, file_id, basic, struct_id, ctxt),
 
-        TypeSym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id, ctxt),
+        Sym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id, ctxt),
 
-        TypeSym::TypeParam(type_param_id) => {
+        Sym::TypeParam(type_param_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
                 vm.diag.lock().report(file_id, basic.pos, msg);
@@ -107,7 +107,7 @@ fn read_type_path(
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
-) -> Result<Option<TypeSym>, ()> {
+) -> Result<Option<Sym>, ()> {
     if basic.path.len() > 1 {
         let first_name = basic.path.first().cloned().unwrap();
         let last_name = basic.path.last().cloned().unwrap();
@@ -130,10 +130,10 @@ fn table_for_namespace(
     vm: &VM,
     file_id: FileId,
     basic: &TypeBasicType,
-    sym: Option<TypeSym>,
+    sym: Option<Sym>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
-        Some(TypeSym::Namespace(namespace_id)) => {
+        Some(Sym::Namespace(namespace_id)) => {
             Ok(vm.namespaces[namespace_id.to_usize()].table.clone())
         }
 

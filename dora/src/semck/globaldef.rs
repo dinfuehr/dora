@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::gc::Address;
-use crate::semck::report_type_shadow;
-use crate::sym::{SymTable, TypeSym};
+use crate::semck::report_sym_shadow;
+use crate::sym::{Sym, SymTable};
 use crate::ty::SourceType;
 use crate::vm::{
     self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
@@ -212,9 +212,9 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
         let id = NamespaceData::new(self.vm, self.namespace_id, node.name, node.is_pub);
 
-        let sym = TypeSym::Namespace(id);
+        let sym = Sym::Namespace(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
 
         if node.elements.is_none() {
@@ -243,9 +243,9 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         self.vm.traits.push(RwLock::new(xtrait));
 
-        let sym = TypeSym::Trait(id);
+        let sym = Sym::Trait(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -283,9 +283,9 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             id
         };
 
-        let sym = TypeSym::Global(id);
+        let sym = Sym::Global(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -368,9 +368,9 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             id
         };
 
-        let sym = TypeSym::Module(id);
+        let sym = Sym::Module(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -396,9 +396,9 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             id
         };
 
-        let sym = TypeSym::Const(id);
+        let sym = Sym::Const(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -451,10 +451,10 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             id
         };
 
-        let sym = TypeSym::Class(id);
+        let sym = Sym::Class(id);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -492,19 +492,19 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             id
         };
 
-        let sym = TypeSym::Struct(id);
+        let sym = Sym::Struct(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
         let fct = Fct::new(self.file_id, self.namespace_id, node, FctParent::None);
         let fctid = self.vm.add_fct(fct);
-        let sym = TypeSym::Fct(fctid);
+        let sym = Sym::Fct(fctid);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -535,9 +535,9 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         self.vm.enums.push(RwLock::new(xenum));
 
-        let sym = TypeSym::Enum(id);
+        let sym = Sym::Enum(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_type_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
         }
     }
 }
@@ -575,7 +575,7 @@ impl<'x> GlobalDef<'x> {
         }
     }
 
-    fn insert(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+    fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         let level = self.vm.namespace_table(self.namespace_id);
         let mut level = level.write();
         level.insert(name, sym)

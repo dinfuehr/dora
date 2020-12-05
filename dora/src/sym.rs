@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use self::TypeSym::*;
+use self::Sym::*;
 
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId, NamespaceId, StructId, TraitId,
@@ -40,7 +40,7 @@ impl<'a> NestedSymTable<'a> {
         self.levels.len()
     }
 
-    pub fn get(&self, name: Name) -> Option<TypeSym> {
+    pub fn get(&self, name: Name) -> Option<Sym> {
         for level in self.levels.iter().rev() {
             if let Some(val) = level.get(name) {
                 return Some(val.clone());
@@ -102,14 +102,14 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_var())
     }
 
-    pub fn insert(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+    pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }
 }
 
 #[derive(Debug)]
 pub struct SymTable {
-    table: HashMap<Name, TypeSym>,
+    table: HashMap<Name, Sym>,
 }
 
 impl SymTable {
@@ -120,11 +120,11 @@ impl SymTable {
         }
     }
 
-    pub fn get(&self, name: Name) -> Option<TypeSym> {
+    pub fn get(&self, name: Name) -> Option<Sym> {
         self.table.get(&name).cloned()
     }
 
-    pub fn insert(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+    pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.table.insert(name, sym)
     }
 
@@ -162,7 +162,7 @@ impl SymTable {
 }
 
 #[derive(Debug, Clone)]
-pub enum TypeSym {
+pub enum Sym {
     Class(ClassId),
     Struct(StructId),
     Trait(TraitId),
@@ -178,7 +178,7 @@ pub enum TypeSym {
     EnumValue(EnumId, usize),
 }
 
-impl TypeSym {
+impl Sym {
     pub fn is_class(&self) -> bool {
         match *self {
             Class(_) => true,

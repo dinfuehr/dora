@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck::{self, TypeParamContext};
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{self, Fct, FctId, FctParent, TypeParamId, VM};
 
@@ -24,7 +24,7 @@ pub fn check(vm: &VM) {
                 let cls = cls.read();
 
                 for (type_param_id, param) in cls.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
+                    let sym = Sym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
@@ -38,7 +38,7 @@ pub fn check(vm: &VM) {
                 let ximpl = vm.impls[impl_id].read();
 
                 for (type_param_id, param) in ximpl.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
+                    let sym = Sym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
@@ -52,7 +52,7 @@ pub fn check(vm: &VM) {
                 let extension = vm.extensions[extension_id].read();
 
                 for (type_param_id, param) in extension.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
+                    let sym = Sym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
@@ -68,7 +68,7 @@ pub fn check(vm: &VM) {
                 let xtrait = vm.traits[trait_id].read();
 
                 for (type_param_id, param) in xtrait.type_params.iter().enumerate() {
-                    let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
+                    let sym = Sym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
@@ -128,8 +128,7 @@ pub fn check(vm: &VM) {
                         }
                     }
 
-                    let sym =
-                        TypeSym::TypeParam(TypeParamId(container_type_params + type_param_id));
+                    let sym = Sym::TypeParam(TypeParamId(container_type_params + type_param_id));
                     sym_table.insert(type_param.name, sym);
                 }
             } else {

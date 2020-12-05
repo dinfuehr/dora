@@ -7,7 +7,7 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDef, ClassDefId, ClassId, EnumId, ExtensionId, FctId, Intrinsic, ModuleId, NamespaceId,
@@ -92,7 +92,7 @@ pub fn fill_prelude(vm: &mut VM) {
     }
 
     let stdlib_name = vm.interner.intern("std");
-    prelude.insert(stdlib_name, TypeSym::Namespace(vm.stdlib_namespace_id));
+    prelude.insert(stdlib_name, Sym::Namespace(vm.stdlib_namespace_id));
 
     {
         // include None and Some from Option
@@ -100,13 +100,12 @@ pub fn fill_prelude(vm: &mut VM) {
         let option_id = stdlib.get(option_name);
 
         match option_id {
-            Some(TypeSym::Enum(enum_id)) => {
+            Some(Sym::Enum(enum_id)) => {
                 let xenum = &vm.enums[enum_id];
                 let xenum = xenum.read();
 
                 for variant in &xenum.variants {
-                    let old_sym =
-                        prelude.insert(variant.name, TypeSym::EnumValue(enum_id, variant.id));
+                    let old_sym = prelude.insert(variant.name, Sym::EnumValue(enum_id, variant.id));
                     assert!(old_sym.is_none());
                 }
             }
@@ -750,7 +749,7 @@ fn find_static(vm: &VM, namespace_id: NamespaceId, container_name: &str, name: &
     let intern_name = vm.interner.intern(name);
 
     match type_sym {
-        Some(TypeSym::Module(module_id)) => {
+        Some(Sym::Module(module_id)) => {
             let module = vm.modules.idx(module_id);
             let module = module.read();
 
@@ -764,7 +763,7 @@ fn find_static(vm: &VM, namespace_id: NamespaceId, container_name: &str, name: &
             }
         }
 
-        Some(TypeSym::Class(cls_id)) => {
+        Some(Sym::Class(cls_id)) => {
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
 
@@ -907,15 +906,15 @@ fn common_method(
     let type_sym = symtable.get(container_name_interned);
 
     match type_sym {
-        Some(TypeSym::Class(cls_id)) => {
+        Some(Sym::Class(cls_id)) => {
             internal_class_method(vm, cls_id, method_name, is_static, implementation);
         }
 
-        Some(TypeSym::Module(module_id)) => {
+        Some(Sym::Module(module_id)) => {
             internal_module_method(vm, module_id, method_name, is_static, implementation);
         }
 
-        Some(TypeSym::Struct(struct_id)) => {
+        Some(Sym::Struct(struct_id)) => {
             let xstruct = vm.structs.idx(struct_id);
             let xstruct = xstruct.read();
             internal_extension_method(
@@ -926,7 +925,7 @@ fn common_method(
                 implementation,
             );
         }
-        Some(TypeSym::Enum(enum_id)) => {
+        Some(Sym::Enum(enum_id)) => {
             let xenum = &vm.enums[enum_id].read();
             internal_extension_method(
                 vm,

@@ -6,7 +6,7 @@ use dora_parser::ast::TypeParam;
 
 use crate::error::msg::SemError;
 use crate::semck::{self, TypeParamContext};
-use crate::sym::{NestedSymTable, TypeSym};
+use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{EnumData, EnumVariant, FileId, TypeParamId, VM};
 
@@ -128,7 +128,7 @@ impl<'x> EnumCheck<'x> {
                     }
                 }
 
-                let sym = TypeSym::TypeParam(TypeParamId(type_param_id));
+                let sym = Sym::TypeParam(TypeParamId(type_param_id));
                 symtable.insert(type_param.name, sym);
                 type_param_id += 1;
             }
