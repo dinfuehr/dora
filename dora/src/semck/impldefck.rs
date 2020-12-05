@@ -117,7 +117,10 @@ impl<'x> ImplCheck<'x> {
                     xenum.impls.push(ximpl.id);
                 }
 
-                SourceType::Int32 | SourceType::Int64 => {
+                SourceType::Int32
+                | SourceType::Int64
+                | SourceType::Float32
+                | SourceType::Float64 => {
                     let struct_id = ximpl
                         .ty
                         .primitive_struct_id(self.vm)

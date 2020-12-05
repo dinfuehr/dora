@@ -35,8 +35,6 @@ pub struct KnownClasses {
     pub bool: ClassId,
     pub uint8: ClassId,
     pub char: ClassId,
-    pub float32: ClassId,
-    pub float64: ClassId,
     pub object: ClassId,
     pub array: ClassId,
     pub string: ClassId,
@@ -50,6 +48,8 @@ pub struct KnownClasses {
 pub struct KnownStructs {
     pub int32: StructId,
     pub int64: StructId,
+    pub float32: StructId,
+    pub float64: StructId,
 }
 
 #[derive(Debug)]
@@ -141,17 +141,6 @@ impl KnownElements {
             let cls_id = specialize_class_id(vm, self.classes.stacktrace_element);
             *ste_class_def = Some(cls_id);
             cls_id
-        }
-    }
-
-    pub fn find_class(&self, ty: SourceType) -> Option<ClassId> {
-        match ty {
-            SourceType::Bool => Some(self.classes.bool),
-            SourceType::UInt8 => Some(self.classes.uint8),
-            SourceType::Char => Some(self.classes.char),
-            SourceType::Float32 => Some(self.classes.float32),
-            SourceType::Float64 => Some(self.classes.float64),
-            _ => None,
         }
     }
 }

@@ -1,4 +1,6 @@
-@pub @internal class Float32 {
+@pub @internal struct Float32
+
+impl Float32 {
   @internal fun toInt32(): Int32;
   @internal fun toInt64(): Int64;
   @internal fun toFloat64(): Float64;
@@ -34,9 +36,7 @@
   @internal fun sqrt(): Float32;
 
   fun hash(): Int32 = self.asInt32();
-}
 
-module Float32 {
-  fun bits(): Int32 = 32;
-  fun bytes(): Int32 = 4;
+  @static fun bits(): Int32 = 32;
+  @static fun bytes(): Int32 = 4;
 }

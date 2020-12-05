@@ -25,8 +25,8 @@ pub fn resolve_internal_classes(vm: &mut VM) {
     vm.known.structs.int32 = internal_struct(vm, "Int32", Some(SourceType::Int32));
     vm.known.structs.int64 = internal_struct(vm, "Int64", Some(SourceType::Int64));
 
-    vm.known.classes.float32 = internal_class(vm, "Float32", Some(SourceType::Float32));
-    vm.known.classes.float64 = internal_class(vm, "Float64", Some(SourceType::Float64));
+    vm.known.structs.float32 = internal_struct(vm, "Float32", Some(SourceType::Float32));
+    vm.known.structs.float64 = internal_struct(vm, "Float64", Some(SourceType::Float64));
 
     vm.known.classes.object = find_class(vm, "Object");
     vm.known.classes.string = internal_class(vm, "String", None);
@@ -479,59 +479,79 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_class_method(vm, cls_id, "getByte", Intrinsic::StrGet);
     native_class_method(vm, cls_id, "clone", stdlib::str_clone as *const u8);
 
-    let cls_id = vm.known.classes.float32;
-    native_class_method(
+    let struct_id = vm.known.structs.float32;
+    native_struct_method(
         vm,
-        cls_id,
+        struct_id,
         "toString",
         stdlib::float32_to_string as *const u8,
     );
-    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::Float32ToInt32);
-    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::Float32ToInt64);
-    intrinsic_class_method(vm, cls_id, "toFloat64", Intrinsic::PromoteFloat32ToFloat64);
-
-    intrinsic_class_method(vm, cls_id, "asInt32", Intrinsic::ReinterpretFloat32AsInt32);
-
-    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::Float32Eq);
-    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::Float32Cmp);
-
-    intrinsic_class_method(vm, cls_id, "plus", Intrinsic::Float32Add);
-    intrinsic_class_method(vm, cls_id, "minus", Intrinsic::Float32Sub);
-    intrinsic_class_method(vm, cls_id, "times", Intrinsic::Float32Mul);
-    intrinsic_class_method(vm, cls_id, "div", Intrinsic::Float32Div);
-
-    intrinsic_class_method(vm, cls_id, "unaryPlus", Intrinsic::Float32Plus);
-    intrinsic_class_method(vm, cls_id, "unaryMinus", Intrinsic::Float32Neg);
-
-    intrinsic_class_method(vm, cls_id, "isNan", Intrinsic::Float32IsNan);
-    intrinsic_class_method(vm, cls_id, "sqrt", Intrinsic::Float32Sqrt);
-
-    let cls_id = vm.known.classes.float64;
-    native_class_method(
+    intrinsic_struct_method(vm, struct_id, "toInt32", Intrinsic::Float32ToInt32);
+    intrinsic_struct_method(vm, struct_id, "toInt64", Intrinsic::Float32ToInt64);
+    intrinsic_struct_method(
         vm,
-        cls_id,
+        struct_id,
+        "toFloat64",
+        Intrinsic::PromoteFloat32ToFloat64,
+    );
+
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "asInt32",
+        Intrinsic::ReinterpretFloat32AsInt32,
+    );
+
+    intrinsic_struct_method(vm, struct_id, "equals", Intrinsic::Float32Eq);
+    intrinsic_struct_method(vm, struct_id, "compareTo", Intrinsic::Float32Cmp);
+
+    intrinsic_struct_method(vm, struct_id, "plus", Intrinsic::Float32Add);
+    intrinsic_struct_method(vm, struct_id, "minus", Intrinsic::Float32Sub);
+    intrinsic_struct_method(vm, struct_id, "times", Intrinsic::Float32Mul);
+    intrinsic_struct_method(vm, struct_id, "div", Intrinsic::Float32Div);
+
+    intrinsic_struct_method(vm, struct_id, "unaryPlus", Intrinsic::Float32Plus);
+    intrinsic_struct_method(vm, struct_id, "unaryMinus", Intrinsic::Float32Neg);
+
+    intrinsic_struct_method(vm, struct_id, "isNan", Intrinsic::Float32IsNan);
+    intrinsic_struct_method(vm, struct_id, "sqrt", Intrinsic::Float32Sqrt);
+
+    let struct_id = vm.known.structs.float64;
+    native_struct_method(
+        vm,
+        struct_id,
         "toString",
         stdlib::float64_to_string as *const u8,
     );
-    intrinsic_class_method(vm, cls_id, "toInt32", Intrinsic::Float64ToInt32);
-    intrinsic_class_method(vm, cls_id, "toInt64", Intrinsic::Float64ToInt64);
-    intrinsic_class_method(vm, cls_id, "toFloat32", Intrinsic::DemoteFloat64ToFloat32);
+    intrinsic_struct_method(vm, struct_id, "toInt32", Intrinsic::Float64ToInt32);
+    intrinsic_struct_method(vm, struct_id, "toInt64", Intrinsic::Float64ToInt64);
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "toFloat32",
+        Intrinsic::DemoteFloat64ToFloat32,
+    );
 
-    intrinsic_class_method(vm, cls_id, "asInt64", Intrinsic::ReinterpretFloat64AsInt64);
+    intrinsic_struct_method(
+        vm,
+        struct_id,
+        "asInt64",
+        Intrinsic::ReinterpretFloat64AsInt64,
+    );
 
-    intrinsic_class_method(vm, cls_id, "equals", Intrinsic::Float64Eq);
-    intrinsic_class_method(vm, cls_id, "compareTo", Intrinsic::Float64Cmp);
+    intrinsic_struct_method(vm, struct_id, "equals", Intrinsic::Float64Eq);
+    intrinsic_struct_method(vm, struct_id, "compareTo", Intrinsic::Float64Cmp);
 
-    intrinsic_class_method(vm, cls_id, "plus", Intrinsic::Float64Add);
-    intrinsic_class_method(vm, cls_id, "minus", Intrinsic::Float64Sub);
-    intrinsic_class_method(vm, cls_id, "times", Intrinsic::Float64Mul);
-    intrinsic_class_method(vm, cls_id, "div", Intrinsic::Float64Div);
+    intrinsic_struct_method(vm, struct_id, "plus", Intrinsic::Float64Add);
+    intrinsic_struct_method(vm, struct_id, "minus", Intrinsic::Float64Sub);
+    intrinsic_struct_method(vm, struct_id, "times", Intrinsic::Float64Mul);
+    intrinsic_struct_method(vm, struct_id, "div", Intrinsic::Float64Div);
 
-    intrinsic_class_method(vm, cls_id, "unaryPlus", Intrinsic::Float64Plus);
-    intrinsic_class_method(vm, cls_id, "unaryMinus", Intrinsic::Float64Neg);
+    intrinsic_struct_method(vm, struct_id, "unaryPlus", Intrinsic::Float64Plus);
+    intrinsic_struct_method(vm, struct_id, "unaryMinus", Intrinsic::Float64Neg);
 
-    intrinsic_class_method(vm, cls_id, "isNan", Intrinsic::Float64IsNan);
-    intrinsic_class_method(vm, cls_id, "sqrt", Intrinsic::Float64Sqrt);
+    intrinsic_struct_method(vm, struct_id, "isNan", Intrinsic::Float64IsNan);
+    intrinsic_struct_method(vm, struct_id, "sqrt", Intrinsic::Float64Sqrt);
 
     let module_id = vm.known.modules.string;
     native_module_method(

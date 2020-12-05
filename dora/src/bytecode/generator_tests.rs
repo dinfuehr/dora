@@ -3148,7 +3148,7 @@ fn gen_self_for_int64() {
 
 #[test]
 fn gen_self_for_float32() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(): Self; }
             impl MyId for Float32 { fun f(): Float32 { return self; } }
             ",
@@ -3160,7 +3160,7 @@ fn gen_self_for_float32() {
 
 #[test]
 fn gen_self_for_float64() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(): Self; }
             impl MyId for Float64 { fun f(): Float64 { return self; } }
             ",
@@ -3232,7 +3232,7 @@ fn gen_self_assign_for_int64() {
 
 #[test]
 fn gen_self_assign_for_float32() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(); }
             impl MyId for Float32 { fun f() { let x = self; } }
             ",
@@ -3244,7 +3244,7 @@ fn gen_self_assign_for_float32() {
 
 #[test]
 fn gen_self_assign_for_float64() {
-    let result = code_method_with_class_name(
+    let result = code_method_with_struct_name(
         "trait MyId { fun f(); }
             impl MyId for Float64 { fun f() { let x = self; } }
             ",
@@ -3285,7 +3285,9 @@ fn gen_reinterpret_float32_as_int32() {
     gen_fct(
         "fun f(a: Float32): Int32 { a.asInt32() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Float32", "asInt32", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Float32", "asInt32", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3327,7 +3329,9 @@ fn gen_reinterpret_float64_as_int64() {
     gen_fct(
         "fun f(a: Float64): Int64 { a.asInt64() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Float64", "asInt64", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Float64", "asInt64", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3485,7 +3489,9 @@ fn gen_truncate_float32_to_int32() {
     gen_fct(
         "fun f(a: Float32): Int32 { a.toInt32() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Float32", "toInt32", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Float32", "toInt32", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3505,7 +3511,9 @@ fn gen_truncate_float32_to_int64() {
     gen_fct(
         "fun f(a: Float32): Int64 { a.toInt64() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Float32", "toInt64", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Float32", "toInt64", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3525,7 +3533,9 @@ fn gen_truncate_float64_to_int32() {
     gen_fct(
         "fun f(a: Float64): Int32 { a.toInt32() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Float64", "toInt32", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Float64", "toInt32", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3545,7 +3555,9 @@ fn gen_truncate_float64_to_int64() {
     gen_fct(
         "fun f(a: Float64): Int64 { a.toInt64() }",
         |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Float64", "toInt64", false).unwrap();
+            let fct_id = vm
+                .struct_method_by_name("Float64", "toInt64", false)
+                .unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3939,7 +3951,7 @@ fn gen_compare_to_method() {
         "fun f(a: Float32, b: Float32): Int32 { a.compareTo(b) }",
         |vm, code, fct| {
             let fct_id = vm
-                .cls_method_by_name("Float32", "compareTo", false)
+                .struct_method_by_name("Float32", "compareTo", false)
                 .expect("Float32::compareTo not found");
             let expected = vec![
                 PushRegister(r(0)),
@@ -3959,7 +3971,7 @@ fn gen_compare_to_method() {
         "fun f(a: Float64, b: Float64): Int32 { a.compareTo(b) }",
         |vm, code, fct| {
             let fct_id = vm
-                .cls_method_by_name("Float64", "compareTo", false)
+                .struct_method_by_name("Float64", "compareTo", false)
                 .expect("Float64::compareTo not found");
             let expected = vec![
                 PushRegister(r(0)),
