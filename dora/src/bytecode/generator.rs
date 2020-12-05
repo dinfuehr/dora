@@ -582,7 +582,7 @@ impl<'a> AstBytecodeGen<'a> {
             } else {
                 let ty = self.ty(part.id());
 
-                if ty.cls_id(self.vm) == Some(self.vm.known.classes.string) {
+                if ty.cls_id() == Some(self.vm.known.classes.string) {
                     self.visit_expr(part, DataDest::Reg(part_register));
                 } else if ty.is_type_param() {
                     let type_list_id = match ty {
@@ -700,7 +700,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_conv(&mut self, expr: &ExprConvType, dest: DataDest) -> Register {
         let conv = self.src.map_convs.get(expr.id).clone().unwrap();
         let ty = conv.check_type.clone();
-        let cls_id = ty.cls_id(self.vm).expect("class expected");
+        let cls_id = ty.cls_id().expect("class expected");
         let type_params = ty.type_params(self.vm);
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
@@ -806,7 +806,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
         };
 
-        let cls_id = cls_ty.cls_id(self.vm).expect("class expected");
+        let cls_id = cls_ty.cls_id().expect("class expected");
         let type_params = cls_ty.type_params(self.vm);
         let field_idx = self
             .gen
@@ -1169,7 +1169,7 @@ impl<'a> AstBytecodeGen<'a> {
         // We need array of elements
         let element_ty = arg_types.last().cloned().unwrap();
         let ty = self.vm.known.array_ty(self.vm, element_ty.clone());
-        let cls_id = ty.cls_id(self.vm).expect("class expected");
+        let cls_id = ty.cls_id().expect("class expected");
         let type_params = ty.type_params(self.vm);
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
@@ -1219,7 +1219,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Ctor(_, _) => {
                 let ty = arg_types.first().cloned().unwrap();
 
-                let cls_id = ty.cls_id(self.vm).expect("should be class");
+                let cls_id = ty.cls_id().expect("should be class");
                 let type_params = ty.type_params(self.vm);
 
                 let idx = self.gen.add_const_cls_types(cls_id, type_params);
@@ -1828,7 +1828,7 @@ impl<'a> AstBytecodeGen<'a> {
                 Intrinsic::ArrayWithValues => {
                     let ty = self.ty(expr.id);
                     assert_eq!(
-                        ty.cls_id(self.vm).expect("class expected"),
+                        ty.cls_id().expect("class expected"),
                         self.vm.known.classes.array
                     );
                     let type_params = ty.type_params(self.vm);
@@ -1890,7 +1890,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_intrinsic_new_array(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
         // We need array of elements
         let element_ty = self.ty(expr.id);
-        let cls_id = element_ty.cls_id(self.vm).expect("class expected");
+        let cls_id = element_ty.cls_id().expect("class expected");
         let type_params = element_ty.type_params(self.vm);
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
@@ -2140,20 +2140,20 @@ impl<'a> AstBytecodeGen<'a> {
         match intrinsic {
             Intrinsic::ArrayGet | Intrinsic::StrGet => {
                 let ty = self.ty(lhs.id());
-                let ty: Option<BytecodeType> =
-                    if ty.cls_id(self.vm) == Some(self.vm.known.classes.string) {
-                        Some(BytecodeType::UInt8)
-                    } else {
-                        let ty = ty.type_params(self.vm);
-                        let ty = ty[0].clone();
+                let ty: Option<BytecodeType> = if ty.cls_id() == Some(self.vm.known.classes.string)
+                {
+                    Some(BytecodeType::UInt8)
+                } else {
+                    let ty = ty.type_params(self.vm);
+                    let ty = ty[0].clone();
 
-                        if ty.is_unit() {
-                            assert!(dest.is_unit());
-                            None
-                        } else {
-                            Some(BytecodeType::from_ty(self.vm, ty))
-                        }
-                    };
+                    if ty.is_unit() {
+                        assert!(dest.is_unit());
+                        None
+                    } else {
+                        Some(BytecodeType::from_ty(self.vm, ty))
+                    }
+                };
 
                 let dest = if let Some(ref ty) = ty {
                     Some(self.ensure_register(dest, ty.clone()))
@@ -2485,7 +2485,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
         };
 
-        let cls_id = cls_ty.cls_id(self.vm).expect("class expected");
+        let cls_id = cls_ty.cls_id().expect("class expected");
         let type_params = cls_ty.type_params(self.vm);
         let field_idx = self
             .gen
@@ -2667,7 +2667,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: SourceType) -> FctId {
-        let cls_id = object_type.cls_id(self.vm).unwrap();
+        let cls_id = object_type.cls_id().unwrap();
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 

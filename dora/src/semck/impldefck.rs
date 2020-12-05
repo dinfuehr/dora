@@ -86,7 +86,7 @@ impl<'x> ImplCheck<'x> {
             &self.ast.class_type,
             TypeParamContext::Impl(&*ximpl),
         ) {
-            if class_ty.cls_id(self.vm).is_some()
+            if class_ty.is_cls()
                 || class_ty.is_struct()
                 || class_ty.is_enum()
                 || class_ty.is_primitive()
@@ -139,11 +139,13 @@ impl<'x> ImplCheck<'x> {
                     xstruct.impls.push(ximpl.id);
                 }
 
-                _ => {
-                    let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
+                SourceType::Class(cls_id, _) => {
+                    let cls = self.vm.classes.idx(cls_id);
                     let mut cls = cls.write();
                     cls.impls.push(ximpl.id);
                 }
+
+                _ => unreachable!(),
             }
         }
 

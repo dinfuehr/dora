@@ -80,18 +80,10 @@ impl<'a> MethodLookup<'a> {
     }
 
     pub fn method(mut self, obj: SourceType) -> MethodLookup<'a> {
-        self.kind = if let Some(_) = obj.cls_id(self.vm) {
-            Some(LookupKind::Method(obj))
-        } else if let Some(_) = obj.module_id() {
-            Some(LookupKind::Method(obj))
-        } else if let SourceType::TraitObject(trait_id) = obj {
+        self.kind = if let SourceType::TraitObject(trait_id) = obj {
             Some(LookupKind::Trait(trait_id))
-        } else if obj.is_enum() {
-            Some(LookupKind::Method(obj))
-        } else if obj.is_struct() || obj.is_primitive() {
-            Some(LookupKind::Method(obj))
         } else {
-            panic!("neither object nor trait object: {:?}", obj);
+            Some(LookupKind::Method(obj))
         };
 
         self
@@ -354,7 +346,7 @@ impl<'a> MethodLookup<'a> {
                 name,
                 is_static,
             )
-        } else {
+        } else if object_type.is_cls() {
             find_methods_in_class(
                 self.vm,
                 object_type,
@@ -362,6 +354,8 @@ impl<'a> MethodLookup<'a> {
                 name,
                 is_static,
             )
+        } else {
+            Vec::new()
         };
 
         self.found_multiple_functions = candidates.len() > 1;

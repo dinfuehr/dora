@@ -52,7 +52,7 @@ pub fn check_struct(
 pub fn check_super<'a>(vm: &VM, cls: &Class, error: ErrorReporting) -> bool {
     let object_type = cls.parent_class.clone().expect("parent_class missing");
 
-    let super_cls_id = object_type.cls_id(vm).expect("no class");
+    let super_cls_id = object_type.cls_id().expect("no class");
     let super_cls = vm.classes.idx(super_cls_id);
     let super_cls = super_cls.read();
 

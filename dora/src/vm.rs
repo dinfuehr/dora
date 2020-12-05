@@ -197,7 +197,6 @@ impl VM {
             interner,
             known: KnownElements {
                 classes: KnownClasses {
-                    unit: empty_class_id,
                     object: empty_class_id,
                     array: empty_class_id,
                     string: empty_class_id,

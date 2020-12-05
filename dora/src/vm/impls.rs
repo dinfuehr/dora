@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    extension_matches_ty, ClassId, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
+    extension_matches_ty, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -40,10 +40,6 @@ pub struct ImplData {
 impl ImplData {
     pub fn trait_id(&self) -> TraitId {
         self.trait_id.expect("trait_id not initialized yet.")
-    }
-
-    pub fn cls_id(&self, vm: &VM) -> ClassId {
-        self.ty.cls_id(vm).expect("class_ty not initialized yet.")
     }
 
     pub fn find_implements(&self, vm: &VM, fct_id: FctId) -> Option<FctId> {

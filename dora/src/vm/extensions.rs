@@ -299,7 +299,7 @@ mod matching {
             }
 
             SourceType::Class(check_cls_id, _) => {
-                let ext_cls_id = if let Some(cls_id) = ext_ty.cls_id(vm) {
+                let ext_cls_id = if let Some(cls_id) = ext_ty.cls_id() {
                     cls_id
                 } else {
                     return false;

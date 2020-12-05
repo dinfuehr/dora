@@ -173,7 +173,7 @@ impl Class {
             }
 
             if let Some(ref parent_class) = cls.parent_class {
-                classid = parent_class.cls_id(vm).expect("no class");
+                classid = parent_class.cls_id().expect("no class");
             } else {
                 return None;
             }
@@ -219,7 +219,7 @@ impl Class {
 
             match cls.parent_class {
                 Some(ref parent_class) => {
-                    cls_id = parent_class.cls_id(vm).expect("no class");
+                    cls_id = parent_class.cls_id().expect("no class");
                 }
 
                 None => {
@@ -235,12 +235,12 @@ pub fn find_field_in_class(
     mut class: SourceType,
     name: Name,
 ) -> Option<(SourceType, FieldId, SourceType)> {
-    if class.cls_id(vm).is_none() {
+    if class.cls_id().is_none() {
         return None;
     }
 
     loop {
-        let cls_id = class.cls_id(vm).expect("no class");
+        let cls_id = class.cls_id().expect("no class");
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -271,7 +271,7 @@ pub fn find_method_in_class(
     name: Name,
 ) -> Option<(SourceType, FctId)> {
     loop {
-        let cls_id = class.cls_id(vm).expect("no class");
+        let cls_id = class.cls_id().expect("no class");
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -312,7 +312,7 @@ pub fn find_methods_in_class(
     let mut class_type = object_type.clone();
 
     loop {
-        let cls_id = class_type.cls_id(vm).expect("no class");
+        let cls_id = class_type.cls_id().expect("no class");
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -345,7 +345,7 @@ pub fn find_methods_in_class(
 
     // Find extension methods
     {
-        let cls_id = object_type.cls_id(vm).expect("no class");
+        let cls_id = object_type.cls_id().expect("no class");
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -375,7 +375,7 @@ pub fn find_methods_in_class(
     let mut class_type = object_type;
 
     loop {
-        let cls_id = class_type.cls_id(vm).expect("no class");
+        let cls_id = class_type.cls_id().expect("no class");
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 

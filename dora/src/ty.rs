@@ -169,10 +169,9 @@ impl SourceType {
         }
     }
 
-    pub fn cls_id(&self, vm: &VM) -> Option<ClassId> {
+    pub fn cls_id(&self) -> Option<ClassId> {
         match *self {
             SourceType::Class(cls_id, _) => Some(cls_id),
-            SourceType::Unit => Some(vm.known.classes.unit),
             _ => None,
         }
     }
@@ -287,10 +286,10 @@ impl SourceType {
             return false;
         }
 
-        let cls_id = self.cls_id(vm).unwrap();
+        let cls_id = self.cls_id().unwrap();
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
-        cls.subclass_from(vm, ty.cls_id(vm).unwrap())
+        cls.subclass_from(vm, ty.cls_id().unwrap())
     }
 
     pub fn name(&self, vm: &VM) -> String {
@@ -668,7 +667,7 @@ pub fn implements_trait(
                 return true;
             }
 
-            let cls_id = check_ty.cls_id(vm).expect("class expected");
+            let cls_id = check_ty.cls_id().expect("class expected");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
 
@@ -745,7 +744,7 @@ pub fn find_impl(
         }
 
         SourceType::Class(_, _) => {
-            let cls_id = check_ty.cls_id(vm).expect("class expected");
+            let cls_id = check_ty.cls_id().expect("class expected");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
 

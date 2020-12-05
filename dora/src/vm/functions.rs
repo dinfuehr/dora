@@ -225,7 +225,7 @@ impl Fct {
                     let xenum = &vm.enums[enum_id];
                     let xenum = xenum.read();
                     repr.push_str(&vm.interner.str(xenum.name));
-                } else if let Some(cls_id) = extension.ty.cls_id(vm) {
+                } else if let Some(cls_id) = extension.ty.cls_id() {
                     let cls = vm.classes.idx(cls_id);
                     let cls = cls.read();
                     let name = cls.name;

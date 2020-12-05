@@ -17,7 +17,6 @@ use crate::vm::{
 use crate::vtable::VTableBox;
 
 pub fn resolve_internal_classes(vm: &mut VM) {
-    vm.known.classes.unit = internal_class(vm, "Unit", Some(SourceType::Unit));
     vm.known.structs.bool = internal_struct(vm, "Bool", Some(SourceType::Bool));
 
     vm.known.structs.uint8 = internal_struct(vm, "UInt8", Some(SourceType::UInt8));
@@ -62,7 +61,6 @@ pub fn resolve_internal_classes(vm: &mut VM) {
 
 pub fn fill_prelude(vm: &mut VM) {
     let symbols = [
-        "Unit",
         "Bool",
         "UInt8",
         "Char",

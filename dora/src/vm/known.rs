@@ -31,7 +31,6 @@ pub struct KnownEnums {
 
 #[derive(Debug)]
 pub struct KnownClasses {
-    pub unit: ClassId,
     pub object: ClassId,
     pub array: ClassId,
     pub string: ClassId,

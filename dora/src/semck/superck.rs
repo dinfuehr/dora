@@ -25,7 +25,7 @@ fn cycle_detection(vm: &mut VM) {
         let mut parent_class = cls.parent_class.clone();
 
         while parent_class.is_some() {
-            let parent_class_id = parent_class.unwrap().cls_id(vm).expect("no class");
+            let parent_class_id = parent_class.unwrap().cls_id().expect("no class");
 
             if !map.insert(parent_class_id) {
                 vm.diag
@@ -54,7 +54,7 @@ fn determine_vtables(vm: &VM) {
 
 fn determine_vtable(vm: &VM, lens: &mut HashSet<ClassId>, cls: &mut Class) {
     if let Some(parent_class) = cls.parent_class.clone() {
-        let parent_cls_id = parent_class.cls_id(vm).expect("no class");
+        let parent_cls_id = parent_class.cls_id().expect("no class");
         let parent = vm.classes.idx(parent_cls_id);
         if !lens.contains(&parent_cls_id) {
             let mut parent = parent.write();

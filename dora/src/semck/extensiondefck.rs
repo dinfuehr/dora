@@ -98,7 +98,7 @@ impl<'x> ExtensionCheck<'x> {
                 }
 
                 _ => {
-                    let cls_id = extension_ty.cls_id(self.vm).unwrap();
+                    let cls_id = extension_ty.cls_id().unwrap();
                     let cls = self.vm.classes.idx(cls_id);
                     let mut cls = cls.write();
                     cls.extensions.push(self.extension_id);
@@ -223,7 +223,7 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_in_class(&self, f: &ast::Function) -> bool {
-        let cls_id = self.extension_ty.cls_id(self.vm).unwrap();
+        let cls_id = self.extension_ty.cls_id().unwrap();
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 

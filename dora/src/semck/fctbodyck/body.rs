@@ -358,7 +358,7 @@ impl<'a> TypeCheck<'a> {
             return;
         }
 
-        if let Some(cls_id) = object_type.cls_id(self.vm) {
+        if let Some(cls_id) = object_type.cls_id() {
             if cls_id == self.vm.known.classes.array {
                 let type_list = object_type.type_params(self.vm);
                 let var_ty = type_list[0].clone();
@@ -856,7 +856,7 @@ impl<'a> TypeCheck<'a> {
         let object_type = self.check_expr(&field_expr.lhs, SourceType::Any);
         let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
 
-        if object_type.cls_id(self.vm).is_some() {
+        if object_type.cls_id().is_some() {
             if let Some((cls_ty, field_id, _)) =
                 find_field_in_class(self.vm, object_type.clone(), name)
             {
@@ -865,10 +865,7 @@ impl<'a> TypeCheck<'a> {
                     .map_idents
                     .insert_or_replace(e.lhs.id(), ident_type);
 
-                let cls = self
-                    .vm
-                    .classes
-                    .idx(cls_ty.cls_id(self.vm).expect("no class"));
+                let cls = self.vm.classes.idx(cls_ty.cls_id().expect("no class"));
                 let cls = cls.read();
                 let field = &cls.fields[field_id];
 
@@ -2092,7 +2089,7 @@ impl<'a> TypeCheck<'a> {
         let owner = owner.read();
 
         let parent_class = owner.parent_class.clone().unwrap();
-        let cls_id = parent_class.cls_id(self.vm).expect("no class");
+        let cls_id = parent_class.cls_id().expect("no class");
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -2585,17 +2582,14 @@ impl<'a> TypeCheck<'a> {
             }
         }
 
-        if object_type.cls_id(self.vm).is_some() {
+        if object_type.cls_id().is_some() {
             if let Some((cls_ty, field_id, _)) =
                 find_field_in_class(self.vm, object_type.clone(), name)
             {
                 let ident_type = IdentType::Field(cls_ty.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-                let cls = self
-                    .vm
-                    .classes
-                    .idx(cls_ty.cls_id(self.vm).expect("no class"));
+                let cls = self.vm.classes.idx(cls_ty.cls_id().expect("no class"));
                 let cls = cls.read();
 
                 let field = &cls.fields[field_id];
@@ -3185,7 +3179,7 @@ fn lookup_method(
         find_methods_in_enum(vm, object_type, type_param_defs, name, is_static)
     } else if object_type.is_struct() || object_type.is_primitive() {
         find_methods_in_struct(vm, object_type, type_param_defs, name, is_static)
-    } else if object_type.cls_id(vm).is_some() {
+    } else if object_type.cls_id().is_some() {
         find_methods_in_class(vm, object_type, type_param_defs, name, is_static)
     } else {
         Vec::new()
