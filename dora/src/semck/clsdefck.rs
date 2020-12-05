@@ -214,7 +214,7 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn use_object_class_as_parent(&mut self) {
-        let object_cls = self.vm.known.classes.object;
+        let object_cls = self.vm.known.classes.object();
 
         if self.cls_id != object_cls {
             let cls = self.vm.classes.idx(self.cls_id);

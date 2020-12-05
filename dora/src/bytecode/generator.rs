@@ -582,7 +582,7 @@ impl<'a> AstBytecodeGen<'a> {
             } else {
                 let ty = self.ty(part.id());
 
-                if ty.cls_id() == Some(self.vm.known.classes.string) {
+                if ty.cls_id() == Some(self.vm.known.classes.string()) {
                     self.visit_expr(part, DataDest::Reg(part_register));
                 } else if ty.is_type_param() {
                     let type_list_id = match ty {
@@ -1829,7 +1829,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let ty = self.ty(expr.id);
                     assert_eq!(
                         ty.cls_id().expect("class expected"),
-                        self.vm.known.classes.array
+                        self.vm.known.classes.array()
                     );
                     let type_params = ty.type_params(self.vm);
                     assert_eq!(1, type_params.len());
@@ -2140,20 +2140,20 @@ impl<'a> AstBytecodeGen<'a> {
         match intrinsic {
             Intrinsic::ArrayGet | Intrinsic::StrGet => {
                 let ty = self.ty(lhs.id());
-                let ty: Option<BytecodeType> = if ty.cls_id() == Some(self.vm.known.classes.string)
-                {
-                    Some(BytecodeType::UInt8)
-                } else {
-                    let ty = ty.type_params(self.vm);
-                    let ty = ty[0].clone();
-
-                    if ty.is_unit() {
-                        assert!(dest.is_unit());
-                        None
+                let ty: Option<BytecodeType> =
+                    if ty.cls_id() == Some(self.vm.known.classes.string()) {
+                        Some(BytecodeType::UInt8)
                     } else {
-                        Some(BytecodeType::from_ty(self.vm, ty))
-                    }
-                };
+                        let ty = ty.type_params(self.vm);
+                        let ty = ty[0].clone();
+
+                        if ty.is_unit() {
+                            assert!(dest.is_unit());
+                            None
+                        } else {
+                            Some(BytecodeType::from_ty(self.vm, ty))
+                        }
+                    };
 
                 let dest = if let Some(ref ty) = ty {
                     Some(self.ensure_register(dest, ty.clone()))

@@ -359,7 +359,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         if let Some(cls_id) = object_type.cls_id() {
-            if cls_id == self.vm.known.classes.array {
+            if cls_id == self.vm.known.classes.array() {
                 let type_list = object_type.type_params(self.vm);
                 let var_ty = type_list[0].clone();
 
@@ -2781,7 +2781,7 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprLitStrType,
         _expected_ty: SourceType,
     ) -> SourceType {
-        let str_ty = self.vm.cls(self.vm.known.classes.string);
+        let str_ty = self.vm.cls(self.vm.known.classes.string());
         self.analysis.set_ty(e.id, str_ty.clone());
 
         str_ty
@@ -2849,7 +2849,7 @@ impl<'a> TypeCheck<'a> {
             }
         }
 
-        let str_ty = self.vm.cls(self.vm.known.classes.string);
+        let str_ty = self.vm.cls(self.vm.known.classes.string());
         self.analysis.set_ty(e.id, str_ty.clone());
 
         str_ty

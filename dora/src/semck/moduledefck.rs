@@ -187,7 +187,7 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn use_object_class_as_parent(&mut self) {
-        let object_cls = self.vm.known.classes.object;
+        let object_cls = self.vm.known.classes.object();
 
         let module = self.vm.modules.idx(self.module_id);
         let mut module = module.write();

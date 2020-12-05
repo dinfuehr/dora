@@ -42,8 +42,7 @@ pub use self::globals::{global_accessible_from, init_global_addresses, GlobalDat
 pub use self::impls::{impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
 pub use self::known::{
-    KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownModules, KnownStructs,
-    KnownTraits,
+    KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs, KnownTraits,
 };
 pub use self::modules::{
     find_methods_in_module, module_accessible_from, Module, ModuleDef, ModuleDefId, ModuleId,
@@ -150,9 +149,7 @@ pub struct VM {
 
 impl VM {
     pub fn new(args: Args) -> Box<VM> {
-        let empty_class_id: ClassId = 0.into();
         let empty_class_def_id: ClassDefId = 0.into();
-        let empty_module_id: ModuleId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctId = 0.into();
         let empty_enum_id: EnumId = 0.into();
@@ -196,21 +193,7 @@ impl VM {
             imports: Vec::new(),
             interner,
             known: KnownElements {
-                classes: KnownClasses {
-                    object: empty_class_id,
-                    array: empty_class_id,
-                    string: empty_class_id,
-                    string_buffer: empty_class_id,
-                    testing: empty_class_id,
-                    stacktrace: empty_class_id,
-                    stacktrace_element: empty_class_id,
-                },
-
-                modules: KnownModules {
-                    string: empty_module_id,
-                    array: empty_module_id,
-                    string_buffer: empty_module_id,
-                },
+                classes: KnownClasses::new(),
 
                 functions: KnownFunctions {
                     string_buffer_empty: empty_fct_id,

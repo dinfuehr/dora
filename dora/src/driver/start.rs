@@ -125,7 +125,7 @@ fn run_tests(vm: &VM, namespace_id: NamespaceId) -> i32 {
 }
 
 fn run_test(vm: &VM, fct: FctId) -> bool {
-    let testing_class = vm.known.classes.testing;
+    let testing_class = vm.known.classes.testing();
     let testing_class = specialize_class_id(vm, testing_class);
     let testing = object::alloc(vm, testing_class).cast();
     vm.run_test(fct, testing);
@@ -140,7 +140,7 @@ fn is_test_fct(vm: &VM, fct: &Fct) -> bool {
     }
 
     // parameter needs to be of type Testing
-    let testing_cls = vm.cls(vm.known.classes.testing);
+    let testing_cls = vm.cls(vm.known.classes.testing());
     if fct.param_types[0] != testing_cls {
         return false;
     }
