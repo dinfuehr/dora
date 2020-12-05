@@ -755,24 +755,50 @@ fn find_method(vm: &VM, namespace_id: NamespaceId, container_name: &str, name: &
 fn find_static(vm: &VM, namespace_id: NamespaceId, container_name: &str, name: &str) -> FctId {
     let container_name = vm.interner.intern(container_name);
 
-    let module_id = NestedSymTable::new(vm, namespace_id)
-        .get_module(container_name)
-        .expect("function not found");
-
-    let module = vm.modules.idx(module_id);
-    let module = module.read();
+    let symtable = NestedSymTable::new(vm, namespace_id);
+    let type_sym = symtable.get_type(container_name);
+    let term_sym = symtable.get_term(container_name);
     let intern_name = vm.interner.intern(name);
 
-    for &mid in &module.methods {
-        let mtd = vm.fcts.idx(mid);
-        let mtd = mtd.read();
+    match (type_sym.clone(), term_sym) {
+        (_, Some(TermSym::Module(module_id)))
+        | (_, Some(TermSym::ClassConstructorAndModule(_, module_id)))
+        | (_, Some(TermSym::StructConstructorAndModule(_, module_id))) => {
+            let module = vm.modules.idx(module_id);
+            let module = module.read();
 
-        if mtd.name == intern_name {
-            return mid;
+            for &mid in &module.methods {
+                let mtd = vm.fcts.idx(mid);
+                let mtd = mtd.read();
+
+                if mtd.name == intern_name {
+                    return mid;
+                }
+            }
         }
+
+        _ => {}
     }
 
-    panic!("cannot find module method `{}`", name)
+    match type_sym {
+        Some(TypeSym::Class(cls_id)) => {
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            for &mid in &cls.methods {
+                let mtd = vm.fcts.idx(mid);
+                let mtd = mtd.read();
+
+                if mtd.name == intern_name && mtd.is_static {
+                    return mid;
+                }
+            }
+        }
+
+        _ => {}
+    }
+
+    panic!("cannot find static method `{}`", name)
 }
 
 fn native_fct(vm: &mut VM, namespace_id: NamespaceId, name: &str, fctptr: *const u8) {
