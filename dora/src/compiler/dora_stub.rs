@@ -1,8 +1,8 @@
 use crate::compiler::fct::{Code, JitDescriptor, JitFct};
 use crate::compiler::map::CodeDescriptor;
-use crate::cpu::{Mem, CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::gc::Address;
-use crate::masm::MacroAssembler;
+use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::ty::MachineMode;
 use crate::vm::VM;

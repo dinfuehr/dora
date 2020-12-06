@@ -4,11 +4,10 @@ use crate::compiler;
 use crate::compiler::fct::{Code, JitDescriptor, JitFct, LazyCompilationSite};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{
-    Mem, CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD,
-    REG_TMP1,
+    CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
-use crate::masm::MacroAssembler;
+use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::object::Obj;
 use crate::os;

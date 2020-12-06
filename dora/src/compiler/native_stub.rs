@@ -5,11 +5,11 @@ use crate::compiler::codegen::AnyReg;
 use crate::compiler::CodeDescriptor;
 use crate::compiler::{Code, GcPoint, JitDescriptor, JitFct, JitFctId};
 use crate::cpu::{
-    FReg, Mem, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET,
-    REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
+    FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
+    REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
-use crate::masm::MacroAssembler;
+use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;

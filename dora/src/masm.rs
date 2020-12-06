@@ -9,7 +9,7 @@ use crate::compiler::fct::{
     Code, Comments, GcPoint, GcPoints, JitDescriptor, LazyCompilationData, LazyCompilationSite,
     PositionTable,
 };
-use crate::cpu::{Mem, Reg, SCRATCH};
+use crate::cpu::{Reg, SCRATCH};
 use crate::dseg::DSeg;
 use crate::mem;
 use crate::object::Header;
@@ -29,6 +29,20 @@ pub use self::arm64::*;
 
 #[cfg(target_arch = "aarch64")]
 pub mod arm64;
+
+pub enum Mem {
+    // rbp + val1
+    Local(i32),
+
+    // reg1 + val1
+    Base(Reg, i32),
+
+    // reg1 + reg2 * val1 + val2
+    Index(Reg, Reg, i32, i32),
+
+    // reg1 * val1 + val2
+    Offset(Reg, i32, i32),
+}
 
 pub struct MacroAssembler {
     asm: Assembler,

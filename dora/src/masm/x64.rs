@@ -7,7 +7,7 @@ use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
-use crate::masm::{CondCode, Label, MacroAssembler};
+use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
 use crate::threads::ThreadLocalData;
@@ -462,11 +462,6 @@ impl MacroAssembler {
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        if has_x_ops() {
-            asm::emit_shlx(self, mode.is64(), dest, lhs, rhs);
-            return;
-        }
-
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
@@ -484,11 +479,6 @@ impl MacroAssembler {
     }
 
     pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        if has_x_ops() {
-            asm::emit_shrx(self, mode.is64(), dest, lhs, rhs);
-            return;
-        }
-
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
@@ -506,11 +496,6 @@ impl MacroAssembler {
     }
 
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        if has_x_ops() {
-            asm::emit_sarx(self, mode.is64(), dest, lhs, rhs);
-            return;
-        }
-
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
