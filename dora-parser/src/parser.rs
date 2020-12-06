@@ -1211,14 +1211,7 @@ impl<'a> Parser<'a> {
             TokenKind::Identifier(_) => {
                 let pos = self.token.position;
                 let start = self.token.span.start();
-                let name = self.expect_identifier()?;
-                let mut path = vec![name];
-
-                while self.token.is(TokenKind::ColonColon) {
-                    self.advance_token()?;
-                    let name = self.expect_identifier()?;
-                    path.push(name);
-                }
+                let path = self.parse_path()?;
 
                 let params = if self.token.is(TokenKind::LBracket) {
                     self.advance_token()?;
@@ -1276,6 +1269,28 @@ impl<'a> Parser<'a> {
                 ParseError::ExpectedType(self.token.name()),
             )),
         }
+    }
+
+    fn parse_path(&mut self) -> Result<Path, ParseErrorAndPos> {
+        let pos = self.token.position;
+        let start = self.token.span.start();
+        let name = self.expect_identifier()?;
+        let mut names = vec![name];
+
+        while self.token.is(TokenKind::ColonColon) {
+            self.advance_token()?;
+            let name = self.expect_identifier()?;
+            names.push(name);
+        }
+
+        let span = self.span_from(start);
+
+        Ok(Path {
+            id: self.generate_id(),
+            pos,
+            span,
+            names,
+        })
     }
 
     fn parse_statement(&mut self) -> StmtResult {
@@ -1546,25 +1561,7 @@ impl<'a> Parser<'a> {
     fn parse_match_case(&mut self) -> Result<MatchCaseType, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
-        let ident = self.expect_identifier()?;
-        let mut params = Vec::new();
-
-        if self.token.is(TokenKind::LParen) {
-            self.expect_token(TokenKind::LParen)?;
-            let mut first = true;
-
-            while !self.token.is(TokenKind::RParen) {
-                if !first {
-                    self.expect_token(TokenKind::Comma)?;
-                }
-
-                let param = self.expect_identifier()?;
-                params.push(param);
-                first = false;
-            }
-
-            self.expect_token(TokenKind::RParen)?;
-        }
+        let pattern = self.parse_match_pattern()?;
 
         self.expect_token(TokenKind::DoubleArrow)?;
 
@@ -1575,9 +1572,33 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             pos,
             span,
-            ident,
-            params,
+            pattern,
             value,
+        })
+    }
+
+    fn parse_match_pattern(&mut self) -> Result<MatchPattern, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.token.position;
+        let path = self.parse_path()?;
+
+        let params = if self.token.is(TokenKind::LParen) {
+            self.expect_token(TokenKind::LParen)?;
+            self.parse_list(TokenKind::Comma, TokenKind::RParen, |this| {
+                this.expect_identifier()
+            })?
+        } else {
+            Vec::new()
+        };
+
+        let span = self.span_from(start);
+
+        Ok(MatchPattern {
+            id: self.generate_id(),
+            pos,
+            span,
+            path,
+            params,
         })
     }
 
@@ -2872,11 +2893,11 @@ mod tests {
         let (p2, interner2) = parse("fun f(a:int,) { }");
         let f2 = p2.fct0();
 
+        assert_eq!(f1.params.len(), 1);
+        assert_eq!(f2.params.len(), 1);
+
         let p1 = &f1.params[0];
         let p2 = &f2.params[0];
-
-        assert_eq!(NodeId(2), p1.id);
-        assert_eq!(NodeId(2), p2.id);
 
         assert_eq!("a", *interner1.str(p1.name));
         assert_eq!("a", *interner2.str(p2.name));
@@ -3194,9 +3215,9 @@ mod tests {
         let basic = ty.to_basic().unwrap();
 
         assert_eq!(0, basic.params.len());
-        assert_eq!(2, basic.path.len());
-        assert_eq!("foo", *interner.str(basic.path[0]));
-        assert_eq!("bla", *interner.str(basic.path[1]));
+        assert_eq!(2, basic.path.names.len());
+        assert_eq!("foo", *interner.str(basic.path.names[0]));
+        assert_eq!("bla", *interner.str(basic.path.names[1]));
     }
 
     #[test]

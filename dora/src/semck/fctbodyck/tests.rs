@@ -1862,6 +1862,33 @@ fn test_enum() {
 }
 
 #[test]
+fn test_enum_match() {
+    ok("
+        enum A { V1, V2 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1 => 0,
+                A::V2 => 1
+            }
+        }
+    ");
+
+    err(
+        "
+        enum A { V1, V2 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1 => 0,
+                A::V2 => \"foo\"
+            }
+        }
+    ",
+        pos(6, 26),
+        SemError::MatchBranchTypesIncompatible("Int32".into(), "String".into()),
+    );
+}
+
+#[test]
 fn test_import_enum_value() {
     ok("enum A { V1(Int32), V2 } import A::V1; fun f(): A { V1(1) }");
     ok("enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1[Int32](1) }");

@@ -58,7 +58,7 @@ fn read_type_basic(
     if sym.is_none() {
         let name = vm
             .interner
-            .str(basic.path.last().cloned().unwrap())
+            .str(basic.path.names.last().cloned().unwrap())
             .to_string();
         let msg = SemError::UnknownIdentifier(name);
         vm.diag.lock().report(file_id, basic.pos, msg);
@@ -113,12 +113,14 @@ fn read_type_path(
     file_id: FileId,
     basic: &TypeBasicType,
 ) -> Result<Option<Sym>, ()> {
-    if basic.path.len() > 1 {
-        let first_name = basic.path.first().cloned().unwrap();
-        let last_name = basic.path.last().cloned().unwrap();
+    let names = &basic.path.names;
+
+    if names.len() > 1 {
+        let first_name = names.first().cloned().unwrap();
+        let last_name = names.last().cloned().unwrap();
         let mut namespace_table = table_for_namespace(vm, file_id, basic, table.get(first_name))?;
 
-        for &name in &basic.path[1..basic.path.len() - 1] {
+        for &name in &names[1..names.len() - 1] {
             let sym = namespace_table.read().get(name);
             namespace_table = table_for_namespace(vm, file_id, basic, sym)?;
         }
@@ -126,7 +128,7 @@ fn read_type_path(
         let sym = namespace_table.read().get(last_name);
         Ok(sym)
     } else {
-        let name = basic.path.last().cloned().unwrap();
+        let name = names.last().cloned().unwrap();
         Ok(table.get(name))
     }
 }

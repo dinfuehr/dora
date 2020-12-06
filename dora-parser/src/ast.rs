@@ -374,15 +374,15 @@ pub struct TypeBasicType {
     pub pos: Position,
     pub span: Span,
 
-    pub path: Vec<Name>,
+    pub path: Path,
     pub params: Vec<Box<Type>>,
 }
 
 impl TypeBasicType {
     #[cfg(test)]
     pub fn name(&self) -> Name {
-        assert_eq!(self.path.len(), 1);
-        self.path.last().cloned().unwrap()
+        assert_eq!(self.path.names.len(), 1);
+        self.path.names.last().cloned().unwrap()
     }
 }
 
@@ -395,7 +395,7 @@ impl Type {
         id: NodeId,
         pos: Position,
         span: Span,
-        path: Vec<Name>,
+        path: Path,
         params: Vec<Box<Type>>,
     ) -> Type {
         Type::Basic(TypeBasicType {
@@ -2225,9 +2225,26 @@ pub struct MatchCaseType {
     pub pos: Position,
     pub span: Span,
 
-    pub ident: Name,
-    pub params: Vec<Name>,
+    pub pattern: MatchPattern,
     pub value: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchPattern {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub path: Path,
+    pub params: Vec<Name>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Path {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub names: Vec<Name>,
 }
 
 #[derive(Clone, Debug)]

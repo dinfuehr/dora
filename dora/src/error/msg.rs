@@ -43,6 +43,8 @@ pub enum SemError {
     StructArgsIncompatible(String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
     EnumExpected,
+    EnumVariantExpected,
+    MatchUncoveredVariant,
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     WhileCondType(String),
@@ -140,6 +142,7 @@ pub enum SemError {
     InvalidUseOfTypeParams,
     NameOfStaticMethodExpected,
     IfBranchTypesIncompatible(String, String),
+    MatchBranchTypesIncompatible(String, String),
     NameExpected,
     IndexExpected,
     IllegalTupleIndex(u64, String),
@@ -262,6 +265,8 @@ impl SemError {
                 format!("{}::{} needs to be used without parens.", name, variant)
             }
             SemError::EnumExpected => format!("enum expected."),
+            SemError::EnumVariantExpected => format!("enum variant expected."),
+            SemError::MatchUncoveredVariant => format!("not all variants are covered."),
             SemError::VarNeedsTypeInfo(ref name) => format!(
                 "variable `{}` needs either type declaration or expression.",
                 name
@@ -504,6 +509,10 @@ impl SemError {
             SemError::IfBranchTypesIncompatible(ref then_block, ref else_block) => format!(
                 "if-branches have incompatible types `{}` and `{}`.",
                 then_block, else_block
+            ),
+            SemError::MatchBranchTypesIncompatible(ref expected_ty, ref value_ty) => format!(
+                "match arms have incompatible types `{}` and `{}`.",
+                expected_ty, value_ty
             ),
             SemError::NameExpected => "name expected for dot-operator.".into(),
             SemError::IndexExpected => "index expected as right-hand-side for tuple.".into(),

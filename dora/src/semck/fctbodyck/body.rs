@@ -13,9 +13,10 @@ use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
     fct_accessible_from, find_field_in_class, find_methods_in_class, find_methods_in_enum,
-    find_methods_in_struct, global_accessible_from, struct_accessible_from, AnalysisData, CallType,
-    ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic,
-    NamespaceId, StructData, StructId, TypeParam, TypeParamId, Var, VarId, VM,
+    find_methods_in_struct, global_accessible_from, namespace_accessible_from,
+    struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
+    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId,
+    TypeParam, TypeParamId, Var, VarId, VM,
 };
 
 use dora_parser::ast;
@@ -23,6 +24,7 @@ use dora_parser::ast::visit::Visitor;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
+use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
     pub vm: &'a VM,
@@ -585,6 +587,80 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(paren.id, ty.clone());
 
         ty
+    }
+
+    fn check_expr_match(
+        &mut self,
+        node: &ast::ExprMatchType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
+        let expr_type = self.check_expr(&node.expr, SourceType::Any);
+        let mut result_type = SourceType::Error;
+
+        if !expr_type.is_enum() {
+            self.vm
+                .diag
+                .lock()
+                .report(self.file_id, node.pos, SemError::EnumExpected);
+        }
+
+        let expr_enum_id = expr_type.enum_id();
+
+        let enum_variants = if let Some(expr_enum_id) = expr_enum_id {
+            let xenum = self.vm.enums[expr_enum_id].read();
+            xenum.variants.len()
+        } else {
+            0
+        };
+
+        let mut used_variants = FixedBitSet::with_capacity(enum_variants);
+
+        for case in &node.cases {
+            let sym = self.read_path(&case.pattern.path);
+
+            match sym {
+                Ok(Sym::EnumValue(enum_id, variant_id)) => {
+                    if Some(enum_id) == expr_enum_id {
+                        used_variants.insert(variant_id);
+                    } else {
+                        let msg = SemError::EnumVariantExpected;
+                        self.vm.diag.lock().report(self.file_id, node.pos, msg);
+                    }
+                }
+
+                Ok(_) => {
+                    let msg = SemError::EnumVariantExpected;
+                    self.vm.diag.lock().report(self.file_id, node.pos, msg);
+                }
+
+                Err(()) => {}
+            }
+
+            let case_ty = self.check_expr(&case.value, SourceType::Any);
+
+            if result_type.is_error() {
+                result_type = case_ty;
+            } else if case_ty.is_error() {
+                // ignore this case
+            } else if !result_type.allows(self.vm, case_ty.clone()) {
+                let result_type_name = result_type.name_fct(self.vm, self.fct);
+                let case_ty_name = case_ty.name_fct(self.vm, self.fct);
+                let msg = SemError::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file_id, case.value.pos(), msg);
+            }
+        }
+
+        used_variants.toggle_range(..);
+
+        if used_variants.count_ones(..) != 0 {
+            let msg = SemError::MatchUncoveredVariant;
+            self.vm.diag.lock().report(self.file_id, node.pos, msg);
+        }
+
+        result_type
     }
 
     fn check_expr_if(&mut self, expr: &ast::ExprIfType, _expected_ty: SourceType) -> SourceType {
@@ -1883,7 +1959,7 @@ impl<'a> TypeCheck<'a> {
             };
         let method_expr = &callee_as_path.rhs;
 
-        let sym = match self.read_path(container_expr) {
+        let sym = match self.read_path_expr(container_expr) {
             Ok(sym) => sym,
             Err(()) => {
                 self.analysis.set_ty(e.id, SourceType::Error);
@@ -2149,7 +2225,7 @@ impl<'a> TypeCheck<'a> {
             (&e.lhs, SourceTypeArray::empty())
         };
 
-        let sym = match self.read_path(container_expr) {
+        let sym = match self.read_path_expr(container_expr) {
             Ok(sym) => sym,
             Err(()) => {
                 self.analysis.set_ty(e.id, SourceType::Error);
@@ -2189,9 +2265,9 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn read_path(&mut self, expr: &ast::Expr) -> Result<Option<Sym>, ()> {
+    fn read_path_expr(&mut self, expr: &ast::Expr) -> Result<Option<Sym>, ()> {
         if let Some(expr_path) = expr.to_path() {
-            let sym = self.read_path(&expr_path.lhs)?;
+            let sym = self.read_path_expr(&expr_path.lhs)?;
 
             let element_name = if let Some(ident) = expr_path.rhs.to_ident() {
                 ident.name
@@ -2227,6 +2303,71 @@ impl<'a> TypeCheck<'a> {
         } else {
             let msg = SemError::ExpectedSomeIdentifier;
             self.vm.diag.lock().report(self.file_id, expr.pos(), msg);
+            Err(())
+        }
+    }
+
+    fn read_path(&mut self, path: &ast::Path) -> Result<Sym, ()> {
+        let names = &path.names;
+        let mut sym = self.symtable.get(names[0]);
+
+        for &name in &names[1..] {
+            match sym {
+                Some(Sym::Namespace(namespace_id)) => {
+                    if !namespace_accessible_from(self.vm, namespace_id, self.namespace_id) {
+                        let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+                        let msg = SemError::NotAccessible(namespace.name(self.vm));
+                        self.vm.diag.lock().report(self.file_id, path.pos, msg);
+                    }
+
+                    let namespace = &self.vm.namespaces[namespace_id.to_usize()];
+                    let symtable = namespace.table.read();
+                    sym = symtable.get(name);
+                }
+
+                Some(Sym::Enum(enum_id)) => {
+                    let xenum = self.vm.enums[enum_id].read();
+
+                    if !enum_accessible_from(self.vm, enum_id, self.namespace_id) {
+                        let msg = SemError::NotAccessible(xenum.name(self.vm));
+                        self.vm.diag.lock().report(self.file_id, path.pos, msg);
+                    }
+
+                    if let Some(&variant_id) = xenum.name_to_value.get(&name) {
+                        sym = Some(Sym::EnumValue(enum_id, variant_id as usize));
+                    } else {
+                        let name = self.vm.interner.str(name).to_string();
+                        self.vm.diag.lock().report(
+                            self.file_id.into(),
+                            path.pos,
+                            SemError::UnknownEnumValue(name),
+                        );
+                        return Err(());
+                    }
+                }
+
+                Some(_) => {
+                    let msg = SemError::ExpectedNamespace;
+                    self.vm.diag.lock().report(self.file_id, path.pos, msg);
+                    return Err(());
+                }
+
+                None => {
+                    let name = self.vm.interner.str(names[0]).to_string();
+                    let msg = SemError::UnknownIdentifier(name);
+                    self.vm.diag.lock().report(self.file_id, path.pos, msg);
+                    return Err(());
+                }
+            }
+        }
+
+        if let Some(sym) = sym {
+            Ok(sym)
+        } else {
+            let name = self.vm.interner.str(names[0]).to_string();
+            let msg = SemError::UnknownIdentifier(name);
+            self.vm.diag.lock().report(self.file_id, path.pos, msg);
+
             Err(())
         }
     }
@@ -2873,7 +3014,7 @@ impl<'a> TypeCheck<'a> {
             ast::Expr::If(ref expr) => self.check_expr_if(expr, expected_ty),
             ast::Expr::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
             ast::Expr::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
-            ast::Expr::Match(_) => unimplemented!(),
+            ast::Expr::Match(ref expr) => self.check_expr_match(expr, expected_ty),
         }
     }
 
