@@ -46,7 +46,7 @@ pub enum SourceType {
     Tuple(TupleId),
 
     // some trait object
-    TraitObject(TraitId),
+    Trait(TraitId, SourceTypeArrayId),
 
     // some module
     Module(ModuleId),
@@ -258,7 +258,7 @@ impl SourceType {
         match *self {
             SourceType::Ptr => true,
             SourceType::Class(_, _) => true,
-            SourceType::TraitObject(_) => true,
+            SourceType::Trait(_, _) => true,
             _ => false,
         }
     }
@@ -384,7 +384,7 @@ impl SourceType {
 
                 _ => false,
             },
-            SourceType::TraitObject(_) => unimplemented!(),
+            SourceType::Trait(_, _) => unimplemented!(),
             SourceType::Module(_) => *self == other,
             SourceType::Enum(enum_id, type_params_id) => match other {
                 SourceType::Enum(other_enum_id, other_type_params_id) => {
@@ -439,7 +439,7 @@ impl SourceType {
 
                 struc.size
             }
-            SourceType::TraitObject(_) => mem::ptr_width(),
+            SourceType::Trait(_, _) => mem::ptr_width(),
             SourceType::TypeParam(_) => panic!("no size for type variable."),
             SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).size(),
         }
@@ -479,7 +479,7 @@ impl SourceType {
 
                 struc.align
             }
-            SourceType::TraitObject(_) => mem::ptr_width(),
+            SourceType::Trait(_, _) => mem::ptr_width(),
             SourceType::TypeParam(_) => panic!("no alignment for type variable."),
             SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).align(),
         }
@@ -504,7 +504,7 @@ impl SourceType {
             | SourceType::Lambda(_)
             | SourceType::Ptr => MachineMode::Ptr,
             SourceType::Struct(_, _) => panic!("no machine mode for struct."),
-            SourceType::TraitObject(_) => MachineMode::Ptr,
+            SourceType::Trait(_, _) => MachineMode::Ptr,
             SourceType::TypeParam(_) => panic!("no machine mode for type variable."),
             SourceType::Tuple(_) => unimplemented!(),
         }
@@ -522,7 +522,7 @@ impl SourceType {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Module(_)
-            | SourceType::TraitObject(_)
+            | SourceType::Trait(_, _)
             | SourceType::Lambda(_)
             | SourceType::TypeParam(_) => true,
             SourceType::Enum(_, list_id)
@@ -565,7 +565,7 @@ impl SourceType {
             | SourceType::Float64
             | SourceType::Module(_)
             | SourceType::Ptr
-            | SourceType::TraitObject(_) => true,
+            | SourceType::Trait(_, _) => true,
             SourceType::Class(_, list_id)
             | SourceType::Enum(_, list_id)
             | SourceType::Struct(_, list_id) => {
@@ -611,7 +611,7 @@ pub fn implements_trait(
         SourceType::Tuple(_)
         | SourceType::Unit
         | SourceType::Module(_)
-        | SourceType::TraitObject(_)
+        | SourceType::Trait(_, _)
         | SourceType::Lambda(_) => false,
 
         SourceType::Enum(enum_id, _) => {
@@ -698,7 +698,7 @@ pub fn find_impl(
         SourceType::Tuple(_)
         | SourceType::Unit
         | SourceType::Module(_)
-        | SourceType::TraitObject(_)
+        | SourceType::Trait(_, _)
         | SourceType::Lambda(_) => None,
 
         SourceType::Enum(enum_id, _) => {
@@ -1100,9 +1100,23 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::TraitObject(tid) => {
+            SourceType::Trait(tid, list_id) => {
                 let xtrait = self.vm.traits[tid].read();
-                self.vm.interner.str(xtrait.name).to_string()
+                let name = self.vm.interner.str(xtrait.name).to_string();
+
+                let params = self.vm.source_type_arrays.lock().get(list_id);
+
+                if params.len() == 0 {
+                    name
+                } else {
+                    let params = params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", name, params)
+                }
             }
             SourceType::Enum(id, list_id) => {
                 let xenum = self.vm.enums[id].read();

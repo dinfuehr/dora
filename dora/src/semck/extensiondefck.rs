@@ -311,7 +311,7 @@ fn discover_type_params(vm: &VM, ty: SourceType, used_type_params: &mut FixedBit
         | SourceType::Float64
         | SourceType::Module(_)
         | SourceType::Ptr
-        | SourceType::TraitObject(_) => {}
+        | SourceType::Trait(_, _) => {}
         SourceType::Class(_, list_id)
         | SourceType::Enum(_, list_id)
         | SourceType::Struct(_, list_id) => {

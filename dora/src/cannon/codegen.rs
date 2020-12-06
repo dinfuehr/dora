@@ -356,7 +356,7 @@ impl<'a> CannonCodeGen<'a> {
                 | SourceType::Int32
                 | SourceType::Int64
                 | SourceType::Class(_, _)
-                | SourceType::TraitObject(_) => {
+                | SourceType::Trait(_, _) => {
                     self.store_params_on_stack_core(
                         &mut reg_idx,
                         &mut freg_idx,
@@ -1613,7 +1613,7 @@ impl<'a> CannonCodeGen<'a> {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Class(_, _)
-            | SourceType::TraitObject(_) => {
+            | SourceType::Trait(_, _) => {
                 let mode = ty.mode();
                 let tmp = result_reg_mode(mode);
 
@@ -1726,7 +1726,7 @@ impl<'a> CannonCodeGen<'a> {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Class(_, _)
-            | SourceType::TraitObject(_) => {
+            | SourceType::Trait(_, _) => {
                 let mode = ty.mode();
                 self.asm.store_zero(mode, dest.mem());
             }
@@ -1779,7 +1779,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
             }
 
-            SourceType::Ptr | SourceType::Class(_, _) | SourceType::TraitObject(_) => {
+            SourceType::Ptr | SourceType::Class(_, _) | SourceType::Trait(_, _) => {
                 self.asm.store_zero(MachineMode::Ptr, dest.mem());
             }
 

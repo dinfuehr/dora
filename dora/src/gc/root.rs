@@ -79,7 +79,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
             | SourceType::Float32
             | SourceType::Float64 => {}
 
-            SourceType::Class(_, _) | SourceType::TraitObject(_) => {
+            SourceType::Class(_, _) | SourceType::Trait(_, _) => {
                 let slot = Slot::at(glob.address_value);
                 rootset.push(slot);
             }

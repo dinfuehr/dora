@@ -477,7 +477,7 @@ fn create_specialized_class_array(
 
         match element_ty {
             SourceType::Unit => InstanceSize::UnitArray,
-            SourceType::Ptr | SourceType::Class(_, _) | SourceType::TraitObject(_) => {
+            SourceType::Ptr | SourceType::Class(_, _) | SourceType::Trait(_, _) => {
                 InstanceSize::ObjArray
             }
             SourceType::Tuple(tuple_id) => {

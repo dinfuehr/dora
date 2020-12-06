@@ -107,7 +107,7 @@ pub fn check(vm: &VM) {
                         );
 
                         match ty {
-                            Some(SourceType::TraitObject(trait_id)) => {
+                            Some(SourceType::Trait(trait_id, _)) => {
                                 if !fct.type_params[container_type_params + type_param_id]
                                     .trait_bounds
                                     .insert(trait_id)

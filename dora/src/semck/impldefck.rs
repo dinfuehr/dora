@@ -66,7 +66,7 @@ impl<'x> ImplCheck<'x> {
             TypeParamContext::Impl(&*ximpl),
         ) {
             match trait_ty {
-                SourceType::TraitObject(trait_id) => {
+                SourceType::Trait(trait_id, _) => {
                     ximpl.trait_id = Some(trait_id);
                 }
 

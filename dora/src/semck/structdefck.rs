@@ -88,7 +88,7 @@ impl<'x> StructCheck<'x> {
                     );
 
                     match ty {
-                        Some(SourceType::TraitObject(trait_id)) => {
+                        Some(SourceType::Trait(trait_id, _)) => {
                             let xstruct = self.vm.structs.idx(self.struct_id);
                             let mut xstruct = xstruct.write();
                             if !xstruct.type_params[type_param_id]

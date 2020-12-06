@@ -82,7 +82,12 @@ fn read_type_basic(
                 vm.diag.lock().report(file_id, basic.pos, msg);
             }
 
-            Some(SourceType::TraitObject(trait_id))
+            let list_id = vm
+                .source_type_arrays
+                .lock()
+                .insert(SourceTypeArray::empty());
+
+            Some(SourceType::Trait(trait_id, list_id))
         }
 
         Sym::Struct(struct_id) => read_type_struct(vm, table, file_id, basic, struct_id, ctxt),

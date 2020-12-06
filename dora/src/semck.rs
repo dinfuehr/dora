@@ -247,7 +247,7 @@ fn check_type_params(
                 let ty = read_type(vm, symtable, file_id, bound, TypeParamContext::None);
 
                 match ty {
-                    Some(SourceType::TraitObject(trait_id)) => {
+                    Some(SourceType::Trait(trait_id, _)) => {
                         if !type_params[type_param_id].trait_bounds.insert(trait_id) {
                             let msg = SemError::DuplicateTraitBound;
                             vm.diag.lock().report(file_id, type_param.pos, msg);

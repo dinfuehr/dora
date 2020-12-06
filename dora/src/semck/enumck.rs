@@ -104,7 +104,7 @@ impl<'x> EnumCheck<'x> {
                     );
 
                     match ty {
-                        Some(SourceType::TraitObject(trait_id)) => {
+                        Some(SourceType::Trait(trait_id, _)) => {
                             if !self.xenum.type_params[type_param_id]
                                 .trait_bounds
                                 .insert(trait_id)

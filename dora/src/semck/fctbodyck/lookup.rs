@@ -80,7 +80,7 @@ impl<'a> MethodLookup<'a> {
     }
 
     pub fn method(mut self, obj: SourceType) -> MethodLookup<'a> {
-        self.kind = if let SourceType::TraitObject(trait_id) = obj {
+        self.kind = if let SourceType::Trait(trait_id, _) = obj {
             Some(LookupKind::Trait(trait_id))
         } else {
             Some(LookupKind::Method(obj))

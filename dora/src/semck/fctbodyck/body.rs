@@ -1588,7 +1588,7 @@ impl<'a> TypeCheck<'a> {
             let fct_id = lookup.found_fct_id().unwrap();
             let return_type = lookup.found_ret().unwrap();
 
-            let call_type = if let SourceType::TraitObject(trait_id) = object_type {
+            let call_type = if let SourceType::Trait(trait_id, _) = object_type {
                 CallType::TraitObjectMethod(trait_id, fct_id)
             } else {
                 let method_type = lookup.found_class_type().unwrap();
@@ -2977,7 +2977,7 @@ fn arg_allows(vm: &VM, def: SourceType, arg: SourceType, self_ty: Option<SourceT
             let real = self_ty.clone().expect("no Self type expected.");
             arg_allows(vm, real, arg, self_ty)
         }
-        SourceType::TraitObject(_) => panic!("trait should not occur in fct definition."),
+        SourceType::Trait(_, _) => panic!("trait should not occur in fct definition."),
 
         SourceType::TypeParam(_) => def == arg,
 
