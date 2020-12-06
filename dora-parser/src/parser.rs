@@ -1514,12 +1514,71 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_match(&mut self) -> ExprResult {
-        let _start = self.token.span.start();
-        let _pos = self.expect_token(TokenKind::Match)?.position;
+        let start = self.token.span.start();
+        let pos = self.expect_token(TokenKind::Match)?.position;
 
-        let _cond = self.parse_expression()?;
+        let expr = self.parse_expression()?;
+        let mut cases = Vec::new();
 
-        unimplemented!()
+        self.expect_token(TokenKind::LBrace)?;
+
+        while !self.token.is(TokenKind::RBrace) {
+            if !cases.is_empty() {
+                self.expect_token(TokenKind::Comma)?;
+            }
+
+            let case = self.parse_match_case()?;
+            cases.push(case);
+        }
+
+        self.expect_token(TokenKind::RBrace)?;
+        let span = self.span_from(start);
+
+        Ok(Box::new(Expr::create_match(
+            self.generate_id(),
+            pos,
+            span,
+            expr,
+            cases,
+        )))
+    }
+
+    fn parse_match_case(&mut self) -> Result<MatchCaseType, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.token.position;
+        let ident = self.expect_identifier()?;
+        let mut params = Vec::new();
+
+        if self.token.is(TokenKind::LParen) {
+            self.expect_token(TokenKind::LParen)?;
+            let mut first = true;
+
+            while !self.token.is(TokenKind::RParen) {
+                if !first {
+                    self.expect_token(TokenKind::Comma)?;
+                }
+
+                let param = self.expect_identifier()?;
+                params.push(param);
+                first = false;
+            }
+
+            self.expect_token(TokenKind::RParen)?;
+        }
+
+        self.expect_token(TokenKind::DoubleArrow)?;
+
+        let value = self.parse_expression()?;
+        let span = self.span_from(start);
+
+        Ok(MatchCaseType {
+            id: self.generate_id(),
+            pos,
+            span,
+            ident,
+            params,
+            value,
+        })
     }
 
     fn parse_for(&mut self) -> StmtResult {
@@ -4025,5 +4084,11 @@ mod tests {
         let (prog, _) = parse("namespace foo;");
         let namespace = prog.namespace0();
         assert!(namespace.elements.is_none());
+    }
+
+    #[test]
+    fn parse_match() {
+        parse_expr("match x { }");
+        parse_expr("match x { A(x, b) => 1, B => 2 }");
     }
 }

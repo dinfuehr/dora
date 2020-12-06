@@ -1323,6 +1323,22 @@ impl Expr {
         })
     }
 
+    pub fn create_match(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        expr: Box<Expr>,
+        cases: Vec<MatchCaseType>,
+    ) -> Expr {
+        Expr::Match(ExprMatchType {
+            id,
+            pos,
+            span,
+            expr,
+            cases,
+        })
+    }
+
     pub fn create_un(id: NodeId, pos: Position, span: Span, op: UnOp, opnd: Box<Expr>) -> Expr {
         Expr::Un(ExprUnType {
             id,
@@ -2200,6 +2216,18 @@ pub struct ExprMatchType {
     pub span: Span,
 
     pub expr: Box<Expr>,
+    pub cases: Vec<MatchCaseType>,
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchCaseType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub ident: Name,
+    pub params: Vec<Name>,
+    pub value: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]

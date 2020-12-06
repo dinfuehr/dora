@@ -305,6 +305,9 @@ impl Lexer {
                     } else {
                         TokenKind::EqEq
                     }
+                } else if nch == '>' {
+                    self.read_char();
+                    TokenKind::DoubleArrow
                 } else {
                     TokenKind::Eq
                 }
@@ -1087,8 +1090,9 @@ mod tests {
         assert_tok(&mut reader, TokenKind::NotEq, 1, 1);
         assert_tok(&mut reader, TokenKind::Not, 1, 3);
 
-        let mut reader = Lexer::from_str("->");
-        assert_tok(&mut reader, TokenKind::Arrow, 1, 1);
+        let mut reader = Lexer::from_str("=>->");
+        assert_tok(&mut reader, TokenKind::DoubleArrow, 1, 1);
+        assert_tok(&mut reader, TokenKind::Arrow, 1, 3);
 
         let mut reader = Lexer::from_str(">><<>>>_::");
         assert_tok(&mut reader, TokenKind::GtGt, 1, 1);
