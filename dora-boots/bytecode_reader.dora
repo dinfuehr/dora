@@ -1284,7 +1284,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             self.visitor.visitRet(opnd);
 
         } else {
-            fatalError("unkown opcode ${opcode}");
+            fatalError("unkown opcode ${opcode} ${bytecodeName(opcode)}");
         }
     }
 

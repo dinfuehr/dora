@@ -114,7 +114,7 @@ class ReversePostOrderIterator(let postOrder: Vec[Block]) {
     }
 }
 
-struct BlockId { value: Int32 }
+struct BlockId(value: Int32)
 
 class Block() {
     var id: Int32 = -1;
