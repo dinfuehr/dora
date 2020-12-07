@@ -1,5 +1,6 @@
 use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
+use std::convert::TryInto;
 
 use dora_parser::ast::*;
 
@@ -542,7 +543,7 @@ impl<'a> AstBytecodeGen<'a> {
             Expr::Conv(ref conv) => self.visit_expr_conv(conv, dest),
             Expr::Tuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
             Expr::Paren(ref paren) => self.visit_expr(&paren.expr, dest),
-            Expr::Match(_) => unimplemented!(),
+            Expr::Match(ref expr) => self.visit_expr_match(expr, dest),
             Expr::Lambda(_) => unimplemented!(),
         }
     }
@@ -721,6 +722,64 @@ impl<'a> AstBytecodeGen<'a> {
             self.gen.emit_checked_cast(object, cls_idx, expr.pos);
             object
         }
+    }
+
+    fn visit_expr_match(&mut self, node: &ExprMatchType, dest: DataDest) -> Register {
+        let result_ty = self.ty(node.id);
+        let enum_ty = self.ty(node.expr.id());
+
+        let dest = if result_ty.is_unit() {
+            Register::invalid()
+        } else {
+            self.ensure_register(dest, BytecodeType::from_ty(self.vm, result_ty))
+        };
+
+        let end_lbl = self.gen.create_label();
+
+        let expr_reg = self.visit_expr(&node.expr, DataDest::Alloc);
+
+        let variant_reg = self.alloc_temp(BytecodeType::Int32);
+        let idx = self.gen.add_const_enum(
+            enum_ty.enum_id().expect("enum expected"),
+            enum_ty.type_params(self.vm),
+        );
+        self.gen
+            .emit_load_enum_variant(variant_reg, expr_reg, idx, node.pos);
+        self.free_if_temp(expr_reg);
+
+        let mut next_lbl = self.gen.create_label();
+
+        for (idx, case) in node.cases.iter().enumerate() {
+            let variant_id: i32 = {
+                let ident_type = self.src.map_idents.get(case.pattern.id).unwrap();
+
+                match ident_type {
+                    IdentType::EnumValue(_, _, variant_id) => (*variant_id).try_into().unwrap(),
+                    _ => unreachable!(),
+                }
+            };
+
+            self.gen.bind_label(next_lbl);
+            next_lbl = self.gen.create_label();
+
+            if idx != node.cases.len() - 1 {
+                let tmp_reg = self.alloc_temp(BytecodeType::Int32);
+                let cmp_reg = self.alloc_temp(BytecodeType::Bool);
+                self.gen.emit_const_int32(tmp_reg, variant_id);
+                self.gen.emit_test_eq_int32(cmp_reg, variant_reg, tmp_reg);
+                self.gen.emit_jump_if_false(cmp_reg, next_lbl);
+                self.free_temp(tmp_reg);
+                self.free_temp(cmp_reg);
+            }
+
+            self.visit_expr(&case.value, DataDest::Reg(dest));
+            self.gen.emit_jump(end_lbl);
+        }
+
+        self.gen.bind_label(end_lbl);
+        self.free_temp(variant_reg);
+
+        dest
     }
 
     fn visit_expr_if(&mut self, expr: &ExprIfType, dest: DataDest) -> Register {

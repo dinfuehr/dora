@@ -622,6 +622,10 @@ impl<'a> TypeCheck<'a> {
                 Ok(Sym::EnumValue(enum_id, variant_id)) => {
                     if Some(enum_id) == expr_enum_id {
                         used_variants.insert(variant_id);
+                        self.analysis.map_idents.insert(
+                            case.pattern.id,
+                            IdentType::EnumValue(enum_id, SourceTypeArray::empty(), variant_id),
+                        );
                     } else {
                         let msg = SemError::EnumVariantExpected;
                         self.vm.diag.lock().report(self.file_id, node.pos, msg);
@@ -659,6 +663,8 @@ impl<'a> TypeCheck<'a> {
             let msg = SemError::MatchUncoveredVariant;
             self.vm.diag.lock().report(self.file_id, node.pos, msg);
         }
+
+        self.analysis.set_ty(node.id, result_type.clone());
 
         result_type
     }
