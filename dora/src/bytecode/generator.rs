@@ -727,6 +727,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_match(&mut self, node: &ExprMatchType, dest: DataDest) -> Register {
         let result_ty = self.ty(node.id);
         let enum_ty = self.ty(node.expr.id());
+        let enum_id = enum_ty.enum_id().expect("enum expected");
 
         let dest = if result_ty.is_unit() {
             Register::invalid()
@@ -739,13 +740,11 @@ impl<'a> AstBytecodeGen<'a> {
         let expr_reg = self.visit_expr(&node.expr, DataDest::Alloc);
 
         let variant_reg = self.alloc_temp(BytecodeType::Int32);
-        let idx = self.gen.add_const_enum(
-            enum_ty.enum_id().expect("enum expected"),
-            enum_ty.type_params(self.vm),
-        );
+        let idx = self
+            .gen
+            .add_const_enum(enum_id, enum_ty.type_params(self.vm));
         self.gen
             .emit_load_enum_variant(variant_reg, expr_reg, idx, node.pos);
-        self.free_if_temp(expr_reg);
 
         let mut next_lbl = self.gen.create_label();
 
@@ -772,12 +771,45 @@ impl<'a> AstBytecodeGen<'a> {
                 self.free_temp(cmp_reg);
             }
 
+            self.push_scope();
+
+            if let Some(ref params) = case.pattern.params {
+                for (subtype_idx, param) in params.iter().enumerate() {
+                    if let Some(_) = param.name {
+                        let idx = self.gen.add_const_enum_variant(
+                            enum_id,
+                            enum_ty.type_params(self.vm),
+                            variant_id as usize,
+                        );
+
+                        let var_id = *self.src.map_vars.get(param.id).unwrap();
+
+                        let ty = self.var_ty(var_id);
+                        let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+                        let var_reg = self.alloc_var(ty);
+
+                        self.var_registers.insert(var_id, var_reg);
+
+                        self.gen.emit_load_enum_element(
+                            var_reg,
+                            expr_reg,
+                            idx,
+                            subtype_idx as u32,
+                            param.pos,
+                        );
+                    }
+                }
+            }
+
             self.visit_expr(&case.value, DataDest::Reg(dest));
+            self.pop_scope();
+
             self.gen.emit_jump(end_lbl);
         }
 
         self.gen.bind_label(end_lbl);
         self.free_temp(variant_reg);
+        self.free_if_temp(expr_reg);
 
         dest
     }
