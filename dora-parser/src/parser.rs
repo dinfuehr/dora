@@ -1584,11 +1584,13 @@ impl<'a> Parser<'a> {
 
         let params = if self.token.is(TokenKind::LParen) {
             self.expect_token(TokenKind::LParen)?;
-            self.parse_list(TokenKind::Comma, TokenKind::RParen, |this| {
-                this.expect_identifier()
-            })?
+            let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |this| {
+                this.parse_match_pattern_param()
+            })?;
+
+            Some(params)
         } else {
-            Vec::new()
+            None
         };
 
         let span = self.span_from(start);
@@ -1599,6 +1601,38 @@ impl<'a> Parser<'a> {
             span,
             path,
             params,
+        })
+    }
+
+    fn parse_match_pattern_param(&mut self) -> Result<MatchPatternParam, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.token.position;
+
+        let (mutable, name) = if self.token.is(TokenKind::Underscore) {
+            self.expect_token(TokenKind::Underscore)?;
+
+            (false, None)
+        } else {
+            let mutable = if self.token.is(TokenKind::Mut) {
+                self.expect_token(TokenKind::Mut)?;
+                true
+            } else {
+                false
+            };
+
+            let ident = self.expect_identifier()?;
+
+            (mutable, Some(ident))
+        };
+
+        let span = self.span_from(start);
+
+        Ok(MatchPatternParam {
+            id: self.generate_id(),
+            pos,
+            span,
+            mutable,
+            name,
         })
     }
 

@@ -305,7 +305,7 @@ pub struct Var {
     pub id: VarId,
     pub name: Name,
     pub ty: SourceType,
-    pub reassignable: bool,
+    pub mutable: bool,
     pub node_id: ast::NodeId,
 }
 

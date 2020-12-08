@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
@@ -109,7 +110,7 @@ impl<'a> TypeCheck<'a> {
             let var_ctxt = Var {
                 id: VarId(0),
                 name: param.name,
-                reassignable: false,
+                mutable: false,
                 ty,
                 node_id: param.id,
             };
@@ -169,7 +170,7 @@ impl<'a> TypeCheck<'a> {
             id: VarId(0),
             name,
             ty: self_ty,
-            reassignable: false,
+            mutable: false,
             node_id: ast_id,
         };
 
@@ -279,7 +280,7 @@ impl<'a> TypeCheck<'a> {
                 let var_ctxt = Var {
                     id: VarId(0),
                     name: ident.name,
-                    reassignable: reassignable || ident.mutable,
+                    mutable: reassignable || ident.mutable,
                     ty,
                     node_id: ident.id,
                 };
@@ -618,6 +619,9 @@ impl<'a> TypeCheck<'a> {
         for case in &node.cases {
             let sym = self.read_path(&case.pattern.path);
 
+            self.symtable.push_level();
+            let mut used_idents: HashSet<Name> = HashSet::new();
+
             match sym {
                 Ok(Sym::EnumValue(enum_id, variant_id)) => {
                     if Some(enum_id) == expr_enum_id {
@@ -626,6 +630,58 @@ impl<'a> TypeCheck<'a> {
                             case.pattern.id,
                             IdentType::EnumValue(enum_id, SourceTypeArray::empty(), variant_id),
                         );
+
+                        let xenum = self.vm.enums[enum_id].read();
+                        let variant = &xenum.variants[variant_id];
+
+                        let given_params = if let Some(ref params) = case.pattern.params {
+                            params.len()
+                        } else {
+                            0
+                        };
+
+                        if given_params == 0 && case.pattern.params.is_some() {
+                            let msg = SemError::MatchPatternNoParens;
+                            self.vm.diag.lock().report(self.file_id, case.pos, msg);
+                        }
+
+                        let expected_params = variant.types.len();
+
+                        if given_params != expected_params {
+                            let msg = SemError::MatchPatternWrongNumberOfParams(
+                                given_params,
+                                expected_params,
+                            );
+                            self.vm.diag.lock().report(self.file_id, case.pos, msg);
+                        }
+
+                        if let Some(ref params) = case.pattern.params {
+                            for (idx, param) in params.iter().enumerate() {
+                                if let Some(name) = param.name {
+                                    let ty = if idx < variant.types.len() {
+                                        variant.types[idx].clone()
+                                    } else {
+                                        SourceType::Error
+                                    };
+
+                                    if used_idents.insert(name) == false {
+                                        let msg = SemError::VarAlreadyInPattern;
+                                        self.vm.diag.lock().report(self.file_id, param.pos, msg);
+                                    }
+
+                                    let var_ctxt = Var {
+                                        id: VarId(0),
+                                        name,
+                                        mutable: param.mutable,
+                                        ty,
+                                        node_id: param.id,
+                                    };
+
+                                    let var_id = self.add_local(var_ctxt, param.pos);
+                                    self.analysis.map_vars.insert(param.id, var_id);
+                                }
+                            }
+                        }
                     } else {
                         let msg = SemError::EnumVariantExpected;
                         self.vm.diag.lock().report(self.file_id, node.pos, msg);
@@ -655,6 +711,8 @@ impl<'a> TypeCheck<'a> {
                     .lock()
                     .report(self.file_id, case.value.pos(), msg);
             }
+
+            self.symtable.pop_level();
         }
 
         used_variants.toggle_range(..);
@@ -815,7 +873,7 @@ impl<'a> TypeCheck<'a> {
 
         let lhs_type = match sym {
             Some(Sym::Var(varid)) => {
-                if !self.analysis.vars[varid].reassignable {
+                if !self.analysis.vars[varid].mutable {
                     self.vm
                         .diag
                         .lock()

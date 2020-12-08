@@ -42,6 +42,8 @@ pub enum SemError {
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
     StructArgsIncompatible(String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
+    MatchPatternNoParens,
+    MatchPatternWrongNumberOfParams(usize, usize),
     EnumExpected,
     EnumVariantExpected,
     MatchUncoveredVariant,
@@ -143,6 +145,7 @@ pub enum SemError {
     NameOfStaticMethodExpected,
     IfBranchTypesIncompatible(String, String),
     MatchBranchTypesIncompatible(String, String),
+    VarAlreadyInPattern,
     NameExpected,
     IndexExpected,
     IllegalTupleIndex(u64, String),
@@ -264,6 +267,12 @@ impl SemError {
             SemError::EnumArgsNoParens(ref name, ref variant) => {
                 format!("{}::{} needs to be used without parens.", name, variant)
             }
+            SemError::MatchPatternNoParens => "pattern should be used without parens.".into(),
+            SemError::MatchPatternWrongNumberOfParams(given_params, expected_params) => format!(
+                "pattern expects {} params but got {}.",
+                given_params, expected_params
+            ),
+            SemError::VarAlreadyInPattern => "var is already used in pattern.".into(),
             SemError::EnumExpected => format!("enum expected."),
             SemError::EnumVariantExpected => format!("enum variant expected."),
             SemError::MatchUncoveredVariant => format!("not all variants are covered."),

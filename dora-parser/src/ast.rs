@@ -2236,7 +2236,16 @@ pub struct MatchPattern {
     pub span: Span,
 
     pub path: Path,
-    pub params: Vec<Name>,
+    pub params: Option<Vec<MatchPatternParam>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchPatternParam {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub name: Option<Name>,
+    pub mutable: bool,
 }
 
 #[derive(Clone, Debug)]

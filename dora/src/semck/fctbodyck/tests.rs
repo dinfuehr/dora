@@ -1889,6 +1889,95 @@ fn test_enum_match() {
 }
 
 #[test]
+fn test_enum_match_with_parens() {
+    err(
+        "
+        enum A { V1, V2 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1() => 0,
+                A::V2 => 1
+            }
+        }
+    ",
+        pos(5, 17),
+        SemError::MatchPatternNoParens,
+    );
+}
+
+#[test]
+fn test_enum_match_wrong_number_params() {
+    err(
+        "
+        enum A { V1(Int32), V2 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1 => 0,
+                A::V2 => 1
+            }
+        }
+    ",
+        pos(5, 17),
+        SemError::MatchPatternWrongNumberOfParams(0, 1),
+    );
+
+    err(
+        "
+        enum A { V1(Int32, Float32, Bool), V2 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1(a, b, c, d) => 0,
+                A::V2 => 1
+            }
+        }
+    ",
+        pos(5, 17),
+        SemError::MatchPatternWrongNumberOfParams(4, 3),
+    );
+}
+
+#[test]
+fn test_enum_match_params() {
+    ok("
+        enum A { V1(Int32, Int32, Int32), V2 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1(a, _, c) => a + c,
+                A::V2 => 1
+            }
+        }
+    ");
+
+    err(
+        "
+        enum A { V1(Int32, Int32, Int32), V2 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1(a, _, c) => a + c,
+                A::V2 => a
+            }
+        }
+    ",
+        pos(6, 26),
+        SemError::UnknownIdentifier("a".into()),
+    );
+
+    err(
+        "
+        enum A { V1(Int32, Int32), V2 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1(a, a) => a + a,
+                A::V2 => 1
+            }
+        }
+    ",
+        pos(5, 26),
+        SemError::VarAlreadyInPattern,
+    );
+}
+
+#[test]
 fn test_import_enum_value() {
     ok("enum A { V1(Int32), V2 } import A::V1; fun f(): A { V1(1) }");
     ok("enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1[Int32](1) }");
