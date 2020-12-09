@@ -6,7 +6,7 @@ fun main() {
   assert(!std::optionContains[Int32](x, 0));
   assert(std::optionEquals[Int32](x, None[Int32]));
   assert(!std::optionEquals[Int32](x, Some[Int32](0)));
-  assert(std::optionToString[Int32](x) == "None");
+  assert(x.toString() == "None");
 
   let x = Some[Int32](42);
   assert(x.isSome());
@@ -17,5 +17,5 @@ fun main() {
   assert(std::optionEquals[Int32](x, Some[Int32](42)));
   assert(!std::optionEquals[Int32](x, Some[Int32](2)));
   assert(!std::optionEquals[Int32](x, None[Int32]));
-  assert(std::optionToString[Int32](x) == "Some(42)");
+  assert(x.toString() == "Some(42)");
 }

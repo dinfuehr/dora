@@ -8,19 +8,26 @@ import Option::None;
 
 impl[T] Option[T] {
   fun isNone(): Bool {
-    unsafeLoadEnumVariant[Option[T]](self) == 1
+    match self {
+      Some(_) => false,
+      None => true
+    }
   }
 
   fun isSome(): Bool {
-    unsafeLoadEnumVariant[Option[T]](self) == 0
+    match self {
+      Some(_) => true,
+      None => false
+    }
   }
 
   fun unwrap(): T {
-    if unsafeLoadEnumVariant[Option[T]](self) == 0 {
-      unsafeLoadEnumElement[Option[T], T](self, 0, 0)
-    } else {
-      fatalError("cannot unwrap None.");
-      unreachable[T]()
+    match self {
+      Some(value) => value,
+      None => {
+        fatalError("cannot unwrap None.");
+        unreachable[T]()
+      }
     }
   }
 
@@ -71,10 +78,11 @@ impl[T] Option[T] {
   }
 }
 
-@pub fun optionToString[T: Stringable](lhs: Option[T]): String {
-  if lhs.isSome() {
-    "Some(${lhs.unwrap()})"
-  } else {
-    "None"
+impl[T: Stringable] Option[T] {
+  @pub fun toString(): String {
+    match self {
+      Some(value) => "Some(${value})",
+      None => "None"
+    }
   }
 }
