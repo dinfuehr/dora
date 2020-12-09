@@ -606,6 +606,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let expr_enum_id = expr_type.enum_id();
+        let expr_type_params = expr_type.type_params(self.vm);
 
         let enum_variants = if let Some(expr_enum_id) = expr_enum_id {
             let xenum = self.vm.enums[expr_enum_id].read();
@@ -628,7 +629,7 @@ impl<'a> TypeCheck<'a> {
                         used_variants.insert(variant_id);
                         self.analysis.map_idents.insert(
                             case.pattern.id,
-                            IdentType::EnumValue(enum_id, SourceTypeArray::empty(), variant_id),
+                            IdentType::EnumValue(enum_id, expr_type_params.clone(), variant_id),
                         );
 
                         let xenum = self.vm.enums[enum_id].read();
@@ -663,6 +664,9 @@ impl<'a> TypeCheck<'a> {
                                     } else {
                                         SourceType::Error
                                     };
+
+                                    let ty =
+                                        replace_type_param(self.vm, ty, &expr_type_params, None);
 
                                     if used_idents.insert(name) == false {
                                         let msg = SemError::VarAlreadyInPattern;

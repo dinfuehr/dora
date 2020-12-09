@@ -1,0 +1,21 @@
+fun main() {
+    assert(value1(None[Int32]) == 0);
+    assert(value1(Some[Int32](5)) == 5);
+
+    assert(value2(Some[Int32](42)) == 42);
+    assert(value2(None[Int32]) == 0);
+}
+
+fun value1(x: Option[Int32]): Int32 {
+    match x {
+        Some(a) => a,
+        None => 0
+    }
+}
+
+fun value2(x: Option[Int32]): Int32 {
+    match x {
+        None => 0,
+        Some(a) => a
+    }
+}
