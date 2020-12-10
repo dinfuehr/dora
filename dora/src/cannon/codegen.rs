@@ -2672,6 +2672,40 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
+    fn emit_new_trait_object(&mut self, _dest: Register, idx: ConstPoolIdx, _src: Register) {
+        let (_trait_id, type_params) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Trait(trait_id, type_params) => (*trait_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.vm)));
+
+        unimplemented!()
+
+        // let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        // let sdef = self.vm.struct_defs.idx(sdef_id);
+
+        // let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
+        // let dest_offset = self.register_offset(dest);
+        // self.asm.lea(REG_TMP1, Mem::Local(dest_offset));
+
+        // for (field_idx, &arg) in arguments.iter().enumerate() {
+        //     if let Some(ty) = self.specialize_register_type_unit(arg) {
+        //         let field = &sdef.fields[field_idx];
+        //         comment!(self, format!("NewStruct: store register {} in struct", arg));
+
+        //         let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+        //         let src = self.reg(arg);
+
+        //         self.copy_bytecode_ty(ty, dest, src);
+        //     }
+        // }
+    }
+
     fn emit_nil_check(&mut self, obj: Register) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
@@ -5209,6 +5243,25 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             )
         });
         self.emit_new_struct(dest, idx);
+    }
+
+    fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
+        comment!(self, {
+            let (trait_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Trait(trait_id, type_params) => (*trait_id, type_params),
+                _ => unreachable!(),
+            };
+            let xtrait = self.vm.traits[trait_id].read();
+            let trait_name = xtrait.name_with_params(self.vm, type_params);
+            format!(
+                "NewTraitObject {}, ConstPoolIdx({}), {} # {}",
+                dest,
+                idx.to_usize(),
+                src,
+                trait_name,
+            )
+        });
+        self.emit_new_trait_object(dest, idx, src);
     }
 
     fn visit_nil_check(&mut self, obj: Register) {

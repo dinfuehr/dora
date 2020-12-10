@@ -431,6 +431,6 @@ impl LazyCompilationData {
 
 #[derive(Clone, Debug)]
 pub enum LazyCompilationSite {
-    Compile(FctId, i32, SourceTypeArray),
-    VirtCompile(bool, u32, SourceTypeArray),
+    Direct(FctId, i32, SourceTypeArray),
+    Virtual(bool, u32, SourceTypeArray),
 }

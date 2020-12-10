@@ -217,12 +217,12 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
     };
 
     match lazy_compilation_site {
-        LazyCompilationSite::Compile(fct_id, disp, ref type_params) => {
-            patch_fct_call(vm, ra, fct_id, type_params, disp)
+        LazyCompilationSite::Direct(fct_id, disp, ref type_params) => {
+            patch_direct_call(vm, ra, fct_id, type_params, disp)
         }
 
-        LazyCompilationSite::VirtCompile(receiver_is_first, vtable_index, ref type_params) => {
-            patch_vtable_call(
+        LazyCompilationSite::Virtual(receiver_is_first, vtable_index, ref type_params) => {
+            patch_virtual_call(
                 vm,
                 receiver_is_first,
                 receiver1,
@@ -234,7 +234,7 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
     }
 }
 
-fn patch_vtable_call(
+fn patch_virtual_call(
     vm: &VM,
     receiver_is_first: bool,
     receiver1: Address,
@@ -263,7 +263,7 @@ fn patch_vtable_call(
     fct_ptr
 }
 
-fn patch_fct_call(
+fn patch_direct_call(
     vm: &VM,
     ra: usize,
     fct_id: FctId,

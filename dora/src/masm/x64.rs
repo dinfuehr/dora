@@ -94,7 +94,7 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
 
         let pos = self.pos() as i32;
-        self.emit_lazy_compilation_site(LazyCompilationSite::Compile(
+        self.emit_lazy_compilation_site(LazyCompilationSite::Direct(
             fct_id,
             disp + pos,
             type_params,
@@ -134,7 +134,7 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
-        self.emit_lazy_compilation_site(LazyCompilationSite::VirtCompile(
+        self.emit_lazy_compilation_site(LazyCompilationSite::Virtual(
             self_index == 0,
             vtable_index,
             type_params,
