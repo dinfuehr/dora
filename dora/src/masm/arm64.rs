@@ -154,7 +154,7 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
 
         let pos = self.pos() as i32;
-        self.emit_lazy_compilation_site(LazyCompilationSite::Compile(
+        self.emit_lazy_compilation_site(LazyCompilationSite::Direct(
             fct_id,
             disp + pos,
             type_params,
@@ -200,7 +200,7 @@ impl MacroAssembler {
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
-        self.emit_lazy_compilation_site(LazyCompilationSite::VirtCompile(
+        self.emit_lazy_compilation_site(LazyCompilationSite::Virtual(
             self_index == 0,
             vtable_index,
             type_params,
