@@ -1,0 +1,17 @@
+enum MyOption[T] { Some(T), None }
+
+impl[T] MyOption[T] {
+    fun unwrapNone() {
+        match self {
+            MyOption::Some(value) => {
+                std::fatalError("cannot unwrap Some.");
+                unreachable[()]()
+            },
+            MyOption::None => ()
+        }
+    }
+}
+
+fun main() {
+    MyOption::None[Int32].unwrapNone();
+}

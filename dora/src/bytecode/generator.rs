@@ -730,9 +730,11 @@ impl<'a> AstBytecodeGen<'a> {
         let enum_id = enum_ty.enum_id().expect("enum expected");
 
         let dest = if result_ty.is_unit() {
-            Register::invalid()
+            None
         } else {
-            self.ensure_register(dest, BytecodeType::from_ty(self.vm, result_ty))
+            let result_bc_ty = BytecodeType::from_ty(self.vm, result_ty);
+            let dest = self.ensure_register(dest, result_bc_ty);
+            Some(dest)
         };
 
         let end_lbl = self.gen.create_label();
@@ -804,7 +806,12 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            self.visit_expr(&case.value, DataDest::Reg(dest));
+            if let Some(dest) = dest {
+                self.visit_expr(&case.value, DataDest::Reg(dest));
+            } else {
+                self.visit_expr(&case.value, DataDest::Effect);
+            }
+
             self.pop_scope();
 
             self.gen.emit_jump(end_lbl);
@@ -814,7 +821,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_temp(variant_reg);
         self.free_if_temp(expr_reg);
 
-        dest
+        dest.unwrap_or(Register::invalid())
     }
 
     fn visit_expr_if(&mut self, expr: &ExprIfType, dest: DataDest) -> Register {
