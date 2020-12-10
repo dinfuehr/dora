@@ -3,9 +3,9 @@ fun main() {
   assert(x.isNone());
   assert(!x.isSome());
   assert(!x.has(0));
-  assert(!std::optionContains[Int32](x, 0));
-  assert(std::optionEquals[Int32](x, None[Int32]));
-  assert(!std::optionEquals[Int32](x, Some[Int32](0)));
+  assert(!x.contains(0));
+  assert(x.equals(None[Int32]));
+  assert(!x.equals(Some[Int32](0)));
   assert(x.toString() == "None");
 
   let x = Some[Int32](42);
@@ -13,9 +13,9 @@ fun main() {
   assert(!x.isNone());
   assert(x.unwrap() == 42);
   assert(x.has(42));
-  assert(std::optionContains[Int32](x, 42));
-  assert(std::optionEquals[Int32](x, Some[Int32](42)));
-  assert(!std::optionEquals[Int32](x, Some[Int32](2)));
-  assert(!std::optionEquals[Int32](x, None[Int32]));
+  assert(x.contains(42));
+  assert(x.equals(Some[Int32](42)));
+  assert(!x.equals(Some[Int32](2)));
+  assert(!x.equals(None[Int32]));
   assert(x.toString() == "Some(42)");
 }

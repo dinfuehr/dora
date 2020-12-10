@@ -32,49 +32,51 @@ impl[T] Option[T] {
   }
 
   fun unwrapNone() {
-    if unsafeLoadEnumVariant[Option[T]](self) == 0 {
-      fatalError("cannot unwrap Some.");
-      unreachable[T]()
+    match self {
+      Some(_) => {
+        fatalError("cannot unwrap Some.");
+      },
+      None => ()
     }
   }
 
   fun unwrapOr(alt: T): T {
-    if unsafeLoadEnumVariant[Option[T]](self) == 0 {
-      unsafeLoadEnumElement[Option[T], T](self, 0, 0)
-    } else {
-      alt
+    match self {
+      Some(value) => value,
+      None => alt
     }
   }
 
   fun has(val: T): Bool {
-    if unsafeLoadEnumVariant[Option[T]](self) == 0 {
-      unsafeLoadEnumElement[Option[T], T](self, 0, 0) === val
-    } else {
-      false
+    match self {
+      Some(actual) => actual === val,
+      None => false
     }
   }
 }
 
-@pub fun optionContains[T: Equals](lhs: Option[T], rhs: T): Bool {
-  if lhs.isSome() {
-    let lhs = lhs.unwrap();
-    lhs === rhs || lhs.equals(rhs)
-  } else {
-    false
-  }
-}
-
-@pub fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]): Bool {
-  if lhs.isSome() {
-    if rhs.isSome() {
-      let lhs = lhs.unwrap();
-      let rhs = rhs.unwrap();
-      lhs.equals(rhs)
+impl[T: Equals] Option[T] {
+  @pub fun contains(rhs: T): Bool {
+    if self.isSome() {
+      let lhs = self.unwrap();
+      lhs === rhs || lhs.equals(rhs)
     } else {
       false
     }
-  } else {
-    rhs.isNone()
+  }
+
+  @pub fun equals(rhs: Option[T]): Bool {
+    if self.isSome() {
+      if rhs.isSome() {
+        let lhs = self.unwrap();
+        let rhs = rhs.unwrap();
+        lhs.equals(rhs)
+      } else {
+        false
+      }
+    } else {
+      rhs.isNone()
+    }
   }
 }
 
