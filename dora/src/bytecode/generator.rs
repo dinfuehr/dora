@@ -1190,11 +1190,28 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> (Vec<SourceType>, Vec<BytecodeType>, SourceType) {
         let return_type = self.specialize_type_for_call(&call_type, fct.return_type.clone());
 
-        let arg_types = fct
-            .params_with_self()
-            .iter()
-            .map(|arg| self.specialize_type_for_call(&call_type, arg.clone()))
-            .collect::<Vec<SourceType>>();
+        let mut arg_types = Vec::with_capacity(fct.params_with_self().len());
+
+        if fct.has_self() {
+            let self_type = match call_type {
+                CallType::TraitObjectMethod(trait_ty, _) => {
+                    // trait methods use Self as type for self argument but specialize_type_for_call can't handle Self.
+                    assert!(fct.params_with_self()[0].is_self() && !fct.is_static);
+                    trait_ty.clone()
+                }
+                _ => {
+                    let arg = fct.params_with_self()[0].clone();
+                    self.specialize_type_for_call(&call_type, arg.clone())
+                }
+            };
+
+            arg_types.push(self_type);
+        }
+
+        for arg in fct.params_without_self() {
+            let arg = self.specialize_type_for_call(&call_type, arg.clone());
+            arg_types.push(arg);
+        }
 
         let arg_bytecode_types = arg_types
             .iter()
@@ -1211,7 +1228,9 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
     ) -> Option<Register> {
         match *call_type {
-            CallType::Method(_, _, _) | CallType::GenericMethod(_, _, _) => {
+            CallType::Method(_, _, _)
+            | CallType::GenericMethod(_, _, _)
+            | CallType::TraitObjectMethod(_, _) => {
                 let obj_expr = expr.object().expect("method target required");
                 let reg = self.visit_expr(obj_expr, DataDest::Alloc);
 
@@ -1389,7 +1408,9 @@ impl<'a> AstBytecodeGen<'a> {
                     self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
                 }
             }
-            CallType::TraitObjectMethod(_, _) => unimplemented!(),
+            CallType::TraitObjectMethod(_, _) => {
+                self.emit_invoke_virtual(return_type, return_reg, callee_idx, pos);
+            }
             CallType::GenericMethod(_, _, _) => {
                 self.emit_invoke_generic_direct(return_type, return_reg, callee_idx, pos);
             }

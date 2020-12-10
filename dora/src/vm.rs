@@ -545,6 +545,20 @@ impl VM {
     }
 
     #[cfg(test)]
+    pub fn trait_method_by_name(&self, trait_name: &str, method_name: &str) -> FctId {
+        let trait_id = self.trait_by_name(trait_name);
+        let method_name = self.interner.intern(method_name);
+
+        let xtrait = self.traits[trait_id].read();
+
+        xtrait
+            .instance_names
+            .get(&method_name)
+            .cloned()
+            .expect("method not found")
+    }
+
+    #[cfg(test)]
     pub fn global_by_name(&self, name: &str) -> GlobalId {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id)

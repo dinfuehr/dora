@@ -91,6 +91,16 @@ impl<'x> TraitCheck<'x> {
         let fctid = self.vm.add_fct(fct);
 
         self.xtrait.methods.push(fctid);
+
+        let table = if node.is_static {
+            &mut self.xtrait.static_names
+        } else {
+            &mut self.xtrait.instance_names
+        };
+
+        if !table.contains_key(&node.name) {
+            table.insert(node.name, fctid);
+        }
     }
 }
 

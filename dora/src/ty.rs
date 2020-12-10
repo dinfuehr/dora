@@ -241,7 +241,8 @@ impl SourceType {
         match self {
             &SourceType::Class(_, list_id)
             | &SourceType::Enum(_, list_id)
-            | &SourceType::Struct(_, list_id) => vm.source_type_arrays.lock().get(list_id),
+            | &SourceType::Struct(_, list_id)
+            | &SourceType::Trait(_, list_id) => vm.source_type_arrays.lock().get(list_id),
             _ => SourceTypeArray::empty(),
         }
     }

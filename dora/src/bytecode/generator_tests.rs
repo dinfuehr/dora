@@ -4151,20 +4151,25 @@ fn gen_trait_object_copy() {
 }
 
 #[test]
-#[ignore]
 fn gen_trait_object_method_call() {
-    gen(
+    gen_fct(
         "
         trait Foo { fun bar(): Int32; }
         fun f(x: Foo): Int32 { x.bar() }
     ",
-        |vm, code| {
-            let trait_id = vm.trait_by_name("Foo");
+        |vm, code, fct| {
+            let fct_id = vm.trait_method_by_name("Foo", "bar");
             let expected = vec![
-                NewTraitObject(r(1), trait_id, SourceTypeArray::empty(), r(0)),
+                PushRegister(r(0)),
+                InvokeVirtual(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::empty())
+            );
         },
     );
 }

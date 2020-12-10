@@ -1,4 +1,5 @@
 use parking_lot::RwLock;
+use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
@@ -31,6 +32,8 @@ pub struct TraitData {
     pub name: Name,
     pub type_params: Vec<TypeParam>,
     pub methods: Vec<FctId>,
+    pub instance_names: HashMap<Name, FctId>,
+    pub static_names: HashMap<Name, FctId>,
 }
 
 impl TraitData {
