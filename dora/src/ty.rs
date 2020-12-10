@@ -877,6 +877,17 @@ impl SourceTypeArray {
         SourceTypeArray::List(Arc::new(params))
     }
 
+    pub fn connect_single(&self, other: SourceType) -> SourceTypeArray {
+        if self.is_empty() {
+            return SourceTypeArray::single(other);
+        }
+
+        let mut params = self.types().to_vec();
+        params.push(other);
+
+        SourceTypeArray::List(Arc::new(params))
+    }
+
     pub fn types(&self) -> &[SourceType] {
         match self {
             SourceTypeArray::Empty => &[],

@@ -6,11 +6,11 @@ use std::sync::Arc;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     ensure_tuple, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId, EnumId,
-    EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, TupleId,
-    VM,
+    EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, TraitData,
+    TraitId, TupleId, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -654,6 +654,92 @@ pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArra
         .collect::<Vec<_>>();
 
     ensure_tuple(vm, new_subtypes)
+}
+
+pub fn specialize_trait_object(
+    vm: &VM,
+    trait_id: TraitId,
+    trait_type_params: &SourceTypeArray,
+    object_type: SourceType,
+) -> ClassDefId {
+    let xtrait = vm.traits[trait_id].read();
+
+    let thunk_type_params = trait_type_params.connect_single(object_type.clone());
+    let thunk_type_params_id = vm.source_type_arrays.lock().insert(thunk_type_params);
+
+    if let Some(&id) = xtrait.vtables.read().get(&thunk_type_params_id) {
+        return id;
+    }
+
+    create_specialized_class_for_trait_object(vm, &*xtrait, thunk_type_params_id, object_type)
+}
+
+fn create_specialized_class_for_trait_object(
+    vm: &VM,
+    xtrait: &TraitData,
+    thunk_type_params_id: SourceTypeArrayId,
+    object_type: SourceType,
+) -> ClassDefId {
+    let mut csize;
+    let mut fields;
+    let mut ref_fields;
+    let parent_id;
+
+    fields = Vec::with_capacity(1);
+    ref_fields = Vec::new();
+    csize = Header::size();
+    parent_id = None;
+
+    debug_assert!(!object_type.contains_type_param(vm));
+
+    let field_size = object_type.size(vm);
+    let field_align = object_type.align(vm);
+
+    let offset = mem::align_i32(csize, field_align);
+    fields.push(FieldDef {
+        offset,
+        ty: object_type.clone(),
+    });
+    add_ref_fields(vm, &mut ref_fields, offset, object_type.clone());
+    csize = offset + field_size;
+    csize = mem::align_i32(csize, mem::ptr_width());
+    let size = InstanceSize::Fixed(csize);
+
+    let stub = vm.compile_stub().to_usize();
+    let vtable_entries = vec![stub; xtrait.methods.len()];
+
+    let mut vtable = VTableBox::new(std::ptr::null(), csize as usize, 0, &vtable_entries);
+    ensure_display(vm, &mut vtable, parent_id);
+
+    let mut class_defs = vm.class_defs.lock();
+    let id: ClassDefId = class_defs.len().into();
+
+    let mut vtables = xtrait.vtables.write();
+
+    if let Some(&id) = vtables.get(&thunk_type_params_id) {
+        return id;
+    }
+
+    let old = vtables.insert(thunk_type_params_id, id);
+    assert!(old.is_none());
+
+    let class_def = Arc::new(ClassDef {
+        id,
+        cls_id: None,
+        type_params: SourceTypeArray::empty(),
+        parent_id: None,
+        size,
+        fields,
+        ref_fields,
+        vtable: RwLock::new(None),
+    });
+
+    vtable.initialize_classptr(Arc::as_ptr(&class_def));
+    *class_def.vtable.write() = Some(vtable);
+
+    class_defs.push(class_def.clone());
+
+    id
 }
 
 pub fn replace_type_param(

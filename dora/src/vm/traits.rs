@@ -7,9 +7,10 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
-    accessible_from, namespace_path, FctId, FileId, NamespaceId, TypeParam, TypeParamId, VM,
+    accessible_from, namespace_path, ClassDefId, FctId, FileId, NamespaceId, TypeParam,
+    TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -34,6 +35,7 @@ pub struct TraitData {
     pub methods: Vec<FctId>,
     pub instance_names: HashMap<Name, FctId>,
     pub static_names: HashMap<Name, FctId>,
+    pub vtables: RwLock<HashMap<SourceTypeArrayId, ClassDefId>>,
 }
 
 impl TraitData {

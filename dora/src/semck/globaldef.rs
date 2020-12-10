@@ -241,6 +241,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             methods: Vec::new(),
             instance_names: HashMap::new(),
             static_names: HashMap::new(),
+            vtables: RwLock::new(HashMap::new()),
         };
 
         self.vm.traits.push(RwLock::new(xtrait));
