@@ -1,0 +1,14 @@
+trait Foo { fun test(); }
+
+class Baz
+impl Foo for Baz {
+    fun test() {}
+}
+
+fun main() {
+    let f = foo();
+}
+
+fun foo(): Foo {
+    Baz() as Foo
+}

@@ -21,7 +21,8 @@ use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::{
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_struct_id_params, specialize_tuple, specialize_type, specialize_type_list,
+    specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
+    specialize_type_list,
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
@@ -2672,8 +2673,8 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_new_trait_object(&mut self, _dest: Register, idx: ConstPoolIdx, _src: Register) {
-        let (_trait_id, type_params) = match self.bytecode.const_pool(idx) {
+    fn emit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
+        let (trait_id, type_params) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::Trait(trait_id, type_params) => (*trait_id, type_params.clone()),
             _ => unreachable!(),
         };
@@ -2683,27 +2684,79 @@ impl<'a> CannonCodeGen<'a> {
             .iter()
             .all(|ty| !ty.contains_type_param(self.vm)));
 
-        unimplemented!()
+        let src_type_bytecode = self.specialize_register_type_unit(src);
+        let src_type = if let Some(ty) = src_type_bytecode.clone() {
+            SourceType::from_bytecode(self.vm, ty)
+        } else {
+            SourceType::Unit
+        };
+        let cls_def_id = specialize_trait_object(self.vm, trait_id, &type_params, src_type);
 
-        // let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-        // let sdef = self.vm.struct_defs.idx(sdef_id);
+        let cls = self.vm.class_defs.idx(cls_def_id);
 
-        // let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+        let alloc_size = match cls.size {
+            InstanceSize::Fixed(size) => size as usize,
+            _ => unreachable!(
+                "class size type {:?} for new object not supported",
+                cls.size
+            ),
+        };
 
-        // let dest_offset = self.register_offset(dest);
-        // self.asm.lea(REG_TMP1, Mem::Local(dest_offset));
+        let gcpoint = self.create_gcpoint();
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        self.asm.allocate(
+            REG_TMP1.into(),
+            AllocationSize::Fixed(alloc_size),
+            position,
+            false,
+            gcpoint,
+        );
 
-        // for (field_idx, &arg) in arguments.iter().enumerate() {
-        //     if let Some(ty) = self.specialize_register_type_unit(arg) {
-        //         let field = &sdef.fields[field_idx];
-        //         comment!(self, format!("NewStruct: store register {} in struct", arg));
+        // store gc object in register
+        comment!(
+            self,
+            format!("NewTraitObject: store object address in register {}", dest)
+        );
+        self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
-        //         let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
-        //         let src = self.reg(arg);
+        // store classptr in object
+        comment!(self, format!("NewTraitObject: initialize object header"));
+        let vtable = cls.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
+        let cptr = vtable as *const VTable as *const u8;
+        let disp = self.asm.add_addr(cptr);
+        let pos = self.asm.pos() as i32;
 
-        //         self.copy_bytecode_ty(ty, dest, src);
-        //     }
-        // }
+        self.asm.load_constpool(REG_RESULT.into(), disp + pos);
+        self.asm
+            .store_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
+
+        // clear mark/fwdptr word in header
+        assert!(Header::size() == 2 * mem::ptr_width());
+        self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_TMP1, mem::ptr_width()),
+            REG_RESULT.into(),
+        );
+
+        // clear the whole object even if we are going to initialize fields right afterwards
+        // This ensures gaps are all zero.
+        self.asm.fill_zero(REG_TMP1, false, alloc_size as usize);
+
+        if let Some(ty) = src_type_bytecode {
+            assert_eq!(cls.fields.len(), 1);
+            let field = &cls.fields[0];
+            comment!(
+                self,
+                format!("NewTraitObject: store register {} in object", src)
+            );
+
+            let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+            let src = self.reg(src);
+
+            self.copy_bytecode_ty(ty, dest, src);
+        }
     }
 
     fn emit_nil_check(&mut self, obj: Register) {

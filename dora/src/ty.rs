@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
+use crate::bytecode::BytecodeType;
 use crate::mem;
 use crate::semck;
 use crate::vm::VM;
@@ -584,6 +585,29 @@ impl SourceType {
             SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
             SourceType::Lambda(_) => unimplemented!(),
             SourceType::TypeParam(_) => false,
+        }
+    }
+
+    pub fn from_bytecode(vm: &VM, ty: BytecodeType) -> SourceType {
+        match ty {
+            BytecodeType::Bool => SourceType::Bool,
+            BytecodeType::Char => SourceType::Char,
+            BytecodeType::Float32 => SourceType::Float32,
+            BytecodeType::Float64 => SourceType::Float64,
+            BytecodeType::Int32 => SourceType::Int32,
+            BytecodeType::Int64 => SourceType::Int64,
+            BytecodeType::Ptr => SourceType::Ptr,
+            BytecodeType::UInt8 => SourceType::UInt8,
+            BytecodeType::TypeParam(id) => SourceType::TypeParam(TypeParamId(id as usize)),
+            BytecodeType::Struct(struct_id, type_params) => {
+                let list_id = vm.source_type_arrays.lock().insert(type_params);
+                SourceType::Struct(struct_id, list_id)
+            }
+            BytecodeType::Tuple(tuple_id) => SourceType::Tuple(tuple_id),
+            BytecodeType::Enum(enum_id, type_params) => {
+                let list_id = vm.source_type_arrays.lock().insert(type_params);
+                SourceType::Enum(enum_id, list_id)
+            }
         }
     }
 }
