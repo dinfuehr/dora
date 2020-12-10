@@ -1,0 +1,13 @@
+enum Foo { A(Int32, ()), B }
+
+fun main() {
+    assert(value(Foo::A(2, ())) == 2);
+    assert(value(Foo::B) == 0);
+}
+
+fun value(foo: Foo): Int32 {
+    match foo {
+        Foo::A(a, b) => a,
+        Foo::B => 0
+    }
+}

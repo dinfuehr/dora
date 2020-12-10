@@ -785,18 +785,21 @@ impl<'a> AstBytecodeGen<'a> {
                         let var_id = *self.src.map_vars.get(param.id).unwrap();
 
                         let ty = self.var_ty(var_id);
-                        let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
-                        let var_reg = self.alloc_var(ty);
 
-                        self.var_registers.insert(var_id, var_reg);
+                        if !ty.is_unit() {
+                            let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+                            let var_reg = self.alloc_var(ty);
 
-                        self.gen.emit_load_enum_element(
-                            var_reg,
-                            expr_reg,
-                            idx,
-                            subtype_idx as u32,
-                            param.pos,
-                        );
+                            self.var_registers.insert(var_id, var_reg);
+
+                            self.gen.emit_load_enum_element(
+                                var_reg,
+                                expr_reg,
+                                idx,
+                                subtype_idx as u32,
+                                param.pos,
+                            );
+                        }
                     }
                 }
             }
@@ -1097,7 +1100,13 @@ impl<'a> AstBytecodeGen<'a> {
         let mut arguments = Vec::new();
 
         for arg in &expr.args {
-            arguments.push(self.visit_expr(arg, DataDest::Alloc));
+            let ty = self.ty(arg.id());
+
+            if ty.is_unit() {
+                self.visit_expr(arg, DataDest::Effect);
+            } else {
+                arguments.push(self.visit_expr(arg, DataDest::Alloc));
+            }
         }
 
         for &arg_reg in &arguments {
