@@ -97,6 +97,13 @@ impl SourceType {
         }
     }
 
+    pub fn is_trait(&self) -> bool {
+        match *self {
+            SourceType::Trait(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_module(&self) -> bool {
         match *self {
             SourceType::Module(_) => true,
@@ -348,7 +355,9 @@ impl SourceType {
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
-            | SourceType::Struct(_, _) => *self == other,
+            | SourceType::Struct(_, _)
+            | SourceType::Enum(_, _)
+            | SourceType::Trait(_, _) => *self == other,
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
             }
@@ -384,15 +393,7 @@ impl SourceType {
 
                 _ => false,
             },
-            SourceType::Trait(_, _) => unimplemented!(),
             SourceType::Module(_) => *self == other,
-            SourceType::Enum(enum_id, type_params_id) => match other {
-                SourceType::Enum(other_enum_id, other_type_params_id) => {
-                    enum_id == other_enum_id && type_params_id == other_type_params_id
-                }
-
-                _ => false,
-            },
 
             SourceType::TypeParam(_) => *self == other,
 

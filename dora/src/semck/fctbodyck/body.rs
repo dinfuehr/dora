@@ -1732,8 +1732,8 @@ impl<'a> TypeCheck<'a> {
             let fct_id = lookup.found_fct_id().unwrap();
             let return_type = lookup.found_ret().unwrap();
 
-            let call_type = if let SourceType::Trait(trait_id, _) = object_type {
-                CallType::TraitObjectMethod(trait_id, fct_id)
+            let call_type = if object_type.is_trait() {
+                CallType::TraitObjectMethod(object_type, fct_id)
             } else {
                 let method_type = lookup.found_class_type().unwrap();
                 if method_type.is_module() {
@@ -2906,6 +2906,32 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(e.object.id(), object_type.clone());
 
         let check_type = self.read_type(&e.data_type);
+        self.analysis.set_ty(e.data_type.id(), check_type.clone());
+
+        if let SourceType::Trait(trait_id, _) = check_type.clone() {
+            if !e.is {
+                let implements = implements_trait(
+                    self.vm,
+                    object_type.clone(),
+                    &self.fct.type_params,
+                    trait_id,
+                );
+
+                if !implements {
+                    let object_type = object_type.name_fct(self.vm, self.fct);
+                    let check_type = check_type.name_fct(self.vm, self.fct);
+
+                    self.vm.diag.lock().report(
+                        self.file_id,
+                        e.pos,
+                        SemError::TypeNotImplementingTrait(object_type, check_type),
+                    );
+                }
+
+                self.analysis.set_ty(e.id, check_type.clone());
+                return check_type;
+            }
+        }
 
         if !check_type.is_error() && !check_type.is_cls() {
             let name = check_type.name_fct(self.vm, self.fct);
@@ -3180,13 +3206,13 @@ fn arg_allows(vm: &VM, def: SourceType, arg: SourceType, self_ty: Option<SourceT
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Enum(_, _) => def == arg,
+        | SourceType::Enum(_, _)
+        | SourceType::Trait(_, _) => def == arg,
         SourceType::Ptr => panic!("ptr should not occur in fct definition."),
         SourceType::This => {
             let real = self_ty.clone().expect("no Self type expected.");
             arg_allows(vm, real, arg, self_ty)
         }
-        SourceType::Trait(_, _) => panic!("trait should not occur in fct definition."),
 
         SourceType::TypeParam(_) => def == arg,
 

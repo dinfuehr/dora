@@ -159,6 +159,15 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
                     );
                 }
             }
+            ConstPoolEntry::Trait(trait_id, type_params) => {
+                let xtrait = vm.traits[*trait_id].read();
+                println!(
+                    "{}{} => Trait {}",
+                    align,
+                    idx,
+                    xtrait.name_with_params(vm, type_params)
+                )
+            }
         }
     }
 

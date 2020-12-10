@@ -4,7 +4,7 @@ use crate::mem::ptr_width;
 use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId, TupleId,
+    get_vm, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId, TraitId, TupleId,
     TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
@@ -167,6 +167,7 @@ impl BytecodeType {
             SourceType::Float32 => BytecodeType::Float32,
             SourceType::Float64 => BytecodeType::Float64,
             SourceType::Class(_, _) => BytecodeType::Ptr,
+            SourceType::Trait(_, _) => BytecodeType::Ptr,
             SourceType::Enum(id, list_id) => {
                 let xenum = vm.enums[id].read();
 
@@ -392,6 +393,7 @@ pub enum BytecodeOpcode {
     NewTuple,
     NewEnum,
     NewStruct,
+    NewTraitObject,
 
     NilCheck,
 
@@ -453,6 +455,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewEnum
             | BytecodeOpcode::NewTuple
             | BytecodeOpcode::NewStruct
+            | BytecodeOpcode::NewTraitObject
             | BytecodeOpcode::NilCheck
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck
@@ -610,6 +613,7 @@ pub enum ConstPoolEntry {
     EnumVariant(EnumId, SourceTypeArray, usize),
     Struct(StructId, SourceTypeArray),
     StructField(StructId, SourceTypeArray, StructFieldId),
+    Trait(TraitId, SourceTypeArray),
 }
 
 impl ConstPoolEntry {

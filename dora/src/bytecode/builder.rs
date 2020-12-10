@@ -9,7 +9,8 @@ use crate::bytecode::{
 use crate::driver::cmd::Args;
 use crate::ty::SourceTypeArray;
 use crate::vm::{
-    ClassId, EnumId, FctId, FieldId, GlobalId, StructFieldId, StructId, TupleId, TypeParamId, VM,
+    ClassId, EnumId, FctId, FieldId, GlobalId, StructFieldId, StructId, TraitId, TupleId,
+    TypeParamId, VM,
 };
 
 pub struct BytecodeBuilder {
@@ -117,6 +118,11 @@ impl BytecodeBuilder {
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Class(id, type_params))
+    }
+
+    pub fn add_const_trait(&mut self, id: TraitId, type_params: SourceTypeArray) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::Trait(id, type_params))
     }
 
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -928,6 +934,17 @@ impl BytecodeBuilder {
         assert!(self.def(dest));
         self.writer.set_position(pos);
         self.writer.emit_new_struct(dest, idx);
+    }
+    pub fn emit_new_trait_object(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        src: Register,
+        pos: Position,
+    ) {
+        assert!(self.def(dest) && self.used(src));
+        self.writer.set_position(pos);
+        self.writer.emit_new_trait_object(dest, idx, src);
     }
 
     pub fn emit_nil_check(&mut self, obj: Register, pos: Position) {

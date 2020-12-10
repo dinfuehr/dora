@@ -148,7 +148,7 @@ impl<'a> TypeParamCheck<'a> {
         let name = ty.name_with_params(self.vm, self.caller_type_param_defs);
         let xtrait = self.vm.traits[trait_id].read();
         let trait_name = self.vm.interner.str(xtrait.name).to_string();
-        let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+        let msg = SemError::TypeNotImplementingTrait(name, trait_name);
         self.vm.diag.lock().report(file_id, pos, msg);
     }
 }

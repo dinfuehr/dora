@@ -38,6 +38,22 @@ impl TraitData {
         namespace_path(vm, self.namespace_id, self.name)
     }
 
+    pub fn name_with_params(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
+        let name = namespace_path(vm, self.namespace_id, self.name);
+
+        if type_list.len() > 0 {
+            let type_list = type_list
+                .iter()
+                .map(|p| p.name(vm))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            format!("{}[{}]", name, type_list)
+        } else {
+            name.to_string()
+        }
+    }
+
     pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
         for &method in &self.methods {
             let method = vm.fcts.idx(method);

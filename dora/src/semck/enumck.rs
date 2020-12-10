@@ -379,7 +379,7 @@ mod tests {
             fun foo() { let tmp = Foo[String]::B; }
         ",
             pos(4, 46),
-            SemError::TraitBoundNotSatisfied("String".into(), "SomeTrait".into()),
+            SemError::TypeNotImplementingTrait("String".into(), "SomeTrait".into()),
         );
     }
 

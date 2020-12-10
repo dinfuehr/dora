@@ -699,6 +699,19 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_conv(&mut self, expr: &ExprConvType, dest: DataDest) -> Register {
+        let check_type = self.ty(expr.data_type.id());
+
+        if let SourceType::Trait(trait_id, _list_id) = check_type {
+            let object = self.visit_expr(&expr.object, DataDest::Alloc);
+            let idx = self
+                .gen
+                .add_const_trait(trait_id, check_type.type_params(self.vm));
+            let dest = self.ensure_register(dest, BytecodeType::Ptr);
+            self.gen.emit_new_trait_object(dest, idx, object, expr.pos);
+            self.free_if_temp(object);
+            return dest;
+        }
+
         let conv = self.src.map_convs.get(expr.id).clone().unwrap();
         let ty = conv.check_type.clone();
         let cls_id = ty.cls_id().expect("class expected");
@@ -2869,7 +2882,10 @@ impl<'a> AstBytecodeGen<'a> {
 
             CallType::Expr(_, _, ref type_params) => specialize_type(self.vm, ty, type_params),
 
-            CallType::TraitObjectMethod(_, _) => unimplemented!(),
+            CallType::TraitObjectMethod(trait_ty, _) => {
+                let container_type_params = trait_ty.type_params(self.vm);
+                specialize_type(self.vm, ty, &container_type_params)
+            }
             CallType::GenericMethod(id, _, _) | CallType::GenericStaticMethod(id, _, _) => {
                 debug_assert!(ty.is_concrete_type(self.vm) || ty.is_self());
                 if ty.is_self() {

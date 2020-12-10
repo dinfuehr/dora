@@ -354,7 +354,7 @@ mod tests {
         err(
             "class A[T: std::Zero] impl A[Int32] {} impl A[String] {}",
             pos(1, 45),
-            SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
+            SemError::TypeNotImplementingTrait("String".into(), "Zero".into()),
         );
     }
 
@@ -409,7 +409,7 @@ mod tests {
             impl Foo[String] {}
         ",
             pos(3, 18),
-            SemError::TraitBoundNotSatisfied("String".into(), "MyTrait".into()),
+            SemError::TypeNotImplementingTrait("String".into(), "MyTrait".into()),
         );
     }
 

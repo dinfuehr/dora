@@ -535,6 +535,16 @@ impl VM {
     }
 
     #[cfg(test)]
+    pub fn trait_by_name(&self, name: &str) -> TraitId {
+        let name = self.interner.intern(name);
+        let trait_id = NestedSymTable::new(self, self.global_namespace_id)
+            .get_trait(name)
+            .expect("class not found");
+
+        trait_id
+    }
+
+    #[cfg(test)]
     pub fn global_by_name(&self, name: &str) -> GlobalId {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id)

@@ -8,7 +8,7 @@ use crate::bytecode::{
 use crate::test;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructFieldId, StructId, TupleId,
+    ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructFieldId, StructId, TraitId, TupleId,
     TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
@@ -4114,6 +4114,61 @@ fn gen_tuple_element() {
     });
 }
 
+#[test]
+fn gen_trait_object() {
+    gen(
+        "
+        trait Foo { fun bar(): Int32; }
+        class Bar
+        impl Foo for Bar {
+            fun bar(): Int32 { 1 }
+        }
+        fun f(x: Bar): Foo { x as Foo }
+    ",
+        |vm, code| {
+            let trait_id = vm.trait_by_name("Foo");
+            let expected = vec![
+                NewTraitObject(r(1), trait_id, SourceTypeArray::empty(), r(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_trait_object_copy() {
+    gen(
+        "
+        trait Foo { fun bar(): Int32; }
+        fun f(x: Foo): Foo { let y = x; y }
+    ",
+        |_vm, code| {
+            let expected = vec![MovPtr(r(1), r(0)), Ret(r(1))];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+#[ignore]
+fn gen_trait_object_method_call() {
+    gen(
+        "
+        trait Foo { fun bar(): Int32; }
+        fun f(x: Foo): Int32 { x.bar() }
+    ",
+        |vm, code| {
+            let trait_id = vm.trait_by_name("Foo");
+            let expected = vec![
+                NewTraitObject(r(1), trait_id, SourceTypeArray::empty(), r(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -4313,6 +4368,7 @@ pub enum Bytecode {
     NewTuple(Register, TupleId),
     NewEnum(Register, EnumId, SourceTypeArray, usize),
     NewStruct(Register, StructId, SourceTypeArray),
+    NewTraitObject(Register, TraitId, SourceTypeArray, Register),
 
     NilCheck(Register),
 
@@ -4982,6 +5038,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
             _ => unreachable!(),
         };
         self.emit(Bytecode::NewStruct(dest, struct_id, type_params));
+    }
+    fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
+        let (trait_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Trait(trait_id, type_params) => (*trait_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        self.emit(Bytecode::NewTraitObject(dest, trait_id, type_params, src));
     }
 
     fn visit_nil_check(&mut self, obj: Register) {

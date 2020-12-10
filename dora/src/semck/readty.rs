@@ -270,7 +270,7 @@ fn check_type_params(
                     let bound = vm.traits[trait_bound].read();
                     let name = tp_ty.name_with_params(vm, check_type_param_defs);
                     let trait_name = vm.interner.str(bound.name).to_string();
-                    let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+                    let msg = SemError::TypeNotImplementingTrait(name, trait_name);
                     vm.diag.lock().report(file_id, pos, msg);
                     success = false;
                 }
@@ -451,7 +451,7 @@ fn check_bounds_for_type_param(
             let bound = vm.traits[trait_bound].read();
             let name = vm.interner.str(tp_definition_arg.name).to_string();
             let trait_name = vm.interner.str(bound.name).to_string();
-            let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+            let msg = SemError::TypeNotImplementingTrait(name, trait_name);
             vm.diag.lock().report(file_id, pos, msg);
             *success = false;
         }
@@ -470,7 +470,7 @@ fn fail_for_each_trait_bound(
         let bound = vm.traits[trait_bound].read();
         let name = tp_ty.name(vm);
         let trait_name = vm.interner.str(bound.name).to_string();
-        let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+        let msg = SemError::TypeNotImplementingTrait(name, trait_name);
         vm.diag.lock().report(file_id, pos, msg);
         *success = false;
     }

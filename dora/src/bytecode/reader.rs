@@ -919,6 +919,12 @@ where
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_new_struct(dest, idx);
             }
+            BytecodeOpcode::NewTraitObject => {
+                let dest = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_new_trait_object(dest, idx, src);
+            }
 
             BytecodeOpcode::NilCheck => {
                 let obj = self.read_register(wide);
@@ -1703,6 +1709,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_new_struct(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_new_trait_object(&mut self, _dest: Register, _idx: ConstPoolIdx, _src: Register) {
         unimplemented!();
     }
 

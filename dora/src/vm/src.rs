@@ -218,7 +218,7 @@ pub enum CallType {
     Expr(SourceType, FctId, SourceTypeArray),
 
     // Invoke method on trait object
-    TraitObjectMethod(TraitId, FctId),
+    TraitObjectMethod(SourceType, FctId),
 
     // Invoke trait method on type param, e.g. (T: SomeTrait).method()
     GenericMethod(TypeParamId, TraitId, FctId),

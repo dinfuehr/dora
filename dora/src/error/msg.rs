@@ -129,7 +129,7 @@ pub enum SemError {
     BoundExpected,
     NoTypeParamsExpected,
     DuplicateTraitBound,
-    TraitBoundNotSatisfied(String, String),
+    TypeNotImplementingTrait(String, String),
     AbstractMethodNotInAbstractClass,
     AbstractMethodWithImplementation,
     NewAbstractClass,
@@ -474,7 +474,7 @@ impl SemError {
             SemError::BoundExpected => "class or trait bound expected".into(),
             SemError::NoTypeParamsExpected => "no type params allowed".into(),
             SemError::DuplicateTraitBound => "duplicate trait bound".into(),
-            SemError::TraitBoundNotSatisfied(ref name, ref xtrait) => {
+            SemError::TypeNotImplementingTrait(ref name, ref xtrait) => {
                 format!("type `{}` does not implement trait `{}`.", name, xtrait)
             }
             SemError::AbstractMethodWithImplementation => {

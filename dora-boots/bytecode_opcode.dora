@@ -156,35 +156,36 @@ const BC_NEW_ARRAY: Int32 = 152I;
 const BC_NEW_TUPLE: Int32 = 153I;
 const BC_NEW_ENUM: Int32 = 154I;
 const BC_NEW_STRUCT: Int32 = 155I;
-const BC_NIL_CHECK: Int32 = 156I;
-const BC_ARRAY_LENGTH: Int32 = 157I;
-const BC_ARRAY_BOUND_CHECK: Int32 = 158I;
-const BC_LOAD_ARRAY_BOOL: Int32 = 159I;
-const BC_LOAD_ARRAY_UINT8: Int32 = 160I;
-const BC_LOAD_ARRAY_CHAR: Int32 = 161I;
-const BC_LOAD_ARRAY_INT32: Int32 = 162I;
-const BC_LOAD_ARRAY_INT64: Int32 = 163I;
-const BC_LOAD_ARRAY_FLOAT32: Int32 = 164I;
-const BC_LOAD_ARRAY_FLOAT64: Int32 = 165I;
-const BC_LOAD_ARRAY_PTR: Int32 = 166I;
-const BC_LOAD_ARRAY_TUPLE: Int32 = 167I;
-const BC_LOAD_ARRAY_GENERIC: Int32 = 168I;
-const BC_LOAD_ARRAY_ENUM: Int32 = 169I;
-const BC_LOAD_ARRAY_STRUCT: Int32 = 170I;
-const BC_STORE_ARRAY_BOOL: Int32 = 171I;
-const BC_STORE_ARRAY_UINT8: Int32 = 172I;
-const BC_STORE_ARRAY_CHAR: Int32 = 173I;
-const BC_STORE_ARRAY_INT32: Int32 = 174I;
-const BC_STORE_ARRAY_INT64: Int32 = 175I;
-const BC_STORE_ARRAY_FLOAT32: Int32 = 176I;
-const BC_STORE_ARRAY_FLOAT64: Int32 = 177I;
-const BC_STORE_ARRAY_PTR: Int32 = 178I;
-const BC_STORE_ARRAY_TUPLE: Int32 = 179I;
-const BC_STORE_ARRAY_GENERIC: Int32 = 180I;
-const BC_STORE_ARRAY_ENUM: Int32 = 181I;
-const BC_STORE_ARRAY_STRUCT: Int32 = 182I;
-const BC_RET_VOID: Int32 = 183I;
-const BC_RET: Int32 = 184I;
+const BC_NEW_TRAIT_OBJECT: Int32 = 156I;
+const BC_NIL_CHECK: Int32 = 157I;
+const BC_ARRAY_LENGTH: Int32 = 158I;
+const BC_ARRAY_BOUND_CHECK: Int32 = 159I;
+const BC_LOAD_ARRAY_BOOL: Int32 = 160I;
+const BC_LOAD_ARRAY_UINT8: Int32 = 161I;
+const BC_LOAD_ARRAY_CHAR: Int32 = 162I;
+const BC_LOAD_ARRAY_INT32: Int32 = 163I;
+const BC_LOAD_ARRAY_INT64: Int32 = 164I;
+const BC_LOAD_ARRAY_FLOAT32: Int32 = 165I;
+const BC_LOAD_ARRAY_FLOAT64: Int32 = 166I;
+const BC_LOAD_ARRAY_PTR: Int32 = 167I;
+const BC_LOAD_ARRAY_TUPLE: Int32 = 168I;
+const BC_LOAD_ARRAY_GENERIC: Int32 = 169I;
+const BC_LOAD_ARRAY_ENUM: Int32 = 170I;
+const BC_LOAD_ARRAY_STRUCT: Int32 = 171I;
+const BC_STORE_ARRAY_BOOL: Int32 = 172I;
+const BC_STORE_ARRAY_UINT8: Int32 = 173I;
+const BC_STORE_ARRAY_CHAR: Int32 = 174I;
+const BC_STORE_ARRAY_INT32: Int32 = 175I;
+const BC_STORE_ARRAY_INT64: Int32 = 176I;
+const BC_STORE_ARRAY_FLOAT32: Int32 = 177I;
+const BC_STORE_ARRAY_FLOAT64: Int32 = 178I;
+const BC_STORE_ARRAY_PTR: Int32 = 179I;
+const BC_STORE_ARRAY_TUPLE: Int32 = 180I;
+const BC_STORE_ARRAY_GENERIC: Int32 = 181I;
+const BC_STORE_ARRAY_ENUM: Int32 = 182I;
+const BC_STORE_ARRAY_STRUCT: Int32 = 183I;
+const BC_RET_VOID: Int32 = 184I;
+const BC_RET: Int32 = 185I;
 
 const BC_TYPE_BOOL: Int32 = 0I;
 const BC_TYPE_U_INT8: Int32 = 1I;
@@ -196,6 +197,7 @@ const BC_TYPE_FLOAT64: Int32 = 6I;
 const BC_TYPE_PTR: Int32 = 7I;
 const BC_TYPE_TUPLE: Int32 = 8I;
 const BC_TYPE_ENUM: Int32 = 9I;
+const BC_TYPE_STRUCT: Int32 = 10I;
 
 const CONSTPOOL_OPCODE_STRING: Int32 = 0I;
 const CONSTPOOL_OPCODE_FLOAT32: Int32 = 1I;
@@ -361,6 +363,7 @@ fun bytecodeName(opcode: Int32): String {
   if opcode == BC_NEW_TUPLE { return "NewTuple"; }
   if opcode == BC_NEW_ENUM { return "NewEnum"; }
   if opcode == BC_NEW_STRUCT { return "NewStruct"; }
+  if opcode == BC_NEW_TRAIT_OBJECT { return "NewTraitObject"; }
   if opcode == BC_NIL_CHECK { return "NilCheck"; }
   if opcode == BC_ARRAY_LENGTH { return "ArrayLength"; }
   if opcode == BC_ARRAY_BOUND_CHECK { return "ArrayBoundCheck"; }
@@ -404,5 +407,6 @@ fun bytecodeTypeName(code: Int32): String {
   if code == BC_TYPE_PTR { return "Ptr"; }
   if code == BC_TYPE_TUPLE { return "Tuple"; }
   if code == BC_TYPE_ENUM { return "Enum"; }
+  if code == BC_TYPE_STRUCT { return "Struct"; }
   "UNKNOWN(${code})"
 }

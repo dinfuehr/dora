@@ -969,7 +969,7 @@ fn test_type_param_bounds_in_definition() {
             fun bar[T](arg: Foo[T]) {}
         ",
         pos(4, 29),
-        SemError::TraitBoundNotSatisfied("T".into(), "MyTrait".into()),
+        SemError::TypeNotImplementingTrait("T".into(), "MyTrait".into()),
     );
 
     err(
@@ -980,7 +980,7 @@ fn test_type_param_bounds_in_definition() {
             fun bar[T: MyTraitA](arg: Foo[T]) {}
         ",
         pos(5, 39),
-        SemError::TraitBoundNotSatisfied("T".into(), "MyTraitB".into()),
+        SemError::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
     );
 
     err(
@@ -993,7 +993,7 @@ fn test_type_param_bounds_in_definition() {
             }
         ",
         pos(6, 43),
-        SemError::TraitBoundNotSatisfied("T".into(), "MyTraitB".into()),
+        SemError::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
     );
 }
 
@@ -1112,7 +1112,7 @@ fn test_generic_trait_bounds() {
             class A[T: Foo]
             fun f(): A[X] { A[X]() }",
         pos(4, 22),
-        SemError::TraitBoundNotSatisfied("X".into(), "Foo".into()),
+        SemError::TypeNotImplementingTrait("X".into(), "Foo".into()),
     );
 
     err(
@@ -1120,7 +1120,7 @@ fn test_generic_trait_bounds() {
             fun f[T: Foo]() {}
             fun t() { f[Int32](); }",
         pos(3, 31),
-        SemError::TraitBoundNotSatisfied("Int32".into(), "Foo".into()),
+        SemError::TypeNotImplementingTrait("Int32".into(), "Foo".into()),
     );
 }
 
@@ -1238,7 +1238,7 @@ fn test_generic_argument_with_trait_bound() {
         "fun f[X: std::Comparable](x: X) {}
             fun g[T](t: T) { f[T](t); }",
         pos(2, 34),
-        SemError::TraitBoundNotSatisfied("T".into(), "Comparable".into()),
+        SemError::TypeNotImplementingTrait("T".into(), "Comparable".into()),
     );
 }
 
@@ -1723,7 +1723,7 @@ fn test_struct_with_type_params() {
         fun f(): Foo[Int32] { Foo[Int32](1) }
     ",
         pos(4, 18),
-        SemError::TraitBoundNotSatisfied("Int32".into(), "MyTrait".into()),
+        SemError::TypeNotImplementingTrait("Int32".into(), "MyTrait".into()),
     );
     ok("
         trait MyTrait {}
@@ -2197,7 +2197,7 @@ fn test_is_types() {
         }
     ",
         pos(5, 25),
-        SemError::TraitBoundNotSatisfied("Int32".into(), "SomeTrait".into()),
+        SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
     );
 }
 
@@ -2210,7 +2210,7 @@ fn test_type_params_with_bounds_in_subclass() {
         class Bar extends Foo[Int32]
     ",
         pos(4, 27),
-        SemError::TraitBoundNotSatisfied("Int32".into(), "SomeTrait".into()),
+        SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
     );
 }
 
@@ -2223,7 +2223,7 @@ fn test_type_params_with_bounds_in_subclass_wrong_order() {
         @open class Foo[A: SomeTrait]
     ",
         pos(3, 27),
-        SemError::TraitBoundNotSatisfied("Int32".into(), "SomeTrait".into()),
+        SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
     );
 }
 
@@ -3413,4 +3413,59 @@ fn different_fct_call_kinds() {
     ok("trait MyTrait { @static fun foo(); } fun f[T: MyTrait]() { T::foo(); }");
     ok("class Foo { fun bar() {} } fun f(g: Foo) { g.bar(); }");
     ok("class Foo { fun bar[T]() {} } fun f(g: Foo) { g.bar[Int32](); }");
+}
+
+#[test]
+fn trait_object_method_call() {
+    ok("
+        trait Foo { fun bar(): Int32; }
+        fun f(x: Foo): Int32 {
+            x.bar()
+        }
+    ");
+}
+
+#[test]
+fn trait_object_cast() {
+    ok("
+        trait Foo { fun bar(): Int32; }
+        class Bar
+        impl Foo for Bar {
+            fun bar(): Int32 { 1 }
+        }
+        fun f(x: Foo): Int32 { x.bar() }
+        fun g(): Int32 {
+            f(Bar() as Foo)
+        }
+    ");
+
+    ok("
+        trait Foo { fun bar(): Int32; }
+        class Bar
+        impl Foo for Bar {
+            fun bar(): Int32 { 1 }
+        }
+        fun f(): Foo { Bar() as Foo }
+    ");
+
+    ok("
+        trait Foo { fun bar(): Int32; }
+        fun f(x: Foo): Foo {
+            let y = x;
+            y
+        }
+    ");
+
+    err(
+        "
+        trait Foo { fun bar(): Int32; }
+        class Bar
+        fun f(x: Foo) {}
+        fun g() {
+            f(Bar() as Foo)
+        }
+    ",
+        pos(6, 21),
+        SemError::TypeNotImplementingTrait("Bar".into(), "Foo".into()),
+    );
 }
