@@ -174,6 +174,7 @@ impl MacroAssembler {
     pub fn indirect_call(
         &mut self,
         pos: Position,
+        fct_id: FctId,
         vtable_index: u32,
         self_index: u32,
         type_params: SourceTypeArray,
@@ -202,6 +203,7 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
         self.emit_lazy_compilation_site(LazyCompilationSite::Virtual(
             self_index == 0,
+            fct_id,
             vtable_index,
             type_params,
         ));

@@ -30,6 +30,7 @@ pub fn check(vm: &VM) {
             namespace_id,
             xtrait: &mut *xtrait,
             sym: NestedSymTable::new(vm, namespace_id),
+            vtable_index: 0,
         };
 
         clsck.check();
@@ -44,6 +45,7 @@ struct TraitCheck<'x> {
     namespace_id: NamespaceId,
     xtrait: &'x mut TraitData,
     sym: NestedSymTable<'x>,
+    vtable_index: u32,
 }
 
 impl<'x> TraitCheck<'x> {
@@ -81,12 +83,15 @@ impl<'x> TraitCheck<'x> {
             );
         }
 
-        let fct = Fct::new(
+        let mut fct = Fct::new(
             self.file_id,
             self.namespace_id,
             node,
             FctParent::Trait(self.trait_id),
         );
+
+        fct.vtable_index = Some(self.vtable_index);
+        self.vtable_index += 1;
 
         let fctid = self.vm.add_fct(fct);
 

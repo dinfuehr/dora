@@ -459,6 +459,7 @@ impl GrowableVec<ClassDef> {
 pub struct ClassDef {
     pub id: ClassDefId,
     pub cls_id: Option<ClassId>,
+    pub trait_object: Option<SourceType>,
     pub type_params: SourceTypeArray,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,

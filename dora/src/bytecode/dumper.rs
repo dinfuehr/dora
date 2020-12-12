@@ -110,6 +110,9 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
                     fname,
                 )
             }
+            ConstPoolEntry::FieldFixed(_, field_id) => {
+                println!("{}{} => FieldFixed {}", align, idx, field_id.to_usize())
+            }
             ConstPoolEntry::Fct(fct_id, type_params) => {
                 let fct = vm.fcts.idx(*fct_id);
                 let fct = fct.read();
@@ -159,13 +162,14 @@ pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
                     );
                 }
             }
-            ConstPoolEntry::Trait(trait_id, type_params) => {
+            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
                 let xtrait = vm.traits[*trait_id].read();
                 println!(
-                    "{}{} => Trait {}",
+                    "{}{} => Trait {} from {}",
                     align,
                     idx,
-                    xtrait.name_with_params(vm, type_params)
+                    xtrait.name_with_params(vm, type_params),
+                    object_ty.name(vm),
                 )
             }
         }
@@ -415,18 +419,32 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_field(&mut self, name: &str, r1: Register, r2: Register, field_idx: ConstPoolIdx) {
         self.emit_start(name);
-        let (cls_id, type_params, field_id) = match self.bc.const_pool(field_idx) {
+        let (cname, fname) = match self.bc.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                (*cls_id, type_params, *field_id)
+                let cls = self.vm.classes.idx(*cls_id);
+                let cls = cls.read();
+                let cname = cls.name_with_params(self.vm, type_params);
+
+                let field = &cls.fields[field_id.to_usize()];
+                let fname = self.vm.interner.str(field.name).to_string();
+
+                (cname, fname)
+            }
+            ConstPoolEntry::FieldFixed(cls_def_id, field_id) => {
+                let cls = self.vm.class_defs.idx(*cls_def_id);
+                let cname = cls
+                    .trait_object
+                    .clone()
+                    .expect("trait object expected")
+                    .name(self.vm);
+
+                let fname = format!("{}", field_id.to_usize());
+
+                (cname, fname)
             }
             _ => unreachable!(),
         };
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
-        let cname = cls.name_with_params(self.vm, type_params);
 
-        let field = &cls.fields[field_id.to_usize()];
-        let fname = self.vm.interner.str(field.name);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}.{}",

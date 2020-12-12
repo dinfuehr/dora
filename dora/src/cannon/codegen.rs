@@ -26,10 +26,10 @@ use crate::semck::specialize::{
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
-use crate::ty::{find_impl, MachineMode, SourceType, SourceTypeArray};
+use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    AnalysisData, EnumId, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId, TraitId, Trap,
-    TupleId, VM,
+    find_trait_impl, AnalysisData, EnumId, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId,
+    Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -1839,19 +1839,21 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
-        let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+        let (class_def_id, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                (*cls_id, type_params, *field_id)
+                let type_params = specialize_type_list(self.vm, type_params, self.type_params);
+                debug_assert!(type_params
+                    .iter()
+                    .all(|ty| !ty.contains_type_param(self.vm)));
+
+                let class_def_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
+
+                (class_def_id, *field_id)
             }
+            ConstPoolEntry::FieldFixed(class_def_id, field_id) => (*class_def_id, *field_id),
             _ => unreachable!(),
         };
 
-        let type_params = specialize_type_list(self.vm, type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
-
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_defs.idx(class_def_id);
 
         let field = &cls.fields[field_id.to_usize()];
@@ -2674,8 +2676,10 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
-        let (trait_id, type_params) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Trait(trait_id, type_params) => (*trait_id, type_params.clone()),
+        let (trait_id, type_params, object_ty) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
+                (*trait_id, type_params.clone(), object_ty.clone())
+            }
             _ => unreachable!(),
         };
 
@@ -2684,13 +2688,11 @@ impl<'a> CannonCodeGen<'a> {
             .iter()
             .all(|ty| !ty.contains_type_param(self.vm)));
 
-        let src_type_bytecode = self.specialize_register_type_unit(src);
-        let src_type = if let Some(ty) = src_type_bytecode.clone() {
-            SourceType::from_bytecode(self.vm, ty)
-        } else {
-            SourceType::Unit
-        };
-        let cls_def_id = specialize_trait_object(self.vm, trait_id, &type_params, src_type);
+        let object_ty = specialize_type(self.vm, object_ty, self.type_params);
+        debug_assert!(!object_ty.contains_type_param(self.vm));
+
+        let cls_def_id =
+            specialize_trait_object(self.vm, trait_id, &type_params, object_ty.clone());
 
         let cls = self.vm.class_defs.idx(cls_def_id);
 
@@ -2744,19 +2746,17 @@ impl<'a> CannonCodeGen<'a> {
         // This ensures gaps are all zero.
         self.asm.fill_zero(REG_TMP1, false, alloc_size as usize);
 
-        if let Some(ty) = src_type_bytecode {
-            assert_eq!(cls.fields.len(), 1);
-            let field = &cls.fields[0];
-            comment!(
-                self,
-                format!("NewTraitObject: store register {} in object", src)
-            );
+        assert_eq!(cls.fields.len(), 1);
+        let field = &cls.fields[0];
+        comment!(
+            self,
+            format!("NewTraitObject: store register {} in object", src)
+        );
 
-            let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
-            let src = self.reg(src);
+        let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+        let src = self.reg(src);
 
-            self.copy_bytecode_ty(ty, dest, src);
-        }
+        self.copy_ty(object_ty, dest, src);
     }
 
     fn emit_nil_check(&mut self, obj: Register) {
@@ -3108,6 +3108,7 @@ impl<'a> CannonCodeGen<'a> {
             0
         };
         self.asm.indirect_call(
+            fct_id,
             vtable_index,
             self_index,
             pos,
@@ -3339,7 +3340,7 @@ impl<'a> CannonCodeGen<'a> {
         assert!(self.fct.type_param(id).trait_bounds.contains(&trait_id));
 
         let ty = self.type_params[id.to_usize()].clone();
-        let callee_id = self.find_trait_impl(trait_fct_id, trait_id, ty);
+        let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_id, ty);
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -3349,25 +3350,6 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             self.emit_invoke_direct_or_intrinsic(dest, callee_id, type_params, arguments, pos);
         }
-    }
-
-    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: SourceType) -> FctId {
-        let impl_id = find_impl(self.vm, object_type, &self.fct.type_params, trait_id)
-            .expect("no impl found for generic trait method call");
-
-        let ximpl = self.vm.impls[impl_id].read();
-        assert_eq!(ximpl.trait_id(), trait_id);
-
-        for &mtd_id in &ximpl.methods {
-            let mtd = self.vm.fcts.idx(mtd_id);
-            let mtd = mtd.read();
-
-            if mtd.impl_for == Some(fct_id) {
-                return mtd_id;
-            }
-        }
-
-        panic!("no impl method found for generic trait call")
     }
 
     fn emit_invoke_intrinsic(
@@ -4639,27 +4621,33 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
-            let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+            match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                    (*cls_id, type_params, *field_id)
+                    let cls = self.vm.classes.idx(*cls_id);
+                    let cls = cls.read();
+                    let cname = cls.name_with_params(self.vm, type_params);
+
+                    let field = &cls.fields[field_id.to_usize()];
+                    let fname = self.vm.interner.str(field.name);
+
+                    format!(
+                        "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
+                        dest,
+                        obj,
+                        field_idx.to_usize(),
+                        cname,
+                        fname
+                    )
                 }
+                ConstPoolEntry::FieldFixed(_, field_id) => format!(
+                    "LoadField {}, {}, ConstPoolIdx({}) # Fixed {}",
+                    dest,
+                    obj,
+                    field_idx.to_usize(),
+                    field_id.to_usize(),
+                ),
                 _ => unreachable!(),
-            };
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
-            let cname = cls.name_with_params(self.vm, type_params);
-
-            let field = &cls.fields[field_id.to_usize()];
-            let fname = self.vm.interner.str(field.name);
-
-            format!(
-                "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
-                dest,
-                obj,
-                field_idx.to_usize(),
-                cname,
-                fname
-            )
+            }
         });
         self.emit_load_field(dest, obj, field_idx);
     }
@@ -5300,18 +5288,22 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
         comment!(self, {
-            let (trait_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Trait(trait_id, type_params) => (*trait_id, type_params),
+            let (trait_id, type_params, object_ty) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
+                    (*trait_id, type_params, object_ty)
+                }
                 _ => unreachable!(),
             };
             let xtrait = self.vm.traits[trait_id].read();
             let trait_name = xtrait.name_with_params(self.vm, type_params);
+            let object_name = object_ty.name(self.vm);
             format!(
-                "NewTraitObject {}, ConstPoolIdx({}), {} # {}",
+                "NewTraitObject {}, ConstPoolIdx({}), {} # {} from object {}",
                 dest,
                 idx.to_usize(),
                 src,
                 trait_name,
+                object_name,
             )
         });
         self.emit_new_trait_object(dest, idx, src);

@@ -699,13 +699,14 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_conv(&mut self, expr: &ExprConvType, dest: DataDest) -> Register {
+        let object_type = self.ty(expr.object.id());
         let check_type = self.ty(expr.data_type.id());
 
         if let SourceType::Trait(trait_id, _list_id) = check_type {
             let object = self.visit_expr(&expr.object, DataDest::Alloc);
-            let idx = self
-                .gen
-                .add_const_trait(trait_id, check_type.type_params(self.vm));
+            let idx =
+                self.gen
+                    .add_const_trait(trait_id, check_type.type_params(self.vm), object_type);
             let dest = self.ensure_register(dest, BytecodeType::Ptr);
             self.gen.emit_new_trait_object(dest, idx, object, expr.pos);
             self.free_if_temp(object);

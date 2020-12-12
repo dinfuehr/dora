@@ -8,7 +8,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
     extension_matches_ty, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
 };
@@ -82,4 +82,29 @@ pub fn impl_matches(
         ximpl.ty.clone(),
         &ximpl.type_params,
     )
+}
+
+pub fn find_trait_impl(
+    vm: &VM,
+    fct_id: FctId,
+    trait_id: TraitId,
+    object_type: SourceType,
+) -> FctId {
+    debug_assert!(!object_type.contains_type_param(vm));
+    let impl_id = find_impl(vm, object_type, &[], trait_id)
+        .expect("no impl found for generic trait method call");
+
+    let ximpl = vm.impls[impl_id].read();
+    assert_eq!(ximpl.trait_id(), trait_id);
+
+    for &mtd_id in &ximpl.methods {
+        let mtd = vm.fcts.idx(mtd_id);
+        let mtd = mtd.read();
+
+        if mtd.impl_for == Some(fct_id) {
+            return mtd_id;
+        }
+    }
+
+    panic!("no impl method found for generic trait call")
 }

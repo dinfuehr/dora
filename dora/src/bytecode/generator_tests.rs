@@ -4127,8 +4127,14 @@ fn gen_trait_object() {
     ",
         |vm, code| {
             let trait_id = vm.trait_by_name("Foo");
+            let list_id = vm
+                .source_type_arrays
+                .lock()
+                .insert(SourceTypeArray::empty());
+            let cls_id = vm.cls_by_name("Bar");
+            let object_ty = SourceType::Class(cls_id, list_id);
             let expected = vec![
-                NewTraitObject(r(1), trait_id, SourceTypeArray::empty(), r(0)),
+                NewTraitObject(r(1), trait_id, SourceTypeArray::empty(), object_ty, r(0)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -4373,7 +4379,7 @@ pub enum Bytecode {
     NewTuple(Register, TupleId),
     NewEnum(Register, EnumId, SourceTypeArray, usize),
     NewStruct(Register, StructId, SourceTypeArray),
-    NewTraitObject(Register, TraitId, SourceTypeArray, Register),
+    NewTraitObject(Register, TraitId, SourceTypeArray, SourceType, Register),
 
     NilCheck(Register),
 
@@ -5045,11 +5051,19 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::NewStruct(dest, struct_id, type_params));
     }
     fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
-        let (trait_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Trait(trait_id, type_params) => (*trait_id, type_params.clone()),
+        let (trait_id, type_params, object_ty) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
+                (*trait_id, type_params.clone(), object_ty.clone())
+            }
             _ => unreachable!(),
         };
-        self.emit(Bytecode::NewTraitObject(dest, trait_id, type_params, src));
+        self.emit(Bytecode::NewTraitObject(
+            dest,
+            trait_id,
+            type_params,
+            object_ty,
+            src,
+        ));
     }
 
     fn visit_nil_check(&mut self, obj: Register) {

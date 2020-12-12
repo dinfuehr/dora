@@ -137,6 +137,7 @@ fn internal_free_classes(vm: &mut VM) {
         class_defs.push(Arc::new(ClassDef {
             id: free_object,
             cls_id: None,
+            trait_object: None,
             type_params: SourceTypeArray::empty(),
             parent_id: None,
             size: InstanceSize::Fixed(Header::size()),
@@ -148,6 +149,7 @@ fn internal_free_classes(vm: &mut VM) {
         class_defs.push(Arc::new(ClassDef {
             id: free_array,
             cls_id: None,
+            trait_object: None,
             type_params: SourceTypeArray::empty(),
             parent_id: None,
             size: InstanceSize::FreeArray,

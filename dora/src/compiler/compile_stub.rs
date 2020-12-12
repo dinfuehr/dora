@@ -1,6 +1,9 @@
+use std::collections::HashSet;
 use std::mem::size_of;
 
+use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, BytecodeType, Register};
 use crate::compiler;
+use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::fct::{Code, JitDescriptor, JitFct, LazyCompilationSite};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{
@@ -13,9 +16,11 @@ use crate::object::Obj;
 use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::ty::{MachineMode, SourceTypeArray};
-use crate::vm::FctId;
-use crate::vm::{get_vm, VM};
+use crate::ty::{MachineMode, SourceType, SourceTypeArray};
+use crate::vm::{
+    find_trait_impl, get_vm, AnalysisData, ClassDefId, Fct, FctId, FctParent, TypeParam,
+    TypeParamId, VM,
+};
 
 // This code generates the compiler stub, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where
@@ -221,12 +226,13 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
             patch_direct_call(vm, ra, fct_id, type_params, disp)
         }
 
-        LazyCompilationSite::Virtual(receiver_is_first, vtable_index, ref type_params) => {
+        LazyCompilationSite::Virtual(receiver_is_first, fct_id, vtable_index, ref type_params) => {
             patch_virtual_call(
                 vm,
                 receiver_is_first,
                 receiver1,
                 receiver2,
+                fct_id,
                 vtable_index,
                 type_params,
             )
@@ -239,6 +245,7 @@ fn patch_virtual_call(
     receiver_is_first: bool,
     receiver1: Address,
     receiver2: Address,
+    trait_fct_id: FctId,
     vtable_index: u32,
     type_params: &SourceTypeArray,
 ) -> Address {
@@ -250,12 +257,22 @@ fn patch_virtual_call(
 
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
-    let cls_id = vtable.class().cls_id.expect("no corresponding class");
-    let cls = vm.classes.idx(cls_id);
-    let cls = cls.read();
+    let cls_def = vtable.class_def();
 
-    let fct_id = cls.virtual_fcts[vtable_index as usize];
-    let fct_ptr = compiler::generate(vm, fct_id, type_params);
+    let fct_ptr = if let Some(cls_id) = cls_def.cls_id {
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        let fct_id = cls.virtual_fcts[vtable_index as usize];
+        compiler::generate(vm, fct_id, type_params)
+    } else {
+        let object_ty = cls_def.trait_object.clone().expect("trait object expected");
+        let all_type_params = type_params.connect_single(object_ty.clone());
+        let thunk_fct_id =
+            ensure_thunk(vm, cls_def.id, trait_fct_id, type_params.clone(), object_ty);
+
+        compiler::generate(vm, thunk_fct_id, &all_type_params)
+    };
 
     let methodtable = vtable.table_mut();
     methodtable[vtable_index as usize] = fct_ptr.to_usize();
@@ -281,4 +298,112 @@ fn patch_direct_call(
     os::jit_executable();
 
     fct_ptr
+}
+
+fn ensure_thunk(
+    vm: &VM,
+    cls_def_id: ClassDefId,
+    fct_id: FctId,
+    type_params: SourceTypeArray,
+    object_ty: SourceType,
+) -> FctId {
+    let fct = vm.fcts.idx(fct_id);
+    let fct = fct.read();
+
+    let trait_id = fct.parent.trait_id().expect("expected trait");
+
+    let thunk_id = fct.thunk_id.write();
+
+    if let Some(thunk_id) = thunk_id.clone() {
+        return thunk_id;
+    }
+
+    let callee_id = find_trait_impl(vm, fct_id, trait_id, object_ty.clone());
+
+    let mut thunk_fct = Fct::new(fct.file_id, fct.namespace_id, &fct.ast, FctParent::None);
+    thunk_fct.type_params = fct.type_params.clone();
+    let mut traits = HashSet::new();
+    traits.insert(trait_id);
+    thunk_fct.type_params.push(TypeParam {
+        name: vm.interner.intern("new_self"),
+        trait_bounds: traits,
+    });
+    thunk_fct.bytecode = Some(generate_bytecode_for_thunk(
+        vm,
+        cls_def_id,
+        &*fct,
+        &mut thunk_fct,
+        callee_id,
+        object_ty,
+    ));
+    thunk_fct.analysis = Some(AnalysisData::new());
+
+    let list_id = vm.source_type_arrays.lock().insert(type_params);
+    let mut param_types: Vec<SourceType> = vec![SourceType::Trait(trait_id, list_id)];
+    param_types.extend_from_slice(fct.params_without_self());
+    thunk_fct.param_types = param_types;
+    thunk_fct.return_type = fct.return_type.clone();
+    let thunk_fct_id = vm.add_fct(thunk_fct);
+
+    {
+        let thunk_fct = vm.fcts.idx(thunk_fct_id);
+        let thunk_fct = thunk_fct.read();
+
+        if should_emit_bytecode(vm, &*fct) {
+            bytecode::dump(vm, Some(&*fct), thunk_fct.bytecode.as_ref().unwrap());
+        }
+    }
+
+    thunk_fct_id
+}
+
+fn generate_bytecode_for_thunk(
+    vm: &VM,
+    cls_def_id: ClassDefId,
+    trait_fct: &Fct,
+    thunk_fct: &mut Fct,
+    _callee_id: FctId,
+    object_ty: SourceType,
+) -> BytecodeFunction {
+    let mut gen = BytecodeBuilder::new(&vm.args);
+    gen.push_scope();
+    gen.alloc_var(BytecodeType::Ptr);
+
+    for param_ty in trait_fct.params_without_self() {
+        if !param_ty.is_unit() {
+            let ty = BytecodeType::from_ty(vm, param_ty.clone());
+            gen.alloc_var(ty);
+        }
+    }
+
+    gen.set_arguments(trait_fct.params_with_self().len() as u32);
+
+    if !object_ty.is_unit() {
+        let ty = BytecodeType::from_ty(vm, object_ty.clone());
+        let new_self_reg = gen.alloc_var(ty);
+        let field_idx = gen.add_const_field_fixed(cls_def_id, 0.into());
+        gen.emit_load_field(new_self_reg, Register(0), field_idx, trait_fct.pos);
+        gen.emit_push_register(new_self_reg);
+    }
+
+    for (idx, _) in trait_fct.params_without_self().iter().enumerate() {
+        gen.emit_push_register(Register(1 + idx));
+    }
+
+    let type_param_id = TypeParamId(thunk_fct.type_params.len() - 1);
+    let target_fct_idx =
+        gen.add_const_generic(type_param_id, trait_fct.id, SourceTypeArray::empty());
+
+    if !trait_fct.return_type.is_unit() {
+        let ty = BytecodeType::from_ty(vm, trait_fct.return_type.clone());
+        let result_reg = gen.alloc_var(ty);
+        gen.emit_invoke_generic_direct(result_reg, target_fct_idx, trait_fct.pos);
+        gen.emit_ret(result_reg);
+    } else {
+        gen.emit_invoke_generic_direct_void(target_fct_idx, trait_fct.pos);
+        gen.emit_ret_void();
+    }
+
+    gen.pop_scope();
+    gen.generate(vm)
 }

@@ -39,7 +39,7 @@ pub use self::enums::{
 pub use self::extensions::{extension_matches, extension_matches_ty, ExtensionData, ExtensionId};
 pub use self::functions::{fct_accessible_from, Fct, FctId, FctParent, Intrinsic};
 pub use self::globals::{global_accessible_from, init_global_addresses, GlobalData, GlobalId};
-pub use self::impls::{impl_matches, ImplData, ImplId};
+pub use self::impls::{find_trait_impl, impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
 pub use self::known::{
     KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs, KnownTraits,

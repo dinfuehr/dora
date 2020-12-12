@@ -141,11 +141,12 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
             &ConstPoolEntry::Generic(_, _, _) => unimplemented!(),
             &ConstPoolEntry::Class(_, _) => unimplemented!(),
             &ConstPoolEntry::Field(_, _, _) => unimplemented!(),
+            &ConstPoolEntry::FieldFixed(_, _) => unimplemented!(),
             &ConstPoolEntry::Enum(_, _) => unimplemented!(),
             &ConstPoolEntry::EnumVariant(_, _, _) => unimplemented!(),
             &ConstPoolEntry::Struct(_, _) => unimplemented!(),
             &ConstPoolEntry::StructField(_, _, _) => unimplemented!(),
-            &ConstPoolEntry::Trait(_, _) => unimplemented!(),
+            &ConstPoolEntry::Trait(_, _, _) => unimplemented!(),
         }
     }
 

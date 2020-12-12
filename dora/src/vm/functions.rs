@@ -74,6 +74,7 @@ pub struct Fct {
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
     pub native_pointer: Option<Address>,
+    pub thunk_id: RwLock<Option<FctId>>,
 }
 
 impl Fct {
@@ -117,6 +118,7 @@ impl Fct {
             bytecode: None,
             intrinsic: None,
             native_pointer: None,
+            thunk_id: RwLock::new(None),
         }
     }
 
@@ -350,6 +352,13 @@ impl FctParent {
         match self {
             &FctParent::Class(id) => id,
             _ => unreachable!(),
+        }
+    }
+
+    pub fn trait_id(&self) -> Option<TraitId> {
+        match self {
+            &FctParent::Trait(id) => Some(id),
+            _ => None,
         }
     }
 }

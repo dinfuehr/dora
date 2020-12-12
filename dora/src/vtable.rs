@@ -95,15 +95,11 @@ impl VTable {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
-    pub fn initialize_classptr(&mut self, classptr: *const ClassDef) {
+    pub fn initialize_class_def(&mut self, classptr: *const ClassDef) {
         self.classptr = classptr;
     }
 
-    pub fn classptr(&self) -> *const ClassDef {
-        self.classptr
-    }
-
-    pub fn class(&self) -> &ClassDef {
+    pub fn class_def(&self) -> &ClassDef {
         unsafe { &*self.classptr }
     }
 
@@ -183,7 +179,7 @@ impl VTable {
     }
 
     pub fn is_array_ref(&self) -> bool {
-        let cls = self.class();
+        let cls = self.class_def();
 
         match cls.size {
             InstanceSize::ObjArray => true,

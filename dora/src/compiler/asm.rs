@@ -498,6 +498,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn indirect_call(
         &mut self,
+        fct_id: FctId,
         vtable_index: u32,
         self_index: u32,
         pos: Position,
@@ -507,7 +508,7 @@ impl<'a> BaselineAssembler<'a> {
         dest: AnyReg,
     ) {
         self.masm
-            .indirect_call(pos, vtable_index, self_index, type_params);
+            .indirect_call(pos, fct_id, vtable_index, self_index, type_params);
         self.call_epilog(pos, return_mode, dest, gcpoint);
     }
 

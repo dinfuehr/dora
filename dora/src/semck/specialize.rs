@@ -265,6 +265,7 @@ pub fn specialize_enum_class(
     let class_def = Arc::new(ClassDef {
         id,
         cls_id: None,
+        trait_object: None,
         type_params: SourceTypeArray::empty(),
         parent_id: None,
         size: InstanceSize::Fixed(instance_size),
@@ -407,6 +408,7 @@ fn create_specialized_class_regular(
     let class_def = Arc::new(ClassDef {
         id,
         cls_id: Some(cls.id),
+        trait_object: None,
         type_params: type_params.clone(),
         parent_id,
         size,
@@ -415,7 +417,7 @@ fn create_specialized_class_regular(
         vtable: RwLock::new(None),
     });
 
-    vtable.initialize_classptr(Arc::as_ptr(&class_def));
+    vtable.initialize_class_def(Arc::as_ptr(&class_def));
     *class_def.vtable.write() = Some(vtable);
 
     class_defs.push(class_def.clone());
@@ -565,6 +567,7 @@ fn create_specialized_class_array(
     let class_def = Arc::new(ClassDef {
         id,
         cls_id: Some(cls.id),
+        trait_object: None,
         type_params: type_params.clone(),
         parent_id: Some(parent_cls_def_id),
         size,
@@ -573,7 +576,7 @@ fn create_specialized_class_array(
         vtable: RwLock::new(None),
     });
 
-    vtable.initialize_classptr(Arc::as_ptr(&class_def));
+    vtable.initialize_class_def(Arc::as_ptr(&class_def));
     *class_def.vtable.write() = Some(vtable);
 
     class_defs.push(class_def.clone());
@@ -664,20 +667,20 @@ pub fn specialize_trait_object(
 ) -> ClassDefId {
     let xtrait = vm.traits[trait_id].read();
 
-    let thunk_type_params = trait_type_params.connect_single(object_type.clone());
-    let thunk_type_params_id = vm.source_type_arrays.lock().insert(thunk_type_params);
+    let combined_type_params = trait_type_params.connect_single(object_type.clone());
+    let combined_type_params_id = vm.source_type_arrays.lock().insert(combined_type_params);
 
-    if let Some(&id) = xtrait.vtables.read().get(&thunk_type_params_id) {
+    if let Some(&id) = xtrait.vtables.read().get(&combined_type_params_id) {
         return id;
     }
 
-    create_specialized_class_for_trait_object(vm, &*xtrait, thunk_type_params_id, object_type)
+    create_specialized_class_for_trait_object(vm, &*xtrait, combined_type_params_id, object_type)
 }
 
 fn create_specialized_class_for_trait_object(
     vm: &VM,
     xtrait: &TraitData,
-    thunk_type_params_id: SourceTypeArrayId,
+    combined_type_params_id: SourceTypeArrayId,
     object_type: SourceType,
 ) -> ClassDefId {
     let mut csize;
@@ -716,16 +719,17 @@ fn create_specialized_class_for_trait_object(
 
     let mut vtables = xtrait.vtables.write();
 
-    if let Some(&id) = vtables.get(&thunk_type_params_id) {
+    if let Some(&id) = vtables.get(&combined_type_params_id) {
         return id;
     }
 
-    let old = vtables.insert(thunk_type_params_id, id);
+    let old = vtables.insert(combined_type_params_id, id);
     assert!(old.is_none());
 
     let class_def = Arc::new(ClassDef {
         id,
         cls_id: None,
+        trait_object: Some(object_type),
         type_params: SourceTypeArray::empty(),
         parent_id: None,
         size,
@@ -734,7 +738,7 @@ fn create_specialized_class_for_trait_object(
         vtable: RwLock::new(None),
     });
 
-    vtable.initialize_classptr(Arc::as_ptr(&class_def));
+    vtable.initialize_class_def(Arc::as_ptr(&class_def));
     *class_def.vtable.write() = Some(vtable);
 
     class_defs.push(class_def.clone());
