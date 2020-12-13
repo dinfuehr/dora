@@ -1917,6 +1917,7 @@ impl Expr {
         match self {
             &Expr::Block(_) => false,
             &Expr::If(_) => false,
+            &Expr::Match(_) => false,
             _ => true,
         }
     }

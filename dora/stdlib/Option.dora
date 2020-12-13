@@ -10,14 +10,14 @@ impl[T] Option[T] {
   fun isNone(): Bool {
     match self {
       Some(_) => false,
-      None => true
+      None => true,
     }
   }
 
   fun isSome(): Bool {
     match self {
       Some(_) => true,
-      None => false
+      None => false,
     }
   }
 
@@ -36,21 +36,21 @@ impl[T] Option[T] {
       Some(_) => {
         fatalError("cannot unwrap Some.");
       },
-      None => ()
+      None => (),
     }
   }
 
   fun unwrapOr(alt: T): T {
     match self {
       Some(value) => value,
-      None => alt
+      None => alt,
     }
   }
 
   fun has(val: T): Bool {
     match self {
       Some(actual) => actual === val,
-      None => false
+      None => false,
     }
   }
 }
@@ -84,7 +84,7 @@ impl[T: Stringable] Option[T] {
   @pub fun toString(): String {
     match self {
       Some(value) => "Some(${value})",
-      None => "None"
+      None => "None",
     }
   }
 }
