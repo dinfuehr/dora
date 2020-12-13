@@ -107,6 +107,6 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
   return true;
 }
 
-@pub @internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
+@internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
 
 @pub @internal fun sleep(seconds: Int32);

@@ -3647,29 +3647,6 @@ fn gen_enum_mov_generic() {
 }
 
 #[test]
-fn gen_kill_refs() {
-    gen_fct(
-        "fun f(arr: Array[Int32], idx: Int64) { std::unsafeKillRefs[Int32](arr, idx); }",
-        |vm, code, fct| {
-            let fct_id = vm
-                .fct_by_name_and_namespace("unsafeKillRefs", vm.stdlib_namespace_id)
-                .expect("unsafeKillRefs not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeStaticVoid(ConstPoolIdx(0)),
-                RetVoid,
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(fct_id, SourceTypeArray::single(SourceType::Int32))
-            );
-        },
-    );
-}
-
-#[test]
 fn gen_unreachable() {
     gen_fct(
         "fun f():    Int32 { unreachable[Int32]() }",
