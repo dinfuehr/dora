@@ -3539,17 +3539,6 @@ impl<'a> CannonCodeGen<'a> {
                 );
             }
 
-            Intrinsic::UnsafeIsNull => {
-                self.emit_intrinsic_unsafe_is_null(
-                    dest,
-                    fct_id,
-                    intrinsic,
-                    arguments,
-                    type_params,
-                    pos,
-                );
-            }
-
             Intrinsic::OptionIsNone | Intrinsic::OptionIsSome => {
                 self.emit_intrinsic_option_is_none(
                     dest,

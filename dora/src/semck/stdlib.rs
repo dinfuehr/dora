@@ -262,7 +262,6 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     native_fct(vm, stdlib, "call", stdlib::call as *const u8);
 
     intrinsic_fct(vm, stdlib, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
-    intrinsic_fct(vm, stdlib, "unsafeIsNull", Intrinsic::UnsafeIsNull);
 
     native_method(
         vm,

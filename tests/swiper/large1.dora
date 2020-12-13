@@ -1,12 +1,15 @@
 //= vm-args "--gc=swiper --gc-verify"
 
+class Foo
+
 fun main() {
-    let x = Array[Object]::ofSizeUnsafe(16L * 1024L);
-    let y = Array[Object]::ofSizeUnsafe(16L * 1024L);
-    let z = Array[Object]::ofSizeUnsafe(16L * 1024L);
+    let filler = Foo();
+    let x = Array[Foo]::fill(16L * 1024L, filler);
+    let y = Array[Foo]::fill(16L * 1024L, filler);
+    let z = Array[Foo]::fill(16L * 1024L, filler);
     std::forceCollect();
-    assert(std::unsafeIsNull[Object](x(0L)));
-    x(0L) = Object();
+    assert(x(0L) === filler);
+    x(0L) = Foo();
     std::forceCollect();
-    assert(!std::unsafeIsNull[Object](x(0L)));
+    assert(x(0L) !== filler);
 }

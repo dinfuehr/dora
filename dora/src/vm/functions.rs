@@ -373,7 +373,6 @@ pub enum Intrinsic {
 
     Unreachable,
     UnsafeKillRefs,
-    UnsafeIsNull,
 
     Assert,
     Debug,
@@ -515,9 +514,6 @@ pub enum Intrinsic {
     Float64IsNan,
     Float64Sqrt,
 
-    UnsafeLoadEnumVariant,
-    UnsafeLoadEnumElement,
-
     OptionIsNone,
     OptionIsSome,
     OptionUnwrap,
@@ -560,7 +556,6 @@ impl Intrinsic {
             | Intrinsic::OptionIsNone
             | Intrinsic::OptionIsSome
             | Intrinsic::OptionUnwrap
-            | Intrinsic::UnsafeIsNull
             | Intrinsic::Debug => true,
             _ => false,
         }

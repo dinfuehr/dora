@@ -3,9 +3,10 @@
 class Foo(let x: Int32)
 
 fun main() {
-    let x = Array[Foo]::ofSizeUnsafe(16L * 1024L);
+    let filler = Foo(0);
+    let x = Array[Foo]::fill(16L * 1024L, filler);
     std::forceCollect();
-    assert(std::unsafeIsNull[Foo](x(0L)));
+    assert(x(0L) === filler);
 
     x(0L) = Foo(1);
     std::forceMinorCollect();
