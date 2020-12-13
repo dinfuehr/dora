@@ -4,7 +4,6 @@ enum Foo { A(Int32, String, Float32), B }
 
 fun main() {
     let tuple = createTuple();
-    assert(std::unsafeLoadEnumVariant[Foo](tuple.0) == 0);
     match tuple.0 {
         Foo::A(_, _, _) => {},
         Foo::B => unreachable[()](),

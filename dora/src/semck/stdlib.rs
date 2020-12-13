@@ -263,18 +263,6 @@ pub fn resolve_internal_functions(vm: &mut VM) {
 
     intrinsic_fct(vm, stdlib, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
     intrinsic_fct(vm, stdlib, "unsafeIsNull", Intrinsic::UnsafeIsNull);
-    intrinsic_fct(
-        vm,
-        stdlib,
-        "unsafeLoadEnumVariant",
-        Intrinsic::UnsafeLoadEnumVariant,
-    );
-    intrinsic_fct(
-        vm,
-        stdlib,
-        "unsafeLoadEnumElement",
-        Intrinsic::UnsafeLoadEnumElement,
-    );
 
     native_method(
         vm,

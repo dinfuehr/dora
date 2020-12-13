@@ -7,8 +7,14 @@ class MyClass(let value: Int32)
 fun main() {
     let f = foo();
     std::forceCollect();
-    let bar = std::unsafeLoadEnumElement[Foo, Bar](f, 0, 0);
-    let myclass = std::unsafeLoadEnumElement[Bar, MyClass](bar, 0, 0);
+    let bar = match f {
+        Foo::A(bar) => bar,
+        Foo::B => unreachable[Bar](),
+    };
+    let myclass = match bar {
+        Bar::C(myclass) => myclass,
+        Bar::D => unreachable[MyClass](),
+    };
     assert(myclass.value == 17);
 }
 

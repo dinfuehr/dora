@@ -4,9 +4,15 @@ enum Foo { A(Int32, String, Float32), B }
 
 fun main() {
     let foo = createFoo();
-    assert(std::unsafeLoadEnumVariant[Foo](foo) == 0);
+    match foo {
+        Foo::A(_, _, _) => (),
+        Foo::B => unreachable[()](),
+    }
     std::forceCollect();
-    assert(std::unsafeLoadEnumVariant[Foo](foo) == 0);
+    match foo {
+        Foo::A(_, _, _) => (),
+        Foo::B => unreachable[()](),
+    }
 }
 
 fun createFoo(): Foo {

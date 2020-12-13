@@ -3,11 +3,18 @@ enum Foo[T] { A(T), B }
 fun main() {
     let value = Foo[String]::A("abc");
     foo(value);
-    assert(std::unsafeLoadEnumVariant[Foo[String]](value) == 0);
-    assert(std::unsafeLoadEnumElement[Foo[String], String](value, 0, 0) == "abc");
+    match value {
+        Foo::A(str) => {
+            assert(str == "abc");
+        },
+        Foo::B => unreachable[()](),
+    }
 
     let value = Foo[String]::B;
-    assert(std::unsafeLoadEnumVariant[Foo[String]](value) == 1);
+    match value {
+        Foo::A(_) => unreachable[()](),
+        Foo::B => (),
+    }
 }
 
 fun foo(x: Foo[String]): Foo[String] {
