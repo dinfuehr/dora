@@ -30,10 +30,10 @@
     var i = 1L;
 
     while i < len {
-      if array.get(i-1L).compareTo(array.get(i)) > 0 {
-        let temp = array.get(i-1L);
-        array.set(i-1L, array.get(i));
-        array.set(i, temp);
+      if array(i-1L).compareTo(array(i)) > 0 {
+        let temp = array(i-1L);
+        array(i-1L) = array(i);
+        array(i) = temp;
 
         swapped = true;
       }
@@ -47,7 +47,7 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
   var i = 0L;
 
   while i < data.size() {
-    let by = data.get(i).toInt32();
+    let by = data(i).toInt32();
     var codePoint = 0;
     var nextUInt8s = 0;
     var min = 0;
@@ -88,7 +88,7 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
         return false;
       }
 
-      let by = data.get(i).toInt32();
+      let by = data(i).toInt32();
 
       if by & 0xC0 != 0x80 {
         return false;

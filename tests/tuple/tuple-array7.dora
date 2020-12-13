@@ -3,7 +3,7 @@
 class Foo (let value: Int32)
 
 fun main() {
-    let x = Array[(Int32, Foo)]::ofSizeUnsafe(32L);
+    let x = Array[(Int32, Foo)]::fill(32L, (0, Foo(1_000)));
     std::forceMinorCollect();
     std::forceMinorCollect();
     for i in std::range(0, x.size().toInt32()) {

@@ -1,6 +1,6 @@
 fun main() {
-    let arr = Array[(Int32, Int64)]::ofSizeUnsafe(10L);
+    let arr = Array[(Int32, Int64)]::fill(10L, (0, 0L));
     assert(arr.size() == 10L);
-    let arr = Array[(Int32, Int64)]::ofSizeUnsafe(0L);
+    let arr = Array[(Int32, Int64)]::fill(0L, (0, 0L));
     assert(arr.size() == 0L);
 }

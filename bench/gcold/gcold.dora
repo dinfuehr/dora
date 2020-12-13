@@ -248,7 +248,7 @@ fun doYoungGenAlloc(n: Int64, nwords: Int32) {
     var allocated = 0L;
 
     while allocated < n {
-        aexport = Array[Int64]::ofSizeUnsafe(nwords.toInt64());
+        aexport = Array[Int64]::zero(nwords.toInt64());
         allocated = allocated + nbytes.toInt64();
     }
 

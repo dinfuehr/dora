@@ -3,7 +3,7 @@
 class Foo (let value: Int32)
 
 fun main() {
-    let x = Array[(Int32, Foo)]::ofSizeUnsafe(1024L);
+    let x = Array[(Int32, Foo)]::fill(1024L, (0, Foo(0)));
     for i in std::range(0, x.size().toInt32()) {
         x(i.toInt64()) = (i, Foo(i));
     }

@@ -3649,7 +3649,7 @@ fn gen_enum_mov_generic() {
 #[test]
 fn gen_unreachable() {
     gen_fct(
-        "fun f():    Int32 { unreachable[Int32]() }",
+        "fun f(): Int32 { unreachable[Int32]() }",
         |vm, code, fct| {
             let fct_id = vm
                 .fct_by_name("unreachable")

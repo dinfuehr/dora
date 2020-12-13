@@ -1,6 +1,6 @@
 //= error array
 
 fun main() {
-    let x = Array[(Int32, Int64)]::ofSizeUnsafe(7L);
+    let x = Array[(Int32, Int64)]::fill(7L, (0, 0L));
     x(10L) = (12, 4711L);
 }
