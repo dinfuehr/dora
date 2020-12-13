@@ -1534,16 +1534,26 @@ impl<'a> Parser<'a> {
 
         let expr = self.parse_expression()?;
         let mut cases = Vec::new();
+        let mut comma = true;
 
         self.expect_token(TokenKind::LBrace)?;
 
-        while !self.token.is(TokenKind::RBrace) {
-            if !cases.is_empty() {
-                self.expect_token(TokenKind::Comma)?;
+        while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
+            if !comma {
+                return Err(ParseErrorAndPos::new(
+                    self.token.position,
+                    ParseError::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
+                ));
             }
 
             let case = self.parse_match_case()?;
             cases.push(case);
+
+            comma = self.token.is(TokenKind::Comma);
+
+            if comma {
+                self.advance_token()?;
+            }
         }
 
         self.expect_token(TokenKind::RBrace)?;
