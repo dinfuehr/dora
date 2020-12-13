@@ -8,10 +8,14 @@ fun main() {
     std::forceCollect();
     updateObject(object);
     std::forceMinorCollect();
-    assert(std::unsafeLoadEnumVariant[Foo](object.foo) == 0);
-    assert(std::unsafeLoadEnumElement[Foo, Int32](object.foo, 0, 0) == 112);
-    assert(std::unsafeLoadEnumElement[Foo, String](object.foo, 0, 1) == "abc");
-    assert(std::unsafeLoadEnumElement[Foo, Float32](object.foo, 0, 2) == 17.5F);
+    match object.foo {
+        Foo::A(a, b, c) => {
+            assert(a == 112);
+            assert(b == "abc");
+            assert(c == 17.5F);
+        },
+        Foo::B => unreachable[()](),
+    }
 }
 
 fun updateObject(object: Bar) {
