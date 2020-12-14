@@ -1,4 +1,4 @@
 fun main() {
-    let x = Array[String]::ofSizeUnsafe(1L);
+    let x = Array[String]::fill(1L, "");
     x(0L) = "a" + "b";
 }

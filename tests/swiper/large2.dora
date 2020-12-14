@@ -1,15 +1,19 @@
 //= vm-args "--gc=swiper --gc-verify"
 
+class Foo
+
 fun main() {
+    let filler = Foo();
+
     {
-        let x = Array[Object]::ofSizeUnsafe(16L * 1024L);
+        let x = Array[Foo]::fill(16L * 1024L, filler);
         std::forceCollect();
     }
 
     std::forceCollect();
 
     {
-        let y = Array[Object]::ofSizeUnsafe(16L * 1024L);
+        let y = Array[Foo]::fill(16L * 1024L, filler);
         std::forceCollect();
     }
 

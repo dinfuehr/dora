@@ -1,5 +1,5 @@
 fun main() {
-    let ba = Array[Int64]::ofSizeUnsafe(0L);
+    let ba = Array[Int64]::zero(0L);
     assert(ba.size() == 0L);
 
     let ba = Array[Int64]::fill(10L, 2L);

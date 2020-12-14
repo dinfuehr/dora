@@ -1,13 +1,13 @@
 fun main() {
-    let a = A[Int32]();
+    let a = A[Int32](0);
     consume(a.x);
 
-    let b = A[String]();
+    let b = A[String]("");
     consume2(b.x);
 }
 
-class A[T] {
-    var x: Array[T] = Array[T]::ofSizeUnsafe(10L);
+class A[T](default: T) {
+    var x: Array[T] = Array[T]::fill(10L, default);
 }
 
 fun consume(x: Array[Int32]) {

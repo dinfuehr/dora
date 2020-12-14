@@ -6,12 +6,12 @@ fun main() {
 
     while i < 100 {
         if i % 2 == 0 {
-            x.push(Array[Int32]::ofSizeUnsafe(2L));
+            x.push(Array[Int32]::zero(2L));
         } else {
-            x.push(Array[Int32]::ofSizeUnsafe(4L));
+            x.push(Array[Int32]::zero(4L));
         }
-        x.push(Array[Int32]::ofSizeUnsafe(512L));
-        x.push(Array[Int32]::ofSizeUnsafe(2048L));
+        x.push(Array[Int32]::zero(512L));
+        x.push(Array[Int32]::zero(2048L));
         if i % 5 == 0 {
             std::forceMinorCollect();
         }
