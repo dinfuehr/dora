@@ -149,32 +149,10 @@ const BC_NEW_TRAIT_OBJECT: Int32 = 145I;
 const BC_NIL_CHECK: Int32 = 146I;
 const BC_ARRAY_LENGTH: Int32 = 147I;
 const BC_ARRAY_BOUND_CHECK: Int32 = 148I;
-const BC_LOAD_ARRAY_BOOL: Int32 = 149I;
-const BC_LOAD_ARRAY_UINT8: Int32 = 150I;
-const BC_LOAD_ARRAY_CHAR: Int32 = 151I;
-const BC_LOAD_ARRAY_INT32: Int32 = 152I;
-const BC_LOAD_ARRAY_INT64: Int32 = 153I;
-const BC_LOAD_ARRAY_FLOAT32: Int32 = 154I;
-const BC_LOAD_ARRAY_FLOAT64: Int32 = 155I;
-const BC_LOAD_ARRAY_PTR: Int32 = 156I;
-const BC_LOAD_ARRAY_TUPLE: Int32 = 157I;
-const BC_LOAD_ARRAY_GENERIC: Int32 = 158I;
-const BC_LOAD_ARRAY_ENUM: Int32 = 159I;
-const BC_LOAD_ARRAY_STRUCT: Int32 = 160I;
-const BC_STORE_ARRAY_BOOL: Int32 = 161I;
-const BC_STORE_ARRAY_UINT8: Int32 = 162I;
-const BC_STORE_ARRAY_CHAR: Int32 = 163I;
-const BC_STORE_ARRAY_INT32: Int32 = 164I;
-const BC_STORE_ARRAY_INT64: Int32 = 165I;
-const BC_STORE_ARRAY_FLOAT32: Int32 = 166I;
-const BC_STORE_ARRAY_FLOAT64: Int32 = 167I;
-const BC_STORE_ARRAY_PTR: Int32 = 168I;
-const BC_STORE_ARRAY_TUPLE: Int32 = 169I;
-const BC_STORE_ARRAY_GENERIC: Int32 = 170I;
-const BC_STORE_ARRAY_ENUM: Int32 = 171I;
-const BC_STORE_ARRAY_STRUCT: Int32 = 172I;
-const BC_RET_VOID: Int32 = 173I;
-const BC_RET: Int32 = 174I;
+const BC_LOAD_ARRAY: Int32 = 149I;
+const BC_STORE_ARRAY: Int32 = 150I;
+const BC_RET_VOID: Int32 = 151I;
+const BC_RET: Int32 = 152I;
 
 const BC_TYPE_BOOL: Int32 = 0I;
 const BC_TYPE_U_INT8: Int32 = 1I;
@@ -345,30 +323,8 @@ fun bytecodeName(opcode: Int32): String {
   if opcode == BC_NIL_CHECK { return "NilCheck"; }
   if opcode == BC_ARRAY_LENGTH { return "ArrayLength"; }
   if opcode == BC_ARRAY_BOUND_CHECK { return "ArrayBoundCheck"; }
-  if opcode == BC_LOAD_ARRAY_BOOL { return "LoadArrayBool"; }
-  if opcode == BC_LOAD_ARRAY_UINT8 { return "LoadArrayUInt8"; }
-  if opcode == BC_LOAD_ARRAY_CHAR { return "LoadArrayChar"; }
-  if opcode == BC_LOAD_ARRAY_INT32 { return "LoadArrayInt32"; }
-  if opcode == BC_LOAD_ARRAY_INT64 { return "LoadArrayInt64"; }
-  if opcode == BC_LOAD_ARRAY_FLOAT32 { return "LoadArrayFloat32"; }
-  if opcode == BC_LOAD_ARRAY_FLOAT64 { return "LoadArrayFloat64"; }
-  if opcode == BC_LOAD_ARRAY_PTR { return "LoadArrayPtr"; }
-  if opcode == BC_LOAD_ARRAY_TUPLE { return "LoadArrayTuple"; }
-  if opcode == BC_LOAD_ARRAY_GENERIC { return "LoadArrayGeneric"; }
-  if opcode == BC_LOAD_ARRAY_ENUM { return "LoadArrayEnum"; }
-  if opcode == BC_LOAD_ARRAY_STRUCT { return "LoadArrayStruct"; }
-  if opcode == BC_STORE_ARRAY_BOOL { return "StoreArrayBool"; }
-  if opcode == BC_STORE_ARRAY_UINT8 { return "StoreArrayUInt8"; }
-  if opcode == BC_STORE_ARRAY_CHAR { return "StoreArrayChar"; }
-  if opcode == BC_STORE_ARRAY_INT32 { return "StoreArrayInt32"; }
-  if opcode == BC_STORE_ARRAY_INT64 { return "StoreArrayInt64"; }
-  if opcode == BC_STORE_ARRAY_FLOAT32 { return "StoreArrayFloat32"; }
-  if opcode == BC_STORE_ARRAY_FLOAT64 { return "StoreArrayFloat64"; }
-  if opcode == BC_STORE_ARRAY_PTR { return "StoreArrayPtr"; }
-  if opcode == BC_STORE_ARRAY_TUPLE { return "StoreArrayTuple"; }
-  if opcode == BC_STORE_ARRAY_GENERIC { return "StoreArrayGeneric"; }
-  if opcode == BC_STORE_ARRAY_ENUM { return "StoreArrayEnum"; }
-  if opcode == BC_STORE_ARRAY_STRUCT { return "StoreArrayStruct"; }
+  if opcode == BC_LOAD_ARRAY { return "LoadArray"; }
+  if opcode == BC_STORE_ARRAY { return "StoreArray"; }
   if opcode == BC_RET_VOID { return "RetVoid"; }
   if opcode == BC_RET { return "Ret"; }
   "UNKNOWN(${opcode})"

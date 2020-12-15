@@ -884,158 +884,18 @@ where
                 self.visitor.visit_array_bound_check(array, index);
             }
 
-            BytecodeOpcode::LoadArrayBool => {
+            BytecodeOpcode::LoadArray => {
                 let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_bool(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayUInt8 => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_uint8(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayChar => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_char(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayInt32 => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_int32(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayInt64 => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_int64(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayFloat32 => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_float32(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayFloat64 => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_float64(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayPtr => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_ptr(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayTuple => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_tuple(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayGeneric => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_load_array_generic(dest, array, index);
-            }
-            BytecodeOpcode::LoadArrayEnum => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                let enum_idx = self.read_const_pool_idx(wide);
-                self.visitor
-                    .visit_load_array_enum(dest, array, index, enum_idx);
-            }
-            BytecodeOpcode::LoadArrayStruct => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                let const_idx = self.read_const_pool_idx(wide);
-                self.visitor
-                    .visit_load_array_struct(dest, array, index, const_idx);
+                self.visitor.visit_load_array(dest, array, index);
             }
 
-            BytecodeOpcode::StoreArrayBool => {
+            BytecodeOpcode::StoreArray => {
                 let src = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_store_array_bool(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayUInt8 => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_uint8(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayChar => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_char(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayInt32 => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_int32(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayInt64 => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_int64(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayFloat32 => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_float32(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayFloat64 => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_float64(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayPtr => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_ptr(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayTuple => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_tuple(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayGeneric => {
-                let src = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                self.visitor.visit_store_array_tuple(src, array, index);
-            }
-            BytecodeOpcode::StoreArrayEnum => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                let enum_idx = self.read_const_pool_idx(wide);
-                self.visitor
-                    .visit_store_array_enum(dest, array, index, enum_idx);
-            }
-            BytecodeOpcode::StoreArrayStruct => {
-                let dest = self.read_register(wide);
-                let array = self.read_register(wide);
-                let index = self.read_register(wide);
-                let const_idx = self.read_const_pool_idx(wide);
-                self.visitor
-                    .visit_store_array_struct(dest, array, index, const_idx);
+                self.visitor.visit_store_array(src, array, index);
             }
 
             BytecodeOpcode::RetVoid => {
@@ -1635,101 +1495,11 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_array_bool(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_uint8(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_char(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_int32(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_int64(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_float32(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_float64(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_ptr(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_tuple(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_generic(&mut self, _dest: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_load_array_enum(
-        &mut self,
-        _dest: Register,
-        _arr: Register,
-        _idx: Register,
-        _enum_idx: ConstPoolIdx,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_array_struct(
-        &mut self,
-        _dest: Register,
-        _arr: Register,
-        _idx: Register,
-        _struct_idx: ConstPoolIdx,
-    ) {
+    fn visit_load_array(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 
-    fn visit_store_array_bool(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_uint8(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_char(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_int32(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_int64(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_float32(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_float64(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_ptr(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_tuple(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_generic(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-    fn visit_store_array_enum(
-        &mut self,
-        _dest: Register,
-        _arr: Register,
-        _idx: Register,
-        _enum_idx: ConstPoolIdx,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_array_struct(
-        &mut self,
-        _dest: Register,
-        _arr: Register,
-        _idx: Register,
-        _struct_idx: ConstPoolIdx,
-    ) {
+    fn visit_store_array(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 

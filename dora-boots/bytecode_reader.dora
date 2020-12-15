@@ -180,23 +180,8 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) { unimplemented(); }
     @open fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitLoadArrayBool(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitLoadArrayUInt8(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitLoadArrayChar(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitLoadArrayInt32(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitLoadArrayInt64(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitLoadArrayFloat32(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitLoadArrayFloat64(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitLoadArrayPtr(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-
-    @open fun visitStoreArrayBool(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitStoreArrayUInt8(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitStoreArrayChar(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitStoreArrayInt32(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitStoreArrayInt64(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitStoreArrayFloat32(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitStoreArrayFloat64(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitStoreArrayPtr(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
+    @open fun visitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
+    @open fun visitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
 
     @open fun visitRetVoid() { unimplemented(); }
     @open fun visitRet(opnd: BytecodeRegister) { unimplemented(); }
@@ -378,23 +363,8 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) {}
     @override fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) {}
 
-    @override fun visitLoadArrayBool(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitLoadArrayUInt8(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitLoadArrayChar(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitLoadArrayInt32(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitLoadArrayInt64(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitLoadArrayFloat32(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitLoadArrayFloat64(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitLoadArrayPtr(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-
-    @override fun visitStoreArrayBool(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitStoreArrayUInt8(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitStoreArrayChar(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitStoreArrayInt32(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitStoreArrayInt64(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitStoreArrayFloat32(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitStoreArrayFloat64(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitStoreArrayPtr(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
+    @override fun visitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
+    @override fun visitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
 
     @override fun visitRetVoid() {}
     @override fun visitRet(opnd: BytecodeRegister) {}
@@ -1153,87 +1123,17 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let arr = self.readRegister(wide);
             self.visitor.visitArrayLength(dest, arr);
 
-        } else if opcode == BC_LOAD_ARRAY_BOOL {
+        } else if opcode == BC_LOAD_ARRAY {
             let dest = self.readRegister(wide);
             let arr = self.readRegister(wide);
             let idx = self.readRegister(wide);
-            self.visitor.visitLoadArrayBool(dest, arr, idx);
-        } else if opcode == BC_LOAD_ARRAY_UINT8 {
-            let dest = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitLoadArrayUInt8(dest, arr, idx);
-        } else if opcode == BC_LOAD_ARRAY_CHAR {
-            let dest = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitLoadArrayChar(dest, arr, idx);
-        } else if opcode == BC_LOAD_ARRAY_INT32 {
-            let dest = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitLoadArrayInt32(dest, arr, idx);
-        } else if opcode == BC_LOAD_ARRAY_INT64 {
-            let dest = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitLoadArrayInt64(dest, arr, idx);
-        } else if opcode == BC_LOAD_ARRAY_FLOAT32 {
-            let dest = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitLoadArrayFloat32(dest, arr, idx);
-        } else if opcode == BC_LOAD_ARRAY_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitLoadArrayFloat64(dest, arr, idx);
-        } else if opcode == BC_LOAD_ARRAY_PTR {
-            let dest = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitLoadArrayPtr(dest, arr, idx);
+            self.visitor.visitLoadArray(dest, arr, idx);
 
-        } else if opcode == BC_STORE_ARRAY_BOOL {
+        } else if opcode == BC_STORE_ARRAY {
             let src = self.readRegister(wide);
             let arr = self.readRegister(wide);
             let idx = self.readRegister(wide);
-            self.visitor.visitStoreArrayBool(src, arr, idx);
-        } else if opcode == BC_STORE_ARRAY_UINT8 {
-            let src = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitStoreArrayUInt8(src, arr, idx);
-        } else if opcode == BC_STORE_ARRAY_CHAR {
-            let src = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitStoreArrayChar(src, arr, idx);
-        } else if opcode == BC_STORE_ARRAY_INT32 {
-            let src = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitStoreArrayInt32(src, arr, idx);
-        } else if opcode == BC_STORE_ARRAY_INT64 {
-            let src = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitStoreArrayInt64(src, arr, idx);
-        } else if opcode == BC_STORE_ARRAY_FLOAT32 {
-            let src = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitStoreArrayFloat32(src, arr, idx);
-        } else if opcode == BC_STORE_ARRAY_FLOAT64 {
-            let src = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitStoreArrayFloat64(src, arr, idx);
-        } else if opcode == BC_STORE_ARRAY_PTR {
-            let src = self.readRegister(wide);
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            self.visitor.visitStoreArrayPtr(src, arr, idx);
+            self.visitor.visitStoreArray(src, arr, idx);
 
         } else if opcode == BC_RET_VOID {
             self.visitor.visitRetVoid();

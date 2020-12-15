@@ -224,9 +224,9 @@ impl<'a> AstBytecodeGen<'a> {
                 let var_ty = self.var_ty(var_id);
 
                 if !var_ty.is_unit() {
-                    let var_ty: BytecodeType = BytecodeType::from_ty(self.vm, var_ty);
                     let var_reg = self.var_reg(var_id);
-                    self.emit_load_array(var_ty, var_reg, array_reg, index_reg, ident.pos);
+                    self.gen
+                        .emit_load_array(var_reg, array_reg, index_reg, ident.pos);
                 }
             }
 
@@ -238,7 +238,8 @@ impl<'a> AstBytecodeGen<'a> {
                 if tuple.parts.len() > 0 {
                     let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, ty.clone());
                     let tuple_reg = self.alloc_temp(bytecode_ty.clone());
-                    self.emit_load_array(bytecode_ty, tuple_reg, array_reg, index_reg, tuple.pos);
+                    self.gen
+                        .emit_load_array(tuple_reg, array_reg, index_reg, tuple.pos);
                     self.destruct_tuple_pattern(tuple, tuple_reg, ty);
                     self.free_temp(tuple_reg);
                 }
@@ -1328,14 +1329,14 @@ impl<'a> AstBytecodeGen<'a> {
                 self.visit_expr(arg, DataDest::Effect);
             }
         } else {
-            let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.vm, element_ty);
             let index_reg = self.alloc_temp(BytecodeType::Int64);
 
             // Evaluate rest arguments and store them in array
             for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
                 let arg_reg = self.visit_expr(arg, DataDest::Alloc);
                 self.gen.emit_const_int64(index_reg, idx as i64);
-                self.emit_store_array(bytecode_ty.clone(), array_reg, index_reg, arg_reg, expr.pos);
+                self.gen
+                    .emit_store_array(arg_reg, array_reg, index_reg, expr.pos);
                 self.free_if_temp(arg_reg);
             }
 
@@ -1452,37 +1453,6 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_mov(&mut self, dest: Register, src: Register) {
         if dest != src {
             self.gen.emit_mov(dest, src);
-        }
-    }
-
-    fn emit_load_array(
-        &mut self,
-        ty: BytecodeType,
-        dest: Register,
-        arr: Register,
-        idx: Register,
-        pos: Position,
-    ) {
-        match ty {
-            BytecodeType::Bool => self.gen.emit_load_array_bool(dest, arr, idx, pos),
-            BytecodeType::UInt8 => self.gen.emit_load_array_uint8(dest, arr, idx, pos),
-            BytecodeType::Char => self.gen.emit_load_array_char(dest, arr, idx, pos),
-            BytecodeType::Int32 => self.gen.emit_load_array_int32(dest, arr, idx, pos),
-            BytecodeType::Int64 => self.gen.emit_load_array_int64(dest, arr, idx, pos),
-            BytecodeType::Float32 => self.gen.emit_load_array_float32(dest, arr, idx, pos),
-            BytecodeType::Float64 => self.gen.emit_load_array_float64(dest, arr, idx, pos),
-            BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx, pos),
-            BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx, pos),
-            BytecodeType::TypeParam(_) => self.gen.emit_load_array_generic(dest, arr, idx, pos),
-            BytecodeType::Enum(enum_id, type_params) => {
-                let enum_idx = self.gen.add_const_enum(enum_id, type_params);
-                self.gen.emit_load_array_enum(dest, arr, idx, enum_idx, pos)
-            }
-            BytecodeType::Struct(struct_id, type_params) => {
-                let struct_idx = self.gen.add_const_struct(struct_id, type_params);
-                self.gen
-                    .emit_load_array_struct(dest, arr, idx, struct_idx, pos)
-            }
         }
     }
 
@@ -2083,45 +2053,13 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let ty = ty.unwrap();
-        self.emit_store_array(ty, arr, idx, src, pos);
+        self.gen.emit_store_array(src, arr, idx, pos);
 
         self.free_if_temp(arr);
         self.free_if_temp(idx);
         self.free_if_temp(src);
 
         Register::invalid()
-    }
-
-    fn emit_store_array(
-        &mut self,
-        ty: BytecodeType,
-        arr: Register,
-        idx: Register,
-        src: Register,
-        pos: Position,
-    ) {
-        match ty {
-            BytecodeType::UInt8 => self.gen.emit_store_array_uint8(src, arr, idx, pos),
-            BytecodeType::Bool => self.gen.emit_store_array_bool(src, arr, idx, pos),
-            BytecodeType::Char => self.gen.emit_store_array_char(src, arr, idx, pos),
-            BytecodeType::Int32 => self.gen.emit_store_array_int32(src, arr, idx, pos),
-            BytecodeType::Int64 => self.gen.emit_store_array_int64(src, arr, idx, pos),
-            BytecodeType::Float32 => self.gen.emit_store_array_float32(src, arr, idx, pos),
-            BytecodeType::Float64 => self.gen.emit_store_array_float64(src, arr, idx, pos),
-            BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx, pos),
-            BytecodeType::Tuple(_) => self.gen.emit_store_array_tuple(src, arr, idx, pos),
-            BytecodeType::TypeParam(_) => self.gen.emit_store_array_generic(src, arr, idx, pos),
-            BytecodeType::Enum(enum_id, type_params) => {
-                let enum_idx = self.gen.add_const_enum(enum_id, type_params);
-                self.gen.emit_store_array_enum(src, arr, idx, enum_idx, pos)
-            }
-            BytecodeType::Struct(struct_id, type_params) => {
-                let struct_idx = self.gen.add_const_struct(struct_id, type_params);
-                self.gen
-                    .emit_store_array_struct(src, arr, idx, struct_idx, pos)
-            }
-        }
     }
 
     fn emit_intrinsic_un(
@@ -2246,10 +2184,9 @@ impl<'a> AstBytecodeGen<'a> {
                     return Register::invalid();
                 }
 
-                let ty = ty.unwrap();
                 let dest = dest.unwrap();
 
-                self.emit_load_array(ty, dest, arr, idx, pos);
+                self.gen.emit_load_array(dest, arr, idx, pos);
 
                 self.free_if_temp(arr);
                 self.free_if_temp(idx);

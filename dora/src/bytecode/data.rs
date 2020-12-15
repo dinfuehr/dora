@@ -389,31 +389,8 @@ pub enum BytecodeOpcode {
     ArrayLength,
     ArrayBoundCheck,
 
-    LoadArrayBool,
-    LoadArrayUInt8,
-    LoadArrayChar,
-    LoadArrayInt32,
-    LoadArrayInt64,
-    LoadArrayFloat32,
-    LoadArrayFloat64,
-    LoadArrayPtr,
-    LoadArrayTuple,
-    LoadArrayGeneric,
-    LoadArrayEnum,
-    LoadArrayStruct,
-
-    StoreArrayBool,
-    StoreArrayUInt8,
-    StoreArrayChar,
-    StoreArrayInt32,
-    StoreArrayInt64,
-    StoreArrayFloat32,
-    StoreArrayFloat64,
-    StoreArrayPtr,
-    StoreArrayTuple,
-    StoreArrayGeneric,
-    StoreArrayEnum,
-    StoreArrayStruct,
+    LoadArray,
+    StoreArray,
 
     RetVoid,
     Ret,
@@ -448,30 +425,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NilCheck
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck
-            | BytecodeOpcode::LoadArrayBool
-            | BytecodeOpcode::LoadArrayUInt8
-            | BytecodeOpcode::LoadArrayChar
-            | BytecodeOpcode::LoadArrayInt32
-            | BytecodeOpcode::LoadArrayInt64
-            | BytecodeOpcode::LoadArrayFloat32
-            | BytecodeOpcode::LoadArrayFloat64
-            | BytecodeOpcode::LoadArrayPtr
-            | BytecodeOpcode::LoadArrayTuple
-            | BytecodeOpcode::LoadArrayGeneric
-            | BytecodeOpcode::LoadArrayEnum
-            | BytecodeOpcode::LoadArrayStruct
-            | BytecodeOpcode::StoreArrayBool
-            | BytecodeOpcode::StoreArrayUInt8
-            | BytecodeOpcode::StoreArrayChar
-            | BytecodeOpcode::StoreArrayInt32
-            | BytecodeOpcode::StoreArrayInt64
-            | BytecodeOpcode::StoreArrayFloat32
-            | BytecodeOpcode::StoreArrayFloat64
-            | BytecodeOpcode::StoreArrayPtr
-            | BytecodeOpcode::StoreArrayTuple
-            | BytecodeOpcode::StoreArrayGeneric
-            | BytecodeOpcode::StoreArrayEnum
-            | BytecodeOpcode::StoreArrayStruct
+            | BytecodeOpcode::LoadArray
+            | BytecodeOpcode::StoreArray
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::Assert => true,

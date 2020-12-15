@@ -2545,40 +2545,23 @@ fn gen_struct_field() {
 
 #[test]
 fn gen_struct_array() {
-    gen_fct(
+    let result = code(
         "
         struct Foo { f1: Int32, f2: Bool }
         fun f(x: Array[Foo], idx: Int64): Foo { x(idx) }
     ",
-        |vm, code, fct| {
-            let struct_id = vm.struct_by_name("Foo");
-            let expected = vec![
-                LoadArrayStruct(r(2), r(0), r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
-            );
-        },
     );
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
+    assert_eq!(expected, result);
 
-    gen_fct(
+    let result = code(
         "
         struct Foo { f1: Int32, f2: Bool }
         fun f(x: Array[Foo], idx: Int64, value: Foo) { x(idx) = value; }
     ",
-        |vm, code, fct| {
-            let struct_id = vm.struct_by_name("Foo");
-            let expected = vec![StoreArrayStruct(r(2), r(0), r(1), ConstPoolIdx(0)), RetVoid];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
-            );
-        },
     );
+    let expected = vec![StoreArray(r(2), r(0), r(1)), RetVoid];
+    assert_eq!(expected, result);
 }
 
 #[test]
@@ -2750,13 +2733,13 @@ fn gen_new_array() {
                 ),
                 ConstInt32(r(3), 1),
                 ConstInt64(r(2), 0),
-                StoreArrayInt32(r(3), r(1), r(2)),
+                StoreArray(r(3), r(1), r(2)),
                 ConstInt32(r(3), 2),
                 ConstInt64(r(2), 1),
-                StoreArrayInt32(r(3), r(1), r(2)),
+                StoreArray(r(3), r(1), r(2)),
                 ConstInt32(r(3), 3),
                 ConstInt64(r(2), 2),
-                StoreArrayInt32(r(3), r(1), r(2)),
+                StoreArray(r(3), r(1), r(2)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -2802,60 +2785,56 @@ fn gen_position_array_length_effect() {
 #[test]
 fn gen_load_array_uint8() {
     let result = code("fun f(a: Array[UInt8]): UInt8 { return a(0L); }");
-    let expected = vec![
-        ConstZeroInt64(r(2)),
-        LoadArrayUInt8(r(1), r(0), r(2)),
-        Ret(r(1)),
-    ];
+    let expected = vec![ConstZeroInt64(r(2)), LoadArray(r(1), r(0), r(2)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_bool() {
     let result = code("fun f(a: Array[Bool], idx: Int64): Bool { return a(idx); }");
-    let expected = vec![LoadArrayBool(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_char() {
     let result = code("fun f(a: Array[Char], idx: Int64): Char { return a(idx); }");
-    let expected = vec![LoadArrayChar(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_int32() {
     let result = code("fun f(a: Array[Int32], idx: Int64): Int32 { return a(idx); }");
-    let expected = vec![LoadArrayInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_int64() {
     let result = code("fun f(a: Array[Int64], idx: Int64): Int64 { return a(idx); }");
-    let expected = vec![LoadArrayInt64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_float32() {
     let result = code("fun f(a: Array[Float32], idx: Int64): Float32 { return a(idx); }");
-    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_float64() {
     let result = code("fun f(a: Array[Float64], idx: Int64): Float64 { return a(idx); }");
-    let expected = vec![LoadArrayFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_ptr() {
     let result = code("fun f(a: Array[Object], idx: Int64): Object { return a(idx); }");
-    let expected = vec![LoadArrayPtr(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -2913,7 +2892,7 @@ fn gen_store_array_uint8() {
     let result = code("fun f(a: Array[UInt8], b: UInt8) { a(0L) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
-        StoreArrayUInt8(r(1), r(0), r(2)),
+        StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2924,7 +2903,7 @@ fn gen_store_array_bool() {
     let result = code("fun f(a: Array[Bool], b: Bool) { a(0L) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
-        StoreArrayBool(r(1), r(0), r(2)),
+        StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2935,7 +2914,7 @@ fn gen_store_array_char() {
     let result = code("fun f(a: Array[Char], b: Char) { a(0L) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
-        StoreArrayChar(r(1), r(0), r(2)),
+        StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2946,7 +2925,7 @@ fn gen_store_array_int32() {
     let result = code("fun f(a: Array[Int32], b: Int32) { a(0L) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
-        StoreArrayInt32(r(1), r(0), r(2)),
+        StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2957,7 +2936,7 @@ fn gen_store_array_int64() {
     let result = code("fun f(a: Array[Int64], b: Int64) { a(0L) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
-        StoreArrayInt64(r(1), r(0), r(2)),
+        StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2968,7 +2947,7 @@ fn gen_store_array_float32() {
     let result = code("fun f(a: Array[Float32], b: Float32) { a(0L) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
-        StoreArrayFloat32(r(1), r(0), r(2)),
+        StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2979,7 +2958,7 @@ fn gen_store_array_float64() {
     let result = code("fun f(a: Array[Float64], b: Float64) { a(0L) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
-        StoreArrayFloat64(r(1), r(0), r(2)),
+        StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2990,7 +2969,7 @@ fn gen_store_array_ptr() {
     let result = code("fun f(a: Array[Object], b: Object) { a(0L) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
-        StoreArrayPtr(r(1), r(0), r(2)),
+        StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -3659,35 +3638,24 @@ fn gen_unreachable() {
 
 #[test]
 fn gen_enum_array() {
-    gen_fct(
+    let result = code(
         "enum MyEnum { A(Int32), B }
         fun f(arr: Array[MyEnum], idx: Int64): MyEnum {
             arr(idx)
         }",
-        |vm, code, _fct| {
-            let enum_id = vm.enum_by_name("MyEnum");
-            let expected = vec![
-                LoadArrayEnum(r(2), r(0), r(1), enum_id, SourceTypeArray::empty()),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-        },
     );
 
-    gen_fct(
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
+    assert_eq!(expected, result);
+
+    let result = code(
         "enum MyEnum { A(Int32), B }
         fun f(arr: Array[MyEnum], idx: Int64, value: MyEnum) {
             arr(idx) = value;
         }",
-        |vm, code, _fct| {
-            let enum_id = vm.enum_by_name("MyEnum");
-            let expected = vec![
-                StoreArrayEnum(r(2), r(0), r(1), enum_id, SourceTypeArray::empty()),
-                RetVoid,
-            ];
-            assert_eq!(expected, code);
-        },
     );
+    let expected = vec![StoreArray(r(2), r(0), r(1)), RetVoid];
+    assert_eq!(expected, result);
 }
 
 #[test]
@@ -3700,21 +3668,21 @@ fn gen_string_length() {
 #[test]
 fn gen_string_get_uint8() {
     let result = code("fun f(x: String, idx: Int64): UInt8 { x.getByte(idx) }");
-    let expected = vec![LoadArrayUInt8(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_array_get() {
     let result = code("fun f(x: Array[Float32], idx: Int64): Float32 { x(idx) }");
-    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_array_get_method() {
     let result = code("fun f(x: Array[Float32], idx: Int64): Float32 { x.get(idx) }");
-    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3722,7 +3690,7 @@ fn gen_array_get_method() {
 fn gen_array_set_method() {
     let result =
         code("fun f(x: Array[Float32], idx: Int64, value: Float32) { x.set(idx, value); }");
-    let expected = vec![StoreArrayFloat32(r(2), r(0), r(1)), RetVoid];
+    let expected = vec![StoreArray(r(2), r(0), r(1)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -4343,29 +4311,8 @@ pub enum Bytecode {
     ArrayLength(Register, Register),
     ArrayBoundCheck(Register, Register),
 
-    LoadArrayBool(Register, Register, Register),
-    LoadArrayUInt8(Register, Register, Register),
-    LoadArrayChar(Register, Register, Register),
-    LoadArrayInt32(Register, Register, Register),
-    LoadArrayInt64(Register, Register, Register),
-    LoadArrayFloat32(Register, Register, Register),
-    LoadArrayFloat64(Register, Register, Register),
-    LoadArrayPtr(Register, Register, Register),
-    LoadArrayGeneric(Register, Register, Register),
-    LoadArrayEnum(Register, Register, Register, EnumId, SourceTypeArray),
-    LoadArrayStruct(Register, Register, Register, ConstPoolIdx),
-
-    StoreArrayBool(Register, Register, Register),
-    StoreArrayUInt8(Register, Register, Register),
-    StoreArrayChar(Register, Register, Register),
-    StoreArrayInt32(Register, Register, Register),
-    StoreArrayInt64(Register, Register, Register),
-    StoreArrayFloat32(Register, Register, Register),
-    StoreArrayFloat64(Register, Register, Register),
-    StoreArrayPtr(Register, Register, Register),
-    StoreArrayGeneric(Register, Register, Register),
-    StoreArrayEnum(Register, Register, Register, EnumId, SourceTypeArray),
-    StoreArrayStruct(Register, Register, Register, ConstPoolIdx),
+    LoadArray(Register, Register, Register),
+    StoreArray(Register, Register, Register),
 
     RetVoid,
     Ret(Register),
@@ -5001,116 +4948,12 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::ArrayBoundCheck(arr, idx));
     }
 
-    fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayBool(dest, arr, idx));
-    }
-    fn visit_load_array_uint8(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayUInt8(dest, arr, idx));
-    }
-    fn visit_load_array_char(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayChar(dest, arr, idx));
-    }
-    fn visit_load_array_int32(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayInt32(dest, arr, idx));
-    }
-    fn visit_load_array_int64(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayInt64(dest, arr, idx));
-    }
-    fn visit_load_array_float32(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayFloat32(dest, arr, idx));
-    }
-    fn visit_load_array_float64(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayFloat64(dest, arr, idx));
-    }
-    fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayPtr(dest, arr, idx));
-    }
-    fn visit_load_array_generic(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayGeneric(dest, arr, idx));
-    }
-    fn visit_load_array_enum(
-        &mut self,
-        dest: Register,
-        arr: Register,
-        idx: Register,
-        enum_idx: ConstPoolIdx,
-    ) {
-        let (enum_id, type_params) = match self.bc.const_pool(enum_idx) {
-            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        self.emit(Bytecode::LoadArrayEnum(
-            dest,
-            arr,
-            idx,
-            enum_id,
-            type_params,
-        ));
-    }
-    fn visit_load_array_struct(
-        &mut self,
-        dest: Register,
-        arr: Register,
-        idx: Register,
-        struct_idx: ConstPoolIdx,
-    ) {
-        self.emit(Bytecode::LoadArrayStruct(dest, arr, idx, struct_idx));
+    fn visit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArray(dest, arr, idx));
     }
 
-    fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayBool(src, arr, idx));
-    }
-    fn visit_store_array_uint8(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayUInt8(src, arr, idx));
-    }
-    fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayChar(src, arr, idx));
-    }
-    fn visit_store_array_int32(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayInt32(src, arr, idx));
-    }
-    fn visit_store_array_int64(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayInt64(src, arr, idx));
-    }
-    fn visit_store_array_float32(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayFloat32(src, arr, idx));
-    }
-    fn visit_store_array_float64(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayFloat64(src, arr, idx));
-    }
-    fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayPtr(src, arr, idx));
-    }
-    fn visit_store_array_generic(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayGeneric(dest, arr, idx));
-    }
-    fn visit_store_array_enum(
-        &mut self,
-        dest: Register,
-        arr: Register,
-        idx: Register,
-        enum_idx: ConstPoolIdx,
-    ) {
-        let (enum_id, type_params) = match self.bc.const_pool(enum_idx) {
-            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        self.emit(Bytecode::StoreArrayEnum(
-            dest,
-            arr,
-            idx,
-            enum_id,
-            type_params,
-        ));
-    }
-    fn visit_store_array_struct(
-        &mut self,
-        dest: Register,
-        arr: Register,
-        idx: Register,
-        struct_idx: ConstPoolIdx,
-    ) {
-        self.emit(Bytecode::StoreArrayStruct(dest, arr, idx, struct_idx));
+    fn visit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArray(src, arr, idx));
     }
 
     fn visit_ret_void(&mut self) {

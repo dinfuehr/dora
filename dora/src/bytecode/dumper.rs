@@ -1132,102 +1132,12 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg1("NilCheck", obj);
     }
 
-    fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayBool", dest, arr, idx);
-    }
-    fn visit_load_array_uint8(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayUInt8", dest, arr, idx);
-    }
-    fn visit_load_array_char(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayChar", dest, arr, idx);
-    }
-    fn visit_load_array_int32(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayInt32", dest, arr, idx);
-    }
-    fn visit_load_array_int64(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayInt64", dest, arr, idx);
-    }
-    fn visit_load_array_float32(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayFloat32", dest, arr, idx);
-    }
-    fn visit_load_array_float64(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayFloat64", dest, arr, idx);
-    }
-    fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayPtr", dest, arr, idx);
-    }
-    fn visit_load_array_tuple(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayTuple", dest, arr, idx);
-    }
-    fn visit_load_array_generic(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayGeneric", dest, arr, idx);
-    }
-    fn visit_load_array_enum(
-        &mut self,
-        dest: Register,
-        arr: Register,
-        idx: Register,
-        enum_idx: ConstPoolIdx,
-    ) {
-        self.emit_reg3_idx("LoadArrayEnum", dest, arr, idx, enum_idx);
-    }
-    fn visit_load_array_struct(
-        &mut self,
-        dest: Register,
-        arr: Register,
-        idx: Register,
-        struct_idx: ConstPoolIdx,
-    ) {
-        self.emit_reg3_idx("LoadArrayStruct", dest, arr, idx, struct_idx);
+    fn visit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArray", dest, arr, idx);
     }
 
-    fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayBool", src, arr, idx);
-    }
-    fn visit_store_array_uint8(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayUInt8", src, arr, idx);
-    }
-    fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayChar", src, arr, idx);
-    }
-    fn visit_store_array_int32(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayInt32", src, arr, idx);
-    }
-    fn visit_store_array_int64(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayInt64", src, arr, idx);
-    }
-    fn visit_store_array_float32(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayFloat32", src, arr, idx);
-    }
-    fn visit_store_array_float64(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayFloat64", src, arr, idx);
-    }
-    fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayPtr", src, arr, idx);
-    }
-    fn visit_store_array_tuple(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayTuple", src, arr, idx);
-    }
-    fn visit_store_array_generic(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayGeneric", src, arr, idx);
-    }
-    fn visit_store_array_enum(
-        &mut self,
-        src: Register,
-        arr: Register,
-        idx: Register,
-        enum_idx: ConstPoolIdx,
-    ) {
-        self.emit_reg3_idx("StoreArrayEnum", src, arr, idx, enum_idx);
-    }
-    fn visit_store_array_struct(
-        &mut self,
-        src: Register,
-        arr: Register,
-        idx: Register,
-        struct_idx: ConstPoolIdx,
-    ) {
-        self.emit_reg3_idx("StoreArrayStruct", src, arr, idx, struct_idx);
+    fn visit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArray", src, arr, idx);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

@@ -705,114 +705,12 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::ArrayBoundCheck, arr, idx);
     }
 
-    pub fn emit_store_array_uint8(&mut self, src: Register, array: Register, idx: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayUInt8, src, array, idx);
-    }
-    pub fn emit_store_array_bool(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayBool, src, array, index);
-    }
-    pub fn emit_store_array_char(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayChar, src, array, index);
-    }
-    pub fn emit_store_array_int32(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayInt32, src, array, index);
-    }
-    pub fn emit_store_array_int64(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayInt64, src, array, index);
-    }
-    pub fn emit_store_array_float32(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayFloat32, src, array, index);
-    }
-    pub fn emit_store_array_float64(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayFloat64, src, array, index);
-    }
-    pub fn emit_store_array_ptr(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayPtr, src, array, index);
-    }
-    pub fn emit_store_array_tuple(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayTuple, src, array, index);
-    }
-    pub fn emit_store_array_generic(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayGeneric, src, array, index);
-    }
-    pub fn emit_store_array_enum(
-        &mut self,
-        src: Register,
-        array: Register,
-        index: Register,
-        enum_idx: ConstPoolIdx,
-    ) {
-        self.emit_reg3_idx(BytecodeOpcode::StoreArrayEnum, src, array, index, enum_idx);
-    }
-    pub fn emit_store_array_struct(
-        &mut self,
-        src: Register,
-        array: Register,
-        index: Register,
-        struct_idx: ConstPoolIdx,
-    ) {
-        self.emit_reg3_idx(
-            BytecodeOpcode::StoreArrayStruct,
-            src,
-            array,
-            index,
-            struct_idx,
-        );
+    pub fn emit_store_array(&mut self, src: Register, array: Register, idx: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArray, src, array, idx);
     }
 
-    pub fn emit_load_array_uint8(&mut self, dest: Register, array: Register, idx: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayUInt8, dest, array, idx);
-    }
-    pub fn emit_load_array_bool(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayBool, dest, array, index);
-    }
-    pub fn emit_load_array_char(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayChar, dest, array, index);
-    }
-    pub fn emit_load_array_int32(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayInt32, dest, array, index);
-    }
-    pub fn emit_load_array_int64(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayInt64, dest, array, index);
-    }
-    pub fn emit_load_array_float32(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayFloat32, dest, array, index);
-    }
-    pub fn emit_load_array_float64(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayFloat64, dest, array, index);
-    }
-    pub fn emit_load_array_ptr(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayPtr, dest, array, index);
-    }
-    pub fn emit_load_array_tuple(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayTuple, dest, array, index);
-    }
-    pub fn emit_load_array_generic(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayGeneric, dest, array, index);
-    }
-    pub fn emit_load_array_enum(
-        &mut self,
-        dest: Register,
-        array: Register,
-        index: Register,
-        enum_idx: ConstPoolIdx,
-    ) {
-        self.emit_reg3_idx(BytecodeOpcode::LoadArrayEnum, dest, array, index, enum_idx);
-    }
-    pub fn emit_load_array_struct(
-        &mut self,
-        dest: Register,
-        array: Register,
-        index: Register,
-        struct_idx: ConstPoolIdx,
-    ) {
-        self.emit_reg3_idx(
-            BytecodeOpcode::LoadArrayStruct,
-            dest,
-            array,
-            index,
-            struct_idx,
-        );
+    pub fn emit_load_array(&mut self, dest: Register, array: Register, idx: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArray, dest, array, idx);
     }
 
     pub fn generate(mut self) -> BytecodeFunction {
