@@ -158,7 +158,9 @@ impl<'a> TypeCheck<'a> {
                 extension.ty.clone()
             }
 
-            FctParent::None | FctParent::Module(_) | FctParent::Trait(_) => unreachable!(),
+            FctParent::Trait(_) => SourceType::This,
+
+            FctParent::None | FctParent::Module(_) => unreachable!(),
         };
 
         self.self_ty = Some(self_ty.clone());

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::NestedSymTable;
 use crate::vm::{Fct, FctParent, FileId, NamespaceId, TraitData, TraitId, VM};
@@ -75,14 +74,6 @@ impl<'x> TraitCheck<'x> {
     }
 
     fn visit_method(&mut self, node: &Arc<ast::Function>) {
-        if node.block.is_some() {
-            self.vm.diag.lock().report(
-                self.file_id.into(),
-                node.pos,
-                SemError::TraitMethodWithBody,
-            );
-        }
-
         let mut fct = Fct::new(
             self.file_id,
             self.namespace_id,
@@ -116,11 +107,7 @@ mod tests {
 
     #[test]
     fn trait_method_with_body() {
-        err(
-            "trait Foo { fun foo(): Int32 { return 1; } }",
-            pos(1, 13),
-            SemError::TraitMethodWithBody,
-        );
+        ok("trait Foo { fun foo(): Int32 { return 1; } }");
     }
 
     #[test]
