@@ -63,7 +63,7 @@ class TestRetWideVisitor extends BytecodeVisitor {
 class TestMovVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitMov(dest: BytecodeRegister, src: BytecodeRegister) {
         assert(dest == BytecodeRegister(0));
         assert(src == BytecodeRegister(1));
         self.found = true;
@@ -72,10 +72,10 @@ class TestMovVisitor extends BytecodeVisitor {
 
 @test fun testBytecodeMov(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitMovInt32(BytecodeRegister(0), BytecodeRegister(1));
+    writer.emitMov(BytecodeRegister(0), BytecodeRegister(1));
     let fct = writer.generate();
     let visitor = TestMovVisitor();
-    assert(fct.codeAt(0) == BC_MOV_INT32);
+    assert(fct.codeAt(0) == BC_MOV);
     assert(fct.codeAt(1) == 0);
     assert(fct.codeAt(2) == 1);
     assert(fct.code.size() == 3L);
@@ -86,7 +86,7 @@ class TestMovVisitor extends BytecodeVisitor {
 class TestMovWideVisitor extends BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitMov(dest: BytecodeRegister, src: BytecodeRegister) {
         assert(dest == BytecodeRegister(256));
         assert(src == BytecodeRegister(255));
         self.found = true;
@@ -95,11 +95,11 @@ class TestMovWideVisitor extends BytecodeVisitor {
 
 @test fun testBytecodeMovWide(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitMovInt32(BytecodeRegister(256), BytecodeRegister(255));
+    writer.emitMov(BytecodeRegister(256), BytecodeRegister(255));
     let fct = writer.generate();
     let visitor = TestMovWideVisitor();
     assert(fct.codeAt(0) == BC_WIDE);
-    assert(fct.codeAt(1) == BC_MOV_INT32);
+    assert(fct.codeAt(1) == BC_MOV);
     assert(fct.codeInt32At(2) == 256);
     assert(fct.codeInt32At(6) == 255);
     assert(fct.code.size() == 10L);

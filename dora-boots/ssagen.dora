@@ -373,28 +373,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.emitBin(dest, lhs, rhs, BinOp::Sar, Type::int64());
     }
 
-    @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitMov(dest, src);
-    }
-    @override fun visitMovUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitMov(dest, src);
-    }
-    @override fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitMov(dest, src);
-    }
-    @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitMov(dest, src);
-    }
-    @override fun visitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitMov(dest, src);
-    }
-    @override fun visitMovFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitMov(dest, src);
-    }
-    @override fun visitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitMov(dest, src);
-    }
-    @override fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitMov(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitMov(dest, src);
     }
 

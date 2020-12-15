@@ -358,68 +358,10 @@ where
                 self.visitor.visit_checked_cast(src, cls_id);
             }
 
-            BytecodeOpcode::MovBool => {
+            BytecodeOpcode::Mov => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_mov_bool(dest, src);
-            }
-            BytecodeOpcode::MovUInt8 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_mov_uint8(dest, src);
-            }
-            BytecodeOpcode::MovChar => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_mov_char(dest, src);
-            }
-            BytecodeOpcode::MovInt32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_mov_int32(dest, src);
-            }
-            BytecodeOpcode::MovInt64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_mov_int64(dest, src);
-            }
-            BytecodeOpcode::MovFloat32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_mov_float32(dest, src);
-            }
-            BytecodeOpcode::MovFloat64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_mov_float64(dest, src);
-            }
-            BytecodeOpcode::MovPtr => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_mov_ptr(dest, src);
-            }
-            BytecodeOpcode::MovTuple => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                let tuple = self.read_tuple(wide);
-                self.visitor.visit_mov_tuple(dest, src, tuple);
-            }
-            BytecodeOpcode::MovGeneric => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_mov_generic(dest, src);
-            }
-            BytecodeOpcode::MovEnum => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                let idx = self.read_const_pool_idx(wide);
-                self.visitor.visit_mov_enum(dest, src, idx);
-            }
-            BytecodeOpcode::MovStruct => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                let idx = self.read_const_pool_idx(wide);
-                self.visitor.visit_mov_struct(dest, src, idx);
+                self.visitor.visit_mov(dest, src);
             }
 
             BytecodeOpcode::LoadTupleElement => {
@@ -1373,40 +1315,7 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_mov_bool(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_uint8(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_char(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_int64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_float32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_float64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_ptr(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_tuple(&mut self, _dest: Register, _src: Register, _tuple_id: TupleId) {
-        unimplemented!();
-    }
-    fn visit_mov_generic(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_mov_enum(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
-        unimplemented!();
-    }
-    fn visit_mov_struct(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
+    fn visit_mov(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 

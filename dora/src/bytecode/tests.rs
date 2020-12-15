@@ -57,16 +57,16 @@ fn test_move() {
         found: bool,
     }
     impl BytecodeVisitor for TestVisitor {
-        fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
+        fn visit_mov(&mut self, dest: Register, src: Register) {
             assert_eq!(Register(0), dest);
             assert_eq!(Register(1), src);
             self.found = true;
         }
     }
     let mut writer = BytecodeWriter::new();
-    writer.emit_mov_ptr(Register(0), Register(1));
+    writer.emit_mov(Register(0), Register(1));
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::MovPtr as u8, 0, 1]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::Mov as u8, 0, 1]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -78,20 +78,20 @@ fn test_move_wide() {
         found: bool,
     }
     impl BytecodeVisitor for TestVisitor {
-        fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
+        fn visit_mov(&mut self, dest: Register, src: Register) {
             assert_eq!(Register(256), dest);
             assert_eq!(Register(255), src);
             self.found = true;
         }
     }
     let mut writer = BytecodeWriter::new();
-    writer.emit_mov_ptr(Register(256), Register(255));
+    writer.emit_mov(Register(256), Register(255));
     let fct = writer.generate();
     assert_eq!(
         fct.code(),
         &[
             BytecodeOpcode::Wide as u8,
-            BytecodeOpcode::MovPtr as u8,
+            BytecodeOpcode::Mov as u8,
             0,
             1,
             0,

@@ -405,52 +405,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::SubFloat64, dest, lhs, rhs);
     }
 
-    pub fn emit_mov_bool(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovBool, dest, src);
-    }
-
-    pub fn emit_mov_uint8(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovUInt8, dest, src);
-    }
-
-    pub fn emit_mov_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovChar, dest, src);
-    }
-
-    pub fn emit_mov_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovInt32, dest, src);
-    }
-
-    pub fn emit_mov_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovInt64, dest, src);
-    }
-
-    pub fn emit_mov_float32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovFloat32, dest, src);
-    }
-
-    pub fn emit_mov_float64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovFloat64, dest, src);
-    }
-
-    pub fn emit_mov_ptr(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovPtr, dest, src);
-    }
-
-    pub fn emit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
-        self.emit_reg2_tuple(BytecodeOpcode::MovTuple, dest, src, tuple_id);
-    }
-
-    pub fn emit_mov_generic(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovGeneric, dest, src);
-    }
-
-    pub fn emit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        self.emit_reg2_idx(BytecodeOpcode::MovEnum, dest, src, idx);
-    }
-
-    pub fn emit_mov_struct(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        self.emit_reg2_idx(BytecodeOpcode::MovStruct, dest, src, idx);
+    pub fn emit_mov(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::Mov, dest, src);
     }
 
     pub fn emit_load_tuple_element(

@@ -35,6 +35,7 @@ pub struct ImplData {
     pub methods: Vec<FctId>,
     pub instance_names: HashMap<Name, FctId>,
     pub static_names: HashMap<Name, FctId>,
+    pub impls_for: HashMap<FctId, FctId>,
 }
 
 impl ImplData {

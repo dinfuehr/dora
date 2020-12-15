@@ -789,38 +789,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg1_cls("CheckedCast", src, cls_id);
     }
 
-    fn visit_mov_bool(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovBool", dest, src);
-    }
-    fn visit_mov_uint8(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovUInt8", dest, src);
-    }
-    fn visit_mov_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovChar", dest, src);
-    }
-    fn visit_mov_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovInt32", dest, src);
-    }
-    fn visit_mov_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovInt64", dest, src);
-    }
-    fn visit_mov_float32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovFloat32", dest, src);
-    }
-    fn visit_mov_float64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovFloat64", dest, src);
-    }
-    fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovPtr", dest, src);
-    }
-    fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
-        self.emit_reg2_tuple("MovTuple", dest, src, tuple_id);
-    }
-    fn visit_mov_generic(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovGeneric", dest, src);
-    }
-    fn visit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        self.emit_reg2_enum("MovEnum", dest, src, idx);
+    fn visit_mov(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("Mov", dest, src);
     }
 
     fn visit_load_tuple_element(

@@ -258,9 +258,8 @@ impl<'a> AstBytecodeGen<'a> {
                 let var_ty = self.var_ty(var_id);
 
                 if !var_ty.is_unit() {
-                    let var_ty: BytecodeType = BytecodeType::from_ty(self.vm, var_ty);
                     let var_reg = self.var_reg(var_id);
-                    self.emit_mov(var_ty.into(), var_reg, next_reg)
+                    self.emit_mov(var_reg, next_reg)
                 }
             }
 
@@ -1440,7 +1439,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
                 DataDest::Alloc => obj_reg,
                 DataDest::Reg(dest_reg) => {
-                    self.gen.emit_mov_ptr(dest_reg, obj_reg);
+                    self.gen.emit_mov(dest_reg, obj_reg);
                     self.free_if_temp(obj_reg);
                     dest_reg
                 }
@@ -1450,30 +1449,9 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn emit_mov(&mut self, ty: BytecodeType, dest: Register, src: Register) {
-        if dest == src {
-            return;
-        }
-
-        match ty {
-            BytecodeType::Bool => self.gen.emit_mov_bool(dest, src),
-            BytecodeType::UInt8 => self.gen.emit_mov_uint8(dest, src),
-            BytecodeType::Char => self.gen.emit_mov_char(dest, src),
-            BytecodeType::Float64 => self.gen.emit_mov_float64(dest, src),
-            BytecodeType::Float32 => self.gen.emit_mov_float32(dest, src),
-            BytecodeType::Int32 => self.gen.emit_mov_int32(dest, src),
-            BytecodeType::Int64 => self.gen.emit_mov_int64(dest, src),
-            BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
-            BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, src, tuple_id),
-            BytecodeType::TypeParam(_) => self.gen.emit_mov_generic(dest, src),
-            BytecodeType::Enum(enum_id, type_params) => {
-                let idx = self.gen.add_const_enum(enum_id, type_params);
-                self.gen.emit_mov_enum(dest, src, idx)
-            }
-            BytecodeType::Struct(struct_id, type_params) => {
-                let idx = self.gen.add_const_struct(struct_id, type_params);
-                self.gen.emit_mov_struct(dest, src, idx)
-            }
+    fn emit_mov(&mut self, dest: Register, src: Register) {
+        if dest != src {
+            self.gen.emit_mov(dest, src);
         }
     }
 
@@ -1648,10 +1626,8 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let dest = dest.reg();
-        let self_ty = self.src.var_self().ty.clone();
-        let ty: BytecodeType = BytecodeType::from_ty(self.vm, self_ty);
 
-        self.emit_mov(ty, dest, var_reg);
+        self.emit_mov(dest, var_reg);
 
         dest
     }
@@ -2207,7 +2183,7 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::CharToInt64 => self.gen.emit_extend_char_to_int64(dest, src),
             Intrinsic::Int32ToByte => self.gen.emit_cast_int32_to_uint8(dest, src),
             Intrinsic::Int32ToChar => self.gen.emit_cast_int32_to_char(dest, src),
-            Intrinsic::Int32ToInt32 => self.gen.emit_mov_int32(dest, src),
+            Intrinsic::Int32ToInt32 => self.gen.emit_mov(dest, src),
             Intrinsic::Int64ToByte => self.gen.emit_cast_int64_to_uint8(dest, src),
             Intrinsic::Int64ToChar => self.gen.emit_cast_int64_to_char(dest, src),
             Intrinsic::Int64ToInt32 => self.gen.emit_cast_int64_to_int32(dest, src),
@@ -2751,14 +2727,13 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let var_reg = self.var_reg(var_id);
-        let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
 
         if dest.is_alloc() {
             return var_reg;
         }
 
         let dest = dest.reg();
-        self.emit_mov(ty, dest, var_reg);
+        self.emit_mov(dest, var_reg);
 
         dest
     }

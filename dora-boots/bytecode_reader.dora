@@ -75,14 +75,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
     @open fun visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
 
-    @open fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitMovUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitMovFloat32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMov(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
     @open fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
@@ -280,14 +273,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {}
     @override fun visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {}
 
-    @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovFloat32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMov(dest: BytecodeRegister, src: BytecodeRegister) {}
 
     @override fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
@@ -798,38 +784,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitSarInt64(dest, lhs, rhs);
 
-        } else if opcode == BC_MOV_BOOL {
+        } else if opcode == BC_MOV {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitMovBool(dest, src);
-        } else if opcode == BC_MOV_UINT8 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitMovUInt8(dest, src);
-        } else if opcode == BC_MOV_CHAR {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitMovChar(dest, src);
-        } else if opcode == BC_MOV_INT32 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitMovInt32(dest, src);
-        } else if opcode == BC_MOV_INT64 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitMovInt64(dest, src);
-        } else if opcode == BC_MOV_FLOAT32{
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitMovFloat32(dest, src);
-        } else if opcode == BC_MOV_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitMovFloat64(dest, src);
-        } else if opcode == BC_MOV_PTR {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitMovPtr(dest, src);
+            self.visitor.visitMov(dest, src);
 
         } else if opcode == BC_LOAD_FIELD {
             let dest = self.readRegister(wide);

@@ -176,14 +176,7 @@ class BytecodeDumper(let bc: BytecodeFunction) extends BytecodeVisitor {
     @override fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { self.emitReg2AndCls("InstanceOf", dest, src, cls); }
     @override fun visitCheckedCast(dest: BytecodeRegister, cls: ClassDefId) { self.emitReg1AndCls("CheckedCast", dest, cls); }
 
-    @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovBool", dest, src); }
-    @override fun visitMovUInt8(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovUInt8", dest, src); }
-    @override fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovChar", dest, src); }
-    @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovInt32", dest, src); }
-    @override fun visitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovInt64", dest, src); }
-    @override fun visitMovFloat32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovFloat32", dest, src); }
-    @override fun visitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovFloat64", dest, src); }
-    @override fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovPtr", dest, src); }
+    @override fun visitMov(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("Mov", dest, src); }
 
     @override fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadField", dest, obj, cls, field); }
     @override fun visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreField", src, obj, cls, field); }

@@ -531,64 +531,9 @@ impl BytecodeBuilder {
         self.writer.emit_sub_float64(dest, lhs, rhs);
     }
 
-    pub fn emit_mov_bool(&mut self, dest: Register, src: Register) {
+    pub fn emit_mov(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_bool(dest, src);
-    }
-
-    pub fn emit_mov_uint8(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_uint8(dest, src);
-    }
-
-    pub fn emit_mov_char(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_char(dest, src);
-    }
-
-    pub fn emit_mov_int32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_int32(dest, src);
-    }
-
-    pub fn emit_mov_int64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_int64(dest, src);
-    }
-
-    pub fn emit_mov_float32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_float32(dest, src);
-    }
-
-    pub fn emit_mov_float64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_float64(dest, src);
-    }
-
-    pub fn emit_mov_ptr(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_ptr(dest, src);
-    }
-
-    pub fn emit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_tuple(dest, src, tuple_id);
-    }
-
-    pub fn emit_mov_generic(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_generic(dest, src);
-    }
-
-    pub fn emit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_enum(dest, src, idx);
-    }
-
-    pub fn emit_mov_struct(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_mov_struct(dest, src, idx);
+        self.writer.emit_mov(dest, src);
     }
 
     pub fn emit_load_tuple_element(

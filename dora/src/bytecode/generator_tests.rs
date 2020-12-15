@@ -86,7 +86,7 @@ fn gen_generic_identity() {
     assert_eq!(expected, result);
 
     let result = code("fun f[T](x: T): T { let y = x; y }");
-    let expected = vec![MovGeneric(r(1), r(0)), Ret(r(1))];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -443,7 +443,7 @@ fn gen_stmt_if_else_without_return() {
     }",
     );
     let expected = vec![
-        MovBool(r(1), r(0)),
+        Mov(r(1), r(0)),
         JumpIfFalse(r(1), 4),
         ConstFalse(r(1)),
         Jump(5),
@@ -589,9 +589,9 @@ fn gen_expr_lit_float64_zero() {
 fn gen_expr_or() {
     let result = code("fun f(a: Bool, b: Bool): Bool { return a || b; }");
     let expected = vec![
-        MovBool(r(2), r(0)),
+        Mov(r(2), r(0)),
         JumpIfTrue(r(2), 3),
-        MovBool(r(2), r(1)),
+        Mov(r(2), r(1)),
         Ret(r(2)),
     ];
     assert_eq!(expected, result);
@@ -601,9 +601,9 @@ fn gen_expr_or() {
 fn gen_expr_and() {
     let result = code("fun f(a: Bool, b: Bool): Bool { return a && b; }");
     let expected = vec![
-        MovBool(r(2), r(0)),
+        Mov(r(2), r(0)),
         JumpIfFalse(r(2), 3),
-        MovBool(r(2), r(1)),
+        Mov(r(2), r(1)),
         Ret(r(2)),
     ];
     assert_eq!(expected, result);
@@ -968,7 +968,7 @@ fn gen_expr_self() {
 #[test]
 fn gen_expr_self_assign() {
     let result = code_method("class Foo() { fun f() { let x = self; } }");
-    let expected = vec![MovPtr(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -2494,21 +2494,14 @@ fn gen_new_struct() {
 
 #[test]
 fn gen_move_struct() {
-    gen_fct(
+    let result = code(
         "
         struct Foo { f1: Int32, f2: Bool }
         fun f(x: Foo): Foo { let y = x; y }
     ",
-        |vm, code, fct| {
-            let struct_id = vm.struct_by_name("Foo");
-            let expected = vec![MovStruct(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
-            );
-        },
     );
+    let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
+    assert_eq!(expected, result);
 }
 
 #[test]
@@ -2704,7 +2697,7 @@ fn gen_new_object_assign_to_var() {
                 NewObject(r(1), cls_id, SourceTypeArray::empty()),
                 PushRegister(r(1)),
                 InvokeDirectVoid(ConstPoolIdx(0)),
-                MovPtr(r(0), r(1)),
+                Mov(r(0), r(1)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
@@ -3190,7 +3183,7 @@ fn gen_self_assign_for_bool() {
             ",
         "Bool",
     );
-    let expected = vec![MovBool(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3202,7 +3195,7 @@ fn gen_self_assign_for_uint8() {
             ",
         "UInt8",
     );
-    let expected = vec![MovUInt8(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3214,7 +3207,7 @@ fn gen_self_assign_for_int() {
             ",
         "Int32",
     );
-    let expected = vec![MovInt32(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3226,7 +3219,7 @@ fn gen_self_assign_for_int64() {
             ",
         "Int64",
     );
-    let expected = vec![MovInt64(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3238,7 +3231,7 @@ fn gen_self_assign_for_float32() {
             ",
         "Float32",
     );
-    let expected = vec![MovFloat32(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3250,7 +3243,7 @@ fn gen_self_assign_for_float64() {
             ",
         "Float64",
     );
-    let expected = vec![MovFloat64(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3262,7 +3255,7 @@ fn gen_self_assign_for_string() {
             ",
         "String",
     );
-    let expected = vec![MovPtr(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3613,7 +3606,7 @@ fn gen_checked_cast_effect() {
         |vm, code, fct| {
             let cls_id = vm.cls_by_name("B");
             let expected = vec![
-                MovPtr(r(1), r(0)),
+                Mov(r(1), r(0)),
                 CheckedCast(r(1), ConstPoolIdx(0)),
                 Ret(r(1)),
             ];
@@ -3642,7 +3635,7 @@ fn gen_enum_mov_generic() {
             tmp
         }",
     );
-    let expected = vec![MovEnum(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -4075,11 +4068,9 @@ fn gen_tuple_var() {
 
 #[test]
 fn gen_tuple_move() {
-    gen("fun f(x: (Int32, Int32)) { let y = x; }", |vm, code| {
-        let tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
-        let expected = vec![MovTuple(r(1), r(0), tuple_id), RetVoid];
-        assert_eq!(expected, code);
-    });
+    let result = code("fun f(x: (Int32, Int32)) { let y = x; }");
+    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    assert_eq!(expected, result);
 }
 
 #[test]
@@ -4127,7 +4118,7 @@ fn gen_trait_object_copy() {
         fun f(x: Foo): Foo { let y = x; y }
     ",
         |_vm, code| {
-            let expected = vec![MovPtr(r(1), r(0)), Ret(r(1))];
+            let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -4239,18 +4230,7 @@ pub enum Bytecode {
     InstanceOf(Register, Register, ConstPoolIdx),
     CheckedCast(Register, ConstPoolIdx),
 
-    MovBool(Register, Register),
-    MovUInt8(Register, Register),
-    MovChar(Register, Register),
-    MovInt32(Register, Register),
-    MovInt64(Register, Register),
-    MovFloat32(Register, Register),
-    MovFloat64(Register, Register),
-    MovPtr(Register, Register),
-    MovTuple(Register, Register, TupleId),
-    MovGeneric(Register, Register),
-    MovEnum(Register, Register, ConstPoolIdx),
-    MovStruct(Register, Register, ConstPoolIdx),
+    Mov(Register, Register),
 
     LoadTupleElement(Register, Register, TupleId, u32),
     LoadStructField(Register, Register, ConstPoolIdx),
@@ -4642,41 +4622,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::CheckedCast(src, cls_idx));
     }
 
-    fn visit_mov_bool(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovBool(dest, src));
-    }
-    fn visit_mov_uint8(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovUInt8(dest, src));
-    }
-    fn visit_mov_char(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovChar(dest, src));
-    }
-    fn visit_mov_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovInt32(dest, src));
-    }
-    fn visit_mov_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovInt64(dest, src));
-    }
-    fn visit_mov_float32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovFloat32(dest, src));
-    }
-    fn visit_mov_float64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovFloat64(dest, src));
-    }
-    fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovPtr(dest, src));
-    }
-    fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
-        self.emit(Bytecode::MovTuple(dest, src, tuple_id))
-    }
-    fn visit_mov_generic(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovGeneric(dest, src));
-    }
-    fn visit_mov_enum(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        self.emit(Bytecode::MovEnum(dest, src, idx));
-    }
-    fn visit_mov_struct(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        self.emit(Bytecode::MovStruct(dest, src, idx));
+    fn visit_mov(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::Mov(dest, src));
     }
 
     fn visit_load_tuple_element(

@@ -242,36 +242,8 @@ class BytecodeWriter {
         self.emitReg1AndCls(BC_CHECKED_CAST, src, cls);
     }
 
-    fun emitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_BOOL, dest, src);
-    }
-
-    fun emitMovByte(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_UINT8, dest, src);
-    }
-
-    fun emitMovChar(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_CHAR, dest, src);
-    }
-
-    fun emitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_INT32, dest, src);
-    }
-
-    fun emitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_INT64, dest, src);
-    }
-
-    fun emitMovFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_FLOAT32, dest, src);
-    }
-
-    fun emitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_FLOAT64, dest, src);
-    }
-
-    fun emitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_PTR, dest, src);
+    fun emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_MOV, dest, src);
     }
 
     fun emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
