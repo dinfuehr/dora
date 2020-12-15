@@ -35,25 +35,12 @@ pub struct ImplData {
     pub methods: Vec<FctId>,
     pub instance_names: HashMap<Name, FctId>,
     pub static_names: HashMap<Name, FctId>,
-    pub impls_for: HashMap<FctId, FctId>,
+    pub impl_for: HashMap<FctId, FctId>,
 }
 
 impl ImplData {
     pub fn trait_id(&self) -> TraitId {
         self.trait_id.expect("trait_id not initialized yet.")
-    }
-
-    pub fn find_implements(&self, vm: &VM, fct_id: FctId) -> Option<FctId> {
-        for &mtd_id in &self.methods {
-            let mtd = vm.fcts.idx(mtd_id);
-            let mtd = mtd.read();
-
-            if mtd.impl_for == Some(fct_id) {
-                return Some(mtd_id);
-            }
-        }
-
-        None
     }
 
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
@@ -98,14 +85,9 @@ pub fn find_trait_impl(
     let ximpl = vm.impls[impl_id].read();
     assert_eq!(ximpl.trait_id(), trait_id);
 
-    for &mtd_id in &ximpl.methods {
-        let mtd = vm.fcts.idx(mtd_id);
-        let mtd = mtd.read();
-
-        if mtd.impl_for == Some(fct_id) {
-            return mtd_id;
-        }
-    }
-
-    panic!("no impl method found for generic trait call")
+    ximpl
+        .impl_for
+        .get(&fct_id)
+        .cloned()
+        .expect("no impl method found for generic trait call")
 }

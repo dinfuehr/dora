@@ -64,7 +64,6 @@ pub struct Fct {
     pub variadic_arguments: bool,
 
     pub vtable_index: Option<u32>,
-    pub impl_for: Option<FctId>,
     pub initialized: bool,
     pub specializations: RwLock<HashMap<SourceTypeArray, JitFctId>>,
     pub analysis: Option<AnalysisData>,
@@ -109,7 +108,6 @@ impl Fct {
             is_constructor: ast.is_constructor,
             vtable_index: None,
             initialized: false,
-            impl_for: None,
             variadic_arguments: false,
             specializations: RwLock::new(HashMap::new()),
             analysis: None,

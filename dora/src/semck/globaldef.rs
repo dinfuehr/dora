@@ -313,7 +313,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 methods: Vec::new(),
                 instance_names: HashMap::new(),
                 static_names: HashMap::new(),
-                impls_for: HashMap::new(),
+                impl_for: HashMap::new(),
             };
             self.vm.impls.push(RwLock::new(ximpl));
         } else {

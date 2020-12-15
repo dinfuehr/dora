@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::error::msg::SemError;
 use crate::vm::{FileId, VM};
@@ -7,44 +7,69 @@ use dora_parser::lexer::position::Position;
 
 pub fn check(vm: &mut VM) {
     for ximpl in &vm.impls {
-        let ximpl = ximpl.read();
-        let xtrait = vm.traits[ximpl.trait_id()].read();
+        let impl_for = {
+            let ximpl = ximpl.read();
+            let xtrait = vm.traits[ximpl.trait_id()].read();
 
-        let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
-        let mut defined = HashSet::new();
+            let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
+            let mut defined = HashSet::new();
+            let mut impl_for = HashMap::new();
 
-        for &method_id in &ximpl.methods {
-            let method = vm.fcts.idx(method_id);
-            let mut method = method.write();
+            for &method_id in &ximpl.methods {
+                let method = vm.fcts.idx(method_id);
+                let method = method.read();
 
-            if let Some(fid) = xtrait.find_method_with_replace(
-                vm,
-                method.is_static,
-                method.name,
-                Some(ximpl.ty.clone()),
-                method.params_without_self(),
-            ) {
-                method.impl_for = Some(fid);
-                defined.insert(fid);
+                if let Some(fid) = xtrait.find_method_with_replace(
+                    vm,
+                    method.is_static,
+                    method.name,
+                    Some(ximpl.ty.clone()),
+                    method.params_without_self(),
+                ) {
+                    defined.insert(fid);
+                    impl_for.insert(fid, method_id);
 
-                let trait_method = vm.fcts.idx(fid);
-                let trait_method = trait_method.read();
+                    let trait_method = vm.fcts.idx(fid);
+                    let trait_method = trait_method.read();
 
-                let return_type_valid = method.return_type
-                    == if trait_method.return_type.is_self() {
-                        ximpl.ty.clone()
+                    let return_type_valid = method.return_type
+                        == if trait_method.return_type.is_self() {
+                            ximpl.ty.clone()
+                        } else {
+                            trait_method.return_type.clone()
+                        };
+
+                    if !return_type_valid {
+                        let impl_return_type = method.return_type.name_fct(vm, &*method);
+                        let trait_return_type =
+                            trait_method.return_type.name_fct(vm, &*trait_method);
+
+                        let msg = SemError::ReturnTypeMismatch(impl_return_type, trait_return_type);
+                        vm.diag.lock().report(ximpl.file_id, method.pos, msg);
+                    }
+                } else {
+                    let args = method
+                        .params_without_self()
+                        .iter()
+                        .map(|a| a.name_fct(vm, &*method))
+                        .collect::<Vec<String>>();
+                    let mtd_name = vm.interner.str(method.name).to_string();
+                    let trait_name = vm.interner.str(xtrait.name).to_string();
+
+                    let msg = if method.is_static {
+                        SemError::StaticMethodNotInTrait(trait_name, mtd_name, args)
                     } else {
-                        trait_method.return_type.clone()
+                        SemError::MethodNotInTrait(trait_name, mtd_name, args)
                     };
 
-                if !return_type_valid {
-                    let impl_return_type = method.return_type.name_fct(vm, &*method);
-                    let trait_return_type = trait_method.return_type.name_fct(vm, &*trait_method);
-
-                    let msg = SemError::ReturnTypeMismatch(impl_return_type, trait_return_type);
-                    vm.diag.lock().report(ximpl.file_id, method.pos, msg);
+                    report(vm, ximpl.file_id, method.pos, msg);
                 }
-            } else {
+            }
+
+            for &method_id in all.difference(&defined) {
+                let method = vm.fcts.idx(method_id);
+                let method = method.read();
+
                 let args = method
                     .params_without_self()
                     .iter()
@@ -54,35 +79,18 @@ pub fn check(vm: &mut VM) {
                 let trait_name = vm.interner.str(xtrait.name).to_string();
 
                 let msg = if method.is_static {
-                    SemError::StaticMethodNotInTrait(trait_name, mtd_name, args)
+                    SemError::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
                 } else {
-                    SemError::MethodNotInTrait(trait_name, mtd_name, args)
+                    SemError::MethodMissingFromTrait(trait_name, mtd_name, args)
                 };
 
-                report(vm, ximpl.file_id, method.pos, msg);
+                report(vm, ximpl.file_id, ximpl.pos, msg);
             }
-        }
 
-        for &method_id in all.difference(&defined) {
-            let method = vm.fcts.idx(method_id);
-            let method = method.read();
+            impl_for
+        };
 
-            let args = method
-                .params_without_self()
-                .iter()
-                .map(|a| a.name_fct(vm, &*method))
-                .collect::<Vec<String>>();
-            let mtd_name = vm.interner.str(method.name).to_string();
-            let trait_name = vm.interner.str(xtrait.name).to_string();
-
-            let msg = if method.is_static {
-                SemError::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
-            } else {
-                SemError::MethodMissingFromTrait(trait_name, mtd_name, args)
-            };
-
-            report(vm, ximpl.file_id, ximpl.pos, msg);
-        }
+        ximpl.write().impl_for = impl_for;
     }
 }
 
