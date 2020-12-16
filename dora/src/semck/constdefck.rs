@@ -1,4 +1,4 @@
-use crate::semck::{self, TypeParamContext};
+use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{ConstId, FileId, NamespaceId, VM};
@@ -47,6 +47,7 @@ impl<'x> ConstCheck<'x> {
             self.file_id,
             &self.ast.data_type,
             TypeParamContext::None,
+            AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
 

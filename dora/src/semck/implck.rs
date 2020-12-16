@@ -70,6 +70,12 @@ pub fn check(vm: &mut VM) {
                 let method = vm.fcts.idx(method_id);
                 let method = method.read();
 
+                if method.has_body() {
+                    // method has a default implementation, use that one
+                    impl_for.insert(method_id, method_id);
+                    continue;
+                }
+
                 let args = method
                     .params_without_self()
                     .iter()
@@ -189,5 +195,15 @@ mod tests {
             pos(9, 17),
             SemError::ReturnTypeMismatch("Int32".into(), "Bool".into()),
         );
+    }
+
+    #[test]
+    fn impl_method_with_default_body() {
+        ok("
+            trait Foo {
+                fun foo(): Int32 { 1 }
+            }
+            class Bar {}
+            impl Foo for Bar {}");
     }
 }

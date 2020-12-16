@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::semck::{self, TypeParamContext};
+use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{self, Fct, FctId, FctParent, TypeParamId, VM};
@@ -104,6 +104,7 @@ pub fn check(vm: &VM) {
                             fct.file_id,
                             bound,
                             TypeParamContext::Fct(&*fct),
+                            AllowSelf::No,
                         );
 
                         match ty {
@@ -150,16 +151,13 @@ pub fn check(vm: &VM) {
                 fct.file_id,
                 &p.data_type,
                 TypeParamContext::Fct(&*fct),
+                if fct.in_trait() {
+                    AllowSelf::Yes
+                } else {
+                    AllowSelf::No
+                },
             )
             .unwrap_or(SourceType::Error);
-
-            if ty == SourceType::This && !fct.in_trait() {
-                vm.diag.lock().report(
-                    fct.file_id,
-                    p.data_type.pos(),
-                    SemError::SelfTypeUnavailable,
-                );
-            }
 
             fct.param_types.push(ty);
 
@@ -175,14 +173,13 @@ pub fn check(vm: &VM) {
                 fct.file_id,
                 ret,
                 TypeParamContext::Fct(&*fct),
+                if fct.in_trait() {
+                    AllowSelf::Yes
+                } else {
+                    AllowSelf::No
+                },
             )
             .unwrap_or(SourceType::Error);
-
-            if ty == SourceType::This && !fct.in_trait() {
-                vm.diag
-                    .lock()
-                    .report(fct.file_id, ret.pos(), SemError::SelfTypeUnavailable);
-            }
 
             fct.return_type = ty;
         } else {

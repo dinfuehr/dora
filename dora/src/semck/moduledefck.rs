@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::error::msg::SemError;
-use crate::semck;
+use crate::semck::{self, AllowSelf};
 use crate::sym::NestedSymTable;
 use crate::ty::{SourceType, SourceTypeArray};
 
@@ -77,6 +77,7 @@ impl<'x> ModuleCheck<'x> {
             self.file_id.into(),
             &f.data_type,
             TypeParamContext::None,
+            AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
         self.add_field(f.pos, f.name, ty, f.reassignable);
@@ -151,6 +152,7 @@ impl<'x> ModuleCheck<'x> {
             self.file_id,
             &parent_class.parent_ty,
             TypeParamContext::None,
+            AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck::extensiondefck::check_for_unconstrained_type_params;
-use crate::semck::{self, TypeParamContext};
+use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctId, FctParent, FileId, ImplId, NamespaceId, VM};
@@ -64,6 +64,7 @@ impl<'x> ImplCheck<'x> {
             self.file_id.into(),
             ast_trait_type,
             TypeParamContext::Impl(&*ximpl),
+            AllowSelf::No,
         ) {
             match trait_ty {
                 SourceType::Trait(trait_id, _) => {
@@ -85,6 +86,7 @@ impl<'x> ImplCheck<'x> {
             self.file_id.into(),
             &self.ast.class_type,
             TypeParamContext::Impl(&*ximpl),
+            AllowSelf::No,
         ) {
             if class_ty.is_cls()
                 || class_ty.is_struct()
@@ -209,7 +211,7 @@ mod tests {
                 fun foo(): Int32;
             }
             class Bar {}
-            impl Foo for Bar { fun foo(): Int32;}",
+            impl Foo for Bar { fun foo(): Int32; }",
             pos(6, 32),
             SemError::MissingFctBody,
         );

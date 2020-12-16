@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::semck::{self, TypeParamContext};
+use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
@@ -79,12 +79,13 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_field(&mut self, f: &ast::Field) {
-        let ty = semck::read_type(
+        let ty = read_type(
             self.vm,
             &self.sym,
             self.file_id.into(),
             &f.data_type,
             TypeParamContext::Class(self.cls_id),
+            AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
         self.add_field(f.pos, f.name, ty, f.reassignable);
@@ -172,12 +173,13 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
-        let parent_ty = semck::read_type(
+        let parent_ty = read_type(
             self.vm,
             &self.sym,
             self.file_id,
             &parent_class.parent_ty,
             TypeParamContext::Class(self.cls_id),
+            AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
 

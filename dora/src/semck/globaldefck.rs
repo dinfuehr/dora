@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::semck::{self, TypeParamContext};
+use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{Fct, FctParent, FileId, GlobalId, NamespaceId, VM};
@@ -49,6 +49,7 @@ impl<'a> GlobalDefCheck<'a> {
             self.file_id,
             &self.ast.data_type,
             TypeParamContext::None,
+            AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
 

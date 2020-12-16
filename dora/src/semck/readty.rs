@@ -25,18 +25,34 @@ pub enum TypeParamContext<'a> {
     None,
 }
 
+#[derive(Copy, Clone)]
+pub enum AllowSelf {
+    Yes,
+    No,
+}
+
 pub fn read_type(
     vm: &VM,
     table: &NestedSymTable,
     file_id: FileId,
     t: &Type,
     ctxt: TypeParamContext,
+    allow_self: AllowSelf,
 ) -> Option<SourceType> {
     match *t {
-        Type::This(_) => Some(SourceType::This),
-        Type::Basic(ref basic) => read_type_basic(vm, table, file_id, basic, ctxt),
-        Type::Tuple(ref tuple) => read_type_tuple(vm, table, file_id, tuple, ctxt),
-        Type::Lambda(ref lambda) => read_type_lambda(vm, table, file_id, lambda, ctxt),
+        Type::This(ref node) => match allow_self {
+            AllowSelf::Yes => Some(SourceType::This),
+            AllowSelf::No => {
+                vm.diag
+                    .lock()
+                    .report(file_id, node.pos, SemError::SelfTypeUnavailable);
+
+                None
+            }
+        },
+        Type::Basic(ref basic) => read_type_basic(vm, table, file_id, basic, ctxt, allow_self),
+        Type::Tuple(ref tuple) => read_type_tuple(vm, table, file_id, tuple, ctxt, allow_self),
+        Type::Lambda(ref lambda) => read_type_lambda(vm, table, file_id, lambda, ctxt, allow_self),
     }
 }
 
@@ -46,6 +62,7 @@ fn read_type_basic(
     file_id: FileId,
     basic: &TypeBasicType,
     ctxt: TypeParamContext,
+    allow_self: AllowSelf,
 ) -> Option<SourceType> {
     let sym = read_type_path(vm, table, file_id, basic);
 
@@ -68,7 +85,7 @@ fn read_type_basic(
     let sym = sym.unwrap();
 
     match sym {
-        Sym::Class(cls_id) => read_type_class(vm, table, file_id, basic, cls_id, ctxt),
+        Sym::Class(cls_id) => read_type_class(vm, table, file_id, basic, cls_id, ctxt, allow_self),
 
         Sym::Trait(trait_id) => {
             if !trait_accessible_from(vm, trait_id, table.namespace_id()) {
@@ -90,9 +107,11 @@ fn read_type_basic(
             Some(SourceType::Trait(trait_id, list_id))
         }
 
-        Sym::Struct(struct_id) => read_type_struct(vm, table, file_id, basic, struct_id, ctxt),
+        Sym::Struct(struct_id) => {
+            read_type_struct(vm, table, file_id, basic, struct_id, ctxt, allow_self)
+        }
 
-        Sym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id, ctxt),
+        Sym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id, ctxt, allow_self),
 
         Sym::TypeParam(type_param_id) => {
             if basic.params.len() > 0 {
@@ -159,6 +178,7 @@ fn read_type_enum(
     basic: &TypeBasicType,
     enum_id: EnumId,
     ctxt: TypeParamContext,
+    allow_self: AllowSelf,
 ) -> Option<SourceType> {
     if !enum_accessible_from(vm, enum_id, table.namespace_id()) {
         let xenum = vm.enums[enum_id].read();
@@ -169,7 +189,7 @@ fn read_type_enum(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param, ctxt);
+        let param = read_type(vm, table, file_id, param, ctxt, allow_self);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -204,6 +224,7 @@ fn read_type_struct(
     basic: &TypeBasicType,
     struct_id: StructId,
     ctxt: TypeParamContext,
+    allow_self: AllowSelf,
 ) -> Option<SourceType> {
     if !struct_accessible_from(vm, struct_id, table.namespace_id()) {
         let xstruct = vm.structs.idx(struct_id);
@@ -215,7 +236,7 @@ fn read_type_struct(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param, ctxt);
+        let param = read_type(vm, table, file_id, param, ctxt, allow_self);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -483,6 +504,7 @@ fn read_type_class(
     basic: &TypeBasicType,
     cls_id: ClassId,
     ctxt: TypeParamContext,
+    allow_self: AllowSelf,
 ) -> Option<SourceType> {
     if !class_accessible_from(vm, cls_id, table.namespace_id()) {
         let cls = vm.classes.idx(cls_id);
@@ -494,7 +516,7 @@ fn read_type_class(
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param, ctxt);
+        let param = read_type(vm, table, file_id, param, ctxt, allow_self);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -526,6 +548,7 @@ fn read_type_tuple(
     file_id: FileId,
     tuple: &TypeTupleType,
     ctxt: TypeParamContext,
+    allow_self: AllowSelf,
 ) -> Option<SourceType> {
     if tuple.subtypes.len() == 0 {
         Some(SourceType::Unit)
@@ -533,7 +556,7 @@ fn read_type_tuple(
         let mut subtypes = Vec::new();
 
         for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type(vm, table, file_id, subtype, ctxt) {
+            if let Some(ty) = read_type(vm, table, file_id, subtype, ctxt, allow_self) {
                 subtypes.push(ty);
             } else {
                 return None;
@@ -551,18 +574,19 @@ fn read_type_lambda(
     file_id: FileId,
     lambda: &TypeLambdaType,
     ctxt: TypeParamContext,
+    allow_self: AllowSelf,
 ) -> Option<SourceType> {
     let mut params = vec![];
 
     for param in &lambda.params {
-        if let Some(p) = read_type(vm, table, file_id, param, ctxt) {
+        if let Some(p) = read_type(vm, table, file_id, param, ctxt, allow_self) {
             params.push(p);
         } else {
             return None;
         }
     }
 
-    let ret = if let Some(ret) = read_type(vm, table, file_id, &lambda.ret, ctxt) {
+    let ret = if let Some(ret) = read_type(vm, table, file_id, &lambda.ret, ctxt, allow_self) {
         ret
     } else {
         return None;

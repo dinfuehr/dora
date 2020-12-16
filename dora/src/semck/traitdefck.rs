@@ -108,6 +108,18 @@ mod tests {
     #[test]
     fn trait_method_with_body() {
         ok("trait Foo { fun foo(): Int32 { return 1; } }");
+
+        err(
+            "trait Foo { fun foo() { self.bar(); } }",
+            pos(1, 33),
+            SemError::UnknownMethod("Self".into(), "bar".into(), Vec::new()),
+        );
+
+        err(
+            "trait Foo { fun foo(): Int32 { return false; } }",
+            pos(1, 32),
+            SemError::ReturnType("Int32".into(), "Bool".into()),
+        );
     }
 
     #[test]

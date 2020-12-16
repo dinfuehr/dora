@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::semck::{self, TypeParamContext};
+use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{FileId, NamespaceId, StructFieldData, StructFieldId, StructId, TypeParamId, VM};
@@ -85,6 +85,7 @@ impl<'x> StructCheck<'x> {
                         self.file_id,
                         bound,
                         TypeParamContext::Struct(self.struct_id),
+                        AllowSelf::No,
                     );
 
                     match ty {
@@ -131,6 +132,7 @@ impl<'x> StructCheck<'x> {
             self.file_id,
             &f.data_type,
             TypeParamContext::Struct(self.struct_id),
+            AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
 

@@ -9,7 +9,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub use globaldef::should_file_be_parsed;
-pub use readty::{read_type, TypeParamContext};
+pub use readty::{read_type, AllowSelf, TypeParamContext};
 
 mod abstractck;
 mod clsdefck;
@@ -244,7 +244,14 @@ fn check_type_params(
             params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
 
             for bound in &type_param.bounds {
-                let ty = read_type(vm, symtable, file_id, bound, TypeParamContext::None);
+                let ty = read_type(
+                    vm,
+                    symtable,
+                    file_id,
+                    bound,
+                    TypeParamContext::None,
+                    AllowSelf::No,
+                );
 
                 match ty {
                     Some(SourceType::Trait(trait_id, _)) => {

@@ -7,7 +7,7 @@ use crate::error::msg::SemError;
 use crate::semck::fctbodyck::lookup::MethodLookup;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::semck::{always_returns, expr_always_returns, read_type};
+use crate::semck::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::semck::{report_sym_shadow, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
@@ -267,6 +267,7 @@ impl<'a> TypeCheck<'a> {
             self.fct.file_id,
             t,
             TypeParamContext::Fct(self.fct),
+            AllowSelf::No,
         )
         .unwrap_or(SourceType::Error)
     }
