@@ -29,7 +29,7 @@ use dora_parser::parser::NodeIdGenerator;
 pub use self::classes::{
     class_accessible_from, find_field_in_class, find_method_in_class, find_methods_in_class,
     Candidate, Class, ClassDef, ClassDefId, ClassId, Field, FieldDef, FieldId, TypeParam,
-    TypeParamId,
+    TypeParamDefinition, TypeParamId,
 };
 pub use self::consts::{const_accessible_from, ConstData, ConstId, ConstValue};
 pub use self::enums::{
@@ -401,8 +401,14 @@ impl VM {
         let cls = self.classes.idx(cls_id);
         let cls = cls.read();
 
-        let candidates =
-            find_methods_in_class(self, cls.ty(), &cls.type_params, function_name, is_static);
+        let candidates = find_methods_in_class(
+            self,
+            cls.ty(),
+            &cls.type_params,
+            None,
+            function_name,
+            is_static,
+        );
         if candidates.len() == 1 {
             Some(candidates[0].fct_id)
         } else {
@@ -430,6 +436,7 @@ impl VM {
             self,
             xstruct.ty(self),
             &xstruct.type_params,
+            None,
             function_name,
             is_static,
         );

@@ -10,7 +10,7 @@ use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, extension_matches, impl_matches, namespace_path, Candidate, ExtensionId,
-    FileId, ImplId, NamespaceId, SourceTypeArray, TypeParam, TypeParamId, VM,
+    FileId, ImplId, NamespaceId, SourceTypeArray, TypeParam, TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -36,6 +36,7 @@ pub struct StructData {
     pub primitive_ty: Option<SourceType>,
     pub namespace_id: NamespaceId,
     pub type_params: Vec<TypeParam>,
+    pub type_params2: TypeParamDefinition,
     pub is_pub: bool,
     pub internal: bool,
     pub internal_resolved: bool,
@@ -160,6 +161,7 @@ pub fn find_methods_in_struct(
     vm: &VM,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
+    type_param_defs2: Option<&TypeParamDefinition>,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
@@ -175,9 +177,13 @@ pub fn find_methods_in_struct(
     let xstruct = xstruct.read();
 
     for &extension_id in &xstruct.extensions {
-        if let Some(bindings) =
-            extension_matches(vm, object_type.clone(), type_param_defs, extension_id)
-        {
+        if let Some(bindings) = extension_matches(
+            vm,
+            object_type.clone(),
+            type_param_defs,
+            type_param_defs2,
+            extension_id,
+        ) {
             let extension = vm.extensions[extension_id].read();
 
             let table = if is_static {
@@ -199,7 +205,13 @@ pub fn find_methods_in_struct(
     let mut candidates = Vec::new();
 
     for &impl_id in &xstruct.impls {
-        if let Some(bindings) = impl_matches(vm, object_type.clone(), type_param_defs, impl_id) {
+        if let Some(bindings) = impl_matches(
+            vm,
+            object_type.clone(),
+            type_param_defs,
+            type_param_defs2,
+            impl_id,
+        ) {
             let ximpl = vm.impls[impl_id].read();
 
             let table = if is_static {

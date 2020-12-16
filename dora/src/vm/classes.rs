@@ -78,6 +78,7 @@ pub struct Class {
     pub extensions: Vec<ExtensionId>,
 
     pub type_params: Vec<TypeParam>,
+    pub type_params2: TypeParamDefinition,
 
     pub specializations: RwLock<HashMap<SourceTypeArray, ClassDefId>>,
 
@@ -303,6 +304,7 @@ pub fn find_methods_in_class(
     vm: &VM,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
+    type_param_defs2: Option<&TypeParamDefinition>,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
@@ -350,9 +352,13 @@ pub fn find_methods_in_class(
         let cls = cls.read();
 
         for &extension_id in &cls.extensions {
-            if let Some(bindings) =
-                extension_matches(vm, object_type.clone(), type_param_defs, extension_id)
-            {
+            if let Some(bindings) = extension_matches(
+                vm,
+                object_type.clone(),
+                type_param_defs,
+                type_param_defs2,
+                extension_id,
+            ) {
                 let extension = vm.extensions[extension_id].read();
 
                 let table = if is_static {
@@ -380,7 +386,13 @@ pub fn find_methods_in_class(
         let cls = cls.read();
 
         for &impl_id in &cls.impls {
-            if let Some(bindings) = impl_matches(vm, class_type.clone(), type_param_defs, impl_id) {
+            if let Some(bindings) = impl_matches(
+                vm,
+                class_type.clone(),
+                type_param_defs,
+                type_param_defs2,
+                impl_id,
+            ) {
                 let ximpl = vm.impls[impl_id].read();
 
                 let table = if is_static {
@@ -432,6 +444,64 @@ impl TypeParamId {
     pub fn to_usize(self) -> usize {
         self.0
     }
+}
+
+#[derive(Debug)]
+pub struct TypeParamDefinition {
+    pub names: Vec<Name>,
+    pub bounds: Vec<TypeParamBound>,
+}
+
+impl TypeParamDefinition {
+    pub fn new() -> TypeParamDefinition {
+        TypeParamDefinition {
+            names: Vec::new(),
+            bounds: Vec::new(),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.names.len()
+    }
+
+    pub fn add_bound(&mut self, type_param_id: TypeParamId, trait_id: TraitId) {
+        self.bounds.push(TypeParamBound {
+            type_param_id,
+            trait_id,
+        });
+    }
+
+    pub fn iter(&self) -> TypeParamIter {
+        TypeParamIter {
+            next: 0,
+            limit: self.len(),
+        }
+    }
+}
+
+pub struct TypeParamIter {
+    next: usize,
+    limit: usize,
+}
+
+impl Iterator for TypeParamIter {
+    type Item = TypeParamId;
+
+    fn next(&mut self) -> Option<TypeParamId> {
+        if self.next < self.limit {
+            let current = self.next;
+            self.next += 1;
+            Some(TypeParamId(current))
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct TypeParamBound {
+    pub type_param_id: TypeParamId,
+    pub trait_id: TraitId,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     accessible_from, namespace_path, ClassDefId, FctId, FileId, NamespaceId, TypeParam,
-    TypeParamId, VM,
+    TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -32,6 +32,7 @@ pub struct TraitData {
     pub pos: Position,
     pub name: Name,
     pub type_params: Vec<TypeParam>,
+    pub type_params2: TypeParamDefinition,
     pub methods: Vec<FctId>,
     pub instance_names: HashMap<Name, FctId>,
     pub static_names: HashMap<Name, FctId>,

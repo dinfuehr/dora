@@ -13,7 +13,7 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, extension_matches, impl_matches, namespace_path, Candidate, ClassDefId,
-    ExtensionId, FileId, ImplId, NamespaceId, TypeParam, TypeParamId, VM,
+    ExtensionId, FileId, ImplId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -43,6 +43,7 @@ pub struct EnumData {
     pub name: Name,
     pub is_pub: bool,
     pub type_params: Vec<TypeParam>,
+    pub type_params2: TypeParamDefinition,
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
     pub impls: Vec<ImplId>,
@@ -139,6 +140,7 @@ pub fn find_methods_in_enum(
     vm: &VM,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
+    type_param_defs2: Option<&TypeParamDefinition>,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
@@ -146,9 +148,13 @@ pub fn find_methods_in_enum(
     let xenum = vm.enums[enum_id].read();
 
     for &extension_id in &xenum.extensions {
-        if let Some(bindings) =
-            extension_matches(vm, object_type.clone(), type_param_defs, extension_id)
-        {
+        if let Some(bindings) = extension_matches(
+            vm,
+            object_type.clone(),
+            type_param_defs,
+            type_param_defs2,
+            extension_id,
+        ) {
             let extension = vm.extensions[extension_id].read();
 
             let table = if is_static {
@@ -170,7 +176,13 @@ pub fn find_methods_in_enum(
     let mut candidates = Vec::new();
 
     for &impl_id in &xenum.impls {
-        if let Some(bindings) = impl_matches(vm, object_type.clone(), type_param_defs, impl_id) {
+        if let Some(bindings) = impl_matches(
+            vm,
+            object_type.clone(),
+            type_param_defs,
+            type_param_defs2,
+            impl_id,
+        ) {
             let ximpl = vm.impls[impl_id].read();
 
             let table = if is_static {

@@ -8,7 +8,7 @@ use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
     impl_matches, Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ImplId, ModuleId, StructId,
-    TraitId, TupleId, TypeParam, TypeParamId,
+    TraitId, TupleId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -642,7 +642,15 @@ pub fn implements_trait(
 
         SourceType::Enum(enum_id, _) => {
             let xenum = vm.enums[enum_id].read();
-            check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls).is_some()
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                None,
+                trait_id,
+                &xenum.impls,
+            )
+            .is_some()
         }
 
         SourceType::Bool
@@ -666,6 +674,7 @@ pub fn implements_trait(
                 vm,
                 check_ty,
                 check_type_param_defs,
+                None,
                 trait_id,
                 &xstruct.impls,
             )
@@ -680,6 +689,7 @@ pub fn implements_trait(
                 vm,
                 check_ty,
                 check_type_param_defs,
+                None,
                 trait_id,
                 &xstruct.impls,
             )
@@ -699,6 +709,7 @@ pub fn implements_trait(
                 vm,
                 check_ty.clone(),
                 check_type_param_defs,
+                None,
                 trait_id,
                 &cls.impls,
             )
@@ -729,7 +740,14 @@ pub fn find_impl(
 
         SourceType::Enum(enum_id, _) => {
             let xenum = vm.enums[enum_id].read();
-            check_impls(vm, check_ty, check_type_param_defs, trait_id, &xenum.impls)
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                None,
+                trait_id,
+                &xenum.impls,
+            )
         }
 
         SourceType::Bool
@@ -749,6 +767,7 @@ pub fn find_impl(
                 vm,
                 check_ty,
                 check_type_param_defs,
+                None,
                 trait_id,
                 &xstruct.impls,
             )
@@ -762,6 +781,7 @@ pub fn find_impl(
                 vm,
                 check_ty,
                 check_type_param_defs,
+                None,
                 trait_id,
                 &xstruct.impls,
             )
@@ -776,6 +796,7 @@ pub fn find_impl(
                 vm,
                 check_ty.clone(),
                 check_type_param_defs,
+                None,
                 trait_id,
                 &cls.impls,
             )
@@ -790,6 +811,7 @@ pub fn check_impls(
     vm: &VM,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
+    check_type_param_defs2: Option<&TypeParamDefinition>,
     trait_id: TraitId,
     impls: &[ImplId],
 ) -> Option<ImplId> {
@@ -801,7 +823,15 @@ pub fn check_impls(
             continue;
         }
 
-        if impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
+        if impl_matches(
+            vm,
+            check_ty.clone(),
+            check_type_param_defs,
+            check_type_param_defs2,
+            impl_id,
+        )
+        .is_some()
+        {
             return Some(impl_id);
         }
     }

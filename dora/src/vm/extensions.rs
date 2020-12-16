@@ -57,12 +57,13 @@ impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {
 
 mod matching {
     use crate::ty::{implements_trait, SourceType, SourceTypeArray};
-    use crate::vm::{ExtensionId, TypeParam, VM};
+    use crate::vm::{ExtensionId, TypeParam, TypeParamDefinition, VM};
 
     pub fn extension_matches(
         vm: &VM,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
+        check_type_param_defs2: Option<&TypeParamDefinition>,
         extension_id: ExtensionId,
     ) -> Option<SourceTypeArray> {
         let extension = vm.extensions[extension_id].read();
@@ -70,6 +71,7 @@ mod matching {
             vm,
             check_ty,
             check_type_param_defs,
+            check_type_param_defs2,
             extension.ty.clone(),
             &extension.type_params,
         )
@@ -79,6 +81,7 @@ mod matching {
         vm: &VM,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
+        check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
     ) -> Option<SourceTypeArray> {
@@ -88,8 +91,10 @@ mod matching {
             vm,
             check_ty,
             check_type_param_defs,
+            check_type_param_defs2,
             ext_ty.clone(),
             ext_type_param_defs,
+            None,
             &mut bindings,
         );
 
@@ -106,8 +111,10 @@ mod matching {
         vm: &VM,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
+        check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs2: Option<&TypeParamDefinition>,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         if let SourceType::TypeParam(tp_id) = ext_ty {
@@ -118,8 +125,10 @@ mod matching {
                     vm,
                     check_ty,
                     check_type_param_defs,
+                    check_type_param_defs2,
                     binding,
                     ext_type_param_defs,
+                    ext_type_param_defs2,
                     bindings,
                 )
             } else {
@@ -128,16 +137,20 @@ mod matching {
                         vm,
                         check_ty.clone(),
                         check_type_param_defs,
+                        check_type_param_defs2,
                         ext_ty,
                         ext_type_param_defs,
+                        ext_type_param_defs2,
                     )
                 } else {
                     concrete_type_fulfills_bounds(
                         vm,
                         check_ty.clone(),
                         check_type_param_defs,
+                        check_type_param_defs2,
                         ext_ty,
                         ext_type_param_defs,
+                        ext_type_param_defs2,
                     )
                 };
 
@@ -153,8 +166,10 @@ mod matching {
                     vm,
                     check_ty,
                     check_type_param_defs,
+                    check_type_param_defs2,
                     ext_ty,
                     ext_type_param_defs,
+                    ext_type_param_defs2,
                     bindings,
                 )
             }
@@ -165,8 +180,10 @@ mod matching {
         _vm: &VM,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
+        _check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
+        _ext_type_param_defs2: Option<&TypeParamDefinition>,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
         let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
@@ -187,8 +204,10 @@ mod matching {
         vm: &VM,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
+        _check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
+        _ext_type_param_defs2: Option<&TypeParamDefinition>,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
         let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
@@ -206,8 +225,10 @@ mod matching {
         vm: &VM,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
+        check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs2: Option<&TypeParamDefinition>,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         match check_ty {
@@ -245,8 +266,10 @@ mod matching {
                         vm,
                         check_subty.clone(),
                         check_type_param_defs,
+                        None,
                         ext_subty.clone(),
                         ext_type_param_defs,
+                        None,
                         bindings,
                     ) {
                         return false;
@@ -271,8 +294,10 @@ mod matching {
                     vm,
                     check_ty,
                     check_type_param_defs,
+                    check_type_param_defs2,
                     ext_ty,
                     ext_type_param_defs,
+                    ext_type_param_defs2,
                     bindings,
                 )
             }
@@ -292,8 +317,10 @@ mod matching {
                     vm,
                     check_ty,
                     check_type_param_defs,
+                    check_type_param_defs2,
                     ext_ty,
                     ext_type_param_defs,
+                    ext_type_param_defs2,
                     bindings,
                 )
             }
@@ -313,8 +340,10 @@ mod matching {
                     vm,
                     check_ty,
                     check_type_param_defs,
+                    check_type_param_defs2,
                     ext_ty,
                     ext_type_param_defs,
+                    ext_type_param_defs2,
                     bindings,
                 )
             }
@@ -329,8 +358,10 @@ mod matching {
         vm: &VM,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
+        check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs2: Option<&TypeParamDefinition>,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         let check_tps = check_ty.type_params(vm);
@@ -343,8 +374,10 @@ mod matching {
                 vm,
                 check_tp,
                 check_type_param_defs,
+                check_type_param_defs2,
                 ext_tp,
                 ext_type_param_defs,
+                ext_type_param_defs2,
                 bindings,
             ) {
                 return false;

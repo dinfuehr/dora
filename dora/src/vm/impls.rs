@@ -10,7 +10,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
-    extension_matches_ty, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
+    extension_matches_ty, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamDefinition,
+    TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -60,6 +61,7 @@ pub fn impl_matches(
     vm: &VM,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
+    check_type_param_defs2: Option<&TypeParamDefinition>,
     impl_id: ImplId,
 ) -> Option<SourceTypeArray> {
     let ximpl = vm.impls[impl_id].read();
@@ -67,6 +69,7 @@ pub fn impl_matches(
         vm,
         check_ty,
         check_type_param_defs,
+        check_type_param_defs2,
         ximpl.ty.clone(),
         &ximpl.type_params,
     )

@@ -17,7 +17,7 @@ use crate::vm::{
     find_methods_in_struct, global_accessible_from, namespace_accessible_from,
     struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
     FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId,
-    TypeParam, TypeParamId, Var, VarId, VM,
+    TypeParam, TypeParamDefinition, TypeParamId, Var, VarId, VM,
 };
 
 use dora_parser::ast;
@@ -1039,6 +1039,7 @@ impl<'a> TypeCheck<'a> {
             self.vm,
             object_type.clone(),
             &self.fct.type_params,
+            None,
             is_static,
             name,
             args,
@@ -1096,6 +1097,7 @@ impl<'a> TypeCheck<'a> {
                 self.vm,
                 ty.clone(),
                 &self.fct.type_params,
+                None,
                 false,
                 name,
                 &call_types,
@@ -1194,6 +1196,7 @@ impl<'a> TypeCheck<'a> {
             self.vm,
             lhs_type.clone(),
             &self.fct.type_params,
+            None,
             false,
             name,
             &call_types,
@@ -3380,17 +3383,39 @@ fn lookup_method(
     vm: &VM,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
+    type_param_defs2: Option<&TypeParamDefinition>,
     is_static: bool,
     name: Name,
     args: &[SourceType],
     fct_type_params: &SourceTypeArray,
 ) -> Option<MethodDescriptor> {
     let candidates = if object_type.is_enum() {
-        find_methods_in_enum(vm, object_type, type_param_defs, name, is_static)
+        find_methods_in_enum(
+            vm,
+            object_type,
+            type_param_defs,
+            type_param_defs2,
+            name,
+            is_static,
+        )
     } else if object_type.is_struct() || object_type.is_primitive() {
-        find_methods_in_struct(vm, object_type, type_param_defs, name, is_static)
+        find_methods_in_struct(
+            vm,
+            object_type,
+            type_param_defs,
+            type_param_defs2,
+            name,
+            is_static,
+        )
     } else if object_type.cls_id().is_some() {
-        find_methods_in_class(vm, object_type, type_param_defs, name, is_static)
+        find_methods_in_class(
+            vm,
+            object_type,
+            type_param_defs,
+            type_param_defs2,
+            name,
+            is_static,
+        )
     } else {
         Vec::new()
     };

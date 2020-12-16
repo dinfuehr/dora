@@ -5,7 +5,7 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_struct, ClassId, Fct, FctId,
-    FileId, TraitId, TypeParam, VM,
+    FileId, TraitId, TypeParam, TypeParamDefinition, VM,
 };
 
 use crate::vm::find_methods_in_module;
@@ -32,6 +32,7 @@ pub struct MethodLookup<'a> {
     container_tps: Option<&'a SourceTypeArray>,
     fct_tps: Option<&'a SourceTypeArray>,
     type_param_defs: Option<&'a [TypeParam]>,
+    type_param_defs2: Option<&'a TypeParamDefinition>,
     ret: Option<SourceType>,
     pos: Option<Position>,
     report_errors: bool,
@@ -59,6 +60,7 @@ impl<'a> MethodLookup<'a> {
             pos: None,
             report_errors: true,
             type_param_defs: None,
+            type_param_defs2: None,
 
             found_fct_id: None,
             found_class_type: None,
@@ -126,6 +128,11 @@ impl<'a> MethodLookup<'a> {
 
     pub fn type_param_defs(mut self, tp_defs: &'a [TypeParam]) -> MethodLookup<'a> {
         self.type_param_defs = Some(tp_defs);
+        self
+    }
+
+    pub fn type_param_defs2(mut self, tp_defs: &'a TypeParamDefinition) -> MethodLookup<'a> {
+        self.type_param_defs2 = Some(tp_defs);
         self
     }
 
@@ -335,6 +342,7 @@ impl<'a> MethodLookup<'a> {
                 self.vm,
                 object_type,
                 self.type_param_defs.unwrap(),
+                self.type_param_defs2,
                 name,
                 is_static,
             )
@@ -343,6 +351,7 @@ impl<'a> MethodLookup<'a> {
                 self.vm,
                 object_type,
                 self.type_param_defs.unwrap(),
+                self.type_param_defs2,
                 name,
                 is_static,
             )
@@ -351,6 +360,7 @@ impl<'a> MethodLookup<'a> {
                 self.vm,
                 object_type,
                 self.type_param_defs.unwrap(),
+                self.type_param_defs2,
                 name,
                 is_static,
             )

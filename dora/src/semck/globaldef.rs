@@ -12,7 +12,8 @@ use crate::ty::SourceType;
 use crate::vm::{
     self, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData, ExtensionId,
     Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData, Module, ModuleId,
-    NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId, TypeParam, VM,
+    NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId, TypeParam,
+    TypeParamDefinition, VM,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -238,6 +239,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             pos: node.pos,
             name: node.name,
             type_params: Vec::new(),
+            type_params2: TypeParamDefinition::new(),
             methods: Vec::new(),
             instance_names: HashMap::new(),
             static_names: HashMap::new(),
@@ -438,6 +440,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 extensions: Vec::new(),
 
                 type_params: Vec::new(),
+                type_params2: TypeParamDefinition::new(),
                 specializations: RwLock::new(HashMap::new()),
 
                 is_array: false,
@@ -478,6 +481,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 internal: node.internal,
                 internal_resolved: false,
                 type_params: Vec::new(),
+                type_params2: TypeParamDefinition::new(),
                 fields: Vec::new(),
                 field_names: HashMap::new(),
                 specializations: RwLock::new(HashMap::new()),
@@ -522,6 +526,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             pos: node.pos,
             name: node.name,
             type_params: Vec::new(),
+            type_params2: TypeParamDefinition::new(),
             is_pub: node.is_pub,
             variants: Vec::new(),
             name_to_value: HashMap::new(),
