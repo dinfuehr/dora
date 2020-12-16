@@ -140,29 +140,7 @@ impl<'a> TypeCheck<'a> {
             return;
         }
 
-        let self_ty = match self.fct.parent {
-            FctParent::Class(cls_id) => {
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-
-                cls.ty()
-            }
-
-            FctParent::Impl(impl_id) => {
-                let ximpl = self.vm.impls[impl_id].read();
-                ximpl.ty.clone()
-            }
-
-            FctParent::Extension(extension_id) => {
-                let extension = self.vm.extensions[extension_id].read();
-                extension.ty.clone()
-            }
-
-            FctParent::Trait(_) => SourceType::This,
-
-            FctParent::None | FctParent::Module(_) => unreachable!(),
-        };
-
+        let self_ty = self.fct.param_types[0].clone();
         self.self_ty = Some(self_ty.clone());
 
         let ast_id = self.fct.ast.id;
