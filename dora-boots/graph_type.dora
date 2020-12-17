@@ -62,29 +62,29 @@ impl Stringable for Type {
 }
 
 enum TypeKind {
-    Unit, Bool, UInt8, Char, Int32, Int64, Float32, Float64, Ptr
+    Unit,
+    Bool,
+    UInt8,
+    Char,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
+    Ptr,
 }
 
-impl TypeKind {
+impl Stringable for TypeKind {
     fun toString(): String {
-        if self == TypeKind::Unit {
-            "Unit"
-        } else if self == TypeKind::Bool {
-            "Bool"
-        } else if self == TypeKind::UInt8 {
-            "UInt8"
-        } else if self == TypeKind::Int32 {
-            "Int32"
-        } else if self == TypeKind::Int64 {
-            "Int64"
-        } else if self == TypeKind::Float32 {
-            "Float32"
-        } else if self == TypeKind::Float64 {
-            "Float64"
-        } else if self == TypeKind::Ptr {
-            "Ptr"
-        } else {
-            unreachable[String]()
+        match self {
+            TypeKind::Unit => "Unit",
+            TypeKind::Bool => "Bool",
+            TypeKind::UInt8 => "UInt8",
+            TypeKind::Char => "Char",
+            TypeKind::Int32 => "Int32",
+            TypeKind::Int64 => "Int64",
+            TypeKind::Float32 => "Float32",
+            TypeKind::Float64 => "Float64",
+            TypeKind::Ptr => "Ptr",
         }
     }
 }
