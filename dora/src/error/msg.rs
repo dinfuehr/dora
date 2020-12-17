@@ -47,6 +47,7 @@ pub enum SemError {
     EnumExpected,
     EnumVariantExpected,
     MatchUncoveredVariant,
+    MatchUnreachablePattern,
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     WhileCondType(String),
@@ -272,7 +273,8 @@ impl SemError {
             SemError::VarAlreadyInPattern => "var is already used in pattern.".into(),
             SemError::EnumExpected => format!("enum expected."),
             SemError::EnumVariantExpected => format!("enum variant expected."),
-            SemError::MatchUncoveredVariant => format!("not all variants are covered."),
+            SemError::MatchUncoveredVariant => "not all variants are covered.".into(),
+            SemError::MatchUnreachablePattern => "not all variants are covered.".into(),
             SemError::VarNeedsTypeInfo(ref name) => format!(
                 "variable `{}` needs either type declaration or expression.",
                 name

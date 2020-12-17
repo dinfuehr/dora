@@ -1590,17 +1590,25 @@ impl<'a> Parser<'a> {
     fn parse_match_pattern(&mut self) -> Result<MatchPattern, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
-        let path = self.parse_path()?;
 
-        let params = if self.token.is(TokenKind::LParen) {
-            self.expect_token(TokenKind::LParen)?;
-            let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |this| {
-                this.parse_match_pattern_param()
-            })?;
-
-            Some(params)
+        let data = if self.token.is(TokenKind::Underscore) {
+            self.expect_token(TokenKind::Underscore)?;
+            MatchPatternData::Underscore
         } else {
-            None
+            let path = self.parse_path()?;
+
+            let params = if self.token.is(TokenKind::LParen) {
+                self.expect_token(TokenKind::LParen)?;
+                let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |this| {
+                    this.parse_match_pattern_param()
+                })?;
+
+                Some(params)
+            } else {
+                None
+            };
+
+            MatchPatternData::Ident(MatchPatternIdent { path, params })
         };
 
         let span = self.span_from(start);
@@ -1609,8 +1617,7 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             pos,
             span,
-            path,
-            params,
+            data,
         })
     }
 

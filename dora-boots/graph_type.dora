@@ -1,67 +1,4 @@
-let typeUnit: Type = Type(TypeKind::Unit);
-let typeBool: Type = Type(TypeKind::Bool);
-let typeUInt8: Type = Type(TypeKind::UInt8);
-let typeChar: Type = Type(TypeKind::Char);
-let typeInt32: Type = Type(TypeKind::Int32);
-let typeInt64: Type = Type(TypeKind::Int64);
-let typeFloat32: Type = Type(TypeKind::Float32);
-let typeFloat64: Type = Type(TypeKind::Float64);
-let typePtr: Type = Type(TypeKind::Ptr);
-
-
-class Type(let kind: TypeKind) {
-    fun isUnit(): Bool { return self.kind == TypeKind::Unit; }
-    fun isUInt8(): Bool { return self.kind == TypeKind::UInt8; }
-    fun isInt32(): Bool { return self.kind == TypeKind::Int32; }
-    fun isInt64(): Bool { return self.kind == TypeKind::Int64; }
-    fun isFloat32(): Bool { return self.kind == TypeKind::Float32; }
-    fun isFloat64(): Bool { return self.kind == TypeKind::Float64; }
-    fun isPtr(): Bool { return self.kind == TypeKind::Ptr; }
-
-    fun isAnyFloat(): Bool {
-        return self.kind == TypeKind::Float32 || self.kind == TypeKind::Float64;
-    }
-
-    @static fun unit(): Type { return typeUnit; }
-    @static fun bool(): Type { return typeBool; }
-    @static fun uint8(): Type { return typeUInt8; }
-    @static fun char(): Type { return typeChar; }
-    @static fun int32(): Type { return typeInt32; }
-    @static fun int64(): Type { return typeInt64; }
-    @static fun float32(): Type { return typeFloat32; }
-    @static fun float64(): Type { return typeFloat64; }
-    @static fun ptr(): Type { return typePtr; }
-
-    @static fun fromBytecodeType(ty: BytecodeType): Type {
-        if ty.isBool() {
-            Type::bool()
-        } else if ty.isUInt8() {
-            Type::uint8()
-        } else if ty.isChar() {
-            Type::char()
-        } else if ty.isInt32() {
-            Type::int32()
-        } else if ty.isInt64() {
-            Type::int64()
-        } else if ty.isFloat32() {
-            Type::float32()
-        } else if ty.isFloat64() {
-            Type::float64()
-        } else if ty.isPtr() {
-            Type::ptr()
-        } else {
-            unreachable[Type]()
-        }
-    }
-}
-
-impl Stringable for Type {
-    fun toString(): String {
-        self.kind.toString()
-    }
-}
-
-enum TypeKind {
+enum Type {
     Unit,
     Bool,
     UInt8,
@@ -73,18 +10,101 @@ enum TypeKind {
     Ptr,
 }
 
-impl Stringable for TypeKind {
+impl Type {
+    fun isUnit(): Bool {
+        match self {
+            Type::Unit => true,
+            _ => false,
+        }
+    }
+
+    fun isUInt8(): Bool {
+        match self {
+            Type::UInt8 => true,
+            _ => false,
+        }
+    }
+
+    fun isInt32(): Bool {
+        match self {
+            Type::Int32 => true,
+            _ => false,
+        }
+    }
+
+    fun isInt64(): Bool {
+        match self {
+            Type::Int64 => true,
+            _ => false,
+        }
+    }
+
+    fun isFloat32(): Bool {
+        match self {
+            Type::Float32 => true,
+            _ => false,
+        }
+    }
+
+    fun isFloat64(): Bool {
+        match self {
+            Type::Float64 => true,
+            _ => false,
+        }
+    }
+
+    fun isPtr(): Bool {
+        match self {
+            Type::Ptr => true,
+            _ => false,
+        }
+    }
+
+    @static fun unit(): Type { Type::Unit }
+    @static fun bool(): Type { Type::Bool }
+    @static fun uint8(): Type { Type::UInt8 }
+    @static fun char(): Type { Type::Char }
+    @static fun int32(): Type { Type::Int32 }
+    @static fun int64(): Type { Type::Int64 }
+    @static fun float32(): Type { Type::Float32 }
+    @static fun float64(): Type { Type::Float64 }
+    @static fun ptr(): Type { Type::Ptr }
+
+    @static fun fromBytecodeType(ty: BytecodeType): Type {
+        if ty.isBool() {
+            Type::Bool
+        } else if ty.isUInt8() {
+            Type::UInt8
+        } else if ty.isChar() {
+            Type::Char
+        } else if ty.isInt32() {
+            Type::Int32
+        } else if ty.isInt64() {
+            Type::Int64
+        } else if ty.isFloat32() {
+            Type::Float32
+        } else if ty.isFloat64() {
+            Type::Float64
+        } else if ty.isPtr() {
+            Type::Ptr
+        } else {
+            unreachable[Type]()
+        }
+    }
+}
+
+impl Stringable for Type {
     fun toString(): String {
         match self {
-            TypeKind::Unit => "Unit",
-            TypeKind::Bool => "Bool",
-            TypeKind::UInt8 => "UInt8",
-            TypeKind::Char => "Char",
-            TypeKind::Int32 => "Int32",
-            TypeKind::Int64 => "Int64",
-            TypeKind::Float32 => "Float32",
-            TypeKind::Float64 => "Float64",
-            TypeKind::Ptr => "Ptr",
+            Type::Unit => "Unit",
+            Type::Bool => "Bool",
+            Type::UInt8 => "UInt8",
+            Type::Char => "Char",
+            Type::Int32 => "Int32",
+            Type::Int64 => "Int64",
+            Type::Float32 => "Float32",
+            Type::Float64 => "Float64",
+            Type::Ptr => "Ptr",
         }
     }
 }

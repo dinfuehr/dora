@@ -765,70 +765,88 @@ impl<'a> AstBytecodeGen<'a> {
         let mut next_lbl = self.gen.create_label();
 
         for (idx, case) in node.cases.iter().enumerate() {
-            let variant_id: i32 = {
-                let ident_type = self.src.map_idents.get(case.pattern.id).unwrap();
+            match case.pattern.data {
+                MatchPatternData::Underscore => {
+                    self.gen.bind_label(next_lbl);
 
-                match ident_type {
-                    IdentType::EnumValue(_, _, variant_id) => (*variant_id).try_into().unwrap(),
-                    _ => unreachable!(),
+                    if let Some(dest) = dest {
+                        self.visit_expr(&case.value, DataDest::Reg(dest));
+                    } else {
+                        self.visit_expr(&case.value, DataDest::Effect);
+                    }
+
+                    self.gen.emit_jump(end_lbl);
                 }
-            };
 
-            self.gen.bind_label(next_lbl);
-            next_lbl = self.gen.create_label();
+                MatchPatternData::Ident(ref ident) => {
+                    let variant_id: i32 = {
+                        let ident_type = self.src.map_idents.get(case.pattern.id).unwrap();
 
-            if idx != node.cases.len() - 1 {
-                let tmp_reg = self.alloc_temp(BytecodeType::Int32);
-                let cmp_reg = self.alloc_temp(BytecodeType::Bool);
-                self.gen.emit_const_int32(tmp_reg, variant_id);
-                self.gen.emit_test_eq_int32(cmp_reg, variant_reg, tmp_reg);
-                self.gen.emit_jump_if_false(cmp_reg, next_lbl);
-                self.free_temp(tmp_reg);
-                self.free_temp(cmp_reg);
-            }
+                        match ident_type {
+                            IdentType::EnumValue(_, _, variant_id) => {
+                                (*variant_id).try_into().unwrap()
+                            }
+                            _ => unreachable!(),
+                        }
+                    };
 
-            self.push_scope();
+                    self.gen.bind_label(next_lbl);
+                    next_lbl = self.gen.create_label();
 
-            if let Some(ref params) = case.pattern.params {
-                for (subtype_idx, param) in params.iter().enumerate() {
-                    if let Some(_) = param.name {
-                        let idx = self.gen.add_const_enum_variant(
-                            enum_id,
-                            enum_ty.type_params(self.vm),
-                            variant_id as usize,
-                        );
+                    if idx != node.cases.len() - 1 {
+                        let tmp_reg = self.alloc_temp(BytecodeType::Int32);
+                        let cmp_reg = self.alloc_temp(BytecodeType::Bool);
+                        self.gen.emit_const_int32(tmp_reg, variant_id);
+                        self.gen.emit_test_eq_int32(cmp_reg, variant_reg, tmp_reg);
+                        self.gen.emit_jump_if_false(cmp_reg, next_lbl);
+                        self.free_temp(tmp_reg);
+                        self.free_temp(cmp_reg);
+                    }
 
-                        let var_id = *self.src.map_vars.get(param.id).unwrap();
+                    self.push_scope();
 
-                        let ty = self.var_ty(var_id);
+                    if let Some(ref params) = ident.params {
+                        for (subtype_idx, param) in params.iter().enumerate() {
+                            if let Some(_) = param.name {
+                                let idx = self.gen.add_const_enum_variant(
+                                    enum_id,
+                                    enum_ty.type_params(self.vm),
+                                    variant_id as usize,
+                                );
 
-                        if !ty.is_unit() {
-                            let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
-                            let var_reg = self.alloc_var(ty);
+                                let var_id = *self.src.map_vars.get(param.id).unwrap();
 
-                            self.var_registers.insert(var_id, var_reg);
+                                let ty = self.var_ty(var_id);
 
-                            self.gen.emit_load_enum_element(
-                                var_reg,
-                                expr_reg,
-                                idx,
-                                subtype_idx as u32,
-                                param.pos,
-                            );
+                                if !ty.is_unit() {
+                                    let ty: BytecodeType = BytecodeType::from_ty(self.vm, ty);
+                                    let var_reg = self.alloc_var(ty);
+
+                                    self.var_registers.insert(var_id, var_reg);
+
+                                    self.gen.emit_load_enum_element(
+                                        var_reg,
+                                        expr_reg,
+                                        idx,
+                                        subtype_idx as u32,
+                                        param.pos,
+                                    );
+                                }
+                            }
                         }
                     }
+
+                    if let Some(dest) = dest {
+                        self.visit_expr(&case.value, DataDest::Reg(dest));
+                    } else {
+                        self.visit_expr(&case.value, DataDest::Effect);
+                    }
+
+                    self.pop_scope();
+
+                    self.gen.emit_jump(end_lbl);
                 }
             }
-
-            if let Some(dest) = dest {
-                self.visit_expr(&case.value, DataDest::Reg(dest));
-            } else {
-                self.visit_expr(&case.value, DataDest::Effect);
-            }
-
-            self.pop_scope();
-
-            self.gen.emit_jump(end_lbl);
         }
 
         self.gen.bind_label(end_lbl);

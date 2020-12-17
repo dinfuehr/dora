@@ -1,0 +1,14 @@
+enum Foo { A, B, C }
+
+fun main() {
+    assert(is_a(Foo::A));
+    assert(!is_a(Foo::B));
+    assert(!is_a(Foo::C));
+}
+
+fun is_a(foo: Foo): Bool {
+    match foo {
+        Foo::A => true,
+        _ => false,
+    }
+}

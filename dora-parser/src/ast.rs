@@ -2235,7 +2235,17 @@ pub struct MatchPattern {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
+    pub data: MatchPatternData,
+}
 
+#[derive(Clone, Debug)]
+pub enum MatchPatternData {
+    Underscore,
+    Ident(MatchPatternIdent),
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchPatternIdent {
     pub path: Path,
     pub params: Option<Vec<MatchPatternParam>>,
 }

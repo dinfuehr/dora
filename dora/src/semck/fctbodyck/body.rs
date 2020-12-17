@@ -599,105 +599,139 @@ impl<'a> TypeCheck<'a> {
         let mut used_variants = FixedBitSet::with_capacity(enum_variants);
 
         for case in &node.cases {
-            let sym = self.read_path(&case.pattern.path);
+            match case.pattern.data {
+                ast::MatchPatternData::Underscore => {
+                    let mut negated_used_variants = used_variants.clone();
+                    negated_used_variants.toggle_range(..);
 
-            self.symtable.push_level();
-            let mut used_idents: HashSet<Name> = HashSet::new();
+                    if negated_used_variants.count_ones(..) == 0 {
+                        let msg = SemError::MatchUnreachablePattern;
+                        self.vm.diag.lock().report(self.file_id, case.pos, msg);
+                    }
 
-            match sym {
-                Ok(Sym::EnumValue(enum_id, variant_id)) => {
-                    if Some(enum_id) == expr_enum_id {
-                        used_variants.insert(variant_id);
-                        self.analysis.map_idents.insert(
-                            case.pattern.id,
-                            IdentType::EnumValue(enum_id, expr_type_params.clone(), variant_id),
-                        );
+                    used_variants.insert_range(..);
+                }
 
-                        let xenum = self.vm.enums[enum_id].read();
-                        let variant = &xenum.variants[variant_id];
+                ast::MatchPatternData::Ident(ref ident) => {
+                    let sym = self.read_path(&ident.path);
 
-                        let given_params = if let Some(ref params) = case.pattern.params {
-                            params.len()
-                        } else {
-                            0
-                        };
+                    self.symtable.push_level();
+                    let mut used_idents: HashSet<Name> = HashSet::new();
 
-                        if given_params == 0 && case.pattern.params.is_some() {
-                            let msg = SemError::MatchPatternNoParens;
-                            self.vm.diag.lock().report(self.file_id, case.pos, msg);
-                        }
-
-                        let expected_params = variant.types.len();
-
-                        if given_params != expected_params {
-                            let msg = SemError::MatchPatternWrongNumberOfParams(
-                                given_params,
-                                expected_params,
-                            );
-                            self.vm.diag.lock().report(self.file_id, case.pos, msg);
-                        }
-
-                        if let Some(ref params) = case.pattern.params {
-                            for (idx, param) in params.iter().enumerate() {
-                                if let Some(name) = param.name {
-                                    let ty = if idx < variant.types.len() {
-                                        variant.types[idx].clone()
-                                    } else {
-                                        SourceType::Error
-                                    };
-
-                                    let ty =
-                                        replace_type_param(self.vm, ty, &expr_type_params, None);
-
-                                    if used_idents.insert(name) == false {
-                                        let msg = SemError::VarAlreadyInPattern;
-                                        self.vm.diag.lock().report(self.file_id, param.pos, msg);
-                                    }
-
-                                    let var_ctxt = Var {
-                                        id: VarId(0),
-                                        name,
-                                        mutable: param.mutable,
-                                        ty,
-                                        node_id: param.id,
-                                    };
-
-                                    let var_id = self.add_local(var_ctxt, param.pos);
-                                    self.analysis.map_vars.insert(param.id, var_id);
+                    match sym {
+                        Ok(Sym::EnumValue(enum_id, variant_id)) => {
+                            if Some(enum_id) == expr_enum_id {
+                                if used_variants.contains(variant_id) {
+                                    let msg = SemError::MatchUnreachablePattern;
+                                    self.vm.diag.lock().report(self.file_id, case.pos, msg);
                                 }
+
+                                used_variants.insert(variant_id);
+                                self.analysis.map_idents.insert(
+                                    case.pattern.id,
+                                    IdentType::EnumValue(
+                                        enum_id,
+                                        expr_type_params.clone(),
+                                        variant_id,
+                                    ),
+                                );
+
+                                let xenum = self.vm.enums[enum_id].read();
+                                let variant = &xenum.variants[variant_id];
+
+                                let given_params = if let Some(ref params) = ident.params {
+                                    params.len()
+                                } else {
+                                    0
+                                };
+
+                                if given_params == 0 && ident.params.is_some() {
+                                    let msg = SemError::MatchPatternNoParens;
+                                    self.vm.diag.lock().report(self.file_id, case.pos, msg);
+                                }
+
+                                let expected_params = variant.types.len();
+
+                                if given_params != expected_params {
+                                    let msg = SemError::MatchPatternWrongNumberOfParams(
+                                        given_params,
+                                        expected_params,
+                                    );
+                                    self.vm.diag.lock().report(self.file_id, case.pos, msg);
+                                }
+
+                                if let Some(ref params) = ident.params {
+                                    for (idx, param) in params.iter().enumerate() {
+                                        if let Some(name) = param.name {
+                                            let ty = if idx < variant.types.len() {
+                                                variant.types[idx].clone()
+                                            } else {
+                                                SourceType::Error
+                                            };
+
+                                            let ty = replace_type_param(
+                                                self.vm,
+                                                ty,
+                                                &expr_type_params,
+                                                None,
+                                            );
+
+                                            if used_idents.insert(name) == false {
+                                                let msg = SemError::VarAlreadyInPattern;
+                                                self.vm.diag.lock().report(
+                                                    self.file_id,
+                                                    param.pos,
+                                                    msg,
+                                                );
+                                            }
+
+                                            let var_ctxt = Var {
+                                                id: VarId(0),
+                                                name,
+                                                mutable: param.mutable,
+                                                ty,
+                                                node_id: param.id,
+                                            };
+
+                                            let var_id = self.add_local(var_ctxt, param.pos);
+                                            self.analysis.map_vars.insert(param.id, var_id);
+                                        }
+                                    }
+                                }
+                            } else {
+                                let msg = SemError::EnumVariantExpected;
+                                self.vm.diag.lock().report(self.file_id, node.pos, msg);
                             }
                         }
-                    } else {
-                        let msg = SemError::EnumVariantExpected;
-                        self.vm.diag.lock().report(self.file_id, node.pos, msg);
+
+                        Ok(_) => {
+                            let msg = SemError::EnumVariantExpected;
+                            self.vm.diag.lock().report(self.file_id, node.pos, msg);
+                        }
+
+                        Err(()) => {}
                     }
+
+                    let case_ty = self.check_expr(&case.value, SourceType::Any);
+
+                    if result_type.is_error() {
+                        result_type = case_ty;
+                    } else if case_ty.is_error() {
+                        // ignore this case
+                    } else if !result_type.allows(self.vm, case_ty.clone()) {
+                        let result_type_name = result_type.name_fct(self.vm, self.fct);
+                        let case_ty_name = case_ty.name_fct(self.vm, self.fct);
+                        let msg =
+                            SemError::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
+                        self.vm
+                            .diag
+                            .lock()
+                            .report(self.file_id, case.value.pos(), msg);
+                    }
+
+                    self.symtable.pop_level();
                 }
-
-                Ok(_) => {
-                    let msg = SemError::EnumVariantExpected;
-                    self.vm.diag.lock().report(self.file_id, node.pos, msg);
-                }
-
-                Err(()) => {}
             }
-
-            let case_ty = self.check_expr(&case.value, SourceType::Any);
-
-            if result_type.is_error() {
-                result_type = case_ty;
-            } else if case_ty.is_error() {
-                // ignore this case
-            } else if !result_type.allows(self.vm, case_ty.clone()) {
-                let result_type_name = result_type.name_fct(self.vm, self.fct);
-                let case_ty_name = case_ty.name_fct(self.vm, self.fct);
-                let msg = SemError::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.file_id, case.value.pos(), msg);
-            }
-
-            self.symtable.pop_level();
         }
 
         used_variants.toggle_range(..);

@@ -1978,6 +1978,66 @@ fn test_enum_match_params() {
 }
 
 #[test]
+fn test_enum_match_missing_variants() {
+    err(
+        "
+        enum A { V1(Int32, Int32, Int32), V2, V3 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1(a, _, c) => a + c,
+                A::V2 => 1,
+            }
+        }
+    ",
+        pos(4, 13),
+        SemError::MatchUncoveredVariant,
+    );
+
+    err(
+        "
+        enum A { V1(Int32, Int32, Int32), V2, V3 }
+        fun f(x: A): Int32 {
+            match x {
+                A::V1(a, _, c) => a + c,
+                A::V2 => 1,
+                A::V3 => 2,
+                A::V2 => 4,
+            }
+        }
+    ",
+        pos(8, 17),
+        SemError::MatchUnreachablePattern,
+    );
+}
+
+#[test]
+fn test_enum_match_underscore() {
+    ok("
+        enum A { V1, V2, V3 }
+        fun f(x: A): Bool {
+            match x {
+                A::V1 => true,
+                _ => false,
+            }
+        }
+    ");
+
+    err(
+        "
+        enum A { V1, V2, V3 }
+        fun f(x: A): Bool {
+            match x {
+                _ => false,
+                A::V1 => true,
+            }
+        }
+    ",
+        pos(6, 17),
+        SemError::MatchUnreachablePattern,
+    );
+}
+
+#[test]
 fn test_import_enum_value() {
     ok("enum A { V1(Int32), V2 } import A::V1; fun f(): A { V1(1) }");
     ok("enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1[Int32](1) }");
