@@ -19,7 +19,7 @@ pub enum SemError {
     MultipleCandidatesForStaticMethodWithTypeParam,
     UnknownStaticMethodWithTypeParam,
     UnknownStaticMethod(String, String, Vec<String>),
-    UnknownCtor(String, Vec<String>),
+    UnknownCtor,
     MethodExists(String, Position),
     IncompatibleWithNil(String),
     IdentifierExists(String),
@@ -206,10 +206,7 @@ impl SemError {
                 let args = args.join(", ");
                 format!("no static method `{}::{}({})`.", cls, name, args)
             }
-            SemError::UnknownCtor(ref name, ref args) => {
-                let args = args.join(", ");
-                format!("no ctor with definition `{}({})`.", name, args)
-            }
+            SemError::UnknownCtor => "class does not have constructor.".into(),
             SemError::MethodExists(ref name, pos) => format!(
                 "method with name `{}` already exists at line {}.",
                 name, pos

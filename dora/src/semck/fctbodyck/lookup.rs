@@ -14,12 +14,10 @@ use dora_parser::lexer::position::Position;
 
 #[derive(Clone)]
 enum LookupKind {
-    Fct,
     Method(SourceType),
     Static(SourceType),
     Trait(TraitId),
     Callee(FctId),
-    Ctor(ClassId),
 }
 
 pub struct MethodLookup<'a> {
@@ -29,7 +27,6 @@ pub struct MethodLookup<'a> {
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [SourceType]>,
-    container_tps: Option<&'a SourceTypeArray>,
     fct_tps: Option<&'a SourceTypeArray>,
     type_param_defs: Option<&'a [TypeParam]>,
     type_param_defs2: Option<&'a TypeParamDefinition>,
@@ -54,7 +51,6 @@ impl<'a> MethodLookup<'a> {
             kind: None,
             name: None,
             args: None,
-            container_tps: None,
             fct_tps: None,
             ret: None,
             pos: None,
@@ -69,11 +65,6 @@ impl<'a> MethodLookup<'a> {
 
             found_multiple_functions: false,
         }
-    }
-
-    pub fn ctor(mut self, cls_id: ClassId) -> MethodLookup<'a> {
-        self.kind = Some(LookupKind::Ctor(cls_id));
-        self
     }
 
     pub fn callee(mut self, fct_id: FctId) -> MethodLookup<'a> {
@@ -101,11 +92,6 @@ impl<'a> MethodLookup<'a> {
         self
     }
 
-    pub fn fct(mut self) -> MethodLookup<'a> {
-        self.kind = Some(LookupKind::Fct);
-        self
-    }
-
     pub fn args(mut self, args: &'a [SourceType]) -> MethodLookup<'a> {
         self.args = Some(args);
         self
@@ -113,11 +99,6 @@ impl<'a> MethodLookup<'a> {
 
     pub fn pos(mut self, pos: Position) -> MethodLookup<'a> {
         self.pos = Some(pos);
-        self
-    }
-
-    pub fn container_type_params(mut self, cls_tps: &'a SourceTypeArray) -> MethodLookup<'a> {
-        self.container_tps = Some(cls_tps);
         self
     }
 
@@ -151,12 +132,6 @@ impl<'a> MethodLookup<'a> {
         let args = self.args.expect("args not set");
 
         let fct_id = match kind {
-            LookupKind::Fct => {
-                assert!(self.container_tps.is_none());
-                let name = self.name.expect("name not set");
-                self.find_fct(name)
-            }
-
             LookupKind::Callee(fct_id) => Some(fct_id),
 
             LookupKind::Method(ref obj) => {
@@ -173,11 +148,6 @@ impl<'a> MethodLookup<'a> {
                 let name = self.name.expect("name not set");
                 self.find_method(obj.clone(), name, true)
             }
-
-            LookupKind::Ctor(cls_id) => {
-                assert!(self.container_tps.is_some());
-                self.find_ctor(cls_id)
-            }
         };
 
         self.found_fct_id = fct_id;
@@ -185,14 +155,7 @@ impl<'a> MethodLookup<'a> {
         let fct_id = if let Some(fct_id) = fct_id {
             fct_id
         } else if self.report_errors {
-            let name = match kind {
-                LookupKind::Ctor(cls_id) => {
-                    let cls = self.vm.classes.idx(cls_id);
-                    let cls = cls.read();
-                    cls.name
-                }
-                _ => self.name.expect("name not set"),
-            };
+            let name = self.name.expect("name not set");
 
             let name = self.vm.interner.str(name).to_string();
             let param_names = args
@@ -201,7 +164,6 @@ impl<'a> MethodLookup<'a> {
                 .collect::<Vec<String>>();
 
             let msg = match kind {
-                LookupKind::Fct => SemError::Unimplemented,
                 LookupKind::Callee(_) => unreachable!(),
                 LookupKind::Method(ref obj) => {
                     let type_name = obj.name_fct(self.vm, self.caller);
@@ -224,13 +186,6 @@ impl<'a> MethodLookup<'a> {
                     let type_name = obj.name_fct(self.vm, self.caller);
                     SemError::UnknownStaticMethod(type_name, name, param_names)
                 }
-
-                LookupKind::Ctor(cls_id) => {
-                    let cls = self.vm.classes.idx(cls_id);
-                    let cls = cls.read();
-                    let name = self.vm.interner.str(cls.name).to_string();
-                    SemError::UnknownCtor(name, param_names)
-                }
             };
 
             self.vm
@@ -245,29 +200,22 @@ impl<'a> MethodLookup<'a> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
+        let container_tps = match kind {
+            LookupKind::Method(_) | LookupKind::Static(_) => {
+                self.found_container_type_params.clone().unwrap()
+            }
+            _ => SourceTypeArray::empty(),
+        };
+
         let fct_tps: SourceTypeArray = if let Some(fct_tps) = self.fct_tps {
             fct_tps.clone()
         } else {
             SourceTypeArray::empty()
         };
 
-        let container_tps: SourceTypeArray = if let Some(container_tps) = self.container_tps {
-            let type_params = container_tps.connect(&fct_tps);
+        let type_params = container_tps.connect(&fct_tps);
 
-            if !self.check_tps(fct.container_type_params(), &type_params) {
-                return false;
-            }
-
-            container_tps.clone()
-        } else if let LookupKind::Method(_) = kind {
-            self.found_container_type_params.clone().unwrap()
-        } else if let LookupKind::Static(_) = kind {
-            self.found_container_type_params.clone().unwrap()
-        } else {
-            SourceTypeArray::empty()
-        };
-
-        if !self.check_tps(fct.fct_type_params(), &fct_tps) {
+        if !self.check_tps(&fct.type_params, &type_params) {
             return false;
         }
 
@@ -275,7 +223,6 @@ impl<'a> MethodLookup<'a> {
             return false;
         }
 
-        let type_params = container_tps.connect(&fct_tps);
         if !args_compatible(self.vm, &*fct, args, &type_params, None) {
             if !self.report_errors {
                 return false;
@@ -299,15 +246,9 @@ impl<'a> MethodLookup<'a> {
             return false;
         }
 
-        let cmp_type = match kind {
-            LookupKind::Ctor(cls_id) => {
-                let list_id = self.vm.source_type_arrays.lock().insert(container_tps);
-                SourceType::Class(cls_id, list_id)
-            }
-            _ => {
-                let type_list = container_tps.connect(&fct_tps);
-                replace_type_param(self.vm, fct.return_type.clone(), &type_list, None)
-            }
+        let cmp_type = {
+            let type_list = container_tps.connect(&fct_tps);
+            replace_type_param(self.vm, fct.return_type.clone(), &type_list, None)
         };
 
         if self.ret.is_none() || self.ret.clone().unwrap() == cmp_type {
@@ -316,10 +257,6 @@ impl<'a> MethodLookup<'a> {
         } else {
             false
         }
-    }
-
-    fn find_fct(&self, _: Name) -> Option<FctId> {
-        unimplemented!()
     }
 
     fn find_ctor(&self, cls_id: ClassId) -> Option<FctId> {
@@ -390,18 +327,6 @@ impl<'a> MethodLookup<'a> {
         let xtrait = xtrait.read();
 
         xtrait.find_method(self.vm, name, is_static)
-    }
-
-    fn check_fct_tps(&self, tps: &SourceTypeArray) -> bool {
-        let fct_tps = {
-            let fct_id = self.found_fct_id.expect("found_fct_id not set");
-
-            let fct = self.vm.fcts.idx(fct_id);
-            let fct = fct.read();
-            fct.fct_type_params().to_vec()
-        };
-
-        self.check_tps(&fct_tps, tps)
     }
 
     fn check_tps(&self, specified_tps: &[TypeParam], tps: &SourceTypeArray) -> bool {

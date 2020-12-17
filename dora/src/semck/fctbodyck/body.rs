@@ -1885,34 +1885,58 @@ impl<'a> TypeCheck<'a> {
             self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let mut lookup = MethodLookup::new(self.vm, self.fct)
-            .pos(e.pos)
-            .ctor(cls_id)
-            .args(arg_types)
-            .container_type_params(&type_params);
-
-        let ty = if lookup.find() {
-            let fct_id = lookup.found_fct_id().unwrap();
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
-
-            let cls_ty = self.vm.cls_with_type_list(cls_id, type_params.clone());
-            let call_type = CallType::Ctor(cls_ty, fct_id);
-            self.analysis.map_calls.insert(e.id, Arc::new(call_type));
-
-            if cls.is_abstract {
-                let msg = SemError::NewAbstractClass;
-                self.vm.diag.lock().report(self.file_id, e.pos, msg);
-            }
-
-            lookup.found_ret().unwrap()
-        } else {
-            SourceType::Error
+        if !typeparamck::check_class(
+            self.vm,
+            self.fct,
+            cls_id,
+            &type_params,
+            ErrorReporting::Yes(self.file_id, e.pos),
+        ) {
+            return SourceType::Error;
         };
 
-        self.analysis.set_ty(e.id, ty.clone());
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
 
-        ty
+        if cls.constructor.is_none() {
+            self.vm
+                .diag
+                .lock()
+                .report(self.file_id, e.pos, SemError::UnknownCtor);
+        }
+
+        let ctor_id = cls.constructor.expect("missing constructor");
+        let ctor = self.vm.fcts.idx(ctor_id);
+        let ctor = ctor.read();
+
+        let cls_ty = self.vm.cls_with_type_list(cls_id, type_params.clone());
+
+        if !args_compatible(self.vm, &*ctor, arg_types, &type_params, None) {
+            let fct_name = self.vm.interner.str(ctor.name).to_string();
+            let fct_params = ctor
+                .params_without_self()
+                .iter()
+                .map(|a| a.name_fct(self.vm, &*ctor))
+                .collect::<Vec<_>>();
+            let call_types = arg_types
+                .iter()
+                .map(|a| a.name_fct(self.vm, &*ctor))
+                .collect::<Vec<_>>();
+            let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
+        }
+
+        let call_type = CallType::Ctor(cls_ty.clone(), ctor_id);
+        self.analysis.map_calls.insert(e.id, Arc::new(call_type));
+
+        if cls.is_abstract {
+            let msg = SemError::NewAbstractClass;
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
+        }
+
+        self.analysis.set_ty(e.id, cls_ty.clone());
+
+        cls_ty
     }
 
     fn check_expr_call_generic(
@@ -2236,13 +2260,10 @@ impl<'a> TypeCheck<'a> {
             }
         }
 
-        let name = self.vm.interner.str(cls.name).to_string();
-        let arg_types = arg_types
-            .iter()
-            .map(|t| t.name_fct(self.vm, self.fct))
-            .collect();
-        let msg = SemError::UnknownCtor(name, arg_types);
-        self.vm.diag.lock().report(self.file_id, e.pos, msg);
+        self.vm
+            .diag
+            .lock()
+            .report(self.file_id, e.pos, SemError::UnknownCtor);
 
         SourceType::Error
     }

@@ -581,7 +581,7 @@ fn super_class() {
     err(
         "@open class A(a: Int32) class B extends A(true)",
         pos(1, 41),
-        SemError::UnknownCtor("A".into(), vec!["Bool".into()]),
+        SemError::UnknownCtor,
     );
 }
 
@@ -2258,20 +2258,6 @@ fn test_type_make_iterator_not_implementing_iterator() {
     ",
         pos(6, 22),
         SemError::TypeNotUsableInForIn("Foo".into()),
-    );
-}
-
-#[test]
-fn test_incompatible_branches() {
-    err(
-        "
-        class Foo
-        fun bar(): Int32 {
-            if true { 1 } else { Foo(1) }
-        }
-    ",
-        pos(4, 37),
-        SemError::ParamTypesIncompatible("Foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
