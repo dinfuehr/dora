@@ -77,11 +77,7 @@ class ConstPoolChar(let value: Char) extends ConstPoolEntry {
     @override fun toString(): String { "Char '${self.value}' ${self.value.toInt32()}" }
 }
 
-class BytecodeRegister(let value: Int32) {
-    fun equals(rhs: BytecodeRegister): Bool {
-        self.value == rhs.value
-    }
-}
+struct BytecodeRegister(value: Int32)
 
 impl Equals for BytecodeRegister {
     fun equals(other: BytecodeRegister): Bool {
