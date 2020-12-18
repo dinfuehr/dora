@@ -3004,6 +3004,19 @@ fn namespace_ctor_call() {
 }
 
 #[test]
+#[ignore]
+fn namespace_class_field() {
+    err(
+        "
+        fun f(x: foo::Foo) { let a = x.bar; }
+        namespace foo { @pub class Foo { var bar: Int32 = 0; } }
+    ",
+        pos(1, 1),
+        SemError::Unimplemented,
+    );
+}
+
+#[test]
 fn namespace_path_in_type() {
     ok("
         fun f(): foo::Foo { foo::Foo() }
