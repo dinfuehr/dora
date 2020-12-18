@@ -277,7 +277,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 name: node.name,
                 is_pub: node.is_pub,
                 ty: SourceType::Unit,
-                reassignable: node.reassignable,
+                mutable: node.mutable,
                 initializer: None,
                 address_init: Address::null(),
                 address_value: Address::null(),

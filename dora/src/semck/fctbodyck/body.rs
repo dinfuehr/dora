@@ -12,12 +12,12 @@ use crate::semck::{report_sym_shadow, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
-    self, class_accessible_from, const_accessible_from, ensure_tuple, enum_accessible_from,
-    fct_accessible_from, find_field_in_class, find_methods_in_class, find_methods_in_enum,
-    find_methods_in_struct, global_accessible_from, namespace_accessible_from,
-    struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
-    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId,
-    TypeParam, TypeParamDefinition, TypeParamId, Var, VarId, VM,
+    self, class_accessible_from, class_field_accessible_from, const_accessible_from, ensure_tuple,
+    enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
+    find_methods_in_enum, find_methods_in_struct, global_accessible_from,
+    namespace_accessible_from, struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo,
+    EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId,
+    StructData, StructId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId, VM,
 };
 
 use dora_parser::ast;
@@ -211,7 +211,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         // update type of variable, necessary when stmt has initializer expression but no type
-        self.check_stmt_let_pattern(&s.pattern, defined_type.clone(), s.reassignable);
+        self.check_stmt_let_pattern(&s.pattern, defined_type.clone(), s.mutable);
 
         if s.expr.is_some() {
             if !expr_type.is_error()
@@ -250,18 +250,13 @@ impl<'a> TypeCheck<'a> {
         .unwrap_or(SourceType::Error)
     }
 
-    fn check_stmt_let_pattern(
-        &mut self,
-        pattern: &ast::LetPattern,
-        ty: SourceType,
-        reassignable: bool,
-    ) {
+    fn check_stmt_let_pattern(&mut self, pattern: &ast::LetPattern, ty: SourceType, mutable: bool) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
                 let var_ctxt = Var {
                     id: VarId(0),
                     name: ident.name,
-                    mutable: reassignable || ident.mutable,
+                    mutable: mutable || ident.mutable,
                     ty,
                     node_id: ident.id,
                 };
@@ -299,7 +294,7 @@ impl<'a> TypeCheck<'a> {
 
                 if ty.is_error() {
                     for part in &tuple.parts {
-                        self.check_stmt_let_pattern(part, SourceType::Error, reassignable);
+                        self.check_stmt_let_pattern(part, SourceType::Error, mutable);
                     }
                     return;
                 }
@@ -323,7 +318,7 @@ impl<'a> TypeCheck<'a> {
 
                 for (idx, part) in tuple.parts.iter().enumerate() {
                     let ty = self.vm.tuples.lock().get_ty(tuple_id, idx);
-                    self.check_stmt_let_pattern(part, ty, reassignable);
+                    self.check_stmt_let_pattern(part, ty, mutable);
                 }
             }
         }
@@ -909,7 +904,7 @@ impl<'a> TypeCheck<'a> {
                 let glob = self.vm.globals.idx(global_id);
                 let glob = glob.read();
 
-                if !e.initializer && !glob.reassignable {
+                if !e.initializer && !glob.mutable {
                     self.vm
                         .diag
                         .lock()
@@ -1025,7 +1020,7 @@ impl<'a> TypeCheck<'a> {
 
                 let fty = replace_type_param(self.vm, field.ty.clone(), &class_type_params, None);
 
-                if !e.initializer && !field.reassignable {
+                if !e.initializer && !field.mutable {
                     self.vm
                         .diag
                         .lock()
@@ -1806,6 +1801,18 @@ impl<'a> TypeCheck<'a> {
             self.analysis
                 .map_idents
                 .insert_or_replace(e.callee.id(), IdentType::Field(actual_type, field_id));
+
+            let cls_id = object_type.cls_id().expect("class expected");
+
+            if !class_field_accessible_from(self.vm, cls_id, field_id, self.namespace_id) {
+                let cls = self.vm.classes.idx(cls_id);
+                let cls = cls.read();
+                let field = &cls.fields[field_id];
+
+                let name = self.vm.interner.str(field.name).to_string();
+                let msg = SemError::NotAccessible(name);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
+            }
 
             return self.check_expr_call_expr(e, field_type, arg_types);
         }
@@ -2831,12 +2838,19 @@ impl<'a> TypeCheck<'a> {
                 let ident_type = IdentType::Field(cls_ty.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-                let cls = self.vm.classes.idx(cls_ty.cls_id().expect("no class"));
+                let cls_id = cls_ty.cls_id().expect("no class");
+                let cls = self.vm.classes.idx(cls_id);
                 let cls = cls.read();
 
                 let field = &cls.fields[field_id];
                 let class_type_params = cls_ty.type_params(self.vm);
                 let fty = replace_type_param(self.vm, field.ty.clone(), &class_type_params, None);
+
+                if !class_field_accessible_from(self.vm, cls_id, field_id, self.namespace_id) {
+                    let name = self.vm.interner.str(field.name).to_string();
+                    let msg = SemError::NotAccessible(name);
+                    self.vm.diag.lock().report(self.file_id, e.pos, msg);
+                }
 
                 self.analysis.set_ty(e.id, fty.clone());
                 return fty;

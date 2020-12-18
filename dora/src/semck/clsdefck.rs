@@ -88,7 +88,7 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        self.add_field(f.pos, f.name, ty, f.reassignable);
+        self.add_field(f.pos, f.name, ty, f.mutable, f.is_pub);
 
         if !f.primary_ctor && f.expr.is_none() {
             self.vm.diag.lock().report(
@@ -133,7 +133,14 @@ impl<'x> ClsDefCheck<'x> {
         cls.methods.push(fctid);
     }
 
-    fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, reassignable: bool) {
+    fn add_field(
+        &mut self,
+        pos: Position,
+        name: Name,
+        ty: SourceType,
+        mutable: bool,
+        is_pub: bool,
+    ) {
         let cls = self.vm.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
@@ -144,7 +151,8 @@ impl<'x> ClsDefCheck<'x> {
             name,
             ty,
             offset: 0,
-            reassignable,
+            mutable: mutable,
+            is_pub,
         };
 
         self.check_if_symbol_exists(name, pos, &cls.table);

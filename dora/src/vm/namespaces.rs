@@ -169,7 +169,7 @@ pub fn accessible_from(
             target.is_pub && element_pub
         }
     } else {
-        // no common parent: means we try to acces another package
+        // no common parent: means we try to access another package
         // the whole path needs to be public
         for ns_id in &target.parents {
             let ns = &vm.namespaces[ns_id.to_usize()];

@@ -238,7 +238,7 @@ pub struct Global {
     pub pos: Position,
     pub span: Span,
     pub name: Name,
-    pub reassignable: bool,
+    pub mutable: bool,
     pub data_type: Type,
     pub initializer: Option<Arc<Function>>,
     pub is_pub: bool,
@@ -588,7 +588,7 @@ pub struct ConstructorParam {
     pub span: Span,
     pub data_type: Type,
     pub field: bool,
-    pub reassignable: bool,
+    pub mutable: bool,
     pub variadic: bool,
 }
 
@@ -628,7 +628,8 @@ pub struct Field {
     pub data_type: Type,
     pub primary_ctor: bool,
     pub expr: Option<Box<Expr>>,
-    pub reassignable: bool,
+    pub mutable: bool,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -804,7 +805,7 @@ impl Stmt {
         pos: Position,
         span: Span,
         pattern: Box<LetPattern>,
-        reassignable: bool,
+        mutable: bool,
         data_type: Option<Type>,
         expr: Option<Box<Expr>>,
     ) -> Stmt {
@@ -814,7 +815,7 @@ impl Stmt {
             span,
 
             pattern,
-            reassignable,
+            mutable,
             data_type,
             expr,
         })
@@ -1026,7 +1027,7 @@ pub struct StmtLetType {
     pub span: Span,
 
     pub pattern: Box<LetPattern>,
-    pub reassignable: bool,
+    pub mutable: bool,
 
     pub data_type: Option<Type>,
     pub expr: Option<Box<Expr>>,

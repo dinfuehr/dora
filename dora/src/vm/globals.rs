@@ -35,7 +35,7 @@ pub struct GlobalData {
     pub namespace_id: NamespaceId,
     pub is_pub: bool,
     pub ty: SourceType,
-    pub reassignable: bool,
+    pub mutable: bool,
     pub name: Name,
     pub initializer: Option<FctId>,
     pub address_init: Address,

@@ -1,0 +1,6 @@
+//= error at 5:8
+
+fun main() {
+    let foo = Vec[Int32]();
+    foo.array.size();
+}

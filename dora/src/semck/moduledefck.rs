@@ -80,9 +80,9 @@ impl<'x> ModuleCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        self.add_field(f.pos, f.name, ty, f.reassignable);
+        self.add_field(f.pos, f.name, ty, f.mutable);
 
-        if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
+        if !f.mutable && !f.primary_ctor && f.expr.is_none() {
             self.vm.diag.lock().report(
                 self.file_id.into(),
                 f.pos,
@@ -120,7 +120,7 @@ impl<'x> ModuleCheck<'x> {
         module.methods.push(fctid);
     }
 
-    fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, reassignable: bool) {
+    fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, mutable: bool) {
         let module = self.vm.modules.idx(self.module_id);
         let mut module = module.write();
 
@@ -139,7 +139,8 @@ impl<'x> ModuleCheck<'x> {
             name,
             ty,
             offset: 0,
-            reassignable,
+            mutable: mutable,
+            is_pub: false,
         };
 
         module.fields.push(field);

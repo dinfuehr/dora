@@ -583,7 +583,8 @@ pub struct Field {
     pub name: Name,
     pub ty: SourceType,
     pub offset: i32,
-    pub reassignable: bool,
+    pub mutable: bool,
+    pub is_pub: bool,
 }
 
 impl Index<FieldId> for Vec<Field> {
@@ -611,4 +612,23 @@ pub fn class_accessible_from(vm: &VM, cls_id: ClassId, namespace_id: NamespaceId
     let cls = cls.read();
 
     accessible_from(vm, cls.namespace_id, cls.is_pub, namespace_id)
+}
+
+pub fn class_field_accessible_from(
+    vm: &VM,
+    cls_id: ClassId,
+    field_id: FieldId,
+    namespace_id: NamespaceId,
+) -> bool {
+    let cls = vm.classes.idx(cls_id);
+    let cls = cls.read();
+
+    let field = &cls.fields[field_id];
+
+    accessible_from(
+        vm,
+        cls.namespace_id,
+        cls.is_pub && field.is_pub,
+        namespace_id,
+    )
 }

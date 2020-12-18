@@ -399,7 +399,7 @@ impl<'a> Parser<'a> {
     fn parse_global(&mut self, modifiers: &Modifiers) -> Result<Global, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
-        let reassignable = self.token.is(TokenKind::Var);
+        let mutable = self.token.is(TokenKind::Var);
 
         self.advance_token()?;
         let name = self.expect_identifier()?;
@@ -423,7 +423,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             data_type,
-            reassignable,
+            mutable: mutable,
             initializer: None,
             is_pub: modifiers.contains(Modifier::Pub),
         };
@@ -791,7 +791,7 @@ impl<'a> Parser<'a> {
     ) -> Result<ConstructorParam, ParseErrorAndPos> {
         let start = self.token.span.start();
         let field = self.token.is(TokenKind::Var) || self.token.is(TokenKind::Let);
-        let reassignable = self.token.is(TokenKind::Var);
+        let mutable = self.token.is(TokenKind::Var);
 
         // consume var and let
         if field {
@@ -822,7 +822,8 @@ impl<'a> Parser<'a> {
                 data_type: data_type.clone(),
                 primary_ctor: true,
                 expr: None,
-                reassignable,
+                mutable,
+                is_pub: true,
             })
         }
 
@@ -833,7 +834,7 @@ impl<'a> Parser<'a> {
             data_type,
             variadic,
             field,
-            reassignable,
+            mutable: mutable,
         })
     }
 
@@ -866,9 +867,9 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::Var | TokenKind::Let => {
-                    self.ban_modifiers(&modifiers)?;
+                    self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
 
-                    let field = self.parse_field()?;
+                    let field = self.parse_field(&modifiers)?;
                     cls.fields.push(field);
                 }
 
@@ -913,7 +914,7 @@ impl<'a> Parser<'a> {
                 TokenKind::Var | TokenKind::Let => {
                     self.ban_modifiers(&modifiers)?;
 
-                    let field = self.parse_field()?;
+                    let field = self.parse_field(&modifiers)?;
                     module.fields.push(field);
                 }
 
@@ -989,10 +990,10 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_field(&mut self) -> Result<Field, ParseErrorAndPos> {
+    fn parse_field(&mut self, modifiers: &Modifiers) -> Result<Field, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
-        let reassignable = if self.token.is(TokenKind::Var) {
+        let mutable = if self.token.is(TokenKind::Var) {
             self.expect_token(TokenKind::Var)?;
 
             true
@@ -1024,7 +1025,8 @@ impl<'a> Parser<'a> {
             data_type,
             primary_ctor: false,
             expr,
-            reassignable,
+            mutable: mutable,
+            is_pub: modifiers.contains(Modifier::Pub),
         })
     }
 
@@ -1315,7 +1317,7 @@ impl<'a> Parser<'a> {
 
     fn parse_let(&mut self) -> StmtResult {
         let start = self.token.span.start();
-        let reassignable = if self.token.is(TokenKind::Let) {
+        let mutable = if self.token.is(TokenKind::Let) {
             false
         } else if self.token.is(TokenKind::Var) {
             true
@@ -1336,7 +1338,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             pattern,
-            reassignable,
+            mutable,
             data_type,
             expr,
         )))
@@ -3006,7 +3008,7 @@ mod tests {
         let stmt = parse_stmt("let a = 1;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(false, var.reassignable);
+        assert_eq!(false, var.mutable);
         assert!(var.data_type.is_none());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
@@ -3016,7 +3018,7 @@ mod tests {
         let stmt = parse_stmt("var a = 1;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(true, var.reassignable);
+        assert_eq!(true, var.mutable);
         assert!(var.data_type.is_none());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
@@ -3026,7 +3028,7 @@ mod tests {
         let stmt = parse_stmt("let x : int = 1;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(false, var.reassignable);
+        assert_eq!(false, var.mutable);
         assert!(var.data_type.is_some());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
@@ -3074,7 +3076,7 @@ mod tests {
         let stmt = parse_stmt("var x : int = 1;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(true, var.reassignable);
+        assert_eq!(true, var.mutable);
         assert!(var.data_type.is_some());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
@@ -3084,7 +3086,7 @@ mod tests {
         let stmt = parse_stmt("let x : int;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(false, var.reassignable);
+        assert_eq!(false, var.mutable);
         assert!(var.data_type.is_some());
         assert!(var.expr.is_none());
     }
@@ -3094,7 +3096,7 @@ mod tests {
         let stmt = parse_stmt("var x : int;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(true, var.reassignable);
+        assert_eq!(true, var.mutable);
         assert!(var.data_type.is_some());
         assert!(var.expr.is_none());
     }
@@ -3104,7 +3106,7 @@ mod tests {
         let stmt = parse_stmt("let x;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(false, var.reassignable);
+        assert_eq!(false, var.mutable);
         assert!(var.data_type.is_none());
         assert!(var.expr.is_none());
     }
@@ -3114,7 +3116,7 @@ mod tests {
         let stmt = parse_stmt("var x;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(true, var.reassignable);
+        assert_eq!(true, var.mutable);
         assert!(var.data_type.is_none());
         assert!(var.expr.is_none());
     }
@@ -3460,7 +3462,7 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(1, class.fields.len());
-        assert_eq!(true, class.fields[0].reassignable);
+        assert_eq!(true, class.fields[0].mutable);
         assert_eq!(true, class.has_constructor);
         assert_eq!(1, class.constructor.clone().unwrap().params.len());
     }
@@ -3472,7 +3474,7 @@ mod tests {
         let ctor = class.constructor.clone().unwrap();
 
         assert_eq!(1, class.fields.len());
-        assert_eq!(false, class.fields[0].reassignable);
+        assert_eq!(false, class.fields[0].mutable);
         assert_eq!(true, class.has_constructor);
         assert_eq!(1, ctor.params.len());
     }
@@ -3564,11 +3566,11 @@ mod tests {
 
         let f1 = &cls.fields[0];
         assert_eq!("f1", &interner.str(f1.name).to_string());
-        assert_eq!(true, f1.reassignable);
+        assert_eq!(true, f1.mutable);
 
         let f2 = &cls.fields[1];
         assert_eq!("f2", &interner.str(f2.name).to_string());
-        assert_eq!(false, f2.reassignable);
+        assert_eq!(false, f2.mutable);
     }
 
     #[test]
@@ -3867,7 +3869,7 @@ mod tests {
         let global = prog.global0();
 
         assert_eq!("a", *interner.str(global.name));
-        assert_eq!(true, global.reassignable);
+        assert_eq!(true, global.mutable);
     }
 
     #[test]
@@ -3876,7 +3878,7 @@ mod tests {
         let global = prog.global0();
 
         assert_eq!("b", *interner.str(global.name));
-        assert_eq!(false, global.reassignable);
+        assert_eq!(false, global.mutable);
     }
 
     #[test]
