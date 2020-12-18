@@ -589,7 +589,7 @@ class BytecodeWriter {
                     BC_JUMP_IF_TRUE
                 } else {
                     fatalError("unexpected opcode ${bytecodeName(opcode)} (${opcode})");
-                    -1
+                    unreachable[Int32]()
                 };
 
                 self.code(jump.inst.toInt64()) = opcode.toUInt8();
