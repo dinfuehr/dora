@@ -1345,59 +1345,15 @@ impl<'a> CannonCodeGen<'a> {
             .tuples
             .lock()
             .get_ty_and_offset(tuple_id, idx as usize);
-        let src_offset = self.register_offset(src);
 
         if let Some(dest_type) = self.specialize_register_type_unit(dest) {
-            match dest_type {
-                BytecodeType::Tuple(dest_tuple_id) => {
-                    let dest_offset = self.register_offset(dest);
+            let src_offset = self.register_offset(src);
 
-                    self.copy_tuple(
-                        dest_tuple_id,
-                        RegOrOffset::Offset(dest_offset),
-                        RegOrOffset::Offset(src_offset + offset),
-                    );
-                }
-
-                BytecodeType::Enum(enum_id, type_params) => {
-                    let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let edef = self.vm.enum_defs.idx(edef_id);
-
-                    let mode = match edef.layout {
-                        EnumLayout::Int => MachineMode::Int32,
-                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                    };
-
-                    let reg = REG_RESULT.into();
-
-                    self.asm
-                        .load_mem(mode, reg, Mem::Local(src_offset + offset));
-
-                    self.emit_store_register_as(reg.into(), dest, mode);
-                }
-
-                BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
-
-                BytecodeType::TypeParam(_) => unreachable!(),
-
-                BytecodeType::Ptr
-                | BytecodeType::UInt8
-                | BytecodeType::Bool
-                | BytecodeType::Char
-                | BytecodeType::Int32
-                | BytecodeType::Int64
-                | BytecodeType::Float32
-                | BytecodeType::Float64 => {
-                    let reg = result_reg(self.vm, dest_type.clone());
-                    self.asm.load_mem(
-                        dest_type.mode(self.vm),
-                        reg,
-                        Mem::Local(src_offset + offset),
-                    );
-
-                    self.emit_store_register(reg.into(), dest);
-                }
-            }
+            self.copy_bytecode_ty(
+                dest_type,
+                self.reg(dest),
+                RegOrOffset::Offset(src_offset + offset),
+            );
         }
     }
 
