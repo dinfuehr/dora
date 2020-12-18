@@ -65,24 +65,24 @@ fun decodeConstPool(constpool: Array[UInt8]): Array[ConstPoolEntry] {
 
         if opcode == CONSTPOOL_OPCODE_INT32 {
             let value = reader.readInt32();
-            constPool.push(ConstPoolInt32(value));
+            constPool.push(ConstPoolEntry::Int32(value));
         } else if opcode == CONSTPOOL_OPCODE_INT64 {
             let value = reader.readInt64();
-            constPool.push(ConstPoolInt64(value));
+            constPool.push(ConstPoolEntry::Int64(value));
         } else if opcode == CONSTPOOL_OPCODE_FLOAT32 {
             let value = reader.readInt32().asFloat32();
-            constPool.push(ConstPoolFloat32(value));
+            constPool.push(ConstPoolEntry::Float32(value));
         } else if opcode == CONSTPOOL_OPCODE_FLOAT64 {
             let value = reader.readInt64().asFloat64();
-            constPool.push(ConstPoolFloat64(value));
+            constPool.push(ConstPoolEntry::Float64(value));
         } else if opcode == CONSTPOOL_OPCODE_CHAR {
             let value = reader.readInt32().toCharUnchecked();
-            constPool.push(ConstPoolChar(value));
+            constPool.push(ConstPoolEntry::Char(value));
         } else if opcode == CONSTPOOL_OPCODE_STRING {
             let length = reader.readInt32();
             let start = reader.offset();
             let value = String::fromBytesPart(constpool, start, length.toInt64()).unwrap();
-            constPool.push(ConstPoolString(value));
+            constPool.push(ConstPoolEntry::String(value));
             reader.skipBytes(length.toInt64());
         } else {
             println("opcode = ${opcode}");

@@ -599,6 +599,8 @@ impl<'a> TypeCheck<'a> {
         let mut used_variants = FixedBitSet::with_capacity(enum_variants);
 
         for case in &node.cases {
+            self.symtable.push_level();
+
             match case.pattern.data {
                 ast::MatchPatternData::Underscore => {
                     let mut negated_used_variants = used_variants.clone();
@@ -615,7 +617,6 @@ impl<'a> TypeCheck<'a> {
                 ast::MatchPatternData::Ident(ref ident) => {
                     let sym = self.read_path(&ident.path);
 
-                    self.symtable.push_level();
                     let mut used_idents: HashSet<Name> = HashSet::new();
 
                     match sym {
@@ -711,27 +712,26 @@ impl<'a> TypeCheck<'a> {
 
                         Err(()) => {}
                     }
-
-                    let case_ty = self.check_expr(&case.value, SourceType::Any);
-
-                    if result_type.is_error() {
-                        result_type = case_ty;
-                    } else if case_ty.is_error() {
-                        // ignore this case
-                    } else if !result_type.allows(self.vm, case_ty.clone()) {
-                        let result_type_name = result_type.name_fct(self.vm, self.fct);
-                        let case_ty_name = case_ty.name_fct(self.vm, self.fct);
-                        let msg =
-                            SemError::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file_id, case.value.pos(), msg);
-                    }
-
-                    self.symtable.pop_level();
                 }
             }
+
+            let case_ty = self.check_expr(&case.value, SourceType::Any);
+
+            if result_type.is_error() {
+                result_type = case_ty;
+            } else if case_ty.is_error() {
+                // ignore this case
+            } else if !result_type.allows(self.vm, case_ty.clone()) {
+                let result_type_name = result_type.name_fct(self.vm, self.fct);
+                let case_ty_name = case_ty.name_fct(self.vm, self.fct);
+                let msg = SemError::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file_id, case.value.pos(), msg);
+            }
+
+            self.symtable.pop_level();
         }
 
         used_variants.toggle_range(..);

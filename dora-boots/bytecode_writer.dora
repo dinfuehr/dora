@@ -303,32 +303,32 @@ class BytecodeWriter {
     }
 
     fun emitConstChar(dest: BytecodeRegister, value: Char) {
-        let idx = self.addConst(ConstPoolChar(value));
+        let idx = self.addConst(ConstPoolEntry::Char(value));
         self.emitReg1AndIdx(BC_CONST_CHAR, dest, idx);
     }
 
     fun emitConstInt32(dest: BytecodeRegister, value: Int32) {
-        let idx = self.addConst(ConstPoolInt32(value));
+        let idx = self.addConst(ConstPoolEntry::Int32(value));
         self.emitReg1AndIdx(BC_CONST_INT32, dest, idx);
     }
 
     fun emitConstInt64(dest: BytecodeRegister, value: Int64) {
-        let idx = self.addConst(ConstPoolInt64(value));
+        let idx = self.addConst(ConstPoolEntry::Int64(value));
         self.emitReg1AndIdx(BC_CONST_INT64, dest, idx);
     }
 
     fun emitConstFloat32(dest: BytecodeRegister, value: Float32) {
-        let idx = self.addConst(ConstPoolFloat32(value));
+        let idx = self.addConst(ConstPoolEntry::Float32(value));
         self.emitReg1AndIdx(BC_CONST_FLOAT32, dest, idx);
     }
 
     fun emitConstFloat64(dest: BytecodeRegister, value: Float64) {
-        let idx = self.addConst(ConstPoolFloat64(value));
+        let idx = self.addConst(ConstPoolEntry::Float64(value));
         self.emitReg1AndIdx(BC_CONST_FLOAT64, dest, idx);
     }
 
     fun emitConstString(dest: BytecodeRegister, value: String) {
-        let idx = self.addConst(ConstPoolString(value));
+        let idx = self.addConst(ConstPoolEntry::String(value));
         self.emitReg1AndIdx(BC_CONST_STRING, dest, idx);
     }
 
@@ -578,7 +578,7 @@ class BytecodeWriter {
             } else if isWide(offset) {
                 // Need to update const pool entry
                 let idx = self.code(jump.target.toInt64());
-                self.constPool(idx.toInt64()) = ConstPoolInt32(offset);
+                self.constPool(idx.toInt64()) = ConstPoolEntry::Int32(offset);
             } else {
                 // Offset fits into byte, replace instruction with jump+immediate
                 let opcode = if opcode == BC_JUMP_CONST {
@@ -631,7 +631,7 @@ class BytecodeWriter {
             if opnd.isSome() {
                 self.emitByte(opnd.unwrap().value);
             }
-            let idx = self.addConst(ConstPoolInt32(0));
+            let idx = self.addConst(ConstPoolEntry::Int32(0));
             target = self.code.size().toInt32();
             self.emitByte(idx.value);
         }
