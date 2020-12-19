@@ -559,18 +559,6 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.store_mem(mode, Mem::Local(offset), src);
     }
 
-    fn emit_push(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-
-    fn emit_pop(&mut self, _dest: Register) {
-        unimplemented!();
-    }
-
-    fn emit_add_int_stack(&mut self) {
-        unimplemented!();
-    }
-
     fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
