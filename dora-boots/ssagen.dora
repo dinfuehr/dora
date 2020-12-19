@@ -215,8 +215,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         }
 
         // all predecessors need to be filled
-        for pred in block.predecessors {
-            if !self.filledBlocks.contains(pred.from.id.toInt64()) {
+        for edge in block.predecessors {
+            if !self.filledBlocks.contains(edge.from.id.toInt64()) {
                 return;
             }
         }

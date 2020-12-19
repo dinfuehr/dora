@@ -3,7 +3,7 @@ fun findBackEdges(graph: Graph) {
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = Array[Int64]::new(graph.numberBlocks().toInt64());
+    let successorsVisited = Array[Int64]::zero(graph.numberBlocks().toInt64());
 
     // all blocks that have been fully visited (including successors)
     let visited = BitSet(graph.numberBlocks().toInt64());
