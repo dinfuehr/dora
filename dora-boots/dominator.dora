@@ -1,4 +1,11 @@
-fun findBackEdges(graph: Graph) {
+fun buildDominatorTree(graph: Graph) {
+    let visited = findBackEdges(graph);
+    removeUnreachableBlocks(graph, visited);
+    computePostOrder(graph);
+    computeDominators(graph);
+}
+
+fun findBackEdges(graph: Graph): BitSet {
     // worklist contains current path in the graph
     let worklist = Vec[Block]();
 
@@ -39,9 +46,38 @@ fun findBackEdges(graph: Graph) {
         }
     }
 
+    visited
+}
+
+fun removeUnreachableBlocks(graph: Graph, visited: BitSet) {
+    // Remove instructions as user from other instructions
     for block in graph.insertionOrderIterator() {
-        // assume for now that all blocks are reachable
-        assert(visited.contains(block.id.toInt64()));
+        if visited.contains(block.id.toInt64()) {
+            continue;
+        }
+
+        for phi in block.phisIterator() {
+            phi.removeAsUser();
+        }
+
+        for inst in block.instructionsIterator() {
+            inst.removeAsUser();
+        }
+    }
+
+    // Now remove unreachable blocks from graph
+    for block in graph.insertionOrderIterator() {
+        if visited.contains(block.id.toInt64()) {
+            continue;
+        }
+
+        for edge in block.successors {
+            let successor = edge.to;
+            successor.predecessors.removeItem(edge);
+        }
+
+        graph.blocks(block.id.toInt64()) = None[Block];
+        block.graph = None[Graph];
     }
 }
 
@@ -171,6 +207,8 @@ fun commonDominator(b1: Block, b2: Block): Block {
             finger2 = finger2.getDominator().unwrap();
         }
     }
+
+    assert(finger1 === finger2);
 
     finger1
 }

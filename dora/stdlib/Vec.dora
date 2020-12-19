@@ -83,6 +83,30 @@
     }
   }
 
+  fun removeItem(value: T) {
+    let len = self.len;
+    var destIdx = 0L;
+    var srcIdx = 0L;
+
+    while srcIdx < len {
+      let current = self.array(srcIdx);
+
+      if current !== value {
+        self.array(destIdx) = value;
+        destIdx = destIdx + 1L;
+      }
+
+      srcIdx = srcIdx + 1L;
+    }
+
+    self.len = destIdx;
+
+    while destIdx < srcIdx {
+      unsafeKillRefs[T](self.array, destIdx);
+      destIdx = destIdx + 1L;
+    }
+  }
+
   fun removeAt(ind: Int64): T {
     var ind = ind;
     assert(ind < self.len);
@@ -189,7 +213,7 @@
 }
 
 impl[T: Equals] Vec[T] {
-  @pub fun removeItem(elem: T) {
+  @pub fun removeEquals(elem: T) {
     var i = 0L;
 
     while i < self.size() {

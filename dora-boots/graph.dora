@@ -2,7 +2,7 @@ class Graph {
     var entryBlock: Option[Block] = None[Block];
     var exitBlock: Option[Block] = None[Block];
 
-    var blocks: Vec[Block] = Vec[Block]();
+    var blocks: Vec[Option[Block]] = Vec[Option[Block]]();
     var postOrder: Vec[Block] = Vec[Block]();
 
     var nextBlockIdValue: Int32 = 0;
@@ -13,11 +13,11 @@ class Graph {
 
         block.graph = Some[Graph](self);
         block.id = self.nextBlockId().value;
-        self.blocks.push(block);
+        self.blocks.push(Some[Block](block));
     }
 
     fun getBlockWithId(id: Int32): Block {
-        self.blocks(id.toInt64())
+        self.blocks(id.toInt64()).unwrap()
     }
 
     fun setEntryBlock(block: Block) {
@@ -68,25 +68,51 @@ class Graph {
     }
 
     fun buildDominatorTree() {
-        findBackEdges(self);
-        computePostOrder(self);
-        computeDominators(self);
+        buildDominatorTree(self);
     }
 
-    fun insertionOrderIterator(): VecIter[Block] {
-        self.blocks.makeIterator()
+    fun insertionOrderIterator(): InsertionOrderIterator {
+        InsertionOrderIterator(self.blocks.toArray())
     }
 
     fun postOrderIterator(): PostOrderIterator {
-        PostOrderIterator(self.postOrder)
+        PostOrderIterator(self.postOrder.toArray())
     }
 
     fun reversePostOrderIterator(): ReversePostOrderIterator {
-        ReversePostOrderIterator(self.postOrder)
+        ReversePostOrderIterator(self.postOrder.toArray())
     }
 }
 
-class PostOrderIterator(let postOrder: Vec[Block]) {
+class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
+    var idx: Int64 = 0L;
+
+    fun hasNext(): Bool {
+        self.findNextBlock();
+
+        self.idx < self.blocks.size()
+    }
+
+    fun next(): Block {
+        let block = self.blocks(self.idx).unwrap();
+        self.idx = self.idx + 1L;
+        block
+    }
+
+    fun findNextBlock() {
+        while self.idx < self.blocks.size() {
+            let block = self.blocks(self.idx);
+
+            if block.isSome() {
+                break;
+            }
+
+            self.idx = self.idx + 1L;
+        }
+    }
+}
+
+class PostOrderIterator(let postOrder: Array[Block]) {
     var idx: Int64 = 0L;
 
     fun hasNext(): Bool {
@@ -100,7 +126,7 @@ class PostOrderIterator(let postOrder: Vec[Block]) {
     }
 }
 
-class ReversePostOrderIterator(let postOrder: Vec[Block]) {
+class ReversePostOrderIterator(let postOrder: Array[Block]) {
     var idx: Int64 = self.postOrder.size() - 1L;
 
     fun hasNext(): Bool {
@@ -330,27 +356,6 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         }
     }
 
-    fun removeUse(input: Input) {
-        assert(input.value === self);
-
-        if input.previousUse.isSome() {
-            input.previousUse.unwrap().nextUse = input.nextUse;
-        } else {
-            self.useListHead = input.nextUse;
-        }
-
-        if input.nextUse.isSome() {
-            input.nextUse.unwrap().previousUse = input.previousUse;
-        } else {
-            self.useListTail = input.previousUse;
-        }
-
-        assert(self.useListHead.isSome() == self.useListTail.isSome());
-
-        input.previousUse = None[Input];
-        input.nextUse = None[Input];
-    }
-
     fun remove() {
         assert(!self.hasUses());
         assert(self.block.isSome());
@@ -375,7 +380,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
 
     fun removeAsUser() {
         for input in self.inputs {
-            input.value.removeUse(input);
+            removeUse(input);
         }
     }
 
@@ -399,7 +404,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
             return;
         }
 
-        input.value.removeUse(input);
+        removeUse(input);
         input.value = replacement;
         replacement.addUse(input);
     }
@@ -422,6 +427,27 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     @open @abstract fun dumpName(): String;
+}
+
+fun removeUse(input: Input) {
+    let inst = input.value;
+
+    if input.previousUse.isSome() {
+        input.previousUse.unwrap().nextUse = input.nextUse;
+    } else {
+        inst.useListHead = input.nextUse;
+    }
+
+    if input.nextUse.isSome() {
+        input.nextUse.unwrap().previousUse = input.previousUse;
+    } else {
+        inst.useListTail = input.previousUse;
+    }
+
+    assert(inst.useListHead.isSome() == inst.useListTail.isSome());
+
+    input.previousUse = None[Input];
+    input.nextUse = None[Input];
 }
 
 @abstract @open class Const extends Inst
