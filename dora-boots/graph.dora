@@ -50,7 +50,7 @@ class Graph {
         BlockId(id)
     }
 
-    fun numberBlocks(): Int32 {
+    fun blockCount(): Int32 {
         self.nextBlockIdValue
     }
 

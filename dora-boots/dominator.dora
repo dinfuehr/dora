@@ -3,13 +3,13 @@ fun findBackEdges(graph: Graph) {
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = Array[Int64]::zero(graph.numberBlocks().toInt64());
+    let successorsVisited = Array[Int64]::zero(graph.blockCount().toInt64());
 
     // all blocks that have been fully visited (including successors)
-    let visited = BitSet(graph.numberBlocks().toInt64());
+    let visited = BitSet(graph.blockCount().toInt64());
 
     // all blocks in worklist
-    let visiting = BitSet(graph.numberBlocks().toInt64());
+    let visiting = BitSet(graph.blockCount().toInt64());
 
     worklist.push(graph.getEntryBlock());
     visiting.insert(graph.getEntryBlock().id.toInt64());
@@ -47,16 +47,16 @@ fun findBackEdges(graph: Graph) {
 
 fun computePostOrder(graph: Graph) {
     let postOrder = Vec[Block]();
-    postOrder.reserve(graph.numberBlocks().toInt64());
+    postOrder.reserve(graph.blockCount().toInt64());
 
     // worklist contains current path in the graph
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = Array[Int64]::new(graph.numberBlocks().toInt64());
+    let successorsVisited = Array[Int64]::new(graph.blockCount().toInt64());
 
     // all blocks that have been visited
-    let visited = BitSet(graph.numberBlocks().toInt64());
+    let visited = BitSet(graph.blockCount().toInt64());
 
     worklist.push(graph.getEntryBlock());
 
@@ -88,13 +88,13 @@ fun computeDominators(graph: Graph) {
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = Array[Int64]::new(graph.numberBlocks().toInt64());
+    let successorsVisited = Array[Int64]::new(graph.blockCount().toInt64());
 
     // all blocks that have been fully visited (including successors)
-    let visited = BitSet(graph.numberBlocks().toInt64());
+    let visited = BitSet(graph.blockCount().toInt64());
 
     // all blocks in worklist
-    let visiting = BitSet(graph.numberBlocks().toInt64());
+    let visiting = BitSet(graph.blockCount().toInt64());
 
     worklist.push(graph.getEntryBlock());
     visiting.insert(graph.getEntryBlock().id.toInt64());

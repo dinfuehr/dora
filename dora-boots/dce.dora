@@ -37,7 +37,7 @@ class DeadCodeElimination(let graph: Graph) {
 
 fun findReachableBlocks(graph: Graph): BitSet {
     let worklist = Vec[Block]();
-    let blocks = graph.numberBlocks();
+    let blocks = graph.blockCount();
     let visited = BitSet(blocks.toInt64());
     let successors_processed = Array[Int64]::fill(blocks.toInt64(), 0L);
 

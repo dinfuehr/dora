@@ -1,3 +1,8 @@
+class LInstructionSequence {
+    let instructions: Vec[LInstruction] = Vec[LInstruction]();
+    let blocks: Vec[LBlock] = Vec[LBlock]();
+}
+
 class LBlock
 
 class LInstruction {
