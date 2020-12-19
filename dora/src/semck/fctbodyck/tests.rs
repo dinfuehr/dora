@@ -3039,6 +3039,41 @@ fn namespace_class_field() {
 }
 
 #[test]
+fn namespace_struct_field() {
+    err(
+        "
+        fun f(x: foo::Foo) { let a = x.bar; }
+        namespace foo { @pub struct Foo(bar: Int32) }
+    ",
+        pos(2, 39),
+        SemError::NotAccessible("bar".into()),
+    );
+
+    // err(
+    //     "
+    //     fun f(x: foo::Foo) { let a = x.bar(10L); }
+    //     namespace foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
+    // ",
+    //     pos(2, 43),
+    //     SemError::NotAccessible("bar".into()),
+    // );
+
+    // err(
+    //     "
+    //     fun f(x: foo::Foo) { x.bar(10L) = 10; }
+    //     namespace foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
+    // ",
+    //     pos(2, 31),
+    //     SemError::NotAccessible("bar".into()),
+    // );
+
+    ok("
+        fun f(x: foo::Foo) { let a = x.bar; }
+        namespace foo { @pub struct Foo(@pub bar: Int32) }
+    ");
+}
+
+#[test]
 fn namespace_path_in_type() {
     ok("
         fun f(): foo::Foo { foo::Foo() }

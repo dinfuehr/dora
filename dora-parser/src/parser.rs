@@ -506,6 +506,11 @@ impl<'a> Parser<'a> {
     fn parse_struct_field(&mut self) -> Result<StructField, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
+
+        let modifiers = self.parse_annotation_usages()?;
+        let mods = &[Modifier::Pub];
+        self.restrict_modifiers(&modifiers, mods)?;
+
         let ident = self.expect_identifier()?;
 
         self.expect_token(TokenKind::Colon)?;
@@ -518,6 +523,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             data_type: ty,
+            is_pub: modifiers.contains(Modifier::Pub),
         })
     }
 

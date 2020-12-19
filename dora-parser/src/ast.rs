@@ -332,6 +332,7 @@ pub struct StructField {
     pub pos: Position,
     pub span: Span,
     pub data_type: Type,
+    pub is_pub: bool,
 }
 
 #[derive(Clone, Debug)]

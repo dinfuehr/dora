@@ -114,6 +114,7 @@ pub struct StructFieldData {
     pub pos: Position,
     pub name: Name,
     pub ty: SourceType,
+    pub is_pub: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -155,6 +156,25 @@ pub fn struct_accessible_from(vm: &VM, struct_id: StructId, namespace_id: Namesp
     let xstruct = xstruct.read();
 
     accessible_from(vm, xstruct.namespace_id, xstruct.is_pub, namespace_id)
+}
+
+pub fn struct_field_accessible_from(
+    vm: &VM,
+    struct_id: StructId,
+    field_id: StructFieldId,
+    namespace_id: NamespaceId,
+) -> bool {
+    let xstruct = vm.structs.idx(struct_id);
+    let xstruct = xstruct.read();
+
+    let field = &xstruct.fields[field_id.to_usize()];
+
+    accessible_from(
+        vm,
+        xstruct.namespace_id,
+        xstruct.is_pub && field.is_pub,
+        namespace_id,
+    )
 }
 
 pub fn find_methods_in_struct(

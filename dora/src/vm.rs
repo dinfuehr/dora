@@ -55,8 +55,8 @@ pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
 pub use self::structs::{
-    find_methods_in_struct, struct_accessible_from, StructData, StructDef, StructDefId,
-    StructFieldData, StructFieldDef, StructFieldId, StructId,
+    find_methods_in_struct, struct_accessible_from, struct_field_accessible_from, StructData,
+    StructDef, StructDefId, StructFieldData, StructFieldDef, StructFieldId, StructId,
 };
 pub use self::traits::{trait_accessible_from, TraitData, TraitId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};

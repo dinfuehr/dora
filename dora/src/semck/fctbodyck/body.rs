@@ -15,9 +15,10 @@ use crate::vm::{
     self, class_accessible_from, class_field_accessible_from, const_accessible_from, ensure_tuple,
     enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
     find_methods_in_enum, find_methods_in_struct, global_accessible_from,
-    namespace_accessible_from, struct_accessible_from, AnalysisData, CallType, ClassId, ConvInfo,
-    EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId,
-    StructData, StructId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId, VM,
+    namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
+    CallType, ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType,
+    Intrinsic, NamespaceId, StructData, StructId, TypeParam, TypeParamDefinition, TypeParamId, Var,
+    VarId, VM,
 };
 
 use dora_parser::ast;
@@ -2825,6 +2826,12 @@ impl<'a> TypeCheck<'a> {
                 let field = &xstruct.fields[field_id.to_usize()];
                 let struct_type_params = object_type.type_params(self.vm);
                 let fty = replace_type_param(self.vm, field.ty.clone(), &struct_type_params, None);
+
+                if !struct_field_accessible_from(self.vm, struct_id, field_id, self.namespace_id) {
+                    let name = self.vm.interner.str(field.name).to_string();
+                    let msg = SemError::NotAccessible(name);
+                    self.vm.diag.lock().report(self.file_id, e.pos, msg);
+                }
 
                 self.analysis.set_ty(e.id, fty.clone());
                 return fty;

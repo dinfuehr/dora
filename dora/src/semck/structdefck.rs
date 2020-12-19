@@ -153,6 +153,7 @@ impl<'x> StructCheck<'x> {
             pos: f.pos,
             name: f.name,
             ty,
+            is_pub: f.is_pub,
         };
 
         xstruct.fields.push(field);
