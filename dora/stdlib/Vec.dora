@@ -92,7 +92,7 @@
       let current = self.array(srcIdx);
 
       if current !== value {
-        self.array(destIdx) = value;
+        self.array(destIdx) = current;
         destIdx = destIdx + 1L;
       }
 
