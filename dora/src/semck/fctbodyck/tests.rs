@@ -1695,6 +1695,14 @@ fn test_struct_field() {
 }
 
 #[test]
+fn test_struct_field_array() {
+    ok("
+        struct Foo(f1: Array[Int32])
+        fun f(x: Foo): Int32 { x.f1(0L) }
+    ");
+}
+
+#[test]
 fn test_struct_with_type_params() {
     ok("
         struct Foo[T](f1: Int32)
@@ -3049,23 +3057,28 @@ fn namespace_struct_field() {
         SemError::NotAccessible("bar".into()),
     );
 
-    // err(
-    //     "
-    //     fun f(x: foo::Foo) { let a = x.bar(10L); }
-    //     namespace foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
-    // ",
-    //     pos(2, 43),
-    //     SemError::NotAccessible("bar".into()),
-    // );
+    ok("
+        fun f(x: foo::Foo) { let a = x.bar(10L); }
+        namespace foo { @pub struct Foo(@pub bar: Array[Int32]) }
+    ");
 
-    // err(
-    //     "
-    //     fun f(x: foo::Foo) { x.bar(10L) = 10; }
-    //     namespace foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
-    // ",
-    //     pos(2, 31),
-    //     SemError::NotAccessible("bar".into()),
-    // );
+    err(
+        "
+        fun f(x: foo::Foo) { let a = x.bar(10L); }
+        namespace foo { @pub struct Foo(bar: Array[Int32]) }
+    ",
+        pos(2, 43),
+        SemError::NotAccessible("bar".into()),
+    );
+
+    err(
+        "
+        fun f(x: foo::Foo) { x.bar(10L) = 10; }
+        namespace foo { @pub struct Foo(bar: Array[Int32]) }
+    ",
+        pos(2, 31),
+        SemError::NotAccessible("bar".into()),
+    );
 
     ok("
         fun f(x: foo::Foo) { let a = x.bar; }

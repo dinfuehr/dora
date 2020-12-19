@@ -1818,6 +1818,29 @@ impl<'a> TypeCheck<'a> {
             return self.check_expr_call_expr(e, field_type, arg_types);
         }
 
+        if let Some(struct_id) = object_type.struct_id() {
+            let xstruct = self.vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+            if let Some(&field_id) = xstruct.field_names.get(&method_name) {
+                let ident_type = IdentType::StructField(object_type.clone(), field_id);
+                self.analysis.map_idents.insert_or_replace(e.id, ident_type);
+
+                let field = &xstruct.fields[field_id.to_usize()];
+                let struct_type_params = object_type.type_params(self.vm);
+                let field_type =
+                    replace_type_param(self.vm, field.ty.clone(), &struct_type_params, None);
+
+                if !struct_field_accessible_from(self.vm, struct_id, field_id, self.namespace_id) {
+                    let name = self.vm.interner.str(field.name).to_string();
+                    let msg = SemError::NotAccessible(name);
+                    self.vm.diag.lock().report(self.file_id, e.pos, msg);
+                }
+
+                self.analysis.set_ty(e.id, field_type.clone());
+                return self.check_expr_call_expr(e, field_type, arg_types);
+            }
+        }
+
         // No field with that name as well, so report method
         let mut lookup = MethodLookup::new(self.vm, self.fct)
             .method(object_type)
