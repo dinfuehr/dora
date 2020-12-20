@@ -70,6 +70,18 @@ fn type_class_method_call() {
 }
 
 #[test]
+fn return_type() {
+    err(
+        "
+        class Foo[T]
+        fun f(): Foo[Int32] { Foo[Int64]() }
+    ",
+        pos(3, 29),
+        SemError::ReturnType("Foo[Int32]".into(), "Foo[Int64]".into()),
+    );
+}
+
+#[test]
 fn type_module_method_call() {
     ok("module Foo {
                 fun bar() {}

@@ -13,7 +13,7 @@ var youngBytes: Int64 = 0L;
 var nodes: Int64 = 0L;
 var actuallyMut: Int64 = 0L;
 var mutatorSum: Int64 = 0L;
-var aexport: Array[Int32] = Array[Int32]::empty();
+var aexport: Array[Int64] = Array[Int64]::empty();
 
 var trees: Array[TreeNode] = Array[TreeNode]::empty();
 var where: Int32 = 0;

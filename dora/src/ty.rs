@@ -365,7 +365,24 @@ impl SourceType {
             }
             SourceType::Ptr => panic!("ptr does not allow any other types"),
             SourceType::This => unreachable!(),
-            SourceType::Class(_, _) => *self == other || other.subclass_from(vm, self.clone()),
+            SourceType::Class(self_cls_id, self_list_id) => {
+                if *self == other {
+                    return true;
+                }
+
+                let (other_cls_id, other_list_id) = match other {
+                    SourceType::Class(cls_id, list_id) => (cls_id, list_id),
+                    _ => {
+                        return false;
+                    }
+                };
+
+                if self_cls_id == other_cls_id {
+                    self_list_id == other_list_id
+                } else {
+                    other.subclass_from(vm, self.clone())
+                }
+            }
             SourceType::Tuple(tuple_id) => match other {
                 SourceType::Tuple(other_tuple_id) => {
                     if tuple_id == other_tuple_id {
