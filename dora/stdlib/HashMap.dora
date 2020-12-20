@@ -10,7 +10,7 @@
         self.insert(entry.0, entry.1);
     }
 
-    fun insert(key: K, value: V) {
+    @pub fun insert(key: K, value: V) {
         self.ensureCapacity(1L);
         assert(self.entries < self.cap);
 
@@ -41,7 +41,7 @@
         }
     }
 
-    fun contains(key: K): Bool {
+    @pub fun contains(key: K): Bool {
         assert(self.entries <= self.cap);
 
         if self.entries == 0L {
@@ -68,7 +68,7 @@
         false
     }
 
-    fun get(key: K): Option[V] {
+    @pub fun get(key: K): Option[V] {
         assert(self.entries <= self.cap);
 
         if self.entries == 0L {
@@ -95,7 +95,7 @@
         Option[V]::None
     }
 
-    fun remove(key: K): Option[V] {
+    @pub fun remove(key: K): Option[V] {
         self.shrink();
 
         var hash = key.hash();
@@ -195,27 +195,27 @@
                !self.inserted_and_deleted.contains(2L * idx + 1L);
     }
 
-    fun size(): Int64 {
+    @pub fun size(): Int64 {
         return self.entries;
     }
 
-    fun isEmpty(): Bool {
+    @pub fun isEmpty(): Bool {
         return self.entries == 0L;
     }
 
-    fun capacity(): Int64 {
+    @pub fun capacity(): Int64 {
         return self.cap;
     }
 
-    fun makeIterator(): HashMapIter[K, V] {
+    @pub fun makeIterator(): HashMapIter[K, V] {
         HashMapIter[K, V](self)
     }
 }
 
-class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
+@pub class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
     var idx: Int64 = 0L;
 
-    fun hasNext(): Bool {
+    @pub fun hasNext(): Bool {
         while self.idx < self.map.capacity() {
             if self.map.isLive(self.idx) {
                 return true;
@@ -227,7 +227,7 @@ class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
         false
     }
 
-    fun next(): (K, V) {
+    @pub fun next(): (K, V) {
         assert(self.map.isLive(self.idx));
         let key = self.map.keys.get(self.idx);
         let value = self.map.values.get(self.idx);

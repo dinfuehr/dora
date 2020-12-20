@@ -4,25 +4,25 @@
         self.insert(key);
     }
 
-    fun insert(key: K) {
+    @pub fun insert(key: K) {
         self.map.insert(key, ());
     }
 
-    fun contains(key: K): Bool {
+    @pub fun contains(key: K): Bool {
         self.map.contains(key)
     }
 
-    fun remove(key: K): Bool = self.map.remove(key).isSome();
+    @pub fun remove(key: K): Bool = self.map.remove(key).isSome();
 
-    fun size(): Int64 {
+    @pub fun size(): Int64 {
         self.map.size()
     }
 
-    fun isEmpty(): Bool {
+    @pub fun isEmpty(): Bool {
         self.map.isEmpty()
     }
 
-    fun capacity(): Int64 {
+    @pub fun capacity(): Int64 {
         self.map.capacity()
     }
 }

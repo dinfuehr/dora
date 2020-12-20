@@ -1,32 +1,32 @@
 @pub module Assert {
-  fun equal[T : Equals + Stringable](actual: T, expected: T) {
+  @pub fun equal[T : Equals + Stringable](actual: T, expected: T) {
     if actual.equals(expected).not() {
       fatalError("values are not equal (actual: ${actual}, expected: ${expected})");
     }
   }
-  fun notEqual[T : Equals + Stringable](actual: T, expected: T) {
+  @pub fun notEqual[T : Equals + Stringable](actual: T, expected: T) {
     if actual.equals(expected) {
       fatalError("values are equal (actual: ${actual}, expected: ${expected})");
     }
   }
-  fun identical[T : Identity + Stringable](actual: T, expected: T) {
+  @pub fun identical[T : Identity + Stringable](actual: T, expected: T) {
     if actual !== expected {
       fatalError("values are not identical (actual: ${actual}, expected: ${expected})");
     }
   }
-  fun notIdentical[T : Identity + Stringable](actual: T, expected: T) {
+  @pub fun notIdentical[T : Identity + Stringable](actual: T, expected: T) {
     if actual === expected {
       fatalError("values are identical (actual: ${actual}, expected: ${expected})");
     }
   }
 
-  fun string(actual: String): StringAssert = StringAssert(actual);
-  fun list[T](actual: Vec[T]): ListAssert[T] = ListAssert[T](actual);
-  fun set[T : Equals + Hash](actual: HashSet[T]): SetAssert[T] = SetAssert[T](actual);
-  fun map[K : Equals + Hash, V](actual: HashMap[K, V]): MapAssert[K, V] = MapAssert[K, V](actual);
+  @pub fun string(actual: String): StringAssert = StringAssert(actual);
+  @pub fun list[T](actual: Vec[T]): ListAssert[T] = ListAssert[T](actual);
+  @pub fun set[T : Equals + Hash](actual: HashSet[T]): SetAssert[T] = SetAssert[T](actual);
+  @pub fun map[K : Equals + Hash, V](actual: HashMap[K, V]): MapAssert[K, V] = MapAssert[K, V](actual);
 }
 
-class StringAssert(let value: String) {
+@pub class StringAssert(let value: String) {
   /*
   fun contains(expected: String): StringAssert {
     assert(self.value.contains(expected));
@@ -34,21 +34,21 @@ class StringAssert(let value: String) {
   }
   */
 
-  fun hasSize(expected: Int64): StringAssert {
+  @pub fun hasSize(expected: Int64): StringAssert {
     if self.value.size() != expected {
       fatalError("unexpected string size (actual: ${self.value.size()}, expected: ${expected})");
     }
     return self;
   }
 
-  fun isEmpty(): StringAssert {
+  @pub fun isEmpty(): StringAssert {
     if self.value.isEmpty().not() {
       fatalError("string not empty (is \"${self.value}\")");
     }
     return self;
   }
 
-  fun isNotEmpty(): StringAssert {
+  @pub fun isNotEmpty(): StringAssert {
     if self.value.isEmpty() {
       fatalError("string is empty");
     }
@@ -56,20 +56,20 @@ class StringAssert(let value: String) {
   }
 }
 
-class ListAssert[T](let value: Vec[T]) {
-  fun hasSize(expected: Int64): ListAssert[T] {
+@pub class ListAssert[T](let value: Vec[T]) {
+  @pub fun hasSize(expected: Int64): ListAssert[T] {
     assert(self.value.size() == expected);
     return self;
   }
 
-  fun isEmpty(): ListAssert[T] {
+  @pub fun isEmpty(): ListAssert[T] {
     if self.value.isEmpty().not() {
       fatalError("list is not empty");
     }
     return self;
   }
 
-  fun isNotEmpty(): ListAssert[T] {
+  @pub fun isNotEmpty(): ListAssert[T] {
     if self.value.isEmpty() {
       fatalError("list is empty");
     }
@@ -77,32 +77,32 @@ class ListAssert[T](let value: Vec[T]) {
   }
 }
 
-class SetAssert[T : Equals + Hash](let value: HashSet[T]) {
-  fun contains(expected: T): SetAssert[T] {
+@pub class SetAssert[T : Equals + Hash](let value: HashSet[T]) {
+  @pub fun contains(expected: T): SetAssert[T] {
     assert(self.value.contains(expected));
     return self;
   }
 
-  fun containsAll(expected: T...): SetAssert[T] {
+  @pub fun containsAll(expected: T...): SetAssert[T] {
     for value in expected {
       assert(self.value.contains(value));
     }
     return self;
   }
 
-  fun hasSize(expected: Int64): SetAssert[T] {
+  @pub fun hasSize(expected: Int64): SetAssert[T] {
     assert(self.value.size() == expected);
     return self;
   }
 
-  fun isEmpty(): SetAssert[T] {
+  @pub fun isEmpty(): SetAssert[T] {
     if self.value.isEmpty().not() {
       fatalError("set is not empty");
     }
     return self;
   }
 
-  fun isNotEmpty(): SetAssert[T] {
+  @pub fun isNotEmpty(): SetAssert[T] {
     if self.value.isEmpty() {
       fatalError("set is empty");
     }
@@ -110,32 +110,32 @@ class SetAssert[T : Equals + Hash](let value: HashSet[T]) {
   }
 }
 
-class MapAssert[K : Equals + Hash, V](let value: HashMap[K, V]) {
-  fun contains(expected: K): MapAssert[K, V] {
+@pub class MapAssert[K : Equals + Hash, V](let value: HashMap[K, V]) {
+  @pub fun contains(expected: K): MapAssert[K, V] {
     assert(self.value.contains(expected));
     return self;
   }
 
-  fun containsAll(expected: K...): MapAssert[K, V] {
+  @pub fun containsAll(expected: K...): MapAssert[K, V] {
     for value in expected {
       assert(self.value.contains(value));
     }
     return self;
   }
 
-  fun hasSize(expected: Int64): MapAssert[K, V] {
+  @pub fun hasSize(expected: Int64): MapAssert[K, V] {
     assert(self.value.size() == expected);
     return self;
   }
 
-  fun isEmpty(): MapAssert[K, V] {
+  @pub fun isEmpty(): MapAssert[K, V] {
     if self.value.isEmpty().not() {
       fatalError("set is not empty");
     }
     return self;
   }
 
-  fun isNotEmpty(): MapAssert[K, V] {
+  @pub fun isNotEmpty(): MapAssert[K, V] {
     if self.value.isEmpty() {
       fatalError("set is empty");
     }

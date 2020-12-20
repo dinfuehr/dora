@@ -1,5 +1,5 @@
-class IntRange(let lower: Int32, let upper: Int32) {
-  fun makeIterator(): IntRangeIter {
+@pub class IntRange(let lower: Int32, let upper: Int32) {
+  @pub fun makeIterator(): IntRangeIter {
     return IntRangeIter(self);
   }
 }

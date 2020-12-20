@@ -7,21 +7,21 @@ import Option::Some;
 import Option::None;
 
 impl[T] Option[T] {
-  fun isNone(): Bool {
+  @pub fun isNone(): Bool {
     match self {
       Some(_) => false,
       None => true,
     }
   }
 
-  fun isSome(): Bool {
+  @pub fun isSome(): Bool {
     match self {
       Some(_) => true,
       None => false,
     }
   }
 
-  fun unwrap(): T {
+  @pub fun unwrap(): T {
     match self {
       Some(value) => value,
       None => {
@@ -40,14 +40,14 @@ impl[T] Option[T] {
     }
   }
 
-  fun unwrapOr(alt: T): T {
+  @pub fun unwrapOr(alt: T): T {
     match self {
       Some(value) => value,
       None => alt,
     }
   }
 
-  fun has(val: T): Bool {
+  @pub fun has(val: T): Bool {
     match self {
       Some(actual) => actual === val,
       None => false,

@@ -1,15 +1,15 @@
 @pub @internal struct Bool
 
 impl Bool {
-  @internal fun toInt32(): Int32;
-  @internal fun toInt64(): Int64;
+  @pub @internal fun toInt32(): Int32;
+  @pub @internal fun toInt64(): Int64;
 
-  fun hash(): Int32 = self.toInt32();
+  @pub fun hash(): Int32 = self.toInt32();
 
-  fun toString(): String = if self { "true" } else { "false" };
-  fun toStringBinary(): String = if self { "1" } else { "0" };
-  fun toStringHex(): String = if self { "1" } else { "0" };
+  @pub fun toString(): String = if self { "true" } else { "false" };
+  @pub fun toStringBinary(): String = if self { "1" } else { "0" };
+  @pub fun toStringHex(): String = if self { "1" } else { "0" };
 
-  @internal fun equals(rhs: Bool): Bool;
-  @internal fun not(): Bool;
+  @pub @internal fun equals(rhs: Bool): Bool;
+  @pub @internal fun not(): Bool;
 }

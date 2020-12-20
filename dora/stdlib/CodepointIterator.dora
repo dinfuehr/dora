@@ -1,7 +1,7 @@
 @pub class CodepointIterator(let value: String, var start: Int64) {
-    fun hasNext(): Bool = self.start < self.value.size();
+    @pub fun hasNext(): Bool = self.start < self.value.size();
 
-    fun next(): Char {
+    @pub fun next(): Char {
         var ch = self.value.getByte(self.start);
 
         if ch <= 0x7FY {
@@ -40,7 +40,7 @@
         return '\0';
     }
 
-    fun peek(): Char {
+    @pub fun peek(): Char {
         var ch = self.value.getByte(self.start);
 
         if ch <= 0x7FY {
@@ -75,7 +75,7 @@
         return '\0';
     }
 
-    fun size(): Int64 {
+    @pub fun size(): Int64 {
         var i = 0L;
 
         while self.hasNext() {
@@ -86,5 +86,5 @@
         return i;
     }
 
-    fun toString(): String = String::fromStringPart(self.value, self.start, self.value.size() - self.start).unwrap();
+    @pub fun toString(): String = String::fromStringPart(self.value, self.start, self.value.size() - self.start).unwrap();
 }

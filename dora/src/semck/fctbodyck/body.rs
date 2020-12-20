@@ -14,7 +14,7 @@ use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     self, class_accessible_from, class_field_accessible_from, const_accessible_from, ensure_tuple,
     enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
-    find_methods_in_enum, find_methods_in_struct, global_accessible_from,
+    find_methods_in_enum, find_methods_in_struct, global_accessible_from, method_accessible_from,
     namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
     CallType, ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType,
     Intrinsic, NamespaceId, StructData, StructId, TypeParam, TypeParamDefinition, TypeParamId, Var,
@@ -1764,6 +1764,15 @@ impl<'a> TypeCheck<'a> {
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
             self.analysis.set_ty(e.id, return_type.clone());
+
+            if !method_accessible_from(self.vm, fct_id, self.namespace_id) {
+                let fct = self.vm.fcts.idx(fct_id);
+                let fct = fct.read();
+
+                let name = fct.name(self.vm);
+                let msg = SemError::NotAccessible(name);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
+            }
 
             return_type
         } else if lookup.found_fct_id().is_none() {

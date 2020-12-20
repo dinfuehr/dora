@@ -1,16 +1,16 @@
 @pub @internal struct Float64
 
 impl Float64 {
-  @internal fun toInt32(): Int32;
-  @internal fun toInt64(): Int64;
-  @internal fun toFloat32(): Float32;
-  @internal fun toString(): String;
+  @pub @internal fun toInt32(): Int32;
+  @pub @internal fun toInt64(): Int64;
+  @pub @internal fun toFloat32(): Float32;
+  @pub @internal fun toString(): String;
 
-  @internal fun asInt64(): Int64;
+  @pub @internal fun asInt64(): Int64;
 
-  @internal fun equals(rhs: Float64): Bool;
-  @internal fun compareTo(rhs: Float64): Int32;
-  fun sortsAs(rhs: Float64): Int32 {
+  @pub @internal fun equals(rhs: Float64): Bool;
+  @pub @internal fun compareTo(rhs: Float64): Int32;
+  @pub fun sortsAs(rhs: Float64): Int32 {
     var ix = self.asInt64();
     var iy = rhs.asInt64();
 
@@ -25,19 +25,19 @@ impl Float64 {
     return 1;
   }
 
-  @internal fun plus(rhs: Float64): Float64;
-  @internal fun minus(rhs: Float64): Float64;
-  @internal fun times(rhs: Float64): Float64;
-  @internal fun div(rhs: Float64): Float64;
+  @pub @internal fun plus(rhs: Float64): Float64;
+  @pub @internal fun minus(rhs: Float64): Float64;
+  @pub @internal fun times(rhs: Float64): Float64;
+  @pub @internal fun div(rhs: Float64): Float64;
 
-  @internal fun unaryPlus(): Float64;
-  @internal fun unaryMinus(): Float64;
+  @pub @internal fun unaryPlus(): Float64;
+  @pub @internal fun unaryMinus(): Float64;
 
-  @internal fun isNan(): Bool;
-  @internal fun sqrt(): Float64;
+  @pub @internal fun isNan(): Bool;
+  @pub @internal fun sqrt(): Float64;
 
-  fun hash(): Int32 = self.asInt64().toInt32();
+  @pub fun hash(): Int32 = self.asInt64().toInt32();
 
-  @static fun bits(): Int32 = 64;
-  @static fun bytes(): Int32 = 8;
+  @pub @static fun bits(): Int32 = 64;
+  @pub @static fun bytes(): Int32 = 8;
 }

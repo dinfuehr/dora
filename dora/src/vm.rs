@@ -28,8 +28,8 @@ use dora_parser::parser::NodeIdGenerator;
 
 pub use self::classes::{
     class_accessible_from, class_field_accessible_from, find_field_in_class, find_method_in_class,
-    find_methods_in_class, Candidate, Class, ClassDef, ClassDefId, ClassId, Field, FieldDef,
-    FieldId, TypeParam, TypeParamDefinition, TypeParamId,
+    find_methods_in_class, method_accessible_from, Candidate, Class, ClassDef, ClassDefId, ClassId,
+    Field, FieldDef, FieldId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 pub use self::consts::{const_accessible_from, ConstData, ConstId, ConstValue};
 pub use self::enums::{

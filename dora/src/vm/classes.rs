@@ -13,8 +13,8 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
-    accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctId, FileId,
-    ImplId, NamespaceId, TraitId,
+    accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctId,
+    FctParent, FileId, ImplId, NamespaceId, TraitId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast;
@@ -631,4 +631,35 @@ pub fn class_field_accessible_from(
         cls.is_pub && field.is_pub,
         namespace_id,
     )
+}
+
+pub fn method_accessible_from(vm: &VM, fct_id: FctId, namespace_id: NamespaceId) -> bool {
+    let fct = vm.fcts.idx(fct_id);
+    let fct = fct.read();
+
+    let element_pub = match fct.parent {
+        FctParent::Class(cls_id) => {
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            cls.is_pub && fct.is_pub
+        }
+
+        FctParent::Extension(_) => fct.is_pub,
+        FctParent::Impl(_) | FctParent::Trait(_) => {
+            // TODO: This should probably be limited
+            return true;
+        }
+
+        FctParent::Module(module_id) => {
+            let module = vm.modules.idx(module_id);
+            let module = module.read();
+
+            module.is_pub && fct.is_pub
+        }
+
+        FctParent::None => unreachable!(),
+    };
+
+    accessible_from(vm, fct.namespace_id, element_pub, namespace_id)
 }

@@ -4,7 +4,7 @@
 
   self.retrieveStacktrace();
 
-  fun getStacktrace(): Array[StacktraceElement] {
+  @pub fun getStacktrace(): Array[StacktraceElement] {
     if self.elements.isSome() {
       return self.elements.unwrap();
     }
@@ -29,7 +29,7 @@
     return elements;
   }
 
-  fun printStacktrace() {
+  @pub fun printStacktrace() {
     let x = self.getStacktrace();
     var i = 0L;
 

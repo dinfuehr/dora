@@ -1,22 +1,21 @@
 @pub @internal class Array[T](values: T...) {
+  @pub @internal fun size(): Int64;
+  @pub @internal fun get(idx: Int64): T;
+  @pub @internal fun set(idx: Int64, val: T);
 
-  @internal fun size(): Int64;
-  @internal fun get(idx: Int64): T;
-  @internal fun set(idx: Int64, val: T);
+  @pub fun isEmpty(): Bool = self.size() == 0L;
 
-  fun isEmpty(): Bool = self.size() == 0L;
-
-  fun enumerate(): ArrayEnumerator[T] {
+  @pub fun enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T](self)
   }
 
-  @static fun empty(): Array[T] {
+  @pub @static fun empty(): Array[T] {
     Array[T]::ofSizeUnsafe(0L)
   }
 
   @static @internal fun ofSizeUnsafe(size: Int64): Array[T];
 
-  @static fun fill(len: Int64, value: T): Array[T] {
+  @pub @static fun fill(len: Int64, value: T): Array[T] {
     let array = Array[T]::ofSizeUnsafe(len);
     var i = 0L;
 
@@ -28,7 +27,7 @@
     return array;
   }
 
-  @static fun copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
+  @pub @static fun copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
     var i = 0L;
 
     while i < len {
@@ -59,14 +58,14 @@ impl[T: Zero] Array[T] {
   }
 }
 
-class ArrayEnumerator[T](let array: Array[T]) {
+@pub class ArrayEnumerator[T](let array: Array[T]) {
   var idx: Int64 = 0L;
 
-  fun hasNext(): Bool {
+  @pub fun hasNext(): Bool {
     self.idx < self.array.size()
   }
 
-  fun next(): (Int64, T) {
+  @pub fun next(): (Int64, T) {
     let current_idx = self.idx;
     self.idx = self.idx + 1L;
     (current_idx, self.array(current_idx))

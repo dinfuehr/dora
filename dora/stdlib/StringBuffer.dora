@@ -2,17 +2,17 @@
   var buf: Array[UInt8] = Array[UInt8]::empty();
   var len: Int64 = 0L;
 
-  fun size(): Int64 {
+  @pub fun size(): Int64 {
     return self.len;
   }
 
-  fun capacity(): Int64 {
+  @pub fun capacity(): Int64 {
     return self.buf.size();
   }
 
   // reserve `elements` bytes
   // (capacity - length >= elements)
-  fun reserve(elements: Int64) {
+  @pub fun reserve(elements: Int64) {
     if self.capacity() - self.size() >= elements {
       return;
     }
@@ -29,7 +29,7 @@
     self.buf = newbuf;
   }
 
-  fun newCapacity(reserve: Int64): Int64 {
+  @pub fun newCapacity(reserve: Int64): Int64 {
     var len = self.len;
 
     if len == 0L {
@@ -48,7 +48,7 @@
     }
   }
 
-  fun appendChar(ch: Char): StringBuffer {
+  @pub fun appendChar(ch: Char): StringBuffer {
     let chLen = ch.lenUtf8();
     self.reserve(chLen.toInt64());
     ch.encodeUtf8(self.buf, self.len);
@@ -56,7 +56,7 @@
     self
   }
 
-  fun append(value: String): StringBuffer {
+  @pub fun append(value: String): StringBuffer {
     self.reserve(value.size());
     var i = 0L;
 
@@ -69,11 +69,11 @@
     self
   }
 
-  fun appendNewline(): StringBuffer {
+  @pub fun appendNewline(): StringBuffer {
     self.appendChar('\n')
   }
 
-  fun toString(): String = String::fromBytesPart(self.buf, 0L, self.size()).unwrap();
+  @pub fun toString(): String = String::fromBytesPart(self.buf, 0L, self.size()).unwrap();
 
-  @static fun empty(): StringBuffer = StringBuffer();
+  @pub @static fun empty(): StringBuffer = StringBuffer();
 }

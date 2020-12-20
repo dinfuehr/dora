@@ -2,7 +2,7 @@
   var array: Array[T] = values;
   var len: Int64 = values.size();
 
-  fun get(idx: Int64): T {
+  @pub fun get(idx: Int64): T {
     if idx < 0L || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
@@ -10,7 +10,7 @@
     return self.array(idx);
   }
 
-  fun set(idx: Int64, val: T) {
+  @pub fun set(idx: Int64, val: T) {
     if idx < 0L || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
@@ -18,7 +18,7 @@
     self.array.set(idx, val);
   }
 
-  fun reserve(newcap: Int64) {
+  @pub fun reserve(newcap: Int64) {
     assert(newcap >= 0L);
 
     if self.capacity() >= newcap {
@@ -30,7 +30,7 @@
     self.array = newarray;
   }
 
-  fun push(val: T) {
+  @pub fun push(val: T) {
     var newcap = self.capacity();
 
     if self.len == newcap {
@@ -49,13 +49,13 @@
     self.len = self.len + 1L;
   }
 
-  fun toArray(): Array[T] {
+  @pub fun toArray(): Array[T] {
     let newarray = Array[T]::ofSizeUnsafe(self.len);
     Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
     newarray
   }
 
-  fun pop(): T {
+  @pub fun pop(): T {
     if self.len == 0L {
       fatalError("no element left to pop");
     }
@@ -71,7 +71,7 @@
     temp
   }
 
-  fun trimToLen() {
+  @pub fun trimToLen() {
     if self.len != self.capacity() {
       if self.len == 0L {
         self.array = Array[T]::empty();
@@ -83,7 +83,7 @@
     }
   }
 
-  fun removeItem(value: T) {
+  @pub fun removeItem(value: T) {
     let len = self.len;
     var destIdx = 0L;
     var srcIdx = 0L;
@@ -107,7 +107,7 @@
     }
   }
 
-  fun removeAt(ind: Int64): T {
+  @pub fun removeAt(ind: Int64): T {
     var ind = ind;
     assert(ind < self.len);
     let temp = self.get(ind);
@@ -124,19 +124,19 @@
     temp
   }
 
-  fun size(): Int64 {
+  @pub fun size(): Int64 {
     return self.len;
   }
 
-  fun isEmpty(): Bool {
+  @pub fun isEmpty(): Bool {
     self.len == 0L
   }
 
-  fun capacity(): Int64 {
+  @pub fun capacity(): Int64 {
     self.array.size()
   }
 
-  fun first(): Option[T] {
+  @pub fun first(): Option[T] {
     if self.len == 0L {
       Option[T]::None
     } else {
@@ -144,7 +144,7 @@
     }
   }
 
-  fun last(): Option[T] {
+  @pub fun last(): Option[T] {
     if self.len == 0L {
       Option[T]::None
     } else {
@@ -152,20 +152,20 @@
     }
   }
 
-  fun clear() {
+  @pub fun clear() {
     self.len = 0L;
     self.array = Array[T]::empty();
   }
 
-  fun makeIterator(): VecIter[T] {
+  @pub fun makeIterator(): VecIter[T] {
     VecIter[T](self)
   }
 
-  fun makeReverseIterator(): ReverseVecIter[T] {
+  @pub fun makeReverseIterator(): ReverseVecIter[T] {
     ReverseVecIter[T](self)
   }
 
-  fun enumerate(): VecEnumerator[T] {
+  @pub fun enumerate(): VecEnumerator[T] {
     VecEnumerator[T](self)
   }
 }
@@ -173,11 +173,11 @@
 @pub class VecEnumerator[T](let data: Vec[T]) {
   var idx: Int64 = 0L;
 
-  fun hasNext(): Bool {
+  @pub fun hasNext(): Bool {
     self.idx < self.data.size()
   }
 
-  fun next(): (Int64, T) {
+  @pub fun next(): (Int64, T) {
     let current_idx = self.idx;
     self.idx = self.idx + 1L;
     (current_idx, self.data(current_idx))
@@ -187,11 +187,11 @@
 @pub class VecIter[T](let data: Vec[T]) {
   var idx: Int64 = 0L;
 
-  fun hasNext(): Bool {
+  @pub fun hasNext(): Bool {
     self.idx < self.data.size()
   }
 
-  fun next(): T {
+  @pub fun next(): T {
     let result = self.data(self.idx);
     self.idx = self.idx + 1L;
     result
@@ -201,11 +201,11 @@
 @pub class ReverseVecIter[T](let data: Vec[T]) {
   var idx: Int64 = data.size() - 1L;
 
-  fun hasNext(): Bool {
+  @pub fun hasNext(): Bool {
     self.idx != -1L
   }
 
-  fun next(): T {
+  @pub fun next(): T {
     let result = self.data(self.idx);
     self.idx = self.idx - 1L;
     result

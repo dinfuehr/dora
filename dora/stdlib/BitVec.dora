@@ -1,7 +1,7 @@
 @pub class BitVec {
     var data: Array[Int32] = Array[Int32]::empty();
 
-    fun contains(idx: Int64): Bool {
+    @pub fun contains(idx: Int64): Bool {
         if idx < 0L {
             fatalError("index out of bounds");
         }
@@ -17,7 +17,7 @@
         return value & (1 << value_idx.toInt32()) != 0;
     }
 
-    fun insert(idx: Int64) {
+    @pub fun insert(idx: Int64) {
         if idx < 0L {
             fatalError("index out of bounds");
         }
@@ -33,7 +33,7 @@
         self.data.set(entry_idx, value);
     }
 
-    fun remove(idx: Int64) {
+    @pub fun remove(idx: Int64) {
         if idx < 0L {
             fatalError("index out of bounds");
         }
@@ -51,7 +51,7 @@
         self.data.set(entry_idx, value);
     }
 
-    fun ensureCapacity(newcap: Int64) {
+    @pub fun ensureCapacity(newcap: Int64) {
         if newcap < self.data.size() * 32L || newcap == 0L {
             return;
         }
@@ -63,7 +63,7 @@
         self.data = newarray;
     }
 
-    fun capacity(): Int64 {
+    @pub fun capacity(): Int64 {
         self.data.size() * 32L
     }
 }
