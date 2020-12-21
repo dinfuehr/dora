@@ -1,7 +1,7 @@
 @pub class Locale(let value: String) {
-  @static fun de(): Locale = Locale("de");
-  @static fun en(): Locale = Locale("en");
-  @static fun fr(): Locale = Locale("fr");
+  @pub @static fun de(): Locale = Locale("de");
+  @pub @static fun en(): Locale = Locale("en");
+  @pub @static fun fr(): Locale = Locale("fr");
 }
 
 impl Equals for Locale {

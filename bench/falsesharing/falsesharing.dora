@@ -18,7 +18,7 @@ fun main() {
 }
 
 fun construct(size: Int64): Array[Foo] {
-    let objects: Array[Foo] = Array::ofSizeUnsafe[Foo](size);
+    let objects: Array[Foo] = Array::fill[Foo](size, Foo(nil, nil));
 
     var i = 0L;
 

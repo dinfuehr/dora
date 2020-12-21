@@ -655,13 +655,7 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_method(vm, stdlib, "Array", "get", Intrinsic::ArrayGet);
     intrinsic_method(vm, stdlib, "Array", "set", Intrinsic::ArraySet);
 
-    intrinsic_static(
-        vm,
-        stdlib,
-        "Array",
-        "ofSizeUnsafe",
-        Intrinsic::ArrayNewOfSize,
-    );
+    intrinsic_static(vm, stdlib, "Array", "unsafeNew", Intrinsic::ArrayNewOfSize);
 
     native_method(
         vm,

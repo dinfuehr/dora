@@ -2701,23 +2701,23 @@ fn gen_position_new_object() {
 
 #[test]
 fn gen_new_array() {
-    gen_fct(
-        "fun f(): Array[Int32] { return Array[Int32]::ofSizeUnsafe(1L); }",
-        |vm, code, _fct| {
-            let cls_id = vm.cls_by_name("Array");
-            let expected = vec![
-                ConstInt64(r(1), 1),
-                NewArray(
-                    r(0),
-                    cls_id,
-                    SourceTypeArray::single(SourceType::Int32),
-                    r(1),
-                ),
-                Ret(r(0)),
-            ];
-            assert_eq!(expected, code);
-        },
-    );
+    // gen_fct(
+    //     "fun f(): Array[Int32] { return Array[Int32]::zero(1L); }",
+    //     |vm, code, _fct| {
+    //         let cls_id = vm.cls_by_name("Array");
+    //         let expected = vec![
+    //             ConstInt64(r(1), 1),
+    //             NewArray(
+    //                 r(0),
+    //                 cls_id,
+    //                 SourceTypeArray::single(SourceType::Int32),
+    //                 r(1),
+    //             ),
+    //             Ret(r(0)),
+    //         ];
+    //         assert_eq!(expected, code);
+    //     },
+    // );
 
     gen_fct(
         "fun f(): Array[Int32] { Array[Int32](1, 2, 3) }",
@@ -2745,13 +2745,6 @@ fn gen_new_array() {
             assert_eq!(expected, code);
         },
     );
-}
-
-#[test]
-fn gen_position_new_array() {
-    let result = position("fun f(): Array[Int32] { return Array[Int32]::ofSizeUnsafe(1L); }");
-    let expected = vec![(3, p(1, 58))];
-    assert_eq!(expected, result);
 }
 
 #[test]

@@ -10,13 +10,13 @@
   }
 
   @pub @static fun empty(): Array[T] {
-    Array[T]::ofSizeUnsafe(0L)
+    Array[T]::unsafeNew(0L)
   }
 
-  @static @internal fun ofSizeUnsafe(size: Int64): Array[T];
+  @static @internal fun unsafeNew(size: Int64): Array[T];
 
   @pub @static fun fill(len: Int64, value: T): Array[T] {
-    let array = Array[T]::ofSizeUnsafe(len);
+    let array = Array[T]::unsafeNew(len);
     var i = 0L;
 
     while i < len {
@@ -38,8 +38,8 @@
 }
 
 impl[T: Default] Array[T] {
-  @static fun new(len: Int64): Array[T] {
-    let array = Array[T]::ofSizeUnsafe(len);
+  @pub @static fun new(len: Int64): Array[T] {
+    let array = Array[T]::unsafeNew(len);
     var i = 0L;
     let value = T::default();
 
@@ -53,8 +53,8 @@ impl[T: Default] Array[T] {
 }
 
 impl[T: Zero] Array[T] {
-  @static fun zero(len: Int64): Array[T] {
-    Array[T]::ofSizeUnsafe(len)
+  @pub @static fun zero(len: Int64): Array[T] {
+    Array[T]::unsafeNew(len)
   }
 }
 

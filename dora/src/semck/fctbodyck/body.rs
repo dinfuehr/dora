@@ -1705,6 +1705,15 @@ impl<'a> TypeCheck<'a> {
             let call_type = Arc::new(CallType::Fct(fct_id, type_params));
             self.analysis.map_calls.insert(e.id, call_type.clone());
 
+            if !method_accessible_from(self.vm, fct_id, self.namespace_id) {
+                let fct = self.vm.fcts.idx(fct_id);
+                let fct = fct.read();
+
+                let name = fct.name(self.vm);
+                let msg = SemError::NotAccessible(name);
+                self.vm.diag.lock().report(self.file_id, e.pos, msg);
+            }
+
             self.analysis.set_ty(e.id, return_type.clone());
 
             return_type

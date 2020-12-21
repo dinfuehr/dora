@@ -25,7 +25,7 @@
       return;
     }
 
-    let newarray = Array[T]::ofSizeUnsafe(newcap);
+    let newarray = Array[T]::unsafeNew(newcap);
     Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
     self.array = newarray;
   }
@@ -40,7 +40,7 @@
         newcap = newcap * 2L;
       }
 
-      let newarray = Array[T]::ofSizeUnsafe(newcap);
+      let newarray = Array[T]::unsafeNew(newcap);
       Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
       self.array = newarray;
     }
@@ -50,7 +50,7 @@
   }
 
   @pub fun toArray(): Array[T] {
-    let newarray = Array[T]::ofSizeUnsafe(self.len);
+    let newarray = Array[T]::unsafeNew(self.len);
     Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
     newarray
   }
@@ -76,7 +76,7 @@
       if self.len == 0L {
         self.array = Array[T]::empty();
       } else {
-        let newarray = Array[T]::ofSizeUnsafe(self.len);
+        let newarray = Array[T]::unsafeNew(self.len);
         Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
         self.array = newarray;
       }

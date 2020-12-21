@@ -3076,6 +3076,23 @@ fn namespace_class_method() {
 }
 
 #[test]
+fn namespace_class_static_method() {
+    ok("
+        fun f() { foo::Foo::bar(); }
+        namespace foo { @pub class Foo { @pub @static fun bar() {} } }
+    ");
+
+    err(
+        "
+        fun f() { foo::Foo::bar(); }
+        namespace foo { @pub class Foo { @static fun bar() {} } }
+    ",
+        pos(2, 32),
+        SemError::NotAccessible("foo::bar".into()),
+    );
+}
+
+#[test]
 fn namespace_struct_field() {
     err(
         "
@@ -3389,7 +3406,7 @@ fn namespace_import_class() {
         }
         namespace foo {
             @pub class Bar {
-                @static fun baz() {}
+                @pub @static fun baz() {}
             }
         }
     ");
