@@ -39,6 +39,8 @@ class Lexer(let content: String) {
                 return self.readIdentifier();
             } else if isNewline(char) {
                 return self.readNewline();
+            } else if isOperator(char) {
+                return self.readOperator();
             } else {
                 std::fatalError("unknown character ${char.unwrap()}");
             }
@@ -75,6 +77,7 @@ class Lexer(let content: String) {
 
     fun readOperator(): Token {
         let ch = self.look().unwrap();
+        self.readChar();
 
         if ch == ':' {
             Token::Colon
@@ -94,6 +97,16 @@ fun isWhitespace(ch: Option[Char]): Bool {
     let ch = ch.unwrap();
 
     ch == ' ' || ch == '\t'
+}
+
+fun isOperator(ch: Option[Char]): Bool {
+    if ch.isNone() {
+        return false;
+    }
+
+    let ch = ch.unwrap();
+
+    ch == ':' || ch == '='
 }
 
 fun isIdentifierStart(ch: Option[Char]): Bool {
@@ -160,6 +173,13 @@ namespace tests {
         assertEnd(lexer);
     }
 
+    @test fun readOperators(_x: std::Testing) {
+        let lexer = Lexer(":=");
+        assertColon(lexer);
+        assertEq(lexer);
+        assertEnd(lexer);
+    }
+
     fun assertIdent(lexer: Lexer, ident: String) {
         let token = lexer.readToken();
 
@@ -181,6 +201,28 @@ namespace tests {
             Token::Newline => {},
             _ => {
                 std::fatalError("newline expected");
+            }
+        }
+    }
+
+    fun assertEq(lexer: Lexer) {
+        let token = lexer.readToken();
+
+        match token {
+            Token::Eq => {},
+            _ => {
+                std::fatalError("eq expected");
+            }
+        }
+    }
+
+    fun assertColon(lexer: Lexer) {
+        let token = lexer.readToken();
+
+        match token {
+            Token::Colon => {},
+            _ => {
+                std::fatalError("eq expected");
             }
         }
     }
