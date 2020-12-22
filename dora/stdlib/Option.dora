@@ -59,7 +59,7 @@ impl[T: Equals] Option[T] {
   @pub fun contains(rhs: T): Bool {
     if self.isSome() {
       let lhs = self.unwrap();
-      lhs === rhs || lhs.equals(rhs)
+      lhs.equals(rhs)
     } else {
       false
     }

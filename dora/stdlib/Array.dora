@@ -72,13 +72,13 @@ impl[T: Zero] Array[T] {
   }
 }
 
-impl[T: Identity + Equals] Array[T] {
+impl[T: Equals] Array[T] {
   @pub fun contains(value: T): Bool {
     var i = 0L;
 
     while i < self.size() {
       let x = self.get(i);
-      if x.identicalTo(value) || x.equals(value) {
+      if x.equals(value) {
         return true;
       }
       i = i + 1L;
