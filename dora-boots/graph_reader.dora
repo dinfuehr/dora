@@ -1,0 +1,198 @@
+fun readGraph(data: String): Graph {
+    unreachable[Graph]()
+}
+
+class GraphReader {
+
+}
+
+class Lexer(let content: String) {
+    var idx: Int64 = 0L;
+
+    fun look(): Option[Char] {
+        if self.idx == self.content.size() {
+            return None[Char];
+        }
+
+        Some[Char](self.content.getByte(self.idx).toChar())
+    }
+
+    fun readChar() {
+        if self.idx == self.content.size() {
+            std::fatalError("already at end of file");
+        } else {
+            self.idx = self.idx + 1L;
+        }
+    }
+
+    fun readToken(): Token {
+        while true {
+            self.skipWhitespace();
+
+            let char = self.look();
+
+            if char.isNone() {
+                return Token::End;
+            }
+
+            if isIdentifierStart(char) {
+                return self.readIdentifier();
+            } else if isNewline(char) {
+                return self.readNewline();
+            } else {
+                std::fatalError("unknown character ${char.unwrap()}");
+            }
+        }
+
+        unreachable[Token]()
+    }
+
+    fun skipWhitespace() {
+        while isWhitespace(self.look()) {
+            self.readChar();
+        }
+    }
+
+    fun readIdentifier(): Token {
+        let buffer = StringBuffer::empty();
+
+        while isIdentifierStart(self.look()) || isDigit(self.look()) {
+            let look = self.look().unwrap();
+            buffer.appendChar(look);
+            self.readChar();
+        }
+
+        Token::Ident(buffer.toString())
+    }
+
+    fun readNewline(): Token {
+        let ch = self.look().unwrap();
+        assert(ch == '\n');
+        self.readChar();
+
+        Token::Newline
+    }
+
+    fun readOperator(): Token {
+        let ch = self.look().unwrap();
+
+        if ch == ':' {
+            Token::Colon
+        } else if ch == '=' {
+            Token::Eq
+        } else {
+            unreachable[Token]()
+        }
+    }
+}
+
+fun isWhitespace(ch: Option[Char]): Bool {
+    if ch.isNone() {
+        return false;
+    }
+
+    let ch = ch.unwrap();
+
+    ch == ' ' || ch == '\t'
+}
+
+fun isIdentifierStart(ch: Option[Char]): Bool {
+    if ch.isNone() {
+        return false;
+    }
+
+    let ch = ch.unwrap();
+
+    (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
+}
+
+fun isDigit(ch: Option[Char]): Bool {
+    if ch.isNone() {
+        return false;
+    }
+
+    let ch = ch.unwrap();
+
+    (ch >= '0' && ch <= '9')
+}
+
+fun isNewline(ch: Option[Char]): Bool {
+    if ch.isNone() {
+        return false;
+    }
+
+    ch.unwrap() == '\n'
+}
+
+enum Token {
+    End,
+    Ident(String),
+    Newline,
+    Colon,
+    Eq,
+}
+
+namespace tests {
+    import super::Token;
+    import super::Lexer;
+
+    @test fun readSingleIdentifier(_x: std::Testing) {
+        let lexer = Lexer("foo");
+        assertIdent(lexer, "foo");
+        assertEnd(lexer);
+    }
+
+    @test fun readMultipleIdentifiers(_x: std::Testing) {
+        let lexer = Lexer("foo bar baz");
+        assertIdent(lexer, "foo");
+        assertIdent(lexer, "bar");
+        assertIdent(lexer, "baz");
+        assertEnd(lexer);
+    }
+
+    @test fun readMultipleLines(_x: std::Testing) {
+        let lexer = Lexer("foo\nbar\nbaz");
+        assertIdent(lexer, "foo");
+        assertNewline(lexer);
+        assertIdent(lexer, "bar");
+        assertNewline(lexer);
+        assertIdent(lexer, "baz");
+        assertEnd(lexer);
+    }
+
+    fun assertIdent(lexer: Lexer, ident: String) {
+        let token = lexer.readToken();
+
+        match token {
+            Token::Ident(value) => {
+                assert(value == ident);
+            },
+
+            _ => {
+                std::fatalError("identifier expected");
+            }
+        }
+    }
+
+    fun assertNewline(lexer: Lexer) {
+        let token = lexer.readToken();
+
+        match token {
+            Token::Newline => {},
+            _ => {
+                std::fatalError("newline expected");
+            }
+        }
+    }
+
+    fun assertEnd(lexer: Lexer) {
+        let token = lexer.readToken();
+
+        match token {
+            Token::End => {},
+            _ => {
+                std::fatalError("end expected");
+            }
+        }
+    }
+}
