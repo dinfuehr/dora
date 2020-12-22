@@ -41,6 +41,8 @@ class Lexer(let content: String) {
                 return self.readNewline();
             } else if isOperator(char) {
                 return self.readOperator();
+            } else if isDigit(char) {
+                return self.readNumber();
             } else {
                 std::fatalError("unknown character ${char.unwrap()}");
             }
@@ -86,6 +88,19 @@ class Lexer(let content: String) {
         } else {
             unreachable[Token]()
         }
+    }
+
+    fun readNumber(): Token {
+        let buffer = StringBuffer::empty();
+
+        while isDigit(self.look()) {
+            let look = self.look().unwrap();
+            buffer.appendChar(look);
+            self.readChar();
+        }
+
+        let value = buffer.toString().toInt64().unwrap();
+        Token::Number(value)
     }
 }
 
@@ -140,6 +155,7 @@ fun isNewline(ch: Option[Char]): Bool {
 enum Token {
     End,
     Ident(String),
+    Number(Int64),
     Newline,
     Colon,
     Eq,
@@ -180,6 +196,13 @@ namespace tests {
         assertEnd(lexer);
     }
 
+    @test fun readNumbers(_x: std::Testing) {
+        let lexer = Lexer("11212 17");
+        assertNumber(lexer, 11212L);
+        assertNumber(lexer, 17L);
+        assertEnd(lexer);
+    }
+
     fun assertIdent(lexer: Lexer, ident: String) {
         let token = lexer.readToken();
 
@@ -190,6 +213,20 @@ namespace tests {
 
             _ => {
                 std::fatalError("identifier expected");
+            }
+        }
+    }
+
+    fun assertNumber(lexer: Lexer, number: Int64) {
+        let token = lexer.readToken();
+
+        match token {
+            Token::Number(value) => {
+                assert(value == number);
+            },
+
+            _ => {
+                std::fatalError("number expected");
             }
         }
     }
