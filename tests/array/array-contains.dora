@@ -8,6 +8,6 @@ fun main() {
   let x = Array[Int64]::fill(3L, 3L);
   assert(x.contains(3L));
 
-  let x = Array[Float64]::fill(3L, 0.0/0.0);
-  assert(x.contains(0.0/0.0));
+  let x = Array[Float64]::fill(3L, 1.0);
+  assert(x.contains(1.0));
 }

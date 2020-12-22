@@ -457,19 +457,19 @@ class NullConst(let value: UInt8) extends Const {
 }
 
 class Int32Const(let value: Int32) extends Const {
-    @override fun dumpName(): String { "Const.Int32(${self.value})" }
+    @override fun dumpName(): String { "Const.Int32(#${self.value})" }
 }
 
 class Int64Const(let value: Int64) extends Const {
-    @override fun dumpName(): String { "Const.Int64(${self.value})" }
+    @override fun dumpName(): String { "Const.Int64(#${self.value})" }
 }
 
 class Float32Const(let value: Float32) extends Const {
-    @override fun dumpName(): String { "Const.Float32(${self.value})" }
+    @override fun dumpName(): String { "Const.Float32(#${self.value})" }
 }
 
 class Float64Const(let value: Float64) extends Const {
-    @override fun dumpName(): String { "Const.Float64(${self.value})" }
+    @override fun dumpName(): String { "Const.Float64(#${self.value})" }
 }
 
 class LoadGlobalInst(ty: Type, let global: GlobalId) extends Inst {
@@ -565,11 +565,11 @@ class ReturnVoidInst extends Inst {
 class IfInst(let cond: Inst, let true_block: Block, let false_block: Block) extends Inst {
     self.addInput(cond);
 
-    @override fun dumpName(): String { "If(${self.true_block.id}, ${self.false_block.id})" }
+    @override fun dumpName(): String { "If(@${self.true_block.id}, @${self.false_block.id})" }
 }
 
 class GotoInst(let block: Block) extends Inst {
-    @override fun dumpName(): String { "Goto(${self.block.id})" }
+    @override fun dumpName(): String { "Goto(@${self.block.id})" }
 }
 
 enum BinOp {

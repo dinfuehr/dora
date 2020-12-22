@@ -14,7 +14,7 @@ class GraphDumper(let graph: Graph) {
     }
 
     fun dumpBlock(block: Block) {
-        self.buffer.append("Block ${block.id}:");
+        self.buffer.append("@${block.id}:");
 
         if !block.predecessors.isEmpty() {
             self.buffer.append(" pred = [");
@@ -22,9 +22,9 @@ class GraphDumper(let graph: Graph) {
 
             for pred in block.predecessors {
                 if first {
-                    self.buffer.append("${pred.from.id}");
+                    self.buffer.append("@${pred.from.id}");
                 } else {
-                    self.buffer.append(", ${pred.from.id}");
+                    self.buffer.append(", @${pred.from.id}");
                 }
 
                 first = false;
@@ -39,9 +39,9 @@ class GraphDumper(let graph: Graph) {
 
             for succ in block.successors {
                 if first {
-                    self.buffer.append("${succ.to.id}");
+                    self.buffer.append("@${succ.to.id}");
                 } else {
-                    self.buffer.append(", ${succ.to.id}");
+                    self.buffer.append(", @${succ.to.id}");
                 }
 
                 first = false;
@@ -62,7 +62,7 @@ class GraphDumper(let graph: Graph) {
     }
 
     fun dumpInst(inst: Inst) {
-        self.buffer.append("  ${inst.id}: ${inst.dumpName()}");
+        self.buffer.append("  %${inst.id}: ${inst.dumpName()}");
 
         if !inst.inputs.isEmpty() {
             var first = true;

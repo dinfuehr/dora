@@ -85,6 +85,10 @@ class Lexer(let content: String) {
             Token::Colon
         } else if ch == '=' {
             Token::Eq
+        } else if ch == '%' {
+            Token::Percent
+        } else if ch == '@' {
+            Token::At
         } else {
             unreachable[Token]()
         }
@@ -121,7 +125,7 @@ fun isOperator(ch: Option[Char]): Bool {
 
     let ch = ch.unwrap();
 
-    ch == ':' || ch == '='
+    ch == ':' || ch == '=' || ch == '%' || ch == '@'
 }
 
 fun isIdentifierStart(ch: Option[Char]): Bool {
@@ -159,6 +163,8 @@ enum Token {
     Newline,
     Colon,
     Eq,
+    At,
+    Percent,
 }
 
 namespace tests {
@@ -190,9 +196,11 @@ namespace tests {
     }
 
     @test fun readOperators(_x: std::Testing) {
-        let lexer = Lexer(":=");
+        let lexer = Lexer(":=@%");
         assertColon(lexer);
         assertEq(lexer);
+        assertAt(lexer);
+        assertPercent(lexer);
         assertEnd(lexer);
     }
 
@@ -260,6 +268,28 @@ namespace tests {
             Token::Colon => {},
             _ => {
                 std::fatalError("eq expected");
+            }
+        }
+    }
+
+    fun assertAt(lexer: Lexer) {
+        let token = lexer.readToken();
+
+        match token {
+            Token::At => {},
+            _ => {
+                std::fatalError("at expected");
+            }
+        }
+    }
+
+    fun assertPercent(lexer: Lexer) {
+        let token = lexer.readToken();
+
+        match token {
+            Token::Percent => {},
+            _ => {
+                std::fatalError("percent expected");
             }
         }
     }
