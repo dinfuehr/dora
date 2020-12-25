@@ -159,7 +159,7 @@ class Block() {
     var backwardPredecessors: Int32 = 0;
     var backwardSuccessors: Int32 = 0;
 
-    var loopHeader: Option[LoopHeader] = None[LoopHeader];
+    var loopData: Option[LoopData] = None[LoopData];
 
     var postOrderIdx: Int32 = -1;
 
@@ -230,18 +230,26 @@ class Block() {
     }
 
     fun addBackEdge(block: Block) {
-        if self.loopHeader.isNone() {
-            self.loopHeader = Some[LoopHeader](LoopHeader(self));
+        if self.loopData.isNone() {
+            self.loopData = Some[LoopData](LoopData(self));
         }
-        self.loopHeader.unwrap().addBackEdge(block);
+        self.loopData.unwrap().addBackEdge(block);
     }
 
     fun isLoopHeader(): Bool {
-        self.loopHeader.isSome()
+        self.loopData.isSome() && self.loopData.unwrap().header === self
     }
 
-    fun getLoopHeader(): Option[LoopHeader] {
-        self.loopHeader
+    fun getLoopData(): Option[LoopData] {
+        self.loopData
+    }
+
+    fun setLoopData(loop: LoopData) {
+        self.loopData = Some[LoopData](loop);
+    }
+
+    fun clearLoopData() {
+        self.loopData = None[LoopData];
     }
 
     fun isEntryBlock(): Bool {
@@ -289,8 +297,11 @@ impl Equals for Block {
   fun equals(other: Block): Bool = self === other;
 }
 
-class LoopHeader(let header: Block) {
+import std::BitVec;
+
+class LoopData(let header: Block) {
     var backEdges: Vec[Block] = Vec[Block]();
+    let blocks: BitVec = BitVec();
 
     fun getHeader(): Block {
         self.header
@@ -302,6 +313,18 @@ class LoopHeader(let header: Block) {
 
     fun numberBackEdges(): Int32 {
         self.backEdges.size().toInt32()
+    }
+
+    fun addBlock(block: Block) {
+        self.blocks.insert(block.id.toInt64());
+    }
+
+    fun containsBlock(block: Block): Bool {
+        self.blocks.contains(block.id.toInt64())
+    }
+
+    fun containsLoop(other: LoopData): Bool {
+        self.containsBlock(other.header)
     }
 }
 

@@ -3,6 +3,7 @@ fun buildDominatorTree(graph: Graph) {
     removeUnreachableBlocks(graph, visited);
     computePostOrder(graph);
     computeDominators(graph);
+    discoverLoopBlocks(graph);
 }
 
 fun findBackEdges(graph: Graph): BitSet {
@@ -164,7 +165,7 @@ fun computeDominators(graph: Graph) {
     for block in graph.insertionOrderIterator() {
         if block.isLoopHeader() {
             let loopHeaderBlock = block;
-            let loopHeader = loopHeaderBlock.getLoopHeader().unwrap();
+            let loopHeader = loopHeaderBlock.getLoopData().unwrap();
 
             for block in loopHeader.backEdges {
                 assert(loopHeaderBlock.dominates(block));
@@ -211,4 +212,41 @@ fun commonDominator(b1: Block, b2: Block): Block {
     assert(finger1 === finger2);
 
     finger1
+}
+
+fun discoverLoopBlocks(graph: Graph) {
+    for block in graph.postOrderIterator() {
+        if block.isLoopHeader() {
+            let loop = block.getLoopData().unwrap();
+            loop.addBlock(block);
+
+            for block in loop.backEdges {
+                discoverBlocks(block, loop);
+            }
+        }
+    }
+}
+
+fun discoverBlocks(block: Block, loop: LoopData) {
+    if loop.containsBlock(block) {
+        return;
+    }
+
+    loop.addBlock(block);
+    updateLoopData(block, loop);
+
+    for predecessorEdge in block.predecessors {
+        discoverBlocks(predecessorEdge.from, loop);
+    }
+}
+
+fun updateLoopData(block: Block, loop: LoopData) {
+    let currentLoop = block.getLoopData();
+
+    if currentLoop.isNone() {
+        block.setLoopData(loop);
+    } else {
+        let currentLoop = currentLoop.unwrap();
+        assert(loop.containsLoop(currentLoop));
+    }
 }

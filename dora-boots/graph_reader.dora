@@ -2,8 +2,12 @@ fun readGraph(data: String): Graph {
     unreachable[Graph]()
 }
 
-class GraphReader {
+class GraphReader(let content: String) {
+    let lexer: Lexer = Lexer(content);
 
+    fun read() {
+
+    }
 }
 
 class Lexer(let content: String) {
