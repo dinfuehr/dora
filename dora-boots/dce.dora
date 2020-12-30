@@ -1,63 +1,13 @@
 fun deadCodeElimination(graph: Graph) {
-    DeadCodeElimination(graph).run()
+    removeDeadInstructions(graph)
 }
 
-class DeadCodeElimination(let graph: Graph) {
-    fun run() {
-        self.removeDeadBlocks();
-        self.removeDeadInstructions();
-    }
-
-    fun removeDeadBlocks() {
-        let liveBlocks = findReachableBlocks(self.graph);
-        var changed = false;
-
-        for block in self.graph.postOrderIterator() {
-            if !liveBlocks.contains(block.id.toInt64()) {
-                // TODO: remove block
-                changed = true;
-            }
-        }
-
-        if changed {
-            self.graph.rebuildDominatorTree();
-        }
-    }
-
-    fun removeDeadInstructions() {
-        for block in self.graph.postOrderIterator() {
-            for inst in block.reverseInstructionsIterator() {
-                if inst.isDeadAndRemovable() {
-                    block.removeInst(inst);
-                }
+fun removeDeadInstructions(graph: Graph) {
+    for block in graph.postOrderIterator() {
+        for inst in block.reverseInstructionsIterator() {
+            if inst.isDeadAndRemovable() {
+                block.removeInst(inst);
             }
         }
     }
-}
-
-fun findReachableBlocks(graph: Graph): BitSet {
-    let worklist = Vec[Block]();
-    let blocks = graph.blockCount();
-    let visited = BitSet(blocks.toInt64());
-    let successors_processed = Array[Int64]::fill(blocks.toInt64(), 0L);
-
-    worklist.push(graph.getEntryBlock());
-
-    while !worklist.isEmpty() {
-        let block = worklist.last().unwrap();
-
-        if successors_processed(block.id.toInt64()) == block.successors.size() {
-            worklist.pop();
-        } else {
-            let idx = successors_processed(block.id.toInt64());
-            let successor = block.successors(block.id.toInt64()).to;
-            successors_processed(block.id.toInt64()) = idx + 1L;
-
-            if !visited.contains(successor.id.toInt64()) {
-                worklist.push(successor);
-            }
-        }
-    }
-
-    visited
 }

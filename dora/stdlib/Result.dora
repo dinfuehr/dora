@@ -1,0 +1,29 @@
+@pub enum Result[V, E] {
+  Ok(V),
+  Err(E),
+}
+
+import Result::Ok;
+import Result::Err;
+
+impl[V, E] Result[V, E] {
+  @pub fun unwrap(): V {
+    match self {
+      Ok(value) => value,
+      Err(_) => {
+        fatalError("cannot unwrap Err.");
+        unreachable[V]()
+      }
+    }
+  }
+
+  @pub fun unwrapErr(): E {
+    match self {
+      Ok(_) => {
+        fatalError("cannot unwrap Ok.");
+        unreachable[E]()
+      },
+      Err(value) => value,
+    }
+  }
+}

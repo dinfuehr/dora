@@ -446,6 +446,10 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     fun isDeadAndRemovable(): Bool {
+        self.isRemovable() && !self.hasUses()
+    }
+
+    fun isRemovable(): Bool {
         false
     }
 

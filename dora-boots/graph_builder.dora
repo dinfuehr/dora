@@ -1,0 +1,53 @@
+class GraphBuilder {
+    let graph: Graph = Graph();
+    var insertion: Option[Block] = None[Block];
+
+    fun addBlock(): Block {
+        let block = Block();
+        self.graph.addBlock(block);
+        self.insertion = Some[Block](block);
+        block
+    }
+
+    fun createInt32Const(value: Int32): Inst {
+        let inst = Int32Const(value);
+        self.appendInst(inst)
+    }
+
+    fun createReturn(inst: Inst, ty: Type): Inst {
+        let inst = ReturnInst(inst, ty);
+        self.appendInst(inst)
+    }
+
+    fun createReturnVoid(): Inst {
+        let inst = ReturnVoidInst();
+        self.appendInst(inst)
+    }
+
+    fun createGoto(block: Block): Inst {
+        let inst = GotoInst(block);
+        self.appendInst(inst)
+    }
+
+    fun appendInst(inst: Inst): Inst {
+        self.insertion.unwrap().appendInst(inst);
+        inst
+    }
+
+    fun getGraph(): Graph {
+        self.graph
+    }
+}
+
+@test fun testEmptyGraph(_x: Testing) {
+    let builder = GraphBuilder();
+    builder.addBlock();
+    let value = builder.createInt32Const(12);
+    builder.createReturn(value, Type::Int32);
+
+    assertGraph(builder.getGraph(), "
+@0:
+  %0: Const.Int32(#12) [%1]
+  %1: Ret.Int32 %0
+");
+}

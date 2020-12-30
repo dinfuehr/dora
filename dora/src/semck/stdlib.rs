@@ -75,6 +75,7 @@ pub fn fill_prelude(vm: &mut VM) {
         "unimplemented",
         "unreachable",
         "assert",
+        "Result",
     ];
 
     let stdlib = vm.stdlib_namespace();
@@ -97,6 +98,26 @@ pub fn fill_prelude(vm: &mut VM) {
     {
         // include None and Some from Option
         let option_name = vm.interner.intern("Option");
+        let option_id = stdlib.get(option_name);
+
+        match option_id {
+            Some(Sym::Enum(enum_id)) => {
+                let xenum = &vm.enums[enum_id];
+                let xenum = xenum.read();
+
+                for variant in &xenum.variants {
+                    let old_sym = prelude.insert(variant.name, Sym::EnumValue(enum_id, variant.id));
+                    assert!(old_sym.is_none());
+                }
+            }
+
+            _ => unreachable!(),
+        }
+    }
+
+    {
+        // include Ok and Err from Result
+        let option_name = vm.interner.intern("Result");
         let option_id = stdlib.get(option_name);
 
         match option_id {
