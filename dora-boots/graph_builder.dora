@@ -31,10 +31,15 @@ class GraphBuilder {
 
     fun appendInst(inst: Inst): Inst {
         self.insertion.unwrap().appendInst(inst);
+
+        if inst.isTerminator() {
+            self.insertion = None[Block];
+        }
+
         inst
     }
 
-    fun getGraph(): Graph {
+    fun build(): Graph {
         self.graph
     }
 }

@@ -454,6 +454,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     @open @abstract fun dumpName(): String;
+    @open @abstract fun isTerminator(): Bool;
 }
 
 fun removeUse(input: Input) {
@@ -481,28 +482,34 @@ fun removeUse(input: Input) {
 
 class NullConst(let value: UInt8) extends Const {
     @override fun dumpName(): String { "Const.Null" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class Int32Const(let value: Int32) extends Const {
     @override fun dumpName(): String { "Const.Int32(#${self.value})" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class Int64Const(let value: Int64) extends Const {
     @override fun dumpName(): String { "Const.Int64(#${self.value})" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class Float32Const(let value: Float32) extends Const {
     @override fun dumpName(): String { "Const.Float32(#${self.value})" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class Float64Const(let value: Float64) extends Const {
     @override fun dumpName(): String { "Const.Float64(#${self.value})" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class LoadGlobalInst(ty: Type, let global: GlobalId) extends Inst {
     self.ty = ty;
 
     @override fun dumpName(): String { "LoadGlobal.${self.ty}(${self.global.value})" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst) extends Inst {
@@ -510,6 +517,7 @@ class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst) extends I
     self.ty = ty;
 
     @override fun dumpName(): String { "StoreGlobal.${self.ty}(${self.global.value})" }
+    @override fun isTerminator(): Bool { false }
 }
 
 
@@ -518,6 +526,7 @@ class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst) extends Inst {
     self.ty = ty;
 
     @override fun dumpName(): String { "${unOpName(self.op)}.${self.ty}" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst) extends Inst {
@@ -526,6 +535,7 @@ class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst) extends 
     self.ty = ty;
 
     @override fun dumpName(): String { "${binOpName(self.op)}.${self.ty}" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst) extends Inst {
@@ -534,14 +544,17 @@ class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst) extends I
     self.ty = ty;
 
     @override fun dumpName(): String { "${self.op.name()}.${self.ty}" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class UndefInst extends Inst {
     @override fun dumpName(): String { "Undef" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class PhiInst extends Inst {
     @override fun dumpName(): String { "Phi" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class BoundsCheck(let index: Inst, let length: Inst) extends Inst {
@@ -549,6 +562,7 @@ class BoundsCheck(let index: Inst, let length: Inst) extends Inst {
     self.addInput(length);
 
     @override fun dumpName(): String { "BoundsCheck" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class ArrayGet(let array: Inst, let index: Inst) extends Inst {
@@ -556,6 +570,7 @@ class ArrayGet(let array: Inst, let index: Inst) extends Inst {
     self.addInput(index);
 
     @override fun dumpName(): String { "ArrayGet" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class ArraySet(let array: Inst, let index: Inst, let value: Inst) extends Inst {
@@ -564,18 +579,21 @@ class ArraySet(let array: Inst, let index: Inst, let value: Inst) extends Inst {
     self.addInput(value);
 
     @override fun dumpName(): String { "ArraySet" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class ArrayLength(let array: Inst) extends Inst {
     self.addInput(array);
 
     @override fun dumpName(): String { "ArrayLength" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class ArgInst(let index: Int32, ty: Type) extends Inst {
     self.ty = ty;
 
     @override fun dumpName(): String { "Arg.${self.ty}(${self.index})" }
+    @override fun isTerminator(): Bool { false }
 }
 
 class ReturnInst(let value: Inst, ty: Type) extends Inst {
@@ -583,20 +601,24 @@ class ReturnInst(let value: Inst, ty: Type) extends Inst {
     self.addInput(value);
 
     @override fun dumpName(): String { "Ret.${self.ty}" }
+    @override fun isTerminator(): Bool { true }
 }
 
 class ReturnVoidInst extends Inst {
     @override fun dumpName(): String { "Ret.Void" }
+    @override fun isTerminator(): Bool { true }
 }
 
 class IfInst(let cond: Inst, let true_block: Block, let false_block: Block) extends Inst {
     self.addInput(cond);
 
     @override fun dumpName(): String { "If(@${self.true_block.id}, @${self.false_block.id})" }
+    @override fun isTerminator(): Bool { true }
 }
 
 class GotoInst(let block: Block) extends Inst {
     @override fun dumpName(): String { "Goto(@${self.block.id})" }
+    @override fun isTerminator(): Bool { true }
 }
 
 enum BinOp {
