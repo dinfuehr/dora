@@ -50,7 +50,7 @@ class GraphBuilder {
     let value = builder.createInt32Const(12);
     builder.createReturn(value, Type::Int32);
 
-    assertGraph(builder.getGraph(), "
+    assertGraph(builder.build(), "
 @0:
   %0: Const.Int32(#12) [%1]
   %1: Ret.Int32 %0
