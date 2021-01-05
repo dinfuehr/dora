@@ -5,6 +5,7 @@ use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolEntry,
     ConstPoolIdx, Register,
 };
+use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_native_stub, should_emit_asm, should_emit_debug, AllocationSize, AnyReg,
@@ -66,6 +67,7 @@ pub struct CannonCodeGen<'a> {
     type_params: &'a SourceTypeArray,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
+    liveness: BytecodeLiveness,
 
     forward_jumps: Vec<ForwardJump>,
     current_offset: BytecodeOffset,
@@ -88,11 +90,12 @@ pub struct CannonCodeGen<'a> {
 }
 
 impl<'a> CannonCodeGen<'a> {
-    pub fn new(
+    pub(super) fn new(
         vm: &'a VM,
         fct: &'a Fct,
         src: &'a AnalysisData,
         bytecode: &'a BytecodeFunction,
+        liveness: BytecodeLiveness,
         type_params: &'a SourceTypeArray,
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
@@ -113,6 +116,7 @@ impl<'a> CannonCodeGen<'a> {
             argument_stack: Vec::new(),
             references: Vec::new(),
             offsets: Vec::new(),
+            liveness,
             stacksize: 0,
             register_start_offset: 0,
             slow_paths: Vec::new(),
