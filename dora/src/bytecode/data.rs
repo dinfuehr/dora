@@ -415,11 +415,9 @@ impl BytecodeOpcode {
         match *self {
             BytecodeOpcode::Wide => unreachable!(),
 
-            BytecodeOpcode::NegInt32
-            | BytecodeOpcode::NegInt64
-            | BytecodeOpcode::NegFloat32
-            | BytecodeOpcode::NegFloat64
-            | BytecodeOpcode::PushRegister
+            BytecodeOpcode::RetVoid | BytecodeOpcode::LoopStart => opcode_size(width),
+
+            BytecodeOpcode::PushRegister
             | BytecodeOpcode::ConstTrue
             | BytecodeOpcode::ConstFalse
             | BytecodeOpcode::ConstZeroUInt8
@@ -427,7 +425,62 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ConstZeroInt32
             | BytecodeOpcode::ConstZeroInt64
             | BytecodeOpcode::ConstZeroFloat32
-            | BytecodeOpcode::ConstZeroFloat64 => opcode_size(width) + 1 * operand_size(width),
+            | BytecodeOpcode::ConstZeroFloat64
+            | BytecodeOpcode::Assert
+            | BytecodeOpcode::Ret
+            | BytecodeOpcode::NilCheck
+            | BytecodeOpcode::InvokeGenericDirectVoid
+            | BytecodeOpcode::InvokeGenericStaticVoid
+            | BytecodeOpcode::InvokeStaticVoid
+            | BytecodeOpcode::InvokeDirectVoid
+            | BytecodeOpcode::InvokeVirtualVoid
+            | BytecodeOpcode::JumpConst
+            | BytecodeOpcode::Jump
+            | BytecodeOpcode::JumpLoop => opcode_size(width) + 1 * operand_size(width),
+
+            BytecodeOpcode::NegInt32
+            | BytecodeOpcode::NegInt64
+            | BytecodeOpcode::NegFloat32
+            | BytecodeOpcode::NegFloat64
+            | BytecodeOpcode::NotBool
+            | BytecodeOpcode::NotInt32
+            | BytecodeOpcode::NotInt64
+            | BytecodeOpcode::ExtendUInt8ToChar
+            | BytecodeOpcode::ExtendUInt8ToInt32
+            | BytecodeOpcode::ExtendUInt8ToInt64
+            | BytecodeOpcode::ExtendInt32ToInt64
+            | BytecodeOpcode::ExtendCharToInt64
+            | BytecodeOpcode::CastCharToInt32
+            | BytecodeOpcode::CastInt32ToUInt8
+            | BytecodeOpcode::CastInt32ToChar
+            | BytecodeOpcode::CastInt64ToUInt8
+            | BytecodeOpcode::CastInt64ToChar
+            | BytecodeOpcode::CastInt64ToInt32
+            | BytecodeOpcode::CheckedCast
+            | BytecodeOpcode::Mov
+            | BytecodeOpcode::LoadGlobal
+            | BytecodeOpcode::StoreGlobal
+            | BytecodeOpcode::ConstChar
+            | BytecodeOpcode::ConstInt32
+            | BytecodeOpcode::ConstInt64
+            | BytecodeOpcode::ConstFloat32
+            | BytecodeOpcode::ConstFloat64
+            | BytecodeOpcode::ConstString
+            | BytecodeOpcode::ArrayLength
+            | BytecodeOpcode::ArrayBoundCheck
+            | BytecodeOpcode::NewObject
+            | BytecodeOpcode::NewTuple
+            | BytecodeOpcode::NewEnum
+            | BytecodeOpcode::NewStruct
+            | BytecodeOpcode::InvokeGenericDirect
+            | BytecodeOpcode::InvokeGenericStatic
+            | BytecodeOpcode::InvokeStatic
+            | BytecodeOpcode::InvokeDirect
+            | BytecodeOpcode::InvokeVirtual
+            | BytecodeOpcode::JumpIfTrueConst
+            | BytecodeOpcode::JumpIfTrue
+            | BytecodeOpcode::JumpIfFalseConst
+            | BytecodeOpcode::JumpIfFalse => opcode_size(width) + 2 * operand_size(width),
 
             BytecodeOpcode::AddInt32
             | BytecodeOpcode::AddInt64
@@ -453,9 +506,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::OrInt64
             | BytecodeOpcode::XorInt32
             | BytecodeOpcode::XorInt64
-            | BytecodeOpcode::NotBool
-            | BytecodeOpcode::NotInt32
-            | BytecodeOpcode::NotInt64
             | BytecodeOpcode::ShlInt32
             | BytecodeOpcode::ShrInt32
             | BytecodeOpcode::SarInt32
@@ -466,136 +516,62 @@ impl BytecodeOpcode {
             | BytecodeOpcode::RorInt32
             | BytecodeOpcode::RolInt64
             | BytecodeOpcode::RorInt64
-            | BytecodeOpcode::ExtendUInt8ToChar
-            | BytecodeOpcode::ExtendUInt8ToInt32
-            | BytecodeOpcode::ExtendUInt8ToInt64
-            | BytecodeOpcode::ExtendInt32ToInt64
-            | BytecodeOpcode::ExtendCharToInt64
-            | BytecodeOpcode::CastCharToInt32
-            | BytecodeOpcode::CastInt32ToUInt8
-            | BytecodeOpcode::CastInt32ToChar
-            | BytecodeOpcode::CastInt64ToUInt8
-            | BytecodeOpcode::CastInt64ToChar
-            | BytecodeOpcode::CastInt64ToInt32
-            | BytecodeOpcode::CheckedCast
-            | BytecodeOpcode::Mov
-            | BytecodeOpcode::LoadGlobal
-            | BytecodeOpcode::StoreGlobal
-            | BytecodeOpcode::ConstChar
-            | BytecodeOpcode::ConstInt32
-            | BytecodeOpcode::ConstInt64
-            | BytecodeOpcode::ConstFloat32
-            | BytecodeOpcode::ConstFloat64
-            | BytecodeOpcode::ConstString => opcode_size(width) + 2 * operand_size(width),
-
-            BytecodeOpcode::InstanceOf
+            | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadStructField
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField
-            | BytecodeOpcode::TestIdentity => opcode_size(width) + 3 * operand_size(width),
+            | BytecodeOpcode::TestIdentity
+            | BytecodeOpcode::TestEqBool
+            | BytecodeOpcode::TestNeBool
+            | BytecodeOpcode::TestEqUInt8
+            | BytecodeOpcode::TestNeUInt8
+            | BytecodeOpcode::TestGtUInt8
+            | BytecodeOpcode::TestGeUInt8
+            | BytecodeOpcode::TestLtUInt8
+            | BytecodeOpcode::TestLeUInt8
+            | BytecodeOpcode::TestEqChar
+            | BytecodeOpcode::TestNeChar
+            | BytecodeOpcode::TestGtChar
+            | BytecodeOpcode::TestGeChar
+            | BytecodeOpcode::TestLtChar
+            | BytecodeOpcode::TestLeChar
+            | BytecodeOpcode::TestEqEnum
+            | BytecodeOpcode::TestNeEnum
+            | BytecodeOpcode::TestEqInt32
+            | BytecodeOpcode::TestNeInt32
+            | BytecodeOpcode::TestGtInt32
+            | BytecodeOpcode::TestGeInt32
+            | BytecodeOpcode::TestLtInt32
+            | BytecodeOpcode::TestLeInt32
+            | BytecodeOpcode::TestEqInt64
+            | BytecodeOpcode::TestNeInt64
+            | BytecodeOpcode::TestGtInt64
+            | BytecodeOpcode::TestGeInt64
+            | BytecodeOpcode::TestLtInt64
+            | BytecodeOpcode::TestLeInt64
+            | BytecodeOpcode::TestEqFloat32
+            | BytecodeOpcode::TestNeFloat32
+            | BytecodeOpcode::TestGtFloat32
+            | BytecodeOpcode::TestGeFloat32
+            | BytecodeOpcode::TestLtFloat32
+            | BytecodeOpcode::TestLeFloat32
+            | BytecodeOpcode::TestEqFloat64
+            | BytecodeOpcode::TestNeFloat64
+            | BytecodeOpcode::TestGtFloat64
+            | BytecodeOpcode::TestGeFloat64
+            | BytecodeOpcode::TestLtFloat64
+            | BytecodeOpcode::TestLeFloat64
+            | BytecodeOpcode::LoadArray
+            | BytecodeOpcode::StoreArray
+            | BytecodeOpcode::NewArray
+            | BytecodeOpcode::NewTraitObject => opcode_size(width) + 3 * operand_size(width),
 
             BytecodeOpcode::LoadTupleElement | BytecodeOpcode::LoadEnumElement => {
                 opcode_size(width) + 4 * operand_size(width)
             }
 
-            BytecodeOpcode::ConstUInt8 => opcode_size(width) + 1,
-
-            _ => unreachable!(),
-            // TestEqBool,
-            // TestNeBool,
-
-            // TestEqUInt8,
-            // TestNeUInt8,
-            // TestGtUInt8,
-            // TestGeUInt8,
-            // TestLtUInt8,
-            // TestLeUInt8,
-
-            // TestEqChar,
-            // TestNeChar,
-            // TestGtChar,
-            // TestGeChar,
-            // TestLtChar,
-            // TestLeChar,
-
-            // TestEqEnum,
-            // TestNeEnum,
-
-            // TestEqInt32,
-            // TestNeInt32,
-            // TestGtInt32,
-            // TestGeInt32,
-            // TestLtInt32,
-            // TestLeInt32,
-
-            // TestEqInt64,
-            // TestNeInt64,
-            // TestGtInt64,
-            // TestGeInt64,
-            // TestLtInt64,
-            // TestLeInt64,
-
-            // TestEqFloat32,
-            // TestNeFloat32,
-            // TestGtFloat32,
-            // TestGeFloat32,
-            // TestLtFloat32,
-            // TestLeFloat32,
-
-            // TestEqFloat64,
-            // TestNeFloat64,
-            // TestGtFloat64,
-            // TestGeFloat64,
-            // TestLtFloat64,
-            // TestLeFloat64,
-
-            // Assert,
-
-            // // Backward jump
-            // JumpLoop,
-            // LoopStart,
-
-            // // Forward jumps
-            // Jump,
-            // JumpConst,
-            // JumpIfFalse,
-            // JumpIfFalseConst,
-            // JumpIfTrue,
-            // JumpIfTrueConst,
-
-            // InvokeDirectVoid,
-            // InvokeDirect,
-
-            // InvokeVirtualVoid,
-            // InvokeVirtual,
-
-            // InvokeStaticVoid,
-            // InvokeStatic,
-
-            // InvokeGenericStaticVoid,
-            // InvokeGenericStatic,
-
-            // InvokeGenericDirectVoid,
-            // InvokeGenericDirect,
-
-            // NewObject,
-            // NewArray,
-            // NewTuple,
-            // NewEnum,
-            // NewStruct,
-            // NewTraitObject,
-
-            // NilCheck,
-
-            // ArrayLength,
-            // ArrayBoundCheck,
-
-            // LoadArray,
-            // StoreArray,
-
-            // RetVoid,
-            // Ret,
+            BytecodeOpcode::ConstUInt8 => opcode_size(width) + operand_size(width) + 1,
         }
     }
 
@@ -637,7 +613,7 @@ impl BytecodeOpcode {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum OperandWidth {
     Normal,
     Wide,

@@ -29,18 +29,24 @@ where
 
     fn read(&mut self) {
         while self.pos < self.data.len() {
+            let start = self.pos;
             self.visitor
                 .visit_instruction(BytecodeOffset(self.pos as u32));
             let width = self.read_operand_width();
             let opcode = self.read_opcode();
-            self.read_instruction(width, opcode)
+            self.read_instruction(width, opcode);
+            let end = self.pos;
+
+            if end - start != opcode.size(width) as usize {
+                panic!("bug in size() with {:?} and width {:?}", opcode, width);
+            }
+
+            assert_eq!(end - start, opcode.size(width) as usize);
         }
     }
 
-    fn read_instruction(&mut self, width: OperandWidth, opcode: u32) {
-        let inst: BytecodeOpcode = FromPrimitive::from_u32(opcode).expect("illegal opcode");
-
-        match inst {
+    fn read_instruction(&mut self, width: OperandWidth, opcode: BytecodeOpcode) {
+        match opcode {
             BytecodeOpcode::Wide => unreachable!(),
 
             BytecodeOpcode::AddInt32 => {
@@ -930,15 +936,9 @@ where
         self.read_index(width).into()
     }
 
-    fn read_opcode(&mut self) -> u32 {
-        let first = self.read_byte();
-
-        if first == 255 {
-            let second = self.read_byte();
-            255 + second
-        } else {
-            first
-        }
+    fn read_opcode(&mut self) -> BytecodeOpcode {
+        let opcode = self.read_byte();
+        FromPrimitive::from_u32(opcode).expect("illegal opcode")
     }
 
     fn read_const_pool_idx(&mut self, wide: OperandWidth) -> ConstPoolIdx {
