@@ -37,11 +37,13 @@ where
             self.read_instruction(width, opcode);
             let end = self.pos;
 
-            if end - start != opcode.size(width) as usize {
-                panic!("bug in size() with {:?} and width {:?}", opcode, width);
-            }
-
-            assert_eq!(end - start, opcode.size(width) as usize);
+            assert_eq!(
+                end - start,
+                opcode.size(width) as usize,
+                "bug in size() with {:?} and width {:?}",
+                opcode,
+                width
+            );
         }
     }
 
