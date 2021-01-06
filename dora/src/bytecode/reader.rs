@@ -1,16 +1,12 @@
 use num_traits::cast::FromPrimitive;
 
-use crate::bytecode::{BytecodeFunction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, Register};
+use crate::bytecode::{
+    BytecodeFunction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
+};
 use crate::vm::{ClassDefId, FieldId, GlobalId, TupleId};
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeReader::new(data, visitor).read();
-}
-
-#[derive(Copy, Clone)]
-enum OperandWidth {
-    Normal,
-    Wide,
 }
 
 struct BytecodeReader<'a, T: BytecodeVisitor> {

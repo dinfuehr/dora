@@ -396,7 +396,209 @@ pub enum BytecodeOpcode {
     Ret,
 }
 
+fn opcode_size(width: OperandWidth) -> u32 {
+    match width {
+        OperandWidth::Normal => 1,
+        OperandWidth::Wide => 2,
+    }
+}
+
+fn operand_size(width: OperandWidth) -> u32 {
+    match width {
+        OperandWidth::Normal => 1,
+        OperandWidth::Wide => 4,
+    }
+}
+
 impl BytecodeOpcode {
+    pub fn size(&self, width: OperandWidth) -> u32 {
+        match *self {
+            BytecodeOpcode::Wide => unreachable!(),
+
+            BytecodeOpcode::NegInt32
+            | BytecodeOpcode::NegInt64
+            | BytecodeOpcode::NegFloat32
+            | BytecodeOpcode::NegFloat64
+            | BytecodeOpcode::PushRegister
+            | BytecodeOpcode::ConstTrue
+            | BytecodeOpcode::ConstFalse
+            | BytecodeOpcode::ConstZeroUInt8
+            | BytecodeOpcode::ConstZeroChar
+            | BytecodeOpcode::ConstZeroInt32
+            | BytecodeOpcode::ConstZeroInt64
+            | BytecodeOpcode::ConstZeroFloat32
+            | BytecodeOpcode::ConstZeroFloat64 => opcode_size(width) + 1 * operand_size(width),
+
+            BytecodeOpcode::AddInt32
+            | BytecodeOpcode::AddInt64
+            | BytecodeOpcode::AddFloat32
+            | BytecodeOpcode::AddFloat64
+            | BytecodeOpcode::SubInt32
+            | BytecodeOpcode::SubInt64
+            | BytecodeOpcode::SubFloat32
+            | BytecodeOpcode::SubFloat64
+            | BytecodeOpcode::MulInt32
+            | BytecodeOpcode::MulInt64
+            | BytecodeOpcode::MulFloat32
+            | BytecodeOpcode::MulFloat64
+            | BytecodeOpcode::DivInt32
+            | BytecodeOpcode::DivInt64
+            | BytecodeOpcode::DivFloat32
+            | BytecodeOpcode::DivFloat64
+            | BytecodeOpcode::ModInt32
+            | BytecodeOpcode::ModInt64
+            | BytecodeOpcode::AndInt32
+            | BytecodeOpcode::AndInt64
+            | BytecodeOpcode::OrInt32
+            | BytecodeOpcode::OrInt64
+            | BytecodeOpcode::XorInt32
+            | BytecodeOpcode::XorInt64
+            | BytecodeOpcode::NotBool
+            | BytecodeOpcode::NotInt32
+            | BytecodeOpcode::NotInt64
+            | BytecodeOpcode::ShlInt32
+            | BytecodeOpcode::ShrInt32
+            | BytecodeOpcode::SarInt32
+            | BytecodeOpcode::ShlInt64
+            | BytecodeOpcode::ShrInt64
+            | BytecodeOpcode::SarInt64
+            | BytecodeOpcode::RolInt32
+            | BytecodeOpcode::RorInt32
+            | BytecodeOpcode::RolInt64
+            | BytecodeOpcode::RorInt64
+            | BytecodeOpcode::ExtendUInt8ToChar
+            | BytecodeOpcode::ExtendUInt8ToInt32
+            | BytecodeOpcode::ExtendUInt8ToInt64
+            | BytecodeOpcode::ExtendInt32ToInt64
+            | BytecodeOpcode::ExtendCharToInt64
+            | BytecodeOpcode::CastCharToInt32
+            | BytecodeOpcode::CastInt32ToUInt8
+            | BytecodeOpcode::CastInt32ToChar
+            | BytecodeOpcode::CastInt64ToUInt8
+            | BytecodeOpcode::CastInt64ToChar
+            | BytecodeOpcode::CastInt64ToInt32
+            | BytecodeOpcode::CheckedCast
+            | BytecodeOpcode::Mov
+            | BytecodeOpcode::LoadGlobal
+            | BytecodeOpcode::StoreGlobal
+            | BytecodeOpcode::ConstChar
+            | BytecodeOpcode::ConstInt32
+            | BytecodeOpcode::ConstInt64
+            | BytecodeOpcode::ConstFloat32
+            | BytecodeOpcode::ConstFloat64
+            | BytecodeOpcode::ConstString => opcode_size(width) + 2 * operand_size(width),
+
+            BytecodeOpcode::InstanceOf
+            | BytecodeOpcode::LoadEnumVariant
+            | BytecodeOpcode::LoadStructField
+            | BytecodeOpcode::LoadField
+            | BytecodeOpcode::StoreField
+            | BytecodeOpcode::TestIdentity => opcode_size(width) + 3 * operand_size(width),
+
+            BytecodeOpcode::LoadTupleElement | BytecodeOpcode::LoadEnumElement => {
+                opcode_size(width) + 4 * operand_size(width)
+            }
+
+            BytecodeOpcode::ConstUInt8 => opcode_size(width) + 1,
+
+            _ => unreachable!(),
+            // TestEqBool,
+            // TestNeBool,
+
+            // TestEqUInt8,
+            // TestNeUInt8,
+            // TestGtUInt8,
+            // TestGeUInt8,
+            // TestLtUInt8,
+            // TestLeUInt8,
+
+            // TestEqChar,
+            // TestNeChar,
+            // TestGtChar,
+            // TestGeChar,
+            // TestLtChar,
+            // TestLeChar,
+
+            // TestEqEnum,
+            // TestNeEnum,
+
+            // TestEqInt32,
+            // TestNeInt32,
+            // TestGtInt32,
+            // TestGeInt32,
+            // TestLtInt32,
+            // TestLeInt32,
+
+            // TestEqInt64,
+            // TestNeInt64,
+            // TestGtInt64,
+            // TestGeInt64,
+            // TestLtInt64,
+            // TestLeInt64,
+
+            // TestEqFloat32,
+            // TestNeFloat32,
+            // TestGtFloat32,
+            // TestGeFloat32,
+            // TestLtFloat32,
+            // TestLeFloat32,
+
+            // TestEqFloat64,
+            // TestNeFloat64,
+            // TestGtFloat64,
+            // TestGeFloat64,
+            // TestLtFloat64,
+            // TestLeFloat64,
+
+            // Assert,
+
+            // // Backward jump
+            // JumpLoop,
+            // LoopStart,
+
+            // // Forward jumps
+            // Jump,
+            // JumpConst,
+            // JumpIfFalse,
+            // JumpIfFalseConst,
+            // JumpIfTrue,
+            // JumpIfTrueConst,
+
+            // InvokeDirectVoid,
+            // InvokeDirect,
+
+            // InvokeVirtualVoid,
+            // InvokeVirtual,
+
+            // InvokeStaticVoid,
+            // InvokeStatic,
+
+            // InvokeGenericStaticVoid,
+            // InvokeGenericStatic,
+
+            // InvokeGenericDirectVoid,
+            // InvokeGenericDirect,
+
+            // NewObject,
+            // NewArray,
+            // NewTuple,
+            // NewEnum,
+            // NewStruct,
+            // NewTraitObject,
+
+            // NilCheck,
+
+            // ArrayLength,
+            // ArrayBoundCheck,
+
+            // LoadArray,
+            // StoreArray,
+
+            // RetVoid,
+            // Ret,
+        }
+    }
+
     pub fn needs_position(&self) -> bool {
         match *self {
             BytecodeOpcode::DivInt32
@@ -433,6 +635,12 @@ impl BytecodeOpcode {
             _ => false,
         }
     }
+}
+
+#[derive(Copy, Clone)]
+pub enum OperandWidth {
+    Normal,
+    Wide,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
