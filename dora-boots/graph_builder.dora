@@ -2,10 +2,15 @@ class GraphBuilder {
     let graph: Graph = Graph();
     var insertion: Option[Block] = None[Block];
     var entryBlock: Option[Block] = None[Block];
-    var exitBlock: Option[Block] = None[Block];
 
     fun addBlock(): Block {
         let block = Block();
+
+        if self.entryBlock.isNone() {
+            self.entryBlock = Some[Block](block);
+            self.graph.setEntryBlock(block);
+        }
+
         self.graph.addBlock(block);
         self.insertion = Some[Block](block);
         block
@@ -46,17 +51,8 @@ class GraphBuilder {
         inst
     }
 
-    fun setEntryAndExitBlock(entry: Block, exit: Block) {
-        self.graph.setEntryBlock(entry);
-        self.graph.setExitBlock(exit);
-
-        self.entryBlock = Some[Block](entry);
-        self.exitBlock = Some[Block](exit);
-    }
-
     fun build(): Graph {
         assert(self.entryBlock.isSome());
-        assert(self.exitBlock.isSome());
 
         self.graph
     }
@@ -67,7 +63,6 @@ class GraphBuilder {
     let block = builder.addBlock();
     let value = builder.createInt32Const(12);
     builder.createReturn(value, Type::Int32);
-    builder.setEntryAndExitBlock(block, block);
 
     assertGraph(builder.build(), "
 @0:

@@ -19,10 +19,18 @@ class GraphVerifier(let graph: Graph) {
 
         for inst in block.instructionsIterator() {
             self.verifyInst(inst);
+
+            if inst !== block.lastInst() {
+                assert(!inst.isTerminator());
+            }
         }
+
+        assert(block.lastInst().isTerminator());
     }
 
     fun verifyInst(inst: Inst) {
-        // TODO
+        assert(inst.block.unwrap() === self.currentBlock);
+
+        // TODO: more checks
     }
 }

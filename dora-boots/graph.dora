@@ -1,6 +1,5 @@
 class Graph {
     var entryBlock: Option[Block] = None[Block];
-    var exitBlock: Option[Block] = None[Block];
 
     var blocks: Vec[Option[Block]] = Vec[Option[Block]]();
     var postOrder: Vec[Block] = Vec[Block]();
@@ -26,14 +25,6 @@ class Graph {
 
     fun getEntryBlock(): Block {
         self.entryBlock.unwrap()
-    }
-
-    fun setExitBlock(block: Block) {
-        self.exitBlock = Some[Block](block);
-    }
-
-    fun getExitBlock(): Block {
-        self.exitBlock.unwrap()
     }
 
     fun nextInstId(): Int32 {
@@ -254,10 +245,6 @@ class Block() {
 
     fun isEntryBlock(): Bool {
         self.graph.unwrap().getEntryBlock() === self
-    }
-
-    fun isExitBlock(): Bool {
-        self.graph.unwrap().getExitBlock() === self
     }
 
     fun instructionsIterator(): InstIterator {

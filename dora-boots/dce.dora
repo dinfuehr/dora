@@ -12,18 +12,22 @@ fun removeDeadInstructions(graph: Graph) {
     }
 }
 
+fun performDce(graph: Graph) {
+    verifyGraph(graph);
+    buildDominatorTree(graph);
+    verifyGraph(graph);
+    deadCodeElimination(graph);
+    verifyGraph(graph);
+}
+
 
 @test fun testRemoveUnusedConstant(_x: Testing) {
     let builder = GraphBuilder();
     let block = builder.addBlock();
     let value = builder.createInt32Const(12);
     builder.createReturnVoid();
-    builder.setEntryAndExitBlock(block, block);
     let graph = builder.build();
-
-    buildDominatorTree(graph);
-    deadCodeElimination(graph);
-
+    performDce(graph);
     assertGraph(graph, "
 @0:
   %1: Ret.Void
@@ -37,12 +41,8 @@ fun removeDeadInstructions(graph: Graph) {
     let rhs = builder.createInt32Const(17);
     builder.createAdd(lhs, rhs, Type::Int32);
     builder.createReturnVoid();
-    builder.setEntryAndExitBlock(block, block);
     let graph = builder.build();
-
-    buildDominatorTree(graph);
-    deadCodeElimination(graph);
-
+    performDce(graph);
     assertGraph(graph, "
 @0:
   %3: Ret.Void

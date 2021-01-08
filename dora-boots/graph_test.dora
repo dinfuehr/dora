@@ -4,7 +4,6 @@
     let block = Block();
     graph.addBlock(block);
     graph.setEntryBlock(block);
-    graph.setExitBlock(block);
 
     let inst = ReturnVoidInst();
     block.appendInst(inst);
@@ -16,7 +15,6 @@
     let block = Block();
     graph.addBlock(block);
     graph.setEntryBlock(block);
-    graph.setExitBlock(block);
 
     let const1 = Int32Const(1);
     block.appendInst(const1);

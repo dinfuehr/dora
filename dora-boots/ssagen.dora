@@ -32,12 +32,10 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
         readBytecode(self.bc.code, self);
         assert(self.blockTerminated);
-        self.blockEndReached(None[Block]);
     }
 
     fun prepare() {
-        self.currentBlock = Some[Block](self.graph.getEntryBlock());
-
+        self.currentBlock = None[Block];
         let blockCount = self.graph.blockCount();
 
         self.filledBlocks = BitSet(blockCount.toInt64());
@@ -173,7 +171,11 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         let block = self.blockMap.blockAt(offset);
 
         if block.isSome() {
-            self.blockEndReached(block);
+            if self.currentBlock.isSome() {
+                self.blockEndReached(block);
+            } else {
+                self.currentBlock = block;
+            }
         }
 
         self.blockTerminated = false;

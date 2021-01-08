@@ -26,7 +26,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 2, 0);
+    assertDominatedBlocks(fct);
 }
 
 @test fun testDominatorEmptyBlocks(_x: Testing) {
@@ -40,7 +40,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 4, 0, 2, 3);
+    assertDominatedBlocks(fct, 0, 1);
 }
 
 @test fun testDominatorSimple(_x: Testing) {
@@ -57,7 +57,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 5, 0, 2, 2, 2);
+    assertDominatedBlocks(fct, 0, 0, 0);
 }
 
 @test fun testDominatorIfReturnInBothBranches(_x: Testing) {
@@ -65,26 +65,18 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
-    let entry = graph.getEntryBlock();
-    let condBlock = graph.getBlockWithId(2);
-    let thenBlock = graph.getBlockWithId(4);
-    let elseBlock = graph.getBlockWithId(3);
-    let exit = graph.getExitBlock();
+    let condBlock = graph.getBlockWithId(0);
+    let thenBlock = graph.getBlockWithId(1);
+    let elseBlock = graph.getBlockWithId(2);
 
-    assert(entry.getDominatedBlocks().size() == 1L);
-    assert(entry.getDominator().isNone());
-
-    assert(condBlock.getDominator().unwrap() === entry);
-    assert(condBlock.getDominatedBlocks().size() == 3L);
+    assert(condBlock.getDominator().isNone());
+    assert(condBlock.getDominatedBlocks().size() == 2L);
 
     assert(thenBlock.getDominator().unwrap() === condBlock);
     assert(thenBlock.getDominatedBlocks().size() == 0L);
 
     assert(elseBlock.getDominator().unwrap() === condBlock);
     assert(elseBlock.getDominatedBlocks().size() == 0L);
-
-    assert(exit.getDominatedBlocks().size() == 0L);
-    assert(exit.getDominator().unwrap() === condBlock);
 }
 
 @test fun testDominatorWhileCountDown(_x: Testing) {
@@ -92,17 +84,12 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
-    let entry = graph.getEntryBlock();
-    let varBlock = graph.getBlockWithId(2);
-    let whileHeader = graph.getBlockWithId(5);
-    let whileBody = graph.getBlockWithId(4);
-    let returnBlock = graph.getBlockWithId(3);
-    let exit = graph.getExitBlock();
+    let varBlock = graph.getBlockWithId(0);
+    let whileHeader = graph.getBlockWithId(3);
+    let whileBody = graph.getBlockWithId(2);
+    let returnBlock = graph.getBlockWithId(1);
 
-    assert(entry.getDominatedBlocks().size() == 1L);
-    assert(entry.getDominator().isNone());
-
-    assert(varBlock.getDominator().unwrap() == entry);
+    assert(varBlock.getDominator().isNone());
 
     assert(whileHeader.getDominator().unwrap() === varBlock);
     assert(whileHeader.getDominatedBlocks().size() == 2L);
@@ -111,8 +98,5 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     assert(whileBody.getDominatedBlocks().size() == 0L);
 
     assert(returnBlock.getDominator().unwrap() === whileHeader);
-    assert(returnBlock.getDominatedBlocks().size() == 1L);
-
-    assert(exit.getDominatedBlocks().size() == 0L);
-    assert(exit.getDominator().unwrap() === returnBlock);
+    assert(returnBlock.getDominatedBlocks().size() == 0L);
 }

@@ -39,8 +39,6 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
     var blockTerminated: Bool = false;
 
     fun run() {
-        self.currentBlock = Some[Block](self.graph.getEntryBlock());
-
         // iterate all bytecodes
         readBytecode(self.bc.code, self);
     }
@@ -57,8 +55,10 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
         if result.isSome() {
             let nextBlock = result.unwrap();
 
-            if !self.blockTerminated {
-                self.currentBlock.unwrap().addSuccessor(nextBlock);
+            if self.currentBlock.isSome() {
+                if !self.blockTerminated {
+                    self.currentBlock.unwrap().addSuccessor(nextBlock);
+                }
             }
 
             self.currentBlock = Some[Block](nextBlock);
@@ -104,12 +104,10 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
     }
 
     @override fun visitRetVoid() {
-        self.currentBlock.unwrap().addSuccessor(self.graph.getExitBlock());
         self.markBlockTerminated();
     }
 
     @override fun visitRet(opnd: BytecodeRegister) {
-        self.currentBlock.unwrap().addSuccessor(self.graph.getExitBlock());
         self.markBlockTerminated();
     }
 }
@@ -119,28 +117,22 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
     var nextInstructionIsBlockStart: Bool = false;
 
     fun run() {
-        let entryBlock = Block();
-        self.graph.addBlock(entryBlock);
-        self.graph.setEntryBlock(entryBlock);
-
-        let exitBlock = Block();
-        self.graph.addBlock(exitBlock);
-        self.graph.setExitBlock(exitBlock);
-
         // create block for first instruction
-        self.ensureBlockAt(0);
+        let entryBlock = self.ensureBlockAt(0);
+        self.graph.setEntryBlock(entryBlock);
 
         // iterate all bytecodes
         readBytecode(self.bc.code, self);
     }
 
-    fun ensureBlockAt(offset: Int32) {
-        let result = self.blockMap.blocks(offset);
-        if result.isSome() { return; }
+    fun ensureBlockAt(offset: Int32): Block {
+        let result = self.blockMap.blockAt(offset);
+        if result.isSome() { return result.unwrap(); }
 
         let block = Block();
         self.graph.addBlock(block);
         self.blockMap.insert(offset, block);
+        block
     }
 
     fun markNextInstructionAsBlockStart() {
