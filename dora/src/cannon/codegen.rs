@@ -4978,6 +4978,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         });
         self.visit_jump(offset as u32);
     }
+    fn visit_loop_start(&mut self) {
+        comment!(self, format!("LoopStart"));
+    }
 
     fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {
         comment!(self, format!("InvokeDirectVoid {}", fctdef.to_usize()));

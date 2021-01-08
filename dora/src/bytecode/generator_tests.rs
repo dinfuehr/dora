@@ -403,7 +403,13 @@ fn gen_stmt_let_unit() {
 #[test]
 fn gen_stmt_while() {
     let result = code("fun f() { while true { 0; } }");
-    let code = vec![ConstTrue(r(0)), JumpIfFalse(r(0), 3), JumpLoop(0), RetVoid];
+    let code = vec![
+        LoopStart,
+        ConstTrue(r(0)),
+        JumpIfFalse(r(0), 4),
+        JumpLoop(0),
+        RetVoid,
+    ];
     assert_eq!(code, result);
 }
 
@@ -457,9 +463,10 @@ fn gen_stmt_if_else_without_return() {
 fn gen_stmt_break() {
     let result = code("fun f() { while true { break; } }");
     let expected = vec![
+        LoopStart,
         ConstTrue(r(0)),
-        JumpIfFalse(r(0), 4),
-        Jump(4),
+        JumpIfFalse(r(0), 5),
+        Jump(5),
         JumpLoop(0),
         RetVoid,
     ];
@@ -470,8 +477,9 @@ fn gen_stmt_break() {
 fn gen_stmt_continue() {
     let result = code("fun f() { while true { continue; } }");
     let expected = vec![
+        LoopStart,
         ConstTrue(r(0)),
-        JumpIfFalse(r(0), 4),
+        JumpIfFalse(r(0), 5),
         JumpLoop(0),
         JumpLoop(0),
         RetVoid,
@@ -3929,7 +3937,13 @@ fn gen_const_int() {
 #[test]
 fn gen_while_with_break() {
     let result = code("fun f(x: Bool) { while x { break; } }");
-    let expected = vec![JumpIfFalse(r(0), 3), Jump(3), JumpLoop(0), RetVoid];
+    let expected = vec![
+        LoopStart,
+        JumpIfFalse(r(0), 4),
+        Jump(4),
+        JumpLoop(0),
+        RetVoid,
+    ];
     assert_eq!(expected, result);
 }
 
@@ -4272,6 +4286,7 @@ pub enum Bytecode {
 
     Assert(Register),
 
+    LoopStart,
     JumpLoop(usize),
     Jump(usize),
     JumpIfFalse(Register, usize),
@@ -4844,6 +4859,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
         let value = self.bc.const_pool(idx).to_int32().expect("int expected");
         self.visit_jump(value as u32);
+    }
+    fn visit_loop_start(&mut self) {
+        self.emit(Bytecode::LoopStart);
     }
 
     fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {

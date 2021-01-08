@@ -474,6 +474,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_stmt_while(&mut self, stmt: &StmtWhileType) {
         let cond_lbl = self.gen.define_label();
         let end_lbl = self.gen.create_label();
+        self.gen.emit_loop_start();
         let cond_reg = self.visit_expr(&stmt.cond, DataDest::Alloc);
         self.gen.emit_jump_if_false(cond_reg, end_lbl);
         self.free_if_temp(cond_reg);

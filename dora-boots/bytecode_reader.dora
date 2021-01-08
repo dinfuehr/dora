@@ -154,6 +154,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @open fun visitAssert(value: BytecodeRegister) { unimplemented(); }
 
+    @open fun visitLoopStart() { unimplemented(); }
     @open fun visitJumpLoop(offset: Int32) { unimplemented(); }
 
     @open fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) { unimplemented(); }
@@ -337,6 +338,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @override fun visitAssert(value: BytecodeRegister) {}
 
+    @override fun visitLoopStart() {}
     @override fun visitJumpLoop(offset: Int32) {}
 
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {}
@@ -1049,6 +1051,9 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_ASSERT {
             let value = self.readRegister(wide);
             self.visitor.visitAssert(value);
+
+        } else if opcode == BC_LOOP_START {
+            self.visitor.visitLoopStart();
 
         } else if opcode == BC_JUMP_LOOP {
             let offset = self.readOffset(wide);

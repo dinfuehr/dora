@@ -228,20 +228,20 @@ fun bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
     let graph = createGraph(fct);
 
     assertGraph(graph, "
-@0: succ = [@3]
+@0: succ = [@1]
   %0: Arg.Int32(0) [%3]
-  %1: Goto(@3)
-@1: pred = [@3]
-  %9: Ret.Int32 %3
-@2: pred = [@3] succ = [@3]
-  %6: Const.Int32(#1) [%7]
-  %7: Sub.Int32 %3, %6 [%3]
-  %8: Goto(@3)
-@3: pred = [@0, @2] succ = [@1, @2]
+  %1: Goto(@1)
+@1: pred = [@0, @3] succ = [@2, @3]
   %3: Phi %0, %7 [%4, %7, %9]
   %2: Const.Int32(#0) [%4]
   %4: Greater.Int32 %3, %2 [%5]
-  %5: If(@2, @1) %4
+  %5: If(@3, @2) %4
+@2: pred = [@1]
+  %9: Ret.Int32 %3
+@3: pred = [@1] succ = [@1]
+  %6: Const.Int32(#1) [%7]
+  %7: Sub.Int32 %3, %6 [%3]
+  %8: Goto(@1)
 ");
 }
 
@@ -256,23 +256,23 @@ fun bcSsaGenWhileCountDown(x: Int32): Int32 {
     let graph = createGraph(fct);
 
     assertGraph(graph, "
-@0: succ = [@3]
+@0: succ = [@1]
   %0: Arg.Int32(0) [%4]
   %1: Const.Int32(#0) [%9]
-  %2: Goto(@3)
-@1: pred = [@3]
-  %12: Ret.Int32 %9
-@2: pred = [@3] succ = [@3]
-  %7: Const.Int32(#1) [%8]
-  %8: Sub.Int32 %4, %7 [%10, %4]
-  %10: Add.Int32 %9, %8 [%9]
-  %11: Goto(@3)
-@3: pred = [@0, @2] succ = [@1, @2]
+  %2: Goto(@1)
+@1: pred = [@0, @3] succ = [@2, @3]
   %4: Phi %0, %8 [%5, %8]
   %9: Phi %1, %10 [%10, %12]
   %3: Const.Int32(#0) [%5]
   %5: Greater.Int32 %4, %3 [%6]
-  %6: If(@2, @1) %5
+  %6: If(@3, @2) %5
+@2: pred = [@1]
+  %12: Ret.Int32 %9
+@3: pred = [@1] succ = [@1]
+  %7: Const.Int32(#1) [%8]
+  %8: Sub.Int32 %4, %7 [%10, %4]
+  %10: Add.Int32 %9, %8 [%9]
+  %11: Goto(@1)
 ");
 }
 

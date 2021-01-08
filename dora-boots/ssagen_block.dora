@@ -115,6 +115,7 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
 class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap) extends EmptyBytecodeVisitor {
     var offset: Int32 = 0;
     var nextInstructionIsBlockStart: Bool = false;
+    let blockStarts: BitSet = BitSet(bc.code.size());
 
     fun run() {
         // create block for first instruction
@@ -135,6 +136,10 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         block
     }
 
+    fun markBlockStart(offset: Int32) {
+        self.blockStarts.insert(offset.toInt64());
+    }
+
     fun markNextInstructionAsBlockStart() {
         self.nextInstructionIsBlockStart = true;
     }
@@ -142,14 +147,19 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
     @override fun visitInstruction(offset: Int32) {
         self.offset = offset;
 
-        if self.nextInstructionIsBlockStart {
+        if self.nextInstructionIsBlockStart || self.blockStarts.contains(offset.toInt64()) {
             self.ensureBlockAt(offset);
             self.nextInstructionIsBlockStart = false;
         }
     }
 
+    @override fun visitLoopStart() {
+        self.ensureBlockAt(self.offset);
+    }
+
     @override fun visitJumpLoop(offset: Int32) {
-        self.ensureBlockAt(self.offset - offset);
+        let target = self.offset - offset;
+        assert(self.blockMap.blockAt(target).isSome());
     }
 
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {

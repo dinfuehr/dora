@@ -517,13 +517,17 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         self.writeVariable(dest, self.current(), destInst);
     }
 
+    @override fun visitLoopStart() {
+        // nothing to do
+    }
+
     @override fun visitJumpLoop(offset: Int32) {
         let targetBlock = self.blockMap.blockAt(self.offset - offset).unwrap();
         let gotoInst = GotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.markBlockTerminated();
     }
-    
+
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
         self.emitConditionalJump(opnd, offset, false);
     }

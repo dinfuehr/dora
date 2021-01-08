@@ -85,9 +85,9 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     graph.buildDominatorTree();
 
     let varBlock = graph.getBlockWithId(0);
-    let whileHeader = graph.getBlockWithId(3);
-    let whileBody = graph.getBlockWithId(2);
-    let returnBlock = graph.getBlockWithId(1);
+    let whileHeader = graph.getBlockWithId(1);
+    let whileBody = graph.getBlockWithId(3);
+    let returnBlock = graph.getBlockWithId(2);
 
     assert(varBlock.getDominator().isNone());
 
