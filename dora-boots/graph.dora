@@ -280,10 +280,6 @@ class Block() {
         self.instructions.lastInst()
     }
 
-    fun removeInst(inst: Inst) {
-        unimplemented();
-    }
-
     fun removePhi(inst: PhiInst) {
         unimplemented();
     }

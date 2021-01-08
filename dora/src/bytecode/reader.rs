@@ -37,10 +37,10 @@ where
             self.read_instruction(width, opcode);
             let end = self.pos;
 
-            assert_eq!(
+            debug_assert_eq!(
                 end - start,
                 opcode.size(width) as usize,
-                "bug in size() with {:?} and width {:?}",
+                "bug in BytecodeOpcode::size() with {:?} and width {:?}",
                 opcode,
                 width
             );
