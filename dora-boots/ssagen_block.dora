@@ -163,30 +163,30 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
     }
 
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
-        self.ensureBlockAt(self.offset + offset);
+        self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().unwrap();
-        self.ensureBlockAt(self.offset + offset);
+        self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
-        self.ensureBlockAt(self.offset + offset);
+        self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().unwrap();
-        self.ensureBlockAt(self.offset + offset);
+        self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJump(offset: Int32) {
-        self.ensureBlockAt(self.offset + offset);
+        self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpConst(idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().unwrap();
-        self.ensureBlockAt(self.offset + offset);
+        self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
 
