@@ -592,13 +592,36 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     @override fun visitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx); }
 
     fun emitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
-        unimplemented();
+        let arrInst = self.readVariable(arr, self.current());
+        let idxInst = self.readVariable(idx, self.current());
+
+        let arrayLengthInst = ArrayLength(arrInst);
+        self.current().appendInst(arrayLengthInst);
+
+        let boundsCheckInst = BoundsCheck(idxInst, arrayLengthInst);
+        self.current().appendInst(boundsCheckInst);
+
+        let arrayGetInst = ArrayGet(arrInst, idxInst);
+        self.current().appendInst(arrayGetInst);
+
+        self.writeVariable(dest, self.current(), arrayGetInst);
     }
 
     @override fun visitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx); }
 
     fun emitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
-        unimplemented();
+        let srcInst = self.readVariable(src, self.current());
+        let arrInst = self.readVariable(arr, self.current());
+        let idxInst = self.readVariable(idx, self.current());
+
+        let arrayLengthInst = ArrayLength(arrInst);
+        self.current().appendInst(arrayLengthInst);
+
+        let boundsCheckInst = BoundsCheck(idxInst, arrayLengthInst);
+        self.current().appendInst(boundsCheckInst);
+
+        let arraySetInst = ArraySet(arrInst, idxInst, srcInst);
+        self.current().appendInst(arraySetInst);
     }
 
     @override fun visitRetVoid() {
