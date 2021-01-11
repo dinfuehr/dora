@@ -558,11 +558,13 @@ class BoundsCheck(let index: Inst, let length: Inst) extends Inst {
     @override fun isRemovable(): Bool { false }
 }
 
-class ArrayGet(let array: Inst, let index: Inst) extends Inst {
+class ArrayGet(let array: Inst, let index: Inst, ty: Type) extends Inst {
+    self.ty = ty;
+
     self.addInput(array);
     self.addInput(index);
 
-    @override fun dumpName(): String { "ArrayGet" }
+    @override fun dumpName(): String { "ArrayGet.${self.ty}" }
     @override fun isTerminator(): Bool { false }
     @override fun isRemovable(): Bool { true }
 }
@@ -583,6 +585,27 @@ class ArrayLength(let array: Inst) extends Inst {
     @override fun dumpName(): String { "ArrayLength" }
     @override fun isTerminator(): Bool { false }
     @override fun isRemovable(): Bool { true }
+}
+
+class FieldInfo(let offset: Int32, let volatile: Bool)
+
+class FieldGet(let obj: Inst, let field: FieldInfo, ty: Type) extends Inst {
+    self.ty = ty;
+
+    self.addInput(obj);
+
+    @override fun dumpName(): String { "FieldGet.${self.ty}" }
+    @override fun isTerminator(): Bool { false }
+    @override fun isRemovable(): Bool { true }
+}
+
+class FieldSet(let obj: Inst, let field: FieldInfo, let value: Inst) extends Inst {
+    self.addInput(obj);
+    self.addInput(value);
+
+    @override fun dumpName(): String { "FieldSet" }
+    @override fun isTerminator(): Bool { false }
+    @override fun isRemovable(): Bool { false }
 }
 
 class ArgInst(let index: Int32, ty: Type) extends Inst {

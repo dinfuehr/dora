@@ -296,7 +296,7 @@ fun bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
   %1: Arg.Int64(1) [%3, %4]
   %2: ArrayLength %0 [%3]
   %3: BoundsCheck %1, %2
-  %4: ArrayGet %0, %1 [%5]
+  %4: ArrayGet.Int32 %0, %1 [%5]
   %5: Ret.Int32 %4
 ");
 }

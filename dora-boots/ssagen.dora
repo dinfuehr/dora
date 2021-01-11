@@ -601,7 +601,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         let boundsCheckInst = BoundsCheck(idxInst, arrayLengthInst);
         self.current().appendInst(boundsCheckInst);
 
-        let arrayGetInst = ArrayGet(arrInst, idxInst);
+        let arrayGetInst = ArrayGet(arrInst, idxInst, Type::Int32);
         self.current().appendInst(arrayGetInst);
 
         self.writeVariable(dest, self.current(), arrayGetInst);
