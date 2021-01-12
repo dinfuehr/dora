@@ -558,6 +558,14 @@ class BoundsCheck(let index: Inst, let length: Inst) extends Inst {
     @override fun isRemovable(): Bool { false }
 }
 
+class DivZeroCheck(let value: Inst) extends Inst {
+    self.addInput(value);
+
+    @override fun dumpName(): String { "DivZeroCheck" }
+    @override fun isTerminator(): Bool { false }
+    @override fun isRemovable(): Bool { false }
+}
+
 class ArrayGet(let array: Inst, let index: Inst, ty: Type) extends Inst {
     self.ty = ty;
 

@@ -306,11 +306,22 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     @override fun visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Div, Type::int32());
+        self.emitDivMod(dest, lhs, rhs, BinOp::Div, Type::int32());
     }
     @override fun visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Div, Type::int64());
+        self.emitDivMod(dest, lhs, rhs, BinOp::Div, Type::int64());
     }
+
+    fun emitDivMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: BinOp, ty: Type) {
+        let lhsInst = self.readVariable(lhs, self.current());
+        let rhsInst = self.readVariable(rhs, self.current());
+        let divZeroCheck = DivZeroCheck(rhsInst);
+        self.current().appendInst(divZeroCheck);
+        let destInst = BinaryInst(op, ty, lhsInst, rhsInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
     @override fun visitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Div, Type::float32());
     }
@@ -319,10 +330,10 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     @override fun visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Mod, Type::int32());
+        self.emitDivMod(dest, lhs, rhs, BinOp::Mod, Type::int32());
     }
     @override fun visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Mod, Type::int64());
+        self.emitDivMod(dest, lhs, rhs, BinOp::Mod, Type::int64());
     }
 
     @override fun visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
