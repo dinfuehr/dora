@@ -159,6 +159,32 @@ fun computeDominators(graph: Graph) {
         }
     }
 
+    // assert that dominators are stable
+    for block in graph.reversePostOrderIterator() {
+        if block.isEntryBlock() {
+            continue;
+        }
+
+        var newIdom: Option[Block] = None[Block];
+
+        for pred in block.predecessors {
+            let pred = pred.from;
+
+            if newIdom.isNone() {
+                newIdom = Some[Block](pred);
+                continue;
+            }
+
+            if pred.getDominator().isNone() {
+                continue;
+            }
+
+            newIdom = Some[Block](commonDominator(newIdom.unwrap(), pred));
+        }
+
+        assert(block.getDominator().unwrap() === newIdom.unwrap());
+    }
+
     for block in graph.reversePostOrderIterator() {
         if block.isEntryBlock() {
             continue;
