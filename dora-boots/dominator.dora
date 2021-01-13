@@ -121,44 +121,30 @@ fun computePostOrder(graph: Graph) {
 }
 
 fun computeDominators(graph: Graph) {
-    // worklist contains current path in the graph
-    let worklist = Vec[Block]();
-
-    // number of successors visited per block
-    let successorsVisited = Array[Int64]::new(graph.blockCount().toInt64());
-
-    // all blocks that have been fully visited (including successors)
-    let visited = BitSet(graph.blockCount().toInt64());
-
-    // all blocks in worklist
-    let visiting = BitSet(graph.blockCount().toInt64());
-
-    worklist.push(graph.getEntryBlock());
-    visiting.insert(graph.getEntryBlock().id.toInt64());
-
-    while !worklist.isEmpty() {
-        let block = worklist.last().unwrap();
-        let successorIndex = successorsVisited(block.id.toInt64());
-
-        if successorIndex == block.successors.size() {
-            worklist.pop();
-            visiting.remove(block.id.toInt64());
-            visited.insert(block.id.toInt64());
-        } else {
-            successorsVisited(block.id.toInt64()) = successorIndex + 1L;
-            let successor = block.successors(successorIndex).to;
-
-            if visiting.contains(successor.id.toInt64()) {
-                // ignore back-edges
-            } else if !visited.contains(successor.id.toInt64()) {
-                // first time we see this block
-                successor.setDominator(block);
-                worklist.push(successor);
-                visited.insert(successor.id.toInt64());
-            } else {
-                updateDominator(block, successor);
-            }
+    // Algorithm from paper "A Simple, Fast Dominance Algorithm"
+    for block in graph.reversePostOrderIterator() {
+        if block.isEntryBlock() {
+            continue;
         }
+
+        var newIdom: Option[Block] = None[Block];
+
+        for pred in block.predecessors {
+            let pred = pred.from;
+
+            if newIdom.isNone() {
+                newIdom = Some[Block](pred);
+                continue;
+            }
+
+            if pred.getDominator().isNone() {
+                continue;
+            }
+
+            newIdom = Some[Block](commonDominator(newIdom.unwrap(), pred));
+        }
+
+        block.setDominator(newIdom.unwrap());
     }
 
     // assert that we have a reducible graph
@@ -180,18 +166,6 @@ fun computeDominators(graph: Graph) {
 
         let dom = block.getDominator().unwrap();
         dom.addDominatedBlock(block);
-    }
-}
-
-fun updateDominator(block: Block, successor: Block): Bool {
-    let old_dominator = successor.getDominator().unwrap();
-    let new_dominator = commonDominator(old_dominator, block);
-
-    if old_dominator != new_dominator {
-        successor.setDominator(new_dominator);
-        true
-    } else {
-        false
     }
 }
 
