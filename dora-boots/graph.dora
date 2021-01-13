@@ -428,6 +428,33 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         data.toArray()
     }
 
+    fun uses(): UseIterator {
+        UseIterator(self)
+    }
+
+    fun dominates(other: Inst): Bool {
+        let sblock = self.block.unwrap();
+        let oblock = other.block.unwrap();
+
+        if sblock === oblock {
+            var current = self.next;
+
+            while current.isSome() {
+                let currentInst = current.unwrap();
+
+                if currentInst === other {
+                    return true;
+                }
+
+                current = currentInst.next;
+            }
+
+            false
+        } else {
+            sblock.dominates(oblock)
+        }
+    }
+
     fun isDeadAndRemovable(): Bool {
         self.isRemovable() && !self.hasUses()
     }
@@ -435,6 +462,20 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     @open @abstract fun dumpName(): String;
     @open @abstract fun isTerminator(): Bool;
     @open @abstract fun isRemovable(): Bool;
+}
+
+class UseIterator(inst: Inst) {
+    var current: Option[Input] = inst.useListHead;
+
+    fun hasNext(): Bool {
+        self.current.isSome()
+    }
+
+    fun next(): Input {
+        let input = self.current.unwrap();
+        self.current = input.nextUse;
+        input
+    }
 }
 
 fun removeUse(input: Input) {
@@ -799,10 +840,10 @@ class PhiInstIterator(block: Block) {
         self.current.isSome()
     }
 
-    fun next(): Inst {
+    fun next(): PhiInst {
         let inst = self.current.unwrap();
         self.current = inst.next;
-        inst
+        inst as PhiInst
     }
 }
 
