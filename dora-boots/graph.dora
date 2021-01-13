@@ -147,9 +147,6 @@ class Block() {
     var predecessors: Vec[Edge] = Vec[Edge]();
     var successors: Vec[Edge] = Vec[Edge]();
 
-    var backwardPredecessors: Int32 = 0;
-    var backwardSuccessors: Int32 = 0;
-
     var loopData: Option[LoopData] = None[LoopData];
 
     var postOrderIdx: Int32 = -1;
@@ -861,14 +858,11 @@ class BackwardInstIterator(block: Block) {
     }
 }
 
-class Edge(let from: Block, let to: Block) {
+class Edge(let source: Block, let target: Block) {
     var backward: Bool = false;
 
     fun markAsBackwardEdge() {
         assert(!self.backward);
         self.backward = true;
-
-        self.from.backwardSuccessors = self.from.backwardSuccessors + 1;
-        self.to.backwardPredecessors = self.to.backwardPredecessors + 1;
     }
 }

@@ -22,9 +22,9 @@ class GraphDumper(let graph: Graph) {
 
             for pred in block.predecessors {
                 if first {
-                    self.buffer.append("@${pred.from.id}");
+                    self.buffer.append("@${pred.source.id}");
                 } else {
-                    self.buffer.append(", @${pred.from.id}");
+                    self.buffer.append(", @${pred.source.id}");
                 }
 
                 first = false;
@@ -39,9 +39,9 @@ class GraphDumper(let graph: Graph) {
 
             for succ in block.successors {
                 if first {
-                    self.buffer.append("@${succ.to.id}");
+                    self.buffer.append("@${succ.target.id}");
                 } else {
-                    self.buffer.append(", @${succ.to.id}");
+                    self.buffer.append(", @${succ.target.id}");
                 }
 
                 first = false;

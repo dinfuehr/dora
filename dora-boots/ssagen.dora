@@ -99,7 +99,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
             incomplete as Inst
         } else if block.predecessors.size() == 1L {
-            self.readVariable(register, block.predecessors.first().unwrap().from)
+            self.readVariable(register, block.predecessors.first().unwrap().source)
         } else {
             let phi = PhiInst();
             block.appendPhi(phi);
@@ -113,7 +113,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
     fun addPhiOperands(register: BytecodeRegister, phi: PhiInst): Inst {
         for pred in phi.block.unwrap().predecessors {
-            let inst = self.readVariable(register, pred.from);
+            let inst = self.readVariable(register, pred.source);
             phi.addInput(inst);
         }
         phi.registerUses();
@@ -200,7 +200,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         // This block might have a back edge to a loop header. Since this
         // block is now filled, we might be able to seal another block.
         for succ in block.successors {
-            self.trySealBlock(succ.to);
+            self.trySealBlock(succ.target);
         }
 
         self.currentBlock = next;
@@ -218,7 +218,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
         // all predecessors need to be filled
         for edge in block.predecessors {
-            if !self.filledBlocks.contains(edge.from.id.toInt64()) {
+            if !self.filledBlocks.contains(edge.source.id.toInt64()) {
                 return;
             }
         }

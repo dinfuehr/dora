@@ -33,7 +33,7 @@ fun findBackEdges(graph: Graph): BitSet {
         } else {
             successorsVisited(block.id.toInt64()) = successorIndex + 1L;
             let successorEdge = block.successors(successorIndex);
-            let successor = successorEdge.to;
+            let successor = successorEdge.target;
 
             if visiting.contains(successor.id.toInt64()) {
                 successorEdge.markAsBackwardEdge();
@@ -73,7 +73,7 @@ fun removeUnreachableBlocks(graph: Graph, visited: BitSet) {
         }
 
         for edge in block.successors {
-            let successor = edge.to;
+            let successor = edge.target;
             successor.predecessors.removeItem(edge);
         }
 
@@ -106,7 +106,7 @@ fun computePostOrder(graph: Graph) {
             postOrder.push(block);
         } else {
             successorsVisited(block.id.toInt64()) = successorIndex + 1L;
-            let successor = block.successors(successorIndex).to;
+            let successor = block.successors(successorIndex).target;
 
             if visited.contains(successor.id.toInt64()) {
                 // block either already visited or back edge
@@ -130,7 +130,7 @@ fun computeDominators(graph: Graph) {
         var newIdom: Option[Block] = None[Block];
 
         for pred in block.predecessors {
-            let pred = pred.from;
+            let pred = pred.source;
 
             if newIdom.isNone() {
                 newIdom = Some[Block](pred);
@@ -168,7 +168,7 @@ fun computeDominators(graph: Graph) {
         var newIdom: Option[Block] = None[Block];
 
         for pred in block.predecessors {
-            let pred = pred.from;
+            let pred = pred.source;
 
             if newIdom.isNone() {
                 newIdom = Some[Block](pred);
@@ -236,7 +236,7 @@ fun discoverBlocks(block: Block, loop: LoopData) {
     updateLoopData(block, loop);
 
     for predecessorEdge in block.predecessors {
-        discoverBlocks(predecessorEdge.from, loop);
+        discoverBlocks(predecessorEdge.source, loop);
     }
 }
 
