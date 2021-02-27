@@ -43,6 +43,7 @@ impl CodeMap {
                 }
                 &CodeDescriptor::DoraStub => println!("dora_stub"),
                 &CodeDescriptor::GuardCheckStub => println!("guard_check_stub"),
+                &CodeDescriptor::SafepointStub => println!("safepoint_stub"),
             }
         }
 
@@ -71,6 +72,7 @@ pub enum CodeDescriptor {
     NativeStub(JitFctId),
     DoraStub,
     GuardCheckStub,
+    SafepointStub,
 }
 
 #[derive(Copy, Clone, Debug)]

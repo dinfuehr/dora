@@ -52,6 +52,18 @@ impl MacroAssembler {
         self.asm.jcc(Condition::Above, lbl_overflow);
     }
 
+    pub fn safepoint(&mut self, lbl_slow: Label) {
+        self.asm.cmpb_ai(
+            Address::offset(
+                REG_THREAD.into(),
+                ThreadLocalData::safepoint_requested_offset(),
+            ),
+            Immediate(0),
+        );
+
+        self.asm.jcc(Condition::NotEqual, lbl_slow);
+    }
+
     pub fn fix_result(&mut self, result: Reg, mode: MachineMode) {
         // Returning a boolean only sets the lower byte. However Dora
         // on x64 keeps booleans in 32-bit registers. Fix result of

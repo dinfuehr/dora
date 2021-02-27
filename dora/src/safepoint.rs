@@ -35,7 +35,7 @@ fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) -> usize {
     vm.threads.barrier.guard(safepoint_id);
 
     for thread in threads.iter() {
-        thread.tld.arm_stack_guard();
+        thread.tld.set_safepoint_requested();
     }
 
     while !all_threads_blocked(vm, &thread_self, threads, safepoint_id) {
@@ -69,7 +69,7 @@ fn all_threads_blocked(
 
 fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>], safepoint_id: usize) {
     for thread in threads.iter() {
-        thread.tld.unarm_stack_guard();
+        thread.tld.clear_safepoint_requested();
     }
 
     vm.threads.barrier.resume(safepoint_id);
@@ -87,6 +87,11 @@ pub extern "C" fn guard_check() {
     }
 }
 
+pub extern "C" fn safepoint() {
+    let thread = THREAD.with(|thread| thread.borrow().clone());
+    block(get_vm(), &thread);
+}
+
 pub fn block(vm: &VM, thread: &DoraThread) {
     let safepoint_id = vm.threads.safepoint_id();
     assert_ne!(safepoint_id, 0);
@@ -99,6 +104,8 @@ pub fn block(vm: &VM, thread: &DoraThread) {
         ThreadState::Blocked => {
             panic!("illegal thread state: thread #{} {:?}", thread.id(), state);
         }
+
+        ThreadState::ParkedSafepoint | ThreadState::RequestedSafepoint => unreachable!(),
     };
 
     let _mtx = vm.threads.barrier.wait(safepoint_id);

@@ -139,6 +139,7 @@ pub struct VM {
     pub dora_stub: Mutex<Address>,
     pub trap_stub: Mutex<Address>,
     pub guard_check_stub: Mutex<Address>,
+    pub safepoint_stub: Mutex<Address>,
     pub threads: Threads,
     pub parse_arg_file: bool,
     pub prelude_namespace_id: NamespaceId,
@@ -246,6 +247,7 @@ impl VM {
             dora_stub: Mutex::new(Address::null()),
             trap_stub: Mutex::new(Address::null()),
             guard_check_stub: Mutex::new(Address::null()),
+            safepoint_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
             parse_arg_file: true,
             prelude_namespace_id,
@@ -656,6 +658,25 @@ impl VM {
         }
 
         *guard_check_stub_address
+    }
+
+    pub fn safepoint_stub(&self) -> Address {
+        let mut safepoint_stub_address = self.guard_check_stub.lock();
+
+        if safepoint_stub_address.is_null() {
+            let ifct = NativeFct {
+                ptr: Address::from_ptr(safepoint::safepoint as *const u8),
+                args: &[],
+                return_type: SourceType::Unit,
+                desc: NativeFctDescriptor::SafepointStub,
+            };
+            let jit_fct_id = native_stub::generate(self, ifct, false);
+            let jit_fct = self.jit_fcts.idx(jit_fct_id);
+            let fct_ptr = jit_fct.instruction_start();
+            *safepoint_stub_address = fct_ptr;
+        }
+
+        *safepoint_stub_address
     }
 
     pub fn file(&self, idx: FileId) -> Arc<ast::File> {

@@ -132,9 +132,10 @@ impl<'a> CannonCodeGen<'a> {
         self.initialize_references();
 
         self.emit_prolog();
+        self.emit_stack_guard();
         self.clear_registers();
         self.store_params_on_stack();
-        self.emit_stack_guard();
+        self.emit_safepoint();
 
         bytecode::read(self.bytecode.code(), &mut self);
 
@@ -142,11 +143,16 @@ impl<'a> CannonCodeGen<'a> {
 
         self.resolve_forward_jumps();
 
-        let jit_fct = self
+        let code = self
             .asm
             .jit(self.stacksize, JitDescriptor::DoraFct(self.fct.id));
 
-        jit_fct
+        code
+    }
+
+    fn emit_safepoint(&mut self) {
+        let gcpoint = self.create_gcpoint();
+        self.asm.safepoint(self.fct.ast.pos, gcpoint);
     }
 
     fn emit_slow_paths(&mut self) {
@@ -4951,7 +4957,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             self,
             format!("JumpLoop {} # target {}", offset, target.to_usize())
         );
-        self.emit_stack_guard();
+        self.emit_safepoint();
         self.emit_jump(target);
     }
     fn visit_jump(&mut self, offset: u32) {

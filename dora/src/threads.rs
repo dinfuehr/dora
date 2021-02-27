@@ -263,6 +263,7 @@ impl StateManager {
             ThreadState::Running => false,
             ThreadState::Blocked => mtx.1 == safepoint_id,
             ThreadState::Parked => true,
+            ThreadState::RequestedSafepoint | ThreadState::ParkedSafepoint => unreachable!(),
         }
     }
 }
@@ -272,6 +273,8 @@ pub enum ThreadState {
     Running = 0,
     Parked = 1,
     Blocked = 2,
+    RequestedSafepoint = 3,
+    ParkedSafepoint = 4,
 }
 
 impl From<usize> for ThreadState {
@@ -280,6 +283,8 @@ impl From<usize> for ThreadState {
             0 => ThreadState::Running,
             1 => ThreadState::Parked,
             2 => ThreadState::Blocked,
+            3 => ThreadState::RequestedSafepoint,
+            4 => ThreadState::ParkedSafepoint,
             _ => unreachable!(),
         }
     }
@@ -324,6 +329,7 @@ pub struct ThreadLocalData {
     concurrent_marking: AtomicBool,
     guard_stack_limit: AtomicUsize,
     real_stack_limit: AtomicUsize,
+    safepoint_requested: AtomicBool,
     dtn: AtomicUsize,
 }
 
@@ -335,6 +341,7 @@ impl ThreadLocalData {
             concurrent_marking: AtomicBool::new(false),
             guard_stack_limit: AtomicUsize::new(0),
             real_stack_limit: AtomicUsize::new(0),
+            safepoint_requested: AtomicBool::new(false),
             dtn: AtomicUsize::new(0),
         }
     }
@@ -383,6 +390,10 @@ impl ThreadLocalData {
         offset_of!(ThreadLocalData, guard_stack_limit) as i32
     }
 
+    pub fn safepoint_requested_offset() -> i32 {
+        offset_of!(ThreadLocalData, safepoint_requested) as i32
+    }
+
     pub fn real_stack_limit(&self) -> Address {
         Address::from(self.real_stack_limit.load(Ordering::Relaxed))
     }
@@ -397,6 +408,14 @@ impl ThreadLocalData {
 
     pub fn arm_stack_guard(&self) {
         self.guard_stack_limit.store(!0, Ordering::Release);
+    }
+
+    pub fn set_safepoint_requested(&self) {
+        self.safepoint_requested.store(true, Ordering::Relaxed);
+    }
+
+    pub fn clear_safepoint_requested(&self) {
+        self.safepoint_requested.store(false, Ordering::Relaxed);
     }
 
     pub fn unarm_stack_guard(&self) {

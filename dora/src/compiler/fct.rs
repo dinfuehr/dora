@@ -133,6 +133,7 @@ pub enum JitDescriptor {
     NativeStub(FctId),
     DoraStub,
     GuardCheckStub,
+    SafepointStub,
 }
 
 pub struct Code {

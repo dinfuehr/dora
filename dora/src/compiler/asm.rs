@@ -56,6 +56,20 @@ impl<'a> BaselineAssembler<'a> {
         ));
     }
 
+    pub fn safepoint(&mut self, pos: Position, gcpoint: GcPoint) {
+        let lbl_safepoint = self.masm.create_label();
+        self.masm.safepoint(lbl_safepoint);
+        let lbl_return = self.masm.create_label();
+        self.masm.bind_label(lbl_return);
+
+        self.slow_paths.push(SlowPathKind::Safepoint(
+            lbl_safepoint,
+            lbl_return,
+            pos,
+            gcpoint,
+        ));
+    }
+
     pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
         self.masm.patch_stacksize(patch_offset, stacksize);
     }
@@ -757,6 +771,10 @@ impl<'a> BaselineAssembler<'a> {
                 SlowPathKind::Assert(lbl_start, pos) => {
                     self.slow_path_assert(lbl_start, pos);
                 }
+
+                SlowPathKind::Safepoint(lbl_start, lbl_return, pos, gcpoint) => {
+                    self.slow_path_safepoint(lbl_start, lbl_return, pos, gcpoint);
+                }
             }
         }
 
@@ -789,6 +807,21 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
+        self.masm.raw_call(self.vm.guard_check_stub().to_ptr());
+        self.masm.emit_gcpoint(gcpoint);
+        self.masm.emit_position(pos);
+        self.masm.jump(lbl_return);
+    }
+
+    fn slow_path_safepoint(
+        &mut self,
+        lbl_start: Label,
+        lbl_return: Label,
+        pos: Position,
+        gcpoint: GcPoint,
+    ) {
+        self.masm.bind_label(lbl_start);
+        self.masm.emit_comment("slow path safepoint".into());
         self.masm.raw_call(self.vm.guard_check_stub().to_ptr());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(pos);
@@ -831,6 +864,7 @@ impl<'a> BaselineAssembler<'a> {
 enum SlowPathKind {
     TlabAllocationFailure(Label, Label, Reg, AllocationSize, Position, bool, GcPoint),
     StackOverflow(Label, Label, Position, GcPoint),
+    Safepoint(Label, Label, Position, GcPoint),
     Assert(Label, Position),
     InitializeGlobal(Label, Label, FctId, Address, Position, GcPoint),
 }
