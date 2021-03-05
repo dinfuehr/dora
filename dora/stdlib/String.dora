@@ -31,6 +31,12 @@
   @internal fun toInt32OrZero(): Int32;
   @internal fun toInt64OrZero(): Int64;
 
+  @internal fun toFloat32Success(): Bool;
+  @internal fun toFloat64Success(): Bool;
+
+  @internal fun toFloat32OrZero(): Float32;
+  @internal fun toFloat64OrZero(): Float64;
+
   @pub fun toInt32(): Option[Int32] {
     if self.toInt32Success() {
       Option[Int32]::Some(self.toInt32OrZero())
@@ -44,6 +50,22 @@
       Option[Int64]::Some(self.toInt64OrZero())
     } else {
       Option[Int64]::None
+    }
+  }
+
+  @pub fun toFloat32(): Option[Float32] {
+    if self.toFloat32Success() {
+      Option[Float32]::Some(self.toFloat32OrZero())
+    } else {
+      Option[Float32]::None
+    }
+  }
+
+  @pub fun toFloat64(): Option[Float64] {
+    if self.toFloat64Success() {
+      Option[Float64]::Some(self.toFloat64OrZero())
+    } else {
+      Option[Float64]::None
     }
   }
 

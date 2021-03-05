@@ -556,6 +556,20 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         vm,
         stdlib,
         "String",
+        "toFloat32Success",
+        stdlib::str_to_float32_success as *const u8,
+    );
+    native_method(
+        vm,
+        stdlib,
+        "String",
+        "toFloat64Success",
+        stdlib::str_to_float64_success as *const u8,
+    );
+    native_method(
+        vm,
+        stdlib,
+        "String",
         "toInt32OrZero",
         stdlib::str_to_int32 as *const u8,
     );
@@ -565,6 +579,20 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         "String",
         "toInt64OrZero",
         stdlib::str_to_int64 as *const u8,
+    );
+    native_method(
+        vm,
+        stdlib,
+        "String",
+        "toFloat32OrZero",
+        stdlib::str_to_float32 as *const u8,
+    );
+    native_method(
+        vm,
+        stdlib,
+        "String",
+        "toFloat64OrZero",
+        stdlib::str_to_float64 as *const u8,
     );
     native_method(vm, stdlib, "String", "plus", stdlib::strcat as *const u8);
 

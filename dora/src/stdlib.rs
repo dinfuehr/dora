@@ -259,6 +259,34 @@ pub extern "C" fn str_to_int64(val: Handle<Str>) -> i64 {
     val.parse::<i64>().unwrap_or(0)
 }
 
+pub extern "C" fn str_to_float32_success(val: Handle<Str>) -> bool {
+    let slice = val.content();
+    let val = str::from_utf8(slice).unwrap();
+
+    val.parse::<f32>().is_ok()
+}
+
+pub extern "C" fn str_to_float32(val: Handle<Str>) -> f32 {
+    let slice = val.content();
+    let val = str::from_utf8(slice).unwrap();
+
+    val.parse::<f32>().unwrap_or(0.0f32)
+}
+
+pub extern "C" fn str_to_float64_success(val: Handle<Str>) -> bool {
+    let slice = val.content();
+    let val = str::from_utf8(slice).unwrap();
+
+    val.parse::<f64>().is_ok()
+}
+
+pub extern "C" fn str_to_float64(val: Handle<Str>) -> f64 {
+    let slice = val.content();
+    let val = str::from_utf8(slice).unwrap();
+
+    val.parse::<f64>().unwrap_or(0.0)
+}
+
 pub extern "C" fn trap(trap_id: u32) {
     let vm = get_vm();
     let trap = Trap::from(trap_id).expect("invalid trap id!");
