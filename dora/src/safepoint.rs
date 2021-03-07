@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::stdlib;
 use crate::threads::{DoraThread, ThreadState, THREAD};
-use crate::vm::{get_vm, stack_pointer, Trap, VM};
+use crate::vm::{get_vm, Trap, VM};
 
 pub fn stop_the_world<F, R>(vm: &VM, f: F) -> R
 where
@@ -77,14 +77,7 @@ fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>], safepoint_id: usize) {
 }
 
 pub extern "C" fn guard_check() {
-    let thread = THREAD.with(|thread| thread.borrow().clone());
-    let stack_overflow = thread.tld.real_stack_limit() > stack_pointer();
-
-    if stack_overflow {
-        stdlib::trap(Trap::STACK_OVERFLOW.int());
-    } else {
-        block(get_vm(), &thread);
-    }
+    stdlib::trap(Trap::STACK_OVERFLOW.int());
 }
 
 pub extern "C" fn safepoint() {

@@ -661,7 +661,7 @@ impl VM {
     }
 
     pub fn safepoint_stub(&self) -> Address {
-        let mut safepoint_stub_address = self.guard_check_stub.lock();
+        let mut safepoint_stub_address = self.safepoint_stub.lock();
 
         if safepoint_stub_address.is_null() {
             let ifct = NativeFct {

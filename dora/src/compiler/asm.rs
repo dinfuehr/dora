@@ -822,7 +822,7 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path safepoint".into());
-        self.masm.raw_call(self.vm.guard_check_stub().to_ptr());
+        self.masm.raw_call(self.vm.safepoint_stub().to_ptr());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(pos);
         self.masm.jump(lbl_return);
