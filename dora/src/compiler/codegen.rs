@@ -73,23 +73,33 @@ pub fn generate_fct(
     debug_assert!(mem::is_aligned(ptr_start.to_usize(), 16));
     debug_assert!(mem::is_aligned(fct_ptr.to_usize(), 16));
 
-    let jit_fct_id = {
-        let mut jit_fcts = vm.jit_fcts.lock();
-        let jit_fct_id = jit_fcts.len().into();
-        jit_fcts.push(Arc::new(JitFct::Compiled(code)));
-
-        jit_fct_id
-    };
-
     {
         let mut specials = fct.specializations.write();
-        specials.insert(type_params.clone(), jit_fct_id);
-    }
 
-    {
-        let mut code_map = vm.code_map.lock();
-        let cdata = CodeDescriptor::DoraFct(jit_fct_id);
-        code_map.insert(ptr_start, ptr_end, cdata);
+        // check whether function was compiled in-between from another thread.
+        if let Some(&jit_fct_id) = specials.get(type_params) {
+            let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+            return jit_fct.instruction_start();
+        }
+
+        // insert the returned Code into the JitFct table to get the JitFctId.
+        let jit_fct_id = {
+            let mut jit_fcts = vm.jit_fcts.lock();
+            let jit_fct_id = jit_fcts.len().into();
+            jit_fcts.push(Arc::new(JitFct::Compiled(code)));
+            jit_fct_id
+        };
+
+        // We need to insert into CodeMap before releasing the specializations-lock. Otherwise
+        // another thread could run that function while the function can't be found in the
+        // CodeMap yet. This would lead to crash e.g. for lazy compilation.
+        {
+            let mut code_map = vm.code_map.lock();
+            let cdata = CodeDescriptor::DoraFct(jit_fct_id);
+            code_map.insert(ptr_start, ptr_end, cdata);
+        }
+
+        specials.insert(type_params.clone(), jit_fct_id);
     }
 
     fct_ptr
