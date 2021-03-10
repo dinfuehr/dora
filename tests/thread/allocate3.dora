@@ -1,4 +1,3 @@
-//= stdout "done\ndone\n"
 //= vm-args "--gc-young-size=64M --max-heap-size=128M --gc-verify"
 
 class MyThread() extends std::Thread {
@@ -9,8 +8,13 @@ class MyThread() extends std::Thread {
 }
 
 fun main() {
-    let thread = MyThread();
-    thread.start();
+    var i = 0;
+
+    while i < 4 {
+        let thread = MyThread();
+        thread.start();
+        i = i + 1;
+    }
 
     allocator();
     println("done");
