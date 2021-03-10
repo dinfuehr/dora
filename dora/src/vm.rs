@@ -138,7 +138,7 @@ pub struct VM {
     pub compile_stub: Mutex<Address>,
     pub dora_stub: Mutex<Address>,
     pub trap_stub: Mutex<Address>,
-    pub guard_check_stub: Mutex<Address>,
+    pub stack_overflow_stub: Mutex<Address>,
     pub safepoint_stub: Mutex<Address>,
     pub threads: Threads,
     pub parse_arg_file: bool,
@@ -246,7 +246,7 @@ impl VM {
             compile_stub: Mutex::new(Address::null()),
             dora_stub: Mutex::new(Address::null()),
             trap_stub: Mutex::new(Address::null()),
-            guard_check_stub: Mutex::new(Address::null()),
+            stack_overflow_stub: Mutex::new(Address::null()),
             safepoint_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
             parse_arg_file: true,
@@ -641,12 +641,12 @@ impl VM {
         *trap_stub_address
     }
 
-    pub fn guard_check_stub(&self) -> Address {
-        let mut guard_check_stub_address = self.guard_check_stub.lock();
+    pub fn stack_overflow_stub(&self) -> Address {
+        let mut stack_overflow_stub_address = self.stack_overflow_stub.lock();
 
-        if guard_check_stub_address.is_null() {
+        if stack_overflow_stub_address.is_null() {
             let ifct = NativeFct {
-                ptr: Address::from_ptr(safepoint::guard_check as *const u8),
+                ptr: Address::from_ptr(safepoint::stack_overflow as *const u8),
                 args: &[],
                 return_type: SourceType::Unit,
                 desc: NativeFctDescriptor::GuardCheckStub,
@@ -654,10 +654,10 @@ impl VM {
             let jit_fct_id = native_stub::generate(self, ifct, false);
             let jit_fct = self.jit_fcts.idx(jit_fct_id);
             let fct_ptr = jit_fct.instruction_start();
-            *guard_check_stub_address = fct_ptr;
+            *stack_overflow_stub_address = fct_ptr;
         }
 
-        *guard_check_stub_address
+        *stack_overflow_stub_address
     }
 
     pub fn safepoint_stub(&self) -> Address {
@@ -665,7 +665,7 @@ impl VM {
 
         if safepoint_stub_address.is_null() {
             let ifct = NativeFct {
-                ptr: Address::from_ptr(safepoint::safepoint as *const u8),
+                ptr: Address::from_ptr(safepoint::safepoint_slow as *const u8),
                 args: &[],
                 return_type: SourceType::Unit,
                 desc: NativeFctDescriptor::SafepointStub,

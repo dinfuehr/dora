@@ -263,7 +263,9 @@ impl StateManager {
             ThreadState::Running => false,
             ThreadState::Blocked => mtx.1 == safepoint_id,
             ThreadState::Parked => true,
-            ThreadState::RequestedSafepoint | ThreadState::ParkedSafepoint => unreachable!(),
+            ThreadState::RequestedSafepoint
+            | ThreadState::ParkedSafepoint
+            | ThreadState::Safepoint => unreachable!(),
         }
     }
 }
@@ -275,6 +277,7 @@ pub enum ThreadState {
     Blocked = 2,
     RequestedSafepoint = 3,
     ParkedSafepoint = 4,
+    Safepoint = 5,
 }
 
 impl From<usize> for ThreadState {
@@ -285,6 +288,7 @@ impl From<usize> for ThreadState {
             2 => ThreadState::Blocked,
             3 => ThreadState::RequestedSafepoint,
             4 => ThreadState::ParkedSafepoint,
+            5 => ThreadState::Safepoint,
             _ => unreachable!(),
         }
     }

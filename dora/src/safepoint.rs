@@ -4,7 +4,7 @@ use crate::stdlib;
 use crate::threads::{DoraThread, ThreadState, THREAD};
 use crate::vm::{get_vm, Trap, VM};
 
-pub fn stop_the_world<F, R>(vm: &VM, f: F) -> R
+pub fn stop_the_world<F, R>(vm: &VM, operation: F) -> R
 where
     F: FnOnce(&[Arc<DoraThread>]) -> R,
 {
@@ -12,13 +12,13 @@ where
 
     let threads = vm.threads.threads.lock();
     if threads.len() == 1 {
-        let ret = f(&*threads);
+        let ret = operation(&*threads);
         THREAD.with(|thread| thread.borrow().unpark(vm));
         return ret;
     }
 
     let safepoint_id = stop_threads(vm, &*threads);
-    let ret = f(&*threads);
+    let ret = operation(&*threads);
     resume_threads(vm, &*threads, safepoint_id);
     THREAD.with(|thread| thread.borrow().unpark(vm));
     ret
@@ -76,11 +76,11 @@ fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>], safepoint_id: usize) {
     vm.threads.clear_safepoint_request();
 }
 
-pub extern "C" fn guard_check() {
+pub extern "C" fn stack_overflow() {
     stdlib::trap(Trap::STACK_OVERFLOW.int());
 }
 
-pub extern "C" fn safepoint() {
+pub extern "C" fn safepoint_slow() {
     let thread = THREAD.with(|thread| thread.borrow().clone());
     block(get_vm(), &thread);
 }
@@ -94,11 +94,14 @@ pub fn block(vm: &VM, thread: &DoraThread) {
         ThreadState::Running | ThreadState::Parked => {
             thread.block(safepoint_id);
         }
+
         ThreadState::Blocked => {
             panic!("illegal thread state: thread #{} {:?}", thread.id(), state);
         }
 
-        ThreadState::ParkedSafepoint | ThreadState::RequestedSafepoint => unreachable!(),
+        ThreadState::ParkedSafepoint | ThreadState::RequestedSafepoint | ThreadState::Safepoint => {
+            unreachable!()
+        }
     };
 
     let _mtx = vm.threads.barrier.wait(safepoint_id);
