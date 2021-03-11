@@ -317,7 +317,12 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     let vm = get_vm();
     let thread = DoraThread::new(vm);
 
+    THREAD.with(|thread| {
+        thread.borrow_mut().park(vm);
+    });
+
     vm.threads.attach_thread(thread.clone());
+
     let obj = obj.direct();
 
     thread::spawn(move || {
@@ -368,5 +373,9 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
         // remove thread from list of all threads
         vm.threads.detach_current_thread();
+    });
+
+    THREAD.with(|thread| {
+        thread.borrow_mut().unpark(vm);
     });
 }
