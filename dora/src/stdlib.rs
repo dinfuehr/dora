@@ -316,29 +316,27 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
     let vm = get_vm();
     let thread = DoraThread::new(vm);
+    let location = thread.handles.root(obj.direct()).location();
 
-    THREAD.with(|thread| {
-        thread.borrow_mut().park(vm);
-    });
-
-    vm.threads.attach_thread(thread.clone());
-
-    let obj = obj.direct();
+    vm.threads.attach_thread(vm, thread.clone());
 
     thread::spawn(move || {
         THREAD.with(|tld_thread| {
             *tld_thread.borrow_mut() = thread;
         });
 
+        let handle: Handle<Obj> = Handle::from_address(location);
+
         let stack_top = stack_pointer();
         let stack_limit = stack_top.sub(STACK_SIZE);
 
         THREAD.with(|thread| {
             thread.borrow().tld.set_stack_limit(stack_limit);
+            thread.borrow().unpark(vm);
         });
 
         let main = {
-            let cls_id = obj.header().vtbl().class_def().cls_id;
+            let cls_id = handle.header().vtbl().class_def().cls_id;
             let cls_id = cls_id.expect("no corresponding class");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
@@ -369,13 +367,9 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
         let dora_stub_address = vm.dora_stub();
         let fct: extern "C" fn(Address, Address, Ref<Obj>) =
             unsafe { mem::transmute(dora_stub_address) };
-        fct(tld, fct_ptr, obj);
+        fct(tld, fct_ptr, handle.direct());
 
         // remove thread from list of all threads
         vm.threads.detach_current_thread();
-    });
-
-    THREAD.with(|thread| {
-        thread.borrow_mut().unpark(vm);
     });
 }

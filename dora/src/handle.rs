@@ -1,6 +1,7 @@
 use parking_lot::{Mutex, MutexGuard};
 use std::ops::{Deref, DerefMut};
 
+use crate::gc::Address;
 use crate::object::{Obj, Ref};
 use crate::threads::THREAD;
 
@@ -133,6 +134,14 @@ impl<T> Handle<T> {
 
     pub fn raw(self) -> *mut Ref<T> {
         self.0
+    }
+
+    pub fn location(&self) -> Address {
+        Address::from_ptr(self.0)
+    }
+
+    pub fn from_address(location: Address) -> Handle<T> {
+        Handle(location.to_mut_ptr())
     }
 
     pub fn cast<R>(self) -> Handle<R> {

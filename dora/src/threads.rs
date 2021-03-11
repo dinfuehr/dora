@@ -44,9 +44,17 @@ impl Threads {
         });
     }
 
-    pub fn attach_thread(&self, thread: Arc<DoraThread>) {
-        let mut threads = self.threads.lock();
-        threads.push(thread);
+    pub fn attach_thread(&self, vm: &VM, thread: Arc<DoraThread>) {
+        THREAD.with(|current_thread| {
+            current_thread.borrow().park(vm);
+
+            {
+                let mut threads = self.threads.lock();
+                threads.push(thread);
+            }
+
+            current_thread.borrow().unpark(vm);
+        });
     }
 
     pub fn next_id(&self) -> usize {
@@ -127,21 +135,21 @@ unsafe impl Send for DoraThread {}
 
 impl DoraThread {
     pub fn new(vm: &VM) -> Arc<DoraThread> {
-        DoraThread::with_id(vm.threads.next_id())
+        DoraThread::with_id(vm.threads.next_id(), ThreadState::Parked)
     }
 
     pub fn main() -> Arc<DoraThread> {
-        DoraThread::with_id(0)
+        DoraThread::with_id(0, ThreadState::Running)
     }
 
-    fn with_id(id: usize) -> Arc<DoraThread> {
+    fn with_id(id: usize, initial_state: ThreadState) -> Arc<DoraThread> {
         Arc::new(DoraThread {
             id: AtomicUsize::new(id),
             handles: HandleMemory::new(),
             tld: ThreadLocalData::new(),
             saved_pc: AtomicUsize::new(0),
             saved_fp: AtomicUsize::new(0),
-            state: StateManager::new(),
+            state: StateManager::new(initial_state),
         })
     }
 
@@ -218,9 +226,9 @@ pub struct StateManager {
 }
 
 impl StateManager {
-    fn new() -> StateManager {
+    fn new(initial_state: ThreadState) -> StateManager {
         StateManager {
-            mtx: Mutex::new((ThreadState::Running, 0)),
+            mtx: Mutex::new((initial_state, 0)),
         }
     }
 
