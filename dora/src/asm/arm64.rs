@@ -33,6 +33,8 @@ pub const R27: Register = Register(27);
 pub const R28: Register = Register(28);
 pub const R29: Register = Register(29);
 pub const R30: Register = Register(30);
+pub const REG_ZERO: Register = Register(31);
+pub const REG_SP: Register = Register(32);
 
 impl Register {
     fn value(self) -> u8 {
@@ -81,21 +83,21 @@ impl Assembler {
         }
     }
 
-    pub fn cbnzx(&mut self, reg: Register, target: Label) {
+    pub fn b(&mut self, target: Label) {
         let value = self.offset(target);
 
         match value {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(asm::cbnz(1, Reg(reg.value()), diff / 4));
+                self.emit_u32(asm::b_imm(diff / 4));
             }
 
             None => {
                 let pos = self.pc() as u32;
                 self.emit_u32(0);
                 self.unresolved_jumps
-                    .push((pos, target, JumpKind::NonZero(true, reg)));
+                    .push((pos, target, JumpKind::Unconditional));
             }
         }
     }
@@ -119,22 +121,87 @@ impl Assembler {
         }
     }
 
-    pub fn b(&mut self, target: Label) {
+    pub fn cbnzx(&mut self, reg: Register, target: Label) {
         let value = self.offset(target);
 
         match value {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(asm::b_imm(diff / 4));
+                self.emit_u32(asm::cbnz(1, Reg(reg.value()), diff / 4));
             }
 
             None => {
                 let pos = self.pc() as u32;
                 self.emit_u32(0);
                 self.unresolved_jumps
-                    .push((pos, target, JumpKind::Unconditional));
+                    .push((pos, target, JumpKind::NonZero(true, reg)));
             }
         }
+    }
+
+    pub fn nop(&mut self) {
+        self.emit_u32(cls_system(0));
+    }
+}
+
+fn cls_system(imm: u32) -> u32 {
+    assert!(fits_u7(imm));
+
+    0xD503201F | imm << 5
+}
+
+fn fits_u7(imm: u32) -> bool {
+    imm < 128
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::asm::*;
+    use byteorder::{LittleEndian, WriteBytesExt};
+
+    macro_rules! assert_emit {
+        (
+            $($expr:expr),*;
+            $name:ident
+            (
+                    $($param:expr),*
+            )
+        ) => {{
+            let mut buf = Assembler::new();
+            buf.$name($($param,)*);
+            let mut expected: Vec<u8> = Vec::new();
+            $(
+                expected.write_u32::<LittleEndian>($expr).unwrap();
+            )*
+            let data = buf.code();
+
+            if expected != data {
+                print!("exp: ");
+
+                for (ind, val) in expected.iter().enumerate() {
+                    if ind > 0 { print!(", "); }
+
+                    print!("{:02x}", val);
+                }
+
+                print!("\ngot: ");
+
+                for (ind, val) in data.iter().enumerate() {
+                    if ind > 0 { print!(", "); }
+
+                    print!("{:02x}", val);
+                }
+
+                println!("");
+
+                panic!("emitted code wrong.");
+            }
+        }};
+    }
+
+    #[test]
+    fn test_nop() {
+        assert_emit!(0xd503201f; nop());
     }
 }

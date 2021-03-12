@@ -1240,7 +1240,7 @@ impl MacroAssembler {
     }
 
     pub fn nop(&mut self) {
-        self.emit_u32(asm::nop());
+        self.asm.nop();
     }
 }
 

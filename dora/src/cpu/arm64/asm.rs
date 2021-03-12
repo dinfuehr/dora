@@ -172,16 +172,6 @@ fn cls_cmp_branch_imm(sf: u32, op: u32, rt: Reg, imm19: i32) -> u32 {
     sf << 31 | 0b011010u32 << 25 | op << 24 | imm << 5 | rt.asm()
 }
 
-pub fn nop() -> u32 {
-    cls_system(0)
-}
-
-fn cls_system(imm: u32) -> u32 {
-    assert!(fits_u7(imm));
-
-    0xD503201F | imm << 5
-}
-
 pub fn add_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
     cls_addsub_imm(sf, 0, 0, shift, imm12, rn, rd)
 }
@@ -1441,7 +1431,6 @@ pub fn count_empty_half_words(mut imm: u64, register_size: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cpu::arm64::reg::*;
 
     macro_rules! assert_emit {
         ($exp: expr; $val: expr) => {{
@@ -1512,11 +1501,6 @@ mod tests {
         assert_emit!(0xd61f03c0; br(R30));
         assert_emit!(0xd63f0000; blr(R0));
         assert_emit!(0xd63f03c0; blr(R30));
-    }
-
-    #[test]
-    fn test_nop() {
-        assert_emit!(0xd503201f; nop());
     }
 
     #[test]
