@@ -98,9 +98,7 @@ impl MacroAssembler {
     pub fn safepoint(&mut self, lbl_safepoint: Label) {
         let offset = ThreadLocalData::safepoint_requested_offset() as u32;
         self.emit_u32(asm::ldrb_imm(REG_TMP1, REG_THREAD, offset));
-        self.emit_u32(asm::movz(0, REG_TMP2, 0, 0));
-        self.emit_u32(asm::cmp_shreg(0, REG_TMP1, REG_TMP2, Shift::LSL, 0));
-        self.jump_if(CondCode::NotEqual, lbl_safepoint);
+        self.asm.cbnzx(REG_TMP1.into(), lbl_safepoint);
     }
 
     pub fn fix_result(&mut self, _result: Reg, _mode: MachineMode) {

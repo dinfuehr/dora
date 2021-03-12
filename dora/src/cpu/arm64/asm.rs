@@ -154,6 +154,24 @@ fn cls_cond_branch_imm(cond: Cond, imm19: i32) -> u32 {
     0b01010100u32 << 24 | imm << 5 | cond.u32()
 }
 
+pub fn cbz(sf: u32, rt: Reg, imm19: i32) -> u32 {
+    cls_cmp_branch_imm(sf, 0b0, rt, imm19)
+}
+
+pub fn cbnz(sf: u32, rt: Reg, imm19: i32) -> u32 {
+    cls_cmp_branch_imm(sf, 0b1, rt, imm19)
+}
+
+fn cls_cmp_branch_imm(sf: u32, op: u32, rt: Reg, imm19: i32) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(op));
+    assert!(fits_i19(imm19));
+    assert!(rt.is_gpr());
+    let imm = (imm19 as u32) & 0x7FFFF;
+
+    sf << 31 | 0b011010u32 << 25 | op << 24 | imm << 5 | rt.asm()
+}
+
 pub fn nop() -> u32 {
     cls_system(0)
 }
