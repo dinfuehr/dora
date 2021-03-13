@@ -107,7 +107,7 @@ impl MacroAssembler {
 
     pub fn epilog(&mut self) {
         self.epilog_without_return();
-        self.emit_u32(asm::ret());
+        self.asm.ret(REG_LR.into());
     }
 
     pub fn epilog_without_return(&mut self) {
@@ -157,7 +157,7 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
 
         self.load_constpool(*scratch, disp + pos);
-        self.emit_u32(asm::blr(*scratch));
+        self.asm.blr((*scratch).into());
 
         let pos = self.pos() as i32;
         self.emit_lazy_compilation_site(LazyCompilationSite::Direct(
@@ -174,7 +174,7 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
 
         self.load_constpool(*scratch, disp + pos);
-        self.emit_u32(asm::blr(*scratch));
+        self.asm.blr((*scratch).into());
     }
 
     pub fn indirect_call(
@@ -206,7 +206,7 @@ impl MacroAssembler {
         );
 
         // call *scratch
-        self.emit_u32(asm::blr(*scratch));
+        self.asm.blr((*scratch).into());
         self.emit_lazy_compilation_site(LazyCompilationSite::Virtual(
             self_index == 0,
             fct_id,
@@ -274,7 +274,7 @@ impl MacroAssembler {
     }
 
     pub fn jump_reg(&mut self, reg: Reg) {
-        self.emit_u32(asm::br(reg));
+        self.asm.br(reg.into());
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
@@ -1137,7 +1137,7 @@ impl MacroAssembler {
     }
 
     pub fn call_reg(&mut self, reg: Reg) {
-        self.emit_u32(asm::blr(reg));
+        self.asm.blr(reg.into());
     }
 
     pub fn debug(&mut self) {

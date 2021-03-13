@@ -2,32 +2,6 @@ use crate::cpu::arm64::reg::*;
 use crate::cpu::{FReg, Reg};
 use crate::masm::CondCode;
 
-pub fn ret() -> u32 {
-    cls_uncond_branch_reg(0b0010, 0b11111, 0, REG_LR, 0)
-}
-
-pub fn ret_reg(rn: Reg) -> u32 {
-    cls_uncond_branch_reg(0b0010, 0b11111, 0, rn, 0)
-}
-
-pub fn br(rn: Reg) -> u32 {
-    cls_uncond_branch_reg(0b0000, 0b11111, 0, rn, 0)
-}
-
-pub fn blr(rn: Reg) -> u32 {
-    cls_uncond_branch_reg(0b0001, 0b11111, 0, rn, 0)
-}
-
-fn cls_uncond_branch_reg(opc: u32, op2: u32, op3: u32, rn: Reg, op4: u32) -> u32 {
-    assert!(fits_u4(opc));
-    assert!(fits_u5(op2));
-    assert!(fits_u6(op3));
-    assert!(rn.is_gpr());
-    assert!(fits_u5(op4));
-
-    (0b1101011 as u32) << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.asm() << 5 | op4
-}
-
 pub fn add_extreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
     cls_addsub_extreg(sf, 0, 0, 0, rm, extend, amount, rn, rd)
 }
@@ -1493,21 +1467,6 @@ mod tests {
         assert!(fits_i12(2047));
         assert!(!fits_i12(-2049));
         assert!(!fits_i12(2048));
-    }
-
-    #[test]
-    fn test_br_blr() {
-        assert_emit!(0xd61f0000; br(R0));
-        assert_emit!(0xd61f03c0; br(R30));
-        assert_emit!(0xd63f0000; blr(R0));
-        assert_emit!(0xd63f03c0; blr(R30));
-    }
-
-    #[test]
-    fn test_ret() {
-        assert_emit!(0xd65f03c0; ret());
-        assert_emit!(0xd65f0000; ret_reg(R0));
-        assert_emit!(0xd65f0140; ret_reg(R10));
     }
 
     #[test]

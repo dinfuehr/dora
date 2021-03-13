@@ -33,12 +33,22 @@ pub const R27: Register = Register(27);
 pub const R28: Register = Register(28);
 pub const R29: Register = Register(29);
 pub const R30: Register = Register(30);
+pub const REG_LR: Register = R30;
 pub const REG_ZERO: Register = Register(31);
 pub const REG_SP: Register = Register(32);
 
 impl Register {
-    fn value(self) -> u8 {
-        self.0
+    fn value(self) -> u32 {
+        debug_assert!(self.is_gpr_or_zero());
+        self.0 as u32
+    }
+
+    fn is_gpr(&self) -> bool {
+        self.0 <= 30
+    }
+
+    fn is_gpr_or_zero(&self) -> bool {
+        self.0 <= 31
     }
 
     pub fn to_reg(self) -> Reg {
@@ -121,6 +131,14 @@ impl Assembler {
         }
     }
 
+    pub fn blr(&mut self, rn: Register) {
+        self.emit_u32(cls_uncond_branch_reg(0b0001, 0b11111, 0, rn, 0));
+    }
+
+    pub fn br(&mut self, rn: Register) {
+        self.emit_u32(cls_uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
+    }
+
     pub fn cbnzx(&mut self, reg: Register, target: Label) {
         let value = self.offset(target);
 
@@ -128,7 +146,7 @@ impl Assembler {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(asm::cbnz(1, Reg(reg.value()), diff / 4));
+                self.emit_u32(asm::cbnz(1, Reg(reg.value() as u8), diff / 4));
             }
 
             None => {
@@ -143,6 +161,19 @@ impl Assembler {
     pub fn nop(&mut self) {
         self.emit_u32(cls_system(0));
     }
+
+    pub fn ret(&mut self, rn: Register) {
+        self.emit_u32(cls_uncond_branch_reg(0b0010, 0b11111, 0, rn, 0));
+    }
+}
+
+fn cls_uncond_branch_reg(opc: u32, op2: u32, op3: u32, rn: Register, op4: u32) -> u32 {
+    assert!(fits_u4(opc));
+    assert!(fits_u5(op2));
+    assert!(fits_u6(op3));
+    assert!(fits_u5(op4));
+
+    (0b1101011 as u32) << 25 | opc << 21 | op2 << 16 | op3 << 10 | encoding_rn(rn) | op4
 }
 
 fn cls_system(imm: u32) -> u32 {
@@ -151,8 +182,25 @@ fn cls_system(imm: u32) -> u32 {
     0xD503201F | imm << 5
 }
 
+fn encoding_rn(reg: Register) -> u32 {
+    assert!(reg.is_gpr());
+    reg.value() << 5
+}
+
 fn fits_u7(imm: u32) -> bool {
-    imm < 128
+    imm < (1 << 7)
+}
+
+fn fits_u6(imm: u32) -> bool {
+    imm < (1 << 6)
+}
+
+fn fits_u5(imm: u32) -> bool {
+    imm < (1 << 5)
+}
+
+fn fits_u4(imm: u32) -> bool {
+    imm < (1 << 4)
 }
 
 #[cfg(test)]
@@ -198,6 +246,21 @@ mod tests {
                 panic!("emitted code wrong.");
             }
         }};
+    }
+
+    #[test]
+    fn test_br_blr() {
+        assert_emit!(0xd61f0000; br(R0));
+        assert_emit!(0xd61f03c0; br(R30));
+        assert_emit!(0xd63f0000; blr(R0));
+        assert_emit!(0xd63f03c0; blr(R30));
+    }
+
+    #[test]
+    fn test_ret() {
+        assert_emit!(0xd65f03c0; ret(REG_LR));
+        assert_emit!(0xd65f0000; ret(R0));
+        assert_emit!(0xd65f0140; ret(R10));
     }
 
     #[test]
