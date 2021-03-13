@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use crate::gc::{tlab, Address, Region, K};
 use crate::handle::HandleMemory;
-use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::vm::{get_vm, VM};
 
@@ -128,6 +127,7 @@ pub struct DoraThread {
     pub saved_pc: AtomicUsize,
     pub saved_fp: AtomicUsize,
     pub state: StateManager,
+    pub atomic_state: AtomicUsize,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -150,6 +150,7 @@ impl DoraThread {
             saved_pc: AtomicUsize::new(0),
             saved_fp: AtomicUsize::new(0),
             state: StateManager::new(initial_state),
+            atomic_state: AtomicUsize::new(initial_state as usize),
         })
     }
 
@@ -196,28 +197,68 @@ impl DoraThread {
         self.state.state()
     }
 
+    pub fn state_relaxed(&self) -> ThreadState {
+        self.atomic_state.load(Ordering::Relaxed).into()
+    }
+
     pub fn park(&self, vm: &VM) {
-        self.state.park(vm);
+        if self
+            .atomic_state
+            .compare_exchange(
+                ThreadState::Running as usize,
+                ThreadState::Parked as usize,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_err()
+        {
+            self.park_slow(vm);
+        }
+    }
+
+    pub fn park_slow(&self, vm: &VM) {
+        assert!(self
+            .atomic_state
+            .compare_exchange(
+                ThreadState::RequestedSafepoint as usize,
+                ThreadState::ParkedSafepoint as usize,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_ok());
+        vm.threads.barrier.notify_park();
     }
 
     pub fn unpark(&self, vm: &VM) {
-        if vm.threads.safepoint_id() != 0 {
-            safepoint::block(vm, self);
+        if self
+            .atomic_state
+            .compare_exchange(
+                ThreadState::Parked as usize,
+                ThreadState::Running as usize,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_err()
+        {
+            self.unpark_slow(vm);
         }
-
-        self.state.unpark(vm);
     }
 
-    pub fn block(&self, safepoint_id: usize) {
-        self.state.block(safepoint_id);
-    }
-
-    pub fn unblock(&self) {
-        self.state.unblock();
-    }
-
-    pub fn in_safepoint(&self, safepoint_id: usize) -> bool {
-        self.state.in_safepoint(safepoint_id)
+    pub fn unpark_slow(&self, vm: &VM) {
+        loop {
+            match self.atomic_state.compare_exchange(
+                ThreadState::Parked as usize,
+                ThreadState::Running as usize,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => break,
+                Err(state) => {
+                    assert_eq!(state, ThreadState::ParkedSafepoint as usize);
+                    vm.threads.barrier.wait_in_unpark();
+                }
+            }
+        }
     }
 }
 
@@ -420,39 +461,101 @@ impl ThreadLocalData {
 }
 
 pub struct Barrier {
-    active: Mutex<usize>,
-    done: Condvar,
+    data: Mutex<BarrierData>,
+    cv_wakeup: Condvar,
+    cv_notify: Condvar,
 }
 
 impl Barrier {
     pub fn new() -> Barrier {
         Barrier {
-            active: Mutex::new(0),
-            done: Condvar::new(),
+            data: Mutex::new(BarrierData::new()),
+            cv_wakeup: Condvar::new(),
+            cv_notify: Condvar::new(),
         }
     }
 
-    pub fn guard(&self, safepoint_id: usize) {
-        let mut active = self.active.lock();
-        assert_eq!(*active, 0);
-        assert_ne!(safepoint_id, 0);
-        *active = safepoint_id;
+    pub fn arm(&self) {
+        let mut data = self.data.lock();
+        assert!(!data.is_armed());
+        data.arm();
     }
 
-    pub fn resume(&self, safepoint_id: usize) {
-        let mut active = self.active.lock();
-        assert_eq!(*active, safepoint_id);
-        assert_ne!(safepoint_id, 0);
-        *active = 0;
-        self.done.notify_all();
+    pub fn disarm(&self) {
+        let mut data = self.data.lock();
+        assert!(data.is_armed());
+        data.disarm();
+        self.cv_wakeup.notify_all();
     }
 
-    pub fn wait(&self, safepoint_id: usize) {
-        let mut active = self.active.lock();
-        assert_ne!(safepoint_id, 0);
+    pub fn notify_park(&self) {
+        let mut data = self.data.lock();
+        assert!(data.is_armed());
+        data.stopped += 1;
+        self.cv_notify.notify_one();
+    }
 
-        while *active == safepoint_id {
-            self.done.wait(&mut active);
+    pub fn wait_in_safepoint(&self) {
+        let mut data = self.data.lock();
+        assert!(data.is_armed());
+        data.stopped += 1;
+        self.cv_notify.notify_one();
+        let safepoint = data.armed;
+
+        while data.armed == safepoint {
+            self.cv_wakeup.wait(&mut data);
         }
+    }
+
+    pub fn wait_in_unpark(&self) {
+        let mut data = self.data.lock();
+        assert!(data.is_armed());
+
+        while data.is_armed() {
+            self.cv_wakeup.wait(&mut data);
+        }
+    }
+
+    pub fn wait_until_threads_stopped(&self, threads: usize) {
+        let mut data = self.data.lock();
+        assert!(data.is_armed());
+        while data.stopped < threads {
+            self.cv_notify.wait(&mut data);
+        }
+    }
+}
+
+struct BarrierData {
+    armed: usize,
+    next: usize,
+    stopped: usize,
+}
+
+impl BarrierData {
+    pub fn new() -> BarrierData {
+        BarrierData {
+            armed: 0,
+            next: 1,
+            stopped: 0,
+        }
+    }
+
+    pub fn is_armed(&self) -> bool {
+        self.armed != 0
+    }
+
+    pub fn arm(&mut self) {
+        self.stopped = 0;
+        self.armed = self.next;
+
+        if self.next == usize::max_value() {
+            self.next = 1;
+        } else {
+            self.next += 1;
+        }
+    }
+
+    pub fn disarm(&mut self) {
+        self.armed = 0;
     }
 }

@@ -1,3 +1,4 @@
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use crate::stdlib;
@@ -17,10 +18,12 @@ where
         return ret;
     }
 
-    let safepoint_id = stop_threads(vm, &*threads);
+    stop_threads(vm, &*threads);
     let ret = operation(&*threads);
-    resume_threads(vm, &*threads, safepoint_id);
+    resume_threads(vm, &*threads);
+
     THREAD.with(|thread| thread.borrow().unpark(vm));
+
     ret
 }
 
@@ -28,52 +31,76 @@ fn current_thread_id() -> usize {
     THREAD.with(|thread| thread.borrow().id())
 }
 
-fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) -> usize {
-    let thread_self = THREAD.with(|thread| thread.borrow().clone());
-    let safepoint_id = vm.threads.request_safepoint();
-
-    vm.threads.barrier.guard(safepoint_id);
+fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
+    vm.threads.barrier.arm();
 
     for thread in threads.iter() {
         thread.tld.set_safepoint_requested();
     }
 
-    while !all_threads_blocked(vm, &thread_self, threads, safepoint_id) {
-        // do nothing
+    let mut running = 0;
+
+    for thread in threads.iter() {
+        let mut current_state = thread.state_relaxed();
+
+        loop {
+            let next_state = match current_state {
+                ThreadState::Running => ThreadState::RequestedSafepoint,
+                ThreadState::Parked => ThreadState::ParkedSafepoint,
+                ThreadState::Safepoint => break,
+                state => panic!("unexpected state {:?} when stopping threads", state),
+            };
+
+            match thread.atomic_state.compare_exchange(
+                current_state as usize,
+                next_state as usize,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => {
+                    if current_state == ThreadState::Running {
+                        running += 1;
+                    }
+
+                    break;
+                }
+
+                Err(state) => {
+                    current_state = state.into();
+                }
+            }
+        }
     }
 
-    safepoint_id
+    vm.threads.barrier.wait_until_threads_stopped(running);
 }
 
-fn all_threads_blocked(
-    _vm: &VM,
-    thread_self: &Arc<DoraThread>,
-    threads: &[Arc<DoraThread>],
-    safepoint_id: usize,
-) -> bool {
-    let mut all_blocked = true;
-
-    for thread in threads {
-        if Arc::ptr_eq(thread, thread_self) {
-            assert!(thread.state().is_parked());
-            continue;
-        }
-
-        if !thread.in_safepoint(safepoint_id) {
-            all_blocked = false;
-        }
-    }
-
-    all_blocked
-}
-
-fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>], safepoint_id: usize) {
+fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
     for thread in threads.iter() {
         thread.tld.clear_safepoint_requested();
     }
 
-    vm.threads.barrier.resume(safepoint_id);
-    vm.threads.clear_safepoint_request();
+    for thread in threads.iter() {
+        let state = thread.state_relaxed();
+
+        let next_state = match state {
+            ThreadState::Safepoint => ThreadState::Running,
+            ThreadState::ParkedSafepoint => ThreadState::Parked,
+            state => panic!("unexpected state {:?} when resuming threads", state),
+        };
+
+        assert!(thread
+            .atomic_state
+            .compare_exchange(
+                state as usize,
+                next_state as usize,
+                Ordering::SeqCst,
+                Ordering::SeqCst
+            )
+            .is_ok());
+    }
+
+    vm.threads.barrier.disarm();
 }
 
 pub extern "C" fn stack_overflow() {
@@ -82,28 +109,12 @@ pub extern "C" fn stack_overflow() {
 
 pub extern "C" fn safepoint_slow() {
     let thread = THREAD.with(|thread| thread.borrow().clone());
-    block(get_vm(), &thread);
-}
+    let vm = get_vm();
 
-pub fn block(vm: &VM, thread: &DoraThread) {
-    let safepoint_id = vm.threads.safepoint_id();
-    assert_ne!(safepoint_id, 0);
-    let state = thread.state();
-
-    match state {
-        ThreadState::Running | ThreadState::Parked => {
-            thread.block(safepoint_id);
-        }
-
-        ThreadState::Blocked => {
-            panic!("illegal thread state: thread #{} {:?}", thread.id(), state);
-        }
-
-        ThreadState::ParkedSafepoint | ThreadState::RequestedSafepoint | ThreadState::Safepoint => {
-            unreachable!()
-        }
-    };
-
-    let _mtx = vm.threads.barrier.wait(safepoint_id);
-    thread.unblock();
+    let state: ThreadState = thread
+        .atomic_state
+        .swap(ThreadState::Safepoint as usize, Ordering::SeqCst)
+        .into();
+    assert!(state == ThreadState::RequestedSafepoint || state == ThreadState::Running);
+    vm.threads.barrier.wait_in_safepoint();
 }
