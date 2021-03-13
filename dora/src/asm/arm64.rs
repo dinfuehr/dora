@@ -79,7 +79,7 @@ impl Assembler {
                     }
 
                     JumpKind::Unconditional => {
-                        self.patch_u32(pc, asm::b_imm(distance));
+                        self.patch_u32(pc, inst_b_i(distance));
                     }
 
                     JumpKind::NonZero(sf, rt) => {
@@ -93,14 +93,18 @@ impl Assembler {
         }
     }
 
-    pub fn b(&mut self, target: Label) {
+    pub fn b_i(&mut self, imm26: i32) {
+        self.emit_u32(inst_b_i(imm26));
+    }
+
+    pub fn b_l(&mut self, target: Label) {
         let value = self.offset(target);
 
         match value {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(asm::b_imm(diff / 4));
+                self.b_i(diff / 4);
             }
 
             None => {
@@ -112,7 +116,7 @@ impl Assembler {
         }
     }
 
-    pub fn bc(&mut self, cond: asm::Cond, target: Label) {
+    pub fn bc_l(&mut self, cond: asm::Cond, target: Label) {
         let value = self.offset(target);
 
         match value {
@@ -131,11 +135,15 @@ impl Assembler {
         }
     }
 
-    pub fn blr(&mut self, rn: Register) {
+    pub fn bl_i(&mut self, imm26: i32) {
+        self.emit_u32(cls_uncond_branch_imm(1, imm26));
+    }
+
+    pub fn bl_r(&mut self, rn: Register) {
         self.emit_u32(cls_uncond_branch_reg(0b0001, 0b11111, 0, rn, 0));
     }
 
-    pub fn br(&mut self, rn: Register) {
+    pub fn b_r(&mut self, rn: Register) {
         self.emit_u32(cls_uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
     }
 
@@ -167,6 +175,17 @@ impl Assembler {
     }
 }
 
+fn inst_b_i(imm26: i32) -> u32 {
+    cls_uncond_branch_imm(0, imm26)
+}
+
+fn cls_uncond_branch_imm(op: u32, imm26: i32) -> u32 {
+    assert!(fits_bit(op));
+    assert!(fits_i26(imm26));
+
+    0b101u32 << 26 | op << 31 | ((imm26 as u32) & 0x3FFFFFF)
+}
+
 fn cls_uncond_branch_reg(opc: u32, op2: u32, op3: u32, rn: Register, op4: u32) -> u32 {
     assert!(fits_u4(opc));
     assert!(fits_u5(op2));
@@ -185,6 +204,14 @@ fn cls_system(imm: u32) -> u32 {
 fn encoding_rn(reg: Register) -> u32 {
     assert!(reg.is_gpr());
     reg.value() << 5
+}
+
+fn fits_bit(imm: u32) -> bool {
+    imm < (1 << 1)
+}
+
+fn fits_i26(imm: i32) -> bool {
+    -(1 << 25) <= imm && imm < (1 << 25)
 }
 
 fn fits_u7(imm: u32) -> bool {
@@ -249,11 +276,25 @@ mod tests {
     }
 
     #[test]
-    fn test_br_blr() {
-        assert_emit!(0xd61f0000; br(R0));
-        assert_emit!(0xd61f03c0; br(R30));
-        assert_emit!(0xd63f0000; blr(R0));
-        assert_emit!(0xd63f03c0; blr(R30));
+    fn test_b_i() {
+        assert_emit!(0x14000000; b_i(0));
+        assert_emit!(0x17FFFFFF; b_i(-1));
+        assert_emit!(0x14000001; b_i(1));
+    }
+
+    #[test]
+    fn test_bl_i() {
+        assert_emit!(0x94000000; bl_i(0));
+        assert_emit!(0x97FFFFFF; bl_i(-1));
+        assert_emit!(0x94000001; bl_i(1));
+    }
+
+    #[test]
+    fn test_br_bl_r() {
+        assert_emit!(0xd61f0000; b_r(R0));
+        assert_emit!(0xd61f03c0; b_r(R30));
+        assert_emit!(0xd63f0000; bl_r(R0));
+        assert_emit!(0xd63f03c0; bl_r(R30));
     }
 
     #[test]

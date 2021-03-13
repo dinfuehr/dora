@@ -157,7 +157,7 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
 
         self.load_constpool(*scratch, disp + pos);
-        self.asm.blr((*scratch).into());
+        self.asm.bl_r((*scratch).into());
 
         let pos = self.pos() as i32;
         self.emit_lazy_compilation_site(LazyCompilationSite::Direct(
@@ -174,7 +174,7 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
 
         self.load_constpool(*scratch, disp + pos);
-        self.asm.blr((*scratch).into());
+        self.asm.bl_r((*scratch).into());
     }
 
     pub fn indirect_call(
@@ -206,7 +206,7 @@ impl MacroAssembler {
         );
 
         // call *scratch
-        self.asm.blr((*scratch).into());
+        self.asm.bl_r((*scratch).into());
         self.emit_lazy_compilation_site(LazyCompilationSite::Virtual(
             self_index == 0,
             fct_id,
@@ -266,15 +266,15 @@ impl MacroAssembler {
     }
 
     pub fn jump_if(&mut self, cond: CondCode, target: Label) {
-        self.asm.bc(cond.into(), target);
+        self.asm.bc_l(cond.into(), target);
     }
 
     pub fn jump(&mut self, target: Label) {
-        self.asm.b(target);
+        self.asm.b_l(target);
     }
 
     pub fn jump_reg(&mut self, reg: Reg) {
-        self.asm.br(reg.into());
+        self.asm.b_r(reg.into());
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
@@ -1137,7 +1137,7 @@ impl MacroAssembler {
     }
 
     pub fn call_reg(&mut self, reg: Reg) {
-        self.asm.blr(reg.into());
+        self.asm.bl_r(reg.into());
     }
 
     pub fn debug(&mut self) {
