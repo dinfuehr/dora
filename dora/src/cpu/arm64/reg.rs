@@ -1,4 +1,5 @@
 use crate::cpu::{FReg, Reg};
+use crate::ty::SourceType;
 
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
 pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
@@ -117,4 +118,10 @@ impl FReg {
         assert!(self.0 < 32);
         self.0 as u32
     }
+}
+
+pub static PARAM_OFFSET: i32 = 16;
+
+pub fn next_param_offset(param_offset: i32, _: SourceType) -> i32 {
+    param_offset + 8
 }
