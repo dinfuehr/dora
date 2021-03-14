@@ -10,7 +10,7 @@ class MyThread() extends std::Thread {
 fun main() {
     var i = 0;
 
-    while i < 1 {
+    while i < 4 {
         let thread = MyThread();
         thread.start();
         i = i + 1;

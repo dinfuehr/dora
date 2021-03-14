@@ -522,6 +522,7 @@ impl Barrier {
         while data.stopped < threads {
             self.cv_notify.wait(&mut data);
         }
+        assert_eq!(data.stopped, threads);
     }
 }
 

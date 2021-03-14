@@ -47,7 +47,10 @@ fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
             let next_state = match current_state {
                 ThreadState::Running => ThreadState::RequestedSafepoint,
                 ThreadState::Parked => ThreadState::ParkedSafepoint,
-                ThreadState::Safepoint => break,
+                ThreadState::Safepoint => {
+                    running += 1;
+                    break;
+                }
                 state => panic!("unexpected state {:?} when stopping threads", state),
             };
 
