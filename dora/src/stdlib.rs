@@ -316,9 +316,15 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
     let vm = get_vm();
     let thread = DoraThread::new(vm);
-    let location = thread.handles.root(obj.direct()).location();
 
+    // Add thread to our list of all threads first. This method parks
+    // and unparks the current thread, this means the handle needs to be created
+    // afterwards.
     vm.threads.attach_thread(vm, thread.clone());
+
+    // Now we can create a handle for that newly created thread. Since the thread
+    // is now registered, the handle is updated as well by the GC.
+    let location = thread.handles.root(obj.direct()).location();
 
     thread::spawn(move || {
         THREAD.with(|tld_thread| {

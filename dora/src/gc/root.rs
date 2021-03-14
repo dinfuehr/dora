@@ -22,7 +22,7 @@ pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
 fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, threads: &[Arc<DoraThread>]) {
     for thread in threads {
         for rooted in thread.handles.iter() {
-            let slot = Slot::at(Address::from_ptr(rooted.raw()));
+            let slot = Slot::at(rooted.location());
             rootset.push(slot);
         }
     }
