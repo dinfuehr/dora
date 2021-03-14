@@ -509,7 +509,6 @@ impl Barrier {
 
     pub fn wait_in_unpark(&self) {
         let mut data = self.data.lock();
-        assert!(data.is_armed());
 
         while data.is_armed() {
             self.cv_wakeup.wait(&mut data);
