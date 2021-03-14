@@ -1,4 +1,5 @@
 //= vm-args "--gc-young-size=64M --max-heap-size=128M --gc-verify"
+//= ignore
 
 class MyThread() extends std::Thread {
     @override fun run() {
