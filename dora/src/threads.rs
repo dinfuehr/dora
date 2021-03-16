@@ -20,7 +20,6 @@ pub struct Threads {
     pub cond_join: Condvar,
 
     pub next_id: AtomicUsize,
-    pub safepoint: Mutex<(usize, usize)>,
 
     pub barrier: Barrier,
 }
@@ -31,7 +30,6 @@ impl Threads {
             threads: Mutex::new(Vec::new()),
             cond_join: Condvar::new(),
             next_id: AtomicUsize::new(1),
-            safepoint: Mutex::new((0, 1)),
             barrier: Barrier::new(),
         }
     }
@@ -58,31 +56,6 @@ impl Threads {
 
     pub fn next_id(&self) -> usize {
         self.next_id.fetch_add(1, Ordering::SeqCst)
-    }
-
-    pub fn safepoint_id(&self) -> usize {
-        let safepoint = self.safepoint.lock();
-        safepoint.0
-    }
-
-    pub fn safepoint_requested(&self) -> bool {
-        let safepoint = self.safepoint.lock();
-        safepoint.0 != 0
-    }
-
-    pub fn request_safepoint(&self) -> usize {
-        let mut safepoint = self.safepoint.lock();
-        assert_eq!(safepoint.0, 0);
-        safepoint.0 = safepoint.1;
-        safepoint.1 += 1;
-
-        safepoint.0
-    }
-
-    pub fn clear_safepoint_request(&self) {
-        let mut safepoint = self.safepoint.lock();
-        assert_ne!(safepoint.0, 0);
-        safepoint.0 = 0;
     }
 
     pub fn detach_current_thread(&self) {
@@ -500,9 +473,8 @@ impl Barrier {
         assert!(data.is_armed());
         data.stopped += 1;
         self.cv_notify.notify_one();
-        let safepoint = data.armed;
 
-        while data.armed == safepoint {
+        while data.is_armed() {
             self.cv_wakeup.wait(&mut data);
         }
     }
@@ -526,36 +498,28 @@ impl Barrier {
 }
 
 struct BarrierData {
-    armed: usize,
-    next: usize,
+    armed: bool,
     stopped: usize,
 }
 
 impl BarrierData {
     pub fn new() -> BarrierData {
         BarrierData {
-            armed: 0,
-            next: 1,
+            armed: false,
             stopped: 0,
         }
     }
 
     pub fn is_armed(&self) -> bool {
-        self.armed != 0
+        self.armed
     }
 
     pub fn arm(&mut self) {
         self.stopped = 0;
-        self.armed = self.next;
-
-        if self.next == usize::max_value() {
-            self.next = 1;
-        } else {
-            self.next += 1;
-        }
+        self.armed = true;
     }
 
     pub fn disarm(&mut self) {
-        self.armed = 0;
+        self.armed = false;
     }
 }

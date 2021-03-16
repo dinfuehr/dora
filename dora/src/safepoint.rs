@@ -84,23 +84,12 @@ fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
     }
 
     for thread in threads.iter() {
-        let state = thread.state_relaxed();
-
-        let next_state = match state {
-            ThreadState::Safepoint => ThreadState::Running,
-            ThreadState::ParkedSafepoint => ThreadState::Parked,
-            state => panic!("unexpected state {:?} when resuming threads", state),
-        };
-
-        assert!(thread
+        let old_state: ThreadState = thread
             .atomic_state
-            .compare_exchange(
-                state as usize,
-                next_state as usize,
-                Ordering::SeqCst,
-                Ordering::SeqCst
-            )
-            .is_ok());
+            .swap(ThreadState::Parked as usize, Ordering::SeqCst)
+            .into();
+
+        assert!(old_state == ThreadState::Safepoint || old_state == ThreadState::ParkedSafepoint);
     }
 
     vm.threads.barrier.disarm();
@@ -120,4 +109,5 @@ pub extern "C" fn safepoint_slow() {
         .into();
     assert!(state == ThreadState::RequestedSafepoint || state == ThreadState::Running);
     vm.threads.barrier.wait_in_safepoint();
+    thread.unpark(vm);
 }
