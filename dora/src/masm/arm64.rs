@@ -487,17 +487,20 @@ impl MacroAssembler {
         src: Reg,
         count_one_bits: bool,
     ) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode),
-        };
-
         if count_one_bits {
             self.int_not(mode, dest, src);
-            self.emit_u32(asm::clz(x64, dest, dest));
+
+            match mode {
+                MachineMode::Int32 => self.asm.clzw(dest, dest),
+                MachineMode::Int64 => self.asm.clz(dest, dest),
+                _ => panic!("unimplemented mode {:?}", mode),
+            }
         } else {
-            self.emit_u32(asm::clz(x64, dest, src));
+            match mode {
+                MachineMode::Int32 => self.asm.clzw(dest, src),
+                MachineMode::Int64 => self.asm.clz(dest, src),
+                _ => panic!("unimplemented mode {:?}", mode),
+            }
         }
     }
 
@@ -508,19 +511,27 @@ impl MacroAssembler {
         src: Reg,
         count_one_bits: bool,
     ) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+        match mode {
+            MachineMode::Int32 => {
+                self.asm.rbitw(dest, src);
+
+                if count_one_bits {
+                    self.int_not(mode, dest, dest);
+                }
+
+                self.asm.clzw(dest, dest);
+            }
+            MachineMode::Int64 => {
+                self.asm.rbit(dest, src);
+
+                if count_one_bits {
+                    self.int_not(mode, dest, dest);
+                }
+
+                self.asm.clz(dest, dest);
+            }
             _ => panic!("unimplemented mode {:?}", mode),
         };
-
-        self.emit_u32(asm::rbit(x64, dest, src));
-
-        if count_one_bits {
-            self.int_not(mode, dest, dest);
-        }
-
-        self.emit_u32(asm::clz(x64, dest, dest));
     }
 
     pub fn int_to_float(

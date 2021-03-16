@@ -166,17 +166,67 @@ impl Assembler {
         }
     }
 
+    pub fn clsw(&mut self, rd: Reg, rn: Reg) {
+        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000101, rn, rd));
+    }
+
+    pub fn cls(&mut self, rd: Reg, rn: Reg) {
+        self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000101, rn, rd));
+    }
+
+    pub fn clzw(&mut self, rd: Reg, rn: Reg) {
+        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000100, rn, rd));
+    }
+
+    pub fn clz(&mut self, rd: Reg, rn: Reg) {
+        self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000100, rn, rd));
+    }
+
     pub fn nop(&mut self) {
         self.emit_u32(cls_system(0));
+    }
+
+    pub fn rbitw(&mut self, rd: Reg, rn: Reg) {
+        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000000, rn, rd));
+    }
+
+    pub fn rbit(&mut self, rd: Reg, rn: Reg) {
+        self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000000, rn, rd));
     }
 
     pub fn ret(&mut self, rn: Register) {
         self.emit_u32(cls_uncond_branch_reg(0b0010, 0b11111, 0, rn, 0));
     }
+
+    pub fn revw(&mut self, rd: Reg, rn: Reg) {
+        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
+    }
+
+    pub fn rev(&mut self, rd: Reg, rn: Reg) {
+        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
+    }
 }
 
 fn inst_b_i(imm26: i32) -> u32 {
     cls_uncond_branch_imm(0, imm26)
+}
+
+fn cls_dataproc1(sf: u32, s: u32, opcode2: u32, opcode: u32, rn: Reg, rd: Reg) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(sf));
+    assert!(fits_u5(opcode2));
+    assert!(fits_u6(opcode));
+    assert!(rn.is_gpr());
+    assert!(rd.is_gpr());
+
+    sf << 31
+        | 1 << 30
+        | s << 29
+        | 0b11010110 << 21
+        | opcode2 << 16
+        | opcode << 10
+        | rn.asm() << 5
+        | rd.asm()
 }
 
 fn cls_uncond_branch_imm(op: u32, imm26: i32) -> u32 {
