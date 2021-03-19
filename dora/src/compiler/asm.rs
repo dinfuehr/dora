@@ -154,6 +154,14 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_mem(mode, dest, mem);
     }
 
+    pub fn load_int32_synchronized(&mut self, dest: Reg, base: Reg, offset: i32) {
+        self.masm.load_int32_synchronized(dest, base, offset);
+    }
+
+    pub fn store_int32_synchronized(&mut self, src: Reg, base: Reg, offset: i32) {
+        self.masm.store_int32_synchronized(src, base, offset);
+    }
+
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         self.masm.test_and_jump_if(cond, reg, lbl);
     }

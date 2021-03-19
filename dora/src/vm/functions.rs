@@ -515,6 +515,9 @@ pub enum Intrinsic {
     OptionIsNone,
     OptionIsSome,
     OptionUnwrap,
+
+    AtomicInt32Get,
+    AtomicInt32Set,
 }
 
 impl Intrinsic {
@@ -554,7 +557,9 @@ impl Intrinsic {
             | Intrinsic::OptionIsNone
             | Intrinsic::OptionIsSome
             | Intrinsic::OptionUnwrap
-            | Intrinsic::Debug => true,
+            | Intrinsic::Debug
+            | Intrinsic::AtomicInt32Get
+            | Intrinsic::AtomicInt32Set => true,
             _ => false,
         }
     }

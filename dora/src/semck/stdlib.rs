@@ -32,6 +32,8 @@ pub fn resolve_internal_classes(vm: &mut VM) {
 
     vm.known.classes.string_buffer = Some(find_class(vm, stdlib, "StringBuffer"));
 
+    vm.known.classes.atomic_int32 = Some(find_class(vm, stdlib, "AtomicInt32"));
+
     let cls = vm.classes.idx(vm.known.classes.string());
     let mut cls = cls.write();
     cls.is_str = true;
@@ -732,6 +734,9 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_method(vm, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
     intrinsic_method(vm, stdlib, "Option", "isSome", Intrinsic::OptionIsSome);
     intrinsic_method(vm, stdlib, "Option", "unwrap", Intrinsic::OptionUnwrap);
+
+    intrinsic_method(vm, stdlib, "AtomicInt32", "get", Intrinsic::AtomicInt32Get);
+    intrinsic_method(vm, stdlib, "AtomicInt32", "set", Intrinsic::AtomicInt32Set);
 }
 
 fn intrinsic_ctor(vm: &VM, namespace_id: NamespaceId, class_name: &str, intrinsic: Intrinsic) {

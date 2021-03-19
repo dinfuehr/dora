@@ -3519,6 +3519,28 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.debug();
             }
 
+            Intrinsic::AtomicInt32Get => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let obj_reg = arguments[0];
+
+                self.emit_load_register(obj_reg, REG_RESULT.into());
+                self.asm
+                    .load_int32_synchronized(REG_RESULT, REG_RESULT, Header::size());
+                self.emit_store_register(REG_RESULT.into(), dest_reg);
+            }
+
+            Intrinsic::AtomicInt32Set => {
+                assert_eq!(arguments.len(), 2);
+                let obj_reg = arguments[1];
+                let value_reg = arguments[0];
+
+                self.emit_load_register(obj_reg, REG_RESULT.into());
+                self.emit_load_register(value_reg, REG_TMP1.into());
+                self.asm
+                    .store_int32_synchronized(REG_TMP1, REG_RESULT, Header::size());
+            }
+
             _ => unreachable!(),
         }
     }

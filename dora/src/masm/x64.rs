@@ -830,6 +830,14 @@ impl MacroAssembler {
         self.asm.xorl_rr(dest.into(), dest.into());
     }
 
+    pub fn load_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
+        unimplemented!()
+    }
+
+    pub fn store_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
+        unimplemented!()
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mode {
             MachineMode::Int8 => self.asm.movzxb_ra(dest.reg().into(), address_from_mem(mem)),

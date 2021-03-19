@@ -491,14 +491,14 @@ impl MacroAssembler {
             self.int_not(mode, dest, src);
 
             match mode {
-                MachineMode::Int32 => self.asm.clzw(dest, dest),
-                MachineMode::Int64 => self.asm.clz(dest, dest),
+                MachineMode::Int32 => self.asm.clzw(dest.into(), dest.into()),
+                MachineMode::Int64 => self.asm.clz(dest.into(), dest.into()),
                 _ => panic!("unimplemented mode {:?}", mode),
             }
         } else {
             match mode {
-                MachineMode::Int32 => self.asm.clzw(dest, src),
-                MachineMode::Int64 => self.asm.clz(dest, src),
+                MachineMode::Int32 => self.asm.clzw(dest.into(), src.into()),
+                MachineMode::Int64 => self.asm.clz(dest.into(), src.into()),
                 _ => panic!("unimplemented mode {:?}", mode),
             }
         }
@@ -513,22 +513,22 @@ impl MacroAssembler {
     ) {
         match mode {
             MachineMode::Int32 => {
-                self.asm.rbitw(dest, src);
+                self.asm.rbitw(dest.into(), src.into());
 
                 if count_one_bits {
                     self.int_not(mode, dest, dest);
                 }
 
-                self.asm.clzw(dest, dest);
+                self.asm.clzw(dest.into(), dest.into());
             }
             MachineMode::Int64 => {
-                self.asm.rbit(dest, src);
+                self.asm.rbit(dest.into(), src.into());
 
                 if count_one_bits {
                     self.int_not(mode, dest, dest);
                 }
 
-                self.asm.clz(dest, dest);
+                self.asm.clz(dest.into(), dest.into());
             }
             _ => panic!("unimplemented mode {:?}", mode),
         };
@@ -841,6 +841,14 @@ impl MacroAssembler {
 
     pub fn load_nil(&mut self, dest: Reg) {
         self.emit_u32(movz(1, dest, 0, 0));
+    }
+
+    pub fn load_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
+        unimplemented!()
+    }
+
+    pub fn store_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
+        unimplemented!()
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {

@@ -30,6 +30,7 @@ pub struct KnownEnums {
 
 #[derive(Debug)]
 pub struct KnownClasses {
+    pub atomic_int32: Option<ClassId>,
     pub object: Option<ClassId>,
     pub array: Option<ClassId>,
     pub string: Option<ClassId>,
@@ -42,6 +43,7 @@ pub struct KnownClasses {
 impl KnownClasses {
     pub fn new() -> KnownClasses {
         KnownClasses {
+            atomic_int32: None,
             object: None,
             array: None,
             string: None,
@@ -50,6 +52,10 @@ impl KnownClasses {
             stacktrace: None,
             stacktrace_element: None,
         }
+    }
+
+    pub fn atomic_int32(&self) -> ClassId {
+        self.object.expect("uninitialized")
     }
 
     pub fn object(&self) -> ClassId {

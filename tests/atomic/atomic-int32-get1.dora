@@ -1,0 +1,6 @@
+//= ignore
+
+fun main() {
+    let value = std::AtomicInt32(10);
+    assert(value.get() == 10);
+}

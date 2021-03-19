@@ -1,0 +1,4 @@
+@pub class AtomicInt32(let value: Int32) {
+    @pub @internal fun get(): Int32;
+    @pub @internal fun set(value: Int32);
+}
