@@ -32,8 +32,8 @@ where
             let start = self.pos;
             self.visitor
                 .visit_instruction(BytecodeOffset(self.pos as u32));
-            let width = self.read_operand_width();
-            let opcode = self.read_opcode();
+            let (opcode, width) = read_opcode_and_width(self.data, self.pos);
+            self.pos += if width.needs_bytecode() { 2 } else { 1 };
             self.read_instruction(width, opcode);
             let end = self.pos;
 

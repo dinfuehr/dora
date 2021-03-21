@@ -619,6 +619,15 @@ pub enum OperandWidth {
     Wide,
 }
 
+impl OperandWidth {
+    pub fn needs_bytecode(self) -> bool {
+        match self {
+            OperandWidth::Normal => false,
+            OperandWidth::Wide => true,
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Register(pub usize);
 
