@@ -12,6 +12,7 @@ pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
 struct BytecodeReader<'a, T: BytecodeVisitor> {
     data: &'a [u8],
     pos: usize,
+    start: usize,
     visitor: &'a mut T,
 }
 
@@ -23,13 +24,14 @@ where
         BytecodeReader {
             data: data,
             pos: 0,
+            start: 0,
             visitor: visitor,
         }
     }
 
     fn read(&mut self) {
         while self.pos < self.data.len() {
-            let start = self.pos;
+            self.start = self.pos;
             self.visitor
                 .visit_instruction(BytecodeOffset(self.pos as u32));
             let (opcode, width) = read_opcode_and_width(self.data, self.pos);
@@ -38,7 +40,7 @@ where
             let end = self.pos;
 
             debug_assert_eq!(
-                end - start,
+                end - self.start,
                 opcode.size(width) as usize,
                 "bug in BytecodeOpcode::size() with {:?} and width {:?}",
                 opcode,
@@ -52,331 +54,331 @@ where
             BytecodeOpcode::Wide => unreachable!(),
 
             BytecodeOpcode::AddInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_add_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::AddInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_add_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::AddFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_add_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::AddFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_add_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::SubInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_sub_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::SubInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_sub_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::SubFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_sub_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::SubFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_sub_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::NegInt32 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_neg_int32(dest, src);
             }
             BytecodeOpcode::NegInt64 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_neg_int64(dest, src);
             }
             BytecodeOpcode::NegFloat32 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_neg_float32(dest, src);
             }
             BytecodeOpcode::NegFloat64 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_neg_float64(dest, src);
             }
             BytecodeOpcode::MulInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_mul_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::MulInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_mul_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::MulFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_mul_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::MulFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_mul_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::DivInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_div_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::DivInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_div_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::DivFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_div_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::DivFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_div_float64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::ModInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_mod_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::ModInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_mod_int64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::AndInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_and_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::AndInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_and_int64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::OrInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_or_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::OrInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_or_int64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::XorInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_xor_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::XorInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_xor_int64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::NotBool => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_not_bool(dest, src);
             }
             BytecodeOpcode::NotInt32 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_not_int32(dest, src);
             }
             BytecodeOpcode::NotInt64 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_not_int64(dest, src);
             }
 
             BytecodeOpcode::ShlInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_shl_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::ShrInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_shr_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::SarInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_sar_int32(dest, lhs, rhs);
             }
 
             BytecodeOpcode::ShlInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_shl_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::ShrInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_shr_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::SarInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_sar_int64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::RolInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_rol_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::RorInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_ror_int32(dest, lhs, rhs);
             }
 
             BytecodeOpcode::RolInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_rol_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::RorInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_ror_int64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::ExtendUInt8ToChar => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_extend_byte_to_char(dest, src);
             }
             BytecodeOpcode::ExtendUInt8ToInt32 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_extend_byte_to_int32(dest, src);
             }
             BytecodeOpcode::ExtendUInt8ToInt64 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_extend_byte_to_int64(dest, src);
             }
             BytecodeOpcode::ExtendInt32ToInt64 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_extend_int32_to_int64(dest, src);
             }
             BytecodeOpcode::ExtendCharToInt64 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_extend_char_to_int64(dest, src);
             }
             BytecodeOpcode::CastCharToInt32 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_cast_char_to_int32(dest, src);
             }
             BytecodeOpcode::CastInt32ToUInt8 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_cast_int32_to_uint8(dest, src);
             }
             BytecodeOpcode::CastInt32ToChar => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_cast_int32_to_char(dest, src);
             }
             BytecodeOpcode::CastInt64ToUInt8 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_cast_int64_to_uint8(dest, src);
             }
             BytecodeOpcode::CastInt64ToChar => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_cast_int64_to_char(dest, src);
             }
             BytecodeOpcode::CastInt64ToInt32 => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_cast_int64_to_int32(dest, src);
             }
 
             BytecodeOpcode::InstanceOf => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
-                let cls_id = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
+                let cls_id = self.read_const_pool_idx(2, width);
                 self.visitor.visit_instance_of(dest, src, cls_id);
             }
             BytecodeOpcode::CheckedCast => {
-                let src = self.read_register(width);
-                let cls_id = self.read_const_pool_idx(width);
+                let src = self.read_register(0, width);
+                let cls_id = self.read_const_pool_idx(1, width);
                 self.visitor.visit_checked_cast(src, cls_id);
             }
 
             BytecodeOpcode::Mov => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 self.visitor.visit_mov(dest, src);
             }
 
             BytecodeOpcode::LoadTupleElement => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
                 let tuple = self.read_tuple(width);
                 let element = self.read_index(width);
                 self.visitor
@@ -384,378 +386,378 @@ where
             }
 
             BytecodeOpcode::LoadEnumElement => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
+                let idx = self.read_const_pool_idx(2, width);
                 let element = self.read_index(width);
                 self.visitor
                     .visit_load_enum_element(dest, src, idx, element);
             }
 
             BytecodeOpcode::LoadEnumVariant => {
-                let dest = self.read_register(width);
-                let src = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let src = self.read_register(1, width);
+                let idx = self.read_const_pool_idx(2, width);
                 self.visitor.visit_load_enum_variant(dest, src, idx);
             }
 
             BytecodeOpcode::LoadStructField => {
-                let dest = self.read_register(width);
-                let obj = self.read_register(width);
-                let field = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let obj = self.read_register(1, width);
+                let field = self.read_const_pool_idx(2, width);
                 self.visitor.visit_load_struct_field(dest, obj, field);
             }
 
             BytecodeOpcode::LoadField => {
-                let dest = self.read_register(width);
-                let obj = self.read_register(width);
-                let field = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let obj = self.read_register(1, width);
+                let field = self.read_const_pool_idx(2, width);
                 self.visitor.visit_load_field(dest, obj, field);
             }
 
             BytecodeOpcode::StoreField => {
-                let src = self.read_register(width);
-                let obj = self.read_register(width);
-                let field = self.read_const_pool_idx(width);
+                let src = self.read_register(0, width);
+                let obj = self.read_register(1, width);
+                let field = self.read_const_pool_idx(2, width);
                 self.visitor.visit_store_field(src, obj, field);
             }
 
             BytecodeOpcode::LoadGlobal => {
-                let dest = self.read_register(width);
-                let glob = self.read_global(width);
+                let dest = self.read_register(0, width);
+                let glob = self.read_global(1, width);
                 self.visitor.visit_load_global(dest, glob);
             }
 
             BytecodeOpcode::StoreGlobal => {
-                let src = self.read_register(width);
-                let glob = self.read_global(width);
+                let src = self.read_register(0, width);
+                let glob = self.read_global(1, width);
                 self.visitor.visit_store_global(src, glob);
             }
 
             BytecodeOpcode::PushRegister => {
-                let src = self.read_register(width);
+                let src = self.read_register(0, width);
                 self.visitor.visit_push_register(src);
             }
 
             BytecodeOpcode::ConstTrue => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 self.visitor.visit_const_true(dest);
             }
             BytecodeOpcode::ConstFalse => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 self.visitor.visit_const_false(dest);
             }
             BytecodeOpcode::ConstZeroUInt8 => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 self.visitor.visit_const_zero_uint8(dest);
             }
             BytecodeOpcode::ConstZeroChar => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 self.visitor.visit_const_zero_char(dest);
             }
             BytecodeOpcode::ConstZeroInt32 => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 self.visitor.visit_const_zero_int32(dest);
             }
             BytecodeOpcode::ConstZeroInt64 => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 self.visitor.visit_const_zero_int64(dest);
             }
             BytecodeOpcode::ConstZeroFloat32 => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 self.visitor.visit_const_zero_float32(dest);
             }
             BytecodeOpcode::ConstZeroFloat64 => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 self.visitor.visit_const_zero_float64(dest);
             }
             BytecodeOpcode::ConstChar => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_const_char(dest, idx);
             }
             BytecodeOpcode::ConstUInt8 => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 let value = self.read_byte();
                 self.visitor.visit_const_uint8(dest, value as u8);
             }
             BytecodeOpcode::ConstInt32 => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_const_int32(dest, idx);
             }
             BytecodeOpcode::ConstInt64 => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_const_int64(dest, idx);
             }
             BytecodeOpcode::ConstFloat32 => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_const_float32(dest, idx);
             }
             BytecodeOpcode::ConstFloat64 => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_const_float64(dest, idx);
             }
             BytecodeOpcode::ConstString => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_const_string(dest, idx);
             }
 
             BytecodeOpcode::TestIdentity => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_identity(dest, lhs, rhs);
             }
 
             BytecodeOpcode::TestEqBool => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_eq_bool(dest, lhs, rhs);
             }
             BytecodeOpcode::TestNeBool => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ne_bool(dest, lhs, rhs);
             }
             BytecodeOpcode::TestEqUInt8 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_eq_uint8(dest, lhs, rhs);
             }
             BytecodeOpcode::TestNeUInt8 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ne_uint8(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGtUInt8 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_gt_uint8(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGeUInt8 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ge_uint8(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLtUInt8 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_lt_uint8(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLeUInt8 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_le_uint8(dest, lhs, rhs);
             }
             BytecodeOpcode::TestEqChar => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_eq_char(dest, lhs, rhs);
             }
             BytecodeOpcode::TestNeChar => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ne_char(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGtChar => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_gt_char(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGeChar => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ge_char(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLtChar => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_lt_char(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLeChar => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_le_char(dest, lhs, rhs);
             }
             BytecodeOpcode::TestEqEnum => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_eq_enum(dest, lhs, rhs);
             }
             BytecodeOpcode::TestNeEnum => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ne_enum(dest, lhs, rhs);
             }
             BytecodeOpcode::TestEqInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_eq_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestNeInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ne_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGtInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_gt_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGeInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ge_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLtInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_lt_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLeInt64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_le_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestEqInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_eq_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestNeInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ne_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGtInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_gt_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGeInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ge_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLtInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_lt_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLeInt32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_le_int32(dest, lhs, rhs);
             }
 
             BytecodeOpcode::TestEqFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_eq_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestNeFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ne_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGtFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_gt_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGeFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ge_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLtFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_lt_float32(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLeFloat32 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_le_float32(dest, lhs, rhs);
             }
 
             BytecodeOpcode::TestEqFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_eq_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestNeFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ne_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGtFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_gt_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestGeFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_ge_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLtFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_lt_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::TestLeFloat64 => {
-                let dest = self.read_register(width);
-                let lhs = self.read_register(width);
-                let rhs = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
                 self.visitor.visit_test_le_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::Assert => {
-                let value = self.read_register(width);
+                let value = self.read_register(0, width);
                 self.visitor.visit_assert(value);
             }
 
@@ -767,23 +769,23 @@ where
                 self.visitor.visit_loop_start();
             }
             BytecodeOpcode::JumpIfFalse => {
-                let opnd = self.read_register(width);
+                let opnd = self.read_register(0, width);
                 let offset = self.read_offset(width);
                 self.visitor.visit_jump_if_false(opnd, offset);
             }
             BytecodeOpcode::JumpIfFalseConst => {
-                let opnd = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let opnd = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_jump_if_false_const(opnd, idx);
             }
             BytecodeOpcode::JumpIfTrue => {
-                let opnd = self.read_register(width);
+                let opnd = self.read_register(0, width);
                 let offset = self.read_offset(width);
                 self.visitor.visit_jump_if_true(opnd, offset);
             }
             BytecodeOpcode::JumpIfTrueConst => {
-                let opnd = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let opnd = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_jump_if_true_const(opnd, idx);
             }
             BytecodeOpcode::Jump => {
@@ -791,120 +793,120 @@ where
                 self.visitor.visit_jump(offset);
             }
             BytecodeOpcode::JumpConst => {
-                let idx = self.read_const_pool_idx(width);
+                let idx = self.read_const_pool_idx(0, width);
                 self.visitor.visit_jump_const(idx);
             }
 
             BytecodeOpcode::InvokeDirectVoid => {
-                let fct = self.read_const_pool_idx(width);
+                let fct = self.read_const_pool_idx(0, width);
                 self.visitor.visit_invoke_direct_void(fct);
             }
             BytecodeOpcode::InvokeDirect => {
-                let dest = self.read_register(width);
-                let fct = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let fct = self.read_const_pool_idx(1, width);
                 self.visitor.visit_invoke_direct(dest, fct);
             }
 
             BytecodeOpcode::InvokeVirtualVoid => {
-                let fct = self.read_const_pool_idx(width);
+                let fct = self.read_const_pool_idx(0, width);
                 self.visitor.visit_invoke_virtual_void(fct);
             }
             BytecodeOpcode::InvokeVirtual => {
-                let dest = self.read_register(width);
-                let fct = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let fct = self.read_const_pool_idx(1, width);
                 self.visitor.visit_invoke_virtual(dest, fct);
             }
 
             BytecodeOpcode::InvokeStaticVoid => {
-                let fct = self.read_const_pool_idx(width);
+                let fct = self.read_const_pool_idx(0, width);
                 self.visitor.visit_invoke_static_void(fct);
             }
             BytecodeOpcode::InvokeStatic => {
-                let dest = self.read_register(width);
-                let fct = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let fct = self.read_const_pool_idx(1, width);
                 self.visitor.visit_invoke_static(dest, fct);
             }
 
             BytecodeOpcode::InvokeGenericStaticVoid => {
-                let fct = self.read_const_pool_idx(width);
+                let fct = self.read_const_pool_idx(0, width);
                 self.visitor.visit_invoke_generic_static_void(fct);
             }
             BytecodeOpcode::InvokeGenericStatic => {
-                let dest = self.read_register(width);
-                let fct = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let fct = self.read_const_pool_idx(1, width);
                 self.visitor.visit_invoke_generic_static(dest, fct);
             }
 
             BytecodeOpcode::InvokeGenericDirectVoid => {
-                let fct = self.read_const_pool_idx(width);
+                let fct = self.read_const_pool_idx(0, width);
                 self.visitor.visit_invoke_generic_direct_void(fct);
             }
             BytecodeOpcode::InvokeGenericDirect => {
-                let dest = self.read_register(width);
-                let fct = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let fct = self.read_const_pool_idx(1, width);
                 self.visitor.visit_invoke_generic_direct(dest, fct);
             }
 
             BytecodeOpcode::NewObject => {
-                let dest = self.read_register(width);
-                let cls = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let cls = self.read_const_pool_idx(1, width);
                 self.visitor.visit_new_object(dest, cls);
             }
             BytecodeOpcode::NewArray => {
-                let dest = self.read_register(width);
-                let cls = self.read_const_pool_idx(width);
-                let length = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let cls = self.read_const_pool_idx(1, width);
+                let length = self.read_register(2, width);
                 self.visitor.visit_new_array(dest, cls, length);
             }
             BytecodeOpcode::NewTuple => {
-                let dest = self.read_register(width);
+                let dest = self.read_register(0, width);
                 let tuple = self.read_tuple(width);
                 self.visitor.visit_new_tuple(dest, tuple);
             }
             BytecodeOpcode::NewEnum => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_new_enum(dest, idx);
             }
             BytecodeOpcode::NewStruct => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
                 self.visitor.visit_new_struct(dest, idx);
             }
             BytecodeOpcode::NewTraitObject => {
-                let dest = self.read_register(width);
-                let idx = self.read_const_pool_idx(width);
-                let src = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let idx = self.read_const_pool_idx(1, width);
+                let src = self.read_register(2, width);
                 self.visitor.visit_new_trait_object(dest, idx, src);
             }
 
             BytecodeOpcode::NilCheck => {
-                let obj = self.read_register(width);
+                let obj = self.read_register(0, width);
                 self.visitor.visit_nil_check(obj);
             }
 
             BytecodeOpcode::ArrayLength => {
-                let dest = self.read_register(width);
-                let array = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let array = self.read_register(1, width);
                 self.visitor.visit_array_length(dest, array);
             }
             BytecodeOpcode::ArrayBoundCheck => {
-                let array = self.read_register(width);
-                let index = self.read_register(width);
+                let array = self.read_register(0, width);
+                let index = self.read_register(1, width);
                 self.visitor.visit_array_bound_check(array, index);
             }
 
             BytecodeOpcode::LoadArray => {
-                let dest = self.read_register(width);
-                let array = self.read_register(width);
-                let index = self.read_register(width);
+                let dest = self.read_register(0, width);
+                let array = self.read_register(1, width);
+                let index = self.read_register(2, width);
                 self.visitor.visit_load_array(dest, array, index);
             }
 
             BytecodeOpcode::StoreArray => {
-                let src = self.read_register(width);
-                let array = self.read_register(width);
-                let index = self.read_register(width);
+                let src = self.read_register(0, width);
+                let array = self.read_register(1, width);
+                let index = self.read_register(2, width);
                 self.visitor.visit_store_array(src, array, index);
             }
 
@@ -912,13 +914,14 @@ where
                 self.visitor.visit_ret_void();
             }
             BytecodeOpcode::Ret => {
-                let opnd = self.read_register(width);
+                let opnd = self.read_register(0, width);
                 self.visitor.visit_ret(opnd);
             }
         }
     }
 
-    fn read_register(&mut self, width: OperandWidth) -> Register {
+    fn read_register(&mut self, index: usize, width: OperandWidth) -> Register {
+        debug_assert_eq!(self.start + offset_argument(index, width), self.pos);
         Register(self.read_index(width) as usize)
     }
 
@@ -934,7 +937,8 @@ where
         self.read_index(width).into()
     }
 
-    fn read_global(&mut self, width: OperandWidth) -> GlobalId {
+    fn read_global(&mut self, index: usize, width: OperandWidth) -> GlobalId {
+        debug_assert_eq!(self.start + offset_argument(index, width), self.pos);
         self.read_index(width).into()
     }
 
@@ -943,8 +947,9 @@ where
         FromPrimitive::from_u32(opcode).expect("illegal opcode")
     }
 
-    fn read_const_pool_idx(&mut self, wide: OperandWidth) -> ConstPoolIdx {
-        (self.read_index(wide) as usize).into()
+    fn read_const_pool_idx(&mut self, index: usize, width: OperandWidth) -> ConstPoolIdx {
+        debug_assert_eq!(self.start + offset_argument(index, width), self.pos);
+        (self.read_index(width) as usize).into()
     }
 
     fn read_offset(&mut self, wide: OperandWidth) -> u32 {
@@ -1560,4 +1565,16 @@ fn read_opcode_and_width(data: &[u8], pos: usize) -> (BytecodeOpcode, OperandWid
 
 fn read_opcode(opcode: u8) -> BytecodeOpcode {
     FromPrimitive::from_u32(opcode as u32).expect("illegal opcode")
+}
+
+fn offset_argument(index: usize, width: OperandWidth) -> usize {
+    offset_arguments(width) + width.size() * index
+}
+
+fn offset_arguments(width: OperandWidth) -> usize {
+    if width.needs_bytecode() {
+        2
+    } else {
+        1
+    }
 }

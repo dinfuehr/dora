@@ -620,6 +620,13 @@ pub enum OperandWidth {
 }
 
 impl OperandWidth {
+    pub fn size(self) -> usize {
+        match self {
+            OperandWidth::Normal => 1,
+            OperandWidth::Wide => 4,
+        }
+    }
+
     pub fn needs_bytecode(self) -> bool {
         match self {
             OperandWidth::Normal => false,
