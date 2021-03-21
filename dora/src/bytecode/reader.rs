@@ -1524,3 +1524,40 @@ impl<'a> BytecodeIterator<'a> {
         BytecodeIterator { fct, pos: 0 }
     }
 }
+
+struct BytecodeRandomAccess<'a> {
+    fct: &'a BytecodeFunction,
+    instructions: Vec<usize>,
+}
+
+impl<'a> BytecodeRandomAccess<'a> {
+    pub fn new(_fct: &'a BytecodeFunction) -> BytecodeRandomAccess<'a> {
+        unimplemented!()
+    }
+}
+
+fn find_instruction_starts(fct: &BytecodeFunction) -> Vec<usize> {
+    let code = fct.code();
+    let mut pos = 0;
+    let mut intruction_start_offsets = Vec::new();
+
+    while pos < fct.code().len() {
+        intruction_start_offsets.push(pos);
+        let (opcode, width) = read_opcode_and_width(code, pos);
+        pos += opcode.size(width) as usize;
+    }
+
+    intruction_start_offsets
+}
+
+fn read_opcode_and_width(data: &[u8], pos: usize) -> (BytecodeOpcode, OperandWidth) {
+    if data[pos] as u32 == BytecodeOpcode::Wide as u32 {
+        (read_opcode(data[pos + 1]), OperandWidth::Wide)
+    } else {
+        (read_opcode(data[pos]), OperandWidth::Normal)
+    }
+}
+
+fn read_opcode(opcode: u8) -> BytecodeOpcode {
+    FromPrimitive::from_u32(opcode as u32).expect("illegal opcode")
+}
