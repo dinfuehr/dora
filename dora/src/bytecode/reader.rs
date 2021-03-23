@@ -3,7 +3,7 @@ use num_traits::cast::FromPrimitive;
 use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
 };
-use crate::vm::{ClassDefId, FieldId, GlobalId, TupleId};
+use crate::vm::{GlobalId, TupleId};
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeReader::new(data, visitor).read();
@@ -11,8 +11,7 @@ pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
 
 struct BytecodeReader<'a, T: BytecodeVisitor> {
     data: &'a [u8],
-    pos: usize,
-    start: usize,
+    current: usize,
     visitor: &'a mut T,
 }
 
@@ -23,29 +22,18 @@ where
     fn new(data: &'a [u8], visitor: &'a mut T) -> BytecodeReader<'a, T> {
         BytecodeReader {
             data: data,
-            pos: 0,
-            start: 0,
+            current: 0,
             visitor: visitor,
         }
     }
 
     fn read(&mut self) {
-        while self.pos < self.data.len() {
-            self.start = self.pos;
+        while self.current < self.data.len() {
             self.visitor
-                .visit_instruction(BytecodeOffset(self.pos as u32));
-            let (opcode, width) = read_opcode_and_width(self.data, self.pos);
-            self.pos += if width.needs_bytecode() { 2 } else { 1 };
+                .visit_instruction(BytecodeOffset(self.current as u32));
+            let (opcode, width) = read_opcode_and_width(self.data, self.current);
             self.read_instruction(width, opcode);
-            let end = self.pos;
-
-            debug_assert_eq!(
-                end - self.start,
-                opcode.size(width) as usize,
-                "bug in BytecodeOpcode::size() with {:?} and width {:?}",
-                opcode,
-                width
-            );
+            self.current += opcode.size(width) as usize;
         }
     }
 
@@ -379,8 +367,8 @@ where
             BytecodeOpcode::LoadTupleElement => {
                 let dest = self.read_register(0, width);
                 let src = self.read_register(1, width);
-                let tuple = self.read_tuple(width);
-                let element = self.read_index(width);
+                let tuple = self.read_tuple(2, width);
+                let element = self.read_index(3, width);
                 self.visitor
                     .visit_load_tuple_element(dest, src, tuple, element);
             }
@@ -389,7 +377,7 @@ where
                 let dest = self.read_register(0, width);
                 let src = self.read_register(1, width);
                 let idx = self.read_const_pool_idx(2, width);
-                let element = self.read_index(width);
+                let element = self.read_index(3, width);
                 self.visitor
                     .visit_load_enum_element(dest, src, idx, element);
             }
@@ -478,7 +466,7 @@ where
             }
             BytecodeOpcode::ConstUInt8 => {
                 let dest = self.read_register(0, width);
-                let value = self.read_byte();
+                let value = self.read_byte_argument(1, width);
                 self.visitor.visit_const_uint8(dest, value as u8);
             }
             BytecodeOpcode::ConstInt32 => {
@@ -762,7 +750,7 @@ where
             }
 
             BytecodeOpcode::JumpLoop => {
-                let offset = self.read_offset(width);
+                let offset = self.read_offset(0, width);
                 self.visitor.visit_jump_loop(offset);
             }
             BytecodeOpcode::LoopStart => {
@@ -770,7 +758,7 @@ where
             }
             BytecodeOpcode::JumpIfFalse => {
                 let opnd = self.read_register(0, width);
-                let offset = self.read_offset(width);
+                let offset = self.read_offset(1, width);
                 self.visitor.visit_jump_if_false(opnd, offset);
             }
             BytecodeOpcode::JumpIfFalseConst => {
@@ -780,7 +768,7 @@ where
             }
             BytecodeOpcode::JumpIfTrue => {
                 let opnd = self.read_register(0, width);
-                let offset = self.read_offset(width);
+                let offset = self.read_offset(1, width);
                 self.visitor.visit_jump_if_true(opnd, offset);
             }
             BytecodeOpcode::JumpIfTrueConst => {
@@ -789,7 +777,7 @@ where
                 self.visitor.visit_jump_if_true_const(opnd, idx);
             }
             BytecodeOpcode::Jump => {
-                let offset = self.read_offset(width);
+                let offset = self.read_offset(0, width);
                 self.visitor.visit_jump(offset);
             }
             BytecodeOpcode::JumpConst => {
@@ -860,7 +848,7 @@ where
             }
             BytecodeOpcode::NewTuple => {
                 let dest = self.read_register(0, width);
-                let tuple = self.read_tuple(width);
+                let tuple = self.read_tuple(1, width);
                 self.visitor.visit_new_tuple(dest, tuple);
             }
             BytecodeOpcode::NewEnum => {
@@ -921,68 +909,47 @@ where
     }
 
     fn read_register(&mut self, index: usize, width: OperandWidth) -> Register {
-        debug_assert_eq!(self.start + offset_argument(index, width), self.pos);
-        Register(self.read_index(width) as usize)
+        Register(self.read_index(index, width) as usize)
     }
 
-    fn read_class(&mut self, width: OperandWidth) -> ClassDefId {
-        (self.read_index(width) as usize).into()
-    }
-
-    fn read_field(&mut self, width: OperandWidth) -> FieldId {
-        (self.read_index(width) as usize).into()
-    }
-
-    fn read_tuple(&mut self, width: OperandWidth) -> TupleId {
-        self.read_index(width).into()
+    fn read_tuple(&mut self, index: usize, width: OperandWidth) -> TupleId {
+        self.read_index(index, width).into()
     }
 
     fn read_global(&mut self, index: usize, width: OperandWidth) -> GlobalId {
-        debug_assert_eq!(self.start + offset_argument(index, width), self.pos);
-        self.read_index(width).into()
-    }
-
-    fn read_opcode(&mut self) -> BytecodeOpcode {
-        let opcode = self.read_byte();
-        FromPrimitive::from_u32(opcode).expect("illegal opcode")
+        self.read_index(index, width).into()
     }
 
     fn read_const_pool_idx(&mut self, index: usize, width: OperandWidth) -> ConstPoolIdx {
-        debug_assert_eq!(self.start + offset_argument(index, width), self.pos);
-        (self.read_index(width) as usize).into()
+        (self.read_index(index, width) as usize).into()
     }
 
-    fn read_offset(&mut self, wide: OperandWidth) -> u32 {
-        self.read_index(wide)
+    fn read_offset(&mut self, index: usize, wide: OperandWidth) -> u32 {
+        self.read_index(index, wide)
     }
 
-    fn read_index(&mut self, width: OperandWidth) -> u32 {
+    fn read_index(&mut self, index: usize, width: OperandWidth) -> u32 {
+        let pos = self.current + offset_argument(index, width);
         match width {
-            OperandWidth::Normal => self.read_byte(),
-            OperandWidth::Wide => self.read_wide(),
+            OperandWidth::Normal => self.read_byte_at(pos),
+            OperandWidth::Wide => self.read_wide_at(pos),
         }
     }
 
-    fn read_operand_width(&mut self) -> OperandWidth {
-        if self.data[self.pos] as u32 == BytecodeOpcode::Wide as u32 {
-            self.pos += 1;
-            OperandWidth::Wide
-        } else {
-            OperandWidth::Normal
-        }
+    fn read_byte_argument(&mut self, index: usize, width: OperandWidth) -> u32 {
+        let pos = self.current + offset_argument(index, width);
+        self.read_byte_at(pos)
     }
 
-    fn read_byte(&mut self) -> u32 {
-        let value = self.data[self.pos];
-        self.pos += 1;
-        value as u32
+    fn read_byte_at(&mut self, pos: usize) -> u32 {
+        self.data[pos] as u32
     }
 
-    fn read_wide(&mut self) -> u32 {
-        let v1 = self.read_byte();
-        let v2 = self.read_byte();
-        let v3 = self.read_byte();
-        let v4 = self.read_byte();
+    fn read_wide_at(&mut self, pos: usize) -> u32 {
+        let v1 = self.read_byte_at(pos);
+        let v2 = self.read_byte_at(pos + 1);
+        let v3 = self.read_byte_at(pos + 2);
+        let v4 = self.read_byte_at(pos + 3);
 
         (v4 << 24) | (v3 << 16) | (v2 << 8) | v1
     }
