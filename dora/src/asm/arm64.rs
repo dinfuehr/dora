@@ -93,6 +93,14 @@ impl Assembler {
         }
     }
 
+    pub fn asrv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(1, 0, rm, 0b1010, rn, rd));
+    }
+
+    pub fn asrvw(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(0, 0, rm, 0b1010, rn, rd));
+    }
+
     pub fn b_i(&mut self, imm26: i32) {
         self.emit_u32(inst_b_i(imm26));
     }
@@ -182,6 +190,22 @@ impl Assembler {
         self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000100, rn, rd));
     }
 
+    pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(1, 0, rm, 0b1000, rn, rd));
+    }
+
+    pub fn lslvw(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(0, 0, rm, 0b1000, rn, rd));
+    }
+
+    pub fn lsrv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(1, 0, rm, 0b1001, rn, rd));
+    }
+
+    pub fn lsrvw(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(0, 0, rm, 0b1001, rn, rd));
+    }
+
     pub fn nop(&mut self) {
         self.emit_u32(cls_system(0));
     }
@@ -204,6 +228,30 @@ impl Assembler {
 
     pub fn rev(&mut self, rd: Register, rn: Register) {
         self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
+    }
+
+    pub fn rorv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(1, 0, rm, 0b1011, rn, rd));
+    }
+
+    pub fn rorvw(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(0, 0, rm, 0b1011, rn, rd));
+    }
+
+    pub fn sdiv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(1, 0, rm, 0b11, rn, rd));
+    }
+
+    pub fn sdivw(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(0, 0, rm, 0b11, rn, rd));
+    }
+
+    pub fn udiv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(1, 0, rm, 0b10, rn, rd));
+    }
+
+    pub fn udivw(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls_dataproc2(0, 0, rm, 0b10, rn, rd));
     }
 }
 
@@ -263,6 +311,23 @@ fn cls_system(imm: u32) -> u32 {
     assert!(fits_u7(imm));
 
     0xD503201F | imm << 5
+}
+
+fn cls_dataproc2(sf: u32, s: u32, rm: Register, opcode: u32, rn: Register, rd: Register) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(s));
+    assert!(rm.is_gpr());
+    assert!(fits_u6(opcode));
+    assert!(rn.is_gpr());
+    assert!(rd.is_gpr());
+
+    sf << 31
+        | s << 29
+        | 0b11010110u32 << 21
+        | rm.value() << 16
+        | opcode << 10
+        | rn.value() << 5
+        | rd.value()
 }
 
 fn encoding_rn(reg: Register) -> u32 {
@@ -371,5 +436,15 @@ mod tests {
     #[test]
     fn test_nop() {
         assert_emit!(0xd503201f; nop());
+    }
+
+    #[test]
+    fn test_div() {
+        assert_emit!(0x1ac20820; udivw(R0, R1, R2));
+        assert_emit!(0x9ac50c83; sdiv(R3, R4, R5));
+        assert_emit!(0x1ac820e6; lslvw(R6, R7, R8));
+        assert_emit!(0x1acb2549; lsrvw(R9, R10, R11));
+        assert_emit!(0x1ace29ac; asrvw(R12, R13, R14));
+        assert_emit!(0x1ad12e0f; rorvw(R15, R16, R17));
     }
 }

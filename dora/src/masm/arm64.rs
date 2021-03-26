@@ -307,10 +307,20 @@ impl MacroAssembler {
         self.emit_bailout(lbl_zero, Trap::DIV0, pos);
 
         if is_div {
-            self.emit_u32(asm::sdiv(x64, dest, lhs, rhs));
+            match mode {
+                MachineMode::Int32 => self.asm.sdivw(dest.into(), lhs.into(), rhs.into()),
+                MachineMode::Int64 => self.asm.sdiv(dest.into(), lhs.into(), rhs.into()),
+                _ => unreachable!(),
+            }
         } else {
             let scratch = self.get_scratch();
-            self.emit_u32(asm::sdiv(x64, *scratch, lhs, rhs));
+
+            match mode {
+                MachineMode::Int32 => self.asm.sdivw((*scratch).into(), lhs.into(), rhs.into()),
+                MachineMode::Int64 => self.asm.sdiv((*scratch).into(), lhs.into(), rhs.into()),
+                _ => unreachable!(),
+            }
+
             self.emit_u32(asm::msub(x64, dest, *scratch, rhs, lhs));
         }
     }
@@ -363,33 +373,27 @@ impl MacroAssembler {
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+        match mode {
+            MachineMode::Int32 => self.asm.lslvw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.lslv(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.emit_u32(asm::lslv(x64, dest, lhs, rhs));
+        }
     }
 
     pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+        match mode {
+            MachineMode::Int32 => self.asm.lsrvw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.lsrv(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.emit_u32(asm::lsrv(x64, dest, lhs, rhs));
+        }
     }
 
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+        match mode {
+            MachineMode::Int32 => self.asm.asrvw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.asrv(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.emit_u32(asm::asrv(x64, dest, lhs, rhs));
+        }
     }
 
     pub fn int_rol(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -408,17 +412,20 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
         self.load_int_const(mode, *scratch, max);
         self.emit_u32(asm::sub_reg(x64, *scratch, *scratch, rhs));
-        self.emit_u32(asm::rorv(x64, dest, lhs, *scratch));
+
+        match mode {
+            MachineMode::Int32 => self.asm.rorvw(dest.into(), lhs.into(), (*scratch).into()),
+            MachineMode::Int64 => self.asm.rorv(dest.into(), lhs.into(), (*scratch).into()),
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
     }
 
     pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+        match mode {
+            MachineMode::Int32 => self.asm.rorvw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.rorv(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.emit_u32(asm::rorv(x64, dest, lhs, rhs));
+        }
     }
 
     pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
