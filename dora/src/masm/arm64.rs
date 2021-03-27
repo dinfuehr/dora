@@ -1167,7 +1167,7 @@ impl MacroAssembler {
     }
 
     pub fn debug(&mut self) {
-        self.emit_u32(asm::brk(0));
+        self.asm.brk(0);
     }
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {

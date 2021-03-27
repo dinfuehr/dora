@@ -113,24 +113,6 @@ fn cls_cond_branch_imm(cond: Cond, imm19: i32) -> u32 {
     0b01010100u32 << 24 | imm << 5 | cond.u32()
 }
 
-pub fn cbz(sf: u32, rt: Reg, imm19: i32) -> u32 {
-    cls_cmp_branch_imm(sf, 0b0, rt, imm19)
-}
-
-pub fn cbnz(sf: u32, rt: Reg, imm19: i32) -> u32 {
-    cls_cmp_branch_imm(sf, 0b1, rt, imm19)
-}
-
-fn cls_cmp_branch_imm(sf: u32, op: u32, rt: Reg, imm19: i32) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(op));
-    assert!(fits_i19(imm19));
-    assert!(rt.is_gpr());
-    let imm = (imm19 as u32) & 0x7FFFF;
-
-    sf << 31 | 0b011010u32 << 25 | op << 24 | imm << 5 | rt.asm()
-}
-
 pub fn add_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
     cls_addsub_imm(sf, 0, 0, shift, imm12, rn, rd)
 }
@@ -550,19 +532,6 @@ fn cls_logical_shreg(
         | imm6 << 10
         | rn.asm() << 5
         | rd.asm()
-}
-
-pub fn brk(imm16: u32) -> u32 {
-    cls_exception(0b001, imm16, 0, 0)
-}
-
-fn cls_exception(opc: u32, imm16: u32, op2: u32, ll: u32) -> u32 {
-    assert!(fits_u3(opc));
-    assert!(fits_u16(imm16));
-    assert!(op2 == 0);
-    assert!(fits_u2(ll));
-
-    0b11010100u32 << 24 | opc << 21 | imm16 << 5 | op2 << 2 | ll
 }
 
 pub fn csel(sf: u32, rd: Reg, rn: Reg, rm: Reg, cond: Cond) -> u32 {
@@ -1544,12 +1513,6 @@ mod tests {
         assert_emit!(0xca711a0f; eon_shreg(1, R15, R16, R17, Shift::LSR, 6));
         assert_emit!(0xea941e72; ands_shreg(1, R18, R19, R20, Shift::ASR, 7));
         assert_emit!(0xeaf726d5; bics_shreg(1, R21, R22, R23, Shift::ROR, 9));
-    }
-
-    #[test]
-    fn test_brk() {
-        assert_emit!(0xd4200000; brk(0));
-        assert_emit!(0xd43fffe0; brk(0xFFFF));
     }
 
     #[test]

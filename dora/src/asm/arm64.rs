@@ -84,7 +84,7 @@ impl Assembler {
 
                     JumpKind::NonZero(sf, rt) => {
                         let sf = if sf { 1 } else { 0 };
-                        self.patch_u32(pc, asm::cbnz(sf, rt.to_reg(), distance));
+                        self.patch_u32(pc, inst_cbnz(sf, rt.to_reg(), distance));
                     }
                 }
             } else {
@@ -124,6 +124,10 @@ impl Assembler {
         }
     }
 
+    pub fn b_r(&mut self, rn: Register) {
+        self.emit_u32(cls_uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
+    }
+
     pub fn bc_l(&mut self, cond: asm::Cond, target: Label) {
         let value = self.offset(target);
 
@@ -151,8 +155,8 @@ impl Assembler {
         self.emit_u32(cls_uncond_branch_reg(0b0001, 0b11111, 0, rn, 0));
     }
 
-    pub fn b_r(&mut self, rn: Register) {
-        self.emit_u32(cls_uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
+    pub fn brk(&mut self, imm16: u32) {
+        self.emit_u32(cls_exception(0b001, imm16, 0, 0));
     }
 
     pub fn cbnzx(&mut self, reg: Register, target: Label) {
@@ -162,7 +166,7 @@ impl Assembler {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(asm::cbnz(1, Reg(reg.value() as u8), diff / 4));
+                self.emit_u32(inst_cbnz(1, Reg(reg.value() as u8), diff / 4));
             }
 
             None => {
@@ -259,6 +263,24 @@ fn inst_b_i(imm26: i32) -> u32 {
     cls_uncond_branch_imm(0, imm26)
 }
 
+fn inst_cbz(sf: u32, rt: Reg, imm19: i32) -> u32 {
+    cls_cmp_branch_imm(sf, 0b0, rt, imm19)
+}
+
+fn inst_cbnz(sf: u32, rt: Reg, imm19: i32) -> u32 {
+    cls_cmp_branch_imm(sf, 0b1, rt, imm19)
+}
+
+fn cls_cmp_branch_imm(sf: u32, op: u32, rt: Reg, imm19: i32) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(op));
+    assert!(fits_i19(imm19));
+    assert!(rt.is_gpr());
+    let imm = (imm19 as u32) & 0x7FFFF;
+
+    sf << 31 | 0b011010u32 << 25 | op << 24 | imm << 5 | rt.asm()
+}
+
 fn cls_dataproc1(sf: u32, s: u32, opcode2: u32, opcode: u32, rn: Register, rd: Register) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_bit(sf));
@@ -275,6 +297,15 @@ fn cls_dataproc1(sf: u32, s: u32, opcode2: u32, opcode: u32, rn: Register, rd: R
         | opcode << 10
         | rn.value() << 5
         | rd.value()
+}
+
+fn cls_exception(opc: u32, imm16: u32, op2: u32, ll: u32) -> u32 {
+    assert!(fits_u3(opc));
+    assert!(fits_u16(imm16));
+    assert!(op2 == 0);
+    assert!(fits_u2(ll));
+
+    0b11010100u32 << 24 | opc << 21 | imm16 << 5 | op2 << 2 | ll
 }
 
 fn cls_ldst_exclusive(
@@ -339,24 +370,40 @@ fn fits_bit(imm: u32) -> bool {
     imm < (1 << 1)
 }
 
+fn fits_i19(imm: i32) -> bool {
+    -262_144 <= imm && imm < 262_144
+}
+
 fn fits_i26(imm: i32) -> bool {
     -(1 << 25) <= imm && imm < (1 << 25)
 }
 
-fn fits_u7(imm: u32) -> bool {
-    imm < (1 << 7)
+fn fits_u2(imm: u32) -> bool {
+    imm < 4
 }
 
-fn fits_u6(imm: u32) -> bool {
-    imm < (1 << 6)
+fn fits_u3(imm: u32) -> bool {
+    imm < 8
+}
+
+fn fits_u4(imm: u32) -> bool {
+    imm < (1 << 4)
 }
 
 fn fits_u5(imm: u32) -> bool {
     imm < (1 << 5)
 }
 
-fn fits_u4(imm: u32) -> bool {
-    imm < (1 << 4)
+fn fits_u6(imm: u32) -> bool {
+    imm < (1 << 6)
+}
+
+fn fits_u7(imm: u32) -> bool {
+    imm < (1 << 7)
+}
+
+fn fits_u16(imm: u32) -> bool {
+    imm < (1 << 16)
 }
 
 #[cfg(test)]
@@ -424,6 +471,12 @@ mod tests {
         assert_emit!(0xd61f03c0; b_r(R30));
         assert_emit!(0xd63f0000; bl_r(R0));
         assert_emit!(0xd63f03c0; bl_r(R30));
+    }
+
+    #[test]
+    fn test_brk() {
+        assert_emit!(0xd4200000; brk(0));
+        assert_emit!(0xd43fffe0; brk(0xFFFF));
     }
 
     #[test]
