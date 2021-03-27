@@ -454,25 +454,6 @@ fn cls_ldst_reg_unscaledimm(size: u32, v: u32, opc: u32, imm9: i32, rn: Reg, rt:
     size << 30 | 0b111 << 27 | v << 26 | opc << 22 | imm << 12 | rn.asm() << 5 | rt
 }
 
-pub fn ldrw_literal(rt: Reg, imm19: i32) -> u32 {
-    cls_ld_literal(0b00, 0, imm19, rt)
-}
-
-pub fn ldrx_literal(rt: Reg, imm19: i32) -> u32 {
-    cls_ld_literal(0b01, 0, imm19, rt)
-}
-
-fn cls_ld_literal(opc: u32, v: u32, imm19: i32, rt: Reg) -> u32 {
-    assert!(fits_u2(opc));
-    assert!(fits_bit(v));
-    assert!(fits_i19(imm19));
-    assert!(rt.is_gpr());
-
-    let imm = (imm19 as u32) & 0x7FFFF;
-
-    0b011u32 << 27 | opc << 30 | v << 26 | imm << 5 | rt.asm()
-}
-
 pub fn and_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b00, shift, 0, rm, imm6, rn, rd)
 }
@@ -1433,21 +1414,6 @@ mod tests {
 
         assert_emit!(0xf9400420; ldrx_imm(R0, R1, 1));
         assert_emit!(0xf9400862; ldrx_imm(R2, R3, 2));
-    }
-
-    #[test]
-    fn test_ldr_literal() {
-        // forward jump
-        assert_emit!(0x18000060; ldrw_literal(R0, 3));
-        assert_emit!(0x58000040; ldrx_literal(R0, 2));
-        assert_emit!(0x1800007e; ldrw_literal(R30, 3));
-        assert_emit!(0x5800005e; ldrx_literal(R30, 2));
-
-        // backward jump
-        assert_emit!(0x18ffffe0; ldrw_literal(R0, -1));
-        assert_emit!(0x58ffffc0; ldrx_literal(R0, -2));
-        assert_emit!(0x18fffffe; ldrw_literal(R30, -1));
-        assert_emit!(0x58ffffde; ldrx_literal(R30, -2));
     }
 
     #[test]
