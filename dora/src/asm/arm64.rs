@@ -37,7 +37,7 @@ pub const REG_ZERO: Register = Register(31);
 pub const REG_SP: Register = Register(32);
 
 impl Register {
-    fn value(self) -> u32 {
+    fn encoding(self) -> u32 {
         debug_assert!(self.is_gpr_or_zero());
         self.0 as u32
     }
@@ -212,7 +212,7 @@ impl Assembler {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(inst_cbnz(1, Reg(reg.value() as u8), diff / 4));
+                self.emit_u32(inst_cbnz(1, Reg(reg.encoding() as u8), diff / 4));
             }
 
             None => {
@@ -349,8 +349,8 @@ fn cls_dataproc1(sf: u32, s: u32, opcode2: u32, opcode: u32, rn: Register, rd: R
         | 0b11010110 << 21
         | opcode2 << 16
         | opcode << 10
-        | rn.value() << 5
-        | rd.value()
+        | rn.encoding() << 5
+        | rd.encoding()
 }
 
 fn cls_exception(opc: u32, imm16: u32, op2: u32, ll: u32) -> u32 {
@@ -421,10 +421,10 @@ fn cls_dataproc2(sf: u32, s: u32, rm: Register, opcode: u32, rn: Register, rd: R
     sf << 31
         | s << 29
         | 0b11010110u32 << 21
-        | rm.value() << 16
+        | rm.encoding() << 16
         | opcode << 10
-        | rn.value() << 5
-        | rd.value()
+        | rn.encoding() << 5
+        | rd.encoding()
 }
 
 fn cls_fp_compare(
@@ -456,7 +456,7 @@ fn cls_fp_compare(
 
 fn encoding_rn(reg: Register) -> u32 {
     assert!(reg.is_gpr());
-    reg.value() << 5
+    reg.encoding() << 5
 }
 
 fn fits_bit(imm: u32) -> bool {
