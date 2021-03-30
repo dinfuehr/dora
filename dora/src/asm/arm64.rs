@@ -56,6 +56,53 @@ impl Register {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct FloatRegister(u8);
+
+impl FloatRegister {
+    pub fn new(value: u8) -> FloatRegister {
+        assert!(value < 32);
+        FloatRegister(value)
+    }
+
+    fn encoding(self) -> u32 {
+        self.0 as u32
+    }
+}
+
+pub const F0: FloatRegister = FloatRegister(0);
+pub const F1: FloatRegister = FloatRegister(1);
+pub const F2: FloatRegister = FloatRegister(2);
+pub const F3: FloatRegister = FloatRegister(3);
+pub const F4: FloatRegister = FloatRegister(4);
+pub const F5: FloatRegister = FloatRegister(5);
+pub const F6: FloatRegister = FloatRegister(6);
+pub const F7: FloatRegister = FloatRegister(7);
+pub const F8: FloatRegister = FloatRegister(8);
+pub const F9: FloatRegister = FloatRegister(9);
+pub const F10: FloatRegister = FloatRegister(10);
+pub const F11: FloatRegister = FloatRegister(11);
+pub const F12: FloatRegister = FloatRegister(12);
+pub const F13: FloatRegister = FloatRegister(13);
+pub const F14: FloatRegister = FloatRegister(14);
+pub const F15: FloatRegister = FloatRegister(15);
+pub const F16: FloatRegister = FloatRegister(16);
+pub const F17: FloatRegister = FloatRegister(17);
+pub const F18: FloatRegister = FloatRegister(18);
+pub const F19: FloatRegister = FloatRegister(19);
+pub const F20: FloatRegister = FloatRegister(20);
+pub const F21: FloatRegister = FloatRegister(21);
+pub const F22: FloatRegister = FloatRegister(22);
+pub const F23: FloatRegister = FloatRegister(23);
+pub const F24: FloatRegister = FloatRegister(24);
+pub const F25: FloatRegister = FloatRegister(25);
+pub const F26: FloatRegister = FloatRegister(26);
+pub const F27: FloatRegister = FloatRegister(27);
+pub const F28: FloatRegister = FloatRegister(28);
+pub const F29: FloatRegister = FloatRegister(29);
+pub const F30: FloatRegister = FloatRegister(30);
+pub const F31: FloatRegister = FloatRegister(31);
+
 pub(super) enum JumpKind {
     Unconditional,
     Conditional(Cond),
@@ -191,6 +238,14 @@ impl Assembler {
 
     pub fn clz(&mut self, rd: Register, rn: Register) {
         self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000100, rn, rd));
+    }
+
+    pub fn fcmp(&mut self, ty: u32, rn: FloatRegister, rm: FloatRegister) {
+        self.emit_u32(cls_fp_compare(0, 0, ty, rm, 0, rn, 0));
+    }
+
+    pub fn fcmpe(&mut self, ty: u32, rn: FloatRegister, rm: FloatRegister) {
+        self.emit_u32(cls_fp_compare(0, 0, ty, rm, 0, rn, 0b10000));
     }
 
     pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
@@ -372,6 +427,33 @@ fn cls_dataproc2(sf: u32, s: u32, rm: Register, opcode: u32, rn: Register, rd: R
         | rd.value()
 }
 
+fn cls_fp_compare(
+    m: u32,
+    s: u32,
+    ty: u32,
+    rm: FloatRegister,
+    op: u32,
+    rn: FloatRegister,
+    opcode2: u32,
+) -> u32 {
+    assert!(m == 0);
+    assert!(s == 0);
+    assert!(fits_bit(ty));
+    assert!(fits_u2(op));
+    assert!(fits_u5(opcode2));
+
+    m << 31
+        | s << 29
+        | 0b11110 << 24
+        | ty << 22
+        | 1 << 21
+        | rm.encoding() << 16
+        | op << 14
+        | 0b1000 << 10
+        | rn.encoding() << 5
+        | opcode2
+}
+
 fn encoding_rn(reg: Register) -> u32 {
     assert!(reg.is_gpr());
     reg.value() << 5
@@ -547,6 +629,20 @@ mod tests {
     fn test_brk() {
         assert_emit!(0xd4200000; brk(0));
         assert_emit!(0xd43fffe0; brk(0xFFFF));
+    }
+
+    #[test]
+    fn test_fcmp() {
+        assert_emit!(0x1e212000; fcmp(0, F0, F1));
+        assert_emit!(0x1e612000; fcmp(1, F0, F1));
+        assert_emit!(0x1e252080; fcmp(0, F4, F5));
+    }
+
+    #[test]
+    fn test_fcmpe() {
+        assert_emit!(0x1e212010; fcmpe(0, F0, F1));
+        assert_emit!(0x1e612010; fcmpe(1, F0, F1));
+        assert_emit!(0x1e252090; fcmpe(0, F4, F5));
     }
 
     #[test]

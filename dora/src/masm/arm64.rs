@@ -1,6 +1,6 @@
 use dora_parser::lexer::position::Position;
 
-use crate::asm::arm64::Cond;
+use crate::asm::arm64::{Cond, FloatRegister};
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::asm;
@@ -717,7 +717,7 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        self.emit_u32(asm::fcmp(dbl, lhs, rhs));
+        self.asm.fcmp(dbl, lhs.into(), rhs.into());
         self.emit_u32(asm::cset(0, dest, Cond::GT));
         let scratch = self.get_scratch();
         self.emit_u32(asm::movn(0, *scratch, 0, 0));
@@ -748,7 +748,7 @@ impl MacroAssembler {
             _ => unreachable!(),
         };
 
-        self.emit_u32(asm::fcmp(dbl, lhs, rhs));
+        self.asm.fcmp(dbl, lhs.into(), rhs.into());
         self.emit_u32(asm::cset(0, dest, cond));
     }
 
@@ -759,7 +759,7 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        self.emit_u32(asm::fcmp(dbl, src, src));
+        self.asm.fcmp(dbl, src.into(), src.into());
         self.emit_u32(asm::cset(0, dest, Cond::VS));
     }
 
@@ -1289,6 +1289,12 @@ fn size_flag(mode: MachineMode) -> u32 {
         MachineMode::Int8 | MachineMode::Int32 => 0,
         MachineMode::IntPtr | MachineMode::Ptr | MachineMode::Int64 => 1,
         MachineMode::Float32 | MachineMode::Float64 => unimplemented!(),
+    }
+}
+
+impl From<FReg> for FloatRegister {
+    fn from(reg: FReg) -> FloatRegister {
+        FloatRegister::new(reg.0)
     }
 }
 

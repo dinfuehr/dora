@@ -953,33 +953,6 @@ fn cls_simd_across_lanes(q: u32, u: u32, size: u32, opcode: u32, rn: FReg, rd: F
         | rd.asm()
 }
 
-pub fn fcmp(ty: u32, rn: FReg, rm: FReg) -> u32 {
-    cls_fp_compare(0, 0, ty, rm, 0, rn, 0)
-}
-
-pub fn fcmpe(ty: u32, rn: FReg, rm: FReg) -> u32 {
-    cls_fp_compare(0, 0, ty, rm, 0, rn, 0b10000)
-}
-
-fn cls_fp_compare(m: u32, s: u32, ty: u32, rm: FReg, op: u32, rn: FReg, opcode2: u32) -> u32 {
-    assert!(m == 0);
-    assert!(s == 0);
-    assert!(fits_bit(ty));
-    assert!(fits_u2(op));
-    assert!(fits_u5(opcode2));
-
-    m << 31
-        | s << 29
-        | 0b11110 << 24
-        | ty << 22
-        | 1 << 21
-        | rm.asm() << 16
-        | op << 14
-        | 0b1000 << 10
-        | rn.asm() << 5
-        | opcode2
-}
-
 impl From<CondCode> for Cond {
     fn from(c: CondCode) -> Cond {
         match c {
@@ -1645,20 +1618,6 @@ mod tests {
     fn test_sxtw() {
         assert_eq!(0x93407c00, sxtw(R0, R0));
         assert_eq!(0x93407d8f, sxtw(R15, R12));
-    }
-
-    #[test]
-    fn test_fcmp() {
-        assert_eq!(0x1e212000, fcmp(0, F0, F1));
-        assert_eq!(0x1e612000, fcmp(1, F0, F1));
-        assert_eq!(0x1e252080, fcmp(0, F4, F5));
-    }
-
-    #[test]
-    fn test_fcmpe() {
-        assert_eq!(0x1e212010, fcmpe(0, F0, F1));
-        assert_eq!(0x1e612010, fcmpe(1, F0, F1));
-        assert_eq!(0x1e252090, fcmpe(0, F4, F5));
     }
 
     #[test]
