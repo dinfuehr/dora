@@ -1,3 +1,4 @@
+use crate::asm::arm64::Cond;
 use crate::cpu::arm64::reg::*;
 use crate::cpu::{FReg, Reg};
 use crate::masm::CondCode;
@@ -99,18 +100,6 @@ fn cls_ldst_pair_post(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt
         | rt2.asm() << 10
         | rn.asm() << 5
         | rt.asm()
-}
-
-pub fn b_cond_imm(cond: Cond, imm19: i32) -> u32 {
-    cls_cond_branch_imm(cond, imm19)
-}
-
-fn cls_cond_branch_imm(cond: Cond, imm19: i32) -> u32 {
-    assert!(fits_i19(imm19));
-
-    let imm = (imm19 as u32) & 0x7FFFF;
-
-    0b01010100u32 << 24 | imm << 5 | cond.u32()
 }
 
 pub fn add_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
@@ -991,26 +980,6 @@ fn cls_fp_compare(m: u32, s: u32, ty: u32, rm: FReg, op: u32, rn: FReg, opcode2:
         | opcode2
 }
 
-#[derive(Copy, Clone)]
-pub enum Cond {
-    EQ, // equal
-    NE, // not equal
-    CS,
-    HS, // carry set, unsigned higher or same
-    CC,
-    LO, // carry clear, unsigned lower
-    MI, // negative
-    PL, // positive or zero
-    VS, // overflow
-    VC, // no overflow
-    HI, // unsigned higher
-    LS, // unsigned lower or same
-    GE, // signed greater than or equal
-    LT, // signed less than
-    GT, // signed greater than
-    LE, // signed less than or equal
-}
-
 impl From<CondCode> for Cond {
     fn from(c: CondCode) -> Cond {
         match c {
@@ -1026,46 +995,6 @@ impl From<CondCode> for Cond {
             CondCode::UnsignedGreaterEq => Cond::HS,
             CondCode::UnsignedLess => Cond::LO,
             CondCode::UnsignedLessEq => Cond::LS,
-        }
-    }
-}
-
-impl Cond {
-    fn invert(self) -> Cond {
-        match self {
-            Cond::EQ => Cond::NE,
-            Cond::NE => Cond::EQ,
-            Cond::CS | Cond::HS => Cond::CC,
-            Cond::CC | Cond::LO => Cond::CS,
-            Cond::MI => Cond::PL,
-            Cond::PL => Cond::MI,
-            Cond::VS => Cond::VC,
-            Cond::VC => Cond::VS,
-            Cond::HI => Cond::LS,
-            Cond::LS => Cond::HI,
-            Cond::GE => Cond::LT,
-            Cond::LT => Cond::GE,
-            Cond::GT => Cond::LE,
-            Cond::LE => Cond::GT,
-        }
-    }
-
-    fn u32(self) -> u32 {
-        match self {
-            Cond::EQ => 0b0000,
-            Cond::NE => 0b0001,
-            Cond::CS | Cond::HS => 0b0010,
-            Cond::CC | Cond::LO => 0b0011,
-            Cond::MI => 0b0100,
-            Cond::PL => 0b0101,
-            Cond::VS => 0b0110,
-            Cond::VC => 0b0111,
-            Cond::HI => 0b1000,
-            Cond::LS => 0b1001,
-            Cond::GE => 0b1010,
-            Cond::LT => 0b1011,
-            Cond::GT => 0b1100,
-            Cond::LE => 0b1101,
         }
     }
 }
@@ -1479,14 +1408,6 @@ mod tests {
         assert_emit!(0xca711a0f; eon_shreg(1, R15, R16, R17, Shift::LSR, 6));
         assert_emit!(0xea941e72; ands_shreg(1, R18, R19, R20, Shift::ASR, 7));
         assert_emit!(0xeaf726d5; bics_shreg(1, R21, R22, R23, Shift::ROR, 9));
-    }
-
-    #[test]
-    fn test_b_cond_imm() {
-        assert_emit!(0x54ffffe0; b_cond_imm(Cond::EQ, -1));
-        assert_emit!(0x54ffffc1; b_cond_imm(Cond::NE, -2));
-        assert_emit!(0x54000044; b_cond_imm(Cond::MI,  2));
-        assert_emit!(0x5400002b; b_cond_imm(Cond::LT,  1));
     }
 
     #[test]

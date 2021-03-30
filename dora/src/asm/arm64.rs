@@ -1,5 +1,4 @@
 use crate::asm::{Assembler, Label, Register};
-use crate::cpu::arm64::asm;
 use crate::cpu::Reg;
 
 pub const R0: Register = Register(0);
@@ -59,7 +58,7 @@ impl Register {
 
 pub(super) enum JumpKind {
     Unconditional,
-    Conditional(asm::Cond),
+    Conditional(Cond),
     NonZero(bool, Register),
 }
 
@@ -75,7 +74,7 @@ impl Assembler {
 
                 match kind {
                     JumpKind::Conditional(cond) => {
-                        self.patch_u32(pc, asm::b_cond_imm(cond.into(), distance));
+                        self.patch_u32(pc, inst_b_cond_imm(cond.into(), distance));
                     }
 
                     JumpKind::Unconditional => {
@@ -128,14 +127,14 @@ impl Assembler {
         self.emit_u32(cls_uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
     }
 
-    pub fn bc_l(&mut self, cond: asm::Cond, target: Label) {
+    pub fn bc_l(&mut self, cond: Cond, target: Label) {
         let value = self.offset(target);
 
         match value {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(asm::b_cond_imm(cond.into(), diff / 4));
+                self.emit_u32(inst_b_cond_imm(cond.into(), diff / 4));
             }
 
             None => {
@@ -322,6 +321,18 @@ fn cls_ldst_exclusive(
     unimplemented!()
 }
 
+pub fn inst_b_cond_imm(cond: Cond, imm19: i32) -> u32 {
+    cls_cond_branch_imm(cond, imm19)
+}
+
+fn cls_cond_branch_imm(cond: Cond, imm19: i32) -> u32 {
+    assert!(fits_i19(imm19));
+
+    let imm = (imm19 as u32) & 0x7FFFF;
+
+    0b01010100u32 << 24 | imm << 5 | cond.u32()
+}
+
 fn cls_uncond_branch_imm(op: u32, imm26: i32) -> u32 {
     assert!(fits_bit(op));
     assert!(fits_i26(imm26));
@@ -404,6 +415,65 @@ fn fits_u7(imm: u32) -> bool {
 
 fn fits_u16(imm: u32) -> bool {
     imm < (1 << 16)
+}
+#[derive(Copy, Clone)]
+pub enum Cond {
+    EQ, // equal
+    NE, // not equal
+    CS,
+    HS, // carry set, unsigned higher or same
+    CC,
+    LO, // carry clear, unsigned lower
+    MI, // negative
+    PL, // positive or zero
+    VS, // overflow
+    VC, // no overflow
+    HI, // unsigned higher
+    LS, // unsigned lower or same
+    GE, // signed greater than or equal
+    LT, // signed less than
+    GT, // signed greater than
+    LE, // signed less than or equal
+}
+
+impl Cond {
+    pub fn invert(self) -> Cond {
+        match self {
+            Cond::EQ => Cond::NE,
+            Cond::NE => Cond::EQ,
+            Cond::CS | Cond::HS => Cond::CC,
+            Cond::CC | Cond::LO => Cond::CS,
+            Cond::MI => Cond::PL,
+            Cond::PL => Cond::MI,
+            Cond::VS => Cond::VC,
+            Cond::VC => Cond::VS,
+            Cond::HI => Cond::LS,
+            Cond::LS => Cond::HI,
+            Cond::GE => Cond::LT,
+            Cond::LT => Cond::GE,
+            Cond::GT => Cond::LE,
+            Cond::LE => Cond::GT,
+        }
+    }
+
+    pub fn u32(self) -> u32 {
+        match self {
+            Cond::EQ => 0b0000,
+            Cond::NE => 0b0001,
+            Cond::CS | Cond::HS => 0b0010,
+            Cond::CC | Cond::LO => 0b0011,
+            Cond::MI => 0b0100,
+            Cond::PL => 0b0101,
+            Cond::VS => 0b0110,
+            Cond::VC => 0b0111,
+            Cond::HI => 0b1000,
+            Cond::LS => 0b1001,
+            Cond::GE => 0b1010,
+            Cond::LT => 0b1011,
+            Cond::GT => 0b1100,
+            Cond::LE => 0b1101,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -499,5 +569,13 @@ mod tests {
         assert_emit!(0x1acb2549; lsrvw(R9, R10, R11));
         assert_emit!(0x1ace29ac; asrvw(R12, R13, R14));
         assert_emit!(0x1ad12e0f; rorvw(R15, R16, R17));
+    }
+
+    #[test]
+    fn test_b_cond_imm() {
+        assert_eq!(0x54ffffe0, inst_b_cond_imm(Cond::EQ, -1));
+        assert_eq!(0x54ffffc1, inst_b_cond_imm(Cond::NE, -2));
+        assert_eq!(0x54000044, inst_b_cond_imm(Cond::MI, 2));
+        assert_eq!(0x5400002b, inst_b_cond_imm(Cond::LT, 1));
     }
 }
