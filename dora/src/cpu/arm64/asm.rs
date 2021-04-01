@@ -838,43 +838,6 @@ pub fn fdiv(ty: u32, rd: FReg, rn: FReg, rm: FReg) -> u32 {
     cls_fp_dataproc2(0, 0, ty, rm, 0b0001, rn, rd)
 }
 
-fn cls_fp_dataproc1(m: u32, s: u32, ty: u32, opcode: u32, rn: FReg, rd: FReg) -> u32 {
-    assert!(m == 0);
-    assert!(s == 0);
-    assert!(fits_u2(ty));
-    assert!(fits_u6(opcode));
-
-    m << 31
-        | s << 29
-        | 0b11110 << 24
-        | ty << 22
-        | 1 << 21
-        | opcode << 15
-        | 0b10000 << 10
-        | rn.asm() << 5
-        | rd.asm()
-}
-
-pub fn fsqrt(ty: u32, rd: FReg, rn: FReg) -> u32 {
-    cls_fp_dataproc1(0, 0, ty, 0b000011, rn, rd)
-}
-
-pub fn fcvt_sd(rd: FReg, rn: FReg) -> u32 {
-    cls_fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd)
-}
-
-pub fn fcvt_ds(rd: FReg, rn: FReg) -> u32 {
-    cls_fp_dataproc1(0, 0, 0b01, 0b000100, rn, rd)
-}
-
-pub fn fmov(ty: u32, rd: FReg, rn: FReg) -> u32 {
-    cls_fp_dataproc1(0, 0, ty, 0b000000, rn, rd)
-}
-
-pub fn fneg(ty: u32, rd: FReg, rn: FReg) -> u32 {
-    cls_fp_dataproc1(0, 0, ty, 0b000010, rn, rd)
-}
-
 pub fn scvtf(sf: u32, ty: u32, rd: FReg, rn: Reg) -> u32 {
     cls_fp_int(sf, 0, ty, 0b00, 0b010, rn.asm(), rd.asm())
 }
@@ -1595,12 +1558,6 @@ mod tests {
     }
 
     #[test]
-    fn test_fp_dataproc1() {
-        assert_eq!(0x1e214041, fneg(0, F1, F2));
-        assert_eq!(0x1e614083, fneg(1, F3, F4));
-    }
-
-    #[test]
     fn test_scvtf() {
         assert_eq!(0x1e220041, scvtf(0, 0, F1, R2));
         assert_eq!(0x1e620041, scvtf(0, 1, F1, R2));
@@ -1626,14 +1583,6 @@ mod tests {
         assert_eq!(0x9e380047, fcvtzs(1, 0, R7, F2)); // x7, s2
         assert_eq!(0x1e780020, fcvtzs(0, 1, R0, F1)); // w0, d1
         assert_eq!(0x1e380047, fcvtzs(0, 0, R7, F2)); // w7, s2
-    }
-
-    #[test]
-    fn test_fsqrt() {
-        assert_eq!(0x1e21c020, fsqrt(0, F0, F1)); // fsqrt s0, s1
-        assert_eq!(0x1e61c020, fsqrt(1, F0, F1)); // fsqrt d0, d1
-        assert_eq!(0x1e21c149, fsqrt(0, F9, F10)); // fsqrt s9, s10
-        assert_eq!(0x1e61c149, fsqrt(1, F9, F10)); // fsqrt d9, d10
     }
 
     #[test]

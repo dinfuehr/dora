@@ -587,11 +587,11 @@ impl MacroAssembler {
     }
 
     pub fn float32_to_float64(&mut self, dest: FReg, src: FReg) {
-        self.emit_u32(asm::fcvt_sd(dest, src));
+        self.asm.fcvt_sd(dest.into(), src.into());
     }
 
     pub fn float64_to_float32(&mut self, dest: FReg, src: FReg) {
-        self.emit_u32(asm::fcvt_ds(dest, src));
+        self.asm.fcvt_ds(dest.into(), src.into());
     }
 
     pub fn int_as_float(
@@ -689,7 +689,7 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        self.emit_u32(asm::fneg(dbl, dest, src));
+        self.asm.fneg(dbl, dest.into(), src.into());
     }
 
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
@@ -699,7 +699,7 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        self.emit_u32(asm::fsqrt(dbl, dest, src));
+        self.asm.fsqrt(dbl, dest.into(), src.into());
     }
 
     pub fn cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -1143,7 +1143,7 @@ impl MacroAssembler {
             _ => unreachable!(),
         };
 
-        self.emit_u32(fmov(dbl, dest, src));
+        self.asm.fmov(dbl, dest.into(), src.into());
     }
 
     pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {

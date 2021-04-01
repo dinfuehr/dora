@@ -248,6 +248,26 @@ impl Assembler {
         self.emit_u32(cls_fp_compare(0, 0, ty, rm, 0, rn, 0b10000));
     }
 
+    pub fn fcvt_ds(&mut self, rd: FloatRegister, rn: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc1(0, 0, 0b01, 0b000100, rn, rd));
+    }
+
+    pub fn fcvt_sd(&mut self, rd: FloatRegister, rn: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd));
+    }
+
+    pub fn fmov(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000000, rn, rd));
+    }
+
+    pub fn fneg(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000010, rn, rd));
+    }
+
+    pub fn fsqrt(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000011, rn, rd));
+    }
+
     pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls_dataproc2(1, 0, rm, 0b1000, rn, rd));
     }
@@ -360,6 +380,30 @@ fn cls_exception(opc: u32, imm16: u32, op2: u32, ll: u32) -> u32 {
     assert!(fits_u2(ll));
 
     0b11010100u32 << 24 | opc << 21 | imm16 << 5 | op2 << 2 | ll
+}
+
+fn cls_fp_dataproc1(
+    m: u32,
+    s: u32,
+    ty: u32,
+    opcode: u32,
+    rn: FloatRegister,
+    rd: FloatRegister,
+) -> u32 {
+    assert!(m == 0);
+    assert!(s == 0);
+    assert!(fits_u2(ty));
+    assert!(fits_u6(opcode));
+
+    m << 31
+        | s << 29
+        | 0b11110 << 24
+        | ty << 22
+        | 1 << 21
+        | opcode << 15
+        | 0b10000 << 10
+        | rn.encoding() << 5
+        | rd.encoding()
 }
 
 fn cls_ldst_exclusive(
@@ -643,6 +687,20 @@ mod tests {
         assert_emit!(0x1e212010; fcmpe(0, F0, F1));
         assert_emit!(0x1e612010; fcmpe(1, F0, F1));
         assert_emit!(0x1e252090; fcmpe(0, F4, F5));
+    }
+
+    #[test]
+    fn test_fneg() {
+        assert_emit!(0x1e214041; fneg(0, F1, F2));
+        assert_emit!(0x1e614083; fneg(1, F3, F4));
+    }
+
+    #[test]
+    fn test_fsqrt() {
+        assert_emit!(0x1e21c020; fsqrt(0, F0, F1)); // fsqrt s0, s1
+        assert_emit!(0x1e61c020; fsqrt(1, F0, F1)); // fsqrt d0, d1
+        assert_emit!(0x1e21c149; fsqrt(0, F9, F10)); // fsqrt s9, s10
+        assert_emit!(0x1e61c149; fsqrt(1, F9, F10)); // fsqrt d9, d10
     }
 
     #[test]
