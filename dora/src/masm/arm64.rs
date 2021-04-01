@@ -649,7 +649,7 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        self.emit_u32(asm::fadd(dbl, dest, lhs, rhs));
+        self.asm.fadd(dbl, dest.into(), lhs.into(), rhs.into());
     }
 
     pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
@@ -659,7 +659,7 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        self.emit_u32(asm::fsub(dbl, dest, lhs, rhs));
+        self.asm.fsub(dbl, dest.into(), lhs.into(), rhs.into());
     }
 
     pub fn float_mul(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
@@ -669,7 +669,7 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        self.emit_u32(asm::fmul(dbl, dest, lhs, rhs));
+        self.asm.fmul(dbl, dest.into(), lhs.into(), rhs.into());
     }
 
     pub fn float_div(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
@@ -679,7 +679,7 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        self.emit_u32(asm::fdiv(dbl, dest, lhs, rhs));
+        self.asm.fdiv(dbl, dest.into(), lhs.into(), rhs.into());
     }
 
     pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {

@@ -272,6 +272,10 @@ impl Assembler {
         self.emit_u32(cls_simd_2regs_misc(q, 0, size, 0b00101, rn, rd));
     }
 
+    pub fn fadd(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc2(0, 0, ty, rm, 0b0010, rn, rd));
+    }
+
     pub fn fcmp(&mut self, ty: u32, rn: FloatRegister, rm: FloatRegister) {
         self.emit_u32(cls_fp_compare(0, 0, ty, rm, 0, rn, 0));
     }
@@ -298,6 +302,10 @@ impl Assembler {
             rn.encoding(),
             rd.encoding(),
         ));
+    }
+
+    pub fn fdiv(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc2(0, 0, ty, rm, 0b0001, rn, rd));
     }
 
     pub fn fmov(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
@@ -328,12 +336,20 @@ impl Assembler {
         ));
     }
 
+    pub fn fmul(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc2(0, 0, ty, rm, 0b0000, rn, rd));
+    }
+
     pub fn fneg(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
         self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000010, rn, rd));
     }
 
     pub fn fsqrt(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
         self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000011, rn, rd));
+    }
+
+    pub fn fsub(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit_u32(cls_fp_dataproc2(0, 0, ty, rm, 0b0011, rn, rd));
     }
 
     pub fn lsl_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
@@ -520,6 +536,32 @@ fn cls_fp_dataproc1(
         | 1 << 21
         | opcode << 15
         | 0b10000 << 10
+        | rn.encoding() << 5
+        | rd.encoding()
+}
+
+fn cls_fp_dataproc2(
+    m: u32,
+    s: u32,
+    ty: u32,
+    rm: FloatRegister,
+    opcode: u32,
+    rn: FloatRegister,
+    rd: FloatRegister,
+) -> u32 {
+    assert!(m == 0);
+    assert!(s == 0);
+    assert!(fits_bit(ty));
+    assert!(fits_u4(opcode));
+
+    m << 31
+        | s << 29
+        | 0b11110 << 24
+        | ty << 22
+        | 1 << 21
+        | rm.encoding() << 16
+        | opcode << 12
+        | 0b10 << 10
         | rn.encoding() << 5
         | rd.encoding()
 }
@@ -1076,5 +1118,14 @@ mod tests {
         assert_emit!(0x71400c5f; cmp_imm(0, R2, 3, 1));
         assert_emit!(0xf100047f; cmp_imm(1, R3, 1, 0));
         assert_emit!(0xf1400c9f; cmp_imm(1, R4, 3, 1));
+    }
+
+    #[test]
+    fn test_fp_dataproc2() {
+        assert_emit!(0x1e222820; fadd(0, F0, F1, F2));
+        assert_emit!(0x1e622820; fadd(1, F0, F1, F2));
+        assert_emit!(0x1e653883; fsub(1, F3, F4, F5));
+        assert_emit!(0x1e6808e6; fmul(1, F6, F7, F8));
+        assert_emit!(0x1e6b1949; fdiv(1, F9, F10, F11));
     }
 }
