@@ -1,5 +1,4 @@
 use crate::asm::{Assembler, Label, Register};
-use crate::cpu::Reg;
 
 pub const R0: Register = Register(0);
 pub const R1: Register = Register(1);
@@ -48,11 +47,6 @@ impl Register {
 
     fn is_gpr_or_zero(&self) -> bool {
         self.0 <= 31
-    }
-
-    pub fn to_reg(self) -> Reg {
-        assert!(self.0 <= 30);
-        Reg(self.0)
     }
 }
 
@@ -130,7 +124,7 @@ impl Assembler {
 
                     JumpKind::NonZero(sf, rt) => {
                         let sf = if sf { 1 } else { 0 };
-                        self.patch_u32(pc, inst_cbnz(sf, rt.to_reg(), distance));
+                        self.patch_u32(pc, inst_cbnz(sf, rt, distance));
                     }
                 }
             } else {
@@ -212,7 +206,7 @@ impl Assembler {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(inst_cbnz(1, Reg(reg.encoding() as u8), diff / 4));
+                self.emit_u32(inst_cbnz(1, reg, diff / 4));
             }
 
             None => {
@@ -337,22 +331,22 @@ fn inst_b_i(imm26: i32) -> u32 {
     cls_uncond_branch_imm(0, imm26)
 }
 
-fn inst_cbz(sf: u32, rt: Reg, imm19: i32) -> u32 {
+fn inst_cbz(sf: u32, rt: Register, imm19: i32) -> u32 {
     cls_cmp_branch_imm(sf, 0b0, rt, imm19)
 }
 
-fn inst_cbnz(sf: u32, rt: Reg, imm19: i32) -> u32 {
+fn inst_cbnz(sf: u32, rt: Register, imm19: i32) -> u32 {
     cls_cmp_branch_imm(sf, 0b1, rt, imm19)
 }
 
-fn cls_cmp_branch_imm(sf: u32, op: u32, rt: Reg, imm19: i32) -> u32 {
+fn cls_cmp_branch_imm(sf: u32, op: u32, rt: Register, imm19: i32) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_bit(op));
     assert!(fits_i19(imm19));
     assert!(rt.is_gpr());
     let imm = (imm19 as u32) & 0x7FFFF;
 
-    sf << 31 | 0b011010u32 << 25 | op << 24 | imm << 5 | rt.asm()
+    sf << 31 | 0b011010u32 << 25 | op << 24 | imm << 5 | rt.encoding()
 }
 
 fn cls_dataproc1(sf: u32, s: u32, opcode2: u32, opcode: u32, rn: Register, rd: Register) -> u32 {
