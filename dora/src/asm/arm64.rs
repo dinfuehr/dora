@@ -187,6 +187,10 @@ impl Assembler {
         }
     }
 
+    pub fn bfm(&mut self, sf: u32, rd: Register, rn: Register, immr: u32, imms: u32) {
+        self.emit_u32(cls_bitfield(sf, 0b01, sf, immr, imms, rn, rd));
+    }
+
     pub fn bl_i(&mut self, imm26: i32) {
         self.emit_u32(cls_uncond_branch_imm(1, imm26));
     }
@@ -262,12 +266,22 @@ impl Assembler {
         self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000011, rn, rd));
     }
 
+    pub fn lsl_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
+        let (val, mask) = if sf != 0 { (64, 0x3f) } else { (32, 0x1f) };
+        self.ubfm(sf, rd, rn, (val - shift) & mask, val - 1 - shift);
+    }
+
     pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls_dataproc2(1, 0, rm, 0b1000, rn, rd));
     }
 
     pub fn lslvw(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls_dataproc2(0, 0, rm, 0b1000, rn, rd));
+    }
+
+    pub fn lsr_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
+        let val = if sf != 0 { 64 } else { 32 };
+        self.ubfm(sf, rd, rn, shift, val - 1);
     }
 
     pub fn lsrv(&mut self, rd: Register, rn: Register, rm: Register) {
@@ -310,6 +324,10 @@ impl Assembler {
         self.emit_u32(cls_dataproc2(0, 0, rm, 0b1011, rn, rd));
     }
 
+    pub fn sbfm(&mut self, sf: u32, rd: Register, rn: Register, immr: u32, imms: u32) {
+        self.emit_u32(cls_bitfield(sf, 0b00, sf, immr, imms, rn, rd));
+    }
+
     pub fn sdiv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls_dataproc2(1, 0, rm, 0b11, rn, rd));
     }
@@ -318,12 +336,28 @@ impl Assembler {
         self.emit_u32(cls_dataproc2(0, 0, rm, 0b11, rn, rd));
     }
 
+    pub fn sxtw(&mut self, rd: Register, rn: Register) {
+        self.sbfm(1, rd, rn, 0, 31);
+    }
+
+    pub fn ubfm(&mut self, sf: u32, rd: Register, rn: Register, immr: u32, imms: u32) {
+        self.emit_u32(cls_bitfield(sf, 0b10, sf, immr, imms, rn, rd));
+    }
+
     pub fn udiv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls_dataproc2(1, 0, rm, 0b10, rn, rd));
     }
 
     pub fn udivw(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls_dataproc2(0, 0, rm, 0b10, rn, rd));
+    }
+
+    pub fn uxtb(&mut self, rd: Register, rn: Register) {
+        self.ubfm(0, rd, rn, 0, 7);
+    }
+
+    pub fn uxtw(&mut self, rd: Register, rn: Register) {
+        self.ubfm(1, rd, rn, 0, 31);
     }
 }
 
@@ -414,8 +448,35 @@ fn cls_ldst_exclusive(
     unimplemented!()
 }
 
-pub fn inst_b_cond_imm(cond: Cond, imm19: i32) -> u32 {
+fn inst_b_cond_imm(cond: Cond, imm19: i32) -> u32 {
     cls_cond_branch_imm(cond, imm19)
+}
+
+fn cls_bitfield(
+    sf: u32,
+    opc: u32,
+    n: u32,
+    immr: u32,
+    imms: u32,
+    rn: Register,
+    rd: Register,
+) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_u2(opc));
+    assert!(fits_bit(n));
+    assert!(fits_u6(immr));
+    assert!(fits_u6(imms));
+    assert!(rn.is_gpr());
+    assert!(rd.is_gpr());
+
+    sf << 31
+        | opc << 29
+        | 0b100110u32 << 23
+        | n << 22
+        | (immr & 0x3F) << 16
+        | (imms & 0x3F) << 10
+        | rn.encoding() << 5
+        | rd.encoding()
 }
 
 fn cls_cond_branch_imm(cond: Cond, imm19: i32) -> u32 {
@@ -598,6 +659,7 @@ impl Cond {
 
 #[cfg(test)]
 mod tests {
+    use crate::asm::arm64::inst_b_cond_imm;
     use crate::asm::*;
     use byteorder::{LittleEndian, WriteBytesExt};
 
@@ -725,5 +787,44 @@ mod tests {
         assert_eq!(0x54ffffc1, inst_b_cond_imm(Cond::NE, -2));
         assert_eq!(0x54000044, inst_b_cond_imm(Cond::MI, 2));
         assert_eq!(0x5400002b, inst_b_cond_imm(Cond::LT, 1));
+    }
+
+    #[test]
+    fn test_bfm() {
+        assert_emit!(0x53010820; ubfm(0, R0, R1, 1, 2));
+        assert_emit!(0xd3431062; ubfm(1, R2, R3, 3, 4));
+        assert_emit!(0x33010820; bfm(0, R0, R1, 1, 2));
+        assert_emit!(0xb3431062; bfm(1, R2, R3, 3, 4));
+        assert_emit!(0x13010820; sbfm(0, R0, R1, 1, 2));
+        assert_emit!(0x93431062; sbfm(1, R2, R3, 3, 4));
+        assert_emit!(0x53001c20; uxtb(R0, R1));
+    }
+
+    #[test]
+    fn test_uxtw() {
+        assert_emit!(0xD3407c00; uxtw(R0, R0));
+        assert_emit!(0xD3407d8f; uxtw(R15, R12));
+    }
+
+    #[test]
+    fn test_sxtw() {
+        assert_emit!(0x93407c00; sxtw(R0, R0));
+        assert_emit!(0x93407d8f; sxtw(R15, R12));
+    }
+
+    #[test]
+    fn test_lsl_imm() {
+        assert_emit!(0xd37ff820; lsl_imm(1, R0, R1, 1)); // lsl x0, x1, #1
+        assert_emit!(0x531f7820; lsl_imm(0, R0, R1, 1)); // lsl w0, w1, #1
+        assert_emit!(0xd37ef462; lsl_imm(1, R2, R3, 2)); // lsl x2, x3, #2
+        assert_emit!(0x531e7462; lsl_imm(0, R2, R3, 2)); // lsl w2, w3, #2
+    }
+
+    #[test]
+    fn test_lsr_imm() {
+        assert_emit!(0xd341fc20; lsr_imm(1, R0, R1, 1)); // lsr x0, x1, #1
+        assert_emit!(0x53017c20; lsr_imm(0, R0, R1, 1)); // lsr w0, w1, #1
+        assert_emit!(0xd342fc62; lsr_imm(1, R2, R3, 2)); // lsr x2, x3, #2
+        assert_emit!(0x53027c62; lsr_imm(0, R2, R3, 2)); // lsr w2, w3, #2
     }
 }

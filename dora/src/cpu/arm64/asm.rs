@@ -663,59 +663,6 @@ fn cls_ldst_pair(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt: Reg
         | rt.asm()
 }
 
-pub fn sbfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
-    cls_bitfield(sf, 0b00, sf, immr, imms, rn, rd)
-}
-
-pub fn bfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
-    cls_bitfield(sf, 0b01, sf, immr, imms, rn, rd)
-}
-
-pub fn ubfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
-    cls_bitfield(sf, 0b10, sf, immr, imms, rn, rd)
-}
-
-pub fn lsr_imm(sf: u32, rd: Reg, rn: Reg, shift: u32) -> u32 {
-    let val = if sf != 0 { 64 } else { 32 };
-    ubfm(sf, rd, rn, shift, val - 1)
-}
-
-pub fn lsl_imm(sf: u32, rd: Reg, rn: Reg, shift: u32) -> u32 {
-    let (val, mask) = if sf != 0 { (64, 0x3f) } else { (32, 0x1f) };
-    ubfm(sf, rd, rn, (val - shift) & mask, val - 1 - shift)
-}
-
-pub fn uxtb(rd: Reg, rn: Reg) -> u32 {
-    ubfm(0, rd, rn, 0, 7)
-}
-
-pub fn sxtw(rd: Reg, rn: Reg) -> u32 {
-    sbfm(1, rd, rn, 0, 31)
-}
-
-pub fn uxtw(rd: Reg, rn: Reg) -> u32 {
-    ubfm(1, rd, rn, 0, 31)
-}
-
-fn cls_bitfield(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Reg) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_u2(opc));
-    assert!(fits_bit(n));
-    assert!(fits_u6(immr));
-    assert!(fits_u6(imms));
-    assert!(rn.is_gpr());
-    assert!(rd.is_gpr());
-
-    sf << 31
-        | opc << 29
-        | 0b100110u32 << 23
-        | n << 22
-        | (immr & 0x3F) << 16
-        | (imms & 0x3F) << 10
-        | rn.asm() << 5
-        | rd.asm()
-}
-
 pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: u64) -> u32 {
     let reg_size = if sf == 1 { 64 } else { 32 };
     let n_immr_imms = encode_logical_imm(imm, reg_size).unwrap();
@@ -1461,17 +1408,6 @@ mod tests {
     }
 
     #[test]
-    fn test_bfm() {
-        assert_emit!(0x53010820; ubfm(0, R0, R1, 1, 2));
-        assert_emit!(0xd3431062; ubfm(1, R2, R3, 3, 4));
-        assert_emit!(0x33010820; bfm(0, R0, R1, 1, 2));
-        assert_emit!(0xb3431062; bfm(1, R2, R3, 3, 4));
-        assert_emit!(0x13010820; sbfm(0, R0, R1, 1, 2));
-        assert_emit!(0x93431062; sbfm(1, R2, R3, 3, 4));
-        assert_emit!(0x53001c20; uxtb(R0, R1));
-    }
-
-    #[test]
     fn test_ldst_pair_pre() {
         assert_emit!(0xa9be7bfd; stp_pre(1, REG_FP, REG_LR, REG_SP, -4));
         assert_emit!(0x29840440; stp_pre(0, R0, R1, R2, 8));
@@ -1566,39 +1502,11 @@ mod tests {
     }
 
     #[test]
-    fn test_uxtw() {
-        assert_eq!(0xD3407c00, uxtw(R0, R0));
-        assert_eq!(0xD3407d8f, uxtw(R15, R12));
-    }
-
-    #[test]
-    fn test_sxtw() {
-        assert_eq!(0x93407c00, sxtw(R0, R0));
-        assert_eq!(0x93407d8f, sxtw(R15, R12));
-    }
-
-    #[test]
     fn test_fcvtzs() {
         assert_eq!(0x9e780020, fcvtzs(1, 1, R0, F1)); // x0, d1
         assert_eq!(0x9e380047, fcvtzs(1, 0, R7, F2)); // x7, s2
         assert_eq!(0x1e780020, fcvtzs(0, 1, R0, F1)); // w0, d1
         assert_eq!(0x1e380047, fcvtzs(0, 0, R7, F2)); // w7, s2
-    }
-
-    #[test]
-    fn test_lsl_imm() {
-        assert_eq!(0xd37ff820, lsl_imm(1, R0, R1, 1)); // lsl x0, x1, #1
-        assert_eq!(0x531f7820, lsl_imm(0, R0, R1, 1)); // lsl w0, w1, #1
-        assert_eq!(0xd37ef462, lsl_imm(1, R2, R3, 2)); // lsl x2, x3, #2
-        assert_eq!(0x531e7462, lsl_imm(0, R2, R3, 2)); // lsl w2, w3, #2
-    }
-
-    #[test]
-    fn test_lsr_imm() {
-        assert_eq!(0xd341fc20, lsr_imm(1, R0, R1, 1)); // lsr x0, x1, #1
-        assert_eq!(0x53017c20, lsr_imm(0, R0, R1, 1)); // lsr w0, w1, #1
-        assert_eq!(0xd342fc62, lsr_imm(1, R2, R3, 2)); // lsr x2, x3, #2
-        assert_eq!(0x53027c62, lsr_imm(0, R2, R3, 2)); // lsr w2, w3, #2
     }
 
     #[test]

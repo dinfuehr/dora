@@ -809,7 +809,7 @@ impl MacroAssembler {
                 _ => unreachable!(),
             };
 
-            self.emit_u32(asm::lsl_imm(1, dest, length, shift));
+            self.asm.lsl_imm(1, dest.into(), length.into(), shift);
             self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
         } else {
             let scratch = self.get_scratch();
@@ -1001,7 +1001,8 @@ impl MacroAssembler {
 
     pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
         let scratch1 = self.get_scratch();
-        self.emit_u32(asm::lsr_imm(1, *scratch1, src, CARD_SIZE_BITS as u32));
+        self.asm
+            .lsr_imm(1, (*scratch1).into(), src.into(), CARD_SIZE_BITS as u32);
         let scratch2 = self.get_scratch();
         self.load_int_const(MachineMode::Ptr, *scratch2, card_table_offset as i64);
         let inst = asm::strb_ind(REG_ZERO, *scratch1, *scratch2, LdStExtend::LSL, 0);
@@ -1147,13 +1148,13 @@ impl MacroAssembler {
     }
 
     pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {
-        self.emit_u32(asm::sxtw(dest, src));
+        self.asm.sxtw(dest.into(), src.into());
     }
 
     pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         match mode {
             MachineMode::Int32 => {}
-            MachineMode::Int64 => self.emit_u32(asm::uxtw(dest, src)),
+            MachineMode::Int64 => self.asm.uxtw(dest.into(), src.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
     }
@@ -1256,7 +1257,7 @@ impl MacroAssembler {
 
         self.emit_u32(movz(0, *scratch, 1, 0));
         self.emit_u32(eor_shreg(0, dest, src, *scratch, Shift::LSL, 0));
-        self.emit_u32(uxtb(dest, dest));
+        self.asm.uxtb(dest.into(), dest.into());
     }
 
     pub fn trap(&mut self, trap: Trap, pos: Position) {
