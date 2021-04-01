@@ -242,6 +242,10 @@ impl Assembler {
         self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000100, rn, rd));
     }
 
+    pub fn cnt(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
+        self.emit_u32(cls_simd_2regs_misc(q, 0, size, 0b00101, rn, rd));
+    }
+
     pub fn fcmp(&mut self, ty: u32, rn: FloatRegister, rm: FloatRegister) {
         self.emit_u32(cls_fp_compare(0, 0, ty, rm, 0, rn, 0));
     }
@@ -575,6 +579,30 @@ fn cls_simd_across_lanes(
         | 0b01110 << 24
         | size << 22
         | 0b11000 << 17
+        | opcode << 12
+        | 0b10 << 10
+        | rn.encoding() << 5
+        | rd.encoding()
+}
+
+fn cls_simd_2regs_misc(
+    q: u32,
+    u: u32,
+    size: u32,
+    opcode: u32,
+    rn: FloatRegister,
+    rd: FloatRegister,
+) -> u32 {
+    assert!(fits_bit(q));
+    assert!(fits_bit(u));
+    assert!(fits_u2(size));
+    assert!(fits_u5(opcode));
+
+    q << 30
+        | u << 29
+        | 0b01110 << 24
+        | size << 22
+        | 0b10000 << 17
         | opcode << 12
         | 0b10 << 10
         | rn.encoding() << 5

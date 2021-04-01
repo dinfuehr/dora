@@ -483,7 +483,7 @@ impl MacroAssembler {
         };
 
         self.emit_u32(asm::fmov_fs(x64, fty, scratch, src));
-        self.emit_u32(asm::cnt(0, 0b00, scratch, scratch));
+        self.asm.cnt(0, 0b00, scratch.into(), scratch.into());
         self.asm.addv(0, 0b00, scratch.into(), scratch.into());
         self.emit_u32(asm::fmov_sf(x64, fty, dest, scratch));
     }

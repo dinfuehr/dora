@@ -821,27 +821,6 @@ fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u3
         | rd
 }
 
-pub fn cnt(q: u32, size: u32, rd: FReg, rn: FReg) -> u32 {
-    cls_simd_2regs_misc(q, 0, size, 0b00101, rn, rd)
-}
-
-fn cls_simd_2regs_misc(q: u32, u: u32, size: u32, opcode: u32, rn: FReg, rd: FReg) -> u32 {
-    assert!(fits_bit(q));
-    assert!(fits_bit(u));
-    assert!(fits_u2(size));
-    assert!(fits_u5(opcode));
-
-    q << 30
-        | u << 29
-        | 0b01110 << 24
-        | size << 22
-        | 0b10000 << 17
-        | opcode << 12
-        | 0b10 << 10
-        | rn.asm() << 5
-        | rd.asm()
-}
-
 impl From<CondCode> for Cond {
     fn from(c: CondCode) -> Cond {
         match c {
