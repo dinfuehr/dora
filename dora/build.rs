@@ -2,10 +2,11 @@ use std::{
     env,
     error::Error,
     ffi::OsStr,
-    fs::{self, copy, File},
+    fs::{self, copy, create_dir_all, File},
     io::Write,
     path::Path,
 };
+use walkdir::WalkDir;
 
 const SOURCE_DIR: &str = "stdlib";
 
@@ -34,10 +35,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     writeln!(&mut stdlib, r#"["#,)?;
 
-    for f in fs::read_dir(SOURCE_DIR)? {
+    for f in WalkDir::new(SOURCE_DIR) {
         let f = f?;
 
-        if !f.file_type()?.is_file() {
+        if !f.file_type().is_file() {
+            if f.file_type().is_dir() {
+                create_dir_all(out_path.join(f.path()))?;
+            }
             continue;
         }
 
