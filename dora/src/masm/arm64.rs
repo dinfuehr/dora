@@ -322,7 +322,8 @@ impl MacroAssembler {
                 _ => unreachable!(),
             }
 
-            self.emit_u32(asm::msub(x64, dest, *scratch, rhs, lhs));
+            self.asm
+                .msub(x64, dest.into(), (*scratch).into(), rhs.into(), lhs.into());
         }
     }
 
@@ -333,7 +334,7 @@ impl MacroAssembler {
             _ => panic!("unimplemented mode {:?}", mode),
         };
 
-        self.emit_u32(asm::mul(x64, dest, lhs, rhs));
+        self.asm.mul(x64, dest.into(), lhs.into(), rhs.into());
     }
 
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -816,7 +817,8 @@ impl MacroAssembler {
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
-            self.emit_u32(asm::mul(1, dest, length, *scratch));
+            self.asm
+                .mul(1, dest.into(), length.into(), (*scratch).into());
             self.asm
                 .add_imm(1, dest.into(), dest.into(), size as u32, 0);
         }
@@ -831,7 +833,8 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
 
         self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
-        self.emit_u32(asm::mul(1, *scratch, index, *scratch));
+        self.asm
+            .mul(1, (*scratch).into(), index.into(), (*scratch).into());
         self.asm
             .add_imm(1, (*scratch).into(), (*scratch).into(), offset as u32, 0);
         self.emit_u32(asm::add_reg(1, dest, obj, *scratch));
