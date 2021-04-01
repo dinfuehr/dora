@@ -482,10 +482,10 @@ impl MacroAssembler {
             *scratch_src
         };
 
-        self.emit_u32(asm::fmov_fs(x64, fty, scratch, src));
+        self.asm.fmov_fs(x64, fty, scratch.into(), src.into());
         self.asm.cnt(0, 0b00, scratch.into(), scratch.into());
         self.asm.addv(0, 0b00, scratch.into(), scratch.into());
-        self.emit_u32(asm::fmov_sf(x64, fty, dest, scratch));
+        self.asm.fmov_sf(x64, fty, dest.into(), scratch.into());
     }
 
     pub fn count_bits_leading(
@@ -561,7 +561,7 @@ impl MacroAssembler {
             _ => unreachable!(),
         };
 
-        self.emit_u32(asm::scvtf(x64, flt, dest, src));
+        self.asm.scvtf(x64, flt, dest.into(), src.into());
     }
 
     pub fn float_to_int(
@@ -583,7 +583,7 @@ impl MacroAssembler {
             _ => unreachable!(),
         };
 
-        self.emit_u32(asm::fcvtzs(x64, flt, dest, src));
+        self.asm.fcvtzs(x64, flt, dest.into(), src.into());
     }
 
     pub fn float32_to_float64(&mut self, dest: FReg, src: FReg) {
@@ -615,7 +615,7 @@ impl MacroAssembler {
             _ => unreachable!(),
         };
 
-        self.emit_u32(asm::fmov_fs(x64, flt, dest, src));
+        self.asm.fmov_fs(x64, flt, dest.into(), src.into());
     }
 
     pub fn float_as_int(
@@ -639,7 +639,7 @@ impl MacroAssembler {
             _ => unreachable!(),
         };
 
-        self.emit_u32(asm::fmov_sf(x64, flt, dest, src));
+        self.asm.fmov_sf(x64, flt, dest.into(), src.into());
     }
 
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {

@@ -262,8 +262,44 @@ impl Assembler {
         self.emit_u32(cls_fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd));
     }
 
+    pub fn fcvtzs(&mut self, sf: u32, ty: u32, rd: Register, rn: FloatRegister) {
+        self.emit_u32(cls_fp_int(
+            sf,
+            0,
+            ty,
+            0b11,
+            0b000,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
     pub fn fmov(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
         self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000000, rn, rd));
+    }
+
+    pub fn fmov_fs(&mut self, sf: u32, ty: u32, rd: FloatRegister, rn: Register) {
+        self.emit_u32(cls_fp_int(
+            sf,
+            0,
+            ty,
+            0b00,
+            0b111,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_sf(&mut self, sf: u32, ty: u32, rd: Register, rn: FloatRegister) {
+        self.emit_u32(cls_fp_int(
+            sf,
+            0,
+            ty,
+            0b00,
+            0b110,
+            rn.encoding(),
+            rd.encoding(),
+        ));
     }
 
     pub fn fneg(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
@@ -342,6 +378,18 @@ impl Assembler {
 
     pub fn sdivw(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls_dataproc2(0, 0, rm, 0b11, rn, rd));
+    }
+
+    pub fn scvtf(&mut self, sf: u32, ty: u32, rd: FloatRegister, rn: Register) {
+        self.emit_u32(cls_fp_int(
+            sf,
+            0,
+            ty,
+            0b00,
+            0b010,
+            rn.encoding(),
+            rd.encoding(),
+        ));
     }
 
     pub fn sxtw(&mut self, rd: Register, rn: Register) {
@@ -440,6 +488,26 @@ fn cls_fp_dataproc1(
         | 0b10000 << 10
         | rn.encoding() << 5
         | rd.encoding()
+}
+
+fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u32) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(s));
+    assert!(fits_u2(ty));
+    assert!(fits_u2(rmode));
+    assert!(fits_u3(opcode));
+    assert!(fits_u5(rn));
+    assert!(fits_u5(rd));
+
+    sf << 31
+        | s << 29
+        | 0b11110 << 24
+        | ty << 22
+        | 1 << 21
+        | rmode << 19
+        | opcode << 16
+        | rn << 5
+        | rd
 }
 
 fn cls_ldst_exclusive(
@@ -882,5 +950,21 @@ mod tests {
         assert_emit!(0x53017c20; lsr_imm(0, R0, R1, 1)); // lsr w0, w1, #1
         assert_emit!(0xd342fc62; lsr_imm(1, R2, R3, 2)); // lsr x2, x3, #2
         assert_emit!(0x53027c62; lsr_imm(0, R2, R3, 2)); // lsr w2, w3, #2
+    }
+
+    #[test]
+    fn test_scvtf() {
+        assert_emit!(0x1e220041; scvtf(0, 0, F1, R2));
+        assert_emit!(0x1e620041; scvtf(0, 1, F1, R2));
+        assert_emit!(0x9e220083; scvtf(1, 0, F3, R4));
+        assert_emit!(0x9e620083; scvtf(1, 1, F3, R4));
+    }
+
+    #[test]
+    fn test_fcvtzs() {
+        assert_emit!(0x9e780020; fcvtzs(1, 1, R0, F1)); // x0, d1
+        assert_emit!(0x9e380047; fcvtzs(1, 0, R7, F2)); // x7, s2
+        assert_emit!(0x1e780020; fcvtzs(0, 1, R0, F1)); // w0, d1
+        assert_emit!(0x1e380047; fcvtzs(0, 0, R7, F2)); // w7, s2
     }
 }
