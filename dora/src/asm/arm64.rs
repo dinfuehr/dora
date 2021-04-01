@@ -134,16 +134,16 @@ impl Assembler {
 
                 match kind {
                     JumpKind::Conditional(cond) => {
-                        self.patch_u32(pc, inst_b_cond_imm(cond.into(), distance));
+                        self.patch_u32(pc, inst::b_cond_imm(cond.into(), distance));
                     }
 
                     JumpKind::Unconditional => {
-                        self.patch_u32(pc, inst_b_i(distance));
+                        self.patch_u32(pc, inst::b_i(distance));
                     }
 
                     JumpKind::NonZero(sf, rt) => {
                         let sf = if sf { 1 } else { 0 };
-                        self.patch_u32(pc, inst_cbnz(sf, rt, distance));
+                        self.patch_u32(pc, inst::cbnz(sf, rt, distance));
                     }
                 }
             } else {
@@ -153,27 +153,27 @@ impl Assembler {
     }
 
     pub fn add_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
-        self.emit_u32(cls_addsub_imm(sf, 0, 0, shift, imm12, rn, rd));
+        self.emit_u32(cls::addsub_imm(sf, 0, 0, shift, imm12, rn, rd));
     }
 
     pub fn adds_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
-        self.emit_u32(cls_addsub_imm(sf, 0, 1, shift, imm12, rn, rd));
+        self.emit_u32(cls::addsub_imm(sf, 0, 1, shift, imm12, rn, rd));
     }
 
     pub fn addv(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
-        self.emit_u32(cls_simd_across_lanes(q, 0, size, 0b11011, rn, rd));
+        self.emit_u32(cls::simd_across_lanes(q, 0, size, 0b11011, rn, rd));
     }
 
     pub fn asrv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(1, 0, rm, 0b1010, rn, rd));
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1010, rn, rd));
     }
 
     pub fn asrvw(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(0, 0, rm, 0b1010, rn, rd));
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1010, rn, rd));
     }
 
     pub fn b_i(&mut self, imm26: i32) {
-        self.emit_u32(inst_b_i(imm26));
+        self.emit_u32(inst::b_i(imm26));
     }
 
     pub fn b_l(&mut self, target: Label) {
@@ -196,7 +196,7 @@ impl Assembler {
     }
 
     pub fn b_r(&mut self, rn: Register) {
-        self.emit_u32(cls_uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
+        self.emit_u32(cls::uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
     }
 
     pub fn bc_l(&mut self, cond: Cond, target: Label) {
@@ -206,7 +206,7 @@ impl Assembler {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(inst_b_cond_imm(cond.into(), diff / 4));
+                self.emit_u32(inst::b_cond_imm(cond.into(), diff / 4));
             }
 
             None => {
@@ -219,19 +219,19 @@ impl Assembler {
     }
 
     pub fn bfm(&mut self, sf: u32, rd: Register, rn: Register, immr: u32, imms: u32) {
-        self.emit_u32(cls_bitfield(sf, 0b01, sf, immr, imms, rn, rd));
+        self.emit_u32(cls::bitfield(sf, 0b01, sf, immr, imms, rn, rd));
     }
 
     pub fn bl_i(&mut self, imm26: i32) {
-        self.emit_u32(cls_uncond_branch_imm(1, imm26));
+        self.emit_u32(cls::uncond_branch_imm(1, imm26));
     }
 
     pub fn bl_r(&mut self, rn: Register) {
-        self.emit_u32(cls_uncond_branch_reg(0b0001, 0b11111, 0, rn, 0));
+        self.emit_u32(cls::uncond_branch_reg(0b0001, 0b11111, 0, rn, 0));
     }
 
     pub fn brk(&mut self, imm16: u32) {
-        self.emit_u32(cls_exception(0b001, imm16, 0, 0));
+        self.emit_u32(cls::exception(0b001, imm16, 0, 0));
     }
 
     pub fn cbnzx(&mut self, reg: Register, target: Label) {
@@ -241,7 +241,7 @@ impl Assembler {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(inst_cbnz(1, reg, diff / 4));
+                self.emit_u32(inst::cbnz(1, reg, diff / 4));
             }
 
             None => {
@@ -254,19 +254,19 @@ impl Assembler {
     }
 
     pub fn clsw(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000101, rn, rd));
+        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000101, rn, rd));
     }
 
     pub fn cls(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000101, rn, rd));
+        self.emit_u32(cls::dataproc1(1, 0, 0b00000, 0b000101, rn, rd));
     }
 
     pub fn clzw(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000100, rn, rd));
+        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000100, rn, rd));
     }
 
     pub fn clz(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000100, rn, rd));
+        self.emit_u32(cls::dataproc1(1, 0, 0b00000, 0b000100, rn, rd));
     }
 
     pub fn cmp_imm(&mut self, sf: u32, rn: Register, imm12: u32, shift: u32) {
@@ -274,31 +274,31 @@ impl Assembler {
     }
 
     pub fn cnt(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
-        self.emit_u32(cls_simd_2regs_misc(q, 0, size, 0b00101, rn, rd));
+        self.emit_u32(cls::simd_2regs_misc(q, 0, size, 0b00101, rn, rd));
     }
 
     pub fn fadd(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc2(0, 0, ty, rm, 0b0010, rn, rd));
+        self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0010, rn, rd));
     }
 
     pub fn fcmp(&mut self, ty: u32, rn: FloatRegister, rm: FloatRegister) {
-        self.emit_u32(cls_fp_compare(0, 0, ty, rm, 0, rn, 0));
+        self.emit_u32(cls::fp_compare(0, 0, ty, rm, 0, rn, 0));
     }
 
     pub fn fcmpe(&mut self, ty: u32, rn: FloatRegister, rm: FloatRegister) {
-        self.emit_u32(cls_fp_compare(0, 0, ty, rm, 0, rn, 0b10000));
+        self.emit_u32(cls::fp_compare(0, 0, ty, rm, 0, rn, 0b10000));
     }
 
     pub fn fcvt_ds(&mut self, rd: FloatRegister, rn: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc1(0, 0, 0b01, 0b000100, rn, rd));
+        self.emit_u32(cls::fp_dataproc1(0, 0, 0b01, 0b000100, rn, rd));
     }
 
     pub fn fcvt_sd(&mut self, rd: FloatRegister, rn: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd));
+        self.emit_u32(cls::fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd));
     }
 
     pub fn fcvtzs(&mut self, sf: u32, ty: u32, rd: Register, rn: FloatRegister) {
-        self.emit_u32(cls_fp_int(
+        self.emit_u32(cls::fp_int(
             sf,
             0,
             ty,
@@ -310,15 +310,15 @@ impl Assembler {
     }
 
     pub fn fdiv(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc2(0, 0, ty, rm, 0b0001, rn, rd));
+        self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0001, rn, rd));
     }
 
     pub fn fmov(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000000, rn, rd));
+        self.emit_u32(cls::fp_dataproc1(0, 0, ty, 0b000000, rn, rd));
     }
 
     pub fn fmov_fs(&mut self, sf: u32, ty: u32, rd: FloatRegister, rn: Register) {
-        self.emit_u32(cls_fp_int(
+        self.emit_u32(cls::fp_int(
             sf,
             0,
             ty,
@@ -330,7 +330,7 @@ impl Assembler {
     }
 
     pub fn fmov_sf(&mut self, sf: u32, ty: u32, rd: Register, rn: FloatRegister) {
-        self.emit_u32(cls_fp_int(
+        self.emit_u32(cls::fp_int(
             sf,
             0,
             ty,
@@ -342,19 +342,19 @@ impl Assembler {
     }
 
     pub fn fmul(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc2(0, 0, ty, rm, 0b0000, rn, rd));
+        self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0000, rn, rd));
     }
 
     pub fn fneg(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000010, rn, rd));
+        self.emit_u32(cls::fp_dataproc1(0, 0, ty, 0b000010, rn, rd));
     }
 
     pub fn fsqrt(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc1(0, 0, ty, 0b000011, rn, rd));
+        self.emit_u32(cls::fp_dataproc1(0, 0, ty, 0b000011, rn, rd));
     }
 
     pub fn fsub(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit_u32(cls_fp_dataproc2(0, 0, ty, rm, 0b0011, rn, rd));
+        self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0011, rn, rd));
     }
 
     pub fn lsl_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
@@ -363,11 +363,11 @@ impl Assembler {
     }
 
     pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(1, 0, rm, 0b1000, rn, rd));
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1000, rn, rd));
     }
 
     pub fn lslvw(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(0, 0, rm, 0b1000, rn, rd));
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1000, rn, rd));
     }
 
     pub fn lsr_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
@@ -376,19 +376,19 @@ impl Assembler {
     }
 
     pub fn lsrv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(1, 0, rm, 0b1001, rn, rd));
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1001, rn, rd));
     }
 
     pub fn lsrvw(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(0, 0, rm, 0b1001, rn, rd));
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1001, rn, rd));
     }
 
     pub fn madd(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls_dataproc3(sf, 0, 0, rm, 0, ra, rn, rd));
+        self.emit_u32(cls::dataproc3(sf, 0, 0, rm, 0, ra, rn, rd));
     }
 
     pub fn msub(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls_dataproc3(sf, 0, 0, rm, 1, ra, rn, rd));
+        self.emit_u32(cls::dataproc3(sf, 0, 0, rm, 1, ra, rn, rd));
     }
 
     pub fn mul(&mut self, sf: u32, rd: Register, rn: Register, rm: Register) {
@@ -396,51 +396,51 @@ impl Assembler {
     }
 
     pub fn nop(&mut self) {
-        self.emit_u32(cls_system(0));
+        self.emit_u32(cls::system(0));
     }
 
     pub fn rbitw(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000000, rn, rd));
+        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000000, rn, rd));
     }
 
     pub fn rbit(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000000, rn, rd));
+        self.emit_u32(cls::dataproc1(1, 0, 0b00000, 0b000000, rn, rd));
     }
 
     pub fn ret(&mut self, rn: Register) {
-        self.emit_u32(cls_uncond_branch_reg(0b0010, 0b11111, 0, rn, 0));
+        self.emit_u32(cls::uncond_branch_reg(0b0010, 0b11111, 0, rn, 0));
     }
 
     pub fn revw(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
+        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
     }
 
     pub fn rev(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls_dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
+        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
     }
 
     pub fn rorv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(1, 0, rm, 0b1011, rn, rd));
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1011, rn, rd));
     }
 
     pub fn rorvw(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(0, 0, rm, 0b1011, rn, rd));
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1011, rn, rd));
     }
 
     pub fn sbfm(&mut self, sf: u32, rd: Register, rn: Register, immr: u32, imms: u32) {
-        self.emit_u32(cls_bitfield(sf, 0b00, sf, immr, imms, rn, rd));
+        self.emit_u32(cls::bitfield(sf, 0b00, sf, immr, imms, rn, rd));
     }
 
     pub fn sdiv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(1, 0, rm, 0b11, rn, rd));
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b11, rn, rd));
     }
 
     pub fn sdivw(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(0, 0, rm, 0b11, rn, rd));
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b11, rn, rd));
     }
 
     pub fn scvtf(&mut self, sf: u32, ty: u32, rd: FloatRegister, rn: Register) {
-        self.emit_u32(cls_fp_int(
+        self.emit_u32(cls::fp_int(
             sf,
             0,
             ty,
@@ -452,11 +452,11 @@ impl Assembler {
     }
 
     pub fn sub_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
-        self.emit_u32(cls_addsub_imm(sf, 1, 0, shift, imm12, rn, rd));
+        self.emit_u32(cls::addsub_imm(sf, 1, 0, shift, imm12, rn, rd));
     }
 
     pub fn subs_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
-        self.emit_u32(cls_addsub_imm(sf, 1, 1, shift, imm12, rn, rd));
+        self.emit_u32(cls::addsub_imm(sf, 1, 1, shift, imm12, rn, rd));
     }
 
     pub fn sxtw(&mut self, rd: Register, rn: Register) {
@@ -464,15 +464,15 @@ impl Assembler {
     }
 
     pub fn ubfm(&mut self, sf: u32, rd: Register, rn: Register, immr: u32, imms: u32) {
-        self.emit_u32(cls_bitfield(sf, 0b10, sf, immr, imms, rn, rd));
+        self.emit_u32(cls::bitfield(sf, 0b10, sf, immr, imms, rn, rd));
     }
 
     pub fn udiv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(1, 0, rm, 0b10, rn, rd));
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b10, rn, rd));
     }
 
     pub fn udivw(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls_dataproc2(0, 0, rm, 0b10, rn, rd));
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b10, rn, rd));
     }
 
     pub fn uxtb(&mut self, rd: Register, rn: Register) {
@@ -484,354 +484,384 @@ impl Assembler {
     }
 }
 
-fn inst_b_cond_imm(cond: Cond, imm19: i32) -> u32 {
-    cls_cond_branch_imm(cond, imm19)
+mod inst {
+    use super::*;
+
+    pub(super) fn b_cond_imm(cond: Cond, imm19: i32) -> u32 {
+        cls::cond_branch_imm(cond, imm19)
+    }
+
+    pub(super) fn b_i(imm26: i32) -> u32 {
+        cls::uncond_branch_imm(0, imm26)
+    }
+
+    pub(super) fn cbz(sf: u32, rt: Register, imm19: i32) -> u32 {
+        cls::cmp_branch_imm(sf, 0b0, rt, imm19)
+    }
+
+    pub(super) fn cbnz(sf: u32, rt: Register, imm19: i32) -> u32 {
+        cls::cmp_branch_imm(sf, 0b1, rt, imm19)
+    }
 }
 
-fn inst_b_i(imm26: i32) -> u32 {
-    cls_uncond_branch_imm(0, imm26)
-}
+mod cls {
+    use super::*;
 
-fn inst_cbz(sf: u32, rt: Register, imm19: i32) -> u32 {
-    cls_cmp_branch_imm(sf, 0b0, rt, imm19)
-}
+    pub(super) fn addsub_imm(
+        sf: u32,
+        op: u32,
+        s: u32,
+        shift: u32,
+        imm12: u32,
+        rn: Register,
+        rd: Register,
+    ) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_bit(op));
+        assert!(fits_bit(s));
+        assert!(fits_bit(shift));
+        assert!(fits_u12(imm12));
+        assert!(rn.is_gpr_or_sp());
 
-fn inst_cbnz(sf: u32, rt: Register, imm19: i32) -> u32 {
-    cls_cmp_branch_imm(sf, 0b1, rt, imm19)
-}
+        let rd = if s != 0 {
+            assert!(rd.is_gpr_or_zero());
+            rd.encoding_zero()
+        } else {
+            assert!(rd.is_gpr_or_sp());
+            rd.encoding_sp()
+        };
 
-fn cls_addsub_imm(
-    sf: u32,
-    op: u32,
-    s: u32,
-    shift: u32,
-    imm12: u32,
-    rn: Register,
-    rd: Register,
-) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(op));
-    assert!(fits_bit(s));
-    assert!(fits_bit(shift));
-    assert!(fits_u12(imm12));
-    assert!(rn.is_gpr_or_sp());
+        (0b10001 as u32) << 24
+            | sf << 31
+            | op << 30
+            | s << 29
+            | shift << 22
+            | imm12 << 10
+            | rn.encoding_sp() << 5
+            | rd
+    }
 
-    let rd = if s != 0 {
-        assert!(rd.is_gpr_or_zero());
-        rd.encoding_zero()
-    } else {
-        assert!(rd.is_gpr_or_sp());
-        rd.encoding_sp()
-    };
+    pub(super) fn bitfield(
+        sf: u32,
+        opc: u32,
+        n: u32,
+        immr: u32,
+        imms: u32,
+        rn: Register,
+        rd: Register,
+    ) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_u2(opc));
+        assert!(fits_bit(n));
+        assert!(fits_u6(immr));
+        assert!(fits_u6(imms));
+        assert!(rn.is_gpr());
+        assert!(rd.is_gpr());
 
-    (0b10001 as u32) << 24
-        | sf << 31
-        | op << 30
-        | s << 29
-        | shift << 22
-        | imm12 << 10
-        | rn.encoding_sp() << 5
-        | rd
-}
+        sf << 31
+            | opc << 29
+            | 0b100110u32 << 23
+            | n << 22
+            | (immr & 0x3F) << 16
+            | (imms & 0x3F) << 10
+            | rn.encoding() << 5
+            | rd.encoding()
+    }
 
-fn cls_bitfield(
-    sf: u32,
-    opc: u32,
-    n: u32,
-    immr: u32,
-    imms: u32,
-    rn: Register,
-    rd: Register,
-) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_u2(opc));
-    assert!(fits_bit(n));
-    assert!(fits_u6(immr));
-    assert!(fits_u6(imms));
-    assert!(rn.is_gpr());
-    assert!(rd.is_gpr());
+    pub(super) fn cmp_branch_imm(sf: u32, op: u32, rt: Register, imm19: i32) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_bit(op));
+        assert!(fits_i19(imm19));
+        assert!(rt.is_gpr());
+        let imm = (imm19 as u32) & 0x7FFFF;
 
-    sf << 31
-        | opc << 29
-        | 0b100110u32 << 23
-        | n << 22
-        | (immr & 0x3F) << 16
-        | (imms & 0x3F) << 10
-        | rn.encoding() << 5
-        | rd.encoding()
-}
+        sf << 31 | 0b011010u32 << 25 | op << 24 | imm << 5 | rt.encoding()
+    }
 
-fn cls_cmp_branch_imm(sf: u32, op: u32, rt: Register, imm19: i32) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(op));
-    assert!(fits_i19(imm19));
-    assert!(rt.is_gpr());
-    let imm = (imm19 as u32) & 0x7FFFF;
+    pub(super) fn cond_branch_imm(cond: Cond, imm19: i32) -> u32 {
+        assert!(fits_i19(imm19));
 
-    sf << 31 | 0b011010u32 << 25 | op << 24 | imm << 5 | rt.encoding()
-}
+        let imm = (imm19 as u32) & 0x7FFFF;
 
-fn cls_dataproc1(sf: u32, s: u32, opcode2: u32, opcode: u32, rn: Register, rd: Register) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(sf));
-    assert!(fits_u5(opcode2));
-    assert!(fits_u6(opcode));
-    assert!(rn.is_gpr());
-    assert!(rd.is_gpr());
+        0b01010100u32 << 24 | imm << 5 | cond.u32()
+    }
 
-    sf << 31
-        | 1 << 30
-        | s << 29
-        | 0b11010110 << 21
-        | opcode2 << 16
-        | opcode << 10
-        | rn.encoding() << 5
-        | rd.encoding()
-}
+    pub(super) fn dataproc1(
+        sf: u32,
+        s: u32,
+        opcode2: u32,
+        opcode: u32,
+        rn: Register,
+        rd: Register,
+    ) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_bit(sf));
+        assert!(fits_u5(opcode2));
+        assert!(fits_u6(opcode));
+        assert!(rn.is_gpr());
+        assert!(rd.is_gpr());
 
-fn cls_exception(opc: u32, imm16: u32, op2: u32, ll: u32) -> u32 {
-    assert!(fits_u3(opc));
-    assert!(fits_u16(imm16));
-    assert!(op2 == 0);
-    assert!(fits_u2(ll));
+        sf << 31
+            | 1 << 30
+            | s << 29
+            | 0b11010110 << 21
+            | opcode2 << 16
+            | opcode << 10
+            | rn.encoding() << 5
+            | rd.encoding()
+    }
 
-    0b11010100u32 << 24 | opc << 21 | imm16 << 5 | op2 << 2 | ll
-}
+    pub(super) fn dataproc2(
+        sf: u32,
+        s: u32,
+        rm: Register,
+        opcode: u32,
+        rn: Register,
+        rd: Register,
+    ) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_bit(s));
+        assert!(rm.is_gpr());
+        assert!(fits_u6(opcode));
+        assert!(rn.is_gpr());
+        assert!(rd.is_gpr());
 
-fn cls_fp_dataproc1(
-    m: u32,
-    s: u32,
-    ty: u32,
-    opcode: u32,
-    rn: FloatRegister,
-    rd: FloatRegister,
-) -> u32 {
-    assert!(m == 0);
-    assert!(s == 0);
-    assert!(fits_u2(ty));
-    assert!(fits_u6(opcode));
+        sf << 31
+            | s << 29
+            | 0b11010110u32 << 21
+            | rm.encoding() << 16
+            | opcode << 10
+            | rn.encoding() << 5
+            | rd.encoding()
+    }
 
-    m << 31
-        | s << 29
-        | 0b11110 << 24
-        | ty << 22
-        | 1 << 21
-        | opcode << 15
-        | 0b10000 << 10
-        | rn.encoding() << 5
-        | rd.encoding()
-}
+    pub(super) fn dataproc3(
+        sf: u32,
+        op54: u32,
+        op31: u32,
+        rm: Register,
+        o0: u32,
+        ra: Register,
+        rn: Register,
+        rd: Register,
+    ) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_u2(op54));
+        assert!(fits_u3(op31));
+        assert!(rm.is_gpr());
+        assert!(fits_bit(o0));
+        assert!(ra.is_gpr_or_zero());
+        assert!(rn.is_gpr());
+        assert!(rd.is_gpr());
 
-fn cls_fp_dataproc2(
-    m: u32,
-    s: u32,
-    ty: u32,
-    rm: FloatRegister,
-    opcode: u32,
-    rn: FloatRegister,
-    rd: FloatRegister,
-) -> u32 {
-    assert!(m == 0);
-    assert!(s == 0);
-    assert!(fits_bit(ty));
-    assert!(fits_u4(opcode));
+        sf << 31
+            | op54 << 29
+            | 0b11011u32 << 24
+            | op31 << 21
+            | rm.encoding() << 16
+            | o0 << 15
+            | ra.encoding_zero() << 10
+            | rn.encoding() << 5
+            | rd.encoding()
+    }
 
-    m << 31
-        | s << 29
-        | 0b11110 << 24
-        | ty << 22
-        | 1 << 21
-        | rm.encoding() << 16
-        | opcode << 12
-        | 0b10 << 10
-        | rn.encoding() << 5
-        | rd.encoding()
-}
+    pub(super) fn exception(opc: u32, imm16: u32, op2: u32, ll: u32) -> u32 {
+        assert!(fits_u3(opc));
+        assert!(fits_u16(imm16));
+        assert!(op2 == 0);
+        assert!(fits_u2(ll));
 
-fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u32) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(s));
-    assert!(fits_u2(ty));
-    assert!(fits_u2(rmode));
-    assert!(fits_u3(opcode));
-    assert!(fits_u5(rn));
-    assert!(fits_u5(rd));
+        0b11010100u32 << 24 | opc << 21 | imm16 << 5 | op2 << 2 | ll
+    }
 
-    sf << 31
-        | s << 29
-        | 0b11110 << 24
-        | ty << 22
-        | 1 << 21
-        | rmode << 19
-        | opcode << 16
-        | rn << 5
-        | rd
-}
+    pub(super) fn fp_compare(
+        m: u32,
+        s: u32,
+        ty: u32,
+        rm: FloatRegister,
+        op: u32,
+        rn: FloatRegister,
+        opcode2: u32,
+    ) -> u32 {
+        assert!(m == 0);
+        assert!(s == 0);
+        assert!(fits_bit(ty));
+        assert!(fits_u2(op));
+        assert!(fits_u5(opcode2));
 
-fn cls_ldst_exclusive(
-    _size: u32,
-    _o2: u32,
-    _l: u32,
-    _o1: u32,
-    _rs: Register,
-    _o0: u32,
-    _rt2: Register,
-    _rn: Register,
-    _rt: Register,
-) -> u32 {
-    unimplemented!()
-}
+        m << 31
+            | s << 29
+            | 0b11110 << 24
+            | ty << 22
+            | 1 << 21
+            | rm.encoding() << 16
+            | op << 14
+            | 0b1000 << 10
+            | rn.encoding() << 5
+            | opcode2
+    }
 
-fn cls_cond_branch_imm(cond: Cond, imm19: i32) -> u32 {
-    assert!(fits_i19(imm19));
+    pub(super) fn fp_dataproc1(
+        m: u32,
+        s: u32,
+        ty: u32,
+        opcode: u32,
+        rn: FloatRegister,
+        rd: FloatRegister,
+    ) -> u32 {
+        assert!(m == 0);
+        assert!(s == 0);
+        assert!(fits_u2(ty));
+        assert!(fits_u6(opcode));
 
-    let imm = (imm19 as u32) & 0x7FFFF;
+        m << 31
+            | s << 29
+            | 0b11110 << 24
+            | ty << 22
+            | 1 << 21
+            | opcode << 15
+            | 0b10000 << 10
+            | rn.encoding() << 5
+            | rd.encoding()
+    }
 
-    0b01010100u32 << 24 | imm << 5 | cond.u32()
-}
+    pub(super) fn fp_dataproc2(
+        m: u32,
+        s: u32,
+        ty: u32,
+        rm: FloatRegister,
+        opcode: u32,
+        rn: FloatRegister,
+        rd: FloatRegister,
+    ) -> u32 {
+        assert!(m == 0);
+        assert!(s == 0);
+        assert!(fits_bit(ty));
+        assert!(fits_u4(opcode));
 
-fn cls_uncond_branch_imm(op: u32, imm26: i32) -> u32 {
-    assert!(fits_bit(op));
-    assert!(fits_i26(imm26));
+        m << 31
+            | s << 29
+            | 0b11110 << 24
+            | ty << 22
+            | 1 << 21
+            | rm.encoding() << 16
+            | opcode << 12
+            | 0b10 << 10
+            | rn.encoding() << 5
+            | rd.encoding()
+    }
 
-    0b101u32 << 26 | op << 31 | ((imm26 as u32) & 0x3FFFFFF)
-}
+    pub(super) fn fp_int(
+        sf: u32,
+        s: u32,
+        ty: u32,
+        rmode: u32,
+        opcode: u32,
+        rn: u32,
+        rd: u32,
+    ) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_bit(s));
+        assert!(fits_u2(ty));
+        assert!(fits_u2(rmode));
+        assert!(fits_u3(opcode));
+        assert!(fits_u5(rn));
+        assert!(fits_u5(rd));
 
-fn cls_uncond_branch_reg(opc: u32, op2: u32, op3: u32, rn: Register, op4: u32) -> u32 {
-    assert!(fits_u4(opc));
-    assert!(fits_u5(op2));
-    assert!(fits_u6(op3));
-    assert!(fits_u5(op4));
+        sf << 31
+            | s << 29
+            | 0b11110 << 24
+            | ty << 22
+            | 1 << 21
+            | rmode << 19
+            | opcode << 16
+            | rn << 5
+            | rd
+    }
 
-    (0b1101011 as u32) << 25 | opc << 21 | op2 << 16 | op3 << 10 | encoding_rn(rn) | op4
-}
+    pub(super) fn ldst_exclusive(
+        _size: u32,
+        _o2: u32,
+        _l: u32,
+        _o1: u32,
+        _rs: Register,
+        _o0: u32,
+        _rt2: Register,
+        _rn: Register,
+        _rt: Register,
+    ) -> u32 {
+        unimplemented!()
+    }
 
-fn cls_dataproc2(sf: u32, s: u32, rm: Register, opcode: u32, rn: Register, rd: Register) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(s));
-    assert!(rm.is_gpr());
-    assert!(fits_u6(opcode));
-    assert!(rn.is_gpr());
-    assert!(rd.is_gpr());
+    pub(super) fn simd_across_lanes(
+        q: u32,
+        u: u32,
+        size: u32,
+        opcode: u32,
+        rn: FloatRegister,
+        rd: FloatRegister,
+    ) -> u32 {
+        assert!(fits_bit(q));
+        assert!(fits_bit(u));
+        assert!(fits_u2(size));
+        assert!(fits_u5(opcode));
 
-    sf << 31
-        | s << 29
-        | 0b11010110u32 << 21
-        | rm.encoding() << 16
-        | opcode << 10
-        | rn.encoding() << 5
-        | rd.encoding()
-}
+        q << 30
+            | u << 29
+            | 0b01110 << 24
+            | size << 22
+            | 0b11000 << 17
+            | opcode << 12
+            | 0b10 << 10
+            | rn.encoding() << 5
+            | rd.encoding()
+    }
 
-fn cls_dataproc3(
-    sf: u32,
-    op54: u32,
-    op31: u32,
-    rm: Register,
-    o0: u32,
-    ra: Register,
-    rn: Register,
-    rd: Register,
-) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_u2(op54));
-    assert!(fits_u3(op31));
-    assert!(rm.is_gpr());
-    assert!(fits_bit(o0));
-    assert!(ra.is_gpr_or_zero());
-    assert!(rn.is_gpr());
-    assert!(rd.is_gpr());
+    pub(super) fn simd_2regs_misc(
+        q: u32,
+        u: u32,
+        size: u32,
+        opcode: u32,
+        rn: FloatRegister,
+        rd: FloatRegister,
+    ) -> u32 {
+        assert!(fits_bit(q));
+        assert!(fits_bit(u));
+        assert!(fits_u2(size));
+        assert!(fits_u5(opcode));
 
-    sf << 31
-        | op54 << 29
-        | 0b11011u32 << 24
-        | op31 << 21
-        | rm.encoding() << 16
-        | o0 << 15
-        | ra.encoding_zero() << 10
-        | rn.encoding() << 5
-        | rd.encoding()
-}
+        q << 30
+            | u << 29
+            | 0b01110 << 24
+            | size << 22
+            | 0b10000 << 17
+            | opcode << 12
+            | 0b10 << 10
+            | rn.encoding() << 5
+            | rd.encoding()
+    }
 
-fn cls_fp_compare(
-    m: u32,
-    s: u32,
-    ty: u32,
-    rm: FloatRegister,
-    op: u32,
-    rn: FloatRegister,
-    opcode2: u32,
-) -> u32 {
-    assert!(m == 0);
-    assert!(s == 0);
-    assert!(fits_bit(ty));
-    assert!(fits_u2(op));
-    assert!(fits_u5(opcode2));
+    pub(super) fn system(imm: u32) -> u32 {
+        assert!(fits_u7(imm));
 
-    m << 31
-        | s << 29
-        | 0b11110 << 24
-        | ty << 22
-        | 1 << 21
-        | rm.encoding() << 16
-        | op << 14
-        | 0b1000 << 10
-        | rn.encoding() << 5
-        | opcode2
-}
+        0xD503201F | imm << 5
+    }
 
-fn cls_simd_across_lanes(
-    q: u32,
-    u: u32,
-    size: u32,
-    opcode: u32,
-    rn: FloatRegister,
-    rd: FloatRegister,
-) -> u32 {
-    assert!(fits_bit(q));
-    assert!(fits_bit(u));
-    assert!(fits_u2(size));
-    assert!(fits_u5(opcode));
+    pub(super) fn uncond_branch_imm(op: u32, imm26: i32) -> u32 {
+        assert!(fits_bit(op));
+        assert!(fits_i26(imm26));
 
-    q << 30
-        | u << 29
-        | 0b01110 << 24
-        | size << 22
-        | 0b11000 << 17
-        | opcode << 12
-        | 0b10 << 10
-        | rn.encoding() << 5
-        | rd.encoding()
-}
+        0b101u32 << 26 | op << 31 | ((imm26 as u32) & 0x3FFFFFF)
+    }
 
-fn cls_simd_2regs_misc(
-    q: u32,
-    u: u32,
-    size: u32,
-    opcode: u32,
-    rn: FloatRegister,
-    rd: FloatRegister,
-) -> u32 {
-    assert!(fits_bit(q));
-    assert!(fits_bit(u));
-    assert!(fits_u2(size));
-    assert!(fits_u5(opcode));
+    pub(super) fn uncond_branch_reg(opc: u32, op2: u32, op3: u32, rn: Register, op4: u32) -> u32 {
+        assert!(fits_u4(opc));
+        assert!(fits_u5(op2));
+        assert!(fits_u6(op3));
+        assert!(fits_u5(op4));
 
-    q << 30
-        | u << 29
-        | 0b01110 << 24
-        | size << 22
-        | 0b10000 << 17
-        | opcode << 12
-        | 0b10 << 10
-        | rn.encoding() << 5
-        | rd.encoding()
-}
-
-fn cls_system(imm: u32) -> u32 {
-    assert!(fits_u7(imm));
-
-    0xD503201F | imm << 5
+        (0b1101011 as u32) << 25 | opc << 21 | op2 << 16 | op3 << 10 | encoding_rn(rn) | op4
+    }
 }
 
 fn encoding_rn(reg: Register) -> u32 {
@@ -944,8 +974,7 @@ impl Cond {
 
 #[cfg(test)]
 mod tests {
-    use crate::asm::arm64::inst_b_cond_imm;
-    use crate::asm::*;
+    use super::*;
     use byteorder::{LittleEndian, WriteBytesExt};
 
     macro_rules! assert_emit {
@@ -1068,10 +1097,10 @@ mod tests {
 
     #[test]
     fn test_b_cond_imm() {
-        assert_eq!(0x54ffffe0, inst_b_cond_imm(Cond::EQ, -1));
-        assert_eq!(0x54ffffc1, inst_b_cond_imm(Cond::NE, -2));
-        assert_eq!(0x54000044, inst_b_cond_imm(Cond::MI, 2));
-        assert_eq!(0x5400002b, inst_b_cond_imm(Cond::LT, 1));
+        assert_eq!(0x54ffffe0, inst::b_cond_imm(Cond::EQ, -1));
+        assert_eq!(0x54ffffc1, inst::b_cond_imm(Cond::NE, -2));
+        assert_eq!(0x54000044, inst::b_cond_imm(Cond::MI, 2));
+        assert_eq!(0x5400002b, inst::b_cond_imm(Cond::LT, 1));
     }
 
     #[test]
