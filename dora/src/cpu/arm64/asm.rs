@@ -102,50 +102,6 @@ fn cls_ldst_pair_post(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt
         | rt.asm()
 }
 
-pub fn add_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
-    cls_addsub_imm(sf, 0, 0, shift, imm12, rn, rd)
-}
-
-pub fn adds_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
-    cls_addsub_imm(sf, 0, 1, shift, imm12, rn, rd)
-}
-
-pub fn sub_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
-    cls_addsub_imm(sf, 1, 0, shift, imm12, rn, rd)
-}
-
-pub fn subs_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
-    cls_addsub_imm(sf, 1, 1, shift, imm12, rn, rd)
-}
-
-pub fn cmp_imm(sf: u32, rn: Reg, imm12: u32, shift: u32) -> u32 {
-    subs_imm(sf, REG_ZERO, rn, imm12, shift)
-}
-
-fn cls_addsub_imm(sf: u32, op: u32, s: u32, shift: u32, imm12: u32, rn: Reg, rd: Reg) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(op));
-    assert!(fits_bit(s));
-    assert!(fits_bit(shift));
-    assert!(fits_u12(imm12));
-    assert!(rn.is_gpr_or_sp());
-
-    if s != 0 {
-        assert!(rd.is_gpr_or_zero());
-    } else {
-        assert!(rd.is_gpr_or_sp());
-    }
-
-    (0b10001 as u32) << 24
-        | sf << 31
-        | op << 30
-        | s << 29
-        | shift << 22
-        | imm12 << 10
-        | rn.asm() << 5
-        | rd.asm()
-}
-
 pub fn add_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
     cls_addsub_shreg(sf, 0, 0, Shift::LSL, rm, 0, rn, rd)
 }
@@ -1061,46 +1017,6 @@ mod tests {
         assert!(fits_i12(2047));
         assert!(!fits_i12(-2049));
         assert!(!fits_i12(2048));
-    }
-
-    #[test]
-    fn test_add_imm() {
-        assert_emit!(0x11000420; add_imm(0, R0, R1, 1, 0));
-        assert_emit!(0x11400c62; add_imm(0, R2, R3, 3, 1));
-        assert_emit!(0x91000420; add_imm(1, R0, R1, 1, 0));
-        assert_emit!(0x91400c62; add_imm(1, R2, R3, 3, 1));
-    }
-
-    #[test]
-    fn test_adds_imm() {
-        assert_emit!(0x31000420; adds_imm(0, R0, R1, 1, 0));
-        assert_emit!(0x31400c62; adds_imm(0, R2, R3, 3, 1));
-        assert_emit!(0xb1000420; adds_imm(1, R0, R1, 1, 0));
-        assert_emit!(0xb1400c62; adds_imm(1, R2, R3, 3, 1));
-    }
-
-    #[test]
-    fn test_sub_imm() {
-        assert_emit!(0x51000420; sub_imm(0, R0, R1, 1, 0));
-        assert_emit!(0x51400c62; sub_imm(0, R2, R3, 3, 1));
-        assert_emit!(0xd1000420; sub_imm(1, R0, R1, 1, 0));
-        assert_emit!(0xd1400c62; sub_imm(1, R2, R3, 3, 1));
-    }
-
-    #[test]
-    fn test_subs_imm() {
-        assert_emit!(0x71000420; subs_imm(0, R0, R1, 1, 0));
-        assert_emit!(0x71400c62; subs_imm(0, R2, R3, 3, 1));
-        assert_emit!(0xf1000420; subs_imm(1, R0, R1, 1, 0));
-        assert_emit!(0xf1400c62; subs_imm(1, R2, R3, 3, 1));
-    }
-
-    #[test]
-    fn test_cmp_imm() {
-        assert_emit!(0x7100043f; cmp_imm(0, R1, 1, 0));
-        assert_emit!(0x71400c5f; cmp_imm(0, R2, 3, 1));
-        assert_emit!(0xf100047f; cmp_imm(1, R3, 1, 0));
-        assert_emit!(0xf1400c9f; cmp_imm(1, R4, 3, 1));
     }
 
     #[test]

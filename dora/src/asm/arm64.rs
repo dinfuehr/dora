@@ -41,12 +41,26 @@ impl Register {
         self.0 as u32
     }
 
+    fn encoding_sp(self) -> u32 {
+        debug_assert!(self.is_gpr_or_sp());
+
+        if self.is_gpr() {
+            self.0 as u32
+        } else {
+            31
+        }
+    }
+
     fn is_gpr(&self) -> bool {
-        self.0 <= 30
+        self.0 < 31
     }
 
     fn is_gpr_or_zero(&self) -> bool {
-        self.0 <= 31
+        self.0 < 32
+    }
+
+    fn is_gpr_or_sp(&self) -> bool {
+        self.0 < 31 || self.0 == 32
     }
 }
 
@@ -131,6 +145,14 @@ impl Assembler {
                 panic!("unbound label");
             }
         }
+    }
+
+    pub fn add_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
+        self.emit_u32(cls_addsub_imm(sf, 0, 0, shift, imm12, rn, rd));
+    }
+
+    pub fn adds_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
+        self.emit_u32(cls_addsub_imm(sf, 0, 1, shift, imm12, rn, rd));
     }
 
     pub fn addv(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
@@ -240,6 +262,10 @@ impl Assembler {
 
     pub fn clz(&mut self, rd: Register, rn: Register) {
         self.emit_u32(cls_dataproc1(1, 0, 0b00000, 0b000100, rn, rd));
+    }
+
+    pub fn cmp_imm(&mut self, sf: u32, rn: Register, imm12: u32, shift: u32) {
+        self.subs_imm(sf, REG_ZERO, rn, imm12, shift);
     }
 
     pub fn cnt(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
@@ -390,6 +416,14 @@ impl Assembler {
             rn.encoding(),
             rd.encoding(),
         ));
+    }
+
+    pub fn sub_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
+        self.emit_u32(cls_addsub_imm(sf, 1, 0, shift, imm12, rn, rd));
+    }
+
+    pub fn subs_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
+        self.emit_u32(cls_addsub_imm(sf, 1, 1, shift, imm12, rn, rd));
     }
 
     pub fn sxtw(&mut self, rd: Register, rn: Register) {
@@ -579,6 +613,38 @@ fn cls_uncond_branch_reg(opc: u32, op2: u32, op3: u32, rn: Register, op4: u32) -
     (0b1101011 as u32) << 25 | opc << 21 | op2 << 16 | op3 << 10 | encoding_rn(rn) | op4
 }
 
+fn cls_addsub_imm(
+    sf: u32,
+    op: u32,
+    s: u32,
+    shift: u32,
+    imm12: u32,
+    rn: Register,
+    rd: Register,
+) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(op));
+    assert!(fits_bit(s));
+    assert!(fits_bit(shift));
+    assert!(fits_u12(imm12));
+    assert!(rn.is_gpr_or_sp());
+
+    if s != 0 {
+        assert!(rd.is_gpr_or_zero());
+    } else {
+        assert!(rd.is_gpr_or_sp());
+    }
+
+    (0b10001 as u32) << 24
+        | sf << 31
+        | op << 30
+        | s << 29
+        | shift << 22
+        | imm12 << 10
+        | rn.encoding_sp() << 5
+        | rd.encoding()
+}
+
 fn cls_system(imm: u32) -> u32 {
     assert!(fits_u7(imm));
 
@@ -716,6 +782,10 @@ fn fits_u6(imm: u32) -> bool {
 
 fn fits_u7(imm: u32) -> bool {
     imm < (1 << 7)
+}
+
+fn fits_u12(imm: u32) -> bool {
+    imm < (1 << 12)
 }
 
 fn fits_u16(imm: u32) -> bool {
@@ -966,5 +1036,45 @@ mod tests {
         assert_emit!(0x9e380047; fcvtzs(1, 0, R7, F2)); // x7, s2
         assert_emit!(0x1e780020; fcvtzs(0, 1, R0, F1)); // w0, d1
         assert_emit!(0x1e380047; fcvtzs(0, 0, R7, F2)); // w7, s2
+    }
+
+    #[test]
+    fn test_add_imm() {
+        assert_emit!(0x11000420; add_imm(0, R0, R1, 1, 0));
+        assert_emit!(0x11400c62; add_imm(0, R2, R3, 3, 1));
+        assert_emit!(0x91000420; add_imm(1, R0, R1, 1, 0));
+        assert_emit!(0x91400c62; add_imm(1, R2, R3, 3, 1));
+    }
+
+    #[test]
+    fn test_adds_imm() {
+        assert_emit!(0x31000420; adds_imm(0, R0, R1, 1, 0));
+        assert_emit!(0x31400c62; adds_imm(0, R2, R3, 3, 1));
+        assert_emit!(0xb1000420; adds_imm(1, R0, R1, 1, 0));
+        assert_emit!(0xb1400c62; adds_imm(1, R2, R3, 3, 1));
+    }
+
+    #[test]
+    fn test_sub_imm() {
+        assert_emit!(0x51000420; sub_imm(0, R0, R1, 1, 0));
+        assert_emit!(0x51400c62; sub_imm(0, R2, R3, 3, 1));
+        assert_emit!(0xd1000420; sub_imm(1, R0, R1, 1, 0));
+        assert_emit!(0xd1400c62; sub_imm(1, R2, R3, 3, 1));
+    }
+
+    #[test]
+    fn test_subs_imm() {
+        assert_emit!(0x71000420; subs_imm(0, R0, R1, 1, 0));
+        assert_emit!(0x71400c62; subs_imm(0, R2, R3, 3, 1));
+        assert_emit!(0xf1000420; subs_imm(1, R0, R1, 1, 0));
+        assert_emit!(0xf1400c62; subs_imm(1, R2, R3, 3, 1));
+    }
+
+    #[test]
+    fn test_cmp_imm() {
+        assert_emit!(0x7100043f; cmp_imm(0, R1, 1, 0));
+        assert_emit!(0x71400c5f; cmp_imm(0, R2, 3, 1));
+        assert_emit!(0xf100047f; cmp_imm(1, R3, 1, 0));
+        assert_emit!(0xf1400c9f; cmp_imm(1, R4, 3, 1));
     }
 }

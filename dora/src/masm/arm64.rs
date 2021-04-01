@@ -256,13 +256,13 @@ impl MacroAssembler {
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
-        self.emit_u32(asm::cmp_imm(size_flag(mode), lhs, 0, 0));
+        self.asm.cmp_imm(size_flag(mode), lhs.into(), 0, 0);
     }
 
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
-        self.emit_u32(asm::cmp_imm(0, reg, 0, 0));
+        self.asm.cmp_imm(0, reg.into(), 0, 0);
         self.jump_if(cond, lbl);
     }
 
@@ -354,8 +354,8 @@ impl MacroAssembler {
                 _ => panic!("unimplemented mode {:?}", mode),
             };
 
-            let inst = asm::add_imm(x64, dest, lhs, value as u32, 0);
-            self.emit_u32(inst);
+            self.asm
+                .add_imm(x64, dest.into(), lhs.into(), value as u32, 0);
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(mode, *scratch, value);
@@ -800,7 +800,8 @@ impl MacroAssembler {
             };
 
         if element_size == 1 {
-            self.emit_u32(asm::add_imm(1, dest, length, size as u32, 0));
+            self.asm
+                .add_imm(1, dest.into(), length.into(), size as u32, 0);
         } else if element_size == 2 || element_size == 4 || element_size == 8 {
             let shift = match element_size {
                 2 => 1,
@@ -810,12 +811,14 @@ impl MacroAssembler {
             };
 
             self.asm.lsl_imm(1, dest.into(), length.into(), shift);
-            self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
+            self.asm
+                .add_imm(1, dest.into(), dest.into(), size as u32, 0);
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
             self.emit_u32(asm::mul(1, dest, length, *scratch));
-            self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
+            self.asm
+                .add_imm(1, dest.into(), dest.into(), size as u32, 0);
         }
 
         if element_size != ptr_width() {
@@ -829,7 +832,8 @@ impl MacroAssembler {
 
         self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
         self.emit_u32(asm::mul(1, *scratch, index, *scratch));
-        self.emit_u32(asm::add_imm(1, *scratch, *scratch, offset as u32, 0));
+        self.asm
+            .add_imm(1, (*scratch).into(), (*scratch).into(), offset as u32, 0);
         self.emit_u32(asm::add_reg(1, dest, obj, *scratch));
     }
 
@@ -955,7 +959,8 @@ impl MacroAssembler {
         match mem {
             Mem::Local(offset) => {
                 if fits_u12(offset as u32) {
-                    self.emit_u32(asm::add_imm(1, dest, REG_FP, offset as u32, 0));
+                    self.asm
+                        .add_imm(1, dest.into(), REG_FP.into(), offset as u32, 0);
                 } else {
                     let scratch = self.get_scratch();
                     self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
@@ -965,7 +970,8 @@ impl MacroAssembler {
 
             Mem::Base(base, disp) => {
                 if fits_u12(disp as u32) {
-                    self.emit_u32(asm::add_imm(1, dest, base, disp as u32, 0));
+                    self.asm
+                        .add_imm(1, dest.into(), base.into(), disp as u32, 0);
                 } else {
                     let scratch = self.get_scratch();
                     self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
@@ -977,7 +983,8 @@ impl MacroAssembler {
                 let scratch = self.get_scratch();
 
                 if fits_u12(disp as u32) {
-                    self.emit_u32(asm::add_imm(1, *scratch, base, disp as u32, 0));
+                    self.asm
+                        .add_imm(1, (*scratch).into(), base.into(), disp as u32, 0);
                 } else {
                     self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
                     self.emit_u32(asm::add_shreg(1, *scratch, base, *scratch, Shift::LSL, 0));
@@ -1108,7 +1115,8 @@ impl MacroAssembler {
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         if dest == REG_SP || src == REG_SP {
-            self.emit_u32(asm::add_imm(size_flag(mode), dest, src, 0, 0));
+            self.asm
+                .add_imm(size_flag(mode), dest.into(), src.into(), 0, 0);
         } else {
             self.emit_u32(asm::orr_shreg(
                 size_flag(mode),
@@ -1122,11 +1130,11 @@ impl MacroAssembler {
     }
 
     pub fn copy_sp(&mut self, dest: Reg) {
-        self.emit_u32(asm::add_imm(1, dest, REG_SP, 0, 0));
+        self.asm.add_imm(1, dest.into(), REG_SP.into(), 0, 0);
     }
 
     pub fn set_sp(&mut self, src: Reg) {
-        self.emit_u32(asm::add_imm(1, REG_SP, src, 0, 0));
+        self.asm.add_imm(1, REG_SP.into(), src.into(), 0, 0);
     }
 
     pub fn copy_pc(&mut self, dest: Reg) {
