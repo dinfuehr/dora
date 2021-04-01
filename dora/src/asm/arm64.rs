@@ -133,6 +133,10 @@ impl Assembler {
         }
     }
 
+    pub fn addv(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
+        self.emit_u32(cls_simd_across_lanes(q, 0, size, 0b11011, rn, rd));
+    }
+
     pub fn asrv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls_dataproc2(1, 0, rm, 0b1010, rn, rd));
     }
@@ -551,6 +555,30 @@ fn cls_fp_compare(
         | 0b1000 << 10
         | rn.encoding() << 5
         | opcode2
+}
+
+fn cls_simd_across_lanes(
+    q: u32,
+    u: u32,
+    size: u32,
+    opcode: u32,
+    rn: FloatRegister,
+    rd: FloatRegister,
+) -> u32 {
+    assert!(fits_bit(q));
+    assert!(fits_bit(u));
+    assert!(fits_u2(size));
+    assert!(fits_u5(opcode));
+
+    q << 30
+        | u << 29
+        | 0b01110 << 24
+        | size << 22
+        | 0b11000 << 17
+        | opcode << 12
+        | 0b10 << 10
+        | rn.encoding() << 5
+        | rd.encoding()
 }
 
 fn encoding_rn(reg: Register) -> u32 {
