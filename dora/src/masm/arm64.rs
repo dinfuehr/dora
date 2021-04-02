@@ -18,7 +18,8 @@ use crate::vtable::VTable;
 
 impl MacroAssembler {
     pub fn prolog(&mut self) -> usize {
-        self.emit_u32(asm::stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
+        self.asm
+            .stp_pre(1, REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
         self.emit_u32(asm::add_extreg(
             1,
             REG_FP,
@@ -45,7 +46,8 @@ impl MacroAssembler {
     }
 
     pub fn prolog_size(&mut self, stacksize: i32) {
-        self.emit_u32(asm::stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
+        self.asm
+            .stp_pre(1, REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
         self.emit_u32(asm::add_extreg(
             1,
             REG_FP,
@@ -120,7 +122,8 @@ impl MacroAssembler {
             Extend::UXTX,
             0,
         ));
-        self.emit_u32(asm::ldp_post(1, REG_FP, REG_LR, REG_SP, 2));
+        self.asm
+            .ldp_post(1, REG_FP.into(), REG_LR.into(), REG_SP.into(), 2);
     }
 
     pub fn increase_stack_frame(&mut self, size: i32) {

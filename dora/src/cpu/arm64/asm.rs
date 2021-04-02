@@ -44,64 +44,6 @@ fn cls_addsub_extreg(
         | rd.asm()
 }
 
-pub fn stp_pre(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
-    assert!(fits_bit(sf));
-
-    let opc = if sf != 0 { 0b10 } else { 0b00 };
-    cls_ldst_pair_pre(opc, 0, 0, imm7, rt2, rn, rt)
-}
-
-fn cls_ldst_pair_pre(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt: Reg) -> u32 {
-    assert!(fits_u2(opc));
-    assert!(fits_bit(v));
-    assert!(fits_bit(l));
-    assert!(fits_i7(imm7));
-    assert!(rt2.is_gpr());
-    assert!(rn.is_gpr_or_sp());
-    assert!(rt.is_gpr());
-
-    let imm7 = (imm7 as u32) & 0x7F;
-
-    opc << 30
-        | 0b101u32 << 27
-        | v << 26
-        | 0b011u32 << 23
-        | l << 22
-        | imm7 << 15
-        | rt2.asm() << 10
-        | rn.asm() << 5
-        | rt.asm()
-}
-
-pub fn ldp_post(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
-    assert!(fits_bit(sf));
-
-    let opc = if sf != 0 { 0b10 } else { 0b00 };
-    cls_ldst_pair_post(opc, 0, 1, imm7, rt2, rn, rt)
-}
-
-fn cls_ldst_pair_post(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt: Reg) -> u32 {
-    assert!(fits_u2(opc));
-    assert!(fits_bit(v));
-    assert!(fits_bit(l));
-    assert!(fits_i7(imm7));
-    assert!(rt2.is_gpr());
-    assert!(rn.is_gpr_or_sp());
-    assert!(rt.is_gpr());
-
-    let imm7 = (imm7 as u32) & 0x7F;
-
-    opc << 30
-        | 0b101u32 << 27
-        | v << 26
-        | 0b001u32 << 23
-        | l << 22
-        | imm7 << 15
-        | rt2.asm() << 10
-        | rn.asm() << 5
-        | rt.asm()
-}
-
 pub fn add_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
     cls_addsub_shreg(sf, 0, 0, Shift::LSL, rm, 0, rn, rd)
 }
@@ -540,41 +482,6 @@ fn cls_pcrel(op: u32, imm: i32, rd: Reg) -> u32 {
     let immhi = (imm >> 2) & 0x7FFFF;
 
     1u32 << 28 | op << 31 | immlo << 29 | immhi << 5 | rd.asm()
-}
-
-pub fn ldp(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
-    assert!(fits_bit(sf));
-    let opc = if sf != 0 { 0b10 } else { 0b00 };
-
-    cls_ldst_pair(opc, 0, 1, imm7, rt2, rn, rt)
-}
-
-pub fn stp(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
-    assert!(fits_bit(sf));
-    let opc = if sf != 0 { 0b10 } else { 0b00 };
-
-    cls_ldst_pair(opc, 0, 0, imm7, rt2, rn, rt)
-}
-
-fn cls_ldst_pair(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt: Reg) -> u32 {
-    assert!(fits_u2(opc));
-    assert!(fits_bit(v));
-    assert!(fits_bit(l));
-    assert!(fits_i7(imm7));
-    assert!(rt2.is_gpr());
-    assert!(rn.is_gpr_or_sp());
-    assert!(rt.is_gpr());
-
-    let imm = (imm7 as u32) & 0x7F;
-
-    opc << 30
-        | 0b101u32 << 27
-        | 1u32 << 24
-        | l << 22
-        | imm << 15
-        | rt2.asm() << 10
-        | rn.asm() << 5
-        | rt.asm()
 }
 
 pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: u64) -> u32 {
@@ -1133,38 +1040,6 @@ mod tests {
         assert_emit!(0x9000005b; adrp(R27,  8));
         assert_emit!(0x90000000; adrp(R0,  0));
         assert_emit!(0x90000001; adrp(R1,  0));
-    }
-
-    #[test]
-    fn test_ldp() {
-        assert_emit!(0x29400440; ldp(0, R0, R1, R2, 0));
-        assert_emit!(0x294090a3; ldp(0, R3, R4, R5, 1));
-        assert_emit!(0x294110a3; ldp(0, R3, R4, R5, 2));
-        assert_emit!(0xa9400440; ldp(1, R0, R1, R2, 0));
-        assert_emit!(0xa94090a3; ldp(1, R3, R4, R5, 1));
-        assert_emit!(0xa94110a3; ldp(1, R3, R4, R5, 2));
-    }
-
-    #[test]
-    fn test_stp() {
-        assert_emit!(0x29000440; stp(0, R0, R1, R2, 0));
-        assert_emit!(0x290090a3; stp(0, R3, R4, R5, 1));
-        assert_emit!(0x290110a3; stp(0, R3, R4, R5, 2));
-        assert_emit!(0xa9000440; stp(1, R0, R1, R2, 0));
-        assert_emit!(0xa90090a3; stp(1, R3, R4, R5, 1));
-        assert_emit!(0xa90110a3; stp(1, R3, R4, R5, 2));
-    }
-
-    #[test]
-    fn test_ldst_pair_pre() {
-        assert_emit!(0xa9be7bfd; stp_pre(1, REG_FP, REG_LR, REG_SP, -4));
-        assert_emit!(0x29840440; stp_pre(0, R0, R1, R2, 8));
-    }
-
-    #[test]
-    fn test_ldst_pair_post() {
-        assert_emit!(0xa8fe7bfd; ldp_post(1, REG_FP, REG_LR, REG_SP, -4));
-        assert_emit!(0x28c40440; ldp_post(0, R0, R1, R2, 8));
     }
 
     #[test]

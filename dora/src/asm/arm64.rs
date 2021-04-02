@@ -31,6 +31,7 @@ pub const R27: Register = Register(27);
 pub const R28: Register = Register(28);
 pub const R29: Register = Register(29);
 pub const R30: Register = Register(30);
+pub const REG_FP: Register = R29;
 pub const REG_LR: Register = R30;
 pub const REG_ZERO: Register = Register(31);
 pub const REG_SP: Register = Register(32);
@@ -355,6 +356,34 @@ impl Assembler {
 
     pub fn fsub(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0011, rn, rd));
+    }
+
+    pub fn ldp(&mut self, sf: u32, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+        assert!(fits_bit(sf));
+        let opc = if sf != 0 { 0b10 } else { 0b00 };
+
+        self.emit_u32(cls::ldst_pair(opc, 0, 1, imm7, rt2, rn, rt));
+    }
+
+    pub fn ldp_post(&mut self, sf: u32, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+        assert!(fits_bit(sf));
+
+        let opc = if sf != 0 { 0b10 } else { 0b00 };
+        self.emit_u32(cls::ldst_pair_post(opc, 0, 1, imm7, rt2, rn, rt));
+    }
+
+    pub fn stp(&mut self, sf: u32, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+        assert!(fits_bit(sf));
+        let opc = if sf != 0 { 0b10 } else { 0b00 };
+
+        self.emit_u32(cls::ldst_pair(opc, 0, 0, imm7, rt2, rn, rt));
+    }
+
+    pub fn stp_pre(&mut self, sf: u32, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+        assert!(fits_bit(sf));
+
+        let opc = if sf != 0 { 0b10 } else { 0b00 };
+        self.emit_u32(cls::ldst_pair_pre(opc, 0, 0, imm7, rt2, rn, rt));
     }
 
     pub fn lsl_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
@@ -793,6 +822,95 @@ mod cls {
         unimplemented!()
     }
 
+    pub(super) fn ldst_pair(
+        opc: u32,
+        v: u32,
+        l: u32,
+        imm7: i32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ) -> u32 {
+        assert!(fits_u2(opc));
+        assert!(fits_bit(v));
+        assert!(fits_bit(l));
+        assert!(fits_i7(imm7));
+        assert!(rt2.is_gpr());
+        assert!(rn.is_gpr_or_sp());
+        assert!(rt.is_gpr());
+
+        let imm = (imm7 as u32) & 0x7F;
+
+        opc << 30
+            | 0b101u32 << 27
+            | 1u32 << 24
+            | l << 22
+            | imm << 15
+            | rt2.encoding() << 10
+            | rn.encoding_sp() << 5
+            | rt.encoding()
+    }
+
+    pub(super) fn ldst_pair_post(
+        opc: u32,
+        v: u32,
+        l: u32,
+        imm7: i32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ) -> u32 {
+        assert!(fits_u2(opc));
+        assert!(fits_bit(v));
+        assert!(fits_bit(l));
+        assert!(fits_i7(imm7));
+        assert!(rt2.is_gpr());
+        assert!(rn.is_gpr_or_sp());
+        assert!(rt.is_gpr());
+
+        let imm7 = (imm7 as u32) & 0x7F;
+
+        opc << 30
+            | 0b101u32 << 27
+            | v << 26
+            | 0b001u32 << 23
+            | l << 22
+            | imm7 << 15
+            | rt2.encoding() << 10
+            | rn.encoding_sp() << 5
+            | rt.encoding()
+    }
+
+    pub(super) fn ldst_pair_pre(
+        opc: u32,
+        v: u32,
+        l: u32,
+        imm7: i32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ) -> u32 {
+        assert!(fits_u2(opc));
+        assert!(fits_bit(v));
+        assert!(fits_bit(l));
+        assert!(fits_i7(imm7));
+        assert!(rt2.is_gpr());
+        assert!(rn.is_gpr_or_sp());
+        assert!(rt.is_gpr());
+
+        let imm7 = (imm7 as u32) & 0x7F;
+
+        opc << 30
+            | 0b101u32 << 27
+            | v << 26
+            | 0b011u32 << 23
+            | l << 22
+            | imm7 << 15
+            | rt2.encoding() << 10
+            | rn.encoding_sp() << 5
+            | rt.encoding()
+    }
+
     pub(super) fn simd_across_lanes(
         q: u32,
         u: u32,
@@ -873,8 +991,12 @@ fn fits_bit(imm: u32) -> bool {
     imm < (1 << 1)
 }
 
+fn fits_i7(imm: i32) -> bool {
+    -(1 << 6) <= imm && imm < (1 << 6)
+}
+
 fn fits_i19(imm: i32) -> bool {
-    -262_144 <= imm && imm < 262_144
+    -(1 << 18) <= imm && imm < (1 << 18)
 }
 
 fn fits_i26(imm: i32) -> bool {
@@ -1219,5 +1341,37 @@ mod tests {
     fn test_mul() {
         assert_emit!(0x9b037c41; mul(1, R1, R2, R3));
         assert_emit!(0x1b067ca4; mul(0, R4, R5, R6));
+    }
+
+    #[test]
+    fn test_ldp() {
+        assert_emit!(0x29400440; ldp(0, R0, R1, R2, 0));
+        assert_emit!(0x294090a3; ldp(0, R3, R4, R5, 1));
+        assert_emit!(0x294110a3; ldp(0, R3, R4, R5, 2));
+        assert_emit!(0xa9400440; ldp(1, R0, R1, R2, 0));
+        assert_emit!(0xa94090a3; ldp(1, R3, R4, R5, 1));
+        assert_emit!(0xa94110a3; ldp(1, R3, R4, R5, 2));
+    }
+
+    #[test]
+    fn test_stp() {
+        assert_emit!(0x29000440; stp(0, R0, R1, R2, 0));
+        assert_emit!(0x290090a3; stp(0, R3, R4, R5, 1));
+        assert_emit!(0x290110a3; stp(0, R3, R4, R5, 2));
+        assert_emit!(0xa9000440; stp(1, R0, R1, R2, 0));
+        assert_emit!(0xa90090a3; stp(1, R3, R4, R5, 1));
+        assert_emit!(0xa90110a3; stp(1, R3, R4, R5, 2));
+    }
+
+    #[test]
+    fn test_ldst_pair_pre() {
+        assert_emit!(0xa9be7bfd; stp_pre(1, REG_FP, REG_LR, REG_SP, -4));
+        assert_emit!(0x29840440; stp_pre(0, R0, R1, R2, 8));
+    }
+
+    #[test]
+    fn test_ldst_pair_post() {
+        assert_emit!(0xa8fe7bfd; ldp_post(1, REG_FP, REG_LR, REG_SP, -4));
+        assert_emit!(0x28c40440; ldp_post(0, R0, R1, R2, 8));
     }
 }
