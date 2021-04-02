@@ -402,27 +402,6 @@ fn cls_logical_shreg(
         | rd.asm()
 }
 
-pub fn adr(rd: Reg, imm: i32) -> u32 {
-    cls_pcrel(0, imm, rd)
-}
-
-pub fn adrp(rd: Reg, imm: i32) -> u32 {
-    cls_pcrel(1, imm, rd)
-}
-
-fn cls_pcrel(op: u32, imm: i32, rd: Reg) -> u32 {
-    assert!(fits_i21(imm));
-    assert!(fits_bit(op));
-    assert!(rd.is_gpr());
-
-    let imm = imm as u32;
-
-    let immlo = imm & 3;
-    let immhi = (imm >> 2) & 0x7FFFF;
-
-    1u32 << 28 | op << 31 | immlo << 29 | immhi << 5 | rd.asm()
-}
-
 pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: u64) -> u32 {
     let reg_size = if sf == 1 { 64 } else { 32 };
     let n_immr_imms = encode_logical_imm(imm, reg_size).unwrap();
@@ -915,25 +894,6 @@ mod tests {
         assert_emit!(0x6b060cbf; cmp_shreg(0, R5, R6, Shift::LSL, 3));
         assert_emit!(0xeb0600bf; cmp_reg(1, R5, R6));
         assert_emit!(0xeb060cbf; cmp_shreg(1, R5, R6, Shift::LSL, 3));
-    }
-
-    #[test]
-    fn test_adr_adrp() {
-        assert_emit!(0x10ffffe0; adr(R0 , -4));
-        assert_emit!(0x10ffffde; adr(R30, -8));
-        assert_emit!(0x1000001d; adr(R29,  0));
-        assert_emit!(0x1000003c; adr(R28,  4));
-        assert_emit!(0x1000005b; adr(R27,  8));
-        assert_emit!(0x10000000; adr(R0,  0));
-        assert_emit!(0x10000001; adr(R1,  0));
-
-        assert_emit!(0x90ffffe0; adrp(R0 , -4));
-        assert_emit!(0x90ffffde; adrp(R30, -8));
-        assert_emit!(0x9000001d; adrp(R29,  0));
-        assert_emit!(0x9000003c; adrp(R28,  4));
-        assert_emit!(0x9000005b; adrp(R27,  8));
-        assert_emit!(0x90000000; adrp(R0,  0));
-        assert_emit!(0x90000001; adrp(R1,  0));
     }
 
     #[test]

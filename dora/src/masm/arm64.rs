@@ -777,7 +777,7 @@ impl MacroAssembler {
         let disp = off + pos;
 
         let scratch = self.get_scratch();
-        self.emit_u32(asm::adr(*scratch, -disp));
+        self.asm.adr_i((*scratch).into(), -disp);
 
         self.load_mem(mode, dest.into(), Mem::Base(*scratch, 0));
     }
@@ -1143,7 +1143,7 @@ impl MacroAssembler {
     }
 
     pub fn copy_pc(&mut self, dest: Reg) {
-        self.emit_u32(asm::adr(dest, 0));
+        self.asm.adr_i(dest.into(), 0);
     }
 
     pub fn copy_ra(&mut self, dest: Reg) {
@@ -1173,7 +1173,7 @@ impl MacroAssembler {
     }
 
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
-        self.emit_u32(asm::adr(dest, -disp));
+        self.asm.adr_i(dest.into(), -disp);
         self.load_mem(MachineMode::Ptr, dest.into(), Mem::Base(dest, 0));
     }
 

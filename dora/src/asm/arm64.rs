@@ -179,6 +179,14 @@ impl Assembler {
         self.emit_u32(cls::simd_across_lanes(q, 0, size, 0b11011, rn, rd));
     }
 
+    pub fn adr_i(&mut self, rd: Register, imm: i32) {
+        self.emit_u32(cls::pcrel(0, imm, rd));
+    }
+
+    pub fn adrp_i(&mut self, rd: Register, imm: i32) {
+        self.emit_u32(cls::pcrel(1, imm, rd));
+    }
+
     pub fn asrv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(1, 0, rm, 0b1010, rn, rd));
     }
@@ -1031,6 +1039,19 @@ mod cls {
             | rd.encoding()
     }
 
+    pub(super) fn pcrel(op: u32, imm: i32, rd: Register) -> u32 {
+        assert!(fits_i21(imm));
+        assert!(fits_bit(op));
+        assert!(rd.is_gpr());
+
+        let imm = imm as u32;
+
+        let immlo = imm & 3;
+        let immhi = (imm >> 2) & 0x7FFFF;
+
+        1u32 << 28 | op << 31 | immlo << 29 | immhi << 5 | rd.encoding()
+    }
+
     pub(super) fn simd_2regs_misc(
         q: u32,
         u: u32,
@@ -1093,6 +1114,10 @@ fn fits_i7(imm: i32) -> bool {
 
 fn fits_i19(imm: i32) -> bool {
     -(1 << 18) <= imm && imm < (1 << 18)
+}
+
+fn fits_i21(imm: i32) -> bool {
+    -(1 << 20) <= imm && imm < (1 << 20)
 }
 
 fn fits_i26(imm: i32) -> bool {
@@ -1514,5 +1539,24 @@ mod tests {
         assert_emit!(0x12800100; movn(0, R0, 8, 0));
         assert_emit!(0x52800100; movz(0, R0, 8, 0));
         assert_emit!(0x72a00100; movk(0, R0, 8, 1));
+    }
+
+    #[test]
+    fn test_adr_adrp() {
+        assert_emit!(0x10ffffe0; adr_i(R0 , -4));
+        assert_emit!(0x10ffffde; adr_i(R30, -8));
+        assert_emit!(0x1000001d; adr_i(R29,  0));
+        assert_emit!(0x1000003c; adr_i(R28,  4));
+        assert_emit!(0x1000005b; adr_i(R27,  8));
+        assert_emit!(0x10000000; adr_i(R0,  0));
+        assert_emit!(0x10000001; adr_i(R1,  0));
+
+        assert_emit!(0x90ffffe0; adrp_i(R0 , -4));
+        assert_emit!(0x90ffffde; adrp_i(R30, -8));
+        assert_emit!(0x9000001d; adrp_i(R29,  0));
+        assert_emit!(0x9000003c; adrp_i(R28,  4));
+        assert_emit!(0x9000005b; adrp_i(R27,  8));
+        assert_emit!(0x90000000; adrp_i(R0,  0));
+        assert_emit!(0x90000001; adrp_i(R1,  0));
     }
 }
