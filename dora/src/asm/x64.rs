@@ -2,6 +2,11 @@ use crate::asm::{Assembler, Label, Register};
 use std::convert::TryInto;
 
 impl Register {
+    pub fn new(value: u8) -> Register {
+        assert!(value < 16);
+        Register(value)
+    }
+
     fn low_bits(self) -> u8 {
         self.0 & 0b111
     }

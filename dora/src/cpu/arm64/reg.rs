@@ -1,3 +1,5 @@
+use crate::asm::arm64 as asm;
+use crate::asm::Register;
 use crate::cpu::{FReg, Reg};
 use crate::ty::SourceType;
 
@@ -110,6 +112,19 @@ impl Reg {
 
     pub fn is_gpr_or_sp(self) -> bool {
         self.is_gpr() || self == REG_SP
+    }
+}
+
+impl From<Reg> for Register {
+    fn from(reg: Reg) -> Register {
+        if reg.0 < 31 {
+            Register::new(reg.0)
+        } else if reg == REG_ZERO {
+            asm::REG_ZERO
+        } else {
+            assert_eq!(reg, REG_SP);
+            asm::REG_SP
+        }
     }
 }
 

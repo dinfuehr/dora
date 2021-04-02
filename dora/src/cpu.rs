@@ -1,7 +1,5 @@
 use std::convert::From;
 
-use crate::asm::Register as AsmRegister;
-
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
 
@@ -20,12 +18,6 @@ pub struct Reg(pub u8);
 impl From<Reg> for u32 {
     fn from(reg: Reg) -> u32 {
         reg.0 as u32
-    }
-}
-
-impl From<Reg> for AsmRegister {
-    fn from(reg: Reg) -> AsmRegister {
-        AsmRegister::new(reg.0)
     }
 }
 

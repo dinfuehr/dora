@@ -15,12 +15,6 @@ use std::convert::TryInto;
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Register(u8);
 
-impl Register {
-    pub fn new(value: u8) -> Register {
-        Register(value)
-    }
-}
-
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct FloatRegister(u8);
 

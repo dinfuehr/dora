@@ -37,6 +37,11 @@ pub const REG_ZERO: Register = Register(31);
 pub const REG_SP: Register = Register(32);
 
 impl Register {
+    pub fn new(value: u8) -> Register {
+        assert!(value < 31);
+        Register(value)
+    }
+
     fn encoding(self) -> u32 {
         debug_assert!(self.is_gpr());
         self.0 as u32
@@ -276,6 +281,22 @@ impl Assembler {
 
     pub fn cnt(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
         self.emit_u32(cls::simd_2regs_misc(q, 0, size, 0b00101, rn, rd));
+    }
+
+    pub fn csel(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(sf, 0, 0, rm, cond, 0, rn, rd));
+    }
+
+    pub fn cset(&mut self, sf: u32, rd: Register, cond: Cond) {
+        self.csinc(sf, rd, REG_ZERO, REG_ZERO, cond.invert());
+    }
+
+    pub fn csinc(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(sf, 0, 0, rm, cond, 1, rn, rd));
+    }
+
+    pub fn csinv(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(sf, 1, 0, rm, cond, 0, rn, rd));
     }
 
     pub fn fadd(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
@@ -613,6 +634,35 @@ mod cls {
         let imm = (imm19 as u32) & 0x7FFFF;
 
         0b01010100u32 << 24 | imm << 5 | cond.u32()
+    }
+
+    pub(super) fn csel(
+        sf: u32,
+        op: u32,
+        s: u32,
+        rm: Register,
+        cond: Cond,
+        op2: u32,
+        rn: Register,
+        rd: Register,
+    ) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_bit(op));
+        assert!(fits_bit(s));
+        assert!(rm.is_gpr_or_zero());
+        assert!(fits_bit(op2));
+        assert!(rn.is_gpr_or_zero());
+        assert!(rd.is_gpr());
+
+        0b11010100u32 << 21
+            | sf << 31
+            | op << 30
+            | s << 29
+            | rm.encoding_zero() << 16
+            | cond.u32() << 12
+            | op2 << 10
+            | rn.encoding_zero() << 5
+            | rd.encoding()
     }
 
     pub(super) fn dataproc1(
@@ -1373,5 +1423,43 @@ mod tests {
     fn test_ldst_pair_post() {
         assert_emit!(0xa8fe7bfd; ldp_post(1, REG_FP, REG_LR, REG_SP, -4));
         assert_emit!(0x28c40440; ldp_post(0, R0, R1, R2, 8));
+    }
+
+    #[test]
+    fn test_csel() {
+        assert_emit!(0x1a821020; csel(0, R0, R1, R2, Cond::NE));
+        assert_emit!(0x9a856083; csel(1, R3, R4, R5, Cond::VS));
+    }
+
+    #[test]
+    fn test_csinc() {
+        assert_emit!(0x1a821420; csinc(0, R0, R1, R2, Cond::NE));
+        assert_emit!(0x9a856483; csinc(1, R3, R4, R5, Cond::VS));
+    }
+
+    #[test]
+    fn test_cset() {
+        assert_emit!(0x1a9f17e0; cset(0, R0, Cond::EQ));
+        assert_emit!(0x9a9fc7e3; cset(1, R3, Cond::LE));
+
+        assert_emit!(0x1a9f17e0; cset(0, R0, Cond::EQ));
+        assert_emit!(0x1a9f07e0; cset(0, R0, Cond::NE));
+        assert_emit!(0x1a9f37e0; cset(0, R0, Cond::CS));
+        assert_emit!(0x1a9f37e0; cset(0, R0, Cond::HS));
+
+        assert_emit!(0x1a9f27e0; cset(0, R0, Cond::CC));
+        assert_emit!(0x1a9f27e0; cset(0, R0, Cond::LO));
+        assert_emit!(0x1a9f57e0; cset(0, R0, Cond::MI));
+        assert_emit!(0x1a9f47e0; cset(0, R0, Cond::PL));
+
+        assert_emit!(0x1a9f77e0; cset(0, R0, Cond::VS));
+        assert_emit!(0x1a9f67e0; cset(0, R0, Cond::VC));
+        assert_emit!(0x1a9f97e0; cset(0, R0, Cond::HI));
+        assert_emit!(0x1a9f87e0; cset(0, R0, Cond::LS));
+
+        assert_emit!(0x1a9fb7e0; cset(0, R0, Cond::GE));
+        assert_emit!(0x1a9fa7e0; cset(0, R0, Cond::LT));
+        assert_emit!(0x1a9fd7e0; cset(0, R0, Cond::GT));
+        assert_emit!(0x1a9fc7e0; cset(0, R0, Cond::LE));
     }
 }

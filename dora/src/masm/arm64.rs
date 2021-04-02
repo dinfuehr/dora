@@ -228,7 +228,7 @@ impl MacroAssembler {
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
-        self.emit_u32(asm::cset(0, dest, op.into()));
+        self.asm.cset(0, dest.into(), op.into());
     }
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
@@ -710,8 +710,9 @@ impl MacroAssembler {
         let sf = size_flag(mode);
 
         self.emit_u32(asm::cmp_reg(sf, lhs, rhs));
-        self.emit_u32(asm::cset(0, dest, Cond::NE));
-        self.emit_u32(asm::csinv(0, dest, dest, REG_ZERO, Cond::GE));
+        self.asm.cset(0, dest.into(), Cond::NE);
+        self.asm
+            .csinv(0, dest.into(), dest.into(), REG_ZERO.into(), Cond::GE);
     }
 
     pub fn float_cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
@@ -722,10 +723,11 @@ impl MacroAssembler {
         };
 
         self.asm.fcmp(dbl, lhs.into(), rhs.into());
-        self.emit_u32(asm::cset(0, dest, Cond::GT));
+        self.asm.cset(0, dest.into(), Cond::GT);
         let scratch = self.get_scratch();
         self.emit_u32(asm::movn(0, *scratch, 0, 0));
-        self.emit_u32(asm::csel(0, dest, *scratch, dest, Cond::MI));
+        self.asm
+            .csel(0, dest.into(), (*scratch).into(), dest.into(), Cond::MI);
     }
 
     pub fn float_cmp(
@@ -753,7 +755,7 @@ impl MacroAssembler {
         };
 
         self.asm.fcmp(dbl, lhs.into(), rhs.into());
-        self.emit_u32(asm::cset(0, dest, cond));
+        self.asm.cset(0, dest.into(), cond);
     }
 
     pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
@@ -764,7 +766,7 @@ impl MacroAssembler {
         };
 
         self.asm.fcmp(dbl, src.into(), src.into());
-        self.emit_u32(asm::cset(0, dest, Cond::VS));
+        self.asm.cset(0, dest.into(), Cond::VS);
     }
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {

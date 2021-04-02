@@ -402,42 +402,6 @@ fn cls_logical_shreg(
         | rd.asm()
 }
 
-pub fn csel(sf: u32, rd: Reg, rn: Reg, rm: Reg, cond: Cond) -> u32 {
-    cls_csel(sf, 0, 0, rm, cond, 0, rn, rd)
-}
-
-pub fn csinc(sf: u32, rd: Reg, rn: Reg, rm: Reg, cond: Cond) -> u32 {
-    cls_csel(sf, 0, 0, rm, cond, 1, rn, rd)
-}
-
-pub fn csinv(sf: u32, rd: Reg, rn: Reg, rm: Reg, cond: Cond) -> u32 {
-    cls_csel(sf, 1, 0, rm, cond, 0, rn, rd)
-}
-
-pub fn cset(sf: u32, rd: Reg, cond: Cond) -> u32 {
-    csinc(sf, rd, REG_ZERO, REG_ZERO, cond.invert())
-}
-
-fn cls_csel(sf: u32, op: u32, s: u32, rm: Reg, cond: Cond, op2: u32, rn: Reg, rd: Reg) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(op));
-    assert!(fits_bit(s));
-    assert!(rm.is_gpr_or_zero());
-    assert!(fits_bit(op2));
-    assert!(rn.is_gpr_or_zero());
-    assert!(rd.is_gpr());
-
-    0b11010100u32 << 21
-        | sf << 31
-        | op << 30
-        | s << 29
-        | rm.asm() << 16
-        | cond.u32() << 12
-        | op2 << 10
-        | rn.asm() << 5
-        | rd.asm()
-}
-
 pub fn movn(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
     cls_move_wide_imm(sf, 0b00, shift, imm16, rd)
 }
@@ -976,44 +940,6 @@ mod tests {
         assert_emit!(0x6b060cbf; cmp_shreg(0, R5, R6, Shift::LSL, 3));
         assert_emit!(0xeb0600bf; cmp_reg(1, R5, R6));
         assert_emit!(0xeb060cbf; cmp_shreg(1, R5, R6, Shift::LSL, 3));
-    }
-
-    #[test]
-    fn test_csel() {
-        assert_emit!(0x1a821020; csel(0, R0, R1, R2, Cond::NE));
-        assert_emit!(0x9a856083; csel(1, R3, R4, R5, Cond::VS));
-    }
-
-    #[test]
-    fn test_csinc() {
-        assert_emit!(0x1a821420; csinc(0, R0, R1, R2, Cond::NE));
-        assert_emit!(0x9a856483; csinc(1, R3, R4, R5, Cond::VS));
-    }
-
-    #[test]
-    fn test_cset() {
-        assert_emit!(0x1a9f17e0; cset(0, R0, Cond::EQ));
-        assert_emit!(0x9a9fc7e3; cset(1, R3, Cond::LE));
-
-        assert_emit!(0x1a9f17e0; cset(0, R0, Cond::EQ));
-        assert_emit!(0x1a9f07e0; cset(0, R0, Cond::NE));
-        assert_emit!(0x1a9f37e0; cset(0, R0, Cond::CS));
-        assert_emit!(0x1a9f37e0; cset(0, R0, Cond::HS));
-
-        assert_emit!(0x1a9f27e0; cset(0, R0, Cond::CC));
-        assert_emit!(0x1a9f27e0; cset(0, R0, Cond::LO));
-        assert_emit!(0x1a9f57e0; cset(0, R0, Cond::MI));
-        assert_emit!(0x1a9f47e0; cset(0, R0, Cond::PL));
-
-        assert_emit!(0x1a9f77e0; cset(0, R0, Cond::VS));
-        assert_emit!(0x1a9f67e0; cset(0, R0, Cond::VC));
-        assert_emit!(0x1a9f97e0; cset(0, R0, Cond::HI));
-        assert_emit!(0x1a9f87e0; cset(0, R0, Cond::LS));
-
-        assert_emit!(0x1a9fb7e0; cset(0, R0, Cond::GE));
-        assert_emit!(0x1a9fa7e0; cset(0, R0, Cond::LT));
-        assert_emit!(0x1a9fd7e0; cset(0, R0, Cond::GT));
-        assert_emit!(0x1a9fc7e0; cset(0, R0, Cond::LE));
     }
 
     #[test]

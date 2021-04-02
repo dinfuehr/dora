@@ -1,8 +1,9 @@
-use std::sync::atomic::{compiler_fence, Ordering};
-
-use crate::ty::SourceType;
 use lazy_static::lazy_static;
 use raw_cpuid::{CpuId, ExtendedFeatures, FeatureInfo};
+use std::sync::atomic::{compiler_fence, Ordering};
+
+use crate::asm::Register;
+use crate::ty::SourceType;
 
 pub fn flush_icache(_: *const u8, _: usize) {
     // no flushing needed on x86_64, but emit compiler barrier
@@ -150,6 +151,12 @@ impl Reg {
         assert!(self != RIP);
 
         self.int() & 0x07
+    }
+}
+
+impl From<Reg> for Register {
+    fn from(reg: Reg) -> Register {
+        Register::new(reg.0)
     }
 }
 
