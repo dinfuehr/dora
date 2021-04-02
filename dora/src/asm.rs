@@ -127,15 +127,4 @@ impl Assembler {
         }
         self.position += 8;
     }
-
-    fn patch_u8(&mut self, idx: u32, value: u8) {
-        self.code[idx as usize] = value;
-    }
-
-    fn patch_u32(&mut self, idx: u32, value: u32) {
-        self.code[idx as usize] = (value & 0xFF) as u8;
-        self.code[idx as usize + 1] = ((value >> 8) & 0xFF) as u8;
-        self.code[idx as usize + 2] = ((value >> 16) & 0xFF) as u8;
-        self.code[idx as usize + 3] = ((value >> 24) & 0xFF) as u8;
-    }
 }

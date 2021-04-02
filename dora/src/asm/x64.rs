@@ -65,24 +65,30 @@ impl Assembler {
     pub(super) fn resolve_jumps(&mut self) {
         let unresolved_jumps = std::mem::replace(&mut self.unresolved_jumps, Vec::new());
 
+        let old_position = self.position();
+
         for (pc, lbl, distance) in unresolved_jumps {
             if let Some(lbl_offset) = self.offset(lbl) {
+                self.set_position(pc as usize);
+
                 match distance {
                     JumpKind::Near => {
                         let distance: i32 = lbl_offset as i32 - (pc as i32 + 1);
                         assert!(-128 <= distance && distance < 128);
-                        self.patch_u8(pc, distance as u8);
+                        self.emit_u8(distance as u8);
                     }
 
                     JumpKind::Far => {
                         let distance: i32 = lbl_offset as i32 - (pc as i32 + 4);
-                        self.patch_u32(pc, distance as u32);
+                        self.emit_u32(distance as u32);
                     }
                 }
             } else {
                 panic!("unbound label");
             }
         }
+
+        self.set_position(old_position);
     }
 
     pub fn pushq_r(&mut self, reg: Register) {
