@@ -132,30 +132,39 @@ impl Assembler {
     pub(super) fn resolve_jumps(&mut self) {
         let unresolved_jumps = std::mem::replace(&mut self.unresolved_jumps, Vec::new());
 
+        let old_position = self.position();
+
         for (pc, lbl, kind) in unresolved_jumps {
             if let Some(lbl_offset) = self.offset(lbl) {
                 let distance: i32 = lbl_offset as i32 - pc as i32;
                 assert!(distance % 4 == 0);
                 let distance = distance / 4;
 
+                self.set_position(pc as usize);
+
                 match kind {
                     JumpKind::Conditional(cond) => {
-                        self.patch_u32(pc, inst::b_cond_imm(cond.into(), distance));
+                        self.bc_i(cond.into(), distance);
                     }
 
                     JumpKind::Unconditional => {
-                        self.patch_u32(pc, inst::b_i(distance));
+                        self.b_i(distance);
                     }
 
                     JumpKind::NonZero(sf, rt) => {
-                        let sf = if sf { 1 } else { 0 };
-                        self.patch_u32(pc, inst::cbnz(sf, rt, distance));
+                        if sf {
+                            self.cbnz_i(rt, distance);
+                        } else {
+                            self.cbnzw_i(rt, distance);
+                        }
                     }
                 }
             } else {
                 panic!("unbound label");
             }
         }
+
+        self.set_position(old_position);
     }
 
     pub fn add_imm(&mut self, sf: u32, rd: Register, rn: Register, imm12: u32, shift: u32) {
@@ -205,6 +214,10 @@ impl Assembler {
         self.emit_u32(cls::uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
     }
 
+    pub fn bc_i(&mut self, cond: Cond, diff: i32) {
+        self.emit_u32(inst::b_cond_imm(cond.into(), diff));
+    }
+
     pub fn bc_l(&mut self, cond: Cond, target: Label) {
         let value = self.offset(target);
 
@@ -212,7 +225,7 @@ impl Assembler {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(inst::b_cond_imm(cond.into(), diff / 4));
+                self.bc_i(cond, diff / 4);
             }
 
             None => {
@@ -240,14 +253,14 @@ impl Assembler {
         self.emit_u32(cls::exception(0b001, imm16, 0, 0));
     }
 
-    pub fn cbnzx(&mut self, reg: Register, target: Label) {
+    pub fn cbnz(&mut self, reg: Register, target: Label) {
         let value = self.offset(target);
 
         match value {
             Some(target_offset) => {
                 let diff = -(self.pc() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                self.emit_u32(inst::cbnz(1, reg, diff / 4));
+                self.cbnz_i(reg, diff / 4);
             }
 
             None => {
@@ -257,6 +270,14 @@ impl Assembler {
                     .push((pos, target, JumpKind::NonZero(true, reg)));
             }
         }
+    }
+
+    pub fn cbnz_i(&mut self, reg: Register, diff: i32) {
+        self.emit_u32(inst::cbnz(1, reg, diff));
+    }
+
+    pub fn cbnzw_i(&mut self, reg: Register, diff: i32) {
+        self.emit_u32(inst::cbnz(0, reg, diff));
     }
 
     pub fn clsw(&mut self, rd: Register, rn: Register) {
@@ -435,6 +456,18 @@ impl Assembler {
 
     pub fn madd(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, ra: Register) {
         self.emit_u32(cls::dataproc3(sf, 0, 0, rm, 0, ra, rn, rd));
+    }
+
+    pub fn movn(&mut self, sf: u32, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(sf, 0b00, shift, imm16, rd));
+    }
+
+    pub fn movz(&mut self, sf: u32, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(sf, 0b10, shift, imm16, rd));
+    }
+
+    pub fn movk(&mut self, sf: u32, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(sf, 0b11, shift, imm16, rd));
     }
 
     pub fn msub(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, ra: Register) {
@@ -961,6 +994,19 @@ mod cls {
             | rt.encoding()
     }
 
+    pub(super) fn move_wide_imm(sf: u32, opc: u32, hw: u32, imm16: u32, rd: Register) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_u2(opc));
+        assert!(fits_u2(hw));
+        if sf == 0 {
+            assert!(fits_bit(hw));
+        }
+        assert!(fits_u16(imm16));
+        assert!(rd.is_gpr());
+
+        0b100101u32 << 23 | sf << 31 | opc << 29 | hw << 21 | imm16 << 5 | rd.encoding()
+    }
+
     pub(super) fn simd_across_lanes(
         q: u32,
         u: u32,
@@ -1461,5 +1507,12 @@ mod tests {
         assert_emit!(0x1a9fa7e0; cset(0, R0, Cond::LT));
         assert_emit!(0x1a9fd7e0; cset(0, R0, Cond::GT));
         assert_emit!(0x1a9fc7e0; cset(0, R0, Cond::LE));
+    }
+
+    #[test]
+    fn test_mov_imm() {
+        assert_emit!(0x12800100; movn(0, R0, 8, 0));
+        assert_emit!(0x52800100; movz(0, R0, 8, 0));
+        assert_emit!(0x72a00100; movk(0, R0, 8, 1));
     }
 }

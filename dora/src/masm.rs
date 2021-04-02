@@ -205,7 +205,7 @@ impl MacroAssembler {
     }
 
     pub fn emit_u8(&mut self, value: u8) {
-        self.asm.code_mut().write_u8(value).unwrap();
+        self.asm.emit_u8(value);
     }
 
     pub fn emit_u8_at(&mut self, pos: i32, value: u8) {
@@ -213,10 +213,7 @@ impl MacroAssembler {
     }
 
     pub fn emit_u32(&mut self, value: u32) {
-        self.asm
-            .code_mut()
-            .write_u32::<LittleEndian>(value)
-            .unwrap();
+        self.asm.emit_u32(value);
     }
 
     pub fn emit_u32_at(&mut self, pos: i32, value: u32) {

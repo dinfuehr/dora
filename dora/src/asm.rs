@@ -1,3 +1,5 @@
+use byteorder::{LittleEndian, WriteBytesExt};
+
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
 
@@ -25,6 +27,7 @@ pub struct Assembler {
     code: Vec<u8>,
     labels: Vec<Option<u32>>,
     unresolved_jumps: Vec<(u32, Label, JumpKind)>,
+    position: usize,
 }
 
 impl Assembler {
@@ -33,6 +36,7 @@ impl Assembler {
             code: Vec::new(),
             labels: Vec::new(),
             unresolved_jumps: Vec::new(),
+            position: 0,
         }
     }
 
@@ -81,20 +85,47 @@ impl Assembler {
         self.code
     }
 
-    fn emit_u8(&mut self, value: u8) {
-        self.code.push(value);
+    pub fn position(&self) -> usize {
+        self.position
     }
 
-    fn emit_u32(&mut self, value: u32) {
-        self.emit_u8(value as u8);
-        self.emit_u8((value >> 8) as u8);
-        self.emit_u8((value >> 16) as u8);
-        self.emit_u8((value >> 24) as u8);
+    pub fn set_position(&mut self, pos: usize) {
+        self.position = pos;
     }
 
-    fn emit_u64(&mut self, value: u64) {
-        self.emit_u32(value as u32);
-        self.emit_u32((value >> 32) as u32);
+    pub fn set_position_end(&mut self) {
+        self.position = self.code.len();
+    }
+
+    pub fn emit_u8(&mut self, value: u8) {
+        if self.position == self.code.len() {
+            self.code.push(value);
+        } else {
+            self.code[self.position] = value;
+        }
+        self.position += 1;
+    }
+
+    pub fn emit_u32(&mut self, value: u32) {
+        if self.position == self.code.len() {
+            self.code.write_u32::<LittleEndian>(value).unwrap()
+        } else {
+            (&mut self.code[self.position..])
+                .write_u32::<LittleEndian>(value)
+                .unwrap();
+        }
+        self.position += 4;
+    }
+
+    pub fn emit_u64(&mut self, value: u64) {
+        if self.position == self.code.len() {
+            self.code.write_u64::<LittleEndian>(value).unwrap()
+        } else {
+            (&mut self.code[self.position..])
+                .write_u64::<LittleEndian>(value)
+                .unwrap();
+        }
+        self.position += 8;
     }
 
     fn patch_u8(&mut self, idx: u32, value: u8) {

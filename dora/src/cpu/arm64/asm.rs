@@ -402,31 +402,6 @@ fn cls_logical_shreg(
         | rd.asm()
 }
 
-pub fn movn(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
-    cls_move_wide_imm(sf, 0b00, shift, imm16, rd)
-}
-
-pub fn movz(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
-    cls_move_wide_imm(sf, 0b10, shift, imm16, rd)
-}
-
-pub fn movk(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
-    cls_move_wide_imm(sf, 0b11, shift, imm16, rd)
-}
-
-fn cls_move_wide_imm(sf: u32, opc: u32, hw: u32, imm16: u32, rd: Reg) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_u2(opc));
-    assert!(fits_u2(hw));
-    if sf == 0 {
-        assert!(fits_bit(hw));
-    }
-    assert!(fits_u16(imm16));
-    assert!(rd.is_gpr());
-
-    0b100101u32 << 23 | sf << 31 | opc << 29 | hw << 21 | imm16 << 5 | rd.asm()
-}
-
 pub fn adr(rd: Reg, imm: i32) -> u32 {
     cls_pcrel(0, imm, rd)
 }
@@ -940,13 +915,6 @@ mod tests {
         assert_emit!(0x6b060cbf; cmp_shreg(0, R5, R6, Shift::LSL, 3));
         assert_emit!(0xeb0600bf; cmp_reg(1, R5, R6));
         assert_emit!(0xeb060cbf; cmp_shreg(1, R5, R6, Shift::LSL, 3));
-    }
-
-    #[test]
-    fn test_mov_imm() {
-        assert_emit!(0x12800100; movn(0, R0, 8, 0));
-        assert_emit!(0x52800100; movz(0, R0, 8, 0));
-        assert_emit!(0x72a00100; movk(0, R0, 8, 1));
     }
 
     #[test]

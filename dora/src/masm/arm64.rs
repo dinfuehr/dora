@@ -31,8 +31,8 @@ impl MacroAssembler {
 
         let patch_offset = self.pos();
 
-        self.emit_u32(asm::movz(1, REG_TMP1, 0, 0));
-        self.emit_u32(asm::movk(1, REG_TMP1, 0, 1));
+        self.asm.movz(1, REG_TMP1.into(), 0, 0);
+        self.asm.movk(1, REG_TMP1.into(), 0, 1);
         self.emit_u32(asm::sub_extreg(
             1,
             REG_SP,
@@ -72,14 +72,11 @@ impl MacroAssembler {
 
     pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
         let stacksize = stacksize as u32;
-        self.emit_u32_at(
-            patch_offset as i32,
-            asm::movz(1, REG_TMP1, stacksize & 0xFFFF, 0),
-        );
-        self.emit_u32_at(
-            (patch_offset + 4) as i32,
-            asm::movk(1, REG_TMP1, (stacksize >> 16) & 0xFFFF, 1),
-        );
+        self.asm.set_position(patch_offset);
+        self.asm.movz(1, REG_TMP1.into(), stacksize & 0xFFFF, 0);
+        self.asm
+            .movk(1, REG_TMP1.into(), (stacksize >> 16) & 0xFFFF, 1);
+        self.asm.set_position_end();
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
@@ -101,7 +98,7 @@ impl MacroAssembler {
     pub fn safepoint(&mut self, lbl_safepoint: Label) {
         let offset = ThreadLocalData::safepoint_requested_offset() as u32;
         self.emit_u32(asm::ldrb_imm(REG_TMP1, REG_THREAD, offset));
-        self.asm.cbnzx(REG_TMP1.into(), lbl_safepoint);
+        self.asm.cbnz(REG_TMP1.into(), lbl_safepoint);
     }
 
     pub fn fix_result(&mut self, _result: Reg, _mode: MachineMode) {
@@ -725,7 +722,7 @@ impl MacroAssembler {
         self.asm.fcmp(dbl, lhs.into(), rhs.into());
         self.asm.cset(0, dest.into(), Cond::GT);
         let scratch = self.get_scratch();
-        self.emit_u32(asm::movn(0, *scratch, 0, 0));
+        self.asm.movn(0, (*scratch).into(), 0, 0);
         self.asm
             .csel(0, dest.into(), (*scratch).into(), dest.into(), Cond::MI);
     }
@@ -860,7 +857,7 @@ impl MacroAssembler {
     }
 
     pub fn load_nil(&mut self, dest: Reg) {
-        self.emit_u32(movz(1, dest, 0, 0));
+        self.asm.movz(1, dest.into(), 0, 0);
     }
 
     pub fn load_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
@@ -1201,11 +1198,11 @@ impl MacroAssembler {
         if fits_movz(imm, register_size) {
             let shift = shift_movz(imm);
             let imm = ((imm >> (shift * 16)) & 0xFFFF) as u32;
-            self.emit_u32(movz(sf, dest, imm, shift));
+            self.asm.movz(sf, dest.into(), imm, shift);
         } else if fits_movn(imm, register_size) {
             let shift = shift_movn(imm);
             let imm = (((!imm) >> (shift * 16)) & 0xFFFF) as u32;
-            self.emit_u32(movn(sf, dest, imm, shift));
+            self.asm.movn(sf, dest.into(), imm, shift);
         } else {
             let (halfword, invert) = if count_empty_half_words(!imm, register_size)
                 > count_empty_half_words(imm, register_size)
@@ -1223,17 +1220,16 @@ impl MacroAssembler {
 
                 if cur_halfword != halfword {
                     if first {
-                        let insn = if invert {
-                            asm::movn(sf, dest, (!cur_halfword) & 0xFFFF, ind)
+                        if invert {
+                            self.asm
+                                .movn(sf, dest.into(), (!cur_halfword) & 0xFFFF, ind)
                         } else {
-                            asm::movz(sf, dest, cur_halfword, ind)
+                            self.asm.movz(sf, dest.into(), cur_halfword, ind)
                         };
 
-                        self.emit_u32(insn);
                         first = false;
                     } else {
-                        let insn = asm::movk(sf, dest, cur_halfword, ind);
-                        self.emit_u32(insn);
+                        self.asm.movk(sf, dest.into(), cur_halfword, ind);
                     }
                 }
             }
@@ -1241,11 +1237,11 @@ impl MacroAssembler {
     }
 
     pub fn load_true(&mut self, dest: Reg) {
-        self.emit_u32(movz(0, dest, 1, 0));
+        self.asm.movz(0, dest.into(), 1, 0);
     }
 
     pub fn load_false(&mut self, dest: Reg) {
-        self.emit_u32(movz(0, dest, 0, 0));
+        self.asm.movz(0, dest.into(), 0, 0);
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
@@ -1271,7 +1267,7 @@ impl MacroAssembler {
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
         let scratch = self.get_scratch();
 
-        self.emit_u32(movz(0, *scratch, 1, 0));
+        self.asm.movz(0, (*scratch).into(), 1, 0);
         self.emit_u32(eor_shreg(0, dest, src, *scratch, Shift::LSL, 0));
         self.asm.uxtb(dest.into(), dest.into());
     }
@@ -1482,38 +1478,5 @@ mod tests {
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int8, R1.into(), Mem::Base(R3, 3));
         assert_emit!(i1; masm);
-    }
-
-    #[test]
-    fn test_load_mem_index_ptr() {
-        let i1 = asm::movz(1, R9, 1, 0);
-        let i2 = asm::add_reg(1, R9, R9, R10);
-        let i3 = asm::ldrx_ind(R1, R9, R11, LdStExtend::LSL, 1);
-
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Ptr, R1.into(), Mem::Index(R10, R11, 8, 1));
-        assert_emit!(i1, i2, i3; masm);
-    }
-
-    #[test]
-    fn test_load_mem_index_int32() {
-        let i1 = asm::movz(1, R9, 2, 0);
-        let i2 = asm::add_reg(1, R9, R9, R2);
-        let i3 = asm::ldrw_ind(R1, R9, R12, LdStExtend::LSL, 1);
-
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Int32, R1.into(), Mem::Index(R2, R12, 4, 2));
-        assert_emit!(i1, i2, i3; masm);
-    }
-
-    #[test]
-    fn test_load_mem_index_int8() {
-        let i1 = asm::movz(1, R9, 3, 0);
-        let i2 = asm::add_reg(1, R9, R9, R3);
-        let i3 = asm::ldrb_ind(R1, R9, R13, LdStExtend::LSL, 0);
-
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Int8, R1.into(), Mem::Index(R3, R13, 1, 3));
-        assert_emit!(i1, i2, i3; masm);
     }
 }
