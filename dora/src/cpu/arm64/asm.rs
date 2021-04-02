@@ -1,118 +1,6 @@
-use crate::asm::arm64::Cond;
-use crate::cpu::arm64::reg::*;
+use crate::asm::arm64::{Cond, Shift};
 use crate::cpu::{FReg, Reg};
 use crate::masm::CondCode;
-
-pub fn add_extreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_addsub_extreg(sf, 0, 0, 0, rm, extend, amount, rn, rd)
-}
-
-pub fn sub_extreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_addsub_extreg(sf, 1, 0, 0, rm, extend, amount, rn, rd)
-}
-
-fn cls_addsub_extreg(
-    sf: u32,
-    op: u32,
-    s: u32,
-    opt: u32,
-    rm: Reg,
-    option: Extend,
-    imm3: u32,
-    rn: Reg,
-    rd: Reg,
-) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(op));
-    assert!(fits_bit(s));
-    assert!(opt == 0);
-    assert!(rm.is_gpr_or_zero());
-    assert!(fits_u2(imm3));
-    assert!(rn.is_gpr_or_sp());
-    assert!(rd.is_gpr_or_sp());
-
-    sf << 31
-        | op << 30
-        | s << 29
-        | 0b01011u32 << 24
-        | opt << 22
-        | 1u32 << 21
-        | rm.asm() << 16
-        | option.u32() << 13
-        | imm3 << 10
-        | rn.asm() << 5
-        | rd.asm()
-}
-
-pub fn add_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
-    cls_addsub_shreg(sf, 0, 0, Shift::LSL, rm, 0, rn, rd)
-}
-
-pub fn sub_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
-    cls_addsub_shreg(sf, 1, 0, Shift::LSL, rm, 0, rn, rd)
-}
-
-pub fn adds_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
-    cls_addsub_shreg(sf, 0, 1, Shift::LSL, rm, 0, rn, rd)
-}
-
-pub fn subs_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
-    cls_addsub_shreg(sf, 1, 1, Shift::LSL, rm, 0, rn, rd)
-}
-
-pub fn cmp_reg(sf: u32, rn: Reg, rm: Reg) -> u32 {
-    subs_reg(sf, REG_ZERO, rn, rm)
-}
-
-pub fn add_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, amount: u32) -> u32 {
-    cls_addsub_shreg(sf, 0, 0, shift, rm, amount, rn, rd)
-}
-
-pub fn sub_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, amount: u32) -> u32 {
-    cls_addsub_shreg(sf, 1, 0, shift, rm, amount, rn, rd)
-}
-
-pub fn adds_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, amount: u32) -> u32 {
-    cls_addsub_shreg(sf, 0, 1, shift, rm, amount, rn, rd)
-}
-
-pub fn subs_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, amount: u32) -> u32 {
-    cls_addsub_shreg(sf, 1, 1, shift, rm, amount, rn, rd)
-}
-
-pub fn cmp_shreg(sf: u32, rn: Reg, rm: Reg, shift: Shift, amount: u32) -> u32 {
-    cls_addsub_shreg(sf, 1, 1, shift, rm, amount, rn, REG_ZERO)
-}
-
-fn cls_addsub_shreg(
-    sf: u32,
-    op: u32,
-    s: u32,
-    shift: Shift,
-    rm: Reg,
-    imm6: u32,
-    rn: Reg,
-    rd: Reg,
-) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_bit(op));
-    assert!(fits_bit(s));
-    assert!(!shift.is_ror());
-    assert!(rm.is_gpr());
-    assert!(fits_u5(imm6));
-    assert!(rn.is_gpr_or_zero());
-    assert!(rd.is_gpr_or_zero());
-
-    0b01011u32 << 24
-        | sf << 31
-        | op << 30
-        | s << 29
-        | shift.u32() << 22
-        | rm.asm() << 16
-        | imm6 << 10
-        | rn.asm() << 5
-        | rd.asm()
-}
 
 pub fn ldrb_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
     assert!(rt.is_gpr());
@@ -510,43 +398,6 @@ impl From<CondCode> for Cond {
 }
 
 #[derive(Copy, Clone)]
-pub enum Extend {
-    UXTB,
-    UXTH,
-    LSL,
-    UXTW,
-    UXTX,
-    SXTB,
-    SXTH,
-    SXTW,
-    SXTX,
-}
-
-impl Extend {
-    fn is_ldr(self) -> bool {
-        match self {
-            Extend::UXTW | Extend::LSL | Extend::SXTW | Extend::SXTX => true,
-
-            _ => false,
-        }
-    }
-
-    fn u32(self) -> u32 {
-        match self {
-            Extend::UXTB => 0b000,
-            Extend::UXTH => 0b001,
-            Extend::LSL => 0b010,
-            Extend::UXTW => 0b010,
-            Extend::UXTX => 0b011,
-            Extend::SXTB => 0b100,
-            Extend::SXTH => 0b101,
-            Extend::SXTW => 0b110,
-            Extend::SXTX => 0b111,
-        }
-    }
-}
-
-#[derive(Copy, Clone)]
 pub enum LdStExtend {
     UXTW,
     LSL,
@@ -561,32 +412,6 @@ impl LdStExtend {
             LdStExtend::LSL => 0b011,
             LdStExtend::SXTW => 0b110,
             LdStExtend::SXTX => 0b111,
-        }
-    }
-}
-
-#[derive(Copy, Clone)]
-pub enum Shift {
-    LSL,
-    LSR,
-    ASR,
-    ROR,
-}
-
-impl Shift {
-    fn is_ror(self) -> bool {
-        match self {
-            Shift::ROR => true,
-            _ => false,
-        }
-    }
-
-    fn u32(self) -> u32 {
-        match self {
-            Shift::LSL => 0,
-            Shift::LSR => 1,
-            Shift::ASR => 2,
-            Shift::ROR => 3,
         }
     }
 }
@@ -704,6 +529,7 @@ pub fn count_empty_half_words(mut imm: u64, register_size: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cpu::arm64::reg::*;
 
     macro_rules! assert_emit {
         ($exp: expr; $val: expr) => {{
@@ -766,38 +592,6 @@ mod tests {
         assert!(fits_i12(2047));
         assert!(!fits_i12(-2049));
         assert!(!fits_i12(2048));
-    }
-
-    #[test]
-    fn test_add_shreg() {
-        assert_emit!(0x0b030441; add_shreg(0, R1, R2, R3, Shift::LSL, 1));
-        assert_emit!(0x8b0608a4; add_shreg(1, R4, R5, R6, Shift::LSL, 2));
-        assert_emit!(0x0b430441; add_shreg(0, R1, R2, R3, Shift::LSR, 1));
-        assert_emit!(0x8b8608a4; add_shreg(1, R4, R5, R6, Shift::ASR, 2));
-    }
-
-    #[test]
-    fn test_sub_shreg() {
-        assert_emit!(0x4b030441; sub_shreg(0, R1, R2, R3, Shift::LSL, 1));
-        assert_emit!(0xcb0608a4; sub_shreg(1, R4, R5, R6, Shift::LSL, 2));
-        assert_emit!(0x4b430441; sub_shreg(0, R1, R2, R3, Shift::LSR, 1));
-        assert_emit!(0xcb8608a4; sub_shreg(1, R4, R5, R6, Shift::ASR, 2));
-    }
-
-    #[test]
-    fn test_add_reg() {
-        assert_emit!(0x0b010000; add_reg(0, R0, R0, R1));
-        assert_emit!(0x8b010000; add_reg(1, R0, R0, R1));
-        assert_emit!(0x0b030041; add_reg(0, R1, R2, R3));
-        assert_emit!(0x8b030041; add_reg(1, R1, R2, R3));
-    }
-
-    #[test]
-    fn test_sub_reg() {
-        assert_emit!(0x4b010000; sub_reg(0, R0, R0, R1));
-        assert_emit!(0xcb010000; sub_reg(1, R0, R0, R1));
-        assert_emit!(0x4b030041; sub_reg(0, R1, R2, R3));
-        assert_emit!(0xcb030041; sub_reg(1, R1, R2, R3));
     }
 
     #[test]
@@ -881,22 +675,6 @@ mod tests {
     }
 
     #[test]
-    fn test_adds_subs() {
-        assert_emit!(0x2b030041; adds_reg(0, R1, R2, R3));
-        assert_emit!(0xeb0600a4; subs_reg(1, R4, R5, R6));
-        assert_emit!(0x2b830841; adds_shreg(0, R1, R2, R3, Shift::ASR, 2));
-        assert_emit!(0xeb060ca4; subs_shreg(1, R4, R5, R6, Shift::LSL, 3));
-    }
-
-    #[test]
-    fn test_cmp() {
-        assert_emit!(0x6b0600bf; cmp_reg(0, R5, R6));
-        assert_emit!(0x6b060cbf; cmp_shreg(0, R5, R6, Shift::LSL, 3));
-        assert_emit!(0xeb0600bf; cmp_reg(1, R5, R6));
-        assert_emit!(0xeb060cbf; cmp_shreg(1, R5, R6, Shift::LSL, 3));
-    }
-
-    #[test]
     fn test_count_empty_half_words() {
         assert_eq!(4, count_empty_half_words(0, 64));
         assert_eq!(3, count_empty_half_words(1, 64));
@@ -951,14 +729,6 @@ mod tests {
         assert_eq!(0, shift_movn(1));
         assert_eq!(1, shift_movn(0xFFFF));
         assert_eq!(2, shift_movn(0xFFFFFFFF));
-    }
-
-    #[test]
-    fn test_add_extreg() {
-        assert_eq!(0x8b22643f, add_extreg(1, REG_SP, R1, R2, Extend::UXTX, 1));
-        assert_eq!(0x8b226be1, add_extreg(1, R1, REG_SP, R2, Extend::UXTX, 2));
-        assert_eq!(0x0b22443f, add_extreg(0, REG_SP, R1, R2, Extend::UXTW, 1));
-        assert_eq!(0x0b2243e1, add_extreg(0, R1, REG_SP, R2, Extend::UXTW, 0));
     }
 
     #[test]
