@@ -486,6 +486,130 @@ impl Assembler {
         self.emit_u32(cls::ldst_pair_post(opc, 0, 1, imm7, rt2, rn, rt));
     }
 
+    pub fn ldr_ind(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr());
+        self.emit_u32(cls::ldst_regoffset(
+            0b11,
+            0,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldrb_ind(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr());
+        self.emit_u32(cls::ldst_regoffset(
+            0b00,
+            0,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldrd_ind(
+        &mut self,
+        rt: FloatRegister,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        self.emit_u32(cls::ldst_regoffset(
+            0b11,
+            1,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldrh_ind(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr());
+        self.emit_u32(cls::ldst_regoffset(
+            0b01,
+            0,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldrs_ind(
+        &mut self,
+        rt: FloatRegister,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        self.emit_u32(cls::ldst_regoffset(
+            0b10,
+            1,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldrw_ind(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr());
+        self.emit_u32(cls::ldst_regoffset(
+            0b10,
+            0,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
     pub fn stp(&mut self, sf: u32, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         assert!(fits_bit(sf));
         let opc = if sf != 0 { 0b10 } else { 0b00 };
@@ -498,6 +622,131 @@ impl Assembler {
 
         let opc = if sf != 0 { 0b10 } else { 0b00 };
         self.emit_u32(cls::ldst_pair_pre(opc, 0, 0, imm7, rt2, rn, rt));
+    }
+
+    pub fn str_ind(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr_or_zero());
+        self.emit_u32(cls::ldst_regoffset(
+            0b11,
+            0,
+            0b00,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding_zero(),
+        ));
+    }
+
+    pub fn strb_ind(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr_or_zero());
+        self.emit_u32(cls::ldst_regoffset(
+            0b00,
+            0,
+            0b00,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding_zero(),
+        ));
+    }
+
+    pub fn strd_ind(
+        &mut self,
+
+        rt: FloatRegister,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        self.emit_u32(cls::ldst_regoffset(
+            0b11,
+            1,
+            0b00,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn strh_ind(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr_or_zero());
+        self.emit_u32(cls::ldst_regoffset(
+            0b01,
+            0,
+            0b00,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding_zero(),
+        ));
+    }
+
+    pub fn strs_ind(
+        &mut self,
+        rt: FloatRegister,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        self.emit_u32(cls::ldst_regoffset(
+            0b10,
+            1,
+            0b00,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn strw_ind(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: LdStExtend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr_or_zero());
+        self.emit_u32(cls::ldst_regoffset(
+            0b10,
+            0,
+            0b00,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding_zero(),
+        ));
     }
 
     pub fn lsl_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
@@ -1198,6 +1447,37 @@ mod cls {
         0b100101u32 << 23 | sf << 31 | opc << 29 | hw << 21 | imm16 << 5 | rd.encoding()
     }
 
+    pub(super) fn ldst_regoffset(
+        size: u32,
+        v: u32,
+        opc: u32,
+        rm: Register,
+        option: LdStExtend,
+        s: u32,
+        rn: Register,
+        rt: u32,
+    ) -> u32 {
+        assert!(fits_u2(size));
+        assert!(fits_bit(v));
+        assert!(fits_u2(opc));
+        assert!(rm.is_gpr_or_zero());
+        assert!(fits_bit(s));
+        assert!(rn.is_gpr_or_sp());
+        assert!(fits_u5(rt));
+
+        0b111u32 << 27
+            | 1u32 << 21
+            | 0b10u32 << 10
+            | size << 30
+            | v << 26
+            | opc << 22
+            | rm.encoding_zero() << 16
+            | option.u32() << 13
+            | s << 12
+            | rn.encoding_sp() << 5
+            | rt
+    }
+
     pub(super) fn simd_across_lanes(
         q: u32,
         u: u32,
@@ -1431,6 +1711,25 @@ impl Extend {
             Extend::SXTH => 0b101,
             Extend::SXTW => 0b110,
             Extend::SXTX => 0b111,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum LdStExtend {
+    UXTW,
+    LSL,
+    SXTW,
+    SXTX,
+}
+
+impl LdStExtend {
+    fn u32(self) -> u32 {
+        match self {
+            LdStExtend::UXTW => 0b010,
+            LdStExtend::LSL => 0b011,
+            LdStExtend::SXTW => 0b110,
+            LdStExtend::SXTX => 0b111,
         }
     }
 }
@@ -1860,5 +2159,43 @@ mod tests {
         assert_emit!(0xcb010000; sub(R0, R0, R1));
         assert_emit!(0x4b030041; subw(R1, R2, R3));
         assert_emit!(0xcb030041; sub(R1, R2, R3));
+    }
+
+    #[test]
+    fn test_str_ind() {
+        assert_emit!(0x38226820; strb_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0x38256883; strb_ind(R3, R4, R5, LdStExtend::LSL, 0));
+
+        assert_emit!(0x78226820; strh_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0x78256883; strh_ind(R3, R4, R5, LdStExtend::LSL, 0));
+
+        assert_emit!(0xb8226820; strw_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0xb8257883; strw_ind(R3, R4, R5, LdStExtend::LSL, 1));
+        assert_emit!(0xb82858e6; strw_ind(R6, R7, R8, LdStExtend::UXTW, 1));
+        assert_emit!(0xb82bd949; strw_ind(R9, R10, R11, LdStExtend::SXTW, 1));
+
+        assert_emit!(0xf8226820; str_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0xf8257883; str_ind(R3, R4, R5, LdStExtend::LSL, 1));
+        assert_emit!(0xf82858e6; str_ind(R6, R7, R8, LdStExtend::UXTW, 1));
+        assert_emit!(0xf82bd949; str_ind(R9, R10, R11, LdStExtend::SXTW, 1));
+    }
+
+    #[test]
+    fn test_ldr_ind() {
+        assert_emit!(0x38626820; ldrb_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0x38656883; ldrb_ind(R3, R4, R5, LdStExtend::LSL, 0));
+
+        assert_emit!(0x78626820; ldrh_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0x78656883; ldrh_ind(R3, R4, R5, LdStExtend::LSL, 0));
+
+        assert_emit!(0xb8626820; ldrw_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0xb8657883; ldrw_ind(R3, R4, R5, LdStExtend::LSL, 1));
+        assert_emit!(0xb86858e6; ldrw_ind(R6, R7, R8, LdStExtend::UXTW, 1));
+        assert_emit!(0xb86bd949; ldrw_ind(R9, R10, R11, LdStExtend::SXTW, 1));
+
+        assert_emit!(0xf8626820; ldr_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0xf8657883; ldr_ind(R3, R4, R5, LdStExtend::LSL, 1));
+        assert_emit!(0xf86858e6; ldr_ind(R6, R7, R8, LdStExtend::UXTW, 1));
+        assert_emit!(0xf86bd949; ldr_ind(R9, R10, R11, LdStExtend::SXTW, 1));
     }
 }
