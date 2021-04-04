@@ -54,7 +54,8 @@ impl MacroAssembler {
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
         let offset = ThreadLocalData::stack_limit_offset() as u32;
         assert!(offset % 8 == 0);
-        self.emit_u32(asm::ldrx_imm(REG_TMP1, REG_THREAD, offset / 8));
+        self.asm
+            .ldr_imm(REG_TMP1.into(), REG_THREAD.into(), offset / 8);
         self.asm
             .add(REG_TMP2.into(), REG_SP.into(), REG_ZERO.into());
         self.cmp_reg(MachineMode::Ptr, REG_TMP1, REG_TMP2);
@@ -63,7 +64,8 @@ impl MacroAssembler {
 
     pub fn safepoint(&mut self, lbl_safepoint: Label) {
         let offset = ThreadLocalData::safepoint_requested_offset() as u32;
-        self.emit_u32(asm::ldrb_imm(REG_TMP1, REG_THREAD, offset));
+        self.asm
+            .ldrb_imm(REG_TMP1.into(), REG_THREAD.into(), offset);
         self.asm.cbnz(REG_TMP1.into(), lbl_safepoint);
     }
 
@@ -895,27 +897,31 @@ impl MacroAssembler {
     ) {
         if disp >= 0 && disp % mode.size() == 0 && asm::fits_u12((disp / mode.size()) as u32) {
             let disp = (disp / mode.size()) as u32;
-            let inst = match mode {
-                MachineMode::Int8 => asm::ldrb_imm(dest.reg(), base, disp),
-                MachineMode::Int32 => asm::ldrw_imm(dest.reg(), base, disp),
+            match mode {
+                MachineMode::Int8 => self.asm.ldrb_imm(dest.reg().into(), base.into(), disp),
+                MachineMode::Int32 => self.asm.ldrw_imm(dest.reg().into(), base.into(), disp),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::ldrx_imm(dest.reg(), base, disp)
+                    self.asm.ldr_imm(dest.reg().into(), base.into(), disp)
                 }
-                MachineMode::Float32 => asm::ldrs_imm(dest.freg(), base, disp),
-                MachineMode::Float64 => asm::ldrd_imm(dest.freg(), base, disp),
-            };
-            self.emit_u32(inst);
+                MachineMode::Float32 => self.asm.ldrs_imm(dest.freg().into(), base.into(), disp),
+                MachineMode::Float64 => self.asm.ldrd_imm(dest.freg().into(), base.into(), disp),
+            }
         } else if asm::fits_i9(disp) {
-            let inst = match mode {
-                MachineMode::Int8 => asm::ldrb_unscaled_imm(dest.reg(), base, disp),
-                MachineMode::Int32 => asm::ldrw_unscaled_imm(dest.reg(), base, disp),
+            match mode {
+                MachineMode::Int8 => self.asm.ldrb_unscaled(dest.reg().into(), base.into(), disp),
+                MachineMode::Int32 => self.asm.ldrw_unscaled(dest.reg().into(), base.into(), disp),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::ldrx_unscaled_imm(dest.reg(), base, disp)
+                    self.asm.ldr_unscaled(dest.reg().into(), base.into(), disp)
                 }
-                MachineMode::Float32 => asm::ldrs_unscaled_imm(dest.freg(), base, disp),
-                MachineMode::Float64 => asm::ldrd_unscaled_imm(dest.freg(), base, disp),
-            };
-            self.emit_u32(inst);
+                MachineMode::Float32 => {
+                    self.asm
+                        .ldrs_unscaled(dest.freg().into(), base.into(), disp)
+                }
+                MachineMode::Float64 => {
+                    self.asm
+                        .ldrd_unscaled(dest.freg().into(), base.into(), disp)
+                }
+            }
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
@@ -1128,27 +1134,35 @@ impl MacroAssembler {
         if offset >= 0 && offset % mode.size() == 0 && asm::fits_u12((offset / mode.size()) as u32)
         {
             let offset = (offset / mode.size()) as u32;
-            let inst = match mode {
-                MachineMode::Int8 => asm::strb_imm(src.reg(), base, offset),
-                MachineMode::Int32 => asm::strw_imm(src.reg(), base, offset),
+            match mode {
+                MachineMode::Int8 => self.asm.strb_imm(src.reg().into(), base.into(), offset),
+                MachineMode::Int32 => self.asm.strw_imm(src.reg().into(), base.into(), offset),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::strx_imm(src.reg(), base, offset)
+                    self.asm.str_imm(src.reg().into(), base.into(), offset)
                 }
-                MachineMode::Float32 => asm::strs_imm(src.freg(), base, offset),
-                MachineMode::Float64 => asm::strd_imm(src.freg(), base, offset),
-            };
-            self.emit_u32(inst);
+                MachineMode::Float32 => self.asm.strs_imm(src.freg().into(), base.into(), offset),
+                MachineMode::Float64 => self.asm.strd_imm(src.freg().into(), base.into(), offset),
+            }
         } else if asm::fits_i9(offset) {
-            let inst = match mode {
-                MachineMode::Int8 => asm::strb_unscaled_imm(src.reg(), base, offset),
-                MachineMode::Int32 => asm::strw_unscaled_imm(src.reg(), base, offset),
+            match mode {
+                MachineMode::Int8 => self
+                    .asm
+                    .strb_unscaled(src.reg().into(), base.into(), offset),
+                MachineMode::Int32 => self
+                    .asm
+                    .strw_unscaled(src.reg().into(), base.into(), offset),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::strx_unscaled_imm(src.reg(), base, offset)
+                    self.asm.str_unscaled(src.reg().into(), base.into(), offset)
                 }
-                MachineMode::Float32 => asm::strs_unscaled_imm(src.freg(), base, offset),
-                MachineMode::Float64 => asm::strd_unscaled_imm(src.freg(), base, offset),
-            };
-            self.emit_u32(inst);
+                MachineMode::Float32 => {
+                    self.asm
+                        .strs_unscaled_imm(src.freg().into(), base.into(), offset)
+                }
+                MachineMode::Float64 => {
+                    self.asm
+                        .strd_unscaled(src.freg().into(), base.into(), offset)
+                }
+            }
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
@@ -1386,7 +1400,7 @@ impl From<FReg> for FloatRegister {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ty::MachineMode::{Int32, Int8, Ptr};
+    use crate::ty::MachineMode::{Int32, Ptr};
     use byteorder::{LittleEndian, WriteBytesExt};
 
     macro_rules! assert_emit {
@@ -1526,29 +1540,5 @@ mod tests {
         let mut masm = MacroAssembler::new();
         masm.load_int_const(Ptr, R0, !0x10001);
         assert_emit!(0x92800020, 0xF2BFFFC0; masm);
-    }
-
-    #[test]
-    fn test_load_mem_base_ptr() {
-        let i1 = asm::ldrx_imm(R1, R10, 1);
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Ptr, R1.into(), Mem::Base(R10, 8));
-        assert_emit!(i1; masm);
-    }
-
-    #[test]
-    fn test_load_mem_base_int32() {
-        let i1 = asm::ldrw_imm(R1, R2, 2);
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Int32, R1.into(), Mem::Base(R2, 8));
-        assert_emit!(i1; masm);
-    }
-
-    #[test]
-    fn test_load_mem_base_int8() {
-        let i1 = asm::ldrb_imm(R1, R3, 3);
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Int8, R1.into(), Mem::Base(R3, 3));
-        assert_emit!(i1; masm);
     }
 }
