@@ -574,7 +574,7 @@ impl Assembler {
         rt: Register,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         assert!(rt.is_gpr());
@@ -612,7 +612,7 @@ impl Assembler {
         rt: Register,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         assert!(rt.is_gpr());
@@ -649,7 +649,7 @@ impl Assembler {
         rt: FloatRegister,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         self.emit_u32(cls::ldst_regoffset(
@@ -685,7 +685,7 @@ impl Assembler {
         rt: Register,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         assert!(rt.is_gpr());
@@ -722,7 +722,7 @@ impl Assembler {
         rt: FloatRegister,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         self.emit_u32(cls::ldst_regoffset(
@@ -758,7 +758,7 @@ impl Assembler {
         rt: Register,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         assert!(rt.is_gpr());
@@ -817,7 +817,7 @@ impl Assembler {
         rt: Register,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         assert!(rt.is_gpr_or_zero());
@@ -862,7 +862,7 @@ impl Assembler {
         rt: Register,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         assert!(rt.is_gpr_or_zero());
@@ -900,7 +900,7 @@ impl Assembler {
         rt: FloatRegister,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         self.emit_u32(cls::ldst_regoffset(
@@ -943,7 +943,7 @@ impl Assembler {
         rt: Register,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         assert!(rt.is_gpr_or_zero());
@@ -980,7 +980,7 @@ impl Assembler {
         rt: FloatRegister,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         self.emit_u32(cls::ldst_regoffset(
@@ -1023,7 +1023,7 @@ impl Assembler {
         rt: Register,
         rn: Register,
         rm: Register,
-        extend: LdStExtend,
+        extend: Extend,
         amount: u32,
     ) {
         assert!(rt.is_gpr_or_zero());
@@ -1320,7 +1320,7 @@ mod cls {
             | opt << 22
             | 1u32 << 21
             | rm.encoding_zero() << 16
-            | option.u32() << 13
+            | option.encoding() << 13
             | imm3 << 10
             | rn.encoding_sp() << 5
             | rd.encoding_sp()
@@ -1852,7 +1852,7 @@ mod cls {
         v: u32,
         opc: u32,
         rm: Register,
-        option: LdStExtend,
+        option: Extend,
         s: u32,
         rn: Register,
         rt: u32,
@@ -1872,7 +1872,7 @@ mod cls {
             | v << 26
             | opc << 22
             | rm.encoding_zero() << 16
-            | option.u32() << 13
+            | option.ldst_encoding() << 13
             | s << 12
             | rn.encoding_sp() << 5
             | rt
@@ -2128,7 +2128,7 @@ impl Extend {
         }
     }
 
-    fn u32(self) -> u32 {
+    fn encoding(self) -> u32 {
         match self {
             Extend::UXTB => 0b000,
             Extend::UXTH => 0b001,
@@ -2141,23 +2141,14 @@ impl Extend {
             Extend::SXTX => 0b111,
         }
     }
-}
 
-#[derive(Copy, Clone)]
-pub enum LdStExtend {
-    UXTW,
-    LSL,
-    SXTW,
-    SXTX,
-}
-
-impl LdStExtend {
-    fn u32(self) -> u32 {
+    fn ldst_encoding(self) -> u32 {
         match self {
-            LdStExtend::UXTW => 0b010,
-            LdStExtend::LSL => 0b011,
-            LdStExtend::SXTW => 0b110,
-            LdStExtend::SXTX => 0b111,
+            Extend::UXTW => 0b010,
+            Extend::LSL => 0b011,
+            Extend::SXTW => 0b110,
+            Extend::SXTX => 0b111,
+            _ => unreachable!(),
         }
     }
 }
@@ -2663,40 +2654,40 @@ mod tests {
 
     #[test]
     fn test_str_ind() {
-        assert_emit!(0x38226820; strb_ind(R0, R1, R2, LdStExtend::LSL, 0));
-        assert_emit!(0x38256883; strb_ind(R3, R4, R5, LdStExtend::LSL, 0));
+        assert_emit!(0x38226820; strb_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x38256883; strb_ind(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0x78226820; strh_ind(R0, R1, R2, LdStExtend::LSL, 0));
-        assert_emit!(0x78256883; strh_ind(R3, R4, R5, LdStExtend::LSL, 0));
+        assert_emit!(0x78226820; strh_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x78256883; strh_ind(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0xb8226820; strw_ind(R0, R1, R2, LdStExtend::LSL, 0));
-        assert_emit!(0xb8257883; strw_ind(R3, R4, R5, LdStExtend::LSL, 1));
-        assert_emit!(0xb82858e6; strw_ind(R6, R7, R8, LdStExtend::UXTW, 1));
-        assert_emit!(0xb82bd949; strw_ind(R9, R10, R11, LdStExtend::SXTW, 1));
+        assert_emit!(0xb8226820; strw_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xb8257883; strw_ind(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xb82858e6; strw_ind(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xb82bd949; strw_ind(R9, R10, R11, Extend::SXTW, 1));
 
-        assert_emit!(0xf8226820; str_ind(R0, R1, R2, LdStExtend::LSL, 0));
-        assert_emit!(0xf8257883; str_ind(R3, R4, R5, LdStExtend::LSL, 1));
-        assert_emit!(0xf82858e6; str_ind(R6, R7, R8, LdStExtend::UXTW, 1));
-        assert_emit!(0xf82bd949; str_ind(R9, R10, R11, LdStExtend::SXTW, 1));
+        assert_emit!(0xf8226820; str_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xf8257883; str_ind(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xf82858e6; str_ind(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xf82bd949; str_ind(R9, R10, R11, Extend::SXTW, 1));
     }
 
     #[test]
     fn test_ldr_ind() {
-        assert_emit!(0x38626820; ldrb_ind(R0, R1, R2, LdStExtend::LSL, 0));
-        assert_emit!(0x38656883; ldrb_ind(R3, R4, R5, LdStExtend::LSL, 0));
+        assert_emit!(0x38626820; ldrb_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x38656883; ldrb_ind(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0x78626820; ldrh_ind(R0, R1, R2, LdStExtend::LSL, 0));
-        assert_emit!(0x78656883; ldrh_ind(R3, R4, R5, LdStExtend::LSL, 0));
+        assert_emit!(0x78626820; ldrh_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x78656883; ldrh_ind(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0xb8626820; ldrw_ind(R0, R1, R2, LdStExtend::LSL, 0));
-        assert_emit!(0xb8657883; ldrw_ind(R3, R4, R5, LdStExtend::LSL, 1));
-        assert_emit!(0xb86858e6; ldrw_ind(R6, R7, R8, LdStExtend::UXTW, 1));
-        assert_emit!(0xb86bd949; ldrw_ind(R9, R10, R11, LdStExtend::SXTW, 1));
+        assert_emit!(0xb8626820; ldrw_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xb8657883; ldrw_ind(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xb86858e6; ldrw_ind(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xb86bd949; ldrw_ind(R9, R10, R11, Extend::SXTW, 1));
 
-        assert_emit!(0xf8626820; ldr_ind(R0, R1, R2, LdStExtend::LSL, 0));
-        assert_emit!(0xf8657883; ldr_ind(R3, R4, R5, LdStExtend::LSL, 1));
-        assert_emit!(0xf86858e6; ldr_ind(R6, R7, R8, LdStExtend::UXTW, 1));
-        assert_emit!(0xf86bd949; ldr_ind(R9, R10, R11, LdStExtend::SXTW, 1));
+        assert_emit!(0xf8626820; ldr_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xf8657883; ldr_ind(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xf86858e6; ldr_ind(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xf86bd949; ldr_ind(R9, R10, R11, Extend::SXTW, 1));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use dora_parser::lexer::position::Position;
 
-use crate::asm::arm64::{Cond, Extend, FloatRegister, LdStExtend, Shift};
+use crate::asm::arm64::{Cond, Extend, FloatRegister, Shift};
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::asm;
@@ -852,14 +852,14 @@ impl MacroAssembler {
                         dest.reg().into(),
                         (*scratch).into(),
                         index.into(),
-                        LdStExtend::LSL,
+                        Extend::LSL,
                         0,
                     ),
                     MachineMode::Int32 => self.asm.ldrw_ind(
                         dest.reg().into(),
                         (*scratch).into(),
                         index.into(),
-                        LdStExtend::LSL,
+                        Extend::LSL,
                         1,
                     ),
                     MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
@@ -867,7 +867,7 @@ impl MacroAssembler {
                             dest.reg().into(),
                             (*scratch).into(),
                             index.into(),
-                            LdStExtend::LSL,
+                            Extend::LSL,
                             1,
                         )
                     }
@@ -875,14 +875,14 @@ impl MacroAssembler {
                         dest.freg().into(),
                         (*scratch).into(),
                         index.into(),
-                        LdStExtend::LSL,
+                        Extend::LSL,
                         1,
                     ),
                     MachineMode::Float64 => self.asm.ldrd_ind(
                         dest.freg().into(),
                         (*scratch).into(),
                         index.into(),
-                        LdStExtend::LSL,
+                        Extend::LSL,
                         1,
                     ),
                 }
@@ -934,35 +934,35 @@ impl MacroAssembler {
                     dest.reg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
                 MachineMode::Int32 => self.asm.ldrw_ind(
                     dest.reg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr_ind(
                     dest.reg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
                 MachineMode::Float32 => self.asm.ldrs_ind(
                     dest.freg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
                 MachineMode::Float64 => self.asm.ldrd_ind(
                     dest.freg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
             }
@@ -1056,7 +1056,7 @@ impl MacroAssembler {
             REG_ZERO.into(),
             (*scratch1).into(),
             (*scratch2).into(),
-            LdStExtend::LSL,
+            Extend::LSL,
             0,
         );
     }
@@ -1084,14 +1084,14 @@ impl MacroAssembler {
                         src.reg().into(),
                         (*scratch).into(),
                         index.into(),
-                        LdStExtend::LSL,
+                        Extend::LSL,
                         0,
                     ),
                     MachineMode::Int32 => self.asm.strw_ind(
                         src.reg().into(),
                         (*scratch).into(),
                         index.into(),
-                        LdStExtend::LSL,
+                        Extend::LSL,
                         1,
                     ),
                     MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
@@ -1099,7 +1099,7 @@ impl MacroAssembler {
                             src.reg().into(),
                             (*scratch).into(),
                             index.into(),
-                            LdStExtend::LSL,
+                            Extend::LSL,
                             1,
                         )
                     }
@@ -1107,14 +1107,14 @@ impl MacroAssembler {
                         src.freg().into(),
                         (*scratch).into(),
                         index.into(),
-                        LdStExtend::LSL,
+                        Extend::LSL,
                         1,
                     ),
                     MachineMode::Float64 => self.asm.strd_ind(
                         src.freg().into(),
                         (*scratch).into(),
                         index.into(),
-                        LdStExtend::LSL,
+                        Extend::LSL,
                         1,
                     ),
                 }
@@ -1175,35 +1175,35 @@ impl MacroAssembler {
                     src.reg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
                 MachineMode::Int32 => self.asm.strw_ind(
                     src.reg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.str_ind(
                     src.reg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
                 MachineMode::Float32 => self.asm.strs_ind(
                     src.freg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
                 MachineMode::Float64 => self.asm.strd_ind(
                     src.freg().into(),
                     base.into(),
                     (*scratch).into(),
-                    LdStExtend::LSL,
+                    Extend::LSL,
                     0,
                 ),
             };
