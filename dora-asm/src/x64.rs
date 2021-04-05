@@ -1217,13 +1217,6 @@ impl Assembler {
         self.emit_u8(mode << 6 | reg << 3 | rm);
     }
 
-    fn emit_sib(&mut self, scale: u8, index: u8, base: u8) {
-        assert!(scale < 4);
-        assert!(index < 8);
-        assert!(base < 8);
-        self.emit_u8(scale << 6 | index << 3 | base);
-    }
-
     fn emit_address(&mut self, reg_or_opcode: u8, address: Address) {
         assert!(reg_or_opcode < 8);
 
@@ -1553,7 +1546,7 @@ impl Address {
 
 #[cfg(test)]
 mod tests {
-    use crate::asm::*;
+    use super::*;
 
     macro_rules! assert_emit {
         (

@@ -1,8 +1,5 @@
 use dora_parser::lexer::position::Position;
 
-use crate::asm::{
-    Address, Condition, Immediate, Register as AsmRegister, ScaleFactor, XmmRegister,
-};
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
@@ -14,6 +11,8 @@ use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::{get_vm, FctId, Trap};
 use crate::vtable::VTable;
+use dora_asm::x64::{Address, Condition, Immediate, ScaleFactor, XmmRegister};
+use dora_asm::Register as AsmRegister;
 
 impl MacroAssembler {
     pub fn prolog_size(&mut self, stacksize: i32) {
