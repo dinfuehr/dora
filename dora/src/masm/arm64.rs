@@ -2,10 +2,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
-use crate::cpu::asm;
-use crate::cpu::asm::*;
-use crate::cpu::reg::*;
-use crate::cpu::{FReg, Reg};
+use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::ptr_width;
@@ -14,7 +11,7 @@ use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::{get_vm, FctId, Trap};
 use crate::vtable::VTable;
-use dora_asm::arm64::{Cond, Extend, FloatRegister, Shift};
+use dora_asm::arm64::{self as asm, Cond, Extend, FloatRegister, Shift};
 
 impl MacroAssembler {
     pub fn prolog(&mut self) -> usize {
@@ -302,7 +299,7 @@ impl MacroAssembler {
     }
 
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
-        if (value as u32) as i64 == value && asm::fits_u12(value as u32) {
+        if (value as u32) as i64 == value && asm::fits_addsub_imm(value as u32) {
             let x64 = match mode {
                 MachineMode::Int32 => 0,
                 MachineMode::Int64 | MachineMode::Ptr => 1,
@@ -899,7 +896,8 @@ impl MacroAssembler {
         base: Reg,
         disp: i32,
     ) {
-        if disp >= 0 && disp % mode.size() == 0 && asm::fits_u12((disp / mode.size()) as u32) {
+        if disp >= 0 && disp % mode.size() == 0 && asm::fits_addsub_imm((disp / mode.size()) as u32)
+        {
             let disp = (disp / mode.size()) as u32;
             match mode {
                 MachineMode::Int8 => self.asm.ldrb_imm(dest.reg().into(), base.into(), disp),
@@ -910,7 +908,7 @@ impl MacroAssembler {
                 MachineMode::Float32 => self.asm.ldrs_imm(dest.freg().into(), base.into(), disp),
                 MachineMode::Float64 => self.asm.ldrd_imm(dest.freg().into(), base.into(), disp),
             }
-        } else if asm::fits_i9(disp) {
+        } else if asm::fits_ldst_unscaled(disp) {
             match mode {
                 MachineMode::Int8 => self.asm.ldrb_unscaled(dest.reg().into(), base.into(), disp),
                 MachineMode::Int32 => self.asm.ldrw_unscaled(dest.reg().into(), base.into(), disp),
@@ -972,7 +970,7 @@ impl MacroAssembler {
     pub fn lea(&mut self, dest: Reg, mem: Mem) {
         match mem {
             Mem::Local(offset) => {
-                if fits_u12(offset as u32) {
+                if asm::fits_addsub_imm(offset as u32) {
                     self.asm
                         .add_i(1, dest.into(), REG_FP.into(), offset as u32, 0);
                 } else {
@@ -990,7 +988,7 @@ impl MacroAssembler {
             }
 
             Mem::Base(base, disp) => {
-                if fits_u12(disp as u32) {
+                if asm::fits_addsub_imm(disp as u32) {
                     self.asm.add_i(1, dest.into(), base.into(), disp as u32, 0);
                 } else {
                     let scratch = self.get_scratch();
@@ -1009,7 +1007,7 @@ impl MacroAssembler {
             Mem::Index(base, index, scale, disp) => {
                 let scratch = self.get_scratch();
 
-                if fits_u12(disp as u32) {
+                if asm::fits_addsub_imm(disp as u32) {
                     self.asm
                         .add_i(1, (*scratch).into(), base.into(), disp as u32, 0);
                 } else {
@@ -1135,7 +1133,9 @@ impl MacroAssembler {
         base: Reg,
         offset: i32,
     ) {
-        if offset >= 0 && offset % mode.size() == 0 && asm::fits_u12((offset / mode.size()) as u32)
+        if offset >= 0
+            && offset % mode.size() == 0
+            && asm::fits_addsub_imm((offset / mode.size()) as u32)
         {
             let offset = (offset / mode.size()) as u32;
             match mode {
@@ -1147,7 +1147,7 @@ impl MacroAssembler {
                 MachineMode::Float32 => self.asm.strs_imm(src.freg().into(), base.into(), offset),
                 MachineMode::Float64 => self.asm.strd_imm(src.freg().into(), base.into(), offset),
             }
-        } else if asm::fits_i9(offset) {
+        } else if asm::fits_ldst_unscaled(offset) {
             match mode {
                 MachineMode::Int8 => self
                     .asm
@@ -1287,17 +1287,17 @@ impl MacroAssembler {
         };
         let imm = imm as u64;
 
-        if fits_movz(imm, register_size) {
-            let shift = shift_movz(imm);
+        if asm::fits_movz(imm, register_size) {
+            let shift = asm::shift_movz(imm);
             let imm = ((imm >> (shift * 16)) & 0xFFFF) as u32;
             self.asm.movz(sf, dest.into(), imm, shift);
-        } else if fits_movn(imm, register_size) {
-            let shift = shift_movn(imm);
+        } else if asm::fits_movn(imm, register_size) {
+            let shift = asm::shift_movn(imm);
             let imm = (((!imm) >> (shift * 16)) & 0xFFFF) as u32;
             self.asm.movn(sf, dest.into(), imm, shift);
         } else {
-            let (halfword, invert) = if count_empty_half_words(!imm, register_size)
-                > count_empty_half_words(imm, register_size)
+            let (halfword, invert) = if asm::count_empty_half_words(!imm, register_size)
+                > asm::count_empty_half_words(imm, register_size)
             {
                 (0xFFFF, true)
             } else {
