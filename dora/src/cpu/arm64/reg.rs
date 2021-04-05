@@ -1,7 +1,7 @@
-use crate::asm::arm64 as asm;
-use crate::asm::Register;
 use crate::cpu::{FReg, Reg};
 use crate::ty::SourceType;
+use dora_asm::arm64 as asm;
+use dora_asm::Register;
 
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
 pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];

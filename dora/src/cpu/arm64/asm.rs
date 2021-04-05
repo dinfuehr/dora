@@ -1,5 +1,5 @@
-use crate::asm::arm64::Cond;
 use crate::masm::CondCode;
+use dora_asm::arm64::Cond;
 
 impl From<CondCode> for Cond {
     fn from(c: CondCode) -> Cond {

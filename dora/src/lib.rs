@@ -19,7 +19,6 @@ macro_rules! offset_of {
 #[macro_use]
 extern crate num_derive;
 
-mod asm;
 mod boots;
 mod bytecode;
 mod cannon;

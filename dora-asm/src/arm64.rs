@@ -1,4 +1,4 @@
-use crate::asm::{Assembler, Label, Register};
+use crate::{Assembler, Label, Register};
 
 pub const R0: Register = Register(0);
 pub const R1: Register = Register(1);
@@ -1281,6 +1281,7 @@ mod inst {
         cls::uncond_branch_imm(0, imm26)
     }
 
+    #[allow(dead_code)]
     pub(super) fn cbz(sf: u32, rt: Register, imm19: i32) -> u32 {
         cls::cmp_branch_imm(sf, 0b0, rt, imm19)
     }
@@ -1657,6 +1658,7 @@ mod cls {
             | rd
     }
 
+    #[allow(dead_code)]
     pub(super) fn ldst_exclusive(
         _size: u32,
         _o2: u32,
@@ -2120,14 +2122,6 @@ pub enum Extend {
 }
 
 impl Extend {
-    fn is_ldr(self) -> bool {
-        match self {
-            Extend::UXTW | Extend::LSL | Extend::SXTW | Extend::SXTX => true,
-
-            _ => false,
-        }
-    }
-
     fn encoding(self) -> u32 {
         match self {
             Extend::UXTB => 0b000,

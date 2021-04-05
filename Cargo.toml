@@ -1,7 +1,8 @@
 [workspace]
 members = [
   "dora",
-  "dora-parser"
+  "dora-asm",
+  "dora-parser",
 ]
 
 [profile.release]

@@ -8,7 +8,7 @@ use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
-use crate::masm::*;
+use crate::masm::Label;
 use crate::mem;
 use crate::os;
 use crate::ty::{MachineMode, SourceTypeArray};

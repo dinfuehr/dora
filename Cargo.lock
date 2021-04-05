@@ -123,6 +123,7 @@ dependencies = [
  "capstone",
  "crossbeam-deque",
  "docopt",
+ "dora-asm",
  "dora-parser",
  "fixedbitset",
  "lazy_static",
@@ -139,6 +140,13 @@ dependencies = [
  "threadpool",
  "time",
  "winapi",
+]
+
+[[package]]
+name = "dora-asm"
+version = "0.0.1"
+dependencies = [
+ "byteorder",
 ]
 
 [[package]]

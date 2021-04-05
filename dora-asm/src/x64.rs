@@ -1,4 +1,4 @@
-use crate::asm::{Assembler, Label, Register};
+use crate::{Assembler, Label, Register};
 use std::convert::TryInto;
 
 impl Register {

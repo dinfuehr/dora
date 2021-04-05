@@ -2,8 +2,6 @@ use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use crate::asm::Assembler;
-pub use crate::asm::Label;
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::{
     Code, Comments, GcPoint, GcPoints, JitDescriptor, LazyCompilationData, LazyCompilationSite,
@@ -16,6 +14,8 @@ use crate::object::Header;
 use crate::ty::MachineMode;
 use crate::vm::{Trap, VM};
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
+use dora_asm::Assembler;
+pub use dora_asm::Label;
 use dora_parser::lexer::position::Position;
 
 #[cfg(target_arch = "x86_64")]
