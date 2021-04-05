@@ -11,7 +11,7 @@ use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::{get_vm, FctId, Trap};
 use crate::vtable::VTable;
-use dora_asm::arm64::{self as asm, Cond, Extend, FloatRegister, Shift};
+use dora_asm::arm64::{self as asm, Cond, Extend, NeonRegister, Shift};
 
 impl MacroAssembler {
     pub fn prolog(&mut self) -> usize {
@@ -1397,9 +1397,9 @@ fn size_flag(mode: MachineMode) -> u32 {
     }
 }
 
-impl From<FReg> for FloatRegister {
-    fn from(reg: FReg) -> FloatRegister {
-        FloatRegister::new(reg.0)
+impl From<FReg> for NeonRegister {
+    fn from(reg: FReg) -> NeonRegister {
+        NeonRegister::new(reg.0)
     }
 }
 

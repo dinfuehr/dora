@@ -76,12 +76,12 @@ impl Register {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct FloatRegister(u8);
+pub struct NeonRegister(u8);
 
-impl FloatRegister {
-    pub fn new(value: u8) -> FloatRegister {
+impl NeonRegister {
+    pub fn new(value: u8) -> NeonRegister {
         assert!(value < 32);
-        FloatRegister(value)
+        NeonRegister(value)
     }
 
     fn encoding(self) -> u32 {
@@ -89,38 +89,38 @@ impl FloatRegister {
     }
 }
 
-pub const F0: FloatRegister = FloatRegister(0);
-pub const F1: FloatRegister = FloatRegister(1);
-pub const F2: FloatRegister = FloatRegister(2);
-pub const F3: FloatRegister = FloatRegister(3);
-pub const F4: FloatRegister = FloatRegister(4);
-pub const F5: FloatRegister = FloatRegister(5);
-pub const F6: FloatRegister = FloatRegister(6);
-pub const F7: FloatRegister = FloatRegister(7);
-pub const F8: FloatRegister = FloatRegister(8);
-pub const F9: FloatRegister = FloatRegister(9);
-pub const F10: FloatRegister = FloatRegister(10);
-pub const F11: FloatRegister = FloatRegister(11);
-pub const F12: FloatRegister = FloatRegister(12);
-pub const F13: FloatRegister = FloatRegister(13);
-pub const F14: FloatRegister = FloatRegister(14);
-pub const F15: FloatRegister = FloatRegister(15);
-pub const F16: FloatRegister = FloatRegister(16);
-pub const F17: FloatRegister = FloatRegister(17);
-pub const F18: FloatRegister = FloatRegister(18);
-pub const F19: FloatRegister = FloatRegister(19);
-pub const F20: FloatRegister = FloatRegister(20);
-pub const F21: FloatRegister = FloatRegister(21);
-pub const F22: FloatRegister = FloatRegister(22);
-pub const F23: FloatRegister = FloatRegister(23);
-pub const F24: FloatRegister = FloatRegister(24);
-pub const F25: FloatRegister = FloatRegister(25);
-pub const F26: FloatRegister = FloatRegister(26);
-pub const F27: FloatRegister = FloatRegister(27);
-pub const F28: FloatRegister = FloatRegister(28);
-pub const F29: FloatRegister = FloatRegister(29);
-pub const F30: FloatRegister = FloatRegister(30);
-pub const F31: FloatRegister = FloatRegister(31);
+pub const F0: NeonRegister = NeonRegister(0);
+pub const F1: NeonRegister = NeonRegister(1);
+pub const F2: NeonRegister = NeonRegister(2);
+pub const F3: NeonRegister = NeonRegister(3);
+pub const F4: NeonRegister = NeonRegister(4);
+pub const F5: NeonRegister = NeonRegister(5);
+pub const F6: NeonRegister = NeonRegister(6);
+pub const F7: NeonRegister = NeonRegister(7);
+pub const F8: NeonRegister = NeonRegister(8);
+pub const F9: NeonRegister = NeonRegister(9);
+pub const F10: NeonRegister = NeonRegister(10);
+pub const F11: NeonRegister = NeonRegister(11);
+pub const F12: NeonRegister = NeonRegister(12);
+pub const F13: NeonRegister = NeonRegister(13);
+pub const F14: NeonRegister = NeonRegister(14);
+pub const F15: NeonRegister = NeonRegister(15);
+pub const F16: NeonRegister = NeonRegister(16);
+pub const F17: NeonRegister = NeonRegister(17);
+pub const F18: NeonRegister = NeonRegister(18);
+pub const F19: NeonRegister = NeonRegister(19);
+pub const F20: NeonRegister = NeonRegister(20);
+pub const F21: NeonRegister = NeonRegister(21);
+pub const F22: NeonRegister = NeonRegister(22);
+pub const F23: NeonRegister = NeonRegister(23);
+pub const F24: NeonRegister = NeonRegister(24);
+pub const F25: NeonRegister = NeonRegister(25);
+pub const F26: NeonRegister = NeonRegister(26);
+pub const F27: NeonRegister = NeonRegister(27);
+pub const F28: NeonRegister = NeonRegister(28);
+pub const F29: NeonRegister = NeonRegister(29);
+pub const F30: NeonRegister = NeonRegister(30);
+pub const F31: NeonRegister = NeonRegister(31);
 
 pub(super) enum JumpKind {
     Unconditional,
@@ -231,7 +231,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_shreg(sf, 0, 1, Shift::LSL, rm, 0, rn, rd));
     }
 
-    pub fn addv(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
+    pub fn addv(&mut self, q: u32, size: u32, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::simd_across_lanes(q, 0, size, 0b11011, rn, rd));
     }
 
@@ -426,7 +426,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_shreg(sf, 1, 1, shift, rm, amount, rn, REG_ZERO));
     }
 
-    pub fn cnt(&mut self, q: u32, size: u32, rd: FloatRegister, rn: FloatRegister) {
+    pub fn cnt(&mut self, q: u32, size: u32, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::simd_2regs_misc(q, 0, size, 0b00101, rn, rd));
     }
 
@@ -470,27 +470,27 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(sf, 0b10, shift, 0, rm, imm6, rn, rd));
     }
 
-    pub fn fadd(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+    pub fn fadd(&mut self, ty: u32, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0010, rn, rd));
     }
 
-    pub fn fcmp(&mut self, ty: u32, rn: FloatRegister, rm: FloatRegister) {
+    pub fn fcmp(&mut self, ty: u32, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, ty, rm, 0, rn, 0));
     }
 
-    pub fn fcmpe(&mut self, ty: u32, rn: FloatRegister, rm: FloatRegister) {
+    pub fn fcmpe(&mut self, ty: u32, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, ty, rm, 0, rn, 0b10000));
     }
 
-    pub fn fcvt_ds(&mut self, rd: FloatRegister, rn: FloatRegister) {
+    pub fn fcvt_ds(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, 0b01, 0b000100, rn, rd));
     }
 
-    pub fn fcvt_sd(&mut self, rd: FloatRegister, rn: FloatRegister) {
+    pub fn fcvt_sd(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd));
     }
 
-    pub fn fcvtzs(&mut self, sf: u32, ty: u32, rd: Register, rn: FloatRegister) {
+    pub fn fcvtzs(&mut self, sf: u32, ty: u32, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             sf,
             0,
@@ -502,15 +502,15 @@ impl Assembler {
         ));
     }
 
-    pub fn fdiv(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+    pub fn fdiv(&mut self, ty: u32, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0001, rn, rd));
     }
 
-    pub fn fmov(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
+    pub fn fmov(&mut self, ty: u32, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, ty, 0b000000, rn, rd));
     }
 
-    pub fn fmov_fs(&mut self, sf: u32, ty: u32, rd: FloatRegister, rn: Register) {
+    pub fn fmov_fs(&mut self, sf: u32, ty: u32, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             sf,
             0,
@@ -522,7 +522,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fmov_sf(&mut self, sf: u32, ty: u32, rd: Register, rn: FloatRegister) {
+    pub fn fmov_sf(&mut self, sf: u32, ty: u32, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             sf,
             0,
@@ -534,19 +534,19 @@ impl Assembler {
         ));
     }
 
-    pub fn fmul(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+    pub fn fmul(&mut self, ty: u32, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0000, rn, rd));
     }
 
-    pub fn fneg(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
+    pub fn fneg(&mut self, ty: u32, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, ty, 0b000010, rn, rd));
     }
 
-    pub fn fsqrt(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister) {
+    pub fn fsqrt(&mut self, ty: u32, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, ty, 0b000011, rn, rd));
     }
 
-    pub fn fsub(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+    pub fn fsub(&mut self, ty: u32, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, ty, rm, 0b0011, rn, rd));
     }
 
@@ -640,13 +640,13 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrd_imm(&mut self, rt: FloatRegister, rn: Register, imm12: u32) {
+    pub fn ldrd_imm(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
         self.emit_u32(cls::ldst_regimm(0b11, 1, 0b01, imm12, rn, rt.encoding()));
     }
 
     pub fn ldrd_ind(
         &mut self,
-        rt: FloatRegister,
+        rt: NeonRegister,
         rn: Register,
         rm: Register,
         extend: Extend,
@@ -664,7 +664,7 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrd_unscaled(&mut self, rt: FloatRegister, rn: Register, imm9: i32) {
+    pub fn ldrd_unscaled(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b11,
             1,
@@ -713,13 +713,13 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrs_imm(&mut self, rt: FloatRegister, rn: Register, imm12: u32) {
+    pub fn ldrs_imm(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
         self.emit_u32(cls::ldst_regimm(0b10, 1, 0b01, imm12, rn, rt.encoding()));
     }
 
     pub fn ldrs_ind(
         &mut self,
-        rt: FloatRegister,
+        rt: NeonRegister,
         rn: Register,
         rm: Register,
         extend: Extend,
@@ -737,7 +737,7 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrs_unscaled(&mut self, rt: FloatRegister, rn: Register, imm9: i32) {
+    pub fn ldrs_unscaled(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b10,
             1,
@@ -890,14 +890,14 @@ impl Assembler {
         ));
     }
 
-    pub fn strd_imm(&mut self, rt: FloatRegister, rn: Register, imm12: u32) {
+    pub fn strd_imm(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
         self.emit_u32(cls::ldst_regimm(0b11, 1, 0b00, imm12, rn, rt.encoding()));
     }
 
     pub fn strd_ind(
         &mut self,
 
-        rt: FloatRegister,
+        rt: NeonRegister,
         rn: Register,
         rm: Register,
         extend: Extend,
@@ -915,7 +915,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strd_unscaled(&mut self, rt: FloatRegister, rn: Register, imm9: i32) {
+    pub fn strd_unscaled(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b11,
             1,
@@ -971,13 +971,13 @@ impl Assembler {
         ));
     }
 
-    pub fn strs_imm(&mut self, rt: FloatRegister, rn: Register, imm12: u32) {
+    pub fn strs_imm(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
         self.emit_u32(cls::ldst_regimm(0b10, 1, 0b00, imm12, rn, rt.encoding()));
     }
 
     pub fn strs_ind(
         &mut self,
-        rt: FloatRegister,
+        rt: NeonRegister,
         rn: Register,
         rm: Register,
         extend: Extend,
@@ -995,7 +995,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strs_unscaled_imm(&mut self, rt: FloatRegister, rn: Register, imm9: i32) {
+    pub fn strs_unscaled_imm(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b10,
             1,
@@ -1169,7 +1169,7 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b11, rn, rd));
     }
 
-    pub fn scvtf(&mut self, sf: u32, ty: u32, rd: FloatRegister, rn: Register) {
+    pub fn scvtf(&mut self, sf: u32, ty: u32, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             sf,
             0,
@@ -1557,9 +1557,9 @@ mod cls {
         m: u32,
         s: u32,
         ty: u32,
-        rm: FloatRegister,
+        rm: NeonRegister,
         op: u32,
-        rn: FloatRegister,
+        rn: NeonRegister,
         opcode2: u32,
     ) -> u32 {
         assert!(m == 0);
@@ -1585,8 +1585,8 @@ mod cls {
         s: u32,
         ty: u32,
         opcode: u32,
-        rn: FloatRegister,
-        rd: FloatRegister,
+        rn: NeonRegister,
+        rd: NeonRegister,
     ) -> u32 {
         assert!(m == 0);
         assert!(s == 0);
@@ -1608,10 +1608,10 @@ mod cls {
         m: u32,
         s: u32,
         ty: u32,
-        rm: FloatRegister,
+        rm: NeonRegister,
         opcode: u32,
-        rn: FloatRegister,
-        rd: FloatRegister,
+        rn: NeonRegister,
+        rd: NeonRegister,
     ) -> u32 {
         assert!(m == 0);
         assert!(s == 0);
@@ -1905,8 +1905,8 @@ mod cls {
         u: u32,
         size: u32,
         opcode: u32,
-        rn: FloatRegister,
-        rd: FloatRegister,
+        rn: NeonRegister,
+        rd: NeonRegister,
     ) -> u32 {
         assert!(fits_bit(q));
         assert!(fits_bit(u));
@@ -1942,8 +1942,8 @@ mod cls {
         u: u32,
         size: u32,
         opcode: u32,
-        rn: FloatRegister,
-        rd: FloatRegister,
+        rn: NeonRegister,
+        rd: NeonRegister,
     ) -> u32 {
         assert!(fits_bit(q));
         assert!(fits_bit(u));
