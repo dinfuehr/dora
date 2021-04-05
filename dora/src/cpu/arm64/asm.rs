@@ -1,67 +1,6 @@
-use crate::asm::arm64::{Cond, Shift};
+use crate::asm::arm64::Cond;
 use crate::cpu::Reg;
 use crate::masm::CondCode;
-
-pub fn and_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
-    cls_logical_shreg(sf, 0b00, shift, 0, rm, imm6, rn, rd)
-}
-
-pub fn bic_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
-    cls_logical_shreg(sf, 0b00, shift, 1, rm, imm6, rn, rd)
-}
-
-pub fn orr_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
-    cls_logical_shreg(sf, 0b01, shift, 0, rm, imm6, rn, rd)
-}
-
-pub fn orn_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
-    cls_logical_shreg(sf, 0b01, shift, 1, rm, imm6, rn, rd)
-}
-
-pub fn eor_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
-    cls_logical_shreg(sf, 0b10, shift, 0, rm, imm6, rn, rd)
-}
-
-pub fn eon_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
-    cls_logical_shreg(sf, 0b10, shift, 1, rm, imm6, rn, rd)
-}
-
-pub fn ands_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
-    cls_logical_shreg(sf, 0b11, shift, 0, rm, imm6, rn, rd)
-}
-
-pub fn bics_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
-    cls_logical_shreg(sf, 0b11, shift, 1, rm, imm6, rn, rd)
-}
-
-fn cls_logical_shreg(
-    sf: u32,
-    opc: u32,
-    shift: Shift,
-    n: u32,
-    rm: Reg,
-    imm6: u32,
-    rn: Reg,
-    rd: Reg,
-) -> u32 {
-    assert!(fits_bit(sf));
-    assert!(fits_u2(opc));
-    assert!(fits_bit(n));
-    assert!(rm.is_gpr_or_zero());
-    assert!(fits_u5(imm6));
-    assert!(rn.is_gpr_or_zero());
-    assert!(rd.is_gpr());
-
-    0b01010u32 << 24
-        | sf << 31
-        | opc << 29
-        | shift.u32() << 22
-        | n << 21
-        | rm.asm() << 16
-        | imm6 << 10
-        | rn.asm() << 5
-        | rd.asm()
-}
 
 pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: u64) -> u32 {
     let reg_size = if sf == 1 { 64 } else { 32 };
@@ -285,17 +224,6 @@ mod tests {
     use super::*;
     use crate::cpu::arm64::reg::*;
 
-    macro_rules! assert_emit {
-        ($exp: expr; $val: expr) => {{
-            let exp: u32 = $exp;
-            let val: u32 = $val;
-
-            if exp != val {
-                panic!("0x{:08X} != 0x{:08X}", exp, val);
-            }
-        }};
-    }
-
     #[test]
     fn test_fits_bit() {
         assert!(fits_bit(0));
@@ -346,18 +274,6 @@ mod tests {
         assert!(fits_i12(2047));
         assert!(!fits_i12(-2049));
         assert!(!fits_i12(2048));
-    }
-
-    #[test]
-    fn test_logical_shreg() {
-        assert_emit!(0x0a020420; and_shreg(0, R0, R1, R2, Shift::LSL, 1));
-        assert_emit!(0x0a650883; bic_shreg(0, R3, R4, R5, Shift::LSR, 2));
-        assert_emit!(0xaa880ce6; orr_shreg(1, R6, R7, R8, Shift::ASR, 3));
-        assert_emit!(0xaaeb1149; orn_shreg(1, R9, R10, R11, Shift::ROR, 4));
-        assert_emit!(0xca0e15ac; eor_shreg(1, R12, R13, R14, Shift::LSL, 5));
-        assert_emit!(0xca711a0f; eon_shreg(1, R15, R16, R17, Shift::LSR, 6));
-        assert_emit!(0xea941e72; ands_shreg(1, R18, R19, R20, Shift::ASR, 7));
-        assert_emit!(0xeaf726d5; bics_shreg(1, R21, R22, R23, Shift::ROR, 9));
     }
 
     #[test]

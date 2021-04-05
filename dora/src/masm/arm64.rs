@@ -396,7 +396,8 @@ impl MacroAssembler {
             _ => panic!("unimplemented mode {:?}", mode),
         };
 
-        self.emit_u32(asm::orr_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
+        self.asm
+            .orr_shift(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
     }
 
     pub fn int_and(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -406,7 +407,8 @@ impl MacroAssembler {
             _ => panic!("unimplemented mode {:?}", mode),
         };
 
-        self.emit_u32(asm::and_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
+        self.asm
+            .and_shift(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
     }
 
     pub fn int_xor(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -416,7 +418,8 @@ impl MacroAssembler {
             _ => panic!("unimplemented mode {:?}", mode),
         };
 
-        self.emit_u32(asm::eor_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
+        self.asm
+            .eor_shift(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
     }
 
     pub fn count_bits(&mut self, mode: MachineMode, dest: Reg, src: Reg, count_one_bits: bool) {
@@ -1211,14 +1214,14 @@ impl MacroAssembler {
             self.asm
                 .add_i(size_flag(mode), dest.into(), src.into(), 0, 0);
         } else {
-            self.emit_u32(asm::orr_shreg(
+            self.asm.orr_shift(
                 size_flag(mode),
-                dest,
-                REG_ZERO,
-                src,
+                dest.into(),
+                REG_ZERO.into(),
+                src.into(),
                 Shift::LSL,
                 0,
-            ));
+            );
         }
     }
 
@@ -1347,14 +1350,16 @@ impl MacroAssembler {
             _ => panic!("unimplemented mode {:?}", mode),
         };
 
-        self.emit_u32(orn_shreg(x64, dest, REG_ZERO, src, Shift::LSL, 0));
+        self.asm
+            .orn_shift(x64, dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0);
     }
 
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
         let scratch = self.get_scratch();
 
         self.asm.movz(0, (*scratch).into(), 1, 0);
-        self.emit_u32(eor_shreg(0, dest, src, *scratch, Shift::LSL, 0));
+        self.asm
+            .eor_shift(0, dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
         self.asm.uxtb(dest.into(), dest.into());
     }
 

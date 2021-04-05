@@ -243,6 +243,30 @@ impl Assembler {
         self.emit_u32(cls::pcrel(1, imm, rd));
     }
 
+    pub fn and_shift(
+        &mut self,
+        sf: u32,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: u32,
+    ) {
+        self.emit_u32(cls::logical_shreg(sf, 0b00, shift, 0, rm, imm6, rn, rd));
+    }
+
+    pub fn ands_shift(
+        &mut self,
+        sf: u32,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: u32,
+    ) {
+        self.emit_u32(cls::logical_shreg(sf, 0b11, shift, 0, rm, imm6, rn, rd));
+    }
+
     pub fn asrv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(1, 0, rm, 0b1010, rn, rd));
     }
@@ -303,6 +327,30 @@ impl Assembler {
 
     pub fn bfm(&mut self, sf: u32, rd: Register, rn: Register, immr: u32, imms: u32) {
         self.emit_u32(cls::bitfield(sf, 0b01, sf, immr, imms, rn, rd));
+    }
+
+    pub fn bic_shift(
+        &mut self,
+        sf: u32,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: u32,
+    ) {
+        self.emit_u32(cls::logical_shreg(sf, 0b00, shift, 1, rm, imm6, rn, rd));
+    }
+
+    pub fn bics_shift(
+        &mut self,
+        sf: u32,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: u32,
+    ) {
+        self.emit_u32(cls::logical_shreg(sf, 0b11, shift, 1, rm, imm6, rn, rd));
     }
 
     pub fn bl_i(&mut self, imm26: i32) {
@@ -390,6 +438,30 @@ impl Assembler {
 
     pub fn csinv(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, cond: Cond) {
         self.emit_u32(cls::csel(sf, 1, 0, rm, cond, 0, rn, rd));
+    }
+
+    pub fn eon_shift(
+        &mut self,
+        sf: u32,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: u32,
+    ) {
+        self.emit_u32(cls::logical_shreg(sf, 0b10, shift, 1, rm, imm6, rn, rd));
+    }
+
+    pub fn eor_shift(
+        &mut self,
+        sf: u32,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: u32,
+    ) {
+        self.emit_u32(cls::logical_shreg(sf, 0b10, shift, 0, rm, imm6, rn, rd));
     }
 
     pub fn fadd(&mut self, ty: u32, rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
@@ -1027,6 +1099,30 @@ impl Assembler {
         self.emit_u32(cls::system(0));
     }
 
+    pub fn orn_shift(
+        &mut self,
+        sf: u32,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: u32,
+    ) {
+        self.emit_u32(cls::logical_shreg(sf, 0b01, shift, 1, rm, imm6, rn, rd));
+    }
+
+    pub fn orr_shift(
+        &mut self,
+        sf: u32,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: u32,
+    ) {
+        self.emit_u32(cls::logical_shreg(sf, 0b01, shift, 0, rm, imm6, rn, rd));
+    }
+
     pub fn rbitw(&mut self, rd: Register, rn: Register) {
         self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000000, rn, rd));
     }
@@ -1656,6 +1752,35 @@ mod cls {
             | rt2.encoding() << 10
             | rn.encoding_sp() << 5
             | rt.encoding()
+    }
+
+    pub(super) fn logical_shreg(
+        sf: u32,
+        opc: u32,
+        shift: Shift,
+        n: u32,
+        rm: Register,
+        imm6: u32,
+        rn: Register,
+        rd: Register,
+    ) -> u32 {
+        assert!(fits_bit(sf));
+        assert!(fits_u2(opc));
+        assert!(fits_bit(n));
+        assert!(rm.is_gpr_or_zero());
+        assert!(fits_u5(imm6));
+        assert!(rn.is_gpr_or_zero());
+        assert!(rd.is_gpr());
+
+        0b01010u32 << 24
+            | sf << 31
+            | opc << 29
+            | shift.u32() << 22
+            | n << 21
+            | rm.encoding_zero() << 16
+            | imm6 << 10
+            | rn.encoding_zero() << 5
+            | rd.encoding()
     }
 
     pub(super) fn move_wide_imm(sf: u32, opc: u32, hw: u32, imm16: u32, rd: Register) -> u32 {
@@ -2499,5 +2624,17 @@ mod tests {
 
         assert_emit!(0xf9000420; str_imm(R0, R1, 1));
         assert_emit!(0xf9000862; str_imm(R2, R3, 2));
+    }
+
+    #[test]
+    fn test_logical_shreg() {
+        assert_emit!(0x0a020420; and_shift(0, R0, R1, R2, Shift::LSL, 1));
+        assert_emit!(0x0a650883; bic_shift(0, R3, R4, R5, Shift::LSR, 2));
+        assert_emit!(0xaa880ce6; orr_shift(1, R6, R7, R8, Shift::ASR, 3));
+        assert_emit!(0xaaeb1149; orn_shift(1, R9, R10, R11, Shift::ROR, 4));
+        assert_emit!(0xca0e15ac; eor_shift(1, R12, R13, R14, Shift::LSL, 5));
+        assert_emit!(0xca711a0f; eon_shift(1, R15, R16, R17, Shift::LSR, 6));
+        assert_emit!(0xea941e72; ands_shift(1, R18, R19, R20, Shift::ASR, 7));
+        assert_emit!(0xeaf726d5; bics_shift(1, R21, R22, R23, Shift::ROR, 9));
     }
 }
