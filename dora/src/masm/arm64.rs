@@ -91,14 +91,7 @@ impl MacroAssembler {
     pub fn decrease_stack_frame(&mut self, size: i32) {
         if size > 0 {
             self.load_int_const(MachineMode::Ptr, REG_TMP1, size as i64);
-            self.asm.add_ext(
-                1,
-                REG_SP.into(),
-                REG_SP.into(),
-                REG_TMP1.into(),
-                Extend::UXTX,
-                0,
-            );
+            self.asm.add(REG_SP.into(), REG_SP.into(), REG_TMP1.into());
         }
     }
 
@@ -213,13 +206,17 @@ impl MacroAssembler {
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
-        self.asm.cmp_i(size_flag(mode), lhs.into(), 0, 0);
+        match mode {
+            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmpw_i(lhs.into(), 0, 0),
+            MachineMode::Int64 | MachineMode::Ptr => self.asm.cmp_i(lhs.into(), 0, 0),
+            _ => unreachable!(),
+        }
     }
 
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
-        self.asm.cmp_i(0, reg.into(), 0, 0);
+        self.asm.cmp_i(reg.into(), 0, 0);
         self.jump_if(cond, lbl);
     }
 
@@ -403,14 +400,17 @@ impl MacroAssembler {
     }
 
     pub fn int_and(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+        match mode {
+            MachineMode::Int32 => {
+                self.asm
+                    .andw_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+            }
+            MachineMode::Int64 => {
+                self.asm
+                    .and_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+            }
             _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.asm
-            .and_shift(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
+        }
     }
 
     pub fn int_xor(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -988,14 +988,7 @@ impl MacroAssembler {
                 } else {
                     let scratch = self.get_scratch();
                     self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
-                    self.asm.add_sh(
-                        1,
-                        dest.into(),
-                        REG_FP.into(),
-                        (*scratch).into(),
-                        Shift::LSL,
-                        0,
-                    );
+                    self.asm.add(dest.into(), REG_FP.into(), (*scratch).into());
                 }
             }
 
@@ -1005,14 +998,7 @@ impl MacroAssembler {
                 } else {
                     let scratch = self.get_scratch();
                     self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
-                    self.asm.add_sh(
-                        1,
-                        dest.into(),
-                        base.into(),
-                        (*scratch).into(),
-                        Shift::LSL,
-                        0,
-                    );
+                    self.asm.add(dest.into(), base.into(), (*scratch).into());
                 }
             }
 
@@ -1024,14 +1010,8 @@ impl MacroAssembler {
                         .add_i((*scratch).into(), base.into(), disp as u32, 0);
                 } else {
                     self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
-                    self.asm.add_sh(
-                        1,
-                        (*scratch).into(),
-                        base.into(),
-                        (*scratch).into(),
-                        Shift::LSL,
-                        0,
-                    );
+                    self.asm
+                        .add((*scratch).into(), base.into(), (*scratch).into());
                 }
 
                 let shift = match scale {
@@ -1043,7 +1023,6 @@ impl MacroAssembler {
                 };
 
                 self.asm.add_sh(
-                    1,
                     dest.into(),
                     (*scratch).into(),
                     index.into(),
