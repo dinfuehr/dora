@@ -36,7 +36,9 @@ impl MacroAssembler {
     }
 
     pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
-        self.emit_u32_at(patch_offset as i32, stacksize as u32);
+        self.asm.set_position(patch_offset);
+        self.asm.emit_u32(stacksize as u32);
+        self.asm.set_position_end();
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {

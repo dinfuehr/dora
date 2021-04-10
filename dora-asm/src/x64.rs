@@ -1557,7 +1557,7 @@ mod tests {
             buf.$name();
             let expected = vec![$($expr,)*];
 
-            assert_eq!(expected, buf.code());
+            assert_eq!(expected, buf.finalize());
         }};
 
         (
@@ -1570,7 +1570,7 @@ mod tests {
             let mut buf = Assembler::new();
             buf.$name($($param,)*);
             let expected = vec![$($expr,)*];
-            let data = buf.code();
+            let data = buf.finalize();
 
             if expected != data {
                 print!("exp: ");
