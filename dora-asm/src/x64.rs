@@ -1,6 +1,9 @@
 use crate::{Assembler, Label, Register};
 use std::convert::TryInto;
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct Register(u8);
+
 impl Register {
     pub fn new(value: u8) -> Register {
         assert!(value < 16);

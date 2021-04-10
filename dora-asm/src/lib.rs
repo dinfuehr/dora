@@ -15,9 +15,6 @@ pub mod arm64;
 use std::convert::TryInto;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct Register(u8);
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Label(usize);
 
 pub struct Assembler {

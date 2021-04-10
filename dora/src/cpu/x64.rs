@@ -3,7 +3,7 @@ use raw_cpuid::{CpuId, ExtendedFeatures, FeatureInfo};
 use std::sync::atomic::{compiler_fence, Ordering};
 
 use crate::ty::SourceType;
-use dora_asm::Register;
+use dora_asm::x64::Register;
 
 pub fn flush_icache(_: *const u8, _: usize) {
     // no flushing needed on x86_64, but emit compiler barrier

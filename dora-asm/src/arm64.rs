@@ -1,4 +1,4 @@
-use crate::{Assembler, Label, Register};
+use crate::{Assembler, Label};
 
 pub const R0: Register = Register(0);
 pub const R1: Register = Register(1);
@@ -35,6 +35,9 @@ pub const REG_FP: Register = R29;
 pub const REG_LR: Register = R30;
 pub const REG_ZERO: Register = Register(31);
 pub const REG_SP: Register = Register(32);
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct Register(u8);
 
 impl Register {
     pub fn new(value: u8) -> Register {
