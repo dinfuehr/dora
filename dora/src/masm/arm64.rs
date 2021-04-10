@@ -169,7 +169,7 @@ impl MacroAssembler {
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
-        self.asm.cset(0, dest.into(), op.into());
+        self.asm.csetw(dest.into(), op.into());
     }
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
@@ -249,12 +249,6 @@ impl MacroAssembler {
         pos: Position,
         is_div: bool,
     ) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode),
-        };
-
         let lbl_zero = self.create_label();
 
         self.cmp_reg_imm(mode, rhs, 0);
@@ -271,24 +265,27 @@ impl MacroAssembler {
             let scratch = self.get_scratch();
 
             match mode {
-                MachineMode::Int32 => self.asm.sdivw((*scratch).into(), lhs.into(), rhs.into()),
-                MachineMode::Int64 => self.asm.sdiv((*scratch).into(), lhs.into(), rhs.into()),
+                MachineMode::Int32 => {
+                    self.asm.sdivw((*scratch).into(), lhs.into(), rhs.into());
+                    self.asm
+                        .msub(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
+                }
+                MachineMode::Int64 => {
+                    self.asm.sdiv((*scratch).into(), lhs.into(), rhs.into());
+                    self.asm
+                        .msubw(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
+                }
                 _ => unreachable!(),
             }
-
-            self.asm
-                .msub(x64, dest.into(), (*scratch).into(), rhs.into(), lhs.into());
         }
     }
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+        match mode {
+            MachineMode::Int32 => self.asm.mulw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.mul(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.asm.mul(x64, dest.into(), lhs.into(), rhs.into());
+        }
     }
 
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -414,14 +411,17 @@ impl MacroAssembler {
     }
 
     pub fn int_xor(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+        match mode {
+            MachineMode::Int32 => {
+                self.asm
+                    .eorw_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+            }
+            MachineMode::Int64 => {
+                self.asm
+                    .eor_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+            }
             _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.asm
-            .eor_sh(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
+        }
     }
 
     pub fn count_bits(&mut self, mode: MachineMode, dest: Reg, src: Reg, count_one_bits: bool) {
@@ -680,9 +680,9 @@ impl MacroAssembler {
             _ => unreachable!(),
         }
 
-        self.asm.cset(0, dest.into(), Cond::NE);
+        self.asm.csetw(dest.into(), Cond::NE);
         self.asm
-            .csinv(0, dest.into(), dest.into(), REG_ZERO.into(), Cond::GE);
+            .csinvw(dest.into(), dest.into(), REG_ZERO.into(), Cond::GE);
     }
 
     pub fn float_cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
@@ -693,11 +693,11 @@ impl MacroAssembler {
         };
 
         self.asm.fcmp(dbl, lhs.into(), rhs.into());
-        self.asm.cset(0, dest.into(), Cond::GT);
+        self.asm.csetw(dest.into(), Cond::GT);
         let scratch = self.get_scratch();
-        self.asm.movn(0, (*scratch).into(), 0, 0);
+        self.asm.movnw((*scratch).into(), 0, 0);
         self.asm
-            .csel(0, dest.into(), (*scratch).into(), dest.into(), Cond::MI);
+            .cselw(dest.into(), (*scratch).into(), dest.into(), Cond::MI);
     }
 
     pub fn float_cmp(
@@ -725,7 +725,7 @@ impl MacroAssembler {
         };
 
         self.asm.fcmp(dbl, lhs.into(), rhs.into());
-        self.asm.cset(0, dest.into(), cond);
+        self.asm.csetw(dest.into(), cond);
     }
 
     pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
@@ -736,7 +736,7 @@ impl MacroAssembler {
         };
 
         self.asm.fcmp(dbl, src.into(), src.into());
-        self.asm.cset(0, dest.into(), Cond::VS);
+        self.asm.csetw(dest.into(), Cond::VS);
     }
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
@@ -785,13 +785,12 @@ impl MacroAssembler {
                 _ => unreachable!(),
             };
 
-            self.asm.lsl_imm(1, dest.into(), length.into(), shift);
+            self.asm.lsl_i(dest.into(), length.into(), shift);
             self.asm.add_i(dest.into(), dest.into(), size as u32, 0);
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
-            self.asm
-                .mul(1, dest.into(), length.into(), (*scratch).into());
+            self.asm.mul(dest.into(), length.into(), (*scratch).into());
             self.asm.add_i(dest.into(), dest.into(), size as u32, 0);
         }
 
@@ -807,7 +806,7 @@ impl MacroAssembler {
 
         self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
         self.asm
-            .mul(1, (*scratch).into(), index.into(), (*scratch).into());
+            .mul((*scratch).into(), index.into(), (*scratch).into());
         self.asm
             .add_i((*scratch).into(), (*scratch).into(), offset as u32, 0);
         self.asm.add(dest.into(), obj.into(), (*scratch).into());
@@ -1038,7 +1037,7 @@ impl MacroAssembler {
     pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
         let scratch1 = self.get_scratch();
         self.asm
-            .lsr_imm(1, (*scratch1).into(), src.into(), CARD_SIZE_BITS as u32);
+            .lsr_i((*scratch1).into(), src.into(), CARD_SIZE_BITS as u32);
         let scratch2 = self.get_scratch();
         self.load_int_const(MachineMode::Ptr, *scratch2, card_table_offset as i64);
         self.asm.strb_ind(
@@ -1285,7 +1284,12 @@ impl MacroAssembler {
         } else if asm::fits_movn(imm, register_size) {
             let shift = asm::shift_movn(imm);
             let imm = (((!imm) >> (shift * 16)) & 0xFFFF) as u32;
-            self.asm.movn(sf, dest.into(), imm, shift);
+
+            if sf != 0 {
+                self.asm.movn(dest.into(), imm, shift);
+            } else {
+                self.asm.movnw(dest.into(), imm, shift);
+            }
         } else {
             let (halfword, invert) = if asm::count_empty_half_words(!imm, register_size)
                 > asm::count_empty_half_words(imm, register_size)
@@ -1304,11 +1308,14 @@ impl MacroAssembler {
                 if cur_halfword != halfword {
                     if first {
                         if invert {
-                            self.asm
-                                .movn(sf, dest.into(), (!cur_halfword) & 0xFFFF, ind)
+                            if sf != 0 {
+                                self.asm.movn(dest.into(), (!cur_halfword) & 0xFFFF, ind);
+                            } else {
+                                self.asm.movnw(dest.into(), (!cur_halfword) & 0xFFFF, ind);
+                            }
                         } else {
                             self.asm.movz(sf, dest.into(), cur_halfword, ind)
-                        };
+                        }
 
                         first = false;
                     } else {
@@ -1351,7 +1358,7 @@ impl MacroAssembler {
 
         self.asm.movz(0, (*scratch).into(), 1, 0);
         self.asm
-            .eor_sh(0, dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
+            .eorw_sh(dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
         self.asm.uxtb(dest.into(), dest.into());
     }
 

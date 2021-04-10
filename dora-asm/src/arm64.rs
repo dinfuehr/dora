@@ -443,52 +443,64 @@ impl Assembler {
         self.subs_imm(0, REG_ZERO, rn, imm12, shift);
     }
 
-    pub fn cmp_sh(&mut self, sf: u32, rn: Register, rm: Register, shift: Shift, amount: u32) {
-        self.emit_u32(cls::addsub_shreg(sf, 1, 1, shift, rm, amount, rn, REG_ZERO));
+    pub fn cmp_sh(&mut self, rn: Register, rm: Register, shift: Shift, amount: u32) {
+        self.emit_u32(cls::addsub_shreg(1, 1, 1, shift, rm, amount, rn, REG_ZERO));
+    }
+
+    pub fn cmpw_sh(&mut self, rn: Register, rm: Register, shift: Shift, amount: u32) {
+        self.emit_u32(cls::addsub_shreg(0, 1, 1, shift, rm, amount, rn, REG_ZERO));
     }
 
     pub fn cnt(&mut self, q: u32, size: u32, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::simd_2regs_misc(q, 0, size, 0b00101, rn, rd));
     }
 
-    pub fn csel(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, cond: Cond) {
-        self.emit_u32(cls::csel(sf, 0, 0, rm, cond, 0, rn, rd));
+    pub fn csel(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(1, 0, 0, rm, cond, 0, rn, rd));
     }
 
-    pub fn cset(&mut self, sf: u32, rd: Register, cond: Cond) {
-        self.csinc(sf, rd, REG_ZERO, REG_ZERO, cond.invert());
+    pub fn cselw(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(0, 0, 0, rm, cond, 0, rn, rd));
     }
 
-    pub fn csinc(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, cond: Cond) {
-        self.emit_u32(cls::csel(sf, 0, 0, rm, cond, 1, rn, rd));
+    pub fn cset(&mut self, rd: Register, cond: Cond) {
+        self.csinc(rd, REG_ZERO, REG_ZERO, cond.invert());
     }
 
-    pub fn csinv(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, cond: Cond) {
-        self.emit_u32(cls::csel(sf, 1, 0, rm, cond, 0, rn, rd));
+    pub fn csetw(&mut self, rd: Register, cond: Cond) {
+        self.csincw(rd, REG_ZERO, REG_ZERO, cond.invert());
     }
 
-    pub fn eon_sh(
-        &mut self,
-        sf: u32,
-        rd: Register,
-        rn: Register,
-        rm: Register,
-        shift: Shift,
-        imm6: u32,
-    ) {
-        self.emit_u32(cls::logical_shreg(sf, 0b10, shift, 1, rm, imm6, rn, rd));
+    pub fn csinc(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(1, 0, 0, rm, cond, 1, rn, rd));
     }
 
-    pub fn eor_sh(
-        &mut self,
-        sf: u32,
-        rd: Register,
-        rn: Register,
-        rm: Register,
-        shift: Shift,
-        imm6: u32,
-    ) {
-        self.emit_u32(cls::logical_shreg(sf, 0b10, shift, 0, rm, imm6, rn, rd));
+    pub fn csincw(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(0, 0, 0, rm, cond, 1, rn, rd));
+    }
+
+    pub fn csinv(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(1, 1, 0, rm, cond, 0, rn, rd));
+    }
+
+    pub fn csinvw(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit_u32(cls::csel(0, 1, 0, rm, cond, 0, rn, rd));
+    }
+
+    pub fn eon_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+        self.emit_u32(cls::logical_shreg(1, 0b10, shift, 1, rm, imm6, rn, rd));
+    }
+
+    pub fn eonw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+        self.emit_u32(cls::logical_shreg(0, 0b10, shift, 1, rm, imm6, rn, rd));
+    }
+
+    pub fn eor_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+        self.emit_u32(cls::logical_shreg(1, 0b10, shift, 0, rm, imm6, rn, rd));
+    }
+
+    pub fn eorw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+        self.emit_u32(cls::logical_shreg(0, 0b10, shift, 0, rm, imm6, rn, rd));
     }
 
     pub fn fadd(&mut self, ty: u32, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
@@ -1072,9 +1084,14 @@ impl Assembler {
         ));
     }
 
-    pub fn lsl_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
-        let (val, mask) = if sf != 0 { (64, 0x3f) } else { (32, 0x1f) };
-        self.ubfm(sf, rd, rn, (val - shift) & mask, val - 1 - shift);
+    pub fn lsl_i(&mut self, rd: Register, rn: Register, shift: u32) {
+        let (val, mask) = (64, 0x3f);
+        self.ubfm(1, rd, rn, (val - shift) & mask, val - 1 - shift);
+    }
+
+    pub fn lslw_i(&mut self, rd: Register, rn: Register, shift: u32) {
+        let (val, mask) = (32, 0x1f);
+        self.ubfm(0, rd, rn, (val - shift) & mask, val - 1 - shift);
     }
 
     pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
@@ -1085,9 +1102,12 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b1000, rn, rd));
     }
 
-    pub fn lsr_imm(&mut self, sf: u32, rd: Register, rn: Register, shift: u32) {
-        let val = if sf != 0 { 64 } else { 32 };
-        self.ubfm(sf, rd, rn, shift, val - 1);
+    pub fn lsr_i(&mut self, rd: Register, rn: Register, shift: u32) {
+        self.ubfm(1, rd, rn, shift, 63);
+    }
+
+    pub fn lsrw_i(&mut self, rd: Register, rn: Register, shift: u32) {
+        self.ubfm(0, rd, rn, shift, 31);
     }
 
     pub fn lsrv(&mut self, rd: Register, rn: Register, rm: Register) {
@@ -1098,12 +1118,20 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b1001, rn, rd));
     }
 
-    pub fn madd(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls::dataproc3(sf, 0, 0, rm, 0, ra, rn, rd));
+    pub fn madd(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(1, 0, 0, rm, 0, ra, rn, rd));
     }
 
-    pub fn movn(&mut self, sf: u32, rd: Register, imm16: u32, shift: u32) {
-        self.emit_u32(cls::move_wide_imm(sf, 0b00, shift, imm16, rd));
+    pub fn maddw(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(0, 0, 0, rm, 0, ra, rn, rd));
+    }
+
+    pub fn movn(&mut self, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(1, 0b00, shift, imm16, rd));
+    }
+
+    pub fn movnw(&mut self, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(0, 0b00, shift, imm16, rd));
     }
 
     pub fn movz(&mut self, sf: u32, rd: Register, imm16: u32, shift: u32) {
@@ -1114,12 +1142,20 @@ impl Assembler {
         self.emit_u32(cls::move_wide_imm(sf, 0b11, shift, imm16, rd));
     }
 
-    pub fn msub(&mut self, sf: u32, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls::dataproc3(sf, 0, 0, rm, 1, ra, rn, rd));
+    pub fn msub(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(1, 0, 0, rm, 1, ra, rn, rd));
     }
 
-    pub fn mul(&mut self, sf: u32, rd: Register, rn: Register, rm: Register) {
-        self.madd(sf, rd, rn, rm, REG_ZERO);
+    pub fn msubw(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(0, 0, 0, rm, 1, ra, rn, rd));
+    }
+
+    pub fn mul(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.madd(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn mulw(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.maddw(rd, rn, rm, REG_ZERO);
     }
 
     pub fn nop(&mut self) {
@@ -2475,18 +2511,18 @@ mod tests {
 
     #[test]
     fn test_lsl_imm() {
-        assert_emit!(0xd37ff820; lsl_imm(1, R0, R1, 1)); // lsl x0, x1, #1
-        assert_emit!(0x531f7820; lsl_imm(0, R0, R1, 1)); // lsl w0, w1, #1
-        assert_emit!(0xd37ef462; lsl_imm(1, R2, R3, 2)); // lsl x2, x3, #2
-        assert_emit!(0x531e7462; lsl_imm(0, R2, R3, 2)); // lsl w2, w3, #2
+        assert_emit!(0xd37ff820; lsl_i(R0, R1, 1)); // lsl x0, x1, #1
+        assert_emit!(0x531f7820; lslw_i(R0, R1, 1)); // lsl w0, w1, #1
+        assert_emit!(0xd37ef462; lsl_i(R2, R3, 2)); // lsl x2, x3, #2
+        assert_emit!(0x531e7462; lslw_i(R2, R3, 2)); // lsl w2, w3, #2
     }
 
     #[test]
     fn test_lsr_imm() {
-        assert_emit!(0xd341fc20; lsr_imm(1, R0, R1, 1)); // lsr x0, x1, #1
-        assert_emit!(0x53017c20; lsr_imm(0, R0, R1, 1)); // lsr w0, w1, #1
-        assert_emit!(0xd342fc62; lsr_imm(1, R2, R3, 2)); // lsr x2, x3, #2
-        assert_emit!(0x53027c62; lsr_imm(0, R2, R3, 2)); // lsr w2, w3, #2
+        assert_emit!(0xd341fc20; lsr_i(R0, R1, 1)); // lsr x0, x1, #1
+        assert_emit!(0x53017c20; lsrw_i(R0, R1, 1)); // lsr w0, w1, #1
+        assert_emit!(0xd342fc62; lsr_i(R2, R3, 2)); // lsr x2, x3, #2
+        assert_emit!(0x53027c62; lsrw_i(R2, R3, 2)); // lsr w2, w3, #2
     }
 
     #[test]
@@ -2556,16 +2592,16 @@ mod tests {
 
     #[test]
     fn test_madd_msub() {
-        assert_emit!(0x9b031041; madd(1, R1, R2, R3, R4));
-        assert_emit!(0x1b0720c5; madd(0, R5, R6, R7, R8));
-        assert_emit!(0x9b0bb149; msub(1, R9, R10, R11, R12));
-        assert_emit!(0x1b0fc1cd; msub(0, R13, R14, R15, R16));
+        assert_emit!(0x9b031041; madd(R1, R2, R3, R4));
+        assert_emit!(0x1b0720c5; maddw(R5, R6, R7, R8));
+        assert_emit!(0x9b0bb149; msub(R9, R10, R11, R12));
+        assert_emit!(0x1b0fc1cd; msubw(R13, R14, R15, R16));
     }
 
     #[test]
     fn test_mul() {
-        assert_emit!(0x9b037c41; mul(1, R1, R2, R3));
-        assert_emit!(0x1b067ca4; mul(0, R4, R5, R6));
+        assert_emit!(0x9b037c41; mul(R1, R2, R3));
+        assert_emit!(0x1b067ca4; mulw(R4, R5, R6));
     }
 
     #[test]
@@ -2602,45 +2638,45 @@ mod tests {
 
     #[test]
     fn test_csel() {
-        assert_emit!(0x1a821020; csel(0, R0, R1, R2, Cond::NE));
-        assert_emit!(0x9a856083; csel(1, R3, R4, R5, Cond::VS));
+        assert_emit!(0x1a821020; cselw(R0, R1, R2, Cond::NE));
+        assert_emit!(0x9a856083; csel(R3, R4, R5, Cond::VS));
     }
 
     #[test]
     fn test_csinc() {
-        assert_emit!(0x1a821420; csinc(0, R0, R1, R2, Cond::NE));
-        assert_emit!(0x9a856483; csinc(1, R3, R4, R5, Cond::VS));
+        assert_emit!(0x1a821420; csincw(R0, R1, R2, Cond::NE));
+        assert_emit!(0x9a856483; csinc(R3, R4, R5, Cond::VS));
     }
 
     #[test]
     fn test_cset() {
-        assert_emit!(0x1a9f17e0; cset(0, R0, Cond::EQ));
-        assert_emit!(0x9a9fc7e3; cset(1, R3, Cond::LE));
+        assert_emit!(0x1a9f17e0; csetw(R0, Cond::EQ));
+        assert_emit!(0x9a9fc7e3; cset(R3, Cond::LE));
 
-        assert_emit!(0x1a9f17e0; cset(0, R0, Cond::EQ));
-        assert_emit!(0x1a9f07e0; cset(0, R0, Cond::NE));
-        assert_emit!(0x1a9f37e0; cset(0, R0, Cond::CS));
-        assert_emit!(0x1a9f37e0; cset(0, R0, Cond::HS));
+        assert_emit!(0x1a9f17e0; csetw(R0, Cond::EQ));
+        assert_emit!(0x1a9f07e0; csetw(R0, Cond::NE));
+        assert_emit!(0x1a9f37e0; csetw(R0, Cond::CS));
+        assert_emit!(0x1a9f37e0; csetw(R0, Cond::HS));
 
-        assert_emit!(0x1a9f27e0; cset(0, R0, Cond::CC));
-        assert_emit!(0x1a9f27e0; cset(0, R0, Cond::LO));
-        assert_emit!(0x1a9f57e0; cset(0, R0, Cond::MI));
-        assert_emit!(0x1a9f47e0; cset(0, R0, Cond::PL));
+        assert_emit!(0x1a9f27e0; csetw(R0, Cond::CC));
+        assert_emit!(0x1a9f27e0; csetw(R0, Cond::LO));
+        assert_emit!(0x1a9f57e0; csetw(R0, Cond::MI));
+        assert_emit!(0x1a9f47e0; csetw(R0, Cond::PL));
 
-        assert_emit!(0x1a9f77e0; cset(0, R0, Cond::VS));
-        assert_emit!(0x1a9f67e0; cset(0, R0, Cond::VC));
-        assert_emit!(0x1a9f97e0; cset(0, R0, Cond::HI));
-        assert_emit!(0x1a9f87e0; cset(0, R0, Cond::LS));
+        assert_emit!(0x1a9f77e0; csetw(R0, Cond::VS));
+        assert_emit!(0x1a9f67e0; csetw(R0, Cond::VC));
+        assert_emit!(0x1a9f97e0; csetw(R0, Cond::HI));
+        assert_emit!(0x1a9f87e0; csetw(R0, Cond::LS));
 
-        assert_emit!(0x1a9fb7e0; cset(0, R0, Cond::GE));
-        assert_emit!(0x1a9fa7e0; cset(0, R0, Cond::LT));
-        assert_emit!(0x1a9fd7e0; cset(0, R0, Cond::GT));
-        assert_emit!(0x1a9fc7e0; cset(0, R0, Cond::LE));
+        assert_emit!(0x1a9fb7e0; csetw(R0, Cond::GE));
+        assert_emit!(0x1a9fa7e0; csetw(R0, Cond::LT));
+        assert_emit!(0x1a9fd7e0; csetw(R0, Cond::GT));
+        assert_emit!(0x1a9fc7e0; csetw(R0, Cond::LE));
     }
 
     #[test]
     fn test_mov_imm() {
-        assert_emit!(0x12800100; movn(0, R0, 8, 0));
+        assert_emit!(0x12800100; movnw(R0, 8, 0));
         assert_emit!(0x52800100; movz(0, R0, 8, 0));
         assert_emit!(0x72a00100; movk(0, R0, 8, 1));
     }
@@ -2699,9 +2735,9 @@ mod tests {
     #[test]
     fn test_cmp() {
         assert_emit!(0x6b0600bf; cmpw(R5, R6));
-        assert_emit!(0x6b060cbf; cmp_sh(0, R5, R6, Shift::LSL, 3));
+        assert_emit!(0x6b060cbf; cmpw_sh(R5, R6, Shift::LSL, 3));
         assert_emit!(0xeb0600bf; cmp(R5, R6));
-        assert_emit!(0xeb060cbf; cmp_sh(1, R5, R6, Shift::LSL, 3));
+        assert_emit!(0xeb060cbf; cmp_sh(R5, R6, Shift::LSL, 3));
     }
 
     #[test]
@@ -2794,8 +2830,8 @@ mod tests {
         assert_emit!(0x0a650883; bicw_sh(R3, R4, R5, Shift::LSR, 2));
         assert_emit!(0xaa880ce6; orr_sh(1, R6, R7, R8, Shift::ASR, 3));
         assert_emit!(0xaaeb1149; orn_sh(1, R9, R10, R11, Shift::ROR, 4));
-        assert_emit!(0xca0e15ac; eor_sh(1, R12, R13, R14, Shift::LSL, 5));
-        assert_emit!(0xca711a0f; eon_sh(1, R15, R16, R17, Shift::LSR, 6));
+        assert_emit!(0xca0e15ac; eor_sh(R12, R13, R14, Shift::LSL, 5));
+        assert_emit!(0xca711a0f; eon_sh(R15, R16, R17, Shift::LSR, 6));
         assert_emit!(0xea941e72; ands_sh(R18, R19, R20, Shift::ASR, 7));
         assert_emit!(0xeaf726d5; bics_sh(R21, R22, R23, Shift::ROR, 9));
     }
