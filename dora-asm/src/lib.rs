@@ -37,10 +37,6 @@ impl Assembler {
         }
     }
 
-    pub fn pc(&self) -> usize {
-        self.code.len()
-    }
-
     pub fn create_label(&mut self) -> Label {
         self.labels.push(None);
 
@@ -48,14 +44,14 @@ impl Assembler {
     }
 
     pub fn create_and_bind_label(&mut self) -> Label {
-        self.labels.push(Some(self.pc().try_into().unwrap()));
+        self.labels.push(Some(self.position().try_into().unwrap()));
         Label(self.labels.len() - 1)
     }
 
     pub fn bind_label(&mut self, lbl: Label) {
         let Label(idx) = lbl;
         assert!(self.labels[idx].is_none());
-        self.labels[idx] = Some(self.pc().try_into().unwrap());
+        self.labels[idx] = Some(self.position().try_into().unwrap());
     }
 
     pub fn bind_label_to(&mut self, lbl: Label, offset: u32) {

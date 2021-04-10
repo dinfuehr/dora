@@ -747,8 +747,8 @@ impl Assembler {
             // backwards jump
             // rip = end of current instruction = pc + 2
             let target_offset = target_offset as usize;
-            assert!(target_offset <= self.pc());
-            let distance = self.pc() + 2 - target_offset;
+            assert!(target_offset <= self.position());
+            let distance = self.position() + 2 - target_offset;
             let distance = -(distance as isize);
             assert!(distance <= -2);
 
@@ -756,7 +756,7 @@ impl Assembler {
                 self.emit_u8(0x70 + condition.int());
                 self.emit_u8(distance as u8);
             } else {
-                let distance = self.pc() + 6 - target_offset;
+                let distance = self.position() + 6 - target_offset;
                 let distance = -(distance as isize);
                 self.emit_u8(0x0F);
                 self.emit_u8(0x80 + condition.int());
@@ -766,8 +766,11 @@ impl Assembler {
             // forward jump - conservatively assume far jump
             self.emit_u8(0x0F);
             self.emit_u8(0x80 + condition.int());
-            self.unresolved_jumps
-                .push((self.pc().try_into().unwrap(), target, JumpKind::Far));
+            self.unresolved_jumps.push((
+                self.position().try_into().unwrap(),
+                target,
+                JumpKind::Far,
+            ));
             self.emit_u32(0);
         }
     }
@@ -777,8 +780,8 @@ impl Assembler {
             // backwards jump
             // rip = end of current instruction = pc + 2
             let target_offset = target_offset as usize;
-            assert!(target_offset <= self.pc());
-            let distance = self.pc() + 2 - target_offset;
+            assert!(target_offset <= self.position());
+            let distance = self.position() + 2 - target_offset;
             let distance = -(distance as isize);
             assert!(-128 <= distance && distance <= -2);
             self.emit_u8(0x70 + condition.int());
@@ -786,8 +789,11 @@ impl Assembler {
         } else {
             // forward jump
             self.emit_u8(0x70 + condition.int());
-            self.unresolved_jumps
-                .push((self.pc().try_into().unwrap(), target, JumpKind::Near));
+            self.unresolved_jumps.push((
+                self.position().try_into().unwrap(),
+                target,
+                JumpKind::Near,
+            ));
             self.emit_u8(0);
         }
     }
@@ -797,8 +803,8 @@ impl Assembler {
             // backwards jump
             // rip = end of current instruction = pc + 2
             let target_offset = target_offset as usize;
-            assert!(target_offset <= self.pc());
-            let distance = self.pc() + 2 - target_offset;
+            assert!(target_offset <= self.position());
+            let distance = self.position() + 2 - target_offset;
             let distance = -(distance as isize);
             assert!(distance <= -2);
 
@@ -806,7 +812,7 @@ impl Assembler {
                 self.emit_u8(0xEB);
                 self.emit_u8(distance as u8);
             } else {
-                let distance = self.pc() + 5 - target_offset;
+                let distance = self.position() + 5 - target_offset;
                 let distance = -(distance as isize);
                 self.emit_u8(0xE9);
                 self.emit_u32(distance as u32);
@@ -814,8 +820,11 @@ impl Assembler {
         } else {
             // forward jump - conservatively assume far jump
             self.emit_u8(0xE9);
-            self.unresolved_jumps
-                .push((self.pc().try_into().unwrap(), target, JumpKind::Far));
+            self.unresolved_jumps.push((
+                self.position().try_into().unwrap(),
+                target,
+                JumpKind::Far,
+            ));
             self.emit_u32(0);
         }
     }
@@ -825,8 +834,8 @@ impl Assembler {
             // backwards jump
             // rip = end of current instruction = pc + 2
             let target_offset = target_offset as usize;
-            assert!(target_offset <= self.pc());
-            let distance = self.pc() + 2 - target_offset;
+            assert!(target_offset <= self.position());
+            let distance = self.position() + 2 - target_offset;
             let distance = -(distance as isize);
             assert!(-128 <= distance && distance <= -2);
             self.emit_u8(0xEB);
@@ -834,8 +843,11 @@ impl Assembler {
         } else {
             // forward jump - conservatively assume far jump
             self.emit_u8(0xEB);
-            self.unresolved_jumps
-                .push((self.pc().try_into().unwrap(), target, JumpKind::Near));
+            self.unresolved_jumps.push((
+                self.position().try_into().unwrap(),
+                target,
+                JumpKind::Near,
+            ));
             self.emit_u8(0);
         }
     }

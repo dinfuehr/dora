@@ -118,7 +118,7 @@ impl MacroAssembler {
     }
 
     pub fn pos(&self) -> usize {
-        self.asm.pc() as usize
+        self.asm.position()
     }
 
     pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg, trap: Trap) {

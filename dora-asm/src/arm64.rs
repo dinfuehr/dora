@@ -290,13 +290,13 @@ impl Assembler {
 
         match value {
             Some(target_offset) => {
-                let diff = -(self.pc() as i32 - target_offset as i32);
+                let diff = -(self.position() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
                 self.b_i(diff / 4);
             }
 
             None => {
-                let pos = self.pc() as u32;
+                let pos = self.position() as u32;
                 self.emit_u32(0);
                 self.unresolved_jumps
                     .push((pos, target, JumpKind::Unconditional));
@@ -317,13 +317,13 @@ impl Assembler {
 
         match value {
             Some(target_offset) => {
-                let diff = -(self.pc() as i32 - target_offset as i32);
+                let diff = -(self.position() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
                 self.bc_i(cond, diff / 4);
             }
 
             None => {
-                let pos = self.pc() as u32;
+                let pos = self.position() as u32;
                 self.emit_u32(0);
                 self.unresolved_jumps
                     .push((pos, target, JumpKind::Conditional(cond)));
@@ -376,13 +376,13 @@ impl Assembler {
 
         match value {
             Some(target_offset) => {
-                let diff = -(self.pc() as i32 - target_offset as i32);
+                let diff = -(self.position() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
                 self.cbnz_i(reg, diff / 4);
             }
 
             None => {
-                let pos = self.pc() as u32;
+                let pos = self.position() as u32;
                 self.emit_u32(0);
                 self.unresolved_jumps
                     .push((pos, target, JumpKind::NonZero(true, reg)));
