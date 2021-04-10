@@ -1,4 +1,4 @@
-use crate::{Assembler, Label, Register};
+use crate::{Assembler, Label};
 use std::convert::TryInto;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
