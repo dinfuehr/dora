@@ -2314,7 +2314,7 @@ mod tests {
             $(
                 expected.write_u32::<LittleEndian>($expr).unwrap();
             )*
-            let data = buf.code();
+            let data = buf.finalize();
 
             if expected != data {
                 print!("exp: ");

@@ -13,7 +13,6 @@ use crate::mem;
 use crate::object::Header;
 use crate::ty::MachineMode;
 use crate::vm::{Trap, VM};
-use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use dora_asm::Assembler;
 pub use dora_asm::Label;
 use dora_parser::lexer::position::Position;
@@ -89,11 +88,6 @@ impl MacroAssembler {
             self.positions,
             desc,
         )
-    }
-
-    #[cfg(test)]
-    pub fn buffer(&self) -> &[u8] {
-        self.asm.code()
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -208,24 +202,12 @@ impl MacroAssembler {
         self.asm.emit_u8(value);
     }
 
-    pub fn emit_u8_at(&mut self, pos: i32, value: u8) {
-        self.asm.code_mut()[pos as usize] = value;
-    }
-
     pub fn emit_u32(&mut self, value: u32) {
         self.asm.emit_u32(value);
     }
 
-    pub fn emit_u32_at(&mut self, pos: i32, value: u32) {
-        let buf = &mut self.asm.code_mut()[pos as usize..];
-        LittleEndian::write_u32(buf, value);
-    }
-
     pub fn emit_u64(&mut self, value: u64) {
-        self.asm
-            .code_mut()
-            .write_u64::<LittleEndian>(value)
-            .unwrap();
+        self.asm.emit_u64(value);
     }
 
     pub fn copy(&mut self, mode: MachineMode, dest: AnyReg, src: AnyReg) {
@@ -391,16 +373,6 @@ mod tests {
 
         masm.create_label();
         masm.create_label();
-    }
-
-    #[test]
-    fn test_emit_u32() {
-        let mut masm = MacroAssembler::new();
-        masm.emit_u32(0x11223344);
-        assert_eq!(&[0x44, 0x33, 0x22, 0x11], masm.buffer());
-
-        masm.emit_u32_at(0, 0x55667788);
-        assert_eq!(&[0x88, 0x77, 0x66, 0x55], masm.buffer());
     }
 
     #[test]

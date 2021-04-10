@@ -18,9 +18,6 @@ use std::convert::TryInto;
 pub struct Register(u8);
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct FloatRegister(u8);
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Label(usize);
 
 pub struct Assembler {
@@ -42,14 +39,6 @@ impl Assembler {
 
     pub fn pc(&self) -> usize {
         self.code.len()
-    }
-
-    pub fn code_mut(&mut self) -> &mut Vec<u8> {
-        &mut self.code
-    }
-
-    pub fn code(&self) -> &[u8] {
-        &self.code
     }
 
     pub fn create_label(&mut self) -> Label {
