@@ -467,7 +467,7 @@ impl Assembler {
         self.emit_u32(cls::csel(sf, 1, 0, rm, cond, 0, rn, rd));
     }
 
-    pub fn eon_shift(
+    pub fn eon_sh(
         &mut self,
         sf: u32,
         rd: Register,
@@ -479,7 +479,7 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(sf, 0b10, shift, 1, rm, imm6, rn, rd));
     }
 
-    pub fn eor_shift(
+    pub fn eor_sh(
         &mut self,
         sf: u32,
         rd: Register,
@@ -1126,7 +1126,7 @@ impl Assembler {
         self.emit_u32(cls::system(0));
     }
 
-    pub fn orn_shift(
+    pub fn orn_sh(
         &mut self,
         sf: u32,
         rd: Register,
@@ -1138,7 +1138,7 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(sf, 0b01, shift, 1, rm, imm6, rn, rd));
     }
 
-    pub fn orr_shift(
+    pub fn orr_sh(
         &mut self,
         sf: u32,
         rd: Register,
@@ -2792,10 +2792,10 @@ mod tests {
     fn test_logical_shreg() {
         assert_emit!(0x0a020420; andw_sh(R0, R1, R2, Shift::LSL, 1));
         assert_emit!(0x0a650883; bicw_sh(R3, R4, R5, Shift::LSR, 2));
-        assert_emit!(0xaa880ce6; orr_shift(1, R6, R7, R8, Shift::ASR, 3));
-        assert_emit!(0xaaeb1149; orn_shift(1, R9, R10, R11, Shift::ROR, 4));
-        assert_emit!(0xca0e15ac; eor_shift(1, R12, R13, R14, Shift::LSL, 5));
-        assert_emit!(0xca711a0f; eon_shift(1, R15, R16, R17, Shift::LSR, 6));
+        assert_emit!(0xaa880ce6; orr_sh(1, R6, R7, R8, Shift::ASR, 3));
+        assert_emit!(0xaaeb1149; orn_sh(1, R9, R10, R11, Shift::ROR, 4));
+        assert_emit!(0xca0e15ac; eor_sh(1, R12, R13, R14, Shift::LSL, 5));
+        assert_emit!(0xca711a0f; eon_sh(1, R15, R16, R17, Shift::LSR, 6));
         assert_emit!(0xea941e72; ands_sh(R18, R19, R20, Shift::ASR, 7));
         assert_emit!(0xeaf726d5; bics_sh(R21, R22, R23, Shift::ROR, 9));
     }

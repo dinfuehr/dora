@@ -396,7 +396,7 @@ impl MacroAssembler {
         };
 
         self.asm
-            .orr_shift(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
+            .orr_sh(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
     }
 
     pub fn int_and(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -421,7 +421,7 @@ impl MacroAssembler {
         };
 
         self.asm
-            .eor_shift(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
+            .eor_sh(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
     }
 
     pub fn count_bits(&mut self, mode: MachineMode, dest: Reg, src: Reg, count_one_bits: bool) {
@@ -1206,7 +1206,7 @@ impl MacroAssembler {
             assert_eq!(mode, MachineMode::Ptr);
             self.asm.add_i(dest.into(), src.into(), 0, 0);
         } else {
-            self.asm.orr_shift(
+            self.asm.orr_sh(
                 size_flag(mode),
                 dest.into(),
                 REG_ZERO.into(),
@@ -1343,7 +1343,7 @@ impl MacroAssembler {
         };
 
         self.asm
-            .orn_shift(x64, dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0);
+            .orn_sh(x64, dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0);
     }
 
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
@@ -1351,7 +1351,7 @@ impl MacroAssembler {
 
         self.asm.movz(0, (*scratch).into(), 1, 0);
         self.asm
-            .eor_shift(0, dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
+            .eor_sh(0, dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
         self.asm.uxtb(dest.into(), dest.into());
     }
 
