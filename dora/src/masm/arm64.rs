@@ -516,19 +516,17 @@ impl MacroAssembler {
         src_mode: MachineMode,
         src: Reg,
     ) {
-        let x64 = match src_mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unreachable!(),
-        };
-
         let flt = match dest_mode {
             MachineMode::Float32 => 0,
             MachineMode::Float64 => 1,
             _ => unreachable!(),
         };
 
-        self.asm.scvtf(x64, flt, dest.into(), src.into());
+        match src_mode {
+            MachineMode::Int32 => self.asm.scvtfw(flt, dest.into(), src.into()),
+            MachineMode::Int64 => self.asm.scvtf(flt, dest.into(), src.into()),
+            _ => unreachable!(),
+        }
     }
 
     pub fn float_to_int(

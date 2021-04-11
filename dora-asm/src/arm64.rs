@@ -1221,8 +1221,12 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b1011, rn, rd));
     }
 
-    pub fn sbfm(&mut self, sf: u32, rd: Register, rn: Register, immr: u32, imms: u32) {
-        self.emit_u32(cls::bitfield(sf, 0b00, sf, immr, imms, rn, rd));
+    pub fn sbfm(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
+        self.emit_u32(cls::bitfield(1, 0b00, 1, immr, imms, rn, rd));
+    }
+
+    pub fn sbfmw(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
+        self.emit_u32(cls::bitfield(0, 0b00, 0, immr, imms, rn, rd));
     }
 
     pub fn sdiv(&mut self, rd: Register, rn: Register, rm: Register) {
@@ -1233,9 +1237,21 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b11, rn, rd));
     }
 
-    pub fn scvtf(&mut self, sf: u32, ty: u32, rd: NeonRegister, rn: Register) {
+    pub fn scvtf(&mut self, ty: u32, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
-            sf,
+            1,
+            0,
+            ty,
+            0b00,
+            0b010,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn scvtfw(&mut self, ty: u32, rd: NeonRegister, rn: Register) {
+        self.emit_u32(cls::fp_int(
+            0,
             0,
             ty,
             0b00,
@@ -1331,7 +1347,7 @@ impl Assembler {
     }
 
     pub fn sxtw(&mut self, rd: Register, rn: Register) {
-        self.sbfm(1, rd, rn, 0, 31);
+        self.sbfm(rd, rn, 0, 31);
     }
 
     pub fn ubfm(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
@@ -2521,8 +2537,8 @@ mod tests {
         assert_emit!(0xd3431062; ubfm(R2, R3, 3, 4));
         assert_emit!(0x33010820; bfmw(R0, R1, 1, 2));
         assert_emit!(0xb3431062; bfm(R2, R3, 3, 4));
-        assert_emit!(0x13010820; sbfm(0, R0, R1, 1, 2));
-        assert_emit!(0x93431062; sbfm(1, R2, R3, 3, 4));
+        assert_emit!(0x13010820; sbfmw(R0, R1, 1, 2));
+        assert_emit!(0x93431062; sbfm(R2, R3, 3, 4));
         assert_emit!(0x53001c20; uxtb(R0, R1));
     }
 
@@ -2556,10 +2572,10 @@ mod tests {
 
     #[test]
     fn test_scvtf() {
-        assert_emit!(0x1e220041; scvtf(0, 0, F1, R2));
-        assert_emit!(0x1e620041; scvtf(0, 1, F1, R2));
-        assert_emit!(0x9e220083; scvtf(1, 0, F3, R4));
-        assert_emit!(0x9e620083; scvtf(1, 1, F3, R4));
+        assert_emit!(0x1e220041; scvtfw(0, F1, R2));
+        assert_emit!(0x1e620041; scvtfw(1, F1, R2));
+        assert_emit!(0x9e220083; scvtf(0, F3, R4));
+        assert_emit!(0x9e620083; scvtf(1, F3, R4));
     }
 
     #[test]
