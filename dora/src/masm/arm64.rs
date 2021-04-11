@@ -16,13 +16,13 @@ use dora_asm::arm64::{self as asm, Cond, Extend, NeonRegister, Shift};
 impl MacroAssembler {
     pub fn prolog(&mut self) -> usize {
         self.asm
-            .stp_pre(1, REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
+            .stp_pre(REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
         self.asm.add(REG_FP.into(), REG_SP.into(), REG_ZERO.into());
 
         let patch_offset = self.pos();
 
-        self.asm.movz(1, REG_TMP1.into(), 0, 0);
-        self.asm.movk(1, REG_TMP1.into(), 0, 1);
+        self.asm.movz(REG_TMP1.into(), 0, 0);
+        self.asm.movk(REG_TMP1.into(), 0, 1);
         self.asm.sub(REG_SP.into(), REG_SP.into(), REG_TMP1.into());
 
         patch_offset
@@ -30,7 +30,7 @@ impl MacroAssembler {
 
     pub fn prolog_size(&mut self, stacksize: i32) {
         self.asm
-            .stp_pre(1, REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
+            .stp_pre(REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
         self.asm.add(REG_FP.into(), REG_SP.into(), REG_ZERO.into());
 
         if stacksize > 0 {
@@ -42,9 +42,9 @@ impl MacroAssembler {
     pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
         let stacksize = stacksize as u32;
         self.asm.set_position(patch_offset);
-        self.asm.movz(1, REG_TMP1.into(), stacksize & 0xFFFF, 0);
+        self.asm.movz(REG_TMP1.into(), stacksize & 0xFFFF, 0);
         self.asm
-            .movk(1, REG_TMP1.into(), (stacksize >> 16) & 0xFFFF, 1);
+            .movk(REG_TMP1.into(), (stacksize >> 16) & 0xFFFF, 1);
         self.asm.set_position_end();
     }
 
@@ -52,7 +52,7 @@ impl MacroAssembler {
         let offset = ThreadLocalData::stack_limit_offset() as u32;
         assert!(offset % 8 == 0);
         self.asm
-            .ldr_imm(REG_TMP1.into(), REG_THREAD.into(), offset / 8);
+            .ldr_i(REG_TMP1.into(), REG_THREAD.into(), offset / 8);
         self.asm
             .add(REG_TMP2.into(), REG_SP.into(), REG_ZERO.into());
         self.cmp_reg(MachineMode::Ptr, REG_TMP1, REG_TMP2);
@@ -61,8 +61,7 @@ impl MacroAssembler {
 
     pub fn safepoint(&mut self, lbl_safepoint: Label) {
         let offset = ThreadLocalData::safepoint_requested_offset() as u32;
-        self.asm
-            .ldrb_imm(REG_TMP1.into(), REG_THREAD.into(), offset);
+        self.asm.ldrb_i(REG_TMP1.into(), REG_THREAD.into(), offset);
         self.asm.cbnz(REG_TMP1.into(), lbl_safepoint);
     }
 
@@ -78,7 +77,7 @@ impl MacroAssembler {
     pub fn epilog_without_return(&mut self) {
         self.asm.add(REG_SP.into(), REG_FP.into(), REG_ZERO.into());
         self.asm
-            .ldp_post(1, REG_FP.into(), REG_LR.into(), REG_SP.into(), 2);
+            .ldp_post(REG_FP.into(), REG_LR.into(), REG_SP.into(), 2);
     }
 
     pub fn increase_stack_frame(&mut self, size: i32) {
@@ -386,14 +385,17 @@ impl MacroAssembler {
     }
 
     pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.asm
-            .orr_sh(x64, dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0);
+        match mode {
+            MachineMode::Int32 => {
+                self.asm
+                    .orrw_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+            }
+            MachineMode::Int64 => {
+                self.asm
+                    .orr_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+            }
+            _ => unreachable!(),
+        }
     }
 
     pub fn int_and(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -827,7 +829,7 @@ impl MacroAssembler {
     }
 
     pub fn load_nil(&mut self, dest: Reg) {
-        self.asm.movz(1, dest.into(), 0, 0);
+        self.asm.movz(dest.into(), 0, 0);
     }
 
     pub fn load_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
@@ -912,13 +914,13 @@ impl MacroAssembler {
         {
             let disp = (disp / mode.size()) as u32;
             match mode {
-                MachineMode::Int8 => self.asm.ldrb_imm(dest.reg().into(), base.into(), disp),
-                MachineMode::Int32 => self.asm.ldrw_imm(dest.reg().into(), base.into(), disp),
+                MachineMode::Int8 => self.asm.ldrb_i(dest.reg().into(), base.into(), disp),
+                MachineMode::Int32 => self.asm.ldrw_i(dest.reg().into(), base.into(), disp),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                    self.asm.ldr_imm(dest.reg().into(), base.into(), disp)
+                    self.asm.ldr_i(dest.reg().into(), base.into(), disp)
                 }
-                MachineMode::Float32 => self.asm.ldrs_imm(dest.freg().into(), base.into(), disp),
-                MachineMode::Float64 => self.asm.ldrd_imm(dest.freg().into(), base.into(), disp),
+                MachineMode::Float32 => self.asm.ldrs_i(dest.freg().into(), base.into(), disp),
+                MachineMode::Float64 => self.asm.ldrd_i(dest.freg().into(), base.into(), disp),
             }
         } else if asm::fits_ldst_unscaled(disp) {
             match mode {
@@ -1129,13 +1131,13 @@ impl MacroAssembler {
         {
             let offset = (offset / mode.size()) as u32;
             match mode {
-                MachineMode::Int8 => self.asm.strb_imm(src.reg().into(), base.into(), offset),
-                MachineMode::Int32 => self.asm.strw_imm(src.reg().into(), base.into(), offset),
+                MachineMode::Int8 => self.asm.strb_i(src.reg().into(), base.into(), offset),
+                MachineMode::Int32 => self.asm.strw_i(src.reg().into(), base.into(), offset),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                    self.asm.str_imm(src.reg().into(), base.into(), offset)
+                    self.asm.str_i(src.reg().into(), base.into(), offset)
                 }
-                MachineMode::Float32 => self.asm.strs_imm(src.freg().into(), base.into(), offset),
-                MachineMode::Float64 => self.asm.strd_imm(src.freg().into(), base.into(), offset),
+                MachineMode::Float32 => self.asm.strs_i(src.freg().into(), base.into(), offset),
+                MachineMode::Float64 => self.asm.strd_i(src.freg().into(), base.into(), offset),
             }
         } else if asm::fits_ldst_unscaled(offset) {
             match mode {
@@ -1205,14 +1207,17 @@ impl MacroAssembler {
             assert_eq!(mode, MachineMode::Ptr);
             self.asm.add_i(dest.into(), src.into(), 0, 0);
         } else {
-            self.asm.orr_sh(
-                size_flag(mode),
-                dest.into(),
-                REG_ZERO.into(),
-                src.into(),
-                Shift::LSL,
-                0,
-            );
+            match mode {
+                MachineMode::Int32 | MachineMode::Int8 => {
+                    self.asm
+                        .orrw_sh(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
+                }
+                MachineMode::Ptr | MachineMode::Int64 => {
+                    self.asm
+                        .orr_sh(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
+                }
+                _ => unreachable!(),
+            }
         }
     }
 
@@ -1280,7 +1285,12 @@ impl MacroAssembler {
         if asm::fits_movz(imm, register_size) {
             let shift = asm::shift_movz(imm);
             let imm = ((imm >> (shift * 16)) & 0xFFFF) as u32;
-            self.asm.movz(sf, dest.into(), imm, shift);
+
+            if sf != 0 {
+                self.asm.movz(dest.into(), imm, shift);
+            } else {
+                self.asm.movzw(dest.into(), imm, shift);
+            }
         } else if asm::fits_movn(imm, register_size) {
             let shift = asm::shift_movn(imm);
             let imm = (((!imm) >> (shift * 16)) & 0xFFFF) as u32;
@@ -1314,12 +1324,20 @@ impl MacroAssembler {
                                 self.asm.movnw(dest.into(), (!cur_halfword) & 0xFFFF, ind);
                             }
                         } else {
-                            self.asm.movz(sf, dest.into(), cur_halfword, ind)
+                            if sf != 0 {
+                                self.asm.movz(dest.into(), cur_halfword, ind);
+                            } else {
+                                self.asm.movzw(dest.into(), cur_halfword, ind);
+                            }
                         }
 
                         first = false;
                     } else {
-                        self.asm.movk(sf, dest.into(), cur_halfword, ind);
+                        if sf != 0 {
+                            self.asm.movk(dest.into(), cur_halfword, ind);
+                        } else {
+                            self.asm.movkw(dest.into(), cur_halfword, ind);
+                        }
                     }
                 }
             }
@@ -1327,11 +1345,11 @@ impl MacroAssembler {
     }
 
     pub fn load_true(&mut self, dest: Reg) {
-        self.asm.movz(0, dest.into(), 1, 0);
+        self.asm.movzw(dest.into(), 1, 0);
     }
 
     pub fn load_false(&mut self, dest: Reg) {
-        self.asm.movz(0, dest.into(), 0, 0);
+        self.asm.movzw(dest.into(), 0, 0);
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
@@ -1343,20 +1361,23 @@ impl MacroAssembler {
     }
 
     pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.asm
-            .orn_sh(x64, dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0);
+        match mode {
+            MachineMode::Int32 => {
+                self.asm
+                    .ornw_sh(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
+            }
+            MachineMode::Int64 => {
+                self.asm
+                    .orn_sh(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
+            }
+            _ => unreachable!(),
+        }
     }
 
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
         let scratch = self.get_scratch();
 
-        self.asm.movz(0, (*scratch).into(), 1, 0);
+        self.asm.movzw((*scratch).into(), 1, 0);
         self.asm
             .eorw_sh(dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
         self.asm.uxtb(dest.into(), dest.into());
