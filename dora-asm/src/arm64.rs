@@ -158,7 +158,7 @@ impl Assembler {
                         if sf {
                             self.cbnz_i(rt, distance);
                         } else {
-                            self.cbnzw_i(rt, distance);
+                            self.cbnz_i_w(rt, distance);
                         }
                     }
                 }
@@ -178,11 +178,11 @@ impl Assembler {
         }
     }
 
-    pub fn addw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn add_w(&mut self, rd: Register, rn: Register, rm: Register) {
         if rd == REG_SP || rn == REG_SP {
-            self.addw_ext(rd, rn, rm, Extend::UXTX, 0);
+            self.add_ext_w(rd, rn, rm, Extend::UXTX, 0);
         } else {
-            self.addw_sh(rd, rn, rm, Shift::LSL, 0);
+            self.add_sh_w(rd, rn, rm, Shift::LSL, 0);
         }
     }
 
@@ -197,7 +197,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_extreg(1, 0, 0, 0, rm, extend, amount, rn, rd));
     }
 
-    pub fn addw_ext(
+    pub fn add_ext_w(
         &mut self,
         rd: Register,
         rn: Register,
@@ -212,7 +212,14 @@ impl Assembler {
         self.emit_u32(cls::addsub_shreg(1, 0, 0, shift, rm, amount, rn, rd));
     }
 
-    pub fn addw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, amount: u32) {
+    pub fn add_sh_w(
+        &mut self,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: u32,
+    ) {
         self.emit_u32(cls::addsub_shreg(0, 0, 0, shift, rm, amount, rn, rd));
     }
 
@@ -220,7 +227,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_imm(1, 0, 0, shift, imm12, rn, rd));
     }
 
-    pub fn addw_i(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
+    pub fn add_i_w(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
         self.emit_u32(cls::addsub_imm(0, 0, 0, shift, imm12, rn, rd));
     }
 
@@ -228,7 +235,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_imm(1, 0, 1, shift, imm12, rn, rd));
     }
 
-    pub fn addsw_i(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
+    pub fn adds_i_w(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
         self.emit_u32(cls::addsub_imm(0, 0, 1, shift, imm12, rn, rd));
     }
 
@@ -236,7 +243,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_shreg(1, 0, 1, shift, rm, amount, rn, rd));
     }
 
-    pub fn addsw_sh(
+    pub fn adds_sh_w(
         &mut self,
         rd: Register,
         rn: Register,
@@ -251,7 +258,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_shreg(1, 0, 1, Shift::LSL, rm, 0, rn, rd));
     }
 
-    pub fn addsw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn adds_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::addsub_shreg(0, 0, 1, Shift::LSL, rm, 0, rn, rd));
     }
 
@@ -272,7 +279,7 @@ impl Assembler {
         self.emit_u32(cls::logical_imm(1, 0b00, n_immr_imms, rn, rd));
     }
 
-    pub fn andw_i(&mut self, rd: Register, rn: Register, imm: u64) {
+    pub fn and_i_w(&mut self, rd: Register, rn: Register, imm: u64) {
         let n_immr_imms = encode_logical_imm(imm, 32).unwrap();
         self.emit_u32(cls::logical_imm(0, 0b00, n_immr_imms, rn, rd));
     }
@@ -281,7 +288,7 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(1, 0b00, shift, 0, rm, imm6, rn, rd));
     }
 
-    pub fn andw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+    pub fn and_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(0, 0b00, shift, 0, rm, imm6, rn, rd));
     }
 
@@ -289,7 +296,7 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(1, 0b11, shift, 0, rm, imm6, rn, rd));
     }
 
-    pub fn andsw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+    pub fn ands_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(0, 0b11, shift, 0, rm, imm6, rn, rd));
     }
 
@@ -297,7 +304,7 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(1, 0, rm, 0b1010, rn, rd));
     }
 
-    pub fn asrvw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn asrv_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b1010, rn, rd));
     }
 
@@ -355,7 +362,7 @@ impl Assembler {
         self.emit_u32(cls::bitfield(1, 0b01, 1, immr, imms, rn, rd));
     }
 
-    pub fn bfmw(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
+    pub fn bfm_w(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
         self.emit_u32(cls::bitfield(0, 0b01, 0, immr, imms, rn, rd));
     }
 
@@ -363,7 +370,7 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(1, 0b00, shift, 1, rm, imm6, rn, rd));
     }
 
-    pub fn bicw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+    pub fn bic_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(0, 0b00, shift, 1, rm, imm6, rn, rd));
     }
 
@@ -371,7 +378,7 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(1, 0b11, shift, 1, rm, imm6, rn, rd));
     }
 
-    pub fn bicsw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+    pub fn bics_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(0, 0b11, shift, 1, rm, imm6, rn, rd));
     }
 
@@ -410,11 +417,11 @@ impl Assembler {
         self.emit_u32(inst::cbnz(1, reg, diff));
     }
 
-    pub fn cbnzw_i(&mut self, reg: Register, diff: i32) {
+    pub fn cbnz_i_w(&mut self, reg: Register, diff: i32) {
         self.emit_u32(inst::cbnz(0, reg, diff));
     }
 
-    pub fn clsw(&mut self, rd: Register, rn: Register) {
+    pub fn cls_w(&mut self, rd: Register, rn: Register) {
         self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000101, rn, rd));
     }
 
@@ -422,7 +429,7 @@ impl Assembler {
         self.emit_u32(cls::dataproc1(1, 0, 0b00000, 0b000101, rn, rd));
     }
 
-    pub fn clzw(&mut self, rd: Register, rn: Register) {
+    pub fn clz_w(&mut self, rd: Register, rn: Register) {
         self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000100, rn, rd));
     }
 
@@ -434,23 +441,23 @@ impl Assembler {
         self.subs(REG_ZERO, rn, rm);
     }
 
-    pub fn cmpw(&mut self, rn: Register, rm: Register) {
-        self.subsw(REG_ZERO, rn, rm);
+    pub fn cmp_w(&mut self, rn: Register, rm: Register) {
+        self.subs_w(REG_ZERO, rn, rm);
     }
 
     pub fn cmp_i(&mut self, rn: Register, imm12: u32, shift: u32) {
         self.subs_i(REG_ZERO, rn, imm12, shift);
     }
 
-    pub fn cmpw_i(&mut self, rn: Register, imm12: u32, shift: u32) {
-        self.subsw_i(REG_ZERO, rn, imm12, shift);
+    pub fn cmp_i_w(&mut self, rn: Register, imm12: u32, shift: u32) {
+        self.subs_i_w(REG_ZERO, rn, imm12, shift);
     }
 
     pub fn cmp_sh(&mut self, rn: Register, rm: Register, shift: Shift, amount: u32) {
         self.emit_u32(cls::addsub_shreg(1, 1, 1, shift, rm, amount, rn, REG_ZERO));
     }
 
-    pub fn cmpw_sh(&mut self, rn: Register, rm: Register, shift: Shift, amount: u32) {
+    pub fn cmp_sh_w(&mut self, rn: Register, rm: Register, shift: Shift, amount: u32) {
         self.emit_u32(cls::addsub_shreg(0, 1, 1, shift, rm, amount, rn, REG_ZERO));
     }
 
@@ -462,7 +469,7 @@ impl Assembler {
         self.emit_u32(cls::csel(1, 0, 0, rm, cond, 0, rn, rd));
     }
 
-    pub fn cselw(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+    pub fn csel_w(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
         self.emit_u32(cls::csel(0, 0, 0, rm, cond, 0, rn, rd));
     }
 
@@ -470,15 +477,15 @@ impl Assembler {
         self.csinc(rd, REG_ZERO, REG_ZERO, cond.invert());
     }
 
-    pub fn csetw(&mut self, rd: Register, cond: Cond) {
-        self.csincw(rd, REG_ZERO, REG_ZERO, cond.invert());
+    pub fn cset_w(&mut self, rd: Register, cond: Cond) {
+        self.csinc_w(rd, REG_ZERO, REG_ZERO, cond.invert());
     }
 
     pub fn csinc(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
         self.emit_u32(cls::csel(1, 0, 0, rm, cond, 1, rn, rd));
     }
 
-    pub fn csincw(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+    pub fn csinc_w(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
         self.emit_u32(cls::csel(0, 0, 0, rm, cond, 1, rn, rd));
     }
 
@@ -486,7 +493,7 @@ impl Assembler {
         self.emit_u32(cls::csel(1, 1, 0, rm, cond, 0, rn, rd));
     }
 
-    pub fn csinvw(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
+    pub fn csinv_w(&mut self, rd: Register, rn: Register, rm: Register, cond: Cond) {
         self.emit_u32(cls::csel(0, 1, 0, rm, cond, 0, rn, rd));
     }
 
@@ -494,7 +501,7 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(1, 0b10, shift, 1, rm, imm6, rn, rd));
     }
 
-    pub fn eonw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+    pub fn eon_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(0, 0b10, shift, 1, rm, imm6, rn, rd));
     }
 
@@ -502,15 +509,15 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(1, 0b10, shift, 0, rm, imm6, rn, rd));
     }
 
-    pub fn eorw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+    pub fn eor_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(0, 0b10, shift, 0, rm, imm6, rn, rd));
     }
 
-    pub fn faddh(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fadd_h(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, FLOAT_TYPE_HALF, rm, 0b0010, rn, rd));
     }
 
-    pub fn fadds(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fadd_s(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
             0,
@@ -522,7 +529,7 @@ impl Assembler {
         ));
     }
 
-    pub fn faddd(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fadd_d(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
             0,
@@ -534,27 +541,27 @@ impl Assembler {
         ));
     }
 
-    pub fn fcmpd(&mut self, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmp_d(&mut self, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_DOUBLE, rm, 0, rn, 0));
     }
 
-    pub fn fcmph(&mut self, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmp_h(&mut self, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_HALF, rm, 0, rn, 0));
     }
 
-    pub fn fcmps(&mut self, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmp_s(&mut self, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_SINGLE, rm, 0, rn, 0));
     }
 
-    pub fn fcmped(&mut self, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmpe_d(&mut self, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_DOUBLE, rm, 0, rn, 0b10000));
     }
 
-    pub fn fcmpeh(&mut self, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmpe_h(&mut self, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_HALF, rm, 0, rn, 0b10000));
     }
 
-    pub fn fcmpes(&mut self, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmpe_s(&mut self, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_SINGLE, rm, 0, rn, 0b10000));
     }
 
@@ -566,7 +573,7 @@ impl Assembler {
         self.emit_u32(cls::fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd));
     }
 
-    pub fn fcvtzsd(&mut self, rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_d(&mut self, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             1,
             0,
@@ -578,7 +585,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fcvtzsh(&mut self, rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_h(&mut self, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             1,
             0,
@@ -590,7 +597,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fcvtzss(&mut self, rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_s(&mut self, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             1,
             0,
@@ -602,7 +609,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fcvtzswd(&mut self, rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_wd(&mut self, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             0,
             0,
@@ -614,7 +621,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fcvtzswh(&mut self, rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_wh(&mut self, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             0,
             0,
@@ -626,7 +633,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fcvtzsws(&mut self, rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_ws(&mut self, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             0,
             0,
@@ -638,7 +645,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fdivd(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fdiv_d(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
             0,
@@ -650,11 +657,11 @@ impl Assembler {
         ));
     }
 
-    pub fn fdivh(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fdiv_h(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, FLOAT_TYPE_HALF, rm, 0b0001, rn, rd));
     }
 
-    pub fn fdivs(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fdiv_s(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
             0,
@@ -666,23 +673,23 @@ impl Assembler {
         ));
     }
 
-    pub fn fmovd(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fmov_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000000, rn, rd));
     }
 
-    pub fn fmovh(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fmov_h(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_HALF, 0b000000, rn, rd));
     }
 
-    pub fn fmovs(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fmov_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b000000, rn, rd));
     }
 
-    pub fn fmov_fs(&mut self, ty: u32, rd: NeonRegister, rn: Register) {
+    pub fn fmov_fs_d(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             1,
             0,
-            ty,
+            FLOAT_TYPE_DOUBLE,
             0b00,
             0b111,
             rn.encoding(),
@@ -690,11 +697,11 @@ impl Assembler {
         ));
     }
 
-    pub fn fmovw_fs(&mut self, ty: u32, rd: NeonRegister, rn: Register) {
+    pub fn fmov_fs_h(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
+            1,
             0,
-            0,
-            ty,
+            FLOAT_TYPE_HALF,
             0b00,
             0b111,
             rn.encoding(),
@@ -702,23 +709,59 @@ impl Assembler {
         ));
     }
 
-    pub fn fmov_sf(&mut self, ty: u32, rd: Register, rn: NeonRegister) {
+    pub fn fmov_fs_s(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             1,
             0,
-            ty,
+            FLOAT_TYPE_SINGLE,
             0b00,
-            0b110,
+            0b111,
             rn.encoding(),
             rd.encoding(),
         ));
     }
 
-    pub fn fmovw_sf(&mut self, ty: u32, rd: Register, rn: NeonRegister) {
+    pub fn fmov_fs_wd(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             0,
             0,
-            ty,
+            FLOAT_TYPE_DOUBLE,
+            0b00,
+            0b111,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_fs_wh(&mut self, rd: NeonRegister, rn: Register) {
+        self.emit_u32(cls::fp_int(
+            0,
+            0,
+            FLOAT_TYPE_HALF,
+            0b00,
+            0b111,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_fs_ws(&mut self, rd: NeonRegister, rn: Register) {
+        self.emit_u32(cls::fp_int(
+            0,
+            0,
+            FLOAT_TYPE_SINGLE,
+            0b00,
+            0b111,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_sf_d(&mut self, rd: Register, rn: NeonRegister) {
+        self.emit_u32(cls::fp_int(
+            1,
+            0,
+            FLOAT_TYPE_DOUBLE,
             0b00,
             0b110,
             rn.encoding(),
@@ -726,11 +769,71 @@ impl Assembler {
         ));
     }
 
-    pub fn fmulh(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fmov_sf_h(&mut self, rd: Register, rn: NeonRegister) {
+        self.emit_u32(cls::fp_int(
+            1,
+            0,
+            FLOAT_TYPE_HALF,
+            0b00,
+            0b110,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_sf_s(&mut self, rd: Register, rn: NeonRegister) {
+        self.emit_u32(cls::fp_int(
+            1,
+            0,
+            FLOAT_TYPE_SINGLE,
+            0b00,
+            0b110,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_sf_wd(&mut self, rd: Register, rn: NeonRegister) {
+        self.emit_u32(cls::fp_int(
+            0,
+            0,
+            FLOAT_TYPE_DOUBLE,
+            0b00,
+            0b110,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_sf_wh(&mut self, rd: Register, rn: NeonRegister) {
+        self.emit_u32(cls::fp_int(
+            0,
+            0,
+            FLOAT_TYPE_HALF,
+            0b00,
+            0b110,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_sf_ws(&mut self, rd: Register, rn: NeonRegister) {
+        self.emit_u32(cls::fp_int(
+            0,
+            0,
+            FLOAT_TYPE_SINGLE,
+            0b00,
+            0b110,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmul_h(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, FLOAT_TYPE_HALF, rm, 0b0000, rn, rd));
     }
 
-    pub fn fmuls(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fmul_s(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
             0,
@@ -742,7 +845,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fmuld(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fmul_d(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
             0,
@@ -754,35 +857,35 @@ impl Assembler {
         ));
     }
 
-    pub fn fnegd(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fneg_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000010, rn, rd));
     }
 
-    pub fn fnegh(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fneg_h(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_HALF, 0b000010, rn, rd));
     }
 
-    pub fn fnegs(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fneg_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b000010, rn, rd));
     }
 
-    pub fn fsqrtd(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fsqrt_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000011, rn, rd));
     }
 
-    pub fn fsqrth(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fsqrt_h(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_HALF, 0b000011, rn, rd));
     }
 
-    pub fn fsqrts(&mut self, rd: NeonRegister, rn: NeonRegister) {
+    pub fn fsqrt_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b000011, rn, rd));
     }
 
-    pub fn fsubh(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fsub_h(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(0, 0, FLOAT_TYPE_HALF, rm, 0b0011, rn, rd));
     }
 
-    pub fn fsubs(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fsub_s(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
             0,
@@ -794,7 +897,7 @@ impl Assembler {
         ));
     }
 
-    pub fn fsubd(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fsub_d(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
             0,
@@ -810,7 +913,7 @@ impl Assembler {
         self.emit_u32(cls::ldst_pair(0b10, 0, 1, imm7, rt2, rn, rt));
     }
 
-    pub fn ldpw(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+    pub fn ldp_w(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         self.emit_u32(cls::ldst_pair(0b00, 0, 1, imm7, rt2, rn, rt));
     }
 
@@ -818,7 +921,7 @@ impl Assembler {
         self.emit_u32(cls::ldst_pair_post(0b10, 0, 1, imm7, rt2, rn, rt));
     }
 
-    pub fn ldpw_post(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+    pub fn ldp_post_w(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         self.emit_u32(cls::ldst_pair_post(0b00, 0, 1, imm7, rt2, rn, rt));
     }
 
@@ -860,12 +963,12 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrb_i(&mut self, rt: Register, rn: Register, imm12: u32) {
+    pub fn ldr_i_b(&mut self, rt: Register, rn: Register, imm12: u32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_regimm(0b00, 0, 0b01, imm12, rn, rt.encoding()));
     }
 
-    pub fn ldrb_ind(
+    pub fn ldr_ind_b(
         &mut self,
         rt: Register,
         rn: Register,
@@ -886,7 +989,7 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrb_unscaled(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn ldr_unscaled_b(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b00,
@@ -898,11 +1001,11 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrd_i(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
+    pub fn ldr_i_d(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
         self.emit_u32(cls::ldst_regimm(0b11, 1, 0b01, imm12, rn, rt.encoding()));
     }
 
-    pub fn ldrd_ind(
+    pub fn ldr_ind_d(
         &mut self,
         rt: NeonRegister,
         rn: Register,
@@ -922,7 +1025,7 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrd_unscaled(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
+    pub fn ldr_unscaled_d(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b11,
             1,
@@ -933,12 +1036,12 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrh_i(&mut self, rt: Register, rn: Register, imm12: u32) {
+    pub fn ldr_i_h(&mut self, rt: Register, rn: Register, imm12: u32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_regimm(0b01, 0, 0b01, imm12, rn, rt.encoding()));
     }
 
-    pub fn ldrh_ind(
+    pub fn ldr_ind_h(
         &mut self,
         rt: Register,
         rn: Register,
@@ -959,7 +1062,7 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrh_unscaled_imm(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn ldr_unscaled_h(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b01,
@@ -971,11 +1074,11 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrs_i(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
+    pub fn ldr_i_s(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
         self.emit_u32(cls::ldst_regimm(0b10, 1, 0b01, imm12, rn, rt.encoding()));
     }
 
-    pub fn ldrs_ind(
+    pub fn ldr_ind_s(
         &mut self,
         rt: NeonRegister,
         rn: Register,
@@ -995,7 +1098,7 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrs_unscaled(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
+    pub fn ldr_unscaled_s(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b10,
             1,
@@ -1006,12 +1109,12 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrw_i(&mut self, rt: Register, rn: Register, imm12: u32) {
+    pub fn ldr_i_w(&mut self, rt: Register, rn: Register, imm12: u32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_regimm(0b10, 0, 0b01, imm12, rn, rt.encoding()));
     }
 
-    pub fn ldrw_ind(
+    pub fn ldr_ind_w(
         &mut self,
         rt: Register,
         rn: Register,
@@ -1032,7 +1135,7 @@ impl Assembler {
         ));
     }
 
-    pub fn ldrw_unscaled(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn ldr_unscaled_w(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b10,
@@ -1048,7 +1151,7 @@ impl Assembler {
         self.emit_u32(cls::ldst_pair(0b10, 0, 0, imm7, rt2, rn, rt));
     }
 
-    pub fn stpw(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+    pub fn stp_w(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         self.emit_u32(cls::ldst_pair(0b00, 0, 0, imm7, rt2, rn, rt));
     }
 
@@ -1056,7 +1159,7 @@ impl Assembler {
         self.emit_u32(cls::ldst_pair_pre(0b10, 0, 0, imm7, rt2, rn, rt));
     }
 
-    pub fn stpw_pre(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+    pub fn stp_pre_w(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         self.emit_u32(cls::ldst_pair_pre(0b00, 0, 0, imm7, rt2, rn, rt));
     }
 
@@ -1105,7 +1208,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strb_i(&mut self, rt: Register, rn: Register, imm12: u32) {
+    pub fn str_i_b(&mut self, rt: Register, rn: Register, imm12: u32) {
         assert!(rt.is_gpr_or_zero());
         self.emit_u32(cls::ldst_regimm(
             0b00,
@@ -1117,7 +1220,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strb_ind(
+    pub fn str_ind_b(
         &mut self,
         rt: Register,
         rn: Register,
@@ -1138,7 +1241,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strb_unscaled(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn str_unscaled_b(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr_or_zero());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b00,
@@ -1150,11 +1253,11 @@ impl Assembler {
         ));
     }
 
-    pub fn strd_i(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
+    pub fn str_i_d(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
         self.emit_u32(cls::ldst_regimm(0b11, 1, 0b00, imm12, rn, rt.encoding()));
     }
 
-    pub fn strd_ind(
+    pub fn str_ind_d(
         &mut self,
 
         rt: NeonRegister,
@@ -1175,7 +1278,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strd_unscaled(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
+    pub fn str_unscaled_d(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b11,
             1,
@@ -1186,7 +1289,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strh_i(&mut self, rt: Register, rn: Register, imm12: u32) {
+    pub fn str_i_h(&mut self, rt: Register, rn: Register, imm12: u32) {
         assert!(rt.is_gpr_or_zero());
         self.emit_u32(cls::ldst_regimm(
             0b01,
@@ -1198,7 +1301,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strh_ind(
+    pub fn str_ind_h(
         &mut self,
         rt: Register,
         rn: Register,
@@ -1219,7 +1322,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strh_unscaled(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn str_unscaled_h(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr_or_zero());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b01,
@@ -1231,11 +1334,11 @@ impl Assembler {
         ));
     }
 
-    pub fn strs_i(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
+    pub fn str_i_s(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
         self.emit_u32(cls::ldst_regimm(0b10, 1, 0b00, imm12, rn, rt.encoding()));
     }
 
-    pub fn strs_ind(
+    pub fn str_ind_s(
         &mut self,
         rt: NeonRegister,
         rn: Register,
@@ -1255,7 +1358,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strs_unscaled_imm(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
+    pub fn str_unscaled_s(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b10,
             1,
@@ -1266,7 +1369,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strw_i(&mut self, rt: Register, rn: Register, imm12: u32) {
+    pub fn str_i_w(&mut self, rt: Register, rn: Register, imm12: u32) {
         assert!(rt.is_gpr_or_zero());
         self.emit_u32(cls::ldst_regimm(
             0b10,
@@ -1278,7 +1381,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strw_ind(
+    pub fn str_ind_w(
         &mut self,
         rt: Register,
         rn: Register,
@@ -1299,7 +1402,7 @@ impl Assembler {
         ));
     }
 
-    pub fn strw_unscaled(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn str_unscaled_w(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr_or_zero());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b10,
@@ -1316,16 +1419,16 @@ impl Assembler {
         self.ubfm(rd, rn, (val - shift) & mask, val - 1 - shift);
     }
 
-    pub fn lslw_i(&mut self, rd: Register, rn: Register, shift: u32) {
+    pub fn lsl_i_w(&mut self, rd: Register, rn: Register, shift: u32) {
         let (val, mask) = (32, 0x1f);
-        self.ubfmw(rd, rn, (val - shift) & mask, val - 1 - shift);
+        self.ubfm_w(rd, rn, (val - shift) & mask, val - 1 - shift);
     }
 
     pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(1, 0, rm, 0b1000, rn, rd));
     }
 
-    pub fn lslvw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn lslv_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b1000, rn, rd));
     }
 
@@ -1333,15 +1436,15 @@ impl Assembler {
         self.ubfm(rd, rn, shift, 63);
     }
 
-    pub fn lsrw_i(&mut self, rd: Register, rn: Register, shift: u32) {
-        self.ubfmw(rd, rn, shift, 31);
+    pub fn lsr_i_w(&mut self, rd: Register, rn: Register, shift: u32) {
+        self.ubfm_w(rd, rn, shift, 31);
     }
 
     pub fn lsrv(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(1, 0, rm, 0b1001, rn, rd));
     }
 
-    pub fn lsrvw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn lsrv_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b1001, rn, rd));
     }
 
@@ -1349,7 +1452,7 @@ impl Assembler {
         self.emit_u32(cls::dataproc3(1, 0, 0, rm, 0, ra, rn, rd));
     }
 
-    pub fn maddw(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+    pub fn madd_w(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
         self.emit_u32(cls::dataproc3(0, 0, 0, rm, 0, ra, rn, rd));
     }
 
@@ -1357,7 +1460,7 @@ impl Assembler {
         self.emit_u32(cls::move_wide_imm(1, 0b00, shift, imm16, rd));
     }
 
-    pub fn movnw(&mut self, rd: Register, imm16: u32, shift: u32) {
+    pub fn movn_w(&mut self, rd: Register, imm16: u32, shift: u32) {
         self.emit_u32(cls::move_wide_imm(0, 0b00, shift, imm16, rd));
     }
 
@@ -1365,7 +1468,7 @@ impl Assembler {
         self.emit_u32(cls::move_wide_imm(1, 0b10, shift, imm16, rd));
     }
 
-    pub fn movzw(&mut self, rd: Register, imm16: u32, shift: u32) {
+    pub fn movz_w(&mut self, rd: Register, imm16: u32, shift: u32) {
         self.emit_u32(cls::move_wide_imm(0, 0b10, shift, imm16, rd));
     }
 
@@ -1373,7 +1476,7 @@ impl Assembler {
         self.emit_u32(cls::move_wide_imm(1, 0b11, shift, imm16, rd));
     }
 
-    pub fn movkw(&mut self, rd: Register, imm16: u32, shift: u32) {
+    pub fn movk_w(&mut self, rd: Register, imm16: u32, shift: u32) {
         self.emit_u32(cls::move_wide_imm(0, 0b11, shift, imm16, rd));
     }
 
@@ -1381,7 +1484,7 @@ impl Assembler {
         self.emit_u32(cls::dataproc3(1, 0, 0, rm, 1, ra, rn, rd));
     }
 
-    pub fn msubw(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+    pub fn msub_w(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
         self.emit_u32(cls::dataproc3(0, 0, 0, rm, 1, ra, rn, rd));
     }
 
@@ -1389,8 +1492,8 @@ impl Assembler {
         self.madd(rd, rn, rm, REG_ZERO);
     }
 
-    pub fn mulw(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.maddw(rd, rn, rm, REG_ZERO);
+    pub fn mul_w(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.madd_w(rd, rn, rm, REG_ZERO);
     }
 
     pub fn nop(&mut self) {
@@ -1401,7 +1504,7 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(1, 0b01, shift, 1, rm, imm6, rn, rd));
     }
 
-    pub fn ornw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+    pub fn orn_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(0, 0b01, shift, 1, rm, imm6, rn, rd));
     }
 
@@ -1409,11 +1512,11 @@ impl Assembler {
         self.emit_u32(cls::logical_shreg(1, 0b01, shift, 0, rm, imm6, rn, rd));
     }
 
-    pub fn orrw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+    pub fn orr_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(0, 0b01, shift, 0, rm, imm6, rn, rd));
     }
 
-    pub fn rbitw(&mut self, rd: Register, rn: Register) {
+    pub fn rbit_w(&mut self, rd: Register, rn: Register) {
         self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000000, rn, rd));
     }
 
@@ -1425,7 +1528,7 @@ impl Assembler {
         self.emit_u32(cls::uncond_branch_reg(0b0010, 0b11111, 0, rn, 0));
     }
 
-    pub fn revw(&mut self, rd: Register, rn: Register) {
+    pub fn rev_w(&mut self, rd: Register, rn: Register) {
         self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
     }
 
@@ -1437,7 +1540,7 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(1, 0, rm, 0b1011, rn, rd));
     }
 
-    pub fn rorvw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn rorv_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b1011, rn, rd));
     }
 
@@ -1445,7 +1548,7 @@ impl Assembler {
         self.emit_u32(cls::bitfield(1, 0b00, 1, immr, imms, rn, rd));
     }
 
-    pub fn sbfmw(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
+    pub fn sbfm_w(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
         self.emit_u32(cls::bitfield(0, 0b00, 0, immr, imms, rn, rd));
     }
 
@@ -1453,11 +1556,11 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(1, 0, rm, 0b11, rn, rd));
     }
 
-    pub fn sdivw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn sdiv_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b11, rn, rd));
     }
 
-    pub fn scvtfd(&mut self, rd: NeonRegister, rn: Register) {
+    pub fn scvtf_d(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             1,
             0,
@@ -1469,7 +1572,7 @@ impl Assembler {
         ));
     }
 
-    pub fn scvtfh(&mut self, rd: NeonRegister, rn: Register) {
+    pub fn scvtf_h(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             1,
             0,
@@ -1481,7 +1584,7 @@ impl Assembler {
         ));
     }
 
-    pub fn scvtfs(&mut self, rd: NeonRegister, rn: Register) {
+    pub fn scvtf_s(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             1,
             0,
@@ -1493,7 +1596,7 @@ impl Assembler {
         ));
     }
 
-    pub fn scvtfwd(&mut self, rd: NeonRegister, rn: Register) {
+    pub fn scvtf_wd(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             0,
             0,
@@ -1505,7 +1608,7 @@ impl Assembler {
         ));
     }
 
-    pub fn scvtfwh(&mut self, rd: NeonRegister, rn: Register) {
+    pub fn scvtf_wh(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             0,
             0,
@@ -1517,7 +1620,7 @@ impl Assembler {
         ));
     }
 
-    pub fn scvtfws(&mut self, rd: NeonRegister, rn: Register) {
+    pub fn scvtf_ws(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             0,
             0,
@@ -1537,11 +1640,11 @@ impl Assembler {
         }
     }
 
-    pub fn subw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn sub_w(&mut self, rd: Register, rn: Register, rm: Register) {
         if rd == REG_SP || rn == REG_SP {
-            self.subw_ext(rd, rn, rm, Extend::UXTX, 0);
+            self.sub_ext_w(rd, rn, rm, Extend::UXTX, 0);
         } else {
-            self.subw_sh(rd, rn, rm, Shift::LSL, 0);
+            self.sub_sh_w(rd, rn, rm, Shift::LSL, 0);
         }
     }
 
@@ -1556,7 +1659,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_extreg(1, 1, 0, 0, rm, extend, amount, rn, rd));
     }
 
-    pub fn subw_ext(
+    pub fn sub_ext_w(
         &mut self,
         rd: Register,
         rn: Register,
@@ -1571,7 +1674,14 @@ impl Assembler {
         self.emit_u32(cls::addsub_shreg(1, 1, 0, shift, rm, amount, rn, rd));
     }
 
-    pub fn subw_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, amount: u32) {
+    pub fn sub_sh_w(
+        &mut self,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: u32,
+    ) {
         self.emit_u32(cls::addsub_shreg(0, 1, 0, shift, rm, amount, rn, rd));
     }
 
@@ -1579,7 +1689,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_imm(1, 1, 0, shift, imm12, rn, rd));
     }
 
-    pub fn subw_i(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
+    pub fn sub_i_w(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
         self.emit_u32(cls::addsub_imm(0, 1, 0, shift, imm12, rn, rd));
     }
 
@@ -1587,7 +1697,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_shreg(1, 1, 1, Shift::LSL, rm, 0, rn, rd));
     }
 
-    pub fn subsw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn subs_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::addsub_shreg(0, 1, 1, Shift::LSL, rm, 0, rn, rd));
     }
 
@@ -1595,7 +1705,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_imm(1, 1, 1, shift, imm12, rn, rd));
     }
 
-    pub fn subsw_i(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
+    pub fn subs_i_w(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
         self.emit_u32(cls::addsub_imm(0, 1, 1, shift, imm12, rn, rd));
     }
 
@@ -1603,7 +1713,7 @@ impl Assembler {
         self.emit_u32(cls::addsub_shreg(1, 1, 1, shift, rm, amount, rn, rd));
     }
 
-    pub fn subsw_sh(
+    pub fn subs_sh_w(
         &mut self,
         rd: Register,
         rn: Register,
@@ -1622,7 +1732,7 @@ impl Assembler {
         self.emit_u32(cls::bitfield(1, 0b10, 1, immr, imms, rn, rd));
     }
 
-    pub fn ubfmw(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
+    pub fn ubfm_w(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
         self.emit_u32(cls::bitfield(0, 0b10, 0, immr, imms, rn, rd));
     }
 
@@ -1630,12 +1740,12 @@ impl Assembler {
         self.emit_u32(cls::dataproc2(1, 0, rm, 0b10, rn, rd));
     }
 
-    pub fn udivw(&mut self, rd: Register, rn: Register, rm: Register) {
+    pub fn udiv_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b10, rn, rd));
     }
 
     pub fn uxtb(&mut self, rd: Register, rn: Register) {
-        self.ubfmw(rd, rn, 0, 7);
+        self.ubfm_w(rd, rn, 0, 7);
     }
 
     pub fn uxtw(&mut self, rd: Register, rn: Register) {
@@ -2747,30 +2857,30 @@ mod tests {
 
     #[test]
     fn test_fcmp() {
-        assert_emit!(0x1e212000; fcmps(F0, F1));
-        assert_emit!(0x1e612000; fcmpd(F0, F1));
-        assert_emit!(0x1e252080; fcmps(F4, F5));
+        assert_emit!(0x1e212000; fcmp_s(F0, F1));
+        assert_emit!(0x1e612000; fcmp_d(F0, F1));
+        assert_emit!(0x1e252080; fcmp_s(F4, F5));
     }
 
     #[test]
     fn test_fcmpe() {
-        assert_emit!(0x1e212010; fcmpes(F0, F1));
-        assert_emit!(0x1e612010; fcmped(F0, F1));
-        assert_emit!(0x1e252090; fcmpes(F4, F5));
+        assert_emit!(0x1e212010; fcmpe_s(F0, F1));
+        assert_emit!(0x1e612010; fcmpe_d(F0, F1));
+        assert_emit!(0x1e252090; fcmpe_s(F4, F5));
     }
 
     #[test]
     fn test_fneg() {
-        assert_emit!(0x1e214041; fnegs(F1, F2));
-        assert_emit!(0x1e614083; fnegd(F3, F4));
+        assert_emit!(0x1e214041; fneg_s(F1, F2));
+        assert_emit!(0x1e614083; fneg_d(F3, F4));
     }
 
     #[test]
     fn test_fsqrt() {
-        assert_emit!(0x1e21c020; fsqrts(F0, F1)); // fsqrt s0, s1
-        assert_emit!(0x1e61c020; fsqrtd(F0, F1)); // fsqrt d0, d1
-        assert_emit!(0x1e21c149; fsqrts(F9, F10)); // fsqrt s9, s10
-        assert_emit!(0x1e61c149; fsqrtd(F9, F10)); // fsqrt d9, d10
+        assert_emit!(0x1e21c020; fsqrt_s(F0, F1)); // fsqrt s0, s1
+        assert_emit!(0x1e61c020; fsqrt_d(F0, F1)); // fsqrt d0, d1
+        assert_emit!(0x1e21c149; fsqrt_s(F9, F10)); // fsqrt s9, s10
+        assert_emit!(0x1e61c149; fsqrt_d(F9, F10)); // fsqrt d9, d10
     }
 
     #[test]
@@ -2787,12 +2897,12 @@ mod tests {
 
     #[test]
     fn test_div() {
-        assert_emit!(0x1ac20820; udivw(R0, R1, R2));
+        assert_emit!(0x1ac20820; udiv_w(R0, R1, R2));
         assert_emit!(0x9ac50c83; sdiv(R3, R4, R5));
-        assert_emit!(0x1ac820e6; lslvw(R6, R7, R8));
-        assert_emit!(0x1acb2549; lsrvw(R9, R10, R11));
-        assert_emit!(0x1ace29ac; asrvw(R12, R13, R14));
-        assert_emit!(0x1ad12e0f; rorvw(R15, R16, R17));
+        assert_emit!(0x1ac820e6; lslv_w(R6, R7, R8));
+        assert_emit!(0x1acb2549; lsrv_w(R9, R10, R11));
+        assert_emit!(0x1ace29ac; asrv_w(R12, R13, R14));
+        assert_emit!(0x1ad12e0f; rorv_w(R15, R16, R17));
     }
 
     #[test]
@@ -2805,11 +2915,11 @@ mod tests {
 
     #[test]
     fn test_bfm() {
-        assert_emit!(0x53010820; ubfmw(R0, R1, 1, 2));
+        assert_emit!(0x53010820; ubfm_w(R0, R1, 1, 2));
         assert_emit!(0xd3431062; ubfm(R2, R3, 3, 4));
-        assert_emit!(0x33010820; bfmw(R0, R1, 1, 2));
+        assert_emit!(0x33010820; bfm_w(R0, R1, 1, 2));
         assert_emit!(0xb3431062; bfm(R2, R3, 3, 4));
-        assert_emit!(0x13010820; sbfmw(R0, R1, 1, 2));
+        assert_emit!(0x13010820; sbfm_w(R0, R1, 1, 2));
         assert_emit!(0x93431062; sbfm(R2, R3, 3, 4));
         assert_emit!(0x53001c20; uxtb(R0, R1));
     }
@@ -2829,103 +2939,103 @@ mod tests {
     #[test]
     fn test_lsl_imm() {
         assert_emit!(0xd37ff820; lsl_i(R0, R1, 1)); // lsl x0, x1, #1
-        assert_emit!(0x531f7820; lslw_i(R0, R1, 1)); // lsl w0, w1, #1
+        assert_emit!(0x531f7820; lsl_i_w(R0, R1, 1)); // lsl w0, w1, #1
         assert_emit!(0xd37ef462; lsl_i(R2, R3, 2)); // lsl x2, x3, #2
-        assert_emit!(0x531e7462; lslw_i(R2, R3, 2)); // lsl w2, w3, #2
+        assert_emit!(0x531e7462; lsl_i_w(R2, R3, 2)); // lsl w2, w3, #2
     }
 
     #[test]
     fn test_lsr_imm() {
         assert_emit!(0xd341fc20; lsr_i(R0, R1, 1)); // lsr x0, x1, #1
-        assert_emit!(0x53017c20; lsrw_i(R0, R1, 1)); // lsr w0, w1, #1
+        assert_emit!(0x53017c20; lsr_i_w(R0, R1, 1)); // lsr w0, w1, #1
         assert_emit!(0xd342fc62; lsr_i(R2, R3, 2)); // lsr x2, x3, #2
-        assert_emit!(0x53027c62; lsrw_i(R2, R3, 2)); // lsr w2, w3, #2
+        assert_emit!(0x53027c62; lsr_i_w(R2, R3, 2)); // lsr w2, w3, #2
     }
 
     #[test]
     fn test_scvtf() {
-        assert_emit!(0x1e220041; scvtfws(F1, R2));
-        assert_emit!(0x1e620041; scvtfwd(F1, R2));
-        assert_emit!(0x9e220083; scvtfs(F3, R4));
-        assert_emit!(0x9e620083; scvtfd(F3, R4));
+        assert_emit!(0x1e220041; scvtf_ws(F1, R2));
+        assert_emit!(0x1e620041; scvtf_wd(F1, R2));
+        assert_emit!(0x9e220083; scvtf_s(F3, R4));
+        assert_emit!(0x9e620083; scvtf_d(F3, R4));
     }
 
     #[test]
     fn test_fcvtzs() {
-        assert_emit!(0x9e780020; fcvtzsd(R0, F1)); // x0, d1
-        assert_emit!(0x9e380047; fcvtzss(R7, F2)); // x7, s2
-        assert_emit!(0x1e780020; fcvtzswd(R0, F1)); // w0, d1
-        assert_emit!(0x1e380047; fcvtzsws(R7, F2)); // w7, s2
+        assert_emit!(0x9e780020; fcvtzs_d(R0, F1)); // x0, d1
+        assert_emit!(0x9e380047; fcvtzs_s(R7, F2)); // x7, s2
+        assert_emit!(0x1e780020; fcvtzs_wd(R0, F1)); // w0, d1
+        assert_emit!(0x1e380047; fcvtzs_ws(R7, F2)); // w7, s2
     }
 
     #[test]
     fn test_add_imm() {
-        assert_emit!(0x11000420; addw_i(R0, R1, 1, 0));
-        assert_emit!(0x11400c62; addw_i(R2, R3, 3, 1));
+        assert_emit!(0x11000420; add_i_w(R0, R1, 1, 0));
+        assert_emit!(0x11400c62; add_i_w(R2, R3, 3, 1));
         assert_emit!(0x91000420; add_i(R0, R1, 1, 0));
         assert_emit!(0x91400c62; add_i(R2, R3, 3, 1));
     }
 
     #[test]
     fn test_adds_imm() {
-        assert_emit!(0x31000420; addsw_i(R0, R1, 1, 0));
-        assert_emit!(0x31400c62; addsw_i(R2, R3, 3, 1));
+        assert_emit!(0x31000420; adds_i_w(R0, R1, 1, 0));
+        assert_emit!(0x31400c62; adds_i_w(R2, R3, 3, 1));
         assert_emit!(0xb1000420; adds_i(R0, R1, 1, 0));
         assert_emit!(0xb1400c62; adds_i(R2, R3, 3, 1));
     }
 
     #[test]
     fn test_sub_imm() {
-        assert_emit!(0x51000420; subw_i(R0, R1, 1, 0));
-        assert_emit!(0x51400c62; subw_i(R2, R3, 3, 1));
+        assert_emit!(0x51000420; sub_i_w(R0, R1, 1, 0));
+        assert_emit!(0x51400c62; sub_i_w(R2, R3, 3, 1));
         assert_emit!(0xd1000420; sub_i(R0, R1, 1, 0));
         assert_emit!(0xd1400c62; sub_i(R2, R3, 3, 1));
     }
 
     #[test]
     fn test_subs_imm() {
-        assert_emit!(0x71000420; subsw_i(R0, R1, 1, 0));
-        assert_emit!(0x71400c62; subsw_i(R2, R3, 3, 1));
+        assert_emit!(0x71000420; subs_i_w(R0, R1, 1, 0));
+        assert_emit!(0x71400c62; subs_i_w(R2, R3, 3, 1));
         assert_emit!(0xf1000420; subs_i(R0, R1, 1, 0));
         assert_emit!(0xf1400c62; subs_i(R2, R3, 3, 1));
     }
 
     #[test]
     fn test_cmp_imm() {
-        assert_emit!(0x7100043f; cmpw_i(R1, 1, 0));
-        assert_emit!(0x71400c5f; cmpw_i(R2, 3, 1));
+        assert_emit!(0x7100043f; cmp_i_w(R1, 1, 0));
+        assert_emit!(0x71400c5f; cmp_i_w(R2, 3, 1));
         assert_emit!(0xf100047f; cmp_i(R3, 1, 0));
         assert_emit!(0xf1400c9f; cmp_i(R4, 3, 1));
     }
 
     #[test]
     fn test_fp_dataproc2() {
-        assert_emit!(0x1e222820; fadds(F0, F1, F2));
-        assert_emit!(0x1e622820; faddd(F0, F1, F2));
-        assert_emit!(0x1e653883; fsubd(F3, F4, F5));
-        assert_emit!(0x1e6808e6; fmuld(F6, F7, F8));
-        assert_emit!(0x1e6b1949; fdivd(F9, F10, F11));
+        assert_emit!(0x1e222820; fadd_s(F0, F1, F2));
+        assert_emit!(0x1e622820; fadd_d(F0, F1, F2));
+        assert_emit!(0x1e653883; fsub_d(F3, F4, F5));
+        assert_emit!(0x1e6808e6; fmul_d(F6, F7, F8));
+        assert_emit!(0x1e6b1949; fdiv_d(F9, F10, F11));
     }
 
     #[test]
     fn test_madd_msub() {
         assert_emit!(0x9b031041; madd(R1, R2, R3, R4));
-        assert_emit!(0x1b0720c5; maddw(R5, R6, R7, R8));
+        assert_emit!(0x1b0720c5; madd_w(R5, R6, R7, R8));
         assert_emit!(0x9b0bb149; msub(R9, R10, R11, R12));
-        assert_emit!(0x1b0fc1cd; msubw(R13, R14, R15, R16));
+        assert_emit!(0x1b0fc1cd; msub_w(R13, R14, R15, R16));
     }
 
     #[test]
     fn test_mul() {
         assert_emit!(0x9b037c41; mul(R1, R2, R3));
-        assert_emit!(0x1b067ca4; mulw(R4, R5, R6));
+        assert_emit!(0x1b067ca4; mul_w(R4, R5, R6));
     }
 
     #[test]
     fn test_ldp() {
-        assert_emit!(0x29400440; ldpw(R0, R1, R2, 0));
-        assert_emit!(0x294090a3; ldpw(R3, R4, R5, 1));
-        assert_emit!(0x294110a3; ldpw(R3, R4, R5, 2));
+        assert_emit!(0x29400440; ldp_w(R0, R1, R2, 0));
+        assert_emit!(0x294090a3; ldp_w(R3, R4, R5, 1));
+        assert_emit!(0x294110a3; ldp_w(R3, R4, R5, 2));
         assert_emit!(0xa9400440; ldp(R0, R1, R2, 0));
         assert_emit!(0xa94090a3; ldp(R3, R4, R5, 1));
         assert_emit!(0xa94110a3; ldp(R3, R4, R5, 2));
@@ -2933,9 +3043,9 @@ mod tests {
 
     #[test]
     fn test_stp() {
-        assert_emit!(0x29000440; stpw(R0, R1, R2, 0));
-        assert_emit!(0x290090a3; stpw(R3, R4, R5, 1));
-        assert_emit!(0x290110a3; stpw(R3, R4, R5, 2));
+        assert_emit!(0x29000440; stp_w(R0, R1, R2, 0));
+        assert_emit!(0x290090a3; stp_w(R3, R4, R5, 1));
+        assert_emit!(0x290110a3; stp_w(R3, R4, R5, 2));
         assert_emit!(0xa9000440; stp(R0, R1, R2, 0));
         assert_emit!(0xa90090a3; stp(R3, R4, R5, 1));
         assert_emit!(0xa90110a3; stp(R3, R4, R5, 2));
@@ -2944,58 +3054,58 @@ mod tests {
     #[test]
     fn test_ldst_pair_pre() {
         assert_emit!(0xa9be7bfd; stp_pre(REG_FP, REG_LR, REG_SP, -4));
-        assert_emit!(0x29840440; stpw_pre(R0, R1, R2, 8));
+        assert_emit!(0x29840440; stp_pre_w(R0, R1, R2, 8));
     }
 
     #[test]
     fn test_ldst_pair_post() {
         assert_emit!(0xa8fe7bfd; ldp_post(REG_FP, REG_LR, REG_SP, -4));
-        assert_emit!(0x28c40440; ldpw_post(R0, R1, R2, 8));
+        assert_emit!(0x28c40440; ldp_post_w(R0, R1, R2, 8));
     }
 
     #[test]
     fn test_csel() {
-        assert_emit!(0x1a821020; cselw(R0, R1, R2, Cond::NE));
+        assert_emit!(0x1a821020; csel_w(R0, R1, R2, Cond::NE));
         assert_emit!(0x9a856083; csel(R3, R4, R5, Cond::VS));
     }
 
     #[test]
     fn test_csinc() {
-        assert_emit!(0x1a821420; csincw(R0, R1, R2, Cond::NE));
+        assert_emit!(0x1a821420; csinc_w(R0, R1, R2, Cond::NE));
         assert_emit!(0x9a856483; csinc(R3, R4, R5, Cond::VS));
     }
 
     #[test]
     fn test_cset() {
-        assert_emit!(0x1a9f17e0; csetw(R0, Cond::EQ));
+        assert_emit!(0x1a9f17e0; cset_w(R0, Cond::EQ));
         assert_emit!(0x9a9fc7e3; cset(R3, Cond::LE));
 
-        assert_emit!(0x1a9f17e0; csetw(R0, Cond::EQ));
-        assert_emit!(0x1a9f07e0; csetw(R0, Cond::NE));
-        assert_emit!(0x1a9f37e0; csetw(R0, Cond::CS));
-        assert_emit!(0x1a9f37e0; csetw(R0, Cond::HS));
+        assert_emit!(0x1a9f17e0; cset_w(R0, Cond::EQ));
+        assert_emit!(0x1a9f07e0; cset_w(R0, Cond::NE));
+        assert_emit!(0x1a9f37e0; cset_w(R0, Cond::CS));
+        assert_emit!(0x1a9f37e0; cset_w(R0, Cond::HS));
 
-        assert_emit!(0x1a9f27e0; csetw(R0, Cond::CC));
-        assert_emit!(0x1a9f27e0; csetw(R0, Cond::LO));
-        assert_emit!(0x1a9f57e0; csetw(R0, Cond::MI));
-        assert_emit!(0x1a9f47e0; csetw(R0, Cond::PL));
+        assert_emit!(0x1a9f27e0; cset_w(R0, Cond::CC));
+        assert_emit!(0x1a9f27e0; cset_w(R0, Cond::LO));
+        assert_emit!(0x1a9f57e0; cset_w(R0, Cond::MI));
+        assert_emit!(0x1a9f47e0; cset_w(R0, Cond::PL));
 
-        assert_emit!(0x1a9f77e0; csetw(R0, Cond::VS));
-        assert_emit!(0x1a9f67e0; csetw(R0, Cond::VC));
-        assert_emit!(0x1a9f97e0; csetw(R0, Cond::HI));
-        assert_emit!(0x1a9f87e0; csetw(R0, Cond::LS));
+        assert_emit!(0x1a9f77e0; cset_w(R0, Cond::VS));
+        assert_emit!(0x1a9f67e0; cset_w(R0, Cond::VC));
+        assert_emit!(0x1a9f97e0; cset_w(R0, Cond::HI));
+        assert_emit!(0x1a9f87e0; cset_w(R0, Cond::LS));
 
-        assert_emit!(0x1a9fb7e0; csetw(R0, Cond::GE));
-        assert_emit!(0x1a9fa7e0; csetw(R0, Cond::LT));
-        assert_emit!(0x1a9fd7e0; csetw(R0, Cond::GT));
-        assert_emit!(0x1a9fc7e0; csetw(R0, Cond::LE));
+        assert_emit!(0x1a9fb7e0; cset_w(R0, Cond::GE));
+        assert_emit!(0x1a9fa7e0; cset_w(R0, Cond::LT));
+        assert_emit!(0x1a9fd7e0; cset_w(R0, Cond::GT));
+        assert_emit!(0x1a9fc7e0; cset_w(R0, Cond::LE));
     }
 
     #[test]
     fn test_mov_imm() {
-        assert_emit!(0x12800100; movnw(R0, 8, 0));
-        assert_emit!(0x52800100; movzw(R0, 8, 0));
-        assert_emit!(0x72a00100; movkw(R0, 8, 1));
+        assert_emit!(0x12800100; movn_w(R0, 8, 0));
+        assert_emit!(0x52800100; movz_w(R0, 8, 0));
+        assert_emit!(0x72a00100; movk_w(R0, 8, 1));
     }
 
     #[test]
@@ -3021,70 +3131,70 @@ mod tests {
     fn test_add_extreg() {
         assert_emit!(0x8b22643f; add_ext(REG_SP, R1, R2, Extend::UXTX, 1));
         assert_emit!(0x8b226be1; add_ext(R1, REG_SP, R2, Extend::UXTX, 2));
-        assert_emit!(0x0b22443f; addw_ext(REG_SP, R1, R2, Extend::UXTW, 1));
-        assert_emit!(0x0b2243e1; addw_ext(R1, REG_SP, R2, Extend::UXTW, 0));
+        assert_emit!(0x0b22443f; add_ext_w(REG_SP, R1, R2, Extend::UXTW, 1));
+        assert_emit!(0x0b2243e1; add_ext_w(R1, REG_SP, R2, Extend::UXTW, 0));
     }
 
     #[test]
     fn test_add_sh() {
-        assert_emit!(0x0b030441; addw_sh(R1, R2, R3, Shift::LSL, 1));
+        assert_emit!(0x0b030441; add_sh_w(R1, R2, R3, Shift::LSL, 1));
         assert_emit!(0x8b0608a4; add_sh(R4, R5, R6, Shift::LSL, 2));
-        assert_emit!(0x0b430441; addw_sh(R1, R2, R3, Shift::LSR, 1));
+        assert_emit!(0x0b430441; add_sh_w(R1, R2, R3, Shift::LSR, 1));
         assert_emit!(0x8b8608a4; add_sh(R4, R5, R6, Shift::ASR, 2));
     }
 
     #[test]
     fn test_sub_sh() {
-        assert_emit!(0x4b030441; subw_sh(R1, R2, R3, Shift::LSL, 1));
+        assert_emit!(0x4b030441; sub_sh_w(R1, R2, R3, Shift::LSL, 1));
         assert_emit!(0xcb0608a4; sub_sh(R4, R5, R6, Shift::LSL, 2));
-        assert_emit!(0x4b430441; subw_sh(R1, R2, R3, Shift::LSR, 1));
+        assert_emit!(0x4b430441; sub_sh_w(R1, R2, R3, Shift::LSR, 1));
         assert_emit!(0xcb8608a4; sub_sh(R4, R5, R6, Shift::ASR, 2));
     }
 
     #[test]
     fn test_adds_subs() {
-        assert_emit!(0x2b030041; addsw(R1, R2, R3));
+        assert_emit!(0x2b030041; adds_w(R1, R2, R3));
         assert_emit!(0xeb0600a4; subs(R4, R5, R6));
-        assert_emit!(0x2b830841; addsw_sh(R1, R2, R3, Shift::ASR, 2));
+        assert_emit!(0x2b830841; adds_sh_w(R1, R2, R3, Shift::ASR, 2));
         assert_emit!(0xeb060ca4; subs_sh(R4, R5, R6, Shift::LSL, 3));
     }
 
     #[test]
     fn test_cmp() {
-        assert_emit!(0x6b0600bf; cmpw(R5, R6));
-        assert_emit!(0x6b060cbf; cmpw_sh(R5, R6, Shift::LSL, 3));
+        assert_emit!(0x6b0600bf; cmp_w(R5, R6));
+        assert_emit!(0x6b060cbf; cmp_sh_w(R5, R6, Shift::LSL, 3));
         assert_emit!(0xeb0600bf; cmp(R5, R6));
         assert_emit!(0xeb060cbf; cmp_sh(R5, R6, Shift::LSL, 3));
     }
 
     #[test]
     fn test_add_reg() {
-        assert_emit!(0x0b010000; addw(R0, R0, R1));
+        assert_emit!(0x0b010000; add_w(R0, R0, R1));
         assert_emit!(0x8b010000; add(R0, R0, R1));
-        assert_emit!(0x0b030041; addw(R1, R2, R3));
+        assert_emit!(0x0b030041; add_w(R1, R2, R3));
         assert_emit!(0x8b030041; add(R1, R2, R3));
     }
 
     #[test]
     fn test_sub_reg() {
-        assert_emit!(0x4b010000; subw(R0, R0, R1));
+        assert_emit!(0x4b010000; sub_w(R0, R0, R1));
         assert_emit!(0xcb010000; sub(R0, R0, R1));
-        assert_emit!(0x4b030041; subw(R1, R2, R3));
+        assert_emit!(0x4b030041; sub_w(R1, R2, R3));
         assert_emit!(0xcb030041; sub(R1, R2, R3));
     }
 
     #[test]
     fn test_str_ind() {
-        assert_emit!(0x38226820; strb_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x38256883; strb_ind(R3, R4, R5, Extend::LSL, 0));
+        assert_emit!(0x38226820; str_ind_b(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x38256883; str_ind_b(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0x78226820; strh_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x78256883; strh_ind(R3, R4, R5, Extend::LSL, 0));
+        assert_emit!(0x78226820; str_ind_h(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x78256883; str_ind_h(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0xb8226820; strw_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xb8257883; strw_ind(R3, R4, R5, Extend::LSL, 1));
-        assert_emit!(0xb82858e6; strw_ind(R6, R7, R8, Extend::UXTW, 1));
-        assert_emit!(0xb82bd949; strw_ind(R9, R10, R11, Extend::SXTW, 1));
+        assert_emit!(0xb8226820; str_ind_w(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xb8257883; str_ind_w(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xb82858e6; str_ind_w(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xb82bd949; str_ind_w(R9, R10, R11, Extend::SXTW, 1));
 
         assert_emit!(0xf8226820; str_ind(R0, R1, R2, Extend::LSL, 0));
         assert_emit!(0xf8257883; str_ind(R3, R4, R5, Extend::LSL, 1));
@@ -3094,16 +3204,16 @@ mod tests {
 
     #[test]
     fn test_ldr_ind() {
-        assert_emit!(0x38626820; ldrb_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x38656883; ldrb_ind(R3, R4, R5, Extend::LSL, 0));
+        assert_emit!(0x38626820; ldr_ind_b(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x38656883; ldr_ind_b(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0x78626820; ldrh_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x78656883; ldrh_ind(R3, R4, R5, Extend::LSL, 0));
+        assert_emit!(0x78626820; ldr_ind_h(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x78656883; ldr_ind_h(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0xb8626820; ldrw_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xb8657883; ldrw_ind(R3, R4, R5, Extend::LSL, 1));
-        assert_emit!(0xb86858e6; ldrw_ind(R6, R7, R8, Extend::UXTW, 1));
-        assert_emit!(0xb86bd949; ldrw_ind(R9, R10, R11, Extend::SXTW, 1));
+        assert_emit!(0xb8626820; ldr_ind_w(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xb8657883; ldr_ind_w(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xb86858e6; ldr_ind_w(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xb86bd949; ldr_ind_w(R9, R10, R11, Extend::SXTW, 1));
 
         assert_emit!(0xf8626820; ldr_ind(R0, R1, R2, Extend::LSL, 0));
         assert_emit!(0xf8657883; ldr_ind(R3, R4, R5, Extend::LSL, 1));
@@ -3113,14 +3223,14 @@ mod tests {
 
     #[test]
     fn test_ldr_imm() {
-        assert_emit!(0x39400420; ldrb_i(R0, R1, 1));
-        assert_emit!(0x39400862; ldrb_i(R2, R3, 2));
+        assert_emit!(0x39400420; ldr_i_b(R0, R1, 1));
+        assert_emit!(0x39400862; ldr_i_b(R2, R3, 2));
 
-        assert_emit!(0x79400420; ldrh_i(R0, R1, 1));
-        assert_emit!(0x79400862; ldrh_i(R2, R3, 2));
+        assert_emit!(0x79400420; ldr_i_h(R0, R1, 1));
+        assert_emit!(0x79400862; ldr_i_h(R2, R3, 2));
 
-        assert_emit!(0xb9400420; ldrw_i(R0, R1, 1));
-        assert_emit!(0xb9400862; ldrw_i(R2, R3, 2));
+        assert_emit!(0xb9400420; ldr_i_w(R0, R1, 1));
+        assert_emit!(0xb9400862; ldr_i_w(R2, R3, 2));
 
         assert_emit!(0xf9400420; ldr_i(R0, R1, 1));
         assert_emit!(0xf9400862; ldr_i(R2, R3, 2));
@@ -3128,14 +3238,14 @@ mod tests {
 
     #[test]
     fn test_str_imm() {
-        assert_emit!(0x39000420; strb_i(R0, R1, 1));
-        assert_emit!(0x39000862; strb_i(R2, R3, 2));
+        assert_emit!(0x39000420; str_i_b(R0, R1, 1));
+        assert_emit!(0x39000862; str_i_b(R2, R3, 2));
 
-        assert_emit!(0x79000420; strh_i(R0, R1, 1));
-        assert_emit!(0x79000862; strh_i(R2, R3, 2));
+        assert_emit!(0x79000420; str_i_h(R0, R1, 1));
+        assert_emit!(0x79000862; str_i_h(R2, R3, 2));
 
-        assert_emit!(0xb9000420; strw_i(R0, R1, 1));
-        assert_emit!(0xb9000862; strw_i(R2, R3, 2));
+        assert_emit!(0xb9000420; str_i_w(R0, R1, 1));
+        assert_emit!(0xb9000862; str_i_w(R2, R3, 2));
 
         assert_emit!(0xf9000420; str_i(R0, R1, 1));
         assert_emit!(0xf9000862; str_i(R2, R3, 2));
@@ -3143,8 +3253,8 @@ mod tests {
 
     #[test]
     fn test_logical_shreg() {
-        assert_emit!(0x0a020420; andw_sh(R0, R1, R2, Shift::LSL, 1));
-        assert_emit!(0x0a650883; bicw_sh(R3, R4, R5, Shift::LSR, 2));
+        assert_emit!(0x0a020420; and_sh_w(R0, R1, R2, Shift::LSL, 1));
+        assert_emit!(0x0a650883; bic_sh_w(R3, R4, R5, Shift::LSR, 2));
         assert_emit!(0xaa880ce6; orr_sh(R6, R7, R8, Shift::ASR, 3));
         assert_emit!(0xaaeb1149; orn_sh(R9, R10, R11, Shift::ROR, 4));
         assert_emit!(0xca0e15ac; eor_sh(R12, R13, R14, Shift::LSL, 5));
@@ -3169,9 +3279,9 @@ mod tests {
 
     #[test]
     fn test_and_imm() {
-        assert_emit!(0x12000020; andw_i(R0, R1, 1)); // and w0, w1, #1
+        assert_emit!(0x12000020; and_i_w(R0, R1, 1)); // and w0, w1, #1
         assert_emit!(0x92400020; and_i(R0, R1, 1)); // and x0, x1, #1
-        assert_emit!(0x1201f062; andw_i(R2, R3, 0xaaaaaaaa)); // and w2, w3, #aaaaaaaa
+        assert_emit!(0x1201f062; and_i_w(R2, R3, 0xaaaaaaaa)); // and w2, w3, #aaaaaaaa
 
         // and x2, x3, #aaaaaaaaaaaaaaaa
         assert_emit!(0x9201f062; and_i(R2, R3, 0xaaaaaaaaaaaaaaaa));

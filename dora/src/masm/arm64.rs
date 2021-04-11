@@ -61,7 +61,7 @@ impl MacroAssembler {
 
     pub fn safepoint(&mut self, lbl_safepoint: Label) {
         let offset = ThreadLocalData::safepoint_requested_offset() as u32;
-        self.asm.ldrb_i(REG_TMP1.into(), REG_THREAD.into(), offset);
+        self.asm.ldr_i_b(REG_TMP1.into(), REG_THREAD.into(), offset);
         self.asm.cbnz(REG_TMP1.into(), lbl_safepoint);
     }
 
@@ -168,7 +168,7 @@ impl MacroAssembler {
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
-        self.asm.csetw(dest.into(), op.into());
+        self.asm.cset_w(dest.into(), op.into());
     }
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
@@ -190,7 +190,7 @@ impl MacroAssembler {
 
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmpw(lhs.into(), rhs.into()),
+            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmp_w(lhs.into(), rhs.into()),
             MachineMode::IntPtr | MachineMode::Ptr | MachineMode::Int64 => {
                 self.asm.cmp(lhs.into(), rhs.into())
             }
@@ -206,7 +206,7 @@ impl MacroAssembler {
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
         match mode {
-            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmpw_i(lhs.into(), 0, 0),
+            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmp_i_w(lhs.into(), 0, 0),
             MachineMode::Int64 | MachineMode::Ptr => self.asm.cmp_i(lhs.into(), 0, 0),
             _ => unreachable!(),
         }
@@ -256,7 +256,7 @@ impl MacroAssembler {
 
         if is_div {
             match mode {
-                MachineMode::Int32 => self.asm.sdivw(dest.into(), lhs.into(), rhs.into()),
+                MachineMode::Int32 => self.asm.sdiv_w(dest.into(), lhs.into(), rhs.into()),
                 MachineMode::Int64 => self.asm.sdiv(dest.into(), lhs.into(), rhs.into()),
                 _ => unreachable!(),
             }
@@ -265,14 +265,14 @@ impl MacroAssembler {
 
             match mode {
                 MachineMode::Int32 => {
-                    self.asm.sdivw((*scratch).into(), lhs.into(), rhs.into());
+                    self.asm.sdiv_w((*scratch).into(), lhs.into(), rhs.into());
                     self.asm
                         .msub(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
                 }
                 MachineMode::Int64 => {
                     self.asm.sdiv((*scratch).into(), lhs.into(), rhs.into());
                     self.asm
-                        .msubw(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
+                        .msub_w(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
                 }
                 _ => unreachable!(),
             }
@@ -281,7 +281,7 @@ impl MacroAssembler {
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.mulw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.mul_w(dest.into(), lhs.into(), rhs.into()),
             MachineMode::Int64 => self.asm.mul(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
@@ -289,7 +289,7 @@ impl MacroAssembler {
 
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.addw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.add_w(dest.into(), lhs.into(), rhs.into()),
             MachineMode::Int64 | MachineMode::Ptr => {
                 self.asm.add(dest.into(), lhs.into(), rhs.into())
             }
@@ -300,7 +300,7 @@ impl MacroAssembler {
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
         if (value as u32) as i64 == value && asm::fits_addsub_imm(value as u32) {
             match mode {
-                MachineMode::Int32 => self.asm.addw_i(dest.into(), lhs.into(), value as u32, 0),
+                MachineMode::Int32 => self.asm.add_i_w(dest.into(), lhs.into(), value as u32, 0),
                 MachineMode::Int64 | MachineMode::Ptr => {
                     self.asm.add_i(dest.into(), lhs.into(), value as u32, 0)
                 }
@@ -315,7 +315,7 @@ impl MacroAssembler {
 
     pub fn int_sub(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.subw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.sub_w(dest.into(), lhs.into(), rhs.into()),
             MachineMode::Int64 => self.asm.sub(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
@@ -323,7 +323,7 @@ impl MacroAssembler {
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.lslvw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.lslv_w(dest.into(), lhs.into(), rhs.into()),
             MachineMode::Int64 => self.asm.lslv(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
@@ -331,7 +331,7 @@ impl MacroAssembler {
 
     pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.lsrvw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.lsrv_w(dest.into(), lhs.into(), rhs.into()),
             MachineMode::Int64 => self.asm.lsrv(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
@@ -339,7 +339,7 @@ impl MacroAssembler {
 
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.asrvw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.asrv_w(dest.into(), lhs.into(), rhs.into()),
             MachineMode::Int64 => self.asm.asrv(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
@@ -366,11 +366,11 @@ impl MacroAssembler {
                 .sub((*scratch).into(), (*scratch).into(), rhs.into());
         } else {
             self.asm
-                .subw((*scratch).into(), (*scratch).into(), rhs.into());
+                .sub_w((*scratch).into(), (*scratch).into(), rhs.into());
         }
 
         match mode {
-            MachineMode::Int32 => self.asm.rorvw(dest.into(), lhs.into(), (*scratch).into()),
+            MachineMode::Int32 => self.asm.rorv_w(dest.into(), lhs.into(), (*scratch).into()),
             MachineMode::Int64 => self.asm.rorv(dest.into(), lhs.into(), (*scratch).into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
@@ -378,7 +378,7 @@ impl MacroAssembler {
 
     pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.rorvw(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.rorv_w(dest.into(), lhs.into(), rhs.into()),
             MachineMode::Int64 => self.asm.rorv(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
@@ -388,7 +388,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int32 => {
                 self.asm
-                    .orrw_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+                    .orr_sh_w(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
             }
             MachineMode::Int64 => {
                 self.asm
@@ -402,7 +402,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int32 => {
                 self.asm
-                    .andw_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+                    .and_sh_w(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
             }
             MachineMode::Int64 => {
                 self.asm
@@ -416,7 +416,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int32 => {
                 self.asm
-                    .eorw_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
+                    .eor_sh_w(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
             }
             MachineMode::Int64 => {
                 self.asm
@@ -427,12 +427,6 @@ impl MacroAssembler {
     }
 
     pub fn count_bits(&mut self, mode: MachineMode, dest: Reg, src: Reg, count_one_bits: bool) {
-        let fty = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode),
-        };
-
         let scratch = FREG_TMP1;
         let scratch_src = self.get_scratch();
 
@@ -445,17 +439,17 @@ impl MacroAssembler {
 
         match mode {
             MachineMode::Int32 => {
-                self.asm.fmovw_fs(fty, scratch.into(), src.into());
+                self.asm.fmov_fs_ws(scratch.into(), src.into());
                 self.asm.cnt(0, 0b00, scratch.into(), scratch.into());
                 self.asm.addv(0, 0b00, scratch.into(), scratch.into());
-                self.asm.fmovw_sf(fty, dest.into(), scratch.into());
+                self.asm.fmov_sf_ws(dest.into(), scratch.into());
             }
 
             MachineMode::Int64 => {
-                self.asm.fmov_fs(fty, scratch.into(), src.into());
+                self.asm.fmov_fs_d(scratch.into(), src.into());
                 self.asm.cnt(0, 0b00, scratch.into(), scratch.into());
                 self.asm.addv(0, 0b00, scratch.into(), scratch.into());
-                self.asm.fmov_sf(fty, dest.into(), scratch.into());
+                self.asm.fmov_sf_d(dest.into(), scratch.into());
             }
             _ => unimplemented!(),
         }
@@ -472,13 +466,13 @@ impl MacroAssembler {
             self.int_not(mode, dest, src);
 
             match mode {
-                MachineMode::Int32 => self.asm.clzw(dest.into(), dest.into()),
+                MachineMode::Int32 => self.asm.clz_w(dest.into(), dest.into()),
                 MachineMode::Int64 => self.asm.clz(dest.into(), dest.into()),
                 _ => panic!("unimplemented mode {:?}", mode),
             }
         } else {
             match mode {
-                MachineMode::Int32 => self.asm.clzw(dest.into(), src.into()),
+                MachineMode::Int32 => self.asm.clz_w(dest.into(), src.into()),
                 MachineMode::Int64 => self.asm.clz(dest.into(), src.into()),
                 _ => panic!("unimplemented mode {:?}", mode),
             }
@@ -494,13 +488,13 @@ impl MacroAssembler {
     ) {
         match mode {
             MachineMode::Int32 => {
-                self.asm.rbitw(dest.into(), src.into());
+                self.asm.rbit_w(dest.into(), src.into());
 
                 if count_one_bits {
                     self.int_not(mode, dest, dest);
                 }
 
-                self.asm.clzw(dest.into(), dest.into());
+                self.asm.clz_w(dest.into(), dest.into());
             }
             MachineMode::Int64 => {
                 self.asm.rbit(dest.into(), src.into());
@@ -523,10 +517,18 @@ impl MacroAssembler {
         src: Reg,
     ) {
         match (dest_mode, src_mode) {
-            (MachineMode::Float32, MachineMode::Int32) => self.asm.scvtfws(dest.into(), src.into()),
-            (MachineMode::Float32, MachineMode::Int64) => self.asm.scvtfws(dest.into(), src.into()),
-            (MachineMode::Float64, MachineMode::Int32) => self.asm.scvtfwd(dest.into(), src.into()),
-            (MachineMode::Float64, MachineMode::Int64) => self.asm.scvtfwd(dest.into(), src.into()),
+            (MachineMode::Float32, MachineMode::Int32) => {
+                self.asm.scvtf_ws(dest.into(), src.into())
+            }
+            (MachineMode::Float32, MachineMode::Int64) => {
+                self.asm.scvtf_ws(dest.into(), src.into())
+            }
+            (MachineMode::Float64, MachineMode::Int32) => {
+                self.asm.scvtf_wd(dest.into(), src.into())
+            }
+            (MachineMode::Float64, MachineMode::Int64) => {
+                self.asm.scvtf_wd(dest.into(), src.into())
+            }
             _ => unreachable!(),
         }
     }
@@ -540,13 +542,17 @@ impl MacroAssembler {
     ) {
         match (dest_mode, src_mode) {
             (MachineMode::Int32, MachineMode::Float32) => {
-                self.asm.fcvtzsws(dest.into(), src.into())
+                self.asm.fcvtzs_ws(dest.into(), src.into())
             }
             (MachineMode::Int32, MachineMode::Float64) => {
-                self.asm.fcvtzswd(dest.into(), src.into())
+                self.asm.fcvtzs_wd(dest.into(), src.into())
             }
-            (MachineMode::Int64, MachineMode::Float32) => self.asm.fcvtzss(dest.into(), src.into()),
-            (MachineMode::Int64, MachineMode::Float64) => self.asm.fcvtzsd(dest.into(), src.into()),
+            (MachineMode::Int64, MachineMode::Float32) => {
+                self.asm.fcvtzs_s(dest.into(), src.into())
+            }
+            (MachineMode::Int64, MachineMode::Float64) => {
+                self.asm.fcvtzs_d(dest.into(), src.into())
+            }
             _ => unreachable!(),
         }
     }
@@ -566,20 +572,12 @@ impl MacroAssembler {
         src_mode: MachineMode,
         src: Reg,
     ) {
-        assert!(src_mode.size() == dest_mode.size());
-
-        let flt = match dest_mode {
-            MachineMode::Float32 => 0,
-            MachineMode::Float64 => 1,
-            _ => unreachable!(),
-        };
-
-        match src_mode {
-            MachineMode::Int32 => {
-                self.asm.fmovw_fs(flt, dest.into(), src.into());
+        match (dest_mode, src_mode) {
+            (MachineMode::Float32, MachineMode::Int32) => {
+                self.asm.fmov_fs_ws(dest.into(), src.into());
             }
-            MachineMode::Int64 => {
-                self.asm.fmov_fs(flt, dest.into(), src.into());
+            (MachineMode::Float64, MachineMode::Int64) => {
+                self.asm.fmov_fs_d(dest.into(), src.into());
             }
             _ => unreachable!(),
         }
@@ -592,65 +590,61 @@ impl MacroAssembler {
         src_mode: MachineMode,
         src: FReg,
     ) {
-        assert!(src_mode.size() == dest_mode.size());
-
-        let flt = match src_mode {
-            MachineMode::Float32 => 0,
-            MachineMode::Float64 => 1,
-            _ => unreachable!(),
-        };
-
-        match dest_mode {
-            MachineMode::Int32 => self.asm.fmovw_sf(flt, dest.into(), src.into()),
-            MachineMode::Int64 => self.asm.fmov_sf(flt, dest.into(), src.into()),
+        match (dest_mode, src_mode) {
+            (MachineMode::Int32, MachineMode::Float32) => {
+                self.asm.fmov_sf_ws(dest.into(), src.into())
+            }
+            (MachineMode::Int64, MachineMode::Float64) => {
+                self.asm.fmov_sf_d(dest.into(), src.into())
+            }
             _ => unreachable!(),
         }
     }
 
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fadds(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.faddd(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float32 => self.asm.fadd_s(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.fadd_d(dest.into(), lhs.into(), rhs.into()),
             _ => unreachable!(),
         };
     }
 
     pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fsubs(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.fsubd(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float32 => self.asm.fsub_s(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.fsub_d(dest.into(), lhs.into(), rhs.into()),
             _ => unreachable!(),
         }
     }
 
     pub fn float_mul(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fmuls(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.fmuld(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float32 => self.asm.fmul_s(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.fmul_d(dest.into(), lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
     }
 
     pub fn float_div(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fdivs(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.fdivd(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float32 => self.asm.fdiv_s(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.fdiv_d(dest.into(), lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
     }
 
     pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fnegs(dest.into(), src.into()),
-            MachineMode::Float64 => self.asm.fnegd(dest.into(), src.into()),
+            MachineMode::Float32 => self.asm.fneg_s(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.fneg_d(dest.into(), src.into()),
             _ => unimplemented!(),
         }
     }
 
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fsqrts(dest.into(), src.into()),
-            MachineMode::Float64 => self.asm.fsqrtd(dest.into(), src.into()),
+            MachineMode::Float32 => self.asm.fsqrt_s(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.fsqrt_d(dest.into(), src.into()),
             _ => unimplemented!(),
         }
     }
@@ -658,7 +652,7 @@ impl MacroAssembler {
     pub fn cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
             MachineMode::Int8 | MachineMode::Int32 => {
-                self.asm.cmpw(lhs.into(), rhs.into());
+                self.asm.cmp_w(lhs.into(), rhs.into());
             }
 
             MachineMode::Int64 => {
@@ -668,23 +662,23 @@ impl MacroAssembler {
             _ => unreachable!(),
         }
 
-        self.asm.csetw(dest.into(), Cond::NE);
+        self.asm.cset_w(dest.into(), Cond::NE);
         self.asm
-            .csinvw(dest.into(), dest.into(), REG_ZERO.into(), Cond::GE);
+            .csinv_w(dest.into(), dest.into(), REG_ZERO.into(), Cond::GE);
     }
 
     pub fn float_cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fcmps(lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.fcmpd(lhs.into(), rhs.into()),
+            MachineMode::Float32 => self.asm.fcmp_s(lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.fcmp_d(lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
 
-        self.asm.csetw(dest.into(), Cond::GT);
+        self.asm.cset_w(dest.into(), Cond::GT);
         let scratch = self.get_scratch();
-        self.asm.movnw((*scratch).into(), 0, 0);
+        self.asm.movn_w((*scratch).into(), 0, 0);
         self.asm
-            .cselw(dest.into(), (*scratch).into(), dest.into(), Cond::MI);
+            .csel_w(dest.into(), (*scratch).into(), dest.into(), Cond::MI);
     }
 
     pub fn float_cmp(
@@ -706,22 +700,22 @@ impl MacroAssembler {
         };
 
         match mode {
-            MachineMode::Float32 => self.asm.fcmps(lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.fcmpd(lhs.into(), rhs.into()),
+            MachineMode::Float32 => self.asm.fcmp_s(lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.fcmp_d(lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
 
-        self.asm.csetw(dest.into(), cond);
+        self.asm.cset_w(dest.into(), cond);
     }
 
     pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fcmps(src.into(), src.into()),
-            MachineMode::Float64 => self.asm.fcmpd(src.into(), src.into()),
+            MachineMode::Float32 => self.asm.fcmp_s(src.into(), src.into()),
+            MachineMode::Float64 => self.asm.fcmp_d(src.into(), src.into()),
             _ => unimplemented!(),
         }
 
-        self.asm.csetw(dest.into(), Cond::VS);
+        self.asm.cset_w(dest.into(), Cond::VS);
     }
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
@@ -842,14 +836,14 @@ impl MacroAssembler {
                     .add((*scratch).into(), (*scratch).into(), base.into());
 
                 match mode {
-                    MachineMode::Int8 => self.asm.ldrb_ind(
+                    MachineMode::Int8 => self.asm.ldr_ind_b(
                         dest.reg().into(),
                         (*scratch).into(),
                         index.into(),
                         Extend::LSL,
                         0,
                     ),
-                    MachineMode::Int32 => self.asm.ldrw_ind(
+                    MachineMode::Int32 => self.asm.ldr_ind_w(
                         dest.reg().into(),
                         (*scratch).into(),
                         index.into(),
@@ -865,14 +859,14 @@ impl MacroAssembler {
                             1,
                         )
                     }
-                    MachineMode::Float32 => self.asm.ldrs_ind(
+                    MachineMode::Float32 => self.asm.ldr_ind_s(
                         dest.freg().into(),
                         (*scratch).into(),
                         index.into(),
                         Extend::LSL,
                         1,
                     ),
-                    MachineMode::Float64 => self.asm.ldrd_ind(
+                    MachineMode::Float64 => self.asm.ldr_ind_d(
                         dest.freg().into(),
                         (*scratch).into(),
                         index.into(),
@@ -897,42 +891,46 @@ impl MacroAssembler {
         {
             let disp = (disp / mode.size()) as u32;
             match mode {
-                MachineMode::Int8 => self.asm.ldrb_i(dest.reg().into(), base.into(), disp),
-                MachineMode::Int32 => self.asm.ldrw_i(dest.reg().into(), base.into(), disp),
+                MachineMode::Int8 => self.asm.ldr_i_b(dest.reg().into(), base.into(), disp),
+                MachineMode::Int32 => self.asm.ldr_i_w(dest.reg().into(), base.into(), disp),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     self.asm.ldr_i(dest.reg().into(), base.into(), disp)
                 }
-                MachineMode::Float32 => self.asm.ldrs_i(dest.freg().into(), base.into(), disp),
-                MachineMode::Float64 => self.asm.ldrd_i(dest.freg().into(), base.into(), disp),
+                MachineMode::Float32 => self.asm.ldr_i_s(dest.freg().into(), base.into(), disp),
+                MachineMode::Float64 => self.asm.ldr_i_d(dest.freg().into(), base.into(), disp),
             }
         } else if asm::fits_ldst_unscaled(disp) {
             match mode {
-                MachineMode::Int8 => self.asm.ldrb_unscaled(dest.reg().into(), base.into(), disp),
-                MachineMode::Int32 => self.asm.ldrw_unscaled(dest.reg().into(), base.into(), disp),
+                MachineMode::Int8 => self
+                    .asm
+                    .ldr_unscaled_b(dest.reg().into(), base.into(), disp),
+                MachineMode::Int32 => self
+                    .asm
+                    .ldr_unscaled_w(dest.reg().into(), base.into(), disp),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     self.asm.ldr_unscaled(dest.reg().into(), base.into(), disp)
                 }
                 MachineMode::Float32 => {
                     self.asm
-                        .ldrs_unscaled(dest.freg().into(), base.into(), disp)
+                        .ldr_unscaled_s(dest.freg().into(), base.into(), disp)
                 }
                 MachineMode::Float64 => {
                     self.asm
-                        .ldrd_unscaled(dest.freg().into(), base.into(), disp)
+                        .ldr_unscaled_d(dest.freg().into(), base.into(), disp)
                 }
             }
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
             match mode {
-                MachineMode::Int8 => self.asm.ldrb_ind(
+                MachineMode::Int8 => self.asm.ldr_ind_b(
                     dest.reg().into(),
                     base.into(),
                     (*scratch).into(),
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Int32 => self.asm.ldrw_ind(
+                MachineMode::Int32 => self.asm.ldr_ind_w(
                     dest.reg().into(),
                     base.into(),
                     (*scratch).into(),
@@ -946,14 +944,14 @@ impl MacroAssembler {
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Float32 => self.asm.ldrs_ind(
+                MachineMode::Float32 => self.asm.ldr_ind_s(
                     dest.freg().into(),
                     base.into(),
                     (*scratch).into(),
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Float64 => self.asm.ldrd_ind(
+                MachineMode::Float64 => self.asm.ldr_ind_d(
                     dest.freg().into(),
                     base.into(),
                     (*scratch).into(),
@@ -1025,7 +1023,7 @@ impl MacroAssembler {
             .lsr_i((*scratch1).into(), src.into(), CARD_SIZE_BITS as u32);
         let scratch2 = self.get_scratch();
         self.load_int_const(MachineMode::Ptr, *scratch2, card_table_offset as i64);
-        self.asm.strb_ind(
+        self.asm.str_ind_b(
             REG_ZERO.into(),
             (*scratch1).into(),
             (*scratch2).into(),
@@ -1053,14 +1051,14 @@ impl MacroAssembler {
                     .add((*scratch).into(), (*scratch).into(), base.into());
 
                 match mode {
-                    MachineMode::Int8 => self.asm.strb_ind(
+                    MachineMode::Int8 => self.asm.str_ind_b(
                         src.reg().into(),
                         (*scratch).into(),
                         index.into(),
                         Extend::LSL,
                         0,
                     ),
-                    MachineMode::Int32 => self.asm.strw_ind(
+                    MachineMode::Int32 => self.asm.str_ind_w(
                         src.reg().into(),
                         (*scratch).into(),
                         index.into(),
@@ -1076,14 +1074,14 @@ impl MacroAssembler {
                             1,
                         )
                     }
-                    MachineMode::Float32 => self.asm.strs_ind(
+                    MachineMode::Float32 => self.asm.str_ind_s(
                         src.freg().into(),
                         (*scratch).into(),
                         index.into(),
                         Extend::LSL,
                         1,
                     ),
-                    MachineMode::Float64 => self.asm.strd_ind(
+                    MachineMode::Float64 => self.asm.str_ind_d(
                         src.freg().into(),
                         (*scratch).into(),
                         index.into(),
@@ -1114,46 +1112,47 @@ impl MacroAssembler {
         {
             let offset = (offset / mode.size()) as u32;
             match mode {
-                MachineMode::Int8 => self.asm.strb_i(src.reg().into(), base.into(), offset),
-                MachineMode::Int32 => self.asm.strw_i(src.reg().into(), base.into(), offset),
+                MachineMode::Int8 => self.asm.str_i_b(src.reg().into(), base.into(), offset),
+                MachineMode::Int32 => self.asm.str_i_w(src.reg().into(), base.into(), offset),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     self.asm.str_i(src.reg().into(), base.into(), offset)
                 }
-                MachineMode::Float32 => self.asm.strs_i(src.freg().into(), base.into(), offset),
-                MachineMode::Float64 => self.asm.strd_i(src.freg().into(), base.into(), offset),
+                MachineMode::Float32 => self.asm.str_i_s(src.freg().into(), base.into(), offset),
+                MachineMode::Float64 => self.asm.str_i_d(src.freg().into(), base.into(), offset),
             }
         } else if asm::fits_ldst_unscaled(offset) {
             match mode {
                 MachineMode::Int8 => self
                     .asm
-                    .strb_unscaled(src.reg().into(), base.into(), offset),
-                MachineMode::Int32 => self
-                    .asm
-                    .strw_unscaled(src.reg().into(), base.into(), offset),
+                    .str_unscaled_b(src.reg().into(), base.into(), offset),
+                MachineMode::Int32 => {
+                    self.asm
+                        .str_unscaled_w(src.reg().into(), base.into(), offset)
+                }
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     self.asm.str_unscaled(src.reg().into(), base.into(), offset)
                 }
                 MachineMode::Float32 => {
                     self.asm
-                        .strs_unscaled_imm(src.freg().into(), base.into(), offset)
+                        .str_unscaled_s(src.freg().into(), base.into(), offset)
                 }
                 MachineMode::Float64 => {
                     self.asm
-                        .strd_unscaled(src.freg().into(), base.into(), offset)
+                        .str_unscaled_d(src.freg().into(), base.into(), offset)
                 }
             }
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
             match mode {
-                MachineMode::Int8 => self.asm.strb_ind(
+                MachineMode::Int8 => self.asm.str_ind_b(
                     src.reg().into(),
                     base.into(),
                     (*scratch).into(),
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Int32 => self.asm.strw_ind(
+                MachineMode::Int32 => self.asm.str_ind_w(
                     src.reg().into(),
                     base.into(),
                     (*scratch).into(),
@@ -1167,14 +1166,14 @@ impl MacroAssembler {
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Float32 => self.asm.strs_ind(
+                MachineMode::Float32 => self.asm.str_ind_s(
                     src.freg().into(),
                     base.into(),
                     (*scratch).into(),
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Float64 => self.asm.strd_ind(
+                MachineMode::Float64 => self.asm.str_ind_d(
                     src.freg().into(),
                     base.into(),
                     (*scratch).into(),
@@ -1193,7 +1192,7 @@ impl MacroAssembler {
             match mode {
                 MachineMode::Int32 | MachineMode::Int8 => {
                     self.asm
-                        .orrw_sh(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
+                        .orr_sh_w(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
                 }
                 MachineMode::Ptr | MachineMode::Int64 => {
                     self.asm
@@ -1222,8 +1221,8 @@ impl MacroAssembler {
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.fmovs(dest.into(), src.into()),
-            MachineMode::Float64 => self.asm.fmovd(dest.into(), src.into()),
+            MachineMode::Float32 => self.asm.fmov_s(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.fmov_d(dest.into(), src.into()),
             _ => unreachable!(),
         }
     }
@@ -1270,7 +1269,7 @@ impl MacroAssembler {
             if sf != 0 {
                 self.asm.movz(dest.into(), imm, shift);
             } else {
-                self.asm.movzw(dest.into(), imm, shift);
+                self.asm.movz_w(dest.into(), imm, shift);
             }
         } else if asm::fits_movn(imm, register_size) {
             let shift = asm::shift_movn(imm);
@@ -1279,7 +1278,7 @@ impl MacroAssembler {
             if sf != 0 {
                 self.asm.movn(dest.into(), imm, shift);
             } else {
-                self.asm.movnw(dest.into(), imm, shift);
+                self.asm.movn_w(dest.into(), imm, shift);
             }
         } else {
             let (halfword, invert) = if asm::count_empty_half_words(!imm, register_size)
@@ -1302,13 +1301,13 @@ impl MacroAssembler {
                             if sf != 0 {
                                 self.asm.movn(dest.into(), (!cur_halfword) & 0xFFFF, ind);
                             } else {
-                                self.asm.movnw(dest.into(), (!cur_halfword) & 0xFFFF, ind);
+                                self.asm.movn_w(dest.into(), (!cur_halfword) & 0xFFFF, ind);
                             }
                         } else {
                             if sf != 0 {
                                 self.asm.movz(dest.into(), cur_halfword, ind);
                             } else {
-                                self.asm.movzw(dest.into(), cur_halfword, ind);
+                                self.asm.movz_w(dest.into(), cur_halfword, ind);
                             }
                         }
 
@@ -1317,7 +1316,7 @@ impl MacroAssembler {
                         if sf != 0 {
                             self.asm.movk(dest.into(), cur_halfword, ind);
                         } else {
-                            self.asm.movkw(dest.into(), cur_halfword, ind);
+                            self.asm.movk_w(dest.into(), cur_halfword, ind);
                         }
                     }
                 }
@@ -1326,16 +1325,16 @@ impl MacroAssembler {
     }
 
     pub fn load_true(&mut self, dest: Reg) {
-        self.asm.movzw(dest.into(), 1, 0);
+        self.asm.movz_w(dest.into(), 1, 0);
     }
 
     pub fn load_false(&mut self, dest: Reg) {
-        self.asm.movzw(dest.into(), 0, 0);
+        self.asm.movz_w(dest.into(), 0, 0);
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.subw(dest.into(), REG_ZERO.into(), src.into()),
+            MachineMode::Int32 => self.asm.sub_w(dest.into(), REG_ZERO.into(), src.into()),
             MachineMode::Int64 => self.asm.sub(dest.into(), REG_ZERO.into(), src.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
@@ -1345,7 +1344,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int32 => {
                 self.asm
-                    .ornw_sh(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
+                    .orn_sh_w(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
             }
             MachineMode::Int64 => {
                 self.asm
@@ -1358,9 +1357,9 @@ impl MacroAssembler {
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
         let scratch = self.get_scratch();
 
-        self.asm.movzw((*scratch).into(), 1, 0);
+        self.asm.movz_w((*scratch).into(), 1, 0);
         self.asm
-            .eorw_sh(dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
+            .eor_sh_w(dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
         self.asm.uxtb(dest.into(), dest.into());
     }
 
