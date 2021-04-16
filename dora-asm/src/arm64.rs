@@ -33,8 +33,8 @@ pub const R29: Register = Register(29);
 pub const R30: Register = Register(30);
 pub const REG_FP: Register = R29;
 pub const REG_LR: Register = R30;
-pub const REG_ZERO: Register = Register(31);
-pub const REG_SP: Register = Register(32);
+pub const REG_ZERO: Register = Register(100);
+pub const REG_SP: Register = Register(101);
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Register(u8);
@@ -52,7 +52,12 @@ impl Register {
 
     fn encoding_zero(self) -> u32 {
         assert!(self.is_gpr_or_zero());
-        self.0 as u32
+
+        if self.is_gpr() {
+            self.0 as u32
+        } else {
+            31
+        }
     }
 
     fn encoding_sp(self) -> u32 {
@@ -66,15 +71,15 @@ impl Register {
     }
 
     fn is_gpr(&self) -> bool {
-        self.0 < 31
+        self.0 <= R30.0
     }
 
     fn is_gpr_or_zero(&self) -> bool {
-        self.0 < 32
+        self.0 <= R30.0 || *self == REG_ZERO
     }
 
     fn is_gpr_or_sp(&self) -> bool {
-        self.0 < 31 || self.0 == 32
+        self.0 <= R30.0 || *self == REG_SP
     }
 }
 
