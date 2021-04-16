@@ -131,7 +131,7 @@ pub const F30: NeonRegister = NeonRegister(30);
 pub const F31: NeonRegister = NeonRegister(31);
 
 struct ForwardJump {
-    pc: u32,
+    offset: u32,
     label: Label,
     kind: JumpKind,
 }
@@ -213,11 +213,11 @@ impl AssemblerArm64 {
 
         for jmp in &unresolved_jumps {
             if let Some(lbl_offset) = self.offset(jmp.label) {
-                let distance: i32 = lbl_offset as i32 - jmp.pc as i32;
+                let distance: i32 = lbl_offset as i32 - jmp.offset as i32;
                 assert!(distance % 4 == 0);
                 let distance = distance / 4;
 
-                self.set_position(jmp.pc as usize);
+                self.set_position(jmp.offset as usize);
 
                 match jmp.kind {
                     JumpKind::Conditional(cond) => {
@@ -400,7 +400,7 @@ impl AssemblerArm64 {
                 let pos = self.position() as u32;
                 self.emit_u32(0);
                 self.unresolved_jumps.push(ForwardJump {
-                    pc: pos,
+                    offset: pos,
                     label: target,
                     kind: JumpKind::Unconditional,
                 });
@@ -430,7 +430,7 @@ impl AssemblerArm64 {
                 let pos = self.position() as u32;
                 self.emit_u32(0);
                 self.unresolved_jumps.push(ForwardJump {
-                    pc: pos,
+                    offset: pos,
                     label: target,
                     kind: JumpKind::Conditional(cond),
                 });
@@ -488,7 +488,7 @@ impl AssemblerArm64 {
                 let pos = self.position() as u32;
                 self.emit_u32(0);
                 self.unresolved_jumps.push(ForwardJump {
-                    pc: pos,
+                    offset: pos,
                     label: target,
                     kind: JumpKind::NonZero(true, reg),
                 });

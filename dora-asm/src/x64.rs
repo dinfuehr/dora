@@ -60,7 +60,7 @@ pub const XMM14: XmmRegister = XmmRegister(14);
 pub const XMM15: XmmRegister = XmmRegister(15);
 
 struct ForwardJump {
-    pc: u32,
+    offset: u32,
     label: Label,
     distance: JumpDistance,
 }
@@ -141,17 +141,17 @@ impl AssemblerX64 {
 
         for jump in unresolved_jumps {
             let lbl_offset = self.offset(jump.label).expect("unbound label");
-            self.set_position(jump.pc as usize);
+            self.set_position(jump.offset as usize);
 
             match jump.distance {
                 JumpDistance::Near => {
-                    let distance: i32 = lbl_offset as i32 - (jump.pc as i32 + 1);
+                    let distance: i32 = lbl_offset as i32 - (jump.offset as i32 + 1);
                     assert!(-128 <= distance && distance < 128);
                     self.emit_u8(distance as u8);
                 }
 
                 JumpDistance::Far => {
-                    let distance: i32 = lbl_offset as i32 - (jump.pc as i32 + 4);
+                    let distance: i32 = lbl_offset as i32 - (jump.offset as i32 + 4);
                     self.emit_u32(distance as u32);
                 }
             }
@@ -836,7 +836,7 @@ impl AssemblerX64 {
             self.emit_u8(0x0F);
             self.emit_u8(0x80 + condition.int());
             self.unresolved_jumps.push(ForwardJump {
-                pc: self.position().try_into().unwrap(),
+                offset: self.position().try_into().unwrap(),
                 label: target,
                 distance: JumpDistance::Far,
             });
@@ -859,7 +859,7 @@ impl AssemblerX64 {
             // forward jump
             self.emit_u8(0x70 + condition.int());
             self.unresolved_jumps.push(ForwardJump {
-                pc: self.position().try_into().unwrap(),
+                offset: self.position().try_into().unwrap(),
                 label: target,
                 distance: JumpDistance::Near,
             });
@@ -890,7 +890,7 @@ impl AssemblerX64 {
             // forward jump - conservatively assume far jump
             self.emit_u8(0xE9);
             self.unresolved_jumps.push(ForwardJump {
-                pc: self.position().try_into().unwrap(),
+                offset: self.position().try_into().unwrap(),
                 label: target,
                 distance: JumpDistance::Far,
             });
@@ -913,7 +913,7 @@ impl AssemblerX64 {
             // forward jump - conservatively assume far jump
             self.emit_u8(0xEB);
             self.unresolved_jumps.push(ForwardJump {
-                pc: self.position().try_into().unwrap(),
+                offset: self.position().try_into().unwrap(),
                 label: target,
                 distance: JumpDistance::Near,
             });
