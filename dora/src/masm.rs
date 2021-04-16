@@ -13,7 +13,6 @@ use crate::mem;
 use crate::object::Header;
 use crate::ty::MachineMode;
 use crate::vm::{Trap, VM};
-use dora_asm::arm64::AssemblerArm64;
 pub use dora_asm::Label;
 use dora_parser::lexer::position::Position;
 
@@ -44,7 +43,7 @@ pub enum Mem {
 }
 
 pub struct MacroAssembler {
-    asm: AssemblerArm64,
+    asm: Assembler,
     bailouts: Vec<(Label, Trap, Position)>,
     lazy_compilation: LazyCompilationData,
     dseg: DSeg,
@@ -57,7 +56,7 @@ pub struct MacroAssembler {
 impl MacroAssembler {
     pub fn new() -> MacroAssembler {
         MacroAssembler {
-            asm: AssemblerArm64::new(),
+            asm: Assembler::new(),
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
             dseg: DSeg::new(),

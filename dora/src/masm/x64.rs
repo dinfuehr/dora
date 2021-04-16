@@ -11,8 +11,9 @@ use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::{get_vm, FctId, Trap};
 use crate::vtable::VTable;
+pub use dora_asm::x64::AssemblerX64 as Assembler;
+use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address, Condition, Immediate, ScaleFactor, XmmRegister};
-use dora_asm::Register as AsmRegister;
 
 impl MacroAssembler {
     pub fn prolog_size(&mut self, stacksize: i32) {

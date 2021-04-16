@@ -11,6 +11,7 @@ use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::{get_vm, FctId, Trap};
 use crate::vtable::VTable;
+pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, NeonRegister, Shift};
 
 impl MacroAssembler {

@@ -140,23 +140,20 @@ impl AssemblerX64 {
         let old_position = self.position();
 
         for jump in unresolved_jumps {
-            if let Some(lbl_offset) = self.offset(jump.label) {
-                self.set_position(jump.pc as usize);
+            let lbl_offset = self.offset(jump.label).expect("unbound label");
+            self.set_position(jump.pc as usize);
 
-                match jump.distance {
-                    JumpDistance::Near => {
-                        let distance: i32 = lbl_offset as i32 - (jump.pc as i32 + 1);
-                        assert!(-128 <= distance && distance < 128);
-                        self.emit_u8(distance as u8);
-                    }
-
-                    JumpDistance::Far => {
-                        let distance: i32 = lbl_offset as i32 - (jump.pc as i32 + 4);
-                        self.emit_u32(distance as u32);
-                    }
+            match jump.distance {
+                JumpDistance::Near => {
+                    let distance: i32 = lbl_offset as i32 - (jump.pc as i32 + 1);
+                    assert!(-128 <= distance && distance < 128);
+                    self.emit_u8(distance as u8);
                 }
-            } else {
-                panic!("unbound label");
+
+                JumpDistance::Far => {
+                    let distance: i32 = lbl_offset as i32 - (jump.pc as i32 + 4);
+                    self.emit_u32(distance as u32);
+                }
             }
         }
 
