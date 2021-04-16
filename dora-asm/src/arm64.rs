@@ -130,6 +130,12 @@ pub const F29: NeonRegister = NeonRegister(29);
 pub const F30: NeonRegister = NeonRegister(30);
 pub const F31: NeonRegister = NeonRegister(31);
 
+struct ForwardJump {
+    pc: u32,
+    label: Label,
+    kind: JumpKind,
+}
+
 enum JumpKind {
     Unconditional,
     Conditional(Cond),
@@ -137,7 +143,7 @@ enum JumpKind {
 }
 
 pub struct AssemblerArm64 {
-    unresolved_jumps: Vec<(u32, Label, JumpKind)>,
+    unresolved_jumps: Vec<ForwardJump>,
     buffer: AssemblerBuffer,
 }
 
@@ -205,15 +211,15 @@ impl AssemblerArm64 {
 
         let old_position = self.position();
 
-        for (pc, lbl, kind) in unresolved_jumps {
-            if let Some(lbl_offset) = self.offset(lbl) {
-                let distance: i32 = lbl_offset as i32 - pc as i32;
+        for jmp in &unresolved_jumps {
+            if let Some(lbl_offset) = self.offset(jmp.label) {
+                let distance: i32 = lbl_offset as i32 - jmp.pc as i32;
                 assert!(distance % 4 == 0);
                 let distance = distance / 4;
 
-                self.set_position(pc as usize);
+                self.set_position(jmp.pc as usize);
 
-                match kind {
+                match jmp.kind {
                     JumpKind::Conditional(cond) => {
                         self.bc_imm(cond.into(), distance);
                     }
@@ -393,8 +399,11 @@ impl AssemblerArm64 {
             None => {
                 let pos = self.position() as u32;
                 self.emit_u32(0);
-                self.unresolved_jumps
-                    .push((pos, target, JumpKind::Unconditional));
+                self.unresolved_jumps.push(ForwardJump {
+                    pc: pos,
+                    label: target,
+                    kind: JumpKind::Unconditional,
+                });
             }
         }
     }
@@ -420,8 +429,11 @@ impl AssemblerArm64 {
             None => {
                 let pos = self.position() as u32;
                 self.emit_u32(0);
-                self.unresolved_jumps
-                    .push((pos, target, JumpKind::Conditional(cond)));
+                self.unresolved_jumps.push(ForwardJump {
+                    pc: pos,
+                    label: target,
+                    kind: JumpKind::Conditional(cond),
+                });
             }
         }
     }
@@ -475,8 +487,11 @@ impl AssemblerArm64 {
             None => {
                 let pos = self.position() as u32;
                 self.emit_u32(0);
-                self.unresolved_jumps
-                    .push((pos, target, JumpKind::NonZero(true, reg)));
+                self.unresolved_jumps.push(ForwardJump {
+                    pc: pos,
+                    label: target,
+                    kind: JumpKind::NonZero(true, reg),
+                });
             }
         }
     }

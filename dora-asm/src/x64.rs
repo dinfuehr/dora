@@ -59,13 +59,19 @@ pub const XMM13: XmmRegister = XmmRegister(13);
 pub const XMM14: XmmRegister = XmmRegister(14);
 pub const XMM15: XmmRegister = XmmRegister(15);
 
-pub enum JumpKind {
+struct ForwardJump {
+    pc: u32,
+    label: Label,
+    distance: JumpDistance,
+}
+
+pub enum JumpDistance {
     Near,
     Far,
 }
 
 pub struct AssemblerX64 {
-    unresolved_jumps: Vec<(u32, Label, JumpKind)>,
+    unresolved_jumps: Vec<ForwardJump>,
     buffer: AssemblerBuffer,
 }
 
@@ -133,19 +139,19 @@ impl AssemblerX64 {
 
         let old_position = self.position();
 
-        for (pc, lbl, distance) in unresolved_jumps {
-            if let Some(lbl_offset) = self.offset(lbl) {
-                self.set_position(pc as usize);
+        for jump in unresolved_jumps {
+            if let Some(lbl_offset) = self.offset(jump.label) {
+                self.set_position(jump.pc as usize);
 
-                match distance {
-                    JumpKind::Near => {
-                        let distance: i32 = lbl_offset as i32 - (pc as i32 + 1);
+                match jump.distance {
+                    JumpDistance::Near => {
+                        let distance: i32 = lbl_offset as i32 - (jump.pc as i32 + 1);
                         assert!(-128 <= distance && distance < 128);
                         self.emit_u8(distance as u8);
                     }
 
-                    JumpKind::Far => {
-                        let distance: i32 = lbl_offset as i32 - (pc as i32 + 4);
+                    JumpDistance::Far => {
+                        let distance: i32 = lbl_offset as i32 - (jump.pc as i32 + 4);
                         self.emit_u32(distance as u32);
                     }
                 }
@@ -832,11 +838,11 @@ impl AssemblerX64 {
             // forward jump - conservatively assume far jump
             self.emit_u8(0x0F);
             self.emit_u8(0x80 + condition.int());
-            self.unresolved_jumps.push((
-                self.position().try_into().unwrap(),
-                target,
-                JumpKind::Far,
-            ));
+            self.unresolved_jumps.push(ForwardJump {
+                pc: self.position().try_into().unwrap(),
+                label: target,
+                distance: JumpDistance::Far,
+            });
             self.emit_u32(0);
         }
     }
@@ -855,11 +861,11 @@ impl AssemblerX64 {
         } else {
             // forward jump
             self.emit_u8(0x70 + condition.int());
-            self.unresolved_jumps.push((
-                self.position().try_into().unwrap(),
-                target,
-                JumpKind::Near,
-            ));
+            self.unresolved_jumps.push(ForwardJump {
+                pc: self.position().try_into().unwrap(),
+                label: target,
+                distance: JumpDistance::Near,
+            });
             self.emit_u8(0);
         }
     }
@@ -886,11 +892,11 @@ impl AssemblerX64 {
         } else {
             // forward jump - conservatively assume far jump
             self.emit_u8(0xE9);
-            self.unresolved_jumps.push((
-                self.position().try_into().unwrap(),
-                target,
-                JumpKind::Far,
-            ));
+            self.unresolved_jumps.push(ForwardJump {
+                pc: self.position().try_into().unwrap(),
+                label: target,
+                distance: JumpDistance::Far,
+            });
             self.emit_u32(0);
         }
     }
@@ -909,11 +915,11 @@ impl AssemblerX64 {
         } else {
             // forward jump - conservatively assume far jump
             self.emit_u8(0xEB);
-            self.unresolved_jumps.push((
-                self.position().try_into().unwrap(),
-                target,
-                JumpKind::Near,
-            ));
+            self.unresolved_jumps.push(ForwardJump {
+                pc: self.position().try_into().unwrap(),
+                label: target,
+                distance: JumpDistance::Near,
+            });
             self.emit_u8(0);
         }
     }
