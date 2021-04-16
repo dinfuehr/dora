@@ -5,7 +5,7 @@ use crate::bytecode::{self, BytecodeFunction, ConstPoolEntry, ConstPoolOpcode};
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::fct::{Code, JitDescriptor};
 use crate::gc::Address;
-use crate::handle::{root, Handle};
+use crate::handle::{handle, Handle};
 use crate::object::{
     self, byte_array_from_buffer, int_array_alloc_heap, Int32Array, Obj, Ref, UInt8Array,
 };
@@ -27,7 +27,7 @@ pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &SourceType
         .expect("compile()-method missing");
     let compile_fct = vm.ensure_compiled(compile_fct_id);
 
-    let encoded_compilation_info = root(allocate_compilation_info(vm, &bytecode_fct));
+    let encoded_compilation_info = handle(allocate_compilation_info(vm, &bytecode_fct));
 
     let tld_address = THREAD.with(|thread| {
         let thread = thread.borrow();
@@ -40,7 +40,7 @@ pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &SourceType
     let compile_fct_ptr: extern "C" fn(Address, Address, Ref<Obj>) -> Ref<UInt8Array> =
         unsafe { mem::transmute(dora_stub_address) };
 
-    let machine_code = root(compile_fct_ptr(
+    let machine_code = handle(compile_fct_ptr(
         tld_address,
         compile_fct,
         encoded_compilation_info.direct(),
@@ -78,9 +78,9 @@ pub fn bytecode(vm: &VM, name: &str) -> Ref<Obj> {
 }
 
 fn allocate_compilation_info(vm: &VM, bytecode_fct: &BytecodeFunction) -> Ref<Obj> {
-    let bytecode_array = root(byte_array_from_buffer(vm, bytecode_fct.code()));
-    let constpool_array = root(allocate_constpool_array(vm, &bytecode_fct));
-    let registers_array = root(allocate_registers_array(vm, &bytecode_fct));
+    let bytecode_array = handle(byte_array_from_buffer(vm, bytecode_fct.code()));
+    let constpool_array = handle(allocate_constpool_array(vm, &bytecode_fct));
+    let registers_array = handle(allocate_registers_array(vm, &bytecode_fct));
 
     allocate_encoded_compilation_info(
         vm,

@@ -2,7 +2,7 @@ use std::ptr;
 
 use crate::compiler::fct::JitFctId;
 use crate::compiler::map::CodeDescriptor;
-use crate::handle::{root, Handle};
+use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::THREAD;
 use crate::vm::{get_vm, FctParent, VM};
@@ -206,7 +206,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     let cls_def_id = vm.known.stack_trace_element(vm);
 
     let ste: Ref<StacktraceElement> = alloc(vm, cls_def_id).cast();
-    let mut ste = root(ste);
+    let mut ste = handle(ste);
     ste.line = lineno;
 
     let jit_fct_id = JitFctId::from(fct_id as usize);
@@ -290,7 +290,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
 
     let cls_id = vm.known.int_array(vm);
     let array: Ref<Int32Array> = Array::alloc(vm, len * 2, 0, cls_id);
-    let mut array = root(array);
+    let mut array = handle(array);
     let mut i = 0;
 
     for elem in stacktrace.elems.iter().skip(skip) {

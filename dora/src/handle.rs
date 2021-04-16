@@ -104,7 +104,7 @@ impl HandleMemoryInner {
     }
 }
 
-pub fn root<T>(obj: Ref<T>) -> Handle<T> {
+pub fn handle<T>(obj: Ref<T>) -> Handle<T> {
     THREAD.with(|thread| thread.borrow().handles.root(obj))
 }
 
