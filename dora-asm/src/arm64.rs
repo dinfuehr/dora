@@ -1,4 +1,4 @@
-use crate::{Assembler, Label};
+use crate::{AssemblerBuffer, Label};
 
 pub const R0: Register = Register(0);
 pub const R1: Register = Register(1);
@@ -130,14 +130,77 @@ pub const F29: NeonRegister = NeonRegister(29);
 pub const F30: NeonRegister = NeonRegister(30);
 pub const F31: NeonRegister = NeonRegister(31);
 
-pub(super) enum JumpKind {
+enum JumpKind {
     Unconditional,
     Conditional(Cond),
     NonZero(bool, Register),
 }
 
-impl Assembler {
-    pub(super) fn resolve_jumps(&mut self) {
+pub struct AssemblerArm64 {
+    unresolved_jumps: Vec<(u32, Label, JumpKind)>,
+    buffer: AssemblerBuffer,
+}
+
+impl AssemblerArm64 {
+    pub fn new() -> AssemblerArm64 {
+        AssemblerArm64 {
+            unresolved_jumps: Vec::new(),
+            buffer: AssemblerBuffer::new(),
+        }
+    }
+
+    pub fn create_label(&mut self) -> Label {
+        self.buffer.create_label()
+    }
+
+    pub fn create_and_bind_label(&mut self) -> Label {
+        self.buffer.create_and_bind_label()
+    }
+
+    pub fn bind_label(&mut self, lbl: Label) {
+        self.buffer.bind_label(lbl);
+    }
+
+    pub fn bind_label_to(&mut self, lbl: Label, offset: u32) {
+        self.buffer.bind_label_to(lbl, offset);
+    }
+
+    fn offset(&self, lbl: Label) -> Option<u32> {
+        self.buffer.offset(lbl)
+    }
+
+    pub fn finalize(mut self) -> Vec<u8> {
+        self.resolve_jumps();
+        self.buffer.code
+    }
+
+    pub fn position(&self) -> usize {
+        self.buffer.position()
+    }
+
+    pub fn set_position(&mut self, pos: usize) {
+        self.buffer.set_position(pos);
+    }
+
+    pub fn set_position_end(&mut self) {
+        self.buffer.set_position_end();
+    }
+
+    pub fn emit_u8(&mut self, value: u8) {
+        self.buffer.emit_u8(value);
+    }
+
+    pub fn emit_u32(&mut self, value: u32) {
+        self.buffer.emit_u32(value);
+    }
+
+    pub fn emit_u64(&mut self, value: u64) {
+        self.buffer.emit_u64(value);
+    }
+}
+
+impl AssemblerArm64 {
+    fn resolve_jumps(&mut self) {
         let unresolved_jumps = std::mem::replace(&mut self.unresolved_jumps, Vec::new());
 
         let old_position = self.position();
@@ -2800,7 +2863,7 @@ mod tests {
                     $($param:expr),*
             )
         ) => {{
-            let mut buf = Assembler::new();
+            let mut buf = AssemblerArm64::new();
             buf.$name($($param,)*);
             let mut expected: Vec<u8> = Vec::new();
             $(
