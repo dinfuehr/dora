@@ -1280,7 +1280,7 @@ pub enum Expr {
     This(ExprSelfType),
     Super(ExprSuperType),
     Conv(ExprConvType),
-    Lambda(ExprLambdaType),
+    Lambda(Arc<Function>),
     Block(ExprBlockType),
     If(ExprIfType),
     Tuple(ExprTupleType),
@@ -1579,23 +1579,8 @@ impl Expr {
         })
     }
 
-    pub fn create_lambda(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        params: Vec<Param>,
-        ret: Option<Box<Type>>,
-        block: Box<Stmt>,
-    ) -> Expr {
-        Expr::Lambda(ExprLambdaType {
-            id,
-            pos,
-            span,
-
-            params,
-            ret,
-            block,
-        })
+    pub fn create_lambda(fct: Arc<Function>) -> Expr {
+        Expr::Lambda(fct)
     }
 
     pub fn create_tuple(id: NodeId, pos: Position, span: Span, values: Vec<Box<Expr>>) -> Expr {
@@ -1859,9 +1844,9 @@ impl Expr {
         }
     }
 
-    pub fn to_lambda(&self) -> Option<&ExprLambdaType> {
+    pub fn to_lambda(&self) -> Option<Arc<Function>> {
         match *self {
-            Expr::Lambda(ref val) => Some(val),
+            Expr::Lambda(ref val) => Some(val.clone()),
             _ => None,
         }
     }
@@ -2160,17 +2145,6 @@ pub struct ExprIdentType {
 
     pub name: Name,
     pub type_params: Option<Vec<Type>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprLambdaType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub params: Vec<Param>,
-    pub ret: Option<Box<Type>>,
-    pub block: Box<Stmt>,
 }
 
 #[derive(Clone, Debug)]

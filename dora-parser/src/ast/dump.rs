@@ -679,9 +679,9 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
-    fn dump_expr_lambda(&mut self, expr: &ExprLambdaType) {
-        dump!(self, "lambda @ {} {}", expr.pos, expr.id);
-        self.indent(|d| d.dump_stmt(&expr.block));
+    fn dump_expr_lambda(&mut self, fct: &Arc<Function>) {
+        dump!(self, "lambda @ {} {}", fct.pos, fct.id);
+        self.indent(|d| d.dump_fct(fct));
     }
 
     fn dump_expr_tuple(&mut self, expr: &ExprTupleType) {

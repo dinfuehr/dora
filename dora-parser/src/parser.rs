@@ -2219,6 +2219,7 @@ impl<'a> Parser<'a> {
     fn parse_lambda(&mut self) -> ExprResult {
         let start = self.token.span.start();
         let tok = self.advance_token()?;
+        let pos = tok.position;
 
         let params = if tok.kind == TokenKind::OrOr {
             // nothing to do
@@ -2231,24 +2232,48 @@ impl<'a> Parser<'a> {
             })?
         };
 
-        let ret = if self.token.is(TokenKind::Arrow) {
+        let return_type = if self.token.is(TokenKind::Arrow) {
             self.advance_token()?;
-            Some(Box::new(self.parse_type()?))
+            Some(self.parse_type()?)
         } else {
             None
         };
 
-        let block = self.parse_block_stmt()?;
+        let block = self.parse_block()?;
+
+        let block = match *block {
+            Expr::Block(block_type) => Some(Box::new(block_type)),
+            _ => unreachable!(),
+        };
+
         let span = self.span_from(start);
 
-        Ok(Box::new(Expr::create_lambda(
-            self.generate_id(),
-            tok.position,
+        let name = self.interner.intern("closure");
+
+        let function = Arc::new(Function {
+            id: self.generate_id(),
+            name,
+            pos,
             span,
+            method: self.in_class_or_module,
+            has_open: false,
+            has_override: false,
+            has_final: false,
+            has_optimize_immediately: false,
+            is_pub: false,
+            is_static: false,
+            internal: false,
+            is_abstract: false,
+            is_constructor: false,
+            is_test: false,
+            use_cannon: false,
             params,
-            ret,
+            return_type,
             block,
-        )))
+            type_params: None,
+        });
+
+        Ok(Box::new(Expr::create_lambda(function)))
     }
 
     fn expect_identifier(&mut self) -> Result<Name, ParseErrorAndPos> {
@@ -3999,14 +4024,14 @@ mod tests {
         let (expr, _) = parse_expr("|| {}");
         let lambda = expr.to_lambda().unwrap();
 
-        assert!(lambda.ret.is_none());
+        assert!(lambda.return_type.is_none());
     }
 
     #[test]
     fn parse_lambda_no_params_unit_as_return_value() {
         let (expr, _) = parse_expr("|| -> () {}");
         let lambda = expr.to_lambda().unwrap();
-        let ret = lambda.ret.as_ref().unwrap();
+        let ret = lambda.return_type.as_ref().unwrap();
 
         assert!(ret.is_unit());
     }
@@ -4015,7 +4040,7 @@ mod tests {
     fn parse_lambda_no_params_with_return_value() {
         let (expr, interner) = parse_expr("|| -> A {}");
         let lambda = expr.to_lambda().unwrap();
-        let ret = lambda.ret.as_ref().unwrap();
+        let ret = lambda.return_type.as_ref().unwrap();
         let basic = ret.to_basic().unwrap();
 
         assert_eq!("A", *interner.str(basic.name()));
@@ -4033,7 +4058,7 @@ mod tests {
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("A", *interner.str(basic.name()));
 
-        let ret = lambda.ret.as_ref().unwrap();
+        let ret = lambda.return_type.as_ref().unwrap();
         let basic = ret.to_basic().unwrap();
 
         assert_eq!("B", *interner.str(basic.name()));
@@ -4056,7 +4081,7 @@ mod tests {
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("B", *interner.str(basic.name()));
 
-        let ret = lambda.ret.as_ref().unwrap();
+        let ret = lambda.return_type.as_ref().unwrap();
         let basic = ret.to_basic().unwrap();
 
         assert_eq!("C", *interner.str(basic.name()));

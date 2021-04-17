@@ -2979,10 +2979,10 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_lambda(
         &mut self,
-        e: &ast::ExprLambdaType,
+        e: &Arc<ast::Function>,
         _expected_ty: SourceType,
     ) -> SourceType {
-        let ret = if let Some(ref ret_type) = e.ret {
+        let ret = if let Some(ref ret_type) = e.return_type {
             self.read_type(ret_type)
         } else {
             SourceType::Unit

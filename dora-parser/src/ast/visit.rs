@@ -332,17 +332,7 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             v.visit_type(&value.data_type);
         }
 
-        Expr::Lambda(ref value) => {
-            for param in &value.params {
-                v.visit_type(&param.data_type);
-            }
-
-            if let Some(ref ret) = value.ret {
-                v.visit_type(ret);
-            }
-
-            v.visit_stmt(&value.block);
-        }
+        Expr::Lambda(ref fct) => v.visit_fct(fct),
 
         Expr::Block(ref value) => {
             for stmt in &value.stmts {
