@@ -289,6 +289,10 @@ impl Fct {
         self.ast.block.is_some()
     }
 
+    pub fn is_lambda(&self) -> bool {
+        self.ast.kind.is_lambda()
+    }
+
     pub fn pos(&self) -> Position {
         self.pos
     }

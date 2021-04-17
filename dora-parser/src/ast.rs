@@ -636,7 +636,16 @@ pub struct Field {
 #[derive(Clone, Debug)]
 pub enum FunctionKind {
     Function,
-    Closure,
+    Lambda,
+}
+
+impl FunctionKind {
+    pub fn is_lambda(&self) -> bool {
+        match self {
+            &FunctionKind::Lambda => true,
+            &FunctionKind::Function => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -20,6 +20,11 @@ pub fn check(vm: &VM) {
                 continue;
             }
 
+            if fct.is_lambda() {
+                // Lambdas will be type-checked by their parent.
+                continue;
+            }
+
             let mut analysis = AnalysisData::new();
             let symtable = NestedSymTable::new(vm, fct.namespace_id);
 

@@ -2253,7 +2253,7 @@ impl<'a> Parser<'a> {
 
         let function = Arc::new(Function {
             id: self.generate_id(),
-            kind: FunctionKind::Closure,
+            kind: FunctionKind::Lambda,
             name,
             pos,
             span,
