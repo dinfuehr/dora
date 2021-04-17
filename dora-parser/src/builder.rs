@@ -152,6 +152,7 @@ impl<'a> BuilderFct<'a> {
     pub fn build(self) -> Function {
         Function {
             id: self.id_generator.next(),
+            kind: FunctionKind::Function,
             pos: Position::new(1, 1),
             span: Span::invalid(),
             name: self.name,

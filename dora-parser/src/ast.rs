@@ -634,8 +634,15 @@ pub struct Field {
 }
 
 #[derive(Clone, Debug)]
+pub enum FunctionKind {
+    Function,
+    Closure,
+}
+
+#[derive(Clone, Debug)]
 pub struct Function {
     pub id: NodeId,
+    pub kind: FunctionKind,
     pub name: Name,
     pub pos: Position,
     pub span: Span,
