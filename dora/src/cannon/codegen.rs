@@ -139,6 +139,9 @@ impl<'a> CannonCodeGen<'a> {
 
         bytecode::read(self.bytecode.code(), &mut self);
 
+        // Bytecode execution should never fall off the end and reach this instruction.
+        self.asm.debug();
+
         self.emit_slow_paths();
 
         let code = self
