@@ -1,0 +1,4 @@
+@pub class AtomicInt64(let value: Int64) {
+    @pub @internal fun get(): Int64;
+    @pub @internal fun set(value: Int64);
+}

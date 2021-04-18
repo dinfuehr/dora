@@ -522,6 +522,9 @@ pub enum Intrinsic {
 
     AtomicInt32Get,
     AtomicInt32Set,
+
+    AtomicInt64Get,
+    AtomicInt64Set,
 }
 
 impl Intrinsic {

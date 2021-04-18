@@ -31,6 +31,7 @@ pub struct KnownEnums {
 #[derive(Debug)]
 pub struct KnownClasses {
     pub atomic_int32: Option<ClassId>,
+    pub atomic_int64: Option<ClassId>,
     pub object: Option<ClassId>,
     pub array: Option<ClassId>,
     pub string: Option<ClassId>,
@@ -44,6 +45,7 @@ impl KnownClasses {
     pub fn new() -> KnownClasses {
         KnownClasses {
             atomic_int32: None,
+            atomic_int64: None,
             object: None,
             array: None,
             string: None,
