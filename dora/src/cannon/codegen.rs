@@ -76,7 +76,7 @@ pub struct CannonCodeGen<'a> {
     references: Vec<i32>,
 
     offsets: Vec<Option<i32>>,
-    stacksize: i32,
+    framesize: i32,
     register_start_offset: i32,
 
     slow_paths: Vec<(
@@ -117,7 +117,7 @@ impl<'a> CannonCodeGen<'a> {
             references: Vec::new(),
             offsets: Vec::new(),
             liveness,
-            stacksize: 0,
+            framesize: 0,
             register_start_offset: 0,
             slow_paths: Vec::new(),
         }
@@ -145,7 +145,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let code = self
             .asm
-            .jit(self.stacksize, JitDescriptor::DoraFct(self.fct.id));
+            .jit(self.framesize, JitDescriptor::DoraFct(self.fct.id));
 
         code
     }
@@ -173,7 +173,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let (offsets, stacksize) = self.determine_offsets(self.register_start_offset);
         self.offsets = offsets;
-        self.stacksize = stacksize;
+        self.framesize = stacksize;
     }
 
     fn determine_offsets(&self, start: i32) -> (Vec<Option<i32>>, i32) {
@@ -196,7 +196,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn clear_registers(&mut self) {
         let start = self.register_start_offset + mem::ptr_width();
-        let end = self.stacksize + mem::ptr_width();
+        let end = self.framesize + mem::ptr_width();
         assert!(start <= end);
 
         if start == end {
@@ -533,7 +533,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_prolog(&mut self) {
-        self.asm.prolog_size(self.stacksize);
+        self.asm.prolog_size(self.framesize);
     }
 
     fn emit_stack_guard(&mut self) {
