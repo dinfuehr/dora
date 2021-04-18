@@ -4131,6 +4131,19 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_instruction(&mut self, offset: BytecodeOffset) {
         self.offset_to_address.insert(offset, self.asm.pos());
         self.current_offset = offset;
+
+        // Ensure that PushRegister instructions are only followed by InvokeXXX,
+        // NewTuple, NewEnum or NewStruct.
+        if !self.argument_stack.is_empty() {
+            let opcode = self.bytecode.read_opcode(offset);
+            assert!(
+                opcode.is_any_invoke()
+                    || opcode.is_push_register()
+                    || opcode.is_new_tuple()
+                    || opcode.is_new_enum()
+                    || opcode.is_new_struct()
+            );
+        }
     }
 
     fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {

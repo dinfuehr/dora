@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::bytecode::read_opcode_and_width;
 use crate::mem::ptr_width;
 use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
@@ -411,6 +412,50 @@ fn operand_size(width: OperandWidth) -> u32 {
 }
 
 impl BytecodeOpcode {
+    pub fn is_new_enum(&self) -> bool {
+        match self {
+            BytecodeOpcode::NewEnum => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_new_struct(&self) -> bool {
+        match self {
+            BytecodeOpcode::NewStruct => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_new_tuple(&self) -> bool {
+        match self {
+            BytecodeOpcode::NewTuple => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_push_register(&self) -> bool {
+        match self {
+            BytecodeOpcode::PushRegister => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_any_invoke(&self) -> bool {
+        match self {
+            BytecodeOpcode::InvokeDirectVoid
+            | BytecodeOpcode::InvokeDirect
+            | BytecodeOpcode::InvokeGenericDirect
+            | BytecodeOpcode::InvokeGenericDirectVoid
+            | BytecodeOpcode::InvokeGenericStatic
+            | BytecodeOpcode::InvokeGenericStaticVoid
+            | BytecodeOpcode::InvokeStatic
+            | BytecodeOpcode::InvokeStaticVoid
+            | BytecodeOpcode::InvokeVirtual
+            | BytecodeOpcode::InvokeVirtualVoid => true,
+            _ => false,
+        }
+    }
+
     pub fn size(&self, width: OperandWidth) -> u32 {
         match *self {
             BytecodeOpcode::Wide => unreachable!(),
@@ -728,6 +773,10 @@ impl BytecodeFunction {
             Ok(index) => index,
         };
         self.positions[index].1
+    }
+
+    pub fn read_opcode(&self, offset: BytecodeOffset) -> BytecodeOpcode {
+        read_opcode_and_width(&self.code, offset.to_usize()).0
     }
 }
 

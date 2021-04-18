@@ -1522,7 +1522,7 @@ fn find_instruction_starts(fct: &BytecodeFunction) -> Vec<usize> {
     intruction_start_offsets
 }
 
-fn read_opcode_and_width(data: &[u8], pos: usize) -> (BytecodeOpcode, OperandWidth) {
+pub(super) fn read_opcode_and_width(data: &[u8], pos: usize) -> (BytecodeOpcode, OperandWidth) {
     if data[pos] as u32 == BytecodeOpcode::Wide as u32 {
         (read_opcode(data[pos + 1]), OperandWidth::Wide)
     } else {
