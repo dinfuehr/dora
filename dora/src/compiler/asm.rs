@@ -118,8 +118,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.create_label()
     }
 
-    pub fn bind_label_to(&mut self, label: Label, pos: usize) {
-        self.masm.bind_label_to(label, pos);
+    pub fn create_and_bind_label(&mut self) -> Label {
+        self.masm.create_and_bind_label()
     }
 
     pub fn jump(&mut self, label: Label) {

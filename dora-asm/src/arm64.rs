@@ -167,10 +167,6 @@ impl AssemblerArm64 {
         self.buffer.bind_label(lbl);
     }
 
-    pub fn bind_label_to(&mut self, lbl: Label, offset: u32) {
-        self.buffer.bind_label_to(lbl, offset);
-    }
-
     fn offset(&self, lbl: Label) -> Option<u32> {
         self.buffer.offset(lbl)
     }

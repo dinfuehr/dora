@@ -412,6 +412,13 @@ fn operand_size(width: OperandWidth) -> u32 {
 }
 
 impl BytecodeOpcode {
+    pub fn is_loop_start(&self) -> bool {
+        match self {
+            BytecodeOpcode::LoopStart => true,
+            _ => false,
+        }
+    }
+
     pub fn is_new_enum(&self) -> bool {
         match self {
             BytecodeOpcode::NewEnum => true,

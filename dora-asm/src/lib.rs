@@ -40,12 +40,6 @@ impl AssemblerBuffer {
         self.labels[idx] = Some(self.position().try_into().unwrap());
     }
 
-    fn bind_label_to(&mut self, lbl: Label, offset: u32) {
-        let Label(idx) = lbl;
-        assert!(self.labels[idx].is_none());
-        self.labels[idx] = Some(offset);
-    }
-
     fn offset(&self, lbl: Label) -> Option<u32> {
         let Label(idx) = lbl;
         self.labels[idx]

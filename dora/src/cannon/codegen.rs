@@ -1,5 +1,5 @@
 use dora_parser::lexer::position::Position;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolEntry,
@@ -67,10 +67,9 @@ pub struct CannonCodeGen<'a> {
     type_params: &'a SourceTypeArray,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
-    loop_starts: HashSet<BytecodeOffset>,
+    offset_to_label: HashMap<BytecodeOffset, Label>,
     liveness: BytecodeLiveness,
 
-    forward_jumps: Vec<ForwardJump>,
     current_offset: BytecodeOffset,
     argument_stack: Vec<Register>,
 
@@ -112,8 +111,7 @@ impl<'a> CannonCodeGen<'a> {
             lbl_continue: None,
             type_params,
             offset_to_address: HashMap::new(),
-            loop_starts: HashSet::new(),
-            forward_jumps: Vec::new(),
+            offset_to_label: HashMap::new(),
             current_offset: BytecodeOffset(0),
             argument_stack: Vec::new(),
             references: Vec::new(),
@@ -142,8 +140,6 @@ impl<'a> CannonCodeGen<'a> {
         bytecode::read(self.bytecode.code(), &mut self);
 
         self.emit_slow_paths();
-
-        self.resolve_forward_jumps();
 
         let code = self
             .asm
@@ -2142,7 +2138,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
-    fn emit_jump_if(&mut self, src: Register, offset: BytecodeOffset, op: bool) {
+    fn emit_jump_if(&mut self, src: Register, target: BytecodeOffset, op: bool) {
         assert_eq!(self.bytecode.register_type(src), BytecodeType::Bool);
 
         self.emit_load_register(src, REG_RESULT.into());
@@ -2152,41 +2148,38 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             CondCode::Zero
         };
-        let lbl = self.asm.create_label();
-        self.asm.test_and_jump_if(op, REG_RESULT, lbl);
 
-        self.resolve_label(offset, lbl);
+        let lbl = self.ensure_forward_label(target);
+        self.asm.test_and_jump_if(op, REG_RESULT, lbl);
     }
 
-    fn emit_jump(&mut self, offset: BytecodeOffset) {
-        let lbl = self.asm.create_label();
-        self.resolve_label(offset, lbl);
+    fn emit_jump(&mut self, target: BytecodeOffset) {
+        let lbl = self.ensure_forward_label(target);
         self.asm.jump(lbl);
     }
 
     fn emit_jump_loop(&mut self, target: BytecodeOffset) {
         assert!(target < self.current_offset);
+
+        let opcode = self.bytecode.read_opcode(target);
+        assert!(opcode.is_loop_start());
+
         self.emit_safepoint();
-        assert!(self.loop_starts.contains(&target));
-        let lbl = self.asm.create_label();
-        self.resolve_label(target, lbl);
-        self.asm.jump(lbl);
+        let loop_start = *self.offset_to_label.get(&target).expect("missing label");
+        self.asm.jump(loop_start);
     }
 
-    fn resolve_label(&mut self, target: BytecodeOffset, lbl: Label) {
-        if target < self.current_offset {
-            self.asm.bind_label_to(
-                lbl,
-                *self
-                    .offset_to_address
-                    .get(&target)
-                    .expect("jump with wrong offset"),
-            );
+    fn ensure_forward_label(&mut self, target: BytecodeOffset) -> Label {
+        assert!(target > self.current_offset);
+
+        if let Some(&label) = self.offset_to_label.get(&target) {
+            label
         } else {
-            self.forward_jumps.push(ForwardJump {
-                label: lbl,
-                offset: target,
-            });
+            let label = self.asm.create_label();
+            let old = self.offset_to_label.insert(target, label);
+            assert!(old.is_none());
+
+            label
         }
     }
 
@@ -2261,16 +2254,6 @@ impl<'a> CannonCodeGen<'a> {
         }
 
         self.emit_epilog();
-    }
-
-    fn resolve_forward_jumps(&mut self) {
-        for jump in &self.forward_jumps {
-            let offset = *self
-                .offset_to_address
-                .get(&jump.offset)
-                .expect("offset for bytecode not found");
-            self.asm.bind_label_to(jump.label, offset);
-        }
     }
 
     fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -4141,6 +4124,10 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.offset_to_address.insert(offset, self.asm.pos());
         self.current_offset = offset;
 
+        if let Some(&label) = self.offset_to_label.get(&offset) {
+            self.asm.bind_label(label);
+        }
+
         // Ensure that PushRegister instructions are only followed by InvokeXXX,
         // NewTuple, NewEnum or NewStruct.
         if !self.argument_stack.is_empty() {
@@ -5031,7 +5018,8 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     }
     fn visit_loop_start(&mut self) {
         comment!(self, format!("LoopStart"));
-        self.loop_starts.insert(self.current_offset);
+        let label = self.asm.create_and_bind_label();
+        self.offset_to_label.insert(self.current_offset, label);
     }
 
     fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {

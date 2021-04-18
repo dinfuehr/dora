@@ -166,6 +166,10 @@ impl MacroAssembler {
         self.asm.create_label()
     }
 
+    pub fn create_and_bind_label(&mut self) -> Label {
+        self.asm.create_and_bind_label()
+    }
+
     pub fn emit_comment(&mut self, comment: String) {
         let offset = self.pos() as u32;
         self.comments.insert(offset, comment);
@@ -173,10 +177,6 @@ impl MacroAssembler {
 
     pub fn bind_label(&mut self, lbl: Label) {
         self.asm.bind_label(lbl);
-    }
-
-    pub fn bind_label_to(&mut self, lbl: Label, pos: usize) {
-        self.asm.bind_label_to(lbl, pos as u32);
     }
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, pos: Position) {
