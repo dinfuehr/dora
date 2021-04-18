@@ -2164,6 +2164,15 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.jump(lbl);
     }
 
+    fn emit_jump_loop(&mut self, target: BytecodeOffset) {
+        assert!(target < self.current_offset);
+        self.emit_safepoint();
+        assert!(self.loop_starts.contains(&target));
+        let lbl = self.asm.create_label();
+        self.resolve_label(target, lbl);
+        self.asm.jump(lbl);
+    }
+
     fn resolve_label(&mut self, target: BytecodeOffset, lbl: Label) {
         if target < self.current_offset {
             self.asm.bind_label_to(
@@ -4994,9 +5003,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             self,
             format!("JumpLoop {} # target {}", offset, target.to_usize())
         );
-        self.emit_safepoint();
-        assert!(self.loop_starts.contains(&target));
-        self.emit_jump(target);
+        self.emit_jump_loop(target);
     }
     fn visit_jump(&mut self, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
