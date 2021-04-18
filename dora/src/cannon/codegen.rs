@@ -1,5 +1,5 @@
 use dora_parser::lexer::position::Position;
-use std::collections::hash_map::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolEntry,
@@ -67,6 +67,7 @@ pub struct CannonCodeGen<'a> {
     type_params: &'a SourceTypeArray,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
+    loop_starts: HashSet<BytecodeOffset>,
     liveness: BytecodeLiveness,
 
     forward_jumps: Vec<ForwardJump>,
@@ -111,6 +112,7 @@ impl<'a> CannonCodeGen<'a> {
             lbl_continue: None,
             type_params,
             offset_to_address: HashMap::new(),
+            loop_starts: HashSet::new(),
             forward_jumps: Vec::new(),
             current_offset: BytecodeOffset(0),
             argument_stack: Vec::new(),
@@ -4980,6 +4982,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             format!("JumpLoop {} # target {}", offset, target.to_usize())
         );
         self.emit_safepoint();
+        assert!(self.loop_starts.contains(&target));
         self.emit_jump(target);
     }
     fn visit_jump(&mut self, offset: u32) {
@@ -5008,6 +5011,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     }
     fn visit_loop_start(&mut self) {
         comment!(self, format!("LoopStart"));
+        self.loop_starts.insert(self.current_offset);
     }
 
     fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {

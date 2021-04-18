@@ -157,6 +157,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.gen.emit_const_int64(index_reg, 0);
 
         let lbl_cond = self.gen.define_label();
+        self.gen.emit_loop_start();
         let lbl_end = self.gen.create_label();
 
         // if idx >= length then goto end
@@ -324,7 +325,6 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Emit: <obj> = <expr> (for <var> in <expr> { ... })
         let object_reg = self.visit_expr(&stmt.expr, DataDest::Alloc);
-        self.gen.emit_push_register(object_reg);
 
         let iterator_reg = if let Some(make_iterator) = for_type_info.make_iterator {
             let object_type = self.ty(stmt.expr.id());
@@ -332,6 +332,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             // Emit: <iterator> = <obj>.makeIterator();
             let iterator_reg = self.alloc_var(BytecodeType::Ptr);
+            self.gen.emit_push_register(object_reg);
             let fct_idx = self
                 .gen
                 .add_const_fct_types(make_iterator, object_type_params);
@@ -343,12 +344,14 @@ impl<'a> AstBytecodeGen<'a> {
             object_reg
         };
 
+        let lbl_cond = self.gen.define_label();
+        self.gen.emit_loop_start();
+
         let iterator_type = for_type_info.iterator_type.clone();
         let iterator_type_params = iterator_type.type_params(self.vm);
 
         self.gen.emit_push_register(iterator_reg);
 
-        let lbl_cond = self.gen.define_label();
         let lbl_end = self.gen.create_label();
 
         // Emit: <cond> = <iterator>.hasNext() & jump to lbl_end if false
