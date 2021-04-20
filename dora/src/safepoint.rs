@@ -54,7 +54,7 @@ fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
                 state => panic!("unexpected state {:?} when stopping threads", state),
             };
 
-            match thread.atomic_state.compare_exchange(
+            match thread.state.compare_exchange(
                 current_state as usize,
                 next_state as usize,
                 Ordering::SeqCst,
@@ -85,7 +85,7 @@ fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
 
     for thread in threads.iter() {
         let old_state: ThreadState = thread
-            .atomic_state
+            .state
             .swap(ThreadState::Parked as usize, Ordering::SeqCst)
             .into();
 
@@ -104,7 +104,7 @@ pub extern "C" fn safepoint_slow() {
     let vm = get_vm();
 
     let state: ThreadState = thread
-        .atomic_state
+        .state
         .swap(ThreadState::Safepoint as usize, Ordering::SeqCst)
         .into();
     assert!(state == ThreadState::RequestedSafepoint || state == ThreadState::Running);

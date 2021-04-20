@@ -99,8 +99,7 @@ pub struct DoraThread {
     pub tld: ThreadLocalData,
     pub saved_pc: AtomicUsize,
     pub saved_fp: AtomicUsize,
-    pub state: StateManager,
-    pub atomic_state: AtomicUsize,
+    pub state: AtomicUsize,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -122,8 +121,7 @@ impl DoraThread {
             tld: ThreadLocalData::new(),
             saved_pc: AtomicUsize::new(0),
             saved_fp: AtomicUsize::new(0),
-            state: StateManager::new(initial_state),
-            atomic_state: AtomicUsize::new(initial_state as usize),
+            state: AtomicUsize::new(initial_state as usize),
         })
     }
 
@@ -166,17 +164,13 @@ impl DoraThread {
         self.set_dtn(dtn.last);
     }
 
-    pub fn state(&self) -> ThreadState {
-        self.state.state()
-    }
-
     pub fn state_relaxed(&self) -> ThreadState {
-        self.atomic_state.load(Ordering::Relaxed).into()
+        self.state.load(Ordering::Relaxed).into()
     }
 
     pub fn park(&self, vm: &VM) {
         if self
-            .atomic_state
+            .state
             .compare_exchange(
                 ThreadState::Running as usize,
                 ThreadState::Parked as usize,
@@ -191,7 +185,7 @@ impl DoraThread {
 
     pub fn park_slow(&self, vm: &VM) {
         assert!(self
-            .atomic_state
+            .state
             .compare_exchange(
                 ThreadState::RequestedSafepoint as usize,
                 ThreadState::ParkedSafepoint as usize,
@@ -204,7 +198,7 @@ impl DoraThread {
 
     pub fn unpark(&self, vm: &VM) {
         if self
-            .atomic_state
+            .state
             .compare_exchange(
                 ThreadState::Parked as usize,
                 ThreadState::Running as usize,
@@ -219,7 +213,7 @@ impl DoraThread {
 
     pub fn unpark_slow(&self, vm: &VM) {
         loop {
-            match self.atomic_state.compare_exchange(
+            match self.state.compare_exchange(
                 ThreadState::Parked as usize,
                 ThreadState::Running as usize,
                 Ordering::SeqCst,
