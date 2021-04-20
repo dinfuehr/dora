@@ -1238,6 +1238,30 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn ldxr(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 0, 1, 0, REG_ZERO, 0, REG_ZERO, rn, rt,
+        ))
+    }
+
+    pub fn ldxr_w(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 0, 1, 0, REG_ZERO, 0, REG_ZERO, rn, rt,
+        ))
+    }
+
+    pub fn ldaxr(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 0, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
+    pub fn ldaxr_w(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 0, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
     pub fn stlr(&mut self, rt: Register, rn: Register) {
         self.emit_u32(cls::ldst_exclusive(
             0b11, 1, 0, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
@@ -1515,6 +1539,22 @@ impl AssemblerArm64 {
             rn,
             rt.encoding_zero(),
         ));
+    }
+
+    pub fn stxr(&mut self, rs: Register, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(0b11, 0, 0, 0, rs, 0, REG_ZERO, rn, rt));
+    }
+
+    pub fn stxr_w(&mut self, rs: Register, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(0b10, 0, 0, 0, rs, 0, REG_ZERO, rn, rt));
+    }
+
+    pub fn stlxr(&mut self, rs: Register, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(0b11, 0, 0, 0, rs, 1, REG_ZERO, rn, rt));
+    }
+
+    pub fn stlxr_w(&mut self, rs: Register, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(0b10, 0, 0, 0, rs, 1, REG_ZERO, rn, rt));
     }
 
     pub fn lsl_imm(&mut self, rd: Register, rn: Register, shift: u32) {
@@ -3425,6 +3465,42 @@ mod tests {
 
         assert_emit!(0x889fffff; stlr_w(REG_ZERO, REG_SP));
         assert_emit!(0x889ffc20; stlr_w(R0, R1));
+    }
+
+    #[test]
+    fn test_ldxr() {
+        assert_emit!(0xc85f7fff; ldxr(REG_ZERO, REG_SP));
+        assert_emit!(0xc85f7c20; ldxr(R0, R1));
+
+        assert_emit!(0x885f7fff; ldxr_w(REG_ZERO, REG_SP));
+        assert_emit!(0x885f7c20; ldxr_w(R0, R1));
+    }
+
+    #[test]
+    fn test_ldaxr() {
+        assert_emit!(0xc85fffff; ldaxr(REG_ZERO, REG_SP));
+        assert_emit!(0xc85ffc20; ldaxr(R0, R1));
+
+        assert_emit!(0x885fffff; ldaxr_w(REG_ZERO, REG_SP));
+        assert_emit!(0x885ffc20; ldaxr_w(R0, R1));
+    }
+
+    #[test]
+    fn test_stxr() {
+        assert_emit!(0xc8007fff; stxr(R0, REG_ZERO, REG_SP));
+        assert_emit!(0xc8047c41; stxr(R4, R1, R2));
+
+        assert_emit!(0x88027fff; stxr_w(R2, REG_ZERO, REG_SP));
+        assert_emit!(0x88077cc1; stxr_w(R7, R1, R6));
+    }
+
+    #[test]
+    fn test_stlxr() {
+        assert_emit!(0xc800ffff; stlxr(R0, REG_ZERO, REG_SP));
+        assert_emit!(0xc804fc41; stlxr(R4, R1, R2));
+
+        assert_emit!(0x8802ffff; stlxr_w(R2, REG_ZERO, REG_SP));
+        assert_emit!(0x8807fcc1; stlxr_w(R7, R1, R6));
     }
 
     #[test]
