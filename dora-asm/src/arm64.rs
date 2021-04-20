@@ -988,6 +988,12 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn ldar(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 1, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
     pub fn ldp(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         self.emit_u32(cls::ldst_pair(0b10, 0, 1, imm7, rt2, rn, rt));
     }
@@ -2222,17 +2228,36 @@ mod cls {
 
     #[allow(dead_code)]
     pub(super) fn ldst_exclusive(
-        _size: u32,
-        _o2: u32,
-        _l: u32,
-        _o1: u32,
-        _rs: Register,
-        _o0: u32,
-        _rt2: Register,
-        _rn: Register,
-        _rt: Register,
+        size: u32,
+        o2: u32,
+        l: u32,
+        o1: u32,
+        rs: Register,
+        o0: u32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
     ) -> u32 {
-        unimplemented!()
+        fits_u2(size);
+        fits_bit(o2);
+        fits_bit(l);
+        fits_bit(o1);
+        fits_bit(o0);
+        assert!(rs.is_gpr_or_zero());
+        assert!(rt2.is_gpr_or_zero());
+        assert!(rn.is_gpr_or_sp());
+        assert!(rt.is_gpr_or_zero());
+
+        size << 30
+            | 0b001000 << 24
+            | o2 << 23
+            | l << 2
+            | o1 << 21
+            | rs.encoding_zero() << 16
+            | o0 << 15
+            | rt2.encoding_zero() << 15
+            | rn.encoding_sp() << 10
+            | rt.encoding_zero()
     }
 
     pub(super) fn ldst_pair(
