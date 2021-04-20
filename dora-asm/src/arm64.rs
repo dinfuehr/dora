@@ -1541,20 +1541,28 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn stxr(&mut self, rs: Register, rt: Register, rn: Register) {
-        self.emit_u32(cls::ldst_exclusive(0b11, 0, 0, 0, rs, 0, REG_ZERO, rn, rt));
+    pub fn stxr(&mut self, status: Register, src: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 0, 0, 0, status, 0, REG_ZERO, addr, src,
+        ));
     }
 
-    pub fn stxr_w(&mut self, rs: Register, rt: Register, rn: Register) {
-        self.emit_u32(cls::ldst_exclusive(0b10, 0, 0, 0, rs, 0, REG_ZERO, rn, rt));
+    pub fn stxr_w(&mut self, status: Register, src: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 0, 0, 0, status, 0, REG_ZERO, addr, src,
+        ));
     }
 
-    pub fn stlxr(&mut self, rs: Register, rt: Register, rn: Register) {
-        self.emit_u32(cls::ldst_exclusive(0b11, 0, 0, 0, rs, 1, REG_ZERO, rn, rt));
+    pub fn stlxr(&mut self, status: Register, src: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 0, 0, 0, status, 1, REG_ZERO, addr, src,
+        ));
     }
 
-    pub fn stlxr_w(&mut self, rs: Register, rt: Register, rn: Register) {
-        self.emit_u32(cls::ldst_exclusive(0b10, 0, 0, 0, rs, 1, REG_ZERO, rn, rt));
+    pub fn stlxr_w(&mut self, status: Register, src: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 0, 0, 0, status, 1, REG_ZERO, addr, src,
+        ));
     }
 
     pub fn lsl_imm(&mut self, rd: Register, rn: Register, shift: u32) {
