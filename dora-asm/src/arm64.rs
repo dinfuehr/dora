@@ -1238,6 +1238,18 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn stlr(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 1, 0, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
+    pub fn stlr_w(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 1, 0, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
     pub fn stp(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         self.emit_u32(cls::ldst_pair(0b10, 0, 0, imm7, rt2, rn, rt));
     }
@@ -3404,6 +3416,15 @@ mod tests {
 
         assert_emit!(0x88dfffff; ldar_w(REG_ZERO, REG_SP));
         assert_emit!(0x88dffc20; ldar_w(R0, R1));
+    }
+
+    #[test]
+    fn test_stlr() {
+        assert_emit!(0xc89fffff; stlr(REG_ZERO, REG_SP));
+        assert_emit!(0xc89ffc20; stlr(R0, R1));
+
+        assert_emit!(0x889fffff; stlr_w(REG_ZERO, REG_SP));
+        assert_emit!(0x889ffc20; stlr_w(R0, R1));
     }
 
     #[test]
