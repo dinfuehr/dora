@@ -994,6 +994,12 @@ impl AssemblerArm64 {
         ))
     }
 
+    pub fn ldar_w(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 1, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
     pub fn ldp(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         self.emit_u32(cls::ldst_pair(0b10, 0, 1, imm7, rt2, rn, rt));
     }
@@ -2251,12 +2257,12 @@ mod cls {
         size << 30
             | 0b001000 << 24
             | o2 << 23
-            | l << 2
+            | l << 22
             | o1 << 21
             | rs.encoding_zero() << 16
             | o0 << 15
-            | rt2.encoding_zero() << 15
-            | rn.encoding_sp() << 10
+            | rt2.encoding_zero() << 10
+            | rn.encoding_sp() << 5
             | rt.encoding_zero()
     }
 
@@ -3389,6 +3395,15 @@ mod tests {
 
         // and x2, x3, #aaaaaaaaaaaaaaaa
         assert_emit!(0x9201f062; and_imm(R2, R3, 0xaaaaaaaaaaaaaaaa));
+    }
+
+    #[test]
+    fn test_ldar() {
+        assert_emit!(0xc8dfffff; ldar(REG_ZERO, REG_SP));
+        assert_emit!(0xc8dffc20; ldar(R0, R1));
+
+        assert_emit!(0x88dfffff; ldar_w(REG_ZERO, REG_SP));
+        assert_emit!(0x88dffc20; ldar_w(R0, R1));
     }
 
     #[test]
