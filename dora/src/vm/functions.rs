@@ -566,7 +566,9 @@ impl Intrinsic {
             | Intrinsic::OptionUnwrap
             | Intrinsic::Debug
             | Intrinsic::AtomicInt32Get
-            | Intrinsic::AtomicInt32Set => true,
+            | Intrinsic::AtomicInt32Set
+            | Intrinsic::AtomicInt64Get
+            | Intrinsic::AtomicInt64Set => true,
             _ => false,
         }
     }

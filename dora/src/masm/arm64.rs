@@ -811,12 +811,20 @@ impl MacroAssembler {
         self.asm.movz(dest.into(), 0, 0);
     }
 
-    pub fn load_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
-        unimplemented!()
+    pub fn load_int32_synchronized(&mut self, dest: Reg, address: Reg) {
+        self.asm.ldar_w(dest.into(), address.into());
     }
 
-    pub fn store_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
-        unimplemented!()
+    pub fn load_int64_synchronized(&mut self, dest: Reg, address: Reg) {
+        self.asm.ldar(dest.into(), address.into());
+    }
+
+    pub fn store_int32_synchronized(&mut self, dest: Reg, address: Reg) {
+        self.asm.stlr_w(dest.into(), address.into());
+    }
+
+    pub fn store_int64_synchronized(&mut self, dest: Reg, address: Reg) {
+        self.asm.stlr(dest.into(), address.into());
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {

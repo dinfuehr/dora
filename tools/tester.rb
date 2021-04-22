@@ -6,6 +6,23 @@ require 'thread'
 require 'open3'
 require 'timeout'
 
+def get_architecture
+  case RUBY_PLATFORM
+  when /linux/
+  when /darwin/
+    arch = `uname -m`.to_s.strip
+
+    case arch
+    when "x86_64" then "x64"
+    when "arm64" then "arm64"
+    else
+      raise "unknown architecture #{arch}"
+    end
+  else
+    "x64"
+  end
+end
+
 $config = {
   default: '',
 }
@@ -14,6 +31,7 @@ $ARGS = ARGV.clone
 $release = $ARGS.delete("--release") != nil
 $no_capture = $ARGS.delete("--no-capture") != nil
 $processors = 0
+$ARCH = get_architecture
 
 $ARGS.delete_if do |arg|
   if (m = /\A\-j(\d)+\z/.match(arg))
@@ -443,6 +461,9 @@ def parse_test_file(file)
         else
           raise "unknown error expectation in #{file}: #{line}"
         end
+
+      when "platform"
+        test_case.expectation = :ignore if arguments[1] != $ARCH
 
       when "file"
         test_case.test_file = arguments[1]

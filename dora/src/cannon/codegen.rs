@@ -3522,20 +3522,62 @@ impl<'a> CannonCodeGen<'a> {
                 let obj_reg = arguments[0];
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
-                self.asm
-                    .load_int32_synchronized(REG_RESULT, REG_RESULT, Header::size());
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    Header::size() as i64,
+                );
+                self.asm.load_int32_synchronized(REG_RESULT, REG_RESULT);
+                self.emit_store_register(REG_RESULT.into(), dest_reg);
+            }
+
+            Intrinsic::AtomicInt64Get => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let obj_reg = arguments[0];
+
+                self.emit_load_register(obj_reg, REG_RESULT.into());
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    Header::size() as i64,
+                );
+                self.asm.load_int64_synchronized(REG_RESULT, REG_RESULT);
                 self.emit_store_register(REG_RESULT.into(), dest_reg);
             }
 
             Intrinsic::AtomicInt32Set => {
                 assert_eq!(arguments.len(), 2);
-                let obj_reg = arguments[1];
-                let value_reg = arguments[0];
+                let obj_reg = arguments[0];
+                let value_reg = arguments[1];
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP1.into());
-                self.asm
-                    .store_int32_synchronized(REG_TMP1, REG_RESULT, Header::size());
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    Header::size() as i64,
+                );
+                self.asm.store_int32_synchronized(REG_TMP1, REG_RESULT);
+            }
+
+            Intrinsic::AtomicInt64Set => {
+                assert_eq!(arguments.len(), 2);
+                let obj_reg = arguments[0];
+                let value_reg = arguments[1];
+
+                self.emit_load_register(obj_reg, REG_RESULT.into());
+                self.emit_load_register(value_reg, REG_TMP1.into());
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    Header::size() as i64,
+                );
+                self.asm.store_int64_synchronized(REG_TMP1, REG_RESULT);
             }
 
             _ => unreachable!(),

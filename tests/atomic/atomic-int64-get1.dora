@@ -1,0 +1,8 @@
+//= platform arm64
+
+fun main() {
+    let value = std::AtomicInt64(10L);
+    assert(value.get() == 10L);
+    value.set(20L);
+    assert(value.get() == 20L);
+}

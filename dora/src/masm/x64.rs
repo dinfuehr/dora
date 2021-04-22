@@ -832,11 +832,19 @@ impl MacroAssembler {
         self.asm.xorl_rr(dest.into(), dest.into());
     }
 
-    pub fn load_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
+    pub fn load_int32_synchronized(&mut self, _dest: Reg, _addr: Reg) {
         unimplemented!()
     }
 
-    pub fn store_int32_synchronized(&mut self, _dest: Reg, _base: Reg, _offset: i32) {
+    pub fn load_int64_synchronized(&mut self, _dest: Reg, _addr: Reg) {
+        unimplemented!()
+    }
+
+    pub fn store_int32_synchronized(&mut self, _dest: Reg, _addr: Reg) {
+        unimplemented!()
+    }
+
+    pub fn store_int64_synchronized(&mut self, _dest: Reg, _addr: Reg) {
         unimplemented!()
     }
 
