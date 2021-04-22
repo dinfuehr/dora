@@ -845,6 +845,47 @@ impl MacroAssembler {
         self.asm.cbnz_w((*scratch).into(), loop_start);
     }
 
+    pub fn compare_exchange_int32_synchronized(
+        &mut self,
+        expected: Reg,
+        new: Reg,
+        address: Reg,
+    ) -> Reg {
+        let current = self.get_scratch();
+        let state = self.get_scratch();
+        let loop_start = self.asm.create_and_bind_label();
+        let loop_end = self.asm.create_label();
+        self.asm.ldaxr_w((*current).into(), address.into());
+        self.asm.cmp_w((*current).into(), expected.into());
+        self.asm.bc_l(Cond::NE, loop_end);
+        self.asm
+            .stlxr_w((*state).into(), new.into(), address.into());
+        self.asm.cbnz_w((*state).into(), loop_start);
+        self.asm.bind_label(loop_end);
+
+        *current
+    }
+
+    pub fn compare_exchange_int64_synchronized(
+        &mut self,
+        expected: Reg,
+        new: Reg,
+        address: Reg,
+    ) -> Reg {
+        let current = self.get_scratch();
+        let state = self.get_scratch();
+        let loop_start = self.asm.create_and_bind_label();
+        let loop_end = self.asm.create_label();
+        self.asm.ldaxr((*current).into(), address.into());
+        self.asm.cmp((*current).into(), expected.into());
+        self.asm.bc_l(Cond::NE, loop_end);
+        self.asm.stlxr((*state).into(), new.into(), address.into());
+        self.asm.cbnz((*state).into(), loop_start);
+        self.asm.bind_label(loop_end);
+
+        *current
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mem {
             Mem::Local(offset) => {

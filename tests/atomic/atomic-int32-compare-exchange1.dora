@@ -1,0 +1,9 @@
+//= platform arm64
+
+fun main() {
+    let value = std::AtomicInt32(10);
+    assert(value.compareExchange(12, 20) == 10);
+    assert(value.get() == 10);
+    assert(value.compareExchange(10, 15) == 10);
+    assert(value.get() == 15);
+}

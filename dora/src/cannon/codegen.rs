@@ -3567,6 +3567,50 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(REG_TMP2.into(), dest_reg);
             }
 
+            Intrinsic::AtomicInt32CompareExchange => {
+                assert_eq!(arguments.len(), 3);
+                let dest_reg = dest.expect("missing dest");
+                let obj_reg = arguments[0];
+                let expected_reg = arguments[1];
+                let value_reg = arguments[2];
+
+                self.emit_load_register(obj_reg, REG_RESULT.into());
+                self.emit_load_register(expected_reg, REG_TMP1.into());
+                self.emit_load_register(value_reg, REG_TMP2.into());
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    Header::size() as i64,
+                );
+                let current = self
+                    .asm
+                    .compare_exchange_int32_synchronized(REG_TMP1, REG_TMP2, REG_RESULT);
+                self.emit_store_register(current.into(), dest_reg);
+            }
+
+            Intrinsic::AtomicInt64CompareExchange => {
+                assert_eq!(arguments.len(), 3);
+                let dest_reg = dest.expect("missing dest");
+                let obj_reg = arguments[0];
+                let expected_reg = arguments[1];
+                let value_reg = arguments[2];
+
+                self.emit_load_register(obj_reg, REG_RESULT.into());
+                self.emit_load_register(expected_reg, REG_TMP1.into());
+                self.emit_load_register(value_reg, REG_TMP2.into());
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    Header::size() as i64,
+                );
+                let current = self
+                    .asm
+                    .compare_exchange_int64_synchronized(REG_TMP1, REG_TMP2, REG_RESULT);
+                self.emit_store_register(current.into(), dest_reg);
+            }
+
             Intrinsic::AtomicInt64Exchange => {
                 assert_eq!(arguments.len(), 2);
                 let dest_reg = dest.expect("missing dest");

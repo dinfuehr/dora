@@ -2,4 +2,5 @@
     @pub @internal fun get(): Int64;
     @pub @internal fun set(value: Int64);
     @pub @internal fun exchange(value: Int64): Int64;
+    @pub @internal fun compareExchange(expected: Int64, value: Int64): Int64;
 }

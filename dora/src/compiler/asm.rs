@@ -178,6 +178,26 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.exchange_int32_synchronized(old, new, addr);
     }
 
+    pub fn compare_exchange_int32_synchronized(
+        &mut self,
+        expected: Reg,
+        new: Reg,
+        addr: Reg,
+    ) -> Reg {
+        self.masm
+            .compare_exchange_int32_synchronized(expected, new, addr)
+    }
+
+    pub fn compare_exchange_int64_synchronized(
+        &mut self,
+        expected: Reg,
+        new: Reg,
+        addr: Reg,
+    ) -> Reg {
+        self.masm
+            .compare_exchange_int64_synchronized(expected, new, addr)
+    }
+
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         self.masm.test_and_jump_if(cond, reg, lbl);
     }

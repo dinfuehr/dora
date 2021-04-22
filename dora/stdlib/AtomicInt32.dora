@@ -2,5 +2,5 @@
     @pub @internal fun get(): Int32;
     @pub @internal fun set(value: Int32);
     @pub @internal fun exchange(value: Int32): Int32;
-    // @pub @internal fun compareAndSet(expected: Int32, value: Int32): Int32;
+    @pub @internal fun compareExchange(expected: Int32, value: Int32): Int32;
 }
