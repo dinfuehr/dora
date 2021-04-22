@@ -492,6 +492,28 @@ impl AssemblerArm64 {
         }
     }
 
+    pub fn cbnz_w(&mut self, reg: Register, target: Label) {
+        let value = self.offset(target);
+
+        match value {
+            Some(target_offset) => {
+                let diff = -(self.position() as i32 - target_offset as i32);
+                assert!(diff % 4 == 0);
+                self.cbnz_imm_w(reg, diff / 4);
+            }
+
+            None => {
+                let pos = self.position() as u32;
+                self.emit_u32(0);
+                self.unresolved_jumps.push(ForwardJump {
+                    offset: pos,
+                    label: target,
+                    kind: JumpKind::NonZero(false, reg),
+                });
+            }
+        }
+    }
+
     pub fn cbnz_imm(&mut self, reg: Register, diff: i32) {
         self.emit_u32(inst::cbnz(1, reg, diff));
     }

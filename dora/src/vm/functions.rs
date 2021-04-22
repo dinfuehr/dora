@@ -522,9 +522,11 @@ pub enum Intrinsic {
 
     AtomicInt32Get,
     AtomicInt32Set,
+    AtomicInt32Exchange,
 
     AtomicInt64Get,
     AtomicInt64Set,
+    AtomicInt64Exchange,
 }
 
 impl Intrinsic {
@@ -567,8 +569,10 @@ impl Intrinsic {
             | Intrinsic::Debug
             | Intrinsic::AtomicInt32Get
             | Intrinsic::AtomicInt32Set
+            | Intrinsic::AtomicInt32Exchange
             | Intrinsic::AtomicInt64Get
-            | Intrinsic::AtomicInt64Set => true,
+            | Intrinsic::AtomicInt64Set
+            | Intrinsic::AtomicInt64Exchange => true,
             _ => false,
         }
     }

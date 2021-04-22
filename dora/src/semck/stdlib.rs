@@ -738,9 +738,23 @@ pub fn resolve_internal_functions(vm: &mut VM) {
 
     intrinsic_method(vm, stdlib, "AtomicInt32", "get", Intrinsic::AtomicInt32Get);
     intrinsic_method(vm, stdlib, "AtomicInt32", "set", Intrinsic::AtomicInt32Set);
+    intrinsic_method(
+        vm,
+        stdlib,
+        "AtomicInt32",
+        "exchange",
+        Intrinsic::AtomicInt32Exchange,
+    );
 
     intrinsic_method(vm, stdlib, "AtomicInt64", "get", Intrinsic::AtomicInt64Get);
     intrinsic_method(vm, stdlib, "AtomicInt64", "set", Intrinsic::AtomicInt64Set);
+    intrinsic_method(
+        vm,
+        stdlib,
+        "AtomicInt64",
+        "exchange",
+        Intrinsic::AtomicInt64Exchange,
+    );
 }
 
 fn intrinsic_ctor(vm: &VM, namespace_id: NamespaceId, class_name: &str, intrinsic: Intrinsic) {

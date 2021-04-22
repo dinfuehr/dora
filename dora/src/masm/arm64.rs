@@ -827,6 +827,24 @@ impl MacroAssembler {
         self.asm.stlr(dest.into(), address.into());
     }
 
+    pub fn exchange_int32_synchronized(&mut self, old: Reg, new: Reg, address: Reg) {
+        let scratch = self.get_scratch();
+        let loop_start = self.asm.create_and_bind_label();
+        self.asm.ldaxr_w(old.into(), address.into());
+        self.asm
+            .stlxr_w((*scratch).into(), new.into(), address.into());
+        self.asm.cbnz_w((*scratch).into(), loop_start);
+    }
+
+    pub fn exchange_int64_synchronized(&mut self, old: Reg, new: Reg, address: Reg) {
+        let scratch = self.get_scratch();
+        let loop_start = self.asm.create_and_bind_label();
+        self.asm.ldaxr(old.into(), address.into());
+        self.asm
+            .stlxr((*scratch).into(), new.into(), address.into());
+        self.asm.cbnz_w((*scratch).into(), loop_start);
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mem {
             Mem::Local(offset) => {
