@@ -856,6 +856,24 @@ impl MacroAssembler {
         unimplemented!()
     }
 
+    pub fn compare_exchange_int32_synchronized(
+        &mut self,
+        _expected: Reg,
+        _new: Reg,
+        _address: Reg,
+    ) -> Reg {
+        unimplemented!()
+    }
+
+    pub fn compare_exchange_int64_synchronized(
+        &mut self,
+        _expected: Reg,
+        _new: Reg,
+        _address: Reg,
+    ) -> Reg {
+        unimplemented!()
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mode {
             MachineMode::Int8 => self.asm.movzxb_ra(dest.reg().into(), address_from_mem(mem)),
