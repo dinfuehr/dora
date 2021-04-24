@@ -42,15 +42,15 @@ impl Threads {
     }
 
     pub fn attach_thread(&self, vm: &VM, thread: Arc<DoraThread>) {
-        THREAD.with(|current_thread| {
-            current_thread.borrow().park(vm);
+        THREAD.with(|thread_local_thread| {
+            thread_local_thread.borrow().park(vm);
 
             {
                 let mut threads = self.threads.lock();
                 threads.push(thread);
             }
 
-            current_thread.borrow().unpark(vm);
+            thread_local_thread.borrow().unpark(vm);
         });
     }
 
@@ -187,7 +187,7 @@ impl DoraThread {
         assert!(self
             .state
             .compare_exchange(
-                ThreadState::RequestedSafepoint as usize,
+                ThreadState::SafepointRequested as usize,
                 ThreadState::ParkedSafepoint as usize,
                 Ordering::SeqCst,
                 Ordering::SeqCst,
@@ -256,44 +256,15 @@ impl StateManager {
         assert!(mtx.0.is_parked());
         mtx.0 = ThreadState::Running;
     }
-
-    fn block(&self, safepoint_id: usize) {
-        let mut mtx = self.mtx.lock();
-        assert!(mtx.0.is_running());
-        mtx.0 = ThreadState::Blocked;
-        mtx.1 = safepoint_id;
-    }
-
-    fn unblock(&self) {
-        let mut mtx = self.mtx.lock();
-        assert!(mtx.0.is_blocked());
-        mtx.0 = ThreadState::Running;
-        mtx.1 = 0;
-    }
-
-    fn in_safepoint(&self, safepoint_id: usize) -> bool {
-        assert_ne!(safepoint_id, 0);
-        let mtx = self.mtx.lock();
-
-        match mtx.0 {
-            ThreadState::Running => false,
-            ThreadState::Blocked => mtx.1 == safepoint_id,
-            ThreadState::Parked => true,
-            ThreadState::RequestedSafepoint
-            | ThreadState::ParkedSafepoint
-            | ThreadState::Safepoint => unreachable!(),
-        }
-    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum ThreadState {
     Running = 0,
     Parked = 1,
-    Blocked = 2,
-    RequestedSafepoint = 3,
-    ParkedSafepoint = 4,
-    Safepoint = 5,
+    SafepointRequested = 2,
+    ParkedSafepoint = 3,
+    Safepoint = 4,
 }
 
 impl From<usize> for ThreadState {
@@ -301,10 +272,9 @@ impl From<usize> for ThreadState {
         match value {
             0 => ThreadState::Running,
             1 => ThreadState::Parked,
-            2 => ThreadState::Blocked,
-            3 => ThreadState::RequestedSafepoint,
-            4 => ThreadState::ParkedSafepoint,
-            5 => ThreadState::Safepoint,
+            2 => ThreadState::SafepointRequested,
+            3 => ThreadState::ParkedSafepoint,
+            4 => ThreadState::Safepoint,
             _ => unreachable!(),
         }
     }
@@ -313,21 +283,14 @@ impl From<usize> for ThreadState {
 impl ThreadState {
     pub fn is_running(&self) -> bool {
         match *self {
-            ThreadState::Running => true,
+            ThreadState::Running | ThreadState::SafepointRequested => true,
             _ => false,
         }
     }
 
     pub fn is_parked(&self) -> bool {
         match *self {
-            ThreadState::Parked => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_blocked(&self) -> bool {
-        match *self {
-            ThreadState::Blocked => true,
+            ThreadState::Parked | ThreadState::ParkedSafepoint => true,
             _ => false,
         }
     }

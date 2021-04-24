@@ -18,8 +18,8 @@ impl HandleMemory {
         }
     }
 
-    pub fn root<T>(&self, obj: Ref<T>) -> Handle<T> {
-        self.inner.lock().root(obj)
+    pub fn handle<T>(&self, obj: Ref<T>) -> Handle<T> {
+        self.inner.lock().handle(obj)
     }
 
     pub fn push_border(&self) {
@@ -68,7 +68,11 @@ impl HandleMemoryInner {
         }
     }
 
-    pub fn root<T>(&mut self, obj: Ref<T>) -> Handle<T> {
+    pub fn handle<T>(&mut self, obj: Ref<T>) -> Handle<T> {
+        THREAD.with(|thread| {
+            debug_assert!(thread.borrow().state_relaxed().is_running());
+        });
+
         if self.free >= HANDLE_SIZE {
             self.push_buffer();
             self.free = 0;
@@ -105,7 +109,10 @@ impl HandleMemoryInner {
 }
 
 pub fn handle<T>(obj: Ref<T>) -> Handle<T> {
-    THREAD.with(|thread| thread.borrow().handles.root(obj))
+    THREAD.with(|thread| {
+        debug_assert!(thread.borrow().state_relaxed().is_running());
+        thread.borrow().handles.handle(obj)
+    })
 }
 
 struct HandleBuffer {

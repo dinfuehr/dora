@@ -45,7 +45,7 @@ fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
 
         loop {
             let next_state = match current_state {
-                ThreadState::Running => ThreadState::RequestedSafepoint,
+                ThreadState::Running => ThreadState::SafepointRequested,
                 ThreadState::Parked => ThreadState::ParkedSafepoint,
                 ThreadState::Safepoint => {
                     running += 1;
@@ -107,7 +107,7 @@ pub extern "C" fn safepoint_slow() {
         .state
         .swap(ThreadState::Safepoint as usize, Ordering::SeqCst)
         .into();
-    assert!(state == ThreadState::RequestedSafepoint || state == ThreadState::Running);
+    assert!(state == ThreadState::SafepointRequested || state == ThreadState::Running);
     vm.threads.barrier.wait_in_safepoint();
     thread.unpark(vm);
 }

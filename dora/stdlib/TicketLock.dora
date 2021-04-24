@@ -1,0 +1,16 @@
+class TicketLock {
+    let nextTicket: AtomicInt32 = AtomicInt32(0);
+    let nowServing: AtomicInt32 = AtomicInt32(0);
+
+    fun lock() {
+        let currentTicket = self.nextTicket.fetchAdd(1);
+        while currentTicket != self.nowServing.get() {
+            // busy wait
+        }
+        assert(currentTicket == self.nowServing.get());
+    }
+
+    fun unlock() {
+        self.nowServing.fetchAdd(1);
+    }
+}

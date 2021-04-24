@@ -315,6 +315,8 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     use crate::stack::DoraToNativeInfo;
 
     let vm = get_vm();
+
+    // Create new thread in Parked state.
     let thread = DoraThread::new(vm);
 
     // Add thread to our list of all threads first. This method parks
@@ -324,11 +326,12 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
     // Now we can create a handle for that newly created thread. Since the thread
     // is now registered, the handle is updated as well by the GC.
-    let location = thread.handles.root(obj.direct()).location();
+    let location = thread.handles.handle(obj.direct()).location();
 
     thread::spawn(move || {
-        THREAD.with(|tld_thread| {
-            *tld_thread.borrow_mut() = thread;
+        // Initialize thread-local variable with thread
+        THREAD.with(|thread_local_thread| {
+            *thread_local_thread.borrow_mut() = thread;
         });
 
         let handle: Handle<Obj> = Handle::from_address(location);
