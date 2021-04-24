@@ -379,3 +379,7 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
         vm.threads.detach_current_thread();
     });
 }
+
+pub extern "C" fn join_thread(_obj: Handle<Obj>) {
+    unimplemented!()
+}

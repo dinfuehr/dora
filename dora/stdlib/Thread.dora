@@ -1,5 +1,6 @@
 @pub @open @abstract class Thread {
   @pub @internal fun start();
+  @pub @internal fun join();
 
   @pub @abstract fun run();
 }

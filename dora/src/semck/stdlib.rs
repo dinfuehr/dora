@@ -732,6 +732,14 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib::spawn_thread as *const u8,
     );
 
+    native_method(
+        vm,
+        stdlib,
+        "Thread",
+        "join",
+        stdlib::join_thread as *const u8,
+    );
+
     intrinsic_method(vm, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
     intrinsic_method(vm, stdlib, "Option", "isSome", Intrinsic::OptionIsSome);
     intrinsic_method(vm, stdlib, "Option", "unwrap", Intrinsic::OptionUnwrap);
