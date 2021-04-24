@@ -326,6 +326,12 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
     // Now we can create a handle for that newly created thread. Since the thread
     // is now registered, the handle is updated as well by the GC.
+    // We create the handle in the new Parked thread, normally this would be unsafe.
+    // Here it should be safe though, because the current thread is still Running
+    // and therefore the GC can't run at this point.
+    THREAD.with(|thread| {
+        debug_assert!(thread.borrow().state_relaxed().is_running());
+    });
     let location = thread.handles.handle(obj.direct()).location();
 
     thread::spawn(move || {
