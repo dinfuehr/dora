@@ -1,0 +1,8 @@
+//= platform arm64
+
+fun main() {
+    let value = std::AtomicInt32(10);
+    assert(value.fetchAdd(2) == 10);
+    assert(value.fetchAdd(5) == 12);
+    assert(value.get() == 17);
+}

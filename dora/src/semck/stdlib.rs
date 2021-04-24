@@ -752,6 +752,13 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         "compareExchange",
         Intrinsic::AtomicInt32CompareExchange,
     );
+    intrinsic_method(
+        vm,
+        stdlib,
+        "AtomicInt32",
+        "fetchAdd",
+        Intrinsic::AtomicInt32FetchAdd,
+    );
 
     intrinsic_method(vm, stdlib, "AtomicInt64", "get", Intrinsic::AtomicInt64Get);
     intrinsic_method(vm, stdlib, "AtomicInt64", "set", Intrinsic::AtomicInt64Set);
@@ -768,6 +775,13 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         "AtomicInt64",
         "compareExchange",
         Intrinsic::AtomicInt64CompareExchange,
+    );
+    intrinsic_method(
+        vm,
+        stdlib,
+        "AtomicInt64",
+        "fetchAdd",
+        Intrinsic::AtomicInt64FetchAdd,
     );
 }
 

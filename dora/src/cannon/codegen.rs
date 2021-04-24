@@ -3611,6 +3611,46 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(current.into(), dest_reg);
             }
 
+            Intrinsic::AtomicInt32FetchAdd => {
+                assert_eq!(arguments.len(), 2);
+                let dest_reg = dest.expect("missing dest");
+                let obj_reg = arguments[0];
+                let value_reg = arguments[1];
+
+                self.emit_load_register(obj_reg, REG_RESULT.into());
+                self.emit_load_register(value_reg, REG_TMP1.into());
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    Header::size() as i64,
+                );
+                let previous = self
+                    .asm
+                    .fetch_add_int32_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
+                self.emit_store_register(previous.into(), dest_reg);
+            }
+
+            Intrinsic::AtomicInt64FetchAdd => {
+                assert_eq!(arguments.len(), 2);
+                let dest_reg = dest.expect("missing dest");
+                let obj_reg = arguments[0];
+                let value_reg = arguments[1];
+
+                self.emit_load_register(obj_reg, REG_RESULT.into());
+                self.emit_load_register(value_reg, REG_TMP1.into());
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    Header::size() as i64,
+                );
+                let previous = self
+                    .asm
+                    .fetch_add_int64_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
+                self.emit_store_register(previous.into(), dest_reg);
+            }
+
             Intrinsic::AtomicInt64Exchange => {
                 assert_eq!(arguments.len(), 2);
                 let dest_reg = dest.expect("missing dest");
