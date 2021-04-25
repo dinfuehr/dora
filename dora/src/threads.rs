@@ -229,35 +229,6 @@ impl DoraThread {
     }
 }
 
-pub struct StateManager {
-    mtx: Mutex<(ThreadState, usize)>,
-}
-
-impl StateManager {
-    fn new(initial_state: ThreadState) -> StateManager {
-        StateManager {
-            mtx: Mutex::new((initial_state, 0)),
-        }
-    }
-
-    fn state(&self) -> ThreadState {
-        let mtx = self.mtx.lock();
-        mtx.0
-    }
-
-    fn park(&self, _vm: &VM) {
-        let mut mtx = self.mtx.lock();
-        assert!(mtx.0.is_running());
-        mtx.0 = ThreadState::Parked;
-    }
-
-    fn unpark(&self, _vm: &VM) {
-        let mut mtx = self.mtx.lock();
-        assert!(mtx.0.is_parked());
-        mtx.0 = ThreadState::Running;
-    }
-}
-
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum ThreadState {
     Running = 0,
