@@ -1,6 +1,8 @@
 //= stdout "done\n"
 
-class MyThread(var executed: Bool) extends std::Thread {
+class MyThread extends std::Thread {
+    var executed: Bool = false;
+
     @override fun run() {
         f(self);
     }
@@ -15,15 +17,12 @@ fun g(thread: MyThread) {
 }
 
 fun h(thread: MyThread) {
-    while !thread.executed {
-        std::sleep(1);
-    }
-
+    thread.join();
     println("done");
 }
 
 fun main() {
-    let thread = MyThread(false);
+    let thread = MyThread();
     thread.start();
 
     h(thread);
