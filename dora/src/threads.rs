@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use crate::gc::{tlab, Address, Region, K};
 use crate::handle::HandleMemory;
+use crate::object::Header;
 use crate::stack::DoraToNativeInfo;
 use crate::vm::{get_vm, VM};
 
@@ -100,6 +101,8 @@ pub struct DoraThread {
     pub saved_pc: AtomicUsize,
     pub saved_fp: AtomicUsize,
     pub state: AtomicUsize,
+    pub thread_state: Mutex<bool>,
+    pub cv_thread_state: Condvar,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -122,6 +125,8 @@ impl DoraThread {
             saved_pc: AtomicUsize::new(0),
             saved_fp: AtomicUsize::new(0),
             state: AtomicUsize::new(initial_state as usize),
+            thread_state: Mutex::new(true),
+            cv_thread_state: Condvar::new(),
         })
     }
 
@@ -449,5 +454,27 @@ impl BarrierData {
 
     pub fn disarm(&mut self) {
         self.armed = false;
+    }
+}
+
+pub struct ManagedThread {
+    header: Header,
+    native_ptr: AtomicUsize,
+}
+
+impl ManagedThread {
+    pub fn install_native_thread(&self, native_thread: &Arc<DoraThread>) -> bool {
+        self.native_ptr
+            .compare_exchange(
+                0,
+                Arc::as_ptr(native_thread) as usize,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_ok()
+    }
+
+    pub fn native_thread(&self) -> &'static DoraThread {
+        unsafe { &*(self.native_ptr.load(Ordering::Relaxed) as *const _) }
     }
 }

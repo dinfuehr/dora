@@ -1,5 +1,8 @@
+use parking_lot::Mutex;
+
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
+use std::sync::Arc;
 
 use crate::driver::cmd::{Args, CollectorName};
 use crate::gc::code::CodeSpace;
@@ -14,6 +17,7 @@ use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::object::{Header, Obj};
 use crate::os;
+use crate::threads::DoraThread;
 use crate::vm::VM;
 use crate::vtable::VTable;
 
@@ -48,6 +52,8 @@ pub struct Gc {
 
     code_space: CodeSpace,
     perm_space: Space,
+
+    finalizers: Mutex<Vec<(Address, Arc<DoraThread>)>>,
 }
 
 impl Gc {
@@ -78,7 +84,14 @@ impl Gc {
 
             code_space: CodeSpace::new(),
             perm_space: Space::new(perm_config, "perm"),
+
+            finalizers: Mutex::new(Vec::new()),
         }
+    }
+
+    pub fn add_finalizer(&self, object: Address, thread: Arc<DoraThread>) {
+        let mut finalizers = self.finalizers.lock();
+        finalizers.push((object, thread));
     }
 
     pub fn needs_write_barrier(&self) -> bool {

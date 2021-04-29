@@ -139,6 +139,10 @@ impl<T> Handle<T> {
         unsafe { *self.0 }
     }
 
+    pub fn direct_ptr(self) -> Address {
+        unsafe { *self.0 }.address()
+    }
+
     pub fn raw(self) -> *mut Ref<T> {
         self.0
     }

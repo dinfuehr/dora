@@ -13,7 +13,7 @@ use crate::gc::{Address, GcReason};
 use crate::handle::{scope as handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
-use crate::threads::{DoraThread, STACK_SIZE, THREAD};
+use crate::threads::{DoraThread, ManagedThread, STACK_SIZE, THREAD};
 use crate::ty::SourceTypeArray;
 use crate::vm::{get_vm, stack_pointer, Trap};
 
@@ -310,7 +310,7 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
-pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
+pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
     use crate::compiler;
     use crate::stack::DoraToNativeInfo;
 
@@ -318,6 +318,13 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
     // Create new thread in Parked state.
     let thread = DoraThread::new(vm);
+
+    if !managed_thread.install_native_thread(&thread) {
+        panic!("Thread was already started!");
+    }
+
+    vm.gc
+        .add_finalizer(managed_thread.direct_ptr(), thread.clone());
 
     // Add thread to our list of all threads first. This method parks
     // and unparks the current thread, this means the handle needs to be created
@@ -332,7 +339,7 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     THREAD.with(|thread| {
         debug_assert!(thread.borrow().state_relaxed().is_running());
     });
-    let location = thread.handles.handle(obj.direct()).location();
+    let location = thread.handles.handle(managed_thread.direct()).location();
 
     thread::spawn(move || {
         // Initialize thread-local variable with thread
@@ -384,11 +391,24 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, fct_ptr, handle.direct());
 
+        THREAD.with(|thread| {
+            let thread = thread.borrow();
+            let mut running = thread.thread_state.lock();
+            *running = false;
+            thread.cv_thread_state.notify_all();
+        });
+
         // remove thread from list of all threads
         vm.threads.detach_current_thread();
     });
 }
 
-pub extern "C" fn join_thread(_obj: Handle<Obj>) {
-    unimplemented!()
+pub extern "C" fn join_thread(managed_thread: Handle<ManagedThread>) {
+    let native_thread = managed_thread.native_thread();
+
+    let mut running = native_thread.thread_state.lock();
+
+    while *running {
+        native_thread.cv_thread_state.wait(&mut running);
+    }
 }

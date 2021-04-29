@@ -1,4 +1,4 @@
-//= ignore
+//= platform arm64
 
 import std::AtomicInt32;
 
