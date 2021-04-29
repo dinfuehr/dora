@@ -1,15 +1,15 @@
 //= stdout "one\ntwo\n"
 
-class MyThread() extends std::Thread {
+class MyThread extends std::Thread {
     @override fun run() {
         std::sleep(2);
-        println("two");
+        println("one");
     }
 }
 
 fun main() {
     let thread = MyThread();
     thread.start();
-
-    println("one");
+    thread.join();
+    println("two");
 }

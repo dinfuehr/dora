@@ -391,15 +391,15 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, fct_ptr, handle.direct());
 
-        THREAD.with(|thread| {
-            let thread = thread.borrow();
-            let mut running = thread.thread_state.lock();
-            *running = false;
-            thread.cv_thread_state.notify_all();
-        });
+        let thread = THREAD.with(|thread| thread.borrow().clone());
 
         // remove thread from list of all threads
         vm.threads.detach_current_thread();
+
+        // notify threads waiting in join() for this thread's end
+        let mut running = thread.thread_state.lock();
+        *running = false;
+        thread.cv_thread_state.notify_all();
     });
 }
 
