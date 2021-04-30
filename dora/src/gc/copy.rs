@@ -174,6 +174,8 @@ impl CopyCollector {
             scan = scan.offset(object.size());
         }
 
+        self.iterate_weak_refs(vm);
+
         // disable access in current from-space
         // makes sure that no pointer into from-space is left (in debug-builds)
         if cfg!(debug_assertions) {
@@ -201,6 +203,23 @@ impl CopyCollector {
                 reason
             );
         });
+    }
+
+    fn iterate_weak_refs(&self, vm: &VM) {
+        let mut finalizers = vm.gc.finalizers.lock();
+        let mut updated_finalizers = Vec::new();
+
+        for (address, refptr) in finalizers.iter() {
+            debug_assert!(self.from_space().contains(*address));
+            let obj = address.to_mut_obj();
+
+            if let Some(new_address) = obj.header().vtblptr_forwarded() {
+                debug_assert!(self.to_space().contains(new_address));
+                updated_finalizers.push((new_address, refptr.clone()));
+            }
+        }
+
+        *finalizers = updated_finalizers;
     }
 
     fn copy(&self, obj_addr: Address, top: &mut Address) -> Address {
