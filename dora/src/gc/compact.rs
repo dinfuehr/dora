@@ -6,7 +6,9 @@ use crate::gc::marking;
 use crate::gc::root::{get_rootset, Slot};
 use crate::gc::space::Space;
 use crate::gc::tlab;
-use crate::gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
+use crate::gc::{
+    formatted_size, iterate_weak_refs, Address, CollectionStats, Collector, GcReason, Region,
+};
 use crate::object::Obj;
 use crate::os;
 use crate::safepoint;
@@ -197,6 +199,17 @@ impl<'a> MarkCompact<'a> {
                 object.visit_reference_fields(|field| {
                     mc.forward_reference(field);
                 });
+            }
+        });
+
+        iterate_weak_refs(self.vm, |current_address| {
+            let obj = current_address.to_mut_obj();
+
+            if obj.header().is_marked_non_atomic() {
+                let new_address = obj.header().fwdptr_non_atomic();
+                Some(new_address)
+            } else {
+                None
             }
         });
 

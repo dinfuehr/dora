@@ -7,7 +7,8 @@ use crate::gc::root::{get_rootset, Slot};
 use crate::gc::space::Space;
 use crate::gc::tlab;
 use crate::gc::{
-    fill_region_with_free, formatted_size, Address, CollectionStats, Collector, GcReason, Region,
+    fill_region_with_free, formatted_size, iterate_weak_refs, Address, CollectionStats, Collector,
+    GcReason, Region,
 };
 use crate::os;
 use crate::safepoint;
@@ -174,6 +175,7 @@ impl<'a> MarkSweep<'a> {
         }
 
         self.mark();
+        self.iterate_weak_refs();
 
         if dev_verbose {
             println!("Sweep GC: Phase 2 (sweep)");
@@ -188,6 +190,18 @@ impl<'a> MarkSweep<'a> {
 
     fn mark(&mut self) {
         marking::start(self.rootset, self.heap, self.perm_space.total());
+    }
+
+    fn iterate_weak_refs(&mut self) {
+        iterate_weak_refs(self.vm, |current_address| {
+            let obj = current_address.to_mut_obj();
+
+            if obj.header().is_marked_non_atomic() {
+                Some(current_address)
+            } else {
+                None
+            }
+        });
     }
 
     fn sweep(&mut self) {

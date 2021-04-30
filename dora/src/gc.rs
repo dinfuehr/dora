@@ -634,3 +634,19 @@ impl fmt::Display for AllNumbers {
         write!(f, "]")
     }
 }
+
+fn iterate_weak_refs<F>(vm: &VM, object_updater: F)
+where
+    F: Fn(Address) -> Option<Address>,
+{
+    let mut finalizers = vm.gc.finalizers.lock();
+    let mut updated_finalizers = Vec::new();
+
+    for (address, refptr) in finalizers.iter() {
+        if let Some(new_address) = object_updater(*address) {
+            updated_finalizers.push((new_address, refptr.clone()));
+        }
+    }
+
+    *finalizers = updated_finalizers;
+}

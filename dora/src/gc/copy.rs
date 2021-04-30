@@ -4,7 +4,9 @@ use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::root::{get_rootset, Slot};
 use crate::gc::tlab;
-use crate::gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
+use crate::gc::{
+    formatted_size, iterate_weak_refs, Address, CollectionStats, Collector, GcReason, Region,
+};
 use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, MemoryPermission};
@@ -206,20 +208,17 @@ impl CopyCollector {
     }
 
     fn iterate_weak_refs(&self, vm: &VM) {
-        let mut finalizers = vm.gc.finalizers.lock();
-        let mut updated_finalizers = Vec::new();
-
-        for (address, refptr) in finalizers.iter() {
-            debug_assert!(self.from_space().contains(*address));
-            let obj = address.to_mut_obj();
+        iterate_weak_refs(vm, |current_address| {
+            debug_assert!(self.from_space().contains(current_address));
+            let obj = current_address.to_mut_obj();
 
             if let Some(new_address) = obj.header().vtblptr_forwarded() {
                 debug_assert!(self.to_space().contains(new_address));
-                updated_finalizers.push((new_address, refptr.clone()));
+                Some(new_address)
+            } else {
+                None
             }
-        }
-
-        *finalizers = updated_finalizers;
+        })
     }
 
     fn copy(&self, obj_addr: Address, top: &mut Address) -> Address {
