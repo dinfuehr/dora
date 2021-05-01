@@ -8,7 +8,7 @@ use crate::timer::Timer;
 
 use crate::semck;
 use crate::semck::specialize::specialize_class_id;
-use crate::vm::{namespace_contains, NamespaceId};
+use crate::vm::{execute_on_main, namespace_contains, NamespaceId};
 
 pub fn start() -> i32 {
     let args = cmd::parse();
@@ -58,7 +58,6 @@ pub fn start() -> i32 {
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 
     init_global_addresses(&vm);
-    vm.threads.attach_current_thread();
 
     let code = if vm.args.cmd_test {
         let namespace_id = if vm.args.flag_test_boots {
@@ -72,7 +71,6 @@ pub fn start() -> i32 {
         run_main(&vm, main.unwrap())
     };
 
-    vm.threads.detach_current_thread();
     vm.threads.join_all();
 
     if vm.args.flag_gc_stats {
@@ -87,27 +85,29 @@ fn run_tests(vm: &VM, namespace_id: NamespaceId) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
-    for fct in vm.fcts.iter() {
-        let fct = fct.read();
+    execute_on_main(|| {
+        for fct in vm.fcts.iter() {
+            let fct = fct.read();
 
-        if !namespace_contains(vm, namespace_id, fct.namespace_id)
-            || !is_test_fct(vm, &*fct)
-            || !test_filter_matches(vm, &*fct)
-        {
-            continue;
+            if !namespace_contains(vm, namespace_id, fct.namespace_id)
+                || !is_test_fct(vm, &*fct)
+                || !test_filter_matches(vm, &*fct)
+            {
+                continue;
+            }
+
+            tests += 1;
+
+            print!("test {} ... ", vm.interner.str(fct.name));
+
+            if run_test(vm, fct.id) {
+                passed += 1;
+                println!("ok");
+            } else {
+                println!("failed");
+            }
         }
-
-        tests += 1;
-
-        print!("test {} ... ", vm.interner.str(fct.name));
-
-        if run_test(vm, fct.id) {
-            passed += 1;
-            println!("ok");
-        } else {
-            println!("failed");
-        }
-    }
+    });
 
     println!(
         "{} tests executed; {} passed; {} failed.",
@@ -161,7 +161,7 @@ fn test_filter_matches(vm: &VM, fct: &Fct) -> bool {
 }
 
 fn run_main(vm: &VM, main: FctId) -> i32 {
-    let res = vm.run(main);
+    let res = execute_on_main(|| vm.run(main));
     let fct = vm.fcts.idx(main);
     let fct = fct.read();
     let is_unit = fct.return_type.is_unit();

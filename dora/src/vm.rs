@@ -18,7 +18,10 @@ use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
 use crate::sym::{NestedSymTable, SymTable};
-use crate::threads::{current_thread, Threads, STACK_SIZE};
+use crate::threads::{
+    current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
+    STACK_SIZE,
+};
 use crate::ty::{LambdaTypes, SourceType, SourceTypeArray, SourceTypeArrays};
 use crate::utils::GrowableVec;
 
@@ -262,13 +265,8 @@ impl VM {
     }
 
     pub fn run(&self, fct_id: FctId) -> i32 {
-        let stack_top = stack_pointer();
-        let stack_limit = stack_top.sub(STACK_SIZE);
-
         let thread = current_thread();
-        thread.tld.set_stack_limit(stack_limit);
-
-        let tld = Address::from_ptr(&thread.tld as *const _);
+        let tld = thread.tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.dora_stub();
         let fct: extern "C" fn(Address, Address) -> i32 =
@@ -277,7 +275,8 @@ impl VM {
     }
 
     pub fn run_test(&self, fct_id: FctId, testing: Ref<Testing>) {
-        let tld = Address::from_ptr(&current_thread().tld as *const _);
+        let thread = current_thread();
+        let tld = thread.tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.dora_stub();
         let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =
@@ -725,4 +724,27 @@ impl Trap {
             _ => None,
         }
     }
+}
+
+pub fn execute_on_main<F, R>(callback: F) -> R
+where
+    F: FnOnce() -> R,
+{
+    let vm = get_vm();
+    let thread = DoraThread::new(vm, ThreadState::Running);
+    init_current_thread(thread.clone());
+    vm.threads.attach_thread(thread);
+
+    let stack_top = stack_pointer();
+    let stack_limit = stack_top.sub(STACK_SIZE);
+
+    let thread = current_thread();
+    thread.tld.set_stack_limit(stack_limit);
+
+    let result = callback();
+
+    vm.threads.detach_current_thread();
+    deinit_current_thread();
+
+    result
 }

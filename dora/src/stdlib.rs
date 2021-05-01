@@ -15,7 +15,7 @@ use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, parked_scope, DoraThread,
-    ManagedThread, STACK_SIZE,
+    ManagedThread, ThreadState, STACK_SIZE,
 };
 use crate::ty::SourceTypeArray;
 use crate::vm::{get_vm, stack_pointer, Trap};
@@ -320,7 +320,7 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
     let vm = get_vm();
 
     // Create new thread in Parked state.
-    let thread = DoraThread::new(vm);
+    let thread = DoraThread::new(vm, ThreadState::Parked);
 
     if !managed_thread.install_native_thread(&thread) {
         panic!("Thread was already started!");
@@ -350,8 +350,10 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
 
         let stack_top = stack_pointer();
         let stack_limit = stack_top.sub(STACK_SIZE);
-
         thread.tld.set_stack_limit(stack_limit);
+
+        // Thread was created in Parked state, so we need to Unpark
+        // before we dereference handle.
         thread.unpark(vm);
 
         let main = {
@@ -364,7 +366,7 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
                 .expect("run() method not found")
         };
 
-        let tld = Address::from_ptr(&thread.tld as *const _);
+        let tld = thread.tld_address();
 
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();

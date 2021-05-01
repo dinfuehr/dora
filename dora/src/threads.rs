@@ -1,6 +1,7 @@
 use parking_lot::{Condvar, Mutex};
 use std::cell::RefCell;
 use std::convert::From;
+use std::ptr;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -13,25 +14,37 @@ use crate::vm::{get_vm, VM};
 pub const STACK_SIZE: usize = 500 * K;
 
 thread_local! {
-    static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::main());
+    static THREAD: RefCell<*const DoraThread> = RefCell::new(ptr::null());
 }
 
 pub fn current_thread() -> &'static DoraThread {
-    let thread = THREAD.with(|thread| Arc::as_ptr(&thread.borrow()));
+    let thread = THREAD.with(|thread| *thread.borrow());
+    debug_assert!(!thread.is_null());
     unsafe { &*thread }
 }
 
 pub fn init_current_thread(thread: Arc<DoraThread>) -> &'static DoraThread {
-    let threadptr = Arc::as_ptr(&thread);
+    let thread = Arc::into_raw(thread);
 
-    THREAD.with(|thread_local_thread| {
-        *thread_local_thread.borrow_mut() = thread;
+    THREAD.with(|thread_local| {
+        *thread_local.borrow_mut() = thread;
     });
 
-    unsafe { &*threadptr }
+    unsafe { &*thread }
 }
 
-pub fn deinit_current_thread() {}
+pub fn deinit_current_thread() {
+    THREAD.with(|thread| {
+        let mut threadptr = thread.borrow_mut();
+
+        {
+            let thread = unsafe { Arc::from_raw(*threadptr) };
+            std::mem::drop(thread);
+        }
+
+        *threadptr = ptr::null();
+    });
+}
 
 pub struct Threads {
     pub threads: Mutex<Vec<Arc<DoraThread>>>,
@@ -52,13 +65,6 @@ impl Threads {
         }
     }
 
-    pub fn attach_current_thread(&self) {
-        THREAD.with(|thread| {
-            let mut threads = self.threads.lock();
-            threads.push(thread.borrow().clone());
-        });
-    }
-
     pub fn attach_thread(&self, thread: Arc<DoraThread>) {
         parked_scope(|| {
             let mut threads = self.threads.lock();
@@ -77,12 +83,13 @@ impl Threads {
         // Fill the TLAB for them.
         tlab::make_iterable_current(vm);
 
-        THREAD.with(|thread| {
-            thread.borrow().park(vm);
-            let mut threads = self.threads.lock();
-            threads.retain(|elem| !Arc::ptr_eq(elem, &*thread.borrow()));
-            self.cond_join.notify_all();
-        });
+        let thread = current_thread();
+
+        thread.park(vm);
+
+        let mut threads = self.threads.lock();
+        threads.retain(|elem| Arc::as_ptr(elem) != thread as *const _);
+        self.cond_join.notify_all();
     }
 
     pub fn join_all(&self) {
@@ -120,12 +127,8 @@ unsafe impl Sync for DoraThread {}
 unsafe impl Send for DoraThread {}
 
 impl DoraThread {
-    pub fn new(vm: &VM) -> Arc<DoraThread> {
-        DoraThread::with_id(vm.threads.next_id(), ThreadState::Parked)
-    }
-
-    pub fn main() -> Arc<DoraThread> {
-        DoraThread::with_id(0, ThreadState::Running)
+    pub fn new(vm: &VM, initial_state: ThreadState) -> Arc<DoraThread> {
+        DoraThread::with_id(vm.threads.next_id(), initial_state)
     }
 
     fn with_id(id: usize, initial_state: ThreadState) -> Arc<DoraThread> {
@@ -242,6 +245,10 @@ impl DoraThread {
                 }
             }
         }
+    }
+
+    pub fn tld_address(&self) -> Address {
+        Address::from_ptr(&self.tld)
     }
 }
 

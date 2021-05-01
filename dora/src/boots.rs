@@ -29,7 +29,7 @@ pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &SourceType
 
     let encoded_compilation_info = handle(allocate_compilation_info(vm, &bytecode_fct));
 
-    let tld_address = Address::from_ptr(&current_thread().tld as *const _);
+    let tld_address = current_thread().tld_address();
 
     let dora_stub_address = vm.dora_stub();
     let compile_fct_ptr: extern "C" fn(Address, Address, Ref<Obj>) -> Ref<UInt8Array> =
