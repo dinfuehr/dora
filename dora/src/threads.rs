@@ -16,6 +16,11 @@ thread_local! {
     pub static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::main());
 }
 
+pub fn current_thread() -> &'static DoraThread {
+    let thread = THREAD.with(|thread| Arc::as_ptr(&thread.borrow()));
+    unsafe { &*thread }
+}
+
 pub struct Threads {
     pub threads: Mutex<Vec<Arc<DoraThread>>>,
     pub cond_join: Condvar,
@@ -232,6 +237,21 @@ impl DoraThread {
             }
         }
     }
+}
+
+pub fn parked_scope<F, R>(callback: F) -> R
+where
+    F: FnOnce() -> R,
+{
+    let vm = get_vm();
+
+    THREAD.with(|thread| {
+        thread.borrow().park(vm);
+        let result = callback();
+        thread.borrow().unpark(vm);
+
+        result
+    })
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

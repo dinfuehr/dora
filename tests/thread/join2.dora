@@ -1,4 +1,4 @@
-//= vm-args "--gc=compact"
+//= vm-args "--gc=copy"
 
 class MyThread extends std::Thread {
     @override fun run() {}

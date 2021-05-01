@@ -640,13 +640,18 @@ where
     F: Fn(Address) -> Option<Address>,
 {
     let mut finalizers = vm.gc.finalizers.lock();
-    let mut updated_finalizers = Vec::new();
+    let mut deleted = false;
 
-    for (address, refptr) in finalizers.iter() {
-        if let Some(new_address) = object_updater(*address) {
-            updated_finalizers.push((new_address, refptr.clone()));
-        }
+    for (address, _) in &mut *finalizers {
+        *address = if let Some(new_address) = object_updater(*address) {
+            new_address
+        } else {
+            deleted = true;
+            Address::null()
+        };
     }
 
-    *finalizers = updated_finalizers;
+    if deleted {
+        finalizers.retain(|(address, _)| !address.is_null());
+    }
 }

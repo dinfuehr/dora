@@ -1,0 +1,12 @@
+class MyThread extends std::Thread {
+    @override fun run() {
+        std::sleep(1);
+        std::forceCollect();
+    }
+}
+
+fun main() {
+    let thread = MyThread();
+    thread.start();
+    thread.join();
+}

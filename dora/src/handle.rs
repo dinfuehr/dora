@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 
 use crate::gc::Address;
 use crate::object::{Obj, Ref};
-use crate::threads::THREAD;
+use crate::threads::current_thread;
 
 pub const HANDLE_SIZE: usize = 256;
 
@@ -69,9 +69,7 @@ impl HandleMemoryInner {
     }
 
     pub fn handle<T>(&mut self, obj: Ref<T>) -> Handle<T> {
-        THREAD.with(|thread| {
-            debug_assert!(thread.borrow().state_relaxed().is_running());
-        });
+        debug_assert!(current_thread().state_relaxed().is_running());
 
         if self.free >= HANDLE_SIZE {
             self.push_buffer();
@@ -109,10 +107,9 @@ impl HandleMemoryInner {
 }
 
 pub fn handle<T>(obj: Ref<T>) -> Handle<T> {
-    THREAD.with(|thread| {
-        debug_assert!(thread.borrow().state_relaxed().is_running());
-        thread.borrow().handles.handle(obj)
-    })
+    let thread = current_thread();
+    debug_assert!(thread.state_relaxed().is_running());
+    thread.handles.handle(obj)
 }
 
 struct HandleBuffer {
@@ -224,16 +221,10 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
     }
 }
 
-pub fn scope<F: FnOnce() -> R, R>(f: F) -> R {
-    THREAD.with(|thread| {
-        thread.borrow().handles.push_border();
-    });
-
+pub fn handle_scope<F: FnOnce() -> R, R>(f: F) -> R {
+    let thread = current_thread();
+    thread.handles.push_border();
     let result = f();
-
-    THREAD.with(|thread| {
-        thread.borrow().handles.pop_border();
-    });
-
+    thread.handles.pop_border();
     result
 }

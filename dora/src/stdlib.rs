@@ -10,10 +10,10 @@ use std::time::Duration;
 
 use crate::boots;
 use crate::gc::{Address, GcReason};
-use crate::handle::{scope as handle_scope, Handle};
+use crate::handle::{handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
-use crate::threads::{DoraThread, ManagedThread, STACK_SIZE, THREAD};
+use crate::threads::{current_thread, parked_scope, DoraThread, ManagedThread, STACK_SIZE, THREAD};
 use crate::ty::SourceTypeArray;
 use crate::vm::{get_vm, stack_pointer, Trap};
 
@@ -336,9 +336,7 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
     // We create the handle in the new Parked thread, normally this would be unsafe.
     // Here it should be safe though, because the current thread is still Running
     // and therefore the GC can't run at this point.
-    THREAD.with(|thread| {
-        debug_assert!(thread.borrow().state_relaxed().is_running());
-    });
+    debug_assert!(current_thread().state_relaxed().is_running());
     let location = thread.handles.handle(managed_thread.direct()).location();
 
     thread::spawn(move || {
@@ -352,10 +350,10 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
         let stack_top = stack_pointer();
         let stack_limit = stack_top.sub(STACK_SIZE);
 
-        THREAD.with(|thread| {
-            thread.borrow().tld.set_stack_limit(stack_limit);
-            thread.borrow().unpark(vm);
-        });
+        let thread = current_thread();
+
+        thread.tld.set_stack_limit(stack_limit);
+        thread.unpark(vm);
 
         let main = {
             let cls_id = handle.header().vtbl().class_def().cls_id;
@@ -367,22 +365,13 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
                 .expect("run() method not found")
         };
 
-        let tld = THREAD.with(|thread| {
-            let thread = thread.borrow();
-            let ptr = &thread.tld;
-
-            Address::from_ptr(ptr as *const _)
-        });
+        let tld = Address::from_ptr(&thread.tld as *const _);
 
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
             let type_params = SourceTypeArray::empty();
 
-            THREAD.with(|thread| {
-                thread
-                    .borrow()
-                    .use_dtn(&mut dtn, || compiler::generate(vm, main, &type_params))
-            })
+            thread.use_dtn(&mut dtn, || compiler::generate(vm, main, &type_params))
         };
 
         // execute the thread object's run-method
@@ -390,8 +379,6 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
         let fct: extern "C" fn(Address, Address, Ref<Obj>) =
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, fct_ptr, handle.direct());
-
-        let thread = THREAD.with(|thread| thread.borrow().clone());
 
         // remove thread from list of all threads
         vm.threads.detach_current_thread();
@@ -406,9 +393,11 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
 pub extern "C" fn join_thread(managed_thread: Handle<ManagedThread>) {
     let native_thread = managed_thread.native_thread();
 
-    let mut running = native_thread.thread_state.lock();
+    parked_scope(|| {
+        let mut running = native_thread.thread_state.lock();
 
-    while *running {
-        native_thread.cv_thread_state.wait(&mut running);
-    }
+        while *running {
+            native_thread.cv_thread_state.wait(&mut running);
+        }
+    });
 }
