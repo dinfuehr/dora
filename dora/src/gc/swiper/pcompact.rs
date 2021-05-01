@@ -542,7 +542,11 @@ impl<'a> ParallelFullCollector<'a> {
             }
         }
 
-        panic!("OOM: no space for young found!");
+        panic!(
+            "OOM: no space for young found! unit.live={} regions={}",
+            unit.live,
+            self.regions.len()
+        );
     }
 
     fn add_collect_region(
