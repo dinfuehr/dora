@@ -1,0 +1,20 @@
+//= vm-args "--gc=swiper"
+
+class MyThread extends std::Thread {
+    @override fun run() {}
+}
+
+fun main() {
+    var i = 0;
+
+    while i < 10_000 {
+        let thread = MyThread();
+        thread.start();
+
+        if i % 1_000 == 0 {
+            std::forceMinorCollect();
+        }
+
+        i = i + 1;
+    }
+}

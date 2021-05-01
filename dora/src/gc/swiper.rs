@@ -743,3 +743,37 @@ pub trait CommonOldGen {
     fn active_size(&self) -> usize;
     fn committed_size(&self) -> usize;
 }
+
+fn forward_full(object: Address, heap: Region, perm: Region, large: Region) -> Option<Address> {
+    if heap.contains(object) {
+        let obj = object.to_mut_obj();
+
+        if obj.header().is_marked_non_atomic() {
+            if large.contains(object) {
+                Some(object)
+            } else {
+                let new_address = obj.header().fwdptr_non_atomic();
+                Some(new_address)
+            }
+        } else {
+            None
+        }
+    } else {
+        debug_assert!(perm.contains(object));
+        Some(object)
+    }
+}
+
+fn forward_minor(object: Address, young: Region) -> Option<Address> {
+    if young.contains(object) {
+        let obj = object.to_mut_obj();
+
+        if let Some(new_address) = obj.header().vtblptr_forwarded() {
+            Some(new_address)
+        } else {
+            None
+        }
+    } else {
+        Some(object)
+    }
+}

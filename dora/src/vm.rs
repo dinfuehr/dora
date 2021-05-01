@@ -265,8 +265,7 @@ impl VM {
     }
 
     pub fn run(&self, fct_id: FctId) -> i32 {
-        let thread = current_thread();
-        let tld = thread.tld_address();
+        let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.dora_stub();
         let fct: extern "C" fn(Address, Address) -> i32 =
@@ -275,8 +274,7 @@ impl VM {
     }
 
     pub fn run_test(&self, fct_id: FctId, testing: Ref<Testing>) {
-        let thread = current_thread();
-        let tld = thread.tld_address();
+        let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.dora_stub();
         let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =

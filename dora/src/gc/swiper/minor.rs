@@ -9,8 +9,8 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{CardIdx, CARD_SIZE};
-use crate::gc::{Address, GcReason, Region};
+use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE};
+use crate::gc::{iterate_weak_refs, Address, GcReason, Region};
 use crate::object::{offset_of_array_data, Obj};
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -131,6 +131,7 @@ impl<'a> MinorCollector<'a> {
         }
 
         self.trace_gray_objects();
+        self.iterate_weak_refs();
 
         if self.vm.args.flag_gc_stats {
             let duration = timer.stop();
@@ -335,6 +336,12 @@ impl<'a> MinorCollector<'a> {
         }
 
         object_start.offset(object.size())
+    }
+
+    fn iterate_weak_refs(&mut self) {
+        iterate_weak_refs(self.vm, |current_address| {
+            forward_minor(current_address, self.young.total())
+        });
     }
 
     fn visit_dirty_cards_in_old(&mut self) {

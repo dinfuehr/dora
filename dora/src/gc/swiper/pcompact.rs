@@ -2,7 +2,6 @@ use parking_lot::{Mutex, MutexGuard};
 use scoped_threadpool::Pool;
 use std::cmp;
 
-use crate::gc::pmarking;
 use crate::gc::root::Slot;
 use crate::gc::space::Space;
 use crate::gc::swiper::card::CardTable;
@@ -13,7 +12,10 @@ use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
 use crate::gc::swiper::old::{OldGen, OldGenProtected, OldGenRegion};
 use crate::gc::swiper::verify::verify_mapped_regions;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS};
+use crate::gc::swiper::{
+    forward_full, walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS,
+};
+use crate::gc::{iterate_weak_refs, pmarking};
 use crate::gc::{Address, GcReason, Region};
 use crate::os;
 use crate::stdlib;
@@ -725,6 +727,15 @@ impl<'a> ParallelFullCollector<'a> {
                     }
                 });
             }
+        });
+
+        iterate_weak_refs(self.vm, |current_address| {
+            forward_full(
+                current_address,
+                self.heap,
+                self.perm_space.total(),
+                self.large_space.total(),
+            )
         });
     }
 

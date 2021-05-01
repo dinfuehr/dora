@@ -1,0 +1,2 @@
+//= file "tests/thread/join2-swiper-minor.dora"
+//= vm-args "--gc=swiper --gc-parallel-minor"

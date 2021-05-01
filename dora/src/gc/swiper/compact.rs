@@ -1,7 +1,6 @@
 use parking_lot::MutexGuard;
 use std::cmp;
 
-use crate::gc::marking;
 use crate::gc::root::Slot;
 use crate::gc::space::Space;
 use crate::gc::swiper::card::CardTable;
@@ -10,7 +9,8 @@ use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{walk_region, walk_region_and_skip_garbage};
+use crate::gc::swiper::{forward_full, walk_region, walk_region_and_skip_garbage};
+use crate::gc::{iterate_weak_refs, marking};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::Obj;
 use crate::stdlib;
@@ -222,6 +222,15 @@ impl<'a> FullCollector<'a> {
         for root in self.rootset {
             self.forward_reference(*root);
         }
+
+        iterate_weak_refs(self.vm, |current_address| {
+            forward_full(
+                current_address,
+                self.heap,
+                self.perm_space.total(),
+                self.large_space.total(),
+            )
+        });
 
         self.large_space.remove_objects(|object_start| {
             let object = object_start.to_mut_obj();
