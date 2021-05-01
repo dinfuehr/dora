@@ -2,33 +2,26 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use crate::stdlib;
-use crate::threads::{DoraThread, ThreadState, THREAD};
+use crate::threads::{current_thread, parked_scope, DoraThread, ThreadState};
 use crate::vm::{get_vm, Trap, VM};
 
 pub fn stop_the_world<F, R>(vm: &VM, operation: F) -> R
 where
     F: FnOnce(&[Arc<DoraThread>]) -> R,
 {
-    THREAD.with(|thread| thread.borrow().park(vm));
+    parked_scope(|| {
+        let threads = vm.threads.threads.lock();
+        if threads.len() == 1 {
+            let ret = operation(&*threads);
+            return ret;
+        }
 
-    let threads = vm.threads.threads.lock();
-    if threads.len() == 1 {
+        stop_threads(vm, &*threads);
         let ret = operation(&*threads);
-        THREAD.with(|thread| thread.borrow().unpark(vm));
-        return ret;
-    }
+        resume_threads(vm, &*threads);
 
-    stop_threads(vm, &*threads);
-    let ret = operation(&*threads);
-    resume_threads(vm, &*threads);
-
-    THREAD.with(|thread| thread.borrow().unpark(vm));
-
-    ret
-}
-
-fn current_thread_id() -> usize {
-    THREAD.with(|thread| thread.borrow().id())
+        ret
+    })
 }
 
 fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
@@ -100,7 +93,7 @@ pub extern "C" fn stack_overflow() {
 }
 
 pub extern "C" fn safepoint_slow() {
-    let thread = THREAD.with(|thread| thread.borrow().clone());
+    let thread = current_thread();
     let vm = get_vm();
 
     let state: ThreadState = thread

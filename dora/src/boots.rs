@@ -10,7 +10,7 @@ use crate::object::{
     self, byte_array_from_buffer, int_array_alloc_heap, Int32Array, Obj, Ref, UInt8Array,
 };
 use crate::sym::NestedSymTable;
-use crate::threads::THREAD;
+use crate::threads::current_thread;
 use crate::ty::SourceTypeArray;
 use crate::vm::{AnalysisData, Fct, VM};
 
@@ -29,12 +29,7 @@ pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &SourceType
 
     let encoded_compilation_info = handle(allocate_compilation_info(vm, &bytecode_fct));
 
-    let tld_address = THREAD.with(|thread| {
-        let thread = thread.borrow();
-        let ptr = &thread.tld;
-
-        Address::from_ptr(ptr as *const _)
-    });
+    let tld_address = Address::from_ptr(&current_thread().tld as *const _);
 
     let dora_stub_address = vm.dora_stub();
     let compile_fct_ptr: extern "C" fn(Address, Address, Ref<Obj>) -> Ref<UInt8Array> =

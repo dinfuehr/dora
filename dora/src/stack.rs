@@ -4,7 +4,7 @@ use crate::compiler::fct::JitFctId;
 use crate::compiler::map::CodeDescriptor;
 use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
-use crate::threads::THREAD;
+use crate::threads::current_thread;
 use crate::vm::{get_vm, FctParent, VM};
 
 pub struct NativeStacktrace {
@@ -107,12 +107,7 @@ pub fn stacktrace_from_last_dtn(vm: &VM) -> NativeStacktrace {
 }
 
 fn frames_from_dtns(stacktrace: &mut NativeStacktrace, vm: &VM) {
-    let mut dtn_ptr = THREAD.with(|thread| {
-        let thread = thread.borrow();
-        let dtn = thread.dtn();
-
-        dtn
-    });
+    let mut dtn_ptr = current_thread().dtn();
 
     while !dtn_ptr.is_null() {
         let dtn = unsafe { &*dtn_ptr };

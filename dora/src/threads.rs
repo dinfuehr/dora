@@ -13,13 +13,25 @@ use crate::vm::{get_vm, VM};
 pub const STACK_SIZE: usize = 500 * K;
 
 thread_local! {
-    pub static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::main());
+    static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::main());
 }
 
 pub fn current_thread() -> &'static DoraThread {
     let thread = THREAD.with(|thread| Arc::as_ptr(&thread.borrow()));
     unsafe { &*thread }
 }
+
+pub fn init_current_thread(thread: Arc<DoraThread>) -> &'static DoraThread {
+    let threadptr = Arc::as_ptr(&thread);
+
+    THREAD.with(|thread_local_thread| {
+        *thread_local_thread.borrow_mut() = thread;
+    });
+
+    unsafe { &*threadptr }
+}
+
+pub fn deinit_current_thread() {}
 
 pub struct Threads {
     pub threads: Mutex<Vec<Arc<DoraThread>>>,
@@ -47,16 +59,10 @@ impl Threads {
         });
     }
 
-    pub fn attach_thread(&self, vm: &VM, thread: Arc<DoraThread>) {
-        THREAD.with(|thread_local_thread| {
-            thread_local_thread.borrow().park(vm);
-
-            {
-                let mut threads = self.threads.lock();
-                threads.push(thread);
-            }
-
-            thread_local_thread.borrow().unpark(vm);
+    pub fn attach_thread(&self, thread: Arc<DoraThread>) {
+        parked_scope(|| {
+            let mut threads = self.threads.lock();
+            threads.push(thread);
         });
     }
 
@@ -244,14 +250,13 @@ where
     F: FnOnce() -> R,
 {
     let vm = get_vm();
+    let thread = current_thread();
 
-    THREAD.with(|thread| {
-        thread.borrow().park(vm);
-        let result = callback();
-        thread.borrow().unpark(vm);
+    thread.park(vm);
+    let result = callback();
+    thread.unpark(vm);
 
-        result
-    })
+    result
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

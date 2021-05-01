@@ -18,7 +18,7 @@ use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
 use crate::sym::{NestedSymTable, SymTable};
-use crate::threads::{Threads, STACK_SIZE, THREAD};
+use crate::threads::{current_thread, Threads, STACK_SIZE};
 use crate::ty::{LambdaTypes, SourceType, SourceTypeArray, SourceTypeArrays};
 use crate::utils::GrowableVec;
 
@@ -265,16 +265,10 @@ impl VM {
         let stack_top = stack_pointer();
         let stack_limit = stack_top.sub(STACK_SIZE);
 
-        THREAD.with(|thread| {
-            thread.borrow().tld.set_stack_limit(stack_limit);
-        });
+        let thread = current_thread();
+        thread.tld.set_stack_limit(stack_limit);
 
-        let tld = THREAD.with(|thread| {
-            let thread = thread.borrow();
-            let ptr = &thread.tld;
-
-            Address::from_ptr(ptr as *const _)
-        });
+        let tld = Address::from_ptr(&thread.tld as *const _);
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.dora_stub();
         let fct: extern "C" fn(Address, Address) -> i32 =
@@ -283,12 +277,7 @@ impl VM {
     }
 
     pub fn run_test(&self, fct_id: FctId, testing: Ref<Testing>) {
-        let tld = THREAD.with(|thread| {
-            let thread = thread.borrow();
-            let ptr = &thread.tld;
-
-            Address::from_ptr(ptr as *const _)
-        });
+        let tld = Address::from_ptr(&current_thread().tld as *const _);
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.dora_stub();
         let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =
@@ -311,11 +300,7 @@ impl VM {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = SourceTypeArray::empty();
 
-        THREAD.with(|thread| {
-            thread
-                .borrow()
-                .use_dtn(&mut dtn, || compiler::generate(self, fct_id, &type_params))
-        })
+        current_thread().use_dtn(&mut dtn, || compiler::generate(self, fct_id, &type_params))
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {

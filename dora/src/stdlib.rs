@@ -13,7 +13,10 @@ use crate::gc::{Address, GcReason};
 use crate::handle::{handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
-use crate::threads::{current_thread, parked_scope, DoraThread, ManagedThread, STACK_SIZE, THREAD};
+use crate::threads::{
+    current_thread, deinit_current_thread, init_current_thread, parked_scope, DoraThread,
+    ManagedThread, STACK_SIZE,
+};
 use crate::ty::SourceTypeArray;
 use crate::vm::{get_vm, stack_pointer, Trap};
 
@@ -329,7 +332,7 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
     // Add thread to our list of all threads first. This method parks
     // and unparks the current thread, this means the handle needs to be created
     // afterwards.
-    vm.threads.attach_thread(vm, thread.clone());
+    vm.threads.attach_thread(thread.clone());
 
     // Now we can create a handle for that newly created thread. Since the thread
     // is now registered, the handle is updated as well by the GC.
@@ -341,16 +344,12 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
 
     thread::spawn(move || {
         // Initialize thread-local variable with thread
-        THREAD.with(|thread_local_thread| {
-            *thread_local_thread.borrow_mut() = thread;
-        });
+        let thread = init_current_thread(thread);
 
         let handle: Handle<Obj> = Handle::from_address(location);
 
         let stack_top = stack_pointer();
         let stack_limit = stack_top.sub(STACK_SIZE);
-
-        let thread = current_thread();
 
         thread.tld.set_stack_limit(stack_limit);
         thread.unpark(vm);
@@ -387,6 +386,8 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
         let mut running = thread.thread_state.lock();
         *running = false;
         thread.cv_thread_state.notify_all();
+
+        deinit_current_thread();
     });
 }
 
