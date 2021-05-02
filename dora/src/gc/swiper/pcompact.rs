@@ -542,6 +542,16 @@ impl<'a> ParallelFullCollector<'a> {
             }
         }
 
+        for (idx, region) in self.regions.iter().enumerate() {
+            eprintln!(
+                "region {}: region.young_units.len()={} region.young_live={} region.span={}",
+                idx,
+                region.young_units.len(),
+                region.young_live,
+                region.span
+            );
+        }
+
         panic!("OOM: no space for young found!");
     }
 

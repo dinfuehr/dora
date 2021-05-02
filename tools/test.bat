@@ -1,1 +1,1 @@
-cargo build && cargo test && ruby tools\tester.rb %* && cargo run -- test --test-boots --boots=dora-boots --gc-verify
+cargo build && ruby tools\tester.rb tests\thread\join2-swiper-pcompact.dora
