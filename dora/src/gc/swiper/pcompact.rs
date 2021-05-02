@@ -577,7 +577,7 @@ impl<'a> ParallelFullCollector<'a> {
         let span_start = *last_span_end;
 
         let unit_end = &self.units[unit_end_idx];
-        let span_end = if unit_end_idx == regions.len() - 1 {
+        let span_end = if unit_end_idx == self.units.len() - 1 {
             self.old_total.end
         } else {
             unit_end.region.end
