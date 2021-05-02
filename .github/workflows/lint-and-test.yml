@@ -3,55 +3,13 @@ name: lint-and-test
 on: [push, pull_request]
 
 jobs:
-  lint:
-    name: lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
-          submodules: true
-
-      - name: Install rust
-        uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: "nightly"
-
-      - name: Install rustfmt
-        run: rustup component add rustfmt
-
-      - name: Cargo Fmt
-        run: cargo fmt -- --check
-
-  test-arm64:
-    name: test arm64
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
-          submodules: true
-
-      - name: Install rust
-        uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: "nightly"
-
-      - name: Install ARM64 target
-        run: rustup target add aarch64-unknown-linux-gnu
-
-      - name: Build ARM64
-        run: cd dora && cargo check --target=aarch64-unknown-linux-gnu --no-default-features
-
   test:
     name: test ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [windows-latest]
 
     steps:
       - name: Clone repository
