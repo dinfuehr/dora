@@ -544,11 +544,8 @@ impl<'a> ParallelFullCollector<'a> {
 
         for (idx, region) in self.regions.iter().enumerate() {
             eprintln!(
-                "region {}: region.young_units.len()={} region.young_live={} region.span={}",
-                idx,
-                region.young_units.len(),
-                region.young_live,
-                region.span
+                "region {}: young_live={} span={} slide_start={} compact={}",
+                idx, region.young_live, region.span, region.slide_start, region.compact
             );
         }
 
