@@ -1,2 +1,2 @@
 //= file "tests/thread/join2-copy.dora"
-//= vm-args "--gc=swiper --gc-parallel-full"
+//= vm-args "--gc=swiper --gc-parallel-full --gc-dev-verbose"

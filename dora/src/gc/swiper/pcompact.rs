@@ -462,7 +462,7 @@ impl<'a> ParallelFullCollector<'a> {
 
         if let Some(last) = regions.last_mut() {
             if last.compact.end > self.old_total.end {
-                panic!("OOM");
+                panic!("OOM: survivors do not fit into old space");
             }
 
             last.span.end = self.old_total.end;
@@ -586,6 +586,14 @@ impl<'a> ParallelFullCollector<'a> {
         let span = Region::new(span_start, span_end);
         let compact = Region::new(compact_start, compact_end);
         let mapping = Region::new(mapping_start, mapping_end);
+
+        eprintln!(
+            "CollectRegion {}: span={} compact={} mapping={}",
+            regions.len(),
+            span,
+            compact,
+            mapping
+        );
 
         regions.push(CollectRegion::new(
             unit_start_idx,
