@@ -321,16 +321,20 @@ impl<'a> ParallelFullCollector<'a> {
         let old_regions = self.old_protected.regions.len();
         for idx in 0..old_regions {
             let active = self.old_protected.regions[idx].active_region();
+            eprintln!("old_region[{}] = {}", idx, active);
             self.units_for_old_region(active, unit_size);
         }
 
         let eden = self.young.eden_active();
+        eprintln!("eden = {}", eden);
         self.young_units.push(Unit::young(eden));
 
         let from = self.young.from_active();
+        eprintln!("from = {}", from);
         self.young_units.push(Unit::young(from));
 
         let to = self.young.to_active();
+        eprintln!("to = {}", to);
         self.young_units.push(Unit::young(to));
     }
 
