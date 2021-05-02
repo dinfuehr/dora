@@ -317,6 +317,7 @@ impl<'a> ParallelFullCollector<'a> {
     fn compute_units(&mut self) {
         let active = self.old_protected.active_size();
         let unit_size = active / (8 * self.number_workers);
+        eprintln!("unit_size = {}", unit_size);
 
         let old_regions = self.old_protected.regions.len();
         for idx in 0..old_regions {
@@ -417,6 +418,10 @@ impl<'a> ParallelFullCollector<'a> {
         let number_regions = self.number_workers;
 
         let region_size = ((live as f64 / number_regions as f64) * 0.90f64) as usize;
+        eprintln!(
+            "number_regions={} region_size={}",
+            number_regions, region_size
+        );
 
         let mut regions = Vec::new();
         let mut start = 0;
@@ -572,7 +577,11 @@ impl<'a> ParallelFullCollector<'a> {
         let span_start = *last_span_end;
 
         let unit_end = &self.units[unit_end_idx];
-        let span_end = unit_end.region.end;
+        let span_end = if unit_end_idx == regions.len() - 1 {
+            self.old_total.end
+        } else {
+            unit_end.region.end
+        };
 
         let (compact_start, compact_end) = if slide_start {
             (span_start, span_start.offset(*size))
