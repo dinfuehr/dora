@@ -549,6 +549,8 @@ impl<'a> ParallelFullCollector<'a> {
             );
         }
 
+        eprintln!("young.live = {}", live);
+
         panic!("OOM: no space for young found!");
     }
 
