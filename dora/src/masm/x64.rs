@@ -874,11 +874,21 @@ impl MacroAssembler {
         unimplemented!()
     }
 
-    pub fn fetch_add_int32_synchronized(&mut self, previous: Reg, value: Reg, address: Reg) -> Reg {
+    pub fn fetch_add_int32_synchronized(
+        &mut self,
+        _previous: Reg,
+        _value: Reg,
+        _address: Reg,
+    ) -> Reg {
         unimplemented!()
     }
 
-    pub fn fetch_add_int64_synchronized(&mut self, previous: Reg, value: Reg, address: Reg) -> Reg {
+    pub fn fetch_add_int64_synchronized(
+        &mut self,
+        _previous: Reg,
+        _value: Reg,
+        _address: Reg,
+    ) -> Reg {
         unimplemented!()
     }
 

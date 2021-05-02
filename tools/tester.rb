@@ -19,7 +19,13 @@ def get_architecture
       raise "unknown architecture #{arch}"
     end
   else
-    "x64"
+    # Windows
+    arch = ENV["PROCESSOR_ARCHITECTURE"]
+    case arch
+    when "AMD64" then "x64"
+    else
+      raise "unknown architecture #{arch}"
+    end
   end
 end
 
