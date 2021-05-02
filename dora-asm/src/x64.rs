@@ -1233,6 +1233,36 @@ impl AssemblerX64 {
         self.emit_modrm_opcode(0b001, opnd);
     }
 
+    pub fn xaddq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xc1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn xaddl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xc1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn lock_xaddq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_lock_prefix();
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xc1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn lock_xaddl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_lock_prefix();
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xc1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
     fn emit_lock_prefix(&mut self) {
         self.emit_u8(0xF0);
     }
@@ -2710,5 +2740,37 @@ mod tests {
         assert_emit!(0xF0, 0x0F, 0xB1, 0x07; lock_cmpxchgl_ar(Address::offset(RDI, 0), RAX));
         assert_emit!(0xF0, 0x41, 0x0F, 0xB1, 0x07; lock_cmpxchgl_ar(Address::offset(R15, 0), RAX));
         assert_emit!(0xF0, 0x44, 0x0F, 0xB1, 0x38; lock_cmpxchgl_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_xaddq_ar() {
+        assert_emit!(0x48, 0x0F, 0xC1, 0x38; xaddq_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0x48, 0x0F, 0xC1, 0x07; xaddq_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0x49, 0x0F, 0xC1, 0x07; xaddq_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0x4C, 0x0F, 0xC1, 0x38; xaddq_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_xaddl_ar() {
+        assert_emit!(0x0F, 0xC1, 0x38; xaddl_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0x0F, 0xC1, 0x07; xaddl_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0x41, 0x0F, 0xC1, 0x07; xaddl_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0x44, 0x0F, 0xC1, 0x38; xaddl_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_lock_xaddq_ar() {
+        assert_emit!(0xF0, 0x48, 0x0F, 0xC1, 0x38; lock_xaddq_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0xF0, 0x48, 0x0F, 0xC1, 0x07; lock_xaddq_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0xF0, 0x49, 0x0F, 0xC1, 0x07; lock_xaddq_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0xF0, 0x4C, 0x0F, 0xC1, 0x38; lock_xaddq_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_lock_xaddl_ar() {
+        assert_emit!(0xF0, 0x0F, 0xC1, 0x38; lock_xaddl_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0xF0, 0x0F, 0xC1, 0x07; lock_xaddl_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0xF0, 0x41, 0x0F, 0xC1, 0x07; lock_xaddl_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0xF0, 0x44, 0x0F, 0xC1, 0x38; lock_xaddl_ar(Address::offset(RAX, 0), R15));
     }
 }
