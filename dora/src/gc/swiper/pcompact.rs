@@ -457,7 +457,7 @@ impl<'a> ParallelFullCollector<'a> {
 
         if let Some(last) = regions.last_mut() {
             if last.compact.end > self.old_total.end {
-                panic!("OOM");
+                panic!("OOM: survivors do not fit into old space");
             }
 
             last.span.end = self.old_total.end;
@@ -542,7 +542,7 @@ impl<'a> ParallelFullCollector<'a> {
             }
         }
 
-        panic!("OOM: no space for young found!");
+        panic!("OOM: no space for young objects found!");
     }
 
     fn add_collect_region(
@@ -558,7 +558,11 @@ impl<'a> ParallelFullCollector<'a> {
         let span_start = *last_span_end;
 
         let unit_end = &self.units[unit_end_idx];
-        let span_end = unit_end.region.end;
+        let span_end = if unit_end_idx == self.units.len() - 1 {
+            self.old_total.end
+        } else {
+            unit_end.region.end
+        };
 
         let (compact_start, compact_end) = if slide_start {
             (span_start, span_start.offset(*size))
