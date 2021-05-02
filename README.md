@@ -6,19 +6,6 @@ JIT-compiler for the programming language Dora implemented in Rust.
 Works on Linux, Windows and macOS (x86\_64 and aarch64).
 Build with:
 
-## Dependencies
-You need to install these dependencies:
-
-```
-# on Fedora
-$ sudo dnf install ruby
-
-# on Ubuntu/Debian
-$ sudo apt install ruby
-```
-
-[Ruby](https://www.ruby-lang.org/) is used for running tests.
-
 
 ## Compilation & Testing
 Install Rust nightly through [rustup.rs](http://rustup.rs). Use the specific nightly version listed in the [rust-toolchain](https://github.com/dinfuehr/dora/blob/master/rust-toolchain) file. Dora simply uses `cargo` for building:
@@ -27,10 +14,12 @@ Install Rust nightly through [rustup.rs](http://rustup.rs). Use the specific nig
 # build in debug and release mode
 cargo build && cargo build --release
 
-# run all tests in debug and release mode
+# run all tests in debug and release mode (needs Ruby)
 tools/test && tools/test-release # Linux and macOS
 tools/test.bat && tools/test-release.bat # Windows
 ```
+
+Note that the test runner is implemented in [Ruby](https://www.ruby-lang.org/) and therefore a Ruby interpreter needs to be installed on your system (e.g. `brew/dnf/apt install ruby`).
 
 ## Working on the standard library
 The standard library (stdlib) is included into the `dora`-binary at compile time.
