@@ -346,7 +346,7 @@ impl<'a> ParallelFullCollector<'a> {
             debug_assert!(end <= region.end);
 
             let region = Region::new(last, end);
-            println!("old unit: {}", region);
+            eprintln!("old unit: {}", region);
             self.units.push(Unit::old(region));
             last = end;
         }
