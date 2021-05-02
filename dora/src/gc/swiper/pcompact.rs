@@ -16,7 +16,7 @@ use crate::gc::swiper::{
     forward_full, walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS,
 };
 use crate::gc::{iterate_weak_refs, pmarking};
-use crate::gc::{Address, GcReason, Region};
+use crate::gc::{Address, GcReason, Region, K, M};
 use crate::os;
 use crate::stdlib;
 use crate::timer::Timer;
@@ -317,6 +317,7 @@ impl<'a> ParallelFullCollector<'a> {
     fn compute_units(&mut self) {
         let active = self.old_protected.active_size();
         let unit_size = active / (8 * self.number_workers);
+        let unit_size = std::cmp::max(unit_size, 64 * K);
 
         let old_regions = self.old_protected.regions.len();
         for idx in 0..old_regions {
@@ -412,6 +413,7 @@ impl<'a> ParallelFullCollector<'a> {
         let number_regions = self.number_workers;
 
         let region_size = ((live as f64 / number_regions as f64) * 0.90f64) as usize;
+        let region_size = std::cmp::max(region_size, M);
 
         let mut regions = Vec::new();
         let mut start = 0;
