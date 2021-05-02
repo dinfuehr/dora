@@ -607,6 +607,48 @@ impl AssemblerX64 {
         self.emit_modrm_registers(src, dest);
     }
 
+    pub fn xchgq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x87);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn xchgl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x87);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn cmpxchgq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn cmpxchgl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn lock_cmpxchgq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_lock_prefix();
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn lock_cmpxchgl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_lock_prefix();
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
     pub fn xorl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x31);
@@ -1189,6 +1231,10 @@ impl AssemblerX64 {
         self.emit_rex64_rm(opnd);
         self.emit_u8(0xd3);
         self.emit_modrm_opcode(0b001, opnd);
+    }
+
+    fn emit_lock_prefix(&mut self) {
+        self.emit_u8(0xF0);
     }
 
     fn emit_rex_sse_modrm_optional(&mut self, reg: XmmRegister, rm: XmmRegister) {
@@ -2616,5 +2662,53 @@ mod tests {
         assert_emit!(0x49, 0xc7, 0x00, 0xff, 0xff, 0xff, 0x7f; movq_ai(Address::offset(R8, 0), Immediate(i32::max_value() as i64)));
         assert_emit!(0x48, 0xc7, 0x07, 0xff, 0xff, 0xff, 0x7f; movq_ai(Address::offset(RDI, 0), Immediate(i32::max_value() as i64)));
         assert_emit!(0x49, 0xc7, 0x07, 0, 0, 0, 0x80; movq_ai(Address::offset(R15, 0), Immediate(i32::min_value() as i64)));
+    }
+
+    #[test]
+    fn test_xchgq_ar() {
+        assert_emit!(0x48, 0x87, 0x38; xchgq_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0x48, 0x87, 0x07; xchgq_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0x49, 0x87, 0x07; xchgq_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0x4C, 0x87, 0x38; xchgq_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_xchgl_ar() {
+        assert_emit!(0x87, 0x38; xchgl_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0x87, 0x07; xchgl_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0x41, 0x87, 0x07; xchgl_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0x44, 0x87, 0x38; xchgl_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_cmpxchgq_ar() {
+        assert_emit!(0x48, 0x0F, 0xB1, 0x38; cmpxchgq_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0x48, 0x0F, 0xB1, 0x07; cmpxchgq_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0x49, 0x0F, 0xB1, 0x07; cmpxchgq_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0x4C, 0x0F, 0xB1, 0x38; cmpxchgq_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_cmpxchgl_ar() {
+        assert_emit!(0x0F, 0xB1, 0x38; cmpxchgl_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0x0F, 0xB1, 0x07; cmpxchgl_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0x41, 0x0F, 0xB1, 0x07; cmpxchgl_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0x44, 0x0F, 0xB1, 0x38; cmpxchgl_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_lock_cmpxchgq_ar() {
+        assert_emit!(0xF0, 0x48, 0x0F, 0xB1, 0x38; lock_cmpxchgq_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0xF0, 0x48, 0x0F, 0xB1, 0x07; lock_cmpxchgq_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0xF0, 0x49, 0x0F, 0xB1, 0x07; lock_cmpxchgq_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0xF0, 0x4C, 0x0F, 0xB1, 0x38; lock_cmpxchgq_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_lock_cmpxchgl_ar() {
+        assert_emit!(0xF0, 0x0F, 0xB1, 0x38; lock_cmpxchgl_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0xF0, 0x0F, 0xB1, 0x07; lock_cmpxchgl_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0xF0, 0x41, 0x0F, 0xB1, 0x07; lock_cmpxchgl_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0xF0, 0x44, 0x0F, 0xB1, 0x38; lock_cmpxchgl_ar(Address::offset(RAX, 0), R15));
     }
 }
