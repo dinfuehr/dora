@@ -1,5 +1,3 @@
-//= platform arm64
-
 fun main() {
     let value = std::AtomicInt64(10L);
     assert(value.compareExchange(12L, 20L) == 10L);

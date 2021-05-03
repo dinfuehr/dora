@@ -845,51 +845,63 @@ impl MacroAssembler {
     }
 
     pub fn store_int64_synchronized(&mut self, dest: Reg, addr: Reg) {
-        self.asm.xchgl_ar(Address::reg(addr.into()), dest.into());
+        self.asm.xchgq_ar(Address::reg(addr.into()), dest.into());
     }
 
-    pub fn exchange_int32_synchronized(&mut self, _old: Reg, _new: Reg, _address: Reg) {
-        unimplemented!()
+    pub fn exchange_int32_synchronized(&mut self, old: Reg, new: Reg, address: Reg) {
+        self.asm.xchgl_ar(Address::reg(address.into()), new.into());
+        self.asm.movl_rr(old.into(), new.into());
     }
 
-    pub fn exchange_int64_synchronized(&mut self, _old: Reg, _new: Reg, _address: Reg) {
-        unimplemented!()
+    pub fn exchange_int64_synchronized(&mut self, old: Reg, new: Reg, address: Reg) {
+        self.asm.xchgq_ar(Address::reg(address.into()), new.into());
+        self.asm.movl_rr(old.into(), new.into());
     }
 
     pub fn compare_exchange_int32_synchronized(
         &mut self,
-        _expected: Reg,
-        _new: Reg,
-        _address: Reg,
+        expected: Reg,
+        new: Reg,
+        address: Reg,
     ) -> Reg {
-        unimplemented!()
+        assert_eq!(expected, RAX);
+        self.asm
+            .lock_cmpxchgl_ar(Address::reg(address.into()), new.into());
+        RAX
     }
 
     pub fn compare_exchange_int64_synchronized(
         &mut self,
-        _expected: Reg,
-        _new: Reg,
-        _address: Reg,
+        expected: Reg,
+        new: Reg,
+        address: Reg,
     ) -> Reg {
-        unimplemented!()
+        assert_eq!(expected, RAX);
+        self.asm
+            .lock_cmpxchgq_ar(Address::reg(address.into()), new.into());
+        RAX
     }
 
     pub fn fetch_add_int32_synchronized(
         &mut self,
         _previous: Reg,
-        _value: Reg,
-        _address: Reg,
+        value: Reg,
+        address: Reg,
     ) -> Reg {
-        unimplemented!()
+        self.asm
+            .lock_xaddl_ar(Address::reg(address.into()), value.into());
+        value
     }
 
     pub fn fetch_add_int64_synchronized(
         &mut self,
         _previous: Reg,
-        _value: Reg,
-        _address: Reg,
+        value: Reg,
+        address: Reg,
     ) -> Reg {
-        unimplemented!()
+        self.asm
+            .lock_xaddq_ar(Address::reg(address.into()), value.into());
+        value
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {

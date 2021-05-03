@@ -1,5 +1,3 @@
-//= platform arm64
-
 import std::AtomicInt32;
 
 const THREADS: Int32 = 4;

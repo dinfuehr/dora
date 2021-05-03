@@ -1,5 +1,3 @@
-//= platform arm64
-
 fun main() {
     let value = std::AtomicInt64(10L);
     assert(value.fetchAdd(2L) == 10L);

@@ -3574,18 +3574,14 @@ impl<'a> CannonCodeGen<'a> {
                 let expected_reg = arguments[1];
                 let value_reg = arguments[2];
 
-                self.emit_load_register(obj_reg, REG_RESULT.into());
-                self.emit_load_register(expected_reg, REG_TMP1.into());
+                self.emit_load_register(obj_reg, REG_TMP1.into());
+                self.emit_load_register(expected_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP2.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
+                self.asm
+                    .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, Header::size() as i64);
                 let current = self
                     .asm
-                    .compare_exchange_int32_synchronized(REG_TMP1, REG_TMP2, REG_RESULT);
+                    .compare_exchange_int32_synchronized(REG_RESULT, REG_TMP2, REG_TMP1);
                 self.emit_store_register(current.into(), dest_reg);
             }
 
@@ -3596,18 +3592,14 @@ impl<'a> CannonCodeGen<'a> {
                 let expected_reg = arguments[1];
                 let value_reg = arguments[2];
 
-                self.emit_load_register(obj_reg, REG_RESULT.into());
-                self.emit_load_register(expected_reg, REG_TMP1.into());
+                self.emit_load_register(obj_reg, REG_TMP1.into());
+                self.emit_load_register(expected_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP2.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
+                self.asm
+                    .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, Header::size() as i64);
                 let current = self
                     .asm
-                    .compare_exchange_int64_synchronized(REG_TMP1, REG_TMP2, REG_RESULT);
+                    .compare_exchange_int64_synchronized(REG_RESULT, REG_TMP2, REG_TMP1);
                 self.emit_store_register(current.into(), dest_reg);
             }
 
