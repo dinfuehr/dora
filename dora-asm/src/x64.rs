@@ -1618,6 +1618,10 @@ impl Address {
         self.length += 4;
     }
 
+    pub fn reg(base: Register) -> Address {
+        Address::offset(base, 0)
+    }
+
     pub fn offset(base: Register, offset: i32) -> Address {
         let mut address = Address::new();
 

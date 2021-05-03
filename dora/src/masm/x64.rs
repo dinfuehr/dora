@@ -832,20 +832,20 @@ impl MacroAssembler {
         self.asm.xorl_rr(dest.into(), dest.into());
     }
 
-    pub fn load_int32_synchronized(&mut self, _dest: Reg, _addr: Reg) {
-        unimplemented!()
+    pub fn load_int32_synchronized(&mut self, dest: Reg, addr: Reg) {
+        self.asm.movl_ra(dest.into(), Address::reg(addr.into()));
     }
 
-    pub fn load_int64_synchronized(&mut self, _dest: Reg, _addr: Reg) {
-        unimplemented!()
+    pub fn load_int64_synchronized(&mut self, dest: Reg, addr: Reg) {
+        self.asm.movq_ra(dest.into(), Address::reg(addr.into()));
     }
 
-    pub fn store_int32_synchronized(&mut self, _dest: Reg, _addr: Reg) {
-        unimplemented!()
+    pub fn store_int32_synchronized(&mut self, dest: Reg, addr: Reg) {
+        self.asm.xchgl_ar(Address::reg(addr.into()), dest.into());
     }
 
-    pub fn store_int64_synchronized(&mut self, _dest: Reg, _addr: Reg) {
-        unimplemented!()
+    pub fn store_int64_synchronized(&mut self, dest: Reg, addr: Reg) {
+        self.asm.xchgl_ar(Address::reg(addr.into()), dest.into());
     }
 
     pub fn exchange_int32_synchronized(&mut self, _old: Reg, _new: Reg, _address: Reg) {
