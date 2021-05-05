@@ -1,0 +1,23 @@
+const UNLOCKED: Int32 = 0;
+const LOCKED: Int32 = 1;
+const LOCKED_WITH_WAITERS: Int32 = 2;
+
+class Mutex {
+    let data: AtomicInt32 = AtomicInt32(0);
+
+    @pub fun lock() {
+        if self.data.compareExchange(UNLOCKED, LOCKED) == UNLOCKED {
+            // fast path
+        } else {
+            unimplemented();
+        }
+    }
+
+    @pub fun unlock() {
+        if self.data.fetchAdd(-1) == LOCKED {
+            // fast path
+        } else {
+            unimplemented();
+        }
+    }
+}
