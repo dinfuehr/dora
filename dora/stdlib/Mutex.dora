@@ -15,9 +15,9 @@ const SLEEPING: Int32 = 2;
 
     fun lockSlow(previous: Int32) {
         var previous = previous;
-        var locked = false;
+        var lockSuccess = false;
 
-        while !locked {
+        while !lockSuccess {
             assert(previous == LOCKED || previous == SLEEPING);
 
             if self.transitionToSleepingState(previous) {
@@ -25,7 +25,7 @@ const SLEEPING: Int32 = 2;
             }
 
             previous = self.data.compareExchange(UNLOCKED, SLEEPING);
-            locked = previous == UNLOCKED;
+            lockSuccess = previous == UNLOCKED;
         }
     }
 
