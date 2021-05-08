@@ -740,6 +740,16 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib::join_thread as *const u8,
     );
 
+    native_method(vm, stdlib, "Mutex", "wait", stdlib::mutex_wait as *const u8);
+
+    native_method(
+        vm,
+        stdlib,
+        "Mutex",
+        "notify",
+        stdlib::mutex_notify as *const u8,
+    );
+
     intrinsic_method(vm, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
     intrinsic_method(vm, stdlib, "Option", "isSome", Intrinsic::OptionIsSome);
     intrinsic_method(vm, stdlib, "Option", "unwrap", Intrinsic::OptionUnwrap);

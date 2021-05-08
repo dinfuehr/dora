@@ -2,28 +2,51 @@ const UNLOCKED: Int32 = 0;
 const LOCKED: Int32 = 1;
 const SLEEPING: Int32 = 2;
 
-class Mutex {
+@pub class Mutex {
     let data: AtomicInt32 = AtomicInt32(0);
 
     @pub fun lock() {
         let previous = self.data.compareExchange(UNLOCKED, LOCKED);
 
-        if previous == UNLOCKED {
-            // fast path: mutex was successfully locked.
-        } else {
-            assert(previous == LOCKED || previous == SLEEPING);
-            unimplemented();
+        if previous != UNLOCKED {
+            self.lockSlow(previous);
         }
+    }
+
+    fun lockSlow(previous: Int32) {
+        var previous = previous;
+        var locked = false;
+
+        while !locked {
+            assert(previous == LOCKED || previous == SLEEPING);
+
+            if self.transitionToSleepingState(previous) {
+                self.wait(SLEEPING);
+            }
+
+            previous = self.data.compareExchange(UNLOCKED, SLEEPING);
+            locked = previous == UNLOCKED;
+        }
+    }
+
+    fun transitionToSleepingState(previous: Int32): Bool {
+        if previous == SLEEPING { return true; }
+        self.data.compareExchange(LOCKED, SLEEPING) != UNLOCKED
     }
 
     @pub fun unlock() {
-        let previous = self.data.fetchAdd(-1);
+        let previous = self.data.exchange(0);
 
-        if previous == LOCKED {
-            // fast path: mutex was successfully unlocked.
-        } else {
-            assert(previous == SLEEPING);
-            unimplemented();
+        if previous != LOCKED {
+            self.unlockSlow(previous);
         }
     }
+
+    fun unlockSlow(previous: Int32) {
+        assert(previous == SLEEPING);
+        self.notify();
+    }
+
+    @internal fun wait(status: Int32);
+    @internal fun notify();
 }

@@ -112,6 +112,27 @@ impl Threads {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct DoraThreadPtr(Address);
+
+impl DoraThreadPtr {
+    pub fn null() -> DoraThreadPtr {
+        DoraThreadPtr(Address::null())
+    }
+
+    pub fn new(thread: &DoraThread) -> DoraThreadPtr {
+        DoraThreadPtr(Address::from_ptr(thread as *const _))
+    }
+
+    pub fn as_ref(self) -> &'static DoraThread {
+        unsafe { &*self.0.to_ptr::<DoraThread>() }
+    }
+
+    pub fn is_null(self) -> bool {
+        self.0.is_null()
+    }
+}
+
 pub struct DoraThread {
     pub id: AtomicUsize,
     pub handles: HandleMemory,
@@ -121,6 +142,8 @@ pub struct DoraThread {
     pub state: AtomicUsize,
     pub thread_state: Mutex<bool>,
     pub cv_thread_state: Condvar,
+    pub blocking: Mutex<(bool, DoraThreadPtr)>,
+    pub cv_blocking: Condvar,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -141,6 +164,8 @@ impl DoraThread {
             state: AtomicUsize::new(initial_state as usize),
             thread_state: Mutex::new(true),
             cv_thread_state: Condvar::new(),
+            blocking: Mutex::new((false, DoraThreadPtr::null())),
+            cv_blocking: Condvar::new(),
         })
     }
 
@@ -489,6 +514,7 @@ impl BarrierData {
     }
 }
 
+#[repr(C)]
 pub struct ManagedThread {
     header: Header,
     native_ptr: AtomicUsize,

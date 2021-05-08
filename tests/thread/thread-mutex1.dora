@@ -1,0 +1,43 @@
+//= ignore
+
+const THREADS: Int32 = 20;
+const ITERATIONS: Int32 = 10_000;
+
+class MyThread(let mtx: std::Mutex, let value: SharedInt) extends std::Thread {
+    @override fun run() {
+        var i = 0;
+
+        while i < ITERATIONS {
+            self.mtx.lock();
+            self.value.increment();
+            self.mtx.unlock();
+            i = i + 1;
+        }
+    }
+}
+
+class SharedInt(var value: Int32) {
+    fun increment() {
+        self.value = self.value + 1;
+    }
+}
+
+fun main() {
+    var i = 0;
+    var threads = Vec[MyThread]();
+    var mtx = std::Mutex();
+    var shared = SharedInt(0);
+
+    while i < THREADS {
+        let thread = MyThread(mtx, shared);
+        thread.start();
+        threads.push(thread);
+        i = i + 1;
+    }
+
+    for thread in threads {
+        thread.join();
+    }
+
+    assert(shared.value == THREADS * ITERATIONS);
+}

@@ -18,7 +18,7 @@ use crate::threads::{
     ManagedThread, ThreadState, STACK_SIZE,
 };
 use crate::ty::SourceTypeArray;
-use crate::vm::{get_vm, stack_pointer, Trap};
+use crate::vm::{get_vm, stack_pointer, ManagedMutex, Trap};
 
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
@@ -403,4 +403,14 @@ pub extern "C" fn join_thread(managed_thread: Handle<ManagedThread>) {
             native_thread.cv_thread_state.wait(&mut running);
         }
     });
+}
+
+pub extern "C" fn mutex_wait(mutex: Handle<ManagedMutex>, value: i32) {
+    let vm = get_vm();
+    vm.mutex_map.wait(mutex, value);
+}
+
+pub extern "C" fn mutex_notify(mutex: Handle<ManagedMutex>) {
+    let vm = get_vm();
+    vm.mutex_map.notify(mutex);
 }
