@@ -1,0 +1,15 @@
+@pub class Condition {
+    let waiters: AtomicInt32 = AtomicInt32(0);
+
+    @pub fun wait(mtx: Mutex) {
+        unimplemented()
+    }
+
+    @pub fun notifyOne() {
+        unimplemented()
+    }
+
+    @pub fun notifyAll() {
+        unimplemented()
+    }
+}
