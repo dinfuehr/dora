@@ -36,13 +36,21 @@ $config = {
 $ARGS = ARGV.clone
 $release = $ARGS.delete("--release") != nil
 $no_capture = $ARGS.delete("--no-capture") != nil
-$processors = 0
+$stress = $ARGS.delete("--stress") != nil
+$stress_timeout = 60
+$processors = nil
+$forced_timeout = nil
 $ARCH = get_architecture
 
 $ARGS.delete_if do |arg|
   if (m = /\A\-j(\d)+\z/.match(arg))
     $processors = m[1].to_i
     true
+  elsif (m = /\A\-\-timeout\=(\d)+\z/.match(arg))
+      $forced_timeout = m[1].to_i
+  elsif (m = /\A\-\-stress\=(\d)+\z/.match(arg))
+    $stress = true
+    $stress_timeout = m[1].to_i
   elsif (m = /\A\-\-binary\=(\S+)\z/.match(arg))
     $binary = m[1].to_s
     true
@@ -121,7 +129,6 @@ class TestCase
     self.configs = [:default]
     self.results = {}
     self.args = self.vm_args = ""
-    self.timeout = 60
   end
 
   def run(mutex)
@@ -164,10 +171,23 @@ class TestCase
     end
   end
 
+  def get_timeout
+    if $forced_timeout
+      $forced_timeout
+
+    elsif self.timeout
+      self.timeout
+
+    else
+      60
+
+    end
+  end
+
   private
   def run_test(optional_vm_args, mutex)
     cmdline = "#{binary} #{vm_args} #{optional_vm_args} #{test_file} #{args}"
-    process_result = TestUtility.spawn_with_timeout(cmdline, self.timeout)
+    process_result = TestUtility.spawn_with_timeout(cmdline, self.get_timeout)
     result = check_test_run_result(process_result)
     if $no_capture || result != true
       mutex.synchronize do
@@ -195,7 +215,7 @@ class TestCase
     timeout = result[:timeout]
     exit_code = status.exitstatus
 
-    return "test timed out after #{self.timeout} seconds" if
+    return "test timed out after #{self.get_timeout} seconds" if
       timeout
 
     if self.expectation.fail
@@ -240,8 +260,6 @@ def num_from_shell(cmd)
 end
 
 def number_processors
-  return $processors if $processors > 0
-
   case RUBY_PLATFORM
   when /linux/
     num = num_from_shell("nproc --all")
@@ -290,11 +308,35 @@ def run_tests
   # Load all test files and shuffle them around to run tests
   # in different order
   worklist = test_files.shuffle
+  cancel = false
 
-  number_processors.times do
+  if $stress && worklist.size != 1
+    puts "--stress expects exactly one test."
+    exit 1
+  end
+
+  computed_processors = number_processors
+
+  number_threads =
+    if $processors
+      $processors
+    elsif $stress
+      computed_processors * 2
+    else
+      computed_processors
+    end
+
+  number_threads.times do
     thread = Thread.new do
       loop do
-        file = mutex.synchronize { worklist.pop }
+        file = mutex.synchronize do
+          if $stress
+            cancel ? nil : worklist.first
+          else
+            worklist.pop
+          end
+        end
+
         break unless file
 
         test_case = parse_test_file(Pathname.new(file))
@@ -316,6 +358,11 @@ def run_tests
     end
 
     threads.push(thread)
+  end
+
+  if $stress
+    sleep $stress_timeout
+    mutex.synchronize { cancel = true }
   end
 
   for thread in threads do
