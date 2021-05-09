@@ -124,7 +124,7 @@ impl DoraThreadPtr {
         DoraThreadPtr(Address::from_ptr(thread as *const _))
     }
 
-    pub fn as_ref(self) -> &'static DoraThread {
+    pub fn to_ref(self) -> &'static DoraThread {
         unsafe { &*self.0.to_ptr::<DoraThread>() }
     }
 

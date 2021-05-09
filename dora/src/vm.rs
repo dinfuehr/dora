@@ -268,6 +268,10 @@ impl VM {
         vm
     }
 
+    pub fn gc_epoch(&self) -> usize {
+        self.gc.epoch()
+    }
+
     pub fn run(&self, fct_id: FctId) -> i32 {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);

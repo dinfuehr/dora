@@ -15,6 +15,7 @@ pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     determine_rootset_from_handles(&mut rootset, threads);
 
     determine_rootset_from_globals(&mut rootset, vm);
+    determine_rootset_from_wait_list(&mut rootset, vm);
 
     rootset
 }
@@ -176,6 +177,12 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
             panic!("invalid stack frame");
         }
     }
+}
+
+fn determine_rootset_from_wait_list(rootset: &mut Vec<Slot>, vm: &VM) {
+    vm.mutex_map.visit_roots(|slot| {
+        rootset.push(slot);
+    });
 }
 
 #[derive(Copy, Clone)]

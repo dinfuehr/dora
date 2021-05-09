@@ -58,6 +58,8 @@
                 if current_key.hash() == hash && current_key.equals(key) {
                     return true;
                 }
+            } else if self.isDeleted(idx) {
+                // There might be live entries after a deleted one.
             } else {
                 break;
             }
@@ -85,6 +87,8 @@
                 if current_key.hash() == hash && current_key.equals(key) {
                     return Option[V]::Some(self.values.get(idx));
                 }
+            } else if self.isDeleted(idx) {
+                // There might be live entries after a deleted one.
             } else {
                 break;
             }
@@ -115,6 +119,8 @@
                     self.entries = self.entries - 1L;
                     return Option[V]::Some(value);
                 }
+            } else if self.isDeleted(idx) {
+                // There might be live entries after a deleted one.
             } else {
                 break;
             }
@@ -193,6 +199,10 @@
     fun isLive(idx: Int64): Bool {
         return self.inserted_and_deleted.contains(2L * idx) &&
                !self.inserted_and_deleted.contains(2L * idx + 1L);
+    }
+
+    fun isDeleted(idx: Int64): Bool {
+        self.inserted_and_deleted.contains(2L * idx + 1L)
     }
 
     @pub fun size(): Int64 {

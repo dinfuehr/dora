@@ -2,6 +2,7 @@ use parking_lot::Mutex;
 
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
+use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::Arc;
 
 use crate::driver::cmd::{Args, CollectorName};
@@ -52,6 +53,7 @@ pub struct Gc {
 
     code_space: CodeSpace,
     perm_space: Space,
+    epoch: AtomicUsize,
 
     finalizers: Mutex<Vec<(Address, Arc<DoraThread>)>>,
 }
@@ -84,6 +86,7 @@ impl Gc {
 
             code_space: CodeSpace::new(),
             perm_space: Space::new(perm_config, "perm"),
+            epoch: AtomicUsize::new(0),
 
             finalizers: Mutex::new(Vec::new()),
         }
@@ -151,7 +154,12 @@ impl Gc {
         }
     }
 
+    pub fn epoch(&self) -> usize {
+        self.epoch.load(AtomicOrdering::Relaxed)
+    }
+
     pub fn collect(&self, vm: &VM, reason: GcReason) {
+        self.epoch.fetch_add(1, AtomicOrdering::Relaxed);
         self.collector.collect(vm, reason);
     }
 

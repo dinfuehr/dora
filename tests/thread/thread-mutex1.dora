@@ -1,4 +1,4 @@
-//= ignore
+//= vm-args "--gc=copy"
 
 const THREADS: Int32 = 20;
 const ITERATIONS: Int32 = 10_000;
@@ -6,10 +6,20 @@ const ITERATIONS: Int32 = 10_000;
 class MyThread(let mtx: std::Mutex, let value: SharedInt) extends std::Thread {
     @override fun run() {
         var i = 0;
+        var last: Object = Object();
 
         while i < ITERATIONS {
+            Object();
+
             self.mtx.lock();
-            self.value.increment();
+            let value = self.value.increment();
+
+            last = Object();
+
+            if value % 100 == 0 {
+                std::forceCollect();
+            }
+
             self.mtx.unlock();
             i = i + 1;
         }
@@ -17,8 +27,10 @@ class MyThread(let mtx: std::Mutex, let value: SharedInt) extends std::Thread {
 }
 
 class SharedInt(var value: Int32) {
-    fun increment() {
+    fun increment(): Int32 {
+        let old = self.value;
         self.value = self.value + 1;
+        old
     }
 }
 
