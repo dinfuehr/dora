@@ -414,3 +414,19 @@ pub extern "C" fn mutex_notify(mutex: Handle<ManagedMutex>) {
     let vm = get_vm();
     vm.mutex_map.notify(mutex);
 }
+
+pub extern "C" fn condition_enqueue(_cond: Handle<Obj>) {
+    unimplemented!()
+}
+
+pub extern "C" fn condition_block(_cond: Handle<Obj>) {
+    unimplemented!()
+}
+
+pub extern "C" fn condition_notify_one(_cond: Handle<Obj>) {
+    unimplemented!()
+}
+
+pub extern "C" fn condition_notify_all(_cond: Handle<Obj>) {
+    unimplemented!()
+}

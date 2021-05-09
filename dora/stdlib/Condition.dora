@@ -2,14 +2,32 @@
     let waiters: AtomicInt32 = AtomicInt32(0);
 
     @pub fun wait(mtx: Mutex) {
-        unimplemented()
+        self.enqueue();
+        mtx.unlock();
+        self.block();
+        mtx.lock();
     }
 
     @pub fun notifyOne() {
-        unimplemented()
+        if self.waiters.get() == 0 {
+            return;
+        }
+
+        self.notifyOneWaiter();
     }
 
     @pub fun notifyAll() {
-        unimplemented()
+        if self.waiters.get() == 0 {
+            return;
+        }
+
+        self.waiters.set(0);
+        self.notifyAllWaiters();
     }
+
+    @internal fun enqueue();
+    @internal fun block();
+
+    @internal fun notifyOneWaiter();
+    @internal fun notifyAllWaiters();
 }

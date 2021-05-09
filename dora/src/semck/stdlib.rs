@@ -750,6 +750,38 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib::mutex_notify as *const u8,
     );
 
+    native_method(
+        vm,
+        stdlib,
+        "Condition",
+        "enqueue",
+        stdlib::condition_enqueue as *const u8,
+    );
+
+    native_method(
+        vm,
+        stdlib,
+        "Condition",
+        "block",
+        stdlib::condition_block as *const u8,
+    );
+
+    native_method(
+        vm,
+        stdlib,
+        "Condition",
+        "notifyOneWaiter",
+        stdlib::condition_notify_one as *const u8,
+    );
+
+    native_method(
+        vm,
+        stdlib,
+        "Condition",
+        "notifyAllWaiters",
+        stdlib::condition_notify_all as *const u8,
+    );
+
     intrinsic_method(vm, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
     intrinsic_method(vm, stdlib, "Option", "isSome", Intrinsic::OptionIsSome);
     intrinsic_method(vm, stdlib, "Option", "unwrap", Intrinsic::OptionUnwrap);
@@ -1102,11 +1134,11 @@ fn internal_class_method(
 fn internal_extension_method(
     vm: &VM,
     extensions: &[ExtensionId],
-    name: &str,
+    name_as_string: &str,
     is_static: bool,
     kind: FctImplementation,
 ) {
-    let name = vm.interner.intern(name);
+    let name = vm.interner.intern(name_as_string);
 
     for &extension_id in extensions {
         let extension = vm.extensions[extension_id].read();
@@ -1132,7 +1164,7 @@ fn internal_extension_method(
         }
     }
 
-    panic!("method not found!")
+    panic!("method {} not found!", name_as_string)
 }
 
 #[cfg(test)]
