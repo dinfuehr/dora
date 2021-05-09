@@ -43,14 +43,16 @@ $forced_timeout = nil
 $ARCH = get_architecture
 
 $ARGS.delete_if do |arg|
-  if (m = /\A\-j(\d)+\z/.match(arg))
+  if (m = /\A\-j(\d+)\z/.match(arg))
     $processors = m[1].to_i
     true
-  elsif (m = /\A\-\-timeout\=(\d)+\z/.match(arg))
-      $forced_timeout = m[1].to_i
-  elsif (m = /\A\-\-stress\=(\d)+\z/.match(arg))
+  elsif (m = /\A\-\-timeout\=(\d+)\z/.match(arg))
+    $forced_timeout = m[1].to_i
+    true
+  elsif (m = /\A\-\-stress\=(\d+)\z/.match(arg))
     $stress = true
     $stress_timeout = m[1].to_i
+    true
   elsif (m = /\A\-\-binary\=(\S+)\z/.match(arg))
     $binary = m[1].to_s
     true
@@ -310,8 +312,8 @@ def run_tests
   worklist = test_files.shuffle
   cancel = false
 
-  if $stress && worklist.size != 1
-    puts "--stress expects exactly one test."
+  if $stress && worklist.empty?
+    puts "--stress needs at least one test."
     exit 1
   end
 
@@ -331,7 +333,8 @@ def run_tests
       loop do
         file = mutex.synchronize do
           if $stress
-            cancel ? nil : worklist.first
+            test_idx = rand(worklist.size)
+            cancel ? nil : worklist[test_idx]
           else
             worklist.pop
           end
