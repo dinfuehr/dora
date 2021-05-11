@@ -107,16 +107,24 @@ impl Terminator {
                 return true;
             }
 
-            let prev_nworkers =
-                self.nworkers
-                    .compare_and_swap(nworkers, nworkers + 1, Ordering::Relaxed);
+            let result = self.nworkers.compare_exchange(
+                nworkers,
+                nworkers + 1,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            );
 
-            if nworkers == prev_nworkers {
-                // Value was successfully increased again, workers didn't terminate in time. There is still work left.
-                return false;
+            match result {
+                Ok(_) => {
+                    // Value was successfully increased again, workers didn't terminate in
+                    // time. There is still work left.
+                    return false;
+                }
+
+                Err(prev_nworkers) => {
+                    nworkers = prev_nworkers;
+                }
             }
-
-            nworkers = prev_nworkers;
         }
     }
 }

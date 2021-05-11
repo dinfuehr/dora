@@ -430,7 +430,7 @@ impl Block {
     fn set_limit(&self, new_size: usize) {
         assert!(mem::is_page_aligned(new_size));
 
-        let old_committed = self.committed.load(Ordering::Relaxed);
+        let old_committed = self.committed.load(Ordering::SeqCst);
         let new_committed = self.start.offset(new_size).to_usize();
         assert!(new_committed <= self.end.to_usize());
         assert!(self.alloc.top().to_usize() <= new_committed);
@@ -439,9 +439,7 @@ impl Block {
             return;
         }
 
-        let updated =
-            self.committed
-                .compare_and_swap(old_committed, new_committed, Ordering::SeqCst);
+        let updated = self.committed.swap(new_committed, Ordering::SeqCst);
         assert!(updated == old_committed);
         self.limit.store(new_committed, Ordering::SeqCst);
 

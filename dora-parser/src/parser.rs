@@ -2446,7 +2446,7 @@ mod tests {
         let expr = {
             let reader = Reader::from_string("<<code>>", code);
             let mut parser = Parser::new(reader, &id_generator, &mut interner);
-            assert!(parser.init().is_ok(), true);
+            assert!(parser.init().is_ok());
 
             let result = parser.parse_expression();
 
@@ -2467,7 +2467,7 @@ mod tests {
             let reader = Reader::from_string("<<code>>", code);
             let mut parser = Parser::new(reader, &id_generator, &mut interner);
 
-            assert!(parser.init().is_ok(), true);
+            assert!(parser.init().is_ok());
             parser.parse_expression().unwrap_err()
         };
 
@@ -2481,7 +2481,7 @@ mod tests {
         let mut interner = Interner::new();
         let reader = Reader::from_string("<<code>>", code);
         let mut parser = Parser::new(reader, &id_generator, &mut interner);
-        assert!(parser.init().is_ok(), true);
+        assert!(parser.init().is_ok());
 
         parser.parse_statement().unwrap()
     }
@@ -2493,7 +2493,7 @@ mod tests {
             let reader = Reader::from_string("<<code>>", code);
             let mut parser = Parser::new(reader, &id_generator, &mut interner);
 
-            assert!(parser.init().is_ok(), true);
+            assert!(parser.init().is_ok());
             parser.parse_statement().unwrap_err()
         };
 
@@ -2508,7 +2508,7 @@ mod tests {
             let id_generator = NodeIdGenerator::new();
             let reader = Reader::from_string("<<code>>", code);
             let mut parser = Parser::new(reader, &id_generator, &mut interner);
-            assert!(parser.init().is_ok(), true);
+            assert!(parser.init().is_ok());
 
             parser.parse_type().unwrap()
         };

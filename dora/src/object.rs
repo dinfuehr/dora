@@ -115,20 +115,25 @@ impl Header {
         new_address: Address,
     ) -> Result<(), Address> {
         let fwd = new_address.to_usize() | 1;
-        let result =
-            self.vtable
-                .compare_and_swap(expected_vtblptr.to_usize(), fwd, Ordering::SeqCst);
+        let result = self.vtable.compare_exchange(
+            expected_vtblptr.to_usize(),
+            fwd,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        );
 
-        if result == expected_vtblptr.to_usize() {
-            Ok(())
-        } else {
-            // If update fails, this needs to be a forwarding pointer
-            debug_assert!((result | 1) != 0);
+        match result {
+            Ok(_) => Ok(()),
 
-            if (result & 3) == 3 {
-                Err(Address::from_ptr(self as *const _))
-            } else {
-                Err((result & !1).into())
+            Err(forwarding_ptr) => {
+                // If update fails, this needs to be a forwarding pointer
+                debug_assert!((forwarding_ptr | 1) != 0);
+
+                if (forwarding_ptr & 3) == 3 {
+                    Err(Address::from_ptr(self as *const _))
+                } else {
+                    Err((forwarding_ptr & !1).into())
+                }
             }
         }
     }
@@ -139,20 +144,25 @@ impl Header {
         expected_vtblptr: Address,
     ) -> Result<(), Address> {
         let fwd = expected_vtblptr.to_usize() | 3;
-        let result =
-            self.vtable
-                .compare_and_swap(expected_vtblptr.to_usize(), fwd, Ordering::SeqCst);
+        let result = self.vtable.compare_exchange(
+            expected_vtblptr.to_usize(),
+            fwd,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        );
 
-        if result == expected_vtblptr.to_usize() {
-            Ok(())
-        } else {
-            // If update fails, this needs to be a forwarding pointer
-            debug_assert!((result | 1) != 0);
+        match result {
+            Ok(_) => Ok(()),
 
-            if (result & 3) == 3 {
-                Err(Address::from_ptr(self as *const _))
-            } else {
-                Err((result & !1).into())
+            Err(forwarding_ptr) => {
+                // If update fails, this needs to be a forwarding pointer
+                debug_assert!((forwarding_ptr | 1) != 0);
+
+                if (forwarding_ptr & 3) == 3 {
+                    Err(Address::from_ptr(self as *const _))
+                } else {
+                    Err((forwarding_ptr & !1).into())
+                }
             }
         }
     }
