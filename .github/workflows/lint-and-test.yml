@@ -24,7 +24,7 @@ jobs:
       - name: Cargo Fmt
         run: cargo fmt -- --check
 
-  lint:
+  asan:
     name: asan
     runs-on: ubuntu-latest
     steps:
