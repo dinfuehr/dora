@@ -11,14 +11,11 @@ extern crate alloc;
 #[cfg(target_os = "windows")]
 extern crate winapi;
 
-macro_rules! offset_of {
-    ($ty: ty, $field: ident) => {
-        unsafe { &(*(0 as *const $ty)).$field as *const _ as usize }
-    };
-}
-
 #[macro_use]
 extern crate num_derive;
+
+#[macro_use]
+extern crate memoffset;
 
 mod boots;
 mod bytecode;
