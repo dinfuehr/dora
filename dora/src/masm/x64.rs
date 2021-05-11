@@ -855,7 +855,7 @@ impl MacroAssembler {
 
     pub fn exchange_int64_synchronized(&mut self, old: Reg, new: Reg, address: Reg) {
         self.asm.xchgq_ar(Address::reg(address.into()), new.into());
-        self.asm.movl_rr(old.into(), new.into());
+        self.asm.movq_rr(old.into(), new.into());
     }
 
     pub fn compare_exchange_int32_synchronized(
