@@ -24,6 +24,33 @@ jobs:
       - name: Cargo Fmt
         run: cargo fmt -- --check
 
+  sanitizer:
+    name: sanitizer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+          submodules: true
+
+      - name: Install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: "nightly"
+
+      - name: ASAN Build Debug
+        run: RUSTFLAGS="-Z sanitizer=address" cargo build --target x86_64-unknown-linux-gnu
+
+      - name: ASAN Tests Debug
+        run: ruby tools/tester.rb --binary=target/x86_64-unknown-linux-gnu/debug/dora
+
+      - name: ASAN Build Release
+        run: RUSTFLAGS="-Z sanitizer=address" cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: ASAN Tests Release
+        run: ruby tools/tester.rb --binary=target/x86_64-unknown-linux-gnu/release/dora
+
   test-arm64:
     name: test arm64
     runs-on: ubuntu-latest
