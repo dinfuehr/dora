@@ -13,7 +13,7 @@
             return;
         }
 
-        self.notifyOneWaiter();
+        self.wakeupOne();
     }
 
     @pub fun notifyAll() {
@@ -22,12 +22,12 @@
         }
 
         self.waiters.set(0);
-        self.notifyAllWaiters();
+        self.wakeupAll();
     }
 
     @internal fun enqueue();
     @internal fun block();
 
-    @internal fun notifyOneWaiter();
-    @internal fun notifyAllWaiters();
+    @internal fun wakeupOne();
+    @internal fun wakeupAll();
 }

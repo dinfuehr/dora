@@ -8,18 +8,18 @@ use parking_lot::Mutex;
 use std::mem::MaybeUninit;
 use std::sync::atomic::{AtomicI32, Ordering};
 
-pub struct MutexMap {
+pub struct WaitLists {
     data: Mutex<ObjectHashMap<HeadAndTail>>,
 }
 
-impl MutexMap {
-    pub fn new() -> MutexMap {
-        MutexMap {
+impl WaitLists {
+    pub fn new() -> WaitLists {
+        WaitLists {
             data: Mutex::new(ObjectHashMap::new()),
         }
     }
 
-    pub fn wait(&self, mutex: Handle<ManagedMutex>, value: i32) {
+    pub fn block(&self, mutex: Handle<ManagedMutex>, value: i32) {
         let thread = current_thread();
         let thread_ptr = DoraThreadPtr::new(thread);
 
@@ -68,9 +68,58 @@ impl MutexMap {
         });
     }
 
-    pub fn notify(&self, mutex: Handle<ManagedMutex>) {
+    pub fn enqueue(&self, condition: Handle<ManagedCondition>) {
+        let thread = current_thread();
+        let thread_ptr = DoraThreadPtr::new(thread);
+
+        {
+            let mut data = self.data.lock();
+            let key = condition.direct_ptr();
+
+            {
+                let atomic_object = condition.state;
+                atomic_object.value.store(1, Ordering::SeqCst)
+            }
+
+            let entry = data.get(key).cloned();
+            let (head, tail) = match entry {
+                Some(entry) => {
+                    let old_tail = entry.tail.to_ref();
+                    let mut old_tail_data = old_tail.blocking.lock();
+                    let (blocking, next) = *old_tail_data;
+                    assert!(blocking && next.is_null());
+                    *old_tail_data = (true, thread_ptr);
+                    (entry.head, thread_ptr)
+                }
+                None => (thread_ptr, thread_ptr),
+            };
+
+            {
+                let mut thread_data = thread.blocking.lock();
+                let (blocking, next) = *thread_data;
+                assert!(!blocking && next.is_null());
+                *thread_data = (true, DoraThreadPtr::null());
+            }
+
+            data.insert(key, HeadAndTail { head, tail });
+        }
+    }
+
+    pub fn block_after_enqueue(&self) {
+        let thread = current_thread();
+
+        parked_scope(|| {
+            let mut blocking_data = thread.blocking.lock();
+
+            while blocking_data.0 {
+                thread.cv_blocking.wait(&mut blocking_data);
+            }
+        });
+    }
+
+    pub fn wakeup(&self, address: Address) {
         let mut data = self.data.lock();
-        let key = mutex.direct_ptr();
+        let key = address;
 
         let entry = data.get(key).cloned();
 
@@ -102,6 +151,32 @@ impl MutexMap {
         }
     }
 
+    pub fn wakeup_all(&self, address: Address) {
+        let mut data = self.data.lock();
+        let key = address;
+
+        let entry = data.remove(key);
+
+        if let Some(entry) = entry {
+            let mut next = entry.head;
+
+            while !next.is_null() {
+                let wakeup_thread = next.to_ref();
+
+                next = {
+                    let mut thread_data = wakeup_thread.blocking.lock();
+                    let (blocking, next) = *thread_data;
+                    assert!(blocking);
+                    *thread_data = (false, DoraThreadPtr::null());
+
+                    next
+                };
+
+                wakeup_thread.cv_blocking.notify_one();
+            }
+        }
+    }
+
     pub fn visit_roots<F>(&self, fct: F)
     where
         F: FnMut(Slot),
@@ -118,6 +193,12 @@ struct HeadAndTail {
 }
 #[repr(C)]
 pub struct ManagedMutex {
+    header: Header,
+    state: Ref<AtomicInt32>,
+}
+
+#[repr(C)]
+pub struct ManagedCondition {
     header: Header,
     state: Ref<AtomicInt32>,
 }

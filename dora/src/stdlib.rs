@@ -18,7 +18,7 @@ use crate::threads::{
     ManagedThread, ThreadState, STACK_SIZE,
 };
 use crate::ty::SourceTypeArray;
-use crate::vm::{get_vm, stack_pointer, ManagedMutex, Trap};
+use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, Trap};
 
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
@@ -407,26 +407,30 @@ pub extern "C" fn join_thread(managed_thread: Handle<ManagedThread>) {
 
 pub extern "C" fn mutex_wait(mutex: Handle<ManagedMutex>, value: i32) {
     let vm = get_vm();
-    vm.mutex_map.wait(mutex, value);
+    vm.wait_lists.block(mutex, value);
 }
 
 pub extern "C" fn mutex_notify(mutex: Handle<ManagedMutex>) {
     let vm = get_vm();
-    vm.mutex_map.notify(mutex);
+    vm.wait_lists.wakeup(mutex.direct_ptr());
 }
 
-pub extern "C" fn condition_enqueue(_cond: Handle<Obj>) {
-    unimplemented!()
+pub extern "C" fn condition_enqueue(cond: Handle<ManagedCondition>) {
+    let vm = get_vm();
+    vm.wait_lists.enqueue(cond);
 }
 
-pub extern "C" fn condition_block(_cond: Handle<Obj>) {
-    unimplemented!()
+pub extern "C" fn condition_block_after_enqueue(_cond: Handle<Obj>) {
+    let vm = get_vm();
+    vm.wait_lists.block_after_enqueue();
 }
 
-pub extern "C" fn condition_notify_one(_cond: Handle<Obj>) {
-    unimplemented!()
+pub extern "C" fn condition_wakeup_one(cond: Handle<Obj>) {
+    let vm = get_vm();
+    vm.wait_lists.wakeup(cond.direct_ptr());
 }
 
-pub extern "C" fn condition_notify_all(_cond: Handle<Obj>) {
-    unimplemented!()
+pub extern "C" fn condition_wakeup_all(cond: Handle<Obj>) {
+    let vm = get_vm();
+    vm.wait_lists.wakeup_all(cond.direct_ptr());
 }

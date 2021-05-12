@@ -50,7 +50,7 @@ pub use self::known::{
 pub use self::modules::{
     find_methods_in_module, module_accessible_from, Module, ModuleDef, ModuleDefId, ModuleId,
 };
-pub use self::mutex::{ManagedMutex, MutexMap};
+pub use self::mutex::{ManagedCondition, ManagedMutex, WaitLists};
 pub use self::namespaces::{
     accessible_from, namespace_accessible_from, namespace_contains, namespace_package,
     namespace_path, NamespaceData, NamespaceId,
@@ -151,7 +151,7 @@ pub struct VM {
     pub stdlib_namespace_id: NamespaceId,
     pub global_namespace_id: NamespaceId,
     pub boots_namespace_id: NamespaceId,
-    pub mutex_map: MutexMap,
+    pub wait_lists: WaitLists,
 }
 
 impl VM {
@@ -260,7 +260,7 @@ impl VM {
             stdlib_namespace_id,
             global_namespace_id,
             boots_namespace_id,
-            mutex_map: MutexMap::new(),
+            wait_lists: WaitLists::new(),
         });
 
         set_vm(&vm);

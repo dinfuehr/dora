@@ -180,7 +180,7 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
 }
 
 fn determine_rootset_from_wait_list(rootset: &mut Vec<Slot>, vm: &VM) {
-    vm.mutex_map.visit_roots(|slot| {
+    vm.wait_lists.visit_roots(|slot| {
         rootset.push(slot);
     });
 }

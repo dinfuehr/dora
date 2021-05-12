@@ -763,23 +763,23 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib,
         "Condition",
         "block",
-        stdlib::condition_block as *const u8,
+        stdlib::condition_block_after_enqueue as *const u8,
     );
 
     native_method(
         vm,
         stdlib,
         "Condition",
-        "notifyOneWaiter",
-        stdlib::condition_notify_one as *const u8,
+        "wakeupOne",
+        stdlib::condition_wakeup_one as *const u8,
     );
 
     native_method(
         vm,
         stdlib,
         "Condition",
-        "notifyAllWaiters",
-        stdlib::condition_notify_all as *const u8,
+        "wakeupAll",
+        stdlib::condition_wakeup_all as *const u8,
     );
 
     intrinsic_method(vm, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
