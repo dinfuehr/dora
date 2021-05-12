@@ -1,0 +1,102 @@
+//= vm-args "--gc=copy"
+//= ignore
+
+const THREADS: Int32 = 4;
+const ITERATIONS: Int32 = 10_000;
+const QUEUE_SIZE: Int64 = 5L;
+
+class SharedQueue[T](let capacity: Int64) {
+    let mtx: std::Mutex = std::Mutex();
+    let conditionNonEmpty: std::Condition = std::Condition();
+    let conditionNonFull: std::Condition = std::Condition();
+    let queue: std::Queue[T] = std::Queue[T]();
+
+    fun enqueue(id: Int32, value: T) {
+        self.mtx.lock();
+
+        while self.queue.size() == self.capacity {
+            println("thread ${id}: SharedQueue::enqueue: block full");
+            self.conditionNonFull.wait(self.mtx);
+        }
+
+        println("thread ${id}: SharedQueue::enqueue");
+        self.queue.enqueue(value);
+        self.mtx.unlock();
+        println("thread ${id}: SharedQueue::enqueue: notifyAll on conditionNonEmpty");
+        self.conditionNonEmpty.notifyAll();
+    }
+
+    fun dequeue(): T {
+        self.mtx.lock();
+
+        while self.queue.size() == 0L {
+            println("consumer: SharedQueue::dequeue: block empty");
+            self.conditionNonEmpty.wait(self.mtx);
+        }
+
+        println("consumer: SharedQueue::dequeue");
+        let value = self.queue.dequeue();
+        self.mtx.unlock();
+        println("consumer: SharedQueue::dequeue: notifyAll on conditionNonEmpty");
+        self.conditionNonFull.notifyAll();
+        value
+    }
+}
+
+class Producer(let queue: SharedQueue[Int32], let producerId: Int32) extends std::Thread {
+    var sum: Int32 = 0;
+
+    @override fun run() {
+        var i = 0;
+
+        while i < ITERATIONS {
+            self.queue.enqueue(self.producerId, i);
+            self.sum = self.sum + i;
+            i = i + 1;
+        }
+    }
+}
+
+class Consumer(let queue: SharedQueue[Int32]) extends std::Thread {
+    var sum: Int32 = 0;
+
+    @override fun run() {
+        while true {
+            let value = self.queue.dequeue();
+
+            if value == -1 {
+                break;
+            }
+
+            self.sum = self.sum + value;
+        }
+    }
+}
+
+fun main() {
+    var i = 0;
+    let queue = SharedQueue[Int32](QUEUE_SIZE);
+    let producers = Vec[Producer]();
+
+    while i < THREADS {
+        let producer = Producer(queue, i+2);
+        producer.start();
+        producers.push(producer);
+        i = i + 1;
+    }
+
+    let consumer = Consumer(queue);
+    consumer.start();
+
+    var producerSum = 0;
+
+    for producer in producers {
+        producer.join();
+        producerSum = producerSum + producer.sum;
+    }
+
+    queue.enqueue(100, -1);
+    consumer.join();
+
+    assert(consumer.sum == producerSum);
+}
