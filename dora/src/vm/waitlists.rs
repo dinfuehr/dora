@@ -2,7 +2,7 @@ use crate::gc::root::Slot;
 use crate::gc::Address;
 use crate::handle::Handle;
 use crate::object::{Header, Ref};
-use crate::threads::{current_thread, parked_scope, DoraThreadPtr};
+use crate::threads::{current_thread, DoraThreadPtr};
 use crate::vm::get_vm;
 use parking_lot::Mutex;
 use std::mem::MaybeUninit;
@@ -36,85 +36,25 @@ impl WaitLists {
                 return;
             }
 
-            let entry = data.get(key).cloned();
-            let (head, tail) = match entry {
-                Some(entry) => {
-                    let old_tail = entry.tail.to_ref();
-                    let mut old_tail_data = old_tail.blocking.lock();
-                    let (blocking, next) = *old_tail_data;
-                    assert!(blocking && next.is_null());
-                    *old_tail_data = (true, thread_ptr);
-                    (entry.head, thread_ptr)
-                }
-                None => (thread_ptr, thread_ptr),
-            };
-
-            {
-                let mut thread_data = thread.blocking.lock();
-                let (blocking, next) = *thread_data;
-                assert!(!blocking && next.is_null());
-                *thread_data = (true, DoraThreadPtr::null());
-            }
-
-            data.insert(key, HeadAndTail { head, tail });
+            append_to_waitlist(thread_ptr, key, &mut *data);
         }
 
-        parked_scope(|| {
-            let mut blocking_data = thread.blocking.lock();
-
-            while blocking_data.0 {
-                thread.cv_blocking.wait(&mut blocking_data);
-            }
-        });
+        thread.block();
     }
 
     pub fn enqueue(&self, condition: Handle<ManagedCondition>) {
         let thread = current_thread();
         let thread_ptr = DoraThreadPtr::new(thread);
 
+        let mut data = self.data.lock();
+        let key = condition.direct_ptr();
+
         {
-            let mut data = self.data.lock();
-            let key = condition.direct_ptr();
-
-            {
-                let atomic_object = condition.state;
-                atomic_object.value.store(1, Ordering::SeqCst)
-            }
-
-            let entry = data.get(key).cloned();
-            let (head, tail) = match entry {
-                Some(entry) => {
-                    let old_tail = entry.tail.to_ref();
-                    let mut old_tail_data = old_tail.blocking.lock();
-                    let (blocking, next) = *old_tail_data;
-                    assert!(blocking && next.is_null());
-                    *old_tail_data = (true, thread_ptr);
-                    (entry.head, thread_ptr)
-                }
-                None => (thread_ptr, thread_ptr),
-            };
-
-            {
-                let mut thread_data = thread.blocking.lock();
-                let (blocking, next) = *thread_data;
-                assert!(!blocking && next.is_null());
-                *thread_data = (true, DoraThreadPtr::null());
-            }
-
-            data.insert(key, HeadAndTail { head, tail });
+            let atomic_object = condition.state;
+            atomic_object.value.store(1, Ordering::SeqCst)
         }
-    }
 
-    pub fn block_after_enqueue(&self) {
-        let thread = current_thread();
-
-        parked_scope(|| {
-            let mut blocking_data = thread.blocking.lock();
-
-            while blocking_data.0 {
-                thread.cv_blocking.wait(&mut blocking_data);
-            }
-        });
+        append_to_waitlist(thread_ptr, key, &mut *data);
     }
 
     pub fn wakeup(&self, address: Address) {
@@ -125,17 +65,7 @@ impl WaitLists {
 
         if let Some(entry) = entry {
             let wakeup_thread = entry.head.to_ref();
-
-            let next = {
-                let mut thread_data = wakeup_thread.blocking.lock();
-                let (blocking, next) = *thread_data;
-                assert!(blocking);
-                *thread_data = (false, DoraThreadPtr::null());
-
-                next
-            };
-
-            wakeup_thread.cv_blocking.notify_one();
+            let next = wakeup_thread.remove_from_waitlist();
 
             if next.is_null() {
                 data.remove(key);
@@ -162,17 +92,7 @@ impl WaitLists {
 
             while !next.is_null() {
                 let wakeup_thread = next.to_ref();
-
-                next = {
-                    let mut thread_data = wakeup_thread.blocking.lock();
-                    let (blocking, next) = *thread_data;
-                    assert!(blocking);
-                    *thread_data = (false, DoraThreadPtr::null());
-
-                    next
-                };
-
-                wakeup_thread.cv_blocking.notify_one();
+                next = wakeup_thread.remove_from_waitlist();
             }
         }
     }
@@ -184,6 +104,26 @@ impl WaitLists {
         let mut data = self.data.lock();
         data.visit_roots(fct);
     }
+}
+
+fn append_to_waitlist(
+    thread_ptr: DoraThreadPtr,
+    key: Address,
+    data: &mut ObjectHashMap<HeadAndTail>,
+) {
+    let entry = data.get(key).cloned();
+    let (head, tail) = match entry {
+        Some(entry) => {
+            let old_tail = entry.tail.to_ref();
+            old_tail.set_waitlist_successor(thread_ptr);
+            (entry.head, thread_ptr)
+        }
+        None => (thread_ptr, thread_ptr),
+    };
+
+    thread_ptr.to_ref().prepare_for_waitlist();
+    let new_entry = HeadAndTail { head, tail };
+    data.insert(key, new_entry);
 }
 
 #[derive(Clone)]

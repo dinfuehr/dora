@@ -275,6 +275,43 @@ impl DoraThread {
     pub fn tld_address(&self) -> Address {
         Address::from_ptr(&self.tld)
     }
+
+    pub fn block(&self) {
+        parked_scope(|| {
+            let mut data = self.blocking.lock();
+
+            while data.0 {
+                self.cv_blocking.wait(&mut data);
+            }
+        });
+    }
+
+    pub fn prepare_for_waitlist(&self) {
+        let mut data = self.blocking.lock();
+        let (blocking, next) = *data;
+        assert!(!blocking && next.is_null());
+        *data = (true, DoraThreadPtr::null());
+    }
+
+    pub fn set_waitlist_successor(&self, new_tail: DoraThreadPtr) {
+        let mut data = self.blocking.lock();
+        let (blocking, next) = *data;
+        assert!(blocking && next.is_null());
+        *data = (true, new_tail);
+    }
+
+    pub fn remove_from_waitlist(&self) -> DoraThreadPtr {
+        let next = {
+            let mut thread_data = self.blocking.lock();
+            let (blocking, next) = *thread_data;
+            assert!(blocking);
+            *thread_data = (false, DoraThreadPtr::null());
+            next
+        };
+
+        self.cv_blocking.notify_one();
+        next
+    }
 }
 
 pub fn parked_scope<F, R>(callback: F) -> R

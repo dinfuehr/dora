@@ -421,8 +421,8 @@ pub extern "C" fn condition_enqueue(cond: Handle<ManagedCondition>) {
 }
 
 pub extern "C" fn condition_block_after_enqueue(_cond: Handle<Obj>) {
-    let vm = get_vm();
-    vm.wait_lists.block_after_enqueue();
+    let thread = current_thread();
+    thread.block();
 }
 
 pub extern "C" fn condition_wakeup_one(cond: Handle<Obj>) {
