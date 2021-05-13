@@ -1,5 +1,4 @@
 //= vm-args "--gc=copy"
-//= ignore
 
 const THREADS: Int32 = 20;
 const ITERATIONS: Int32 = 10_000;
@@ -11,7 +10,7 @@ class SharedQueue[T](let capacity: Int64) {
     let conditionNonFull: std::Condition = std::Condition();
     let queue: std::Queue[T] = std::Queue[T]();
 
-    fun enqueue(id: Int32, value: T) {
+    fun enqueue(value: T) {
         self.mtx.lock();
 
         while self.queue.size() == self.capacity {
@@ -37,14 +36,14 @@ class SharedQueue[T](let capacity: Int64) {
     }
 }
 
-class Producer(let queue: SharedQueue[Int32], let producerId: Int32) extends std::Thread {
+class Producer(let queue: SharedQueue[Int32]) extends std::Thread {
     var sum: Int32 = 0;
 
     @override fun run() {
         var i = 0;
 
         while i < ITERATIONS {
-            self.queue.enqueue(self.producerId, i);
+            self.queue.enqueue(i);
             self.sum = self.sum + i;
             i = i + 1;
         }
@@ -73,7 +72,7 @@ fun main() {
     let producers = Vec[Producer]();
 
     while i < THREADS {
-        let producer = Producer(queue, i+2);
+        let producer = Producer(queue);
         producer.start();
         producers.push(producer);
         i = i + 1;
@@ -89,7 +88,7 @@ fun main() {
         producerSum = producerSum + producer.sum;
     }
 
-    queue.enqueue(100, -1);
+    queue.enqueue(-1);
     consumer.join();
 
     assert(consumer.sum == producerSum);
