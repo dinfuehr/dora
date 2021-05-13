@@ -10,35 +10,48 @@
         self.insert(entry.0, entry.1);
     }
 
-    @pub fun insert(key: K, value: V) {
+    @pub fun insert(key: K, value: V): Option[V] {
         self.ensureCapacity(1L);
         assert(self.entries < self.cap);
 
         var hash = key.hash();
         var idx = hash.toInt64() & (self.cap - 1L);
+        var insert_idx = None[Int64];
 
         while true {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
+                    let old_value = self.values.get(idx);
                     self.values.set(idx, value);
-                    return;
+                    return Some[V](old_value);
+                }
+
+            } else if self.isDeleted(idx) {
+                // There might be live entries after a deleted one.
+
+                if insert_idx.isNone() {
+                    insert_idx = Some[Int64](idx);
                 }
 
             } else {
-                self.inserted_and_deleted.insert(2L * idx);
-                self.inserted_and_deleted.remove(2L * idx + 1L);
+                let insert_idx = insert_idx.unwrapOr(idx);
 
-                self.keys.set(idx, key);
-                self.values.set(idx, value);
+                self.inserted_and_deleted.insert(2L * insert_idx);
+                self.inserted_and_deleted.remove(2L * insert_idx + 1L);
+
+                self.keys.set(insert_idx, key);
+                self.values.set(insert_idx, value);
 
                 self.entries = self.entries + 1L;
-                return;
+                return None[V];
             }
 
             idx = (idx + 1L) & (self.cap - 1L);
         }
+
+        unreachable[Option[V]]()
     }
 
     @pub fun contains(key: K): Bool {

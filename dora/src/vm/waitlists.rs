@@ -222,7 +222,9 @@ impl<T> ObjectHashMap<T> {
                 }
             } else if self.is_deleted(idx) {
                 // There might be a live entry after a deleted one.
-                insert_idx = Some(idx);
+                if insert_idx.is_none() {
+                    insert_idx = Some(idx);
+                }
             } else {
                 debug_assert!(self.is_empty(idx));
                 let insert_idx = insert_idx.unwrap_or(idx);
