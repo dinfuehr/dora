@@ -314,9 +314,6 @@ pub extern "C" fn trap(trap_id: u32) {
 }
 
 pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
-    use crate::compiler;
-    use crate::stack::DoraToNativeInfo;
-
     let vm = get_vm();
 
     // Create new thread in Parked state.
@@ -345,52 +342,58 @@ pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
     thread::spawn(move || {
         // Initialize thread-local variable with thread
         let thread = init_current_thread(thread);
-
-        let handle: Handle<Obj> = Handle::from_address(location);
-
-        let stack_top = stack_pointer();
-        let stack_limit = stack_top.sub(STACK_SIZE);
-        thread.tld.set_stack_limit(stack_limit);
-
-        // Thread was created in Parked state, so we need to Unpark
-        // before we dereference handle.
-        thread.unpark(vm);
-
-        let main = {
-            let cls_id = handle.header().vtbl().class_def().cls_id;
-            let cls_id = cls_id.expect("no corresponding class");
-            let cls = vm.classes.idx(cls_id);
-            let cls = cls.read();
-            let name = vm.interner.intern("run");
-            cls.find_method(vm, name, false)
-                .expect("run() method not found")
-        };
-
-        let tld = thread.tld_address();
-
-        let fct_ptr = {
-            let mut dtn = DoraToNativeInfo::new();
-            let type_params = SourceTypeArray::empty();
-
-            thread.use_dtn(&mut dtn, || compiler::generate(vm, main, &type_params))
-        };
-
-        // execute the thread object's run-method
-        let dora_stub_address = vm.dora_stub();
-        let fct: extern "C" fn(Address, Address, Ref<Obj>) =
-            unsafe { mem::transmute(dora_stub_address) };
-        fct(tld, fct_ptr, handle.direct());
-
-        // remove thread from list of all threads
-        vm.threads.detach_current_thread();
-
-        // notify threads waiting in join() for this thread's end
-        let mut running = thread.thread_state.lock();
-        *running = false;
-        thread.cv_thread_state.notify_all();
-
+        thread_main(thread, location);
         deinit_current_thread();
     });
+}
+
+fn thread_main(thread: &DoraThread, location: Address) {
+    use crate::compiler;
+    use crate::stack::DoraToNativeInfo;
+
+    let vm = get_vm();
+    let handle: Handle<Obj> = Handle::from_address(location);
+
+    let stack_top = stack_pointer();
+    let stack_limit = stack_top.sub(STACK_SIZE);
+    thread.tld.set_stack_limit(stack_limit);
+
+    // Thread was created in Parked state, so we need to Unpark
+    // before we dereference handle.
+    thread.unpark(vm);
+
+    let main = {
+        let cls_id = handle.header().vtbl().class_def().cls_id;
+        let cls_id = cls_id.expect("no corresponding class");
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+        let name = vm.interner.intern("run");
+        cls.find_method(vm, name, false)
+            .expect("run() method not found")
+    };
+
+    let tld = thread.tld_address();
+
+    let fct_ptr = {
+        let mut dtn = DoraToNativeInfo::new();
+        let type_params = SourceTypeArray::empty();
+
+        thread.use_dtn(&mut dtn, || compiler::generate(vm, main, &type_params))
+    };
+
+    // execute the thread object's run-method
+    let dora_stub_address = vm.dora_stub();
+    let fct: extern "C" fn(Address, Address, Ref<Obj>) =
+        unsafe { mem::transmute(dora_stub_address) };
+    fct(tld, fct_ptr, handle.direct());
+
+    // remove thread from list of all threads
+    vm.threads.detach_current_thread();
+
+    // notify threads waiting in join() for this thread's end
+    let mut running = thread.thread_state.lock();
+    *running = false;
+    thread.cv_thread_state.notify_all();
 }
 
 pub extern "C" fn join_thread(managed_thread: Handle<ManagedThread>) {
