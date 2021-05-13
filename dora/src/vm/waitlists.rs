@@ -212,6 +212,7 @@ impl<T> ObjectHashMap<T> {
 
         let hash = key.to_usize();
         let mut idx = hash & (self.capacity - 1);
+        let mut insert_idx = None;
 
         loop {
             if self.is_live(idx) {
@@ -219,10 +220,15 @@ impl<T> ObjectHashMap<T> {
                     self.data[idx].value = value;
                     return;
                 }
+            } else if self.is_deleted(idx) {
+                // There might be a live entry after a deleted one.
+                insert_idx = Some(idx);
             } else {
-                debug_assert!(self.is_empty(idx) || self.is_deleted(idx));
-                self.data[idx].key = key;
-                self.data[idx].value = value;
+                debug_assert!(self.is_empty(idx));
+                let insert_idx = insert_idx.unwrap_or(idx);
+                debug_assert!(self.is_empty(insert_idx) || self.is_deleted(insert_idx));
+                self.data[insert_idx].key = key;
+                self.data[insert_idx].value = value;
                 self.entries += 1;
                 return;
             }
@@ -243,6 +249,7 @@ impl<T> ObjectHashMap<T> {
                     self.data[idx].key = DELETED.into();
                     let new_value: T = unsafe { MaybeUninit::uninit().assume_init() };
                     let value = std::mem::replace(&mut self.data[idx].value, new_value);
+                    self.entries -= 1;
                     return Some(value);
                 }
             } else if self.is_deleted(idx) {

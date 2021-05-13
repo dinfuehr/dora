@@ -1,9 +1,9 @@
 //= vm-args "--gc=copy"
 //= ignore
 
-const THREADS: Int32 = 4;
+const THREADS: Int32 = 20;
 const ITERATIONS: Int32 = 10_000;
-const QUEUE_SIZE: Int64 = 5L;
+const QUEUE_SIZE: Int64 = 20L;
 
 class SharedQueue[T](let capacity: Int64) {
     let mtx: std::Mutex = std::Mutex();
@@ -15,14 +15,11 @@ class SharedQueue[T](let capacity: Int64) {
         self.mtx.lock();
 
         while self.queue.size() == self.capacity {
-            println("thread ${id}: SharedQueue::enqueue: block full");
             self.conditionNonFull.wait(self.mtx);
         }
 
-        println("thread ${id}: SharedQueue::enqueue");
         self.queue.enqueue(value);
         self.mtx.unlock();
-        println("thread ${id}: SharedQueue::enqueue: notifyAll on conditionNonEmpty");
         self.conditionNonEmpty.notifyAll();
     }
 
@@ -30,14 +27,11 @@ class SharedQueue[T](let capacity: Int64) {
         self.mtx.lock();
 
         while self.queue.size() == 0L {
-            println("consumer: SharedQueue::dequeue: block empty");
             self.conditionNonEmpty.wait(self.mtx);
         }
 
-        println("consumer: SharedQueue::dequeue");
         let value = self.queue.dequeue();
         self.mtx.unlock();
-        println("consumer: SharedQueue::dequeue: notifyAll on conditionNonEmpty");
         self.conditionNonFull.notifyAll();
         value
     }
