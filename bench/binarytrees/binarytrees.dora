@@ -1,8 +1,8 @@
 fun main() {
   var maxDepth = 6;
 
-  if argc() > 0 {
-    maxDepth = argv(0).toInt32().unwrap();
+  if std::argc() > 0 {
+    maxDepth = std::argv(0).toInt32().unwrap();
   }
 
   if 6 > maxDepth {
@@ -46,23 +46,24 @@ fun loops(iterations: Int32, depth: Int32) {
 
 fun createTree(depth: Int32): TreeNode {
   var depth = depth;
-  let node = TreeNode(0, nil, nil);
+  let node = TreeNode(0, Option[TreeNode]::None, Option[TreeNode]::None);
 
   if depth > 0 {
     depth = depth - 1;
-    node.left = createTree(depth);
-    node.right = createTree(depth);
+    node.left = Option[TreeNode]::Some(createTree(depth));
+    node.right = Option[TreeNode]::Some(createTree(depth));
   }
 
   return node;
 }
 
 fun checkTree(node: TreeNode): Int32 {
-  if node.left === nil {
+  if node.left.isNone() {
     return 1;
   }
 
-  return checkTree(node.left) + checkTree(node.right) + 1;
+  return checkTree(node.left.unwrap()) +
+         checkTree(node.right.unwrap()) + 1;
 }
 
-class TreeNode(let item: Int32, var left: TreeNode, var right: TreeNode)
+class TreeNode(let item: Int32, var left: Option[TreeNode], var right: Option[TreeNode])
