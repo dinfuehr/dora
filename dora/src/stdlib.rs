@@ -14,8 +14,8 @@ use crate::handle::{handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
-    current_thread, deinit_current_thread, init_current_thread, parked_scope, DoraThread,
-    ManagedThread, ThreadState, STACK_SIZE,
+    current_thread, deinit_current_thread, init_current_thread, DoraThread, ManagedThread,
+    ThreadState, STACK_SIZE,
 };
 use crate::ty::SourceTypeArray;
 use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, Trap};
@@ -391,21 +391,12 @@ fn thread_main(thread: &DoraThread, location: Address) {
     vm.threads.detach_current_thread();
 
     // notify threads waiting in join() for this thread's end
-    let mut running = thread.thread_state.lock();
-    *running = false;
-    thread.cv_thread_state.notify_all();
+    thread.stop();
 }
 
 pub extern "C" fn join_thread(managed_thread: Handle<ManagedThread>) {
     let native_thread = managed_thread.native_thread();
-
-    parked_scope(|| {
-        let mut running = native_thread.thread_state.lock();
-
-        while *running {
-            native_thread.cv_thread_state.wait(&mut running);
-        }
-    });
+    native_thread.join();
 }
 
 pub extern "C" fn mutex_wait(mutex: Handle<ManagedMutex>, value: i32) {

@@ -48,7 +48,7 @@ pub fn deinit_current_thread() {
 
 pub struct Threads {
     pub threads: Mutex<Vec<Arc<DoraThread>>>,
-    pub cond_join: Condvar,
+    pub cv_join: Condvar,
 
     pub next_id: AtomicUsize,
 
@@ -59,7 +59,7 @@ impl Threads {
     pub fn new() -> Threads {
         Threads {
             threads: Mutex::new(Vec::new()),
-            cond_join: Condvar::new(),
+            cv_join: Condvar::new(),
             next_id: AtomicUsize::new(1),
             barrier: Barrier::new(),
         }
@@ -89,14 +89,14 @@ impl Threads {
 
         let mut threads = self.threads.lock();
         threads.retain(|elem| Arc::as_ptr(elem) != thread as *const _);
-        self.cond_join.notify_all();
+        self.cv_join.notify_all();
     }
 
     pub fn join_all(&self) {
         let mut threads = self.threads.lock();
 
         while threads.len() > 0 {
-            self.cond_join.wait(&mut threads);
+            self.cv_join.wait(&mut threads);
         }
     }
 
@@ -134,16 +134,12 @@ impl DoraThreadPtr {
 }
 
 pub struct DoraThread {
-    pub id: AtomicUsize,
+    id: AtomicUsize,
     pub handles: HandleMemory,
     pub tld: ThreadLocalData,
-    pub saved_pc: AtomicUsize,
-    pub saved_fp: AtomicUsize,
     pub state: AtomicUsize,
-    pub thread_state: Mutex<bool>,
-    pub cv_thread_state: Condvar,
-    pub blocking: Mutex<(bool, DoraThreadPtr)>,
-    pub cv_blocking: Condvar,
+    join_data: JoinData,
+    blocking_data: BlockingData,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -159,13 +155,9 @@ impl DoraThread {
             id: AtomicUsize::new(id),
             handles: HandleMemory::new(),
             tld: ThreadLocalData::new(),
-            saved_pc: AtomicUsize::new(0),
-            saved_fp: AtomicUsize::new(0),
             state: AtomicUsize::new(initial_state as usize),
-            thread_state: Mutex::new(true),
-            cv_thread_state: Condvar::new(),
-            blocking: Mutex::new((false, DoraThreadPtr::null())),
-            cv_blocking: Condvar::new(),
+            join_data: JoinData::new(),
+            blocking_data: BlockingData::new(),
         })
     }
 
@@ -227,7 +219,7 @@ impl DoraThread {
         }
     }
 
-    pub fn park_slow(&self, vm: &VM) {
+    fn park_slow(&self, vm: &VM) {
         assert!(self
             .state
             .compare_exchange(
@@ -255,7 +247,7 @@ impl DoraThread {
         }
     }
 
-    pub fn unpark_slow(&self, vm: &VM) {
+    fn unpark_slow(&self, vm: &VM) {
         loop {
             match self.state.compare_exchange(
                 ThreadState::Parked as usize,
@@ -278,23 +270,23 @@ impl DoraThread {
 
     pub fn block(&self) {
         parked_scope(|| {
-            let mut data = self.blocking.lock();
+            let mut data = self.blocking_data.blocking.lock();
 
             while data.0 {
-                self.cv_blocking.wait(&mut data);
+                self.blocking_data.cv_blocking.wait(&mut data);
             }
         });
     }
 
     pub fn prepare_for_waitlist(&self) {
-        let mut data = self.blocking.lock();
+        let mut data = self.blocking_data.blocking.lock();
         let (blocking, next) = *data;
         assert!(!blocking && next.is_null());
         *data = (true, DoraThreadPtr::null());
     }
 
     pub fn set_waitlist_successor(&self, new_tail: DoraThreadPtr) {
-        let mut data = self.blocking.lock();
+        let mut data = self.blocking_data.blocking.lock();
         let (blocking, next) = *data;
         assert!(blocking && next.is_null());
         *data = (true, new_tail);
@@ -302,15 +294,31 @@ impl DoraThread {
 
     pub fn remove_from_waitlist(&self) -> DoraThreadPtr {
         let next = {
-            let mut thread_data = self.blocking.lock();
+            let mut thread_data = self.blocking_data.blocking.lock();
             let (blocking, next) = *thread_data;
             assert!(blocking);
             *thread_data = (false, DoraThreadPtr::null());
             next
         };
 
-        self.cv_blocking.notify_one();
+        self.blocking_data.cv_blocking.notify_one();
         next
+    }
+
+    pub fn stop(&self) {
+        let mut running = self.join_data.running.lock();
+        *running = false;
+        self.join_data.cv_stopped.notify_all();
+    }
+
+    pub fn join(&self) {
+        parked_scope(|| {
+            let mut running = self.join_data.running.lock();
+
+            while *running {
+                self.join_data.cv_stopped.wait(&mut running);
+            }
+        });
     }
 }
 
@@ -326,6 +334,34 @@ where
     thread.unpark(vm);
 
     result
+}
+
+struct JoinData {
+    running: Mutex<bool>,
+    cv_stopped: Condvar,
+}
+
+impl JoinData {
+    fn new() -> JoinData {
+        JoinData {
+            running: Mutex::new(true),
+            cv_stopped: Condvar::new(),
+        }
+    }
+}
+
+struct BlockingData {
+    blocking: Mutex<(bool, DoraThreadPtr)>,
+    cv_blocking: Condvar,
+}
+
+impl BlockingData {
+    fn new() -> BlockingData {
+        BlockingData {
+            blocking: Mutex::new((false, DoraThreadPtr::null())),
+            cv_blocking: Condvar::new(),
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
