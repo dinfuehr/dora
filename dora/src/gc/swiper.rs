@@ -36,7 +36,6 @@ mod minor;
 pub mod old;
 mod pcompact;
 mod pminor;
-pub mod sweep;
 mod verify;
 pub mod young;
 

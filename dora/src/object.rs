@@ -96,7 +96,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr_forwarded_atomic(&self) -> Result<Address, Address> {
+    pub fn was_forwarded(&self) -> Result<Address, Address> {
         let addr = self.vtable.load(Ordering::Relaxed);
 
         if (addr & 3) == 3 {
@@ -109,7 +109,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr_forward_atomic(
+    pub fn forward_synchronized(
         &mut self,
         expected_vtblptr: Address,
         new_address: Address,
@@ -118,8 +118,8 @@ impl Header {
         let result = self.vtable.compare_exchange(
             expected_vtblptr.to_usize(),
             fwd,
-            Ordering::SeqCst,
-            Ordering::SeqCst,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
         );
 
         match result {
@@ -139,16 +139,13 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr_forward_failure_atomic(
-        &mut self,
-        expected_vtblptr: Address,
-    ) -> Result<(), Address> {
+    pub fn forwarding_failed(&mut self, expected_vtblptr: Address) -> Result<(), Address> {
         let fwd = expected_vtblptr.to_usize() | 3;
         let result = self.vtable.compare_exchange(
             expected_vtblptr.to_usize(),
             fwd,
-            Ordering::SeqCst,
-            Ordering::SeqCst,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
         );
 
         match result {

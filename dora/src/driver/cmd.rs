@@ -239,7 +239,7 @@ pub enum CollectorName {
     Copy,
     Sweep,
     Swiper,
-    SweepSwiper,
+    Region,
 }
 
 #[derive(Copy, Clone, Debug, Deserialize)]

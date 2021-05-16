@@ -1025,7 +1025,7 @@ impl<'a> CopyTask<'a> {
         let obj = obj_addr.to_mut_obj();
 
         // Check if object was already copied
-        let vtblptr = match obj.header().vtblptr_forwarded_atomic() {
+        let vtblptr = match obj.header().was_forwarded() {
             Ok(fwd_addr) => {
                 return fwd_addr;
             }
@@ -1060,7 +1060,7 @@ impl<'a> CopyTask<'a> {
         }
 
         obj.copy_to(copy_addr, obj_size);
-        let res = obj.header_mut().vtblptr_forward_atomic(vtblptr, copy_addr);
+        let res = obj.header_mut().forward_synchronized(vtblptr, copy_addr);
 
         match res {
             Ok(()) => {
@@ -1083,7 +1083,7 @@ impl<'a> CopyTask<'a> {
         // young generation for now. A full collection will be forced later and
         // cleans this up.
         if copy_addr.is_null() {
-            let res = obj.header_mut().vtblptr_forward_failure_atomic(vtblptr);
+            let res = obj.header_mut().forwarding_failed(vtblptr);
 
             return match res {
                 Ok(()) => obj.address(),
@@ -1092,7 +1092,7 @@ impl<'a> CopyTask<'a> {
         }
 
         obj.copy_to(copy_addr, obj_size);
-        let res = obj.header_mut().vtblptr_forward_atomic(vtblptr, copy_addr);
+        let res = obj.header_mut().forward_synchronized(vtblptr, copy_addr);
 
         match res {
             Ok(()) => {
