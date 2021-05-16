@@ -1063,7 +1063,7 @@ impl<'a> CopyTask<'a> {
         let res = obj.header_mut().forward_synchronized(vtblptr, copy_addr);
 
         match res {
-            Ok(()) => {
+            Ok(copy_addr) => {
                 self.push(copy_addr);
                 copy_addr
             }
@@ -1095,7 +1095,7 @@ impl<'a> CopyTask<'a> {
         let res = obj.header_mut().forward_synchronized(vtblptr, copy_addr);
 
         match res {
-            Ok(()) => {
+            Ok(copy_addr) => {
                 self.promoted_size += obj_size;
                 self.push(copy_addr);
 

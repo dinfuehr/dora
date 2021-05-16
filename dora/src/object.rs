@@ -113,7 +113,7 @@ impl Header {
         &mut self,
         expected_vtblptr: Address,
         new_address: Address,
-    ) -> Result<(), Address> {
+    ) -> Result<Address, Address> {
         let fwd = new_address.to_usize() | 1;
         let result = self.vtable.compare_exchange(
             expected_vtblptr.to_usize(),
@@ -123,7 +123,10 @@ impl Header {
         );
 
         match result {
-            Ok(_) => Ok(()),
+            Ok(value) => {
+                assert_eq!(value, new_address.to_usize());
+                Ok(value.into())
+            }
 
             Err(forwarding_ptr) => {
                 // If update fails, this needs to be a forwarding pointer
