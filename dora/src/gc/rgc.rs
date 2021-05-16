@@ -1,21 +1,26 @@
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Collector, GcReason, Region};
-use crate::os;
+use crate::os::{self, Reservation};
 use crate::vm::VM;
 
-pub const REGION_SIZE: usize = 1 << 20;
+pub const PAGE_SIZE_BITS: usize = 20;
+pub const PAGE_SIZE: usize = 1 << PAGE_SIZE_BITS;
 
 pub struct RegionCollector {
-    total: Region,
+    reservation: Reservation,
+    regions: Vec<Page>,
 }
 
 impl RegionCollector {
-    pub fn new(_args: &Args) -> RegionCollector {
-        let heap_size = 128 * REGION_SIZE;
-        let reservation = os::reserve_align(heap_size, REGION_SIZE, false);
+    pub fn new(args: &Args) -> RegionCollector {
+        let max_heap_size = align_page(args.max_heap_size());
+        // let min_heap_size = align_region(args.min_heap_size());
+
+        let reservation = os::reserve_align(max_heap_size, PAGE_SIZE, false);
 
         RegionCollector {
-            total: reservation.start.region_start(heap_size),
+            reservation,
+            regions: Vec::new(),
         }
     }
 }
@@ -56,4 +61,14 @@ impl Collector for RegionCollector {
     fn verify_ref(&self, _vm: &VM, _reference: Address) {
         unimplemented!()
     }
+}
+
+struct Page;
+
+/// round the given value up to the nearest multiple of a generation
+pub fn align_page(value: usize) -> usize {
+    let align = PAGE_SIZE_BITS;
+    // we know that region size is power of 2, hence
+    // we can use shifts instead of expensive division
+    ((value + (1 << align) - 1) >> align) << align
 }

@@ -96,7 +96,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn was_forwarded(&self) -> Result<Address, Address> {
+    pub fn has_forwarding_pointer(&self) -> Result<Address, Address> {
         let addr = self.vtable.load(Ordering::Relaxed);
 
         if (addr & 3) == 3 {

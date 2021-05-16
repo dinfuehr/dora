@@ -1025,7 +1025,7 @@ impl<'a> CopyTask<'a> {
         let obj = obj_addr.to_mut_obj();
 
         // Check if object was already copied
-        let vtblptr = match obj.header().was_forwarded() {
+        let vtblptr = match obj.header().has_forwarding_pointer() {
             Ok(fwd_addr) => {
                 return fwd_addr;
             }

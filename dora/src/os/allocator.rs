@@ -1,6 +1,6 @@
 use std::ptr;
 
-use crate::gc::Address;
+use crate::gc::{Address, Region};
 use crate::mem;
 use crate::os::page_size;
 
@@ -80,9 +80,20 @@ pub fn free(ptr: Address, size: usize) {
 
 pub struct Reservation {
     pub start: Address,
+    pub size: usize,
 
     pub unaligned_start: Address,
     pub unaligned_size: usize,
+}
+
+impl Reservation {
+    pub fn region(&self) -> Region {
+        self.start.region_start(self.size)
+    }
+
+    pub fn unaligned_region(&self) -> Region {
+        self.unaligned_start.region_start(self.unaligned_size)
+    }
 }
 
 pub fn reserve_align(size: usize, align: usize, jitting: bool) -> Reservation {
@@ -109,12 +120,14 @@ pub fn reserve_align(size: usize, align: usize, jitting: bool) -> Reservation {
     if cfg!(target_family = "unix") {
         Reservation {
             start: aligned_start,
+            size,
             unaligned_start: aligned_start,
             unaligned_size: size,
         }
     } else if cfg!(target_family = "windows") {
         Reservation {
             start: aligned_start,
+            size,
             unaligned_start,
             unaligned_size,
         }
