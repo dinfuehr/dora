@@ -124,8 +124,8 @@ impl Header {
 
         match result {
             Ok(value) => {
-                assert_eq!(value, new_address.to_usize());
-                Ok(value.into())
+                assert_eq!(value, expected_vtblptr.to_usize());
+                Ok(new_address)
             }
 
             Err(forwarding_ptr) => {
