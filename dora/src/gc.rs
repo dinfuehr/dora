@@ -9,6 +9,7 @@ use crate::driver::cmd::{Args, CollectorName};
 use crate::gc::code::CodeSpace;
 use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
+use crate::gc::region::RegionCollector;
 use crate::gc::space::{Space, SpaceConfig};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{Swiper, CARD_SIZE};
@@ -75,7 +76,7 @@ impl Gc {
             CollectorName::Copy => box CopyCollector::new(args),
             CollectorName::Sweep => box SweepCollector::new(args),
             CollectorName::Swiper => box Swiper::new(args),
-            CollectorName::Region => unimplemented!(),
+            CollectorName::Region => box RegionCollector::new(args),
         };
 
         let supports_tlab = !args.flag_disable_tlab && collector.supports_tlab();
