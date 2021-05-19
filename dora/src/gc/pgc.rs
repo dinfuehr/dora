@@ -6,26 +6,29 @@ use crate::vm::VM;
 pub const PAGE_SIZE_BITS: usize = 20;
 pub const PAGE_SIZE: usize = 1 << PAGE_SIZE_BITS;
 
-pub struct RegionCollector {
+pub struct PageCollector {
     reservation: Reservation,
     regions: Vec<Page>,
+    number_regions: usize,
 }
 
-impl RegionCollector {
-    pub fn new(args: &Args) -> RegionCollector {
+impl PageCollector {
+    pub fn new(args: &Args) -> PageCollector {
         let max_heap_size = align_page(args.max_heap_size());
         // let min_heap_size = align_region(args.min_heap_size());
 
         let reservation = os::reserve_align(max_heap_size, PAGE_SIZE, false);
+        let number_regions = max_heap_size / PAGE_SIZE;
 
-        RegionCollector {
+        PageCollector {
             reservation,
             regions: Vec::new(),
+            number_regions,
         }
     }
 }
 
-impl Collector for RegionCollector {
+impl Collector for PageCollector {
     fn supports_tlab(&self) -> bool {
         true
     }
@@ -63,7 +66,25 @@ impl Collector for RegionCollector {
     }
 }
 
-struct Page;
+struct Page {
+    // Total memory region for page.
+    start: Address,
+    limit: Address,
+
+    // Separator between used & free bytes in page.
+    top: Address,
+
+    // Current page state.
+    state: PageState,
+
+    // Number of live bytes after marking.
+    live_bytes: usize,
+}
+
+enum PageState {
+    FREE,
+    USED,
+}
 
 /// round the given value up to the nearest multiple of a generation
 pub fn align_page(value: usize) -> usize {
