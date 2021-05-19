@@ -19,24 +19,18 @@ impl WaitLists {
         }
     }
 
-    pub fn block(&self, mutex: Handle<ManagedMutex>, value: i32) {
+    pub fn block(&self, mutex: Handle<ManagedMutex>, expected_value: i32) {
         let thread = current_thread();
         let thread_ptr = DoraThreadPtr::new(thread);
 
-        {
-            let mut data = self.data.lock();
-            let key = mutex.direct_ptr();
+        let queued = self.conditionally_enqueue(thread_ptr, mutex.direct_ptr(), || {
+            let atomic_object = mutex.state;
+            let current_state = atomic_object.value.load(Ordering::SeqCst);
+            current_state == expected_value
+        });
 
-            let current_state = {
-                let atomic_object = mutex.state;
-                atomic_object.value.load(Ordering::SeqCst)
-            };
-
-            if current_state != value {
-                return;
-            }
-
-            append_to_waitlist(thread_ptr, key, &mut *data);
+        if !queued {
+            return;
         }
 
         thread.block();
@@ -46,15 +40,26 @@ impl WaitLists {
         let thread = current_thread();
         let thread_ptr = DoraThreadPtr::new(thread);
 
-        let mut data = self.data.lock();
-        let key = condition.direct_ptr();
-
-        {
+        let queued = self.conditionally_enqueue(thread_ptr, condition.direct_ptr(), || {
             let atomic_object = condition.state;
-            atomic_object.value.store(1, Ordering::SeqCst)
-        }
+            atomic_object.value.store(1, Ordering::SeqCst);
+            true
+        });
+        assert!(queued);
+    }
 
-        append_to_waitlist(thread_ptr, key, &mut *data);
+    fn conditionally_enqueue<F>(&self, thread_ptr: DoraThreadPtr, object: Address, fct: F) -> bool
+    where
+        F: FnOnce() -> bool,
+    {
+        let mut data = self.data.lock();
+
+        if fct() {
+            append_to_waitlist(thread_ptr, object, &mut *data);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn wakeup(&self, address: Address) {

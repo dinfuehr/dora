@@ -9,7 +9,7 @@ pub const PAGE_SIZE: usize = 1 << PAGE_SIZE_BITS;
 pub struct PageCollector {
     reservation: Reservation,
     regions: Vec<Page>,
-    number_regions: usize,
+    number_pages: usize,
 }
 
 impl PageCollector {
@@ -18,12 +18,12 @@ impl PageCollector {
         // let min_heap_size = align_region(args.min_heap_size());
 
         let reservation = os::reserve_align(max_heap_size, PAGE_SIZE, false);
-        let number_regions = max_heap_size / PAGE_SIZE;
+        let number_pages = max_heap_size / PAGE_SIZE;
 
         PageCollector {
             reservation,
             regions: Vec::new(),
-            number_regions,
+            number_pages,
         }
     }
 }
