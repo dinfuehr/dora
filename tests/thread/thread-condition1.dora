@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy"
 
-const THREADS: Int32 = 20;
+const THREADS: Int32 = 10;
 const ITERATIONS: Int32 = 10_000;
 const QUEUE_SIZE: Int64 = 20L;
 
