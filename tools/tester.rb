@@ -33,32 +33,51 @@ $config = {
   default: '',
 }
 
-$ARGS = ARGV.clone
-$release = $ARGS.delete("--release") != nil
-$no_capture = $ARGS.delete("--no-capture") != nil
-$stress = $ARGS.delete("--stress") != nil
+$release = false
+$capture = true
+$stress = false
 $stress_timeout = 60
 $processors = nil
 $forced_timeout = nil
 $ARCH = get_architecture
+$files = []
 
-$ARGS.delete_if do |arg|
-  if (m = /\A\-j(\d+)\z/.match(arg))
-    $processors = m[1].to_i
-    true
-  elsif (m = /\A\-\-timeout\=(\d+)\z/.match(arg))
-    $forced_timeout = m[1].to_i
-    true
-  elsif (m = /\A\-\-stress\=(\d+)\z/.match(arg))
-    $stress = true
-    $stress_timeout = m[1].to_i
-    true
-  elsif (m = /\A\-\-binary\=(\S+)\z/.match(arg))
-    $binary = m[1].to_s
-    true
-  else
-    false
+def process_arguments
+  idx = 0
+  while idx < ARGV.length do
+    arg = ARGV[idx].to_s.strip
+
+    if (m = /\A\-j(\d+)\z/.match(arg))
+      $processors = m[1].to_i
+      $processors = 1 if $processors < 1
+    elsif (m = /\A\-\-timeout\=(\d+)\z/.match(arg))
+      $forced_timeout = m[1].to_i
+    elsif (m = /\A\-\-stress\=(\d+)\z/.match(arg))
+      $stress = true
+      $stress_timeout = m[1].to_i
+    elsif (m = /\A\-\-binary\=(\S+)\z/.match(arg))
+      $binary = m[1].to_s
+    elsif arg == "--binary"
+      $binary = ARGV[idx+1].to_s.strip
+      idx += 1
+    elsif arg == "--release"
+      $release = true
+    elsif arg == "--no-capture"
+      $capture = false
+    elsif arg == "--stress"
+      $stress = true
+    else
+      $files.push(arg)
+    end
+
+    idx += 1
   end
+end
+
+def binary_path
+  return $binary if $binary
+  dir = $release ? "release" : "debug"
+  "target/#{dir}/dora"
 end
 
 class TestUtility
@@ -188,10 +207,10 @@ class TestCase
 
   private
   def run_test(optional_vm_args, mutex)
-    cmdline = "#{binary} #{vm_args} #{optional_vm_args} #{test_file} #{args}"
+    cmdline = "#{binary_path} #{vm_args} #{optional_vm_args} #{test_file} #{args}"
     process_result = TestUtility.spawn_with_timeout(cmdline, self.get_timeout)
     result = check_test_run_result(process_result)
-    if $no_capture || result != true
+    if !$capture || result != true
       mutex.synchronize do
         puts "#==== STDOUT"
         puts process_result[:stdout] unless process_result[:stdout].empty?
@@ -202,12 +221,6 @@ class TestCase
       end
     end
     result
-  end
-
-  def binary
-    return $binary if $binary
-    dir = $release ? "release" : "debug"
-    "target/#{dir}/dora"
   end
 
   def check_test_run_result(result)
@@ -261,7 +274,7 @@ def num_from_shell(cmd)
   end
 end
 
-def number_processors
+def query_number_processors
   case RUBY_PLATFORM
   when /linux/
     num = num_from_shell("nproc --all")
@@ -278,15 +291,18 @@ def number_processors
   1
 end
 
-def test_files
-  if $ARGS.length > 0
+def load_test_files
+  if $files.length > 0
     files = []
 
-    for arg in $ARGS
+    for arg in $files
       if File.directory?(arg)
         files.concat(Dir["#{arg}/**/*.dora"])
-      else
+      elsif File.file?(arg)
         files.push(arg)
+      else
+        puts "#{arg} is not a file or directory."
+        exit 1
       end
     end
 
@@ -309,7 +325,7 @@ def run_tests
 
   # Load all test files and shuffle them around to run tests
   # in different order
-  worklist = test_files.shuffle
+  worklist = load_test_files.shuffle
   cancel = false
 
   if $stress && worklist.empty?
@@ -317,7 +333,12 @@ def run_tests
     exit 1
   end
 
-  computed_processors = number_processors
+  unless File.file?(binary_path)
+    puts "no executable #{binary_path} found"
+    exit 1
+  end
+
+  computed_processors = query_number_processors
 
   number_threads =
     if $processors
@@ -560,4 +581,5 @@ def parse_test_file(file)
   test_case
 end
 
+process_arguments
 exit run_tests ? 0 : 1
