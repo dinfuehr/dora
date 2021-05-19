@@ -77,7 +77,8 @@ end
 def binary_path
   return $binary if $binary
   dir = $release ? "release" : "debug"
-  "target/#{dir}/dora"
+  extension = Gem.win_platform? ? ".exe" : ""
+  "target/#{dir}/dora#{extension}"
 end
 
 class TestUtility
