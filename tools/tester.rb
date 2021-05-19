@@ -29,14 +29,10 @@ def get_architecture
   end
 end
 
-$config = {
-  default: '',
-}
-
 $release = false
 $capture = true
 $stress = false
-$stress_timeout = 60
+$stress_timeout = nil
 $processors = nil
 $forced_timeout = nil
 $ARCH = get_architecture
@@ -55,6 +51,7 @@ def process_arguments
     elsif (m = /\A\-\-stress\=(\d+)\z/.match(arg))
       $stress = true
       $stress_timeout = m[1].to_i
+      $stress_timeout = 60 if $stress_timeout < 1
     elsif (m = /\A\-\-binary\=(\S+)\z/.match(arg))
       $binary = m[1].to_s
     elsif arg == "--binary"
@@ -66,6 +63,7 @@ def process_arguments
       $capture = false
     elsif arg == "--stress"
       $stress = true
+      $stress_timeout = 60
     else
       $files.push(arg)
     end
@@ -141,56 +139,13 @@ class TestCase
                 :vm_args,
                 :args,
                 :expectation,
-                :configs,
-                :results,
+                :result,
                 :timeout
 
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
-    self.configs = [:default]
-    self.results = {}
     self.args = self.vm_args = ""
-  end
-
-  def run(mutex)
-    if self.expectation == :ignore
-      self.results = :ignore 
-      return {:ignore => 1}
-    end
-    configs.each do |optional_config|
-      self.results[optional_config] = run_test($config[optional_config], mutex)
-    end
-
-    if self.results.empty? 
-      self.results = :ignore
-      return { :ignore => 1 } 
-    end
-
-    return {
-      :passed => self.results.values().count(true), 
-      :failed => self.results.values().count{|x| x != true} 
-    }
-  end
-
-  def print_results() 
-    if self.results == :ignore
-      puts "#{self.file} ... ignore"
-      return
-    end
-
-    self.results.each_pair do |run_name, run_result|
-      print "#{self.file}.#{run_name}"
-      print "... "
-
-      if run_result == true
-        print "ok"
-      else
-        print "failed"
-        print " (#{run_result})" if run_result != false 
-      end
-      puts
-    end
   end
 
   def get_timeout
@@ -205,61 +160,9 @@ class TestCase
 
     end
   end
-
-  private
-  def run_test(optional_vm_args, mutex)
-    cmdline = "#{binary_path} #{vm_args} #{optional_vm_args} #{test_file} #{args}"
-    process_result = TestUtility.spawn_with_timeout(cmdline, self.get_timeout)
-    result = check_test_run_result(process_result)
-    if !$capture || result != true
-      mutex.synchronize do
-        puts "#==== STDOUT"
-        puts process_result[:stdout] unless process_result[:stdout].empty?
-        puts "#==== STDERR"
-        puts process_result[:stderr] unless process_result[:stderr].empty?
-        puts "RUN: #{cmdline}"
-        STDOUT.flush
-      end
-    end
-    result
-  end
-
-  def check_test_run_result(result)
-    status = result[:status]
-    stdout = result[:stdout]
-    stderr = result[:stderr]
-    timeout = result[:timeout]
-    exit_code = status.exitstatus
-
-    return "test timed out after #{self.get_timeout} seconds" if
-      timeout
-
-    if self.expectation.fail
-      position, message = read_error_message(stderr)
-
-      return "expected failure (test exited with 0)" if exit_code == 0
-      return "expected failure (#{self.expectation.code} expected but test returned #{status})" if
-        self.expectation.code && exit_code != self.expectation.code
-  
-      return "position does not match (#{position.inspect} != #{self.expectation.position.inspect})" if
-        self.expectation.position && position != expectation.position
-      return "message does not match (#{message.inspect} != #{self.expectation.message.inspect})" if
-        self.expectation.message && message != self.expectation.message
-  
-    elsif exit_code != 0
-      return "expected success (0 expected but test returned #{status})"
-  
-    end
-  
-    return "stdout does not match (expected #{self.expectation.stdout.inspect} but got #{stdout.inspect})" if
-      self.expectation.stdout && self.expectation.stdout != stdout
-
-    return "stderr does not match (expected #{self.expectation.stderr.inspect} but got #{stderr.inspect})" if
-      self.expectation.stderr && self.expectation.stderr != stderr
-
-    true
-  end
 end
+
+TestResult = Struct.new(:test_case, :status, :message)
 
 def num_from_shell(cmd)
   begin
@@ -323,11 +226,12 @@ def run_tests
   mutex = Mutex.new
   threads = []
   faillist = []
+  cancel = false
 
   # Load all test files and shuffle them around to run tests
   # in different order
-  worklist = load_test_files.shuffle
-  cancel = false
+  test_files = load_test_files
+  worklist = parse_test_files(test_files).shuffle
 
   if $stress && worklist.empty?
     puts "--stress needs at least one test."
@@ -353,7 +257,7 @@ def run_tests
   number_threads.times do
     thread = Thread.new do
       loop do
-        file = mutex.synchronize do
+        test_case = mutex.synchronize do
           if $stress
             test_idx = rand(worklist.size)
             cancel ? nil : worklist[test_idx]
@@ -362,20 +266,21 @@ def run_tests
           end
         end
 
-        break unless file
+        break unless test_case
 
-        test_case = parse_test_file(Pathname.new(file))
-        test_results = test_case.run(mutex)
+        test_result = run_test(test_case, mutex)
 
-        test_results.each_pair do |key, value|
-          passed += value if key == :passed
-          ignore += value if key == :ignore
-          failed += value if key == :failed
+        case test_result.status
+        when :ignore then ignore += 1
+        when :passed then passed += 1
+        when :failed then failed += 1
+        else
+          raise "unknown status #{test_result.status.inspect}"
         end
 
         mutex.synchronize do
-          faillist.push(test_case) if test_results.any? { |key,value| key == :failed && value > 0 }
-          test_case.print_results
+          faillist.push(test_case) if test_result.status == :failed
+          print_result(test_case, test_result)
           STDOUT.flush
 
         end
@@ -387,24 +292,22 @@ def run_tests
 
   if $stress
     sleep $stress_timeout
-    mutex.synchronize { cancel = true }
+    mutex.synchronize do
+      cancel = true
+    end
   end
 
   for thread in threads do
     thread.join
   end
 
-  ret = failed == 0
-
+  ret_success = failed == 0
 
   if faillist.any?
     puts "failed tests:"
 
     for test_case in faillist
-      for run_name, run_result in test_case.results
-        next if run_result == true
-        puts "    #{test_case.file}.#{run_name}"
-      end
+      puts "    #{test_case.file}"
     end
   end
 
@@ -418,7 +321,89 @@ def run_tests
     puts "#{passed}; #{failed}"
   end
 
-  ret
+  ret_success
+end
+
+def run_test(test_case, mutex)
+  if test_case.expectation == :ignore
+    return TestResult.new(test_case, :ignore, nil)
+  end
+
+  cmdline = "#{binary_path} #{test_case.vm_args} #{test_case.test_file} #{test_case.args}"
+  process_result = TestUtility.spawn_with_timeout(cmdline, test_case.get_timeout)
+  result = check_test_run_result(test_case, process_result)
+
+  if !$capture || result != true
+    mutex.synchronize do
+      puts "#==== STDOUT"
+      puts process_result[:stdout] unless process_result[:stdout].empty?
+      puts "#==== STDERR"
+      puts process_result[:stderr] unless process_result[:stderr].empty?
+      puts "RUN: #{cmdline}"
+      STDOUT.flush
+    end
+  end
+
+  if result == true
+    TestResult.new(test_case, :passed, nil)
+  else
+    TestResult.new(test_case, :failed, result)
+  end
+end
+
+def check_test_run_result(test_case, result)
+  status = result[:status]
+  stdout = result[:stdout]
+  stderr = result[:stderr]
+  timeout = result[:timeout]
+  exit_code = status.exitstatus
+
+  return "test timed out after #{test_case.get_timeout} seconds" if
+    timeout
+
+  if test_case.expectation.fail
+    position, message = read_error_message(stderr)
+
+    return "expected failure (test exited with 0)" if exit_code == 0
+    return "expected failure (#{test_case.expectation.code} expected but test returned #{status})" if
+      test_case.expectation.code && exit_code != test_case.expectation.code
+
+    return "position does not match (#{position.inspect} != #{test_case.expectation.position.inspect})" if
+      test_case.expectation.position && position != test_case.expectation.position
+    return "message does not match (#{message.inspect} != #{test_case.expectation.message.inspect})" if
+      test_case.expectation.message && message != test_case.expectation.message
+
+  elsif exit_code != 0
+    return "expected success (0 expected but test returned #{status})"
+
+  end
+
+  return "stdout does not match (expected #{test_case.expectation.stdout.inspect} but got #{stdout.inspect})" if
+    test_case.expectation.stdout && test_case.expectation.stdout != stdout
+
+  return "stderr does not match (expected #{test_case.expectation.stderr.inspect} but got #{stderr.inspect})" if
+    test_case.expectation.stderr && test_case.expectation.stderr != stderr
+
+  true
+end
+
+def print_result(test_case, test_result)
+  if test_result.status == :ignore
+    puts "#{test_case.file} ... ignore"
+    return
+  end
+
+  print "#{test_case.file}... "
+
+  if test_result.status == :passed
+    print "ok"
+  elsif test_result.status == :failed
+    print "failed"
+    print " (#{test_result.message})" if test_result.message
+  else
+    raise "unknown status #{test_result.status.inspect}"
+  end
+  puts
 end
 
 def test_name(num)
@@ -504,6 +489,17 @@ def read_cmdline(text)
   args.push(arg) unless arg.empty?
 
   args
+end
+
+def parse_test_files(files)
+  tests = []
+
+  for file in files
+    test_case = parse_test_file(file)
+    tests.push(test_case)
+  end
+
+  tests
 end
 
 def parse_test_file(file)
