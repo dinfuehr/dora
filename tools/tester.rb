@@ -190,6 +190,12 @@ def query_number_processors
   when /darwin/
     num = num_from_shell("sysctl -n hw.ncpu")
     return num if num > 0
+
+  else
+    # Windows
+    num = ENV["NUMBER_OF_PROCESSORS"].to_i
+    return num if num > 0
+
   end
 
   1
