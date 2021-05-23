@@ -37,6 +37,10 @@ $processors = nil
 $forced_timeout = nil
 $ARCH = get_architecture
 $files = []
+$all_configs = {
+  default: '',
+  region: '--gc=region'
+}
 
 def process_arguments
   idx = 0
@@ -140,12 +144,14 @@ class TestCase
                 :args,
                 :expectation,
                 :result,
-                :timeout
+                :timeout,
+                :configs
 
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
     self.args = self.vm_args = ""
+    self.configs = [:default]
   end
 
   def get_timeout
@@ -162,7 +168,7 @@ class TestCase
   end
 end
 
-TestResult = Struct.new(:test_case, :status, :message)
+TestResult = Struct.new(:test_case, :config, :status, :message)
 
 def num_from_shell(cmd)
   begin
@@ -263,7 +269,7 @@ def run_tests
   number_threads.times do
     thread = Thread.new do
       loop do
-        test_case = mutex.synchronize do
+        test_with_config = mutex.synchronize do
           if $stress
             test_idx = rand(worklist.size)
             cancel ? nil : worklist[test_idx]
@@ -272,9 +278,10 @@ def run_tests
           end
         end
 
-        break unless test_case
+        break unless test_with_config
+        test_case, config = test_with_config
 
-        test_result = run_test(test_case, mutex)
+        test_result = run_test(test_case, config, mutex)
 
         case test_result.status
         when :ignore then ignore += 1
@@ -285,8 +292,8 @@ def run_tests
         end
 
         mutex.synchronize do
-          faillist.push(test_case) if test_result.status == :failed
-          print_result(test_case, test_result)
+          faillist.push(test_with_config) if test_result.status == :failed
+          print_result(test_case, config, test_result)
           STDOUT.flush
 
         end
@@ -330,12 +337,12 @@ def run_tests
   ret_success
 end
 
-def run_test(test_case, mutex)
+def run_test(test_case, config, mutex)
   if test_case.expectation == :ignore
-    return TestResult.new(test_case, :ignore, nil)
+    return TestResult.new(test_case, config, :ignore, nil)
   end
 
-  cmdline = "#{binary_path} #{test_case.vm_args} #{test_case.test_file} #{test_case.args}"
+  cmdline = "#{binary_path} #{$all_configs[config]} #{test_case.vm_args} #{test_case.test_file} #{test_case.args}"
   process_result = TestUtility.spawn_with_timeout(cmdline, test_case.get_timeout)
   result = check_test_run_result(test_case, process_result)
 
@@ -351,9 +358,9 @@ def run_test(test_case, mutex)
   end
 
   if result == true
-    TestResult.new(test_case, :passed, nil)
+    TestResult.new(test_case, config, :passed, nil)
   else
-    TestResult.new(test_case, :failed, result)
+    TestResult.new(test_case, config, :failed, result)
   end
 end
 
@@ -393,13 +400,13 @@ def check_test_run_result(test_case, result)
   true
 end
 
-def print_result(test_case, test_result)
+def print_result(test_case, config, test_result)
   if test_result.status == :ignore
     puts "#{test_case.file} ... ignore"
     return
   end
 
-  print "#{test_case.file}... "
+  print "#{test_case.file}.#{config}... "
 
   if test_result.status == :passed
     print "ok"
@@ -501,8 +508,8 @@ def parse_test_files(files)
   tests = []
 
   for file in files
-    test_case = parse_test_file(file)
-    tests.push(test_case)
+    test_cases = parse_test_file(file)
+    tests += test_cases
   end
 
   tests
@@ -550,7 +557,6 @@ def parse_test_file(file)
 
       when "ignore" 
         test_case.expectation = :ignore
-        return test_case
 
       when "stdout"
         case arguments[1]
@@ -561,6 +567,11 @@ def parse_test_file(file)
 
       when "stderr"
         test_case.expectation.stderr = arguments[1]
+
+      when "config"
+        config = arguments[1].intern
+        raise "unknown config #{arguments[1]}" unless $all_configs.include?(config)
+        test_case.configs << config
 
       when "args"
         test_case.args = arguments[1..-1].join(" ")
@@ -581,7 +592,11 @@ def parse_test_file(file)
     end
   end
 
-  test_case
+  tests = test_case.configs.map do |config|
+    [test_case, config]
+  end
+
+  tests
 end
 
 process_arguments
