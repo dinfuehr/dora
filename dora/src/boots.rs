@@ -1,7 +1,7 @@
 use std::mem;
 use std::ptr;
 
-use crate::bytecode::{self, BytecodeFunction, ConstPoolEntry, ConstPoolOpcode};
+use crate::bytecode::{self, BytecodeFunction, ConstPoolEntry, ConstPoolOpcode, SourceTypeOpcode};
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::fct::{Code, JitDescriptor};
 use crate::gc::Address;
@@ -11,7 +11,7 @@ use crate::object::{
 };
 use crate::sym::NestedSymTable;
 use crate::threads::current_thread;
-use crate::ty::SourceTypeArray;
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{AnalysisData, Fct, VM};
 
 pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &SourceTypeArray) -> Code {
@@ -146,6 +146,21 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
     }
 
     byte_array_from_buffer(vm, &buffer)
+}
+
+fn encode_source_type(_vm: &VM, ty: SourceType, buffer: &mut Vec<u8>) {
+    match ty {
+        SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
+        SourceType::Unit => buffer.push(SourceTypeOpcode::Unit as u8),
+        SourceType::Bool => buffer.push(SourceTypeOpcode::Bool as u8),
+        SourceType::Char => buffer.push(SourceTypeOpcode::Char as u8),
+        SourceType::UInt8 => buffer.push(SourceTypeOpcode::UInt8 as u8),
+        SourceType::Int32 => buffer.push(SourceTypeOpcode::Int32 as u8),
+        SourceType::Int64 => buffer.push(SourceTypeOpcode::Int64 as u8),
+        SourceType::Float32 => buffer.push(SourceTypeOpcode::Float32 as u8),
+        SourceType::Float64 => buffer.push(SourceTypeOpcode::Float64 as u8),
+        _ => unreachable!(),
+    }
 }
 
 fn allocate_encoded_compilation_info(

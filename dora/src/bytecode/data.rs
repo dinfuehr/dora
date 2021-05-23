@@ -875,3 +875,54 @@ impl From<usize> for ConstPoolIdx {
         ConstPoolIdx(value)
     }
 }
+
+#[derive(FromPrimitive, ToPrimitive)]
+pub enum SourceTypeOpcode {
+    // couldn't determine type because of error
+    Error,
+
+    // Allow any type here, used for type inference
+    Any,
+
+    // type with only one value: ()
+    Unit,
+
+    // primitives
+    Bool,
+    Char,
+    UInt8,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
+
+    // pointer to object, only used internally
+    Ptr,
+
+    // self type
+    This,
+
+    // some class
+    Class,
+
+    // some struct
+    Struct,
+
+    // some tuple
+    Tuple,
+
+    // some trait object
+    Trait,
+
+    // some module
+    Module,
+
+    // some type variable
+    TypeParam,
+
+    // some lambda
+    Lambda,
+
+    // some enum
+    Enum,
+}
