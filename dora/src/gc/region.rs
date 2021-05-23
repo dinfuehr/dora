@@ -53,11 +53,17 @@ impl RegionCollector {
 
 impl Collector for RegionCollector {
     fn supports_tlab(&self) -> bool {
-        false
+        true
     }
 
-    fn alloc_tlab_area(&self, _vm: &VM, _size: usize) -> Option<Region> {
-        unimplemented!()
+    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
+        let result = self.regular_alloc(vm, size);
+
+        if result.is_null() {
+            None
+        } else {
+            Some(result.region_start(size))
+        }
     }
 
     fn alloc(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
