@@ -17,6 +17,7 @@
 @pub @internal fun call(fct: String);
 
 @pub @internal fun timestamp(): Int64;
+@pub @internal fun spawn(path: String, arguments: String...);
 
 @pub class Object
 

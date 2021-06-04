@@ -832,6 +832,7 @@ pub type Int32Array = Array<i32>;
 pub type Int64Array = Array<i64>;
 pub type Float32Array = Array<f32>;
 pub type Float64Array = Array<f64>;
+pub type ObjArray = Array<Ref<Obj>>;
 pub type StrArray = Array<Ref<Str>>;
 
 pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {

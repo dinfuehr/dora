@@ -3,7 +3,6 @@ use libc;
 use std::char;
 use std::io::{self, Write};
 use std::mem;
-use std::process;
 use std::str;
 use std::thread;
 use std::time::Duration;
@@ -19,6 +18,8 @@ use crate::threads::{
 };
 use crate::ty::SourceTypeArray;
 use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, Trap};
+
+pub mod process;
 
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
@@ -87,21 +88,21 @@ pub extern "C" fn fatal_error(msg: Handle<Str>) {
     let stacktrace = stacktrace_from_last_dtn(vm);
     stacktrace.dump_err(vm);
 
-    process::exit(1);
+    std::process::exit(1);
 }
 
 pub extern "C" fn abort() {
     eprintln!("program aborted.");
-    process::exit(1);
+    std::process::exit(1);
 }
 
 pub extern "C" fn exit(status: i32) {
-    process::exit(status);
+    std::process::exit(status);
 }
 
 pub extern "C" fn unreachable() {
     eprintln!("unreachable code executed.");
-    process::exit(1);
+    std::process::exit(1);
 }
 
 pub extern "C" fn timestamp() -> u64 {
@@ -141,7 +142,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
             if !fct.param_types.is_empty() {
                 writeln!(&mut io::stderr(), "fct `{}` takes arguments.", fct_name)
                     .expect("could not print to stderr");
-                process::exit(1);
+                std::process::exit(1);
             }
         }
 
@@ -149,7 +150,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
     } else {
         writeln!(&mut io::stderr(), "fct `{}` not found.", fct_name)
             .expect("could not print to stderr");
-        process::exit(1);
+        std::process::exit(1);
     }
 }
 

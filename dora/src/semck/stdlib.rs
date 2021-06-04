@@ -273,6 +273,12 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib::gc_minor_collect as *const u8,
     );
     native_fct(vm, stdlib, "sleep", stdlib::sleep as *const u8);
+    native_fct(
+        vm,
+        stdlib,
+        "spawn",
+        stdlib::process::spawn_process as *const u8,
+    );
 
     if vm.args.flag_boots.is_some() {
         native_fct(
