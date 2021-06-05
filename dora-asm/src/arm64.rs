@@ -1683,6 +1683,38 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn swp(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b11, 0, 0, 0, new, 1, 0b000, address, old))
+    }
+
+    pub fn swp_w(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b10, 0, 0, 0, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpa(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b11, 0, 1, 0, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpa_w(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b10, 0, 1, 0, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpal(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b11, 0, 1, 1, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpal_w(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b10, 0, 1, 1, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpl(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b11, 0, 0, 1, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpl_w(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b10, 0, 0, 1, new, 1, 0b000, address, old))
+    }
+
     pub fn lsl_imm(&mut self, rd: Register, rn: Register, shift: u32) {
         let (val, mask) = (64, 0x3f);
         self.ubfm(rd, rn, (val - shift) & mask, val - 1 - shift);
@@ -3687,6 +3719,19 @@ mod tests {
         assert_emit!(0xb8a70128; ldadda_w(R7, R8, R9));
         assert_emit!(0xb8e70128; ldaddal_w(R7, R8, R9));
         assert_emit!(0xb8670128; ldaddl_w(R7, R8, R9));
+    }
+
+    #[test]
+    fn test_swp() {
+        assert_emit!(0xf8278128; swp(R7, R8, R9));
+        assert_emit!(0xf8a78128; swpa(R7, R8, R9));
+        assert_emit!(0xf8e78128; swpal(R7, R8, R9));
+        assert_emit!(0xf8678128; swpl(R7, R8, R9));
+
+        assert_emit!(0xb8278128; swp_w(R7, R8, R9));
+        assert_emit!(0xb8a78128; swpa_w(R7, R8, R9));
+        assert_emit!(0xb8e78128; swpal_w(R7, R8, R9));
+        assert_emit!(0xb8678128; swpl_w(R7, R8, R9));
     }
 
     #[test]
