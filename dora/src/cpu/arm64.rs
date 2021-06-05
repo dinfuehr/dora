@@ -52,6 +52,31 @@ pub fn flush_icache(start: *const u8, len: usize) {
     }
 }
 
+#[cfg(target_os = "macos")]
+pub fn supports_lse_atomic() -> bool {
+    use std::ffi::CString;
+
+    unsafe {
+        let mut oldbuffer: usize = 0;
+        let mut oldlenp: libc::size_t = 4;
+        let name = CString::new("hw.optional.armv8_1_atomics").unwrap();
+        let result = libc::sysctlbyname(
+            name.as_ptr(),
+            &mut oldbuffer as *mut usize as *mut libc::c_void,
+            &mut oldlenp,
+            std::ptr::null_mut(),
+            0,
+        );
+        assert_eq!(result, 0);
+        oldbuffer != 0
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn supports_lse_atomic() -> bool {
+    false
+}
+
 #[cfg(not(target_os = "macos"))]
 pub fn cacheline_sizes() -> (usize, usize) {
     let value: usize;
