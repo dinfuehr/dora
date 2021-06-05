@@ -470,6 +470,54 @@ impl AssemblerArm64 {
         self.emit_u32(cls::exception(0b001, imm16, 0, 0));
     }
 
+    pub fn cas(&mut self, cmp: Register, new: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 1, 0, 1, cmp, 0, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn cas_w(&mut self, cmp: Register, new: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 1, 0, 1, cmp, 0, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casa(&mut self, cmp: Register, new: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 1, 1, 1, cmp, 0, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casa_w(&mut self, cmp: Register, new: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 1, 1, 1, cmp, 0, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casal(&mut self, cmp: Register, new: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 1, 1, 1, cmp, 1, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casal_w(&mut self, cmp: Register, new: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 1, 1, 1, cmp, 1, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casl(&mut self, cmp: Register, new: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 1, 0, 1, cmp, 1, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casl_w(&mut self, cmp: Register, new: Register, addr: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 1, 0, 1, cmp, 1, REG_ZERO, addr, new,
+        ))
+    }
+
     pub fn cbnz(&mut self, reg: Register, target: Label) {
         let value = self.offset(target);
 
@@ -3531,6 +3579,19 @@ mod tests {
 
         assert_emit!(0x8802ffff; stlxr_w(R2, REG_ZERO, REG_SP));
         assert_emit!(0x8807fcc1; stlxr_w(R7, R1, R6));
+    }
+
+    #[test]
+    fn test_cas() {
+        assert_emit!(0xc8a77d28; cas(R7, R8, R9));
+        assert_emit!(0xc8e77d28; casa(R7, R8, R9));
+        assert_emit!(0xc8e7fd28; casal(R7, R8, R9));
+        assert_emit!(0xc8a7fd28; casl(R7, R8, R9));
+
+        assert_emit!(0x88a77d28; cas_w(R7, R8, R9));
+        assert_emit!(0x88e77d28; casa_w(R7, R8, R9));
+        assert_emit!(0x88e7fd28; casal_w(R7, R8, R9));
+        assert_emit!(0x88a7fd28; casl_w(R7, R8, R9));
     }
 
     #[test]
