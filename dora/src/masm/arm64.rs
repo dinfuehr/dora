@@ -851,19 +851,25 @@ impl MacroAssembler {
         new: Reg,
         address: Reg,
     ) -> Reg {
-        let current = self.get_scratch();
-        let state = self.get_scratch();
-        let loop_start = self.asm.create_and_bind_label();
-        let loop_end = self.asm.create_label();
-        self.asm.ldaxr_w((*current).into(), address.into());
-        self.asm.cmp_w((*current).into(), expected.into());
-        self.asm.bc_l(Cond::NE, loop_end);
-        self.asm
-            .stlxr_w((*state).into(), new.into(), address.into());
-        self.asm.cbnz_w((*state).into(), loop_start);
-        self.asm.bind_label(loop_end);
+        if has_lse_atomics() {
+            self.asm
+                .casal_w(expected.into(), new.into(), address.into());
+            expected
+        } else {
+            let current = self.get_scratch();
+            let state = self.get_scratch();
+            let loop_start = self.asm.create_and_bind_label();
+            let loop_end = self.asm.create_label();
+            self.asm.ldaxr_w((*current).into(), address.into());
+            self.asm.cmp_w((*current).into(), expected.into());
+            self.asm.bc_l(Cond::NE, loop_end);
+            self.asm
+                .stlxr_w((*state).into(), new.into(), address.into());
+            self.asm.cbnz_w((*state).into(), loop_start);
+            self.asm.bind_label(loop_end);
 
-        *current
+            *current
+        }
     }
 
     pub fn compare_exchange_int64_synchronized(
@@ -872,18 +878,23 @@ impl MacroAssembler {
         new: Reg,
         address: Reg,
     ) -> Reg {
-        let current = self.get_scratch();
-        let state = self.get_scratch();
-        let loop_start = self.asm.create_and_bind_label();
-        let loop_end = self.asm.create_label();
-        self.asm.ldaxr((*current).into(), address.into());
-        self.asm.cmp((*current).into(), expected.into());
-        self.asm.bc_l(Cond::NE, loop_end);
-        self.asm.stlxr((*state).into(), new.into(), address.into());
-        self.asm.cbnz((*state).into(), loop_start);
-        self.asm.bind_label(loop_end);
+        if has_lse_atomics() {
+            self.asm.casal(expected.into(), new.into(), address.into());
+            expected
+        } else {
+            let current = self.get_scratch();
+            let state = self.get_scratch();
+            let loop_start = self.asm.create_and_bind_label();
+            let loop_end = self.asm.create_label();
+            self.asm.ldaxr((*current).into(), address.into());
+            self.asm.cmp((*current).into(), expected.into());
+            self.asm.bc_l(Cond::NE, loop_end);
+            self.asm.stlxr((*state).into(), new.into(), address.into());
+            self.asm.cbnz((*state).into(), loop_start);
+            self.asm.bind_label(loop_end);
 
-        *current
+            *current
+        }
     }
 
     pub fn fetch_add_int32_synchronized(&mut self, previous: Reg, value: Reg, address: Reg) -> Reg {
