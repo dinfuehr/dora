@@ -1058,6 +1058,54 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn ldadd(&mut self, value: Register, dest: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(
+            0b11, 0, 0, 0, value, 0, 0b000, address, dest,
+        ))
+    }
+
+    pub fn ldadd_w(&mut self, value: Register, dest: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(
+            0b10, 0, 0, 0, value, 0, 0b000, address, dest,
+        ))
+    }
+
+    pub fn ldadda(&mut self, value: Register, dest: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(
+            0b11, 0, 1, 0, value, 0, 0b000, address, dest,
+        ))
+    }
+
+    pub fn ldadda_w(&mut self, value: Register, dest: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(
+            0b10, 0, 1, 0, value, 0, 0b000, address, dest,
+        ))
+    }
+
+    pub fn ldaddal(&mut self, value: Register, dest: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(
+            0b11, 0, 1, 1, value, 0, 0b000, address, dest,
+        ))
+    }
+
+    pub fn ldaddal_w(&mut self, value: Register, dest: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(
+            0b10, 0, 1, 1, value, 0, 0b000, address, dest,
+        ))
+    }
+
+    pub fn ldaddl(&mut self, value: Register, dest: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(
+            0b11, 0, 0, 1, value, 0, 0b000, address, dest,
+        ))
+    }
+
+    pub fn ldaddl_w(&mut self, value: Register, dest: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(
+            0b10, 0, 0, 1, value, 0, 0b000, address, dest,
+        ))
+    }
+
     pub fn ldar(&mut self, rt: Register, rn: Register) {
         self.emit_u32(cls::ldst_exclusive(
             0b11, 1, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
@@ -2093,6 +2141,40 @@ mod cls {
             | imm12 << 10
             | rn.encoding_sp() << 5
             | rd
+    }
+
+    pub(super) fn atomic_op(
+        size: u32,
+        v: u32,
+        a: u32,
+        r: u32,
+        rs: Register,
+        o3: u32,
+        opc: u32,
+        rn: Register,
+        rt: Register,
+    ) -> u32 {
+        fits_u2(size);
+        fits_bit(v);
+        fits_bit(a);
+        fits_bit(r);
+        assert!(rs.is_gpr());
+        fits_bit(o3);
+        fits_u2(opc);
+        assert!(rn.is_gpr());
+        assert!(rt.is_gpr());
+
+        size << 30
+            | 0b111 << 27
+            | v << 26
+            | a << 23
+            | r << 22
+            | 1 << 21
+            | rs.encoding() << 16
+            | o3 << 15
+            | opc << 12
+            | rn.encoding() << 5
+            | rt.encoding()
     }
 
     pub(super) fn bitfield(
@@ -3592,6 +3674,19 @@ mod tests {
         assert_emit!(0x88e77d28; casa_w(R7, R8, R9));
         assert_emit!(0x88e7fd28; casal_w(R7, R8, R9));
         assert_emit!(0x88a7fd28; casl_w(R7, R8, R9));
+    }
+
+    #[test]
+    fn test_ldadd() {
+        assert_emit!(0xf8270128; ldadd(R7, R8, R9));
+        assert_emit!(0xf8a70128; ldadda(R7, R8, R9));
+        assert_emit!(0xf8e70128; ldaddal(R7, R8, R9));
+        assert_emit!(0xf8670128; ldaddl(R7, R8, R9));
+
+        assert_emit!(0xb8270128; ldadd_w(R7, R8, R9));
+        assert_emit!(0xb8a70128; ldadda_w(R7, R8, R9));
+        assert_emit!(0xb8e70128; ldaddal_w(R7, R8, R9));
+        assert_emit!(0xb8670128; ldaddl_w(R7, R8, R9));
     }
 
     #[test]

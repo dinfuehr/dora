@@ -898,33 +898,45 @@ impl MacroAssembler {
     }
 
     pub fn fetch_add_int32_synchronized(&mut self, previous: Reg, value: Reg, address: Reg) -> Reg {
-        let new_value = self.get_scratch();
-        let state = self.get_scratch();
+        if has_lse_atomics() {
+            self.asm
+                .ldaddal_w(value.into(), previous.into(), address.into());
+            previous
+        } else {
+            let new_value = self.get_scratch();
+            let state = self.get_scratch();
 
-        let loop_start = self.asm.create_and_bind_label();
-        self.asm.ldaxr_w(previous.into(), address.into());
-        self.asm
-            .add_w((*new_value).into(), previous.into(), value.into());
-        self.asm
-            .stlxr_w((*state).into(), (*new_value).into(), address.into());
-        self.asm.cbnz_w((*state).into(), loop_start);
+            let loop_start = self.asm.create_and_bind_label();
+            self.asm.ldaxr_w(previous.into(), address.into());
+            self.asm
+                .add_w((*new_value).into(), previous.into(), value.into());
+            self.asm
+                .stlxr_w((*state).into(), (*new_value).into(), address.into());
+            self.asm.cbnz_w((*state).into(), loop_start);
 
-        previous
+            previous
+        }
     }
 
     pub fn fetch_add_int64_synchronized(&mut self, previous: Reg, value: Reg, address: Reg) -> Reg {
-        let new_value = self.get_scratch();
-        let state = self.get_scratch();
+        if has_lse_atomics() {
+            self.asm
+                .ldaddal(value.into(), previous.into(), address.into());
+            previous
+        } else {
+            let new_value = self.get_scratch();
+            let state = self.get_scratch();
 
-        let loop_start = self.asm.create_and_bind_label();
-        self.asm.ldaxr(previous.into(), address.into());
-        self.asm
-            .add((*new_value).into(), previous.into(), value.into());
-        self.asm
-            .stlxr((*state).into(), (*new_value).into(), address.into());
-        self.asm.cbnz_w((*state).into(), loop_start);
+            let loop_start = self.asm.create_and_bind_label();
+            self.asm.ldaxr(previous.into(), address.into());
+            self.asm
+                .add((*new_value).into(), previous.into(), value.into());
+            self.asm
+                .stlxr((*state).into(), (*new_value).into(), address.into());
+            self.asm.cbnz_w((*state).into(), loop_start);
 
-        previous
+            previous
+        }
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
