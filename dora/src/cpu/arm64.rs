@@ -1,5 +1,7 @@
-use crate::masm::CondCode;
 use dora_asm::arm64::Cond;
+use lazy_static::lazy_static;
+
+use crate::masm::CondCode;
 
 #[cfg(target_os = "macos")]
 pub fn flush_icache(start: *const u8, len: usize) {
@@ -52,8 +54,16 @@ pub fn flush_icache(start: *const u8, len: usize) {
     }
 }
 
+pub fn has_lse_atomics() -> bool {
+    *HAS_LSE_ATOMICS
+}
+
+lazy_static! {
+static ref HAS_LSE_ATOMICS: bool = check_support_for_lse_atomics();
+}
+
 #[cfg(target_os = "macos")]
-pub fn supports_lse_atomic() -> bool {
+fn check_support_for_lse_atomics() -> bool {
     use std::ffi::CString;
 
     unsafe {
@@ -73,10 +83,12 @@ pub fn supports_lse_atomic() -> bool {
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn supports_lse_atomic() -> bool {
+fn check_support_for_lse_atomics() -> bool {
     let value: usize;
-    llvm_asm!("mrs $0, ID_AA64DFR1_EL1": "=r"(value)::: "volatile");
-    println!("value = {:x}", value);
+    unsafe {
+        llvm_asm!("mrs $0, ID_AA64DFR1_EL1": "=r"(value)::: "volatile");
+    }
+    (value >> 20) & 0xF == 0b0010
 }
 
 #[cfg(not(target_os = "macos"))]
