@@ -59,7 +59,7 @@ pub fn has_lse_atomics() -> bool {
 }
 
 lazy_static! {
-static ref HAS_LSE_ATOMICS: bool = check_support_for_lse_atomics();
+    static ref HAS_LSE_ATOMICS: bool = check_support_for_lse_atomics();
 }
 
 #[cfg(target_os = "macos")]
