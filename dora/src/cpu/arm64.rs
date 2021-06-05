@@ -74,7 +74,9 @@ pub fn supports_lse_atomic() -> bool {
 
 #[cfg(not(target_os = "macos"))]
 pub fn supports_lse_atomic() -> bool {
-    false
+    let value: usize;
+    llvm_asm!("mrs $0, ID_AA64DFR1_EL1": "=r"(value)::: "volatile");
+    println!("value = {:x}", value);
 }
 
 #[cfg(not(target_os = "macos"))]
