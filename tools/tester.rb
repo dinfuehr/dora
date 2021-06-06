@@ -29,6 +29,33 @@ def get_architecture
   end
 end
 
+def get_os
+  case RUBY_PLATFORM
+  when /linux/
+    :linux
+  when /darwin/
+    :macos
+  else
+    if Gem.win_platform?
+      :windows
+    else
+      raise "unknown operating system #{arch}"
+    end
+  end
+end
+
+def create_platform_binding
+  arch = $ARCH
+  os = $OS
+  linux = $OS == :linux
+  windows = $OS == :windows
+  macos = $OS == :macos
+  x64 = $ARCH == "x64"
+  arm64 = $ARCH == "arm64"
+
+  binding
+end
+
 $release = false
 $capture = true
 $stress = false
@@ -36,7 +63,9 @@ $stress_timeout = nil
 $processors = nil
 $forced_timeout = nil
 $ARCH = get_architecture
+$OS = get_os
 $files = []
+$platform_binding = create_platform_binding
 $all_configs = {
   default: '',
   region: '--gc=region'
@@ -319,8 +348,9 @@ def run_tests
   if faillist.any?
     puts "failed tests:"
 
-    for test_case in faillist
-      puts "    #{test_case.file}"
+    for test_failure in faillist
+      test_case, config = test_failure
+      puts "    #{test_case.file}.#{config}"
     end
   end
 
@@ -550,7 +580,8 @@ def parse_test_file(file)
         end
 
       when "platform"
-        test_case.expectation = :ignore if arguments[1] != $ARCH
+        supported = $platform_binding.eval(arguments[1])
+        test_case.expectation = :ignore unless supported
 
       when "file"
         test_case.test_file = arguments[1]
