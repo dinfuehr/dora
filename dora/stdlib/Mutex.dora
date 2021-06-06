@@ -35,7 +35,7 @@ const SLEEPING: Int32 = 2;
     }
 
     @pub fun unlock() {
-        let previous = self.data.exchange(0);
+        let previous = self.data.exchange(UNLOCKED);
 
         if previous != LOCKED {
             self.unlockSlow(previous);
