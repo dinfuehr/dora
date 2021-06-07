@@ -242,7 +242,7 @@ impl<'a> AstDumper<'a> {
         );
 
         self.indent(|d| {
-            dump!(d, "open = {}", cls.has_open);
+            d.dump_annotation_usages(&cls.annotation_usages);
 
             if let Some(ref parent_class) = cls.parent_class {
                 d.dump_type(&parent_class.parent_ty);
@@ -339,7 +339,6 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_type(&param.data_type));
     }
 
-    #[allow(dead_code)]
     fn dump_annotation_usages(&self, annotation_usages: &AnnotationUsages) {
         for annotation_usage in annotation_usages.iter() {
             dump!(
@@ -366,10 +365,7 @@ impl<'a> AstDumper<'a> {
         dump!(self, "fct {} @ {} {}", self.str(fct.name), fct.pos, fct.id);
 
         self.indent(|d| {
-            dump!(d, "open = {}", fct.has_open);
-            dump!(d, "override = {}", fct.has_override);
-            dump!(d, "final = {}", fct.has_final);
-            dump!(d, "internal = {}", fct.internal);
+            d.dump_annotation_usages(&fct.annotation_usages);
             dump!(d, "params");
             d.indent(|d| {
                 if fct.params.is_empty() {

@@ -59,6 +59,7 @@ impl<'a> GlobalDefCheck<'a> {
 
         if let Some(ref initializer) = self.ast.initializer {
             let fct = Fct::new(
+                self.vm,
                 self.file_id,
                 self.namespace_id,
                 initializer,

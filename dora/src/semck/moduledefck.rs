@@ -93,6 +93,7 @@ impl<'x> ModuleCheck<'x> {
 
     fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
         let fct = Fct::new(
+            self.vm,
             self.file_id,
             self.namespace_id,
             f,
@@ -107,6 +108,7 @@ impl<'x> ModuleCheck<'x> {
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
         let fct = Fct::new(
+            self.vm,
             self.file_id,
             self.namespace_id,
             f,
