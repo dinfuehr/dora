@@ -14,31 +14,39 @@ fun main() {
     assert(loadPtr(fooPtr).y == 1);
 }
 
-@cannon fun loadBool(x: FooBool): Bool {
+fun loadBool(x: FooBool): Bool {
     return x.y;
 }
-@cannon fun loadByte(x: FooByte): UInt8 {
+
+fun loadByte(x: FooByte): UInt8 {
     return x.y;
 }
-@cannon fun loadChar(x: FooChar): Char {
+
+fun loadChar(x: FooChar): Char {
     return x.y;
 }
-@cannon fun loadInt32(x: FooInt32): Int32 {
+
+fun loadInt32(x: FooInt32): Int32 {
     return x.y;
 }
-@cannon fun loadInt64(x: FooInt64): Int64 {
+
+fun loadInt64(x: FooInt64): Int64 {
     return x.y;
 }
-@cannon fun loadFloat32(x: FooFloat32): Float32 {
+
+fun loadFloat32(x: FooFloat32): Float32 {
     return x.y;
 }
-@cannon fun loadFloat64(x: FooFloat64): Float64 {
+
+fun loadFloat64(x: FooFloat64): Float64 {
     return x.y;
 }
-@cannon fun loadString(x: FooString): String {
+
+fun loadString(x: FooString): String {
     return x.y;
 }
-@cannon fun loadPtr(x: FooPtr): FooInt32 {
+
+fun loadPtr(x: FooPtr): FooInt32 {
     return x.y;
 }
 

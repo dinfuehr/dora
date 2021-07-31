@@ -31,31 +31,39 @@ fun main() {
     assert(fooPtr.y.y == 23)
 }
 
-@cannon fun storeBool(x: FooBool, z: Bool) {
+fun storeBool(x: FooBool, z: Bool) {
     x.y = z;
 }
-@cannon fun storeByte(x: FooByte, z: UInt8) {
+
+fun storeByte(x: FooByte, z: UInt8) {
     x.y = z;
 }
-@cannon fun storeChar(x: FooChar, z: Char) {
+
+fun storeChar(x: FooChar, z: Char) {
     x.y = z;
 }
-@cannon fun storeInt32(x: FooInt32, z: Int32) {
+
+fun storeInt32(x: FooInt32, z: Int32) {
     x.y = z;
 }
-@cannon fun storeInt64(x: FooInt64, z: Int64) {
+
+fun storeInt64(x: FooInt64, z: Int64) {
     x.y = z;
 }
-@cannon fun storeFloat32(x: FooFloat32, z: Float32) {
+
+fun storeFloat32(x: FooFloat32, z: Float32) {
     x.y = z;
 }
-@cannon fun storeFloat64(x: FooFloat64, z: Float64) {
+
+fun storeFloat64(x: FooFloat64, z: Float64) {
     x.y = z;
 }
-@cannon fun storeString(x: FooString, z: String) {
+
+fun storeString(x: FooString, z: String) {
     x.y = z;
 }
-@cannon fun storePtr(x: FooPtr, z: FooInt32) {
+
+fun storePtr(x: FooPtr, z: FooInt32) {
     x.y = z;
 }
 

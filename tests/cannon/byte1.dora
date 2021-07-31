@@ -25,26 +25,26 @@ fun main() {
     assert(!gt(5Y, 20Y));
 }
 
-@cannon fun eq(x: UInt8, y: UInt8): Bool {
+fun eq(x: UInt8, y: UInt8): Bool {
     return x == y;
 }
 
-@cannon fun ne(x: UInt8, y: UInt8): Bool {
+fun ne(x: UInt8, y: UInt8): Bool {
     return x != y;
 }
 
-@cannon fun lt(x: UInt8, y: UInt8): Bool {
+fun lt(x: UInt8, y: UInt8): Bool {
     return x < y;
 }
 
-@cannon fun le(x: UInt8, y: UInt8): Bool {
+fun le(x: UInt8, y: UInt8): Bool {
     return x <= y;
 }
 
-@cannon fun ge(x: UInt8, y: UInt8): Bool {
+fun ge(x: UInt8, y: UInt8): Bool {
     return x >= y;
 }
 
-@cannon fun gt(x: UInt8, y: UInt8): Bool {
+fun gt(x: UInt8, y: UInt8): Bool {
     return x > y;
 }

@@ -10,38 +10,38 @@ fun main() {
     assert(abi_9(1, 2, 3, 4, 5, 6, 7, 8, 9) == 9);
 }
 
-@cannon fun abi_1(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_1(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return x;
 }
 
-@cannon fun abi_2(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_2(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return y;
 }
 
-@cannon fun abi_3(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_3(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return z;
 }
 
-@cannon fun abi_4(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_4(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return a;
 }
 
-@cannon fun abi_5(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_5(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return b;
 }
 
-@cannon fun abi_6(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_6(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return c;
 }
 
-@cannon fun abi_7(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_7(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return i;
 }
 
-@cannon fun abi_8(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_8(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return j;
 }
 
-@cannon fun abi_9(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
+fun abi_9(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 {
     return k;
 }

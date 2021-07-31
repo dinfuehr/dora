@@ -6,11 +6,11 @@ fun main() {
 }
 
 class Foo(let i: Int32) {
-  @cannon fun test() {
+  fun test() {
     var x = self.i;
   }
 
-  @cannon fun test2(i: Int32) {
+  fun test2(i: Int32) {
     assert(i == 2);
   }
 }

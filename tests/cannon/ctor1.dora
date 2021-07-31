@@ -1,9 +1,9 @@
 //= stdout "xyz"
 
-@cannon class X(let msg: String) {
+class X(let msg: String) {
 }
 
-@cannon fun cannonMain(): X {
+fun cannonMain(): X {
     return X("xyz");
 }
 

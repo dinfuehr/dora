@@ -11,42 +11,42 @@ fun main() {
     assert(moveString("5") == "5");
 }
 
-@cannon fun moveBool(x: Bool): Bool {
+fun moveBool(x: Bool): Bool {
     let y = x;
     return y;
 }
 
-@cannon fun moveChar(x: Char): Char {
+fun moveChar(x: Char): Char {
     let y = x;
     return y;
 }
 
-@cannon fun moveByte(x: UInt8): UInt8 {
+fun moveByte(x: UInt8): UInt8 {
     let y = x;
     return y;
 }
 
-@cannon fun moveInt32(x: Int32): Int32 {
+fun moveInt32(x: Int32): Int32 {
     let y = x;
     return y;
 }
 
-@cannon fun moveInt64(x: Int64): Int64 {
+fun moveInt64(x: Int64): Int64 {
     let y = x;
     return y;
 }
 
-@cannon fun moveFloat32(x: Float32): Float32 {
+fun moveFloat32(x: Float32): Float32 {
     let y = x;
     return y;
 }
 
-@cannon fun moveFloat64(x: Float64): Float64 {
+fun moveFloat64(x: Float64): Float64 {
     let y = x;
     return y;
 }
 
-@cannon fun moveString(x: String): String {
+fun moveString(x: String): String {
     let y = x;
     return y;
 }

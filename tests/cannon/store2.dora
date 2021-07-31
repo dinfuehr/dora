@@ -23,7 +23,7 @@ fun main() {
     assert(glob_obj === obj);
 }
 
-@cannon fun init_globs(bool: Bool, char: Char, byte: UInt8, int32: Int32, int64: Int64, float32: Float32, float64: Float64, string: String, obj: Foo) {
+fun init_globs(bool: Bool, char: Char, byte: UInt8, int32: Int32, int64: Int64, float32: Float32, float64: Float64, string: String, obj: Foo) {
     glob_bool = bool;
     glob_char = char;
     glob_byte = byte;

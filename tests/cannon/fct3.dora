@@ -11,63 +11,67 @@ fun main() {
 }
 
 class Foo {
-  @cannon fun foo_bool(): Bool {
+  fun foo_bool(): Bool {
     return self.bar_bool();
   }
-  @cannon fun bar_bool(): Bool {
+  
+  fun bar_bool(): Bool {
     return true;
   }
 
-  @cannon fun foo_byte(): UInt8 {
+  fun foo_byte(): UInt8 {
     return self.bar_byte();
   }
-  @cannon fun bar_byte(): UInt8 {
+  
+  fun bar_byte(): UInt8 {
     return 3Y;
   }
 
-  @cannon fun foo_char(): Char {
+  fun foo_char(): Char {
     return self.bar_char();
   }
-  @cannon fun bar_char(): Char {
+
+  fun bar_char(): Char {
     return '3';
   }
 
-  @cannon fun foo_int32(): Int32 {
+  fun foo_int32(): Int32 {
     return self.bar_int32();
   }
-  @cannon fun bar_int32(): Int32 {
+
+  fun bar_int32(): Int32 {
     return 3;
   }
 
-  @cannon fun foo_int64(): Int64 {
+  fun foo_int64(): Int64 {
     return self.bar_int64();
   }
 
-  @cannon fun bar_int64(): Int64 {
+  fun bar_int64(): Int64 {
     return 3L;
   }
 
-  @cannon fun foo_float(): Float32 {
+  fun foo_float(): Float32 {
     return self.bar_float();
   }
 
-  @cannon fun bar_float(): Float32 {
+  fun bar_float(): Float32 {
     return 3F;
   }
 
-  @cannon fun foo_double(): Float64 {
+  fun foo_double(): Float64 {
     return self.bar_double();
   }
 
-  @cannon fun bar_double(): Float64 {
+  fun bar_double(): Float64 {
     return 3D;
   }
 
-  @cannon fun foo_string(): String {
+  fun foo_string(): String {
     return self.bar_string();
   }
 
-  @cannon fun bar_string(): String {
+  fun bar_string(): String {
     return "3";
   }
 }

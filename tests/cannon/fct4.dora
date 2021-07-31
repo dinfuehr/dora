@@ -11,7 +11,7 @@ fun main() {
 }
 
 class Foo {
-  @cannon fun foo_bool(): Bool {
+  fun foo_bool(): Bool {
     return self.bar_bool(true);
   }
   fun bar_bool(a: Bool): Bool {
@@ -19,31 +19,34 @@ class Foo {
     return !a;
   }
 
-  @cannon fun foo_byte(): UInt8 {
+  fun foo_byte(): UInt8 {
     return self.bar_byte(3Y);
   }
+
   fun bar_byte(a: UInt8): UInt8 {
     assert(a == 3Y);
     return (3+a.toInt32()).toUInt8();
   }
 
-  @cannon fun foo_char(): Char {
+  fun foo_char(): Char {
     return self.bar_char('3');
   }
+
   fun bar_char(a: Char): Char {
     assert(a == '3');
     return (3+a.toInt32()).toChar().unwrap();
   }
 
-  @cannon fun foo_int32(): Int32 {
+  fun foo_int32(): Int32 {
     return self.bar_int32(3);
   }
+
   fun bar_int32(a: Int32): Int32 {
     assert(a == 3);
     return 3+a;
   }
 
-  @cannon fun foo_int64(): Int64 {
+  fun foo_int64(): Int64 {
     return self.bar_int64(3L);
   }
 
@@ -52,7 +55,7 @@ class Foo {
     return 3L+a;
   }
 
-  @cannon fun foo_float(): Float32 {
+  fun foo_float(): Float32 {
     return self.bar_float(3F);
   }
 
@@ -61,7 +64,7 @@ class Foo {
     return 3F+a;
   }
 
-  @cannon fun foo_double(): Float64 {
+  fun foo_double(): Float64 {
     return self.bar_double(3D);
   }
 
@@ -70,7 +73,7 @@ class Foo {
     return 3D+a;
   }
 
-  @cannon fun foo_string(): String {
+  fun foo_string(): String {
     return self.bar_string("3");
   }
 

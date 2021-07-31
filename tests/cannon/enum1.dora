@@ -8,11 +8,11 @@ fun main() {
     assert(ne(Foo::B, Foo::A));
 }
 
-@cannon fun eq(x: Foo, y: Foo): Bool {
+fun eq(x: Foo, y: Foo): Bool {
     return x == y;
 }
 
-@cannon fun ne(x: Foo, y: Foo): Bool {
+fun ne(x: Foo, y: Foo): Bool {
     return x != y;
 }
 

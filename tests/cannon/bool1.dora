@@ -10,10 +10,10 @@ fun main() {
   assert(boolNe(false, false) == false);
 }
 
-@cannon fun boolEq(a: Bool, b: Bool): Bool {
+fun boolEq(a: Bool, b: Bool): Bool {
   return a == b;
 }
 
-@cannon fun boolNe(a: Bool, b: Bool): Bool {
+fun boolNe(a: Bool, b: Bool): Bool {
   return a != b;
 }
