@@ -5,7 +5,7 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
+use crate::vm::{Annotation, ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -88,13 +88,7 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        let is_pub = f.annotation_usages.contains(
-            self.vm
-                .annotations
-                .idx(self.vm.known.annotations.pub_)
-                .read()
-                .name,
-        );
+        let is_pub = Annotation::is_pub(&f.annotation_usages, self.vm);
         self.add_field(f.pos, f.name, ty, f.mutable, is_pub);
 
         if !f.primary_ctor && f.expr.is_none() {

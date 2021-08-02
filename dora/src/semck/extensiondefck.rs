@@ -5,7 +5,7 @@ use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{
-    EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, StructId, TypeParam, VM,
+    Annotation, EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, StructId, TypeParam, VM,
 };
 
 use dora_parser::ast;
@@ -127,13 +127,7 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        let internal = f.annotation_usages.contains(
-            self.vm
-                .annotations
-                .idx(self.vm.known.annotations.internal)
-                .read()
-                .name,
-        );
+        let internal = Annotation::is_internal(&f.annotation_usages, self.vm);
         if f.block.is_none() && !internal {
             self.vm
                 .diag
@@ -241,13 +235,7 @@ impl<'x> ExtensionCheck<'x> {
             let method = self.vm.fcts.idx(method);
             let method = method.read();
 
-            let is_static = f.annotation_usages.contains(
-                self.vm
-                    .annotations
-                    .idx(self.vm.known.annotations.static_)
-                    .read()
-                    .name,
-            );
+            let is_static = Annotation::is_static(&f.annotation_usages, self.vm);
             if method.name == f.name && method.is_static == is_static {
                 let method_name = self.vm.interner.str(method.name).to_string();
                 let msg = SemError::MethodExists(method_name, method.pos);
@@ -272,13 +260,7 @@ impl<'x> ExtensionCheck<'x> {
             return true;
         }
 
-        let is_static = f.annotation_usages.contains(
-            self.vm
-                .annotations
-                .idx(self.vm.known.annotations.static_)
-                .read()
-                .name,
-        );
+        let is_static = Annotation::is_static(&f.annotation_usages, self.vm);
         let table = if is_static {
             &extension.static_names
         } else {

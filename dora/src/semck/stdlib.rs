@@ -25,9 +25,9 @@ pub fn resolve_internal_annotations(vm: &mut VM) {
         internal_annotation(vm, stdlib, "final", InternalAnnotation::Final);
     vm.known.annotations.internal =
         internal_annotation(vm, stdlib, "internal", InternalAnnotation::Internal);
+    vm.known.annotations.open = internal_annotation(vm, stdlib, "open", InternalAnnotation::Open);
     vm.known.annotations.override_ =
         internal_annotation(vm, stdlib, "override", InternalAnnotation::Override);
-    vm.known.annotations.open = internal_annotation(vm, stdlib, "open", InternalAnnotation::Open);
     vm.known.annotations.pub_ = internal_annotation(vm, stdlib, "pub", InternalAnnotation::Pub);
     vm.known.annotations.static_ =
         internal_annotation(vm, stdlib, "static", InternalAnnotation::Static);

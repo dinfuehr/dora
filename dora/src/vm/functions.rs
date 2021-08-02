@@ -13,8 +13,8 @@ use crate::gc::Address;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, AnalysisData, ClassId, ExtensionId, FileId, ImplId, ModuleId,
-    NamespaceId, TraitId, TypeParam, TypeParamId, VM,
+    accessible_from, namespace_path, AnalysisData, Annotation, ClassId, ExtensionId, FileId,
+    ImplId, ModuleId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -94,39 +94,15 @@ impl Fct {
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,
-            has_override: annotations.contains(
-                vm.annotations
-                    .idx(vm.known.annotations.override_)
-                    .read()
-                    .name,
-            ),
-            has_open: annotations
-                .contains(vm.annotations.idx(vm.known.annotations.open).read().name),
-            has_final: annotations
-                .contains(vm.annotations.idx(vm.known.annotations.final_).read().name),
-            has_optimize_immediately: annotations.contains(
-                vm.annotations
-                    .idx(vm.known.annotations.optimize_immediately)
-                    .read()
-                    .name,
-            ),
-            is_pub: annotations.contains(vm.annotations.idx(vm.known.annotations.pub_).read().name),
-            is_static: annotations
-                .contains(vm.annotations.idx(vm.known.annotations.static_).read().name),
-            is_abstract: annotations.contains(
-                vm.annotations
-                    .idx(vm.known.annotations.abstract_)
-                    .read()
-                    .name,
-            ),
-            is_test: annotations
-                .contains(vm.annotations.idx(vm.known.annotations.test).read().name),
-            internal: annotations.contains(
-                vm.annotations
-                    .idx(vm.known.annotations.internal)
-                    .read()
-                    .name,
-            ),
+            has_override: Annotation::is_override(annotations, vm),
+            has_open: Annotation::is_open(annotations, vm),
+            has_final: Annotation::is_final(annotations, vm),
+            has_optimize_immediately: Annotation::is_optimize_immediately(annotations, vm),
+            is_pub: Annotation::is_pub(annotations, vm),
+            is_static: Annotation::is_static(annotations, vm),
+            is_abstract: Annotation::is_abstract(annotations, vm),
+            is_test: Annotation::is_test(annotations, vm),
+            internal: Annotation::is_internal(annotations, vm),
             internal_resolved: false,
             overrides: None,
             is_constructor: ast.is_constructor,

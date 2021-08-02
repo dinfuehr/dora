@@ -11,11 +11,11 @@ use crate::size::InstanceSize;
 use crate::sym::SymTable;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
-use crate::vm::VM;
 use crate::vm::{
     accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctId,
     FctParent, FileId, ImplId, NamespaceId, TraitId,
 };
+use crate::vm::{Annotation, VM};
 use crate::vtable::VTableBox;
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -116,21 +116,10 @@ impl Class {
             name: ast.name,
             ty: None,
             parent_class: None,
-            has_open: annotations
-                .contains(vm.annotations.idx(vm.known.annotations.open).read().name),
-            is_abstract: annotations.contains(
-                vm.annotations
-                    .idx(vm.known.annotations.abstract_)
-                    .read()
-                    .name,
-            ),
-            internal: annotations.contains(
-                vm.annotations
-                    .idx(vm.known.annotations.internal)
-                    .read()
-                    .name,
-            ),
-            is_pub: annotations.contains(vm.annotations.idx(vm.known.annotations.pub_).read().name),
+            has_open: Annotation::is_open(annotations, vm),
+            is_abstract: Annotation::is_abstract(annotations, vm),
+            internal: Annotation::is_internal(annotations, vm),
+            is_pub: Annotation::is_pub(annotations, vm),
             internal_resolved: false,
             has_constructor,
             table: SymTable::new(),

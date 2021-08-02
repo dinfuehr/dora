@@ -115,8 +115,8 @@ pub struct KnownAnnotations {
     pub abstract_: AnnotationId,
     pub final_: AnnotationId,
     pub internal: AnnotationId,
-    pub override_: AnnotationId,
     pub open: AnnotationId,
+    pub override_: AnnotationId,
     pub pub_: AnnotationId,
     pub static_: AnnotationId,
 

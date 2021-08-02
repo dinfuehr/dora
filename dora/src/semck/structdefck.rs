@@ -4,7 +4,9 @@ use crate::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
-use crate::vm::{FileId, NamespaceId, StructFieldData, StructFieldId, StructId, TypeParamId, VM};
+use crate::vm::{
+    Annotation, FileId, NamespaceId, StructFieldData, StructFieldId, StructId, TypeParamId, VM,
+};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -148,19 +150,12 @@ impl<'x> StructCheck<'x> {
             return;
         }
 
-        let annotations = &f.annotation_usages;
         let field = StructFieldData {
             id,
             pos: f.pos,
             name: f.name,
             ty,
-            is_pub: annotations.contains(
-                self.vm
-                    .annotations
-                    .idx(self.vm.known.annotations.pub_)
-                    .read()
-                    .name,
-            ),
+            is_pub: Annotation::is_pub(&f.annotation_usages, self.vm),
         };
 
         xstruct.fields.push(field);
