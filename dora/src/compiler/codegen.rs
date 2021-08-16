@@ -39,9 +39,7 @@ pub fn generate_fct(
         }
     }
 
-    let bc = if fct.use_cannon {
-        CompilerName::Cannon
-    } else if fct.has_optimize_immediately {
+    let bc = if fct.has_optimize_immediately {
         CompilerName::Boots
     } else {
         vm.args.compiler()

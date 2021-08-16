@@ -664,7 +664,6 @@ pub struct Function {
     pub is_static: bool,
     pub is_abstract: bool,
     pub is_test: bool,
-    pub use_cannon: bool,
     pub internal: bool,
     pub is_constructor: bool,
 
@@ -757,7 +756,6 @@ pub enum Modifier {
     Pub,
     Static,
     Test,
-    Cannon,
     OptimizeImmediately,
 }
 
@@ -772,7 +770,6 @@ impl Modifier {
             "pub" => Some(Modifier::Pub),
             "static" => Some(Modifier::Static),
             "test" => Some(Modifier::Test),
-            "cannon" => Some(Modifier::Cannon),
             "optimizeImmediately" => Some(Modifier::OptimizeImmediately),
             _ => None,
         }
@@ -788,7 +785,6 @@ impl Modifier {
             Modifier::Pub => "pub",
             Modifier::Static => "static",
             Modifier::Test => "test",
-            Modifier::Cannon => "cannon",
             Modifier::OptimizeImmediately => "optimizeImmediately",
         }
     }

@@ -96,7 +96,6 @@ impl<'a> Parser<'a> {
                         Modifier::Internal,
                         Modifier::OptimizeImmediately,
                         Modifier::Test,
-                        Modifier::Cannon,
                         Modifier::Pub,
                     ],
                 )?;
@@ -111,7 +110,6 @@ impl<'a> Parser<'a> {
                         Modifier::Abstract,
                         Modifier::Open,
                         Modifier::Internal,
-                        Modifier::Cannon,
                         Modifier::Pub,
                     ],
                 )?;
@@ -370,12 +368,7 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(TokenKind::RBrace) {
             let modifiers = self.parse_annotation_usages()?;
-            let mods = &[
-                Modifier::Static,
-                Modifier::Internal,
-                Modifier::Cannon,
-                Modifier::Pub,
-            ];
+            let mods = &[Modifier::Static, Modifier::Internal, Modifier::Pub];
             self.restrict_modifiers(&modifiers, mods)?;
 
             let method = self.parse_function(&modifiers)?;
@@ -559,14 +552,12 @@ impl<'a> Parser<'a> {
         self.in_class_or_module = true;
         let ctor_params = self.parse_constructor(&mut cls)?;
 
-        let use_cannon = modifiers.contains(Modifier::Cannon);
-
         cls.parent_class = self.parse_class_parent()?;
 
         self.parse_class_body(&mut cls)?;
         let span = self.span_from(start);
 
-        let constructor = self.generate_constructor(&mut cls, ctor_params, use_cannon);
+        let constructor = self.generate_constructor(&mut cls, ctor_params);
         cls.constructor = Some(Arc::new(constructor));
         cls.span = span;
         self.in_class_or_module = false;
@@ -864,7 +855,6 @@ impl<'a> Parser<'a> {
                         Modifier::Final,
                         Modifier::Pub,
                         Modifier::Static,
-                        Modifier::Cannon,
                     ];
                     self.restrict_modifiers(&modifiers, mods)?;
 
@@ -952,7 +942,6 @@ impl<'a> Parser<'a> {
                 "pub" => Modifier::Pub,
                 "static" => Modifier::Static,
                 "test" => Modifier::Test,
-                "cannon" => Modifier::Cannon,
                 "optimizeImmediately" => Modifier::OptimizeImmediately,
                 annotation => {
                     return Err(ParseErrorAndPos::new(
@@ -1063,7 +1052,6 @@ impl<'a> Parser<'a> {
             is_abstract: modifiers.contains(Modifier::Abstract),
             is_constructor: false,
             is_test: modifiers.contains(Modifier::Test),
-            use_cannon: modifiers.contains(Modifier::Cannon),
             params,
             return_type,
             block,
@@ -2268,7 +2256,6 @@ impl<'a> Parser<'a> {
             is_abstract: false,
             is_constructor: false,
             is_test: false,
-            use_cannon: false,
             params,
             return_type,
             block,
@@ -2347,7 +2334,6 @@ impl<'a> Parser<'a> {
         &mut self,
         cls: &mut Class,
         ctor_params: Vec<ConstructorParam>,
-        use_cannon: bool,
     ) -> Function {
         let builder = Builder::new(self.id_generator);
         let mut block = builder.build_block();
@@ -2395,7 +2381,6 @@ impl<'a> Parser<'a> {
 
         fct.is_method(true)
             .is_public(true)
-            .use_cannon(use_cannon)
             .constructor(true)
             .block(block.build());
 
