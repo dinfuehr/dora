@@ -230,21 +230,69 @@ fn encode_source_type_array(vm: &VM, sta: &SourceTypeArray, buffer: &mut Vec<u8>
     }
 }
 
-fn encode_source_type(_vm: &VM, ty: SourceType, buffer: &mut Vec<u8>) {
-    let opcode = match ty {
-        SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
-        SourceType::Unit => SourceTypeOpcode::Unit,
-        SourceType::Bool => SourceTypeOpcode::Bool,
-        SourceType::Char => SourceTypeOpcode::Char,
-        SourceType::UInt8 => SourceTypeOpcode::UInt8,
-        SourceType::Int32 => SourceTypeOpcode::Int32,
-        SourceType::Int64 => SourceTypeOpcode::Int64,
-        SourceType::Float32 => SourceTypeOpcode::Float32,
-        SourceType::Float64 => SourceTypeOpcode::Float64,
-        _ => unreachable!(),
-    };
+fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut Vec<u8>) {
+    use byteorder::{LittleEndian, WriteBytesExt};
 
-    buffer.push(opcode as u8);
+    match ty {
+        SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
+        SourceType::Unit => buffer.push(SourceTypeOpcode::Unit as u8),
+        SourceType::Bool => buffer.push(SourceTypeOpcode::Bool as u8),
+        SourceType::Char => buffer.push(SourceTypeOpcode::Char as u8),
+        SourceType::UInt8 => buffer.push(SourceTypeOpcode::UInt8 as u8),
+        SourceType::Int32 => buffer.push(SourceTypeOpcode::Int32 as u8),
+        SourceType::Int64 => buffer.push(SourceTypeOpcode::Int64 as u8),
+        SourceType::Float32 => buffer.push(SourceTypeOpcode::Float32 as u8),
+        SourceType::Float64 => buffer.push(SourceTypeOpcode::Float64 as u8),
+        SourceType::Class(cls_id, source_type_array_id) => {
+            let source_type_array = vm.source_type_arrays.lock().get(source_type_array_id);
+            buffer.push(SourceTypeOpcode::Class as u8);
+            buffer
+                .write_u32::<LittleEndian>(cls_id.to_usize() as u32)
+                .unwrap();
+            encode_source_type_array(vm, &source_type_array, buffer);
+        }
+        SourceType::Struct(struct_id, source_type_array_id) => {
+            let source_type_array = vm.source_type_arrays.lock().get(source_type_array_id);
+            buffer.push(SourceTypeOpcode::Struct as u8);
+            buffer
+                .write_u32::<LittleEndian>(struct_id.to_usize() as u32)
+                .unwrap();
+            encode_source_type_array(vm, &source_type_array, buffer);
+        }
+        SourceType::Trait(trait_id, source_type_array_id) => {
+            let source_type_array = vm.source_type_arrays.lock().get(source_type_array_id);
+            buffer.push(SourceTypeOpcode::Struct as u8);
+            buffer
+                .write_u32::<LittleEndian>(trait_id.to_usize() as u32)
+                .unwrap();
+            encode_source_type_array(vm, &source_type_array, buffer);
+        }
+        SourceType::Enum(enum_id, source_type_array_id) => {
+            let source_type_array = vm.source_type_arrays.lock().get(source_type_array_id);
+            buffer.push(SourceTypeOpcode::Enum as u8);
+            buffer
+                .write_u32::<LittleEndian>(enum_id.to_usize() as u32)
+                .unwrap();
+            encode_source_type_array(vm, &source_type_array, buffer);
+        }
+        SourceType::Tuple(tuple_id) => {
+            buffer.push(SourceTypeOpcode::Tuple as u8);
+            let subtypes = vm.tuples.lock().get(tuple_id);
+            buffer
+                .write_u32::<LittleEndian>(subtypes.len() as u32)
+                .unwrap();
+            for subty in subtypes.iter() {
+                encode_source_type(vm, subty.clone(), buffer);
+            }
+        }
+        SourceType::TypeParam(type_param_id) => {
+            buffer.push(SourceTypeOpcode::TypeParam as u8);
+            buffer
+                .write_u32::<LittleEndian>(type_param_id.to_usize() as u32)
+                .unwrap();
+        }
+        SourceType::Module(_) | SourceType::Lambda(_) => unimplemented!(),
+    }
 }
 
 fn allocate_encoded_compilation_info(
