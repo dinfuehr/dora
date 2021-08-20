@@ -119,13 +119,21 @@ class AssemblerArm64 extends Assembler {
         self.buffer.emitInt32(inst);
     }
 
-    fun br(rn: Register) {
-        let inst = clsx::uncondBranchReg(0b0000, 0b11111, 0, rn, 0);
-        self.buffer.emitInt32(inst);
+    fun b(label: Label) {
+        unreachable[()]();
+    }
+
+    fun bl(label: Label) {
+        unreachable[()]();
     }
 
     fun blr(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0001, 0b11111, 0, rn, 0);
+        self.buffer.emitInt32(inst);
+    }
+
+    fun br(rn: Register) {
+        let inst = clsx::uncondBranchReg(0b0000, 0b11111, 0, rn, 0);
         self.buffer.emitInt32(inst);
     }
 
@@ -176,6 +184,13 @@ impl Register {
 namespace clsx {
     import super::Register;
 
+    @pub fun uncondBranchImm(op: Int32, imm26: Int32): Int32 {
+        assert(fitsUnsigned(op, 1));
+        assert(fitsSigned(imm26, 26));
+
+        0b101 << 26 | op << 31 | (imm26 & 0x3FFFFFF)
+    }
+
     @pub fun uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
         assert(fitsUnsigned(opc, 4));
         assert(fitsUnsigned(op2, 5));
@@ -186,9 +201,17 @@ namespace clsx {
         0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.encoding() << 5 | op4
     }
 
+    fun fitsBit(value: Int32): Bool {
+        value >= 0 && value < 2
+    }
 
-    @pub fun fitsUnsigned(value: Int32, bits: Int32): Bool {
-        assert(bits < 32);
+    fun fitsSigned(value: Int32, bits: Int32): Bool {
+        assert(bits > 0 && bits < 32);
+        -(1 << (bits - 1)) <= value && value < (1 << (bits - 1))
+    }
+
+    fun fitsUnsigned(value: Int32, bits: Int32): Bool {
+        assert(bits > 0 && bits < 32);
         value >= 0 && value < (1 << bits)
     }
 }
