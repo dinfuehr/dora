@@ -132,10 +132,23 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
                 buffer.push(ConstPoolOpcode::Char as u8);
                 buffer.write_u32::<LittleEndian>(value as u32).unwrap();
             }
-            &ConstPoolEntry::Fct(_, _) => unimplemented!(),
+            &ConstPoolEntry::Fct(fct_id, ref source_type_array) => {
+                buffer.push(ConstPoolOpcode::Fct as u8);
+                buffer.write_u32::<LittleEndian>(fct_id.to_usize() as u32).unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+            },
             &ConstPoolEntry::Generic(_, _, _) => unimplemented!(),
-            &ConstPoolEntry::Class(_, _) => unimplemented!(),
-            &ConstPoolEntry::Field(_, _, _) => unimplemented!(),
+            &ConstPoolEntry::Class(cls_id, ref source_type_array) => {
+                buffer.push(ConstPoolOpcode::Class as u8);
+                buffer.write_u32::<LittleEndian>(cls_id.to_usize() as u32).unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+            }
+            &ConstPoolEntry::Field(cls_id, ref source_type_array, field_id) => {
+                buffer.push(ConstPoolOpcode::Class as u8);
+                buffer.write_u32::<LittleEndian>(cls_id.to_usize() as u32).unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+                buffer.write_u32::<LittleEndian>(field_id.to_usize() as u32).unwrap();
+            }
             &ConstPoolEntry::FieldFixed(_, _) => unimplemented!(),
             &ConstPoolEntry::Enum(_, _) => unimplemented!(),
             &ConstPoolEntry::EnumVariant(_, _, _) => unimplemented!(),
@@ -148,19 +161,30 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
     byte_array_from_buffer(vm, &buffer)
 }
 
-fn encode_source_type(_vm: &VM, ty: SourceType, buffer: &mut Vec<u8>) {
-    match ty {
-        SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
-        SourceType::Unit => buffer.push(SourceTypeOpcode::Unit as u8),
-        SourceType::Bool => buffer.push(SourceTypeOpcode::Bool as u8),
-        SourceType::Char => buffer.push(SourceTypeOpcode::Char as u8),
-        SourceType::UInt8 => buffer.push(SourceTypeOpcode::UInt8 as u8),
-        SourceType::Int32 => buffer.push(SourceTypeOpcode::Int32 as u8),
-        SourceType::Int64 => buffer.push(SourceTypeOpcode::Int64 as u8),
-        SourceType::Float32 => buffer.push(SourceTypeOpcode::Float32 as u8),
-        SourceType::Float64 => buffer.push(SourceTypeOpcode::Float64 as u8),
-        _ => unreachable!(),
+fn encode_source_type_array(vm: &VM, sta: &SourceTypeArray, buffer: &mut Vec<u8>) {
+    use byteorder::{LittleEndian, WriteBytesExt};
+    buffer.write_u32::<LittleEndian>(sta.len() as u32).unwrap();
+
+    for ty in sta.iter() {
+        encode_source_type(vm, ty, buffer);
     }
+}
+
+fn encode_source_type(_vm: &VM, ty: SourceType, buffer: &mut Vec<u8>) {
+    let opcode = match ty {
+        SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
+        SourceType::Unit => SourceTypeOpcode::Unit,
+        SourceType::Bool => SourceTypeOpcode::Bool,
+        SourceType::Char => SourceTypeOpcode::Char,
+        SourceType::UInt8 => SourceTypeOpcode::UInt8,
+        SourceType::Int32 => SourceTypeOpcode::Int32,
+        SourceType::Int64 => SourceTypeOpcode::Int64,
+        SourceType::Float32 => SourceTypeOpcode::Float32,
+        SourceType::Float64 => SourceTypeOpcode::Float64,
+        _ => unreachable!(),
+    };
+
+    buffer.push(opcode as u8);
 }
 
 fn allocate_encoded_compilation_info(

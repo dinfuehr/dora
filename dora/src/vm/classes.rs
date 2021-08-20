@@ -28,6 +28,10 @@ impl ClassId {
     pub fn max() -> ClassId {
         ClassId(usize::max_value())
     }
+
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
 }
 
 impl From<ClassId> for usize {

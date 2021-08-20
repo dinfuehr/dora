@@ -795,6 +795,8 @@ pub enum ConstPoolOpcode {
     Int32,
     Int64,
     Char,
+    Fct,
+    Class,
 }
 
 #[derive(Debug, PartialEq)]
