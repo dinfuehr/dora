@@ -76,12 +76,14 @@ fn allocate_compilation_info(vm: &VM, bytecode_fct: &BytecodeFunction) -> Ref<Ob
     let bytecode_array = handle(byte_array_from_buffer(vm, bytecode_fct.code()));
     let constpool_array = handle(allocate_constpool_array(vm, &bytecode_fct));
     let registers_array = handle(allocate_registers_array(vm, &bytecode_fct));
+    let type_params = handle(allocate_type_params(vm));
 
     allocate_encoded_compilation_info(
         vm,
         bytecode_array,
         constpool_array,
         registers_array,
+        type_params,
         bytecode_fct.arguments() as i32,
     )
 }
@@ -94,6 +96,12 @@ fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<Int32Array> 
     }
 
     array
+}
+
+fn allocate_type_params(vm: &VM) -> Ref<UInt8Array> {
+    let mut buffer = Vec::new();
+    encode_source_type_array(vm, &SourceTypeArray::empty(), &mut buffer);
+    byte_array_from_buffer(vm, &buffer)
 }
 
 fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> {
@@ -300,6 +308,7 @@ fn allocate_encoded_compilation_info(
     bytecode_array: Handle<UInt8Array>,
     constpool_array: Handle<UInt8Array>,
     registers_array: Handle<Int32Array>,
+    type_params: Handle<UInt8Array>,
     arguments: i32,
 ) -> Ref<Obj> {
     let cls_id = vm.cls_def_by_name(vm.boots_namespace_id, "EncodedCompilationInfo");
@@ -313,6 +322,9 @@ fn allocate_encoded_compilation_info(
 
     let fid = vm.field_in_class(cls_id, "registers");
     object::write_ref(vm, obj, cls_id, fid, registers_array.direct().cast::<Obj>());
+
+    let fid = vm.field_in_class(cls_id, "type_params");
+    object::write_ref(vm, obj, cls_id, fid, type_params.direct().cast::<Obj>());
 
     let fid = vm.field_in_class(cls_id, "arguments");
     object::write_int32(vm, obj, cls_id, fid, arguments);

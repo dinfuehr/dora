@@ -19,6 +19,7 @@ class EncodedCompilationInfo {
     let code: Array[UInt8] = Array[UInt8]::empty();
     let constpool: Array[UInt8] = Array[UInt8]::empty();
     let registers: Array[Int32] = Array[Int32]::empty();
+    let type_params: Array[UInt8] = Array[UInt8]::empty();
     let arguments: Int32 = 0;
 }
 
