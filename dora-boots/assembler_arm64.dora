@@ -37,26 +37,95 @@ let REG_SP: Register = Register(33);
 let REG_FP: Register = R29;
 let REG_LR: Register = R30;
 
+struct NeonRegister(value: Int32)
+
+impl NeonRegister {
+    fun encoding(): Int32 {
+        self.value
+    }
+}
+
+let F0: NeonRegister = NeonRegister(0);
+let F1: NeonRegister = NeonRegister(1);
+let F2: NeonRegister = NeonRegister(2);
+let F3: NeonRegister = NeonRegister(3);
+let F4: NeonRegister = NeonRegister(4);
+let F5: NeonRegister = NeonRegister(5);
+let F6: NeonRegister = NeonRegister(6);
+let F7: NeonRegister = NeonRegister(7);
+let F8: NeonRegister = NeonRegister(8);
+let F9: NeonRegister = NeonRegister(9);
+let F10: NeonRegister = NeonRegister(10);
+let F11: NeonRegister = NeonRegister(11);
+let F12: NeonRegister = NeonRegister(12);
+let F13: NeonRegister = NeonRegister(13);
+let F14: NeonRegister = NeonRegister(14);
+let F15: NeonRegister = NeonRegister(15);
+
+let F16: NeonRegister = NeonRegister(16);
+let F17: NeonRegister = NeonRegister(17);
+let F18: NeonRegister = NeonRegister(18);
+let F19: NeonRegister = NeonRegister(19);
+let F20: NeonRegister = NeonRegister(20);
+let F21: NeonRegister = NeonRegister(21);
+let F22: NeonRegister = NeonRegister(22);
+let F23: NeonRegister = NeonRegister(23);
+let F24: NeonRegister = NeonRegister(24);
+let F25: NeonRegister = NeonRegister(25);
+let F26: NeonRegister = NeonRegister(26);
+let F27: NeonRegister = NeonRegister(27);
+let F28: NeonRegister = NeonRegister(28);
+let F29: NeonRegister = NeonRegister(29);
+let F30: NeonRegister = NeonRegister(30);
+let F31: NeonRegister = NeonRegister(31);
+
+class ForwardJump(let offset: Int32, let label: Label, let kind: JumpKind)
+
+enum JumpKind {
+    Unconditional,
+    Conditional(CondCode),
+    NonZero(Bool, Register),
+}
+
+enum CondCode {
+    EQ, // equal
+    NE, // not equal
+    CS,
+    HS, // carry set, unsigned higher or same
+    CC,
+    LO, // carry clear, unsigned lower
+    MI, // negative
+    PL, // positive or zero
+    VS, // overflow
+    VC, // no overflow
+    HI, // unsigned higher
+    LS, // unsigned lower or same
+    GE, // signed greater than or equal
+    LT, // signed less than
+    GT, // signed greater than
+    LE, // signed less than or equal
+}
+
 class AssemblerArm64 extends Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
     fun ret() {
-        let inst = clsUncondBranchReg(0b0010, 0b11111, 0, REG_LR, 0);
+        let inst = clsx::uncondBranchReg(0b0010, 0b11111, 0, REG_LR, 0);
         self.buffer.emitInt32(inst);
     }
 
     fun retReg(rn: Register) {
-        let inst = clsUncondBranchReg(0b0010, 0b11111, 0, rn, 0);
+        let inst = clsx::uncondBranchReg(0b0010, 0b11111, 0, rn, 0);
         self.buffer.emitInt32(inst);
     }
 
     fun br(rn: Register) {
-        let inst = clsUncondBranchReg(0b0000, 0b11111, 0, rn, 0);
+        let inst = clsx::uncondBranchReg(0b0000, 0b11111, 0, rn, 0);
         self.buffer.emitInt32(inst);
     }
 
     fun blr(rn: Register) {
-        let inst = clsUncondBranchReg(0b0001, 0b11111, 0, rn, 0);
+        let inst = clsx::uncondBranchReg(0b0001, 0b11111, 0, rn, 0);
         self.buffer.emitInt32(inst);
     }
 
@@ -104,17 +173,22 @@ impl Register {
     }
 }
 
-fun clsUncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
-    assert(fitsUnsigned(opc, 4));
-    assert(fitsUnsigned(op2, 5));
-    assert(fitsUnsigned(op3, 6));
-    assert(rn.isGpr());
-    assert(fitsUnsigned(op4, 5));
+namespace clsx {
+    import super::Register;
 
-    0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.encoding() << 5 | op4
-}
+    @pub fun uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
+        assert(fitsUnsigned(opc, 4));
+        assert(fitsUnsigned(op2, 5));
+        assert(fitsUnsigned(op3, 6));
+        assert(rn.isGpr());
+        assert(fitsUnsigned(op4, 5));
 
-fun fitsUnsigned(value: Int32, bits: Int32): Bool {
-    assert(bits < 32);
-    value >= 0 && value < (1 << bits)
+        0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.encoding() << 5 | op4
+    }
+
+
+    @pub fun fitsUnsigned(value: Int32, bits: Int32): Bool {
+        assert(bits < 32);
+        value >= 0 && value < (1 << bits)
+    }
 }
