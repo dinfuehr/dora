@@ -16,6 +16,12 @@ use crate::vm::{
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
 
+impl StructId {
+    pub fn to_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl GrowableVec<RwLock<StructData>> {
     pub fn idx(&self, index: StructId) -> Arc<RwLock<StructData>> {
         self.idx_usize(index.0 as usize)

@@ -797,6 +797,14 @@ pub enum ConstPoolOpcode {
     Char,
     Fct,
     Class,
+    Enum,
+    EnumVariant,
+    Struct,
+    StructField,
+    Trait,
+    Field,
+    FieldFixed,
+    Generic,
 }
 
 #[derive(Debug, PartialEq)]

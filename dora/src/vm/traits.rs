@@ -16,6 +16,12 @@ use crate::vm::{
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitId(u32);
 
+impl TraitId {
+    pub fn to_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl From<u32> for TraitId {
     fn from(data: u32) -> TraitId {
         TraitId(data)

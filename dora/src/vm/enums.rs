@@ -19,6 +19,12 @@ use crate::vm::{
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumId(u32);
 
+impl EnumId {
+    pub fn to_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl From<usize> for EnumId {
     fn from(data: usize) -> EnumId {
         EnumId(data.try_into().unwrap())

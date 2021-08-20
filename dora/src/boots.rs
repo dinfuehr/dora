@@ -139,7 +139,16 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
                     .unwrap();
                 encode_source_type_array(vm, source_type_array, &mut buffer);
             }
-            &ConstPoolEntry::Generic(_, _, _) => unimplemented!(),
+            &ConstPoolEntry::Generic(tp_id, fct_id, ref source_type_array) => {
+                buffer.push(ConstPoolOpcode::Generic as u8);
+                buffer
+                    .write_u32::<LittleEndian>(tp_id.to_usize() as u32)
+                    .unwrap();
+                buffer
+                    .write_u32::<LittleEndian>(fct_id.to_usize() as u32)
+                    .unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+            }
             &ConstPoolEntry::Class(cls_id, ref source_type_array) => {
                 buffer.push(ConstPoolOpcode::Class as u8);
                 buffer
@@ -148,7 +157,7 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
                 encode_source_type_array(vm, source_type_array, &mut buffer);
             }
             &ConstPoolEntry::Field(cls_id, ref source_type_array, field_id) => {
-                buffer.push(ConstPoolOpcode::Class as u8);
+                buffer.push(ConstPoolOpcode::Field as u8);
                 buffer
                     .write_u32::<LittleEndian>(cls_id.to_usize() as u32)
                     .unwrap();
@@ -157,12 +166,55 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
                     .write_u32::<LittleEndian>(field_id.to_usize() as u32)
                     .unwrap();
             }
-            &ConstPoolEntry::FieldFixed(_, _) => unimplemented!(),
-            &ConstPoolEntry::Enum(_, _) => unimplemented!(),
-            &ConstPoolEntry::EnumVariant(_, _, _) => unimplemented!(),
-            &ConstPoolEntry::Struct(_, _) => unimplemented!(),
-            &ConstPoolEntry::StructField(_, _, _) => unimplemented!(),
-            &ConstPoolEntry::Trait(_, _, _) => unimplemented!(),
+            &ConstPoolEntry::FieldFixed(cls_def_id, field_id) => {
+                buffer.push(ConstPoolOpcode::FieldFixed as u8);
+                buffer
+                    .write_u32::<LittleEndian>(cls_def_id.to_usize() as u32)
+                    .unwrap();
+                buffer
+                    .write_u32::<LittleEndian>(field_id.to_usize() as u32)
+                    .unwrap();
+            }
+            &ConstPoolEntry::Enum(enum_id, ref source_type_array) => {
+                buffer.push(ConstPoolOpcode::Enum as u8);
+                buffer
+                    .write_u32::<LittleEndian>(enum_id.to_usize() as u32)
+                    .unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+            }
+            &ConstPoolEntry::EnumVariant(enum_id, ref source_type_array, variant_id) => {
+                buffer.push(ConstPoolOpcode::EnumVariant as u8);
+                buffer
+                    .write_u32::<LittleEndian>(enum_id.to_usize() as u32)
+                    .unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+                buffer.write_u32::<LittleEndian>(variant_id as u32).unwrap();
+            }
+            &ConstPoolEntry::Struct(struct_id, ref source_type_array) => {
+                buffer.push(ConstPoolOpcode::Struct as u8);
+                buffer
+                    .write_u32::<LittleEndian>(struct_id.to_usize() as u32)
+                    .unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+            }
+            &ConstPoolEntry::StructField(struct_id, ref source_type_array, field_id) => {
+                buffer.push(ConstPoolOpcode::StructField as u8);
+                buffer
+                    .write_u32::<LittleEndian>(struct_id.to_usize() as u32)
+                    .unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+                buffer
+                    .write_u32::<LittleEndian>(field_id.to_usize() as u32)
+                    .unwrap();
+            }
+            &ConstPoolEntry::Trait(trait_id, ref source_type_array, ref source_type) => {
+                buffer.push(ConstPoolOpcode::Trait as u8);
+                buffer
+                    .write_u32::<LittleEndian>(trait_id.to_usize() as u32)
+                    .unwrap();
+                encode_source_type_array(vm, source_type_array, &mut buffer);
+                encode_source_type(vm, source_type.clone(), &mut buffer);
+            }
         }
     }
 
