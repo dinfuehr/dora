@@ -78,12 +78,28 @@ impl Register {
         self.isGpr() || self == REG_SP
     }
 
-    fun int32(): Int32 {
-        if self == REG_ZERO || self == REG_SP {
-            31
-        } else {
-            assert(self.value <= 30);
+    fun encoding(): Int32 {
+        assert(self.isGpr());
+        self.value
+    }
+
+    fun encodingZero(): Int32 {
+        assert(self.isGprOrZero());
+
+        if self.isGpr() {
             self.value
+        } else {
+            31
+        }
+    }
+
+    fun encodingSp(): Int32 {
+        assert(self.isGprOrSp());
+
+        if self.isGpr() {
+            self.value
+        } else {
+            31
         }
     }
 }
@@ -95,7 +111,7 @@ fun clsUncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: In
     assert(rn.isGpr());
     assert(fitsUnsigned(op4, 5));
 
-    0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.int32() << 5 | op4
+    0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.encoding() << 5 | op4
 }
 
 fun fitsUnsigned(value: Int32, bits: Int32): Bool {
