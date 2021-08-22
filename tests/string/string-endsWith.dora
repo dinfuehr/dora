@@ -1,0 +1,32 @@
+fun main() {
+  testBothEmpty();
+  testNeedleEmpty();
+  testHaystackEmpty();
+  testNeedleLarger();
+  testSuccess();
+  testFailure();
+}
+
+fun testBothEmpty() {
+  assert("".endsWith("") == true);
+}
+
+fun testNeedleEmpty() {
+  assert("abc".endsWith("") == true);
+}
+
+fun testHaystackEmpty() {
+  assert("".endsWith("abc") == false);
+}
+
+fun testNeedleLarger() {
+  assert("abc".endsWith("abcdef") == false);
+}
+
+fun testSuccess() {
+  assert("abcdef".endsWith("def") == true);
+}
+
+fun testFailure() {
+  assert("defabc".endsWith("def") == false);
+}
