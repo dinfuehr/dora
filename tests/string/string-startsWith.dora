@@ -1,0 +1,32 @@
+fun main() {
+  testBothEmpty();
+  testNeedleEmpty();
+  testHaystackEmpty();
+  testNeedleLarger();
+  testSuccess();
+  testFailure();
+}
+
+fun testBothEmpty() {
+  assert("".startsWith("") == true);
+}
+
+fun testNeedleEmpty() {
+  assert("abc".startsWith("") == true);
+}
+
+fun testHaystackEmpty() {
+  assert("".startsWith("abc") == false);
+}
+
+fun testNeedleLarger() {
+  assert("abc".startsWith("abcdef") == false);
+}
+
+fun testSuccess() {
+  assert("abcdef".startsWith("abc") == true);
+}
+
+fun testFailure() {
+  assert("defabc".startsWith("abc") == false);
+}

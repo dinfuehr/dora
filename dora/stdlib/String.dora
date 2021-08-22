@@ -72,9 +72,42 @@
   @pub @internal fun plus(rhs: String): String;
 
   @pub @internal fun getByte(idx: Int64): UInt8;
+
   @pub @internal fun clone(): String;
 
   @pub fun isEmpty(): Bool = self.size() == 0L;
+
+  @pub fun startsWith(val: String): Bool {
+    let valLen = val.size();
+    if valLen > self.size() {
+      return false;
+    }
+    var i = 0L;
+    while i < valLen {
+      if self.getByte(i) !== val.getByte(i) {
+        return false;
+      }
+      i = i + 1L;
+    }
+    return true;
+  }
+
+  @pub fun endsWith(val: String): Bool {
+    let slfLen = self.size();
+    let valLen = val.size();
+    if valLen > slfLen {
+      return false;
+    }
+    var iSlf = 0L;
+    var iVal = slfLen - valLen;
+    while iSlf < valLen {
+      if self.getByte(iSlf + iVal) !== val.getByte(iSlf) {
+        return false;
+      }
+      iSlf = iSlf + 1L;
+    }
+    return true;
+  }
 
   @pub fun codePoints(): CodepointIterator = CodepointIterator(self, 0L);
 
