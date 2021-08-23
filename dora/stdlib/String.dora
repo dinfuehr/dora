@@ -77,6 +77,58 @@
 
   @pub fun isEmpty(): Bool = self.size() == 0L;
 
+  @pub fun contains(val: String): Bool = self.indexOfFirst(val).isSome();
+
+  @pub fun indexOfFirst(val: String): Option[Int64] {
+    let m = val.size();
+    if m == 0L {
+      return Some(0L);
+    }
+
+    let n = self.size();
+    if m > n {
+      return None;
+    }
+
+    var j = 0L;
+    var k = 0L;
+    var ell = 0L;
+
+    if val.getByte(0L) == val.getByte(1L) {
+       k = 2L;
+       ell = 1L;
+    } else {
+       k = 1L;
+       ell = 2L;
+    }
+
+    j = 0L;
+    while j <= n - m {
+      if val.getByte(1L) != self.getByte(j + 1L) {
+        j = j + k;
+      } else {
+        if String::compare(val, 2L, self, j + 2L, m - 2L) && val.getByte(0L) == self.getByte(j) {
+          return Option[Int64]::Some(j);
+        }
+        j = j + ell;
+      }
+    }
+    return Option[Int64]::None;
+  }
+
+  @static fun compare(a: String, aPos: Int64, b: String, bPos: Int64, len: Int64): Bool {
+    var i = 0L;
+
+    while i < len {
+      if a.getByte(aPos+i) != b.getByte(bPos+i) {
+        return false;
+      }
+      i = i + 1L;
+    }
+
+    return true;
+  }
+
   @pub fun startsWith(val: String): Bool {
     let valLen = val.size();
     if valLen > self.size() {
