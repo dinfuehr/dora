@@ -1,0 +1,40 @@
+fun main() {
+  testBothEmpty();
+  testNeedleEmpty();
+  testHaystackEmpty();
+  testNeedleLarger();
+  testSuccess();
+  testMultipleMatch();
+  testFailure();
+}
+
+fun testBothEmpty() {
+  assert("".contains(""));
+}
+
+fun testNeedleEmpty() {
+  assert("abc".contains(""));
+}
+
+fun testHaystackEmpty() {
+  assert("".contains("abc").not());
+}
+
+fun testNeedleLarger() {
+  assert("abc".contains("abcdef").not());
+}
+
+fun testSuccess() {
+  assert("abcdef".contains("abc"));
+  assert("defabc".contains("abc"));
+  assert("ababbaadef".contains("aa"));
+  assert("apapplapple".contains("apple"));
+}
+
+fun testMultipleMatch() {
+  assert("abcdefabc".contains("abc"));
+}
+
+fun testFailure() {
+  assert("def".contains("abc").not());
+}

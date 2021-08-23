@@ -118,6 +118,28 @@ impl[T: Equals] Array[T] {
 
     return false;
   }
+
+  @pub @static fun compare(a: Array[T], aPos: Int64, b: Array[T], bPos: Int64, len: Int64): Bool {
+    let aSize = a.size() - aPos;
+    let bSize = b.size() - bPos;
+    if aSize < len || bSize < len {
+      fatalError("len ${len} exceeds size of array");
+    }
+    if aSize < 0L || bSize < 0L {
+      return false;
+    }
+
+    var i = 0L;
+
+    while i < len {
+      if a(aPos+i).equals(b(bPos+i)).not() {
+        return false;
+      }
+      i = i + 1L;
+    }
+
+    return true;
+  }
 }
 
 impl[T: Identity] Array[T] {

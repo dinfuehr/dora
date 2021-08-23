@@ -1,0 +1,17 @@
+fun main() {
+  let a = Array[Int32](1, 2, 3, 3, 4, 5, 4, 5, 4, 3, 3);
+  let b = Array[Int32](1, 2, 3, 3, 4, 5, 4, 5, 4, 3, 4);
+  let c = Array[Int32](1, 2, 3, 3, 4, 5, 4, 5, 4, 3);
+  let d = Array[Int32](2, 3, 3, 4, 5, 4, 5, 4, 3, 4);
+  let e = Array[Int32]();
+
+  assert(Array[Int32]::compare(a, 0L, a, 0L, 11L));
+  assert(Array[Int32]::compare(a, 0L, b, 0L, 11L).not());
+  assert(Array[Int32]::compare(a, 0L, b, 0L, 10L));
+  assert(Array[Int32]::compare(a, 1L, b, 1L, 9L));
+  assert(Array[Int32]::compare(a, 1L, b, 1L, 10L).not());
+  assert(Array[Int32]::compare(a, 0L, c, 0L, 10L));
+  assert(Array[Int32]::compare(a, 1L, d, 0L, 9L));
+  assert(Array[Int32]::compare(e, 0L, e, 0L, 0L));
+  assert(Array[Int32]::compare(a, 3L, e, 0L, 0L));
+}

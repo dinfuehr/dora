@@ -1,0 +1,40 @@
+fun main() {
+  testBothEmpty();
+  testNeedleEmpty();
+  testHaystackEmpty();
+  testNeedleLarger();
+  testSuccess();
+  testMultipleMatch();
+  testFailure();
+}
+
+fun testBothEmpty() {
+  assert("".indexOfFirst("").has(0L));
+}
+
+fun testNeedleEmpty() {
+  assert("abc".indexOfFirst("").has(0L));
+}
+
+fun testHaystackEmpty() {
+  assert("".indexOfFirst("abc").isNone());
+}
+
+fun testNeedleLarger() {
+  assert("abc".indexOfFirst("abcdef").isNone());
+}
+
+fun testSuccess() {
+  assert("abcdef".indexOfFirst("abc").has(0L));
+  assert("defabc".indexOfFirst("abc").has(3L));
+  assert("ababbaadef".indexOfFirst("aa").has(5L));
+  assert("apapplapple".indexOfFirst("apple").has(6L));
+}
+
+fun testMultipleMatch() {
+  assert("abcdefabc".indexOfFirst("abc").has(0L));
+}
+
+fun testFailure() {
+  assert("def".indexOfFirst("abc").isNone());
+}
