@@ -13,6 +13,7 @@ class CodeGen(let info: CompilationInfo) {
     }
 
     fun generate(): Array[UInt8] {
+        assert(self.info.arch == Architecture::X64);
         self.prolog();
         self.epilog();
         self.asm.finalize()

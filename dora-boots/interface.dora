@@ -13,6 +13,7 @@ fun bytecode(fct: String): BytecodeFunction {
 
 class CompilationInfo(encoded: EncodedCompilationInfo) {
     let bc: BytecodeFunction = BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), encoded.arguments);
+    let arch: Architecture = decodeInstructionSet(encoded.arch);
 }
 
 class EncodedCompilationInfo {
@@ -21,6 +22,7 @@ class EncodedCompilationInfo {
     let registers: Array[Int32] = Array[Int32]::empty();
     let type_params: Array[UInt8] = Array[UInt8]::empty();
     let arguments: Int32 = 0;
+    let arch: Int32 = 0;
 }
 
 fun decodeRegisters(registers: Array[Int32]): Array[BytecodeType] {
@@ -92,6 +94,22 @@ fun decodeConstPool(constpool: Array[UInt8]): Array[ConstPoolEntry] {
     }
 
     constPool.toArray()
+}
+
+fun decodeInstructionSet(value: Int32): Architecture {
+    if value == INSTRUCTION_SET_X64 {
+        Architecture::X64
+    } else if value == INSTRUCTION_SET_ARM64 {
+        Architecture::Arm64
+    } else {
+            println("unknown instruction set = ${value}");
+            unreachable[Architecture]()
+    }
+}
+
+enum Architecture {
+    X64,
+    Arm64,
 }
 
 class ByteReader(let array: Array[UInt8]) {

@@ -172,6 +172,16 @@ const CONSTPOOL_OPCODE_FLOAT64: Int32 = 2I;
 const CONSTPOOL_OPCODE_INT32: Int32 = 3I;
 const CONSTPOOL_OPCODE_INT64: Int32 = 4I;
 const CONSTPOOL_OPCODE_CHAR: Int32 = 5I;
+const CONSTPOOL_OPCODE_FCT: Int32 = 6I;
+const CONSTPOOL_OPCODE_CLASS: Int32 = 7I;
+const CONSTPOOL_OPCODE_ENUM: Int32 = 8I;
+const CONSTPOOL_OPCODE_ENUM_VARIANT: Int32 = 9I;
+const CONSTPOOL_OPCODE_STRUCT: Int32 = 10I;
+const CONSTPOOL_OPCODE_STRUCT_FIELD: Int32 = 11I;
+const CONSTPOOL_OPCODE_TRAIT: Int32 = 12I;
+const CONSTPOOL_OPCODE_FIELD: Int32 = 13I;
+const CONSTPOOL_OPCODE_FIELD_FIXED: Int32 = 14I;
+const CONSTPOOL_OPCODE_GENERIC: Int32 = 15I;
 
 fun bytecodeName(opcode: Int32): String {
   if opcode == BC_WIDE { return "Wide"; }
@@ -344,3 +354,6 @@ fun bytecodeTypeName(code: Int32): String {
   if code == BC_TYPE_STRUCT { return "Struct"; }
   "UNKNOWN(${code})"
 }
+
+const INSTRUCTION_SET_X64: Int32 = 0I;
+const INSTRUCTION_SET_ARM64: Int32 = 1I;

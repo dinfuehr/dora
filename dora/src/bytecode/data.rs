@@ -936,3 +936,9 @@ pub enum SourceTypeOpcode {
     // some enum
     Enum,
 }
+
+#[derive(FromPrimitive, ToPrimitive)]
+pub enum InstructionSet {
+    X64,
+    Arm64,
+}

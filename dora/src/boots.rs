@@ -1,6 +1,7 @@
 use std::mem;
 use std::ptr;
 
+use crate::bytecode::InstructionSet;
 use crate::bytecode::{self, BytecodeFunction, ConstPoolEntry, ConstPoolOpcode, SourceTypeOpcode};
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::fct::{Code, JitDescriptor};
@@ -328,6 +329,16 @@ fn allocate_encoded_compilation_info(
 
     let fid = vm.field_in_class(cls_id, "arguments");
     object::write_int32(vm, obj, cls_id, fid, arguments);
+
+    let fid = vm.field_in_class(cls_id, "arch");
+    let instruction_set = if cfg!(target_arch = "x86_64") {
+        InstructionSet::X64
+    } else if cfg!(target_arch = "aarch64") {
+        InstructionSet::Arm64
+    } else {
+        panic!()
+    };
+    object::write_int32(vm, obj, cls_id, fid, instruction_set as i32);
 
     obj
 }

@@ -2,6 +2,7 @@ class CodeGen(let info: CompilationInfo) {
     let asm: AssemblerArm64 = AssemblerArm64();
 
     fun generate(): Array[UInt8] {
+      assert(self.info.arch == Architecture::Arm64);
       self.asm.ret();
       self.asm.finalize()
     }
