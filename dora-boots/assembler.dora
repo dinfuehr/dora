@@ -1,5 +1,14 @@
 class AssemblerBuffer {
     let buffer: Vec[UInt8] = Vec[UInt8]();
+    var pos: Int64 = 0L;
+
+    fun position(): Int64 {
+        self.pos
+    }
+
+    fun setPosition(newpos: Int64) {
+        self.pos = newpos;
+    }
 
     fun emitByte(value: UInt8) {
         self.buffer.push(value);
@@ -101,6 +110,13 @@ class Register(let value: Int32) {
 
 class MachineCode(let bytes: Array[UInt8]) {
     var start: Int64 = 0L;
+
+    fun getInt32(idx: Int64): Int32 {
+        self.bytes(idx).toInt32() |
+            self.bytes(idx+1L).toInt32() << 8 |
+            self.bytes(idx+2L).toInt32() << 16 |
+            self.bytes(idx+3L).toInt32() << 24
+    }
 }
 
 fun assertAsm(code: MachineCode, bytes: UInt8...) {
@@ -139,6 +155,52 @@ fun assertAsm(code: MachineCode, bytes: UInt8...) {
     }
 
     code.start = code.start + bytes.size();
+}
+
+fun assertAsm32(code: MachineCode, values: Int32...) {
+    assert(code.start % 4L == 0L);
+    assert(code.bytes.size() % 4L == 0L);
+
+    assert(code.start + values.size() * 4L <= code.bytes.size());
+
+    var idx = 0L;
+
+    while idx < values.size() {
+        let exp = values(idx);
+        let got = code.getInt32(code.start + idx * 4L);
+
+        if exp != got {
+            println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
+
+            var i = 0L;
+            print("buffer:   ");
+
+            for (idx, value) in values.enumerate() {
+                if i > 0L { print(", "); }
+                let value = values(i);
+                print("${value.toStringHex()}");
+                i = i + 1L;
+            }
+
+            i = 0L;
+            println("");
+            print("expected: ");
+
+            while i < values.size() {
+                if i > 0L { print(", "); }
+                let value = code.getInt32(code.start + i * 4L);
+                print("${value.toStringHex()}");
+                i = i + 1L;
+            }
+            println("");
+        }
+
+        assert(exp == got);
+
+        idx = idx + 1L;
+    }
+
+    code.start = code.start + values.size() * 4L;
 }
 
 fun assertAsmEnd(code: MachineCode) {

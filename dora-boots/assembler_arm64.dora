@@ -140,6 +140,10 @@ class AssemblerArm64 extends Assembler {
     fun finalize(): Array[UInt8] {
         self.buffer.toArray()
     }
+
+    fun finalizeTesting(): MachineCode {
+        MachineCode(self.buffer.toArray())
+    }
 }
 
 impl Register {
@@ -214,4 +218,17 @@ namespace clsx {
         assert(bits > 0 && bits < 32);
         value >= 0 && value < (1 << bits)
     }
+}
+
+@test fun testAsmRet(_x: Testing) {
+    let asm = AssemblerArm64();
+    asm.ret();
+    asm.retReg(R0);
+    asm.retReg(R10);
+    let buffer = asm.finalizeTesting();
+
+    assertAsm32(buffer, 0xd65f03c0);
+    assertAsm32(buffer, 0xd65f0000);
+    assertAsm32(buffer, 0xd65f0140);
+    assertAsmEnd(buffer);
 }
