@@ -1,0 +1,4 @@
+fun main() {
+  let x = 3 | 7 & 4;
+  assert(x == 4);
+}
