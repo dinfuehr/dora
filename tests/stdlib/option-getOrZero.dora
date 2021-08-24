@@ -1,0 +1,8 @@
+fun main() {
+  let some = Option[Int32]::Some(23);
+  let none = Option[Int32]::None;
+
+  // thread 'main' panicked at 'no impl found for generic trait method call', dora/src/vm/impls.rs:86:10
+  // assert(some.getOrZero() == 23);
+  // assert(none.getOrZero() == 0);
+}

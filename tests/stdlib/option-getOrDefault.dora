@@ -1,0 +1,11 @@
+fun main() {
+  let some1 = Option[Int32]::Some(23);
+  let none1 = Option[Int32]::None;
+  let some2 = Option[String]::Some("some");
+  let none2 = Option[String]::None;
+
+  assert(some1.getOrDefault() == 23);
+  assert(none1.getOrDefault() == 0);
+  assert(some2.getOrDefault() == "some");
+  assert(none2.getOrDefault() == "");
+}

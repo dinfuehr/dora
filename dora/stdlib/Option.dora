@@ -53,6 +53,32 @@ impl[T] Option[T] {
       None => false,
     }
   }
+
+  @pub fun or(alt: Option[T]): Option[T] {
+    if self.isSome() {
+      return self;
+    } else {
+      return alt;
+    }
+  }
+}
+
+impl[T: Default] Option[T] {
+  @pub fun getOrDefault(): T {
+    match self {
+      Some(actual) => actual,
+      None => T::default(),
+    }
+  }
+}
+
+impl[T: Zero] Option[T] {
+  @pub fun getOrZero(): T {
+    match self {
+      Some(actual) => actual,
+      None => T::zero(),
+    }
+  }
 }
 
 impl[T: Equals] Option[T] {
