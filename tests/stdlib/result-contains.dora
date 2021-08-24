@@ -1,0 +1,11 @@
+fun main() {
+  let ok = "ok";
+  let ok1 = Result[String, Int32]::Ok(ok);
+  let er1 = Result[Int32, String]::Err("err1");
+  let nan = Result[Float64, String]::Ok(0.0/0.0);
+
+  assert(ok1.contains(ok));
+  assert(ok1.contains("ok"));
+  assert(er1.contains(23).not());
+  assert(nan.contains(0.0/0.0).not());
+}
