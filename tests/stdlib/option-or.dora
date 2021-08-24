@@ -1,0 +1,10 @@
+fun main() {
+  let some1 = Option[String]::Some("some1");
+  let some2 = Option[String]::Some("some2");
+  let none  = Option[String]::None;
+
+  assert(some1.or(some2).contains("some1"));
+  assert(some1.or(none).contains("some1"));
+  assert(none.or(some2).contains("some2"));
+  assert(none.or(none).isNone());
+}
