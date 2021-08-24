@@ -1,0 +1,7 @@
+fun main() {
+  let ok = Result[Int32, String]::Ok(23);
+  let er = Result[Int32, String]::Err("err");
+
+  assert(ok.getOrDefault() == 23);
+  assert(er.getOrDefault() == 0);
+}

@@ -7,6 +7,20 @@ import Result::Ok;
 import Result::Err;
 
 impl[V, E] Result[V, E] {
+  @pub fun isOk(): Bool {
+    match self {
+      Ok(_) => true,
+      Err(_) => false,
+    }
+  }
+
+  @pub fun isErr(): Bool {
+    match self {
+      Ok(_) => false,
+      Err(_) => true,
+    }
+  }
+
   @pub fun unwrap(): V {
     match self {
       Ok(value) => value,
@@ -24,6 +38,82 @@ impl[V, E] Result[V, E] {
         unreachable[E]()
       },
       Err(value) => value,
+    }
+  }
+
+  @pub fun has(val: V): Bool {
+    match self {
+      Ok(actual) => actual === val,
+      Err(_) => false,
+    }
+  }
+
+  @pub fun or(alt: Result[V, E]): Result[V, E] {
+    if self.isOk() {
+      return self;
+    } else {
+      return alt;
+    }
+  }
+}
+
+impl[V: Equals, E: Equals] Result[V, E] {
+  @pub fun contains(rhs: V): Bool {
+    if self.isOk() {
+      let lhs = self.unwrap();
+      lhs.equals(rhs)
+    } else {
+      false
+    }
+  }
+
+  @pub fun equals(rhs: Result[V, E]): Bool {
+    if self.isOk() {
+      if rhs.isOk() {
+        let lhs = self.unwrap();
+        let rhs = rhs.unwrap();
+        lhs.equals(rhs)
+      } else {
+        false
+      }
+    } else {
+      rhs.isErr()
+    }
+  }
+}
+
+impl[V: Default, E] Result[V, E] {
+  @pub fun getOrDefault(): V {
+    match self {
+      Ok(actual) => actual,
+      Err(_) => V::default(),
+    }
+  }
+}
+
+impl[V: Zero, E] Result[V, E] {
+  @pub fun getOrZero(): V {
+    match self {
+      Ok(actual) => actual,
+      Err(_) => V::zero(),
+    }
+  }
+}
+
+impl[V, E: Default] Result[V, E] {
+  @pub fun getErrOrDefault(): E {
+    match self {
+      Ok(_) => E::default(),
+      Err(actual) => actual,
+    }
+  }
+}
+
+impl[V, E: Zero] Result[V, E] {
+  @pub fun getErrOrZero(): E {
+    match self {
+      Ok(_) => E::zero(),
+      Err(actual) => actual,
     }
   }
 }

@@ -1,0 +1,13 @@
+fun main() {
+  let ok = "ok";
+  let ok1 = Result[String, Int32]::Ok(ok);
+  let ok2 = Result[String, Int32]::Ok("ok");
+  let er1 = Result[String, Int32]::Err(23);
+  let nan = Result[Float64, String]::Ok(0.0/0.0);
+
+  assert(ok1 === ok1);
+  assert(ok1 !== ok2);
+  assert(ok1 !== er1);
+  assert(er1 === er1);
+  assert(nan === nan);
+}
