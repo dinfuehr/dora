@@ -1756,14 +1756,11 @@ impl<'a> Parser<'a> {
                 | TokenKind::Ge
                 | TokenKind::EqEqEq
                 | TokenKind::NeEqEq => 4,
-                TokenKind::Add
-                | TokenKind::Sub
-                | TokenKind::Or
-                | TokenKind::And
-                | TokenKind::Caret => 5,
+                TokenKind::Add | TokenKind::Sub | TokenKind::Or | TokenKind::Caret => 5,
                 TokenKind::Mul
                 | TokenKind::Div
                 | TokenKind::Mod
+                | TokenKind::And
                 | TokenKind::LtLt
                 | TokenKind::GtGt
                 | TokenKind::GtGtGt => 6,
