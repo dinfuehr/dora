@@ -2064,6 +2064,27 @@ fn test_enum_match_underscore() {
 }
 
 #[test]
+fn test_enum_equals() {
+    ok("
+        enum A { V1, V2 }
+        fun f(x: A, y: A): Bool {
+            x == y
+        }
+    ");
+
+    err(
+        "
+        enum A { V1(Int32), V2 }
+        fun f(x: A, y: A): Bool {
+            x == y
+        }
+    ",
+        pos(4, 15),
+        SemError::BinOpType("==".into(), "A".into(), "A".into()),
+    );
+}
+
+#[test]
 fn test_import_enum_value() {
     ok("enum A { V1(Int32), V2 } import A::V1; fun f(): A { V1(1) }");
     ok("enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1[Int32](1) }");

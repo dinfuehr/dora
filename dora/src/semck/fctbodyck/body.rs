@@ -1280,7 +1280,7 @@ impl<'a> TypeCheck<'a> {
             }
 
             ast::CmpOp::Eq | ast::CmpOp::Ne => {
-                if lhs_type.is_enum() {
+                if is_simple_enum(self.vm, lhs_type.clone()) {
                     self.check_expr_cmp_enum(e, cmp, lhs_type, rhs_type)
                 } else {
                     self.check_expr_bin_method(e, e.op, "equals", lhs_type, rhs_type);
@@ -3557,4 +3557,15 @@ fn lookup_method(
     }
 
     None
+}
+
+fn is_simple_enum(vm: &VM, ty: SourceType) -> bool {
+    match ty {
+        SourceType::Enum(enum_id, _) => {
+            let xenum = vm.enums[enum_id].read();
+            xenum.simple_enumeration
+        }
+
+        _ => false,
+    }
 }

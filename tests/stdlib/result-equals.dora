@@ -6,12 +6,10 @@ fun main() {
   let nan = Result[Float64, String]::Ok(0.0/0.0);
 
   assert(ok1 == ok1);
-  // BUG:
-  // assert(ok1 == ok2);   // fails
-  assert(ok1.equals(ok2)); // works
+  assert(ok1 == ok2);
+  assert(ok1.equals(ok2));
   assert(ok1 != er1);
   assert(er1 == er1);
-  // BUG:
-  // assert(nan != nan);      // fails
-  assert(nan.equals(nan).not()); // works
+  assert(nan != nan);
+  assert(nan.equals(nan).not());
 }
