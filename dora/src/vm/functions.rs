@@ -532,7 +532,7 @@ pub enum Intrinsic {
 }
 
 impl Intrinsic {
-    pub fn emit_as_function(&self) -> bool {
+    pub fn emit_as_function_in_bytecode(&self) -> bool {
         match self {
             Intrinsic::UnsafeKillRefs
             | Intrinsic::Unreachable

@@ -714,10 +714,6 @@ pub fn implements_trait(
         }
 
         SourceType::Class(_, _) => {
-            if vm.known.traits.zero == trait_id && !check_ty.is_cls() {
-                return true;
-            }
-
             let cls_id = check_ty.cls_id().expect("class expected");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
