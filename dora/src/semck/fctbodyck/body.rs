@@ -2643,7 +2643,7 @@ impl<'a> TypeCheck<'a> {
                 let variant_types = variant
                     .types
                     .iter()
-                    .map(|a| a.name_fct(self.vm, self.fct))
+                    .map(|a| a.name_enum(self.vm, &*xenum))
                     .collect::<Vec<_>>();
                 let arg_types = Vec::new();
                 let msg = SemError::EnumArgsIncompatible(

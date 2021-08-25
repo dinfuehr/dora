@@ -1873,6 +1873,12 @@ fn test_enum() {
     );
 
     err(
+        "enum A[T] { V1(T), V2 } fun f(): A[Int32] { A[Int32]::V1 }",
+        pos(1, 53),
+        SemError::EnumArgsIncompatible("A".into(), "V1".into(), vec!["T".into()], Vec::new()),
+    );
+
+    err(
         "
         enum Foo[T] { A(T, Bool), B }
         fun f[T](val: T): Foo[T] { Foo::A(val, false) }",
