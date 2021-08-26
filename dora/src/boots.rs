@@ -3,6 +3,7 @@ use std::ptr;
 
 use crate::bytecode::InstructionSet;
 use crate::bytecode::{self, BytecodeFunction, ConstPoolEntry, ConstPoolOpcode, SourceTypeOpcode};
+use crate::bytecode::{BytecodeType, BytecodeTypeKind};
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::fct::{Code, JitDescriptor};
 use crate::gc::Address;
@@ -15,7 +16,7 @@ use crate::threads::current_thread;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{Fct, VM};
 
-pub fn compile(vm: &VM, fct: &Fct, _type_params: &SourceTypeArray) -> Code {
+pub fn compile(vm: &VM, fct: &Fct, type_params: &SourceTypeArray) -> Code {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     if should_emit_bytecode(vm, fct) {
@@ -28,7 +29,8 @@ pub fn compile(vm: &VM, fct: &Fct, _type_params: &SourceTypeArray) -> Code {
         .expect("compile()-method missing");
     let compile_fct = vm.ensure_compiled(compile_fct_id);
 
-    let encoded_compilation_info = handle(allocate_compilation_info(vm, &bytecode_fct));
+    let encoded_compilation_info =
+        handle(allocate_compilation_info(vm, &bytecode_fct, type_params));
 
     let tld_address = current_thread().tld_address();
 
@@ -54,6 +56,11 @@ pub fn compile(vm: &VM, fct: &Fct, _type_params: &SourceTypeArray) -> Code {
     Code::from_optimized_buffer(vm, &machine_code_array, JitDescriptor::DoraFct(fct.id))
 }
 
+pub fn encode_test(vm: &VM, fct: &Fct, type_params: &SourceTypeArray) -> Ref<Obj> {
+    let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
+    allocate_compilation_info(vm, &bytecode_fct, type_params)
+}
+
 pub fn bytecode(vm: &VM, name: &str) -> Ref<Obj> {
     let fct_name = vm.interner.intern(name);
     let bc_fct_id = NestedSymTable::new(vm, vm.boots_namespace_id)
@@ -62,28 +69,33 @@ pub fn bytecode(vm: &VM, name: &str) -> Ref<Obj> {
 
     let fct = vm.fcts.idx(bc_fct_id);
     let fct = fct.read();
-    let analysis = fct.analysis();
 
-    let bytecode_fct = bytecode::generate(vm, &*fct, &*analysis);
+    let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     if should_emit_bytecode(vm, &*fct) {
         bytecode::dump(vm, Some(&*fct), &bytecode_fct);
     }
 
-    allocate_compilation_info(vm, &bytecode_fct)
+    allocate_compilation_info(vm, &bytecode_fct, &SourceTypeArray::empty())
 }
 
-fn allocate_compilation_info(vm: &VM, bytecode_fct: &BytecodeFunction) -> Ref<Obj> {
+fn allocate_compilation_info(
+    vm: &VM,
+    bytecode_fct: &BytecodeFunction,
+    type_params: &SourceTypeArray,
+) -> Ref<Obj> {
     let bytecode_array = handle(byte_array_from_buffer(vm, bytecode_fct.code()));
     let constpool_array = handle(allocate_constpool_array(vm, &bytecode_fct));
     let registers_array = handle(allocate_registers_array(vm, &bytecode_fct));
-    let type_params = handle(allocate_type_params(vm));
+    let registers_array2 = handle(allocate_registers_array2(vm, &bytecode_fct));
+    let type_params = handle(allocate_type_params(vm, type_params));
 
     allocate_encoded_compilation_info(
         vm,
         bytecode_array,
         constpool_array,
         registers_array,
+        registers_array2,
         type_params,
         bytecode_fct.arguments() as i32,
     )
@@ -99,9 +111,19 @@ fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<Int32Array> 
     array
 }
 
-fn allocate_type_params(vm: &VM) -> Ref<UInt8Array> {
+fn allocate_registers_array2(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> {
     let mut buffer = Vec::new();
-    encode_source_type_array(vm, &SourceTypeArray::empty(), &mut buffer);
+
+    for ty in fct.registers().iter() {
+        encode_bytecode_type(vm, ty, &mut buffer);
+    }
+
+    byte_array_from_buffer(vm, &buffer)
+}
+
+fn allocate_type_params(vm: &VM, type_params: &SourceTypeArray) -> Ref<UInt8Array> {
+    let mut buffer = Vec::new();
+    encode_source_type_array(vm, type_params, &mut buffer);
     byte_array_from_buffer(vm, &buffer)
 }
 
@@ -304,11 +326,55 @@ fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut Vec<u8>) {
     }
 }
 
+fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut Vec<u8>) {
+    use byteorder::{LittleEndian, WriteBytesExt};
+
+    match ty {
+        BytecodeType::Bool => buffer.push(BytecodeTypeKind::Bool as u8),
+        BytecodeType::Char => buffer.push(BytecodeTypeKind::Char as u8),
+        BytecodeType::UInt8 => buffer.push(BytecodeTypeKind::UInt8 as u8),
+        BytecodeType::Int32 => buffer.push(BytecodeTypeKind::Int32 as u8),
+        BytecodeType::Int64 => buffer.push(BytecodeTypeKind::Int64 as u8),
+        BytecodeType::Float32 => buffer.push(BytecodeTypeKind::Float32 as u8),
+        BytecodeType::Float64 => buffer.push(BytecodeTypeKind::Float64 as u8),
+        BytecodeType::Ptr => buffer.push(BytecodeTypeKind::Ptr as u8),
+        BytecodeType::Tuple(tuple_id) => {
+            buffer.push(SourceTypeOpcode::Tuple as u8);
+            let subtypes = vm.tuples.lock().get(*tuple_id);
+            buffer
+                .write_u32::<LittleEndian>(subtypes.len() as u32)
+                .unwrap();
+            for subty in subtypes.iter() {
+                encode_source_type(vm, subty.clone(), buffer);
+            }
+        }
+        BytecodeType::TypeParam(type_param_id) => {
+            buffer.push(SourceTypeOpcode::TypeParam as u8);
+            buffer.write_u32::<LittleEndian>(*type_param_id).unwrap();
+        }
+        BytecodeType::Enum(enum_id, ref source_type_array) => {
+            buffer.push(SourceTypeOpcode::Enum as u8);
+            buffer
+                .write_u32::<LittleEndian>(enum_id.to_usize() as u32)
+                .unwrap();
+            encode_source_type_array(vm, source_type_array, buffer);
+        }
+        BytecodeType::Struct(struct_id, ref source_type_array) => {
+            buffer.push(SourceTypeOpcode::Struct as u8);
+            buffer
+                .write_u32::<LittleEndian>(struct_id.to_usize() as u32)
+                .unwrap();
+            encode_source_type_array(vm, source_type_array, buffer);
+        }
+    }
+}
+
 fn allocate_encoded_compilation_info(
     vm: &VM,
     bytecode_array: Handle<UInt8Array>,
     constpool_array: Handle<UInt8Array>,
     registers_array: Handle<Int32Array>,
+    registers_array2: Handle<UInt8Array>,
     type_params: Handle<UInt8Array>,
     arguments: i32,
 ) -> Ref<Obj> {
@@ -323,6 +389,15 @@ fn allocate_encoded_compilation_info(
 
     let fid = vm.field_in_class(cls_id, "registers");
     object::write_ref(vm, obj, cls_id, fid, registers_array.direct().cast::<Obj>());
+
+    let fid = vm.field_in_class(cls_id, "registers2");
+    object::write_ref(
+        vm,
+        obj,
+        cls_id,
+        fid,
+        registers_array2.direct().cast::<Obj>(),
+    );
 
     let fid = vm.field_in_class(cls_id, "type_params");
     object::write_ref(vm, obj, cls_id, fid, type_params.direct().cast::<Obj>());

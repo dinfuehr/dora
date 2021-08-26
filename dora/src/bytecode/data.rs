@@ -36,6 +36,7 @@ pub enum BytecodeTypeKind {
     Tuple,
     Enum,
     Struct,
+    TypeParam,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -99,7 +100,7 @@ impl BytecodeType {
             BytecodeType::Float64 => BytecodeTypeKind::Float64,
             BytecodeType::Ptr => BytecodeTypeKind::Ptr,
             BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
-            BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::TypeParam(_) => BytecodeTypeKind::TypeParam,
             BytecodeType::Enum(_, _) => BytecodeTypeKind::Enum,
             BytecodeType::Struct(_, _) => BytecodeTypeKind::Struct,
         }
