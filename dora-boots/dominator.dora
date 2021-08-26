@@ -23,7 +23,7 @@ fun findBackEdges(graph: Graph): BitSet {
     visiting.insert(graph.getEntryBlock().id.toInt64());
 
     while !worklist.isEmpty() {
-        let block = worklist.last().unwrap();
+        let block = worklist.last().getOrPanic();
         let successorIndex = successorsVisited(block.id.toInt64());
 
         if successorIndex == block.successors.size() {
@@ -98,7 +98,7 @@ fun computePostOrder(graph: Graph) {
     worklist.push(graph.getEntryBlock());
 
     while !worklist.isEmpty() {
-        let block = worklist.last().unwrap();
+        let block = worklist.last().getOrPanic();
         let successorIndex = successorsVisited(block.id.toInt64());
 
         if successorIndex == block.successors.size() {
@@ -141,17 +141,17 @@ fun computeDominators(graph: Graph) {
                 continue;
             }
 
-            newIdom = Some(commonDominator(newIdom.unwrap(), pred));
+            newIdom = Some(commonDominator(newIdom.getOrPanic(), pred));
         }
 
-        block.setDominator(newIdom.unwrap());
+        block.setDominator(newIdom.getOrPanic());
     }
 
     // assert that we have a reducible graph
     for block in graph.insertionOrderIterator() {
         if block.isLoopHeader() {
             let loopHeaderBlock = block;
-            let loopHeader = loopHeaderBlock.getLoopData().unwrap();
+            let loopHeader = loopHeaderBlock.getLoopData().getOrPanic();
 
             for block in loopHeader.backEdges {
                 assert(loopHeaderBlock.dominates(block));
@@ -179,10 +179,10 @@ fun computeDominators(graph: Graph) {
                 continue;
             }
 
-            newIdom = Some(commonDominator(newIdom.unwrap(), pred));
+            newIdom = Some(commonDominator(newIdom.getOrPanic(), pred));
         }
 
-        assert(block.getDominator().unwrap() === newIdom.unwrap());
+        assert(block.getDominator().getOrPanic() === newIdom.getOrPanic());
     }
 
     for block in graph.reversePostOrderIterator() {
@@ -190,7 +190,7 @@ fun computeDominators(graph: Graph) {
             continue;
         }
 
-        let dom = block.getDominator().unwrap();
+        let dom = block.getDominator().getOrPanic();
         dom.addDominatedBlock(block);
     }
 }
@@ -201,11 +201,11 @@ fun commonDominator(b1: Block, b2: Block): Block {
 
     while finger1 != finger2 {
         while finger1.postOrderIdx < finger2.postOrderIdx {
-            finger1 = finger1.getDominator().unwrap();
+            finger1 = finger1.getDominator().getOrPanic();
         }
 
         while finger2.postOrderIdx < finger1.postOrderIdx {
-            finger2 = finger2.getDominator().unwrap();
+            finger2 = finger2.getDominator().getOrPanic();
         }
     }
 
@@ -217,7 +217,7 @@ fun commonDominator(b1: Block, b2: Block): Block {
 fun discoverLoopBlocks(graph: Graph) {
     for block in graph.postOrderIterator() {
         if block.isLoopHeader() {
-            let loop = block.getLoopData().unwrap();
+            let loop = block.getLoopData().getOrPanic();
             loop.addBlock(block);
 
             for block in loop.backEdges {
@@ -246,7 +246,7 @@ fun updateLoopData(block: Block, loop: LoopData) {
     if currentLoop.isNone() {
         block.setLoopData(loop);
     } else {
-        let currentLoop = currentLoop.unwrap();
+        let currentLoop = currentLoop.getOrPanic();
         assert(loop.containsLoop(currentLoop));
     }
 }

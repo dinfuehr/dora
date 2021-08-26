@@ -53,11 +53,11 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
         let result = self.blockMap.blocks(offset);
 
         if result.isSome() {
-            let nextBlock = result.unwrap();
+            let nextBlock = result.getOrPanic();
 
             if self.currentBlock.isSome() {
                 if !self.blockTerminated {
-                    self.currentBlock.unwrap().addSuccessor(nextBlock);
+                    self.currentBlock.getOrPanic().addSuccessor(nextBlock);
                 }
             }
 
@@ -68,38 +68,38 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
     }
 
     @override fun visitJumpLoop(offset: Int32) {
-        let targetBlock = self.blockMap.blockAt(self.offset - offset).unwrap();
-        self.currentBlock.unwrap().addSuccessor(targetBlock);
+        let targetBlock = self.blockMap.blockAt(self.offset - offset).getOrPanic();
+        self.currentBlock.getOrPanic().addSuccessor(targetBlock);
         self.markBlockTerminated();
     }
 
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).unwrap();
-        self.currentBlock.unwrap().addSuccessor(targetBlock);
+        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
+        self.currentBlock.getOrPanic().addSuccessor(targetBlock);
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).unwrap();
-        self.currentBlock.unwrap().addSuccessor(targetBlock);
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
+        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
+        self.currentBlock.getOrPanic().addSuccessor(targetBlock);
     }
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).unwrap();
-        self.currentBlock.unwrap().addSuccessor(targetBlock);
+        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
+        self.currentBlock.getOrPanic().addSuccessor(targetBlock);
     }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).unwrap();
-        self.currentBlock.unwrap().addSuccessor(targetBlock);
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
+        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
+        self.currentBlock.getOrPanic().addSuccessor(targetBlock);
     }
     @override fun visitJump(offset: Int32) {
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).unwrap();
-        self.currentBlock.unwrap().addSuccessor(targetBlock);
+        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
+        self.currentBlock.getOrPanic().addSuccessor(targetBlock);
         self.markBlockTerminated();
     }
     @override fun visitJumpConst(idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).unwrap();
-        self.currentBlock.unwrap().addSuccessor(targetBlock);
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
+        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
+        self.currentBlock.getOrPanic().addSuccessor(targetBlock);
         self.markBlockTerminated();
     }
 
@@ -128,7 +128,7 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
 
     fun ensureBlockAt(offset: Int32): Block {
         let result = self.blockMap.blockAt(offset);
-        if result.isSome() { return result.unwrap(); }
+        if result.isSome() { return result.getOrPanic(); }
 
         let block = Block();
         self.graph.addBlock(block);
@@ -167,7 +167,7 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
@@ -176,7 +176,7 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
@@ -185,7 +185,7 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpConst(idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }

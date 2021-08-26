@@ -309,7 +309,7 @@ class TestJumpFarVisitor extends BytecodeVisitor {
     assert(fct.codeAt(0) == BC_JUMP_CONST);
     assert(fct.codeAt(1) == 0);
     assert(fct.code.size() == 258L);
-    assert(fct.constPool(ConstPoolId(0)).toInt32().unwrap() == 258);
+    assert(fct.constPool(ConstPoolId(0)).toInt32().getOrPanic() == 258);
     readBytecode(fct.code, visitor);
     assert(visitor.found == 257);
 }
@@ -370,7 +370,7 @@ class TestCondJumpFarVisitor extends BytecodeVisitor {
     assert(fct.codeAt(2) == 0);
     assert(fct.codeAt(3) == BC_RET_VOID);
     assert(fct.code.size() == 259L);
-    assert(fct.constPool(ConstPoolId(0)).toInt32().unwrap() == 259);
+    assert(fct.constPool(ConstPoolId(0)).toInt32().getOrPanic() == 259);
     readBytecode(fct.code, visitor);
     assert(visitor.found == 257);
 }

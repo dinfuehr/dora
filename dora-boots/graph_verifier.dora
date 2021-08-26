@@ -15,7 +15,7 @@ class GraphVerifier(let graph: Graph) {
         self.currentBlock = block;
 
         // block needs to belong to current graph
-        assert(block.graph.unwrap() === self.graph);
+        assert(block.graph.getOrPanic() === self.graph);
 
         for phi in block.phisIterator() {
             assert(phi.inputs.size() == block.predecessors.size());
@@ -33,7 +33,7 @@ class GraphVerifier(let graph: Graph) {
     }
 
     fun verifyInst(inst: Inst) {
-        assert(inst.block.unwrap() === self.currentBlock);
+        assert(inst.block.getOrPanic() === self.currentBlock);
 
         for use in inst.uses() {
             assert(inst.dominates(use.usedBy));

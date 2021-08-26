@@ -15,7 +15,7 @@ fun test_multiple_ascii_chars() {
     bytes(1L) = 'b'.toInt32().toUInt8();
     bytes(2L) = 'c'.toInt32().toUInt8();
 
-    let val = String::fromBytes(bytes).unwrap();
+    let val = String::fromBytes(bytes).getOrPanic();
     assert(val == "abc");
 }
 
@@ -23,7 +23,7 @@ fun test_1byte() {
     let bytes = Array[UInt8]::zero(1L);
     bytes(0L) = 0x24Y;
 
-    String::fromBytes(bytes).unwrap();
+    String::fromBytes(bytes).getOrPanic();
 }
 
 fun test_2bytes() {
@@ -31,7 +31,7 @@ fun test_2bytes() {
     bytes(0L) = 0xC2Y;
     bytes(1L) = 0xA2Y;
 
-    String::fromBytes(bytes).unwrap();
+    String::fromBytes(bytes).getOrPanic();
 }
 
 fun test_3bytes() {
@@ -40,7 +40,7 @@ fun test_3bytes() {
     bytes(1L) = 0x82Y;
     bytes(2L) = 0xACY;
 
-    String::fromBytes(bytes).unwrap();
+    String::fromBytes(bytes).getOrPanic();
 }
 
 fun test_4bytes() {
@@ -50,7 +50,7 @@ fun test_4bytes() {
     bytes(2L) = 0x8DY;
     bytes(3L) = 0x88Y;
 
-    String::fromBytes(bytes).unwrap();
+    String::fromBytes(bytes).getOrPanic();
 }
 
 fun test_invalid() {

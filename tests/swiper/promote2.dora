@@ -4,11 +4,11 @@ fun main() {
   let x = Foo(1, None[Foo]);
   std::forceMinorCollect();
   x.next = Some[Foo](Foo(2, None[Foo]));
-  x.next.unwrap().next = Some[Foo](Foo(3, None[Foo]));
+  x.next.getOrPanic().next = Some[Foo](Foo(3, None[Foo]));
   std::forceMinorCollect();
   assert(x.a == 1);
-  assert(x.next.unwrap().a == 2);
-  assert(x.next.unwrap().next.unwrap().a == 3);
+  assert(x.next.getOrPanic().a == 2);
+  assert(x.next.getOrPanic().next.getOrPanic().a == 3);
 }
 
 class Foo(let a: Int32, var next: Option[Foo])

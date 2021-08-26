@@ -31,8 +31,8 @@ fun populate(depth: Int32, thisNode: Node) {
         depth = depth - 1;
         thisNode.left = Option[Node]::Some(Node::leaf());
         thisNode.right = Option[Node]::Some(Node::leaf());
-        populate(depth, thisNode.left.unwrap());
-        populate(depth, thisNode.right.unwrap());
+        populate(depth, thisNode.left.getOrPanic());
+        populate(depth, thisNode.right.getOrPanic());
     }
 }
 
@@ -81,7 +81,7 @@ fun main() {
         std::exit(1);
     }
 
-    let depth = argv(0).toInt32().unwrap();
+    let depth = argv(0).toInt32().getOrPanic();
 
     stretchTreeDepth = depth+1;
     longLivedTreeDepth = depth;

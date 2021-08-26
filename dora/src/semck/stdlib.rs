@@ -790,7 +790,13 @@ pub fn resolve_internal_functions(vm: &mut VM) {
 
     intrinsic_method(vm, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
     intrinsic_method(vm, stdlib, "Option", "isSome", Intrinsic::OptionIsSome);
-    intrinsic_method(vm, stdlib, "Option", "unwrap", Intrinsic::OptionUnwrap);
+    intrinsic_method(
+        vm,
+        stdlib,
+        "Option",
+        "getOrPanic",
+        Intrinsic::OptionGetOrPanic,
+    );
 
     intrinsic_method(vm, stdlib, "AtomicInt32", "get", Intrinsic::AtomicInt32Get);
     intrinsic_method(vm, stdlib, "AtomicInt32", "set", Intrinsic::AtomicInt32Set);

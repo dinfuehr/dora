@@ -11,7 +11,7 @@ fun main() {
   let x = Some[Int32](42);
   assert(x.isSome());
   assert(!x.isNone());
-  assert(x.unwrap() == 42);
+  assert(x.getOrPanic() == 42);
   assert(x.has(42));
   assert(x.contains(42));
   assert(x.equals(Some[Int32](42)));

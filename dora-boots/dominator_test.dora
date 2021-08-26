@@ -12,12 +12,12 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 
         if dominator.isNone() {
             println("block ${idx}: missing dominator, expected ${expectedDominatorId}");
-        } else if dominator.unwrap().id != expectedDominatorId {
-            println("block ${idx}: idom is ${dominator.unwrap().id}, expected ${expectedDominatorId}");
+        } else if dominator.getOrPanic().id != expectedDominatorId {
+            println("block ${idx}: idom is ${dominator.getOrPanic().id}, expected ${expectedDominatorId}");
             println(dumpGraph(graph));
         }
 
-        assert(dominator.unwrap().id == expectedDominatorId);
+        assert(dominator.getOrPanic().id == expectedDominatorId);
     }
 }
 
@@ -72,10 +72,10 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     assert(condBlock.getDominator().isNone());
     assert(condBlock.getDominatedBlocks().size() == 2L);
 
-    assert(thenBlock.getDominator().unwrap() === condBlock);
+    assert(thenBlock.getDominator().getOrPanic() === condBlock);
     assert(thenBlock.getDominatedBlocks().size() == 0L);
 
-    assert(elseBlock.getDominator().unwrap() === condBlock);
+    assert(elseBlock.getDominator().getOrPanic() === condBlock);
     assert(elseBlock.getDominatedBlocks().size() == 0L);
 }
 
@@ -91,12 +91,12 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 
     assert(varBlock.getDominator().isNone());
 
-    assert(whileHeader.getDominator().unwrap() === varBlock);
+    assert(whileHeader.getDominator().getOrPanic() === varBlock);
     assert(whileHeader.getDominatedBlocks().size() == 2L);
 
-    assert(whileBody.getDominator().unwrap() === whileHeader);
+    assert(whileBody.getDominator().getOrPanic() === whileHeader);
     assert(whileBody.getDominatedBlocks().size() == 0L);
 
-    assert(returnBlock.getDominator().unwrap() === whileHeader);
+    assert(returnBlock.getDominator().getOrPanic() === whileHeader);
     assert(returnBlock.getDominatedBlocks().size() == 0L);
 }

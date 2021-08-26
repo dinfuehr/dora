@@ -3,11 +3,11 @@
 fun main() {
     let x = Foo(Some[Foo](Foo(None[Foo])));
     std::forceMinorCollect();
-    assert(x.next.unwrap().next.isNone());
+    assert(x.next.getOrPanic().next.isNone());
     std::forceMinorCollect();
-    assert(x.next.unwrap().next.isNone());
+    assert(x.next.getOrPanic().next.isNone());
     std::forceMinorCollect();
-    assert(x.next.unwrap().next.isNone());
+    assert(x.next.getOrPanic().next.isNone());
 }
 
 class Foo(let next: Option[Foo])

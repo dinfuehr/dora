@@ -8,8 +8,8 @@ fun main() {
     assert(map.contains(4));
     assert(!map.contains(0));
 
-    assert(map.get(1).unwrap() == "a");
-    assert(map.get(2).unwrap() == "b");
-    assert(map.get(3).unwrap() == "c");
-    assert(map.get(4).unwrap() == "d");
+    assert(map.get(1).getOrPanic() == "a");
+    assert(map.get(2).getOrPanic() == "b");
+    assert(map.get(3).getOrPanic() == "c");
+    assert(map.get(4).getOrPanic() == "d");
 }

@@ -16,11 +16,11 @@ import std::exit;
         self.printAge(date);
 
         if self.left.isSome() {
-            self.left.unwrap().printAges(date);
+            self.left.getOrPanic().printAges(date);
         }
 
         if self.right.isSome() {
-            self.right.unwrap().printAges(date);
+            self.right.getOrPanic().printAges(date);
         }
     }
 
@@ -30,11 +30,11 @@ import std::exit;
         println(" value: " + self.value.toString());
 
         if self.left.isSome() {
-            self.left.unwrap().printTree(date, prefix + "  ");
+            self.left.getOrPanic().printTree(date, prefix + "  ");
         }
 
         if self.right.isSome() {
-            self.right.unwrap().printTree(date, prefix + "  ");
+            self.right.getOrPanic().printTree(date, prefix + "  ");
         }
     }
 
@@ -42,7 +42,7 @@ import std::exit;
         if tree.isNone() {
             return Option[Node]::None;
         }
-        var tree = tree.unwrap();
+        var tree = tree.getOrPanic();
 
         node.left = Option[Node]::None;
         node.right = Option[Node]::None;
@@ -56,9 +56,9 @@ import std::exit;
                     break;
                 }
 
-                if node.value <= tree.left.unwrap().value {
+                if node.value <= tree.left.getOrPanic().value {
                     // rotate right
-                    let y = tree.left.unwrap();
+                    let y = tree.left.getOrPanic();
                     tree.left = y.right;
                     y.right = Option[Node]::Some(tree);
                     tree = y;
@@ -70,16 +70,16 @@ import std::exit;
                 // link right
                 r.left = Option[Node]::Some(tree);
                 r = tree;
-                tree = tree.left.unwrap();
+                tree = tree.left.getOrPanic();
 
             } else if node.value > tree.value {
                 if tree.right.isNone() {
                     break;
                 }
 
-                if node.value > tree.right.unwrap().value {
+                if node.value > tree.right.getOrPanic().value {
                     // rotate left
-                    let y = tree.right.unwrap();
+                    let y = tree.right.getOrPanic();
                     tree.right = y.left;
                     y.left = Option[Node]::Some(tree);
                     tree = y;
@@ -91,7 +91,7 @@ import std::exit;
                 // link left
                 l.right = Option[Node]::Some(tree);
                 l = tree;
-                tree = tree.right.unwrap();
+                tree = tree.right.getOrPanic();
 
             } else {
                 break;
@@ -110,7 +110,7 @@ import std::exit;
             return node;
         }
 
-        let tree = Node::splay(tree, node).unwrap();
+        let tree = Node::splay(tree, node).getOrPanic();
 
         if node.value <= tree.value {
             node.left = tree.left;
@@ -133,7 +133,7 @@ import std::exit;
                 }*/
                 tree.left = Option[Node]::None;
             } else {
-                Node::trunc(date, tree.left.unwrap(), depth-1);
+                Node::trunc(date, tree.left.getOrPanic(), depth-1);
             }
         }
 
@@ -144,7 +144,7 @@ import std::exit;
                 }*/
                 tree.right = Option[Node]::None;
             } else {
-                Node::trunc(date, tree.right.unwrap(), depth-1);
+                Node::trunc(date, tree.right.getOrPanic(), depth-1);
             }
         }
     }
@@ -153,7 +153,7 @@ import std::exit;
         if node.isNone() {
             return 0;
         }
-        let node = node.unwrap();
+        let node = node.getOrPanic();
         return 1 + Node::countNodes(node.left) + Node::countNodes(node.right);
     }
 }
@@ -176,8 +176,8 @@ fun main() {
         exit(1);
     }
 
-    let rnd = std::Random(argv(0).toInt64().unwrap());
-    let max_size = argv(1).toInt32().unwrap();
+    let rnd = std::Random(argv(0).toInt64().getOrPanic());
+    let max_size = argv(1).toInt32().getOrPanic();
     var date = 0;
 
     var tree: Node = NodeA();
@@ -188,8 +188,8 @@ fun main() {
     var j = 2;
 
     while j + 2 <= argc() {
-        let n = argv(j).toInt32().unwrap();
-        let depth = argv(j).toInt32().unwrap();
+        let n = argv(j).toInt32().getOrPanic();
+        let depth = argv(j).toInt32().getOrPanic();
 
         var i = 0;
         while i < n {

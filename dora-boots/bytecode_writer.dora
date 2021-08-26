@@ -618,18 +618,18 @@ class BytecodeWriter {
         let start = self.code.size().toInt32();
         var target = 0;
 
-        if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.size().toInt32()) {
+        if (opnd.isSome() && isWide(opnd.getOrPanic().value)) || isWide(self.constPool.size().toInt32()) {
             self.emitWide();
             self.emitOpcode(inst);
             if opnd.isSome() {
-                self.emitInt32(opnd.unwrap().value);
+                self.emitInt32(opnd.getOrPanic().value);
             }
             target = self.code.size().toInt32();
             self.emitInt32(0);
         } else {
             self.emitOpcode(instConst);
             if opnd.isSome() {
-                self.emitByte(opnd.unwrap().value);
+                self.emitByte(opnd.getOrPanic().value);
             }
             let idx = self.addConst(ConstPoolEntry::Int32(0));
             target = self.code.size().toInt32();

@@ -1,4 +1,4 @@
 fun main() {
-    assert(Option[String]::Some("abc").unwrap() == "abc");
-    assert(Option[Int32]::Some(12).unwrap() == 12);
+    assert(Option[String]::Some("abc").getOrPanic() == "abc");
+    assert(Option[Int32]::Some(12).getOrPanic() == 12);
 }

@@ -6,7 +6,7 @@
 
   @pub fun getStacktrace(): Array[StacktraceElement] {
     if self.elements.isSome() {
-      return self.elements.unwrap();
+      return self.elements.getOrPanic();
     }
 
     if self.backtrace.isNone() {
@@ -15,7 +15,7 @@
       return elements;
     }
 
-    let backtraceLength = self.backtrace.unwrap().size();
+    let backtraceLength = self.backtrace.getOrPanic().size();
     var i = 0L;
     let len = backtraceLength / 2L;
     let elements = Array[StacktraceElement]::unsafeNew(len);

@@ -8,7 +8,7 @@ fun main() {
   // promoted objects with references to young generations
   // are updated too.
   std::forceMinorCollect();
-  assert(x.next.unwrap().a == 2);
+  assert(x.next.getOrPanic().a == 2);
 }
 
 class Foo(let a: Int32, var next: Option[Foo])

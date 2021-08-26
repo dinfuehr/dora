@@ -85,7 +85,7 @@ class GraphDumper(let graph: Graph) {
             var first = true;
 
             while current.isSome() {
-                let c = current.unwrap();
+                let c = current.getOrPanic();
 
                 if first {
                     self.buffer.append("%${c.usedBy.id}");

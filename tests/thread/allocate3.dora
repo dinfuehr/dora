@@ -36,13 +36,13 @@ fun allocator() {
 
         var tmp = foo;
         assert(tmp.value == i + 4);
-        tmp = tmp.next.unwrap();
+        tmp = tmp.next.getOrPanic();
         assert(tmp.value == i + 3);
-        tmp = tmp.next.unwrap();
+        tmp = tmp.next.getOrPanic();
         assert(tmp.value == i + 2);
-        tmp = tmp.next.unwrap();
+        tmp = tmp.next.getOrPanic();
         assert(tmp.value == i + 1);
-        tmp = tmp.next.unwrap();
+        tmp = tmp.next.getOrPanic();
         assert(tmp.value == i);
 
         i = i + 1;

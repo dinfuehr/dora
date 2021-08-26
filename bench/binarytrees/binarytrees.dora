@@ -2,7 +2,7 @@ fun main() {
   var maxDepth = 6;
 
   if std::argc() > 0 {
-    maxDepth = std::argv(0).toInt32().unwrap();
+    maxDepth = std::argv(0).toInt32().getOrPanic();
   }
 
   if 6 > maxDepth {
@@ -62,8 +62,8 @@ fun checkTree(node: TreeNode): Int32 {
     return 1;
   }
 
-  return checkTree(node.left.unwrap()) +
-         checkTree(node.right.unwrap()) + 1;
+  return checkTree(node.left.getOrPanic()) +
+         checkTree(node.right.getOrPanic()) + 1;
 }
 
 class TreeNode(let item: Int32, var left: Option[TreeNode], var right: Option[TreeNode])

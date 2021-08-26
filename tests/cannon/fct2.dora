@@ -33,7 +33,7 @@ fun foo_char(): Char {
 
 fun bar_char(a: Char): Char {
   assert(a == '3');
-  return (3+a.toInt32()).toChar().unwrap();
+  return (3+a.toInt32()).toChar().getOrPanic();
 }
 
 fun foo_int32(): Int32 {
