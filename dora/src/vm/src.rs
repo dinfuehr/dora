@@ -20,8 +20,6 @@ pub struct AnalysisData {
     pub map_convs: NodeMap<ConvInfo>,
     pub map_cls: NodeMap<ClassId>,
     pub map_fors: NodeMap<ForTypeInfo>,
-
-    // false if function execution could reach the closing } of this function
     pub vars: Vec<Var>, // variables in functions
 }
 
