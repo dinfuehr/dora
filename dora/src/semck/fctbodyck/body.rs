@@ -879,8 +879,6 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_assign_ident(&mut self, e: &ast::ExprBinType) {
-        let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
-
         self.analysis.set_ty(e.id, SourceType::Unit);
 
         let lhs_ident = e.lhs.to_ident().unwrap();
@@ -939,6 +937,8 @@ impl<'a> TypeCheck<'a> {
                 return;
             }
         };
+
+        let rhs_type = self.check_expr(&e.rhs, lhs_type.clone());
 
         if !lhs_type.is_error()
             && !rhs_type.is_error()

@@ -3675,6 +3675,11 @@ fn infer_enum_type() {
         None
     }");
 
+    ok("fun f() {
+        var x: Option[Int32] = None; x = Some(10);
+        var y: Option[Int32] = Some(10); y = None;
+    }");
+
     ok("fun f(): Option[Int32] {
         Some(10)
     }");
