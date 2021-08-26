@@ -29,29 +29,29 @@ enum ConstPoolEntry {
 impl ConstPoolEntry {
     fun toInt32(): Option[Int32] {
         match self {
-            ConstPoolEntry::Int32(value) => Some[Int32](value),
-            _ => None[Int32],
+            ConstPoolEntry::Int32(value) => Some(value),
+            _ => None,
         }
     }
 
     fun toInt64(): Option[Int64] {
         match self {
-            ConstPoolEntry::Int64(value) => Some[Int64](value),
-            _ => None[Int64],
+            ConstPoolEntry::Int64(value) => Some(value),
+            _ => None,
         }
     }
 
     fun toFloat32(): Option[Float32] {
         match self {
-            ConstPoolEntry::Float32(value) => Some[Float32](value),
-            _ => None[Float32],
+            ConstPoolEntry::Float32(value) => Some(value),
+            _ => None,
         }
     }
 
     fun toFloat64(): Option[Float64] {
         match self {
-            ConstPoolEntry::Float64(value) => Some[Float64](value),
-            _ => None[Float64],
+            ConstPoolEntry::Float64(value) => Some(value),
+            _ => None,
         }
     }
 }
