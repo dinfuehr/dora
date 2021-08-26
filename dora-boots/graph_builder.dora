@@ -1,18 +1,18 @@
 class GraphBuilder {
     let graph: Graph = Graph();
-    var insertion: Option[Block] = None[Block];
-    var entryBlock: Option[Block] = None[Block];
+    var insertion: Option[Block] = None;
+    var entryBlock: Option[Block] = None;
 
     fun addBlock(): Block {
         let block = Block();
 
         if self.entryBlock.isNone() {
-            self.entryBlock = Some[Block](block);
+            self.entryBlock = Some(block);
             self.graph.setEntryBlock(block);
         }
 
         self.graph.addBlock(block);
-        self.insertion = Some[Block](block);
+        self.insertion = Some(block);
         block
     }
 
@@ -45,7 +45,7 @@ class GraphBuilder {
         self.insertion.unwrap().appendInst(inst);
 
         if inst.isTerminator() {
-            self.insertion = None[Block];
+            self.insertion = None;
         }
 
         inst

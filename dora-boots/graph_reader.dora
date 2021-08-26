@@ -15,7 +15,7 @@ class Lexer(let content: String) {
 
     fun look(): Option[Char] {
         if self.idx == self.content.size() {
-            return None[Char];
+            return None;
         }
 
         Some(self.content.getByte(self.idx).toChar())

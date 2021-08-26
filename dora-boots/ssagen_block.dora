@@ -29,13 +29,13 @@ class BlockMap(let bc: BytecodeFunction) {
             offset = offset + 1L;
         }
 
-        None[Block]
+        None
     }
 }
 
 class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap) extends EmptyBytecodeVisitor {
     var offset: Int32 = 0;
-    var currentBlock: Option[Block] = None[Block];
+    var currentBlock: Option[Block] = None;
     var blockTerminated: Bool = false;
 
     fun run() {
@@ -61,7 +61,7 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
                 }
             }
 
-            self.currentBlock = Some[Block](nextBlock);
+            self.currentBlock = Some(nextBlock);
         }
 
         self.blockTerminated = false;

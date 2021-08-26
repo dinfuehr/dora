@@ -78,7 +78,7 @@ fun removeUnreachableBlocks(graph: Graph, visited: BitSet) {
         }
 
         graph.blocks(block.id.toInt64()) = None[Block];
-        block.graph = None[Graph];
+        block.graph = None;
     }
 }
 
@@ -127,13 +127,13 @@ fun computeDominators(graph: Graph) {
             continue;
         }
 
-        var newIdom: Option[Block] = None[Block];
+        var newIdom: Option[Block] = None;
 
         for pred in block.predecessors {
             let pred = pred.source;
 
             if newIdom.isNone() {
-                newIdom = Some[Block](pred);
+                newIdom = Some(pred);
                 continue;
             }
 
@@ -141,7 +141,7 @@ fun computeDominators(graph: Graph) {
                 continue;
             }
 
-            newIdom = Some[Block](commonDominator(newIdom.unwrap(), pred));
+            newIdom = Some(commonDominator(newIdom.unwrap(), pred));
         }
 
         block.setDominator(newIdom.unwrap());
@@ -165,13 +165,13 @@ fun computeDominators(graph: Graph) {
             continue;
         }
 
-        var newIdom: Option[Block] = None[Block];
+        var newIdom: Option[Block] = None;
 
         for pred in block.predecessors {
             let pred = pred.source;
 
             if newIdom.isNone() {
-                newIdom = Some[Block](pred);
+                newIdom = Some(pred);
                 continue;
             }
 
@@ -179,7 +179,7 @@ fun computeDominators(graph: Graph) {
                 continue;
             }
 
-            newIdom = Some[Block](commonDominator(newIdom.unwrap(), pred));
+            newIdom = Some(commonDominator(newIdom.unwrap(), pred));
         }
 
         assert(block.getDominator().unwrap() === newIdom.unwrap());

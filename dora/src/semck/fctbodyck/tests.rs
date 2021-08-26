@@ -704,8 +704,7 @@ fn lit_int64() {
     let ret = SemError::ReturnType("Int32".into(), "Int64".into());
     err("fun f(): Int32 { return 1L; }", pos(1, 18), ret);
 
-    let ret = SemError::ReturnType("Int64".into(), "Int32".into());
-    err("fun f(): Int64 { return 1; }", pos(1, 18), ret);
+    ok("fun f(): Int64 { return 1; }");
 }
 
 #[test]

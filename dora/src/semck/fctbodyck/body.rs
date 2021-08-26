@@ -486,10 +486,12 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_stmt_return(&mut self, s: &ast::StmtReturnType) {
+        let expected_ty = self.fct.return_type.clone();
+
         let expr_type = s
             .expr
             .as_ref()
-            .map(|expr| self.check_expr(&expr, SourceType::Any))
+            .map(|expr| self.check_expr(&expr, expected_ty))
             .unwrap_or(SourceType::Unit);
 
         self.check_fct_return_type(s.pos, expr_type);
@@ -570,7 +572,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_match(
         &mut self,
         node: &ast::ExprMatchType,
-        _expected_ty: SourceType,
+        expected_ty: SourceType,
     ) -> SourceType {
         let expr_type = self.check_expr(&node.expr, SourceType::Any);
         let mut result_type = SourceType::Error;
@@ -711,7 +713,7 @@ impl<'a> TypeCheck<'a> {
                 }
             }
 
-            let case_ty = self.check_expr(&case.value, SourceType::Any);
+            let case_ty = self.check_expr(&case.value, expected_ty.clone());
 
             if result_type.is_error() {
                 result_type = case_ty;
