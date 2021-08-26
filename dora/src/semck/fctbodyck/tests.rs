@@ -1881,10 +1881,14 @@ fn test_enum() {
     err(
         "
         enum Foo[T] { A(T, Bool), B }
-        fun f[T](val: T): Foo[T] { Foo::A(val, false) }",
-        pos(3, 42),
-        SemError::WrongNumberTypeParams(1, 0),
+        fun f[T](val: T): Foo[T] { Foo::A[T, String](val, false) }",
+        pos(3, 53),
+        SemError::WrongNumberTypeParams(1, 2),
     );
+
+    ok("
+        enum Foo[T] { A(T, Bool), B }
+        fun f[T](val: T): Foo[T] { Foo::A(val, false) }");
 }
 
 #[test]
@@ -2088,11 +2092,7 @@ fn test_enum_equals() {
 fn test_import_enum_value() {
     ok("enum A { V1(Int32), V2 } import A::V1; fun f(): A { V1(1) }");
     ok("enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1[Int32](1) }");
-    err(
-        "enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1(1) }",
-        pos(1, 65),
-        SemError::WrongNumberTypeParams(1, 0),
-    );
+    ok("enum A[T] { V1(Int32), V2 } import A::V1; fun f(): A[Int32] { V1(1) }");
 
     ok("enum A { V1, V2 } import A::V2; fun f(): A { V2 }");
 
@@ -2108,13 +2108,10 @@ fn test_import_enum_value() {
         SemError::EnumArgsIncompatible("A".into(), "V2".into(), Vec::new(), vec!["Int32".into()]),
     );
 
-    err(
-        "enum A[T] { V1(Int32), V2 } import A::V2; fun f(): A[Int32] { V2 }",
-        pos(1, 63),
-        SemError::WrongNumberTypeParams(1, 0),
-    );
+    ok("enum A[T] { V1(Int32), V2 } import A::V2; fun f(): A[Int32] { V2 }");
 
     ok("enum A[T] { V1, V2 } import A::V2; fun f(): A[Int32] { V2[Int32] }");
+
     err(
         "enum A[T] { V1, V2 } import A::V2; fun f(): A[Int32] { V2[Int32, Float32] }",
         pos(1, 58),
@@ -3670,4 +3667,15 @@ fn trait_object_cast() {
         pos(6, 21),
         SemError::TypeNotImplementingTrait("Bar".into(), "Foo".into()),
     );
+}
+
+#[test]
+fn infer_enum_type() {
+    ok("fun f(): Option[Int32] {
+        None
+    }");
+
+    ok("fun f(): Option[Int32] {
+        Some(10)
+    }");
 }

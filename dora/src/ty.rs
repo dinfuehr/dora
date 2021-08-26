@@ -77,6 +77,13 @@ impl SourceType {
         }
     }
 
+    pub fn is_enum_id(&self, enum_id: EnumId) -> bool {
+        match *self {
+            SourceType::Enum(id, _) => id == enum_id,
+            _ => false,
+        }
+    }
+
     pub fn is_unit(&self) -> bool {
         match *self {
             SourceType::Unit => true,

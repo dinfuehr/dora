@@ -1347,7 +1347,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_call(&mut self, e: &ast::ExprCallType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_call(&mut self, e: &ast::ExprCallType, expected_ty: SourceType) -> SourceType {
         let (callee, type_params) = if let Some(expr_type_params) = e.callee.to_type_param() {
             let type_params: Vec<SourceType> = expr_type_params
                 .args
@@ -1369,7 +1369,7 @@ impl<'a> TypeCheck<'a> {
         if let Some(expr_ident) = callee.to_ident() {
             let sym = self.symtable.get(expr_ident.name);
 
-            self.check_expr_call_sym(e, callee, sym, type_params, &arg_types)
+            self.check_expr_call_sym(e, expected_ty, callee, sym, type_params, &arg_types)
         } else if let Some(expr_dot) = callee.to_dot() {
             let object_type = if expr_dot.lhs.is_super() {
                 self.super_type(expr_dot.lhs.pos())
@@ -1390,7 +1390,7 @@ impl<'a> TypeCheck<'a> {
             };
             self.check_expr_call_method(e, object_type, method_name, type_params, &arg_types)
         } else if let Some(_expr_path) = callee.to_path() {
-            self.check_expr_call_path(e, callee, type_params, &arg_types)
+            self.check_expr_call_path(e, expected_ty, callee, type_params, &arg_types)
         } else {
             if !type_params.is_empty() {
                 let msg = SemError::NoTypeParamsExpected;
@@ -1408,6 +1408,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_sym(
         &mut self,
         e: &ast::ExprCallType,
+        expected_ty: SourceType,
         callee: &ast::Expr,
         sym: Option<Sym>,
         type_params: SourceTypeArray,
@@ -1424,9 +1425,14 @@ impl<'a> TypeCheck<'a> {
                 self.check_expr_call_struct(e, struct_id, type_params, &arg_types)
             }
 
-            Some(Sym::EnumValue(enum_id, variant_id)) => {
-                self.check_enum_value_with_args(e, enum_id, type_params, variant_id, &arg_types)
-            }
+            Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_with_args(
+                e,
+                expected_ty,
+                enum_id,
+                type_params,
+                variant_id,
+                &arg_types,
+            ),
 
             _ => {
                 if !type_params.is_empty() {
@@ -1446,6 +1452,7 @@ impl<'a> TypeCheck<'a> {
     fn check_enum_value_with_args(
         &mut self,
         e: &ast::ExprCallType,
+        expected_ty: SourceType,
         enum_id: EnumId,
         type_params: SourceTypeArray,
         variant_id: usize,
@@ -1458,6 +1465,12 @@ impl<'a> TypeCheck<'a> {
             let msg = SemError::NotAccessible(xenum.name(self.vm));
             self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
+
+        let type_params = if expected_ty.is_enum_id(enum_id) && type_params.is_empty() {
+            expected_ty.type_params(self.vm)
+        } else {
+            type_params
+        };
 
         let type_params_ok = typeparamck::check_enum(
             self.vm,
@@ -2096,6 +2109,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_path(
         &mut self,
         e: &ast::ExprCallType,
+        expected_ty: SourceType,
         callee: &ast::Expr,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
@@ -2233,6 +2247,7 @@ impl<'a> TypeCheck<'a> {
 
                     self.check_enum_value_with_args(
                         e,
+                        expected_ty,
                         enum_id,
                         used_type_params,
                         variant_id as usize,
@@ -2294,7 +2309,7 @@ impl<'a> TypeCheck<'a> {
                     table.get(method_name)
                 };
 
-                self.check_expr_call_sym(e, callee, sym, type_params, arg_types)
+                self.check_expr_call_sym(e, expected_ty, callee, sym, type_params, arg_types)
             }
 
             _ => {
@@ -2777,7 +2792,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         expr_id: ast::NodeId,
         expr_pos: Position,
-        _expected_ty: SourceType,
+        expected_ty: SourceType,
         enum_id: EnumId,
         type_params: SourceTypeArray,
         variant_id: usize,
@@ -2788,6 +2803,12 @@ impl<'a> TypeCheck<'a> {
             let msg = SemError::NotAccessible(xenum.name(self.vm));
             self.vm.diag.lock().report(self.file_id, expr_pos, msg);
         }
+
+        let type_params = if expected_ty.is_enum_id(enum_id) && type_params.is_empty() {
+            expected_ty.type_params(self.vm)
+        } else {
+            type_params
+        };
 
         let type_params_ok = typeparamck::check_enum(
             self.vm,
