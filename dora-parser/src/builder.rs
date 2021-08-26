@@ -78,7 +78,6 @@ pub struct BuilderFct<'a> {
     id_generator: &'a NodeIdGenerator,
     name: Name,
     is_method: bool,
-    is_public: bool,
     is_constructor: bool,
     return_type: Option<Type>,
     params: Vec<Param>,
@@ -91,7 +90,6 @@ impl<'a> BuilderFct<'a> {
             id_generator,
             name,
             is_method: false,
-            is_public: false,
             is_constructor: false,
             return_type: None,
             params: Vec::new(),
@@ -124,11 +122,6 @@ impl<'a> BuilderFct<'a> {
 
     pub fn is_method(&mut self, value: bool) -> &mut BuilderFct<'a> {
         self.is_method = value;
-        self
-    }
-
-    pub fn is_public(&mut self, value: bool) -> &mut BuilderFct<'a> {
-        self.is_public = value;
         self
     }
 

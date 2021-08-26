@@ -2312,10 +2312,7 @@ impl<'a> Parser<'a> {
             );
         }
 
-        fct.is_method(true)
-            .is_public(true)
-            .constructor(true)
-            .block(block.build());
+        fct.is_method(true).constructor(true).block(block.build());
 
         fct.build()
     }
