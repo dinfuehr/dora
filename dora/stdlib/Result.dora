@@ -57,7 +57,7 @@ impl[V, E] Result[V, E] {
   }
 }
 
-impl[V: Equals, E: Equals] Result[V, E] {
+impl[V: Equals, E] Result[V, E] {
   @pub fun contains(rhs: V): Bool {
     if self.isOk() {
       let lhs = self.unwrap();
@@ -66,7 +66,9 @@ impl[V: Equals, E: Equals] Result[V, E] {
       false
     }
   }
+}
 
+impl[V: Equals, E: Equals] Result[V, E] {
   @pub fun equals(rhs: Result[V, E]): Bool {
     if self.isOk() {
       if rhs.isOk() {
@@ -77,7 +79,13 @@ impl[V: Equals, E: Equals] Result[V, E] {
         false
       }
     } else {
-      rhs.isErr()
+      if rhs.isErr() {
+        let lhs = self.unwrapErr();
+        let rhs = rhs.unwrapErr();
+        lhs.equals(rhs)
+      } else {
+        false
+      }
     }
   }
 }
