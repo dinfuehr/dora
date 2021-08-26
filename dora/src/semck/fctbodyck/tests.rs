@@ -3695,3 +3695,10 @@ fn infer_enum_type() {
         Some(10)
     }");
 }
+
+#[test]
+fn infer_ctor_type() {
+    ok("fun f(): Vec[Int32] {
+        Vec(1, 2, 3)
+    }");
+}

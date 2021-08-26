@@ -51,7 +51,7 @@ enum JumpDistance {
 
 class AssemblerX64 extends Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
-    let jumps: Vec[(Int64, Label, JumpDistance)] = Vec[(Int64, Label, JumpDistance)]();
+    let jumps: Vec[(Int64, Label, JumpDistance)] = Vec();
 
     fun createLabel(): Label {
         self.buffer.createLabel()

@@ -1,8 +1,8 @@
 class BytecodeWriter {
-    let code: Vec[UInt8] = Vec[UInt8]();
-    let constPool: Vec[ConstPoolEntry] = Vec[ConstPoolEntry]();
-    let registers: Vec[BytecodeType] = Vec[BytecodeType]();
-    let unresolvedJumps: Vec[UnresolvedJump] = Vec[UnresolvedJump]();
+    let code: Vec[UInt8] = Vec();
+    let constPool: Vec[ConstPoolEntry] = Vec();
+    let registers: Vec[BytecodeType] = Vec();
+    let unresolvedJumps: Vec[UnresolvedJump] = Vec();
     var arguments: Int32 = 0;
 
     fun addRegister(ty: BytecodeType): BytecodeRegister {

@@ -1,8 +1,8 @@
 class Graph {
     var entryBlock: Option[Block] = None;
 
-    var blocks: Vec[Option[Block]] = Vec[Option[Block]]();
-    var postOrder: Vec[Block] = Vec[Block]();
+    var blocks: Vec[Option[Block]] = Vec();
+    var postOrder: Vec[Block] = Vec();
 
     var nextBlockIdValue: Int32 = 0;
     var nextInstIdValue: Int32 = 0;
@@ -142,10 +142,10 @@ class Block() {
     var graph: Option[Graph] = None;
 
     var dominator: Option[Block] = None;
-    var dominatedBlocks: Vec[Block] = Vec[Block]();
+    var dominatedBlocks: Vec[Block] = Vec();
 
-    var predecessors: Vec[Edge] = Vec[Edge]();
-    var successors: Vec[Edge] = Vec[Edge]();
+    var predecessors: Vec[Edge] = Vec();
+    var successors: Vec[Edge] = Vec();
 
     var loopData: Option[LoopData] = None;
 
@@ -280,7 +280,7 @@ impl Equals for Block {
 import std::BitVec;
 
 class LoopData(let header: Block) {
-    var backEdges: Vec[Block] = Vec[Block]();
+    var backEdges: Vec[Block] = Vec();
     let blocks: BitVec = BitVec();
 
     fun getHeader(): Block {
@@ -325,7 +325,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     var useListHead: Option[Input] = None;
     var useListTail: Option[Input] = None;
 
-    var inputs: Vec[Input] = Vec[Input]();
+    var inputs: Vec[Input] = Vec();
 
     fun getType(): Type {
         return self.ty;

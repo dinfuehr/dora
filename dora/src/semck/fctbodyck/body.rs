@@ -1425,7 +1425,7 @@ impl<'a> TypeCheck<'a> {
             Some(Sym::Fct(fct_id)) => self.check_expr_call_fct(e, fct_id, type_params, &arg_types),
 
             Some(Sym::Class(cls_id)) => {
-                self.check_expr_call_ctor(e, cls_id, type_params, &arg_types)
+                self.check_expr_call_ctor(e, expected_ty, cls_id, type_params, &arg_types)
             }
 
             Some(Sym::Struct(struct_id)) => {
@@ -1977,6 +1977,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_ctor(
         &mut self,
         e: &ast::ExprCallType,
+        expected_ty: SourceType,
         cls_id: ClassId,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
@@ -1987,6 +1988,12 @@ impl<'a> TypeCheck<'a> {
             let msg = SemError::NotAccessible(cls.name(self.vm));
             self.vm.diag.lock().report(self.file_id, e.pos, msg);
         }
+
+        let type_params = if expected_ty.is_cls_id(cls_id) && type_params.is_empty() {
+            expected_ty.type_params(self.vm)
+        } else {
+            type_params
+        };
 
         if !typeparamck::check_class(
             self.vm,

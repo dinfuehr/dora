@@ -105,6 +105,13 @@ impl SourceType {
         }
     }
 
+    pub fn is_cls_id(&self, cls_id: ClassId) -> bool {
+        match *self {
+            SourceType::Class(id, _) => id == cls_id,
+            _ => false,
+        }
+    }
+
     pub fn is_trait(&self) -> bool {
         match *self {
             SourceType::Trait(_, _) => true,

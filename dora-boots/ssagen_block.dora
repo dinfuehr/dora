@@ -11,7 +11,7 @@ fun createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): Block
 }
 
 class BlockMap(let bc: BytecodeFunction) {
-    let blocks: HashMap[Int32, Block] = HashMap[Int32, Block]();
+    let blocks: HashMap[Int32, Block] = HashMap();
 
     fun insert(offset: Int32, block: Block) {
         self.blocks.insert(offset, block);

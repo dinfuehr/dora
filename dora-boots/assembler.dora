@@ -1,5 +1,5 @@
 class AssemblerBuffer {
-    let buffer: Vec[UInt8] = Vec[UInt8]();
+    let buffer: Vec[UInt8] = Vec();
     var pos: Int64 = 0L;
 
     fun position(): Int64 {

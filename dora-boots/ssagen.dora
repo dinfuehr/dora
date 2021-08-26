@@ -24,7 +24,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     var sealedBlocks: BitSet = BitSet(0L);
 
     // tracks all incomplete phi instructions inserted into unsealed blocks
-    let incompletePhis: HashMap[Block, HashMap[BytecodeRegister, PhiInst]] = HashMap[Block, HashMap[BytecodeRegister, PhiInst]]();
+    let incompletePhis: HashMap[Block, HashMap[BytecodeRegister, PhiInst]] = HashMap();
 
     fun run() {
         self.prepare();
