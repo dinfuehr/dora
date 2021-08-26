@@ -11,7 +11,7 @@ import std::Testing;
 import std::VecIter;
 
 class CompilationJob(let compilation_info: CompilationInfo) {
-    var graph: Option[Graph] = None[Graph];
+    var graph: Option[Graph] = None;
 
     fun run() {
         self.createGraph();
@@ -21,7 +21,7 @@ class CompilationJob(let compilation_info: CompilationInfo) {
 
     fun createGraph() {
         let graph = createGraph(self.compilation_info.bc);
-        self.graph = Some[Graph](graph);
+        self.graph = Some(graph);
     }
 
     fun optimizeGraph() {

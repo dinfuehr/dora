@@ -1002,7 +1002,6 @@ impl<'a> TypeCheck<'a> {
         };
 
         let object_type = self.check_expr(&field_expr.lhs, SourceType::Any);
-        let rhs_type = self.check_expr(&e.rhs, SourceType::Any);
 
         if object_type.cls_id().is_some() {
             if let Some((cls_ty, field_id, _)) =
@@ -1028,6 +1027,8 @@ impl<'a> TypeCheck<'a> {
                         .report(self.file_id, e.pos, SemError::LetReassigned);
                 }
 
+                let rhs_type = self.check_expr(&e.rhs, fty.clone());
+
                 if !fty.allows(self.vm, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = self.vm.interner.str(name).to_string();
 
@@ -1043,6 +1044,10 @@ impl<'a> TypeCheck<'a> {
                 return;
             }
         }
+
+        // We want to see syntax expressions in the assignment expressions even when we can't
+        // find the given field.
+        self.check_expr(&e.rhs, SourceType::Any);
 
         // field not found, report error
         let field_name = self.vm.interner.str(name).to_string();

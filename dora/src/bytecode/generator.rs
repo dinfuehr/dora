@@ -2588,12 +2588,15 @@ impl<'a> AstBytecodeGen<'a> {
             &IdentType::Var(varid) => self.visit_expr_ident_var(varid, dest),
             &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest),
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
+            &IdentType::EnumValue(enum_id, ref type_params, variant_id) => {
+                self.emit_new_enum(enum_id, type_params.clone(), variant_id, ident.pos, dest)
+            }
             &IdentType::Module(_) => unimplemented!(),
 
             &IdentType::Field(_, _) => unreachable!(),
             &IdentType::Struct(_) => unreachable!(),
             &IdentType::StructField(_, _) => unreachable!(),
-            &IdentType::EnumValue(_, _, _) => unreachable!(),
+
             &IdentType::Fct(_, _) => unreachable!(),
             &IdentType::Class(_, _) => unreachable!(),
         }
