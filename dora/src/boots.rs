@@ -13,10 +13,10 @@ use crate::object::{
 use crate::sym::NestedSymTable;
 use crate::threads::current_thread;
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::vm::{AnalysisData, Fct, VM};
+use crate::vm::{Fct, VM};
 
-pub fn compile(vm: &VM, fct: &Fct, src: &AnalysisData, _type_params: &SourceTypeArray) -> Code {
-    let bytecode_fct = bytecode::generate(vm, fct, src);
+pub fn compile(vm: &VM, fct: &Fct, _type_params: &SourceTypeArray) -> Code {
+    let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     if should_emit_bytecode(vm, fct) {
         bytecode::dump(vm, Some(fct), &bytecode_fct);

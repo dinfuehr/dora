@@ -37,7 +37,7 @@ pub fn start() -> i32 {
         return 1;
     }
 
-    semck::bytecode(&vm);
+    semck::generate_bytecode(&vm);
 
     let main = if vm.args.cmd_test {
         None

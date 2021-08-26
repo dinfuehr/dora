@@ -29,8 +29,8 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, AnalysisData, EnumId, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId,
-    Trap, TupleId, VM,
+    find_trait_impl, EnumId, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId, Trap, TupleId,
+    VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -54,7 +54,6 @@ pub struct CannonCodeGen<'a> {
     vm: &'a VM,
     fct: &'a Fct,
     asm: BaselineAssembler<'a>,
-    src: &'a AnalysisData,
     bytecode: &'a BytecodeFunction,
     temporary_stack: Vec<BytecodeType>,
     temporary_stack_size: i32,
@@ -93,7 +92,6 @@ impl<'a> CannonCodeGen<'a> {
     pub(super) fn new(
         vm: &'a VM,
         fct: &'a Fct,
-        src: &'a AnalysisData,
         bytecode: &'a BytecodeFunction,
         liveness: BytecodeLiveness,
         type_params: &'a SourceTypeArray,
@@ -102,7 +100,6 @@ impl<'a> CannonCodeGen<'a> {
             vm,
             fct,
             asm: BaselineAssembler::new(vm),
-            src,
             bytecode,
             temporary_stack: Vec::new(),
             temporary_stack_size: 0,

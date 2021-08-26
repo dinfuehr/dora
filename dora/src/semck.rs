@@ -112,7 +112,7 @@ pub fn check(vm: &mut VM) -> bool {
     true
 }
 
-pub fn bytecode(vm: &VM) {
+pub fn generate_bytecode(vm: &VM) {
     use crate::bytecode;
 
     for fct in vm.fcts.iter() {

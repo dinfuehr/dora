@@ -13,21 +13,15 @@ use crate::mem;
 use crate::os;
 use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::VM;
-use crate::vm::{AnalysisData, Fct, FctId};
+use crate::vm::{Fct, FctId};
 
 pub fn generate(vm: &VM, id: FctId, type_params: &SourceTypeArray) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
-    let analysis = fct.analysis();
-    generate_fct(vm, &fct, analysis, type_params)
+    generate_fct(vm, &fct, type_params)
 }
 
-pub fn generate_fct(
-    vm: &VM,
-    fct: &Fct,
-    src: &AnalysisData,
-    type_params: &SourceTypeArray,
-) -> Address {
+pub fn generate_fct(vm: &VM, fct: &Fct, type_params: &SourceTypeArray) -> Address {
     debug_assert!(type_params.iter().all(|ty| !ty.contains_type_param(vm)));
 
     {
@@ -42,12 +36,12 @@ pub fn generate_fct(
     let bc = if fct.has_optimize_immediately {
         CompilerName::Boots
     } else {
-        vm.args.compiler()
+        CompilerName::Cannon
     };
 
     let code = match bc {
-        CompilerName::Cannon => cannon::compile(vm, &fct, src, &type_params),
-        CompilerName::Boots => boots::compile(vm, &fct, src, type_params),
+        CompilerName::Cannon => cannon::compile(vm, &fct, &type_params),
+        CompilerName::Boots => boots::compile(vm, &fct, type_params),
     };
 
     if vm.args.flag_enable_perf {
