@@ -7,7 +7,7 @@ fun main() {
   // write into old object x reference to young object
   x.next = Some[Foo](Foo(2, None[Foo]));
   std::forceMinorCollect();
-  assert(x.next.unwrap().a == 2);
+  assert(x.next.getOrPanic().a == 2);
 }
 
 class Foo(let a: Int32, var next: Option[Foo])

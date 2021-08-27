@@ -63,7 +63,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     fun current(): Block {
-        self.currentBlock.unwrap()
+        self.currentBlock.getOrPanic()
     }
 
     fun writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
@@ -72,7 +72,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
     fun readVariable(register: BytecodeRegister, block: Block): Inst {
         if self.currentDef(register.value.toInt64()).contains(block) {
-            self.currentDef(register.value.toInt64())(block).unwrap()
+            self.currentDef(register.value.toInt64())(block).getOrPanic()
         } else {
             self.readVariableRecursive(register, block)
         }
@@ -90,7 +90,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
             block.appendPhi(incomplete);
 
             if self.incompletePhis.contains(block) {
-                self.incompletePhis(block).unwrap().insert(register, incomplete);
+                self.incompletePhis(block).getOrPanic().insert(register, incomplete);
             } else {
                 let map = HashMap[BytecodeRegister, PhiInst]();
                 map.insert(register, incomplete);
@@ -99,7 +99,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
             incomplete as Inst
         } else if block.predecessors.size() == 1L {
-            self.readVariable(register, block.predecessors.first().unwrap().source)
+            self.readVariable(register, block.predecessors.first().getOrPanic().source)
         } else {
             let phi = PhiInst();
             block.appendPhi(phi);
@@ -112,7 +112,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     fun addPhiOperands(register: BytecodeRegister, phi: PhiInst): Inst {
-        for pred in phi.block.unwrap().predecessors {
+        for pred in phi.block.getOrPanic().predecessors {
             let inst = self.readVariable(register, pred.source);
             phi.addInput(inst);
         }
@@ -126,7 +126,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         for inp in phi.inputs {
             let op = inp.value;
 
-            if (same.isSome() && same.unwrap() === op) || op === phi {
+            if (same.isSome() && same.getOrPanic() === op) || op === phi {
                 continue;
             }
 
@@ -143,7 +143,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
         let users = phi.users();
 
-        phi.replaceWith(same.unwrap());
+        phi.replaceWith(same.getOrPanic());
         phi.remove();
 
         for i in range(0, users.size().toInt32()) {
@@ -158,7 +158,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
             }
         }
 
-        same.unwrap()
+        same.getOrPanic()
     }
 
     fun markBlockTerminated() {
@@ -185,7 +185,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         let block = self.current();
 
         if !self.blockTerminated {
-            let gotoInst = GotoInst(next.unwrap());
+            let gotoInst = GotoInst(next.getOrPanic());
             block.appendInst(gotoInst);
         }
 
@@ -233,7 +233,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         let map = self.incompletePhis(block);
         if map.isNone() { return; }
 
-        for variableAndPhi in map.unwrap() {
+        for variableAndPhi in map.getOrPanic() {
             self.addPhiOperands(variableAndPhi.0, variableAndPhi.1);
         }
     }
@@ -448,25 +448,25 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {
-        let value = self.bc.constPool(idx).toInt32().unwrap();
+        let value = self.bc.constPool(idx).toInt32().getOrPanic();
         let inst = Int32Const(value);
         self.current().appendInst(inst);
         self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {
-        let value = self.bc.constPool(idx).toInt64().unwrap();
+        let value = self.bc.constPool(idx).toInt64().getOrPanic();
         let inst = Int64Const(value);
         self.current().appendInst(inst);
         self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) {
-        let value = self.bc.constPool(idx).toFloat32().unwrap();
+        let value = self.bc.constPool(idx).toFloat32().getOrPanic();
         let inst = Float32Const(value);
         self.current().appendInst(inst);
         self.writeVariable(dest, self.current(), inst);
     }
     @override fun visitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) {
-        let value = self.bc.constPool(idx).toFloat64().unwrap();
+        let value = self.bc.constPool(idx).toFloat64().getOrPanic();
         let inst = Float64Const(value);
         self.current().appendInst(inst);
         self.writeVariable(dest, self.current(), inst);
@@ -533,7 +533,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     @override fun visitJumpLoop(offset: Int32) {
-        let targetBlock = self.blockMap.blockAt(self.offset - offset).unwrap();
+        let targetBlock = self.blockMap.blockAt(self.offset - offset).getOrPanic();
         let gotoInst = GotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.markBlockTerminated();
@@ -543,26 +543,26 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         self.emitConditionalJump(opnd, offset, false);
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.emitConditionalJump(opnd, offset, false);
     }
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
         self.emitConditionalJump(opnd, offset, true);
     }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.emitConditionalJump(opnd, offset, true);
     }
     @override fun visitJump(offset: Int32) {
         self.emitJump(offset);
     }
     @override fun visitJumpConst(idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt32().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.emitJump(offset);
     }
 
     fun emitJump(offset: Int32) {
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).unwrap();
+        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
         let gotoInst = GotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.markBlockTerminated();
@@ -570,8 +570,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
     fun emitConditionalJump(opnd: BytecodeRegister, offset: Int32, value: Bool) {
         let opndInst = self.readVariable(opnd, self.current());
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).unwrap();
-        let fallthroughBlock = self.blockMap.nextBlockAt(self.offset+1).unwrap();
+        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
+        let fallthroughBlock = self.blockMap.nextBlockAt(self.offset+1).getOrPanic();
 
         let cond = if value {
             IfInst(opndInst, targetBlock, fallthroughBlock)

@@ -7,9 +7,9 @@ fun main() {
         std::exit(1);
     }
 
-    rnd = std::Random(std::argv(0).toInt64().unwrap());
-    splayTreeSize = std::argv(1).toInt32().unwrap();
-    let iterations = std::argv(2).toInt32().unwrap();
+    rnd = std::Random(std::argv(0).toInt64().getOrPanic());
+    splayTreeSize = std::argv(1).toInt32().getOrPanic();
+    let iterations = std::argv(2).toInt32().getOrPanic();
 
     let bench = Benchmark();
     bench.setup();
@@ -89,7 +89,7 @@ class Benchmark {
             if greatest.isNone() {
                 self.splayTree.remove(key);
             } else {
-                self.splayTree.remove(greatest.unwrap().key);
+                self.splayTree.remove(greatest.getOrPanic().key);
             }
 
             i = i + 1;
@@ -164,7 +164,7 @@ class SplayTree {
 
         self.splay(key);
 
-        let root = self.root.unwrap();
+        let root = self.root.getOrPanic();
 
         if root.key == key {
             return;
@@ -192,7 +192,7 @@ class SplayTree {
         }
 
         self.splay(key);
-        let root = self.root.unwrap();
+        let root = self.root.getOrPanic();
 
         if root.key != key {
             return Option[SplayNode]::None;
@@ -206,7 +206,7 @@ class SplayTree {
             let right = root.right;
             self.root = root.left;
             self.splay(key);
-            self.root.unwrap().right = right;
+            self.root.getOrPanic().right = right;
         }
 
         return removed;
@@ -218,7 +218,7 @@ class SplayTree {
         }
 
         self.splay(key);
-        let root = self.root.unwrap();
+        let root = self.root.getOrPanic();
 
         if root.key == key {
             return self.root;
@@ -233,13 +233,13 @@ class SplayTree {
         }
 
         var current = if startNode.isNone() {
-            self.root.unwrap()
+            self.root.getOrPanic()
         } else {
-            startNode.unwrap()
+            startNode.getOrPanic()
         };
 
         while current.right.isSome() {
-            current = current.right.unwrap();
+            current = current.right.getOrPanic();
         }
 
         Option[SplayNode]::Some(current)
@@ -251,7 +251,7 @@ class SplayTree {
         }
 
         self.splay(key);
-        let root = self.root.unwrap();
+        let root = self.root.getOrPanic();
 
         if root.key < key {
             self.root
@@ -277,7 +277,7 @@ class SplayTree {
         var left = dummy;
         var right = dummy;
 
-        var current = self.root.unwrap();
+        var current = self.root.getOrPanic();
 
         while true {
             if key < current.key {
@@ -285,9 +285,9 @@ class SplayTree {
                     break;
                 }
 
-                if key < current.left.unwrap().key {
+                if key < current.left.getOrPanic().key {
                     // Rotate right
-                    let tmp = current.left.unwrap();
+                    let tmp = current.left.getOrPanic();
                     current.left = tmp.right;
                     tmp.right = Option[SplayNode]::Some(current);
                     current = tmp;
@@ -300,15 +300,15 @@ class SplayTree {
                 // Link right
                 right.left = Option[SplayNode]::Some(current);
                 right = current;
-                current = current.left.unwrap();
+                current = current.left.getOrPanic();
             } else if key > current.key {
                 if current.right.isNone() {
                     break;
                 }
 
-                if key > current.right.unwrap().key {
+                if key > current.right.getOrPanic().key {
                     // Rotate left
-                    let tmp = current.right.unwrap();
+                    let tmp = current.right.getOrPanic();
                     current.right = tmp.left;
                     tmp.left = Option[SplayNode]::Some(current);
                     current = tmp;
@@ -321,7 +321,7 @@ class SplayTree {
                 // Link left
                 left.right = Option[SplayNode]::Some(current);
                 left = current;
-                current = current.right.unwrap();
+                current = current.right.getOrPanic();
             } else {
                 break;
             }
@@ -340,7 +340,7 @@ fun exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
     var current = node;
 
     while current.isSome() {
-        let c = current.unwrap();
+        let c = current.getOrPanic();
         var left = c.left;
         if left.isSome() {
             exportKeysTraverse(list, left);

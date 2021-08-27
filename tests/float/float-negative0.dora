@@ -2,6 +2,6 @@
 fun main() {
   let x = -0.0;
   let y = 0.0;
-  let z = "-0.0".toFloat64().unwrap();
+  let z = "-0.0".toFloat64().getOrPanic();
   println("${1.0/x},${1.0/y},${1.0/z}");
 }

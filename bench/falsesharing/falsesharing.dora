@@ -3,8 +3,8 @@ fun main() {
         println("usage: falsesharing <threads> <iterations>");
     }
 
-    let threads = argv(0).toInt64().unwrap();
-    let iterations = argv(1).toInt32().unwrap();
+    let threads = argv(0).toInt64().getOrPanic();
+    let iterations = argv(1).toInt32().getOrPanic();
     let objects = construct(8096L);
     forceCollect();
 

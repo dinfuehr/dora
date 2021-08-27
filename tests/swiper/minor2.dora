@@ -11,7 +11,7 @@ fun main() {
     }
 
     std::forceMinorCollect();
-    assert(x.next.unwrap().next.isSome());
+    assert(x.next.getOrPanic().next.isSome());
 
     i = 0;
 
@@ -22,9 +22,9 @@ fun main() {
     }
 
     std::forceMinorCollect();
-    assert(x.next.unwrap().next.isSome());
+    assert(x.next.getOrPanic().next.isSome());
     std::forceMinorCollect();
-    assert(x.next.unwrap().next.isSome());
+    assert(x.next.getOrPanic().next.isSome());
 }
 
 class Foo(let next: Option[Foo])

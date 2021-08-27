@@ -1,6 +1,6 @@
 fun main() {
     SOLAR_MASS = 4.0 * PI * PI;
-    let n = std::argv(0).toInt32().unwrap();
+    let n = std::argv(0).toInt32().getOrPanic();
     let bodies = NBodySystem();
 
     var i = 0;

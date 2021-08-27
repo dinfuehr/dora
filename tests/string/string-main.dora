@@ -15,7 +15,7 @@ fun test_multiple_ascii_chars() {
     bytes(1L) = 'b'.toInt32().toUInt8();
     bytes(2L) = 'c'.toInt32().toUInt8();
 
-    let val = String::fromBytes(bytes).unwrap();
+    let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
@@ -31,11 +31,11 @@ fun test_1byte() {
     let bytes = Array[UInt8]::zero(1L);
     bytes(0L) = 0x24Y;
 
-    let val = String::fromBytes(bytes).unwrap();
+    let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0x24.toChar().unwrap());
+    assert(it.next() == 0x24.toChar().getOrPanic());
     assert(it.hasNext() == false);
 }
 
@@ -44,11 +44,11 @@ fun test_2bytes() {
     bytes(0L) = 0xC2Y;
     bytes(1L) = 0xA2Y;
 
-    let val = String::fromBytes(bytes).unwrap();
+    let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0xA2.toChar().unwrap());
+    assert(it.next() == 0xA2.toChar().getOrPanic());
     assert(it.hasNext() == false);
 }
 
@@ -58,11 +58,11 @@ fun test_3bytes() {
     bytes(1L) = 0x82Y;
     bytes(2L) = 0xACY;
 
-    let val = String::fromBytes(bytes).unwrap();
+    let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0x20ACI.toChar().unwrap());
+    assert(it.next() == 0x20ACI.toChar().getOrPanic());
     assert(it.hasNext() == false);
 }
 
@@ -73,11 +73,11 @@ fun test_4bytes() {
     bytes(2L) = 0x8DY;
     bytes(3L) = 0x88Y;
 
-    let val = String::fromBytes(bytes).unwrap();
+    let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0x10348.toChar().unwrap());
+    assert(it.next() == 0x10348.toChar().getOrPanic());
     assert(it.hasNext() == false);
 }
 

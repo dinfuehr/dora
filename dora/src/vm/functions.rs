@@ -514,9 +514,9 @@ pub enum Intrinsic {
     Float64IsNan,
     Float64Sqrt,
 
+    OptionGetOrPanic,
     OptionIsNone,
     OptionIsSome,
-    OptionUnwrap,
 
     AtomicInt32Get,
     AtomicInt32Set,
@@ -565,9 +565,9 @@ impl Intrinsic {
             | Intrinsic::ReinterpretInt32AsFloat32
             | Intrinsic::ReinterpretFloat64AsInt64
             | Intrinsic::ReinterpretInt64AsFloat64
+            | Intrinsic::OptionGetOrPanic
             | Intrinsic::OptionIsNone
             | Intrinsic::OptionIsSome
-            | Intrinsic::OptionUnwrap
             | Intrinsic::Debug
             | Intrinsic::AtomicInt32Get
             | Intrinsic::AtomicInt32Set

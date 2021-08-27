@@ -35,7 +35,7 @@ fun allocator() {
     while i > 1 {
         i = i - 1;
         assert(list.key == i);
-        list = list.prev.unwrap();
+        list = list.prev.getOrPanic();
     }
 
     assert(list.prev.isNone());

@@ -21,7 +21,7 @@ impl[V, E] Result[V, E] {
     }
   }
 
-  @pub fun unwrap(): V {
+  @pub fun getOrPanic(): V {
     match self {
       Ok(value) => value,
       Err(_) => {
@@ -31,7 +31,7 @@ impl[V, E] Result[V, E] {
     }
   }
 
-  @pub fun unwrapErr(): E {
+  @pub fun getErrOrPanic(): E {
     match self {
       Ok(_) => {
         fatalError("cannot unwrap Ok.");
@@ -60,7 +60,7 @@ impl[V, E] Result[V, E] {
 impl[V: Equals, E] Result[V, E] {
   @pub fun contains(rhs: V): Bool {
     if self.isOk() {
-      let lhs = self.unwrap();
+      let lhs = self.getOrPanic();
       lhs.equals(rhs)
     } else {
       false
@@ -72,16 +72,16 @@ impl[V: Equals, E: Equals] Result[V, E] {
   @pub fun equals(rhs: Result[V, E]): Bool {
     if self.isOk() {
       if rhs.isOk() {
-        let lhs = self.unwrap();
-        let rhs = rhs.unwrap();
+        let lhs = self.getOrPanic();
+        let rhs = rhs.getOrPanic();
         lhs.equals(rhs)
       } else {
         false
       }
     } else {
       if rhs.isErr() {
-        let lhs = self.unwrapErr();
-        let rhs = rhs.unwrapErr();
+        let lhs = self.getErrOrPanic();
+        let rhs = rhs.getErrOrPanic();
         lhs.equals(rhs)
       } else {
         false

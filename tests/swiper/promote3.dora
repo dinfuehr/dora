@@ -3,15 +3,15 @@
 fun main() {
   var x = foo(1, foo(2, foo(3, None[Foo])));
   std::forceMinorCollect();
-  x.unwrap().next.unwrap().next.unwrap().next = foo(4, None[Foo]);
+  x.getOrPanic().next.getOrPanic().next.getOrPanic().next = foo(4, None[Foo]);
   x = foo(100, x);
   std::forceMinorCollect();
-  assert(x.unwrap().a == 100);
-  assert(x.unwrap().next.unwrap().a == 1);
-  assert(x.unwrap().next.unwrap().next.unwrap().a == 2);
-  assert(x.unwrap().next.unwrap().next.unwrap().next.unwrap().a == 3);
-  assert(x.unwrap().next.unwrap().next.unwrap().next.unwrap().next.unwrap().a == 4);
-  assert(x.unwrap().next.unwrap().next.unwrap().next.unwrap().next.unwrap().next.isNone());
+  assert(x.getOrPanic().a == 100);
+  assert(x.getOrPanic().next.getOrPanic().a == 1);
+  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().a == 2);
+  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().a == 3);
+  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().a == 4);
+  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.isNone());
 }
 
 class Foo(let a: Int32, var next: Option[Foo])

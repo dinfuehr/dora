@@ -73,7 +73,7 @@
     self.appendChar('\n')
   }
 
-  @pub fun toString(): String = String::fromBytesPart(self.buf, 0L, self.size()).unwrap();
+  @pub fun toString(): String = String::fromBytesPart(self.buf, 0L, self.size()).getOrPanic();
 
   @pub @static fun empty(): StringBuffer = StringBuffer();
 }

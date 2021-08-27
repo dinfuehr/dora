@@ -42,7 +42,7 @@ class GraphBuilder {
     }
 
     fun appendInst(inst: Inst): Inst {
-        self.insertion.unwrap().appendInst(inst);
+        self.insertion.getOrPanic().appendInst(inst);
 
         if inst.isTerminator() {
             self.insertion = None;

@@ -3498,8 +3498,8 @@ impl<'a> CannonCodeGen<'a> {
                 );
             }
 
-            Intrinsic::OptionUnwrap => {
-                self.emit_intrinsic_option_unwrap(
+            Intrinsic::OptionGetOrPanic => {
+                self.emit_intrinsic_option_get_or_panic(
                     dest,
                     fct_id,
                     intrinsic,
@@ -3807,7 +3807,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
     }
 
-    fn emit_intrinsic_option_unwrap(
+    fn emit_intrinsic_option_get_or_panic(
         &mut self,
         dest: Option<Register>,
         fct_id: FctId,

@@ -6,7 +6,7 @@ fun main() {
     var iterations = 8200;
 
     if std::argc() > 0 {
-        iterations = std::argv(0).toInt32().unwrap();
+        iterations = std::argv(0).toInt32().getOrPanic();
     }  
 
     let bench = Benchmark();
@@ -91,7 +91,7 @@ class Scheduler() {
 
     fun addRunningTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
         self.addTask(id, priority, queue, task);
-        self.currentTcb.unwrap().setRunning();
+        self.currentTcb.getOrPanic().setRunning();
     }
 
     fun addTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
@@ -103,7 +103,7 @@ class Scheduler() {
     fun schedule() {
         self.currentTcb = self.list;
         while(self.currentTcb.isSome()) {
-            let tcb = self.currentTcb.unwrap();
+            let tcb = self.currentTcb.getOrPanic();
             if tcb.isHeldOrSuspended() {
                 self.currentTcb = tcb.link;
             } else {
@@ -118,9 +118,9 @@ class Scheduler() {
         if blockTcb.isNone() {   
             return Option[TaskControlBlock]::None;
         }
-        let tcb = blockTcb.unwrap();
+        let tcb = blockTcb.getOrPanic();
         tcb.markAsNotHeld();
-        if tcb.priority > self.currentTcb.unwrap().priority {
+        if tcb.priority > self.currentTcb.getOrPanic().priority {
             return blockTcb;
         } else {
             return self.currentTcb;
@@ -128,14 +128,14 @@ class Scheduler() {
     }
 
     fun holdCurrent(): Option[TaskControlBlock] {
-        let tcb = self.currentTcb.unwrap();
+        let tcb = self.currentTcb.getOrPanic();
         self.holdCount = self.holdCount + 1;
         tcb.markAsHeld();
         return tcb.link;
     }
 
     fun suspendCurrent(): Option[TaskControlBlock] {
-        let tcb = self.currentTcb.unwrap();
+        let tcb = self.currentTcb.getOrPanic();
         tcb.markAsSuspended();
         return Option[TaskControlBlock]::Some(tcb);
     }
@@ -147,8 +147,8 @@ class Scheduler() {
         }
         self.queueCount = self.queueCount + 1;
         packet.link = Option[Packet]::None;
-        packet.id = self.currentId.unwrap();
-        return Option[TaskControlBlock]::Some(t.unwrap().checkPriorityAdd(self.currentTcb.unwrap(), packet));
+        packet.id = self.currentId.getOrPanic();
+        return Option[TaskControlBlock]::Some(t.getOrPanic().checkPriorityAdd(self.currentTcb.getOrPanic(), packet));
     }
 }
 
@@ -172,7 +172,7 @@ class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let pr
         var packet: Option[Packet] = Option[Packet]::None;
         if self.state == STATE_SUSPENDED_RUNNABLE {
             packet = self.queue;
-            self.queue = packet.unwrap().link;
+            self.queue = packet.getOrPanic().link;
             if self.queue.isNone() {
                 self.state = STATE_RUNNING;
             } else {
@@ -245,7 +245,7 @@ class DeviceTask(let scheduler: Scheduler) extends Task {
             if self.seed.isNone() {
                 return self.scheduler.suspendCurrent();
             }
-            let v = self.seed.unwrap();
+            let v = self.seed.getOrPanic();
             self.seed = Option[Packet]::None;
             return self.scheduler.queue(v);
         } else {
@@ -264,7 +264,7 @@ class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32) extends
         if packet.isNone() {
             return self.scheduler.suspendCurrent();
         } else {
-            let p = packet.unwrap();
+            let p = packet.getOrPanic();
             if self.v1 == ID_HANDLER_A {
                 self.v1 = ID_HANDLER_B;
             } else {
@@ -295,7 +295,7 @@ class HandlerTask(let scheduler: Scheduler) extends Task {
 
     @override fun run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isSome() {
-            let p = packet.unwrap();
+            let p = packet.getOrPanic();
             if p.kind == KIND_WORK {
                 self.v1 = Option[Packet]::Some(p.addTo(self.v1));
             } else {
@@ -303,11 +303,11 @@ class HandlerTask(let scheduler: Scheduler) extends Task {
             }             
         }
         if self.v1.isSome() {
-            let v1_p = self.v1.unwrap();
+            let v1_p = self.v1.getOrPanic();
             let count = v1_p.a1;
             if count < DATA_SIZE {
                 if self.v2.isSome() {                    
-                    let v = self.v2.unwrap();
+                    let v = self.v2.getOrPanic();
                     self.v2 = v.link;
                     v.a1 = v1_p.a2.get(count.toInt64());
                     v1_p.a1 = count + 1;
@@ -335,16 +335,16 @@ class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: I
             return self;
         }
 
-        var next: Packet = queue.unwrap();
+        var next: Packet = queue.getOrPanic();
         var peek: Option[Packet] = next.link;
 
         while peek.isSome() {
-            next = peek.unwrap();
+            next = peek.getOrPanic();
             peek = next.link;
         }
 
         next.link = Option[Packet]::Some(self);
-        return queue.unwrap();
+        return queue.getOrPanic();
     }
 
     @static fun new(link: Option[Packet], id: Int32, kind: Int32): Packet {

@@ -29,7 +29,7 @@ fun height(t: Option[TreeNode]): Int32 {
     if t.isNone() {
         return 0;
     } else {
-        return 1 + Int32::max(height(t.unwrap().left), height(t.unwrap().right));
+        return 1 + Int32::max(height(t.getOrPanic().left), height(t.getOrPanic().right));
     }
 }
 
@@ -37,7 +37,7 @@ fun shortestPath(t: Option[TreeNode]): Int32 {
     if t.isNone() {
         return 0;
     } else {
-        return 1 + Int32::min(shortestPath(t.unwrap().left), shortestPath(t.unwrap().right));
+        return 1 + Int32::min(shortestPath(t.getOrPanic().left), shortestPath(t.getOrPanic().right));
     }
 }
 
@@ -126,14 +126,14 @@ fun checkTrees() {
 }
 
 fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
-    let canGoLeft = full.left.isSome() && full.left.unwrap().value > partial.value;
-    let canGoRight = full.right.isSome() && full.right.unwrap().value > partial.value;
+    let canGoLeft = full.left.isSome() && full.left.getOrPanic().value > partial.value;
+    let canGoRight = full.right.isSome() && full.right.getOrPanic().value > partial.value;
 
     if canGoLeft && canGoRight {
         if dir {
-            replaceTreeWork(full.left.unwrap(), partial, !dir);
+            replaceTreeWork(full.left.getOrPanic(), partial, !dir);
         } else {
-            replaceTreeWork(full.right.unwrap(), partial, !dir);
+            replaceTreeWork(full.right.getOrPanic(), partial, !dir);
         }
     } else if !canGoLeft && !canGoRight {
         if dir {
@@ -197,11 +197,11 @@ fun oldGenSwapSubtrees() {
 
     while i < depth {
         if (path & 1) == 0 {
-            tn1 = tn1.left.unwrap();
-            tn2 = tn2.left.unwrap();
+            tn1 = tn1.left.getOrPanic();
+            tn2 = tn2.left.getOrPanic();
         } else {
-            tn1 = tn1.right.unwrap();
-            tn2 = tn2.right.unwrap();
+            tn1 = tn1.right.getOrPanic();
+            tn2 = tn2.right.getOrPanic();
         }
 
         path = path >> 1;
@@ -279,11 +279,11 @@ fun main() {
 
     treeSize = heightToBytes(treeHeight);
 
-    size = std::argv(0).toInt32().unwrap();
-    workUnits = std::argv(1).toInt32().unwrap();
-    promoteRate = std::argv(2).toInt32().unwrap();
-    ptrMutRate = std::argv(3).toInt32().unwrap();
-    steps = std::argv(4).toInt32().unwrap();
+    size = std::argv(0).toInt32().getOrPanic();
+    workUnits = std::argv(1).toInt32().getOrPanic();
+    promoteRate = std::argv(2).toInt32().getOrPanic();
+    ptrMutRate = std::argv(3).toInt32().getOrPanic();
+    steps = std::argv(4).toInt32().getOrPanic();
 
     println("GCOld: version 1.0");
     println(size.toString() + " megabytes of live storage");

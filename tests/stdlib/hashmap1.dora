@@ -9,9 +9,9 @@ fun main() {
 
     check_iterator1(map);
 
-    assert(map.get(1).unwrap() == "a");
-    assert(map.get(10000).unwrap() == "b");
-    assert(map.get(7).unwrap() == "c");
+    assert(map.get(1).getOrPanic() == "a");
+    assert(map.get(10000).getOrPanic() == "b");
+    assert(map.get(7).getOrPanic() == "c");
     assert(map.get(2).isNone());
     assert(map.size() == 3L);
     assert(map.isEmpty().not());
@@ -23,9 +23,9 @@ fun main() {
 
     map.remove(10000);
 
-    assert(map.get(1).unwrap() == "a");
+    assert(map.get(1).getOrPanic() == "a");
     assert(map.get(10000).isNone());
-    assert(map.get(7).unwrap() == "c");
+    assert(map.get(7).getOrPanic() == "c");
     assert(map.get(2).isNone());
     assert(map.size() == 2L);
     assert(map.isEmpty().not());

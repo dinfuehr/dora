@@ -86,5 +86,5 @@
         return i;
     }
 
-    @pub fun toString(): String = String::fromStringPart(self.value, self.start, self.value.size() - self.start).unwrap();
+    @pub fun toString(): String = String::fromStringPart(self.value, self.start, self.value.size() - self.start).getOrPanic();
 }

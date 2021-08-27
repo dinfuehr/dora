@@ -2,7 +2,7 @@ fun main() {
   let a = nested();
   std::forceCollect();
 
-  assert(a.next.unwrap().next.unwrap().value == 3);
+  assert(a.next.getOrPanic().next.getOrPanic().value == 3);
 }
 
 fun nested(): Foo {

@@ -1,6 +1,6 @@
 fun main() {
-  assert("1".toInt32().unwrap() == 1);
-  assert("100".toInt32().unwrap() == 100);
-  assert("789".toInt32().unwrap() == 789);
+  assert("1".toInt32().getOrPanic() == 1);
+  assert("100".toInt32().getOrPanic() == 100);
+  assert("789".toInt32().getOrPanic() == 789);
   assert("bla".toInt32().isNone());
 }

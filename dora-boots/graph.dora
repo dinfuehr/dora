@@ -16,7 +16,7 @@ class Graph {
     }
 
     fun getBlockWithId(id: Int32): Block {
-        self.blocks(id.toInt64()).unwrap()
+        self.blocks(id.toInt64()).getOrPanic()
     }
 
     fun setEntryBlock(block: Block) {
@@ -24,7 +24,7 @@ class Graph {
     }
 
     fun getEntryBlock(): Block {
-        self.entryBlock.unwrap()
+        self.entryBlock.getOrPanic()
     }
 
     fun nextInstId(): Int32 {
@@ -85,7 +85,7 @@ class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
     }
 
     fun next(): Block {
-        let block = self.blocks(self.idx).unwrap();
+        let block = self.blocks(self.idx).getOrPanic();
         self.idx = self.idx + 1L;
         block
     }
@@ -171,8 +171,8 @@ class Block() {
         var current = other.getDominator();
 
         while current.isSome() {
-            if self === current.unwrap() { return true; }
-            current = current.unwrap().getDominator();
+            if self === current.getOrPanic() { return true; }
+            current = current.getOrPanic().getDominator();
         }
 
         false
@@ -197,7 +197,7 @@ class Block() {
         assert(phi.block.isNone() && phi.id == -1);
 
         phi.block = Some(self);
-        phi.id = self.graph.unwrap().nextInstId();
+        phi.id = self.graph.getOrPanic().nextInstId();
 
         self.phis.appendInst(phi);
         phi.registerUses();
@@ -209,7 +209,7 @@ class Block() {
         assert(inst.block.isNone() && inst.id == -1);
 
         inst.block = Some(self);
-        inst.id = self.graph.unwrap().nextInstId();
+        inst.id = self.graph.getOrPanic().nextInstId();
 
         self.instructions.appendInst(inst);
         inst.registerUses();
@@ -221,11 +221,11 @@ class Block() {
         if self.loopData.isNone() {
             self.loopData = Some(LoopData(self));
         }
-        self.loopData.unwrap().addBackEdge(block);
+        self.loopData.getOrPanic().addBackEdge(block);
     }
 
     fun isLoopHeader(): Bool {
-        self.loopData.isSome() && self.loopData.unwrap().header === self
+        self.loopData.isSome() && self.loopData.getOrPanic().header === self
     }
 
     fun getLoopData(): Option[LoopData] {
@@ -241,7 +241,7 @@ class Block() {
     }
 
     fun isEntryBlock(): Bool {
-        self.graph.unwrap().getEntryBlock() === self
+        self.graph.getOrPanic().getEntryBlock() === self
     }
 
     fun instructionsIterator(): InstIterator {
@@ -350,7 +350,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
             assert(self.useListHead.isSome());
             assert(self.useListTail.isSome());
 
-            self.useListTail.unwrap().nextUse = Some(input);
+            self.useListTail.getOrPanic().nextUse = Some(input);
 
             input.previousUse = self.useListTail;
             input.nextUse = None;
@@ -364,7 +364,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         assert(self.block.isSome());
 
         self.removeAsUser();
-        let block = self.block.unwrap();
+        let block = self.block.getOrPanic();
 
         if self is PhiInst {
             block.phis.removeInst(self);
@@ -395,7 +395,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
 
     fun replaceWith(replacement: Inst) {
         while self.useListHead.isSome() {
-            let input = self.useListHead.unwrap();
+            let input = self.useListHead.getOrPanic();
             input.usedBy.replaceInput(replacement, input.idx);
         }
     }
@@ -417,7 +417,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         var current = self.useListHead;
 
         while current.isSome() {
-            let cur = current.unwrap();
+            let cur = current.getOrPanic();
             data.push(cur.usedBy);
             current = cur.nextUse;
         }
@@ -430,14 +430,14 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     fun dominates(other: Inst): Bool {
-        let sblock = self.block.unwrap();
-        let oblock = other.block.unwrap();
+        let sblock = self.block.getOrPanic();
+        let oblock = other.block.getOrPanic();
 
         if sblock === oblock {
             var current = self.next;
 
             while current.isSome() {
-                let currentInst = current.unwrap();
+                let currentInst = current.getOrPanic();
 
                 if currentInst === other {
                     return true;
@@ -469,7 +469,7 @@ class UseIterator(inst: Inst) {
     }
 
     fun next(): Input {
-        let input = self.current.unwrap();
+        let input = self.current.getOrPanic();
         self.current = input.nextUse;
         input
     }
@@ -479,13 +479,13 @@ fun removeUse(input: Input) {
     let inst = input.value;
 
     if input.previousUse.isSome() {
-        input.previousUse.unwrap().nextUse = input.nextUse;
+        input.previousUse.getOrPanic().nextUse = input.nextUse;
     } else {
         inst.useListHead = input.nextUse;
     }
 
     if input.nextUse.isSome() {
-        input.nextUse.unwrap().previousUse = input.previousUse;
+        input.nextUse.getOrPanic().previousUse = input.previousUse;
     } else {
         inst.useListTail = input.previousUse;
     }
@@ -775,11 +775,11 @@ class InstLinkedList {
     }
 
     fun firstInst(): Inst {
-        self.first.unwrap()
+        self.first.getOrPanic()
     }
 
     fun lastInst(): Inst {
-        self.last.unwrap()
+        self.last.getOrPanic()
     }
 
     fun appendInst(inst: Inst) {
@@ -790,7 +790,7 @@ class InstLinkedList {
             self.first = Some(inst);
             self.last = Some(inst);
         } else {
-            self.last.unwrap().next = Some(inst);
+            self.last.getOrPanic().next = Some(inst);
 
             inst.previous = self.last;
             inst.next = None;
@@ -801,14 +801,14 @@ class InstLinkedList {
 
     fun removeInst(inst: Inst) {
         if inst.previous.isSome() {
-            let previous = inst.previous.unwrap();
+            let previous = inst.previous.getOrPanic();
             previous.next = inst.next;
         } else {
             self.first = inst.next;
         }
 
         if inst.next.isSome() {
-            let next = inst.next.unwrap();
+            let next = inst.next.getOrPanic();
             next.previous = inst.previous;
         } else {
             self.last = inst.previous;
@@ -824,7 +824,7 @@ class InstIterator(block: Block) {
     }
 
     fun next(): Inst {
-        let inst = self.current.unwrap();
+        let inst = self.current.getOrPanic();
         self.current = inst.next;
         inst
     }
@@ -838,7 +838,7 @@ class PhiInstIterator(block: Block) {
     }
 
     fun next(): PhiInst {
-        let inst = self.current.unwrap();
+        let inst = self.current.getOrPanic();
         self.current = inst.next;
         inst as PhiInst
     }
@@ -852,7 +852,7 @@ class BackwardInstIterator(block: Block) {
     }
 
     fun next(): Inst {
-        let inst = self.current.unwrap();
+        let inst = self.current.getOrPanic();
         self.current = inst.previous;
         inst
     }

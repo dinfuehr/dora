@@ -1,6 +1,6 @@
 fun main() {
   var n = 7;
-  if std::argc() > 0 { n = std::argv(0).toInt32().unwrap(); }
+  if std::argc() > 0 { n = std::argv(0).toInt32().getOrPanic(); }
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
 
