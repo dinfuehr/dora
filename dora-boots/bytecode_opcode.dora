@@ -165,6 +165,7 @@ const BC_TYPE_PTR: Int32 = 7I;
 const BC_TYPE_TUPLE: Int32 = 8I;
 const BC_TYPE_ENUM: Int32 = 9I;
 const BC_TYPE_STRUCT: Int32 = 10I;
+const BC_TYPE_TYPE_PARAM: Int32 = 11I;
 
 const CONSTPOOL_OPCODE_STRING: Int32 = 0I;
 const CONSTPOOL_OPCODE_FLOAT32: Int32 = 1I;
@@ -352,6 +353,7 @@ fun bytecodeTypeName(code: Int32): String {
   if code == BC_TYPE_TUPLE { return "Tuple"; }
   if code == BC_TYPE_ENUM { return "Enum"; }
   if code == BC_TYPE_STRUCT { return "Struct"; }
+  if code == BC_TYPE_TYPE_PARAM { return "TypeParam"; }
   "UNKNOWN(${code})"
 }
 
