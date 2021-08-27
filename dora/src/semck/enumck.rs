@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use parking_lot::RwLock;
+
 use dora_parser::ast;
 use dora_parser::ast::TypeParam;
 
@@ -12,14 +14,13 @@ use crate::vm::{EnumData, EnumVariant, FileId, TypeParamId, VM};
 
 pub fn check(vm: &VM) {
     for xenum in &vm.enums {
-        let mut xenum = xenum.write();
-        let ast = xenum.ast.clone();
+        let ast = xenum.read().ast.clone();
 
         let mut enumck = EnumCheck {
             vm,
-            file_id: xenum.file_id,
+            file_id: xenum.read().file_id,
             ast: &ast,
-            xenum: &mut *xenum,
+            xenum,
         };
 
         enumck.check();
@@ -30,12 +31,12 @@ struct EnumCheck<'x> {
     vm: &'x VM,
     file_id: FileId,
     ast: &'x Arc<ast::Enum>,
-    xenum: &'x mut EnumData,
+    xenum: &'x RwLock<EnumData>,
 }
 
 impl<'x> EnumCheck<'x> {
     fn check(&mut self) {
-        let mut symtable = NestedSymTable::new(self.vm, self.xenum.namespace_id);
+        let mut symtable = NestedSymTable::new(self.vm, self.xenum.read().namespace_id);
 
         symtable.push_level();
 
@@ -56,7 +57,7 @@ impl<'x> EnumCheck<'x> {
                         &symtable,
                         self.file_id.into(),
                         ty,
-                        TypeParamContext::Enum(self.xenum.id),
+                        TypeParamContext::Enum(self.xenum.read().id),
                         AllowSelf::No,
                     )
                     .unwrap_or(SourceType::Error);
@@ -68,11 +69,11 @@ impl<'x> EnumCheck<'x> {
                 simple_enumeration = false;
             }
 
-            self.xenum.variants[variant_id].types = types;
+            self.xenum.write().variants[variant_id].types = types;
             variant_id += 1;
         }
 
-        self.xenum.simple_enumeration = simple_enumeration;
+        self.xenum.write().simple_enumeration = simple_enumeration;
 
         symtable.pop_level();
     }
@@ -101,13 +102,13 @@ impl<'x> EnumCheck<'x> {
                         symtable,
                         self.file_id,
                         bound,
-                        TypeParamContext::Enum(self.xenum.id),
+                        TypeParamContext::Enum(self.xenum.read().id),
                         AllowSelf::No,
                     );
 
                     match ty {
                         Some(SourceType::Trait(trait_id, _)) => {
-                            if !self.xenum.type_params[type_param_id]
+                            if !self.xenum.write().type_params[type_param_id]
                                 .trait_bounds
                                 .insert(trait_id)
                             {
@@ -174,6 +175,7 @@ impl<'x> EnumCheckVariants<'x> {
                 name: value.name,
                 types: Vec::new(),
             };
+
             self.xenum.variants.push(variant);
             let result = self.xenum.name_to_value.insert(value.name, next_variant_id);
 
@@ -422,5 +424,12 @@ mod tests {
             pos(3, 50),
             SemError::ReturnType("Foo[Float32]".into(), "Foo[Int32]".into()),
         );
+    }
+
+    #[test]
+    fn enum_nested() {
+        ok("
+            enum Foo { A(Foo), B }
+        ");
     }
 }
