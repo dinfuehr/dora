@@ -73,6 +73,20 @@ impl[T: Zero] Array[T] {
 }
 
 impl[T: Equals] Array[T] {
+  @pub fun equals(other: Array[T]): Bool {
+    if self.size() != other.size() {
+      return false;
+    }
+    var i = 0L;
+    while i < self.size() {
+      if self(i).equals(other(i)).not() {
+        return false;
+      }
+      i = i + 1L;
+    }
+    return true;
+  }
+
   @pub fun contains(value: T): Bool {
     var i = 0L;
 
@@ -100,5 +114,24 @@ impl[T: Identity] Array[T] {
     }
 
     return false;
+  }
+}
+
+impl[T: Stringable] Array[T] {
+  @pub fun toString(): String {
+    let sb = StringBuffer();
+    sb.append("Array(");
+    let size = self.size();
+    if size != 0L {
+      var i = 0L;
+      while i < size - 1L {
+        sb.append(self.get(i).toString());
+        sb.append(", ");
+        i = i + 1L;
+      }
+      sb.append(self.get(i).toString());
+    }
+    sb.append(")");
+    return sb.toString();
   }
 }
