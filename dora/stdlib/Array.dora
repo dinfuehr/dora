@@ -72,6 +72,24 @@ impl[T: Zero] Array[T] {
   }
 }
 
+impl[T: Sortable] Array[T] {
+  // a stable in-place sort, currently implemented by insertion sort
+  @pub @static
+  fun sortStable(array: Array[T]) {
+    var i = 1L;
+    while i < array.size() {
+	    var temp: T = array.get(i);
+      var j = i;
+      while j > 0L && array(j - 1L).sortsAfter(temp) {
+        array(j) = array(j - 1L);
+        j = j - 1L;
+  		}
+			array(j) = temp;
+			i = i + 1L;
+		}
+  }
+}
+
 impl[T: Equals] Array[T] {
   @pub fun equals(other: Array[T]): Bool {
     if self.size() != other.size() {
