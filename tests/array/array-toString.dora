@@ -1,0 +1,7 @@
+import std::Assert;
+
+fun main() {
+  Assert.equal[String](Array[Int32]().toString(), "Array()");
+  Assert.equal[String](Array[Int32](1).toString(), "Array(1)");
+  Assert.equal[String](Array[Int32](1, 2, 3).toString(), "Array(1, 2, 3)");
+}
