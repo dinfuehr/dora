@@ -3702,3 +3702,19 @@ fn infer_ctor_type() {
         Vec(1, 2, 3)
     }");
 }
+
+#[test]
+fn method_call_type_mismatch_with_type_params() {
+    err(
+        "
+        class Foo {
+            fun f(a: String) {}
+        }
+        fun g[T](foo: Foo, value: T) {
+            foo.f(value);
+        }
+    ",
+        pos(6, 18),
+        SemError::ParamTypesIncompatible("f".into(), vec!["String".into()], vec!["T".into()]),
+    );
+}

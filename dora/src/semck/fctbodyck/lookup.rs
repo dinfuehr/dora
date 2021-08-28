@@ -236,7 +236,7 @@ impl<'a> MethodLookup<'a> {
                 .collect::<Vec<_>>();
             let call_types = args
                 .iter()
-                .map(|a| a.name_fct(self.vm, &*fct))
+                .map(|a| a.name_fct(self.vm, self.caller))
                 .collect::<Vec<_>>();
             let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
             self.vm
