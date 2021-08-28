@@ -1,35 +1,57 @@
 /* total order */
 trait Sortable {
   fun sortsAs(other: Self): Int32;
-  // fun sortsBefore(other: Self): Int32;
-  // fun sortsAfter (other: Self): Int32;
-  // fun sortsSame  (other: Self): Int32;
+  // ideally we would be able to provide a default implementation for the next 3 methods based on `sortsAs`
+  fun sortsBefore(other: Self): Bool;
+  fun sortsAfter(other: Self): Bool;
+  fun sortsSame(other: Self): Bool;
 }
 
 impl Sortable for Bool {
   fun sortsAs(other: Bool): Int32 = self.compareTo(other);
+  fun sortsBefore(other: Bool): Bool = self < other;
+  fun sortsAfter(other: Bool): Bool = self > other;
+  fun sortsSame(other: Bool): Bool = self == other;
 }
 
 impl Sortable for UInt8 {
   fun sortsAs(other: UInt8): Int32 = self.compareTo(other);
+  fun sortsBefore(other: UInt8): Bool = self < other;
+  fun sortsAfter(other: UInt8): Bool = self > other;
+  fun sortsSame(other: UInt8): Bool = self == other;
 }
 
 impl Sortable for Int32 {
   fun sortsAs(other: Int32): Int32 = self.compareTo(other);
+  fun sortsBefore(other: Int32): Bool = self < other;
+  fun sortsAfter(other: Int32): Bool = self > other;
+  fun sortsSame(other: Int32): Bool = self == other;
 }
 
 impl Sortable for Int64 {
   fun sortsAs(other: Int64): Int32 = self.compareTo(other);
+  fun sortsBefore(other: Int64): Bool = self < other;
+  fun sortsAfter(other: Int64): Bool = self > other;
+  fun sortsSame(other: Int64): Bool = self == other;
 }
 
 impl Sortable for Float32 {
   fun sortsAs(other: Float32): Int32 = self.sortsAs(other);
+  fun sortsBefore(other: Float32): Bool = self.sortsAs(other) < 0;
+  fun sortsAfter(other: Float32): Bool = self.sortsAs(other) > 0;
+  fun sortsSame(other: Float32): Bool = self.sortsAs(other) == 0;
 }
 
 impl Sortable for Float64 {
   fun sortsAs(other: Float64): Int32 = self.sortsAs(other);
+  fun sortsBefore(other: Float64): Bool = self.sortsAs(other) < 0;
+  fun sortsAfter(other: Float64): Bool = self.sortsAs(other) > 0;
+  fun sortsSame(other: Float64): Bool = self.sortsAs(other) == 0;
 }
 
 impl Sortable for String {
   fun sortsAs(other: String): Int32 = self.compareTo(other);
+  fun sortsBefore(other: String): Bool = self < other;
+  fun sortsAfter(other: String): Bool = self > other;
+  fun sortsSame(other: String): Bool = self == other;
 }
