@@ -21,29 +21,6 @@
 
 @pub class Object
 
-@pub fun bubbleSort[T: Comparable](array: Array[T]) {
-  let len = array.size();
-  var swapped = true;
-
-  while swapped {
-    swapped = false;
-
-    var i = 1L;
-
-    while i < len {
-      if array(i-1L).compareTo(array(i)) > 0 {
-        let temp = array(i-1L);
-        array(i-1L) = array(i);
-        array(i) = temp;
-
-        swapped = true;
-      }
-
-      i = i + 1L;
-    }
-  }
-}
-
 fun isValidUtf8(data: Array[UInt8]): Bool {
   var i = 0L;
 

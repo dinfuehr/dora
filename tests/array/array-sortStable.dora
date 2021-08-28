@@ -1,0 +1,44 @@
+import std::Assert;
+
+fun main() {
+  test1();
+  test2();
+  test3();
+}
+
+fun test1() {
+  let x = Array[Int32](2, 3, 0, 4);
+  Array[Int32]::sortStable(x);
+  assert(x == Array[Int32](0, 2, 3, 4));
+}
+
+fun test2() {
+  let x = Array[Int32](5, 1, 4, 2, 8);
+  Array[Int32]::sortStable(x);
+  assert(x == Array[Int32](1, 2, 4, 5, 8));
+}
+
+// this is not entirely correct, as pNaN and nNaN positions' should be swapped.
+// this is an issue of the `sortsAs` implementation, not of the `sortStable` method.
+fun test3() {
+  // expected order
+  let nNaN = -(0.0/0.0);
+  let nInf = -1.0/0.0;
+  let nOne = -1.0;
+  let nZero = -0.0;
+  let pZero = 0.0;
+  let pOne = 1.0;
+  let pInf= 1.0/0.0;
+  let pNaN = 0.0/0.0;
+
+  let x = Array[Float64](pOne, pInf, nInf, pNaN, nNaN, nZero, pZero, nOne);
+  Array[Float64]::sortStable(x);
+  assert(x(0L) === pNaN); // bug, should be at position 7
+  assert(x(1L) === nInf);
+  assert(x(2L) === nOne);
+  assert(x(3L) === nZero);
+  assert(x(4L) === pZero);
+  assert(x(5L) === pOne);
+  assert(x(6L) === pInf);
+  assert(x(7L) === nNaN); // bug, should be at position 0
+}
