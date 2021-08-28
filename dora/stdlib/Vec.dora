@@ -31,22 +31,55 @@
   }
 
   @pub fun push(val: T) {
-    var newcap = self.capacity();
+    let currentCapacity = self.capacity();
 
-    if self.len == newcap {
-      if newcap == 0L {
-        newcap = 4L;
-      } else {
-        newcap = newcap * 2L;
-      }
+    if self.len == currentCapacity {
+      let newCapacity = self.newCapacity(currentCapacity);
 
-      let newarray = Array[T]::unsafeNew(newcap);
-      Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
-      self.array = newarray;
+      let newArray = Array[T]::unsafeNew(newCapacity);
+      Array[T]::copy(self.array, 0L, newArray, 0L, self.len);
+      self.array = newArray;
     }
 
     self.array.set(self.len, val);
     self.len = self.len + 1L;
+  }
+
+  @pub fun insertAt(idx: Int64, val: T) {
+    assert(idx <= self.len);
+    if idx == self.len {
+      self.push(val);
+      return;
+    }
+    let currentCapacity = self.capacity();
+    let targetArray = if self.len == currentCapacity {
+      Array[T]::unsafeNew(self.newCapacity(currentCapacity))
+    } else {
+      self.array
+    };
+
+    if idx != 0L && self.array !== targetArray {
+      Array[T]::copy(self.array, 0L, targetArray, 0L, idx);
+    }
+
+    // not Array::copy as source and target could be aliased
+    var i = self.len - 1L;
+    while idx <= i {
+      targetArray.set(i + 1L, self.array.get(i));
+      i = i - 1L;
+    }
+
+    targetArray.set(idx, val);
+    self.array = targetArray;
+    self.len = self.len + 1L;
+  }
+
+  fun newCapacity(currentCapacity: Int64): Int64 {
+    if currentCapacity == 0L {
+      4L
+    } else {
+      currentCapacity * 2L
+    }
   }
 
   @pub fun toArray(): Array[T] {
@@ -213,6 +246,34 @@
 }
 
 impl[T: Equals] Vec[T] {
+  @pub fun equals(other: Vec[T]): Bool {
+    if self.size() != other.size() {
+      return false;
+    }
+    var i = 0L;
+    while i < self.size() {
+      if self(i).equals(other(i)).not() {
+        return false;
+      }
+      i = i + 1L;
+    }
+    return true;
+  }
+
+  @pub fun contains(value: T): Bool {
+    var i = 0L;
+
+    while i < self.size() {
+      let x = self.get(i);
+      if x.equals(value) {
+        return true;
+      }
+      i = i + 1L;
+    }
+
+    return false;
+  }
+
   @pub fun removeEquals(elem: T) {
     var i = 0L;
 
@@ -223,5 +284,39 @@ impl[T: Equals] Vec[T] {
         i = i + 1L;
       }
     }
+  }
+}
+
+impl[T: Identity] Vec[T] {
+  @pub fun has(value: T): Bool {
+    var i = 0L;
+
+    while i < self.size() {
+      if self.get(i).identicalTo(value) {
+        return true;
+      }
+      i = i + 1L;
+    }
+
+    return false;
+  }
+}
+
+impl[T: Stringable] Vec[T] {
+  @pub fun toString(): String {
+    let sb = StringBuffer();
+    sb.append("Vec(");
+    let size = self.len;
+    if size != 0L {
+      var i = 0L;
+      while i < size - 1L {
+        sb.append(self.array(i).toString());
+        sb.append(", ");
+        i = i + 1L;
+      }
+      sb.append(self.array(i).toString());
+    }
+    sb.append(")");
+    return sb.toString();
   }
 }
