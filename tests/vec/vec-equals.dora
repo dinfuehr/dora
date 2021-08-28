@@ -1,0 +1,13 @@
+import std::Assert;
+
+fun main() {
+  assert(Vec[Int32]() == Vec[Int32]());
+  assert(Vec[Int32]().equals(Vec[Int32]()));
+  assert(Vec[Int32](1) == Vec[Int32](1));
+  assert(Vec[Int32](1).equals(Vec[Int32](1)));
+  assert(Vec[Int32](1, 2, 3) == Vec[Int32](1, 2, 3));
+  assert(Vec[Int32](1, 2, 3).equals(Vec[Int32](1, 2, 3)));
+
+  assert(Vec[Int32](1, 2, 3) != Vec[Int32](2, 3, 4));
+  assert(Vec[Int32](1, 2, 3) != Vec[Int32](1, 2, 3, 4));
+}

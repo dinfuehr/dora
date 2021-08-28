@@ -1,0 +1,7 @@
+import std::Assert;
+
+fun main() {
+  Assert.equal[String](Vec[Int32]().toString(), "Vec()");
+  Assert.equal[String](Vec[Int32](1).toString(), "Vec(1)");
+  Assert.equal[String](Vec[Int32](1, 2, 3).toString(), "Vec(1, 2, 3)");
+}
