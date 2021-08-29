@@ -78,15 +78,15 @@ impl[T: Sortable] Array[T] {
   fun sortStable(array: Array[T]) {
     var i = 1L;
     while i < array.size() {
-	    var temp: T = array.get(i);
+      var temp: T = array.get(i);
       var j = i;
       while j > 0L && array(j - 1L).sortsAfter(temp) {
         array(j) = array(j - 1L);
         j = j - 1L;
-  		}
-			array(j) = temp;
-			i = i + 1L;
-		}
+      }
+      array(j) = temp;
+      i = i + 1L;
+    }
   }
 }
 
