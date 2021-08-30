@@ -101,7 +101,13 @@ pub extern "C" fn exit(status: i32) {
 }
 
 pub extern "C" fn unreachable() {
+    let vm = get_vm();
+
     eprintln!("unreachable code executed.");
+
+    let stacktrace = stacktrace_from_last_dtn(vm);
+    stacktrace.dump_err(vm);
+
     std::process::exit(1);
 }
 

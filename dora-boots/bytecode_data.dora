@@ -69,6 +69,22 @@ impl Stringable for ConstPoolEntry {
     }
 }
 
+enum SourceType {
+    Unit,
+    UInt8,
+    Bool,
+    Char,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
+    Class(Int32, Array[SourceType]),
+    Struct(Int32, Array[SourceType]),
+    Trait(Int32, Array[SourceType]),
+    Tuple(Array[SourceType]),
+    TypeParam(Int32),
+}
+
 struct BytecodeRegister(value: Int32)
 
 impl Equals for BytecodeRegister {
