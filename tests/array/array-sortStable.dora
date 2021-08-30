@@ -1,3 +1,4 @@
+//= ignore
 import std::Assert;
 
 fun main() {
