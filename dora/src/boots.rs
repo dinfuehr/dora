@@ -161,6 +161,10 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> 
     use byteorder::{LittleEndian, WriteBytesExt};
     let mut buffer = Vec::new();
 
+    buffer
+        .write_u32::<LittleEndian>(fct.const_pool_entries().len() as u32)
+        .unwrap();
+
     for const_entry in fct.const_pool_entries() {
         match const_entry {
             ConstPoolEntry::String(ref value) => {
