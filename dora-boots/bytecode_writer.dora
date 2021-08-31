@@ -560,7 +560,7 @@ class BytecodeWriter {
         let registers = self.registers.toArray();
         let arguments = self.arguments;
         assert(arguments.toInt64() <= registers.size());
-        BytecodeFunction(code, constPool, registers, arguments)
+        BytecodeFunction(code, constPool, registers, Array[BytecodeType2]::empty(), arguments)
     }
 
     fun resolveJumps() {

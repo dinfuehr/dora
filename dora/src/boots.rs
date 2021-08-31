@@ -136,7 +136,13 @@ fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<Int32Array> 
 }
 
 fn allocate_registers_array2(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> {
+    use byteorder::{LittleEndian, WriteBytesExt};
+
     let mut buffer = Vec::new();
+
+    buffer
+        .write_u32::<LittleEndian>(fct.registers().len() as u32)
+        .unwrap();
 
     for ty in fct.registers().iter() {
         encode_bytecode_type(vm, ty, &mut buffer);

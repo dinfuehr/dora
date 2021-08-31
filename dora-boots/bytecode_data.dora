@@ -1,4 +1,4 @@
-class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int32) {
+class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let registers2: Array[BytecodeType2], let arguments: Int32) {
     fun constPool(idx: ConstPoolId): ConstPoolEntry {
         self.const_pool(idx.value.toInt64())
     }
@@ -115,6 +115,20 @@ impl ConstPoolId {
 }
 
 struct FctId { value: Int32 }
+
+enum BytecodeType2 {
+    Ptr,
+    UInt8,
+    Bool,
+    Char,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
+    Struct(Int32, Array[SourceType]),
+    Tuple(Array[SourceType]),
+    TypeParam(Int32),
+}
 
 struct BytecodeType(value: Int32)
 
