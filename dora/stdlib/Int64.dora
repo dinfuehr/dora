@@ -84,6 +84,8 @@ impl Int64 {
 
   @pub fun hash(): Int32 = self.toInt32();
 
+  @pub fun abs(): Int64 = if self >= 0L { self } else { -self };
+
   @pub @static fun bits(): Int32 = 64;
   @pub @static fun bytes(): Int32 = 8;
 
