@@ -1,3 +1,20 @@
 fun main() {
+  int32();
+  int64();
+}
+
+fun int32() {
+  assert(Int32::minValue().abs() == Int32::minValue());
   assert((-1).abs() == 1);
+  assert(0.abs() == 0);
+  assert(1.abs() == 1);
+  assert(Int32::maxValue().abs() == Int32::maxValue());
+}
+
+fun int64() {
+  assert(Int64::minValue().abs() == Int64::minValue());
+  assert((-1L).abs() == 1L);
+  assert(0L.abs() == 0L);
+  assert(1L.abs() == 1L);
+  assert(Int64::maxValue().abs() == Int64::maxValue());
 }
