@@ -38,6 +38,10 @@ impl Float64 {
 
   @pub fun hash(): Int32 = self.asInt64().toInt32();
 
+  // should be lets, not funs
   @pub @static fun bits(): Int32 = 64;
   @pub @static fun bytes(): Int32 = 8;
+  @pub @static fun infinityPositive(): Float64 = 0x7ff0000000000000L.asFloat64();
+  @pub @static fun infinityNegative(): Float64 = 0xfff0000000000000L.asFloat64();
+  @pub @static fun notANumber(): Float64 = 0x7ff8000000000000L.asFloat64();
 }
