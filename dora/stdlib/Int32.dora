@@ -44,6 +44,10 @@ impl Int32 {
   @pub @internal fun unaryPlus(): Int32;
   @pub @internal fun unaryMinus(): Int32;
   @pub @internal fun not(): Int32;
+  @pub fun abs(): Int32 {
+    let s = self.shiftRightSigned(31);
+    return self.bitwiseXor(s) - s;
+  }
 
   @pub @internal fun countZeroBits(): Int32 = self.not().countOneBits();
   @pub @internal fun countOneBits(): Int32 {
@@ -83,8 +87,6 @@ impl Int32 {
   @pub @internal fun countOneBitsTrailing(): Int32 = self.not().countZeroBitsTrailing();
 
   @pub fun hash(): Int32 = self;
-
-  @pub fun abs(): Int32 = if self >= 0 { self } else { -self };
 
   @pub @static fun bits(): Int32 = 32;
   @pub @static fun bytes(): Int32 = 4;
