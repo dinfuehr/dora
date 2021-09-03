@@ -24,6 +24,7 @@ impl Float32 {
     if ix == iy { return 0; }
     return 1;
   }
+
   @pub @internal fun plus(rhs: Float32): Float32;
   @pub @internal fun minus(rhs: Float32): Float32;
   @pub @internal fun times(rhs: Float32): Float32;
@@ -31,6 +32,9 @@ impl Float32 {
 
   @pub @internal fun unaryPlus(): Float32;
   @pub @internal fun unaryMinus(): Float32;
+  @pub fun abs(): Float32 {
+    return self.asInt32().bitwiseAnd(0x7fffffff).asFloat32();
+  }
 
   @pub @internal fun isNan(): Bool;
   @pub @internal fun sqrt(): Float32;

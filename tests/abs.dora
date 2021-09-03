@@ -1,7 +1,30 @@
 fun main() {
+  float32();
+  float64();
   int32();
   int64();
 }
+
+fun float32() {
+  assert(Float32::notANumber().unaryMinus().abs() === Float32::notANumber());
+  assert(Float32::infinityNegative().abs() == Float32::infinityPositive());
+  assert((-1.0F).abs() == 1.0F);
+  assert(0.0F.abs() == 0.0F);
+  assert(1.0F.abs() == 1.0F);
+  assert(Float32::infinityPositive().abs() == Float32::infinityPositive());
+  assert(Float32::notANumber().abs() === Float32::notANumber());
+}
+
+fun float64() {
+  assert(Float64::notANumber().unaryMinus().abs() === Float64::notANumber());
+  assert(Float64::infinityNegative().abs() == Float64::infinityPositive());
+  assert((-1.0).abs() == 1.0);
+  assert(0.0.abs() == 0.0);
+  assert(1.0.abs() == 1.0);
+  assert(Float64::infinityPositive().abs() == Float64::infinityPositive());
+  assert(Float64::notANumber().abs() === Float64::notANumber());
+}
+
 
 fun int32() {
   assert(Int32::minValue().abs() == Int32::minValue());
