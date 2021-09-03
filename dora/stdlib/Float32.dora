@@ -37,6 +37,10 @@ impl Float32 {
 
   @pub fun hash(): Int32 = self.asInt32();
 
+  // should be lets, not funs
   @pub @static fun bits(): Int32 = 32;
   @pub @static fun bytes(): Int32 = 4;
+  @pub @static fun infinityPositive(): Float32 = 0x7f800000.asFloat32();
+  @pub @static fun infinityNegative(): Float32 = 0xff800000.asFloat32();
+  @pub @static fun notANumber(): Float32 = 0x7fC00000.asFloat32();
 }
