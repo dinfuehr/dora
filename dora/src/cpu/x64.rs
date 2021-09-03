@@ -1,5 +1,4 @@
 use lazy_static::lazy_static;
-use raw_cpuid::{CpuId, ExtendedFeatures, FeatureInfo};
 use std::sync::atomic::{compiler_fence, Ordering};
 
 use crate::ty::SourceType;
@@ -19,9 +18,7 @@ pub fn has_popcnt() -> bool {
 }
 
 pub fn has_lzcnt() -> bool {
-    // Too conservative, but we currently lack an easy way to check support for ABM instructions:
-    // Revisit after https://github.com/gz/rust-cpuid/issues/30 is resolved.
-    *HAS_TZCNT
+    *HAS_LZCNT
 }
 
 pub fn has_tzcnt() -> bool {
@@ -29,13 +26,11 @@ pub fn has_tzcnt() -> bool {
 }
 
 lazy_static! {
-static ref FEATURES: FeatureInfo = CpuId::new().get_feature_info().unwrap();
-static ref FEATURES_EXTENDED: ExtendedFeatures = CpuId::new().get_extended_feature_info().unwrap();
-
 // support for floating point rounding
-static ref HAS_ROUND: bool = FEATURES.has_sse41();
-static ref HAS_POPCNT: bool = FEATURES.has_popcnt();
-static ref HAS_TZCNT: bool = FEATURES_EXTENDED.has_bmi1();
+static ref HAS_ROUND: bool = is_x86_feature_detected!("sse4.1");
+static ref HAS_POPCNT: bool = is_x86_feature_detected!("popcnt");
+static ref HAS_LZCNT: bool =  is_x86_feature_detected!("lzcnt");
+static ref HAS_TZCNT: bool = is_x86_feature_detected!("bmi1");
 }
 
 // first param offset to rbp is +16,

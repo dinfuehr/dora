@@ -40,9 +40,6 @@ memoffset = "*"
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "*", features = ["memoryapi"] }
 
-[target.'cfg(target_arch = "x86_64")'.dependencies]
-raw-cpuid = "7.0.*"
-
 [lib]
 name = "dora"
 path = "src/lib.rs"
