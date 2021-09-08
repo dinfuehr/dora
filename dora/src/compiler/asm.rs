@@ -431,6 +431,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.float_div(mode, dest, lhs, rhs);
     }
 
+    pub fn float_abs(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        self.masm.float_abs(mode, dest, src);
+    }
+
     pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         self.masm.float_neg(mode, dest, src);
     }

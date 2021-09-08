@@ -509,6 +509,7 @@ pub enum Intrinsic {
 
     Float32Plus,
     Float32Neg,
+    Float32Abs,
     Float32IsNan,
     Float32Sqrt,
 
@@ -527,6 +528,7 @@ pub enum Intrinsic {
 
     Float64Plus,
     Float64Neg,
+    Float64Abs,
     Float64IsNan,
     Float64Sqrt,
 
@@ -568,6 +570,8 @@ impl Intrinsic {
             | Intrinsic::Int32CountOneBits
             | Intrinsic::Int32CountOneBitsLeading
             | Intrinsic::Int32CountOneBitsTrailing
+            | Intrinsic::Float32Abs
+            | Intrinsic::Float64Abs
             | Intrinsic::Float32Sqrt
             | Intrinsic::Float64Sqrt
             | Intrinsic::PromoteFloat32ToFloat64

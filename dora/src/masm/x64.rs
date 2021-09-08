@@ -1222,6 +1222,39 @@ impl MacroAssembler {
         }
     }
 
+    pub fn float_abs(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        let (fst, snd) = if mode == MachineMode::Float32 {
+            (0x7fffffff, 0)
+        } else {
+            (-1, 0x7fffffff)
+        };
+
+        // align MMX data to 16 bytes
+        self.dseg.align(16);
+        self.dseg.add_i32(0);
+        self.dseg.add_i32(0);
+        self.dseg.add_i32(snd);
+        let disp = self.dseg.add_i32(fst);
+
+        let pos = self.pos() as i32;
+
+        let xmm_reg: XmmRegister = src.into();
+
+        let inst_size = 7 + if xmm_reg.needs_rex() { 1 } else { 0 };
+
+        let address = Address::rip(-(disp + pos + inst_size));
+
+        match mode {
+            MachineMode::Float32 => self.asm.andps_ra(src.into(), address),
+            MachineMode::Float64 => self.asm.andps_ra(src.into(), address),
+            _ => unimplemented!(),
+        }
+
+        if dest != src {
+            self.copy_freg(mode, dest, src);
+        }
+    }
+
     pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         let (fst, snd) = if mode == MachineMode::Float32 {
             (1i32 << 31, 0)
