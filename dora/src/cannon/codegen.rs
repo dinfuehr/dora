@@ -709,6 +709,21 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
+    fn emit_intrinsic_abs_float(&mut self, dest: Register, src: Register) {
+        assert_eq!(
+            self.bytecode.register_type(src),
+            self.bytecode.register_type(dest)
+        );
+
+        self.emit_load_register(src, FREG_RESULT.into());
+
+        let bytecode_type = self.bytecode.register_type(dest);
+        self.asm
+            .float_abs(bytecode_type.mode(self.vm), FREG_RESULT, FREG_RESULT);
+
+        self.emit_store_register(FREG_RESULT.into(), dest);
+    }
+
     fn emit_neg_float(&mut self, dest: Register, src: Register) {
         assert_eq!(
             self.bytecode.register_type(src),
@@ -3343,6 +3358,13 @@ impl<'a> CannonCodeGen<'a> {
         pos: Position,
     ) {
         match intrinsic {
+            Intrinsic::Float32Abs | Intrinsic::Float64Abs => {
+                debug_assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_intrinsic_abs_float(dest_reg, src_reg);
+            }
+
             Intrinsic::Float32Sqrt | Intrinsic::Float64Sqrt => {
                 self.emit_intrinsic_float_sqrt(
                     dest,

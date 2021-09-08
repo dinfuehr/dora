@@ -756,6 +756,14 @@ impl MacroAssembler {
         }
     }
 
+    pub fn float_abs(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.fabs_s(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.fabs_d(dest.into(), src.into()),
+            _ => unimplemented!(),
+        }
+    }
+
     pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
             MachineMode::Float32 => self.asm.fneg_s(dest.into(), src.into()),

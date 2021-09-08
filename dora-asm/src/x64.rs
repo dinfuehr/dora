@@ -649,6 +649,13 @@ impl AssemblerX64 {
         self.emit_address(src.low_bits(), dest);
     }
 
+    pub fn andps_ra(&mut self, dest: XmmRegister, src: Address) {
+        self.emit_rex_sse_address_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x54);
+        self.emit_address(dest.low_bits(), src);
+    }
+
     pub fn xorl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x31);
@@ -2677,9 +2684,21 @@ mod tests {
     }
 
     #[test]
+    fn test_xorps_ra() {
+        assert_emit!(0x0f, 0x57, 0x05, 0x04, 0x00, 0x00, 0x00; xorps_ra(XMM0, Address::rip(4)));
+        assert_emit!(0x44, 0x0f, 0x57, 0x05, 0x08, 0x00, 0x00, 0x00; xorps_ra(XMM8, Address::rip(8)));
+    }
+
+    #[test]
     fn test_xorps_rr() {
         assert_emit!(0x0f, 0x57, 0xc1; xorps_rr(XMM0, XMM1));
         assert_emit!(0x41, 0x0f, 0x57, 0xf8; xorps_rr(XMM7, XMM8));
+    }
+
+    #[test]
+    fn test_andps_ra() {
+        assert_emit!(0x0f, 0x54, 0x05, 0x04, 0x00, 0x00, 0x00; andps_ra(XMM0, Address::rip(4)));
+        assert_emit!(0x44, 0x0f, 0x54, 0x05, 0x08, 0x00, 0x00, 0x00; andps_ra(XMM8, Address::rip(8)));
     }
 
     #[test]

@@ -32,9 +32,7 @@ impl Float32 {
 
   @pub @internal fun unaryPlus(): Float32;
   @pub @internal fun unaryMinus(): Float32;
-  @pub fun abs(): Float32 {
-    return self.asInt32().bitwiseAnd(0x7fffffff).asFloat32();
-  }
+  @pub @internal fun abs(): Float32;
 
   @pub @internal fun isNan(): Bool;
   @pub @internal fun sqrt(): Float32;

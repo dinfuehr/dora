@@ -696,6 +696,7 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_method(vm, stdlib, "Float32", "unaryMinus", Intrinsic::Float32Neg);
 
     intrinsic_method(vm, stdlib, "Float32", "isNan", Intrinsic::Float32IsNan);
+    intrinsic_method(vm, stdlib, "Float32", "abs", Intrinsic::Float32Abs);
     intrinsic_method(vm, stdlib, "Float32", "sqrt", Intrinsic::Float32Sqrt);
 
     native_method(
@@ -735,6 +736,7 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_method(vm, stdlib, "Float64", "unaryMinus", Intrinsic::Float64Neg);
 
     intrinsic_method(vm, stdlib, "Float64", "isNan", Intrinsic::Float64IsNan);
+    intrinsic_method(vm, stdlib, "Float64", "abs", Intrinsic::Float64Abs);
     intrinsic_method(vm, stdlib, "Float64", "sqrt", Intrinsic::Float64Sqrt);
 
     native_static(

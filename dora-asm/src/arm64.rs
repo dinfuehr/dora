@@ -1061,6 +1061,18 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn fabs_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000001, rn, rd));
+    }
+
+    pub fn fabs_h(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_HALF, 0b000001, rn, rd));
+    }
+
+    pub fn fabs_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b000001, rn, rd));
+    }
+
     pub fn fneg_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000010, rn, rd));
     }
@@ -3339,6 +3351,12 @@ mod tests {
         assert_emit!(0x1e212010; fcmpe_s(F0, F1));
         assert_emit!(0x1e612010; fcmpe_d(F0, F1));
         assert_emit!(0x1e252090; fcmpe_s(F4, F5));
+    }
+
+    #[test]
+    fn test_fabs() {
+        assert_emit!(0x1e20c041; fabs_s(F1, F2));
+        assert_emit!(0x1e60c083; fabs_d(F3, F4));
     }
 
     #[test]
