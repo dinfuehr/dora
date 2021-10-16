@@ -16,8 +16,6 @@ default = ["capstone"]
 walkdir = "2"
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-docopt = "1.1.*"
 byteorder = "*"
 lazy_static = "*"
 libc = "0.2.*"

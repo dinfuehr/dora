@@ -11,10 +11,24 @@ use crate::semck::specialize::specialize_class_id;
 use crate::vm::{execute_on_main, namespace_contains, NamespaceId};
 
 pub fn start() -> i32 {
-    let args = cmd::parse();
+    let args = cmd::parse_arguments();
+
+    if let Err(msg) = args {
+        cmd::print_help();
+        println!();
+        println!("{}", msg);
+        return 1;
+    }
+
+    let args = args.unwrap();
 
     if args.flag_version {
         println!("dora v0.01b");
+        return 0;
+    }
+
+    if args.flag_help {
+        cmd::print_help();
         return 0;
     }
 

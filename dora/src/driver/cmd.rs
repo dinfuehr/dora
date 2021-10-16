@@ -1,20 +1,11 @@
 use num_cpus;
 use std::cmp::{max, min};
 use std::default::Default;
-use std::fmt;
 use std::ops::Deref;
 
 use crate::gc::M;
-use docopt::Docopt;
-use serde::{de, Deserialize, Deserializer};
 
 use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_PERM_SPACE_LIMIT};
-
-pub fn parse() -> Args {
-    Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit())
-}
 
 // Write the Docopt usage string.
 static USAGE: &'static str = "
@@ -26,7 +17,6 @@ Options:
     -h, --help              Shows this text.
     --version               Shows version.
     --emit-ast              Emits AST to stdout.
-    --emit-llvm             Emits initial LLVM IR to stdout.
     --emit-asm=<fct>        Emits assembly code to stdout.
     --emit-asm-file         Emits assembly code into file `dora-<pid>.asm`.
     --emit-bytecode=<fct>   Emits bytecode to stdout.
@@ -50,11 +40,9 @@ Options:
     --gc-verbose            Verbose GC.
     --gc-dev-verbose        Verbose GC for developers.
     --gc-verify             Verify heap before and after collections.
-    --gc-verify-write       Verify references when storing in the heap.
     --gc-worker=<num>       Number of GC worker threads.
     --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
     --gc-young-size=<SIZE>  Use fixed size for young generation.
-    --gc-young-appel        Use Appel dynamic resizing of young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
     --compiler=<name>       Switch default compiler. Possible values: cannon [default: cannon].
@@ -74,7 +62,7 @@ Options:
     --test-boots            Run unit tests for boots.
 ";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct Args {
     pub arg_argument: Option<Vec<String>>,
     pub arg_file: String,
@@ -83,11 +71,11 @@ pub struct Args {
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
     pub flag_emit_bytecode: Option<String>,
-    pub flag_emit_llvm: bool,
     pub flag_emit_stubs: bool,
     pub flag_enable_perf: bool,
     pub flag_omit_bounds_check: bool,
     pub flag_version: bool,
+    pub flag_help: bool,
     pub flag_emit_debug: Option<String>,
     pub flag_emit_debug_native: bool,
     pub flag_emit_debug_compile: bool,
@@ -189,7 +177,6 @@ impl Default for Args {
             flag_emit_asm: None,
             flag_emit_asm_file: false,
             flag_emit_bytecode: None,
-            flag_emit_llvm: false,
             flag_emit_stubs: false,
             flag_emit_debug: None,
             flag_emit_debug_compile: false,
@@ -198,6 +185,7 @@ impl Default for Args {
             flag_enable_perf: false,
             flag_omit_bounds_check: false,
             flag_version: false,
+            flag_help: false,
             flag_asm_syntax: None,
             flag_gc_events: false,
             flag_gc_stress: false,
@@ -232,7 +220,7 @@ impl Default for Args {
     }
 }
 
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Copy, Clone, Debug)]
 pub enum CollectorName {
     Zero,
     Compact,
@@ -242,13 +230,13 @@ pub enum CollectorName {
     Region,
 }
 
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Copy, Clone, Debug)]
 pub enum CompilerName {
     Cannon,
     Boots,
 }
 
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Copy, Clone, Debug)]
 pub enum AsmSyntax {
     Intel,
     Att,
@@ -265,48 +253,183 @@ impl Deref for MemSize {
     }
 }
 
-impl<'de> Deserialize<'de> for MemSize {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct MemSizeVisitor;
-        impl<'de> de::Visitor<'de> for MemSizeVisitor {
-            type Value = MemSize;
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a valid value for mem size. e.g 512M")
-            }
-            fn visit_str<E>(self, mem_size: &str) -> Result<MemSize, E>
-            where
-                E: de::Error,
-            {
-                let suffix = if let Some(ch) = mem_size.chars().last() {
-                    match ch {
-                        'k' | 'K' => 1024,
-                        'm' | 'M' => 1024 * 1024,
-                        'g' | 'G' => 1024 * 1024 * 1024,
-                        _ => 1,
-                    }
-                } else {
-                    1
-                };
+pub fn parse_arguments() -> Result<Args, String> {
+    let cli_arguments: Vec<String> = std::env::args().collect();
+    let mut args: Args = Default::default();
+    let mut idx = 1;
 
-                let prefix = if suffix != 1 {
-                    let (left, _) = mem_size.split_at(mem_size.len() - 1);
-                    left
-                } else {
-                    mem_size
-                };
+    while idx < cli_arguments.len() {
+        let arg = &cli_arguments[idx];
 
-                match prefix.parse::<usize>() {
-                    Ok(size) => Ok(MemSize(size * suffix)),
-                    Err(_) => Err(de::Error::custom(format!(
-                        "'{}' is not a valid mem size",
-                        mem_size
-                    ))),
-                }
+        if arg == "test" && idx == 1 {
+            args.cmd_test = true;
+        } else if arg == "--version" || arg == "-v" {
+            args.flag_version = true;
+        } else if arg == "--check" {
+            args.flag_check = true;
+        } else if arg == "-h" || arg == "--help" {
+            args.flag_help = true;
+        } else if arg == "--emit-ast" {
+            args.flag_emit_ast = true;
+        } else if arg.starts_with("--emit-asm=") {
+            args.flag_emit_asm = Some(argument_value(arg).into());
+        } else if arg == "--emit-asm-file" {
+            args.flag_emit_asm_file = true;
+        } else if arg.starts_with("--emit-bytecode=") {
+            args.flag_emit_bytecode = Some(argument_value(arg).into());
+        } else if arg == "--emit-stubs" {
+            args.flag_emit_stubs = true;
+        } else if arg.starts_with("--emit-debug=") {
+            args.flag_emit_debug = Some(argument_value(arg).into());
+        } else if arg == "--emit-debug-native" {
+            args.flag_emit_debug_native = true;
+        } else if arg == "--emit-debug-compile" {
+            args.flag_emit_debug_compile = true;
+        } else if arg == "--emit-debug-entry" {
+            args.flag_emit_debug_entry = true;
+        } else if arg == "--omit-bounds-check" {
+            args.flag_omit_bounds_check = true;
+        } else if arg == "--enable-perf" {
+            args.flag_enable_perf = true;
+        } else if arg == "--gc-events" {
+            args.flag_gc_events = true;
+        } else if arg == "--gc-stress" {
+            args.flag_gc_stress = true;
+        } else if arg == "--gc-stress-minor" {
+            args.flag_gc_stress_minor = true;
+        } else if arg == "--gc-parallel-full" {
+            args.flag_gc_parallel_full = true;
+        } else if arg == "--gc-parallel-minor" {
+            args.flag_gc_parallel_minor = true;
+        } else if arg == "--gc-parallel" {
+            args.flag_gc_parallel = true;
+        } else if arg == "--gc-stats" {
+            args.flag_gc_stats = true;
+        } else if arg == "--gc-verbose" {
+            args.flag_gc_verbose = true;
+        } else if arg == "--gc-dev-verbose" {
+            args.flag_gc_dev_verbose = true;
+        } else if arg == "--gc-verify" {
+            args.flag_gc_verify = true;
+        } else if arg.starts_with("--gc-worker=") {
+            args.flag_gc_worker = argument_usize(arg)?;
+        } else if arg.starts_with("--gc=") {
+            let value = argument_value(arg);
+            let value = match value {
+                "zero" => CollectorName::Zero,
+                "compact" => CollectorName::Compact,
+                "copy" => CollectorName::Copy,
+                "sweep" => CollectorName::Sweep,
+                "swiper" => CollectorName::Swiper,
+                "region" => CollectorName::Region,
+                _ => return Err(format!("--gc: unknown collector '{}'", value)),
+            };
+            args.flag_gc = Some(value);
+        } else if arg.starts_with("--gc-young-size=") {
+            args.flag_gc_young_size = Some(argument_mem_size(arg)?);
+        } else if arg.starts_with("--gc-semi-ratio=") {
+            args.flag_gc_semi_ratio = Some(argument_usize(arg)?);
+        } else if arg.starts_with("--compiler=") {
+            let value = argument_value(arg);
+            let value = match value {
+                "cannon" => CompilerName::Cannon,
+                "boots" => CompilerName::Boots,
+                _ => return Err(format!("--compiler: unknown compiler '{}'", value)),
+            };
+            args.flag_compiler = Some(value);
+        } else if arg.starts_with("--test-filter=") {
+            args.flag_test_filter = Some(argument_value(arg).into());
+        } else if arg.starts_with("--clear-regs") {
+            args.flag_clear_regs = true;
+        } else if arg == "--disable-tlab" {
+            args.flag_disable_tlab = true;
+        } else if arg == "--disable-barrier" {
+            args.flag_disable_barrier = true;
+        } else if arg.starts_with("--min-heap-size=") {
+            args.flag_min_heap_size = Some(argument_mem_size(arg)?);
+        } else if arg.starts_with("--max-heap-size=") {
+            args.flag_max_heap_size = Some(argument_mem_size(arg)?);
+        } else if arg.starts_with("--code-size=") {
+            args.flag_code_size = Some(argument_mem_size(arg)?);
+        } else if arg.starts_with("--perm-size=") {
+            args.flag_perm_size = Some(argument_mem_size(arg)?);
+        } else if arg.starts_with("--stdlib=") {
+            args.flag_stdlib = Some(argument_value(arg).to_string());
+        } else if arg.starts_with("--boots=") {
+            args.flag_boots = Some(argument_value(arg).to_string());
+        } else if arg == "--test-boots" {
+            args.flag_test_boots = true;
+        } else if arg.starts_with("-") {
+            return Err(format!("unknown flag {}", arg));
+        } else {
+            args.arg_file = arg.clone();
+
+            let count = cli_arguments.len() - idx - 1;
+            let mut arguments: Vec<String> = Vec::with_capacity(count);
+            for arg in &cli_arguments[idx + 1..] {
+                arguments.push(arg.clone());
             }
+            args.arg_argument = Some(arguments);
+            break;
         }
-        deserializer.deserialize_str(MemSizeVisitor)
+
+        idx = idx + 1;
     }
+
+    Ok(args)
+}
+
+fn argument_value(arg: &str) -> &str {
+    let idx = arg.find("=").expect("missing =");
+    let (_, rhs) = arg.split_at(idx);
+    &rhs[1..]
+}
+
+fn argument_mem_size(arg: &str) -> Result<MemSize, String> {
+    let idx = arg.find("=").expect("missing =");
+    let (name, value) = arg.split_at(idx);
+
+    match parse_mem_size(&value[1..]) {
+        Ok(value) => Ok(value),
+        Err(msg) => Err(format!("{}: {}", name, msg)),
+    }
+}
+
+fn argument_usize(arg: &str) -> Result<usize, String> {
+    let idx = arg.find("=").expect("missing =");
+    let (name, value) = arg.split_at(idx);
+    let value = &value[1..];
+    match value.parse::<usize>() {
+        Ok(value) => Ok(value),
+        Err(_) => Err(format!("{}: invalid value '{}'", name, value)),
+    }
+}
+
+fn parse_mem_size(value: &str) -> Result<MemSize, String> {
+    let suffix = if let Some(ch) = value.chars().last() {
+        match ch {
+            'k' | 'K' => 1024,
+            'm' | 'M' => 1024 * 1024,
+            'g' | 'G' => 1024 * 1024 * 1024,
+            _ => 1,
+        }
+    } else {
+        1
+    };
+
+    let prefix = if suffix != 1 {
+        let (left, _) = value.split_at(value.len() - 1);
+        left
+    } else {
+        value
+    };
+
+    match prefix.parse::<usize>() {
+        Ok(size) => Ok(MemSize(size * suffix)),
+        Err(_) => Err(format!("'{}' is not a valid mem size", value)),
+    }
+}
+
+pub fn print_help() {
+    println!("{}", USAGE);
 }
