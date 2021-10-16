@@ -10,7 +10,6 @@ use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
 use crate::gc::swiper::old::{OldGen, OldGenProtected, OldGenRegion};
-use crate::gc::swiper::verify::verify_mapped_regions;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{
     forward_full, walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS,
@@ -254,24 +253,6 @@ impl<'a> ParallelFullCollector<'a> {
 
         self.compute_actual_forward(pool);
         self.old_protected.commit_regions(&regions);
-
-        if self.vm.args.flag_gc_verify {
-            self.verify_mapped_regions(&regions);
-        }
-    }
-
-    fn verify_mapped_regions(&mut self, regions: &[Region]) {
-        let mut new_regions = regions.to_vec();
-        let old_regions = self
-            .old_protected
-            .regions
-            .iter()
-            .map(|r| r.committed_region())
-            .collect::<Vec<_>>();
-        let mut all_regions = old_regions;
-        all_regions.append(&mut new_regions);
-
-        verify_mapped_regions(self.old.total(), &all_regions);
     }
 
     fn fits_into_heap(&mut self, regions: &[Region]) -> bool {
