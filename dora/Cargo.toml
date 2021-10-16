@@ -26,6 +26,7 @@ dora-parser = { path = "../dora-parser", version = "0.0.2" }
 threadpool = "*"
 crossbeam-deque = "*"
 rand = "*"
+regex = "1.3.*"
 scoped_threadpool = "*"
 parking_lot = "*"
 fixedbitset = "*"
