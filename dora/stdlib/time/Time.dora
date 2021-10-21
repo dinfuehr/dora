@@ -1,0 +1,38 @@
+/**
+ * A time without time-zone in the ISO-8601 calendar system, such as {@code 10:15:30}.
+ *
+ * {@code LocalTime} is an immutable date-time object that represents a time, often viewed as
+ * hour-minute-second. Time is represented to nanosecond precision. For example, the value
+ * "13:45.30.123456789" can be stored in a {@code LocalTime}.
+ *
+ * It does not store or represent a date or time-zone. Instead, it is a description of the local
+ * time as seen on a wall clock. It cannot represent an instant on the time-line without additional
+ * information such as an offset or time-zone.
+ *
+ * The ISO-8601 calendar system is the modern civil calendar system used today in most of the world.
+ * This API assumes that all calendar systems use the same representation, this class, for
+ * time-of-day.
+ *
+ * <h3>Specification for implementors</h3> This class is immutable and thread-safe.
+ *
+ * @constructor
+ *   Constructor, previously validated.
+ * @param _hour
+ *   the hour-of-day to represent, validated from 0 to 23
+ * @param _minute
+ *   the minute-of-hour to represent, validated from 0 to 59
+ * @param _second
+ *   the second-of-minute to represent, validated from 0 to 59
+ * @param nano
+ *   the nano-of-second to represent, validated from 0 to 999,999,999
+ */
+@pub class Time(_hour: Int32, _minute: Int32, _second: Int32, nano: Int32) {
+  /** The hour. */
+  let hour: UInt8 = _hour.toUInt8();
+
+  /** The minute. */
+  let minute: UInt8 = _minute.toUInt8();
+
+  /** The second. */
+  let second: UInt8 = _second.toUInt8();
+}

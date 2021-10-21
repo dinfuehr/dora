@@ -1,0 +1,29 @@
+/**
+ * A date without a time-zone in the ISO-8601 calendar system, such as {@code 2007-12-03}.
+ *
+ * {@code LocalDate} is an immutable date-time object that represents a date, often viewed as
+ * year-month-day. Other date fields, such as day-of-year, day-of-week and week-of-year, can also be
+ * accessed. For example, the value "2nd October 2007" can be stored in a {@code LocalDate}.
+ *
+ * This class does not store or represent a time or time-zone. Instead, it is a description of the
+ * date, as used for birthdays. It cannot represent an instant on the time-line without additional
+ * information such as an offset or time-zone.
+ *
+ * The ISO-8601 calendar system is the modern civil calendar system used today in most of the world.
+ * It is equivalent to the proleptic Gregorian calendar system, in which today's rules for leap
+ * years are applied for all time. For most applications written today, the ISO-8601 rules are
+ * entirely suitable. However, any application that makes use of historical dates, and requires them
+ * to be accurate will find the ISO-8601 approach unsuitable.
+ *
+ * <h3>Specification for implementors</h3> This class is immutable and thread-safe.
+ *
+ * @constructor
+ *   Constructor, previously validated.
+ * @param year
+ *   the year to represent, from MIN_YEAR to MAX_YEAR
+ * @param monthOfYear
+ *   the month-of-year to represent, not null
+ * @param dayOfMonth
+ *   the day-of-month to represent, valid for year-month, from 1 to 31
+ */
+@pub class Date(let year: Int32, let monthOfYear: Int32, let dayOfMonth: Int32) {}

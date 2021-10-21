@@ -1,0 +1,91 @@
+/**
+ * A month-of-year, such as 'July'.
+ *
+ * {@code Month} is an enum representing the 12 months of the year -
+ * January, February, March, April, May, June, July, August, September, October, November and December.
+ *
+ * In addition to the textual enum name, each month-of-year has an {@code int} value.
+ * The {@code int} value follows normal usage and the ISO-8601 standard,
+ * from 1 (January) to 12 (December). It is recommended that applications use the enum
+ * rather than the {@code int} value to ensure code clarity.
+ *
+ * This enum represents a common concept that is found in many calendar systems.
+ * As such, this enum may be used by any calendar system that has the month-of-year
+ * concept defined exactly equivalent to the ISO-8601 calendar system.
+ *
+ * <h3>Specification for implementors</h3>
+ * This is an immutable and thread-safe enum.
+ */
+enum Month {
+  /**
+   * The month of January with 31 days.
+   * This has the numeric value of {@code 1}.
+   */
+  JANUARY,
+
+  /**
+   * The month of February with 28 days, or 29 in a leap year.
+   * This has the numeric value of {@code 2}.
+   */
+  FEBRUARY,
+
+  /**
+   * The month of March with 31 days.
+   * This has the numeric value of {@code 3}.
+   */
+  MARCH,
+
+  /**
+   * The month of April with 30 days.
+   * This has the numeric value of {@code 4}.
+   */
+  APRIL,
+
+  /**
+   * The month of May with 31 days.
+   * This has the numeric value of {@code 5}.
+   */
+  MAY,
+
+  /**
+   * The month of June with 30 days.
+   * This has the numeric value of {@code 6}.
+   */
+  JUNE,
+
+  /**
+   * The month of July with 31 days.
+   * This has the numeric value of {@code 7}.
+   */
+  JULY,
+
+  /**
+   * The month of August with 31 days.
+   * This has the numeric value of {@code 8}.
+   */
+  AUGUST,
+
+  /**
+   * The month of September with 30 days.
+   * This has the numeric value of {@code 9}.
+   */
+  SEPTEMBER,
+
+  /**
+   * The month of October with 31 days.
+   * This has the numeric value of {@code 10}.
+   */
+  OCTOBER,
+
+  /**
+   * The month of November with 30 days.
+   * This has the numeric value of {@code 11}.
+   */
+  NOVEMBER,
+
+  /**
+   * The month of December with 31 days.
+   * This has the numeric value of {@code 12}.
+   */
+  DECEMBER
+}

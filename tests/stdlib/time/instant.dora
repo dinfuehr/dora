@@ -1,0 +1,6 @@
+fun main() {
+  /* fail: "expected class" */
+  // let x = std::time::Instant(0L, 0);
+  // let y = std::time::Instant::EPOCH();
+  // assert(x == y);
+}
