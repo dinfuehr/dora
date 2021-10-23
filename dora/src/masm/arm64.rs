@@ -299,6 +299,27 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_add_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        match mode {
+            MachineMode::Int32 => self.asm.adds_w(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                self.asm.adds(dest.into(), lhs.into(), rhs.into())
+            }
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+
+        let lbl_overflow = self.create_label();
+        self.asm.bc_l(Cond::VS, lbl_overflow);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+    }
+
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
         if (value as u32) as i64 == value && asm::fits_addsub_imm(value as u32) {
             match mode {
@@ -321,6 +342,25 @@ impl MacroAssembler {
             MachineMode::Int64 => self.asm.sub(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
+    }
+
+    pub fn int_sub_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        match mode {
+            MachineMode::Int32 => self.asm.subs_w(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.subs(dest.into(), lhs.into(), rhs.into()),
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+
+        let lbl_overflow = self.create_label();
+        self.asm.bc_l(Cond::VS, lbl_overflow);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {

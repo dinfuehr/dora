@@ -179,7 +179,8 @@ impl<'a> AstBytecodeGen<'a> {
         // increment index
         let tmp_reg = self.alloc_temp(BytecodeType::Int64);
         self.gen.emit_const_int64(tmp_reg, 1);
-        self.gen.emit_add_int64(index_reg, index_reg, tmp_reg);
+        self.gen
+            .emit_add_int64(index_reg, index_reg, tmp_reg, stmt.pos);
         self.free_temp(tmp_reg);
 
         // jump to loop header
@@ -2407,8 +2408,8 @@ impl<'a> AstBytecodeGen<'a> {
 
                 _ => unreachable!(),
             },
-            Intrinsic::Int32Add => self.gen.emit_add_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Sub => self.gen.emit_sub_int32(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int32Add => self.gen.emit_add_int32(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int32Sub => self.gen.emit_sub_int32(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int32Mul => self.gen.emit_mul_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32Div => self.gen.emit_div_int32(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int32Mod => self.gen.emit_mod_int32(dest, lhs_reg, rhs_reg, pos),
@@ -2420,8 +2421,8 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::Int32Sar => self.gen.emit_sar_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32RotateLeft => self.gen.emit_rol_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32RotateRight => self.gen.emit_ror_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Add => self.gen.emit_add_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Sub => self.gen.emit_sub_int64(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Add => self.gen.emit_add_int64(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int64Sub => self.gen.emit_sub_int64(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int64Mul => self.gen.emit_mul_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Div => self.gen.emit_div_int64(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int64Mod => self.gen.emit_mod_int64(dest, lhs_reg, rhs_reg, pos),

@@ -661,7 +661,11 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArray
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
-            | BytecodeOpcode::Assert => true,
+            | BytecodeOpcode::Assert
+            | BytecodeOpcode::AddInt32
+            | BytecodeOpcode::AddInt64
+            | BytecodeOpcode::SubInt32
+            | BytecodeOpcode::SubInt64 => true,
             _ => false,
         }
     }

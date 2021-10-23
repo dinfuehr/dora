@@ -292,12 +292,34 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.int_add(mode, dest, lhs, rhs);
     }
 
+    pub fn int_add_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        self.masm.int_add_checked(mode, dest, lhs, rhs, pos);
+    }
+
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
         self.masm.int_add_imm(mode, dest, lhs, value);
     }
 
     pub fn int_sub(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         self.masm.int_sub(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_sub_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        self.masm.int_sub_checked(mode, dest, lhs, rhs, pos);
     }
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {

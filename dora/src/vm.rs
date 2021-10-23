@@ -701,6 +701,7 @@ pub enum Trap {
     OOM,
     STACK_OVERFLOW,
     ILLEGAL,
+    OVERFLOW,
 }
 
 impl Trap {
@@ -714,6 +715,7 @@ impl Trap {
             Trap::OOM => 6,
             Trap::STACK_OVERFLOW => 7,
             Trap::ILLEGAL => 8,
+            Trap::OVERFLOW => 9,
         }
     }
 
@@ -727,6 +729,7 @@ impl Trap {
             6 => Some(Trap::OOM),
             7 => Some(Trap::STACK_OVERFLOW),
             8 => Some(Trap::ILLEGAL),
+            9 => Some(Trap::OVERFLOW),
             _ => None,
         }
     }

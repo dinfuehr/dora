@@ -581,11 +581,14 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm.int_add(
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        self.asm.int_add_checked(
             bytecode_type.mode(self.vm),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
+            position,
         );
 
         self.emit_store_register(REG_RESULT.into(), dest);
@@ -630,11 +633,13 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
-        self.asm.int_sub(
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        self.asm.int_sub_checked(
             bytecode_type.mode(self.vm),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
+            position,
         );
 
         self.emit_store_register(REG_RESULT.into(), dest);

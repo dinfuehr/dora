@@ -442,6 +442,17 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_add_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        unimplemented!();
+    }
+
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
         if !fits_i32(value) {
             assert!(mode == MachineMode::Int64 || mode == MachineMode::Ptr);
@@ -472,6 +483,17 @@ impl MacroAssembler {
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
+    }
+
+    pub fn int_sub_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        unimplemented!();
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {

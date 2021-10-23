@@ -980,9 +980,7 @@ impl BytecodeWriter {
 
     fn emit_position(&mut self) {
         let offset = self.code.len() as u32;
-        if self.position.is_none() {
-            return;
-        }
+        assert!(self.position.is_some());
 
         let position = self.position.unwrap();
         let last_position = self.positions.last().map(|(_, p)| p);
