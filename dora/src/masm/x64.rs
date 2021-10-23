@@ -444,11 +444,11 @@ impl MacroAssembler {
 
     pub fn int_add_checked(
         &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
+        _mode: MachineMode,
+        _dest: Reg,
+        _lhs: Reg,
+        _rhs: Reg,
+        _pos: Position,
     ) {
         unimplemented!();
     }
@@ -487,11 +487,11 @@ impl MacroAssembler {
 
     pub fn int_sub_checked(
         &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
+        _mode: MachineMode,
+        _dest: Reg,
+        _lhs: Reg,
+        _rhs: Reg,
+        _pos: Position,
     ) {
         unimplemented!();
     }
