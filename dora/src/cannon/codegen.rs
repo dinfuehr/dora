@@ -594,6 +594,31 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
+    fn emit_add_int_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(rhs)
+        );
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(dest)
+        );
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+        self.emit_load_register(rhs, REG_TMP1.into());
+
+        let bytecode_type = self.bytecode.register_type(dest);
+
+        self.asm.int_add(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
     fn emit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
@@ -640,6 +665,31 @@ impl<'a> CannonCodeGen<'a> {
             REG_RESULT,
             REG_TMP1,
             position,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
+    fn emit_sub_int_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(rhs)
+        );
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(dest)
+        );
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+
+        self.emit_load_register(rhs, REG_TMP1.into());
+
+        let bytecode_type = self.bytecode.register_type(dest);
+        self.asm.int_sub(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
         );
 
         self.emit_store_register(REG_RESULT.into(), dest);
@@ -4307,9 +4357,23 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, format!("AddInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
     }
+    fn visit_add_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("AddInt32Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_add_int_unchecked(dest, lhs, rhs);
+    }
     fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("AddInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
+    }
+    fn visit_add_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("AddInt64Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_add_int_unchecked(dest, lhs, rhs);
     }
     fn visit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("AddFloat32 {}, {}, {}", dest, lhs, rhs));
@@ -4324,9 +4388,23 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, format!("SubInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_sub_int(dest, lhs, rhs);
     }
+    fn visit_sub_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("SubInt32Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_sub_int_unchecked(dest, lhs, rhs);
+    }
     fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("SubInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_sub_int(dest, lhs, rhs);
+    }
+    fn visit_sub_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("SubInt64Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_sub_int_unchecked(dest, lhs, rhs);
     }
     fn visit_sub_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("SubFloat32 {}, {}, {}", dest, lhs, rhs));

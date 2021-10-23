@@ -228,8 +228,18 @@ impl Fct {
                     let cls = cls.read();
                     let name = cls.name;
                     repr.push_str(&vm.interner.str(name));
+                } else if let Some(struct_id) = extension.ty.struct_id() {
+                    let xstruct = vm.structs.idx(struct_id);
+                    let xstruct = xstruct.read();
+                    let name = xstruct.name;
+                    repr.push_str(&vm.interner.str(name));
+                } else if let Some(struct_id) = extension.ty.primitive_struct_id(vm) {
+                    let xstruct = vm.structs.idx(struct_id);
+                    let xstruct = xstruct.read();
+                    let name = xstruct.name;
+                    repr.push_str(&vm.interner.str(name));
                 } else {
-                    unreachable!();
+                    unreachable!()
                 }
 
                 if self.is_static {
@@ -413,7 +423,9 @@ pub enum Intrinsic {
     Int32Cmp,
 
     Int32Add,
+    Int32AddUnchecked,
     Int32Sub,
+    Int32SubUnchecked,
     Int32Mul,
     Int32Div,
     Int32Mod,
@@ -451,7 +463,9 @@ pub enum Intrinsic {
     Int64Cmp,
 
     Int64Add,
+    Int64AddUnchecked,
     Int64Sub,
+    Int64SubUnchecked,
     Int64Mul,
     Int64Div,
     Int64Mod,
@@ -586,7 +600,9 @@ impl Intrinsic {
     pub fn result_type(self) -> BytecodeType {
         match self {
             Intrinsic::Int32Add
+            | Intrinsic::Int32AddUnchecked
             | Intrinsic::Int32Sub
+            | Intrinsic::Int32SubUnchecked
             | Intrinsic::Int32Mul
             | Intrinsic::Int32Div
             | Intrinsic::Int32Mod
@@ -628,7 +644,9 @@ impl Intrinsic {
             | Intrinsic::Int64CountOneBitsTrailing => BytecodeType::Int32,
             Intrinsic::Int32ToInt32 => BytecodeType::Int32,
             Intrinsic::Int64Add
+            | Intrinsic::Int64AddUnchecked
             | Intrinsic::Int64Sub
+            | Intrinsic::Int64SubUnchecked
             | Intrinsic::Int64Mul
             | Intrinsic::Int64Div
             | Intrinsic::Int64Mod

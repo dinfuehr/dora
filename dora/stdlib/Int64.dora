@@ -30,6 +30,9 @@ impl Int64 {
   @pub @internal fun div(rhs: Int64): Int64;
   @pub @internal fun mod(rhs: Int64): Int64;
 
+  @pub @internal fun addUnchecked(rhs: Int64): Int64;
+  @pub @internal fun subUnchecked(rhs: Int64): Int64;
+
   @pub @internal fun bitwiseOr(rhs: Int64): Int64;
   @pub @internal fun bitwiseAnd(rhs: Int64): Int64;
   @pub @internal fun bitwiseXor(rhs: Int64): Int64;
@@ -46,7 +49,7 @@ impl Int64 {
   @pub @internal fun not(): Int64;
   @pub fun abs(): Int64 {
     let s = self.shiftRightSigned(63);
-    return self.bitwiseXor(s) - s;
+    return self.bitwiseXor(s).subUnchecked(s);
   }
 
   @pub @internal fun countZeroBits(): Int32 = self.not().countOneBits();

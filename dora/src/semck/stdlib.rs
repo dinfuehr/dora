@@ -357,6 +357,21 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_method(vm, stdlib, "Int32", "div", Intrinsic::Int32Div);
     intrinsic_method(vm, stdlib, "Int32", "mod", Intrinsic::Int32Mod);
 
+    intrinsic_method(
+        vm,
+        stdlib,
+        "Int32",
+        "addUnchecked",
+        Intrinsic::Int32AddUnchecked,
+    );
+    intrinsic_method(
+        vm,
+        stdlib,
+        "Int32",
+        "subUnchecked",
+        Intrinsic::Int32SubUnchecked,
+    );
+
     intrinsic_method(vm, stdlib, "Int32", "bitwiseOr", Intrinsic::Int32Or);
     intrinsic_method(vm, stdlib, "Int32", "bitwiseAnd", Intrinsic::Int32And);
     intrinsic_method(vm, stdlib, "Int32", "bitwiseXor", Intrinsic::Int32Xor);
@@ -464,6 +479,21 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     intrinsic_method(vm, stdlib, "Int64", "times", Intrinsic::Int64Mul);
     intrinsic_method(vm, stdlib, "Int64", "div", Intrinsic::Int64Div);
     intrinsic_method(vm, stdlib, "Int64", "mod", Intrinsic::Int64Mod);
+
+    intrinsic_method(
+        vm,
+        stdlib,
+        "Int64",
+        "addUnchecked",
+        Intrinsic::Int64AddUnchecked,
+    );
+    intrinsic_method(
+        vm,
+        stdlib,
+        "Int64",
+        "subUnchecked",
+        Intrinsic::Int64SubUnchecked,
+    );
 
     intrinsic_method(vm, stdlib, "Int64", "bitwiseOr", Intrinsic::Int64Or);
     intrinsic_method(vm, stdlib, "Int64", "bitwiseAnd", Intrinsic::Int64And);

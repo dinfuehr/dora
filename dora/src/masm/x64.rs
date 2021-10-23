@@ -444,13 +444,25 @@ impl MacroAssembler {
 
     pub fn int_add_checked(
         &mut self,
-        _mode: MachineMode,
-        _dest: Reg,
-        _lhs: Reg,
-        _rhs: Reg,
-        _pos: Position,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
     ) {
-        unimplemented!();
+        if mode.is64() {
+            self.asm.addq_rr(lhs.into(), rhs.into());
+        } else {
+            self.asm.addl_rr(lhs.into(), rhs.into());
+        }
+
+        let lbl_overflow = self.asm.create_label();
+        self.asm.jcc(Condition::Overflow, lbl_overflow);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+
+        if dest != lhs {
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
+        }
     }
 
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
@@ -487,13 +499,25 @@ impl MacroAssembler {
 
     pub fn int_sub_checked(
         &mut self,
-        _mode: MachineMode,
-        _dest: Reg,
-        _lhs: Reg,
-        _rhs: Reg,
-        _pos: Position,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
     ) {
-        unimplemented!();
+        if mode.is64() {
+            self.asm.subq_rr(lhs.into(), rhs.into());
+        } else {
+            self.asm.subl_rr(lhs.into(), rhs.into());
+        }
+
+        let lbl_overflow = self.asm.create_label();
+        self.asm.jcc(Condition::Overflow, lbl_overflow);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+
+        if dest != lhs {
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
+        }
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {

@@ -1,0 +1,4 @@
+fun main() {
+    assert(Int32::minValue() == Int32::maxValue().addUnchecked(1));
+    assert(Int64::minValue() == Int64::maxValue().addUnchecked(1L));
+}
