@@ -26,16 +26,16 @@ def read_enum(name)
 
     File.open('dora/src/bytecode/data.rs').each_line do |line|
         unless parse_line
-            parse_line = true if line == "pub enum #{name} {\n"
+            parse_line = true if line == "enumeration!(#{name} {\n" || line == "pub enum #{name} {\n"
             next
         end
 
         next if line.strip.empty?
         next if line.match(/^\s*\/\//)
 
-        return values if line == "}\n"
+        return values if line == "});\n" || line == "}\n"
 
-        m = line.match(/^\s*([a-zA-Z0-9]+),$/)
+        m = line.match(/^\s*([a-zA-Z0-9]+),?$/)
 
         unless m
             raise "illegal line: #{line.inspect}"
@@ -43,6 +43,8 @@ def read_enum(name)
 
         values.push(m[1])
     end
+
+    raise "enum #{name} not found" unless parse_line
 
     values
 end

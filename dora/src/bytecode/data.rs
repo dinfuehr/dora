@@ -949,4 +949,8 @@ enumeration!(SourceTypeOpcode {
     Enum
 });
 
-enumeration!(InstructionSet { X64, Arm64 });
+#[rustfmt::skip]
+enumeration!(InstructionSet {
+    X64,
+    Arm64
+});
