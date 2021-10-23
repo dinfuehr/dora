@@ -5,14 +5,12 @@
 #![feature(allocator_api)]
 #![feature(llvm_asm)]
 #![feature(new_uninit)]
+#![recursion_limit = "256"]
 
 extern crate alloc;
 
 #[cfg(target_os = "windows")]
 extern crate winapi;
-
-#[macro_use]
-extern crate num_derive;
 
 #[macro_use]
 extern crate memoffset;

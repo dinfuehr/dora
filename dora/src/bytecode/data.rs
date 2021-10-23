@@ -4,6 +4,7 @@ use crate::bytecode::read_opcode_and_width;
 use crate::mem::ptr_width;
 use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
+use crate::utils::enumeration;
 use crate::vm::{
     get_vm, ClassDefId, ClassId, EnumId, EnumLayout, FctId, FieldId, StructFieldId, StructId,
     TraitId, TupleId, TypeParamId, VM,
@@ -194,9 +195,7 @@ impl BytecodeType {
 }
 
 // Keep in sync with dora-boots/bytecode.dora
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug, FromPrimitive, ToPrimitive)]
-pub enum BytecodeOpcode {
+enumeration!(BytecodeOpcode {
     Wide,
 
     AddInt32,
@@ -395,8 +394,8 @@ pub enum BytecodeOpcode {
     StoreArray,
 
     RetVoid,
-    Ret,
-}
+    Ret
+});
 
 fn opcode_size(width: OperandWidth) -> u32 {
     match width {
@@ -413,42 +412,42 @@ fn operand_size(width: OperandWidth) -> u32 {
 }
 
 impl BytecodeOpcode {
-    pub fn is_loop_start(&self) -> bool {
+    pub fn is_loop_start(self) -> bool {
         match self {
             BytecodeOpcode::LoopStart => true,
             _ => false,
         }
     }
 
-    pub fn is_new_enum(&self) -> bool {
+    pub fn is_new_enum(self) -> bool {
         match self {
             BytecodeOpcode::NewEnum => true,
             _ => false,
         }
     }
 
-    pub fn is_new_struct(&self) -> bool {
+    pub fn is_new_struct(self) -> bool {
         match self {
             BytecodeOpcode::NewStruct => true,
             _ => false,
         }
     }
 
-    pub fn is_new_tuple(&self) -> bool {
+    pub fn is_new_tuple(self) -> bool {
         match self {
             BytecodeOpcode::NewTuple => true,
             _ => false,
         }
     }
 
-    pub fn is_push_register(&self) -> bool {
+    pub fn is_push_register(self) -> bool {
         match self {
             BytecodeOpcode::PushRegister => true,
             _ => false,
         }
     }
 
-    pub fn is_any_invoke(&self) -> bool {
+    pub fn is_any_invoke(self) -> bool {
         match self {
             BytecodeOpcode::InvokeDirectVoid
             | BytecodeOpcode::InvokeDirect
@@ -464,8 +463,8 @@ impl BytecodeOpcode {
         }
     }
 
-    pub fn size(&self, width: OperandWidth) -> u32 {
-        match *self {
+    pub fn size(self, width: OperandWidth) -> u32 {
+        match self {
             BytecodeOpcode::Wide => unreachable!(),
 
             BytecodeOpcode::RetVoid | BytecodeOpcode::LoopStart => opcode_size(width),
@@ -625,6 +624,8 @@ impl BytecodeOpcode {
             }
 
             BytecodeOpcode::ConstUInt8 => opcode_size(width) + operand_size(width) + 1,
+
+            _ => unreachable!(),
         }
     }
 
@@ -788,8 +789,7 @@ impl BytecodeFunction {
     }
 }
 
-#[derive(FromPrimitive, ToPrimitive)]
-pub enum ConstPoolOpcode {
+enumeration!(ConstPoolOpcode {
     String,
     Float32,
     Float64,
@@ -805,8 +805,8 @@ pub enum ConstPoolOpcode {
     Trait,
     Field,
     FieldFixed,
-    Generic,
-}
+    Generic
+});
 
 #[derive(Debug, PartialEq)]
 pub enum ConstPoolEntry {
@@ -887,8 +887,7 @@ impl From<usize> for ConstPoolIdx {
     }
 }
 
-#[derive(FromPrimitive, ToPrimitive)]
-pub enum SourceTypeOpcode {
+enumeration!(SourceTypeOpcode {
     // couldn't determine type because of error
     Error,
 
@@ -935,11 +934,7 @@ pub enum SourceTypeOpcode {
     Lambda,
 
     // some enum
-    Enum,
-}
+    Enum
+});
 
-#[derive(FromPrimitive, ToPrimitive)]
-pub enum InstructionSet {
-    X64,
-    Arm64,
-}
+enumeration!(InstructionSet { X64, Arm64 });

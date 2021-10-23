@@ -1,5 +1,3 @@
-use num_traits::cast::FromPrimitive;
-
 use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
 };
@@ -905,6 +903,8 @@ where
                 let opnd = self.read_register(0, width);
                 self.visitor.visit_ret(opnd);
             }
+
+            _ => unreachable!(),
         }
     }
 
@@ -1523,7 +1523,7 @@ fn find_instruction_starts(fct: &BytecodeFunction) -> Vec<usize> {
 }
 
 pub(super) fn read_opcode_and_width(data: &[u8], pos: usize) -> (BytecodeOpcode, OperandWidth) {
-    if data[pos] as u32 == BytecodeOpcode::Wide as u32 {
+    if data[pos] == BytecodeOpcode::Wide.to_int() {
         (read_opcode(data[pos + 1]), OperandWidth::Wide)
     } else {
         (read_opcode(data[pos]), OperandWidth::Normal)
@@ -1531,7 +1531,7 @@ pub(super) fn read_opcode_and_width(data: &[u8], pos: usize) -> (BytecodeOpcode,
 }
 
 fn read_opcode(opcode: u8) -> BytecodeOpcode {
-    FromPrimitive::from_u32(opcode as u32).expect("illegal opcode")
+    BytecodeOpcode::from_u8(opcode).expect("illegal opcode")
 }
 
 fn offset_argument(index: usize, width: OperandWidth) -> usize {

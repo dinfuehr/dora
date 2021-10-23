@@ -82,3 +82,41 @@ fn test_push() {
 
     assert_eq!(7, vec.len());
 }
+
+macro_rules! enumeration {
+    (@step $idx:expr, $name:ident,) => {
+        impl $name {
+            pub fn from_u8(value: u8) -> Option<$name> {
+                if value < $idx {
+                    Some($name(value))
+                } else {
+                    None
+                }
+            }
+        }
+    };
+
+    (@step $idx:expr, $name:ident, $head:ident, $($tail:ident,)*) => {
+        impl $name {
+            #[allow(non_upper_case_globals)]
+            pub const $head: $name = $name($idx);
+        }
+
+        enumeration!(@step $idx + 1, $name, $($tail,)*);
+    };
+
+    ($name:ident { $($list:ident),+ }) => {
+        #[derive(Copy, Clone, PartialEq, Eq)]
+        pub struct $name(u8);
+
+        impl $name {
+            pub fn to_int(self) -> u8 {
+                self.0
+            }
+        }
+
+        enumeration!(@step 0, $name, $($list,)*);
+    };
+}
+
+pub(crate) use enumeration;
