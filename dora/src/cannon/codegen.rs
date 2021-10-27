@@ -764,6 +764,34 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, REG_TMP1.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        self.asm.int_mul_checked(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            position,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
+    fn emit_mul_int_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(rhs)
+        );
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(dest)
+        );
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+
+        self.emit_load_register(rhs, REG_TMP1.into());
+
+        let bytecode_type = self.bytecode.register_type(dest);
         self.asm.int_mul(
             bytecode_type.mode(self.vm),
             REG_RESULT,
@@ -4439,6 +4467,20 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("MulInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_mul_int(dest, lhs, rhs);
+    }
+    fn visit_mul_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("MulInt32Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_mul_int_unchecked(dest, lhs, rhs);
+    }
+    fn visit_mul_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("MulInt64Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_mul_int_unchecked(dest, lhs, rhs);
     }
     fn visit_mul_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("MulFloat32 {}, {}, {}", dest, lhs, rhs));

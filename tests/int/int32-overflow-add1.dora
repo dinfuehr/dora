@@ -1,5 +1,4 @@
 //= error overflow
-//= platform "arm64"
 
 fun main() {
     let x = Int32::maxValue() + 1;

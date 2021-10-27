@@ -70,6 +70,16 @@ impl Register {
         }
     }
 
+    fn encoding_zero_or_sp(self) -> u32 {
+        if self.is_gpr() {
+            self.0 as u32
+        } else if self == REG_ZERO || self == REG_SP {
+            31
+        } else {
+            unreachable!()
+        }
+    }
+
     fn is_gpr(&self) -> bool {
         self.0 <= R30.0
     }
@@ -592,6 +602,14 @@ impl AssemblerArm64 {
 
     pub fn cmp_w(&mut self, rn: Register, rm: Register) {
         self.subs_w(REG_ZERO, rn, rm);
+    }
+
+    pub fn cmp_ext(&mut self, rn: Register, rm: Register, extend: Extend, amount: u32) {
+        self.subs_ext(REG_ZERO, rn, rm, extend, amount);
+    }
+
+    pub fn cmp_ext_w(&mut self, rn: Register, rm: Register, extend: Extend, amount: u32) {
+        self.subs_ext(REG_ZERO, rn, rm, extend, amount);
     }
 
     pub fn cmp_imm(&mut self, rn: Register, imm12: u32, shift: u32) {
@@ -1797,6 +1815,14 @@ impl AssemblerArm64 {
         self.madd_w(rd, rn, rm, REG_ZERO);
     }
 
+    pub fn muls(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.madd(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn muls_w(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.madd_w(rd, rn, rm, REG_ZERO);
+    }
+
     pub fn nop(&mut self) {
         self.emit_u32(cls::system(0));
     }
@@ -1933,6 +1959,14 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn smaddl(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(1, 0b00, 0b001, rm, 0, ra, rn, rd));
+    }
+
+    pub fn smull(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.smaddl(rd, rn, rm, REG_ZERO);
+    }
+
     pub fn sub(&mut self, rd: Register, rn: Register, rm: Register) {
         if rd == REG_SP || rn == REG_SP {
             self.sub_ext(rd, rn, rm, Extend::UXTX, 0);
@@ -2000,6 +2034,28 @@ impl AssemblerArm64 {
 
     pub fn subs_w(&mut self, rd: Register, rn: Register, rm: Register) {
         self.emit_u32(cls::addsub_shreg(0, 1, 1, Shift::LSL, rm, 0, rn, rd));
+    }
+
+    pub fn subs_ext(
+        &mut self,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: u32,
+    ) {
+        self.emit_u32(cls::addsub_extreg(1, 1, 1, 0, rm, extend, amount, rn, rd));
+    }
+
+    pub fn subs_ext_w(
+        &mut self,
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: u32,
+    ) {
+        self.emit_u32(cls::addsub_extreg(0, 1, 1, 0, rm, extend, amount, rn, rd));
     }
 
     pub fn subs_imm(&mut self, rd: Register, rn: Register, imm12: u32, shift: u32) {
@@ -2096,7 +2152,13 @@ mod cls {
         assert!(rm.is_gpr_or_zero());
         assert!(fits_u2(imm3));
         assert!(rn.is_gpr_or_sp());
-        assert!(rd.is_gpr_or_sp());
+
+        // Register 31 is xzr when setting flags or xsp when not.
+        if s != 0 {
+            assert!(rd.is_gpr_or_zero());
+        } else {
+            assert!(rd.is_gpr_or_sp());
+        }
 
         sf << 31
             | op << 30
@@ -2108,7 +2170,7 @@ mod cls {
             | option.encoding() << 13
             | imm3 << 10
             | rn.encoding_sp() << 5
-            | rd.encoding_sp()
+            | rd.encoding_zero_or_sp()
     }
 
     pub(super) fn addsub_shreg(

@@ -326,6 +326,17 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.int_mul(mode, dest, lhs, rhs);
     }
 
+    pub fn int_mul_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        self.masm.int_mul_checked(mode, dest, lhs, rhs, pos);
+    }
+
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
         self.masm.int_div(mode, dest, lhs, rhs, pos);
     }

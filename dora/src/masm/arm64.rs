@@ -289,6 +289,28 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_mul_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        match mode {
+            MachineMode::Int32 => {
+                self.asm.smull(dest.into(), lhs.into(), rhs.into());
+                self.asm.cmp_ext(dest.into(), dest.into(), Extend::SXTW, 0);
+
+                let lbl_overflow = self.create_label();
+                self.asm.bc_l(Cond::NE, lbl_overflow);
+                self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+            }
+            MachineMode::Int64 => self.asm.mul(dest.into(), lhs.into(), rhs.into()),
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+    }
+
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
             MachineMode::Int32 => self.asm.add_w(dest.into(), lhs.into(), rhs.into()),

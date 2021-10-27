@@ -1,0 +1,7 @@
+//= error overflow
+//= platform arm64
+//= ignore
+
+fun main() {
+    let x = Int64::minValue() * -1L;
+}

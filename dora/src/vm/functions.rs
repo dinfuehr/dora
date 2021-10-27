@@ -427,6 +427,7 @@ pub enum Intrinsic {
     Int32Sub,
     Int32SubUnchecked,
     Int32Mul,
+    Int32MulUnchecked,
     Int32Div,
     Int32Mod,
 
@@ -467,6 +468,7 @@ pub enum Intrinsic {
     Int64Sub,
     Int64SubUnchecked,
     Int64Mul,
+    Int64MulUnchecked,
     Int64Div,
     Int64Mod,
 
@@ -604,6 +606,7 @@ impl Intrinsic {
             | Intrinsic::Int32Sub
             | Intrinsic::Int32SubUnchecked
             | Intrinsic::Int32Mul
+            | Intrinsic::Int32MulUnchecked
             | Intrinsic::Int32Div
             | Intrinsic::Int32Mod
             | Intrinsic::Int32Or
@@ -648,6 +651,7 @@ impl Intrinsic {
             | Intrinsic::Int64Sub
             | Intrinsic::Int64SubUnchecked
             | Intrinsic::Int64Mul
+            | Intrinsic::Int64MulUnchecked
             | Intrinsic::Int64Div
             | Intrinsic::Int64Mod
             | Intrinsic::Int64Or

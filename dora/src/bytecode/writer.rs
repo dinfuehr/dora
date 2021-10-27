@@ -284,8 +284,16 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::MulInt32, dest, lhs, rhs);
     }
 
+    pub fn emit_mul_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::MulInt32Unchecked, dest, lhs, rhs);
+    }
+
     pub fn emit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::MulInt64, dest, lhs, rhs);
+    }
+
+    pub fn emit_mul_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::MulInt64Unchecked, dest, lhs, rhs);
     }
 
     pub fn emit_mul_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {

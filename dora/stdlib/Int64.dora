@@ -32,6 +32,7 @@ impl Int64 {
 
   @pub @internal fun addUnchecked(rhs: Int64): Int64;
   @pub @internal fun subUnchecked(rhs: Int64): Int64;
+  @pub @internal fun mulUnchecked(rhs: Int64): Int64;
 
   @pub @internal fun bitwiseOr(rhs: Int64): Int64;
   @pub @internal fun bitwiseAnd(rhs: Int64): Int64;

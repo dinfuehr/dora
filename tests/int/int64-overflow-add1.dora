@@ -1,0 +1,5 @@
+//= error overflow
+
+fun main() {
+    let x = Int64::maxValue() + 1L;
+}

@@ -430,6 +430,10 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_mul_unchecked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.int_mul(mode, dest, lhs, rhs);
+    }
+
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         if mode.is64() {
             self.asm.addq_rr(lhs.into(), rhs.into());
