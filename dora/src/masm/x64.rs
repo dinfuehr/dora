@@ -436,9 +436,21 @@ impl MacroAssembler {
         dest: Reg,
         lhs: Reg,
         rhs: Reg,
-        _pos: Position,
+        pos: Position,
     ) {
-        self.int_mul(mode, dest, lhs, rhs);
+        if mode.is64() {
+            self.asm.imulq_rr(lhs.into(), rhs.into());
+        } else {
+            self.asm.imull_rr(lhs.into(), rhs.into());
+        }
+
+        let lbl_overflow = self.asm.create_label();
+        self.asm.jcc(Condition::Overflow, lbl_overflow);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+
+        if dest != lhs {
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
+        }
     }
 
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {

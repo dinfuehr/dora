@@ -29,7 +29,7 @@ const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
   }
 
   @pub fun nextInt32(): Int32 {
-    self.seed = (self.seed * RANDOM_MULTIPLIER + RANDOM_INCREMENT) & RANDOM_MASK;
+    self.seed = self.seed.mulUnchecked(RANDOM_MULTIPLIER).addUnchecked(RANDOM_INCREMENT) & RANDOM_MASK;
     return (self.seed >>> 16).toInt32();
   }
 
