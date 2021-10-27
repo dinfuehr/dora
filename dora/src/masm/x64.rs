@@ -430,7 +430,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_mul_unchecked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_mul_checked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         self.int_mul(mode, dest, lhs, rhs);
     }
 
