@@ -150,6 +150,7 @@ enum JumpKind {
     Unconditional,
     Conditional(Cond),
     NonZero(bool, Register),
+    Zero(bool, Register),
 }
 
 pub struct AssemblerArm64 {
@@ -239,6 +240,14 @@ impl AssemblerArm64 {
                             self.cbnz_imm(rt, distance);
                         } else {
                             self.cbnz_imm_w(rt, distance);
+                        }
+                    }
+
+                    JumpKind::Zero(sf, rt) => {
+                        if sf {
+                            self.cbz_imm(rt, distance);
+                        } else {
+                            self.cbz_imm_w(rt, distance);
                         }
                     }
                 }
@@ -529,47 +538,11 @@ impl AssemblerArm64 {
     }
 
     pub fn cbnz(&mut self, reg: Register, target: Label) {
-        let value = self.offset(target);
-
-        match value {
-            Some(target_offset) => {
-                let diff = -(self.position() as i32 - target_offset as i32);
-                assert!(diff % 4 == 0);
-                self.cbnz_imm(reg, diff / 4);
-            }
-
-            None => {
-                let pos = self.position() as u32;
-                self.emit_u32(0);
-                self.unresolved_jumps.push(ForwardJump {
-                    offset: pos,
-                    label: target,
-                    kind: JumpKind::NonZero(true, reg),
-                });
-            }
-        }
+        self.common_cbz_cbnz(true, false, reg, target);
     }
 
     pub fn cbnz_w(&mut self, reg: Register, target: Label) {
-        let value = self.offset(target);
-
-        match value {
-            Some(target_offset) => {
-                let diff = -(self.position() as i32 - target_offset as i32);
-                assert!(diff % 4 == 0);
-                self.cbnz_imm_w(reg, diff / 4);
-            }
-
-            None => {
-                let pos = self.position() as u32;
-                self.emit_u32(0);
-                self.unresolved_jumps.push(ForwardJump {
-                    offset: pos,
-                    label: target,
-                    kind: JumpKind::NonZero(false, reg),
-                });
-            }
-        }
+        self.common_cbz_cbnz(false, false, reg, target);
     }
 
     pub fn cbnz_imm(&mut self, reg: Register, diff: i32) {
@@ -578,6 +551,62 @@ impl AssemblerArm64 {
 
     pub fn cbnz_imm_w(&mut self, reg: Register, diff: i32) {
         self.emit_u32(inst::cbnz(0, reg, diff));
+    }
+
+    pub fn cbz(&mut self, reg: Register, target: Label) {
+        self.common_cbz_cbnz(true, true, reg, target);
+    }
+
+    pub fn cbz_w(&mut self, reg: Register, target: Label) {
+        self.common_cbz_cbnz(false, true, reg, target);
+    }
+
+    fn common_cbz_cbnz(&mut self, sf: bool, zero: bool, reg: Register, target: Label) {
+        let value = self.offset(target);
+
+        match value {
+            Some(target_offset) => {
+                let diff = -(self.position() as i32 - target_offset as i32);
+                assert!(diff % 4 == 0);
+
+                if zero {
+                    if sf {
+                        self.cbz_imm(reg, diff / 4);
+                    } else {
+                        self.cbz_imm_w(reg, diff / 4);
+                    }
+                } else {
+                    if sf {
+                        self.cbnz_imm(reg, diff / 4);
+                    } else {
+                        self.cbnz_imm_w(reg, diff / 4);
+                    }
+                }
+            }
+
+            None => {
+                let pos = self.position() as u32;
+                self.emit_u32(0);
+                let kind = if zero {
+                    JumpKind::Zero(sf, reg)
+                } else {
+                    JumpKind::NonZero(sf, reg)
+                };
+                self.unresolved_jumps.push(ForwardJump {
+                    offset: pos,
+                    label: target,
+                    kind,
+                });
+            }
+        }
+    }
+
+    pub fn cbz_imm(&mut self, reg: Register, diff: i32) {
+        self.emit_u32(inst::cbz(1, reg, diff));
+    }
+
+    pub fn cbz_imm_w(&mut self, reg: Register, diff: i32) {
+        self.emit_u32(inst::cbz(0, reg, diff));
     }
 
     pub fn cls_w(&mut self, rd: Register, rn: Register) {
@@ -2149,7 +2178,6 @@ mod inst {
         cls::uncond_branch_imm(0, imm26)
     }
 
-    #[allow(dead_code)]
     pub(super) fn cbz(sf: u32, rt: Register, imm19: i32) -> u32 {
         cls::cmp_branch_imm(sf, 0b0, rt, imm19)
     }

@@ -276,8 +276,12 @@ impl MacroAssembler {
         let lbl_zero = self.create_label();
         let lbl_div = self.create_label();
 
-        self.cmp_reg_imm(mode, rhs, 0);
-        self.jump_if(CondCode::Equal, lbl_zero);
+        match mode {
+            MachineMode::Int32 => self.asm.cbz(rhs.into(), lbl_zero),
+            MachineMode::Int64 => self.asm.cbz_w(rhs.into(), lbl_zero),
+            _ => unreachable!(),
+        }
+
         self.emit_bailout(lbl_zero, Trap::DIV0, pos);
 
         if is_checked {
