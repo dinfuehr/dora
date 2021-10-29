@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -e
+
+cargo build --target x86_64-apple-darwin
+cargo test --target x86_64-apple-darwin
+ruby tools/tester.rb --binary target/x86_64-apple-darwin/debug/dora $@
+cargo run --target x86_64-apple-darwin -- test --test-boots --boots=dora-boots --gc-verify

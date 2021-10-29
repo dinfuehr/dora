@@ -349,11 +349,33 @@ impl MacroAssembler {
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.div_common(mode, dest, lhs, rhs, RAX, true, pos);
+        self.div_common(mode, dest, lhs, rhs, RAX, pos, true, true);
+    }
+
+    pub fn int_div_unchecked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        self.div_common(mode, dest, lhs, rhs, RAX, pos, true, false);
     }
 
     pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.div_common(mode, dest, lhs, rhs, RDX, false, pos);
+        self.div_common(mode, dest, lhs, rhs, RDX, pos, false, true);
+    }
+
+    pub fn int_mod_unchecked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        self.div_common(mode, dest, lhs, rhs, RDX, pos, false, false);
     }
 
     fn div_common(
@@ -363,8 +385,9 @@ impl MacroAssembler {
         lhs: Reg,
         rhs: Reg,
         result: Reg,
-        is_div: bool,
         pos: Position,
+        is_div: bool,
+        is_checked: bool,
     ) {
         if mode.is64() {
             self.asm.testq_rr(rhs.into(), rhs.into());
