@@ -1,0 +1,4 @@
+fun main() {
+    assert(Int32::minValue() == Int32::minValue().divUnchecked(-1));
+    assert(Int64::minValue() == Int64::minValue().divUnchecked(-1L));
+}

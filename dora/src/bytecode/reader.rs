@@ -173,11 +173,23 @@ where
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_div_int32(dest, lhs, rhs);
             }
+            BytecodeOpcode::DivInt32Unchecked => {
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
+                self.visitor.visit_div_int32_unchecked(dest, lhs, rhs);
+            }
             BytecodeOpcode::DivInt64 => {
                 let dest = self.read_register(0, width);
                 let lhs = self.read_register(1, width);
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_div_int64(dest, lhs, rhs);
+            }
+            BytecodeOpcode::DivInt64Unchecked => {
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
+                self.visitor.visit_div_int64_unchecked(dest, lhs, rhs);
             }
             BytecodeOpcode::DivFloat32 => {
                 let dest = self.read_register(0, width);
@@ -198,11 +210,23 @@ where
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_mod_int32(dest, lhs, rhs);
             }
+            BytecodeOpcode::ModInt32Unchecked => {
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
+                self.visitor.visit_mod_int32_unchecked(dest, lhs, rhs);
+            }
             BytecodeOpcode::ModInt64 => {
                 let dest = self.read_register(0, width);
                 let lhs = self.read_register(1, width);
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_mod_int64(dest, lhs, rhs);
+            }
+            BytecodeOpcode::ModInt64Unchecked => {
+                let dest = self.read_register(0, width);
+                let lhs = self.read_register(1, width);
+                let rhs = self.read_register(2, width);
+                self.visitor.visit_mod_int64_unchecked(dest, lhs, rhs);
             }
 
             BytecodeOpcode::AndInt32 => {
@@ -1067,7 +1091,13 @@ pub trait BytecodeVisitor {
     fn visit_div_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_div_int32_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
     fn visit_div_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_div_int64_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_div_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
@@ -1080,7 +1110,13 @@ pub trait BytecodeVisitor {
     fn visit_mod_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_mod_int32_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
     fn visit_mod_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_mod_int64_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 

@@ -855,6 +855,35 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
+    fn emit_div_int_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(rhs)
+        );
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(dest)
+        );
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+
+        self.emit_load_register(rhs, REG_TMP1.into());
+
+        let bytecode_type = self.bytecode.register_type(dest);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        self.asm.int_div_unchecked(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            position,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
     fn emit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
@@ -898,6 +927,35 @@ impl<'a> CannonCodeGen<'a> {
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
         self.asm.int_mod(
+            bytecode_type.mode(self.vm),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            position,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
+    fn emit_mod_int_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(rhs)
+        );
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(dest)
+        );
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+
+        self.emit_load_register(rhs, REG_TMP1.into());
+
+        let bytecode_type = self.bytecode.register_type(dest);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        self.asm.int_mod_unchecked(
             bytecode_type.mode(self.vm),
             REG_RESULT,
             REG_RESULT,
@@ -4495,9 +4553,23 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, format!("DivInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_div_int(dest, lhs, rhs);
     }
+    fn visit_div_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("DivInt32Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_div_int_unchecked(dest, lhs, rhs);
+    }
     fn visit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("DivInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_div_int(dest, lhs, rhs);
+    }
+    fn visit_div_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("DivInt64Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_div_int_unchecked(dest, lhs, rhs);
     }
     fn visit_div_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("DivFloat32 {}, {}, {}", dest, lhs, rhs));
@@ -4512,9 +4584,23 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, format!("ModInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_mod_int(dest, lhs, rhs);
     }
+    fn visit_mod_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("ModInt32Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_mod_int_unchecked(dest, lhs, rhs);
+    }
     fn visit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("ModInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_mod_int(dest, lhs, rhs);
+    }
+    fn visit_mod_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(
+            self,
+            format!("ModInt64Unchecked {}, {}, {}", dest, lhs, rhs)
+        );
+        self.emit_mod_int_unchecked(dest, lhs, rhs);
     }
 
     fn visit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {

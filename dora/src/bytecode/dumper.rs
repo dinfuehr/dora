@@ -666,8 +666,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("DivInt32", dest, lhs, rhs);
     }
+    fn visit_div_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("DivInt32Unchecked", dest, lhs, rhs);
+    }
     fn visit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("DivInt64", dest, lhs, rhs);
+    }
+    fn visit_div_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("DivInt64Unchecked", dest, lhs, rhs);
     }
     fn visit_div_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("DivFloat32", dest, lhs, rhs);
@@ -679,8 +685,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("ModInt32", dest, lhs, rhs);
     }
+    fn visit_mod_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("ModInt32Unchecked", dest, lhs, rhs);
+    }
     fn visit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("ModInt64", dest, lhs, rhs);
+    }
+    fn visit_mod_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("ModInt64Unchecked", dest, lhs, rhs);
     }
 
     fn visit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {

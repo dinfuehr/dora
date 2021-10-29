@@ -341,8 +341,30 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.int_div(mode, dest, lhs, rhs, pos);
     }
 
+    pub fn int_div_unchecked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        self.masm.int_div_unchecked(mode, dest, lhs, rhs, pos);
+    }
+
     pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
         self.masm.int_mod(mode, dest, lhs, rhs, pos);
+    }
+
+    pub fn int_mod_unchecked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+    ) {
+        self.masm.int_mod_unchecked(mode, dest, lhs, rhs, pos);
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {

@@ -131,8 +131,16 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::DivInt32, dest, lhs, rhs);
     }
 
+    pub fn emit_div_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::DivInt32Unchecked, dest, lhs, rhs);
+    }
+
     pub fn emit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::DivInt64, dest, lhs, rhs);
+    }
+
+    pub fn emit_div_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::DivInt64Unchecked, dest, lhs, rhs);
     }
 
     pub fn emit_div_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -276,8 +284,16 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::ModInt32, dest, lhs, rhs);
     }
 
+    pub fn emit_mod_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ModInt32Unchecked, dest, lhs, rhs);
+    }
+
     pub fn emit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ModInt64, dest, lhs, rhs);
+    }
+
+    pub fn emit_mod_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ModInt64Unchecked, dest, lhs, rhs);
     }
 
     pub fn emit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {

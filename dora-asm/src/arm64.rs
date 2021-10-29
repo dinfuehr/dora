@@ -596,6 +596,14 @@ impl AssemblerArm64 {
         self.emit_u32(cls::dataproc1(1, 0, 0b00000, 0b000100, rn, rd));
     }
 
+    pub fn cmn_imm(&mut self, rn: Register, imm32: u32, shift: u32) {
+        self.adds_imm(REG_ZERO, rn, imm32, shift);
+    }
+
+    pub fn cmn_imm_w(&mut self, rn: Register, imm32: u32, shift: u32) {
+        self.adds_imm_w(REG_ZERO, rn, imm32, shift);
+    }
+
     pub fn cmp(&mut self, rn: Register, rm: Register) {
         self.subs(REG_ZERO, rn, rm);
     }
