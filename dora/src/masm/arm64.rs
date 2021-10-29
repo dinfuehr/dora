@@ -306,7 +306,35 @@ impl MacroAssembler {
                 self.asm.bc_l(Cond::NE, lbl_overflow);
                 self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
             }
-            MachineMode::Int64 => self.asm.mul(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => {
+                let lbl_overflow = self.create_label();
+
+                let tmp = self.get_scratch();
+                let tmp_reg = *tmp;
+
+                if lhs == dest {
+                    self.asm.mov(tmp_reg.into(), lhs.into());
+                } else if rhs == dest {
+                    self.asm.mov(tmp_reg.into(), rhs.into());
+                } else {
+                    assert_ne!(dest, lhs);
+                    assert_ne!(dest, rhs);
+                }
+
+                self.asm.mul(dest.into(), lhs.into(), rhs.into());
+
+                if lhs == dest {
+                    self.asm.smulh(tmp_reg.into(), tmp_reg.into(), rhs.into());
+                } else if rhs == dest {
+                    self.asm.smulh(tmp_reg.into(), lhs.into(), tmp_reg.into());
+                } else {
+                    self.asm.smulh(tmp_reg.into(), lhs.into(), rhs.into());
+                }
+
+                self.asm.cmp_sh(tmp_reg.into(), dest.into(), Shift::ASR, 63);
+                self.asm.bc_l(Cond::NE, lbl_overflow);
+                self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+            }
             _ => panic!("unimplemented mode {:?}", mode),
         }
     }
@@ -1378,21 +1406,14 @@ impl MacroAssembler {
     }
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        if dest == REG_SP || src == REG_SP {
-            assert_eq!(mode, MachineMode::Ptr);
-            self.asm.add_imm(dest.into(), src.into(), 0, 0);
-        } else {
-            match mode {
-                MachineMode::Int32 | MachineMode::Int8 => {
-                    self.asm
-                        .orr_sh_w(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
-                }
-                MachineMode::Ptr | MachineMode::Int64 => {
-                    self.asm
-                        .orr_sh(dest.into(), REG_ZERO.into(), src.into(), Shift::LSL, 0)
-                }
-                _ => unreachable!(),
+        match mode {
+            MachineMode::Int32 | MachineMode::Int8 => {
+                self.asm.mov_w(dest.into(), src.into());
             }
+            MachineMode::Ptr | MachineMode::Int64 => {
+                self.asm.mov(dest.into(), src.into());
+            }
+            _ => unreachable!(),
         }
     }
 

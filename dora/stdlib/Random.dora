@@ -11,7 +11,7 @@ const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
 
     if (bound & bound_minus_1) == 0 {
       let num = self.nextInt31().toInt64();
-      return ((bound.toInt64() * num) >>> 31).toInt32();
+      return ((bound.toInt64().mulUnchecked(num)) >>> 31).toInt32();
     }
 
     var mod = 0;

@@ -1775,6 +1775,22 @@ impl AssemblerArm64 {
         self.emit_u32(cls::dataproc3(0, 0, 0, rm, 0, ra, rn, rd));
     }
 
+    pub fn mov(&mut self, rd: Register, rs: Register) {
+        if rd == REG_SP || rs == REG_SP {
+            self.add_imm(rd, rs, 0, 0);
+        } else {
+            self.orr_sh(rd, REG_ZERO, rs, Shift::LSL, 0);
+        }
+    }
+
+    pub fn mov_w(&mut self, rd: Register, rs: Register) {
+        if rd == REG_SP || rs == REG_SP {
+            self.add_imm_w(rd, rs, 0, 0);
+        } else {
+            self.orr_sh_w(rd, REG_ZERO, rs, Shift::LSL, 0);
+        }
+    }
+
     pub fn movn(&mut self, rd: Register, imm16: u32, shift: u32) {
         self.emit_u32(cls::move_wide_imm(1, 0b00, shift, imm16, rd));
     }
@@ -1965,6 +1981,10 @@ impl AssemblerArm64 {
 
     pub fn smull(&mut self, rd: Register, rn: Register, rm: Register) {
         self.smaddl(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn smulh(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc3(1, 0, 0b010, rm, 0, REG_ZERO, rn, rd));
     }
 
     pub fn sub(&mut self, rd: Register, rn: Register, rm: Register) {
@@ -2188,7 +2208,7 @@ mod cls {
         assert!(fits_bit(s));
         assert!(!shift.is_ror());
         assert!(rm.is_gpr());
-        assert!(fits_u5(imm6));
+        assert!(fits_u6(imm6));
         assert!(rn.is_gpr_or_zero());
         assert!(rd.is_gpr_or_zero());
 
