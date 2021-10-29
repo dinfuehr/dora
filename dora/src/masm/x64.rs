@@ -387,7 +387,7 @@ impl MacroAssembler {
         result: Reg,
         pos: Position,
         is_div: bool,
-        is_checked: bool,
+        _is_checked: bool,
     ) {
         if mode.is64() {
             self.asm.testq_rr(rhs.into(), rhs.into());
