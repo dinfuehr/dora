@@ -225,16 +225,12 @@ enumeration!(BytecodeOpcode {
     MulFloat64,
 
     DivInt32,
-    DivInt32Unchecked,
     DivInt64,
-    DivInt64Unchecked,
     DivFloat32,
     DivFloat64,
 
     ModInt32,
-    ModInt32Unchecked,
     ModInt64,
-    ModInt64Unchecked,
 
     AndInt32,
     AndInt64,
@@ -563,15 +559,11 @@ impl BytecodeOpcode {
             | BytecodeOpcode::MulFloat32
             | BytecodeOpcode::MulFloat64
             | BytecodeOpcode::DivInt32
-            | BytecodeOpcode::DivInt32Unchecked
             | BytecodeOpcode::DivInt64
-            | BytecodeOpcode::DivInt64Unchecked
             | BytecodeOpcode::DivFloat32
             | BytecodeOpcode::DivFloat64
             | BytecodeOpcode::ModInt32
-            | BytecodeOpcode::ModInt32Unchecked
             | BytecodeOpcode::ModInt64
-            | BytecodeOpcode::ModInt64Unchecked
             | BytecodeOpcode::AndInt32
             | BytecodeOpcode::AndInt64
             | BytecodeOpcode::OrInt32

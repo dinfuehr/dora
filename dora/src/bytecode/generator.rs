@@ -2421,13 +2421,7 @@ impl<'a> AstBytecodeGen<'a> {
                 self.gen.emit_mul_int32_unchecked(dest, lhs_reg, rhs_reg)
             }
             Intrinsic::Int32Div => self.gen.emit_div_int32(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int32DivUnchecked => {
-                self.gen.emit_div_int32_unchecked(dest, lhs_reg, rhs_reg)
-            }
             Intrinsic::Int32Mod => self.gen.emit_mod_int32(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int32ModUnchecked => {
-                self.gen.emit_mod_int32_unchecked(dest, lhs_reg, rhs_reg)
-            }
             Intrinsic::Int32Or => self.gen.emit_or_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32And => self.gen.emit_and_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32Xor => self.gen.emit_xor_int32(dest, lhs_reg, rhs_reg),
@@ -2449,13 +2443,7 @@ impl<'a> AstBytecodeGen<'a> {
                 self.gen.emit_mul_int64_unchecked(dest, lhs_reg, rhs_reg)
             }
             Intrinsic::Int64Div => self.gen.emit_div_int64(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int64DivUnchecked => {
-                self.gen.emit_div_int64_unchecked(dest, lhs_reg, rhs_reg)
-            }
             Intrinsic::Int64Mod => self.gen.emit_mod_int64(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int64ModUnchecked => {
-                self.gen.emit_mod_int64_unchecked(dest, lhs_reg, rhs_reg)
-            }
             Intrinsic::Int64Or => self.gen.emit_or_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64And => self.gen.emit_and_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Xor => self.gen.emit_xor_int64(dest, lhs_reg, rhs_reg),

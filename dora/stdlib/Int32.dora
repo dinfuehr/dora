@@ -33,8 +33,6 @@ impl Int32 {
   @pub @internal fun addUnchecked(rhs: Int32): Int32;
   @pub @internal fun subUnchecked(rhs: Int32): Int32;
   @pub @internal fun mulUnchecked(rhs: Int32): Int32;
-  @pub @internal fun divUnchecked(rhs: Int32): Int32;
-  @pub @internal fun modUnchecked(rhs: Int32): Int32;
 
   @pub @internal fun bitwiseOr(rhs: Int32): Int32;
   @pub @internal fun bitwiseAnd(rhs: Int32): Int32;

@@ -378,20 +378,6 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         "mulUnchecked",
         Intrinsic::Int32MulUnchecked,
     );
-    intrinsic_method(
-        vm,
-        stdlib,
-        "Int32",
-        "divUnchecked",
-        Intrinsic::Int32DivUnchecked,
-    );
-    intrinsic_method(
-        vm,
-        stdlib,
-        "Int32",
-        "modUnchecked",
-        Intrinsic::Int32ModUnchecked,
-    );
 
     intrinsic_method(vm, stdlib, "Int32", "bitwiseOr", Intrinsic::Int32Or);
     intrinsic_method(vm, stdlib, "Int32", "bitwiseAnd", Intrinsic::Int32And);
@@ -521,20 +507,6 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         "Int64",
         "mulUnchecked",
         Intrinsic::Int64MulUnchecked,
-    );
-    intrinsic_method(
-        vm,
-        stdlib,
-        "Int64",
-        "divUnchecked",
-        Intrinsic::Int64DivUnchecked,
-    );
-    intrinsic_method(
-        vm,
-        stdlib,
-        "Int64",
-        "modUnchecked",
-        Intrinsic::Int64ModUnchecked,
     );
 
     intrinsic_method(vm, stdlib, "Int64", "bitwiseOr", Intrinsic::Int64Or);

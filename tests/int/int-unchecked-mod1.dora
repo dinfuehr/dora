@@ -1,4 +1,0 @@
-fun main() {
-    assert(0 == Int32::minValue().modUnchecked(-1));
-    assert(0L == Int64::minValue().modUnchecked(-1L));
-}

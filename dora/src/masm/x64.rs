@@ -349,33 +349,11 @@ impl MacroAssembler {
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.div_common(mode, dest, lhs, rhs, RAX, pos, true, true);
-    }
-
-    pub fn int_div_unchecked(
-        &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
-    ) {
-        self.div_common(mode, dest, lhs, rhs, RAX, pos, true, false);
+        self.div_common(mode, dest, lhs, rhs, RAX, pos);
     }
 
     pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.div_common(mode, dest, lhs, rhs, RDX, pos, false, true);
-    }
-
-    pub fn int_mod_unchecked(
-        &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
-    ) {
-        self.div_common(mode, dest, lhs, rhs, RDX, pos, false, false);
+        self.div_common(mode, dest, lhs, rhs, RDX, pos);
     }
 
     fn div_common(
@@ -386,8 +364,6 @@ impl MacroAssembler {
         rhs: Reg,
         result: Reg,
         pos: Position,
-        is_div: bool,
-        is_checked: bool,
     ) {
         if mode.is64() {
             self.asm.testq_rr(rhs.into(), rhs.into());
@@ -401,41 +377,25 @@ impl MacroAssembler {
         self.jump_if(CondCode::Zero, lbl_zero);
         self.emit_bailout(lbl_zero, Trap::DIV0, pos);
 
-        if is_checked {
-            let lbl_overflow = self.create_label();
-            let scratch = self.get_scratch();
+        let lbl_overflow = self.create_label();
+        let scratch = self.get_scratch();
 
-            if mode.is64() {
-                self.asm
-                    .movq_ri((*scratch).into(), Immediate(i64::min_value()));
-                self.asm.cmpq_rr((*scratch).into(), lhs.into());
-                self.asm.jcc(Condition::NotEqual, lbl_div);
-                self.asm.cmpq_ri(rhs.into(), Immediate(-1));
-            } else {
-                self.asm
-                    .movl_ri((*scratch).into(), Immediate(i32::min_value() as i64));
-                self.asm.cmpl_rr((*scratch).into(), lhs.into());
-                self.asm.jcc(Condition::NotEqual, lbl_div);
-                self.asm.cmpl_ri(rhs.into(), Immediate(-1));
-            }
-
-            self.asm.jcc(Condition::Equal, lbl_overflow);
-            self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+        if mode.is64() {
+            self.asm
+                .movq_ri((*scratch).into(), Immediate(i64::min_value()));
+            self.asm.cmpq_rr((*scratch).into(), lhs.into());
+            self.asm.jcc(Condition::NotEqual, lbl_div);
+            self.asm.cmpq_ri(rhs.into(), Immediate(-1));
         } else {
-            if mode.is64() {
-                self.asm.cmpq_ri(rhs.into(), Immediate(-1));
-            } else {
-                self.asm.cmpl_ri(rhs.into(), Immediate(-1));
-            }
-            self.jump_if(CondCode::NotEqual, lbl_div);
-
-            if is_div {
-                self.int_neg(mode, dest, lhs);
-            } else {
-                self.asm.xorl_rr(dest.into(), dest.into());
-            }
-            self.jump(lbl_done);
+            self.asm
+                .movl_ri((*scratch).into(), Immediate(i32::min_value() as i64));
+            self.asm.cmpl_rr((*scratch).into(), lhs.into());
+            self.asm.jcc(Condition::NotEqual, lbl_div);
+            self.asm.cmpl_ri(rhs.into(), Immediate(-1));
         }
+
+        self.asm.jcc(Condition::Equal, lbl_overflow);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
 
         self.bind_label(lbl_div);
 

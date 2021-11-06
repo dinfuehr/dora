@@ -234,33 +234,11 @@ impl MacroAssembler {
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.divmod_common(mode, dest, lhs, rhs, pos, true, true);
-    }
-
-    pub fn int_div_unchecked(
-        &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
-    ) {
-        self.divmod_common(mode, dest, lhs, rhs, pos, true, false);
+        self.divmod_common(mode, dest, lhs, rhs, pos, true);
     }
 
     pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.divmod_common(mode, dest, lhs, rhs, pos, false, true);
-    }
-
-    pub fn int_mod_unchecked(
-        &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
-    ) {
-        self.divmod_common(mode, dest, lhs, rhs, pos, false, false);
+        self.divmod_common(mode, dest, lhs, rhs, pos, false);
     }
 
     fn divmod_common(
@@ -271,7 +249,6 @@ impl MacroAssembler {
         rhs: Reg,
         pos: Position,
         is_div: bool,
-        is_checked: bool,
     ) {
         let lbl_zero = self.create_label();
         let lbl_div = self.create_label();
@@ -284,31 +261,29 @@ impl MacroAssembler {
 
         self.emit_bailout(lbl_zero, Trap::DIV0, pos);
 
-        if is_checked {
-            let lbl_overflow = self.create_label();
-            let scratch = self.get_scratch();
-            match mode {
-                MachineMode::Int32 => {
-                    self.asm.movz_w((*scratch).into(), 0x8000, 1);
-                    self.asm.cmp_w(lhs.into(), (*scratch).into());
-                    self.asm.bc_l(Cond::NE, lbl_div);
-                    self.asm.cmn_imm_w(rhs.into(), 1, 0);
-                    self.asm.bc_l(Cond::EQ, lbl_overflow);
-                }
-
-                MachineMode::Int64 => {
-                    self.asm.movz((*scratch).into(), 0x8000, 3);
-                    self.asm.cmp(lhs.into(), (*scratch).into());
-                    self.asm.bc_l(Cond::NE, lbl_div);
-                    self.asm.cmn_imm(rhs.into(), 1, 0);
-                    self.asm.bc_l(Cond::EQ, lbl_overflow);
-                }
-
-                _ => unreachable!(),
+        let lbl_overflow = self.create_label();
+        let scratch = self.get_scratch();
+        match mode {
+            MachineMode::Int32 => {
+                self.asm.movz_w((*scratch).into(), 0x8000, 1);
+                self.asm.cmp_w(lhs.into(), (*scratch).into());
+                self.asm.bc_l(Cond::NE, lbl_div);
+                self.asm.cmn_imm_w(rhs.into(), 1, 0);
+                self.asm.bc_l(Cond::EQ, lbl_overflow);
             }
 
-            self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+            MachineMode::Int64 => {
+                self.asm.movz((*scratch).into(), 0x8000, 3);
+                self.asm.cmp(lhs.into(), (*scratch).into());
+                self.asm.bc_l(Cond::NE, lbl_div);
+                self.asm.cmn_imm(rhs.into(), 1, 0);
+                self.asm.bc_l(Cond::EQ, lbl_overflow);
+            }
+
+            _ => unreachable!(),
         }
+
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
 
         self.asm.bind_label(lbl_div);
 
