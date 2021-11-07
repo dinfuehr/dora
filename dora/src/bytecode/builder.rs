@@ -145,20 +145,10 @@ impl BytecodeBuilder {
         self.writer.emit_add_int32(dest, lhs, rhs);
     }
 
-    pub fn emit_add_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_add_int32_unchecked(dest, lhs, rhs);
-    }
-
     pub fn emit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);
         self.writer.emit_add_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_add_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_add_int64_unchecked(dest, lhs, rhs);
     }
 
     pub fn emit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {

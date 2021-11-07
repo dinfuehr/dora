@@ -45,23 +45,11 @@ where
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_add_int32(dest, lhs, rhs);
             }
-            BytecodeOpcode::AddInt32Unchecked => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
-                self.visitor.visit_add_int32_unchecked(dest, lhs, rhs);
-            }
             BytecodeOpcode::AddInt64 => {
                 let dest = self.read_register(0, width);
                 let lhs = self.read_register(1, width);
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_add_int64(dest, lhs, rhs);
-            }
-            BytecodeOpcode::AddInt64Unchecked => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
-                self.visitor.visit_add_int32_unchecked(dest, lhs, rhs);
             }
             BytecodeOpcode::AddFloat32 => {
                 let dest = self.read_register(0, width);
@@ -973,13 +961,7 @@ pub trait BytecodeVisitor {
     fn visit_add_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_add_int32_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
     fn visit_add_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_add_int64_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_add_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {

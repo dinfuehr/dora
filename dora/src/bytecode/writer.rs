@@ -83,16 +83,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::AddInt32, dest, lhs, rhs);
     }
 
-    pub fn emit_add_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::AddInt32Unchecked, dest, lhs, rhs);
-    }
-
     pub fn emit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::AddInt64, dest, lhs, rhs);
-    }
-
-    pub fn emit_add_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::AddInt64Unchecked, dest, lhs, rhs);
     }
 
     pub fn emit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {

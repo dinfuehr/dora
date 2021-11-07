@@ -3784,6 +3784,25 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(REG_RESULT.into(), dest_reg);
             }
 
+            Intrinsic::Int32AddUnchecked | Intrinsic::Int64AddUnchecked => {
+                assert_eq!(arguments.len(), 2);
+
+                let dest_reg = dest.expect("missing dest");
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+
+                let mode = match intrinsic {
+                    Intrinsic::Int32AddUnchecked => MachineMode::Int32,
+                    Intrinsic::Int64AddUnchecked => MachineMode::Int64,
+                    _ => unreachable!(),
+                };
+
+                self.emit_load_register(lhs_reg, REG_RESULT.into());
+                self.emit_load_register(rhs_reg, REG_TMP1.into());
+                self.asm.int_add(mode, REG_RESULT, REG_RESULT, REG_TMP1);
+                self.emit_store_register(REG_RESULT.into(), dest_reg);
+            }
+
             _ => unreachable!(),
         }
     }
@@ -4395,23 +4414,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, format!("AddInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
     }
-    fn visit_add_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(
-            self,
-            format!("AddInt32Unchecked {}, {}, {}", dest, lhs, rhs)
-        );
-        self.emit_add_int_unchecked(dest, lhs, rhs);
-    }
     fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("AddInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
-    }
-    fn visit_add_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(
-            self,
-            format!("AddInt64Unchecked {}, {}, {}", dest, lhs, rhs)
-        );
-        self.emit_add_int_unchecked(dest, lhs, rhs);
     }
     fn visit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("AddFloat32 {}, {}, {}", dest, lhs, rhs));
