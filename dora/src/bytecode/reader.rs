@@ -81,23 +81,11 @@ where
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_sub_int32(dest, lhs, rhs);
             }
-            BytecodeOpcode::SubInt32Unchecked => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
-                self.visitor.visit_sub_int32_unchecked(dest, lhs, rhs);
-            }
             BytecodeOpcode::SubInt64 => {
                 let dest = self.read_register(0, width);
                 let lhs = self.read_register(1, width);
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_sub_int64(dest, lhs, rhs);
-            }
-            BytecodeOpcode::SubInt64Unchecked => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
-                self.visitor.visit_sub_int64_unchecked(dest, lhs, rhs);
             }
             BytecodeOpcode::SubFloat32 => {
                 let dest = self.read_register(0, width);
@@ -1004,13 +992,7 @@ pub trait BytecodeVisitor {
     fn visit_sub_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_sub_int32_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
     fn visit_sub_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_sub_int64_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_sub_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {

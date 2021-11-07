@@ -552,6 +552,8 @@ impl Intrinsic {
         match self {
             Intrinsic::UnsafeKillRefs
             | Intrinsic::Unreachable
+            | Intrinsic::Int32SubUnchecked
+            | Intrinsic::Int64SubUnchecked
             | Intrinsic::Int32MulUnchecked
             | Intrinsic::Int64MulUnchecked
             | Intrinsic::Int64CountZeroBits

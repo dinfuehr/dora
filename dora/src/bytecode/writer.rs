@@ -399,16 +399,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::SubInt32, dest, lhs, rhs);
     }
 
-    pub fn emit_sub_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::SubInt32Unchecked, dest, lhs, rhs);
-    }
-
     pub fn emit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubInt64, dest, lhs, rhs);
-    }
-
-    pub fn emit_sub_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::SubInt64Unchecked, dest, lhs, rhs);
     }
 
     pub fn emit_sub_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
