@@ -777,31 +777,6 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
-    fn emit_mul_int_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
-        );
-
-        self.emit_load_register(lhs, REG_RESULT.into());
-
-        self.emit_load_register(rhs, REG_TMP1.into());
-
-        let bytecode_type = self.bytecode.register_type(dest);
-        self.asm.int_mul(
-            bytecode_type.mode(self.vm),
-            REG_RESULT,
-            REG_RESULT,
-            REG_TMP1,
-        );
-
-        self.emit_store_register(REG_RESULT.into(), dest);
-    }
-
     fn emit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
@@ -3774,6 +3749,25 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.store_int64_synchronized(REG_TMP1, REG_RESULT);
             }
 
+            Intrinsic::Int32MulUnchecked | Intrinsic::Int64MulUnchecked => {
+                assert_eq!(arguments.len(), 2);
+
+                let dest_reg = dest.expect("missing dest");
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+
+                let mode = match intrinsic {
+                    Intrinsic::Int32MulUnchecked => MachineMode::Int32,
+                    Intrinsic::Int64MulUnchecked => MachineMode::Int64,
+                    _ => unreachable!(),
+                };
+
+                self.emit_load_register(lhs_reg, REG_RESULT.into());
+                self.emit_load_register(rhs_reg, REG_TMP1.into());
+                self.asm.int_mul(mode, REG_RESULT, REG_RESULT, REG_TMP1);
+                self.emit_store_register(REG_RESULT.into(), dest_reg);
+            }
+
             _ => unreachable!(),
         }
     }
@@ -4467,20 +4461,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("MulInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_mul_int(dest, lhs, rhs);
-    }
-    fn visit_mul_int32_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(
-            self,
-            format!("MulInt32Unchecked {}, {}, {}", dest, lhs, rhs)
-        );
-        self.emit_mul_int_unchecked(dest, lhs, rhs);
-    }
-    fn visit_mul_int64_unchecked(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(
-            self,
-            format!("MulInt64Unchecked {}, {}, {}", dest, lhs, rhs)
-        );
-        self.emit_mul_int_unchecked(dest, lhs, rhs);
     }
     fn visit_mul_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("MulFloat32 {}, {}, {}", dest, lhs, rhs));

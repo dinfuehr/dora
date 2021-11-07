@@ -218,9 +218,7 @@ enumeration!(BytecodeOpcode {
     NegFloat64,
 
     MulInt32,
-    MulInt32Unchecked,
     MulInt64,
-    MulInt64Unchecked,
     MulFloat32,
     MulFloat64,
 
@@ -553,9 +551,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::SubFloat32
             | BytecodeOpcode::SubFloat64
             | BytecodeOpcode::MulInt32
-            | BytecodeOpcode::MulInt32Unchecked
             | BytecodeOpcode::MulInt64
-            | BytecodeOpcode::MulInt64Unchecked
             | BytecodeOpcode::MulFloat32
             | BytecodeOpcode::MulFloat64
             | BytecodeOpcode::DivInt32

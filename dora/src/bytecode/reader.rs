@@ -143,18 +143,6 @@ where
                 let rhs = self.read_register(2, width);
                 self.visitor.visit_mul_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::MulInt32Unchecked => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
-                self.visitor.visit_mul_int32_unchecked(dest, lhs, rhs);
-            }
-            BytecodeOpcode::MulInt64Unchecked => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
-                self.visitor.visit_mul_int64_unchecked(dest, lhs, rhs);
-            }
             BytecodeOpcode::MulFloat32 => {
                 let dest = self.read_register(0, width);
                 let lhs = self.read_register(1, width);
@@ -1049,12 +1037,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_mul_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_mul_int32_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_mul_int64_unchecked(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_mul_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
