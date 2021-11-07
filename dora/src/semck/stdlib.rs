@@ -361,21 +361,21 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         vm,
         stdlib,
         "Int32",
-        "addUnchecked",
+        "wrappingAdd",
         Intrinsic::Int32AddUnchecked,
     );
     intrinsic_method(
         vm,
         stdlib,
         "Int32",
-        "subUnchecked",
+        "wrappingSub",
         Intrinsic::Int32SubUnchecked,
     );
     intrinsic_method(
         vm,
         stdlib,
         "Int32",
-        "mulUnchecked",
+        "wrappingMul",
         Intrinsic::Int32MulUnchecked,
     );
 
@@ -491,21 +491,21 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         vm,
         stdlib,
         "Int64",
-        "addUnchecked",
+        "wrappingAdd",
         Intrinsic::Int64AddUnchecked,
     );
     intrinsic_method(
         vm,
         stdlib,
         "Int64",
-        "subUnchecked",
+        "wrappingSub",
         Intrinsic::Int64SubUnchecked,
     );
     intrinsic_method(
         vm,
         stdlib,
         "Int64",
-        "mulUnchecked",
+        "wrappingMul",
         Intrinsic::Int64MulUnchecked,
     );
 

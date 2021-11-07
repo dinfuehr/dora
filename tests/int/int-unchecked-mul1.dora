@@ -1,4 +1,4 @@
 fun main() {
-    assert(Int32::minValue() == Int32::minValue().mulUnchecked(-1));
-    assert(Int64::minValue() == Int64::minValue().mulUnchecked(-1L));
+    assert(Int32::minValue() == Int32::minValue().wrappingMul(-1));
+    assert(Int64::minValue() == Int64::minValue().wrappingMul(-1L));
 }

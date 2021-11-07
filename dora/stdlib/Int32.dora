@@ -30,9 +30,9 @@ impl Int32 {
   @pub @internal fun div(rhs: Int32): Int32;
   @pub @internal fun mod(rhs: Int32): Int32;
 
-  @pub @internal fun addUnchecked(rhs: Int32): Int32;
-  @pub @internal fun subUnchecked(rhs: Int32): Int32;
-  @pub @internal fun mulUnchecked(rhs: Int32): Int32;
+  @pub @internal fun wrappingAdd(rhs: Int32): Int32;
+  @pub @internal fun wrappingSub(rhs: Int32): Int32;
+  @pub @internal fun wrappingMul(rhs: Int32): Int32;
 
   @pub @internal fun bitwiseOr(rhs: Int32): Int32;
   @pub @internal fun bitwiseAnd(rhs: Int32): Int32;
@@ -50,7 +50,7 @@ impl Int32 {
   @pub @internal fun not(): Int32;
   @pub fun abs(): Int32 {
     let s = self.shiftRightSigned(31);
-    return self.bitwiseXor(s).subUnchecked(s);
+    return self.bitwiseXor(s).wrappingSub(s);
   }
 
   @pub @internal fun countZeroBits(): Int32 = self.not().countOneBits();

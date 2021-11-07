@@ -11,7 +11,7 @@ const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
 
     if (bound & bound_minus_1) == 0 {
       let num = self.nextInt31().toInt64();
-      return ((bound.toInt64().mulUnchecked(num)) >>> 31).toInt32();
+      return ((bound.toInt64().wrappingMul(num)) >>> 31).toInt32();
     }
 
     var mod = 0;
@@ -29,7 +29,7 @@ const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
   }
 
   @pub fun nextInt32(): Int32 {
-    self.seed = self.seed.mulUnchecked(RANDOM_MULTIPLIER).addUnchecked(RANDOM_INCREMENT) & RANDOM_MASK;
+    self.seed = self.seed.wrappingMul(RANDOM_MULTIPLIER).wrappingAdd(RANDOM_INCREMENT) & RANDOM_MASK;
     return (self.seed >>> 16).toInt32();
   }
 
