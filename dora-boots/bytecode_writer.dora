@@ -2,11 +2,17 @@ class BytecodeWriter {
     let code: Vec[UInt8] = Vec();
     let constPool: Vec[ConstPoolEntry] = Vec();
     let registers: Vec[BytecodeType] = Vec();
+    let registers2: Vec[BytecodeType2] = Vec();
     let unresolvedJumps: Vec[UnresolvedJump] = Vec();
     var arguments: Int32 = 0;
 
     fun addRegister(ty: BytecodeType): BytecodeRegister {
         self.registers.push(ty);
+        BytecodeRegister(self.registers.size().toInt32() - 1)
+    }
+
+    fun addRegister2(ty: BytecodeType2): BytecodeRegister {
+        self.registers2.push(ty);
         BytecodeRegister(self.registers.size().toInt32() - 1)
     }
 
@@ -558,9 +564,10 @@ class BytecodeWriter {
         let code = self.code.toArray();
         let constPool = self.constPool.toArray();
         let registers = self.registers.toArray();
+        let registers2 = self.registers2.toArray();
         let arguments = self.arguments;
         assert(arguments.toInt64() <= registers.size());
-        BytecodeFunction(code, constPool, registers, Array[BytecodeType2]::empty(), arguments)
+        BytecodeFunction(code, constPool, registers, registers2, arguments)
     }
 
     fun resolveJumps() {

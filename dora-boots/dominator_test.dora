@@ -46,6 +46,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 @test fun testDominatorSimple(_x: Testing) {
     let writer = BytecodeWriter();
     let arg0 = writer.addRegister(BytecodeType::bool());
+    let arg0_2 = writer.addRegister2(BytecodeType2::Bool);
     writer.setArguments(1);
     let elseBlock = writer.createLabel();
     writer.emitJumpIfFalse(arg0, elseBlock);

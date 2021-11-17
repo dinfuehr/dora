@@ -43,7 +43,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
         let data = Vec[HashMap[Block, Inst]]();
 
-        for i in range(0, self.bc.registers.size().toInt32()) {
+        for i in range(0, self.bc.registers2.size().toInt32()) {
             data.push(HashMap[Block, Inst]());
         }
 
@@ -54,7 +54,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         var i = 0;
         let entryBlock = self.graph.getEntryBlock();
         while i < self.bc.arguments {
-            let ty = Type::fromBytecodeType(self.bc.registers(i.toInt64()));
+            let ty = Type::fromBytecodeType2(self.bc.registers2(i.toInt64()));
             let argInst = ArgInst(i, ty);
             entryBlock.appendInst(argInst);
             self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
@@ -642,8 +642,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     @override fun visitRet(opnd: BytecodeRegister) {
-        let ty = self.bc.registers(opnd.value.toInt64());
-        let ty = Type::fromBytecodeType(ty);
+        let ty = self.bc.registers2(opnd.value.toInt64());
+        let ty = Type::fromBytecodeType2(ty);
         self.emitRet(opnd, ty);
     }
 

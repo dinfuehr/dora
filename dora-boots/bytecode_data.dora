@@ -130,6 +130,24 @@ enum BytecodeType2 {
     TypeParam(Int32),
 }
 
+impl Stringable for BytecodeType2 {
+    fun toString(): String {
+        match self {
+            BytecodeType2::Ptr => "Ptr",
+            BytecodeType2::UInt8 => "UInt8",
+            BytecodeType2::Bool => "Bool",
+            BytecodeType2::Char => "Char",
+            BytecodeType2::Int32 => "Int32",
+            BytecodeType2::Int64 => "Int64",
+            BytecodeType2::Float32 => "Float32",
+            BytecodeType2::Float64 => "Float64",
+            BytecodeType2::Struct(id, params) => "Struct(${id}, <type params>)",
+            BytecodeType2::Tuple(types) => "Tuple(<type params>)",
+            BytecodeType2::TypeParam(idx) => "TypeParam(${idx})",
+        }
+    }
+}
+
 struct BytecodeType(value: Int32)
 
 impl BytecodeType {

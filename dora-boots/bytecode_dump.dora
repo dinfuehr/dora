@@ -10,7 +10,7 @@ fun bytecodeDump(bc: BytecodeFunction) {
     }
 
     i = 0L;
-    for ty in bc.registers {
+    for ty in bc.registers2 {
         println("r${i} = ${ty}");
         i = i + 1L;
     }

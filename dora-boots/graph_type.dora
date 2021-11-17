@@ -91,6 +91,20 @@ impl Type {
             unreachable[Type]()
         }
     }
+
+    @static fun fromBytecodeType2(ty: BytecodeType2): Type {
+        match ty {
+            BytecodeType2::Bool => Type::Bool,
+            BytecodeType2::UInt8 => Type::UInt8,
+            BytecodeType2::Char => Type::Char,
+            BytecodeType2::Int32 => Type::Int32,
+            BytecodeType2::Int64 => Type::Int64,
+            BytecodeType2::Float32 => Type::Float32,
+            BytecodeType2::Float64 => Type::Float64,
+            BytecodeType2::Ptr => Type::Ptr,
+            _ => unreachable[Type](),
+        }
+    }
 }
 
 impl Stringable for Type {
