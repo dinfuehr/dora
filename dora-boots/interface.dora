@@ -8,62 +8,27 @@ fun compile(info: EncodedCompilationInfo): Array[UInt8] {
 
 fun bytecode(fct: String): BytecodeFunction {
     let encoded = encodedBytecode(fct);
-    BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), decodeRegisters2(encoded.registers2), encoded.arguments)
+    BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), encoded.arguments)
 }
 
 class CompilationInfo(encoded: EncodedCompilationInfo) {
-    let bc: BytecodeFunction = BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), decodeRegisters2(encoded.registers2), encoded.arguments);
+    let bc: BytecodeFunction = BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), encoded.arguments);
     let arch: Architecture = decodeInstructionSet(encoded.arch);
 }
 
 class EncodedCompilationInfo {
     let code: Array[UInt8] = Array[UInt8]::empty();
     let constpool: Array[UInt8] = Array[UInt8]::empty();
-    let registers: Array[Int32] = Array[Int32]::empty();
-    let registers2: Array[UInt8] = Array[UInt8]::empty();
+    let registers: Array[UInt8] = Array[UInt8]::empty();
     let typeParams: Array[UInt8] = Array[UInt8]::empty();
     let arguments: Int32 = 0;
     let arch: Int32 = 0;
 }
 
-fun decodeRegisters(registers: Array[Int32]): Array[BytecodeType] {
-    var i = 0L;
-    let result = Array[BytecodeType]::fill(registers.size(), BytecodeType::bool());
-
-    while i < registers.size() {
-        let regtype = registers(i);
-
-        let value = if regtype == BC_TYPE_BOOL {
-            BytecodeType::bool()
-        } else if regtype == BC_TYPE_U_INT8 {
-            BytecodeType::uint8()
-        } else if regtype == BC_TYPE_CHAR {
-            BytecodeType::char()
-        } else if regtype == BC_TYPE_INT32 {
-            BytecodeType::int32()
-        } else if regtype == BC_TYPE_INT64 {
-            BytecodeType::int64()
-        } else if regtype == BC_TYPE_FLOAT32 {
-            BytecodeType::float32()
-        } else if regtype == BC_TYPE_FLOAT64 {
-            BytecodeType::float64()
-        } else if regtype == BC_TYPE_PTR {
-            BytecodeType::ptr()
-        } else {
-            unreachable[BytecodeType]()
-        };
-
-        result(i) = value;
-        i = i + 1L;
-    }
-
-    result
-}
-
-fun decodeRegisters2(data: Array[UInt8]): Array[BytecodeType2] {
+fun decodeRegisters(data: Array[UInt8]): Array[BytecodeType] {
     let reader = ByteReader(data);
     let size = reader.readInt32().toInt64();
-    let data = Array[BytecodeType2]::fill(size, BytecodeType2::UInt8);
+    let data = Array[BytecodeType]::fill(size, BytecodeType::UInt8);
 
     var i = 0L;
 
@@ -77,38 +42,38 @@ fun decodeRegisters2(data: Array[UInt8]): Array[BytecodeType2] {
     data
 }
 
-fun decodeBytecodeType(reader: ByteReader): BytecodeType2 {
+fun decodeBytecodeType(reader: ByteReader): BytecodeType {
     let opcode = reader.readUInt8().toInt32();
 
     if opcode == BC_TYPE_BOOL {
-        BytecodeType2::Bool
+        BytecodeType::Bool
     } else if opcode == BC_TYPE_U_INT8 {
-        BytecodeType2::UInt8
+        BytecodeType::UInt8
     } else if opcode == BC_TYPE_CHAR {
-        BytecodeType2::Char
+        BytecodeType::Char
     } else if opcode == BC_TYPE_INT32 {
-        BytecodeType2::Int32
+        BytecodeType::Int32
     } else if opcode == BC_TYPE_INT64 {
-        BytecodeType2::Int64
+        BytecodeType::Int64
     } else if opcode == BC_TYPE_FLOAT32 {
-        BytecodeType2::Float32
+        BytecodeType::Float32
     } else if opcode == BC_TYPE_FLOAT64 {
-        BytecodeType2::Float64
+        BytecodeType::Float64
     } else if opcode == BC_TYPE_PTR {
-        BytecodeType2::Ptr
+        BytecodeType::Ptr
     } else if opcode == BC_TYPE_STRUCT {
         let structId = reader.readInt32();
         let typeParams = decodeSourceTypeArray(reader);
-        BytecodeType2::Struct(structId, typeParams)
+        BytecodeType::Struct(structId, typeParams)
     } else if opcode == BC_TYPE_TUPLE {
         let typeParams = decodeSourceTypeArray(reader);
-        BytecodeType2::Tuple(typeParams)
+        BytecodeType::Tuple(typeParams)
     } else if opcode == BC_TYPE_TYPE_PARAM {
         let idx = reader.readInt32();
-        BytecodeType2::TypeParam(idx)
+        BytecodeType::TypeParam(idx)
     } else {
         println("unknown SourceType opcode = ${opcode}");
-        unreachable[BytecodeType2]()
+        unreachable[BytecodeType]()
     }
 }
 

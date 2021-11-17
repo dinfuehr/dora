@@ -8,9 +8,7 @@ use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::fct::{Code, JitDescriptor};
 use crate::gc::Address;
 use crate::handle::{handle, Handle};
-use crate::object::{
-    self, byte_array_from_buffer, int_array_alloc_heap, Int32Array, Obj, Ref, UInt8Array,
-};
+use crate::object::{self, byte_array_from_buffer, Obj, Ref, UInt8Array};
 use crate::sym::NestedSymTable;
 use crate::threads::current_thread;
 use crate::ty::{SourceType, SourceTypeArray};
@@ -111,7 +109,6 @@ fn allocate_compilation_info(
     let bytecode_array = handle(byte_array_from_buffer(vm, bytecode_fct.code()));
     let constpool_array = handle(allocate_constpool_array(vm, &bytecode_fct));
     let registers_array = handle(allocate_registers_array(vm, &bytecode_fct));
-    let registers_array2 = handle(allocate_registers_array2(vm, &bytecode_fct));
     let type_params = handle(allocate_type_params(vm, type_params));
 
     allocate_encoded_compilation_info(
@@ -119,23 +116,12 @@ fn allocate_compilation_info(
         bytecode_array,
         constpool_array,
         registers_array,
-        registers_array2,
         type_params,
         bytecode_fct.arguments() as i32,
     )
 }
 
-fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<Int32Array> {
-    let mut array = int_array_alloc_heap(vm, fct.registers().len());
-
-    for (idx, ty) in fct.registers().iter().enumerate() {
-        array.set_at(idx, ty.kind() as u32 as i32);
-    }
-
-    array
-}
-
-fn allocate_registers_array2(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> {
+fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> {
     use byteorder::{LittleEndian, WriteBytesExt};
 
     let mut buffer = Vec::new();
@@ -407,8 +393,7 @@ fn allocate_encoded_compilation_info(
     vm: &VM,
     bytecode_array: Handle<UInt8Array>,
     constpool_array: Handle<UInt8Array>,
-    registers_array: Handle<Int32Array>,
-    registers_array2: Handle<UInt8Array>,
+    registers_array: Handle<UInt8Array>,
     type_params: Handle<UInt8Array>,
     arguments: i32,
 ) -> Ref<Obj> {
@@ -423,15 +408,6 @@ fn allocate_encoded_compilation_info(
 
     let fid = vm.field_in_class(cls_id, "registers");
     object::write_ref(vm, obj, cls_id, fid, registers_array.direct().cast::<Obj>());
-
-    let fid = vm.field_in_class(cls_id, "registers2");
-    object::write_ref(
-        vm,
-        obj,
-        cls_id,
-        fid,
-        registers_array2.direct().cast::<Obj>(),
-    );
 
     let fid = vm.field_in_class(cls_id, "typeParams");
     object::write_ref(vm, obj, cls_id, fid, type_params.direct().cast::<Obj>());

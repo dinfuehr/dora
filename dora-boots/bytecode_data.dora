@@ -1,4 +1,4 @@
-class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let registers2: Array[BytecodeType2], let arguments: Int32) {
+class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int32) {
     fun constPool(idx: ConstPoolId): ConstPoolEntry {
         self.const_pool(idx.value.toInt64())
     }
@@ -116,7 +116,7 @@ impl ConstPoolId {
 
 struct FctId { value: Int32 }
 
-enum BytecodeType2 {
+enum BytecodeType {
     Ptr,
     UInt8,
     Bool,
@@ -130,92 +130,20 @@ enum BytecodeType2 {
     TypeParam(Int32),
 }
 
-impl Stringable for BytecodeType2 {
+impl Stringable for BytecodeType {
     fun toString(): String {
         match self {
-            BytecodeType2::Ptr => "Ptr",
-            BytecodeType2::UInt8 => "UInt8",
-            BytecodeType2::Bool => "Bool",
-            BytecodeType2::Char => "Char",
-            BytecodeType2::Int32 => "Int32",
-            BytecodeType2::Int64 => "Int64",
-            BytecodeType2::Float32 => "Float32",
-            BytecodeType2::Float64 => "Float64",
-            BytecodeType2::Struct(id, params) => "Struct(${id}, <type params>)",
-            BytecodeType2::Tuple(types) => "Tuple(<type params>)",
-            BytecodeType2::TypeParam(idx) => "TypeParam(${idx})",
+            BytecodeType::Ptr => "Ptr",
+            BytecodeType::UInt8 => "UInt8",
+            BytecodeType::Bool => "Bool",
+            BytecodeType::Char => "Char",
+            BytecodeType::Int32 => "Int32",
+            BytecodeType::Int64 => "Int64",
+            BytecodeType::Float32 => "Float32",
+            BytecodeType::Float64 => "Float64",
+            BytecodeType::Struct(id, params) => "Struct(${id}, <type params>)",
+            BytecodeType::Tuple(types) => "Tuple(<type params>)",
+            BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
         }
     }
-}
-
-struct BytecodeType(value: Int32)
-
-impl BytecodeType {
-    fun isBool(): Bool {
-        self.value == BC_TYPE_BOOL
-    }
-
-    fun isUInt8(): Bool {
-        self.value == BC_TYPE_U_INT8
-    }
-
-    fun isChar(): Bool {
-        self.value == BC_TYPE_CHAR
-    }
-
-    fun isInt32(): Bool {
-        self.value == BC_TYPE_INT32
-    }
-
-    fun isInt64(): Bool {
-        self.value == BC_TYPE_INT64
-    }
-
-    fun isFloat32(): Bool {
-        self.value == BC_TYPE_FLOAT32
-    }
-
-    fun isFloat64(): Bool {
-        self.value == BC_TYPE_FLOAT64
-    }
-
-    fun isPtr(): Bool {
-        self.value == BC_TYPE_PTR
-    }
-
-    @static fun bool(): BytecodeType {
-        BytecodeType(BC_TYPE_BOOL)
-    }
-
-    @static fun uint8(): BytecodeType {
-        BytecodeType(BC_TYPE_U_INT8)
-    }
-
-    @static fun char(): BytecodeType {
-        BytecodeType(BC_TYPE_CHAR)
-    }
-
-    @static fun int32(): BytecodeType {
-        BytecodeType(BC_TYPE_INT32)
-    }
-
-    @static fun int64(): BytecodeType {
-        BytecodeType(BC_TYPE_INT64)
-    }
-
-    @static fun float32(): BytecodeType {
-        BytecodeType(BC_TYPE_FLOAT32)
-    }
-
-    @static fun float64(): BytecodeType {
-        BytecodeType(BC_TYPE_FLOAT64)
-    }
-
-    @static fun ptr(): BytecodeType {
-        BytecodeType(BC_TYPE_PTR)
-    }
-}
-
-impl Stringable for BytecodeType {
-    fun toString(): String { bytecodeTypeName(self.value) }
 }

@@ -71,37 +71,15 @@ impl Type {
     @static fun ptr(): Type { Type::Ptr }
 
     @static fun fromBytecodeType(ty: BytecodeType): Type {
-        if ty.isBool() {
-            Type::Bool
-        } else if ty.isUInt8() {
-            Type::UInt8
-        } else if ty.isChar() {
-            Type::Char
-        } else if ty.isInt32() {
-            Type::Int32
-        } else if ty.isInt64() {
-            Type::Int64
-        } else if ty.isFloat32() {
-            Type::Float32
-        } else if ty.isFloat64() {
-            Type::Float64
-        } else if ty.isPtr() {
-            Type::Ptr
-        } else {
-            unreachable[Type]()
-        }
-    }
-
-    @static fun fromBytecodeType2(ty: BytecodeType2): Type {
         match ty {
-            BytecodeType2::Bool => Type::Bool,
-            BytecodeType2::UInt8 => Type::UInt8,
-            BytecodeType2::Char => Type::Char,
-            BytecodeType2::Int32 => Type::Int32,
-            BytecodeType2::Int64 => Type::Int64,
-            BytecodeType2::Float32 => Type::Float32,
-            BytecodeType2::Float64 => Type::Float64,
-            BytecodeType2::Ptr => Type::Ptr,
+            BytecodeType::Bool => Type::Bool,
+            BytecodeType::UInt8 => Type::UInt8,
+            BytecodeType::Char => Type::Char,
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Float64 => Type::Float64,
+            BytecodeType::Ptr => Type::Ptr,
             _ => unreachable[Type](),
         }
     }
