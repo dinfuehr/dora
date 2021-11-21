@@ -119,7 +119,15 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
     }
 }
 
-pub fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
+fn encode_source_type_array(vm: &VM, sta: &SourceTypeArray, buffer: &mut ByteBuffer) {
+    buffer.emit_u32(sta.len() as u32);
+
+    for ty in sta.iter() {
+        encode_source_type(vm, ty, buffer);
+    }
+}
+
+fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
     match ty {
         SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
         SourceType::Unit => {
@@ -279,14 +287,6 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             encode_source_type_array(vm, source_type_array, buffer);
             encode_source_type(vm, source_type.clone(), buffer);
         }
-    }
-}
-
-fn encode_source_type_array(vm: &VM, sta: &SourceTypeArray, buffer: &mut ByteBuffer) {
-    buffer.emit_u32(sta.len() as u32);
-
-    for ty in sta.iter() {
-        encode_source_type(vm, ty, buffer);
     }
 }
 
