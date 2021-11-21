@@ -284,8 +284,8 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         native_fct(
             vm,
             vm.boots_namespace_id,
-            "encodedBytecode",
-            stdlib::bytecode as *const u8,
+            "getEncodedBytecodeFunctionByName",
+            stdlib::get_encoded_bytecode_function_by_name as *const u8,
         );
     }
 

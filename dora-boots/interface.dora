@@ -1,29 +1,23 @@
-fun compile(info: EncodedCompilationInfo): Array[UInt8] {
-    let info = decodeCompilationInfo(info);
+fun compile(encoded: Array[UInt8]): Array[UInt8] {
+    let reader = ByteReader(encoded);
+    let ci = decodeCompilationInfo(reader);
+    assert(!reader.moreBytes());
     // bytecodeDump(info.bc);
-    CodeGen(info).generate()
+    CodeGen(ci).generate()
 }
 
-@internal fun encodedBytecode(fct: String): EncodedCompilationInfo;
+@internal fun getEncodedBytecodeFunctionByName(fct: String): Array[UInt8];
 
-fun bytecode(fct: String): BytecodeFunction {
-    let encoded = encodedBytecode(fct);
-    let constpool = decodeConstPool(ByteReader(encoded.constpool));
-    let registers = decodeRegisters(ByteReader(encoded.registers));
-    BytecodeFunction(encoded.code, constpool, registers, encoded.arguments)
+fun getBytecodeFunctionByName(fct: String): BytecodeFunction {
+    let encoded = getEncodedBytecodeFunctionByName(fct);
+    let reader = ByteReader(encoded);
+    let bc = decodeBytecodeFunction(reader);
+    assert(!reader.moreBytes());
+
+    bc
 }
 
 class CompilationInfo(let bc: BytecodeFunction, let typeParams: Array[SourceType], let arch: Architecture)
-
-class EncodedCompilationInfo {
-    let code: Array[UInt8] = Array[UInt8]::empty();
-    let constpool: Array[UInt8] = Array[UInt8]::empty();
-    let registers: Array[UInt8] = Array[UInt8]::empty();
-    let typeParams: Array[UInt8] = Array[UInt8]::empty();
-    let full: Array[UInt8] = Array[UInt8]::empty();
-    let arguments: Int32 = 0;
-    let arch: Int32 = 0;
-}
 
 enum Architecture {
     X64,

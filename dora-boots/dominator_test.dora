@@ -61,7 +61,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 }
 
 @test fun testDominatorIfReturnInBothBranches(_x: Testing) {
-    let fct = bytecode("bcSsaGenIfReturnInBothBranches");
+    let fct = getBytecodeFunctionByName("bcSsaGenIfReturnInBothBranches");
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
@@ -80,7 +80,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 }
 
 @test fun testDominatorWhileCountDown(_x: Testing) {
-    let fct = bytecode("bcSsaGenWhileCountDown");
+    let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDown");
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 

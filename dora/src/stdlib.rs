@@ -160,13 +160,13 @@ pub extern "C" fn call(fct: Handle<Str>) {
     }
 }
 
-pub extern "C" fn bytecode(name: Handle<Str>) -> Ref<Obj> {
+pub extern "C" fn get_encoded_bytecode_function_by_name(name: Handle<Str>) -> Ref<Obj> {
     let fct_name = name.to_cstring();
     let fct_name = fct_name.to_str().unwrap();
 
     let vm = get_vm();
 
-    boots::bytecode(vm, &fct_name)
+    boots::get_encoded_bytecode_function_by_name(vm, &fct_name)
 }
 
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {

@@ -1,16 +1,16 @@
-fun decodeCompilationInfo(encoded: EncodedCompilationInfo): CompilationInfo {
-    let reader = ByteReader(encoded.full);
+fun decodeCompilationInfo(reader: ByteReader): CompilationInfo {
+    let bc = decodeBytecodeFunction(reader);
+    let typeParams = decodeTypeParams(reader);
+    let arch = decodeArchitecture(reader);
+    CompilationInfo(bc, typeParams, arch)
+}
+
+fun decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
     let code = decodeBytecodeArray(reader);
     let constpool = decodeConstPool(reader);
     let registers = decodeRegisters(reader);
-    let typeParams = decodeTypeParams(reader);
     let arguments = reader.readInt32();
-    let arch = decodeArchitecture(reader);
-    assert(!reader.moreBytes());
-
-    let bc = BytecodeFunction(encoded.code, constpool, registers, arguments);
-
-    CompilationInfo(bc, typeParams, arch)
+    BytecodeFunction(code, constpool, registers, arguments)
 }
 
 fun decodeBytecodeArray(reader: ByteReader): Array[UInt8] {
@@ -108,7 +108,7 @@ fun decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
 
         ConstPoolEntry::String(value)
     } else {
-        println("unknown SourceType opcode = ${opcode}");
+        println("unknown ConstPoolEntry opcode = ${opcode}");
         unreachable[ConstPoolEntry]()
     }
 }
@@ -120,7 +120,7 @@ fun decodeArchitecture(reader: ByteReader): Architecture {
     } else if value == INSTRUCTION_SET_ARM64 {
         Architecture::Arm64
     } else {
-            println("unknown instruction set = ${value}");
+            println("unknown architecture = ${value}");
             unreachable[Architecture]()
     }
 }
@@ -177,7 +177,7 @@ fun decodeSourceType(reader: ByteReader): SourceType {
         let idx = reader.readInt32();
         SourceType::TypeParam(idx)
     } else {
-        println("unknown opcode ${opcode}");
+        println("unknown SourceType ${opcode}");
         unreachable[SourceType]()
     }
 }

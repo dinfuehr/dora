@@ -1,5 +1,5 @@
 @test fun testSsaGenRetVoid(_x: Testing) {
-    let fct = bytecode("bcSsaGenRetVoid");
+    let fct = getBytecodeFunctionByName("bcSsaGenRetVoid");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -11,7 +11,7 @@
 fun bcSsaGenRetVoid() {}
 
 @test fun testSsaGenRetIntConst(_x: Testing) {
-    let fct = bytecode("bcSsaGenRetIntConst");
+    let fct = getBytecodeFunctionByName("bcSsaGenRetIntConst");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -24,7 +24,7 @@ fun bcSsaGenRetVoid() {}
 fun bcSsaGenRetIntConst(): Int32 { 4711 }
 
 @test fun testSsaGenRetInt64Const(_x: Testing) {
-    let fct = bytecode("bcSsaGenRetInt64Const");
+    let fct = getBytecodeFunctionByName("bcSsaGenRetInt64Const");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -37,7 +37,7 @@ fun bcSsaGenRetIntConst(): Int32 { 4711 }
 fun bcSsaGenRetInt64Const(): Int64 { 4711L }
 
 @test fun testSsaGenIdInt(_x: Testing) {
-    let fct = bytecode("bcSsaGenIdInt");
+    let fct = getBytecodeFunctionByName("bcSsaGenIdInt");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -50,7 +50,7 @@ fun bcSsaGenRetInt64Const(): Int64 { 4711L }
 fun bcSsaGenIdInt(x: Int32): Int32 { x }
 
 @test fun testSsaGenAddIntArguments(_x: Testing) {
-    let fct = bytecode("bcSsaGenAddIntArguments");
+    let fct = getBytecodeFunctionByName("bcSsaGenAddIntArguments");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -65,7 +65,7 @@ fun bcSsaGenIdInt(x: Int32): Int32 { x }
 fun bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 { a + b }
 
 @test fun testSsaGenAddFloat32Arguments(_x: Testing) {
-    let fct = bytecode("bcSsaGenAddFloat32Arguments");
+    let fct = getBytecodeFunctionByName("bcSsaGenAddFloat32Arguments");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -80,7 +80,7 @@ fun bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 { a + b }
 fun bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 { a + b }
 
 @test fun testSsaGenMultipleAssignments(_x: Testing) {
-    let fct = bytecode("bcSsaGenMultipleAssignments");
+    let fct = getBytecodeFunctionByName("bcSsaGenMultipleAssignments");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -108,7 +108,7 @@ fun bcSsaGenMultipleAssignments(d: Int32): Int32 {
 }
 
 @test fun testSsaGenSubIntArguments(_x: Testing) {
-    let fct = bytecode("bcSsaGenSubIntArguments");
+    let fct = getBytecodeFunctionByName("bcSsaGenSubIntArguments");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -123,7 +123,7 @@ fun bcSsaGenMultipleAssignments(d: Int32): Int32 {
 fun bcSsaGenSubIntArguments(a: Int32, b: Int32): Int32 { a - b }
 
 @test fun testSsaGenNegIntArgument(_x: Testing) {
-    let fct = bytecode("bcSsaGenNegIntArgument");
+    let fct = getBytecodeFunctionByName("bcSsaGenNegIntArgument");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -137,7 +137,7 @@ fun bcSsaGenSubIntArguments(a: Int32, b: Int32): Int32 { a - b }
 fun bcSsaGenNegIntArgument(a: Int32): Int32 { -a }
 
 @test fun testSsaGenMulIntArguments(_x: Testing) {
-    let fct = bytecode("bcSsaGenMulIntArguments");
+    let fct = getBytecodeFunctionByName("bcSsaGenMulIntArguments");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -152,7 +152,7 @@ fun bcSsaGenNegIntArgument(a: Int32): Int32 { -a }
 fun bcSsaGenMulIntArguments(a: Int32, b: Int32): Int32 { a * b }
 
 @test fun testSsaGenSimpleIf(_x: Testing) {
-    let fct = bytecode("bcSsaGenSimpleIf");
+    let fct = getBytecodeFunctionByName("bcSsaGenSimpleIf");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -176,7 +176,7 @@ fun bcSsaGenSimpleIf(a: Bool): Int32 {
 }
 
 @test fun testSsaGenIfReturnInBothBranches(_x: Testing) {
-    let fct = bytecode("bcSsaGenIfReturnInBothBranches");
+    let fct = getBytecodeFunctionByName("bcSsaGenIfReturnInBothBranches");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -197,7 +197,7 @@ fun bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
 }
 
 @test fun testSsaGenIfWithConditionalAssignment(_x: Testing) {
-    let fct = bytecode("bcSsaGenIfWithConditionalAssignment");
+    let fct = getBytecodeFunctionByName("bcSsaGenIfWithConditionalAssignment");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -224,7 +224,7 @@ fun bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
 }
 
 @test fun testSsaGenWhileCountDown(_x: Testing) {
-    let fct = bytecode("bcSsaGenWhileCountDown");
+    let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDown");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -252,7 +252,7 @@ fun bcSsaGenWhileCountDown(x: Int32): Int32 {
 }
 
 @test fun testSsaGenWhileCountDownWithSum(_x: Testing) {
-    let fct = bytecode("bcSsaGenWhileCountDownWithSum");
+    let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDownWithSum");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -287,7 +287,7 @@ fun bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
 }
 
 @test fun testSsaGenLoadArrayElementInt32(_x: Testing) {
-    let fct = bytecode("bcSsaGenLoadArrayElementInt32");
+    let fct = getBytecodeFunctionByName("bcSsaGenLoadArrayElementInt32");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -306,7 +306,7 @@ fun bcSsaGenLoadArrayElementInt32(x: Array[Int32], idx: Int64): Int32 {
 }
 
 @test fun testSsaGenStoreArrayElementInt32(_x: Testing) {
-    let fct = bytecode("bcSsaGenStoreArrayElementInt32");
+    let fct = getBytecodeFunctionByName("bcSsaGenStoreArrayElementInt32");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -326,7 +326,7 @@ fun bcSsaGenStoreArrayElementInt32(x: Array[Int32], idx: Int64, value: Int32) {
 }
 
 @test fun testSsaGenDivInt32(_x: Testing) {
-    let fct = bytecode("bcSsaGenDivInt32");
+    let fct = getBytecodeFunctionByName("bcSsaGenDivInt32");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -344,7 +344,7 @@ fun bcSsaGenDivInt32(lhs: Int32, rhs: Int32): Int32 {
 }
 
 @test fun testSsaGenDivInt64(_x: Testing) {
-    let fct = bytecode("bcSsaGenDivInt64");
+    let fct = getBytecodeFunctionByName("bcSsaGenDivInt64");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
