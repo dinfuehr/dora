@@ -1,5 +1,5 @@
 fun compile(info: EncodedCompilationInfo): Array[UInt8] {
-    let info = CompilationInfo(info);
+    let info = decodeCompilationInfo(info);
     // bytecodeDump(info.bc);
     CodeGen(info).generate()
 }
@@ -8,240 +8,24 @@ fun compile(info: EncodedCompilationInfo): Array[UInt8] {
 
 fun bytecode(fct: String): BytecodeFunction {
     let encoded = encodedBytecode(fct);
-    BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), encoded.arguments)
+    let constpool = decodeConstPool(ByteReader(encoded.constpool));
+    let registers = decodeRegisters(ByteReader(encoded.registers));
+    BytecodeFunction(encoded.code, constpool, registers, encoded.arguments)
 }
 
-class CompilationInfo(encoded: EncodedCompilationInfo) {
-    let bc: BytecodeFunction = BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), encoded.arguments);
-    let arch: Architecture = decodeInstructionSet(encoded.arch);
-}
+class CompilationInfo(let bc: BytecodeFunction, let typeParams: Array[SourceType], let arch: Architecture)
 
 class EncodedCompilationInfo {
     let code: Array[UInt8] = Array[UInt8]::empty();
     let constpool: Array[UInt8] = Array[UInt8]::empty();
     let registers: Array[UInt8] = Array[UInt8]::empty();
     let typeParams: Array[UInt8] = Array[UInt8]::empty();
+    let full: Array[UInt8] = Array[UInt8]::empty();
     let arguments: Int32 = 0;
     let arch: Int32 = 0;
-}
-
-fun decodeRegisters(data: Array[UInt8]): Array[BytecodeType] {
-    let reader = ByteReader(data);
-    let size = reader.readInt32().toInt64();
-    let data = Array[BytecodeType]::fill(size, BytecodeType::UInt8);
-
-    var i = 0L;
-
-    while i < size {
-        data(i) = decodeBytecodeType(reader);
-        i = i + 1L;
-    }
-
-    assert(!reader.moreBytes());
-
-    data
-}
-
-fun decodeBytecodeType(reader: ByteReader): BytecodeType {
-    let opcode = reader.readUInt8().toInt32();
-
-    if opcode == BC_TYPE_BOOL {
-        BytecodeType::Bool
-    } else if opcode == BC_TYPE_U_INT8 {
-        BytecodeType::UInt8
-    } else if opcode == BC_TYPE_CHAR {
-        BytecodeType::Char
-    } else if opcode == BC_TYPE_INT32 {
-        BytecodeType::Int32
-    } else if opcode == BC_TYPE_INT64 {
-        BytecodeType::Int64
-    } else if opcode == BC_TYPE_FLOAT32 {
-        BytecodeType::Float32
-    } else if opcode == BC_TYPE_FLOAT64 {
-        BytecodeType::Float64
-    } else if opcode == BC_TYPE_PTR {
-        BytecodeType::Ptr
-    } else if opcode == BC_TYPE_STRUCT {
-        let structId = reader.readInt32();
-        let typeParams = decodeSourceTypeArray(reader);
-        BytecodeType::Struct(structId, typeParams)
-    } else if opcode == BC_TYPE_TUPLE {
-        let typeParams = decodeSourceTypeArray(reader);
-        BytecodeType::Tuple(typeParams)
-    } else if opcode == BC_TYPE_TYPE_PARAM {
-        let idx = reader.readInt32();
-        BytecodeType::TypeParam(idx)
-    } else {
-        println("unknown SourceType opcode = ${opcode}");
-        unreachable[BytecodeType]()
-    }
-}
-
-fun decodeConstPool(constpool: Array[UInt8]): Array[ConstPoolEntry] {
-    let reader = ByteReader(constpool);
-    let size = reader.readInt32().toInt64();
-
-    let data = Array[ConstPoolEntry]::fill(size, ConstPoolEntry::Int32(0));
-    var i = 0L;
-
-    while i < size {
-        data(i) = decodeConstPoolEntry(reader);
-        i = i + 1L;
-    }
-
-    assert(!reader.moreBytes());
-
-    data
-}
-
-fun decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
-    let opcode = reader.readUInt8().toInt32();
-
-    if opcode == CONSTPOOL_OPCODE_INT32 {
-        let value = reader.readInt32();
-        ConstPoolEntry::Int32(value)
-    } else if opcode == CONSTPOOL_OPCODE_INT64 {
-        let value = reader.readInt64();
-        ConstPoolEntry::Int64(value)
-    } else if opcode == CONSTPOOL_OPCODE_FLOAT32 {
-        let value = reader.readInt32().asFloat32();
-        ConstPoolEntry::Float32(value)
-    } else if opcode == CONSTPOOL_OPCODE_FLOAT64 {
-        let value = reader.readInt64().asFloat64();
-        ConstPoolEntry::Float64(value)
-    } else if opcode == CONSTPOOL_OPCODE_CHAR {
-        let value = reader.readInt32().toCharUnchecked();
-        ConstPoolEntry::Char(value)
-    } else if opcode == CONSTPOOL_OPCODE_STRING {
-        let length = reader.readInt32().toInt64();
-        let value = reader.readStringConent(length);
-
-        ConstPoolEntry::String(value)
-    } else {
-        println("unknown SourceType opcode = ${opcode}");
-        unreachable[ConstPoolEntry]()
-    }
-}
-
-fun decodeInstructionSet(value: Int32): Architecture {
-    if value == INSTRUCTION_SET_X64 {
-        Architecture::X64
-    } else if value == INSTRUCTION_SET_ARM64 {
-        Architecture::Arm64
-    } else {
-            println("unknown instruction set = ${value}");
-            unreachable[Architecture]()
-    }
-}
-
-fun decodeSourceTypeArray(reader: ByteReader): Array[SourceType] {
-    let size = reader.readInt32().toInt64();
-    let data = Array[SourceType]::fill(size, SourceType::Unit);
-
-    var i = 0L;
-
-    while i < size {
-        data(i) = decodeSourceType(reader);
-        i = i + 1L;
-    }
-
-    data
-}
-
-fun decodeSourceType(reader: ByteReader): SourceType {
-    let opcode = reader.readUInt8().toInt32();
-
-    if opcode == SOURCE_TYPE_OPCODE_UNIT {
-        SourceType::Unit
-    } else if opcode == SOURCE_TYPE_OPCODE_BOOL {
-        SourceType::Bool
-    } else if opcode == SOURCE_TYPE_OPCODE_CHAR {
-        SourceType::Char
-    } else if opcode == SOURCE_TYPE_OPCODE_U_INT8 {
-        SourceType::UInt8
-    } else if opcode == SOURCE_TYPE_OPCODE_INT32 {
-        SourceType::Int32
-    } else if opcode == SOURCE_TYPE_OPCODE_INT64 {
-        SourceType::Int64
-    } else if opcode == SOURCE_TYPE_OPCODE_FLOAT32 {
-        SourceType::Float32
-    } else if opcode == SOURCE_TYPE_OPCODE_FLOAT64 {
-        SourceType::Float64
-    } else if opcode == SOURCE_TYPE_OPCODE_CLASS {
-        let clsId = reader.readInt32();
-        let typeParams = decodeSourceTypeArray(reader);
-        SourceType::Class(clsId, typeParams)
-    } else if opcode == SOURCE_TYPE_OPCODE_STRUCT {
-        let structId = reader.readInt32();
-        let typeParams = decodeSourceTypeArray(reader);
-        SourceType::Struct(structId, typeParams)
-    } else if opcode == SOURCE_TYPE_OPCODE_TRAIT {
-        let traitId = reader.readInt32();
-        let typeParams = decodeSourceTypeArray(reader);
-        SourceType::Trait(traitId, typeParams)
-    } else if opcode == SOURCE_TYPE_OPCODE_TUPLE {
-        let typeParams = decodeSourceTypeArray(reader);
-        SourceType::Tuple(typeParams)
-    } else if opcode == SOURCE_TYPE_OPCODE_TYPE_PARAM {
-        let idx = reader.readInt32();
-        SourceType::TypeParam(idx)
-    } else {
-        println("unknown opcode ${opcode}");
-        unreachable[SourceType]()
-    }
 }
 
 enum Architecture {
     X64,
     Arm64,
-}
-
-class ByteReader(let array: Array[UInt8]) {
-    var idx: Int64 = 0L;
-
-    fun moreBytes(): Bool {
-        self.idx < self.array.size()
-    }
-
-    fun readUInt8(): UInt8 {
-        let value = self.array(self.idx);
-        self.idx = self.idx + 1L;
-        value
-    }
-
-    fun readInt32(): Int32 {
-        let by1 = self.readUInt8().toInt32();
-        let by2 = self.readUInt8().toInt32();
-        let by3 = self.readUInt8().toInt32();
-        let by4 = self.readUInt8().toInt32();
-
-        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
-    }
-
-    fun readInt64(): Int64 {
-        let by1 = self.readUInt8().toInt64();
-        let by2 = self.readUInt8().toInt64();
-        let by3 = self.readUInt8().toInt64();
-        let by4 = self.readUInt8().toInt64();
-        let by5 = self.readUInt8().toInt64();
-        let by6 = self.readUInt8().toInt64();
-        let by7 = self.readUInt8().toInt64();
-        let by8 = self.readUInt8().toInt64();
-
-        (by8 << 56) | (by7 << 48) | (by6 << 40) | (by5 << 32) | (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
-    }
-
-    fun readStringConent(length: Int64): String {
-        let value = String::fromBytesPart(self.array, self.idx, length).getOrPanic();
-        self.idx = self.idx + length;
-        value
-    }
-
-    fun position(): Int64 {
-        self.idx
-    }
-
-    fun skipBytes(value: Int64) {
-        self.idx = self.idx + value;
-    }
 }

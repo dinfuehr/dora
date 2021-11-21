@@ -16,17 +16,23 @@ pub fn allocate_compilation_info(
 ) -> Ref<Obj> {
     let mut buffer = ByteBuffer::new();
 
-    buffer.extend_from_slice(bytecode_fct.code());
-
-    let bytecode_array = handle(byte_array_from_buffer(vm, bytecode_fct.code()));
+    let bytecode_array = handle(encode_bytecode_array(vm, bytecode_fct.code(), &mut buffer));
     let constpool_array = handle(encode_constpool_array(vm, &mut buffer, &bytecode_fct));
     let registers_array = handle(encode_registers_array(vm, &bytecode_fct, &mut buffer));
     let type_params = handle(encode_type_params(vm, type_params, &mut buffer));
 
-    assert_eq!(
-        buffer.len(),
-        bytecode_array.len() + constpool_array.len() + registers_array.len() + type_params.len()
-    );
+    buffer.emit_u32(bytecode_fct.arguments());
+
+    let instruction_set = if cfg!(target_arch = "x86_64") {
+        InstructionSet::X64
+    } else if cfg!(target_arch = "aarch64") {
+        InstructionSet::Arm64
+    } else {
+        panic!()
+    };
+    buffer.emit_u8(instruction_set.to_int());
+
+    let full = handle(byte_array_from_buffer(vm, &buffer.data()));
 
     allocate_encoded_compilation_info(
         vm,
@@ -34,8 +40,19 @@ pub fn allocate_compilation_info(
         constpool_array,
         registers_array,
         type_params,
+        full,
         bytecode_fct.arguments() as i32,
     )
+}
+
+fn encode_bytecode_array(vm: &VM, bytecode: &[u8], buffer2: &mut ByteBuffer) -> Ref<UInt8Array> {
+    buffer2.emit_u32(bytecode.len() as u32);
+
+    for &byte in bytecode {
+        buffer2.emit_u8(byte);
+    }
+
+    byte_array_from_buffer(vm, bytecode)
 }
 
 fn allocate_encoded_compilation_info(
@@ -44,6 +61,7 @@ fn allocate_encoded_compilation_info(
     constpool_array: Handle<UInt8Array>,
     registers_array: Handle<UInt8Array>,
     type_params: Handle<UInt8Array>,
+    full: Handle<UInt8Array>,
     arguments: i32,
 ) -> Ref<Obj> {
     let cls_id = vm.cls_def_by_name(vm.boots_namespace_id, "EncodedCompilationInfo");
@@ -60,6 +78,9 @@ fn allocate_encoded_compilation_info(
 
     let fid = vm.field_in_class(cls_id, "typeParams");
     object::write_ref(vm, obj, cls_id, fid, type_params.direct().cast::<Obj>());
+
+    let fid = vm.field_in_class(cls_id, "full");
+    object::write_ref(vm, obj, cls_id, fid, full.direct().cast::<Obj>());
 
     let fid = vm.field_in_class(cls_id, "arguments");
     object::write_int32(vm, obj, cls_id, fid, arguments);
@@ -476,6 +497,10 @@ pub struct ByteBuffer {
 impl ByteBuffer {
     pub fn new() -> ByteBuffer {
         ByteBuffer { data: Vec::new() }
+    }
+
+    pub fn data(&self) -> &[u8] {
+        &self.data
     }
 
     pub fn len(&self) -> usize {
