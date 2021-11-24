@@ -189,6 +189,20 @@ impl SourceType {
         }
     }
 
+    pub fn is_lambda(&self) -> bool {
+        match self {
+            &SourceType::Lambda(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn lambda_id(&self) -> Option<LambdaId> {
+        match self {
+            &SourceType::Lambda(lambda_id) => Some(lambda_id),
+            _ => None,
+        }
+    }
+
     pub fn cls_id(&self) -> Option<ClassId> {
         match *self {
             SourceType::Class(cls_id, _) => Some(cls_id),
@@ -1276,8 +1290,8 @@ impl<'a> SourceTypePrinter<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LambdaType {
-    params: Vec<SourceType>,
-    ret: SourceType,
+    pub params: Vec<SourceType>,
+    pub ret: SourceType,
 }
 
 #[cfg(test)]

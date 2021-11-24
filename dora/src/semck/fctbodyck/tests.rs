@@ -3718,3 +3718,29 @@ fn method_call_type_mismatch_with_type_params() {
         SemError::ParamTypesIncompatible("f".into(), vec!["String".into()], vec!["T".into()]),
     );
 }
+
+#[test]
+fn basic_lambda() {
+    ok("fun f(foo: (Int32) -> Int32): Int32 {
+        foo(1)
+    }");
+
+    err(
+        "fun f(foo: (Int32) -> Int32): Bool {
+        foo(1)
+    }",
+        pos(1, 36),
+        SemError::ReturnType("Bool".into(), "Int32".into()),
+    );
+
+    err(
+        "fun f(foo: (Int32, Int32) -> Int32): Int32 {
+        foo(1)
+    }",
+        pos(2, 12),
+        SemError::LambdaParamTypesIncompatible(
+            vec!["Int32".into(), "Int32".into()],
+            vec!["Int32".into()],
+        ),
+    );
+}

@@ -232,6 +232,9 @@ pub enum CallType {
 
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),
+
+    // Call to lambda,
+    Lambda,
 }
 
 impl CallType {
@@ -291,6 +294,7 @@ impl CallType {
             CallType::Intrinsic(_) => None,
             CallType::Enum(_, _) => None,
             CallType::Struct(_, _) => None,
+            CallType::Lambda => None,
         }
     }
 }

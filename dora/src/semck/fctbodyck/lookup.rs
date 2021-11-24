@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::semck::fctbodyck::body::args_compatible;
+use crate::semck::fctbodyck::body::args_compatible_fct;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -223,7 +223,7 @@ impl<'a> MethodLookup<'a> {
             return false;
         }
 
-        if !args_compatible(self.vm, &*fct, args, &type_params, None) {
+        if !args_compatible_fct(self.vm, &*fct, args, &type_params, None) {
             if !self.report_errors {
                 return false;
             }

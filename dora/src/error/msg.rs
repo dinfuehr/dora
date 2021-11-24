@@ -50,6 +50,7 @@ pub enum SemError {
     MatchUnreachablePattern,
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
+    LambdaParamTypesIncompatible(Vec<String>, Vec<String>),
     WhileCondType(String),
     IfCondType(String),
     ReturnType(String, String),
@@ -287,6 +288,12 @@ impl SemError {
                     "function `{}({})` cannot be called as `{}({})`",
                     name, def, name, expr
                 )
+            }
+            SemError::LambdaParamTypesIncompatible(ref def, ref expr) => {
+                let def = def.join(", ");
+                let expr = expr.join(", ");
+
+                format!("lambda `({})` cannot be called with `({})`", def, expr)
             }
             SemError::WhileCondType(ref ty) => {
                 format!("`while` expects condition of type `bool` but got `{}`.", ty)

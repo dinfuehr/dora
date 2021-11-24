@@ -1444,6 +1444,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
+            CallType::Lambda => unreachable!(),
         }
     }
 
@@ -2738,6 +2739,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
+            CallType::Lambda => unreachable!(),
         }
     }
 
@@ -2788,6 +2790,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
+            CallType::Lambda => unreachable!(),
         }
     }
 

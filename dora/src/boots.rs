@@ -109,7 +109,7 @@ pub fn get_encoded_bytecode_function_by_name(vm: &VM, name: &str) -> Ref<Obj> {
     let fct_name = vm.interner.intern(name);
     let bc_fct_id = NestedSymTable::new(vm, vm.boots_namespace_id)
         .get_fct(fct_name)
-        .expect("compile()-method missing");
+        .expect("method not found");
 
     let fct = vm.fcts.idx(bc_fct_id);
     let fct = fct.read();

@@ -1594,7 +1594,7 @@ impl<'a> TypeCheck<'a> {
 
         let tp = SourceType::TypeParam(tp_id);
 
-        if !args_compatible(
+        if !args_compatible_fct(
             self.vm,
             &*fct,
             arg_types,
@@ -1641,6 +1641,10 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         }
 
+        if expr_type.is_lambda() {
+            return self.check_expr_call_expr_lambda(e, expr_type, arg_types);
+        }
+
         let get = self.vm.interner.intern("get");
 
         if let Some(descriptor) = self.find_method(
@@ -1665,6 +1669,47 @@ impl<'a> TypeCheck<'a> {
 
             SourceType::Error
         }
+    }
+
+    fn check_expr_call_expr_lambda(
+        &mut self,
+        e: &ast::ExprCallType,
+        expr_type: SourceType,
+        arg_types: &[SourceType],
+    ) -> SourceType {
+        let lambda_id = expr_type.lambda_id().unwrap();
+        let lambda_type = self.vm.lambda_types.lock().get(lambda_id);
+
+        if !args_compatible(
+            self.vm,
+            &lambda_type.params,
+            false,
+            arg_types,
+            &SourceTypeArray::empty(),
+            None,
+        ) {
+            let fct_params = lambda_type
+                .params
+                .iter()
+                .map(|a| a.name_fct(self.vm, self.fct))
+                .collect::<Vec<_>>();
+            let arg_types = arg_types
+                .iter()
+                .map(|a| a.name_fct(self.vm, self.fct))
+                .collect::<Vec<_>>();
+            let msg = SemError::LambdaParamTypesIncompatible(fct_params, arg_types);
+            self.vm.diag.lock().report(self.file_id, e.pos, msg);
+        }
+
+        let return_type = lambda_type.ret.clone();
+        let call_type = CallType::Lambda;
+
+        self.analysis
+            .map_calls
+            .insert_or_replace(e.id, Arc::new(call_type));
+
+        self.analysis.set_ty(e.id, return_type.clone());
+        return_type
     }
 
     fn check_expr_call_fct(
@@ -2021,7 +2066,7 @@ impl<'a> TypeCheck<'a> {
 
         let cls_ty = self.vm.cls_with_type_list(cls_id, type_params.clone());
 
-        if !args_compatible(self.vm, &*ctor, arg_types, &type_params, None) {
+        if !args_compatible_fct(self.vm, &*ctor, arg_types, &type_params, None) {
             let fct_name = self.vm.interner.str(ctor.name).to_string();
             let fct_params = ctor
                 .params_without_self()
@@ -2362,7 +2407,7 @@ impl<'a> TypeCheck<'a> {
 
             let parent_class_type_params = parent_class.type_params(self.vm);
 
-            if args_compatible(self.vm, &*ctor, &arg_types, &parent_class_type_params, None) {
+            if args_compatible_fct(self.vm, &*ctor, &arg_types, &parent_class_type_params, None) {
                 self.analysis.map_tys.insert(e.id, parent_class);
 
                 let cls_ty = self.vm.cls_with_type_list(cls_id, parent_class_type_params);
@@ -3283,29 +3328,50 @@ impl<'a> Visitor for TypeCheck<'a> {
     }
 }
 
-pub fn args_compatible(
+pub fn args_compatible_fct(
     vm: &VM,
     callee: &Fct,
     args: &[SourceType],
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
 ) -> bool {
-    let def_args = callee.params_without_self();
+    let arg_types = callee.params_without_self();
+    let variadic_arguments = callee.variadic_arguments;
+    args_compatible(
+        vm,
+        arg_types,
+        variadic_arguments,
+        args,
+        type_params,
+        self_ty,
+    )
+}
 
-    let right_number_of_arguments = if callee.variadic_arguments {
-        def_args.len() - 1 <= args.len()
+fn args_compatible(
+    vm: &VM,
+    fct_arg_types: &[SourceType],
+    variadic_arguments: bool,
+    args: &[SourceType],
+    type_params: &SourceTypeArray,
+    self_ty: Option<SourceType>,
+) -> bool {
+    let right_number_of_arguments = if variadic_arguments {
+        fct_arg_types.len() - 1 <= args.len()
     } else {
-        def_args.len() == args.len()
+        fct_arg_types.len() == args.len()
     };
 
     if !right_number_of_arguments {
         return false;
     }
 
-    let (def, rest_ty): (&[SourceType], Option<SourceType>) = if callee.variadic_arguments {
-        (&def_args[0..def_args.len() - 1], def_args.last().cloned())
+    let (def, rest_ty): (&[SourceType], Option<SourceType>) = if variadic_arguments {
+        (
+            &fct_arg_types[0..fct_arg_types.len() - 1],
+            fct_arg_types.last().cloned(),
+        )
     } else {
-        (&def_args, None)
+        (&fct_arg_types, None)
     };
 
     for (ind, def_arg) in def.iter().enumerate() {
@@ -3580,7 +3646,7 @@ fn lookup_method(
         let container_type_params = &candidates[0].container_type_params;
         let type_params = container_type_params.connect(fct_type_params);
 
-        if args_compatible(vm, &*method, args, &type_params, None) {
+        if args_compatible_fct(vm, &*method, args, &type_params, None) {
             let cmp_type = replace_type_param(vm, method.return_type.clone(), &type_params, None);
 
             return Some(MethodDescriptor {
