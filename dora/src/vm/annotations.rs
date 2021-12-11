@@ -1,7 +1,7 @@
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FileId, NamespaceId, TypeParam};
-use dora_parser::ast::{AnnotationParam, Modifier};
+use crate::vm::{FileId, NamespaceId, TypeParam, VM};
+use dora_parser::ast::{AnnotationParam, AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
 use dora_parser::Position;
 use parking_lot::RwLock;
@@ -71,5 +71,64 @@ impl Annotation {
 
     pub fn internal(&self) -> bool {
         self.internal_annotation.is_some()
+    }
+
+    pub fn is_abstract(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm
+            .annotations
+            .idx(vm.known.annotations.abstract_)
+            .read()
+            .name;
+        annotation_usages.contains(name)
+    }
+    pub fn is_final(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm.annotations.idx(vm.known.annotations.final_).read().name;
+        annotation_usages.contains(name)
+    }
+    pub fn is_internal(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm
+            .annotations
+            .idx(vm.known.annotations.internal)
+            .read()
+            .name;
+        annotation_usages.contains(name)
+    }
+    pub fn is_open(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm.annotations.idx(vm.known.annotations.open).read().name;
+        annotation_usages.contains(name)
+    }
+    pub fn is_override(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm
+            .annotations
+            .idx(vm.known.annotations.override_)
+            .read()
+            .name;
+        annotation_usages.contains(name)
+    }
+    pub fn is_pub(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm.annotations.idx(vm.known.annotations.pub_).read().name;
+        annotation_usages.contains(name)
+    }
+    pub fn is_static(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm.annotations.idx(vm.known.annotations.static_).read().name;
+        annotation_usages.contains(name)
+    }
+
+    pub fn is_test(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm.annotations.idx(vm.known.annotations.test).read().name;
+        annotation_usages.contains(name)
+    }
+
+    pub fn is_cannon(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm.annotations.idx(vm.known.annotations.cannon).read().name;
+        annotation_usages.contains(name)
+    }
+    pub fn is_optimize_immediately(annotation_usages: &AnnotationUsages, vm: &VM) -> bool {
+        let name = vm
+            .annotations
+            .idx(vm.known.annotations.optimize_immediately)
+            .read()
+            .name;
+        annotation_usages.contains(name)
     }
 }
