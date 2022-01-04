@@ -740,6 +740,30 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     intrinsic_method(sa, stdlib, "Float32", "isNan", Intrinsic::Float32IsNan);
     intrinsic_method(sa, stdlib, "Float32", "abs", Intrinsic::Float32Abs);
+
+    intrinsic_method(
+        sa,
+        stdlib,
+        "Float32",
+        "roundToZero",
+        Intrinsic::Float32RoundToZero,
+    );
+    intrinsic_method(sa, stdlib, "Float32", "roundUp", Intrinsic::Float32RoundUp);
+    intrinsic_method(
+        sa,
+        stdlib,
+        "Float32",
+        "roundDown",
+        Intrinsic::Float32RoundDown,
+    );
+    intrinsic_method(
+        sa,
+        stdlib,
+        "Float32",
+        "roundHalfEven",
+        Intrinsic::Float32RoundHalfEven,
+    );
+
     intrinsic_method(sa, stdlib, "Float32", "sqrt", Intrinsic::Float32Sqrt);
 
     native_method(
@@ -780,6 +804,30 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     intrinsic_method(sa, stdlib, "Float64", "isNan", Intrinsic::Float64IsNan);
     intrinsic_method(sa, stdlib, "Float64", "abs", Intrinsic::Float64Abs);
+
+    intrinsic_method(
+        sa,
+        stdlib,
+        "Float64",
+        "roundToZero",
+        Intrinsic::Float64RoundToZero,
+    );
+    intrinsic_method(sa, stdlib, "Float64", "roundUp", Intrinsic::Float64RoundUp);
+    intrinsic_method(
+        sa,
+        stdlib,
+        "Float64",
+        "roundDown",
+        Intrinsic::Float64RoundDown,
+    );
+    intrinsic_method(
+        sa,
+        stdlib,
+        "Float64",
+        "roundHalfEven",
+        Intrinsic::Float64RoundHalfEven,
+    );
+
     intrinsic_method(sa, stdlib, "Float64", "sqrt", Intrinsic::Float64Sqrt);
 
     native_static(

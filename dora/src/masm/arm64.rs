@@ -777,6 +777,38 @@ impl MacroAssembler {
         }
     }
 
+    pub fn float_round_tozero(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.frintz_s(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.frintz_d(dest.into(), src.into()),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn float_round_up(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.frintp_s(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.frintp_d(dest.into(), src.into()),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn float_round_down(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.frintm_s(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.frintm_d(dest.into(), src.into()),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn float_round_halfeven(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.frintn_s(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.frintn_d(dest.into(), src.into()),
+            _ => unimplemented!(),
+        }
+    }
+
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
             MachineMode::Float32 => self.asm.fsqrt_s(dest.into(), src.into()),

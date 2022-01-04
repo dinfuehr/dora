@@ -1295,6 +1295,50 @@ impl MacroAssembler {
         }
     }
 
+    pub fn float_round_tozero(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.roundss_ri(src.into(), Immediate(0b1011)),
+            MachineMode::Float64 => self.asm.roundsd_ri(src.into(), Immediate(0b1011)),
+            _ => unreachable!(),
+        }
+        if dest != src {
+            self.copy_freg(mode, dest, src);
+        }
+    }
+
+    pub fn float_round_up(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.roundss_ri(src.into(), Immediate(0b1010)),
+            MachineMode::Float64 => self.asm.roundsd_ri(src.into(), Immediate(0b1010)),
+            _ => unreachable!(),
+        }
+        if dest != src {
+            self.copy_freg(mode, dest, src);
+        }
+    }
+
+    pub fn float_round_down(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.roundss_ri(src.into(), Immediate(0b1001)),
+            MachineMode::Float64 => self.asm.roundsd_ri(src.into(), Immediate(0b1001)),
+            _ => unreachable!(),
+        }
+        if dest != src {
+            self.copy_freg(mode, dest, src);
+        }
+    }
+
+    pub fn float_round_halfeven(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => self.asm.roundss_ri(src.into(), Immediate(0b1000)),
+            MachineMode::Float64 => self.asm.roundsd_ri(src.into(), Immediate(0b1000)),
+            _ => unreachable!(),
+        }
+        if dest != src {
+            self.copy_freg(mode, dest, src);
+        }
+    }
+
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
             MachineMode::Float32 => self.asm.sqrtss_rr(dest.into(), src.into()),

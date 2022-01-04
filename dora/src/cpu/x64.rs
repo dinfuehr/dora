@@ -9,10 +9,6 @@ pub fn flush_icache(_: *const u8, _: usize) {
     compiler_fence(Ordering::SeqCst);
 }
 
-pub fn has_round() -> bool {
-    *HAS_ROUND
-}
-
 pub fn has_popcnt() -> bool {
     *HAS_POPCNT
 }
@@ -26,11 +22,9 @@ pub fn has_tzcnt() -> bool {
 }
 
 lazy_static! {
-// support for floating point rounding
-static ref HAS_ROUND: bool = is_x86_feature_detected!("sse4.1");
-static ref HAS_POPCNT: bool = is_x86_feature_detected!("popcnt");
-static ref HAS_LZCNT: bool =  is_x86_feature_detected!("lzcnt");
-static ref HAS_TZCNT: bool = is_x86_feature_detected!("bmi1");
+    static ref HAS_POPCNT: bool = is_x86_feature_detected!("popcnt");
+    static ref HAS_LZCNT: bool = is_x86_feature_detected!("lzcnt");
+    static ref HAS_TZCNT: bool = is_x86_feature_detected!("bmi1");
 }
 
 // first param offset to rbp is +16,

@@ -1,0 +1,46 @@
+fun main() {
+  let x = Float64::infinityNegative().roundToZero();
+  assert(x == Float64::infinityNegative());
+
+  let x = (-2.5).roundToZero();
+  assert(x == -2.0);
+
+  let x = (-1.5).roundToZero();
+  assert(x == -1.0);
+
+  let x = (-2.5).roundToZero();
+  assert(x == -2.0);
+
+  let x = (-1.5).roundToZero();
+  assert(x == -1.0);
+
+  let x = (-1.23).roundToZero();
+  assert(x == -1.0);
+
+  let x = (-1.0).roundToZero();
+  assert(x == -1.0);
+
+  let x = (-0.0).roundToZero();
+  assert(x == -0.0);
+
+  let x = 0.0.roundToZero();
+  assert(x == 0.0);
+
+  let x = 1.0.roundToZero();
+  assert(x == 1.0);
+
+  let x = 1.23.roundToZero();
+  assert(x == 1.0);
+
+  let x = 1.5.roundToZero();
+  assert(x == 1.0);
+
+  let x = 2.5.roundToZero();
+  assert(x == 2.0);
+
+  let x = Float64::infinityPositive().roundToZero();
+  assert(x == Float64::infinityPositive());
+
+  let x = Float64::notANumber().roundToZero();
+  assert(x.isNan());
+}

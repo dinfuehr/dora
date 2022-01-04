@@ -1,0 +1,46 @@
+fun main() {
+  let x = Float32::infinityNegative().roundHalfEven();
+  assert(x == Float32::infinityNegative());
+
+  let x = (-2.5F).roundHalfEven();
+  assert(x == -2.0F);
+
+  let x = (-1.5F).roundHalfEven();
+  assert(x == -2.0F);
+
+  let x = (-2.5F).roundHalfEven();
+  assert(x == -2.0F);
+
+  let x = (-1.5F).roundHalfEven();
+  assert(x == -2.0F);
+
+  let x = (-1.23F).roundHalfEven();
+  assert(x == -1.0F);
+
+  let x = (-1.0F).roundHalfEven();
+  assert(x == -1.0F);
+
+  let x = (-0.0F).roundHalfEven();
+  assert(x == -0.0F);
+
+  let x = 0.0F.roundHalfEven();
+  assert(x == 0.0F);
+
+  let x = 1.0F.roundHalfEven();
+  assert(x == 1.0F);
+
+  let x = 1.23F.roundHalfEven();
+  assert(x == 1.0F);
+
+  let x = 1.5F.roundHalfEven();
+  assert(x == 2.0F);
+
+  let x = 2.5F.roundHalfEven();
+  assert(x == 2.0F);
+
+  let x = Float32::infinityPositive().roundHalfEven();
+  assert(x == Float32::infinityPositive());
+
+  let x = Float32::notANumber().roundHalfEven();
+  assert(x.isNan());
+}
