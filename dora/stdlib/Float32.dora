@@ -34,6 +34,11 @@ impl Float32 {
   @pub @internal fun unaryMinus(): Float32;
   @pub @internal fun abs(): Float32;
 
+  @pub @internal fun roundToZero(): Float32;
+  @pub @internal fun roundUp(): Float32;
+  @pub @internal fun roundDown(): Float32;
+  @pub @internal fun roundHalfEven(): Float32;
+
   @pub @internal fun isNan(): Bool;
   @pub @internal fun sqrt(): Float32;
 

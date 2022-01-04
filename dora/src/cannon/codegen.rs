@@ -3346,6 +3346,47 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_intrinsic_abs_float(dest_reg, src_reg);
             }
 
+            Intrinsic::Float32RoundToZero | Intrinsic::Float64RoundToZero => {
+                self.emit_intrinsic_float_round_tozero(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    arguments,
+                    type_params,
+                    pos,
+                );
+            }
+            Intrinsic::Float32RoundUp | Intrinsic::Float64RoundUp => {
+                self.emit_intrinsic_float_round_up(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    arguments,
+                    type_params,
+                    pos,
+                );
+            }
+            Intrinsic::Float32RoundDown | Intrinsic::Float64RoundDown => {
+                self.emit_intrinsic_float_round_down(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    arguments,
+                    type_params,
+                    pos,
+                );
+            }
+            Intrinsic::Float32RoundHalfEven | Intrinsic::Float64RoundHalfEven => {
+                self.emit_intrinsic_float_round_halfeven(
+                    dest,
+                    fct_id,
+                    intrinsic,
+                    arguments,
+                    type_params,
+                    pos,
+                );
+            }
+
             Intrinsic::Float32Sqrt | Intrinsic::Float64Sqrt => {
                 self.emit_intrinsic_float_sqrt(
                     dest,
@@ -3875,6 +3916,99 @@ impl<'a> CannonCodeGen<'a> {
             }
             _ => unreachable!(),
         }
+    }
+
+    fn emit_intrinsic_float_round_tozero(
+        &mut self,
+        dest: Option<Register>,
+        _fct_id: FctDefinitionId,
+        intrinsic: Intrinsic,
+        arguments: Vec<Register>,
+        type_params: SourceTypeArray,
+        _pos: Position,
+    ) {
+        debug_assert_eq!(arguments.len(), 1);
+        debug_assert!(type_params.is_empty());
+
+        let mode = match intrinsic {
+            Intrinsic::Float32RoundToZero => MachineMode::Float32,
+            Intrinsic::Float64RoundToZero => MachineMode::Float64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(arguments[0], FREG_RESULT.into());
+        self.asm.float_round_tozero(mode, FREG_RESULT, FREG_RESULT);
+        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+    }
+
+    fn emit_intrinsic_float_round_up(
+        &mut self,
+        dest: Option<Register>,
+        _fct_id: FctDefinitionId,
+        intrinsic: Intrinsic,
+        arguments: Vec<Register>,
+        type_params: SourceTypeArray,
+        _pos: Position,
+    ) {
+        debug_assert_eq!(arguments.len(), 1);
+        debug_assert!(type_params.is_empty());
+
+        let mode = match intrinsic {
+            Intrinsic::Float32RoundUp => MachineMode::Float32,
+            Intrinsic::Float64RoundUp => MachineMode::Float64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(arguments[0], FREG_RESULT.into());
+        self.asm.float_round_up(mode, FREG_RESULT, FREG_RESULT);
+        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+    }
+
+    fn emit_intrinsic_float_round_down(
+        &mut self,
+        dest: Option<Register>,
+        _fct_id: FctDefinitionId,
+        intrinsic: Intrinsic,
+        arguments: Vec<Register>,
+        type_params: SourceTypeArray,
+        _pos: Position,
+    ) {
+        debug_assert_eq!(arguments.len(), 1);
+        debug_assert!(type_params.is_empty());
+
+        let mode = match intrinsic {
+            Intrinsic::Float32RoundDown => MachineMode::Float32,
+            Intrinsic::Float64RoundDown => MachineMode::Float64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(arguments[0], FREG_RESULT.into());
+        self.asm.float_round_down(mode, FREG_RESULT, FREG_RESULT);
+        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+    }
+
+    fn emit_intrinsic_float_round_halfeven(
+        &mut self,
+        dest: Option<Register>,
+        _fct_id: FctDefinitionId,
+        intrinsic: Intrinsic,
+        arguments: Vec<Register>,
+        type_params: SourceTypeArray,
+        _pos: Position,
+    ) {
+        debug_assert_eq!(arguments.len(), 1);
+        debug_assert!(type_params.is_empty());
+
+        let mode = match intrinsic {
+            Intrinsic::Float32RoundHalfEven => MachineMode::Float32,
+            Intrinsic::Float64RoundHalfEven => MachineMode::Float64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(arguments[0], FREG_RESULT.into());
+        self.asm
+            .float_round_halfeven(mode, FREG_RESULT, FREG_RESULT);
+        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
     }
 
     fn emit_intrinsic_float_sqrt(

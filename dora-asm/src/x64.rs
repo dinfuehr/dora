@@ -571,6 +571,26 @@ impl AssemblerX64 {
         self.emit_modrm_sse_registers(dest, src);
     }
 
+    pub fn roundss_ri(&mut self, reg: XmmRegister, imm: Immediate) {
+        self.emit_u8(0x66);
+        self.emit_rex_sse_modrm_optional(reg, reg);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x3a);
+        self.emit_u8(0x0a);
+        self.emit_modrm_sse_registers(reg, reg);
+        self.emit_u8(imm.uint8());
+    }
+
+    pub fn roundsd_ri(&mut self, reg: XmmRegister, imm: Immediate) {
+        self.emit_u8(0x66);
+        self.emit_rex_sse_modrm_optional(reg, reg);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x3a);
+        self.emit_u8(0x0b);
+        self.emit_modrm_sse_registers(reg, reg);
+        self.emit_u8(imm.uint8());
+    }
+
     pub fn sqrtss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
         self.emit_u8(0xf3);
         self.emit_rex_sse_modrm_optional(dest, src);
@@ -2422,6 +2442,22 @@ mod tests {
         assert_emit!(0x66, 0x0f, 0xef, 0xc8; pxor_rr(XMM1, XMM0));
         assert_emit!(0x66, 0x44, 0x0f, 0xef, 0xfb; pxor_rr(XMM15, XMM3));
         assert_emit!(0x66, 0x41, 0x0f, 0xef, 0xe0; pxor_rr(XMM4, XMM8));
+    }
+
+    #[test]
+    fn test_roundss_ri() {
+        assert_emit!(0x66, 0x0f, 0x3a, 0x0a, 0xc0, 0x08; roundss_ri(XMM0, Immediate(0b1000)));
+        assert_emit!(0x66, 0x0f, 0x3a, 0x0a, 0xff, 0x09; roundss_ri(XMM7, Immediate(0b1001)));
+        assert_emit!(0x66, 0x45, 0x0f, 0x3a, 0x0a, 0xc0, 0x0a; roundss_ri(XMM8, Immediate(0b1010)));
+        assert_emit!(0x66, 0x45, 0x0f, 0x3a, 0x0a, 0xff, 0x0b; roundss_ri(XMM15, Immediate(0b1011)));
+    }
+
+    #[test]
+    fn test_roundsd_ri() {
+        assert_emit!(0x66, 0x0f, 0x3a, 0x0b, 0xc0, 0x08; roundsd_ri(XMM0, Immediate(0b1000)));
+        assert_emit!(0x66, 0x0f, 0x3a, 0x0b, 0xff, 0x09; roundsd_ri(XMM7, Immediate(0b1001)));
+        assert_emit!(0x66, 0x45, 0x0f, 0x3a, 0x0b, 0xc0, 0x0a; roundsd_ri(XMM8, Immediate(0b1010)));
+        assert_emit!(0x66, 0x45, 0x0f, 0x3a, 0x0b, 0xff, 0x0b; roundsd_ri(XMM15, Immediate(0b1011)));
     }
 
     #[test]
