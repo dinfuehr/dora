@@ -512,6 +512,7 @@ pub enum Intrinsic {
     Float32Neg,
     Float32Abs,
     Float32IsNan,
+    Float32RoundHalfEven,
     Float32Sqrt,
 
     Float64ToInt32,
@@ -531,6 +532,7 @@ pub enum Intrinsic {
     Float64Neg,
     Float64Abs,
     Float64IsNan,
+    Float64RoundHalfEven,
     Float64Sqrt,
 
     OptionGetOrPanic,
@@ -575,6 +577,8 @@ impl Intrinsic {
             | Intrinsic::Int32CountOneBitsTrailing
             | Intrinsic::Float32Abs
             | Intrinsic::Float64Abs
+            | Intrinsic::Float32RoundHalfEven
+            | Intrinsic::Float64RoundHalfEven
             | Intrinsic::Float32Sqrt
             | Intrinsic::Float64Sqrt
             | Intrinsic::PromoteFloat32ToFloat64
@@ -693,6 +697,7 @@ impl Intrinsic {
             | Intrinsic::ReinterpretInt32AsFloat32
             | Intrinsic::Int32ToFloat32
             | Intrinsic::Int64ToFloat32
+            | Intrinsic::Float32RoundHalfEven
             | Intrinsic::Float32Sqrt
             | Intrinsic::DemoteFloat64ToFloat32 => BytecodeType::Float32,
             Intrinsic::Float64Add
@@ -704,6 +709,7 @@ impl Intrinsic {
             | Intrinsic::Int32ToFloat64
             | Intrinsic::Int64ToFloat64
             | Intrinsic::ReinterpretInt64AsFloat64
+            | Intrinsic::Float64RoundHalfEven
             | Intrinsic::Float64Sqrt
             | Intrinsic::PromoteFloat32ToFloat64 => BytecodeType::Float64,
             Intrinsic::BoolEq

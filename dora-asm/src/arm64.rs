@@ -1085,6 +1085,46 @@ impl AssemblerArm64 {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b000010, rn, rd));
     }
 
+    pub fn frintn_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b001000, rn, rd));
+    }
+
+    pub fn frintn_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b001000, rn, rd));
+    }
+
+    pub fn frintp_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b001001, rn, rd));
+    }
+
+    pub fn frintp_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b001001, rn, rd));
+    }
+
+    pub fn frintm_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b001010, rn, rd));
+    }
+
+    pub fn frintm_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b001010, rn, rd));
+    }
+
+    pub fn frintz_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b001011, rn, rd));
+    }
+
+    pub fn frintz_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b001011, rn, rd));
+    }
+
+    pub fn frinta_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b001100, rn, rd));
+    }
+
+    pub fn frinta_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
+        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b001100, rn, rd));
+    }
+
     pub fn fsqrt_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000011, rn, rd));
     }

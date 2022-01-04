@@ -485,6 +485,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.array_address(dest, obj, index, element_size);
     }
 
+    pub fn float_round_halfeven(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        self.masm.float_round_halfeven(mode, dest, src);
+    }
+
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         self.masm.float_sqrt(mode, dest, src);
     }
