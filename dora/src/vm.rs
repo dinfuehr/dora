@@ -271,6 +271,10 @@ impl FullSemAnalysis {
 
         sa
     }
+
+    pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
+        VM::new_from_full_sa(sa)
+    }
 }
 
 pub type SemAnalysis = VM;
@@ -448,8 +452,6 @@ impl VM {
             wait_lists: WaitLists::new(),
         });
 
-        set_vm(&vm);
-
         vm
     }
 
@@ -505,8 +507,6 @@ impl VM {
             boots_namespace_id: sa.boots_namespace_id,
             wait_lists: WaitLists::new(),
         });
-
-        set_vm(&vm);
 
         vm
     }

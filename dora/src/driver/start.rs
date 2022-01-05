@@ -1,5 +1,5 @@
 use crate::error::msg::SemError;
-use crate::vm::{init_global_addresses, Fct, FctId};
+use crate::vm::{init_global_addresses, set_vm, Fct, FctId};
 use crate::vm::{SemAnalysis, VM};
 
 use crate::driver::cmd;
@@ -70,6 +70,7 @@ pub fn start() -> i32 {
     }
 
     let vm = VM::new_from_sa(sa);
+    set_vm(&vm);
 
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 
