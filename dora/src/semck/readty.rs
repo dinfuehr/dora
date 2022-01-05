@@ -32,7 +32,7 @@ pub enum AllowSelf {
 }
 
 pub fn read_type(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     t: &Type,
@@ -43,28 +43,28 @@ pub fn read_type(
         Type::This(ref node) => match allow_self {
             AllowSelf::Yes => Some(SourceType::This),
             AllowSelf::No => {
-                vm.diag
+                sa.diag
                     .lock()
                     .report(file_id, node.pos, SemError::SelfTypeUnavailable);
 
                 None
             }
         },
-        Type::Basic(ref basic) => read_type_basic(vm, table, file_id, basic, ctxt, allow_self),
-        Type::Tuple(ref tuple) => read_type_tuple(vm, table, file_id, tuple, ctxt, allow_self),
-        Type::Lambda(ref lambda) => read_type_lambda(vm, table, file_id, lambda, ctxt, allow_self),
+        Type::Basic(ref basic) => read_type_basic(sa, table, file_id, basic, ctxt, allow_self),
+        Type::Tuple(ref tuple) => read_type_tuple(sa, table, file_id, tuple, ctxt, allow_self),
+        Type::Lambda(ref lambda) => read_type_lambda(sa, table, file_id, lambda, ctxt, allow_self),
     }
 }
 
 fn read_type_basic(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    let sym = read_type_path(vm, table, file_id, basic);
+    let sym = read_type_path(sa, table, file_id, basic);
 
     if sym.is_err() {
         return None;
@@ -73,33 +73,33 @@ fn read_type_basic(
     let sym = sym.unwrap();
 
     if sym.is_none() {
-        let name = vm
+        let name = sa
             .interner
             .str(basic.path.names.last().cloned().unwrap())
             .to_string();
         let msg = SemError::UnknownIdentifier(name);
-        vm.diag.lock().report(file_id, basic.pos, msg);
+        sa.diag.lock().report(file_id, basic.pos, msg);
         return None;
     }
 
     let sym = sym.unwrap();
 
     match sym {
-        Sym::Class(cls_id) => read_type_class(vm, table, file_id, basic, cls_id, ctxt, allow_self),
+        Sym::Class(cls_id) => read_type_class(sa, table, file_id, basic, cls_id, ctxt, allow_self),
 
         Sym::Trait(trait_id) => {
-            if !trait_accessible_from(vm, trait_id, table.namespace_id()) {
-                let xtrait = vm.traits[trait_id].read();
-                let msg = SemError::NotAccessible(xtrait.name(vm));
-                vm.diag.lock().report(file_id, basic.pos, msg);
+            if !trait_accessible_from(sa, trait_id, table.namespace_id()) {
+                let xtrait = sa.traits[trait_id].read();
+                let msg = SemError::NotAccessible(xtrait.name(sa));
+                sa.diag.lock().report(file_id, basic.pos, msg);
             }
 
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
-                vm.diag.lock().report(file_id, basic.pos, msg);
+                sa.diag.lock().report(file_id, basic.pos, msg);
             }
 
-            let list_id = vm
+            let list_id = sa
                 .source_type_arrays
                 .lock()
                 .insert(SourceTypeArray::empty());
@@ -108,15 +108,15 @@ fn read_type_basic(
         }
 
         Sym::Struct(struct_id) => {
-            read_type_struct(vm, table, file_id, basic, struct_id, ctxt, allow_self)
+            read_type_struct(sa, table, file_id, basic, struct_id, ctxt, allow_self)
         }
 
-        Sym::Enum(enum_id) => read_type_enum(vm, table, file_id, basic, enum_id, ctxt, allow_self),
+        Sym::Enum(enum_id) => read_type_enum(sa, table, file_id, basic, enum_id, ctxt, allow_self),
 
         Sym::TypeParam(type_param_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
-                vm.diag.lock().report(file_id, basic.pos, msg);
+                sa.diag.lock().report(file_id, basic.pos, msg);
             }
 
             Some(SourceType::TypeParam(type_param_id))
@@ -127,7 +127,7 @@ fn read_type_basic(
 }
 
 fn read_type_path(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -137,11 +137,11 @@ fn read_type_path(
     if names.len() > 1 {
         let first_name = names.first().cloned().unwrap();
         let last_name = names.last().cloned().unwrap();
-        let mut namespace_table = table_for_namespace(vm, file_id, basic, table.get(first_name))?;
+        let mut namespace_table = table_for_namespace(sa, file_id, basic, table.get(first_name))?;
 
         for &name in &names[1..names.len() - 1] {
             let sym = namespace_table.read().get(name);
-            namespace_table = table_for_namespace(vm, file_id, basic, sym)?;
+            namespace_table = table_for_namespace(sa, file_id, basic, sym)?;
         }
 
         let sym = namespace_table.read().get(last_name);
@@ -153,26 +153,26 @@ fn read_type_path(
 }
 
 fn table_for_namespace(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     file_id: FileId,
     basic: &TypeBasicType,
     sym: Option<Sym>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
         Some(Sym::Namespace(namespace_id)) => {
-            Ok(vm.namespaces[namespace_id.to_usize()].table.clone())
+            Ok(sa.namespaces[namespace_id.to_usize()].table.clone())
         }
 
         _ => {
             let msg = SemError::ExpectedNamespace;
-            vm.diag.lock().report(file_id, basic.pos, msg);
+            sa.diag.lock().report(file_id, basic.pos, msg);
             Err(())
         }
     }
 }
 
 fn read_type_enum(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -180,16 +180,16 @@ fn read_type_enum(
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    if !enum_accessible_from(vm, enum_id, table.namespace_id()) {
-        let xenum = vm.enums[enum_id].read();
-        let msg = SemError::NotAccessible(xenum.name(vm));
-        vm.diag.lock().report(file_id, basic.pos, msg);
+    if !enum_accessible_from(sa, enum_id, table.namespace_id()) {
+        let xenum = sa.enums[enum_id].read();
+        let msg = SemError::NotAccessible(xenum.name(sa));
+        sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param, ctxt, allow_self);
+        let param = read_type(sa, table, file_id, param, ctxt, allow_self);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -198,11 +198,11 @@ fn read_type_enum(
         }
     }
 
-    let xenum = &vm.enums[enum_id];
+    let xenum = &sa.enums[enum_id];
     let xenum = xenum.read();
 
     if check_type_params(
-        vm,
+        sa,
         &xenum.type_params,
         &type_params,
         file_id,
@@ -210,7 +210,7 @@ fn read_type_enum(
         ctxt,
     ) {
         let list = SourceTypeArray::with(type_params);
-        let list_id = vm.source_type_arrays.lock().insert(list);
+        let list_id = sa.source_type_arrays.lock().insert(list);
         Some(SourceType::Enum(enum_id, list_id))
     } else {
         None
@@ -218,7 +218,7 @@ fn read_type_enum(
 }
 
 fn read_type_struct(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -226,17 +226,17 @@ fn read_type_struct(
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    if !struct_accessible_from(vm, struct_id, table.namespace_id()) {
-        let xstruct = vm.structs.idx(struct_id);
+    if !struct_accessible_from(sa, struct_id, table.namespace_id()) {
+        let xstruct = sa.structs.idx(struct_id);
         let xstruct = xstruct.read();
-        let msg = SemError::NotAccessible(xstruct.name(vm));
-        vm.diag.lock().report(file_id, basic.pos, msg);
+        let msg = SemError::NotAccessible(xstruct.name(sa));
+        sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param, ctxt, allow_self);
+        let param = read_type(sa, table, file_id, param, ctxt, allow_self);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -245,11 +245,11 @@ fn read_type_struct(
         }
     }
 
-    let xstruct = vm.structs.idx(struct_id);
+    let xstruct = sa.structs.idx(struct_id);
     let xstruct = xstruct.read();
 
     if check_type_params(
-        vm,
+        sa,
         &xstruct.type_params,
         &type_params,
         file_id,
@@ -260,7 +260,7 @@ fn read_type_struct(
             Some(primitive_ty.clone())
         } else {
             let list = SourceTypeArray::with(type_params);
-            let list_id = vm.source_type_arrays.lock().insert(list);
+            let list_id = sa.source_type_arrays.lock().insert(list);
             Some(SourceType::Struct(struct_id, list_id))
         }
     } else {
@@ -269,7 +269,7 @@ fn read_type_struct(
 }
 
 fn check_type_params(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     tp_definitions: &[TypeParam],
     type_params: &[SourceType],
     file_id: FileId,
@@ -278,21 +278,21 @@ fn check_type_params(
 ) -> bool {
     if tp_definitions.len() != type_params.len() {
         let msg = SemError::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
-        vm.diag.lock().report(file_id, pos, msg);
+        sa.diag.lock().report(file_id, pos, msg);
         return false;
     }
 
     let mut success = true;
 
     for (tp_definition, tp_ty) in tp_definitions.iter().zip(type_params.iter()) {
-        use_type_params(vm, ctxt, |check_type_param_defs| {
+        use_type_params(sa, ctxt, |check_type_param_defs| {
             for &trait_bound in &tp_definition.trait_bounds {
-                if !implements_trait(vm, tp_ty.clone(), check_type_param_defs, trait_bound) {
-                    let bound = vm.traits[trait_bound].read();
-                    let name = tp_ty.name_with_params(vm, check_type_param_defs);
-                    let trait_name = vm.interner.str(bound.name).to_string();
+                if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, trait_bound) {
+                    let bound = sa.traits[trait_bound].read();
+                    let name = tp_ty.name_with_params(sa, check_type_param_defs);
+                    let trait_name = sa.interner.str(bound.name).to_string();
                     let msg = SemError::TypeNotImplementingTrait(name, trait_name);
-                    vm.diag.lock().report(file_id, pos, msg);
+                    sa.diag.lock().report(file_id, pos, msg);
                     success = false;
                 }
             }
@@ -302,27 +302,27 @@ fn check_type_params(
     success
 }
 
-fn use_type_params<F, R>(vm: &SemAnalysis, ctxt: TypeParamContext, callback: F) -> R
+fn use_type_params<F, R>(sa: &SemAnalysis, ctxt: TypeParamContext, callback: F) -> R
 where
     F: FnOnce(&[TypeParam]) -> R,
 {
     match ctxt {
         TypeParamContext::Class(cls_id) => {
-            let cls = vm.classes.idx(cls_id);
+            let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
 
             callback(&cls.type_params)
         }
 
         TypeParamContext::Enum(enum_id) => {
-            let xenum = &vm.enums[enum_id];
+            let xenum = &sa.enums[enum_id];
             let xenum = xenum.read();
 
             callback(&xenum.type_params)
         }
 
         TypeParamContext::Struct(struct_id) => {
-            let xstruct = &vm.structs.idx(struct_id);
+            let xstruct = &sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
             callback(&xstruct.type_params)
@@ -331,14 +331,14 @@ where
         TypeParamContext::Impl(ximpl) => callback(&ximpl.type_params),
 
         TypeParamContext::Extension(extension_id) => {
-            let extension = &vm.extensions[extension_id];
+            let extension = &sa.extensions[extension_id];
             let extension = extension.read();
 
             callback(&extension.type_params)
         }
 
         TypeParamContext::Trait(trait_id) => {
-            let xtrait = &vm.traits[trait_id];
+            let xtrait = &sa.traits[trait_id];
             let xtrait = xtrait.read();
 
             callback(&xtrait.type_params)
@@ -350,7 +350,7 @@ where
 }
 
 fn check_bounds_for_type_param_id(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     tp_definition: &TypeParam,
     tp_id: TypeParamId,
     success: &mut bool,
@@ -360,11 +360,11 @@ fn check_bounds_for_type_param_id(
 ) {
     match ctxt {
         TypeParamContext::Class(cls_id) => {
-            let cls = vm.classes.idx(cls_id);
+            let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
 
             check_bounds_for_type_param(
-                vm,
+                sa,
                 tp_definition,
                 cls.type_param(tp_id),
                 success,
@@ -375,11 +375,11 @@ fn check_bounds_for_type_param_id(
         }
 
         TypeParamContext::Enum(enum_id) => {
-            let xenum = &vm.enums[enum_id];
+            let xenum = &sa.enums[enum_id];
             let xenum = xenum.read();
 
             check_bounds_for_type_param(
-                vm,
+                sa,
                 tp_definition,
                 xenum.type_param(tp_id),
                 success,
@@ -390,11 +390,11 @@ fn check_bounds_for_type_param_id(
         }
 
         TypeParamContext::Struct(struct_id) => {
-            let xstruct = &vm.structs.idx(struct_id);
+            let xstruct = &sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
             check_bounds_for_type_param(
-                vm,
+                sa,
                 tp_definition,
                 xstruct.type_param(tp_id),
                 success,
@@ -405,7 +405,7 @@ fn check_bounds_for_type_param_id(
         }
 
         TypeParamContext::Impl(ximpl) => check_bounds_for_type_param(
-            vm,
+            sa,
             tp_definition,
             ximpl.type_param(tp_id),
             success,
@@ -415,11 +415,11 @@ fn check_bounds_for_type_param_id(
         ),
 
         TypeParamContext::Extension(extension_id) => {
-            let extension = &vm.extensions[extension_id];
+            let extension = &sa.extensions[extension_id];
             let extension = extension.read();
 
             check_bounds_for_type_param(
-                vm,
+                sa,
                 tp_definition,
                 extension.type_param(tp_id),
                 success,
@@ -430,11 +430,11 @@ fn check_bounds_for_type_param_id(
         }
 
         TypeParamContext::Trait(trait_id) => {
-            let xtrait = &vm.traits[trait_id];
+            let xtrait = &sa.traits[trait_id];
             let xtrait = xtrait.read();
 
             check_bounds_for_type_param(
-                vm,
+                sa,
                 tp_definition,
                 xtrait.type_param(tp_id),
                 success,
@@ -445,7 +445,7 @@ fn check_bounds_for_type_param_id(
         }
 
         TypeParamContext::Fct(fct) => check_bounds_for_type_param(
-            vm,
+            sa,
             tp_definition,
             fct.type_param(tp_id),
             success,
@@ -459,7 +459,7 @@ fn check_bounds_for_type_param_id(
 }
 
 fn check_bounds_for_type_param(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     tp_definition: &TypeParam,
     tp_definition_arg: &TypeParam,
     success: &mut bool,
@@ -469,18 +469,18 @@ fn check_bounds_for_type_param(
 ) {
     for &trait_bound in &tp_definition.trait_bounds {
         if !tp_definition_arg.trait_bounds.contains(&trait_bound) {
-            let bound = vm.traits[trait_bound].read();
-            let name = vm.interner.str(tp_definition_arg.name).to_string();
-            let trait_name = vm.interner.str(bound.name).to_string();
+            let bound = sa.traits[trait_bound].read();
+            let name = sa.interner.str(tp_definition_arg.name).to_string();
+            let trait_name = sa.interner.str(bound.name).to_string();
             let msg = SemError::TypeNotImplementingTrait(name, trait_name);
-            vm.diag.lock().report(file_id, pos, msg);
+            sa.diag.lock().report(file_id, pos, msg);
             *success = false;
         }
     }
 }
 
 fn fail_for_each_trait_bound(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     tp_definition: &TypeParam,
     tp_ty: SourceType,
     success: &mut bool,
@@ -488,17 +488,17 @@ fn fail_for_each_trait_bound(
     pos: Position,
 ) {
     for &trait_bound in &tp_definition.trait_bounds {
-        let bound = vm.traits[trait_bound].read();
-        let name = tp_ty.name(vm);
-        let trait_name = vm.interner.str(bound.name).to_string();
+        let bound = sa.traits[trait_bound].read();
+        let name = tp_ty.name(sa);
+        let trait_name = sa.interner.str(bound.name).to_string();
         let msg = SemError::TypeNotImplementingTrait(name, trait_name);
-        vm.diag.lock().report(file_id, pos, msg);
+        sa.diag.lock().report(file_id, pos, msg);
         *success = false;
     }
 }
 
 fn read_type_class(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -506,17 +506,17 @@ fn read_type_class(
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    if !class_accessible_from(vm, cls_id, table.namespace_id()) {
-        let cls = vm.classes.idx(cls_id);
+    if !class_accessible_from(sa, cls_id, table.namespace_id()) {
+        let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
-        let msg = SemError::NotAccessible(cls.name(vm));
-        vm.diag.lock().report(file_id, basic.pos, msg);
+        let msg = SemError::NotAccessible(cls.name(sa));
+        sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
     let mut type_params = Vec::new();
 
     for param in &basic.params {
-        let param = read_type(vm, table, file_id, param, ctxt, allow_self);
+        let param = read_type(sa, table, file_id, param, ctxt, allow_self);
 
         if let Some(param) = param {
             type_params.push(param);
@@ -525,16 +525,16 @@ fn read_type_class(
         }
     }
 
-    let cls = vm.classes.idx(cls_id);
+    let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
 
-    if check_type_params(vm, &cls.type_params, &type_params, file_id, basic.pos, ctxt) {
+    if check_type_params(sa, &cls.type_params, &type_params, file_id, basic.pos, ctxt) {
         if let Some(ref primitive_ty) = cls.primitive_type {
             assert!(type_params.is_empty());
             Some(primitive_ty.clone())
         } else {
             let list = SourceTypeArray::with(type_params);
-            let list_id = vm.source_type_arrays.lock().insert(list);
+            let list_id = sa.source_type_arrays.lock().insert(list);
             Some(SourceType::Class(cls_id, list_id))
         }
     } else {
@@ -543,7 +543,7 @@ fn read_type_class(
 }
 
 fn read_type_tuple(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     tuple: &TypeTupleType,
@@ -556,20 +556,20 @@ fn read_type_tuple(
         let mut subtypes = Vec::new();
 
         for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type(vm, table, file_id, subtype, ctxt, allow_self) {
+            if let Some(ty) = read_type(sa, table, file_id, subtype, ctxt, allow_self) {
                 subtypes.push(ty);
             } else {
                 return None;
             }
         }
 
-        let tuple_id = ensure_tuple(vm, subtypes);
+        let tuple_id = ensure_tuple(sa, subtypes);
         Some(SourceType::Tuple(tuple_id))
     }
 }
 
 fn read_type_lambda(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     lambda: &TypeLambdaType,
@@ -579,20 +579,20 @@ fn read_type_lambda(
     let mut params = vec![];
 
     for param in &lambda.params {
-        if let Some(p) = read_type(vm, table, file_id, param, ctxt, allow_self) {
+        if let Some(p) = read_type(sa, table, file_id, param, ctxt, allow_self) {
             params.push(p);
         } else {
             return None;
         }
     }
 
-    let ret = if let Some(ret) = read_type(vm, table, file_id, &lambda.ret, ctxt, allow_self) {
+    let ret = if let Some(ret) = read_type(sa, table, file_id, &lambda.ret, ctxt, allow_self) {
         ret
     } else {
         return None;
     };
 
-    let ty = vm.lambda_types.lock().insert(params, ret);
+    let ty = sa.lambda_types.lock().insert(params, ret);
     let ty = SourceType::Lambda(ty);
 
     Some(ty)

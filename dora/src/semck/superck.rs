@@ -4,19 +4,18 @@ use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::vm::{find_method_in_class, Class, ClassId, Fct, FctId, SemAnalysis};
 
-pub fn check(vm: &mut SemAnalysis) {
-    cycle_detection(vm);
+pub fn check(sa: &mut SemAnalysis) {
+    cycle_detection(sa);
 
-    if vm.diag.lock().has_errors() {
+    if sa.diag.lock().has_errors() {
         return;
     }
 
-    // determine_struct_sizes(vm);
-    determine_vtables(vm);
+    determine_vtables(sa);
 }
 
-fn cycle_detection(vm: &mut SemAnalysis) {
-    for cls in vm.classes.iter() {
+fn cycle_detection(sa: &mut SemAnalysis) {
+    for cls in sa.classes.iter() {
         let cls = cls.read();
 
         let mut map: HashSet<ClassId> = HashSet::new();
@@ -28,37 +27,37 @@ fn cycle_detection(vm: &mut SemAnalysis) {
             let parent_class_id = parent_class.unwrap().cls_id().expect("no class");
 
             if !map.insert(parent_class_id) {
-                vm.diag
+                sa.diag
                     .lock()
                     .report(cls.file_id, cls.pos, SemError::CycleInHierarchy);
                 break;
             }
 
-            let cls = vm.classes.idx(parent_class_id);
+            let cls = sa.classes.idx(parent_class_id);
             let cls = cls.read();
             parent_class = cls.parent_class.clone();
         }
     }
 }
 
-fn determine_vtables(vm: &SemAnalysis) {
+fn determine_vtables(sa: &SemAnalysis) {
     let mut lens = HashSet::new();
 
-    for cls in vm.classes.iter() {
+    for cls in sa.classes.iter() {
         let mut cls = cls.write();
         if !lens.contains(&cls.id) {
-            determine_vtable(vm, &mut lens, &mut *cls);
+            determine_vtable(sa, &mut lens, &mut *cls);
         }
     }
 }
 
-fn determine_vtable(vm: &SemAnalysis, lens: &mut HashSet<ClassId>, cls: &mut Class) {
+fn determine_vtable(sa: &SemAnalysis, lens: &mut HashSet<ClassId>, cls: &mut Class) {
     if let Some(parent_class) = cls.parent_class.clone() {
         let parent_cls_id = parent_class.cls_id().expect("no class");
-        let parent = vm.classes.idx(parent_cls_id);
+        let parent = sa.classes.idx(parent_cls_id);
         if !lens.contains(&parent_cls_id) {
             let mut parent = parent.write();
-            determine_vtable(vm, lens, &mut *parent)
+            determine_vtable(sa, lens, &mut *parent)
         }
 
         let parent = parent.read();
@@ -67,14 +66,14 @@ fn determine_vtable(vm: &SemAnalysis, lens: &mut HashSet<ClassId>, cls: &mut Cla
     }
 
     for &mid in &cls.methods {
-        let fct = vm.fcts.idx(mid);
+        let fct = sa.fcts.idx(mid);
         let mut fct = fct.write();
 
         assert!(fct.vtable_index.is_none());
 
         if fct.is_virtual() {
             let vtable_index = if let Some(overrides) = fct.overrides {
-                let overrides = vm.fcts.idx(overrides);
+                let overrides = sa.fcts.idx(overrides);
                 let overrides = overrides.read();
                 let vtable_index = overrides.vtable_index.unwrap();
                 cls.virtual_fcts[vtable_index as usize] = mid;
@@ -94,16 +93,16 @@ fn determine_vtable(vm: &SemAnalysis, lens: &mut HashSet<ClassId>, cls: &mut Cla
     lens.insert(cls.id);
 }
 
-pub fn check_override(vm: &SemAnalysis) {
-    for cls in vm.classes.iter() {
+pub fn check_override(sa: &SemAnalysis) {
+    for cls in sa.classes.iter() {
         let cls = cls.read();
 
         for &fct_id in &cls.methods {
-            let fct = vm.fcts.idx(fct_id);
+            let fct = sa.fcts.idx(fct_id);
 
             let overrides = {
                 let fct = fct.read();
-                check_fct_modifier(vm, &*cls, &*fct)
+                check_fct_modifier(sa, &*cls, &*fct)
             };
 
             let mut fct = fct.write();
@@ -112,12 +111,12 @@ pub fn check_override(vm: &SemAnalysis) {
     }
 }
 
-fn check_fct_modifier(vm: &SemAnalysis, cls: &Class, fct: &Fct) -> Option<FctId> {
+fn check_fct_modifier(sa: &SemAnalysis, cls: &Class, fct: &Fct) -> Option<FctId> {
     // catch: class A { @open fun f() } (A is not derivable)
     // catch: @open @final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
-        let name = vm.interner.str(fct.name).to_string();
-        vm.diag
+        let name = sa.interner.str(fct.name).to_string();
+        sa.diag
             .lock()
             .report(fct.file_id, fct.pos(), SemError::SuperfluousOpen(name));
         return None;
@@ -125,8 +124,8 @@ fn check_fct_modifier(vm: &SemAnalysis, cls: &Class, fct: &Fct) -> Option<FctId>
 
     if cls.parent_class.is_none() {
         if fct.has_override {
-            let name = vm.interner.str(fct.name).to_string();
-            vm.diag
+            let name = sa.interner.str(fct.name).to_string();
+            sa.diag
                 .lock()
                 .report(fct.file_id, fct.pos(), SemError::SuperfluousOverride(name));
             return None;
@@ -135,41 +134,41 @@ fn check_fct_modifier(vm: &SemAnalysis, cls: &Class, fct: &Fct) -> Option<FctId>
         return None;
     }
 
-    let result = find_method_in_class(vm, cls.parent_class.clone().unwrap(), fct.name);
+    let result = find_method_in_class(sa, cls.parent_class.clone().unwrap(), fct.name);
 
     if let Some((super_type, super_method)) = result {
-        let super_method = vm.fcts.idx(super_method);
+        let super_method = sa.fcts.idx(super_method);
         let super_method = super_method.read();
 
         if !fct.has_override {
-            let name = vm.interner.str(fct.name).to_string();
-            vm.diag
+            let name = sa.interner.str(fct.name).to_string();
+            sa.diag
                 .lock()
                 .report(fct.file_id, fct.pos(), SemError::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
-            let name = vm.interner.str(fct.name).to_string();
-            vm.diag
+            let name = sa.interner.str(fct.name).to_string();
+            sa.diag
                 .lock()
                 .report(fct.file_id, fct.pos(), SemError::MethodNotOverridable(name));
         }
 
-        let type_params = super_type.type_params(vm);
+        let type_params = super_type.type_params(sa);
 
         let super_method_params: Vec<_> = super_method
             .params_without_self()
             .iter()
-            .map(|param_type| replace_type_param(vm, param_type.clone(), &type_params, None))
+            .map(|param_type| replace_type_param(sa, param_type.clone(), &type_params, None))
             .collect();
 
         let super_method_return_type =
-            replace_type_param(vm, super_method.return_type.clone(), &type_params, None);
+            replace_type_param(sa, super_method.return_type.clone(), &type_params, None);
 
         if super_method_params != fct.params_without_self()
             || super_method_return_type != fct.return_type
         {
-            vm.diag
+            sa.diag
                 .lock()
                 .report(fct.file_id, fct.pos(), SemError::OverrideMismatch);
         }
@@ -177,8 +176,8 @@ fn check_fct_modifier(vm: &SemAnalysis, cls: &Class, fct: &Fct) -> Option<FctId>
         Some(super_method.id)
     } else {
         if fct.has_override {
-            let name = vm.interner.str(fct.name).to_string();
-            vm.diag
+            let name = sa.interner.str(fct.name).to_string();
+            sa.diag
                 .lock()
                 .report(fct.file_id, fct.pos(), SemError::SuperfluousOverride(name));
         }
@@ -222,9 +221,9 @@ mod tests {
     }
 
     fn class_size(code: &'static str, name: &'static str) -> InstanceSize {
-        ok_with_test(code, |vm| {
-            let id = vm.cls_def_by_name(vm.global_namespace_id, name);
-            let cls = vm.class_defs.idx(id);
+        ok_with_test(code, |sa| {
+            let id = sa.cls_def_by_name(sa.global_namespace_id, name);
+            let cls = sa.class_defs.idx(id);
             cls.size.clone()
         })
     }
@@ -352,16 +351,16 @@ mod tests {
 
     #[test]
     fn test_vtable_index_and_len() {
-        ok_with_test("class A {}", |vm| {
-            let cls_id = vm.cls_by_name("A");
-            let cls = vm.classes.idx(cls_id);
+        ok_with_test("class A {}", |sa| {
+            let cls_id = sa.cls_by_name("A");
+            let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
             assert_eq!(cls.virtual_fcts.len(), 0);
         });
 
-        ok_with_test("@open class A { @open fun f() {} }", |vm| {
-            let cls_id = vm.cls_by_name("A");
-            let cls = vm.classes.idx(cls_id);
+        ok_with_test("@open class A { @open fun f() {} }", |sa| {
+            let cls_id = sa.cls_by_name("A");
+            let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
             assert_eq!(cls.virtual_fcts.len(), 1);
         });
@@ -370,297 +369,25 @@ mod tests {
             "@open class A { @open fun f() {} }
                       @open class B extends A { @override fun f() {}
                                         @open fun g() {} }",
-            |vm| {
-                let cls_id = vm.cls_by_name("A");
-                let cls = vm.classes.idx(cls_id);
+            |sa| {
+                let cls_id = sa.cls_by_name("A");
+                let cls = sa.classes.idx(cls_id);
                 let cls = cls.read();
                 assert_eq!(cls.virtual_fcts.len(), 1);
 
-                let cls_id = vm.cls_by_name("B");
-                let cls = vm.classes.idx(cls_id);
+                let cls_id = sa.cls_by_name("B");
+                let cls = sa.classes.idx(cls_id);
                 let cls = cls.read();
                 assert_eq!(cls.virtual_fcts.len(), 2);
             },
         );
     }
 
-    // #[test]
-    // fn test_depth() {
-    //     ok_with_test("class A { } class B { }", |vm| {
-    //         assert_eq!(vtable_by_name(vm, "A", |f| f.subtype_depth), 1);
-    //         assert_eq!(vtable_by_name(vm, "B", |f| f.subtype_depth), 1);
-    //     });
-    // }
+    fn assert_name<'a>(sa: &'a SemAnalysis, a: Name, b: &'static str) {
+        let bname = sa.interner.intern(b);
 
-    // #[test]
-    // fn test_depth_with_multiple_levels() {
-    //     ok_with_test("@open class A { } open class B extends A { }
-    //                   class C extends B { }",
-    //                  |vm| {
-    //         assert_eq!(vtable_by_name(vm, "A", |f| f.subtype_depth), 1);
-    //         assert_eq!(vtable_by_name(vm, "B", |f| f.subtype_depth), 2);
-    //         assert_eq!(vtable_by_name(vm, "C", |f| f.subtype_depth), 3);
-
-    //         {
-    //             let vtable = vtable_by_name(vm, "C", |vtable| {
-    //                 assert!(vtable.subtype_display[4].is_null());
-    //                 vtable as *const _
-    //             });
-
-    //             assert_name(vm, vtable_name(vtable), "C");
-    //             assert_name(vm, vtable_display_name(vtable, 0), "Object");
-    //             assert_name(vm, vtable_display_name(vtable, 1), "A");
-    //             assert_name(vm, vtable_display_name(vtable, 2), "B");
-    //             assert_name(vm, vtable_display_name(vtable, 3), "C");
-    //         }
-
-    //         {
-    //             let vtable = vtable_by_name(vm, "B", |vtable| {
-    //                 assert!(vtable.subtype_display[3].is_null());
-    //                 vtable as *const _
-    //             });
-
-    //             assert_name(vm, vtable_name(vtable), "B");
-    //             assert_name(vm, vtable_display_name(vtable, 0), "Object");
-    //             assert_name(vm, vtable_display_name(vtable, 1), "A");
-    //             assert_name(vm, vtable_display_name(vtable, 2), "B");
-    //         }
-
-    //         {
-    //             let vtable = vtable_by_name(vm, "A", |vtable| {
-    //                 assert!(vtable.subtype_display[2].is_null());
-    //                 vtable as *const _
-    //             });
-
-    //             assert_name(vm, vtable_name(vtable), "A");
-    //             assert_name(vm, vtable_display_name(vtable, 0), "Object");
-    //             assert_name(vm, vtable_display_name(vtable, 1), "A");
-    //         }
-    //     });
-    // }
-
-    // #[test]
-    // fn test_depth_greater_display_size() {
-    //     ok_with_test("  open class L1 { }
-    //                     open class L2: L1 { }
-    //                     open class L3: L2 { }
-    //                     open class L4: L3 { }
-    //                     open class L5: L4 { }
-    //                     open class L6: L5 { }
-    //                     open class L7: L6 { }
-    //                     open class L8: L7 { }
-    //                     open class L9: L8 { }
-    //                     class L10: L9 { }",
-    //                  |vm| {
-    //         assert_eq!(vtable_by_name(vm, "Object", |f| f.subtype_depth), 0);
-    //         assert_eq!(vtable_by_name(vm, "L1", |f| f.subtype_depth), 1);
-    //         assert_eq!(vtable_by_name(vm, "L2", |f| f.subtype_depth), 2);
-    //         assert_eq!(vtable_by_name(vm, "L3", |f| f.subtype_depth), 3);
-    //         assert_eq!(vtable_by_name(vm, "L4", |f| f.subtype_depth), 4);
-    //         assert_eq!(vtable_by_name(vm, "L5", |f| f.subtype_depth), 5);
-    //         assert_eq!(vtable_by_name(vm, "L6", |f| f.subtype_depth), 6);
-    //         assert_eq!(vtable_by_name(vm, "L7", |f| f.subtype_depth), 7);
-
-    //         let vtable = vtable_by_name(vm, "L7", |vtable| {
-    //             assert!(!vtable.subtype_overflow.is_null());
-    //             assert_eq!(vtable_by_name(vm, "L6", |v| v as *const _),
-    //                        vtable.get_subtype_overflow(0));
-    //             assert_eq!(vtable_by_name(vm, "L7", |v| v as *const _),
-    //                        vtable.get_subtype_overflow(1));
-
-    //             vtable as *const _
-    //         });
-
-    //         assert_name(vm, vtable_display_name(vtable, 1), "L1");
-    //         assert_name(vm, vtable_display_name(vtable, 2), "L2");
-    //         assert_name(vm, vtable_display_name(vtable, 3), "L3");
-    //         assert_name(vm, vtable_display_name(vtable, 4), "L4");
-    //         assert_name(vm, vtable_display_name(vtable, 5), "L5");
-
-    //         let vtable = vtable_by_name(vm, "L10", |vtable| {
-    //             assert!(!vtable.subtype_overflow.is_null());
-    //             assert_eq!(vtable_by_name(vm, "L6", |v| v as *const _),
-    //                        vtable.get_subtype_overflow(0));
-    //             assert_eq!(vtable_by_name(vm, "L7", |v| v as *const _),
-    //                        vtable.get_subtype_overflow(1));
-    //             assert_eq!(vtable_by_name(vm, "L8", |v| v as *const _),
-    //                        vtable.get_subtype_overflow(2));
-    //             assert_eq!(vtable_by_name(vm, "L9", |v| v as *const _),
-    //                        vtable.get_subtype_overflow(3));
-    //             assert_eq!(vtable_by_name(vm, "L10", |v| v as *const _),
-    //                        vtable.get_subtype_overflow(4));
-
-    //             vtable as *const _
-    //         });
-
-    //         assert_name(vm, vtable_display_name(vtable, 0), "Object");
-    //         assert_name(vm, vtable_display_name(vtable, 1), "L1");
-    //         assert_name(vm, vtable_display_name(vtable, 2), "L2");
-    //         assert_name(vm, vtable_display_name(vtable, 3), "L3");
-    //         assert_name(vm, vtable_display_name(vtable, 4), "L4");
-    //         assert_name(vm, vtable_display_name(vtable, 5), "L5");
-    //     });
-    // }
-
-    // #[test]
-    // fn test_ref_fields() {
-    //     let header = Header::size();
-    //     let pw = mem::ptr_width();
-
-    //     ok_with_test("@open class A(let a: A) class B(a: A, let b: B) : A(a)",
-    //                  |vm| {
-    //         let cls = cls_by_name(vm, "A");
-    //         let cls = vm.classes[cls].borrow();
-    //         assert_eq!(vec![header], cls.ref_fields);
-
-    //         let cls = cls_by_name(vm, "B");
-    //         let cls = vm.classes[cls].borrow();
-    //         assert_eq!(vec![header, header + pw], cls.ref_fields);
-    //     });
-
-    //     ok_with_test("class A(let x: Data, d: Data) extends B(d)
-    //                   @open class B(let y: Data)
-    //                   class Data(let data: int)",
-    //                  |vm| {
-    //         let cls = cls_by_name(vm, "A");
-    //         let cls = vm.classes[cls].borrow();
-    //         assert_eq!(vec![header, header + pw], cls.ref_fields);
-
-    //         let cls = cls_by_name(vm, "B");
-    //         let cls = vm.classes[cls].borrow();
-    //         assert_eq!(vec![header], cls.ref_fields);
-    //     });
-    // }
-
-    // #[test]
-    // fn test_struct_size() {
-    //     ok_with_test(
-    //         "struct Foo { a: int, b: int }
-    //                   struct Foo1 { a: bool, b: int, c: bool }
-    //                   struct Bar { }",
-    //         |vm| {
-    //             assert_eq!(8, vm.structs[0].borrow().size);
-    //             assert_eq!(12, vm.structs[1].borrow().size);
-    //             assert_eq!(0, vm.structs[2].borrow().size);
-    //         },
-    //     );
-    // }
-
-    // #[test]
-    // fn test_struct_in_struct() {
-    //     ok_with_test(
-    //         "struct Foo { a: bool, bar: Bar }
-    //                   struct Bar { a: int }",
-    //         |vm| {
-    //             assert_eq!(8, vm.structs[0].borrow().size);
-    //         },
-    //     );
-
-    //     ok_with_test(
-    //         "struct Bar { a: int }
-    //                   struct Foo { a: bool, bar: Bar }",
-    //         |vm| {
-    //             assert_eq!(8, vm.structs[1].borrow().size);
-    //         },
-    //     );
-
-    //     err(
-    //         "struct Foo { a: int, bar: Bar }
-    //          struct Bar { b: int, foo: Foo }",
-    //         pos(2, 35),
-    //         SemError::RecursiveStructure,
-    //     );
-    // }
-
-    // #[test]
-    // fn test_class_in_struct() {
-    //     ok_with_test("class Foo(a: bool, b: int)
-    //                   struct Bar { a: int, foo: Foo }",
-    //                  |vm| {
-    //                      assert_eq!(2 * mem::ptr_width(), vm.structs[0].borrow().size);
-    //                  });
-    // }
-
-    // #[test]
-    // fn test_struct_in_class() {
-    //     ok_with_test("class Foo { var bar: Bar; }
-    //                   struct Bar { a: int, foo: Foo }",
-    //                  |vm| {
-    //                      let cls = cls_by_name(vm, "Foo");
-    //                      let cls = vm.classes[cls].borrow();
-    //                      assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
-    //                      assert_eq!(2 * mem::ptr_width(), vm.structs[0].borrow().size);
-    //                  });
-    // }
-
-    fn assert_name<'a>(vm: &'a SemAnalysis, a: Name, b: &'static str) {
-        let bname = vm.interner.intern(b);
-
-        println!("{} {}", vm.interner.str(a), b);
+        println!("{} {}", sa.interner.str(a), b);
 
         assert_eq!(a, bname);
     }
-
-    // fn vtable_name(vtable: *const VTable) -> Name {
-    //     let cls = unsafe { &*(*vtable).classptr };
-
-    //     cls.name
-    // }
-
-    // fn vtable_display_name(vtable: *const VTable, ind: usize) -> Name {
-    //     unsafe {
-    //         let vtable = (*vtable).subtype_display[ind] as *const VTable;
-    //         let cls = &*(*vtable).classptr;
-
-    //         cls.name
-    //     }
-    // }
-
-    // fn vtable_by_name<'a, 'ast: 'a, F, R>(vm: &'a SemContext<'ast>,
-    //                                       name: &'static str,
-    //                                       fct: F)
-    //                                       -> R
-    //     where F: FnOnce(&VTable) -> R
-    // {
-    //     let cid = cls_by_name(vm, name);
-    //     let cls = vm.classes[cid].borrow();
-    //     let vtable = cls.vtable.as_ref().unwrap();
-
-    //     fct(vtable)
-    // }
-
-    // fn check_class<'ast>(vm: &SemContext<'ast>,
-    //                      name: &'static str,
-    //                      size: i32,
-    //                      parent: Option<&'static str>) {
-    //     let name = vm.interner.intern(name);
-    //     let cls_id = vm.sym.borrow().get_class(name).unwrap();
-
-    //     let parent_id = parent
-    //         .map(|name| vm.interner.intern(name))
-    //         .map(|name| vm.sym.borrow().get_class(name).unwrap());
-
-    //     let cls = vm.classes[cls_id].borrow();
-    //     assert_eq!(parent_id, cls.parent_class);
-    //     assert_eq!(Header::size() + size, cls.size);
-    // }
-
-    // fn check_field<'ast>(vm: &SemContext<'ast>,
-    //                      cls_name: &'static str,
-    //                      field_name: &'static str,
-    //                      offset: i32) {
-    //     let cls_name = vm.interner.intern(cls_name);
-    //     let field_name = vm.interner.intern(field_name);
-    //     let cls_id = vm.sym.borrow().get_class(cls_name).unwrap();
-    //     let cls = vm.classes[cls_id].borrow();
-
-    //     for field in &cls.fields {
-    //         if field_name == field.name {
-    //             assert_eq!(offset, field.offset);
-    //             return;
-    //         }
-    //     }
-
-    //     unreachable!();
-    // }
 }

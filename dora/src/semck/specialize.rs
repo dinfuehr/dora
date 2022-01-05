@@ -15,15 +15,15 @@ use crate::vm::{
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
 pub fn specialize_type(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     ty: SourceType,
     type_params: &SourceTypeArray,
 ) -> SourceType {
-    replace_type_param(vm, ty, type_params, None)
+    replace_type_param(sa, ty, type_params, None)
 }
 
 pub fn specialize_type_list(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     list: &SourceTypeArray,
     type_params: &SourceTypeArray,
 ) -> SourceTypeArray {
@@ -36,7 +36,7 @@ pub fn specialize_type_list(
     let mut specialized_types = Vec::with_capacity(types.len());
 
     for ty in types {
-        let ty = replace_type_param(vm, ty.clone(), type_params, None);
+        let ty = replace_type_param(sa, ty.clone(), type_params, None);
         specialized_types.push(ty);
     }
 
@@ -49,24 +49,24 @@ pub enum SpecializeFor {
     Class,
 }
 
-pub fn specialize_struct_id(vm: &SemAnalysis, struct_id: StructId) -> StructDefId {
-    let struc = vm.structs.idx(struct_id);
+pub fn specialize_struct_id(sa: &SemAnalysis, struct_id: StructId) -> StructDefId {
+    let struc = sa.structs.idx(struct_id);
     let struc = struc.read();
-    specialize_struct(vm, &*struc, SourceTypeArray::empty())
+    specialize_struct(sa, &*struc, SourceTypeArray::empty())
 }
 
 pub fn specialize_struct_id_params(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     struct_id: StructId,
     type_params: SourceTypeArray,
 ) -> StructDefId {
-    let struc = vm.structs.idx(struct_id);
+    let struc = sa.structs.idx(struct_id);
     let struc = struc.read();
-    specialize_struct(vm, &*struc, type_params)
+    specialize_struct(sa, &*struc, type_params)
 }
 
 pub fn specialize_struct(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     struc: &StructData,
     type_params: SourceTypeArray,
 ) -> StructDefId {
@@ -74,11 +74,11 @@ pub fn specialize_struct(
         return id;
     }
 
-    create_specialized_struct(vm, struc, type_params)
+    create_specialized_struct(sa, struc, type_params)
 }
 
 fn create_specialized_struct(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     xstruct: &StructData,
     type_params: SourceTypeArray,
 ) -> StructDefId {
@@ -90,11 +90,11 @@ fn create_specialized_struct(
     let mut ref_fields = Vec::new();
 
     for f in &xstruct.fields {
-        let ty = specialize_type(vm, f.ty.clone(), &type_params);
-        debug_assert!(!ty.contains_type_param(vm));
+        let ty = specialize_type(sa, f.ty.clone(), &type_params);
+        debug_assert!(!ty.contains_type_param(sa));
 
-        let field_size = ty.size(vm);
-        let field_align = ty.align(vm);
+        let field_size = ty.size(sa);
+        let field_align = ty.align(sa);
 
         let offset = mem::align_i32(size, field_align);
         fields.push(StructFieldDef {
@@ -105,12 +105,12 @@ fn create_specialized_struct(
         size = offset + field_size;
         align = max(align, field_align);
 
-        add_ref_fields(vm, &mut ref_fields, offset, ty);
+        add_ref_fields(sa, &mut ref_fields, offset, ty);
     }
 
     size = mem::align_i32(size, align);
 
-    let mut struct_defs = vm.struct_defs.lock();
+    let mut struct_defs = sa.struct_defs.lock();
     let id: StructDefId = struct_defs.len().into();
 
     let mut specializations = xstruct.specializations.write();
@@ -133,17 +133,17 @@ fn create_specialized_struct(
 }
 
 pub fn specialize_enum_id_params(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     enum_id: EnumId,
     type_params: SourceTypeArray,
 ) -> EnumDefId {
-    let xenum = &vm.enums[enum_id];
+    let xenum = &sa.enums[enum_id];
     let xenum = xenum.read();
-    specialize_enum(vm, &*xenum, type_params)
+    specialize_enum(sa, &*xenum, type_params)
 }
 
 pub fn specialize_enum(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     xenum: &EnumData,
     type_params: SourceTypeArray,
 ) -> EnumDefId {
@@ -151,23 +151,23 @@ pub fn specialize_enum(
         return id;
     }
 
-    create_specialized_enum(vm, xenum, type_params)
+    create_specialized_enum(sa, xenum, type_params)
 }
 
 fn create_specialized_enum(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     xenum: &EnumData,
     type_params: SourceTypeArray,
 ) -> EnumDefId {
     let layout = if enum_is_simple_integer(xenum) {
         EnumLayout::Int
-    } else if enum_is_ptr(vm, xenum, &type_params) {
+    } else if enum_is_ptr(sa, xenum, &type_params) {
         EnumLayout::Ptr
     } else {
         EnumLayout::Tagged
     };
 
-    let mut enum_defs = vm.enum_defs.lock();
+    let mut enum_defs = sa.enum_defs.lock();
     let id: EnumDefId = enum_defs.len().into();
 
     let mut specializations = xenum.specializations.write();
@@ -208,7 +208,7 @@ fn enum_is_simple_integer(xenum: &EnumData) -> bool {
     true
 }
 
-fn enum_is_ptr(vm: &SemAnalysis, xenum: &EnumData, type_params: &SourceTypeArray) -> bool {
+fn enum_is_ptr(sa: &SemAnalysis, xenum: &EnumData, type_params: &SourceTypeArray) -> bool {
     if xenum.variants.len() != 2 {
         return false;
     }
@@ -224,12 +224,12 @@ fn enum_is_ptr(vm: &SemAnalysis, xenum: &EnumData, type_params: &SourceTypeArray
 
     none_variant.types.len() == 0
         && some_variant.types.len() == 1
-        && specialize_type(vm, some_variant.types.first().unwrap().clone(), type_params)
+        && specialize_type(sa, some_variant.types.first().unwrap().clone(), type_params)
             .reference_type()
 }
 
 pub fn specialize_enum_class(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     edef: &EnumDef,
     xenum: &EnumData,
     variant_id: usize,
@@ -250,15 +250,15 @@ pub fn specialize_enum_class(
     let mut ref_fields = Vec::new();
 
     for ty in &enum_variant.types {
-        let ty = replace_type_param(vm, ty.clone(), &edef.type_params, None);
-        assert!(ty.is_concrete_type(vm));
+        let ty = replace_type_param(sa, ty.clone(), &edef.type_params, None);
+        assert!(ty.is_concrete_type(sa));
 
         if ty.is_unit() {
             continue;
         }
 
-        let field_size = ty.size(vm);
-        let field_align = ty.align(vm);
+        let field_size = ty.size(sa);
+        let field_align = ty.align(sa);
 
         let offset = mem::align_i32(csize, field_align);
         fields.push(FieldDef {
@@ -268,12 +268,12 @@ pub fn specialize_enum_class(
 
         csize = offset + field_size;
 
-        add_ref_fields(vm, &mut ref_fields, offset, ty);
+        add_ref_fields(sa, &mut ref_fields, offset, ty);
     }
 
     let instance_size = mem::align_i32(csize, mem::ptr_width());
 
-    let mut class_defs = vm.class_defs.lock();
+    let mut class_defs = sa.class_defs.lock();
     let id: ClassDefId = class_defs.len().into();
 
     variants[variant_id] = Some(id);
@@ -299,27 +299,27 @@ pub fn specialize_enum_class(
     id
 }
 
-pub fn specialize_class_id(vm: &SemAnalysis, cls_id: ClassId) -> ClassDefId {
-    let cls = vm.classes.idx(cls_id);
+pub fn specialize_class_id(sa: &SemAnalysis, cls_id: ClassId) -> ClassDefId {
+    let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(vm, &*cls, &SourceTypeArray::empty())
+    specialize_class(sa, &*cls, &SourceTypeArray::empty())
 }
 
 pub fn specialize_class_id_params(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     cls_id: ClassId,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
-    let cls = vm.classes.idx(cls_id);
+    let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(vm, &*cls, &type_params)
+    specialize_class(sa, &*cls, &type_params)
 }
 
-pub fn specialize_class_ty(vm: &SemAnalysis, ty: SourceType) -> ClassDefId {
+pub fn specialize_class_ty(sa: &SemAnalysis, ty: SourceType) -> ClassDefId {
     match ty {
         SourceType::Class(cls_id, list_id) => {
-            let params = vm.source_type_arrays.lock().get(list_id);
-            specialize_class_id_params(vm, cls_id, &params)
+            let params = sa.source_type_arrays.lock().get(list_id);
+            specialize_class_id_params(sa, cls_id, &params)
         }
 
         _ => unreachable!(),
@@ -327,7 +327,7 @@ pub fn specialize_class_ty(vm: &SemAnalysis, ty: SourceType) -> ClassDefId {
 }
 
 pub fn specialize_class(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     cls: &Class,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
@@ -335,25 +335,25 @@ pub fn specialize_class(
         return id;
     }
 
-    create_specialized_class(vm, cls, type_params)
+    create_specialized_class(sa, cls, type_params)
 }
 
 fn create_specialized_class(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     cls: &Class,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
-    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(sa)));
 
     if cls.is_array || cls.is_str {
-        create_specialized_class_array(vm, cls, type_params)
+        create_specialized_class_array(sa, cls, type_params)
     } else {
-        create_specialized_class_regular(vm, cls, type_params)
+        create_specialized_class_regular(sa, cls, type_params)
     }
 }
 
 fn create_specialized_class_regular(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     cls: &Class,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
@@ -363,9 +363,9 @@ fn create_specialized_class_regular(
     let parent_id;
 
     if let Some(parent_class) = cls.parent_class.clone() {
-        let parent_class = specialize_type(vm, parent_class, type_params);
-        let id = specialize_class_ty(vm, parent_class);
-        let cls_def = vm.class_defs.idx(id);
+        let parent_class = specialize_type(sa, parent_class, type_params);
+        let id = specialize_class_ty(sa, parent_class);
+        let cls_def = sa.class_defs.idx(id);
 
         fields = Vec::new();
         ref_fields = cls_def.ref_fields.clone();
@@ -382,11 +382,11 @@ fn create_specialized_class_regular(
     };
 
     for f in &cls.fields {
-        let ty = specialize_type(vm, f.ty.clone(), &type_params);
-        debug_assert!(!ty.contains_type_param(vm));
+        let ty = specialize_type(sa, f.ty.clone(), &type_params);
+        debug_assert!(!ty.contains_type_param(sa));
 
-        let field_size = ty.size(vm);
-        let field_align = ty.align(vm);
+        let field_size = ty.size(sa);
+        let field_align = ty.align(sa);
 
         let offset = mem::align_i32(csize, field_align);
         fields.push(FieldDef {
@@ -396,12 +396,12 @@ fn create_specialized_class_regular(
 
         csize = offset + field_size;
 
-        add_ref_fields(vm, &mut ref_fields, offset, ty);
+        add_ref_fields(sa, &mut ref_fields, offset, ty);
     }
 
     let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
 
-    let stub = vm.compile_stub().to_usize();
+    let stub = sa.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
     let (instance_size, element_size) = match size {
@@ -415,9 +415,9 @@ fn create_specialized_class_regular(
         element_size,
         &vtable_entries,
     );
-    ensure_display(vm, &mut vtable, parent_id);
+    ensure_display(sa, &mut vtable, parent_id);
 
-    let mut class_defs = vm.class_defs.lock();
+    let mut class_defs = sa.class_defs.lock();
     let id: ClassDefId = class_defs.len().into();
 
     let mut specializations = cls.specializations.write();
@@ -449,18 +449,18 @@ fn create_specialized_class_regular(
     id
 }
 
-fn add_ref_fields(vm: &SemAnalysis, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
+fn add_ref_fields(sa: &SemAnalysis, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
     if let Some(tuple_id) = ty.tuple_id() {
-        let tuples = vm.tuples.lock();
+        let tuples = sa.tuples.lock();
         let tuple = tuples.get_tuple(tuple_id);
 
         for &ref_offset in tuple.references() {
             ref_fields.push(offset + ref_offset);
         }
     } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
-        let type_params = vm.source_type_arrays.lock().get(type_params_id);
-        let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
-        let edef = vm.enum_defs.idx(edef_id);
+        let type_params = sa.source_type_arrays.lock().get(type_params_id);
+        let edef_id = specialize_enum_id_params(sa, enum_id, type_params);
+        let edef = sa.enum_defs.idx(edef_id);
 
         match edef.layout {
             EnumLayout::Int => {}
@@ -469,9 +469,9 @@ fn add_ref_fields(vm: &SemAnalysis, ref_fields: &mut Vec<i32>, offset: i32, ty: 
             }
         }
     } else if let SourceType::Struct(struct_id, type_params_id) = ty.clone() {
-        let type_params = vm.source_type_arrays.lock().get(type_params_id);
-        let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
-        let sdef = vm.struct_defs.idx(sdef_id);
+        let type_params = sa.source_type_arrays.lock().get(type_params_id);
+        let sdef_id = specialize_struct_id_params(sa, struct_id, type_params);
+        let sdef = sa.struct_defs.idx(sdef_id);
 
         for &ref_offset in &sdef.ref_fields {
             ref_fields.push(offset + ref_offset);
@@ -482,7 +482,7 @@ fn add_ref_fields(vm: &SemAnalysis, ref_fields: &mut Vec<i32>, offset: i32, ty: 
 }
 
 fn create_specialized_class_array(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     cls: &Class,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
@@ -490,7 +490,7 @@ fn create_specialized_class_array(
         .parent_class
         .clone()
         .expect("Array & String should have super class");
-    let parent_cls_def_id = specialize_class_ty(vm, parent_class);
+    let parent_cls_def_id = specialize_class_ty(sa, parent_class);
 
     let fields = Vec::new();
     let mut ref_fields = Vec::new();
@@ -507,7 +507,7 @@ fn create_specialized_class_array(
                 InstanceSize::ObjArray
             }
             SourceType::Tuple(tuple_id) => {
-                let tuples = vm.tuples.lock();
+                let tuples = sa.tuples.lock();
                 let tuple = tuples.get_tuple(tuple_id);
 
                 if tuple.contains_references() {
@@ -522,9 +522,9 @@ fn create_specialized_class_array(
             }
 
             SourceType::Struct(struct_id, type_params_id) => {
-                let type_params = vm.source_type_arrays.lock().get(type_params_id);
-                let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
-                let sdef = vm.struct_defs.idx(sdef_id);
+                let type_params = sa.source_type_arrays.lock().get(type_params_id);
+                let sdef_id = specialize_struct_id_params(sa, struct_id, type_params);
+                let sdef = sa.struct_defs.idx(sdef_id);
 
                 if sdef.contains_references() {
                     for &offset in &sdef.ref_fields {
@@ -538,9 +538,9 @@ fn create_specialized_class_array(
             }
 
             SourceType::Enum(enum_id, type_params_id) => {
-                let type_params = vm.source_type_arrays.lock().get(type_params_id);
-                let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
-                let edef = vm.enum_defs.idx(edef_id);
+                let type_params = sa.source_type_arrays.lock().get(type_params_id);
+                let edef_id = specialize_enum_id_params(sa, enum_id, type_params);
+                let edef = sa.enum_defs.idx(edef_id);
 
                 match edef.layout {
                     EnumLayout::Int => InstanceSize::PrimitiveArray(4),
@@ -548,13 +548,13 @@ fn create_specialized_class_array(
                 }
             }
 
-            _ => InstanceSize::PrimitiveArray(element_ty.size(vm)),
+            _ => InstanceSize::PrimitiveArray(element_ty.size(sa)),
         }
     } else {
         InstanceSize::Str
     };
 
-    let stub = vm.compile_stub().to_usize();
+    let stub = sa.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
     let (instance_size, element_size) = match size {
@@ -574,9 +574,9 @@ fn create_specialized_class_array(
         element_size,
         &vtable_entries,
     );
-    ensure_display(vm, &mut vtable, Some(parent_cls_def_id));
+    ensure_display(sa, &mut vtable, Some(parent_cls_def_id));
 
-    let mut class_defs = vm.class_defs.lock();
+    let mut class_defs = sa.class_defs.lock();
     let id: ClassDefId = class_defs.len().into();
 
     let mut specializations = cls.specializations.write();
@@ -609,7 +609,7 @@ fn create_specialized_class_array(
 }
 
 fn ensure_display(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     vtable: &mut VTableBox,
     parent_id: Option<ClassDefId>,
 ) -> usize {
@@ -617,7 +617,7 @@ fn ensure_display(
     assert!(vtable.subtype_display[0].is_null());
 
     if let Some(parent_id) = parent_id {
-        let parent = vm.class_defs.idx(parent_id);
+        let parent = sa.class_defs.idx(parent_id);
 
         let parent_vtable = parent.vtable.read();
         let parent_vtable = parent_vtable.as_ref().unwrap();
@@ -668,12 +668,12 @@ fn ensure_display(
 }
 
 pub fn specialize_tuple(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     tuple_id: TupleId,
     type_params: &SourceTypeArray,
 ) -> TupleId {
     let subtypes = {
-        let tuples = vm.tuples.lock();
+        let tuples = sa.tuples.lock();
         let tuple = tuples.get_tuple(tuple_id);
 
         if tuple.is_concrete_type() {
@@ -685,32 +685,32 @@ pub fn specialize_tuple(
 
     let new_subtypes = subtypes
         .iter()
-        .map(|t| specialize_type(vm, t.clone(), type_params))
+        .map(|t| specialize_type(sa, t.clone(), type_params))
         .collect::<Vec<_>>();
 
-    ensure_tuple(vm, new_subtypes)
+    ensure_tuple(sa, new_subtypes)
 }
 
 pub fn specialize_trait_object(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     trait_id: TraitId,
     trait_type_params: &SourceTypeArray,
     object_type: SourceType,
 ) -> ClassDefId {
-    let xtrait = vm.traits[trait_id].read();
+    let xtrait = sa.traits[trait_id].read();
 
     let combined_type_params = trait_type_params.connect_single(object_type.clone());
-    let combined_type_params_id = vm.source_type_arrays.lock().insert(combined_type_params);
+    let combined_type_params_id = sa.source_type_arrays.lock().insert(combined_type_params);
 
     if let Some(&id) = xtrait.vtables.read().get(&combined_type_params_id) {
         return id;
     }
 
-    create_specialized_class_for_trait_object(vm, &*xtrait, combined_type_params_id, object_type)
+    create_specialized_class_for_trait_object(sa, &*xtrait, combined_type_params_id, object_type)
 }
 
 fn create_specialized_class_for_trait_object(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     xtrait: &TraitData,
     combined_type_params_id: SourceTypeArrayId,
     object_type: SourceType,
@@ -725,28 +725,28 @@ fn create_specialized_class_for_trait_object(
     csize = Header::size();
     parent_id = None;
 
-    debug_assert!(!object_type.contains_type_param(vm));
+    debug_assert!(!object_type.contains_type_param(sa));
 
-    let field_size = object_type.size(vm);
-    let field_align = object_type.align(vm);
+    let field_size = object_type.size(sa);
+    let field_align = object_type.align(sa);
 
     let offset = mem::align_i32(csize, field_align);
     fields.push(FieldDef {
         offset,
         ty: object_type.clone(),
     });
-    add_ref_fields(vm, &mut ref_fields, offset, object_type.clone());
+    add_ref_fields(sa, &mut ref_fields, offset, object_type.clone());
     csize = offset + field_size;
     csize = mem::align_i32(csize, mem::ptr_width());
     let size = InstanceSize::Fixed(csize);
 
-    let stub = vm.compile_stub().to_usize();
+    let stub = sa.compile_stub().to_usize();
     let vtable_entries = vec![stub; xtrait.methods.len()];
 
     let mut vtable = VTableBox::new(std::ptr::null(), csize as usize, 0, &vtable_entries);
-    ensure_display(vm, &mut vtable, parent_id);
+    ensure_display(sa, &mut vtable, parent_id);
 
-    let mut class_defs = vm.class_defs.lock();
+    let mut class_defs = sa.class_defs.lock();
     let id: ClassDefId = class_defs.len().into();
 
     let mut vtables = xtrait.vtables.write();
@@ -779,7 +779,7 @@ fn create_specialized_class_for_trait_object(
 }
 
 pub fn replace_type_param(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     ty: SourceType,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
@@ -788,58 +788,58 @@ pub fn replace_type_param(
         SourceType::TypeParam(tpid) => type_params[tpid.to_usize()].clone(),
 
         SourceType::Class(cls_id, list_id) => {
-            let params = vm.source_type_arrays.lock().get(list_id);
+            let params = sa.source_type_arrays.lock().get(list_id);
 
             let params = SourceTypeArray::with(
                 params
                     .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
-            let list_id = vm.source_type_arrays.lock().insert(params);
+            let list_id = sa.source_type_arrays.lock().insert(params);
             SourceType::Class(cls_id, list_id)
         }
 
         SourceType::Trait(trait_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+            let old_type_params = sa.source_type_arrays.lock().get(list_id);
 
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
             SourceType::Trait(trait_id, new_type_params_id)
         }
 
         SourceType::Struct(struct_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+            let old_type_params = sa.source_type_arrays.lock().get(list_id);
 
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
             SourceType::Struct(struct_id, new_type_params_id)
         }
 
         SourceType::Enum(enum_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+            let old_type_params = sa.source_type_arrays.lock().get(list_id);
 
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
             SourceType::Enum(enum_id, new_type_params_id)
         }
 
@@ -849,7 +849,7 @@ pub fn replace_type_param(
 
         SourceType::Tuple(tuple_id) => {
             let subtypes = {
-                let tuples = vm.tuples.lock();
+                let tuples = sa.tuples.lock();
                 let tuple = tuples.get_tuple(tuple_id);
 
                 if tuple.is_concrete_type() {
@@ -861,10 +861,10 @@ pub fn replace_type_param(
 
             let new_subtypes = subtypes
                 .iter()
-                .map(|t| replace_type_param(vm, t.clone(), type_params, self_ty.clone()))
+                .map(|t| replace_type_param(sa, t.clone(), type_params, self_ty.clone()))
                 .collect::<Vec<_>>();
 
-            let tuple_id = ensure_tuple(vm, new_subtypes);
+            let tuple_id = ensure_tuple(sa, new_subtypes);
             SourceType::Tuple(tuple_id)
         }
 
@@ -886,61 +886,61 @@ pub fn replace_type_param(
     }
 }
 
-pub fn replace_type_self(vm: &SemAnalysis, ty: SourceType, self_ty: SourceType) -> SourceType {
+pub fn replace_type_self(sa: &SemAnalysis, ty: SourceType, self_ty: SourceType) -> SourceType {
     match ty {
         SourceType::Class(cls_id, list_id) => {
-            let params = vm.source_type_arrays.lock().get(list_id);
+            let params = sa.source_type_arrays.lock().get(list_id);
 
             let params = SourceTypeArray::with(
                 params
                     .iter()
-                    .map(|p| replace_type_self(vm, p, self_ty.clone()))
+                    .map(|p| replace_type_self(sa, p, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
-            let list_id = vm.source_type_arrays.lock().insert(params);
+            let list_id = sa.source_type_arrays.lock().insert(params);
             SourceType::Class(cls_id, list_id)
         }
 
         SourceType::Trait(trait_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+            let old_type_params = sa.source_type_arrays.lock().get(list_id);
 
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_self(vm, p, self_ty.clone()))
+                    .map(|p| replace_type_self(sa, p, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
             SourceType::Trait(trait_id, new_type_params_id)
         }
 
         SourceType::Struct(struct_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+            let old_type_params = sa.source_type_arrays.lock().get(list_id);
 
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_self(vm, p, self_ty.clone()))
+                    .map(|p| replace_type_self(sa, p, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
             SourceType::Struct(struct_id, new_type_params_id)
         }
 
         SourceType::Enum(enum_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+            let old_type_params = sa.source_type_arrays.lock().get(list_id);
 
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_self(vm, p, self_ty.clone()))
+                    .map(|p| replace_type_self(sa, p, self_ty.clone()))
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
             SourceType::Enum(enum_id, new_type_params_id)
         }
 
@@ -950,7 +950,7 @@ pub fn replace_type_self(vm: &SemAnalysis, ty: SourceType, self_ty: SourceType) 
 
         SourceType::Tuple(tuple_id) => {
             let subtypes = {
-                let tuples = vm.tuples.lock();
+                let tuples = sa.tuples.lock();
                 let tuple = tuples.get_tuple(tuple_id);
 
                 tuple.args()
@@ -958,10 +958,10 @@ pub fn replace_type_self(vm: &SemAnalysis, ty: SourceType, self_ty: SourceType) 
 
             let new_subtypes = subtypes
                 .iter()
-                .map(|t| replace_type_self(vm, t.clone(), self_ty.clone()))
+                .map(|t| replace_type_self(sa, t.clone(), self_ty.clone()))
                 .collect::<Vec<_>>();
 
-            let tuple_id = ensure_tuple(vm, new_subtypes);
+            let tuple_id = ensure_tuple(sa, new_subtypes);
             SourceType::Tuple(tuple_id)
         }
 
