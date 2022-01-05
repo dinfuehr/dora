@@ -5,8 +5,8 @@ use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{
-    FileId, NamespaceId, SemAnalysis, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
-    TypeParamId,
+    FileId, NamespaceId, SemAnalysis, StructDefinitionField, StructDefinitionFieldId,
+    StructDefinitionId, TypeParamId,
 };
 
 use dora_parser::ast;

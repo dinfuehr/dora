@@ -9,8 +9,9 @@ use crate::bytecode::{
 use crate::driver::cmd::Args;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId, VM,
+    ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId, FieldId,
+    GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId,
+    TypeParamId, VM,
 };
 
 pub struct BytecodeBuilder {
@@ -53,7 +54,11 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::Fct(id, SourceTypeArray::empty()))
     }
 
-    pub fn add_const_enum(&mut self, id: EnumDefinitionId, type_params: SourceTypeArray) -> ConstPoolIdx {
+    pub fn add_const_enum(
+        &mut self,
+        id: EnumDefinitionId,
+        type_params: SourceTypeArray,
+    ) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Enum(id, type_params))
     }
 
@@ -67,7 +72,11 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_id))
     }
 
-    pub fn add_const_struct(&mut self, id: StructDefinitionId, type_params: SourceTypeArray) -> ConstPoolIdx {
+    pub fn add_const_struct(
+        &mut self,
+        id: StructDefinitionId,
+        type_params: SourceTypeArray,
+    ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Struct(id, type_params))
     }

@@ -2,7 +2,10 @@ use std::collections::HashSet;
 
 use crate::semck::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
-use crate::vm::{find_method_in_class, ClassDefinition, ClassDefinitionId, FctDefinition, FctDefinitionId, SemAnalysis};
+use crate::vm::{
+    find_method_in_class, ClassDefinition, ClassDefinitionId, FctDefinition, FctDefinitionId,
+    SemAnalysis,
+};
 
 pub fn check(sa: &mut SemAnalysis) {
     cycle_detection(sa);
@@ -51,7 +54,11 @@ fn determine_vtables(sa: &SemAnalysis) {
     }
 }
 
-fn determine_vtable(sa: &SemAnalysis, lens: &mut HashSet<ClassDefinitionId>, cls: &mut ClassDefinition) {
+fn determine_vtable(
+    sa: &SemAnalysis,
+    lens: &mut HashSet<ClassDefinitionId>,
+    cls: &mut ClassDefinition,
+) {
     if let Some(parent_class) = cls.parent_class.clone() {
         let parent_cls_id = parent_class.cls_id().expect("no class");
         let parent = sa.classes.idx(parent_cls_id);
@@ -111,7 +118,11 @@ pub fn check_override(sa: &SemAnalysis) {
     }
 }
 
-fn check_fct_modifier(sa: &SemAnalysis, cls: &ClassDefinition, fct: &FctDefinition) -> Option<FctDefinitionId> {
+fn check_fct_modifier(
+    sa: &SemAnalysis,
+    cls: &ClassDefinition,
+    fct: &FctDefinition,
+) -> Option<FctDefinitionId> {
     // catch: class A { @open fun f() } (A is not derivable)
     // catch: @open @final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {

@@ -16,9 +16,9 @@ use crate::vm::{
     enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
     find_methods_in_enum, find_methods_in_struct, global_accessible_from, method_accessible_from,
     namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
-    CallType, ClassDefinitionId, ConvInfo, EnumDefinitionId, FctDefinition, FctDefinitionId, FctParent, FileId, ForTypeInfo, IdentType,
-    Intrinsic, NamespaceId, SemAnalysis, StructDefinition, StructDefinitionId, TypeParam,
-    TypeParamDefinition, TypeParamId, Var, VarId,
+    CallType, ClassDefinitionId, ConvInfo, EnumDefinitionId, FctDefinition, FctDefinitionId,
+    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, SemAnalysis,
+    StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
 };
 
 use dora_parser::ast;

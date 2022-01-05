@@ -8,8 +8,8 @@ use dora_parser::interner::Name;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, Intrinsic, ModuleId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
-    TypeParamId,
+    GlobalDefinitionId, Intrinsic, ModuleId, StructDefinitionFieldId, StructDefinitionId,
+    TraitDefinitionId, TypeParamId,
 };
 
 #[derive(Debug)]
