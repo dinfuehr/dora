@@ -8,9 +8,9 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
-    ensure_tuple, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId, EnumId,
-    EnumLayout, FieldDef, SemAnalysis, StructDefinition, StructId, StructInstance,
-    StructInstanceField, StructInstanceId, TraitData, TraitId, TupleId,
+    ensure_tuple, ClassDefinition, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumData,
+    EnumDef, EnumDefId, EnumId, EnumLayout, FieldDef, SemAnalysis, StructDefinition, StructId,
+    StructInstance, StructInstanceField, StructInstanceId, TraitData, TraitId, TupleId,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -227,7 +227,7 @@ pub fn specialize_enum_class(
     edef: &EnumDef,
     xenum: &EnumData,
     variant_id: usize,
-) -> ClassDefId {
+) -> ClassInstanceId {
     let mut variants = edef.variants.write();
     let variant = variants[variant_id];
 
@@ -268,11 +268,11 @@ pub fn specialize_enum_class(
     let instance_size = mem::align_i32(csize, mem::ptr_width());
 
     let mut class_defs = sa.class_defs.lock();
-    let id: ClassDefId = class_defs.len().into();
+    let id: ClassInstanceId = class_defs.len().into();
 
     variants[variant_id] = Some(id);
 
-    let class_def = Arc::new(ClassDef {
+    let class_def = Arc::new(ClassInstance {
         id,
         cls_id: None,
         trait_object: None,
@@ -286,14 +286,14 @@ pub fn specialize_enum_class(
 
     class_defs.push(class_def.clone());
 
-    let clsptr = &*class_def as *const ClassDef as *mut ClassDef;
+    let clsptr = &*class_def as *const ClassInstance as *mut ClassInstance;
     let vtable = VTableBox::new(clsptr, instance_size as usize, 0, &[]);
     *class_def.vtable.write() = Some(vtable);
 
     id
 }
 
-pub fn specialize_class_id(sa: &SemAnalysis, cls_id: ClassId) -> ClassDefId {
+pub fn specialize_class_id(sa: &SemAnalysis, cls_id: ClassDefinitionId) -> ClassInstanceId {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
     specialize_class(sa, &*cls, &SourceTypeArray::empty())
@@ -301,15 +301,15 @@ pub fn specialize_class_id(sa: &SemAnalysis, cls_id: ClassId) -> ClassDefId {
 
 pub fn specialize_class_id_params(
     sa: &SemAnalysis,
-    cls_id: ClassId,
+    cls_id: ClassDefinitionId,
     type_params: &SourceTypeArray,
-) -> ClassDefId {
+) -> ClassInstanceId {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
     specialize_class(sa, &*cls, &type_params)
 }
 
-pub fn specialize_class_ty(sa: &SemAnalysis, ty: SourceType) -> ClassDefId {
+pub fn specialize_class_ty(sa: &SemAnalysis, ty: SourceType) -> ClassInstanceId {
     match ty {
         SourceType::Class(cls_id, list_id) => {
             let params = sa.source_type_arrays.lock().get(list_id);
@@ -322,9 +322,9 @@ pub fn specialize_class_ty(sa: &SemAnalysis, ty: SourceType) -> ClassDefId {
 
 pub fn specialize_class(
     sa: &SemAnalysis,
-    cls: &Class,
+    cls: &ClassDefinition,
     type_params: &SourceTypeArray,
-) -> ClassDefId {
+) -> ClassInstanceId {
     if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
     }
@@ -334,9 +334,9 @@ pub fn specialize_class(
 
 fn create_specialized_class(
     sa: &SemAnalysis,
-    cls: &Class,
+    cls: &ClassDefinition,
     type_params: &SourceTypeArray,
-) -> ClassDefId {
+) -> ClassInstanceId {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(sa)));
 
     if cls.is_array || cls.is_str {
@@ -348,9 +348,9 @@ fn create_specialized_class(
 
 fn create_specialized_class_regular(
     sa: &SemAnalysis,
-    cls: &Class,
+    cls: &ClassDefinition,
     type_params: &SourceTypeArray,
-) -> ClassDefId {
+) -> ClassInstanceId {
     let mut csize;
     let mut fields;
     let mut ref_fields;
@@ -412,7 +412,7 @@ fn create_specialized_class_regular(
     ensure_display(sa, &mut vtable, parent_id);
 
     let mut class_defs = sa.class_defs.lock();
-    let id: ClassDefId = class_defs.len().into();
+    let id: ClassInstanceId = class_defs.len().into();
 
     let mut specializations = cls.specializations.write();
 
@@ -423,7 +423,7 @@ fn create_specialized_class_regular(
     let old = specializations.insert(type_params.clone(), id);
     assert!(old.is_none());
 
-    let class_def = Arc::new(ClassDef {
+    let class_def = Arc::new(ClassInstance {
         id,
         cls_id: Some(cls.id),
         trait_object: None,
@@ -477,9 +477,9 @@ fn add_ref_fields(sa: &SemAnalysis, ref_fields: &mut Vec<i32>, offset: i32, ty: 
 
 fn create_specialized_class_array(
     sa: &SemAnalysis,
-    cls: &Class,
+    cls: &ClassDefinition,
     type_params: &SourceTypeArray,
-) -> ClassDefId {
+) -> ClassInstanceId {
     let parent_class = cls
         .parent_class
         .clone()
@@ -571,7 +571,7 @@ fn create_specialized_class_array(
     ensure_display(sa, &mut vtable, Some(parent_cls_def_id));
 
     let mut class_defs = sa.class_defs.lock();
-    let id: ClassDefId = class_defs.len().into();
+    let id: ClassInstanceId = class_defs.len().into();
 
     let mut specializations = cls.specializations.write();
 
@@ -582,7 +582,7 @@ fn create_specialized_class_array(
     let old = specializations.insert(type_params.clone(), id);
     assert!(old.is_none());
 
-    let class_def = Arc::new(ClassDef {
+    let class_def = Arc::new(ClassInstance {
         id,
         cls_id: Some(cls.id),
         trait_object: None,
@@ -605,7 +605,7 @@ fn create_specialized_class_array(
 fn ensure_display(
     sa: &SemAnalysis,
     vtable: &mut VTableBox,
-    parent_id: Option<ClassDefId>,
+    parent_id: Option<ClassInstanceId>,
 ) -> usize {
     // if subtype_display[0] is set, vtable was already initialized
     assert!(vtable.subtype_display[0].is_null());
@@ -690,7 +690,7 @@ pub fn specialize_trait_object(
     trait_id: TraitId,
     trait_type_params: &SourceTypeArray,
     object_type: SourceType,
-) -> ClassDefId {
+) -> ClassInstanceId {
     let xtrait = sa.traits[trait_id].read();
 
     let combined_type_params = trait_type_params.connect_single(object_type.clone());
@@ -708,7 +708,7 @@ fn create_specialized_class_for_trait_object(
     xtrait: &TraitData,
     combined_type_params_id: SourceTypeArrayId,
     object_type: SourceType,
-) -> ClassDefId {
+) -> ClassInstanceId {
     let mut csize;
     let mut fields;
     let mut ref_fields;
@@ -741,7 +741,7 @@ fn create_specialized_class_for_trait_object(
     ensure_display(sa, &mut vtable, parent_id);
 
     let mut class_defs = sa.class_defs.lock();
-    let id: ClassDefId = class_defs.len().into();
+    let id: ClassInstanceId = class_defs.len().into();
 
     let mut vtables = xtrait.vtables.write();
 
@@ -752,7 +752,7 @@ fn create_specialized_class_for_trait_object(
     let old = vtables.insert(combined_type_params_id, id);
     assert!(old.is_none());
 
-    let class_def = Arc::new(ClassDef {
+    let class_def = Arc::new(ClassInstance {
         id,
         cls_id: None,
         trait_object: Some(object_type),

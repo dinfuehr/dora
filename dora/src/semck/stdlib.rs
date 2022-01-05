@@ -10,8 +10,8 @@ use crate::stdlib;
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    AnnotationId, ClassDef, ClassDefId, ClassId, EnumId, ExtensionId, FctId, Intrinsic, ModuleId,
-    NamespaceId, SemAnalysis, StructId, TraitId,
+    AnnotationId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumId, ExtensionId, FctId,
+    Intrinsic, ModuleId, NamespaceId, SemAnalysis, StructId, TraitId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast::Modifier;
@@ -171,8 +171,8 @@ pub fn discover_known_methods(sa: &mut SemAnalysis) {
 }
 
 fn internal_free_classes(sa: &mut SemAnalysis) {
-    let free_object: ClassDefId;
-    let free_array: ClassDefId;
+    let free_object: ClassInstanceId;
+    let free_array: ClassInstanceId;
 
     {
         let mut class_defs = sa.class_defs.lock();
@@ -181,7 +181,7 @@ fn internal_free_classes(sa: &mut SemAnalysis) {
         free_object = next.into();
         free_array = (next + 1).into();
 
-        class_defs.push(Arc::new(ClassDef {
+        class_defs.push(Arc::new(ClassInstance {
             id: free_object,
             cls_id: None,
             trait_object: None,
@@ -193,7 +193,7 @@ fn internal_free_classes(sa: &mut SemAnalysis) {
             vtable: RwLock::new(None),
         }));
 
-        class_defs.push(Arc::new(ClassDef {
+        class_defs.push(Arc::new(ClassInstance {
             id: free_array,
             cls_id: None,
             trait_object: None,
@@ -224,13 +224,13 @@ fn internal_free_classes(sa: &mut SemAnalysis) {
     sa.known.free_array_class_def = free_array;
 }
 
-fn find_class(sa: &SemAnalysis, namespace_id: NamespaceId, name: &str) -> ClassId {
+fn find_class(sa: &SemAnalysis, namespace_id: NamespaceId, name: &str) -> ClassDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     symtable.get_class(iname).expect("class not found")
 }
 
-fn internal_class(sa: &SemAnalysis, namespace_id: NamespaceId, name: &str) -> ClassId {
+fn internal_class(sa: &SemAnalysis, namespace_id: NamespaceId, name: &str) -> ClassDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     let clsid = symtable.get_class(iname).expect("class not found");
@@ -1228,7 +1228,7 @@ fn internal_module_method(
 
 fn internal_class_method(
     sa: &SemAnalysis,
-    cls_id: ClassId,
+    cls_id: ClassDefinitionId,
     name: &str,
     is_static: bool,
     kind: FctImplementation,

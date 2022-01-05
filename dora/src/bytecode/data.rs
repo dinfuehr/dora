@@ -6,8 +6,8 @@ use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_p
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::utils::enumeration;
 use crate::vm::{
-    get_vm, ClassDefId, ClassId, EnumId, EnumLayout, FctId, FieldId, StructDefinitionFieldId,
-    StructId, TraitId, TupleId, TypeParamId, VM,
+    get_vm, ClassDefinitionId, ClassInstanceId, EnumId, EnumLayout, FctId, FieldId,
+    StructDefinitionFieldId, StructId, TraitId, TupleId, TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -822,9 +822,9 @@ pub enum ConstPoolEntry {
     Int32(i32),
     Int64(i64),
     Char(char),
-    Class(ClassId, SourceTypeArray),
-    Field(ClassId, SourceTypeArray, FieldId),
-    FieldFixed(ClassDefId, FieldId),
+    Class(ClassDefinitionId, SourceTypeArray),
+    Field(ClassDefinitionId, SourceTypeArray, FieldId),
+    FieldFixed(ClassInstanceId, FieldId),
     Fct(FctId, SourceTypeArray),
     Generic(TypeParamId, FctId, SourceTypeArray),
     Enum(EnumId, SourceTypeArray),

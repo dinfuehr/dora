@@ -6,8 +6,8 @@ use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassId, EnumId, ExtensionId, Fct, FileId, ImplData, SemAnalysis,
-    StructId, TraitId, TypeParam, TypeParamId,
+    trait_accessible_from, ClassDefinitionId, EnumId, ExtensionId, Fct, FileId, ImplData,
+    SemAnalysis, StructId, TraitId, TypeParam, TypeParamId,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -15,7 +15,7 @@ use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone)]
 pub enum TypeParamContext<'a> {
-    Class(ClassId),
+    Class(ClassDefinitionId),
     Enum(EnumId),
     Struct(StructId),
     Fct(&'a Fct),
@@ -502,7 +502,7 @@ fn read_type_class(
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
-    cls_id: ClassId,
+    cls_id: ClassDefinitionId,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {

@@ -33,8 +33,9 @@ use dora_parser::parser::NodeIdGenerator;
 pub use self::annotations::{Annotation, AnnotationId};
 pub use self::classes::{
     class_accessible_from, class_field_accessible_from, find_field_in_class, find_method_in_class,
-    find_methods_in_class, method_accessible_from, Candidate, Class, ClassDef, ClassDefId, ClassId,
-    Field, FieldDef, FieldId, TypeParam, TypeParamDefinition, TypeParamId,
+    find_methods_in_class, method_accessible_from, Candidate, ClassDefinition, ClassDefinitionId,
+    ClassInstance, ClassInstanceId, Field, FieldDef, FieldId, TypeParam, TypeParamDefinition,
+    TypeParamId,
 };
 pub use self::consts::{const_accessible_from, ConstData, ConstId, ConstValue};
 pub use self::enums::{
@@ -125,8 +126,8 @@ pub struct FullSemAnalysis {
     pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
     pub structs: GrowableVec<RwLock<StructDefinition>>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
-    pub classes: GrowableVec<RwLock<Class>>,    // stores all class source definitions
-    pub class_defs: GrowableVec<ClassDef>,      // stores all class definitions
+    pub classes: GrowableVec<RwLock<ClassDefinition>>, // stores all class source definitions
+    pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,                  // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
@@ -154,7 +155,7 @@ pub struct FullSemAnalysis {
 
 impl FullSemAnalysis {
     pub fn new(args: Args) -> Box<FullSemAnalysis> {
-        let empty_class_def_id: ClassDefId = 0.into();
+        let empty_class_def_id: ClassInstanceId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctId = 0.into();
         let empty_enum_id: EnumId = 0.into();
@@ -306,8 +307,8 @@ pub struct VM {
     pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
     pub structs: GrowableVec<RwLock<StructDefinition>>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
-    pub classes: GrowableVec<RwLock<Class>>,    // stores all class source definitions
-    pub class_defs: GrowableVec<ClassDef>,      // stores all class definitions
+    pub classes: GrowableVec<RwLock<ClassDefinition>>, // stores all class source definitions
+    pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,                  // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
@@ -343,7 +344,7 @@ pub struct VM {
 
 impl VM {
     pub fn new(args: Args) -> Box<VM> {
-        let empty_class_def_id: ClassDefId = 0.into();
+        let empty_class_def_id: ClassInstanceId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctId = 0.into();
         let empty_enum_id: EnumId = 0.into();
@@ -604,7 +605,7 @@ impl VM {
     }
 
     #[cfg(test)]
-    pub fn cls_by_name(&self, name: &'static str) -> ClassId {
+    pub fn cls_by_name(&self, name: &'static str) -> ClassDefinitionId {
         let name = self.interner.intern(name);
 
         NestedSymTable::new(self, self.global_namespace_id)
@@ -699,7 +700,11 @@ impl VM {
         }
     }
 
-    pub fn cls_def_by_name(&self, namespace_id: NamespaceId, name: &'static str) -> ClassDefId {
+    pub fn cls_def_by_name(
+        &self,
+        namespace_id: NamespaceId,
+        name: &'static str,
+    ) -> ClassInstanceId {
         use crate::semck::specialize::specialize_class_id;
 
         let name = self.interner.intern(name);
@@ -714,7 +719,7 @@ impl VM {
         &self,
         name: &'static str,
         type_params: SourceTypeArray,
-    ) -> ClassDefId {
+    ) -> ClassInstanceId {
         use crate::semck::specialize::specialize_class_id_params;
 
         let name = self.interner.intern(name);
@@ -725,7 +730,7 @@ impl VM {
         specialize_class_id_params(self, cls_id, &type_params)
     }
 
-    pub fn field_in_class(&self, cls_def_id: ClassDefId, name: &'static str) -> FieldId {
+    pub fn field_in_class(&self, cls_def_id: ClassInstanceId, name: &'static str) -> FieldId {
         let cls_def = self.class_defs.idx(cls_def_id);
 
         let cls_id = cls_def.cls_id.unwrap();
@@ -741,7 +746,7 @@ impl VM {
         &self,
         class_name: &'static str,
         field_name: &'static str,
-    ) -> (ClassId, FieldId) {
+    ) -> (ClassDefinitionId, FieldId) {
         let class_name = self.interner.intern(class_name);
         let field_name = self.interner.intern(field_name);
 
@@ -813,7 +818,7 @@ impl VM {
             .expect("global not found")
     }
 
-    pub fn cls(&self, cls_id: ClassId) -> SourceType {
+    pub fn cls(&self, cls_id: ClassDefinitionId) -> SourceType {
         let list_id = self
             .source_type_arrays
             .lock()
@@ -823,7 +828,7 @@ impl VM {
 
     pub fn cls_with_type_params(
         &self,
-        cls_id: ClassId,
+        cls_id: ClassDefinitionId,
         type_params: Vec<SourceType>,
     ) -> SourceType {
         let list = SourceTypeArray::with(type_params);
@@ -831,7 +836,11 @@ impl VM {
         SourceType::Class(cls_id, list_id)
     }
 
-    pub fn cls_with_type_list(&self, cls_id: ClassId, type_list: SourceTypeArray) -> SourceType {
+    pub fn cls_with_type_list(
+        &self,
+        cls_id: ClassDefinitionId,
+        type_list: SourceTypeArray,
+    ) -> SourceType {
         let list_id = self.source_type_arrays.lock().insert(type_list);
         SourceType::Class(cls_id, list_id)
     }

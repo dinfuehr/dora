@@ -2,7 +2,9 @@ use dora_parser::lexer::position::Position;
 
 use crate::semck::error::msg::SemError;
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
-use crate::vm::{Class, ClassId, EnumId, Fct, FileId, SemAnalysis, StructId, TraitId, TypeParam};
+use crate::vm::{
+    ClassDefinition, ClassDefinitionId, EnumId, Fct, FileId, SemAnalysis, StructId, TraitId, TypeParam,
+};
 
 pub enum ErrorReporting {
     Yes(FileId, Position),
@@ -52,7 +54,7 @@ pub fn check_struct(
 pub fn check_class(
     sa: &SemAnalysis,
     fct: &Fct,
-    cls_id: ClassId,
+    cls_id: ClassDefinitionId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
@@ -69,7 +71,7 @@ pub fn check_class(
     checker.check(type_params)
 }
 
-pub fn check_super<'a>(sa: &SemAnalysis, cls: &Class, error: ErrorReporting) -> bool {
+pub fn check_super<'a>(sa: &SemAnalysis, cls: &ClassDefinition, error: ErrorReporting) -> bool {
     let object_type = cls.parent_class.clone().expect("parent_class missing");
 
     let super_cls_id = object_type.cls_id().expect("no class");

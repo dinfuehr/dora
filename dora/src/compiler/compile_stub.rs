@@ -18,7 +18,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, get_vm, AnalysisData, ClassDefId, Fct, FctId, FctParent, TypeParam,
+    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Fct, FctId, FctParent, TypeParam,
     TypeParamId, VM,
 };
 
@@ -302,7 +302,7 @@ fn patch_direct_call(
 
 fn ensure_thunk(
     vm: &VM,
-    cls_def_id: ClassDefId,
+    cls_def_id: ClassInstanceId,
     fct_id: FctId,
     type_params: SourceTypeArray,
     object_ty: SourceType,
@@ -359,7 +359,7 @@ fn ensure_thunk(
 
 fn generate_bytecode_for_thunk(
     vm: &VM,
-    cls_def_id: ClassDefId,
+    cls_def_id: ClassInstanceId,
     trait_fct: &Fct,
     thunk_fct: &mut Fct,
     _callee_id: FctId,

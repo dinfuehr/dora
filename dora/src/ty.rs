@@ -7,8 +7,8 @@ use crate::mem;
 use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
-    impl_matches, Class, ClassId, EnumData, EnumId, EnumLayout, Fct, ImplId, ModuleId, StructId,
-    TraitId, TupleId, TypeParam, TypeParamDefinition, TypeParamId,
+    impl_matches, ClassDefinition, ClassDefinitionId, EnumData, EnumId, EnumLayout, Fct, ImplId, ModuleId,
+    StructId, TraitId, TupleId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -38,7 +38,7 @@ pub enum SourceType {
     This,
 
     // some class
-    Class(ClassId, SourceTypeArrayId),
+    Class(ClassDefinitionId, SourceTypeArrayId),
 
     // some struct
     Struct(StructId, SourceTypeArrayId),
@@ -105,7 +105,7 @@ impl SourceType {
         }
     }
 
-    pub fn is_cls_id(&self, cls_id: ClassId) -> bool {
+    pub fn is_cls_id(&self, cls_id: ClassDefinitionId) -> bool {
         match *self {
             SourceType::Class(id, _) => id == cls_id,
             _ => false,
@@ -203,7 +203,7 @@ impl SourceType {
         }
     }
 
-    pub fn cls_id(&self) -> Option<ClassId> {
+    pub fn cls_id(&self) -> Option<ClassDefinitionId> {
         match *self {
             SourceType::Class(cls_id, _) => Some(cls_id),
             _ => None,
@@ -223,7 +223,7 @@ impl SourceType {
         }
     }
 
-    pub fn from_cls(cls_id: ClassId, vm: &VM) -> SourceType {
+    pub fn from_cls(cls_id: ClassDefinitionId, vm: &VM) -> SourceType {
         let list_id = vm
             .source_type_arrays
             .lock()
@@ -354,7 +354,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_cls(&self, vm: &VM, cls: &Class) -> String {
+    pub fn name_cls(&self, vm: &VM, cls: &ClassDefinition) -> String {
         let writer = SourceTypePrinter {
             vm,
             type_params: Some(&cls.type_params),

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::vm::{
-    AnnotationId, ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId, NamespaceId,
-    StructId, TraitId, TypeParamId, VarId, VM,
+    AnnotationId, ClassDefinitionId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId,
+    NamespaceId, StructId, TraitId, TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
@@ -66,7 +66,7 @@ impl<'a> NestedSymTable<'a> {
         None
     }
 
-    pub fn get_class(&self, name: Name) -> Option<ClassId> {
+    pub fn get_class(&self, name: Name) -> Option<ClassDefinitionId> {
         self.get(name).and_then(|n| n.to_class())
     }
 
@@ -140,7 +140,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_const())
     }
 
-    pub fn get_class(&self, name: Name) -> Option<ClassId> {
+    pub fn get_class(&self, name: Name) -> Option<ClassDefinitionId> {
         self.get(name).and_then(|n| n.to_class())
     }
 
@@ -167,7 +167,7 @@ impl SymTable {
 
 #[derive(Debug, Clone)]
 pub enum Sym {
-    Class(ClassId),
+    Class(ClassDefinitionId),
     Struct(StructId),
     Trait(TraitId),
     TypeParam(TypeParamId),
@@ -191,7 +191,7 @@ impl Sym {
         }
     }
 
-    pub fn to_class(&self) -> Option<ClassId> {
+    pub fn to_class(&self) -> Option<ClassDefinitionId> {
         match *self {
             Class(id) => Some(id),
             _ => None,

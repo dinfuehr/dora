@@ -9,8 +9,8 @@ use crate::bytecode::{
 use crate::driver::cmd::Args;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefId, ClassId, EnumId, FctId, FieldId, GlobalId, StructDefinitionFieldId, StructId,
-    TraitId, TupleId, TypeParamId, VM,
+    ClassDefinitionId, ClassInstanceId, EnumId, FctId, FieldId, GlobalId, StructDefinitionFieldId,
+    StructId, TraitId, TupleId, TypeParamId, VM,
 };
 
 pub struct BytecodeBuilder {
@@ -98,7 +98,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_field_types(
         &mut self,
-        cls_id: ClassId,
+        cls_id: ClassDefinitionId,
         type_params: SourceTypeArray,
         field_id: FieldId,
     ) -> ConstPoolIdx {
@@ -108,21 +108,21 @@ impl BytecodeBuilder {
 
     pub fn add_const_field_fixed(
         &mut self,
-        cls_def_id: ClassDefId,
+        cls_def_id: ClassInstanceId,
         field_id: FieldId,
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::FieldFixed(cls_def_id, field_id))
     }
 
-    pub fn add_const_cls(&mut self, id: ClassId) -> ConstPoolIdx {
+    pub fn add_const_cls(&mut self, id: ClassDefinitionId) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Class(id, SourceTypeArray::empty()))
     }
 
     pub fn add_const_cls_types(
         &mut self,
-        id: ClassId,
+        id: ClassDefinitionId,
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
         self.writer

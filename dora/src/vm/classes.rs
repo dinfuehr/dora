@@ -22,11 +22,11 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct ClassId(usize);
+pub struct ClassDefinitionId(usize);
 
-impl ClassId {
-    pub fn max() -> ClassId {
-        ClassId(usize::max_value())
+impl ClassDefinitionId {
+    pub fn max() -> ClassDefinitionId {
+        ClassDefinitionId(usize::max_value())
     }
 
     pub fn to_usize(self) -> usize {
@@ -34,20 +34,20 @@ impl ClassId {
     }
 }
 
-impl From<ClassId> for usize {
-    fn from(data: ClassId) -> usize {
+impl From<ClassDefinitionId> for usize {
+    fn from(data: ClassDefinitionId) -> usize {
         data.0
     }
 }
 
-impl From<usize> for ClassId {
-    fn from(data: usize) -> ClassId {
-        ClassId(data)
+impl From<usize> for ClassDefinitionId {
+    fn from(data: usize) -> ClassDefinitionId {
+        ClassDefinitionId(data)
     }
 }
 
-impl GrowableVec<RwLock<Class>> {
-    pub fn idx(&self, index: ClassId) -> Arc<RwLock<Class>> {
+impl GrowableVec<RwLock<ClassDefinition>> {
+    pub fn idx(&self, index: ClassDefinitionId) -> Arc<RwLock<ClassDefinition>> {
         self.idx_usize(index.0)
     }
 }
@@ -55,8 +55,8 @@ impl GrowableVec<RwLock<Class>> {
 pub static DISPLAY_SIZE: usize = 6;
 
 #[derive(Debug)]
-pub struct Class {
-    pub id: ClassId,
+pub struct ClassDefinition {
+    pub id: ClassDefinitionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Class>,
     pub namespace_id: NamespaceId,
@@ -84,28 +84,28 @@ pub struct Class {
     pub type_params: Vec<TypeParam>,
     pub type_params2: TypeParamDefinition,
 
-    pub specializations: RwLock<HashMap<SourceTypeArray, ClassDefId>>,
+    pub specializations: RwLock<HashMap<SourceTypeArray, ClassInstanceId>>,
 
     // true if this class is the generic Array class
     pub is_array: bool,
     pub is_str: bool,
 }
 
-impl Class {
+impl ClassDefinition {
     pub fn new(
         _vm: &VM,
-        id: ClassId,
+        id: ClassDefinitionId,
         file_id: FileId,
         ast: &Arc<ast::Class>,
         namespace_id: NamespaceId,
-    ) -> Class {
+    ) -> ClassDefinition {
         let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
             type_params
                 .iter()
                 .map(|type_param| TypeParam::new(type_param.name))
                 .collect()
         });
-        Class {
+        ClassDefinition {
             id,
             file_id,
             ast: ast.clone(),
@@ -259,7 +259,7 @@ impl Class {
         None
     }
 
-    pub fn subclass_from(&self, vm: &VM, super_id: ClassId) -> bool {
+    pub fn subclass_from(&self, vm: &VM, super_id: ClassDefinitionId) -> bool {
         let mut cls_id = self.id;
 
         loop {
@@ -557,40 +557,40 @@ pub struct TypeParamBound {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ClassDefId(usize);
+pub struct ClassInstanceId(usize);
 
-impl ClassDefId {
+impl ClassInstanceId {
     pub fn to_usize(self) -> usize {
         self.0
     }
 }
 
-impl From<usize> for ClassDefId {
-    fn from(data: usize) -> ClassDefId {
-        ClassDefId(data)
+impl From<usize> for ClassInstanceId {
+    fn from(data: usize) -> ClassInstanceId {
+        ClassInstanceId(data)
     }
 }
 
-impl GrowableVec<ClassDef> {
-    pub fn idx(&self, index: ClassDefId) -> Arc<ClassDef> {
+impl GrowableVec<ClassInstance> {
+    pub fn idx(&self, index: ClassInstanceId) -> Arc<ClassInstance> {
         self.idx_usize(index.0)
     }
 }
 
 #[derive(Debug)]
-pub struct ClassDef {
-    pub id: ClassDefId,
-    pub cls_id: Option<ClassId>,
+pub struct ClassInstance {
+    pub id: ClassInstanceId,
+    pub cls_id: Option<ClassDefinitionId>,
     pub trait_object: Option<SourceType>,
     pub type_params: SourceTypeArray,
-    pub parent_id: Option<ClassDefId>,
+    pub parent_id: Option<ClassInstanceId>,
     pub fields: Vec<FieldDef>,
     pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
     pub vtable: RwLock<Option<VTableBox>>,
 }
 
-impl ClassDef {
+impl ClassInstance {
     pub fn name(&self, vm: &VM) -> String {
         if let Some(cls_id) = self.cls_id {
             let cls = vm.classes.idx(cls_id);
@@ -659,7 +659,11 @@ pub struct FieldDef {
     pub ty: SourceType,
 }
 
-pub fn class_accessible_from(vm: &VM, cls_id: ClassId, namespace_id: NamespaceId) -> bool {
+pub fn class_accessible_from(
+    vm: &VM,
+    cls_id: ClassDefinitionId,
+    namespace_id: NamespaceId,
+) -> bool {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
@@ -668,7 +672,7 @@ pub fn class_accessible_from(vm: &VM, cls_id: ClassId, namespace_id: NamespaceId
 
 pub fn class_field_accessible_from(
     vm: &VM,
-    cls_id: ClassId,
+    cls_id: ClassDefinitionId,
     field_id: FieldId,
     namespace_id: NamespaceId,
 ) -> bool {

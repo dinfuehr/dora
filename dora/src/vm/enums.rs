@@ -12,7 +12,7 @@ use dora_parser::lexer::position::Position;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, extension_matches, impl_matches, namespace_path, Candidate, ClassDefId,
+    accessible_from, extension_matches, impl_matches, namespace_path, Candidate, ClassInstanceId,
     ExtensionId, FileId, ImplId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId, VM,
 };
 
@@ -112,7 +112,7 @@ pub struct EnumDef {
     pub enum_id: EnumId,
     pub type_params: SourceTypeArray,
     pub layout: EnumLayout,
-    pub variants: RwLock<Vec<Option<ClassDefId>>>,
+    pub variants: RwLock<Vec<Option<ClassInstanceId>>>,
 }
 
 impl EnumDef {

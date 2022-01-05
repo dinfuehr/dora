@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
 
 use crate::size::InstanceSize;
-use crate::vm::ClassDef;
+use crate::vm::ClassInstance;
 
 pub const DISPLAY_SIZE: usize = 6;
 
@@ -13,7 +13,7 @@ pub struct VTableBox(*mut VTable);
 
 impl VTableBox {
     pub fn new(
-        classptr: *const ClassDef,
+        classptr: *const ClassInstance,
         instance_size: usize,
         element_size: usize,
         entries: &[usize],
@@ -80,7 +80,7 @@ impl Drop for VTableBox {
 #[derive(Debug)]
 #[repr(C)]
 pub struct VTable {
-    pub classptr: *const ClassDef,
+    pub classptr: *const ClassInstance,
     pub instance_size: usize,
     pub element_size: usize,
     pub subtype_depth: usize,
@@ -95,11 +95,11 @@ impl VTable {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
-    pub fn initialize_class_def(&mut self, classptr: *const ClassDef) {
+    pub fn initialize_class_def(&mut self, classptr: *const ClassInstance) {
         self.classptr = classptr;
     }
 
-    pub fn class_def(&self) -> &ClassDef {
+    pub fn class_def(&self) -> &ClassInstance {
         unsafe { &*self.classptr }
     }
 

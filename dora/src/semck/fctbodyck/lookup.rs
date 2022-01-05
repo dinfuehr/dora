@@ -5,7 +5,7 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_module, find_methods_in_struct,
-    ClassId, Fct, FctId, FileId, SemAnalysis, TraitId, TypeParam, TypeParamDefinition,
+    ClassDefinitionId, Fct, FctId, FileId, SemAnalysis, TraitId, TypeParam, TypeParamDefinition,
 };
 
 use dora_parser::interner::Name;
@@ -258,7 +258,7 @@ impl<'a> MethodLookup<'a> {
         }
     }
 
-    fn find_ctor(&self, cls_id: ClassId) -> Option<FctId> {
+    fn find_ctor(&self, cls_id: ClassDefinitionId) -> Option<FctId> {
         let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
 

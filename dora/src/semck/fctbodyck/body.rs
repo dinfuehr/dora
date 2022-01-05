@@ -16,7 +16,7 @@ use crate::vm::{
     enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
     find_methods_in_enum, find_methods_in_struct, global_accessible_from, method_accessible_from,
     namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
-    CallType, ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType,
+    CallType, ClassDefinitionId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType,
     Intrinsic, NamespaceId, SemAnalysis, StructDefinition, StructId, TypeParam,
     TypeParamDefinition, TypeParamId, Var, VarId,
 };
@@ -2023,7 +2023,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         expected_ty: SourceType,
-        cls_id: ClassId,
+        cls_id: ClassDefinitionId,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {

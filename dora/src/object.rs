@@ -14,7 +14,7 @@ use crate::handle::{handle, Handle};
 use crate::mem;
 use crate::size::InstanceSize;
 use crate::ty::SourceType;
-use crate::vm::{ClassDef, ClassDefId, FieldId, VM};
+use crate::vm::{ClassInstance, ClassInstanceId, FieldId, VM};
 use crate::vtable::VTable;
 
 #[repr(C)]
@@ -303,7 +303,7 @@ impl Obj {
     }
 }
 
-fn visit_refs<F>(object: Address, cls: &ClassDef, range: Option<Region>, f: F)
+fn visit_refs<F>(object: Address, cls: &ClassInstance, range: Option<Region>, f: F)
 where
     F: FnMut(Slot),
 {
@@ -327,7 +327,7 @@ where
     }
 }
 
-fn visit_fixed_object<F>(object: Address, cls: &ClassDef, mut f: F)
+fn visit_fixed_object<F>(object: Address, cls: &ClassInstance, mut f: F)
 where
     F: FnMut(Slot),
 {
@@ -360,7 +360,7 @@ where
 
 fn visit_struct_array_refs<F>(
     object: Address,
-    cls: &ClassDef,
+    cls: &ClassInstance,
     element_size: usize,
     range: Option<Region>,
     mut f: F,
@@ -791,7 +791,7 @@ where
         }
     }
 
-    pub fn alloc(vm: &VM, len: usize, elem: T, clsid: ClassDefId) -> Ref<Array<T>> {
+    pub fn alloc(vm: &VM, len: usize, elem: T, clsid: ClassInstanceId) -> Ref<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
@@ -835,7 +835,7 @@ pub type Float64Array = Array<f64>;
 pub type ObjArray = Array<Ref<Obj>>;
 pub type StrArray = Array<Ref<Str>>;
 
-pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
+pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     let cls_def = vm.class_defs.idx(clsid);
 
     let size = match cls_def.size {
@@ -855,7 +855,7 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
     handle
 }
 
-pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: Ref<Obj>) {
+pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassInstanceId, fid: FieldId, value: Ref<Obj>) {
     let cls_def = vm.class_defs.idx(cls_id);
     let field = &cls_def.fields[fid.to_usize()];
     let slot = obj.address().offset(field.offset as usize);
@@ -866,7 +866,7 @@ pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value
     }
 }
 
-pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: i32) {
+pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassInstanceId, fid: FieldId, value: i32) {
     let cls_def = vm.class_defs.idx(cls_id);
     let field = &cls_def.fields[fid.to_usize()];
     let slot = obj.address().offset(field.offset as usize);

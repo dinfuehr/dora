@@ -13,8 +13,8 @@ use crate::gc::Address;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, AnalysisData, ClassId, ExtensionId, FileId, ImplId, ModuleId,
-    NamespaceId, TraitId, TypeParam, TypeParamId, VM,
+    accessible_from, namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, FileId, ImplId,
+    ModuleId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -149,14 +149,14 @@ impl Fct {
         }
     }
 
-    pub fn parent_cls_id(&self) -> Option<ClassId> {
+    pub fn parent_cls_id(&self) -> Option<ClassDefinitionId> {
         match self.parent {
             FctParent::Class(cls_id) => Some(cls_id),
             _ => None,
         }
     }
 
-    pub fn cls_id(&self) -> ClassId {
+    pub fn cls_id(&self) -> ClassDefinitionId {
         match self.parent {
             FctParent::Class(clsid) => clsid,
             _ => unreachable!(),
@@ -336,7 +336,7 @@ impl Fct {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FctParent {
-    Class(ClassId),
+    Class(ClassDefinitionId),
     Trait(TraitId),
     Module(ModuleId),
     Impl(ImplId),
@@ -359,7 +359,7 @@ impl FctParent {
         }
     }
 
-    pub fn cls_id(&self) -> ClassId {
+    pub fn cls_id(&self) -> ClassDefinitionId {
         match self {
             &FctParent::Class(id) => id,
             _ => unreachable!(),

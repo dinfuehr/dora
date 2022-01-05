@@ -5,7 +5,9 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis};
+use crate::vm::{
+    ClassDefinitionId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis,
+};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -33,7 +35,7 @@ pub fn check(sa: &SemAnalysis) {
 
 struct ClsDefCheck<'x> {
     sa: &'x SemAnalysis,
-    cls_id: ClassId,
+    cls_id: ClassDefinitionId,
     file_id: FileId,
     ast: &'x ast::Class,
     namespace_id: NamespaceId,

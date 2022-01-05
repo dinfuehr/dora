@@ -2,10 +2,10 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::semck::error::msg::SemError;
-use crate::vm::{Class, ClassId, FctId, SemAnalysis};
+use crate::vm::{ClassDefinition, ClassDefinitionId, FctId, SemAnalysis};
 
 pub fn check(sa: &SemAnalysis) {
-    let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
+    let mut abstract_methods: HashMap<ClassDefinitionId, Rc<Vec<FctId>>> = HashMap::new();
 
     for cls in sa.classes.iter() {
         let cls = cls.read();
@@ -31,9 +31,9 @@ pub fn check(sa: &SemAnalysis) {
 
 pub fn check_abstract(
     sa: &SemAnalysis,
-    cls: &Class,
-    super_cls: &Class,
-    abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
+    cls: &ClassDefinition,
+    super_cls: &ClassDefinition,
+    abstract_methods: &mut HashMap<ClassDefinitionId, Rc<Vec<FctId>>>,
 ) {
     assert!(!cls.is_abstract);
     assert!(super_cls.is_abstract);
@@ -71,8 +71,8 @@ pub fn check_abstract(
 
 fn find_abstract_methods(
     sa: &SemAnalysis,
-    cls: &Class,
-    abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
+    cls: &ClassDefinition,
+    abstract_methods: &mut HashMap<ClassDefinitionId, Rc<Vec<FctId>>>,
 ) -> Rc<Vec<FctId>> {
     assert!(cls.is_abstract);
 

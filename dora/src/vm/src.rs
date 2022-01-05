@@ -7,7 +7,7 @@ use dora_parser::interner::Name;
 
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId,
+    ClassDefinitionId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId,
     StructDefinitionFieldId, StructId, TraitId, TypeParamId,
 };
 
@@ -18,7 +18,7 @@ pub struct AnalysisData {
     pub map_tys: NodeMap<SourceType>,
     pub map_vars: NodeMap<VarId>,
     pub map_convs: NodeMap<ConvInfo>,
-    pub map_cls: NodeMap<ClassId>,
+    pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub vars: Vec<Var>, // variables in functions
 }
@@ -137,7 +137,7 @@ pub enum IdentType {
     Fct(FctId, SourceTypeArray),
 
     // name of class with type params: SomeClass[T1, T2, ...]
-    Class(ClassId, SourceTypeArray),
+    Class(ClassDefinitionId, SourceTypeArray),
 
     // specific value in enum
     EnumValue(EnumId, SourceTypeArray, usize),

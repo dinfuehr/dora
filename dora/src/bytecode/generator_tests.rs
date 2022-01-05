@@ -8,7 +8,7 @@ use crate::bytecode::{
 use crate::semck::test;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructDefinitionFieldId, StructId, TraitId,
+    ensure_tuple, ClassDefinitionId, EnumId, FieldId, GlobalId, StructDefinitionFieldId, StructId, TraitId,
     TupleId, TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
@@ -4214,7 +4214,7 @@ pub enum Bytecode {
     LoadTupleElement(Register, Register, TupleId, u32),
     LoadStructField(Register, Register, ConstPoolIdx),
 
-    LoadField(Register, Register, ClassId, SourceTypeArray, FieldId),
+    LoadField(Register, Register, ClassDefinitionId, SourceTypeArray, FieldId),
     StoreField(Register, Register, ConstPoolIdx),
 
     LoadGlobal(Register, GlobalId),
@@ -4311,8 +4311,8 @@ pub enum Bytecode {
     InvokeGenericDirectVoid(ConstPoolIdx),
     InvokeGenericDirect(Register, ConstPoolIdx),
 
-    NewObject(Register, ClassId, SourceTypeArray),
-    NewArray(Register, ClassId, SourceTypeArray, Register),
+    NewObject(Register, ClassDefinitionId, SourceTypeArray),
+    NewArray(Register, ClassDefinitionId, SourceTypeArray, Register),
     NewTuple(Register, TupleId),
     NewEnum(Register, EnumId, SourceTypeArray, usize),
     NewStruct(Register, StructId, SourceTypeArray),

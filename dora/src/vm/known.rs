@@ -2,7 +2,9 @@ use parking_lot::Mutex;
 
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::vm::{AnnotationId, ClassDefId, ClassId, EnumId, FctId, StructId, TraitId, VM};
+use crate::vm::{
+    AnnotationId, ClassDefinitionId, ClassInstanceId, EnumId, FctId, StructId, TraitId, VM,
+};
 
 #[derive(Debug)]
 pub struct KnownElements {
@@ -13,15 +15,15 @@ pub struct KnownElements {
     pub enums: KnownEnums,
     pub structs: KnownStructs,
 
-    pub byte_array_def: Mutex<Option<ClassDefId>>,
-    pub int_array_def: Mutex<Option<ClassDefId>>,
-    pub str_class_def: Mutex<Option<ClassDefId>>,
-    pub obj_class_def: Mutex<Option<ClassDefId>>,
-    pub ste_class_def: Mutex<Option<ClassDefId>>,
-    pub ex_class_def: Mutex<Option<ClassDefId>>,
+    pub byte_array_def: Mutex<Option<ClassInstanceId>>,
+    pub int_array_def: Mutex<Option<ClassInstanceId>>,
+    pub str_class_def: Mutex<Option<ClassInstanceId>>,
+    pub obj_class_def: Mutex<Option<ClassInstanceId>>,
+    pub ste_class_def: Mutex<Option<ClassInstanceId>>,
+    pub ex_class_def: Mutex<Option<ClassInstanceId>>,
 
-    pub free_object_class_def: ClassDefId,
-    pub free_array_class_def: ClassDefId,
+    pub free_object_class_def: ClassInstanceId,
+    pub free_array_class_def: ClassInstanceId,
 }
 
 #[derive(Debug)]
@@ -31,15 +33,15 @@ pub struct KnownEnums {
 
 #[derive(Debug)]
 pub struct KnownClasses {
-    pub atomic_int32: Option<ClassId>,
-    pub atomic_int64: Option<ClassId>,
-    pub object: Option<ClassId>,
-    pub array: Option<ClassId>,
-    pub string: Option<ClassId>,
-    pub string_buffer: Option<ClassId>,
-    pub testing: Option<ClassId>,
-    pub stacktrace: Option<ClassId>,
-    pub stacktrace_element: Option<ClassId>,
+    pub atomic_int32: Option<ClassDefinitionId>,
+    pub atomic_int64: Option<ClassDefinitionId>,
+    pub object: Option<ClassDefinitionId>,
+    pub array: Option<ClassDefinitionId>,
+    pub string: Option<ClassDefinitionId>,
+    pub string_buffer: Option<ClassDefinitionId>,
+    pub testing: Option<ClassDefinitionId>,
+    pub stacktrace: Option<ClassDefinitionId>,
+    pub stacktrace_element: Option<ClassDefinitionId>,
 }
 
 impl KnownClasses {
@@ -57,35 +59,35 @@ impl KnownClasses {
         }
     }
 
-    pub fn atomic_int32(&self) -> ClassId {
+    pub fn atomic_int32(&self) -> ClassDefinitionId {
         self.object.expect("uninitialized")
     }
 
-    pub fn object(&self) -> ClassId {
+    pub fn object(&self) -> ClassDefinitionId {
         self.object.expect("uninitialized")
     }
 
-    pub fn array(&self) -> ClassId {
+    pub fn array(&self) -> ClassDefinitionId {
         self.array.expect("uninitialized")
     }
 
-    pub fn string(&self) -> ClassId {
+    pub fn string(&self) -> ClassDefinitionId {
         self.string.expect("uninitialized")
     }
 
-    pub fn string_buffer(&self) -> ClassId {
+    pub fn string_buffer(&self) -> ClassDefinitionId {
         self.string_buffer.expect("uninitialized")
     }
 
-    pub fn testing(&self) -> ClassId {
+    pub fn testing(&self) -> ClassDefinitionId {
         self.testing.expect("uninitialized")
     }
 
-    pub fn stacktrace(&self) -> ClassId {
+    pub fn stacktrace(&self) -> ClassDefinitionId {
         self.stacktrace.expect("uninitialized")
     }
 
-    pub fn stacktrace_element(&self) -> ClassId {
+    pub fn stacktrace_element(&self) -> ClassDefinitionId {
         self.stacktrace_element.expect("uninitialized")
     }
 }
@@ -140,7 +142,7 @@ impl KnownElements {
         SourceType::Class(self.classes.array(), list_id)
     }
 
-    pub fn byte_array(&self, vm: &VM) -> ClassDefId {
+    pub fn byte_array(&self, vm: &VM) -> ClassInstanceId {
         let mut byte_array_def = self.byte_array_def.lock();
 
         if let Some(cls_id) = *byte_array_def {
@@ -153,7 +155,7 @@ impl KnownElements {
         }
     }
 
-    pub fn int_array(&self, vm: &VM) -> ClassDefId {
+    pub fn int_array(&self, vm: &VM) -> ClassInstanceId {
         let mut int_array_def = self.int_array_def.lock();
 
         if let Some(cls_id) = *int_array_def {
@@ -166,7 +168,7 @@ impl KnownElements {
         }
     }
 
-    pub fn str(&self, vm: &VM) -> ClassDefId {
+    pub fn str(&self, vm: &VM) -> ClassInstanceId {
         let mut str_class_def = self.str_class_def.lock();
 
         if let Some(cls_id) = *str_class_def {
@@ -178,7 +180,7 @@ impl KnownElements {
         }
     }
 
-    pub fn obj(&self, vm: &VM) -> ClassDefId {
+    pub fn obj(&self, vm: &VM) -> ClassInstanceId {
         let mut obj_class_def = self.obj_class_def.lock();
 
         if let Some(cls_id) = *obj_class_def {
@@ -190,7 +192,7 @@ impl KnownElements {
         }
     }
 
-    pub fn stack_trace_element(&self, vm: &VM) -> ClassDefId {
+    pub fn stack_trace_element(&self, vm: &VM) -> ClassInstanceId {
         let mut ste_class_def = self.ste_class_def.lock();
 
         if let Some(cls_id) = *ste_class_def {

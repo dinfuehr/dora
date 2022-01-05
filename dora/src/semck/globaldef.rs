@@ -10,7 +10,7 @@ use crate::semck::report_sym_shadow;
 use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
-    self, AnnotationId, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
+    self, AnnotationId, ClassDefinitionId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
     ExtensionId, Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData,
     Module, ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructId,
     TraitData, TraitId, TypeParam, TypeParamDefinition,
@@ -412,8 +412,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id = {
             let mut classes = self.sa.classes.lock();
 
-            let id: ClassId = classes.len().into();
-            let cls = vm::Class::new(&self.sa, id, self.file_id, node, self.namespace_id);
+            let id: ClassDefinitionId = classes.len().into();
+            let cls = vm::ClassDefinition::new(&self.sa, id, self.file_id, node, self.namespace_id);
 
             classes.push(Arc::new(RwLock::new(cls)));
 
