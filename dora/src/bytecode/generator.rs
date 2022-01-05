@@ -11,8 +11,8 @@ use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
-    AnalysisData, CallType, ConstId, EnumId, FctDefinition, FctDefinitionId, GlobalDefinitionId,
-    IdentType, Intrinsic, SemAnalysis, StructId, TupleId, VarId,
+    AnalysisData, CallType, ConstDefinitionId, EnumId, FctDefinition, FctDefinitionId,
+    GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis, StructId, TupleId, VarId,
 };
 
 pub struct LoopLabels {
@@ -2604,7 +2604,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_ident_const(&mut self, const_id: ConstId, dest: DataDest) -> Register {
+    fn visit_expr_ident_const(&mut self, const_id: ConstDefinitionId, dest: DataDest) -> Register {
         if dest.is_effect() {
             return Register::invalid();
         }

@@ -10,10 +10,11 @@ use crate::semck::report_sym_shadow;
 use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
-    self, AnnotationId, ClassDefinitionId, ConstData, ConstId, ConstValue, EnumData, EnumId,
-    ExtensionData, ExtensionId, FctDefinition, FctParent, FileId, GlobalDefinition,
-    GlobalDefinitionId, ImplData, ImplId, ImportData, Module, ModuleId, NamespaceData, NamespaceId,
-    SemAnalysis, StructDefinition, StructId, TraitData, TraitId, TypeParam, TypeParamDefinition,
+    self, AnnotationId, ClassDefinitionId, ConstDefinition, ConstDefinitionId, ConstValue,
+    EnumData, EnumId, ExtensionData, ExtensionId, FctDefinition, FctParent, FileId,
+    GlobalDefinition, GlobalDefinitionId, ImplData, ImplId, ImportData, Module, ModuleId,
+    NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructId, TraitData, TraitId,
+    TypeParam, TypeParamDefinition,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -383,8 +384,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
         let id = {
             let mut consts = self.sa.consts.lock();
-            let id: ConstId = consts.len().into();
-            let xconst = ConstData {
+            let id: ConstDefinitionId = consts.len().into();
+            let xconst = ConstDefinition {
                 id,
                 file_id: self.file_id,
                 ast: node.clone(),

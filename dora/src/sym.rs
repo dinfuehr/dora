@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ConstId, EnumId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    ModuleId, NamespaceId, StructId, TraitId, TypeParamId, VarId, VM,
+    AnnotationId, ClassDefinitionId, ConstDefinitionId, EnumId, FctDefinitionId, FieldId,
+    GlobalDefinitionId, ModuleId, NamespaceId, StructId, TraitId, TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
@@ -70,7 +70,7 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_class())
     }
 
-    pub fn get_const(&self, name: Name) -> Option<ConstId> {
+    pub fn get_const(&self, name: Name) -> Option<ConstDefinitionId> {
         self.get(name).and_then(|n| n.to_const())
     }
 
@@ -136,7 +136,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_fct())
     }
 
-    pub fn get_const(&self, name: Name) -> Option<ConstId> {
+    pub fn get_const(&self, name: Name) -> Option<ConstDefinitionId> {
         self.get(name).and_then(|n| n.to_const())
     }
 
@@ -178,7 +178,7 @@ pub enum Sym {
     Module(ModuleId),
     Annotation(AnnotationId),
     Global(GlobalDefinitionId),
-    Const(ConstId),
+    Const(ConstDefinitionId),
     Namespace(NamespaceId),
     EnumValue(EnumId, usize),
 }
@@ -282,7 +282,7 @@ impl Sym {
         }
     }
 
-    pub fn to_const(&self) -> Option<ConstId> {
+    pub fn to_const(&self) -> Option<ConstDefinitionId> {
         match *self {
             Const(id) => Some(id),
             _ => None,

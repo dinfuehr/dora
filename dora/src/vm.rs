@@ -37,7 +37,7 @@ pub use self::classes::{
     ClassInstance, ClassInstanceId, Field, FieldDef, FieldId, TypeParam, TypeParamDefinition,
     TypeParamId,
 };
-pub use self::consts::{const_accessible_from, ConstData, ConstId, ConstValue};
+pub use self::consts::{const_accessible_from, ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{
     enum_accessible_from, find_methods_in_enum, EnumData, EnumDef, EnumDefId, EnumId, EnumLayout,
     EnumVariant,
@@ -127,26 +127,26 @@ pub struct FullSemAnalysis {
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub package: Package,
-    pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
+    pub consts: GrowableVec<RwLock<ConstDefinition>>, // stores all const definitions
     pub structs: GrowableVec<RwLock<StructDefinition>>, // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
+    pub struct_defs: GrowableVec<StructInstance>,     // stores all struct definitions
     pub classes: GrowableVec<RwLock<ClassDefinition>>, // stores all class source definitions
-    pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
-    pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
-    pub tuples: Mutex<Tuples>,                  // stores all tuple definitions
-    pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
-    pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
+    pub class_defs: GrowableVec<ClassInstance>,       // stores all class definitions
+    pub extensions: Vec<RwLock<ExtensionData>>,       // stores all extension definitions
+    pub tuples: Mutex<Tuples>,                        // stores all tuple definitions
+    pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
+    pub module_defs: GrowableVec<RwLock<ModuleDef>>,  // stores all module definitions
     pub annotations: GrowableVec<RwLock<Annotation>>, // stores all annotation source definitions
-    pub namespaces: Vec<NamespaceData>,         // storer all namespace definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub jit_fcts: GrowableVec<JitFct>,          // stores all function implementations
-    pub enums: Vec<RwLock<EnumData>>,           // store all enum source definitions
-    pub enum_defs: GrowableVec<EnumDef>,        // stores all enum definitions
-    pub traits: Vec<RwLock<TraitData>>,         // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,           // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,               // stores all compiled functions
+    pub namespaces: Vec<NamespaceData>,               // storer all namespace definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>,     // stores all function source definitions
+    pub jit_fcts: GrowableVec<JitFct>,                // stores all function implementations
+    pub enums: Vec<RwLock<EnumData>>,                 // store all enum source definitions
+    pub enum_defs: GrowableVec<EnumDef>,              // stores all enum definitions
+    pub traits: Vec<RwLock<TraitData>>,               // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,                 // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,                     // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
-    pub imports: Vec<ImportData>,               // stores all imports
+    pub imports: Vec<ImportData>,                     // stores all imports
     pub native_stubs: Mutex<NativeStubs>,
     pub source_type_arrays: Mutex<SourceTypeArrays>,
     pub lambda_types: Mutex<LambdaTypes>,
@@ -308,27 +308,27 @@ pub struct VM {
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub package: Package,
-    pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
+    pub consts: GrowableVec<RwLock<ConstDefinition>>, // stores all const definitions
     pub structs: GrowableVec<RwLock<StructDefinition>>, // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
+    pub struct_defs: GrowableVec<StructInstance>,     // stores all struct definitions
     pub classes: GrowableVec<RwLock<ClassDefinition>>, // stores all class source definitions
-    pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
-    pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
-    pub tuples: Mutex<Tuples>,                  // stores all tuple definitions
-    pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
-    pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
+    pub class_defs: GrowableVec<ClassInstance>,       // stores all class definitions
+    pub extensions: Vec<RwLock<ExtensionData>>,       // stores all extension definitions
+    pub tuples: Mutex<Tuples>,                        // stores all tuple definitions
+    pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
+    pub module_defs: GrowableVec<RwLock<ModuleDef>>,  // stores all module definitions
     pub annotations: GrowableVec<RwLock<Annotation>>, // stores all annotation source definitions
-    pub namespaces: Vec<NamespaceData>,         // storer all namespace definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub jit_fcts: GrowableVec<JitFct>,          // stores all function implementations
-    pub enums: Vec<RwLock<EnumData>>,           // store all enum source definitions
-    pub enum_defs: GrowableVec<EnumDef>,        // stores all enum definitions
-    pub traits: Vec<RwLock<TraitData>>,         // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,           // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,               // stores all compiled functions
+    pub namespaces: Vec<NamespaceData>,               // storer all namespace definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>,     // stores all function source definitions
+    pub jit_fcts: GrowableVec<JitFct>,                // stores all function implementations
+    pub enums: Vec<RwLock<EnumData>>,                 // store all enum source definitions
+    pub enum_defs: GrowableVec<EnumDef>,              // stores all enum definitions
+    pub traits: Vec<RwLock<TraitData>>,               // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,                 // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,                     // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
-    pub imports: Vec<ImportData>,               // stores all imports
-    pub gc: Gc,                                 // garbage collector
+    pub imports: Vec<ImportData>,                     // stores all imports
+    pub gc: Gc,                                       // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub source_type_arrays: Mutex<SourceTypeArrays>,
     pub lambda_types: Mutex<LambdaTypes>,
@@ -634,7 +634,7 @@ impl VM {
     }
 
     #[cfg(test)]
-    pub fn const_by_name(&self, name: &'static str) -> ConstId {
+    pub fn const_by_name(&self, name: &'static str) -> ConstDefinitionId {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id)
             .get_const(name)

@@ -1,7 +1,7 @@
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{ConstId, FileId, NamespaceId, SemAnalysis};
+use crate::vm::{ConstDefinitionId, FileId, NamespaceId, SemAnalysis};
 
 use dora_parser::ast;
 
@@ -32,7 +32,7 @@ pub fn check(sa: &SemAnalysis) {
 
 struct ConstCheck<'x> {
     sa: &'x SemAnalysis,
-    const_id: ConstId,
+    const_id: ConstDefinitionId,
     file_id: FileId,
     ast: &'x ast::Const,
     namespace_id: NamespaceId,

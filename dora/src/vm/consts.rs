@@ -10,23 +10,23 @@ use crate::utils::GrowableVec;
 use crate::vm::{accessible_from, namespace_path, FileId, NamespaceId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ConstId(usize);
+pub struct ConstDefinitionId(usize);
 
-impl From<usize> for ConstId {
-    fn from(data: usize) -> ConstId {
-        ConstId(data)
+impl From<usize> for ConstDefinitionId {
+    fn from(data: usize) -> ConstDefinitionId {
+        ConstDefinitionId(data)
     }
 }
 
-impl GrowableVec<RwLock<ConstData>> {
-    pub fn idx(&self, index: ConstId) -> Arc<RwLock<ConstData>> {
+impl GrowableVec<RwLock<ConstDefinition>> {
+    pub fn idx(&self, index: ConstDefinitionId) -> Arc<RwLock<ConstDefinition>> {
         self.idx_usize(index.0 as usize)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct ConstData {
-    pub id: ConstId,
+pub struct ConstDefinition {
+    pub id: ConstDefinitionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Const>,
     pub namespace_id: NamespaceId,
@@ -38,7 +38,7 @@ pub struct ConstData {
     pub value: ConstValue,
 }
 
-impl ConstData {
+impl ConstDefinition {
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }
@@ -83,7 +83,11 @@ impl ConstValue {
     }
 }
 
-pub fn const_accessible_from(vm: &VM, const_id: ConstId, namespace_id: NamespaceId) -> bool {
+pub fn const_accessible_from(
+    vm: &VM,
+    const_id: ConstDefinitionId,
+    namespace_id: NamespaceId,
+) -> bool {
     let xconst = vm.consts.idx(const_id);
     let xconst = xconst.read();
 

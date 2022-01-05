@@ -1,14 +1,14 @@
 use crate::semck::error::msg::SemError;
 use crate::semck::fctbodyck::body::{check_lit_float, check_lit_int};
 use crate::ty::SourceType;
-use crate::vm::{ConstData, ConstValue, SemAnalysis};
+use crate::vm::{ConstDefinition, ConstValue, SemAnalysis};
 
 use dora_parser::ast::*;
 use dora_parser::lexer::token::IntSuffix;
 
 pub struct ConstCheck<'a> {
     pub sa: &'a SemAnalysis,
-    pub xconst: &'a ConstData,
+    pub xconst: &'a ConstDefinition,
     pub negative_expr_id: NodeId,
 }
 
