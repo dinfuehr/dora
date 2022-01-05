@@ -41,77 +41,77 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check(vm: &mut VM) -> bool {
+pub fn check(sa: &mut VM) -> bool {
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
-    if let Err(_) = globaldef::check(vm) {
+    if let Err(_) = globaldef::check(sa) {
         return false;
     }
-    return_on_error!(vm);
+    return_on_error!(sa);
 
     // add internal annotations early
-    stdlib::resolve_internal_annotations(vm);
+    stdlib::resolve_internal_annotations(sa);
 
     // define internal classes
-    stdlib::resolve_internal_classes(vm);
+    stdlib::resolve_internal_classes(sa);
 
     // discover all enum variants
-    enumck::check_variants(vm);
+    enumck::check_variants(sa);
 
     // fill prelude with important types and functions
-    stdlib::fill_prelude(vm);
+    stdlib::fill_prelude(sa);
 
     // discover all types
-    importck::check(vm);
-    return_on_error!(vm);
+    importck::check(sa);
+    return_on_error!(sa);
 
     // find all trait implementations for classes
-    impldefck::check(vm);
+    impldefck::check(sa);
 
     // checks class/struct/trait definitions/bodies
-    clsdefck::check(vm);
-    moduledefck::check(vm);
-    structdefck::check(vm);
-    traitdefck::check(vm);
-    globaldefck::check(vm);
-    constdefck::check(vm);
-    enumck::check(vm);
-    extensiondefck::check(vm);
-    return_on_error!(vm);
+    clsdefck::check(sa);
+    moduledefck::check(sa);
+    structdefck::check(sa);
+    traitdefck::check(sa);
+    globaldefck::check(sa);
+    constdefck::check(sa);
+    enumck::check(sa);
+    extensiondefck::check(sa);
+    return_on_error!(sa);
 
     // check super class definition of classes
-    clsdefck::check_super_definition(vm);
-    return_on_error!(vm);
+    clsdefck::check_super_definition(sa);
+    return_on_error!(sa);
 
     // check type definitions of params and return types in functions
-    fctdefck::check(vm);
-    return_on_error!(vm);
+    fctdefck::check(sa);
+    return_on_error!(sa);
 
-    superck::check_override(vm);
-    return_on_error!(vm);
+    superck::check_override(sa);
+    return_on_error!(sa);
 
     // check impl methods against trait definition
-    implck::check(vm);
-    return_on_error!(vm);
+    implck::check(sa);
+    return_on_error!(sa);
 
     // define internal functions & methods
-    stdlib::resolve_internal_functions(vm);
-    stdlib::discover_known_methods(vm);
+    stdlib::resolve_internal_functions(sa);
+    stdlib::discover_known_methods(sa);
 
     // check for internal functions or classes
-    internalck(vm);
-    return_on_error!(vm);
+    internalck(sa);
+    return_on_error!(sa);
 
     // add size of super classes to field offsets
-    superck::check(vm);
-    return_on_error!(vm);
+    superck::check(sa);
+    return_on_error!(sa);
 
-    abstractck::check(vm);
-    return_on_error!(vm);
+    abstractck::check(sa);
+    return_on_error!(sa);
 
     // check function body
-    fctbodyck::check(vm);
-    return_on_error!(vm);
+    fctbodyck::check(sa);
+    return_on_error!(sa);
     true
 }
 

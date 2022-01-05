@@ -113,6 +113,166 @@ pub struct File {
     pub ast: Arc<ast::File>,
 }
 
+pub struct SemAnalysis {
+    pub args: Args,
+    pub interner: Interner,
+    pub id_generator: NodeIdGenerator,
+    pub files: Arc<RwLock<Vec<File>>>,
+    pub diag: Mutex<Diagnostic>,
+    pub known: KnownElements,
+    pub package: Package,
+    pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
+    pub structs: GrowableVec<RwLock<StructData>>, // stores all struct source definitions
+    pub struct_defs: GrowableVec<StructDef>,    // stores all struct definitions
+    pub classes: GrowableVec<RwLock<Class>>,    // stores all class source definitions
+    pub class_defs: GrowableVec<ClassDef>,      // stores all class definitions
+    pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
+    pub tuples: Mutex<Tuples>,                  // stores all tuple definitions
+    pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
+    pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
+    pub annotations: GrowableVec<RwLock<Annotation>>, // stores all annotation source definitions
+    pub namespaces: Vec<NamespaceData>,         // storer all namespace definitions
+    pub fcts: GrowableVec<RwLock<Fct>>,         // stores all function source definitions
+    pub jit_fcts: GrowableVec<JitFct>,          // stores all function implementations
+    pub enums: Vec<RwLock<EnumData>>,           // store all enum source definitions
+    pub enum_defs: GrowableVec<EnumDef>,        // stores all enum definitions
+    pub traits: Vec<RwLock<TraitData>>,         // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,           // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,               // stores all compiled functions
+    pub globals: GrowableVec<RwLock<GlobalData>>, // stores all global variables
+    pub imports: Vec<ImportData>,               // stores all imports
+    pub native_stubs: Mutex<NativeStubs>,
+    pub source_type_arrays: Mutex<SourceTypeArrays>,
+    pub lambda_types: Mutex<LambdaTypes>,
+    pub parse_arg_file: bool,
+    pub prelude_namespace_id: NamespaceId,
+    pub stdlib_namespace_id: NamespaceId,
+    pub global_namespace_id: NamespaceId,
+    pub boots_namespace_id: NamespaceId,
+}
+
+impl SemAnalysis {
+    pub fn new(args: Args) -> Box<SemAnalysis> {
+        let empty_class_def_id: ClassDefId = 0.into();
+        let empty_trait_id: TraitId = 0.into();
+        let empty_fct_id: FctId = 0.into();
+        let empty_enum_id: EnumId = 0.into();
+        let empty_struct_id = 0.into();
+        let empty_annotation_id: AnnotationId = 0.into();
+
+        let prelude_namespace_id = NamespaceId(0);
+        let stdlib_namespace_id = NamespaceId(1);
+        let global_namespace_id = NamespaceId(2);
+        let boots_namespace_id = NamespaceId(3);
+
+        let interner = Interner::new();
+        let stdlib_name = interner.intern("std");
+        let boots_name = interner.intern("boots");
+
+        let namespaces = vec![
+            NamespaceData::predefined(prelude_namespace_id, None),
+            NamespaceData::predefined(stdlib_namespace_id, Some(stdlib_name)),
+            NamespaceData::predefined(global_namespace_id, None),
+            NamespaceData::predefined(boots_namespace_id, Some(boots_name)),
+        ];
+
+        let sa = Box::new(SemAnalysis {
+            args,
+            package: Package,
+            files: Arc::new(RwLock::new(Vec::new())),
+            consts: GrowableVec::new(),
+            structs: GrowableVec::new(),
+            struct_defs: GrowableVec::new(),
+            classes: GrowableVec::new(),
+            class_defs: GrowableVec::new(),
+            extensions: Vec::new(),
+            tuples: Mutex::new(Tuples::new()),
+            modules: GrowableVec::new(),
+            module_defs: GrowableVec::new(),
+            annotations: GrowableVec::new(),
+            namespaces,
+            enums: Vec::new(),
+            enum_defs: GrowableVec::new(),
+            traits: Vec::new(),
+            impls: Vec::new(),
+            globals: GrowableVec::new(),
+            imports: Vec::new(),
+            interner,
+            known: KnownElements {
+                classes: KnownClasses::new(),
+
+                functions: KnownFunctions {
+                    string_buffer_empty: empty_fct_id,
+                    string_buffer_append: empty_fct_id,
+                    string_buffer_to_string: empty_fct_id,
+                },
+
+                traits: KnownTraits {
+                    equals: empty_trait_id,
+                    comparable: empty_trait_id,
+                    stringable: empty_trait_id,
+                    iterator: empty_trait_id,
+                    zero: empty_trait_id,
+                },
+
+                enums: KnownEnums {
+                    option: empty_enum_id,
+                },
+
+                annotations: KnownAnnotations {
+                    abstract_: empty_annotation_id,
+                    final_: empty_annotation_id,
+                    internal: empty_annotation_id,
+                    override_: empty_annotation_id,
+                    open: empty_annotation_id,
+                    pub_: empty_annotation_id,
+                    static_: empty_annotation_id,
+
+                    test: empty_annotation_id,
+
+                    cannon: empty_annotation_id,
+                    optimize_immediately: empty_annotation_id,
+                },
+
+                structs: KnownStructs {
+                    bool: empty_struct_id,
+                    uint8: empty_struct_id,
+                    char: empty_struct_id,
+                    int32: empty_struct_id,
+                    int64: empty_struct_id,
+                    float32: empty_struct_id,
+                    float64: empty_struct_id,
+                },
+
+                byte_array_def: Mutex::new(None),
+                int_array_def: Mutex::new(None),
+                str_class_def: Mutex::new(None),
+                obj_class_def: Mutex::new(None),
+                ste_class_def: Mutex::new(None),
+                ex_class_def: Mutex::new(None),
+
+                free_object_class_def: empty_class_def_id,
+                free_array_class_def: empty_class_def_id,
+            },
+            id_generator: NodeIdGenerator::new(),
+            diag: Mutex::new(Diagnostic::new()),
+            fcts: GrowableVec::new(),
+            jit_fcts: GrowableVec::new(),
+            code_map: Mutex::new(CodeMap::new()),
+            source_type_arrays: Mutex::new(SourceTypeArrays::new()),
+            lambda_types: Mutex::new(LambdaTypes::new()),
+            native_stubs: Mutex::new(NativeStubs::new()),
+            parse_arg_file: true,
+            prelude_namespace_id,
+            stdlib_namespace_id,
+            global_namespace_id,
+            boots_namespace_id,
+        });
+
+        sa
+    }
+}
+
 pub struct VM {
     pub args: Args,
     pub interner: Interner,
@@ -283,6 +443,60 @@ impl VM {
             stdlib_namespace_id,
             global_namespace_id,
             boots_namespace_id,
+            wait_lists: WaitLists::new(),
+        });
+
+        set_vm(&vm);
+
+        vm
+    }
+
+    pub fn new_from_sa(sa: Box<SemAnalysis>) -> Box<VM> {
+        let gc = Gc::new(&sa.args);
+
+        let vm = Box::new(VM {
+            args: sa.args,
+            package: sa.package,
+            files: sa.files,
+            consts: sa.consts,
+            structs: sa.structs,
+            struct_defs: sa.struct_defs,
+            classes: sa.classes,
+            class_defs: sa.class_defs,
+            extensions: sa.extensions,
+            tuples: sa.tuples,
+            modules: sa.modules,
+            module_defs: sa.module_defs,
+            annotations: sa.annotations,
+            namespaces: sa.namespaces,
+            enums: sa.enums,
+            enum_defs: sa.enum_defs,
+            traits: sa.traits,
+            impls: sa.impls,
+            globals: sa.globals,
+            imports: sa.imports,
+            interner: sa.interner,
+            known: sa.known,
+            gc,
+            id_generator: sa.id_generator,
+            diag: sa.diag,
+            fcts: sa.fcts,
+            jit_fcts: sa.jit_fcts,
+            code_map: sa.code_map,
+            source_type_arrays: sa.source_type_arrays,
+            lambda_types: sa.lambda_types,
+            native_stubs: sa.native_stubs,
+            compile_stub: Mutex::new(Address::null()),
+            dora_stub: Mutex::new(Address::null()),
+            trap_stub: Mutex::new(Address::null()),
+            stack_overflow_stub: Mutex::new(Address::null()),
+            safepoint_stub: Mutex::new(Address::null()),
+            threads: Threads::new(),
+            parse_arg_file: sa.parse_arg_file,
+            prelude_namespace_id: sa.prelude_namespace_id,
+            stdlib_namespace_id: sa.stdlib_namespace_id,
+            global_namespace_id: sa.global_namespace_id,
+            boots_namespace_id: sa.boots_namespace_id,
             wait_lists: WaitLists::new(),
         });
 
