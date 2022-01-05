@@ -43,8 +43,12 @@ pub use self::enums::{
     EnumVariant,
 };
 pub use self::extensions::{extension_matches, extension_matches_ty, ExtensionData, ExtensionId};
-pub use self::functions::{fct_accessible_from, FctDefinition, FctDefinitionId, FctParent, Intrinsic};
-pub use self::globals::{global_accessible_from, init_global_addresses, GlobalData, GlobalId};
+pub use self::functions::{
+    fct_accessible_from, FctDefinition, FctDefinitionId, FctParent, Intrinsic,
+};
+pub use self::globals::{
+    global_accessible_from, init_global_addresses, GlobalDefinition, GlobalDefinitionId,
+};
 pub use self::impls::{find_trait_impl, impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
 pub use self::known::{
@@ -141,7 +145,7 @@ pub struct FullSemAnalysis {
     pub traits: Vec<RwLock<TraitData>>,         // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,           // stores all impl definitions
     pub code_map: Mutex<CodeMap>,               // stores all compiled functions
-    pub globals: GrowableVec<RwLock<GlobalData>>, // stores all global variables
+    pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
     pub imports: Vec<ImportData>,               // stores all imports
     pub native_stubs: Mutex<NativeStubs>,
     pub source_type_arrays: Mutex<SourceTypeArrays>,
@@ -322,7 +326,7 @@ pub struct VM {
     pub traits: Vec<RwLock<TraitData>>,         // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,           // stores all impl definitions
     pub code_map: Mutex<CodeMap>,               // stores all compiled functions
-    pub globals: GrowableVec<RwLock<GlobalData>>, // stores all global variables
+    pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
     pub imports: Vec<ImportData>,               // stores all imports
     pub gc: Gc,                                 // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
@@ -811,7 +815,7 @@ impl VM {
     }
 
     #[cfg(test)]
-    pub fn global_by_name(&self, name: &str) -> GlobalId {
+    pub fn global_by_name(&self, name: &str) -> GlobalDefinitionId {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id)
             .get_global(name)

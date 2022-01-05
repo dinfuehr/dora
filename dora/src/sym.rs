@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ConstId, EnumId, FctDefinitionId, FieldId, GlobalId, ModuleId,
-    NamespaceId, StructId, TraitId, TypeParamId, VarId, VM,
+    AnnotationId, ClassDefinitionId, ConstId, EnumId, FctDefinitionId, FieldId, GlobalDefinitionId,
+    ModuleId, NamespaceId, StructId, TraitId, TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
@@ -94,7 +94,7 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_enum())
     }
 
-    pub fn get_global(&self, name: Name) -> Option<GlobalId> {
+    pub fn get_global(&self, name: Name) -> Option<GlobalDefinitionId> {
         self.get(name).and_then(|n| n.to_global())
     }
 
@@ -160,7 +160,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_enum())
     }
 
-    pub fn get_global(&self, name: Name) -> Option<GlobalId> {
+    pub fn get_global(&self, name: Name) -> Option<GlobalDefinitionId> {
         self.get(name).and_then(|n| n.to_global())
     }
 }
@@ -177,7 +177,7 @@ pub enum Sym {
     Var(VarId),
     Module(ModuleId),
     Annotation(AnnotationId),
-    Global(GlobalId),
+    Global(GlobalDefinitionId),
     Const(ConstId),
     Namespace(NamespaceId),
     EnumValue(EnumId, usize),
@@ -296,7 +296,7 @@ impl Sym {
         }
     }
 
-    pub fn to_global(&self) -> Option<GlobalId> {
+    pub fn to_global(&self) -> Option<GlobalDefinitionId> {
         match *self {
             Global(id) => Some(id),
             _ => None,

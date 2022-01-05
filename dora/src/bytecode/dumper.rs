@@ -4,7 +4,7 @@ use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::ty::SourceType;
-use crate::vm::{FctDefinition, GlobalId, TupleId, VM};
+use crate::vm::{FctDefinition, GlobalDefinitionId, TupleId, VM};
 
 pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
@@ -457,7 +457,7 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_global(&mut self, name: &str, r1: Register, gid: GlobalId) {
+    fn emit_global(&mut self, name: &str, r1: Register, gid: GlobalDefinitionId) {
         self.emit_start(name);
         let glob = self.vm.globals.idx(gid);
         let glob = glob.read();
@@ -825,11 +825,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_field("StoreField", src, obj, field_idx);
     }
 
-    fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {
+    fn visit_load_global(&mut self, dest: Register, glob: GlobalDefinitionId) {
         self.emit_global("LoadGlobal", dest, glob);
     }
 
-    fn visit_store_global(&mut self, src: Register, glob: GlobalId) {
+    fn visit_store_global(&mut self, src: Register, glob: GlobalDefinitionId) {
         self.emit_global("StoreGlobal", src, glob);
     }
 

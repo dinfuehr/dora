@@ -12,23 +12,23 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct GlobalId(u32);
+pub struct GlobalDefinitionId(u32);
 
-impl GlobalId {
+impl GlobalDefinitionId {
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
 
-impl From<u32> for GlobalId {
-    fn from(data: u32) -> GlobalId {
-        GlobalId(data)
+impl From<u32> for GlobalDefinitionId {
+    fn from(data: u32) -> GlobalDefinitionId {
+        GlobalDefinitionId(data)
     }
 }
 
 #[derive(Debug)]
-pub struct GlobalData {
-    pub id: GlobalId,
+pub struct GlobalDefinition {
+    pub id: GlobalDefinitionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Global>,
     pub pos: Position,
@@ -42,7 +42,7 @@ pub struct GlobalData {
     pub address_value: Address,
 }
 
-impl GlobalData {
+impl GlobalDefinition {
     pub fn needs_initialization(&self) -> bool {
         self.initializer.is_some() && !self.is_initialized()
     }
@@ -56,8 +56,8 @@ impl GlobalData {
     }
 }
 
-impl GrowableVec<RwLock<GlobalData>> {
-    pub fn idx(&self, index: GlobalId) -> Arc<RwLock<GlobalData>> {
+impl GrowableVec<RwLock<GlobalDefinition>> {
+    pub fn idx(&self, index: GlobalDefinitionId) -> Arc<RwLock<GlobalDefinition>> {
         self.idx_usize(index.0 as usize)
     }
 }
@@ -92,7 +92,11 @@ pub fn init_global_addresses(vm: &VM) {
     }
 }
 
-pub fn global_accessible_from(vm: &VM, global_id: GlobalId, namespace_id: NamespaceId) -> bool {
+pub fn global_accessible_from(
+    vm: &VM,
+    global_id: GlobalDefinitionId,
+    namespace_id: NamespaceId,
+) -> bool {
     let global = vm.globals.idx(global_id);
     let global = global.read();
 

@@ -8,8 +8,8 @@ use crate::bytecode::{
 use crate::semck::test;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ensure_tuple, ClassDefinitionId, EnumId, FieldId, GlobalId, StructDefinitionFieldId, StructId, TraitId,
-    TupleId, TypeParamId, VM,
+    ensure_tuple, ClassDefinitionId, EnumId, FieldId, GlobalDefinitionId, StructDefinitionFieldId,
+    StructId, TraitId, TupleId, TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -4214,11 +4214,17 @@ pub enum Bytecode {
     LoadTupleElement(Register, Register, TupleId, u32),
     LoadStructField(Register, Register, ConstPoolIdx),
 
-    LoadField(Register, Register, ClassDefinitionId, SourceTypeArray, FieldId),
+    LoadField(
+        Register,
+        Register,
+        ClassDefinitionId,
+        SourceTypeArray,
+        FieldId,
+    ),
     StoreField(Register, Register, ConstPoolIdx),
 
-    LoadGlobal(Register, GlobalId),
-    StoreGlobal(Register, GlobalId),
+    LoadGlobal(Register, GlobalDefinitionId),
+    StoreGlobal(Register, GlobalDefinitionId),
 
     PushRegister(Register),
 
@@ -4619,11 +4625,11 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::StoreField(src, obj, field));
     }
 
-    fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {
+    fn visit_load_global(&mut self, dest: Register, glob: GlobalDefinitionId) {
         self.emit(Bytecode::LoadGlobal(dest, glob));
     }
 
-    fn visit_store_global(&mut self, src: Register, glob: GlobalId) {
+    fn visit_store_global(&mut self, src: Register, glob: GlobalDefinitionId) {
         self.emit(Bytecode::StoreGlobal(src, glob));
     }
 

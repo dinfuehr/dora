@@ -11,8 +11,8 @@ use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
-    AnalysisData, CallType, ConstId, EnumId, FctDefinition, FctDefinitionId, GlobalId, IdentType,
-    Intrinsic, SemAnalysis, StructId, TupleId, VarId,
+    AnalysisData, CallType, ConstId, EnumId, FctDefinition, FctDefinitionId, GlobalDefinitionId,
+    IdentType, Intrinsic, SemAnalysis, StructId, TupleId, VarId,
 };
 
 pub struct LoopLabels {
@@ -2564,7 +2564,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.visit_expr(&expr.rhs, dest);
     }
 
-    fn visit_expr_assign_global(&mut self, expr: &ExprBinType, gid: GlobalId) {
+    fn visit_expr_assign_global(&mut self, expr: &ExprBinType, gid: GlobalDefinitionId) {
         let glob = self.sa.globals.idx(gid);
         let glob = glob.read();
 
@@ -2657,7 +2657,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_ident_global(&mut self, gid: GlobalId, dest: DataDest) -> Register {
+    fn visit_expr_ident_global(&mut self, gid: GlobalDefinitionId, dest: DataDest) -> Register {
         if dest.is_effect() {
             return Register::invalid();
         }

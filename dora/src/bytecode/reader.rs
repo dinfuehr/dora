@@ -1,7 +1,7 @@
 use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
 };
-use crate::vm::{GlobalId, TupleId};
+use crate::vm::{GlobalDefinitionId, TupleId};
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeReader::new(data, visitor).read();
@@ -916,7 +916,7 @@ where
         self.read_index(index, width).into()
     }
 
-    fn read_global(&mut self, index: usize, width: OperandWidth) -> GlobalId {
+    fn read_global(&mut self, index: usize, width: OperandWidth) -> GlobalDefinitionId {
         self.read_index(index, width).into()
     }
 
@@ -1190,11 +1190,11 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_global(&mut self, _dest: Register, _glob: GlobalId) {
+    fn visit_load_global(&mut self, _dest: Register, _glob: GlobalDefinitionId) {
         unimplemented!();
     }
 
-    fn visit_store_global(&mut self, _src: Register, _glob: GlobalId) {
+    fn visit_store_global(&mut self, _src: Register, _glob: GlobalDefinitionId) {
         unimplemented!();
     }
 

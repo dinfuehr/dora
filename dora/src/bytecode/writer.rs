@@ -4,7 +4,7 @@ use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
     Register,
 };
-use crate::vm::{GlobalId, TupleId};
+use crate::vm::{GlobalDefinitionId, TupleId};
 
 use dora_parser::lexer::position::Position;
 
@@ -613,11 +613,11 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::Assert, value);
     }
 
-    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalId) {
+    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalDefinitionId) {
         self.emit_load_global_inst(BytecodeOpcode::LoadGlobal, dest, gid);
     }
 
-    pub fn emit_store_global(&mut self, src: Register, gid: GlobalId) {
+    pub fn emit_store_global(&mut self, src: Register, gid: GlobalDefinitionId) {
         self.emit_store_global_inst(BytecodeOpcode::StoreGlobal, src, gid);
     }
 
@@ -959,12 +959,22 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_load_global_inst(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
+    fn emit_load_global_inst(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        gid: GlobalDefinitionId,
+    ) {
         let values = [r1.to_usize() as u32, gid.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 
-    fn emit_store_global_inst(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
+    fn emit_store_global_inst(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        gid: GlobalDefinitionId,
+    ) {
         let values = [r1.to_usize() as u32, gid.to_usize() as u32];
         self.emit_values(inst, &values);
     }

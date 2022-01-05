@@ -2,7 +2,7 @@ use crate::semck::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{FctDefinition, FctParent, FileId, GlobalId, NamespaceId, SemAnalysis};
+use crate::vm::{FctDefinition, FctParent, FileId, GlobalDefinitionId, NamespaceId, SemAnalysis};
 use dora_parser::ast;
 
 pub fn check<'a>(sa: &SemAnalysis) {
@@ -36,7 +36,7 @@ struct GlobalDefCheck<'a> {
     sa: &'a SemAnalysis,
     file_id: FileId,
     namespace_id: NamespaceId,
-    global_id: GlobalId,
+    global_id: GlobalDefinitionId,
     ast: &'a ast::Global,
     symtable: NestedSymTable<'a>,
 }

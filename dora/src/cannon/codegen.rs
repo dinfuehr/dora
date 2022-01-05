@@ -29,8 +29,8 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, EnumId, EnumLayout, FctDefinition, FctDefinitionId, GlobalId, Intrinsic,
-    StructId, Trap, TupleId, VM,
+    find_trait_impl, EnumId, EnumLayout, FctDefinition, FctDefinitionId, GlobalDefinitionId,
+    Intrinsic, StructId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -1996,7 +1996,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
+    fn emit_load_global(&mut self, dest: Register, global_id: GlobalDefinitionId) {
         let glob = self.vm.globals.idx(global_id);
         let glob = glob.read();
 
@@ -2023,7 +2023,7 @@ impl<'a> CannonCodeGen<'a> {
         self.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
-    fn emit_store_global(&mut self, src: Register, global_id: GlobalId) {
+    fn emit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
         let glob = self.vm.globals.idx(global_id);
         let glob = glob.read();
 
@@ -4838,7 +4838,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_store_field(src, obj, field_idx);
     }
 
-    fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {
+    fn visit_load_global(&mut self, dest: Register, glob_id: GlobalDefinitionId) {
         comment!(self, {
             let glob = self.vm.globals.idx(glob_id);
             let glob = glob.read();
@@ -4853,7 +4853,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_load_global(dest, glob_id);
     }
 
-    fn visit_store_global(&mut self, src: Register, glob_id: GlobalId) {
+    fn visit_store_global(&mut self, src: Register, glob_id: GlobalDefinitionId) {
         comment!(self, {
             let glob = self.vm.globals.idx(glob_id);
             let glob = glob.read();

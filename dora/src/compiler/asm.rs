@@ -13,7 +13,7 @@ use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::FctDefinitionId;
-use crate::vm::{GlobalData, Trap, VM};
+use crate::vm::{GlobalDefinition, Trap, VM};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -799,7 +799,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn ensure_global(
         &mut self,
-        glob: &GlobalData,
+        glob: &GlobalDefinition,
         fid: FctDefinitionId,
         ptr: Address,
         position: Position,

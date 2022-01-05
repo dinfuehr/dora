@@ -9,8 +9,8 @@ use crate::bytecode::{
 use crate::driver::cmd::Args;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinitionId, ClassInstanceId, EnumId, FctDefinitionId, FieldId, GlobalId, StructDefinitionFieldId,
-    StructId, TraitId, TupleId, TypeParamId, VM,
+    ClassDefinitionId, ClassInstanceId, EnumId, FctDefinitionId, FieldId, GlobalDefinitionId,
+    StructDefinitionFieldId, StructId, TraitId, TupleId, TypeParamId, VM,
 };
 
 pub struct BytecodeBuilder {
@@ -82,7 +82,11 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::StructField(id, type_params, field_idx))
     }
 
-    pub fn add_const_fct_types(&mut self, id: FctDefinitionId, type_params: SourceTypeArray) -> ConstPoolIdx {
+    pub fn add_const_fct_types(
+        &mut self,
+        id: FctDefinitionId,
+        type_params: SourceTypeArray,
+    ) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
     }
 
@@ -799,12 +803,12 @@ impl BytecodeBuilder {
         self.writer.emit_assert(value);
     }
 
-    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalId) {
+    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalDefinitionId) {
         assert!(self.def(dest));
         self.writer.emit_load_global(dest, gid);
     }
 
-    pub fn emit_store_global(&mut self, src: Register, gid: GlobalId) {
+    pub fn emit_store_global(&mut self, src: Register, gid: GlobalDefinitionId) {
         assert!(self.used(src));
         self.writer.emit_store_global(src, gid);
     }
