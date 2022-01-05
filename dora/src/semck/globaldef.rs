@@ -4,8 +4,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::error::msg::SemError;
 use crate::gc::Address;
+use crate::semck::error::msg::SemError;
 use crate::semck::report_sym_shadow;
 use crate::sym::Sym;
 use crate::ty::SourceType;
@@ -598,7 +598,7 @@ pub fn should_file_be_parsed(path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

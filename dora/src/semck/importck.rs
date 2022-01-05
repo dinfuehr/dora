@@ -1,6 +1,6 @@
 use parking_lot::RwLock;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::report_sym_shadow;
 use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::{
@@ -320,7 +320,7 @@ fn import_enum(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

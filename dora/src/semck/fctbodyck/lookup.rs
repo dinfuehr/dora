@@ -1,4 +1,4 @@
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::fctbodyck::body::args_compatible_fct;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};

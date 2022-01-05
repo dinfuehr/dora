@@ -1,4 +1,4 @@
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
@@ -77,7 +77,7 @@ impl<'a> GlobalDefCheck<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

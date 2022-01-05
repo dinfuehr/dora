@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::fctbodyck::lookup::MethodLookup;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};

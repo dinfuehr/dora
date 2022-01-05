@@ -1,4 +1,4 @@
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::vm::{init_global_addresses, set_vm, Fct, FctId};
 use crate::vm::{SemAnalysis, VM};
 

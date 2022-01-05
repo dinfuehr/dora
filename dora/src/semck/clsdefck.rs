@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym, SymTable};
@@ -279,7 +279,7 @@ pub fn check_super_definition(sa: &SemAnalysis) {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

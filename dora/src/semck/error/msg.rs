@@ -1,4 +1,4 @@
-use crate::vm::{FileId, VM};
+use crate::vm::{FileId, SemAnalysis};
 use dora_parser::lexer::position::Position;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -552,8 +552,8 @@ impl SemErrorAndPos {
         SemErrorAndPos { file, pos, msg }
     }
 
-    pub fn message(&self, vm: &VM) -> String {
-        let file = vm.file(self.file);
+    pub fn message(&self, sa: &SemAnalysis) -> String {
+        let file = sa.file(self.file);
         format!(
             "error in {} at {}: {}",
             file.path,

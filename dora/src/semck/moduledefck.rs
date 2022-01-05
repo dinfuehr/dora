@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::{self, AllowSelf};
 use crate::sym::NestedSymTable;
 use crate::ty::{SourceType, SourceTypeArray};
@@ -205,7 +205,7 @@ impl<'x> ModuleCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

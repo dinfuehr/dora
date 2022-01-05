@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
@@ -166,7 +166,7 @@ impl<'x> StructCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

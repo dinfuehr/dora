@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
@@ -339,7 +339,7 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

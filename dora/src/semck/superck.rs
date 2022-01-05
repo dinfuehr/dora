@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::vm::{find_method_in_class, Class, ClassId, Fct, FctId, SemAnalysis};
 
@@ -188,9 +188,9 @@ fn check_fct_modifier(sa: &SemAnalysis, cls: &Class, fct: &Fct) -> Option<FctId>
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
     use crate::mem;
     use crate::object::Header;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::{err, errors, ok, ok_with_test, pos};
     use crate::size::InstanceSize;
     use crate::vm::SemAnalysis;

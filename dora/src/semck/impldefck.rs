@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::extensiondefck::check_for_unconstrained_type_params;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
@@ -206,7 +206,7 @@ impl<'x> ImplCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

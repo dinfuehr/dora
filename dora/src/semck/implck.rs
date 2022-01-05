@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::vm::{FileId, SemAnalysis};
 
 use dora_parser::lexer::position::Position;
@@ -106,7 +106,7 @@ fn report(sa: &SemAnalysis, file: FileId, pos: Position, msg: SemError) {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

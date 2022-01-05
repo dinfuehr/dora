@@ -1,4 +1,4 @@
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::tests::*;
 use crate::vm::ConstValue;
 

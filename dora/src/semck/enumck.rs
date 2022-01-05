@@ -6,7 +6,7 @@ use parking_lot::RwLock;
 use dora_parser::ast;
 use dora_parser::ast::TypeParam;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::semck::{read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
@@ -202,7 +202,7 @@ impl<'x> EnumCheckVariants<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]

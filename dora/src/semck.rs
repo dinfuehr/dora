@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{FileId, SemAnalysis, TypeParam, TypeParamId};
@@ -15,6 +15,7 @@ mod abstractck;
 mod clsdefck;
 mod constdefck;
 mod enumck;
+pub mod error;
 mod extensiondefck;
 mod fctbodyck;
 mod fctdefck;
@@ -290,7 +291,7 @@ fn check_type_params(
 
 #[cfg(test)]
 pub mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::test;
     use crate::vm::SemAnalysis;
     use dora_parser::lexer::position::Position;

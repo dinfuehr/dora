@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-use crate::error::msg::SemError;
+use crate::semck::error::msg::SemError;
 use crate::vm::{Class, ClassId, FctId, SemAnalysis};
 
 pub fn check(sa: &SemAnalysis) {
@@ -120,7 +120,7 @@ fn find_abstract_methods(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::SemError;
+    use crate::semck::error::msg::SemError;
     use crate::semck::tests::{err, ok, pos};
 
     #[test]

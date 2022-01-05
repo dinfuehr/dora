@@ -1,5 +1,5 @@
-use crate::error::msg::{SemError, SemErrorAndPos};
-use crate::vm::{FileId, VM};
+use crate::semck::error::msg::{SemError, SemErrorAndPos};
+use crate::vm::{FileId, SemAnalysis};
 
 use dora_parser::lexer::position::Position;
 
@@ -24,9 +24,9 @@ impl Diagnostic {
         !self.errors.is_empty()
     }
 
-    pub fn dump(&self, vm: &VM) {
+    pub fn dump(&self, sa: &SemAnalysis) {
         for err in &self.errors {
-            eprintln!("{}", &err.message(vm));
+            eprintln!("{}", &err.message(sa));
         }
     }
 }
