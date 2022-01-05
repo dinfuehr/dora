@@ -63,7 +63,9 @@ pub use self::namespaces::{
     namespace_path, NamespaceData, NamespaceId,
 };
 pub use self::specialize::{
-    add_ref_fields, specialize_enum_id_params, specialize_struct_id_params,
+    add_ref_fields, ensure_display, specialize_class_id, specialize_class_id_params,
+    specialize_enum_class, specialize_enum_id_params, specialize_struct_id_params,
+    specialize_trait_object, specialize_tuple,
 };
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
@@ -711,8 +713,6 @@ impl VM {
         namespace_id: NamespaceId,
         name: &'static str,
     ) -> ClassInstanceId {
-        use crate::semck::specialize::specialize_class_id;
-
         let name = self.interner.intern(name);
         let cls_id = NestedSymTable::new(self, namespace_id)
             .get_class(name)
@@ -726,8 +726,6 @@ impl VM {
         name: &'static str,
         type_params: SourceTypeArray,
     ) -> ClassInstanceId {
-        use crate::semck::specialize::specialize_class_id_params;
-
         let name = self.interner.intern(name);
         let cls_id = NestedSymTable::new(self, self.global_namespace_id)
             .get_class(name)

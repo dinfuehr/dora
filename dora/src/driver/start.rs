@@ -7,8 +7,7 @@ use crate::object;
 use crate::timer::Timer;
 
 use crate::semck;
-use crate::semck::specialize::specialize_class_id;
-use crate::vm::{execute_on_main, namespace_contains, NamespaceId};
+use crate::vm::{execute_on_main, namespace_contains, specialize_class_id, NamespaceId};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();

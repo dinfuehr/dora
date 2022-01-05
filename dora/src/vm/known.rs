@@ -1,10 +1,9 @@
 use parking_lot::Mutex;
 
-use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    AnnotationDefinitionId, ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId,
-    StructDefinitionId, TraitDefinitionId, VM,
+    specialize_class_id, specialize_class_id_params, AnnotationDefinitionId, ClassDefinitionId,
+    ClassInstanceId, EnumDefinitionId, FctDefinitionId, StructDefinitionId, TraitDefinitionId, VM,
 };
 
 #[derive(Debug)]
