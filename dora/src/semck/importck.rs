@@ -6,7 +6,8 @@ use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::{
     class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
     global_accessible_from, module_accessible_from, namespace_accessible_from, namespace_package,
-    struct_accessible_from, trait_accessible_from, EnumId, ImportData, NamespaceId, SemAnalysis,
+    struct_accessible_from, trait_accessible_from, EnumDefinitionId, ImportData, NamespaceId,
+    SemAnalysis,
 };
 
 use dora_parser::ast::ImportContext;
@@ -292,7 +293,7 @@ fn import_enum(
     sa: &SemAnalysis,
     import: &ImportData,
     table: &RwLock<SymTable>,
-    enum_id: EnumId,
+    enum_id: EnumDefinitionId,
     element_name: Name,
     target_name: Name,
 ) {

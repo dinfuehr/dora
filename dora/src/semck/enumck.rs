@@ -10,7 +10,7 @@ use crate::semck::error::msg::SemError;
 use crate::semck::{read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
-use crate::vm::{EnumData, EnumVariant, FileId, SemAnalysis, TypeParamId};
+use crate::vm::{EnumDefinition, EnumVariant, FileId, SemAnalysis, TypeParamId};
 
 pub fn check(sa: &SemAnalysis) {
     for xenum in &sa.enums {
@@ -31,7 +31,7 @@ struct EnumCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: FileId,
     ast: &'x Arc<ast::Enum>,
-    xenum: &'x RwLock<EnumData>,
+    xenum: &'x RwLock<EnumDefinition>,
 }
 
 impl<'x> EnumCheck<'x> {
@@ -162,7 +162,7 @@ struct EnumCheckVariants<'x> {
     sa: &'x SemAnalysis,
     file_id: FileId,
     ast: &'x Arc<ast::Enum>,
-    xenum: &'x mut EnumData,
+    xenum: &'x mut EnumDefinition,
 }
 
 impl<'x> EnumCheckVariants<'x> {

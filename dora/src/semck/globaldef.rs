@@ -11,9 +11,9 @@ use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
     self, AnnotationId, ClassDefinitionId, ConstDefinition, ConstDefinitionId, ConstValue,
-    EnumData, EnumId, ExtensionData, ExtensionId, FctDefinition, FctParent, FileId,
+    EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId, FctDefinition, FctParent, FileId,
     GlobalDefinition, GlobalDefinitionId, ImplData, ImplId, ImportData, Module, ModuleId,
-    NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructId, TraitData, TraitId,
+    NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructDefinitionId, TraitData, TraitId,
     TypeParam, TypeParamDefinition,
 };
 use dora_parser::ast::visit::Visitor;
@@ -431,7 +431,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
         let id = {
             let mut structs = self.sa.structs.lock();
-            let id: StructId = (structs.len() as u32).into();
+            let id: StructDefinitionId = (structs.len() as u32).into();
             let mut xstruct = StructDefinition {
                 id,
                 file_id: self.file_id,
@@ -503,8 +503,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        let id: EnumId = self.sa.enums.len().into();
-        let mut xenum = EnumData {
+        let id: EnumDefinitionId = self.sa.enums.len().into();
+        let mut xenum = EnumDefinition {
             id,
             file_id: self.file_id,
             namespace_id: self.namespace_id,

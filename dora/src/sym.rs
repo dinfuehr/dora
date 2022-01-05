@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ConstDefinitionId, EnumId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, ModuleId, NamespaceId, StructId, TraitId, TypeParamId, VarId, VM,
+    AnnotationId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
+    GlobalDefinitionId, ModuleId, NamespaceId, StructDefinitionId, TraitId, TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
@@ -78,7 +78,7 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_fct())
     }
 
-    pub fn get_struct(&self, name: Name) -> Option<StructId> {
+    pub fn get_struct(&self, name: Name) -> Option<StructDefinitionId> {
         self.get(name).and_then(|n| n.to_struct())
     }
 
@@ -90,7 +90,7 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_module())
     }
 
-    pub fn get_enum(&self, name: Name) -> Option<EnumId> {
+    pub fn get_enum(&self, name: Name) -> Option<EnumDefinitionId> {
         self.get(name).and_then(|n| n.to_enum())
     }
 
@@ -144,7 +144,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_class())
     }
 
-    pub fn get_struct(&self, name: Name) -> Option<StructId> {
+    pub fn get_struct(&self, name: Name) -> Option<StructDefinitionId> {
         self.get(name).and_then(|n| n.to_struct())
     }
 
@@ -156,7 +156,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_module())
     }
 
-    pub fn get_enum(&self, name: Name) -> Option<EnumId> {
+    pub fn get_enum(&self, name: Name) -> Option<EnumDefinitionId> {
         self.get(name).and_then(|n| n.to_enum())
     }
 
@@ -168,10 +168,10 @@ impl SymTable {
 #[derive(Debug, Clone)]
 pub enum Sym {
     Class(ClassDefinitionId),
-    Struct(StructId),
+    Struct(StructDefinitionId),
     Trait(TraitId),
     TypeParam(TypeParamId),
-    Enum(EnumId),
+    Enum(EnumDefinitionId),
     Field(FieldId),
     Fct(FctDefinitionId),
     Var(VarId),
@@ -180,7 +180,7 @@ pub enum Sym {
     Global(GlobalDefinitionId),
     Const(ConstDefinitionId),
     Namespace(NamespaceId),
-    EnumValue(EnumId, usize),
+    EnumValue(EnumDefinitionId, usize),
 }
 
 impl Sym {
@@ -205,7 +205,7 @@ impl Sym {
         }
     }
 
-    pub fn to_struct(&self) -> Option<StructId> {
+    pub fn to_struct(&self) -> Option<StructDefinitionId> {
         match *self {
             Struct(id) => Some(id),
             _ => None,
@@ -240,7 +240,7 @@ impl Sym {
         }
     }
 
-    pub fn to_enum(&self) -> Option<EnumId> {
+    pub fn to_enum(&self) -> Option<EnumDefinitionId> {
         match *self {
             Enum(id) => Some(id),
             _ => None,

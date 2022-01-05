@@ -10,8 +10,8 @@ use crate::stdlib;
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumId, ExtensionId, FctDefinitionId,
-    Intrinsic, ModuleId, NamespaceId, SemAnalysis, StructId, TraitId,
+    AnnotationId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumDefinitionId, ExtensionId, FctDefinitionId,
+    Intrinsic, ModuleId, NamespaceId, SemAnalysis, StructDefinitionId, TraitId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast::Modifier;
@@ -247,7 +247,7 @@ fn internal_struct(
     namespace_id: NamespaceId,
     name: &str,
     ty: Option<SourceType>,
-) -> StructId {
+) -> StructDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     let struct_id = symtable.get_struct(iname).expect("struct not found");
@@ -287,7 +287,7 @@ fn find_trait(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str) -> Tr
     symtable.get_trait(iname).expect("trait not found")
 }
 
-fn find_enum(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str) -> EnumId {
+fn find_enum(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str) -> EnumDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     symtable.get_enum(iname).expect("enum not found")

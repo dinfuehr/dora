@@ -8,9 +8,10 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
-    ensure_tuple, ClassDefinition, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumData,
-    EnumDef, EnumDefId, EnumId, EnumLayout, FieldDef, SemAnalysis, StructDefinition, StructId,
-    StructInstance, StructInstanceField, StructInstanceId, TraitData, TraitId, TupleId,
+    ensure_tuple, ClassDefinition, ClassDefinitionId, ClassInstance, ClassInstanceId,
+    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef,
+    SemAnalysis, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
+    StructInstanceId, TraitData, TraitId, TupleId,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -51,7 +52,7 @@ pub enum SpecializeFor {
 
 pub fn specialize_struct_id_params(
     sa: &SemAnalysis,
-    struct_id: StructId,
+    struct_id: StructDefinitionId,
     type_params: SourceTypeArray,
 ) -> StructInstanceId {
     let struc = sa.structs.idx(struct_id);
@@ -128,9 +129,9 @@ fn create_specialized_struct(
 
 pub fn specialize_enum_id_params(
     sa: &SemAnalysis,
-    enum_id: EnumId,
+    enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
-) -> EnumDefId {
+) -> EnumInstanceId {
     let xenum = &sa.enums[enum_id];
     let xenum = xenum.read();
     specialize_enum(sa, &*xenum, type_params)
@@ -138,9 +139,9 @@ pub fn specialize_enum_id_params(
 
 pub fn specialize_enum(
     sa: &SemAnalysis,
-    xenum: &EnumData,
+    xenum: &EnumDefinition,
     type_params: SourceTypeArray,
-) -> EnumDefId {
+) -> EnumInstanceId {
     if let Some(&id) = xenum.specializations.read().get(&type_params) {
         return id;
     }
@@ -150,9 +151,9 @@ pub fn specialize_enum(
 
 fn create_specialized_enum(
     sa: &SemAnalysis,
-    xenum: &EnumData,
+    xenum: &EnumDefinition,
     type_params: SourceTypeArray,
-) -> EnumDefId {
+) -> EnumInstanceId {
     let layout = if enum_is_simple_integer(xenum) {
         EnumLayout::Int
     } else if enum_is_ptr(sa, xenum, &type_params) {
@@ -162,7 +163,7 @@ fn create_specialized_enum(
     };
 
     let mut enum_defs = sa.enum_defs.lock();
-    let id: EnumDefId = enum_defs.len().into();
+    let id: EnumInstanceId = enum_defs.len().into();
 
     let mut specializations = xenum.specializations.write();
 
@@ -179,7 +180,7 @@ fn create_specialized_enum(
         Vec::new()
     };
 
-    let enum_def = Arc::new(EnumDef {
+    let enum_def = Arc::new(EnumInstance {
         id,
         enum_id: xenum.id,
         type_params: type_params.clone(),
@@ -192,7 +193,7 @@ fn create_specialized_enum(
     id
 }
 
-fn enum_is_simple_integer(xenum: &EnumData) -> bool {
+fn enum_is_simple_integer(xenum: &EnumDefinition) -> bool {
     for variant in &xenum.variants {
         if !variant.types.is_empty() {
             return false;
@@ -202,7 +203,7 @@ fn enum_is_simple_integer(xenum: &EnumData) -> bool {
     true
 }
 
-fn enum_is_ptr(sa: &SemAnalysis, xenum: &EnumData, type_params: &SourceTypeArray) -> bool {
+fn enum_is_ptr(sa: &SemAnalysis, xenum: &EnumDefinition, type_params: &SourceTypeArray) -> bool {
     if xenum.variants.len() != 2 {
         return false;
     }
@@ -224,8 +225,8 @@ fn enum_is_ptr(sa: &SemAnalysis, xenum: &EnumData, type_params: &SourceTypeArray
 
 pub fn specialize_enum_class(
     sa: &SemAnalysis,
-    edef: &EnumDef,
-    xenum: &EnumData,
+    edef: &EnumInstance,
+    xenum: &EnumDefinition,
     variant_id: usize,
 ) -> ClassInstanceId {
     let mut variants = edef.variants.write();

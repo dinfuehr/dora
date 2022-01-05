@@ -11,8 +11,8 @@ use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
-    AnalysisData, CallType, ConstDefinitionId, EnumId, FctDefinition, FctDefinitionId,
-    GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis, StructId, TupleId, VarId,
+    AnalysisData, CallType, ConstDefinitionId, EnumDefinitionId, FctDefinition, FctDefinitionId,
+    GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis, StructDefinitionId, TupleId, VarId,
 };
 
 pub struct LoopLabels {
@@ -679,7 +679,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn emit_new_enum(
         &mut self,
-        enum_id: EnumId,
+        enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
         variant_id: usize,
         pos: Position,
@@ -982,7 +982,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_dot_struct(
         &mut self,
         expr: &ExprDotType,
-        struct_id: StructId,
+        struct_id: StructDefinitionId,
         type_params: SourceTypeArray,
         dest: DataDest,
     ) -> Register {
@@ -1177,7 +1177,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_call_struct(
         &mut self,
         expr: &ExprCallType,
-        struct_id: StructId,
+        struct_id: StructDefinitionId,
         type_params: &SourceTypeArray,
         dest: DataDest,
     ) -> Register {

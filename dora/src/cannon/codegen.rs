@@ -29,8 +29,8 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, EnumId, EnumLayout, FctDefinition, FctDefinitionId, GlobalDefinitionId,
-    Intrinsic, StructId, Trap, TupleId, VM,
+    find_trait_impl, EnumDefinitionId, EnumLayout, FctDefinition, FctDefinitionId,
+    GlobalDefinitionId, Intrinsic, StructDefinitionId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -426,7 +426,7 @@ impl<'a> CannonCodeGen<'a> {
         _freg_idx: &mut usize,
         sp_offset: &mut i32,
         dest: Register,
-        struct_id: StructId,
+        struct_id: StructDefinitionId,
         type_params: SourceTypeArray,
     ) {
         let dest_offset = self.reg(dest);
@@ -463,7 +463,7 @@ impl<'a> CannonCodeGen<'a> {
         _freg_idx: &mut usize,
         sp_offset: &mut i32,
         dest: Register,
-        enum_id: EnumId,
+        enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
     ) {
         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
@@ -1560,7 +1560,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn copy_struct(
         &mut self,
-        struct_id: StructId,
+        struct_id: StructDefinitionId,
         type_params: SourceTypeArray,
         dest: RegOrOffset,
         src: RegOrOffset,

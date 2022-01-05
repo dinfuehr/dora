@@ -14,29 +14,29 @@ use crate::vm::{
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct StructId(u32);
+pub struct StructDefinitionId(u32);
 
-impl StructId {
+impl StructDefinitionId {
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
 
 impl GrowableVec<RwLock<StructDefinition>> {
-    pub fn idx(&self, index: StructId) -> Arc<RwLock<StructDefinition>> {
+    pub fn idx(&self, index: StructDefinitionId) -> Arc<RwLock<StructDefinition>> {
         self.idx_usize(index.0 as usize)
     }
 }
 
-impl From<u32> for StructId {
-    fn from(data: u32) -> StructId {
-        StructId(data)
+impl From<u32> for StructDefinitionId {
+    fn from(data: u32) -> StructDefinitionId {
+        StructDefinitionId(data)
     }
 }
 
 #[derive(Debug)]
 pub struct StructDefinition {
-    pub id: StructId,
+    pub id: StructDefinitionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
@@ -157,7 +157,11 @@ pub struct StructInstanceField {
     pub ty: SourceType,
 }
 
-pub fn struct_accessible_from(vm: &VM, struct_id: StructId, namespace_id: NamespaceId) -> bool {
+pub fn struct_accessible_from(
+    vm: &VM,
+    struct_id: StructDefinitionId,
+    namespace_id: NamespaceId,
+) -> bool {
     let xstruct = vm.structs.idx(struct_id);
     let xstruct = xstruct.read();
 
@@ -166,7 +170,7 @@ pub fn struct_accessible_from(vm: &VM, struct_id: StructId, namespace_id: Namesp
 
 pub fn struct_field_accessible_from(
     vm: &VM,
-    struct_id: StructId,
+    struct_id: StructDefinitionId,
     field_id: StructDefinitionFieldId,
     namespace_id: NamespaceId,
 ) -> bool {

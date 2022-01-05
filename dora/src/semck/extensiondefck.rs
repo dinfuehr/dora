@@ -5,8 +5,8 @@ use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{
-    EnumId, ExtensionId, FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis, StructId,
-    TypeParam,
+    EnumDefinitionId, ExtensionId, FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis,
+    StructDefinitionId, TypeParam,
 };
 
 use dora_parser::ast;
@@ -200,7 +200,7 @@ impl<'x> ExtensionCheck<'x> {
         );
     }
 
-    fn check_in_enum(&self, f: &ast::Function, enum_id: EnumId) -> bool {
+    fn check_in_enum(&self, f: &ast::Function, enum_id: EnumDefinitionId) -> bool {
         let xenum = self.sa.enums[enum_id].read();
 
         for &extension_id in &xenum.extensions {
@@ -212,7 +212,7 @@ impl<'x> ExtensionCheck<'x> {
         true
     }
 
-    fn check_in_struct(&self, f: &ast::Function, struct_id: StructId) -> bool {
+    fn check_in_struct(&self, f: &ast::Function, struct_id: StructDefinitionId) -> bool {
         let xstruct = self.sa.structs.idx(struct_id);
         let xstruct = xstruct.read();
 

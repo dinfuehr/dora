@@ -6,8 +6,8 @@ use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_p
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::utils::enumeration;
 use crate::vm::{
-    get_vm, ClassDefinitionId, ClassInstanceId, EnumId, EnumLayout, FctDefinitionId, FieldId,
-    StructDefinitionFieldId, StructId, TraitId, TupleId, TypeParamId, VM,
+    get_vm, ClassDefinitionId, ClassInstanceId, EnumDefinitionId, EnumLayout, FctDefinitionId,
+    FieldId, StructDefinitionFieldId, StructDefinitionId, TraitId, TupleId, TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -52,8 +52,8 @@ pub enum BytecodeType {
     Ptr,
     Tuple(TupleId),
     TypeParam(u32),
-    Enum(EnumId, SourceTypeArray),
-    Struct(StructId, SourceTypeArray),
+    Enum(EnumDefinitionId, SourceTypeArray),
+    Struct(StructDefinitionId, SourceTypeArray),
 }
 
 impl BytecodeType {
@@ -827,10 +827,10 @@ pub enum ConstPoolEntry {
     FieldFixed(ClassInstanceId, FieldId),
     Fct(FctDefinitionId, SourceTypeArray),
     Generic(TypeParamId, FctDefinitionId, SourceTypeArray),
-    Enum(EnumId, SourceTypeArray),
-    EnumVariant(EnumId, SourceTypeArray, usize),
-    Struct(StructId, SourceTypeArray),
-    StructField(StructId, SourceTypeArray, StructDefinitionFieldId),
+    Enum(EnumDefinitionId, SourceTypeArray),
+    EnumVariant(EnumDefinitionId, SourceTypeArray, usize),
+    Struct(StructDefinitionId, SourceTypeArray),
+    StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
     Trait(TraitId, SourceTypeArray, SourceType),
 }
 

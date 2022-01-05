@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use crate::semck::error::msg::SemError;
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinition, ClassDefinitionId, EnumId, FctDefinition, FileId, SemAnalysis, StructId, TraitId, TypeParam,
+    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinition, FileId, SemAnalysis, StructDefinitionId, TraitId, TypeParam,
 };
 
 pub enum ErrorReporting {
@@ -14,7 +14,7 @@ pub enum ErrorReporting {
 pub fn check_enum(
     sa: &SemAnalysis,
     fct: &FctDefinition,
-    enum_id: EnumId,
+    enum_id: EnumDefinitionId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
@@ -34,7 +34,7 @@ pub fn check_enum(
 pub fn check_struct(
     sa: &SemAnalysis,
     fct: &FctDefinition,
-    struct_id: StructId,
+    struct_id: StructDefinitionId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {

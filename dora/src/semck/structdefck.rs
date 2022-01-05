@@ -5,7 +5,7 @@ use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{
-    FileId, NamespaceId, SemAnalysis, StructDefinitionField, StructDefinitionFieldId, StructId,
+    FileId, NamespaceId, SemAnalysis, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
     TypeParamId,
 };
 
@@ -40,7 +40,7 @@ pub fn check(sa: &SemAnalysis) {
 
 struct StructCheck<'x> {
     sa: &'x SemAnalysis,
-    struct_id: StructId,
+    struct_id: StructDefinitionId,
     file_id: FileId,
     ast: &'x ast::Struct,
     namespace_id: NamespaceId,

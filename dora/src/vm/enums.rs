@@ -17,31 +17,31 @@ use crate::vm::{
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct EnumId(u32);
+pub struct EnumDefinitionId(u32);
 
-impl EnumId {
+impl EnumDefinitionId {
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
 
-impl From<usize> for EnumId {
-    fn from(data: usize) -> EnumId {
-        EnumId(data.try_into().unwrap())
+impl From<usize> for EnumDefinitionId {
+    fn from(data: usize) -> EnumDefinitionId {
+        EnumDefinitionId(data.try_into().unwrap())
     }
 }
 
-impl Index<EnumId> for Vec<RwLock<EnumData>> {
-    type Output = RwLock<EnumData>;
+impl Index<EnumDefinitionId> for Vec<RwLock<EnumDefinition>> {
+    type Output = RwLock<EnumDefinition>;
 
-    fn index(&self, index: EnumId) -> &RwLock<EnumData> {
+    fn index(&self, index: EnumDefinitionId) -> &RwLock<EnumDefinition> {
         &self[index.0 as usize]
     }
 }
 
 #[derive(Debug)]
-pub struct EnumData {
-    pub id: EnumId,
+pub struct EnumDefinition {
+    pub id: EnumDefinitionId,
     pub file_id: FileId,
     pub namespace_id: NamespaceId,
     pub ast: Arc<ast::Enum>,
@@ -54,11 +54,11 @@ pub struct EnumData {
     pub name_to_value: HashMap<Name, u32>,
     pub impls: Vec<ImplId>,
     pub extensions: Vec<ExtensionId>,
-    pub specializations: RwLock<HashMap<SourceTypeArray, EnumDefId>>,
+    pub specializations: RwLock<HashMap<SourceTypeArray, EnumInstanceId>>,
     pub simple_enumeration: bool,
 }
 
-impl EnumData {
+impl EnumDefinition {
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
@@ -92,31 +92,31 @@ pub struct EnumVariant {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct EnumDefId(u32);
+pub struct EnumInstanceId(u32);
 
-impl From<usize> for EnumDefId {
-    fn from(data: usize) -> EnumDefId {
-        EnumDefId(data as u32)
+impl From<usize> for EnumInstanceId {
+    fn from(data: usize) -> EnumInstanceId {
+        EnumInstanceId(data as u32)
     }
 }
 
-impl GrowableVec<EnumDef> {
-    pub fn idx(&self, index: EnumDefId) -> Arc<EnumDef> {
+impl GrowableVec<EnumInstance> {
+    pub fn idx(&self, index: EnumInstanceId) -> Arc<EnumInstance> {
         self.idx_usize(index.0 as usize)
     }
 }
 
 #[derive(Debug)]
-pub struct EnumDef {
-    pub id: EnumDefId,
-    pub enum_id: EnumId,
+pub struct EnumInstance {
+    pub id: EnumInstanceId,
+    pub enum_id: EnumDefinitionId,
     pub type_params: SourceTypeArray,
     pub layout: EnumLayout,
     pub variants: RwLock<Vec<Option<ClassInstanceId>>>,
 }
 
-impl EnumDef {
-    pub fn field_id(&self, xenum: &EnumData, variant_id: usize, element: u32) -> u32 {
+impl EnumInstance {
+    pub fn field_id(&self, xenum: &EnumDefinition, variant_id: usize, element: u32) -> u32 {
         let variant = &xenum.variants[variant_id];
         let mut units = 0;
 
@@ -210,7 +210,7 @@ pub fn find_methods_in_enum(
     candidates
 }
 
-pub fn enum_accessible_from(vm: &VM, enum_id: EnumId, namespace_id: NamespaceId) -> bool {
+pub fn enum_accessible_from(vm: &VM, enum_id: EnumDefinitionId, namespace_id: NamespaceId) -> bool {
     let xenum = vm.enums[enum_id].read();
 
     accessible_from(vm, xenum.namespace_id, xenum.is_pub, namespace_id)

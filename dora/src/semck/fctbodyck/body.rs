@@ -16,8 +16,8 @@ use crate::vm::{
     enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
     find_methods_in_enum, find_methods_in_struct, global_accessible_from, method_accessible_from,
     namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
-    CallType, ClassDefinitionId, ConvInfo, EnumId, FctDefinition, FctDefinitionId, FctParent, FileId, ForTypeInfo, IdentType,
-    Intrinsic, NamespaceId, SemAnalysis, StructDefinition, StructId, TypeParam,
+    CallType, ClassDefinitionId, ConvInfo, EnumDefinitionId, FctDefinition, FctDefinitionId, FctParent, FileId, ForTypeInfo, IdentType,
+    Intrinsic, NamespaceId, SemAnalysis, StructDefinition, StructDefinitionId, TypeParam,
     TypeParamDefinition, TypeParamId, Var, VarId,
 };
 
@@ -1460,7 +1460,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         expected_ty: SourceType,
-        enum_id: EnumId,
+        enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
         variant_id: usize,
         arg_types: &[SourceType],
@@ -1531,7 +1531,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_enum_args(
         &mut self,
-        _enum_id: EnumId,
+        _enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
         variant: &vm::EnumVariant,
         arg_types: &[SourceType],
@@ -1942,7 +1942,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_struct(
         &mut self,
         e: &ast::ExprCallType,
-        struct_id: StructId,
+        struct_id: StructDefinitionId,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
@@ -2689,7 +2689,7 @@ impl<'a> TypeCheck<'a> {
         expr_id: ast::NodeId,
         expr_pos: Position,
         _expected_ty: SourceType,
-        enum_id: EnumId,
+        enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
         name: Name,
     ) -> SourceType {
@@ -2852,7 +2852,7 @@ impl<'a> TypeCheck<'a> {
         expr_id: ast::NodeId,
         expr_pos: Position,
         expected_ty: SourceType,
-        enum_id: EnumId,
+        enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
         variant_id: usize,
     ) -> SourceType {

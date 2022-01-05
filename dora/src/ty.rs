@@ -7,8 +7,9 @@ use crate::mem;
 use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
-    impl_matches, ClassDefinition, ClassDefinitionId, EnumData, EnumId, EnumLayout, FctDefinition, ImplId, ModuleId,
-    StructId, TraitId, TupleId, TypeParam, TypeParamDefinition, TypeParamId,
+    impl_matches, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, EnumLayout,
+    FctDefinition, ImplId, ModuleId, StructDefinitionId, TraitId, TupleId, TypeParam,
+    TypeParamDefinition, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -41,7 +42,7 @@ pub enum SourceType {
     Class(ClassDefinitionId, SourceTypeArrayId),
 
     // some struct
-    Struct(StructId, SourceTypeArrayId),
+    Struct(StructDefinitionId, SourceTypeArrayId),
 
     // some tuple
     Tuple(TupleId),
@@ -59,7 +60,7 @@ pub enum SourceType {
     Lambda(LambdaId),
 
     // some enum
-    Enum(EnumId, SourceTypeArrayId),
+    Enum(EnumDefinitionId, SourceTypeArrayId),
 }
 
 impl SourceType {
@@ -77,7 +78,7 @@ impl SourceType {
         }
     }
 
-    pub fn is_enum_id(&self, enum_id: EnumId) -> bool {
+    pub fn is_enum_id(&self, enum_id: EnumDefinitionId) -> bool {
         match *self {
             SourceType::Enum(id, _) => id == enum_id,
             _ => false,
@@ -210,7 +211,7 @@ impl SourceType {
         }
     }
 
-    pub fn primitive_struct_id(&self, vm: &VM) -> Option<StructId> {
+    pub fn primitive_struct_id(&self, vm: &VM) -> Option<StructDefinitionId> {
         match *self {
             SourceType::Bool => Some(vm.known.structs.bool),
             SourceType::UInt8 => Some(vm.known.structs.uint8),
@@ -238,14 +239,14 @@ impl SourceType {
         }
     }
 
-    pub fn enum_id(&self) -> Option<EnumId> {
+    pub fn enum_id(&self) -> Option<EnumDefinitionId> {
         match *self {
             SourceType::Enum(enum_id, _) => Some(enum_id),
             _ => None,
         }
     }
 
-    pub fn struct_id(&self) -> Option<StructId> {
+    pub fn struct_id(&self) -> Option<StructDefinitionId> {
         match *self {
             SourceType::Struct(struct_id, _) => Some(struct_id),
             _ => None,
@@ -363,7 +364,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_enum(&self, vm: &VM, xenum: &EnumData) -> String {
+    pub fn name_enum(&self, vm: &VM, xenum: &EnumDefinition) -> String {
         let writer = SourceTypePrinter {
             vm,
             type_params: Some(&xenum.type_params),

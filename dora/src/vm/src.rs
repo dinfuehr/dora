@@ -7,8 +7,9 @@ use dora_parser::interner::Name;
 
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinitionId, ConstDefinitionId, EnumId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    Intrinsic, ModuleId, StructDefinitionFieldId, StructId, TraitId, TypeParamId,
+    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
+    GlobalDefinitionId, Intrinsic, ModuleId, StructDefinitionFieldId, StructDefinitionId, TraitId,
+    TypeParamId,
 };
 
 #[derive(Debug)]
@@ -125,7 +126,7 @@ pub enum IdentType {
     StructField(SourceType, StructDefinitionFieldId),
 
     /// name of structure
-    Struct(StructId),
+    Struct(StructDefinitionId),
 
     // name of constant
     Const(ConstDefinitionId),
@@ -140,7 +141,7 @@ pub enum IdentType {
     Class(ClassDefinitionId, SourceTypeArray),
 
     // specific value in enum
-    EnumValue(EnumId, SourceTypeArray, usize),
+    EnumValue(EnumDefinitionId, SourceTypeArray, usize),
 }
 
 impl IdentType {
@@ -151,7 +152,7 @@ impl IdentType {
         }
     }
 
-    pub fn struct_id(&self) -> StructId {
+    pub fn struct_id(&self) -> StructDefinitionId {
         match self {
             &IdentType::Struct(sid) => sid,
             _ => panic!(),
@@ -228,7 +229,7 @@ pub enum CallType {
     Enum(SourceType, usize),
 
     // Struct constructor call Struct(<args>)
-    Struct(StructId, SourceTypeArray),
+    Struct(StructDefinitionId, SourceTypeArray),
 
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),

@@ -39,8 +39,8 @@ pub use self::classes::{
 };
 pub use self::consts::{const_accessible_from, ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{
-    enum_accessible_from, find_methods_in_enum, EnumData, EnumDef, EnumDefId, EnumId, EnumLayout,
-    EnumVariant,
+    enum_accessible_from, find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumInstance,
+    EnumInstanceId, EnumLayout, EnumVariant,
 };
 pub use self::extensions::{extension_matches, extension_matches_ty, ExtensionData, ExtensionId};
 pub use self::functions::{
@@ -67,8 +67,8 @@ pub use self::src::{
 };
 pub use self::structs::{
     find_methods_in_struct, struct_accessible_from, struct_field_accessible_from, StructDefinition,
-    StructDefinitionField, StructDefinitionFieldId, StructId, StructInstance, StructInstanceField,
-    StructInstanceId,
+    StructDefinitionField, StructDefinitionFieldId, StructDefinitionId, StructInstance,
+    StructInstanceField, StructInstanceId,
 };
 pub use self::traits::{trait_accessible_from, TraitData, TraitId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};
@@ -140,8 +140,8 @@ pub struct FullSemAnalysis {
     pub namespaces: Vec<NamespaceData>,               // storer all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>,     // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,                // stores all function implementations
-    pub enums: Vec<RwLock<EnumData>>,                 // store all enum source definitions
-    pub enum_defs: GrowableVec<EnumDef>,              // stores all enum definitions
+    pub enums: Vec<RwLock<EnumDefinition>>,           // store all enum source definitions
+    pub enum_defs: GrowableVec<EnumInstance>,         // stores all enum definitions
     pub traits: Vec<RwLock<TraitData>>,               // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,                 // stores all impl definitions
     pub code_map: Mutex<CodeMap>,                     // stores all compiled functions
@@ -162,7 +162,7 @@ impl FullSemAnalysis {
         let empty_class_def_id: ClassInstanceId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctDefinitionId = 0.into();
-        let empty_enum_id: EnumId = 0.into();
+        let empty_enum_id: EnumDefinitionId = 0.into();
         let empty_struct_id = 0.into();
         let empty_annotation_id: AnnotationId = 0.into();
 
@@ -321,8 +321,8 @@ pub struct VM {
     pub namespaces: Vec<NamespaceData>,               // storer all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>,     // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,                // stores all function implementations
-    pub enums: Vec<RwLock<EnumData>>,                 // store all enum source definitions
-    pub enum_defs: GrowableVec<EnumDef>,              // stores all enum definitions
+    pub enums: Vec<RwLock<EnumDefinition>>,           // store all enum source definitions
+    pub enum_defs: GrowableVec<EnumInstance>,         // stores all enum definitions
     pub traits: Vec<RwLock<TraitData>>,               // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,                 // stores all impl definitions
     pub code_map: Mutex<CodeMap>,                     // stores all compiled functions
@@ -351,7 +351,7 @@ impl VM {
         let empty_class_def_id: ClassInstanceId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctDefinitionId = 0.into();
-        let empty_enum_id: EnumId = 0.into();
+        let empty_enum_id: EnumDefinitionId = 0.into();
         let empty_struct_id = 0.into();
         let empty_annotation_id: AnnotationId = 0.into();
         let gc = Gc::new(&args);
@@ -618,7 +618,7 @@ impl VM {
     }
 
     #[cfg(test)]
-    pub fn struct_by_name(&self, name: &'static str) -> StructId {
+    pub fn struct_by_name(&self, name: &'static str) -> StructDefinitionId {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id)
             .get_struct(name)
@@ -626,7 +626,7 @@ impl VM {
     }
 
     #[cfg(test)]
-    pub fn enum_by_name(&self, name: &'static str) -> EnumId {
+    pub fn enum_by_name(&self, name: &'static str) -> EnumDefinitionId {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id)
             .get_enum(name)
