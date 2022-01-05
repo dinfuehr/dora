@@ -62,6 +62,9 @@ pub use self::namespaces::{
     accessible_from, namespace_accessible_from, namespace_contains, namespace_package,
     namespace_path, NamespaceData, NamespaceId,
 };
+pub use self::specialize::{
+    add_ref_fields, specialize_enum_id_params, specialize_struct_id_params,
+};
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
@@ -86,6 +89,7 @@ mod imports;
 mod known;
 mod modules;
 mod namespaces;
+mod specialize;
 mod src;
 mod structs;
 mod traits;

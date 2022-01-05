@@ -2,13 +2,12 @@ use std::fmt;
 
 use crate::bytecode::read_opcode_and_width;
 use crate::mem::ptr_width;
-use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::utils::enumeration;
 use crate::vm::{
-    get_vm, ClassDefinitionId, ClassInstanceId, EnumDefinitionId, EnumLayout, FctDefinitionId,
-    FieldId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
-    VM,
+    get_vm, specialize_enum_id_params, specialize_struct_id_params, ClassDefinitionId,
+    ClassInstanceId, EnumDefinitionId, EnumLayout, FctDefinitionId, FieldId,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
 

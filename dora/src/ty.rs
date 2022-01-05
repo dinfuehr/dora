@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use crate::bytecode::BytecodeType;
 use crate::mem;
-use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
-    impl_matches, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, EnumLayout,
-    FctDefinition, ImplId, ModuleId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParam,
-    TypeParamDefinition, TypeParamId,
+    impl_matches, specialize_enum_id_params, specialize_struct_id_params, ClassDefinition,
+    ClassDefinitionId, EnumDefinition, EnumDefinitionId, EnumLayout, FctDefinition, ImplId,
+    ModuleId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParam, TypeParamDefinition,
+    TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -467,7 +467,7 @@ impl SourceType {
             SourceType::Float64 => 8,
             SourceType::Enum(eid, list_id) => {
                 let params = vm.source_type_arrays.lock().get(list_id);
-                let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
+                let enum_def_id = specialize_enum_id_params(vm, eid, params);
                 let xenum = vm.enum_defs.idx(enum_def_id);
 
                 match xenum.layout {
@@ -483,7 +483,7 @@ impl SourceType {
             | SourceType::Ptr => mem::ptr_width(),
             SourceType::Struct(sid, list_id) => {
                 let params = vm.source_type_arrays.lock().get(list_id);
-                let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
+                let sid = specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
 
                 struc.size
@@ -509,7 +509,7 @@ impl SourceType {
             SourceType::Any => panic!("no alignment for Any."),
             SourceType::Enum(eid, list_id) => {
                 let params = vm.source_type_arrays.lock().get(list_id);
-                let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
+                let enum_def_id = specialize_enum_id_params(vm, eid, params);
                 let xenum = vm.enum_defs.idx(enum_def_id);
 
                 match xenum.layout {
@@ -523,7 +523,7 @@ impl SourceType {
             | SourceType::Ptr => mem::ptr_width(),
             SourceType::Struct(sid, list_id) => {
                 let params = vm.source_type_arrays.lock().get(list_id);
-                let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
+                let sid = specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
 
                 struc.align

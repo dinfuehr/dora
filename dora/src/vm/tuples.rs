@@ -4,9 +4,8 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::mem;
-use crate::semck::specialize::specialize_enum_id_params;
 use crate::ty::SourceType;
-use crate::vm::{EnumLayout, VM};
+use crate::vm::{specialize_enum_id_params, EnumLayout, VM};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct TupleId(u32);

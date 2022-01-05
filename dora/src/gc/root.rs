@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use crate::compiler::map::CodeDescriptor;
 use crate::gc::Address;
-use crate::semck::specialize::{specialize_enum_id_params, specialize_struct_id_params};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::ty::SourceType;
-use crate::vm::{EnumLayout, VM};
+use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout, VM};
 
 pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();

@@ -21,16 +21,16 @@ use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::{
-    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
-    specialize_type_list,
+    specialize_class_id_params, specialize_enum_class, specialize_trait_object, specialize_tuple,
+    specialize_type, specialize_type_list,
 };
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, EnumDefinitionId, EnumLayout, FctDefinition, FctDefinitionId,
-    GlobalDefinitionId, Intrinsic, StructDefinitionId, Trap, TupleId, VM,
+    find_trait_impl, specialize_enum_id_params, specialize_struct_id_params, EnumDefinitionId,
+    EnumLayout, FctDefinition, FctDefinitionId, GlobalDefinitionId, Intrinsic, StructDefinitionId,
+    Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
