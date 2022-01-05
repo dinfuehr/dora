@@ -6,7 +6,8 @@ use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinitionId, FctDefinition, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis,
+    AnnotationDefinition, ClassDefinitionId, FctDefinition, FctParent, Field, FieldId, FileId,
+    NamespaceId, SemAnalysis,
 };
 
 use dora_parser::ast;
@@ -90,7 +91,8 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        self.add_field(f.pos, f.name, ty, f.mutable, f.is_pub);
+        let is_pub = AnnotationDefinition::is_pub(&f.annotation_usages, self.sa);
+        self.add_field(f.pos, f.name, ty, f.mutable, is_pub);
 
         if !f.primary_ctor && f.expr.is_none() {
             self.sa.diag.lock().report(

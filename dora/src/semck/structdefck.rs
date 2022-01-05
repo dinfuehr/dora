@@ -5,8 +5,8 @@ use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{
-    FileId, NamespaceId, SemAnalysis, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
-    TypeParamId,
+    AnnotationDefinition, FileId, NamespaceId, SemAnalysis, StructDefinitionField,
+    StructDefinitionFieldId, StructDefinitionId, TypeParamId,
 };
 
 use dora_parser::ast;
@@ -156,7 +156,7 @@ impl<'x> StructCheck<'x> {
             pos: f.pos,
             name: f.name,
             ty,
-            is_pub: f.is_pub,
+            is_pub: AnnotationDefinition::is_pub(&f.annotation_usages, self.sa),
         };
 
         xstruct.fields.push(field);

@@ -1,4 +1,5 @@
 use parking_lot::RwLock;
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -10,11 +11,11 @@ use crate::semck::report_sym_shadow;
 use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
-    self, AnnotationDefinitionId, ClassDefinitionId, ConstDefinition, ConstDefinitionId,
-    ConstValue, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId, FctDefinition,
-    FctParent, FileId, GlobalDefinition, GlobalDefinitionId, ImplData, ImplId, ImportData, Module,
-    ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructDefinitionId,
-    TraitDefinition, TraitDefinitionId, TypeParam, TypeParamDefinition,
+    self, AnnotationDefinition, AnnotationDefinitionId, ClassDefinitionId, ConstDefinition,
+    ConstDefinitionId, ConstValue, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId,
+    FctDefinition, FctParent, FileId, GlobalDefinition, GlobalDefinitionId, ImplData, ImplId,
+    ImportData, Module, ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructDefinition,
+    StructDefinitionId, TraitDefinition, TraitDefinitionId, TypeParam, TypeParamDefinition,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -22,14 +23,10 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
-pub fn check(sa: &mut SemAnalysis) -> Result<(), i32> {
-    parse_initial_files(sa)?;
-
-    let mut next_file = 0;
-
+pub fn check(sa: &mut SemAnalysis, next_file: &Cell<usize>) -> Result<(), i32> {
     loop {
-        let (next, files_to_parse) = check_files(sa, next_file);
-        next_file = next;
+        let (next, files_to_parse) = check_files(sa, next_file.get());
+        next_file.set(next);
 
         if files_to_parse.is_empty() {
             break;
@@ -43,14 +40,14 @@ pub fn check(sa: &mut SemAnalysis) -> Result<(), i32> {
     Ok(())
 }
 
-fn parse_initial_files(sa: &mut SemAnalysis) -> Result<(), i32> {
+pub fn parse_initial_files(sa: &mut SemAnalysis, lib: &[(&str, &str)]) -> Result<(), i32> {
     let stdlib_dir = sa.args.flag_stdlib.clone();
     let namespace_id = sa.stdlib_namespace_id;
 
     if let Some(stdlib) = stdlib_dir {
         parse_dir(sa, &stdlib, namespace_id)?;
     } else {
-        parse_bundled_stdlib(sa, namespace_id)?;
+        parse_bundled_stdlib(sa, namespace_id, lib)?;
     }
 
     let boots_dir = sa.args.flag_boots.clone();
@@ -159,10 +156,12 @@ fn parse_file(sa: &mut SemAnalysis, file: ParseFile) -> Result<(), i32> {
     }
 }
 
-pub fn parse_bundled_stdlib(sa: &mut SemAnalysis, namespace_id: NamespaceId) -> Result<(), i32> {
-    use crate::driver::start::STDLIB;
-
-    for (filename, content) in STDLIB {
+pub fn parse_bundled_stdlib(
+    sa: &mut SemAnalysis,
+    namespace_id: NamespaceId,
+    lib: &[(&str, &str)],
+) -> Result<(), i32> {
+    for (filename, content) in lib {
         parse_bundled_stdlib_file(sa, namespace_id, filename, content)?;
     }
 
@@ -212,7 +211,8 @@ struct GlobalDef<'x> {
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let id = NamespaceData::new(self.sa, self.namespace_id, node.name, node.is_pub);
+        let is_pub = AnnotationDefinition::is_pub(&node.annotation_usages, self.sa);
+        let id = NamespaceData::new(self.sa, self.namespace_id, node.name, is_pub);
 
         let sym = Sym::Namespace(id);
         if let Some(sym) = self.insert(node.name, sym) {
@@ -236,7 +236,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             file_id: self.file_id,
             ast: node.clone(),
             namespace_id: self.namespace_id,
-            is_pub: node.is_pub,
+            is_pub: AnnotationDefinition::is_pub(&node.annotation_usages, self.sa),
             pos: node.pos,
             name: node.name,
             type_params: Vec::new(),
@@ -276,7 +276,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 namespace_id: self.namespace_id,
                 pos: node.pos,
                 name: node.name,
-                is_pub: node.is_pub,
+                is_pub: AnnotationDefinition::is_pub(&node.annotation_usages, self.sa),
                 ty: SourceType::Unit,
                 mutable: node.mutable,
                 initializer: None,
@@ -346,7 +346,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
         let id = {
             let mut modules = self.sa.modules.lock();
-
             let id: ModuleId = modules.len().into();
             let module = Module {
                 id: id,
@@ -360,8 +359,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 internal: node.internal,
                 internal_resolved: false,
                 has_constructor: node.has_constructor,
-                is_pub: node.is_pub,
-
+                is_pub: AnnotationDefinition::is_pub(&node.annotation_usages, self.sa),
                 constructor: None,
                 fields: Vec::new(),
                 methods: Vec::new(),
@@ -392,7 +390,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 namespace_id: self.namespace_id,
                 pos: node.pos,
                 name: node.name,
-                is_pub: node.is_pub,
+                is_pub: AnnotationDefinition::is_pub(&node.annotation_usages, self.sa),
                 ty: SourceType::Error,
                 expr: node.expr.clone(),
                 value: ConstValue::None,
@@ -414,6 +412,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let mut classes = self.sa.classes.lock();
 
             let id: ClassDefinitionId = classes.len().into();
+            let name = self.sa.interner.str(node.name);
+            println!("{}", name);
             let cls = vm::ClassDefinition::new(&self.sa, id, self.file_id, node, self.namespace_id);
 
             classes.push(Arc::new(RwLock::new(cls)));
@@ -438,10 +438,10 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
                 primitive_ty: None,
-                is_pub: node.is_pub,
+                is_pub: AnnotationDefinition::is_pub(&node.annotation_usages, self.sa),
                 pos: node.pos,
                 name: node.name,
-                internal: node.internal,
+                internal: AnnotationDefinition::is_internal(&node.annotation_usages, self.sa),
                 internal_resolved: false,
                 type_params: Vec::new(),
                 type_params2: TypeParamDefinition::new(),
@@ -518,7 +518,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             name: node.name,
             type_params: Vec::new(),
             type_params2: TypeParamDefinition::new(),
-            is_pub: node.is_pub,
+            is_pub: AnnotationDefinition::is_pub(&node.annotation_usages, self.sa),
             variants: Vec::new(),
             name_to_value: HashMap::new(),
             impls: Vec::new(),

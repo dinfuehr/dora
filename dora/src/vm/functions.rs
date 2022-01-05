@@ -13,8 +13,9 @@ use crate::gc::Address;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, FileId, ImplId,
-    ModuleId, NamespaceId, TraitDefinitionId, TypeParam, TypeParamId, VM,
+    accessible_from, namespace_path, AnalysisData, AnnotationDefinition, ClassDefinitionId,
+    ExtensionId, FileId, ImplId, ModuleId, NamespaceId, TraitDefinitionId, TypeParam, TypeParamId,
+    VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -77,12 +78,13 @@ pub struct FctDefinition {
 
 impl FctDefinition {
     pub fn new(
-        _vm: &VM,
+        vm: &VM,
         file_id: FileId,
         namespace_id: NamespaceId,
         ast: &Arc<ast::Function>,
         parent: FctParent,
     ) -> FctDefinition {
+        let annotations = &ast.annotation_usages;
         FctDefinition {
             id: FctDefinitionId(0),
             file_id,
@@ -93,15 +95,18 @@ impl FctDefinition {
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,
-            has_override: ast.has_override,
-            has_open: ast.has_open || ast.is_abstract,
-            has_final: ast.has_final,
-            has_optimize_immediately: ast.has_optimize_immediately,
-            is_pub: ast.is_pub,
-            is_static: ast.is_static,
-            is_abstract: ast.is_abstract,
-            is_test: ast.is_test,
-            internal: ast.internal,
+            has_override: AnnotationDefinition::is_override(annotations, vm),
+            has_open: AnnotationDefinition::is_open(annotations, vm),
+            has_final: AnnotationDefinition::is_final(annotations, vm),
+            has_optimize_immediately: AnnotationDefinition::is_optimize_immediately(
+                annotations,
+                vm,
+            ),
+            is_pub: AnnotationDefinition::is_pub(annotations, vm),
+            is_static: AnnotationDefinition::is_static(annotations, vm),
+            is_abstract: AnnotationDefinition::is_abstract(annotations, vm),
+            is_test: AnnotationDefinition::is_test(annotations, vm),
+            internal: AnnotationDefinition::is_internal(annotations, vm),
             internal_resolved: false,
             overrides: None,
             is_constructor: ast.is_constructor,
@@ -132,7 +137,7 @@ impl FctDefinition {
     }
 
     pub fn is_virtual(&self) -> bool {
-        (self.has_open || self.has_override) && !self.has_final
+        (self.is_abstract || self.has_open || self.has_override) && !self.has_final
     }
 
     pub fn in_class(&self) -> bool {

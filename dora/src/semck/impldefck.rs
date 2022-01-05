@@ -6,7 +6,8 @@ use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{
-    FctDefinition, FctDefinitionId, FctParent, FileId, ImplId, NamespaceId, SemAnalysis,
+    AnnotationDefinition, FctDefinition, FctDefinitionId, FctParent, FileId, ImplId, NamespaceId,
+    SemAnalysis,
 };
 
 use dora_parser::ast;
@@ -159,7 +160,7 @@ impl<'x> ImplCheck<'x> {
             let method_id = self.visit_method(method);
             ximpl.methods.push(method_id);
 
-            let table = if method.is_static {
+            let table = if AnnotationDefinition::is_static(&method.annotation_usages, self.sa) {
                 &mut ximpl.static_names
             } else {
                 &mut ximpl.instance_names
@@ -186,7 +187,8 @@ impl<'x> ImplCheck<'x> {
     }
 
     fn visit_method(&mut self, method: &Arc<ast::Function>) -> FctDefinitionId {
-        if method.block.is_none() && !method.internal {
+        let internal = AnnotationDefinition::is_internal(&method.annotation_usages, self.sa);
+        if method.block.is_none() && !internal {
             self.sa
                 .diag
                 .lock()

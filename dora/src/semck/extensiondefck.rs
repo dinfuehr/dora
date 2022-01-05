@@ -5,8 +5,8 @@ use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{
-    EnumDefinitionId, ExtensionId, FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis,
-    StructDefinitionId, TypeParam,
+    AnnotationDefinition, EnumDefinitionId, ExtensionId, FctDefinition, FctParent, FileId,
+    NamespaceId, SemAnalysis, StructDefinitionId, TypeParam,
 };
 
 use dora_parser::ast;
@@ -128,7 +128,8 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        if f.block.is_none() && !f.internal {
+        let internal = AnnotationDefinition::is_internal(&f.annotation_usages, self.sa);
+        if f.block.is_none() && !internal {
             self.sa
                 .diag
                 .lock()
@@ -142,6 +143,7 @@ impl<'x> ExtensionCheck<'x> {
             f,
             FctParent::Extension(self.extension_id),
         );
+        let is_static = AnnotationDefinition::is_static(&f.annotation_usages, self.sa);
 
         let fct_id = self.sa.add_fct(fct);
 
@@ -175,7 +177,7 @@ impl<'x> ExtensionCheck<'x> {
         let mut extension = self.sa.extensions[self.extension_id].write();
         extension.methods.push(fct_id);
 
-        let table = if f.is_static {
+        let table = if is_static {
             &mut extension.static_names
         } else {
             &mut extension.instance_names
@@ -234,7 +236,8 @@ impl<'x> ExtensionCheck<'x> {
             let method = self.sa.fcts.idx(method);
             let method = method.read();
 
-            if method.name == f.name && method.is_static == f.is_static {
+            let is_static = AnnotationDefinition::is_static(&f.annotation_usages, self.sa);
+            if method.name == f.name && method.is_static == is_static {
                 let method_name = self.sa.interner.str(method.name).to_string();
                 let msg = SemError::MethodExists(method_name, method.pos);
                 self.sa.diag.lock().report(self.file_id.into(), f.pos, msg);
@@ -258,7 +261,8 @@ impl<'x> ExtensionCheck<'x> {
             return true;
         }
 
-        let table = if f.is_static {
+        let is_static = AnnotationDefinition::is_static(&f.annotation_usages, self.sa);
+        let table = if is_static {
             &extension.static_names
         } else {
             &extension.instance_names

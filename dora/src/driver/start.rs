@@ -193,6 +193,8 @@ fn run_main(vm: &VM, main: FctDefinitionId) -> i32 {
     }
 }
 
+pub const STDLIB_BOOT: &[(&str, &str)] =
+    &include!(concat!(env!("OUT_DIR"), "/dora_stdlib-boot_bundle.rs"));
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
 fn find_main(sa: &SemAnalysis) -> Option<FctDefinitionId> {

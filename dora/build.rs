@@ -8,17 +8,26 @@ use std::{
 };
 use walkdir::WalkDir;
 
+const SOURCE_BOOT_DIR: &str = "stdlib-boot";
+const TARGET_BOOT_FILE: &str = "dora_stdlib-boot_bundle.rs";
+
 const SOURCE_DIR: &str = "stdlib";
+const TARGET_FILE: &str = "dora_stdlib_bundle.rs";
 
 fn main() -> Result<(), Box<dyn Error>> {
+    bundle(SOURCE_BOOT_DIR, TARGET_BOOT_FILE)?;
+    bundle(SOURCE_DIR, TARGET_FILE)
+}
+
+fn bundle(source_dir: &str, target_file: &str) -> Result<(), Box<dyn Error>> {
     let out_dir = env::var("OUT_DIR")?;
     let out_path = Path::new(&out_dir);
 
     let root_dir = env::var("CARGO_MANIFEST_DIR")?;
     let root_path = Path::new(&root_dir);
 
-    let copy_path = out_path.join("stdlib");
-    let stdlib_bundle_path = out_path.join("dora_stdlib_bundle.rs");
+    let copy_path = out_path.join(source_dir);
+    let stdlib_bundle_path = out_path.join(target_file);
 
     if copy_path.is_dir() {
         fs::remove_dir_all(&copy_path)?;
@@ -35,7 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     writeln!(&mut stdlib, r#"["#,)?;
 
-    for f in WalkDir::new(SOURCE_DIR) {
+    for f in WalkDir::new(source_dir) {
         let f = f?;
 
         if !f.file_type().is_file() {

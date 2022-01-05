@@ -9,7 +9,7 @@ use crate::mem::{fits_i32, ptr_width};
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceTypeArray};
-use crate::vm::{get_vm, FctId, Trap};
+use crate::vm::{get_vm, FctDefinitionId, Trap};
 use crate::vtable::VTable;
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
@@ -97,7 +97,12 @@ impl MacroAssembler {
         }
     }
 
-    pub fn direct_call(&mut self, fct_id: FctId, ptr: *const u8, type_params: SourceTypeArray) {
+    pub fn direct_call(
+        &mut self,
+        fct_id: FctDefinitionId,
+        ptr: *const u8,
+        type_params: SourceTypeArray,
+    ) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -123,7 +128,7 @@ impl MacroAssembler {
     pub fn indirect_call(
         &mut self,
         pos: Position,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         vtable_index: u32,
         self_index: u32,
         type_params: SourceTypeArray,

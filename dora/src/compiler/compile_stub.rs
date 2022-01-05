@@ -18,8 +18,8 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, FctDefinition, FctDefinitionId, FctParent, TypeParam,
-    TypeParamId, VM,
+    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, FctDefinition, FctDefinitionId,
+    FctParent, TypeParam, TypeParamId, VM,
 };
 
 // This code generates the compiler stub, there should only be one instance
@@ -320,7 +320,8 @@ fn ensure_thunk(
 
     let callee_id = find_trait_impl(vm, fct_id, trait_id, object_ty.clone());
 
-    let mut thunk_fct = FctDefinition::new(vm, fct.file_id, fct.namespace_id, &fct.ast, FctParent::None);
+    let mut thunk_fct =
+        FctDefinition::new(vm, fct.file_id, fct.namespace_id, &fct.ast, FctParent::None);
     thunk_fct.type_params = fct.type_params.clone();
     let mut traits = HashSet::new();
     traits.insert(trait_id);

@@ -118,8 +118,8 @@ pub struct KnownAnnotations {
     pub abstract_: AnnotationDefinitionId,
     pub final_: AnnotationDefinitionId,
     pub internal: AnnotationDefinitionId,
-    pub override_: AnnotationDefinitionId,
     pub open: AnnotationDefinitionId,
+    pub override_: AnnotationDefinitionId,
     pub pub_: AnnotationDefinitionId,
     pub static_: AnnotationDefinitionId,
 

@@ -11,11 +11,11 @@ use crate::size::InstanceSize;
 use crate::sym::SymTable;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
-use crate::vm::VM;
 use crate::vm::{
     accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctDefinitionId,
     FctParent, FileId, ImplId, NamespaceId, TraitDefinitionId,
 };
+use crate::vm::{AnnotationDefinition, VM};
 use crate::vtable::VTableBox;
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -93,12 +93,13 @@ pub struct ClassDefinition {
 
 impl ClassDefinition {
     pub fn new(
-        _vm: &VM,
+        vm: &VM,
         id: ClassDefinitionId,
         file_id: FileId,
         ast: &Arc<ast::Class>,
         namespace_id: NamespaceId,
     ) -> ClassDefinition {
+        let annotations = &ast.annotation_usages;
         let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
             type_params
                 .iter()
@@ -114,12 +115,12 @@ impl ClassDefinition {
             name: ast.name,
             ty: None,
             parent_class: None,
-            has_open: ast.has_open,
-            is_abstract: ast.is_abstract,
-            internal: ast.internal,
+            has_open: AnnotationDefinition::is_open(annotations, vm),
+            is_abstract: AnnotationDefinition::is_abstract(annotations, vm),
+            internal: AnnotationDefinition::is_internal(annotations, vm),
+            is_pub: AnnotationDefinition::is_pub(annotations, vm),
             internal_resolved: false,
             has_constructor: ast.has_constructor,
-            is_pub: ast.is_pub,
             table: SymTable::new(),
 
             constructor: None,

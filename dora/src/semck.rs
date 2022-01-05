@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::HashSet;
 
 use crate::semck::error::msg::SemError;
@@ -8,6 +9,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
+use crate::driver::{STDLIB, STDLIB_BOOT};
 pub use globaldef::should_file_be_parsed;
 pub use readty::{read_type, AllowSelf, TypeParamContext};
 
@@ -45,12 +47,38 @@ macro_rules! return_on_error {
 }
 
 pub fn check(sa: &mut SemAnalysis) -> bool {
-    // add user defined fcts and classes to vm
-    // this check does not look into fct or class bodies
-    if let Err(_) = globaldef::check(sa) {
+    // HACK HACK HACK
+    let next_file: Cell<usize> = Cell::new(0);
+    // parse internal annotations first
+    if let Err(_) = globaldef::parse_initial_files(sa, STDLIB_BOOT) {
+        return false;
+    }
+    if let Err(_) = globaldef::check(sa, &next_file) {
         return false;
     }
     return_on_error!(sa);
+    println!("std-boot checked");
+    {
+        let annos = sa.annotations.lock();
+        println!("{}", annos.len());
+        for anno in annos.iter() {
+            let name = sa.interner.str(anno.read().name);
+            println!("{}", name)
+        }
+    }
+    stdlib::resolve_internal_annotations(sa);
+    println!("std-boot internal resolved");
+
+    // this check does not look into fct or class bodies
+    if let Err(_) = globaldef::parse_initial_files(sa, STDLIB) {
+        return false;
+    }
+    return_on_error!(sa);
+
+    // add user defined fcts and classes to vm
+    if let Err(_) = globaldef::check(sa, &next_file) {
+        return false;
+    }
 
     // add internal annotations early
     stdlib::resolve_internal_annotations(sa);
