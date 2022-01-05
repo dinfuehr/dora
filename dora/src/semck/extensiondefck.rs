@@ -5,15 +5,15 @@ use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{
-    EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, StructId, TypeParam, VM,
+    EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, SemAnalysis, StructId, TypeParam,
 };
 
 use dora_parser::ast;
 use dora_parser::lexer::position::Position;
 use fixedbitset::FixedBitSet;
 
-pub fn check(vm: &VM) {
-    for extension in &vm.extensions {
+pub fn check(sa: &SemAnalysis) {
+    for extension in &sa.extensions {
         let (extension_id, file_id, namespace_id, ast) = {
             let extension = extension.read();
 
@@ -26,9 +26,9 @@ pub fn check(vm: &VM) {
         };
 
         let mut extck = ExtensionCheck {
-            vm,
+            sa,
             extension_id,
-            sym: NestedSymTable::new(vm, namespace_id),
+            sym: NestedSymTable::new(sa, namespace_id),
             namespace_id,
             file_id,
             ast: &ast,
@@ -40,7 +40,7 @@ pub fn check(vm: &VM) {
 }
 
 struct ExtensionCheck<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     file_id: FileId,
     namespace_id: NamespaceId,
     sym: NestedSymTable<'x>,
@@ -60,7 +60,7 @@ impl<'x> ExtensionCheck<'x> {
         }
 
         if let Some(extension_ty) = read_type(
-            self.vm,
+            self.sa,
             &self.sym,
             self.file_id.into(),
             &self.ast.class_type,
@@ -71,7 +71,7 @@ impl<'x> ExtensionCheck<'x> {
 
             match extension_ty {
                 SourceType::Enum(enum_id, _) => {
-                    let mut xenum = self.vm.enums[enum_id].write();
+                    let mut xenum = self.sa.enums[enum_id].write();
                     xenum.extensions.push(self.extension_id);
                 }
 
@@ -83,16 +83,16 @@ impl<'x> ExtensionCheck<'x> {
                 | SourceType::Float32
                 | SourceType::Float64 => {
                     let struct_id = extension_ty
-                        .primitive_struct_id(self.vm)
+                        .primitive_struct_id(self.sa)
                         .expect("primitive expected");
-                    let xstruct = self.vm.structs.idx(struct_id);
+                    let xstruct = self.sa.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
 
                     xstruct.extensions.push(self.extension_id);
                 }
 
                 SourceType::Struct(struct_id, _) => {
-                    let xstruct = self.vm.structs.idx(struct_id);
+                    let xstruct = self.sa.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
 
                     xstruct.extensions.push(self.extension_id);
@@ -100,16 +100,16 @@ impl<'x> ExtensionCheck<'x> {
 
                 _ => {
                     let cls_id = extension_ty.cls_id().unwrap();
-                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = self.sa.classes.idx(cls_id);
                     let mut cls = cls.write();
                     cls.extensions.push(self.extension_id);
                 }
             }
 
-            let mut extension = self.vm.extensions[self.extension_id].write();
+            let mut extension = self.sa.extensions[self.extension_id].write();
 
             check_for_unconstrained_type_params(
-                self.vm,
+                self.sa,
                 extension_ty.clone(),
                 &extension.type_params,
                 self.file_id,
@@ -128,21 +128,21 @@ impl<'x> ExtensionCheck<'x> {
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
         if f.block.is_none() && !f.internal {
-            self.vm
+            self.sa
                 .diag
                 .lock()
                 .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
         }
 
         let fct = Fct::new(
-            self.vm,
+            self.sa,
             self.file_id,
             self.namespace_id,
             f,
             FctParent::Extension(self.extension_id),
         );
 
-        let fct_id = self.vm.add_fct(fct);
+        let fct_id = self.sa.add_fct(fct);
 
         if self.extension_ty.is_error() {
             return;
@@ -159,7 +159,7 @@ impl<'x> ExtensionCheck<'x> {
             | SourceType::Float64 => {
                 let struct_id = self
                     .extension_ty
-                    .primitive_struct_id(self.vm)
+                    .primitive_struct_id(self.sa)
                     .expect("primitive expected");
                 self.check_in_struct(&f, struct_id)
             }
@@ -171,7 +171,7 @@ impl<'x> ExtensionCheck<'x> {
             return;
         }
 
-        let mut extension = self.vm.extensions[self.extension_id].write();
+        let mut extension = self.sa.extensions[self.extension_id].write();
         extension.methods.push(fct_id);
 
         let table = if f.is_static {
@@ -186,11 +186,11 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        let extension = &self.vm.extensions[self.extension_id];
+        let extension = &self.sa.extensions[self.extension_id];
         let mut extension = extension.write();
 
         semck::check_type_params(
-            self.vm,
+            self.sa,
             ast_type_params,
             &mut extension.type_params,
             &mut self.sym,
@@ -200,7 +200,7 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_in_enum(&self, f: &ast::Function, enum_id: EnumId) -> bool {
-        let xenum = self.vm.enums[enum_id].read();
+        let xenum = self.sa.enums[enum_id].read();
 
         for &extension_id in &xenum.extensions {
             if !self.check_extension(f, extension_id) {
@@ -212,7 +212,7 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_in_struct(&self, f: &ast::Function, struct_id: StructId) -> bool {
-        let xstruct = self.vm.structs.idx(struct_id);
+        let xstruct = self.sa.structs.idx(struct_id);
         let xstruct = xstruct.read();
 
         for &extension_id in &xstruct.extensions {
@@ -226,17 +226,17 @@ impl<'x> ExtensionCheck<'x> {
 
     fn check_in_class(&self, f: &ast::Function) -> bool {
         let cls_id = self.extension_ty.cls_id().unwrap();
-        let cls = self.vm.classes.idx(cls_id);
+        let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
 
         for &method in &cls.methods {
-            let method = self.vm.fcts.idx(method);
+            let method = self.sa.fcts.idx(method);
             let method = method.read();
 
             if method.name == f.name && method.is_static == f.is_static {
-                let method_name = self.vm.interner.str(method.name).to_string();
+                let method_name = self.sa.interner.str(method.name).to_string();
                 let msg = SemError::MethodExists(method_name, method.pos);
-                self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
+                self.sa.diag.lock().report(self.file_id.into(), f.pos, msg);
                 return false;
             }
         }
@@ -251,9 +251,9 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_extension(&self, f: &ast::Function, extension_id: ExtensionId) -> bool {
-        let extension = self.vm.extensions[extension_id].read();
+        let extension = self.sa.extensions[extension_id].read();
 
-        if extension.ty.type_params(self.vm) != self.extension_ty.type_params(self.vm) {
+        if extension.ty.type_params(self.sa) != self.extension_ty.type_params(self.sa) {
             return true;
         }
 
@@ -264,11 +264,11 @@ impl<'x> ExtensionCheck<'x> {
         };
 
         if let Some(&method_id) = table.get(&f.name) {
-            let method = self.vm.fcts.idx(method_id);
+            let method = self.sa.fcts.idx(method_id);
             let method = method.read();
-            let method_name = self.vm.interner.str(method.name).to_string();
+            let method_name = self.sa.interner.str(method.name).to_string();
             let msg = SemError::MethodExists(method_name, method.pos);
-            self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
+            self.sa.diag.lock().report(self.file_id.into(), f.pos, msg);
             false
         } else {
             true
@@ -277,7 +277,7 @@ impl<'x> ExtensionCheck<'x> {
 }
 
 pub fn check_for_unconstrained_type_params(
-    vm: &VM,
+    sa: &SemAnalysis,
     ty: SourceType,
     type_params_defs: &[TypeParam],
     file_id: FileId,
@@ -285,20 +285,20 @@ pub fn check_for_unconstrained_type_params(
 ) {
     let mut bitset = FixedBitSet::with_capacity(type_params_defs.len());
 
-    discover_type_params(vm, ty, &mut bitset);
+    discover_type_params(sa, ty, &mut bitset);
 
     bitset.toggle_range(..);
 
     for idx in bitset.ones() {
         let type_param_def = &type_params_defs[idx];
-        let tp_name = vm.interner.str(type_param_def.name).to_string();
-        vm.diag
+        let tp_name = sa.interner.str(type_param_def.name).to_string();
+        sa.diag
             .lock()
             .report(file_id, pos, SemError::UnconstrainedTypeParam(tp_name));
     }
 }
 
-fn discover_type_params(vm: &VM, ty: SourceType, used_type_params: &mut FixedBitSet) {
+fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut FixedBitSet) {
     match ty {
         SourceType::Error
         | SourceType::Unit
@@ -317,17 +317,17 @@ fn discover_type_params(vm: &VM, ty: SourceType, used_type_params: &mut FixedBit
         SourceType::Class(_, list_id)
         | SourceType::Enum(_, list_id)
         | SourceType::Struct(_, list_id) => {
-            let params = vm.source_type_arrays.lock().get(list_id);
+            let params = sa.source_type_arrays.lock().get(list_id);
 
             for param in params.iter() {
-                discover_type_params(vm, param, used_type_params);
+                discover_type_params(sa, param, used_type_params);
             }
         }
         SourceType::Tuple(tuple_id) => {
-            let subtypes = vm.tuples.lock().get(tuple_id);
+            let subtypes = sa.tuples.lock().get(tuple_id);
 
             for subtype in subtypes.iter() {
-                discover_type_params(vm, subtype.clone(), used_type_params);
+                discover_type_params(sa, subtype.clone(), used_type_params);
             }
         }
         SourceType::Lambda(_) => unimplemented!(),

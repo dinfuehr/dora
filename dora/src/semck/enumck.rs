@@ -10,14 +10,14 @@ use crate::error::msg::SemError;
 use crate::semck::{read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
-use crate::vm::{EnumData, EnumVariant, FileId, TypeParamId, VM};
+use crate::vm::{EnumData, EnumVariant, FileId, SemAnalysis, TypeParamId};
 
-pub fn check(vm: &VM) {
-    for xenum in &vm.enums {
+pub fn check(sa: &SemAnalysis) {
+    for xenum in &sa.enums {
         let ast = xenum.read().ast.clone();
 
         let mut enumck = EnumCheck {
-            vm,
+            sa,
             file_id: xenum.read().file_id,
             ast: &ast,
             xenum,
@@ -28,7 +28,7 @@ pub fn check(vm: &VM) {
 }
 
 struct EnumCheck<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     file_id: FileId,
     ast: &'x Arc<ast::Enum>,
     xenum: &'x RwLock<EnumData>,
@@ -36,7 +36,7 @@ struct EnumCheck<'x> {
 
 impl<'x> EnumCheck<'x> {
     fn check(&mut self) {
-        let mut symtable = NestedSymTable::new(self.vm, self.xenum.read().namespace_id);
+        let mut symtable = NestedSymTable::new(self.sa, self.xenum.read().namespace_id);
 
         symtable.push_level();
 
@@ -53,7 +53,7 @@ impl<'x> EnumCheck<'x> {
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {
                     let variant_ty = read_type(
-                        self.vm,
+                        self.sa,
                         &symtable,
                         self.file_id.into(),
                         ty,
@@ -86,9 +86,9 @@ impl<'x> EnumCheck<'x> {
 
             for type_param in type_params {
                 if !names.insert(type_param.name) {
-                    let name = self.vm.interner.str(type_param.name).to_string();
+                    let name = self.sa.interner.str(type_param.name).to_string();
                     let msg = SemError::TypeParamNameNotUnique(name);
-                    self.vm
+                    self.sa
                         .diag
                         .lock()
                         .report(self.file_id, type_param.pos, msg);
@@ -98,7 +98,7 @@ impl<'x> EnumCheck<'x> {
 
                 for bound in &type_param.bounds {
                     let ty = read_type(
-                        self.vm,
+                        self.sa,
                         symtable,
                         self.file_id,
                         bound,
@@ -113,7 +113,7 @@ impl<'x> EnumCheck<'x> {
                                 .insert(trait_id)
                             {
                                 let msg = SemError::DuplicateTraitBound;
-                                self.vm
+                                self.sa
                                     .diag
                                     .lock()
                                     .report(self.file_id, type_param.pos, msg);
@@ -126,7 +126,7 @@ impl<'x> EnumCheck<'x> {
 
                         _ => {
                             let msg = SemError::BoundExpected;
-                            self.vm.diag.lock().report(self.file_id, bound.pos(), msg);
+                            self.sa.diag.lock().report(self.file_id, bound.pos(), msg);
                         }
                     }
                 }
@@ -137,18 +137,18 @@ impl<'x> EnumCheck<'x> {
             }
         } else {
             let msg = SemError::TypeParamsExpected;
-            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+            self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);
         }
     }
 }
 
-pub fn check_variants(vm: &VM) {
-    for xenum in &vm.enums {
+pub fn check_variants(sa: &SemAnalysis) {
+    for xenum in &sa.enums {
         let mut xenum = xenum.write();
         let ast = xenum.ast.clone();
 
         let mut enumck = EnumCheckVariants {
-            vm,
+            sa,
             file_id: xenum.file_id,
             ast: &ast,
             xenum: &mut *xenum,
@@ -159,7 +159,7 @@ pub fn check_variants(vm: &VM) {
 }
 
 struct EnumCheckVariants<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     file_id: FileId,
     ast: &'x Arc<ast::Enum>,
     xenum: &'x mut EnumData,
@@ -180,8 +180,8 @@ impl<'x> EnumCheckVariants<'x> {
             let result = self.xenum.name_to_value.insert(value.name, next_variant_id);
 
             if result.is_some() {
-                let name = self.vm.interner.str(value.name).to_string();
-                self.vm.diag.lock().report(
+                let name = self.sa.interner.str(value.name).to_string();
+                self.sa.diag.lock().report(
                     self.xenum.file_id,
                     value.pos,
                     SemError::ShadowEnumValue(name),
@@ -192,7 +192,7 @@ impl<'x> EnumCheckVariants<'x> {
         }
 
         if self.ast.variants.is_empty() {
-            self.vm
+            self.sa
                 .diag
                 .lock()
                 .report(self.xenum.file_id, self.ast.pos, SemError::NoEnumValue);

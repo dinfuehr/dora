@@ -5,14 +5,14 @@ use crate::semck::{self, AllowSelf};
 use crate::sym::NestedSymTable;
 use crate::ty::{SourceType, SourceTypeArray};
 
-use crate::vm::{Fct, FctParent, Field, FileId, ModuleId, NamespaceId, VM};
+use crate::vm::{Fct, FctParent, Field, FileId, ModuleId, NamespaceId, SemAnalysis};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use semck::TypeParamContext;
 
-pub fn check(vm: &VM) {
-    for module in vm.modules.iter() {
+pub fn check(sa: &SemAnalysis) {
+    for module in sa.modules.iter() {
         let (module_id, file_id, ast, namespace_id) = {
             let module = module.read();
             (
@@ -24,12 +24,12 @@ pub fn check(vm: &VM) {
         };
 
         let mut module_check = ModuleCheck {
-            vm,
+            sa,
             module_id,
             file_id,
             namespace_id,
             ast: &ast,
-            sym: NestedSymTable::new(vm, namespace_id),
+            sym: NestedSymTable::new(sa, namespace_id),
         };
 
         module_check.check();
@@ -37,7 +37,7 @@ pub fn check(vm: &VM) {
 }
 
 struct ModuleCheck<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     module_id: ModuleId,
     namespace_id: NamespaceId,
     file_id: FileId,
@@ -72,7 +72,7 @@ impl<'x> ModuleCheck<'x> {
 
     fn visit_field(&mut self, f: &ast::Field) {
         let ty = semck::read_type(
-            self.vm,
+            self.sa,
             &self.sym,
             self.file_id.into(),
             &f.data_type,
@@ -83,7 +83,7 @@ impl<'x> ModuleCheck<'x> {
         self.add_field(f.pos, f.name, ty, f.mutable);
 
         if !f.mutable && !f.primary_ctor && f.expr.is_none() {
-            self.vm.diag.lock().report(
+            self.sa.diag.lock().report(
                 self.file_id.into(),
                 f.pos,
                 SemError::LetMissingInitialization,
@@ -93,43 +93,43 @@ impl<'x> ModuleCheck<'x> {
 
     fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
         let fct = Fct::new(
-            self.vm,
+            self.sa,
             self.file_id,
             self.namespace_id,
             f,
             FctParent::Module(self.module_id),
         );
-        let fctid = self.vm.add_fct(fct);
+        let fctid = self.sa.add_fct(fct);
 
-        let module = self.vm.modules.idx(self.module_id);
+        let module = self.sa.modules.idx(self.module_id);
         let mut module = module.write();
         module.constructor = Some(fctid);
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
         let fct = Fct::new(
-            self.vm,
+            self.sa,
             self.file_id,
             self.namespace_id,
             f,
             FctParent::Module(self.module_id),
         );
 
-        let fctid = self.vm.add_fct(fct);
+        let fctid = self.sa.add_fct(fct);
 
-        let module = self.vm.modules.idx(self.module_id);
+        let module = self.sa.modules.idx(self.module_id);
         let mut module = module.write();
         module.methods.push(fctid);
     }
 
     fn add_field(&mut self, pos: Position, name: Name, ty: SourceType, mutable: bool) {
-        let module = self.vm.modules.idx(self.module_id);
+        let module = self.sa.modules.idx(self.module_id);
         let mut module = module.write();
 
         for field in &module.fields {
             if field.name == name {
-                let name = self.vm.interner.str(name).to_string();
-                self.vm
+                let name = self.sa.interner.str(name).to_string();
+                self.sa
                     .diag
                     .lock()
                     .report(module.file_id, pos, SemError::ShadowField(name));
@@ -150,7 +150,7 @@ impl<'x> ModuleCheck<'x> {
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
         let parent_ty = semck::read_type(
-            self.vm,
+            self.sa,
             &self.sym,
             self.file_id,
             &parent_class.parent_ty,
@@ -161,18 +161,18 @@ impl<'x> ModuleCheck<'x> {
 
         match parent_ty.clone() {
             SourceType::Class(cls_id, _type_list_id) => {
-                let super_cls = self.vm.classes.idx(cls_id);
+                let super_cls = self.sa.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 
                 if !super_cls.has_open {
-                    let msg = SemError::UnderivableType(super_cls.name(self.vm));
-                    self.vm
+                    let msg = SemError::UnderivableType(super_cls.name(self.sa));
+                    self.sa
                         .diag
                         .lock()
                         .report(self.file_id.into(), parent_class.pos, msg);
                 }
 
-                let module = self.vm.modules.idx(self.module_id);
+                let module = self.sa.modules.idx(self.module_id);
                 let mut module = module.write();
                 module.parent_class = Some(parent_ty);
             }
@@ -183,7 +183,7 @@ impl<'x> ModuleCheck<'x> {
 
             _ => {
                 let msg = SemError::ClassExpected;
-                self.vm
+                self.sa
                     .diag
                     .lock()
                     .report(self.file_id.into(), parent_class.pos, msg);
@@ -192,13 +192,13 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn use_object_class_as_parent(&mut self) {
-        let object_cls = self.vm.known.classes.object();
+        let object_cls = self.sa.known.classes.object();
 
-        let module = self.vm.modules.idx(self.module_id);
+        let module = self.sa.modules.idx(self.module_id);
         let mut module = module.write();
 
         let list = SourceTypeArray::empty();
-        let list_id = self.vm.source_type_arrays.lock().insert(list);
+        let list_id = self.sa.source_type_arrays.lock().insert(list);
         module.parent_class = Some(SourceType::Class(object_cls, list_id));
     }
 }

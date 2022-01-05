@@ -113,7 +113,7 @@ pub struct File {
     pub ast: Arc<ast::File>,
 }
 
-pub struct SemAnalysis {
+pub struct FullSemAnalysis {
     pub args: Args,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
@@ -151,8 +151,8 @@ pub struct SemAnalysis {
     pub boots_namespace_id: NamespaceId,
 }
 
-impl SemAnalysis {
-    pub fn new(args: Args) -> Box<SemAnalysis> {
+impl FullSemAnalysis {
+    pub fn new(args: Args) -> Box<FullSemAnalysis> {
         let empty_class_def_id: ClassDefId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctId = 0.into();
@@ -176,7 +176,7 @@ impl SemAnalysis {
             NamespaceData::predefined(boots_namespace_id, Some(boots_name)),
         ];
 
-        let sa = Box::new(SemAnalysis {
+        let sa = Box::new(FullSemAnalysis {
             args,
             package: Package,
             files: Arc::new(RwLock::new(Vec::new())),
@@ -272,6 +272,8 @@ impl SemAnalysis {
         sa
     }
 }
+
+pub type SemAnalysis = VM;
 
 pub struct VM {
     pub args: Args,
@@ -451,7 +453,7 @@ impl VM {
         vm
     }
 
-    pub fn new_from_sa(sa: Box<SemAnalysis>) -> Box<VM> {
+    pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
         let gc = Gc::new(&sa.args);
 
         let vm = Box::new(VM {

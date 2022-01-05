@@ -12,8 +12,8 @@ use crate::ty::SourceType;
 use crate::vm::{
     self, AnnotationId, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
     ExtensionId, Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData,
-    Module, ModuleId, NamespaceData, NamespaceId, StructData, StructId, TraitData, TraitId,
-    TypeParam, TypeParamDefinition, VM,
+    Module, ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructData, StructId, TraitData,
+    TraitId, TypeParam, TypeParamDefinition,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -21,13 +21,13 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
-pub fn check(vm: &mut VM) -> Result<(), i32> {
-    parse_initial_files(vm)?;
+pub fn check(sa: &mut SemAnalysis) -> Result<(), i32> {
+    parse_initial_files(sa)?;
 
     let mut next_file = 0;
 
     loop {
-        let (next, files_to_parse) = check_files(vm, next_file);
+        let (next, files_to_parse) = check_files(sa, next_file);
         next_file = next;
 
         if files_to_parse.is_empty() {
@@ -35,41 +35,41 @@ pub fn check(vm: &mut VM) -> Result<(), i32> {
         }
 
         for file in files_to_parse {
-            parse_file(vm, file)?;
+            parse_file(sa, file)?;
         }
     }
 
     Ok(())
 }
 
-fn parse_initial_files(vm: &mut VM) -> Result<(), i32> {
-    let stdlib_dir = vm.args.flag_stdlib.clone();
-    let namespace_id = vm.stdlib_namespace_id;
+fn parse_initial_files(sa: &mut SemAnalysis) -> Result<(), i32> {
+    let stdlib_dir = sa.args.flag_stdlib.clone();
+    let namespace_id = sa.stdlib_namespace_id;
 
     if let Some(stdlib) = stdlib_dir {
-        parse_dir(vm, &stdlib, namespace_id)?;
+        parse_dir(sa, &stdlib, namespace_id)?;
     } else {
-        parse_bundled_stdlib(vm, namespace_id)?;
+        parse_bundled_stdlib(sa, namespace_id)?;
     }
 
-    let boots_dir = vm.args.flag_boots.clone();
+    let boots_dir = sa.args.flag_boots.clone();
 
     if let Some(boots) = boots_dir {
-        parse_dir(vm, &boots, vm.boots_namespace_id)?;
+        parse_dir(sa, &boots, sa.boots_namespace_id)?;
     }
 
-    if vm.parse_arg_file && !vm.args.arg_file.is_empty() {
-        let arg_file = vm.args.arg_file.clone();
+    if sa.parse_arg_file && !sa.args.arg_file.is_empty() {
+        let arg_file = sa.args.arg_file.clone();
         let path = Path::new(&arg_file);
 
         if path.is_file() {
             let file = ParseFile {
                 path: PathBuf::from(path),
-                namespace_id: vm.global_namespace_id,
+                namespace_id: sa.global_namespace_id,
             };
-            parse_file(vm, file)?;
+            parse_file(sa, file)?;
         } else if path.is_dir() {
-            parse_dir(vm, &arg_file, vm.global_namespace_id)?;
+            parse_dir(sa, &arg_file, sa.global_namespace_id)?;
         } else {
             println!("file or directory `{}` does not exist.", &arg_file);
             return Err(1);
@@ -79,15 +79,15 @@ fn parse_initial_files(vm: &mut VM) -> Result<(), i32> {
     Ok(())
 }
 
-fn check_files(vm: &mut VM, start: usize) -> (usize, Vec<ParseFile>) {
-    let files = vm.files.clone();
+fn check_files(sa: &mut SemAnalysis, start: usize) -> (usize, Vec<ParseFile>) {
+    let files = sa.files.clone();
     let files = files.read();
 
     let mut files_to_parse = Vec::new();
 
     for file in &files[start..] {
         let mut gdef = GlobalDef {
-            vm,
+            sa,
             file_id: file.id,
             namespace_id: file.namespace_id,
             files_to_parse: &mut files_to_parse,
@@ -99,7 +99,7 @@ fn check_files(vm: &mut VM, start: usize) -> (usize, Vec<ParseFile>) {
     (files.len(), files_to_parse)
 }
 
-fn parse_dir(vm: &mut VM, dirname: &str, namespace_id: NamespaceId) -> Result<(), i32> {
+fn parse_dir(sa: &mut SemAnalysis, dirname: &str, namespace_id: NamespaceId) -> Result<(), i32> {
     let path = Path::new(dirname);
 
     if path.is_dir() {
@@ -111,7 +111,7 @@ fn parse_dir(vm: &mut VM, dirname: &str, namespace_id: NamespaceId) -> Result<()
                     path: PathBuf::from(path),
                     namespace_id,
                 };
-                parse_file(vm, file)?;
+                parse_file(sa, file)?;
             }
         }
 
@@ -123,7 +123,7 @@ fn parse_dir(vm: &mut VM, dirname: &str, namespace_id: NamespaceId) -> Result<()
     }
 }
 
-fn parse_file(vm: &mut VM, file: ParseFile) -> Result<(), i32> {
+fn parse_file(sa: &mut SemAnalysis, file: ParseFile) -> Result<(), i32> {
     let namespace_id = file.namespace_id;
     let path = file.path;
 
@@ -136,11 +136,11 @@ fn parse_file(vm: &mut VM, file: ParseFile) -> Result<(), i32> {
         }
     };
 
-    let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
+    let parser = Parser::new(reader, &sa.id_generator, &mut sa.interner);
 
     match parser.parse() {
         Ok(ast) => {
-            vm.add_file(Some(path), namespace_id, Arc::new(ast));
+            sa.add_file(Some(path), namespace_id, Arc::new(ast));
             Ok(())
         }
 
@@ -158,28 +158,28 @@ fn parse_file(vm: &mut VM, file: ParseFile) -> Result<(), i32> {
     }
 }
 
-pub fn parse_bundled_stdlib(vm: &mut VM, namespace_id: NamespaceId) -> Result<(), i32> {
+pub fn parse_bundled_stdlib(sa: &mut SemAnalysis, namespace_id: NamespaceId) -> Result<(), i32> {
     use crate::driver::start::STDLIB;
 
     for (filename, content) in STDLIB {
-        parse_bundled_stdlib_file(vm, namespace_id, filename, content)?;
+        parse_bundled_stdlib_file(sa, namespace_id, filename, content)?;
     }
 
     Ok(())
 }
 
 fn parse_bundled_stdlib_file(
-    vm: &mut VM,
+    sa: &mut SemAnalysis,
     namespace_id: NamespaceId,
     filename: &str,
     content: &str,
 ) -> Result<(), i32> {
     let reader = Reader::from_string(filename, content);
-    let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
+    let parser = Parser::new(reader, &sa.id_generator, &mut sa.interner);
 
     match parser.parse() {
         Ok(ast) => {
-            vm.add_file(None, namespace_id, Arc::new(ast));
+            sa.add_file(None, namespace_id, Arc::new(ast));
             Ok(())
         }
 
@@ -203,7 +203,7 @@ struct ParseFile {
 }
 
 struct GlobalDef<'x> {
-    vm: &'x mut VM,
+    sa: &'x mut SemAnalysis,
     file_id: FileId,
     namespace_id: NamespaceId,
     files_to_parse: &'x mut Vec<ParseFile>,
@@ -211,11 +211,11 @@ struct GlobalDef<'x> {
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let id = NamespaceData::new(self.vm, self.namespace_id, node.name, node.is_pub);
+        let id = NamespaceData::new(self.sa, self.namespace_id, node.name, node.is_pub);
 
         let sym = Sym::Namespace(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
 
         if node.elements.is_none() {
@@ -229,7 +229,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        let id: TraitId = (self.vm.traits.len() as u32).into();
+        let id: TraitId = (self.sa.traits.len() as u32).into();
         let xtrait = TraitData {
             id,
             file_id: self.file_id,
@@ -246,11 +246,11 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             vtables: RwLock::new(HashMap::new()),
         };
 
-        self.vm.traits.push(RwLock::new(xtrait));
+        self.sa.traits.push(RwLock::new(xtrait));
 
         let sym = Sym::Trait(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 
@@ -261,12 +261,12 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             ast: node.clone(),
         };
 
-        self.vm.imports.push(import);
+        self.sa.imports.push(import);
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
         let id = {
-            let mut globals = self.vm.globals.lock();
+            let mut globals = self.sa.globals.lock();
             let id: GlobalId = (globals.len() as u32).into();
             let global = GlobalData {
                 id,
@@ -290,13 +290,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Global(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         if node.trait_type.is_some() {
-            let id: ImplId = (self.vm.impls.len() as u32).into();
+            let id: ImplId = (self.sa.impls.len() as u32).into();
             let mut impl_type_params = Vec::new();
             if let Some(ref type_params) = node.type_params {
                 for param in type_params {
@@ -317,9 +317,9 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 static_names: HashMap::new(),
                 impl_for: HashMap::new(),
             };
-            self.vm.impls.push(RwLock::new(ximpl));
+            self.sa.impls.push(RwLock::new(ximpl));
         } else {
-            let id: ExtensionId = self.vm.extensions.len().into();
+            let id: ExtensionId = self.sa.extensions.len().into();
             let mut extension_type_params = Vec::new();
             if let Some(ref type_params) = node.type_params {
                 for param in type_params {
@@ -338,13 +338,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 instance_names: HashMap::new(),
                 static_names: HashMap::new(),
             };
-            self.vm.extensions.push(RwLock::new(extension));
+            self.sa.extensions.push(RwLock::new(extension));
         }
     }
 
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
         let id = {
-            let mut modules = self.vm.modules.lock();
+            let mut modules = self.sa.modules.lock();
 
             let id: ModuleId = modules.len().into();
             let module = Module {
@@ -354,7 +354,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 namespace_id: self.namespace_id,
                 ast: node.clone(),
                 pos: node.pos,
-                ty: self.vm.modu(id),
+                ty: self.sa.modu(id),
                 parent_class: None,
                 internal: node.internal,
                 internal_resolved: false,
@@ -376,13 +376,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Module(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
         let id = {
-            let mut consts = self.vm.consts.lock();
+            let mut consts = self.sa.consts.lock();
             let id: ConstId = consts.len().into();
             let xconst = ConstData {
                 id,
@@ -404,16 +404,16 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Const(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
         let id = {
-            let mut classes = self.vm.classes.lock();
+            let mut classes = self.sa.classes.lock();
 
             let id: ClassId = classes.len().into();
-            let cls = vm::Class::new(&self.vm, id, self.file_id, node, self.namespace_id);
+            let cls = vm::Class::new(&self.sa, id, self.file_id, node, self.namespace_id);
 
             classes.push(Arc::new(RwLock::new(cls)));
 
@@ -423,13 +423,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let sym = Sym::Class(id);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
         let id = {
-            let mut structs = self.vm.structs.lock();
+            let mut structs = self.sa.structs.lock();
             let id: StructId = (structs.len() as u32).into();
             let mut xstruct = StructData {
                 id,
@@ -464,13 +464,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Struct(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 
     fn visit_annotation(&mut self, node: &Arc<ast::Annotation>) {
         let id = {
-            let mut annotations = self.vm.annotations.lock();
+            let mut annotations = self.sa.annotations.lock();
             let id: AnnotationId = annotations.len().into();
             let annotation =
                 vm::Annotation::new(id, self.file_id, node.pos, node.name, self.namespace_id);
@@ -481,28 +481,28 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let sym = Sym::Annotation(id);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
         let fct = Fct::new(
-            self.vm,
+            self.sa,
             self.file_id,
             self.namespace_id,
             node,
             FctParent::None,
         );
-        let fctid = self.vm.add_fct(fct);
+        let fctid = self.sa.add_fct(fct);
         let sym = Sym::Fct(fctid);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        let id: EnumId = self.vm.enums.len().into();
+        let id: EnumId = self.sa.enums.len().into();
         let mut xenum = EnumData {
             id,
             file_id: self.file_id,
@@ -527,24 +527,24 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             }
         }
 
-        self.vm.enums.push(RwLock::new(xenum));
+        self.sa.enums.push(RwLock::new(xenum));
 
         let sym = Sym::Enum(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.vm, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
     }
 }
 
 impl<'x> GlobalDef<'x> {
     fn parse_directory_into_namespace(&mut self, node: &ast::Namespace, namespace_id: NamespaceId) {
-        let files = self.vm.files.clone();
+        let files = self.sa.files.clone();
         let files = files.read();
         let file = &files[self.file_id.to_usize()];
 
         if let Some(mut path) = file.path.clone() {
             path.pop();
-            let name = self.vm.interner.str(node.name).to_string();
+            let name = self.sa.interner.str(node.name).to_string();
             path.push(&name);
 
             if path.is_dir() {
@@ -559,7 +559,7 @@ impl<'x> GlobalDef<'x> {
                     }
                 }
             } else {
-                self.vm
+                self.sa
                     .diag
                     .lock()
                     .report(self.file_id, node.pos, SemError::DirectoryNotFound);
@@ -570,7 +570,7 @@ impl<'x> GlobalDef<'x> {
     }
 
     fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
-        let level = self.vm.namespace_table(self.namespace_id);
+        let level = self.sa.namespace_table(self.namespace_id);
         let mut level = level.write();
         level.insert(name, sym)
     }

@@ -9,17 +9,21 @@ use crate::size::InstanceSize;
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     ensure_tuple, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId, EnumId,
-    EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, TraitData,
-    TraitId, TupleId, VM,
+    EnumLayout, FieldDef, SemAnalysis, StructData, StructDef, StructDefId, StructFieldDef,
+    StructId, TraitData, TraitId, TupleId,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
-pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
+pub fn specialize_type(
+    vm: &SemAnalysis,
+    ty: SourceType,
+    type_params: &SourceTypeArray,
+) -> SourceType {
     replace_type_param(vm, ty, type_params, None)
 }
 
 pub fn specialize_type_list(
-    vm: &VM,
+    vm: &SemAnalysis,
     list: &SourceTypeArray,
     type_params: &SourceTypeArray,
 ) -> SourceTypeArray {
@@ -45,14 +49,14 @@ pub enum SpecializeFor {
     Class,
 }
 
-pub fn specialize_struct_id(vm: &VM, struct_id: StructId) -> StructDefId {
+pub fn specialize_struct_id(vm: &SemAnalysis, struct_id: StructId) -> StructDefId {
     let struc = vm.structs.idx(struct_id);
     let struc = struc.read();
     specialize_struct(vm, &*struc, SourceTypeArray::empty())
 }
 
 pub fn specialize_struct_id_params(
-    vm: &VM,
+    vm: &SemAnalysis,
     struct_id: StructId,
     type_params: SourceTypeArray,
 ) -> StructDefId {
@@ -61,7 +65,11 @@ pub fn specialize_struct_id_params(
     specialize_struct(vm, &*struc, type_params)
 }
 
-pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: SourceTypeArray) -> StructDefId {
+pub fn specialize_struct(
+    vm: &SemAnalysis,
+    struc: &StructData,
+    type_params: SourceTypeArray,
+) -> StructDefId {
     if let Some(&id) = struc.specializations.read().get(&type_params) {
         return id;
     }
@@ -70,7 +78,7 @@ pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: SourceTypeArr
 }
 
 fn create_specialized_struct(
-    vm: &VM,
+    vm: &SemAnalysis,
     xstruct: &StructData,
     type_params: SourceTypeArray,
 ) -> StructDefId {
@@ -125,7 +133,7 @@ fn create_specialized_struct(
 }
 
 pub fn specialize_enum_id_params(
-    vm: &VM,
+    vm: &SemAnalysis,
     enum_id: EnumId,
     type_params: SourceTypeArray,
 ) -> EnumDefId {
@@ -134,7 +142,11 @@ pub fn specialize_enum_id_params(
     specialize_enum(vm, &*xenum, type_params)
 }
 
-pub fn specialize_enum(vm: &VM, xenum: &EnumData, type_params: SourceTypeArray) -> EnumDefId {
+pub fn specialize_enum(
+    vm: &SemAnalysis,
+    xenum: &EnumData,
+    type_params: SourceTypeArray,
+) -> EnumDefId {
     if let Some(&id) = xenum.specializations.read().get(&type_params) {
         return id;
     }
@@ -142,7 +154,11 @@ pub fn specialize_enum(vm: &VM, xenum: &EnumData, type_params: SourceTypeArray) 
     create_specialized_enum(vm, xenum, type_params)
 }
 
-fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: SourceTypeArray) -> EnumDefId {
+fn create_specialized_enum(
+    vm: &SemAnalysis,
+    xenum: &EnumData,
+    type_params: SourceTypeArray,
+) -> EnumDefId {
     let layout = if enum_is_simple_integer(xenum) {
         EnumLayout::Int
     } else if enum_is_ptr(vm, xenum, &type_params) {
@@ -192,7 +208,7 @@ fn enum_is_simple_integer(xenum: &EnumData) -> bool {
     true
 }
 
-fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &SourceTypeArray) -> bool {
+fn enum_is_ptr(vm: &SemAnalysis, xenum: &EnumData, type_params: &SourceTypeArray) -> bool {
     if xenum.variants.len() != 2 {
         return false;
     }
@@ -213,7 +229,7 @@ fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &SourceTypeArray) -> bool
 }
 
 pub fn specialize_enum_class(
-    vm: &VM,
+    vm: &SemAnalysis,
     edef: &EnumDef,
     xenum: &EnumData,
     variant_id: usize,
@@ -283,14 +299,14 @@ pub fn specialize_enum_class(
     id
 }
 
-pub fn specialize_class_id(vm: &VM, cls_id: ClassId) -> ClassDefId {
+pub fn specialize_class_id(vm: &SemAnalysis, cls_id: ClassId) -> ClassDefId {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
     specialize_class(vm, &*cls, &SourceTypeArray::empty())
 }
 
 pub fn specialize_class_id_params(
-    vm: &VM,
+    vm: &SemAnalysis,
     cls_id: ClassId,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
@@ -299,7 +315,7 @@ pub fn specialize_class_id_params(
     specialize_class(vm, &*cls, &type_params)
 }
 
-pub fn specialize_class_ty(vm: &VM, ty: SourceType) -> ClassDefId {
+pub fn specialize_class_ty(vm: &SemAnalysis, ty: SourceType) -> ClassDefId {
     match ty {
         SourceType::Class(cls_id, list_id) => {
             let params = vm.source_type_arrays.lock().get(list_id);
@@ -310,7 +326,11 @@ pub fn specialize_class_ty(vm: &VM, ty: SourceType) -> ClassDefId {
     }
 }
 
-pub fn specialize_class(vm: &VM, cls: &Class, type_params: &SourceTypeArray) -> ClassDefId {
+pub fn specialize_class(
+    vm: &SemAnalysis,
+    cls: &Class,
+    type_params: &SourceTypeArray,
+) -> ClassDefId {
     if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
     }
@@ -318,7 +338,11 @@ pub fn specialize_class(vm: &VM, cls: &Class, type_params: &SourceTypeArray) -> 
     create_specialized_class(vm, cls, type_params)
 }
 
-fn create_specialized_class(vm: &VM, cls: &Class, type_params: &SourceTypeArray) -> ClassDefId {
+fn create_specialized_class(
+    vm: &SemAnalysis,
+    cls: &Class,
+    type_params: &SourceTypeArray,
+) -> ClassDefId {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
 
     if cls.is_array || cls.is_str {
@@ -329,7 +353,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &SourceTypeArray)
 }
 
 fn create_specialized_class_regular(
-    vm: &VM,
+    vm: &SemAnalysis,
     cls: &Class,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
@@ -425,7 +449,7 @@ fn create_specialized_class_regular(
     id
 }
 
-fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
+fn add_ref_fields(vm: &SemAnalysis, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
     if let Some(tuple_id) = ty.tuple_id() {
         let tuples = vm.tuples.lock();
         let tuple = tuples.get_tuple(tuple_id);
@@ -458,7 +482,7 @@ fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceTyp
 }
 
 fn create_specialized_class_array(
-    vm: &VM,
+    vm: &SemAnalysis,
     cls: &Class,
     type_params: &SourceTypeArray,
 ) -> ClassDefId {
@@ -584,7 +608,11 @@ fn create_specialized_class_array(
     id
 }
 
-fn ensure_display(vm: &VM, vtable: &mut VTableBox, parent_id: Option<ClassDefId>) -> usize {
+fn ensure_display(
+    vm: &SemAnalysis,
+    vtable: &mut VTableBox,
+    parent_id: Option<ClassDefId>,
+) -> usize {
     // if subtype_display[0] is set, vtable was already initialized
     assert!(vtable.subtype_display[0].is_null());
 
@@ -639,7 +667,11 @@ fn ensure_display(vm: &VM, vtable: &mut VTableBox, parent_id: Option<ClassDefId>
     }
 }
 
-pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArray) -> TupleId {
+pub fn specialize_tuple(
+    vm: &SemAnalysis,
+    tuple_id: TupleId,
+    type_params: &SourceTypeArray,
+) -> TupleId {
     let subtypes = {
         let tuples = vm.tuples.lock();
         let tuple = tuples.get_tuple(tuple_id);
@@ -660,7 +692,7 @@ pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArra
 }
 
 pub fn specialize_trait_object(
-    vm: &VM,
+    vm: &SemAnalysis,
     trait_id: TraitId,
     trait_type_params: &SourceTypeArray,
     object_type: SourceType,
@@ -678,7 +710,7 @@ pub fn specialize_trait_object(
 }
 
 fn create_specialized_class_for_trait_object(
-    vm: &VM,
+    vm: &SemAnalysis,
     xtrait: &TraitData,
     combined_type_params_id: SourceTypeArrayId,
     object_type: SourceType,
@@ -747,7 +779,7 @@ fn create_specialized_class_for_trait_object(
 }
 
 pub fn replace_type_param(
-    vm: &VM,
+    vm: &SemAnalysis,
     ty: SourceType,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
@@ -854,7 +886,7 @@ pub fn replace_type_param(
     }
 }
 
-pub fn replace_type_self(vm: &VM, ty: SourceType, self_ty: SourceType) -> SourceType {
+pub fn replace_type_self(vm: &SemAnalysis, ty: SourceType, self_ty: SourceType) -> SourceType {
     match ty {
         SourceType::Class(cls_id, list_id) => {
             let params = vm.source_type_arrays.lock().get(list_id);

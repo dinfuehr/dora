@@ -2,12 +2,12 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::error::msg::SemError;
-use crate::vm::{Class, ClassId, FctId, VM};
+use crate::vm::{Class, ClassId, FctId, SemAnalysis};
 
-pub fn check(vm: &VM) {
+pub fn check(sa: &SemAnalysis) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
 
-    for cls in vm.classes.iter() {
+    for cls in sa.classes.iter() {
         let cls = cls.read();
 
         // we are only interested in non-abstract classes
@@ -19,18 +19,18 @@ pub fn check(vm: &VM) {
 
         if let Some(parent_class) = cls.parent_class.clone() {
             let super_cls_id = parent_class.cls_id().expect("no class");
-            let super_cls = vm.classes.idx(super_cls_id);
+            let super_cls = sa.classes.idx(super_cls_id);
             let super_cls = super_cls.read();
 
             if super_cls.is_abstract {
-                check_abstract(vm, &*cls, &*super_cls, &mut abstract_methods);
+                check_abstract(sa, &*cls, &*super_cls, &mut abstract_methods);
             }
         }
     }
 }
 
 pub fn check_abstract(
-    vm: &VM,
+    sa: &SemAnalysis,
     cls: &Class,
     super_cls: &Class,
     abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
@@ -38,11 +38,11 @@ pub fn check_abstract(
     assert!(!cls.is_abstract);
     assert!(super_cls.is_abstract);
 
-    let mtds = find_abstract_methods(vm, super_cls, abstract_methods);
+    let mtds = find_abstract_methods(sa, super_cls, abstract_methods);
     let mut overrides = HashSet::new();
 
     for &mtd in &cls.methods {
-        let mtd = vm.fcts.idx(mtd);
+        let mtd = sa.fcts.idx(mtd);
         let mtd = mtd.read();
 
         if let Some(overrides_mtd) = mtd.overrides {
@@ -52,15 +52,15 @@ pub fn check_abstract(
 
     for &mtd in mtds.iter() {
         if !overrides.contains(&mtd) {
-            let mtd = vm.fcts.idx(mtd);
+            let mtd = sa.fcts.idx(mtd);
             let mtd = mtd.read();
 
-            let mtd_cls = vm.classes.idx(mtd.parent.cls_id());
+            let mtd_cls = sa.classes.idx(mtd.parent.cls_id());
             let mtd_cls = mtd_cls.read();
-            let cls_name = vm.interner.str(mtd_cls.name).to_string();
-            let mtd_name = vm.interner.str(mtd.name).to_string();
+            let cls_name = sa.interner.str(mtd_cls.name).to_string();
+            let mtd_name = sa.interner.str(mtd.name).to_string();
 
-            vm.diag.lock().report(
+            sa.diag.lock().report(
                 cls.file_id,
                 cls.pos,
                 SemError::MissingAbstractOverride(cls_name, mtd_name),
@@ -70,7 +70,7 @@ pub fn check_abstract(
 }
 
 fn find_abstract_methods(
-    vm: &VM,
+    sa: &SemAnalysis,
     cls: &Class,
     abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
 ) -> Rc<Vec<FctId>> {
@@ -84,7 +84,7 @@ fn find_abstract_methods(
     let mut overrides = HashSet::new();
 
     for &mtd in &cls.methods {
-        let mtd = vm.fcts.idx(mtd);
+        let mtd = sa.fcts.idx(mtd);
         let mtd = mtd.read();
 
         if mtd.is_abstract {
@@ -98,11 +98,11 @@ fn find_abstract_methods(
 
     if let Some(parent_class) = cls.parent_class.clone() {
         let super_cls_id = parent_class.cls_id().expect("no class");
-        let super_cls = vm.classes.idx(super_cls_id);
+        let super_cls = sa.classes.idx(super_cls_id);
         let super_cls = super_cls.read();
 
         if super_cls.is_abstract {
-            let super_abstracts = find_abstract_methods(vm, &*super_cls, abstract_methods);
+            let super_abstracts = find_abstract_methods(sa, &*super_cls, abstract_methods);
 
             for &mtd in super_abstracts.iter() {
                 if !overrides.contains(&mtd) {

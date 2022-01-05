@@ -5,26 +5,26 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, VM};
+use crate::vm::{ClassId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check(vm: &VM) {
-    for cls in vm.classes.iter() {
+pub fn check(sa: &SemAnalysis) {
+    for cls in sa.classes.iter() {
         let (cls_id, file_id, ast, namespace_id) = {
             let cls = cls.read();
             (cls.id, cls.file_id, cls.ast.clone(), cls.namespace_id)
         };
 
         let mut clsck = ClsDefCheck {
-            vm,
+            sa,
             cls_id,
             file_id,
             ast: &ast,
             namespace_id,
-            sym: NestedSymTable::new(vm, namespace_id),
+            sym: NestedSymTable::new(sa, namespace_id),
         };
 
         clsck.check();
@@ -32,7 +32,7 @@ pub fn check(vm: &VM) {
 }
 
 struct ClsDefCheck<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     cls_id: ClassId,
     file_id: FileId,
     ast: &'x ast::Class,
@@ -47,10 +47,10 @@ impl<'x> ClsDefCheck<'x> {
         if let Some(ref type_params) = self.ast.type_params {
             self.check_type_params(type_params);
         } else {
-            let cls = self.vm.classes.idx(self.cls_id);
+            let cls = self.sa.classes.idx(self.cls_id);
             let mut cls = cls.write();
             let list_id = self
-                .vm
+                .sa
                 .source_type_arrays
                 .lock()
                 .insert(SourceTypeArray::empty());
@@ -80,7 +80,7 @@ impl<'x> ClsDefCheck<'x> {
 
     fn visit_field(&mut self, f: &ast::Field) {
         let ty = read_type(
-            self.vm,
+            self.sa,
             &self.sym,
             self.file_id.into(),
             &f.data_type,
@@ -91,7 +91,7 @@ impl<'x> ClsDefCheck<'x> {
         self.add_field(f.pos, f.name, ty, f.mutable, f.is_pub);
 
         if !f.primary_ctor && f.expr.is_none() {
-            self.vm.diag.lock().report(
+            self.sa.diag.lock().report(
                 self.file_id.into(),
                 f.pos,
                 SemError::LetMissingInitialization,
@@ -101,32 +101,32 @@ impl<'x> ClsDefCheck<'x> {
 
     fn visit_ctor(&mut self, node: &Arc<ast::Function>) {
         let fct = Fct::new(
-            self.vm,
+            self.sa,
             self.file_id,
             self.namespace_id,
             node,
             FctParent::Class(self.cls_id),
         );
 
-        let fctid = self.vm.add_fct(fct);
+        let fctid = self.sa.add_fct(fct);
 
-        let cls = self.vm.classes.idx(self.cls_id);
+        let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
         cls.constructor = Some(fctid);
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
         let fct = Fct::new(
-            self.vm,
+            self.sa,
             self.file_id,
             self.namespace_id,
             f,
             FctParent::Class(self.cls_id),
         );
 
-        let fctid = self.vm.add_fct(fct);
+        let fctid = self.sa.add_fct(fct);
 
-        let cls = self.vm.classes.idx(self.cls_id);
+        let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
         self.check_if_symbol_exists(f.name, f.pos, &cls.table);
@@ -143,7 +143,7 @@ impl<'x> ClsDefCheck<'x> {
         mutable: bool,
         is_pub: bool,
     ) {
-        let cls = self.vm.classes.idx(self.cls_id);
+        let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
         let fid: FieldId = cls.fields.len().into();
@@ -164,11 +164,11 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        let cls = self.vm.classes.idx(self.cls_id);
+        let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
         let type_params = semck::check_type_params(
-            self.vm,
+            self.sa,
             ast_type_params,
             &mut cls.type_params,
             &mut self.sym,
@@ -177,14 +177,14 @@ impl<'x> ClsDefCheck<'x> {
         );
 
         let params = SourceTypeArray::with(type_params);
-        let list_id = self.vm.source_type_arrays.lock().insert(params);
+        let list_id = self.sa.source_type_arrays.lock().insert(params);
 
         cls.ty = Some(SourceType::Class(self.cls_id, list_id));
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
         let parent_ty = read_type(
-            self.vm,
+            self.sa,
             &self.sym,
             self.file_id,
             &parent_class.parent_ty,
@@ -195,18 +195,18 @@ impl<'x> ClsDefCheck<'x> {
 
         match parent_ty.clone() {
             SourceType::Class(cls_id, _type_list_id) => {
-                let super_cls = self.vm.classes.idx(cls_id);
+                let super_cls = self.sa.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 
                 if !super_cls.has_open {
-                    let msg = SemError::UnderivableType(super_cls.name(self.vm));
-                    self.vm
+                    let msg = SemError::UnderivableType(super_cls.name(self.sa));
+                    self.sa
                         .diag
                         .lock()
                         .report(self.file_id.into(), parent_class.pos, msg);
                 }
 
-                let cls = self.vm.classes.idx(self.cls_id);
+                let cls = self.sa.classes.idx(self.cls_id);
                 let mut cls = cls.write();
                 cls.parent_class = Some(parent_ty);
             }
@@ -217,7 +217,7 @@ impl<'x> ClsDefCheck<'x> {
 
             _ => {
                 let msg = SemError::ClassExpected;
-                self.vm
+                self.sa
                     .diag
                     .lock()
                     .report(self.file_id.into(), parent_class.pos, msg);
@@ -226,14 +226,14 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn use_object_class_as_parent(&mut self) {
-        let object_cls = self.vm.known.classes.object();
+        let object_cls = self.sa.known.classes.object();
 
         if self.cls_id != object_cls {
-            let cls = self.vm.classes.idx(self.cls_id);
+            let cls = self.sa.classes.idx(self.cls_id);
             let mut cls = cls.write();
 
             let list = SourceTypeArray::empty();
-            let list_id = self.vm.source_type_arrays.lock().insert(list);
+            let list_id = self.sa.source_type_arrays.lock().insert(list);
             cls.parent_class = Some(SourceType::Class(object_cls, list_id));
         }
     }
@@ -244,17 +244,17 @@ impl<'x> ClsDefCheck<'x> {
 
             match sym {
                 Sym::Fct(method) => {
-                    let method = self.vm.fcts.idx(method);
+                    let method = self.sa.fcts.idx(method);
                     let method = method.read();
 
-                    let method_name = self.vm.interner.str(method.name).to_string();
+                    let method_name = self.sa.interner.str(method.name).to_string();
                     let msg = SemError::MethodExists(method_name, method.pos);
-                    self.vm.diag.lock().report(file, pos, msg);
+                    self.sa.diag.lock().report(file, pos, msg);
                 }
 
                 Sym::Field(_) => {
-                    let name = self.vm.interner.str(name).to_string();
-                    self.vm
+                    let name = self.sa.interner.str(name).to_string();
+                    self.sa
                         .diag
                         .lock()
                         .report(file, pos, SemError::ShadowField(name));
@@ -266,13 +266,13 @@ impl<'x> ClsDefCheck<'x> {
     }
 }
 
-pub fn check_super_definition(vm: &VM) {
-    for cls in vm.classes.iter() {
+pub fn check_super_definition(sa: &SemAnalysis) {
+    for cls in sa.classes.iter() {
         let cls = cls.read();
 
         if let Some(ref parent_class) = &cls.ast.parent_class {
             let error = ErrorReporting::Yes(cls.file_id, parent_class.pos);
-            typeparamck::check_super(vm, &*cls, error);
+            typeparamck::check_super(sa, &*cls, error);
         }
     }
 }

@@ -4,23 +4,23 @@ use crate::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
-use crate::vm::{self, Fct, FctId, FctParent, TypeParamId, VM};
+use crate::vm::{self, Fct, FctId, FctParent, SemAnalysis, TypeParamId};
 
-pub fn check(vm: &VM) {
-    for fct in vm.fcts.iter() {
+pub fn check(sa: &SemAnalysis) {
+    for fct in sa.fcts.iter() {
         let mut fct = fct.write();
         let ast = fct.ast.clone();
 
         // check modifiers for function
-        check_abstract(vm, &*fct);
-        check_static(vm, &*fct);
+        check_abstract(sa, &*fct);
+        check_static(sa, &*fct);
 
-        let mut sym_table = NestedSymTable::new(vm, fct.namespace_id);
+        let mut sym_table = NestedSymTable::new(sa, fct.namespace_id);
         sym_table.push_level();
 
         match fct.parent {
             FctParent::Class(owner_class) => {
-                let cls = vm.classes.idx(owner_class);
+                let cls = sa.classes.idx(owner_class);
                 let cls = cls.read();
 
                 for (type_param_id, param) in cls.type_params.iter().enumerate() {
@@ -35,7 +35,7 @@ pub fn check(vm: &VM) {
             }
 
             FctParent::Impl(impl_id) => {
-                let ximpl = vm.impls[impl_id].read();
+                let ximpl = sa.impls[impl_id].read();
 
                 for (type_param_id, param) in ximpl.type_params.iter().enumerate() {
                     let sym = Sym::TypeParam(TypeParamId(type_param_id));
@@ -49,7 +49,7 @@ pub fn check(vm: &VM) {
             }
 
             FctParent::Extension(extension_id) => {
-                let extension = vm.extensions[extension_id].read();
+                let extension = sa.extensions[extension_id].read();
 
                 for (type_param_id, param) in extension.type_params.iter().enumerate() {
                     let sym = Sym::TypeParam(TypeParamId(type_param_id));
@@ -65,7 +65,7 @@ pub fn check(vm: &VM) {
             FctParent::Module(_) => {}
 
             FctParent::Trait(trait_id) => {
-                let xtrait = vm.traits[trait_id].read();
+                let xtrait = sa.traits[trait_id].read();
 
                 for (type_param_id, param) in xtrait.type_params.iter().enumerate() {
                     let sym = Sym::TypeParam(TypeParamId(type_param_id));
@@ -90,16 +90,16 @@ pub fn check(vm: &VM) {
 
                 for (type_param_id, type_param) in type_params.iter().enumerate() {
                     if !names.insert(type_param.name) {
-                        let name = vm.interner.str(type_param.name).to_string();
+                        let name = sa.interner.str(type_param.name).to_string();
                         let msg = SemError::TypeParamNameNotUnique(name);
-                        vm.diag.lock().report(fct.file_id, type_param.pos, msg);
+                        sa.diag.lock().report(fct.file_id, type_param.pos, msg);
                     }
 
                     fct.type_params.push(vm::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
                         let ty = semck::read_type(
-                            vm,
+                            sa,
                             &sym_table,
                             fct.file_id,
                             bound,
@@ -114,7 +114,7 @@ pub fn check(vm: &VM) {
                                     .insert(trait_id)
                                 {
                                     let msg = SemError::DuplicateTraitBound;
-                                    vm.diag.lock().report(fct.file_id, type_param.pos, msg);
+                                    sa.diag.lock().report(fct.file_id, type_param.pos, msg);
                                 }
                             }
 
@@ -124,7 +124,7 @@ pub fn check(vm: &VM) {
 
                             _ => {
                                 let msg = SemError::BoundExpected;
-                                vm.diag.lock().report(fct.file_id, bound.pos(), msg);
+                                sa.diag.lock().report(fct.file_id, bound.pos(), msg);
                             }
                         }
                     }
@@ -134,19 +134,19 @@ pub fn check(vm: &VM) {
                 }
             } else {
                 let msg = SemError::TypeParamsExpected;
-                vm.diag.lock().report(fct.file_id, fct.pos, msg);
+                sa.diag.lock().report(fct.file_id, fct.pos, msg);
             }
         }
 
         for p in &ast.params {
             if fct.variadic_arguments {
-                vm.diag
+                sa.diag
                     .lock()
                     .report(fct.file_id, p.pos, SemError::VariadicParameterNeedsToBeLast);
             }
 
             let ty = semck::read_type(
-                vm,
+                sa,
                 &sym_table,
                 fct.file_id,
                 &p.data_type,
@@ -168,7 +168,7 @@ pub fn check(vm: &VM) {
 
         if let Some(ret) = ast.return_type.as_ref() {
             let ty = semck::read_type(
-                vm,
+                sa,
                 &sym_table,
                 fct.file_id,
                 ret,
@@ -190,25 +190,25 @@ pub fn check(vm: &VM) {
 
         match fct.parent {
             FctParent::Class(clsid) => {
-                let cls = vm.classes.idx(clsid);
+                let cls = sa.classes.idx(clsid);
                 let cls = cls.read();
-                check_against_methods(vm, &*fct, &cls.methods);
+                check_against_methods(sa, &*fct, &cls.methods);
             }
 
             FctParent::Trait(traitid) => {
-                let xtrait = vm.traits[traitid].read();
-                check_against_methods(vm, &*fct, &xtrait.methods);
+                let xtrait = sa.traits[traitid].read();
+                check_against_methods(sa, &*fct, &xtrait.methods);
             }
 
             FctParent::Impl(implid) => {
-                let ximpl = vm.impls[implid].read();
-                check_against_methods(vm, &*fct, &ximpl.methods);
+                let ximpl = sa.impls[implid].read();
+                check_against_methods(sa, &*fct, &ximpl.methods);
             }
 
             FctParent::Module(modid) => {
-                let module = vm.modules.idx(modid);
+                let module = sa.modules.idx(modid);
                 let module = module.read();
-                check_against_methods(vm, &*fct, &module.methods);
+                check_against_methods(sa, &*fct, &module.methods);
             }
 
             _ => {}
@@ -216,27 +216,27 @@ pub fn check(vm: &VM) {
     }
 }
 
-fn check_abstract(vm: &VM, fct: &Fct) {
+fn check_abstract(sa: &SemAnalysis, fct: &Fct) {
     if !fct.is_abstract {
         return;
     }
 
     let cls_id = fct.cls_id();
-    let cls = vm.classes.idx(cls_id);
+    let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
 
     if fct.has_body() {
         let msg = SemError::AbstractMethodWithImplementation;
-        vm.diag.lock().report(fct.file_id, fct.pos, msg);
+        sa.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 
     if !cls.is_abstract {
         let msg = SemError::AbstractMethodNotInAbstractClass;
-        vm.diag.lock().report(fct.file_id, fct.pos, msg);
+        sa.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 }
 
-fn check_static(vm: &VM, fct: &Fct) {
+fn check_static(sa: &SemAnalysis, fct: &Fct) {
     if !fct.is_static {
         return;
     }
@@ -254,24 +254,24 @@ fn check_static(vm: &VM, fct: &Fct) {
         };
 
         let msg = SemError::ModifierNotAllowedForStaticMethod(modifier.into());
-        vm.diag.lock().report(fct.file_id, fct.pos, msg);
+        sa.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 }
 
-fn check_against_methods(vm: &VM, fct: &Fct, methods: &[FctId]) {
+fn check_against_methods(sa: &SemAnalysis, fct: &Fct, methods: &[FctId]) {
     for &method in methods {
         if method == fct.id {
             continue;
         }
 
-        let method = vm.fcts.idx(method);
+        let method = sa.fcts.idx(method);
         let method = method.read();
 
         if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
-            let method_name = vm.interner.str(method.name).to_string();
+            let method_name = sa.interner.str(method.name).to_string();
 
             let msg = SemError::MethodExists(method_name, method.pos);
-            vm.diag.lock().report(fct.file_id, fct.ast.pos, msg);
+            sa.diag.lock().report(fct.file_id, fct.ast.pos, msg);
             return;
         }
     }

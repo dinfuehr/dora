@@ -5,12 +5,12 @@ use crate::semck::extensiondefck::check_for_unconstrained_type_params;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctParent, FileId, ImplId, NamespaceId, VM};
+use crate::vm::{Fct, FctId, FctParent, FileId, ImplId, NamespaceId, SemAnalysis};
 
 use dora_parser::ast;
 
-pub fn check(vm: &VM) {
-    for ximpl in vm.impls.iter() {
+pub fn check(sa: &SemAnalysis) {
+    for ximpl in sa.impls.iter() {
         let (impl_id, file_id, namespace_id, ast) = {
             let ximpl = ximpl.read();
 
@@ -23,11 +23,11 @@ pub fn check(vm: &VM) {
         };
 
         let mut implck = ImplCheck {
-            vm,
+            sa,
             impl_id,
             file_id,
             namespace_id,
-            sym: NestedSymTable::new(vm, namespace_id),
+            sym: NestedSymTable::new(sa, namespace_id),
             ast: &ast,
         };
 
@@ -36,7 +36,7 @@ pub fn check(vm: &VM) {
 }
 
 struct ImplCheck<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     file_id: FileId,
     impl_id: ImplId,
     namespace_id: NamespaceId,
@@ -54,12 +54,12 @@ impl<'x> ImplCheck<'x> {
             self.check_type_params(type_params);
         }
 
-        let mut ximpl = self.vm.impls[self.impl_id].write();
+        let mut ximpl = self.sa.impls[self.impl_id].write();
 
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
         if let Some(trait_ty) = semck::read_type(
-            self.vm,
+            self.sa,
             &self.sym,
             self.file_id.into(),
             ast_trait_type,
@@ -72,7 +72,7 @@ impl<'x> ImplCheck<'x> {
                 }
 
                 _ => {
-                    self.vm
+                    self.sa
                         .diag
                         .lock()
                         .report(self.file_id, self.ast.pos, SemError::ExpectedTrait);
@@ -81,7 +81,7 @@ impl<'x> ImplCheck<'x> {
         }
 
         if let Some(class_ty) = semck::read_type(
-            self.vm,
+            self.sa,
             &self.sym,
             self.file_id.into(),
             &self.ast.class_type,
@@ -96,14 +96,14 @@ impl<'x> ImplCheck<'x> {
                 ximpl.ty = class_ty.clone();
 
                 check_for_unconstrained_type_params(
-                    self.vm,
+                    self.sa,
                     class_ty.clone(),
                     &ximpl.type_params,
                     self.file_id,
                     self.ast.pos,
                 );
             } else {
-                self.vm.diag.lock().report(
+                self.sa.diag.lock().report(
                     self.file_id,
                     self.ast.class_type.pos(),
                     SemError::ClassEnumStructExpected,
@@ -114,7 +114,7 @@ impl<'x> ImplCheck<'x> {
         if ximpl.trait_id.is_some() && !ximpl.ty.is_error() {
             match ximpl.ty {
                 SourceType::Enum(enum_id, _) => {
-                    let xenum = &self.vm.enums[enum_id];
+                    let xenum = &self.sa.enums[enum_id];
                     let mut xenum = xenum.write();
                     xenum.impls.push(ximpl.id);
                 }
@@ -128,21 +128,21 @@ impl<'x> ImplCheck<'x> {
                 | SourceType::Float64 => {
                     let struct_id = ximpl
                         .ty
-                        .primitive_struct_id(self.vm)
+                        .primitive_struct_id(self.sa)
                         .expect("primitive expected");
-                    let xstruct = self.vm.structs.idx(struct_id);
+                    let xstruct = self.sa.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
                     xstruct.impls.push(ximpl.id);
                 }
 
                 SourceType::Struct(struct_id, _) => {
-                    let xstruct = self.vm.structs.idx(struct_id);
+                    let xstruct = self.sa.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
                     xstruct.impls.push(ximpl.id);
                 }
 
                 SourceType::Class(cls_id, _) => {
-                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = self.sa.classes.idx(cls_id);
                     let mut cls = cls.write();
                     cls.impls.push(ximpl.id);
                 }
@@ -170,11 +170,11 @@ impl<'x> ImplCheck<'x> {
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        let ximpl = &self.vm.impls[self.impl_id];
+        let ximpl = &self.sa.impls[self.impl_id];
         let mut ximpl = ximpl.write();
 
         semck::check_type_params(
-            self.vm,
+            self.sa,
             ast_type_params,
             &mut ximpl.type_params,
             &mut self.sym,
@@ -185,7 +185,7 @@ impl<'x> ImplCheck<'x> {
 
     fn visit_method(&mut self, method: &Arc<ast::Function>) -> FctId {
         if method.block.is_none() && !method.internal {
-            self.vm
+            self.sa
                 .diag
                 .lock()
                 .report(self.file_id.into(), method.pos, SemError::MissingFctBody);
@@ -194,13 +194,13 @@ impl<'x> ImplCheck<'x> {
         let parent = FctParent::Impl(self.impl_id);
 
         let fct = Fct::new(
-            self.vm,
+            self.sa,
             self.file_id.into(),
             self.namespace_id,
             method,
             parent,
         );
-        self.vm.add_fct(fct)
+        self.sa.add_fct(fct)
     }
 }
 

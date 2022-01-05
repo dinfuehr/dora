@@ -6,8 +6,8 @@ use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassId, EnumId, ExtensionId, Fct, FileId, ImplData, StructId, TraitId,
-    TypeParam, TypeParamId, VM,
+    trait_accessible_from, ClassId, EnumId, ExtensionId, Fct, FileId, ImplData, SemAnalysis,
+    StructId, TraitId, TypeParam, TypeParamId,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -32,7 +32,7 @@ pub enum AllowSelf {
 }
 
 pub fn read_type(
-    vm: &VM,
+    vm: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     t: &Type,
@@ -57,7 +57,7 @@ pub fn read_type(
 }
 
 fn read_type_basic(
-    vm: &VM,
+    vm: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -127,7 +127,7 @@ fn read_type_basic(
 }
 
 fn read_type_path(
-    vm: &VM,
+    vm: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -153,7 +153,7 @@ fn read_type_path(
 }
 
 fn table_for_namespace(
-    vm: &VM,
+    vm: &SemAnalysis,
     file_id: FileId,
     basic: &TypeBasicType,
     sym: Option<Sym>,
@@ -172,7 +172,7 @@ fn table_for_namespace(
 }
 
 fn read_type_enum(
-    vm: &VM,
+    vm: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -218,7 +218,7 @@ fn read_type_enum(
 }
 
 fn read_type_struct(
-    vm: &VM,
+    vm: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -269,7 +269,7 @@ fn read_type_struct(
 }
 
 fn check_type_params(
-    vm: &VM,
+    vm: &SemAnalysis,
     tp_definitions: &[TypeParam],
     type_params: &[SourceType],
     file_id: FileId,
@@ -302,7 +302,7 @@ fn check_type_params(
     success
 }
 
-fn use_type_params<F, R>(vm: &VM, ctxt: TypeParamContext, callback: F) -> R
+fn use_type_params<F, R>(vm: &SemAnalysis, ctxt: TypeParamContext, callback: F) -> R
 where
     F: FnOnce(&[TypeParam]) -> R,
 {
@@ -350,7 +350,7 @@ where
 }
 
 fn check_bounds_for_type_param_id(
-    vm: &VM,
+    vm: &SemAnalysis,
     tp_definition: &TypeParam,
     tp_id: TypeParamId,
     success: &mut bool,
@@ -459,7 +459,7 @@ fn check_bounds_for_type_param_id(
 }
 
 fn check_bounds_for_type_param(
-    vm: &VM,
+    vm: &SemAnalysis,
     tp_definition: &TypeParam,
     tp_definition_arg: &TypeParam,
     success: &mut bool,
@@ -480,7 +480,7 @@ fn check_bounds_for_type_param(
 }
 
 fn fail_for_each_trait_bound(
-    vm: &VM,
+    vm: &SemAnalysis,
     tp_definition: &TypeParam,
     tp_ty: SourceType,
     success: &mut bool,
@@ -498,7 +498,7 @@ fn fail_for_each_trait_bound(
 }
 
 fn read_type_class(
-    vm: &VM,
+    vm: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     basic: &TypeBasicType,
@@ -543,7 +543,7 @@ fn read_type_class(
 }
 
 fn read_type_tuple(
-    vm: &VM,
+    vm: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     tuple: &TypeTupleType,
@@ -569,7 +569,7 @@ fn read_type_tuple(
 }
 
 fn read_type_lambda(
-    vm: &VM,
+    vm: &SemAnalysis,
     table: &NestedSymTable,
     file_id: FileId,
     lambda: &TypeLambdaType,

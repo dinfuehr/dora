@@ -2,11 +2,11 @@ use crate::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctParent, FileId, GlobalId, NamespaceId, VM};
+use crate::vm::{Fct, FctParent, FileId, GlobalId, NamespaceId, SemAnalysis};
 use dora_parser::ast;
 
-pub fn check<'a>(vm: &VM) {
-    for global in vm.globals.iter() {
+pub fn check<'a>(sa: &SemAnalysis) {
+    for global in sa.globals.iter() {
         let (global_id, file_id, ast, namespace_id) = {
             let global = global.read();
             (
@@ -17,10 +17,10 @@ pub fn check<'a>(vm: &VM) {
             )
         };
 
-        let symtable = NestedSymTable::new(vm, namespace_id);
+        let symtable = NestedSymTable::new(sa, namespace_id);
 
         let mut checker = GlobalDefCheck {
-            vm,
+            sa,
             file_id,
             ast: &ast,
             namespace_id,
@@ -33,7 +33,7 @@ pub fn check<'a>(vm: &VM) {
 }
 
 struct GlobalDefCheck<'a> {
-    vm: &'a VM,
+    sa: &'a SemAnalysis,
     file_id: FileId,
     namespace_id: NamespaceId,
     global_id: GlobalId,
@@ -44,7 +44,7 @@ struct GlobalDefCheck<'a> {
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
         let ty = semck::read_type(
-            self.vm,
+            self.sa,
             &self.symtable,
             self.file_id,
             &self.ast.data_type,
@@ -53,24 +53,24 @@ impl<'a> GlobalDefCheck<'a> {
         )
         .unwrap_or(SourceType::Error);
 
-        let glob = self.vm.globals.idx(self.global_id);
+        let glob = self.sa.globals.idx(self.global_id);
         let mut glob = glob.write();
         glob.ty = ty;
 
         if let Some(ref initializer) = self.ast.initializer {
             let fct = Fct::new(
-                self.vm,
+                self.sa,
                 self.file_id,
                 self.namespace_id,
                 initializer,
                 FctParent::None,
             );
 
-            let fct_id = self.vm.add_fct(fct);
+            let fct_id = self.sa.add_fct(fct);
             glob.initializer = Some(fct_id);
         } else {
             let msg = SemError::LetMissingInitialization;
-            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+            self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);
         }
     }
 }

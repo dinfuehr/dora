@@ -1,7 +1,7 @@
 use crate::semck::fctbodyck::body::TypeCheck;
 use crate::semck::fctbodyck::constck::ConstCheck;
 use crate::sym::NestedSymTable;
-use crate::vm::{AnalysisData, VM};
+use crate::vm::{AnalysisData, SemAnalysis};
 
 use dora_parser::ast::NodeId;
 
@@ -11,8 +11,8 @@ mod lookup;
 #[cfg(test)]
 mod tests;
 
-pub fn check(vm: &VM) {
-    for fct in vm.fcts.iter() {
+pub fn check(sa: &SemAnalysis) {
+    for fct in sa.fcts.iter() {
         let analysis = {
             let fct = fct.read();
 
@@ -26,10 +26,10 @@ pub fn check(vm: &VM) {
             }
 
             let mut analysis = AnalysisData::new();
-            let symtable = NestedSymTable::new(vm, fct.namespace_id);
+            let symtable = NestedSymTable::new(sa, fct.namespace_id);
 
             let mut typeck = TypeCheck {
-                vm,
+                sa,
                 fct: &fct,
                 file_id: fct.file_id,
                 namespace_id: fct.namespace_id,
@@ -48,12 +48,12 @@ pub fn check(vm: &VM) {
         fct.write().analysis = Some(analysis);
     }
 
-    for xconst in vm.consts.iter() {
+    for xconst in sa.consts.iter() {
         let mut xconst = xconst.write();
 
         let (_, value) = {
             let mut constck = ConstCheck {
-                vm,
+                sa,
                 xconst: &*xconst,
                 negative_expr_id: NodeId(0),
             };

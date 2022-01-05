@@ -4,11 +4,10 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, ClassId, Fct, FctId,
-    FileId, TraitId, TypeParam, TypeParamDefinition, VM,
+    find_methods_in_class, find_methods_in_enum, find_methods_in_module, find_methods_in_struct,
+    ClassId, Fct, FctId, FileId, SemAnalysis, TraitId, TypeParam, TypeParamDefinition,
 };
 
-use crate::vm::find_methods_in_module;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -21,7 +20,7 @@ enum LookupKind {
 }
 
 pub struct MethodLookup<'a> {
-    vm: &'a VM,
+    sa: &'a SemAnalysis,
     caller: &'a Fct,
     file: FileId,
     kind: Option<LookupKind>,
@@ -43,9 +42,9 @@ pub struct MethodLookup<'a> {
 }
 
 impl<'a> MethodLookup<'a> {
-    pub fn new(vm: &'a VM, caller: &'a Fct) -> MethodLookup<'a> {
+    pub fn new(sa: &'a SemAnalysis, caller: &'a Fct) -> MethodLookup<'a> {
         MethodLookup {
-            vm,
+            sa,
             caller,
             file: caller.file_id,
             kind: None,
@@ -157,16 +156,16 @@ impl<'a> MethodLookup<'a> {
         } else if self.report_errors {
             let name = self.name.expect("name not set");
 
-            let name = self.vm.interner.str(name).to_string();
+            let name = self.sa.interner.str(name).to_string();
             let param_names = args
                 .iter()
-                .map(|a| a.name_fct(self.vm, self.caller))
+                .map(|a| a.name_fct(self.sa, self.caller))
                 .collect::<Vec<String>>();
 
             let msg = match kind {
                 LookupKind::Callee(_) => unreachable!(),
                 LookupKind::Method(ref obj) => {
-                    let type_name = obj.name_fct(self.vm, self.caller);
+                    let type_name = obj.name_fct(self.sa, self.caller);
 
                     if self.found_multiple_functions {
                         SemError::MultipleCandidatesForMethod(type_name, name, param_names)
@@ -176,19 +175,19 @@ impl<'a> MethodLookup<'a> {
                 }
 
                 LookupKind::Trait(trait_id) => {
-                    let xtrait = &self.vm.traits[trait_id];
+                    let xtrait = &self.sa.traits[trait_id];
                     let xtrait = xtrait.read();
-                    let type_name = self.vm.interner.str(xtrait.name).to_string();
+                    let type_name = self.sa.interner.str(xtrait.name).to_string();
                     SemError::UnknownMethod(type_name, name, param_names)
                 }
 
                 LookupKind::Static(ref obj) => {
-                    let type_name = obj.name_fct(self.vm, self.caller);
+                    let type_name = obj.name_fct(self.sa, self.caller);
                     SemError::UnknownStaticMethod(type_name, name, param_names)
                 }
             };
 
-            self.vm
+            self.sa
                 .diag
                 .lock()
                 .report(self.file, self.pos.expect("pos not set"), msg);
@@ -197,7 +196,7 @@ impl<'a> MethodLookup<'a> {
             return false;
         };
 
-        let fct = self.vm.fcts.idx(fct_id);
+        let fct = self.sa.fcts.idx(fct_id);
         let fct = fct.read();
 
         let container_tps = match kind {
@@ -223,23 +222,23 @@ impl<'a> MethodLookup<'a> {
             return false;
         }
 
-        if !args_compatible_fct(self.vm, &*fct, args, &type_params, None) {
+        if !args_compatible_fct(self.sa, &*fct, args, &type_params, None) {
             if !self.report_errors {
                 return false;
             }
 
-            let fct_name = self.vm.interner.str(fct.name).to_string();
+            let fct_name = self.sa.interner.str(fct.name).to_string();
             let fct_params = fct
                 .params_without_self()
                 .iter()
-                .map(|a| a.name_fct(self.vm, &*fct))
+                .map(|a| a.name_fct(self.sa, &*fct))
                 .collect::<Vec<_>>();
             let call_types = args
                 .iter()
-                .map(|a| a.name_fct(self.vm, self.caller))
+                .map(|a| a.name_fct(self.sa, self.caller))
                 .collect::<Vec<_>>();
             let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
-            self.vm
+            self.sa
                 .diag
                 .lock()
                 .report(self.file, self.pos.expect("pos not set"), msg);
@@ -248,7 +247,7 @@ impl<'a> MethodLookup<'a> {
 
         let cmp_type = {
             let type_list = container_tps.connect(&fct_tps);
-            replace_type_param(self.vm, fct.return_type.clone(), &type_list, None)
+            replace_type_param(self.sa, fct.return_type.clone(), &type_list, None)
         };
 
         if self.ret.is_none() || self.ret.clone().unwrap() == cmp_type {
@@ -260,7 +259,7 @@ impl<'a> MethodLookup<'a> {
     }
 
     fn find_ctor(&self, cls_id: ClassId) -> Option<FctId> {
-        let cls = self.vm.classes.idx(cls_id);
+        let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
 
         cls.constructor
@@ -273,10 +272,10 @@ impl<'a> MethodLookup<'a> {
         is_static: bool,
     ) -> Option<FctId> {
         let candidates = if object_type.is_module() {
-            find_methods_in_module(self.vm, object_type, name)
+            find_methods_in_module(self.sa, object_type, name)
         } else if object_type.is_enum() {
             find_methods_in_enum(
-                self.vm,
+                self.sa,
                 object_type,
                 self.type_param_defs.unwrap(),
                 self.type_param_defs2,
@@ -285,7 +284,7 @@ impl<'a> MethodLookup<'a> {
             )
         } else if object_type.is_struct() || object_type.is_primitive() {
             find_methods_in_struct(
-                self.vm,
+                self.sa,
                 object_type,
                 self.type_param_defs.unwrap(),
                 self.type_param_defs2,
@@ -294,7 +293,7 @@ impl<'a> MethodLookup<'a> {
             )
         } else if object_type.is_cls() {
             find_methods_in_class(
-                self.vm,
+                self.sa,
                 object_type,
                 self.type_param_defs.unwrap(),
                 self.type_param_defs2,
@@ -323,10 +322,10 @@ impl<'a> MethodLookup<'a> {
         name: Name,
         is_static: bool,
     ) -> Option<FctId> {
-        let xtrait = &self.vm.traits[trait_id];
+        let xtrait = &self.sa.traits[trait_id];
         let xtrait = xtrait.read();
 
-        xtrait.find_method(self.vm, name, is_static)
+        xtrait.find_method(self.sa, name, is_static)
     }
 
     fn check_tps(&self, specified_tps: &[TypeParam], tps: &SourceTypeArray) -> bool {
@@ -336,7 +335,7 @@ impl<'a> MethodLookup<'a> {
             ErrorReporting::No
         };
 
-        typeparamck::check_params(self.vm, self.caller, error, specified_tps, tps)
+        typeparamck::check_params(self.sa, self.caller, error, specified_tps, tps)
     }
 
     pub fn found_fct_id(&self) -> Option<FctId> {

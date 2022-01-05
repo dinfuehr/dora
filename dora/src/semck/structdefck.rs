@@ -4,13 +4,15 @@ use crate::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
-use crate::vm::{FileId, NamespaceId, StructFieldData, StructFieldId, StructId, TypeParamId, VM};
+use crate::vm::{
+    FileId, NamespaceId, SemAnalysis, StructFieldData, StructFieldId, StructId, TypeParamId,
+};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
 
-pub fn check(vm: &VM) {
-    for xstruct in vm.structs.iter() {
+pub fn check(sa: &SemAnalysis) {
+    for xstruct in sa.structs.iter() {
         let (struct_id, file_id, ast, namespace_id) = {
             let xstruct = xstruct.read();
             (
@@ -22,12 +24,12 @@ pub fn check(vm: &VM) {
         };
 
         let mut clsck = StructCheck {
-            vm,
+            sa,
             struct_id,
             file_id,
             ast: &ast,
             namespace_id,
-            symtable: NestedSymTable::new(vm, namespace_id),
+            symtable: NestedSymTable::new(sa, namespace_id),
             fields: HashSet::new(),
         };
 
@@ -36,7 +38,7 @@ pub fn check(vm: &VM) {
 }
 
 struct StructCheck<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     struct_id: StructId,
     file_id: FileId,
     ast: &'x ast::Struct,
@@ -68,9 +70,9 @@ impl<'x> StructCheck<'x> {
 
             for type_param in type_params {
                 if !names.insert(type_param.name) {
-                    let name = self.vm.interner.str(type_param.name).to_string();
+                    let name = self.sa.interner.str(type_param.name).to_string();
                     let msg = SemError::TypeParamNameNotUnique(name);
-                    self.vm
+                    self.sa
                         .diag
                         .lock()
                         .report(self.file_id, type_param.pos, msg);
@@ -80,7 +82,7 @@ impl<'x> StructCheck<'x> {
 
                 for bound in &type_param.bounds {
                     let ty = semck::read_type(
-                        self.vm,
+                        self.sa,
                         &self.symtable,
                         self.file_id,
                         bound,
@@ -90,14 +92,14 @@ impl<'x> StructCheck<'x> {
 
                     match ty {
                         Some(SourceType::Trait(trait_id, _)) => {
-                            let xstruct = self.vm.structs.idx(self.struct_id);
+                            let xstruct = self.sa.structs.idx(self.struct_id);
                             let mut xstruct = xstruct.write();
                             if !xstruct.type_params[type_param_id]
                                 .trait_bounds
                                 .insert(trait_id)
                             {
                                 let msg = SemError::DuplicateTraitBound;
-                                self.vm
+                                self.sa
                                     .diag
                                     .lock()
                                     .report(self.file_id, type_param.pos, msg);
@@ -110,7 +112,7 @@ impl<'x> StructCheck<'x> {
 
                         _ => {
                             let msg = SemError::BoundExpected;
-                            self.vm.diag.lock().report(self.file_id, bound.pos(), msg);
+                            self.sa.diag.lock().report(self.file_id, bound.pos(), msg);
                         }
                     }
                 }
@@ -121,13 +123,13 @@ impl<'x> StructCheck<'x> {
             }
         } else {
             let msg = SemError::TypeParamsExpected;
-            self.vm.diag.lock().report(self.file_id, self.ast.pos, msg);
+            self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);
         }
     }
 
     fn visit_struct_field(&mut self, f: &ast::StructField, id: StructFieldId) {
         let ty = semck::read_type(
-            self.vm,
+            self.sa,
             &self.symtable,
             self.file_id,
             &f.data_type,
@@ -136,12 +138,12 @@ impl<'x> StructCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let xstruct = self.vm.structs.idx(self.struct_id);
+        let xstruct = self.sa.structs.idx(self.struct_id);
         let mut xstruct = xstruct.write();
 
         if !self.fields.insert(f.name) {
-            let name = self.vm.interner.str(f.name).to_string();
-            self.vm
+            let name = self.sa.interner.str(f.name).to_string();
+            self.sa
                 .diag
                 .lock()
                 .report(self.file_id, f.pos, SemError::ShadowField(name));

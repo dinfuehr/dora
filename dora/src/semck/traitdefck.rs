@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use crate::semck;
 use crate::sym::NestedSymTable;
-use crate::vm::{Fct, FctParent, FileId, NamespaceId, TraitData, TraitId, VM};
+use crate::vm::{Fct, FctParent, FileId, NamespaceId, SemAnalysis, TraitData, TraitId};
 
 use dora_parser::ast;
 
-pub fn check(vm: &VM) {
-    for xtrait in &vm.traits {
+pub fn check(sa: &SemAnalysis) {
+    for xtrait in &sa.traits {
         let (trait_id, file_id, ast, namespace_id) = {
             let xtrait = xtrait.read();
             (
@@ -18,17 +18,17 @@ pub fn check(vm: &VM) {
             )
         };
 
-        let xtrait = &vm.traits[trait_id];
+        let xtrait = &sa.traits[trait_id];
         let mut xtrait = xtrait.write();
 
         let mut clsck = TraitCheck {
-            vm,
+            sa,
             trait_id,
             file_id,
             ast: &ast,
             namespace_id,
             xtrait: &mut *xtrait,
-            sym: NestedSymTable::new(vm, namespace_id),
+            sym: NestedSymTable::new(sa, namespace_id),
             vtable_index: 0,
         };
 
@@ -37,7 +37,7 @@ pub fn check(vm: &VM) {
 }
 
 struct TraitCheck<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     file_id: FileId,
     trait_id: TraitId,
     ast: &'x ast::Trait,
@@ -64,7 +64,7 @@ impl<'x> TraitCheck<'x> {
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
         semck::check_type_params(
-            self.vm,
+            self.sa,
             ast_type_params,
             &mut self.xtrait.type_params,
             &mut self.sym,
@@ -75,7 +75,7 @@ impl<'x> TraitCheck<'x> {
 
     fn visit_method(&mut self, node: &Arc<ast::Function>) {
         let mut fct = Fct::new(
-            self.vm,
+            self.sa,
             self.file_id,
             self.namespace_id,
             node,
@@ -85,7 +85,7 @@ impl<'x> TraitCheck<'x> {
         fct.vtable_index = Some(self.vtable_index);
         self.vtable_index += 1;
 
-        let fctid = self.vm.add_fct(fct);
+        let fctid = self.sa.add_fct(fct);
 
         self.xtrait.methods.push(fctid);
 

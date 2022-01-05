@@ -1,12 +1,12 @@
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{ConstId, FileId, NamespaceId, VM};
+use crate::vm::{ConstId, FileId, NamespaceId, SemAnalysis};
 
 use dora_parser::ast;
 
-pub fn check(vm: &VM) {
-    for xconst in vm.consts.iter() {
+pub fn check(sa: &SemAnalysis) {
+    for xconst in sa.consts.iter() {
         let (const_id, file_id, ast, namespace_id) = {
             let xconst = xconst.read();
             (
@@ -18,12 +18,12 @@ pub fn check(vm: &VM) {
         };
 
         let mut clsck = ConstCheck {
-            vm,
+            sa,
             const_id,
             file_id,
             ast: &ast,
             namespace_id,
-            symtable: NestedSymTable::new(vm, namespace_id),
+            symtable: NestedSymTable::new(sa, namespace_id),
         };
 
         clsck.check();
@@ -31,7 +31,7 @@ pub fn check(vm: &VM) {
 }
 
 struct ConstCheck<'x> {
-    vm: &'x VM,
+    sa: &'x SemAnalysis,
     const_id: ConstId,
     file_id: FileId,
     ast: &'x ast::Const,
@@ -42,7 +42,7 @@ struct ConstCheck<'x> {
 impl<'x> ConstCheck<'x> {
     fn check(&mut self) {
         let ty = semck::read_type(
-            self.vm,
+            self.sa,
             &self.symtable,
             self.file_id,
             &self.ast.data_type,
@@ -51,7 +51,7 @@ impl<'x> ConstCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let xconst = self.vm.consts.idx(self.const_id);
+        let xconst = self.sa.consts.idx(self.const_id);
         let mut xconst = xconst.write();
         xconst.ty = ty;
     }
