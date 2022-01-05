@@ -1,7 +1,7 @@
 use crate::compiler::Code;
 use crate::driver::cmd::AsmSyntax;
 use crate::ty::SourceTypeArray;
-use crate::vm::{Fct, VM};
+use crate::vm::{FctDefinition, VM};
 
 pub fn supported() -> bool {
     false
@@ -9,7 +9,7 @@ pub fn supported() -> bool {
 
 pub fn disassemble(
     _vm: &VM,
-    _fct: &Fct,
+    _fct: &FctDefinition,
     _type_params: &SourceTypeArray,
     _code: &Code,
     _asm_syntax: AsmSyntax,
