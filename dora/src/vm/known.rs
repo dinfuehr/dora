@@ -3,7 +3,8 @@ use parking_lot::Mutex;
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId, StructDefinitionId, TraitId, VM,
+    AnnotationDefinitionId, ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId,
+    StructDefinitionId, TraitId, VM,
 };
 
 #[derive(Debug)]
@@ -114,18 +115,18 @@ pub struct KnownTraits {
 
 #[derive(Debug)]
 pub struct KnownAnnotations {
-    pub abstract_: AnnotationId,
-    pub final_: AnnotationId,
-    pub internal: AnnotationId,
-    pub override_: AnnotationId,
-    pub open: AnnotationId,
-    pub pub_: AnnotationId,
-    pub static_: AnnotationId,
+    pub abstract_: AnnotationDefinitionId,
+    pub final_: AnnotationDefinitionId,
+    pub internal: AnnotationDefinitionId,
+    pub override_: AnnotationDefinitionId,
+    pub open: AnnotationDefinitionId,
+    pub pub_: AnnotationDefinitionId,
+    pub static_: AnnotationDefinitionId,
 
-    pub test: AnnotationId,
+    pub test: AnnotationDefinitionId,
 
-    pub cannon: AnnotationId,
-    pub optimize_immediately: AnnotationId,
+    pub cannon: AnnotationDefinitionId,
+    pub optimize_immediately: AnnotationDefinitionId,
 }
 
 #[derive(Debug)]

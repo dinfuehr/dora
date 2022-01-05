@@ -30,7 +30,7 @@ use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
-pub use self::annotations::{Annotation, AnnotationId};
+pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
     class_accessible_from, class_field_accessible_from, find_field_in_class, find_method_in_class,
     find_methods_in_class, method_accessible_from, Candidate, ClassDefinition, ClassDefinitionId,
@@ -136,17 +136,17 @@ pub struct FullSemAnalysis {
     pub tuples: Mutex<Tuples>,                        // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>,  // stores all module definitions
-    pub annotations: GrowableVec<RwLock<Annotation>>, // stores all annotation source definitions
-    pub namespaces: Vec<NamespaceData>,               // storer all namespace definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>,     // stores all function source definitions
-    pub jit_fcts: GrowableVec<JitFct>,                // stores all function implementations
-    pub enums: Vec<RwLock<EnumDefinition>>,           // store all enum source definitions
-    pub enum_defs: GrowableVec<EnumInstance>,         // stores all enum definitions
-    pub traits: Vec<RwLock<TraitData>>,               // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,                 // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,                     // stores all compiled functions
+    pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
+    pub namespaces: Vec<NamespaceData>,                         // storer all namespace definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
+    pub jit_fcts: GrowableVec<JitFct>,            // stores all function implementations
+    pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
+    pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
+    pub traits: Vec<RwLock<TraitData>>,           // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,                 // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
-    pub imports: Vec<ImportData>,                     // stores all imports
+    pub imports: Vec<ImportData>,                 // stores all imports
     pub native_stubs: Mutex<NativeStubs>,
     pub source_type_arrays: Mutex<SourceTypeArrays>,
     pub lambda_types: Mutex<LambdaTypes>,
@@ -164,7 +164,7 @@ impl FullSemAnalysis {
         let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumDefinitionId = 0.into();
         let empty_struct_id = 0.into();
-        let empty_annotation_id: AnnotationId = 0.into();
+        let empty_annotation_id: AnnotationDefinitionId = 0.into();
 
         let prelude_namespace_id = NamespaceId(0);
         let stdlib_namespace_id = NamespaceId(1);
@@ -317,18 +317,18 @@ pub struct VM {
     pub tuples: Mutex<Tuples>,                        // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>,  // stores all module definitions
-    pub annotations: GrowableVec<RwLock<Annotation>>, // stores all annotation source definitions
-    pub namespaces: Vec<NamespaceData>,               // storer all namespace definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>,     // stores all function source definitions
-    pub jit_fcts: GrowableVec<JitFct>,                // stores all function implementations
-    pub enums: Vec<RwLock<EnumDefinition>>,           // store all enum source definitions
-    pub enum_defs: GrowableVec<EnumInstance>,         // stores all enum definitions
-    pub traits: Vec<RwLock<TraitData>>,               // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,                 // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,                     // stores all compiled functions
+    pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
+    pub namespaces: Vec<NamespaceData>,                         // storer all namespace definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
+    pub jit_fcts: GrowableVec<JitFct>,            // stores all function implementations
+    pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
+    pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
+    pub traits: Vec<RwLock<TraitData>>,           // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,                 // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
-    pub imports: Vec<ImportData>,                     // stores all imports
-    pub gc: Gc,                                       // garbage collector
+    pub imports: Vec<ImportData>,                 // stores all imports
+    pub gc: Gc,                                   // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub source_type_arrays: Mutex<SourceTypeArrays>,
     pub lambda_types: Mutex<LambdaTypes>,
@@ -353,7 +353,7 @@ impl VM {
         let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumDefinitionId = 0.into();
         let empty_struct_id = 0.into();
-        let empty_annotation_id: AnnotationId = 0.into();
+        let empty_annotation_id: AnnotationDefinitionId = 0.into();
         let gc = Gc::new(&args);
 
         let prelude_namespace_id = NamespaceId(0);

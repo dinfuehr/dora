@@ -8,35 +8,35 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct AnnotationId(usize);
+pub struct AnnotationDefinitionId(usize);
 
-impl AnnotationId {
-    pub fn max() -> AnnotationId {
-        AnnotationId(usize::max_value())
+impl AnnotationDefinitionId {
+    pub fn max() -> AnnotationDefinitionId {
+        AnnotationDefinitionId(usize::max_value())
     }
 }
 
-impl From<AnnotationId> for usize {
-    fn from(data: AnnotationId) -> usize {
+impl From<AnnotationDefinitionId> for usize {
+    fn from(data: AnnotationDefinitionId) -> usize {
         data.0
     }
 }
 
-impl From<usize> for AnnotationId {
-    fn from(data: usize) -> AnnotationId {
-        AnnotationId(data)
+impl From<usize> for AnnotationDefinitionId {
+    fn from(data: usize) -> AnnotationDefinitionId {
+        AnnotationDefinitionId(data)
     }
 }
 
-impl GrowableVec<RwLock<Annotation>> {
-    pub fn idx(&self, index: AnnotationId) -> Arc<RwLock<Annotation>> {
+impl GrowableVec<RwLock<AnnotationDefinition>> {
+    pub fn idx(&self, index: AnnotationDefinitionId) -> Arc<RwLock<AnnotationDefinition>> {
         self.idx_usize(index.0)
     }
 }
 
 #[derive(Debug)]
-pub struct Annotation {
-    pub id: AnnotationId,
+pub struct AnnotationDefinition {
+    pub id: AnnotationDefinitionId,
     pub file_id: FileId,
     pub pos: Position,
     pub name: Name,
@@ -48,15 +48,15 @@ pub struct Annotation {
     pub term_params: Option<Vec<AnnotationParam>>,
 }
 
-impl Annotation {
+impl AnnotationDefinition {
     pub fn new(
-        id: AnnotationId,
+        id: AnnotationDefinitionId,
         file_id: FileId,
         pos: Position,
         name: Name,
         namespace_id: NamespaceId,
-    ) -> Annotation {
-        Annotation {
+    ) -> AnnotationDefinition {
+        AnnotationDefinition {
             id,
             file_id,
             pos,

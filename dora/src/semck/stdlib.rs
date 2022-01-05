@@ -10,8 +10,9 @@ use crate::stdlib;
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumDefinitionId, ExtensionId, FctDefinitionId,
-    Intrinsic, ModuleId, NamespaceId, SemAnalysis, StructDefinitionId, TraitId,
+    AnnotationDefinitionId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumDefinitionId,
+    ExtensionId, FctDefinitionId, Intrinsic, ModuleId, NamespaceId, SemAnalysis,
+    StructDefinitionId, TraitId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast::Modifier;
@@ -267,7 +268,7 @@ fn internal_annotation(
     namespace_id: NamespaceId,
     name: &str,
     internal_annotation: Modifier,
-) -> AnnotationId {
+) -> AnnotationDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     let annotation_id = symtable
