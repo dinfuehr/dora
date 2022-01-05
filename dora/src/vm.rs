@@ -14,6 +14,7 @@ use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::gc::{Address, Gc};
 use crate::object::{Ref, Testing};
+use crate::pkg::Package;
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
@@ -119,6 +120,7 @@ pub struct VM {
     pub files: Arc<RwLock<Vec<File>>>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
+    pub package: Package,
     pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
     pub structs: GrowableVec<RwLock<StructData>>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructDef>,    // stores all struct definitions
@@ -185,6 +187,7 @@ impl VM {
 
         let vm = Box::new(VM {
             args,
+            package: Package,
             files: Arc::new(RwLock::new(Vec::new())),
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),

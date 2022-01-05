@@ -30,6 +30,7 @@ mod masm;
 mod mem;
 mod object;
 mod os;
+mod pkg;
 mod safepoint;
 mod semck;
 mod size;
