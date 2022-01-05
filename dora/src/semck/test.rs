@@ -5,38 +5,38 @@ use dora_parser::parser::Parser;
 
 use crate::driver::cmd::Args;
 use crate::semck;
-use crate::vm::VM;
+use crate::vm::SemAnalysis;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
 where
-    F: FnOnce(&VM) -> T,
+    F: FnOnce(&SemAnalysis) -> T,
 {
-    parse_with_errors(code, |vm| {
-        if vm.diag.lock().has_errors() {
-            vm.diag.lock().dump(vm);
+    parse_with_errors(code, |sa| {
+        if sa.diag.lock().has_errors() {
+            sa.diag.lock().dump(sa);
             println!("{}", code);
             panic!("unexpected error in test::parse()");
         }
 
-        f(vm)
+        f(sa)
     })
 }
 
 pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
 where
-    F: FnOnce(&VM) -> T,
+    F: FnOnce(&SemAnalysis) -> T,
 {
     let args: Args = Default::default();
-    let mut vm = VM::new(args);
-    vm.parse_arg_file = false;
+    let mut sa = SemAnalysis::new(args);
+    sa.parse_arg_file = false;
 
     {
         let filename = "<<code>>";
         let reader = Reader::from_string(filename, code);
-        let parser = Parser::new(reader, &vm.id_generator, &mut vm.interner);
+        let parser = Parser::new(reader, &sa.id_generator, &mut sa.interner);
         match parser.parse() {
             Ok(ast) => {
-                vm.add_file(None, vm.global_namespace_id, Arc::new(ast));
+                sa.add_file(None, sa.global_namespace_id, Arc::new(ast));
             }
 
             Err(error) => {
@@ -51,7 +51,7 @@ where
         }
     }
 
-    assert!(semck::check(&mut vm));
+    assert!(semck::check(&mut sa));
 
-    f(&vm)
+    f(&sa)
 }

@@ -31,6 +31,8 @@ pub mod specialize;
 pub(crate) mod stdlib;
 mod structdefck;
 mod superck;
+#[cfg(test)]
+pub mod test;
 mod traitdefck;
 pub mod typeparamck;
 
@@ -292,7 +294,7 @@ fn check_type_params(
 #[cfg(test)]
 pub mod tests {
     use crate::semck::error::msg::SemError;
-    use crate::test;
+    use crate::semck::test;
     use crate::vm::SemAnalysis;
     use dora_parser::lexer::position::Position;
 

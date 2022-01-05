@@ -5,7 +5,7 @@ use self::Bytecode::*;
 use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::test;
+use crate::semck::test;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructFieldId, StructId, TraitId, TupleId,

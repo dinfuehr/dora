@@ -275,6 +275,17 @@ impl FullSemAnalysis {
     pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
         VM::new_from_full_sa(sa)
     }
+
+    pub fn add_file(&self, path: Option<PathBuf>, namespace_id: NamespaceId, ast: Arc<ast::File>) {
+        let mut files = self.files.write();
+        let file_id = (files.len() as u32).into();
+        files.push(File {
+            id: file_id,
+            path,
+            namespace_id,
+            ast,
+        });
+    }
 }
 
 pub type SemAnalysis = VM;

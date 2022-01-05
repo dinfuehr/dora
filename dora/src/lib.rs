@@ -43,9 +43,6 @@ mod utils;
 mod vm;
 mod vtable;
 
-#[cfg(test)]
-mod test;
-
 #[cfg(not(test))]
 pub fn run() -> i32 {
     driver::start()
