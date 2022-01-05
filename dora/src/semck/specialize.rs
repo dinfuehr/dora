@@ -49,12 +49,6 @@ pub enum SpecializeFor {
     Class,
 }
 
-pub fn specialize_struct_id(sa: &SemAnalysis, struct_id: StructId) -> StructDefId {
-    let struc = sa.structs.idx(struct_id);
-    let struc = struc.read();
-    specialize_struct(sa, &*struc, SourceTypeArray::empty())
-}
-
 pub fn specialize_struct_id_params(
     sa: &SemAnalysis,
     struct_id: StructId,

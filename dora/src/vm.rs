@@ -709,17 +709,6 @@ impl VM {
         specialize_class_id(self, cls_id)
     }
 
-    pub fn struct_def_by_name(&self, namespace_id: NamespaceId, name: &'static str) -> StructDefId {
-        use crate::semck::specialize::specialize_struct_id;
-
-        let name = self.interner.intern(name);
-        let struct_id = NestedSymTable::new(self, namespace_id)
-            .get_struct(name)
-            .expect("struct not found");
-
-        specialize_struct_id(self, struct_id)
-    }
-
     pub fn cls_def_by_name_with_type_params(
         &self,
         name: &'static str,
