@@ -195,10 +195,10 @@ fn run_main(vm: &VM, main: FctId) -> i32 {
 
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
-fn find_main(vm: &VM) -> Option<FctId> {
-    let name = vm.interner.intern("main");
-    let fctid = if let Some(id) = vm
-        .namespace_table(vm.global_namespace_id)
+fn find_main(sa: &SemAnalysis) -> Option<FctId> {
+    let name = sa.interner.intern("main");
+    let fctid = if let Some(id) = sa
+        .namespace_table(sa.global_namespace_id)
         .read()
         .get_fct(name)
     {
@@ -207,7 +207,7 @@ fn find_main(vm: &VM) -> Option<FctId> {
         return None;
     };
 
-    let fct = vm.fcts.idx(fctid);
+    let fct = sa.fcts.idx(fctid);
     let fct = fct.read();
     let ret = fct.return_type.clone();
 
@@ -216,7 +216,7 @@ fn find_main(vm: &VM) -> Option<FctId> {
         || !fct.type_params.is_empty()
     {
         let pos = fct.ast.pos;
-        vm.diag
+        sa.diag
             .lock()
             .report(fct.file_id, pos, SemError::WrongMainDefinition);
         return None;

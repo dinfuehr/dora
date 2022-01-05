@@ -286,6 +286,10 @@ impl FullSemAnalysis {
             ast,
         });
     }
+
+    pub fn namespace_table(&self, namespace_id: NamespaceId) -> Arc<RwLock<SymTable>> {
+        self.namespaces[namespace_id.to_usize()].table.clone()
+    }
 }
 
 pub type SemAnalysis = VM;
