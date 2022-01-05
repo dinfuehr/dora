@@ -6,7 +6,7 @@ use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinitionId, Fct, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis,
+    ClassDefinitionId, FctDefinition, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis,
 };
 
 use dora_parser::ast;
@@ -102,7 +102,7 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_ctor(&mut self, node: &Arc<ast::Function>) {
-        let fct = Fct::new(
+        let fct = FctDefinition::new(
             self.sa,
             self.file_id,
             self.namespace_id,
@@ -118,7 +118,7 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        let fct = Fct::new(
+        let fct = FctDefinition::new(
             self.sa,
             self.file_id,
             self.namespace_id,

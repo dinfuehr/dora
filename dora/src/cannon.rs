@@ -7,12 +7,12 @@ use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::Code;
 use crate::handle::handle_scope;
 use crate::ty::SourceTypeArray;
-use crate::vm::{Fct, VM};
+use crate::vm::{FctDefinition, VM};
 
 mod codegen;
 mod liveness;
 
-pub(super) fn compile<'a>(vm: &'a VM, fct: &Fct, type_params: &SourceTypeArray) -> Code {
+pub(super) fn compile<'a>(vm: &'a VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> Code {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     if should_emit_bytecode(vm, fct) {

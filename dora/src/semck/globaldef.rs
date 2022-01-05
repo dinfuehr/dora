@@ -11,7 +11,7 @@ use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
     self, AnnotationId, ClassDefinitionId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
-    ExtensionId, Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData,
+    ExtensionId, FctDefinition, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData,
     Module, ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructId,
     TraitData, TraitId, TypeParam, TypeParamDefinition,
 };
@@ -486,7 +486,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
-        let fct = Fct::new(
+        let fct = FctDefinition::new(
             self.sa,
             self.file_id,
             self.namespace_id,

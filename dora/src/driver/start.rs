@@ -1,5 +1,5 @@
 use crate::semck::error::msg::SemError;
-use crate::vm::{init_global_addresses, set_vm, Fct, FctId};
+use crate::vm::{init_global_addresses, set_vm, FctDefinition, FctDefinitionId};
 use crate::vm::{SemAnalysis, VM};
 
 use crate::driver::cmd;
@@ -141,7 +141,7 @@ fn run_tests(vm: &VM, namespace_id: NamespaceId) -> i32 {
     }
 }
 
-fn run_test(vm: &VM, fct: FctId) -> bool {
+fn run_test(vm: &VM, fct: FctDefinitionId) -> bool {
     let testing_class = vm.known.classes.testing();
     let testing_class = specialize_class_id(vm, testing_class);
     let testing = object::alloc(vm, testing_class).cast();
@@ -150,7 +150,7 @@ fn run_test(vm: &VM, fct: FctId) -> bool {
     !testing.has_failed()
 }
 
-fn is_test_fct(vm: &VM, fct: &Fct) -> bool {
+fn is_test_fct(vm: &VM, fct: &FctDefinition) -> bool {
     // tests need to be standalone functions, with no return type and a single parameter
     if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
         return false;
@@ -166,7 +166,7 @@ fn is_test_fct(vm: &VM, fct: &Fct) -> bool {
     fct.is_test
 }
 
-fn test_filter_matches(vm: &VM, fct: &Fct) -> bool {
+fn test_filter_matches(vm: &VM, fct: &FctDefinition) -> bool {
     if vm.args.flag_test_filter.is_none() {
         return true;
     }
@@ -177,7 +177,7 @@ fn test_filter_matches(vm: &VM, fct: &Fct) -> bool {
     name.contains(filter)
 }
 
-fn run_main(vm: &VM, main: FctId) -> i32 {
+fn run_main(vm: &VM, main: FctDefinitionId) -> i32 {
     let res = execute_on_main(|| vm.run(main));
     let fct = vm.fcts.idx(main);
     let fct = fct.read();
@@ -195,7 +195,7 @@ fn run_main(vm: &VM, main: FctId) -> i32 {
 
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
-fn find_main(sa: &SemAnalysis) -> Option<FctId> {
+fn find_main(sa: &SemAnalysis) -> Option<FctDefinitionId> {
     let name = sa.interner.intern("main");
     let fctid = if let Some(id) = sa
         .namespace_table(sa.global_namespace_id)

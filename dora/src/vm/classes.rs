@@ -13,7 +13,7 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
-    accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctId,
+    accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctDefinitionId,
     FctParent, FileId, ImplId, NamespaceId, TraitId,
 };
 use crate::vtable::VTableBox;
@@ -73,10 +73,10 @@ pub struct ClassDefinition {
     pub is_pub: bool,
     pub table: SymTable,
 
-    pub constructor: Option<FctId>,
+    pub constructor: Option<FctDefinitionId>,
     pub fields: Vec<Field>,
-    pub methods: Vec<FctId>,
-    pub virtual_fcts: Vec<FctId>,
+    pub methods: Vec<FctDefinitionId>,
+    pub virtual_fcts: Vec<FctDefinitionId>,
 
     pub impls: Vec<ImplId>,
     pub extensions: Vec<ExtensionId>,
@@ -209,7 +209,7 @@ impl ClassDefinition {
         }
     }
 
-    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
+    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctDefinitionId> {
         let mut classid = self.id;
 
         loop {
@@ -239,7 +239,7 @@ impl ClassDefinition {
         trait_id: TraitId,
         name: Name,
         is_static: bool,
-    ) -> Option<FctId> {
+    ) -> Option<FctDefinitionId> {
         for &impl_id in &self.impls {
             let ximpl = vm.impls[impl_id].read();
 
@@ -322,7 +322,7 @@ pub fn find_method_in_class(
     vm: &VM,
     mut class: SourceType,
     name: Name,
-) -> Option<(SourceType, FctId)> {
+) -> Option<(SourceType, FctDefinitionId)> {
     loop {
         let cls_id = class.cls_id().expect("no class");
         let cls = vm.classes.idx(cls_id);
@@ -349,7 +349,7 @@ pub fn find_method_in_class(
 pub struct Candidate {
     pub object_type: SourceType,
     pub container_type_params: SourceTypeArray,
-    pub fct_id: FctId,
+    pub fct_id: FctDefinitionId,
 }
 
 pub fn find_methods_in_class(
@@ -689,7 +689,7 @@ pub fn class_field_accessible_from(
     )
 }
 
-pub fn method_accessible_from(vm: &VM, fct_id: FctId, namespace_id: NamespaceId) -> bool {
+pub fn method_accessible_from(vm: &VM, fct_id: FctDefinitionId, namespace_id: NamespaceId) -> bool {
     let fct = vm.fcts.idx(fct_id);
     let fct = fct.read();
 

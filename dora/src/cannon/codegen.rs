@@ -29,8 +29,8 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, EnumId, EnumLayout, Fct, FctId, GlobalId, Intrinsic, StructId, Trap, TupleId,
-    VM,
+    find_trait_impl, EnumId, EnumLayout, FctDefinition, FctDefinitionId, GlobalId, Intrinsic,
+    StructId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -52,7 +52,7 @@ struct ForwardJump {
 
 pub struct CannonCodeGen<'a> {
     vm: &'a VM,
-    fct: &'a Fct,
+    fct: &'a FctDefinition,
     asm: BaselineAssembler<'a>,
     bytecode: &'a BytecodeFunction,
     temporary_stack: Vec<BytecodeType>,
@@ -81,7 +81,7 @@ pub struct CannonCodeGen<'a> {
     slow_paths: Vec<(
         Label,
         Option<Register>,
-        FctId,
+        FctDefinitionId,
         Vec<Register>,
         SourceTypeArray,
         Position,
@@ -91,7 +91,7 @@ pub struct CannonCodeGen<'a> {
 impl<'a> CannonCodeGen<'a> {
     pub(super) fn new(
         vm: &'a VM,
-        fct: &'a Fct,
+        fct: &'a FctDefinition,
         bytecode: &'a BytecodeFunction,
         liveness: BytecodeLiveness,
         type_params: &'a SourceTypeArray,
@@ -3065,7 +3065,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_virtual(
         &mut self,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
@@ -3139,7 +3139,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_direct_or_intrinsic(
         &mut self,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
@@ -3158,7 +3158,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_direct(
         &mut self,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
@@ -3232,7 +3232,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_static_or_intrinsic(
         &mut self,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
@@ -3251,7 +3251,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_static(
         &mut self,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
@@ -3351,7 +3351,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_intrinsic(
         &mut self,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
@@ -3810,7 +3810,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_count_bits(
         &mut self,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
@@ -3899,7 +3899,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_float_sqrt(
         &mut self,
         dest: Option<Register>,
-        _fct_id: FctId,
+        _fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
@@ -3922,7 +3922,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_option_get_or_panic(
         &mut self,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
@@ -3996,7 +3996,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         lbl: Label,
         dest: Option<Register>,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
         pos: Position,
@@ -4008,7 +4008,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_unsafe_kill_refs(
         &mut self,
         dest: Option<Register>,
-        _fct_id: FctId,
+        _fct_id: FctDefinitionId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
@@ -4067,7 +4067,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_unsafe_is_null(
         &mut self,
         dest: Option<Register>,
-        _fct_id: FctId,
+        _fct_id: FctDefinitionId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
@@ -4112,7 +4112,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_option_is_none(
         &mut self,
         dest: Option<Register>,
-        _fct_id: FctId,
+        _fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
@@ -4302,7 +4302,7 @@ impl<'a> CannonCodeGen<'a> {
         mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
-    fn ptr_for_fct_id(&mut self, fid: FctId, type_params: SourceTypeArray) -> Address {
+    fn ptr_for_fct_id(&mut self, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
             ensure_jit_or_stub_ptr(self.fct, self.vm, type_params)
@@ -5526,7 +5526,7 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
     }
 }
 
-fn ensure_jit_or_stub_ptr(fct: &Fct, vm: &VM, type_params: SourceTypeArray) -> Address {
+fn ensure_jit_or_stub_ptr(fct: &FctDefinition, vm: &VM, type_params: SourceTypeArray) -> Address {
     let specials = fct.specializations.read();
 
     if let Some(&jit_fct_id) = specials.get(&type_params) {

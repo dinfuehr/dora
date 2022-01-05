@@ -13,11 +13,11 @@ use crate::object::{Obj, Ref, UInt8Array};
 use crate::sym::NestedSymTable;
 use crate::threads::current_thread;
 use crate::ty::SourceTypeArray;
-use crate::vm::{Fct, VM};
+use crate::vm::{FctDefinition, VM};
 
 mod serializer;
 
-pub fn compile(vm: &VM, fct: &Fct, type_params: &SourceTypeArray) -> Code {
+pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> Code {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     if should_emit_bytecode(vm, fct) {
@@ -61,7 +61,7 @@ pub fn compile(vm: &VM, fct: &Fct, type_params: &SourceTypeArray) -> Code {
     Code::from_optimized_buffer(vm, &machine_code_array, JitDescriptor::DoraFct(fct.id))
 }
 
-pub fn encode_test(vm: &VM, fct: &Fct, type_params: &SourceTypeArray) {
+pub fn encode_test(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
     let _encoded_compilation_info = handle(allocate_encoded_compilation_info(
         vm,

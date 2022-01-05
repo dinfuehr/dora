@@ -5,7 +5,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::ty::SourceType;
-use crate::vm::{FctId, FileId, NamespaceId, TypeParam, TypeParamId};
+use crate::vm::{FctDefinitionId, FileId, NamespaceId, TypeParam, TypeParamId};
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;
@@ -36,9 +36,9 @@ pub struct ExtensionData {
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub ty: SourceType,
-    pub methods: Vec<FctId>,
-    pub instance_names: HashMap<Name, FctId>,
-    pub static_names: HashMap<Name, FctId>,
+    pub methods: Vec<FctDefinitionId>,
+    pub instance_names: HashMap<Name, FctDefinitionId>,
+    pub static_names: HashMap<Name, FctDefinitionId>,
 }
 
 impl ExtensionData {

@@ -3,7 +3,7 @@ use parking_lot::Mutex;
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ClassInstanceId, EnumId, FctId, StructId, TraitId, VM,
+    AnnotationId, ClassDefinitionId, ClassInstanceId, EnumId, FctDefinitionId, StructId, TraitId, VM,
 };
 
 #[derive(Debug)]
@@ -130,9 +130,9 @@ pub struct KnownAnnotations {
 
 #[derive(Debug)]
 pub struct KnownFunctions {
-    pub string_buffer_empty: FctId,
-    pub string_buffer_append: FctId,
-    pub string_buffer_to_string: FctId,
+    pub string_buffer_empty: FctDefinitionId,
+    pub string_buffer_append: FctDefinitionId,
+    pub string_buffer_to_string: FctDefinitionId,
 }
 
 impl KnownElements {

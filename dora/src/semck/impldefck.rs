@@ -5,7 +5,9 @@ use crate::semck::extensiondefck::check_for_unconstrained_type_params;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctId, FctParent, FileId, ImplId, NamespaceId, SemAnalysis};
+use crate::vm::{
+    FctDefinition, FctDefinitionId, FctParent, FileId, ImplId, NamespaceId, SemAnalysis,
+};
 
 use dora_parser::ast;
 
@@ -183,7 +185,7 @@ impl<'x> ImplCheck<'x> {
         );
     }
 
-    fn visit_method(&mut self, method: &Arc<ast::Function>) -> FctId {
+    fn visit_method(&mut self, method: &Arc<ast::Function>) -> FctDefinitionId {
         if method.block.is_none() && !method.internal {
             self.sa
                 .diag
@@ -193,7 +195,7 @@ impl<'x> ImplCheck<'x> {
 
         let parent = FctParent::Impl(self.impl_id);
 
-        let fct = Fct::new(
+        let fct = FctDefinition::new(
             self.sa,
             self.file_id.into(),
             self.namespace_id,

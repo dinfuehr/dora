@@ -4,9 +4,9 @@ use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::ty::SourceType;
-use crate::vm::{Fct, GlobalId, TupleId, VM};
+use crate::vm::{FctDefinition, GlobalId, TupleId, VM};
 
-pub fn dump(vm: &VM, fct: Option<&Fct>, bc: &BytecodeFunction) {
+pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
         println!("{}", fct.name_with_params(vm));

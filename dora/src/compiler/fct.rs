@@ -9,7 +9,7 @@ use crate::gc::Address;
 use crate::os;
 use crate::ty::SourceTypeArray;
 use crate::utils::GrowableVec;
-use crate::vm::FctId;
+use crate::vm::FctDefinitionId;
 use crate::vm::VM;
 
 use dora_parser::Position;
@@ -45,7 +45,7 @@ pub enum JitFct {
 }
 
 impl JitFct {
-    pub fn fct_id(&self) -> FctId {
+    pub fn fct_id(&self) -> FctDefinitionId {
         match self {
             &JitFct::Compiled(ref base) => base.fct_id(),
             &JitFct::Uncompiled => unreachable!(),
@@ -125,12 +125,12 @@ impl JitFct {
 
 #[derive(Debug)]
 pub enum JitDescriptor {
-    DoraFct(FctId),
+    DoraFct(FctDefinitionId),
     CompileStub,
     TrapStub,
     AllocStub,
     VerifyStub,
-    NativeStub(FctId),
+    NativeStub(FctDefinitionId),
     DoraStub,
     GuardCheckStub,
     SafepointStub,
@@ -231,7 +231,7 @@ impl Code {
         self.code_end
     }
 
-    pub fn fct_id(&self) -> FctId {
+    pub fn fct_id(&self) -> FctDefinitionId {
         match self.desc {
             JitDescriptor::NativeStub(fct_id) => fct_id,
             JitDescriptor::DoraFct(fct_id) => fct_id,
@@ -432,6 +432,6 @@ impl LazyCompilationData {
 
 #[derive(Clone, Debug)]
 pub enum LazyCompilationSite {
-    Direct(FctId, i32, SourceTypeArray),
-    Virtual(bool, FctId, u32, SourceTypeArray),
+    Direct(FctDefinitionId, i32, SourceTypeArray),
+    Virtual(bool, FctDefinitionId, u32, SourceTypeArray),
 }

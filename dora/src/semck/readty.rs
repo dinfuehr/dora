@@ -6,7 +6,7 @@ use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassDefinitionId, EnumId, ExtensionId, Fct, FileId, ImplData,
+    trait_accessible_from, ClassDefinitionId, EnumId, ExtensionId, FctDefinition, FileId, ImplData,
     SemAnalysis, StructId, TraitId, TypeParam, TypeParamId,
 };
 
@@ -18,7 +18,7 @@ pub enum TypeParamContext<'a> {
     Class(ClassDefinitionId),
     Enum(EnumId),
     Struct(StructId),
-    Fct(&'a Fct),
+    Fct(&'a FctDefinition),
     Trait(TraitId),
     Impl(&'a ImplData),
     Extension(ExtensionId),

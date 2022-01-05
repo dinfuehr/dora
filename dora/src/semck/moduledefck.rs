@@ -5,7 +5,7 @@ use crate::semck::{self, AllowSelf};
 use crate::sym::NestedSymTable;
 use crate::ty::{SourceType, SourceTypeArray};
 
-use crate::vm::{Fct, FctParent, Field, FileId, ModuleId, NamespaceId, SemAnalysis};
+use crate::vm::{FctDefinition, FctParent, Field, FileId, ModuleId, NamespaceId, SemAnalysis};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -92,7 +92,7 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn visit_ctor(&mut self, f: &Arc<ast::Function>) {
-        let fct = Fct::new(
+        let fct = FctDefinition::new(
             self.sa,
             self.file_id,
             self.namespace_id,
@@ -107,7 +107,7 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        let fct = Fct::new(
+        let fct = FctDefinition::new(
             self.sa,
             self.file_id,
             self.namespace_id,

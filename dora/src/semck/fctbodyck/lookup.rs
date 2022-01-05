@@ -5,7 +5,7 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_module, find_methods_in_struct,
-    ClassDefinitionId, Fct, FctId, FileId, SemAnalysis, TraitId, TypeParam, TypeParamDefinition,
+    ClassDefinitionId, FctDefinition, FctDefinitionId, FileId, SemAnalysis, TraitId, TypeParam, TypeParamDefinition,
 };
 
 use dora_parser::interner::Name;
@@ -16,12 +16,12 @@ enum LookupKind {
     Method(SourceType),
     Static(SourceType),
     Trait(TraitId),
-    Callee(FctId),
+    Callee(FctDefinitionId),
 }
 
 pub struct MethodLookup<'a> {
     sa: &'a SemAnalysis,
-    caller: &'a Fct,
+    caller: &'a FctDefinition,
     file: FileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
@@ -33,7 +33,7 @@ pub struct MethodLookup<'a> {
     pos: Option<Position>,
     report_errors: bool,
 
-    found_fct_id: Option<FctId>,
+    found_fct_id: Option<FctDefinitionId>,
     found_class_type: Option<SourceType>,
     found_ret: Option<SourceType>,
     found_container_type_params: Option<SourceTypeArray>,
@@ -42,7 +42,7 @@ pub struct MethodLookup<'a> {
 }
 
 impl<'a> MethodLookup<'a> {
-    pub fn new(sa: &'a SemAnalysis, caller: &'a Fct) -> MethodLookup<'a> {
+    pub fn new(sa: &'a SemAnalysis, caller: &'a FctDefinition) -> MethodLookup<'a> {
         MethodLookup {
             sa,
             caller,
@@ -66,7 +66,7 @@ impl<'a> MethodLookup<'a> {
         }
     }
 
-    pub fn callee(mut self, fct_id: FctId) -> MethodLookup<'a> {
+    pub fn callee(mut self, fct_id: FctDefinitionId) -> MethodLookup<'a> {
         self.kind = Some(LookupKind::Callee(fct_id));
         self
     }
@@ -258,7 +258,7 @@ impl<'a> MethodLookup<'a> {
         }
     }
 
-    fn find_ctor(&self, cls_id: ClassDefinitionId) -> Option<FctId> {
+    fn find_ctor(&self, cls_id: ClassDefinitionId) -> Option<FctDefinitionId> {
         let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -270,7 +270,7 @@ impl<'a> MethodLookup<'a> {
         object_type: SourceType,
         name: Name,
         is_static: bool,
-    ) -> Option<FctId> {
+    ) -> Option<FctDefinitionId> {
         let candidates = if object_type.is_module() {
             find_methods_in_module(self.sa, object_type, name)
         } else if object_type.is_enum() {
@@ -321,7 +321,7 @@ impl<'a> MethodLookup<'a> {
         trait_id: TraitId,
         name: Name,
         is_static: bool,
-    ) -> Option<FctId> {
+    ) -> Option<FctDefinitionId> {
         let xtrait = &self.sa.traits[trait_id];
         let xtrait = xtrait.read();
 
@@ -338,7 +338,7 @@ impl<'a> MethodLookup<'a> {
         typeparamck::check_params(self.sa, self.caller, error, specified_tps, tps)
     }
 
-    pub fn found_fct_id(&self) -> Option<FctId> {
+    pub fn found_fct_id(&self) -> Option<FctDefinitionId> {
         self.found_fct_id
     }
 

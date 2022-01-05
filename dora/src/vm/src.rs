@@ -7,7 +7,7 @@ use dora_parser::interner::Name;
 
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinitionId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId,
+    ClassDefinitionId, ConstId, EnumId, FctDefinitionId, FieldId, GlobalId, Intrinsic, ModuleId,
     StructDefinitionFieldId, StructId, TraitId, TypeParamId,
 };
 
@@ -134,7 +134,7 @@ pub enum IdentType {
     Module(ModuleId),
 
     // name of function with type params: some_fct[T1, T2, ...]
-    Fct(FctId, SourceTypeArray),
+    Fct(FctDefinitionId, SourceTypeArray),
 
     // name of class with type params: SomeClass[T1, T2, ...]
     Class(ClassDefinitionId, SourceTypeArray),
@@ -189,9 +189,9 @@ impl IdentType {
 
 #[derive(Debug, Clone)]
 pub struct ForTypeInfo {
-    pub make_iterator: Option<FctId>,
-    pub next: FctId,
-    pub has_next: FctId,
+    pub make_iterator: Option<FctDefinitionId>,
+    pub next: FctDefinitionId,
+    pub has_next: FctDefinitionId,
     pub iterator_type: SourceType,
     pub next_type: SourceType,
 }
@@ -199,30 +199,30 @@ pub struct ForTypeInfo {
 #[derive(Debug, Clone)]
 pub enum CallType {
     // Function calls, e.g. fct(<args>) or Class::static_fct(<args>)
-    Fct(FctId, SourceTypeArray),
+    Fct(FctDefinitionId, SourceTypeArray),
 
     // Direct or virtual method calls, e.g. obj.method(<args>)
-    Method(SourceType, FctId, SourceTypeArray),
+    Method(SourceType, FctDefinitionId, SourceTypeArray),
 
     // Module method call, e.g. Module::method(<args>)
-    ModuleMethod(SourceType, FctId, SourceTypeArray),
+    ModuleMethod(SourceType, FctDefinitionId, SourceTypeArray),
 
     // Constructor call Class(<args>)
-    Ctor(SourceType, FctId),
+    Ctor(SourceType, FctDefinitionId),
     // Call to parent constructor, i.e. class Foo() : Bar()
-    CtorParent(SourceType, FctId),
+    CtorParent(SourceType, FctDefinitionId),
 
     // Invoke on expression, e.g. <expr>(<args>)
-    Expr(SourceType, FctId, SourceTypeArray),
+    Expr(SourceType, FctDefinitionId, SourceTypeArray),
 
     // Invoke method on trait object
-    TraitObjectMethod(SourceType, FctId),
+    TraitObjectMethod(SourceType, FctDefinitionId),
 
     // Invoke trait method on type param, e.g. (T: SomeTrait).method()
-    GenericMethod(TypeParamId, TraitId, FctId),
+    GenericMethod(TypeParamId, TraitId, FctDefinitionId),
 
     // Invoke static trait method on type param, e.g. T::method()
-    GenericStaticMethod(TypeParamId, TraitId, FctId),
+    GenericStaticMethod(TypeParamId, TraitId, FctDefinitionId),
 
     // Construct enum value
     Enum(SourceType, usize),
@@ -280,7 +280,7 @@ impl CallType {
         }
     }
 
-    pub fn fct_id(&self) -> Option<FctId> {
+    pub fn fct_id(&self) -> Option<FctDefinitionId> {
         match *self {
             CallType::Fct(fctid, _) => Some(fctid),
             CallType::Method(_, fctid, _) => Some(fctid),

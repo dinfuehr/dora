@@ -14,7 +14,7 @@ use crate::mem;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType};
-use crate::vm::FctId;
+use crate::vm::FctDefinitionId;
 use crate::vm::VM;
 
 pub struct NativeStubs {
@@ -39,7 +39,7 @@ impl NativeStubs {
 
 #[derive(Clone)]
 pub enum NativeFctDescriptor {
-    NativeStub(FctId),
+    NativeStub(FctDefinitionId),
     AllocStub,
     VerifyStub,
     TrapStub,

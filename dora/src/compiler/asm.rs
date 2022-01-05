@@ -12,7 +12,7 @@ use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
-use crate::vm::FctId;
+use crate::vm::FctDefinitionId;
 use crate::vm::{GlobalData, Trap, VM};
 
 pub struct BaselineAssembler<'a> {
@@ -589,7 +589,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn direct_call(
         &mut self,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         ptr: *const u8,
         type_params: SourceTypeArray,
         pos: Position,
@@ -603,7 +603,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn indirect_call(
         &mut self,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         vtable_index: u32,
         self_index: u32,
         pos: Position,
@@ -800,7 +800,7 @@ impl<'a> BaselineAssembler<'a> {
     pub fn ensure_global(
         &mut self,
         glob: &GlobalData,
-        fid: FctId,
+        fid: FctDefinitionId,
         ptr: Address,
         position: Position,
         gcpoint: GcPoint,
@@ -923,7 +923,7 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         lbl_start: Label,
         lbl_return: Label,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         ptr: Address,
         pos: Position,
         gcpoint: GcPoint,
@@ -957,5 +957,5 @@ enum SlowPathKind {
     StackOverflow(Label, Label, Position, GcPoint),
     Safepoint(Label, Label, Position, GcPoint),
     Assert(Label, Position),
-    InitializeGlobal(Label, Label, FctId, Address, Position, GcPoint),
+    InitializeGlobal(Label, Label, FctDefinitionId, Address, Position, GcPoint),
 }

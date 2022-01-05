@@ -16,7 +16,7 @@ use crate::vm::{
     enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
     find_methods_in_enum, find_methods_in_struct, global_accessible_from, method_accessible_from,
     namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
-    CallType, ClassDefinitionId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType,
+    CallType, ClassDefinitionId, ConvInfo, EnumId, FctDefinition, FctDefinitionId, FctParent, FileId, ForTypeInfo, IdentType,
     Intrinsic, NamespaceId, SemAnalysis, StructDefinition, StructId, TypeParam,
     TypeParamDefinition, TypeParamId, Var, VarId,
 };
@@ -30,7 +30,7 @@ use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
     pub sa: &'a SemAnalysis,
-    pub fct: &'a Fct,
+    pub fct: &'a FctDefinition,
     pub file_id: FileId,
     pub namespace_id: NamespaceId,
     pub analysis: &'a mut AnalysisData,
@@ -406,7 +406,7 @@ impl<'a> TypeCheck<'a> {
     fn type_supports_make_iterator(
         &mut self,
         object_type: SourceType,
-    ) -> Option<(FctId, SourceType)> {
+    ) -> Option<(FctDefinitionId, SourceType)> {
         let make_iterator_name = self.sa.interner.intern("makeIterator");
 
         let mut lookup = MethodLookup::new(self.sa, self.fct)
@@ -1715,7 +1715,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_call_fct(
         &mut self,
         e: &ast::ExprCallType,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
@@ -3330,7 +3330,7 @@ impl<'a> Visitor for TypeCheck<'a> {
 
 pub fn args_compatible_fct(
     sa: &SemAnalysis,
-    callee: &Fct,
+    callee: &FctDefinition,
     args: &[SourceType],
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
@@ -3597,7 +3597,7 @@ pub fn check_lit_float(
 }
 
 struct MethodDescriptor {
-    fct_id: FctId,
+    fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
     return_type: SourceType,
 }

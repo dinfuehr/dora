@@ -2,7 +2,7 @@ use crate::semck::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
-use crate::vm::{Fct, FctParent, FileId, GlobalId, NamespaceId, SemAnalysis};
+use crate::vm::{FctDefinition, FctParent, FileId, GlobalId, NamespaceId, SemAnalysis};
 use dora_parser::ast;
 
 pub fn check<'a>(sa: &SemAnalysis) {
@@ -58,7 +58,7 @@ impl<'a> GlobalDefCheck<'a> {
         glob.ty = ty;
 
         if let Some(ref initializer) = self.ast.initializer {
-            let fct = Fct::new(
+            let fct = FctDefinition::new(
                 self.sa,
                 self.file_id,
                 self.namespace_id,

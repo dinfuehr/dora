@@ -6,8 +6,8 @@ use crate::size::InstanceSize;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, Candidate, FctId, Field, FieldDef, FileId, NamespaceId,
-    TraitId, VM,
+    accessible_from, namespace_path, Candidate, FctDefinitionId, Field, FieldDef, FileId,
+    NamespaceId, TraitId, VM,
 };
 
 use crate::vtable::VTableBox;
@@ -60,10 +60,10 @@ pub struct Module {
     pub has_constructor: bool,
     pub is_pub: bool,
 
-    pub constructor: Option<FctId>,
+    pub constructor: Option<FctDefinitionId>,
     pub fields: Vec<Field>,
-    pub methods: Vec<FctId>,
-    pub virtual_fcts: Vec<FctId>,
+    pub methods: Vec<FctDefinitionId>,
+    pub virtual_fcts: Vec<FctDefinitionId>,
 
     pub traits: Vec<TraitId>,
 }

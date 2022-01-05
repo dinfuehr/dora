@@ -43,7 +43,7 @@ pub use self::enums::{
     EnumVariant,
 };
 pub use self::extensions::{extension_matches, extension_matches_ty, ExtensionData, ExtensionId};
-pub use self::functions::{fct_accessible_from, Fct, FctId, FctParent, Intrinsic};
+pub use self::functions::{fct_accessible_from, FctDefinition, FctDefinitionId, FctParent, Intrinsic};
 pub use self::globals::{global_accessible_from, init_global_addresses, GlobalData, GlobalId};
 pub use self::impls::{find_trait_impl, impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
@@ -134,7 +134,7 @@ pub struct FullSemAnalysis {
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
     pub annotations: GrowableVec<RwLock<Annotation>>, // stores all annotation source definitions
     pub namespaces: Vec<NamespaceData>,         // storer all namespace definitions
-    pub fcts: GrowableVec<RwLock<Fct>>,         // stores all function source definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,          // stores all function implementations
     pub enums: Vec<RwLock<EnumData>>,           // store all enum source definitions
     pub enum_defs: GrowableVec<EnumDef>,        // stores all enum definitions
@@ -157,7 +157,7 @@ impl FullSemAnalysis {
     pub fn new(args: Args) -> Box<FullSemAnalysis> {
         let empty_class_def_id: ClassInstanceId = 0.into();
         let empty_trait_id: TraitId = 0.into();
-        let empty_fct_id: FctId = 0.into();
+        let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumId = 0.into();
         let empty_struct_id = 0.into();
         let empty_annotation_id: AnnotationId = 0.into();
@@ -315,7 +315,7 @@ pub struct VM {
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
     pub annotations: GrowableVec<RwLock<Annotation>>, // stores all annotation source definitions
     pub namespaces: Vec<NamespaceData>,         // storer all namespace definitions
-    pub fcts: GrowableVec<RwLock<Fct>>,         // stores all function source definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,          // stores all function implementations
     pub enums: Vec<RwLock<EnumData>>,           // store all enum source definitions
     pub enum_defs: GrowableVec<EnumDef>,        // stores all enum definitions
@@ -346,7 +346,7 @@ impl VM {
     pub fn new(args: Args) -> Box<VM> {
         let empty_class_def_id: ClassInstanceId = 0.into();
         let empty_trait_id: TraitId = 0.into();
-        let empty_fct_id: FctId = 0.into();
+        let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumId = 0.into();
         let empty_struct_id = 0.into();
         let empty_annotation_id: AnnotationId = 0.into();
@@ -532,7 +532,7 @@ impl VM {
         self.gc.epoch()
     }
 
-    pub fn run(&self, fct_id: FctId) -> i32 {
+    pub fn run(&self, fct_id: FctDefinitionId) -> i32 {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.dora_stub();
@@ -541,7 +541,7 @@ impl VM {
         fct(tld, ptr)
     }
 
-    pub fn run_test(&self, fct_id: FctId, testing: Ref<Testing>) {
+    pub fn run_test(&self, fct_id: FctDefinitionId, testing: Ref<Testing>) {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.dora_stub();
@@ -561,7 +561,7 @@ impl VM {
         });
     }
 
-    pub fn ensure_compiled(&self, fct_id: FctId) -> Address {
+    pub fn ensure_compiled(&self, fct_id: FctDefinitionId) -> Address {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = SourceTypeArray::empty();
 
@@ -577,9 +577,9 @@ impl VM {
         code_map.insert(start, end, desc);
     }
 
-    pub fn add_fct(&self, mut fct: Fct) -> FctId {
+    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
         let mut fcts = self.fcts.lock();
-        let fctid = FctId(fcts.len());
+        let fctid = FctDefinitionId(fcts.len());
 
         fct.id = fctid;
 
@@ -643,7 +643,7 @@ impl VM {
         class_name: &'static str,
         function_name: &'static str,
         is_static: bool,
-    ) -> Option<FctId> {
+    ) -> Option<FctDefinitionId> {
         let class_name = self.interner.intern(class_name);
         let function_name = self.interner.intern(function_name);
 
@@ -674,7 +674,7 @@ impl VM {
         struct_name: &'static str,
         function_name: &'static str,
         is_static: bool,
-    ) -> Option<FctId> {
+    ) -> Option<FctDefinitionId> {
         let struct_name = self.interner.intern(struct_name);
         let function_name = self.interner.intern(function_name);
 
@@ -760,7 +760,7 @@ impl VM {
         (cls_id, field_id)
     }
 
-    pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
+    pub fn fct_by_name(&self, name: &str) -> Option<FctDefinitionId> {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, self.global_namespace_id).get_fct(name)
     }
@@ -769,13 +769,13 @@ impl VM {
         &self,
         name: &str,
         namespace_id: NamespaceId,
-    ) -> Option<FctId> {
+    ) -> Option<FctDefinitionId> {
         let name = self.interner.intern(name);
         NestedSymTable::new(self, namespace_id).get_fct(name)
     }
 
     #[cfg(test)]
-    pub fn ctor_by_name(&self, name: &str) -> FctId {
+    pub fn ctor_by_name(&self, name: &str) -> FctDefinitionId {
         let name = self.interner.intern(name);
         let cls_id = NestedSymTable::new(self, self.global_namespace_id)
             .get_class(name)
@@ -797,7 +797,7 @@ impl VM {
     }
 
     #[cfg(test)]
-    pub fn trait_method_by_name(&self, trait_name: &str, method_name: &str) -> FctId {
+    pub fn trait_method_by_name(&self, trait_name: &str, method_name: &str) -> FctDefinitionId {
         let trait_id = self.trait_by_name(trait_name);
         let method_name = self.interner.intern(method_name);
 

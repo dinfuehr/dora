@@ -13,15 +13,15 @@ use crate::mem;
 use crate::os;
 use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::VM;
-use crate::vm::{Fct, FctId};
+use crate::vm::{FctDefinition, FctDefinitionId};
 
-pub fn generate(vm: &VM, id: FctId, type_params: &SourceTypeArray) -> Address {
+pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &SourceTypeArray) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     generate_fct(vm, &fct, type_params)
 }
 
-pub fn generate_fct(vm: &VM, fct: &Fct, type_params: &SourceTypeArray) -> Address {
+pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> Address {
     debug_assert!(type_params.iter().all(|ty| !ty.contains_type_param(vm)));
 
     {
@@ -111,7 +111,7 @@ pub enum Next {
     Return,
 }
 
-pub fn should_emit_debug(vm: &VM, fct: &Fct) -> bool {
+pub fn should_emit_debug(vm: &VM, fct: &FctDefinition) -> bool {
     if let Some(ref dbg_names) = vm.args.flag_emit_debug {
         fct_pattern_match(vm, fct, dbg_names)
     } else {
@@ -119,7 +119,7 @@ pub fn should_emit_debug(vm: &VM, fct: &Fct) -> bool {
     }
 }
 
-pub fn should_emit_asm(vm: &VM, fct: &Fct) -> bool {
+pub fn should_emit_asm(vm: &VM, fct: &FctDefinition) -> bool {
     if !disassembler::supported() {
         return false;
     }
@@ -131,7 +131,7 @@ pub fn should_emit_asm(vm: &VM, fct: &Fct) -> bool {
     }
 }
 
-pub fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
+pub fn should_emit_bytecode(vm: &VM, fct: &FctDefinition) -> bool {
     if let Some(ref dbg_names) = vm.args.flag_emit_bytecode {
         fct_pattern_match(vm, fct, dbg_names)
     } else {
@@ -139,7 +139,7 @@ pub fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
     }
 }
 
-pub fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
+pub fn fct_pattern_match(vm: &VM, fct: &FctDefinition, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }
@@ -208,7 +208,11 @@ pub enum AllocationSize {
     Dynamic(Reg),
 }
 
-pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFct) -> Address {
+pub fn ensure_native_stub(
+    vm: &VM,
+    fct_id: Option<FctDefinitionId>,
+    internal_fct: NativeFct,
+) -> Address {
     let mut native_stubs = vm.native_stubs.lock();
     let ptr = internal_fct.ptr;
 

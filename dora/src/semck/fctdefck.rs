@@ -4,7 +4,7 @@ use crate::semck::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
-use crate::vm::{self, Fct, FctId, FctParent, SemAnalysis, TypeParamId};
+use crate::vm::{self, FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParamId};
 
 pub fn check(sa: &SemAnalysis) {
     for fct in sa.fcts.iter() {
@@ -216,7 +216,7 @@ pub fn check(sa: &SemAnalysis) {
     }
 }
 
-fn check_abstract(sa: &SemAnalysis, fct: &Fct) {
+fn check_abstract(sa: &SemAnalysis, fct: &FctDefinition) {
     if !fct.is_abstract {
         return;
     }
@@ -236,7 +236,7 @@ fn check_abstract(sa: &SemAnalysis, fct: &Fct) {
     }
 }
 
-fn check_static(sa: &SemAnalysis, fct: &Fct) {
+fn check_static(sa: &SemAnalysis, fct: &FctDefinition) {
     if !fct.is_static {
         return;
     }
@@ -258,7 +258,7 @@ fn check_static(sa: &SemAnalysis, fct: &Fct) {
     }
 }
 
-fn check_against_methods(sa: &SemAnalysis, fct: &Fct, methods: &[FctId]) {
+fn check_against_methods(sa: &SemAnalysis, fct: &FctDefinition, methods: &[FctDefinitionId]) {
     for &method in methods {
         if method == fct.id {
             continue;

@@ -18,28 +18,28 @@ use crate::vm::{
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-pub struct FctId(pub usize);
+pub struct FctDefinitionId(pub usize);
 
-impl FctId {
+impl FctDefinitionId {
     pub fn to_usize(self) -> usize {
         self.0
     }
 }
 
-impl From<usize> for FctId {
-    fn from(id: usize) -> FctId {
-        FctId(id)
+impl From<usize> for FctDefinitionId {
+    fn from(id: usize) -> FctDefinitionId {
+        FctDefinitionId(id)
     }
 }
 
-impl GrowableVec<RwLock<Fct>> {
-    pub fn idx(&self, index: FctId) -> Arc<RwLock<Fct>> {
+impl GrowableVec<RwLock<FctDefinition>> {
+    pub fn idx(&self, index: FctDefinitionId) -> Arc<RwLock<FctDefinition>> {
         self.idx_usize(index.0)
     }
 }
 
-pub struct Fct {
-    pub id: FctId,
+pub struct FctDefinition {
+    pub id: FctDefinitionId,
     pub ast: Arc<ast::Function>,
     pub pos: Position,
     pub name: Name,
@@ -55,7 +55,7 @@ pub struct Fct {
     pub is_test: bool,
     pub internal: bool,
     pub internal_resolved: bool,
-    pub overrides: Option<FctId>,
+    pub overrides: Option<FctDefinitionId>,
     pub param_types: Vec<SourceType>,
     pub return_type: SourceType,
     pub is_constructor: bool,
@@ -72,19 +72,19 @@ pub struct Fct {
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
     pub native_pointer: Option<Address>,
-    pub thunk_id: RwLock<Option<FctId>>,
+    pub thunk_id: RwLock<Option<FctDefinitionId>>,
 }
 
-impl Fct {
+impl FctDefinition {
     pub fn new(
         _vm: &VM,
         file_id: FileId,
         namespace_id: NamespaceId,
         ast: &Arc<ast::Function>,
         parent: FctParent,
-    ) -> Fct {
-        Fct {
-            id: FctId(0),
+    ) -> FctDefinition {
+        FctDefinition {
+            id: FctDefinitionId(0),
             file_id,
             pos: ast.pos,
             ast: ast.clone(),
@@ -727,7 +727,7 @@ impl Intrinsic {
     }
 }
 
-pub fn fct_accessible_from(vm: &VM, fct_id: FctId, namespace_id: NamespaceId) -> bool {
+pub fn fct_accessible_from(vm: &VM, fct_id: FctDefinitionId, namespace_id: NamespaceId) -> bool {
     let fct = vm.fcts.idx(fct_id);
     let fct = fct.read();
 

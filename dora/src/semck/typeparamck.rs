@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use crate::semck::error::msg::SemError;
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinition, ClassDefinitionId, EnumId, Fct, FileId, SemAnalysis, StructId, TraitId, TypeParam,
+    ClassDefinition, ClassDefinitionId, EnumId, FctDefinition, FileId, SemAnalysis, StructId, TraitId, TypeParam,
 };
 
 pub enum ErrorReporting {
@@ -13,7 +13,7 @@ pub enum ErrorReporting {
 
 pub fn check_enum(
     sa: &SemAnalysis,
-    fct: &Fct,
+    fct: &FctDefinition,
     enum_id: EnumId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
@@ -33,7 +33,7 @@ pub fn check_enum(
 
 pub fn check_struct(
     sa: &SemAnalysis,
-    fct: &Fct,
+    fct: &FctDefinition,
     struct_id: StructId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
@@ -53,7 +53,7 @@ pub fn check_struct(
 
 pub fn check_class(
     sa: &SemAnalysis,
-    fct: &Fct,
+    fct: &FctDefinition,
     cls_id: ClassDefinitionId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
@@ -92,7 +92,7 @@ pub fn check_super<'a>(sa: &SemAnalysis, cls: &ClassDefinition, error: ErrorRepo
 
 pub fn check_params<'a>(
     sa: &'a SemAnalysis,
-    fct: &'a Fct,
+    fct: &'a FctDefinition,
     error: ErrorReporting,
     callee_type_param_defs: &'a [TypeParam],
     params: &'a SourceTypeArray,

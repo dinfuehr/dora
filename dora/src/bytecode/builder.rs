@@ -9,7 +9,7 @@ use crate::bytecode::{
 use crate::driver::cmd::Args;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinitionId, ClassInstanceId, EnumId, FctId, FieldId, GlobalId, StructDefinitionFieldId,
+    ClassDefinitionId, ClassInstanceId, EnumId, FctDefinitionId, FieldId, GlobalId, StructDefinitionFieldId,
     StructId, TraitId, TupleId, TypeParamId, VM,
 };
 
@@ -48,7 +48,7 @@ impl BytecodeBuilder {
         self.writer.add_const(entry)
     }
 
-    pub fn add_const_fct(&mut self, id: FctId) -> ConstPoolIdx {
+    pub fn add_const_fct(&mut self, id: FctDefinitionId) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Fct(id, SourceTypeArray::empty()))
     }
@@ -82,14 +82,14 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::StructField(id, type_params, field_idx))
     }
 
-    pub fn add_const_fct_types(&mut self, id: FctId, type_params: SourceTypeArray) -> ConstPoolIdx {
+    pub fn add_const_fct_types(&mut self, id: FctDefinitionId, type_params: SourceTypeArray) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
     }
 
     pub fn add_const_generic(
         &mut self,
         id: TypeParamId,
-        fct_id: FctId,
+        fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
         self.writer

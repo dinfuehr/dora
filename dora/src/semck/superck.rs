@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::semck::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
-use crate::vm::{find_method_in_class, ClassDefinition, ClassDefinitionId, Fct, FctId, SemAnalysis};
+use crate::vm::{find_method_in_class, ClassDefinition, ClassDefinitionId, FctDefinition, FctDefinitionId, SemAnalysis};
 
 pub fn check(sa: &mut SemAnalysis) {
     cycle_detection(sa);
@@ -111,7 +111,7 @@ pub fn check_override(sa: &SemAnalysis) {
     }
 }
 
-fn check_fct_modifier(sa: &SemAnalysis, cls: &ClassDefinition, fct: &Fct) -> Option<FctId> {
+fn check_fct_modifier(sa: &SemAnalysis, cls: &ClassDefinition, fct: &FctDefinition) -> Option<FctDefinitionId> {
     // catch: class A { @open fun f() } (A is not derivable)
     // catch: @open @final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {

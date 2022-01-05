@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::mem;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{accessible_from, namespace_path, FctId, FileId, NamespaceId, VM};
+use crate::vm::{accessible_from, namespace_path, FctDefinitionId, FileId, NamespaceId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -37,7 +37,7 @@ pub struct GlobalData {
     pub ty: SourceType,
     pub mutable: bool,
     pub name: Name,
-    pub initializer: Option<FctId>,
+    pub initializer: Option<FctDefinitionId>,
     pub address_init: Address,
     pub address_value: Address,
 }

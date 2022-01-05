@@ -11,8 +11,8 @@ use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
-    AnalysisData, CallType, ConstId, EnumId, Fct, FctId, GlobalId, IdentType, Intrinsic,
-    SemAnalysis, StructId, TupleId, VarId,
+    AnalysisData, CallType, ConstId, EnumId, FctDefinition, FctDefinitionId, GlobalId, IdentType,
+    Intrinsic, SemAnalysis, StructId, TupleId, VarId,
 };
 
 pub struct LoopLabels {
@@ -26,7 +26,7 @@ impl LoopLabels {
     }
 }
 
-pub fn generate_fct(sa: &SemAnalysis, id: FctId) -> BytecodeFunction {
+pub fn generate_fct(sa: &SemAnalysis, id: FctDefinitionId) -> BytecodeFunction {
     let fct = sa.fcts.idx(id);
     let fct = fct.read();
     let analysis = fct.analysis();
@@ -34,7 +34,7 @@ pub fn generate_fct(sa: &SemAnalysis, id: FctId) -> BytecodeFunction {
     generate(sa, &fct, analysis)
 }
 
-pub fn generate(sa: &SemAnalysis, fct: &Fct, src: &AnalysisData) -> BytecodeFunction {
+pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         fct,
@@ -49,7 +49,7 @@ pub fn generate(sa: &SemAnalysis, fct: &Fct, src: &AnalysisData) -> BytecodeFunc
 
 struct AstBytecodeGen<'a> {
     sa: &'a SemAnalysis,
-    fct: &'a Fct,
+    fct: &'a FctDefinition,
     src: &'a AnalysisData,
 
     gen: BytecodeBuilder,
@@ -1203,14 +1203,14 @@ impl<'a> AstBytecodeGen<'a> {
         dest_reg
     }
 
-    fn determine_callee(&mut self, call_type: &CallType) -> FctId {
+    fn determine_callee(&mut self, call_type: &CallType) -> FctDefinitionId {
         call_type.fct_id().expect("FctId missing")
     }
 
     fn determine_callee_types(
         &mut self,
         call_type: &CallType,
-        fct: &Fct,
+        fct: &FctDefinition,
     ) -> (Vec<SourceType>, Vec<BytecodeType>, SourceType) {
         let return_type = self.specialize_type_for_call(&call_type, fct.return_type.clone());
 
@@ -1273,7 +1273,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_call_arguments(
         &mut self,
         expr: &ExprCallType,
-        callee: &Fct,
+        callee: &FctDefinition,
         call_type: &CallType,
         arg_types: &[SourceType],
     ) -> Vec<Register> {
@@ -1396,7 +1396,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_call_inst(
         &mut self,
         expr: &ExprCallType,
-        fct: &Fct,
+        fct: &FctDefinition,
         call_type: &CallType,
         return_type: SourceType,
         pos: Position,
@@ -2743,7 +2743,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn specialize_call(&mut self, fct: &Fct, call_type: &CallType) -> ConstPoolIdx {
+    fn specialize_call(&mut self, fct: &FctDefinition, call_type: &CallType) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
         assert_eq!(fct.type_params.len(), type_params.len());
 
@@ -2857,11 +2857,11 @@ impl<'a> AstBytecodeGen<'a> {
 
 struct IntrinsicInfo {
     intrinsic: Intrinsic,
-    fct_id: Option<FctId>,
+    fct_id: Option<FctDefinitionId>,
 }
 
 impl IntrinsicInfo {
-    fn with_fct(intrinsic: Intrinsic, fct_id: FctId) -> IntrinsicInfo {
+    fn with_fct(intrinsic: Intrinsic, fct_id: FctDefinitionId) -> IntrinsicInfo {
         IntrinsicInfo {
             intrinsic,
             fct_id: Some(fct_id),

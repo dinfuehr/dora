@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ConstId, EnumId, FctId, FieldId, GlobalId, ModuleId,
+    AnnotationId, ClassDefinitionId, ConstId, EnumId, FctDefinitionId, FieldId, GlobalId, ModuleId,
     NamespaceId, StructId, TraitId, TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
@@ -74,7 +74,7 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_const())
     }
 
-    pub fn get_fct(&self, name: Name) -> Option<FctId> {
+    pub fn get_fct(&self, name: Name) -> Option<FctDefinitionId> {
         self.get(name).and_then(|n| n.to_fct())
     }
 
@@ -132,7 +132,7 @@ impl SymTable {
         self.table.insert(name, sym)
     }
 
-    pub fn get_fct(&self, name: Name) -> Option<FctId> {
+    pub fn get_fct(&self, name: Name) -> Option<FctDefinitionId> {
         self.get(name).and_then(|n| n.to_fct())
     }
 
@@ -173,7 +173,7 @@ pub enum Sym {
     TypeParam(TypeParamId),
     Enum(EnumId),
     Field(FieldId),
-    Fct(FctId),
+    Fct(FctDefinitionId),
     Var(VarId),
     Module(ModuleId),
     Annotation(AnnotationId),
@@ -254,7 +254,7 @@ impl Sym {
         }
     }
 
-    pub fn to_fct(&self) -> Option<FctId> {
+    pub fn to_fct(&self) -> Option<FctDefinitionId> {
         match *self {
             Fct(id) => Some(id),
             _ => None,

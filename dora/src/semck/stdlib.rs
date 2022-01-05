@@ -10,7 +10,7 @@ use crate::stdlib;
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    AnnotationId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumId, ExtensionId, FctId,
+    AnnotationId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumId, ExtensionId, FctDefinitionId,
     Intrinsic, ModuleId, NamespaceId, SemAnalysis, StructId, TraitId,
 };
 use crate::vtable::VTableBox;
@@ -961,7 +961,7 @@ fn find_method(
     namespace_id: NamespaceId,
     container_name: &str,
     name: &str,
-) -> FctId {
+) -> FctDefinitionId {
     let container_name = sa.interner.intern(container_name);
 
     let cls_id = NestedSymTable::new(sa, namespace_id)
@@ -989,7 +989,7 @@ fn find_static(
     namespace_id: NamespaceId,
     container_name: &str,
     name: &str,
-) -> FctId {
+) -> FctDefinitionId {
     let container_name = sa.interner.intern(container_name);
 
     let symtable = NestedSymTable::new(sa, namespace_id);

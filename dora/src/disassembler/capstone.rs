@@ -9,7 +9,7 @@ use capstone::prelude::*;
 use crate::compiler::Code;
 use crate::driver::cmd::AsmSyntax;
 use crate::ty::SourceTypeArray;
-use crate::vm::{Fct, VM};
+use crate::vm::{FctDefinition, VM};
 
 pub fn supported() -> bool {
     true
@@ -17,7 +17,7 @@ pub fn supported() -> bool {
 
 pub fn disassemble(
     vm: &VM,
-    fct: &Fct,
+    fct: &FctDefinition,
     type_params: &SourceTypeArray,
     code: &Code,
     asm_syntax: AsmSyntax,

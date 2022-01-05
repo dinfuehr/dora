@@ -7,7 +7,7 @@ use crate::mem;
 use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
-    impl_matches, ClassDefinition, ClassDefinitionId, EnumData, EnumId, EnumLayout, Fct, ImplId, ModuleId,
+    impl_matches, ClassDefinition, ClassDefinitionId, EnumData, EnumId, EnumLayout, FctDefinition, ImplId, ModuleId,
     StructId, TraitId, TupleId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 
@@ -345,7 +345,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_fct(&self, vm: &VM, fct: &Fct) -> String {
+    pub fn name_fct(&self, vm: &VM, fct: &FctDefinition) -> String {
         let writer = SourceTypePrinter {
             vm,
             type_params: Some(&fct.type_params),

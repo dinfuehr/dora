@@ -9,7 +9,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
-    accessible_from, namespace_path, ClassInstanceId, FctId, FileId, NamespaceId, TypeParam,
+    accessible_from, namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId, TypeParam,
     TypeParamDefinition, TypeParamId, VM,
 };
 
@@ -39,9 +39,9 @@ pub struct TraitData {
     pub name: Name,
     pub type_params: Vec<TypeParam>,
     pub type_params2: TypeParamDefinition,
-    pub methods: Vec<FctId>,
-    pub instance_names: HashMap<Name, FctId>,
-    pub static_names: HashMap<Name, FctId>,
+    pub methods: Vec<FctDefinitionId>,
+    pub instance_names: HashMap<Name, FctDefinitionId>,
+    pub static_names: HashMap<Name, FctDefinitionId>,
     pub vtables: RwLock<HashMap<SourceTypeArrayId, ClassInstanceId>>,
 }
 
@@ -66,7 +66,7 @@ impl TraitData {
         }
     }
 
-    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
+    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctDefinitionId> {
         for &method in &self.methods {
             let method = vm.fcts.idx(method);
             let method = method.read();
@@ -86,7 +86,7 @@ impl TraitData {
         name: Name,
         replace: Option<SourceType>,
         args: &[SourceType],
-    ) -> Option<FctId> {
+    ) -> Option<FctDefinitionId> {
         for &method in &self.methods {
             let method = vm.fcts.idx(method);
             let method = method.read();

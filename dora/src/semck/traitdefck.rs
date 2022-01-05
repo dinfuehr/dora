@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::semck;
 use crate::sym::NestedSymTable;
-use crate::vm::{Fct, FctParent, FileId, NamespaceId, SemAnalysis, TraitData, TraitId};
+use crate::vm::{FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis, TraitData, TraitId};
 
 use dora_parser::ast;
 
@@ -74,7 +74,7 @@ impl<'x> TraitCheck<'x> {
     }
 
     fn visit_method(&mut self, node: &Arc<ast::Function>) {
-        let mut fct = Fct::new(
+        let mut fct = FctDefinition::new(
             self.sa,
             self.file_id,
             self.namespace_id,

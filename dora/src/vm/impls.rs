@@ -10,8 +10,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
-    extension_matches_ty, FctId, FileId, NamespaceId, TraitId, TypeParam, TypeParamDefinition,
-    TypeParamId, VM,
+    extension_matches_ty, FctDefinitionId, FileId, NamespaceId, TraitId, TypeParam,
+    TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -33,10 +33,10 @@ pub struct ImplData {
     pub type_params: Vec<TypeParam>,
     pub trait_id: Option<TraitId>,
     pub ty: SourceType,
-    pub methods: Vec<FctId>,
-    pub instance_names: HashMap<Name, FctId>,
-    pub static_names: HashMap<Name, FctId>,
-    pub impl_for: HashMap<FctId, FctId>,
+    pub methods: Vec<FctDefinitionId>,
+    pub instance_names: HashMap<Name, FctDefinitionId>,
+    pub static_names: HashMap<Name, FctDefinitionId>,
+    pub impl_for: HashMap<FctDefinitionId, FctDefinitionId>,
 }
 
 impl ImplData {
@@ -77,10 +77,10 @@ pub fn impl_matches(
 
 pub fn find_trait_impl(
     vm: &VM,
-    fct_id: FctId,
+    fct_id: FctDefinitionId,
     trait_id: TraitId,
     object_type: SourceType,
-) -> FctId {
+) -> FctDefinitionId {
     debug_assert!(!object_type.contains_type_param(vm));
     let impl_id = find_impl(vm, object_type, &[], trait_id)
         .expect("no impl found for generic trait method call");

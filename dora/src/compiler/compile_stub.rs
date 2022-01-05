@@ -18,7 +18,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Fct, FctId, FctParent, TypeParam,
+    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, FctDefinition, FctDefinitionId, FctParent, TypeParam,
     TypeParamId, VM,
 };
 
@@ -245,7 +245,7 @@ fn patch_virtual_call(
     receiver_is_first: bool,
     receiver1: Address,
     receiver2: Address,
-    trait_fct_id: FctId,
+    trait_fct_id: FctDefinitionId,
     vtable_index: u32,
     type_params: &SourceTypeArray,
 ) -> Address {
@@ -283,7 +283,7 @@ fn patch_virtual_call(
 fn patch_direct_call(
     vm: &VM,
     ra: usize,
-    fct_id: FctId,
+    fct_id: FctDefinitionId,
     type_params: &SourceTypeArray,
     disp: i32,
 ) -> Address {
@@ -303,10 +303,10 @@ fn patch_direct_call(
 fn ensure_thunk(
     vm: &VM,
     cls_def_id: ClassInstanceId,
-    fct_id: FctId,
+    fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
     object_ty: SourceType,
-) -> FctId {
+) -> FctDefinitionId {
     let fct = vm.fcts.idx(fct_id);
     let fct = fct.read();
 
@@ -320,7 +320,7 @@ fn ensure_thunk(
 
     let callee_id = find_trait_impl(vm, fct_id, trait_id, object_ty.clone());
 
-    let mut thunk_fct = Fct::new(vm, fct.file_id, fct.namespace_id, &fct.ast, FctParent::None);
+    let mut thunk_fct = FctDefinition::new(vm, fct.file_id, fct.namespace_id, &fct.ast, FctParent::None);
     thunk_fct.type_params = fct.type_params.clone();
     let mut traits = HashSet::new();
     traits.insert(trait_id);
@@ -360,9 +360,9 @@ fn ensure_thunk(
 fn generate_bytecode_for_thunk(
     vm: &VM,
     cls_def_id: ClassInstanceId,
-    trait_fct: &Fct,
-    thunk_fct: &mut Fct,
-    _callee_id: FctId,
+    trait_fct: &FctDefinition,
+    thunk_fct: &mut FctDefinition,
+    _callee_id: FctDefinitionId,
     object_ty: SourceType,
 ) -> BytecodeFunction {
     let mut gen = BytecodeBuilder::new(&vm.args);

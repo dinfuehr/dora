@@ -5,7 +5,8 @@ use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
 use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{
-    EnumId, ExtensionId, Fct, FctParent, FileId, NamespaceId, SemAnalysis, StructId, TypeParam,
+    EnumId, ExtensionId, FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis, StructId,
+    TypeParam,
 };
 
 use dora_parser::ast;
@@ -134,7 +135,7 @@ impl<'x> ExtensionCheck<'x> {
                 .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
         }
 
-        let fct = Fct::new(
+        let fct = FctDefinition::new(
             self.sa,
             self.file_id,
             self.namespace_id,
