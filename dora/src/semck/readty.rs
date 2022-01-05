@@ -7,7 +7,7 @@ use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
     trait_accessible_from, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinition, FileId,
-    ImplData, SemAnalysis, StructDefinitionId, TraitId, TypeParam, TypeParamId,
+    ImplData, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -19,7 +19,7 @@ pub enum TypeParamContext<'a> {
     Enum(EnumDefinitionId),
     Struct(StructDefinitionId),
     Fct(&'a FctDefinition),
-    Trait(TraitId),
+    Trait(TraitDefinitionId),
     Impl(&'a ImplData),
     Extension(ExtensionId),
     None,

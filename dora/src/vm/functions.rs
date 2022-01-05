@@ -14,7 +14,7 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, FileId, ImplId,
-    ModuleId, NamespaceId, TraitId, TypeParam, TypeParamId, VM,
+    ModuleId, NamespaceId, TraitDefinitionId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -163,7 +163,7 @@ impl FctDefinition {
         }
     }
 
-    pub fn trait_id(&self) -> TraitId {
+    pub fn trait_id(&self) -> TraitDefinitionId {
         match self.parent {
             FctParent::Trait(traitid) => traitid,
             _ => unreachable!(),
@@ -337,7 +337,7 @@ impl FctDefinition {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FctParent {
     Class(ClassDefinitionId),
-    Trait(TraitId),
+    Trait(TraitDefinitionId),
     Module(ModuleId),
     Impl(ImplId),
     Extension(ExtensionId),
@@ -366,7 +366,7 @@ impl FctParent {
         }
     }
 
-    pub fn trait_id(&self) -> Option<TraitId> {
+    pub fn trait_id(&self) -> Option<TraitDefinitionId> {
         match self {
             &FctParent::Trait(id) => Some(id),
             _ => None,

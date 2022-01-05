@@ -8,7 +8,7 @@ use dora_parser::interner::Name;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, Intrinsic, ModuleId, StructDefinitionFieldId, StructDefinitionId, TraitId,
+    GlobalDefinitionId, Intrinsic, ModuleId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
     TypeParamId,
 };
 
@@ -220,10 +220,10 @@ pub enum CallType {
     TraitObjectMethod(SourceType, FctDefinitionId),
 
     // Invoke trait method on type param, e.g. (T: SomeTrait).method()
-    GenericMethod(TypeParamId, TraitId, FctDefinitionId),
+    GenericMethod(TypeParamId, TraitDefinitionId, FctDefinitionId),
 
     // Invoke static trait method on type param, e.g. T::method()
-    GenericStaticMethod(TypeParamId, TraitId, FctDefinitionId),
+    GenericStaticMethod(TypeParamId, TraitDefinitionId, FctDefinitionId),
 
     // Construct enum value
     Enum(SourceType, usize),

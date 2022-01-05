@@ -14,7 +14,7 @@ use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
     accessible_from, extension_matches, impl_matches, namespace_path, ExtensionId, FctDefinitionId,
-    FctParent, FileId, ImplId, NamespaceId, TraitId,
+    FctParent, FileId, ImplId, NamespaceId, TraitDefinitionId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast;
@@ -236,7 +236,7 @@ impl ClassDefinition {
     pub fn find_trait_method(
         &self,
         vm: &VM,
-        trait_id: TraitId,
+        trait_id: TraitDefinitionId,
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {
@@ -477,7 +477,7 @@ pub fn find_methods_in_class(
 #[derive(Clone, Debug)]
 pub struct TypeParam {
     pub name: Name,
-    pub trait_bounds: HashSet<TraitId>,
+    pub trait_bounds: HashSet<TraitDefinitionId>,
 }
 
 impl TypeParam {
@@ -516,7 +516,7 @@ impl TypeParamDefinition {
         self.names.len()
     }
 
-    pub fn add_bound(&mut self, type_param_id: TypeParamId, trait_id: TraitId) {
+    pub fn add_bound(&mut self, type_param_id: TypeParamId, trait_id: TraitDefinitionId) {
         self.bounds.push(TypeParamBound {
             type_param_id,
             trait_id,
@@ -553,7 +553,7 @@ impl Iterator for TypeParamIter {
 #[derive(Debug)]
 pub struct TypeParamBound {
     pub type_param_id: TypeParamId,
-    pub trait_id: TraitId,
+    pub trait_id: TraitDefinitionId,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

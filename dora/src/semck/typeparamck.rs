@@ -3,7 +3,8 @@ use dora_parser::lexer::position::Position;
 use crate::semck::error::msg::SemError;
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinition, FileId, SemAnalysis, StructDefinitionId, TraitId, TypeParam,
+    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinition, FileId, SemAnalysis,
+    StructDefinitionId, TraitDefinitionId, TypeParam,
 };
 
 pub enum ErrorReporting {
@@ -146,7 +147,13 @@ impl<'a> TypeParamCheck<'a> {
         succeeded
     }
 
-    fn fail_trait_bound(&self, file_id: FileId, pos: Position, trait_id: TraitId, ty: SourceType) {
+    fn fail_trait_bound(
+        &self,
+        file_id: FileId,
+        pos: Position,
+        trait_id: TraitDefinitionId,
+        ty: SourceType,
+    ) {
         let name = ty.name_with_params(self.sa, self.caller_type_param_defs);
         let xtrait = self.sa.traits[trait_id].read();
         let trait_name = self.sa.interner.str(xtrait.name).to_string();

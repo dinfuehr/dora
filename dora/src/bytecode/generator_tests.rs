@@ -9,7 +9,7 @@ use crate::semck::test;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ensure_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, StructDefinitionFieldId,
-    StructDefinitionId, TraitId, TupleId, TypeParamId, VM,
+    StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -4322,7 +4322,7 @@ pub enum Bytecode {
     NewTuple(Register, TupleId),
     NewEnum(Register, EnumDefinitionId, SourceTypeArray, usize),
     NewStruct(Register, StructDefinitionId, SourceTypeArray),
-    NewTraitObject(Register, TraitId, SourceTypeArray, SourceType, Register),
+    NewTraitObject(Register, TraitDefinitionId, SourceTypeArray, SourceType, Register),
 
     NilCheck(Register),
 

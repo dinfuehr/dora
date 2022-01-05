@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
-    extension_matches_ty, FctDefinitionId, FileId, NamespaceId, TraitId, TypeParam,
+    extension_matches_ty, FctDefinitionId, FileId, NamespaceId, TraitDefinitionId, TypeParam,
     TypeParamDefinition, TypeParamId, VM,
 };
 
@@ -31,7 +31,7 @@ pub struct ImplData {
     pub namespace_id: NamespaceId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
-    pub trait_id: Option<TraitId>,
+    pub trait_id: Option<TraitDefinitionId>,
     pub ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
@@ -40,7 +40,7 @@ pub struct ImplData {
 }
 
 impl ImplData {
-    pub fn trait_id(&self) -> TraitId {
+    pub fn trait_id(&self) -> TraitDefinitionId {
         self.trait_id.expect("trait_id not initialized yet.")
     }
 
@@ -78,7 +78,7 @@ pub fn impl_matches(
 pub fn find_trait_impl(
     vm: &VM,
     fct_id: FctDefinitionId,
-    trait_id: TraitId,
+    trait_id: TraitDefinitionId,
     object_type: SourceType,
 ) -> FctDefinitionId {
     debug_assert!(!object_type.contains_type_param(vm));

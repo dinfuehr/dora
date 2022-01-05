@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use crate::semck;
 use crate::sym::NestedSymTable;
-use crate::vm::{FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis, TraitData, TraitId};
+use crate::vm::{
+    FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis, TraitDefinition, TraitDefinitionId,
+};
 
 use dora_parser::ast;
 
@@ -39,10 +41,10 @@ pub fn check(sa: &SemAnalysis) {
 struct TraitCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: FileId,
-    trait_id: TraitId,
+    trait_id: TraitDefinitionId,
     ast: &'x ast::Trait,
     namespace_id: NamespaceId,
-    xtrait: &'x mut TraitData,
+    xtrait: &'x mut TraitDefinition,
     sym: NestedSymTable<'x>,
     vtable_index: u32,
 }

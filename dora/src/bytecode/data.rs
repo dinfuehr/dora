@@ -7,7 +7,8 @@ use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::utils::enumeration;
 use crate::vm::{
     get_vm, ClassDefinitionId, ClassInstanceId, EnumDefinitionId, EnumLayout, FctDefinitionId,
-    FieldId, StructDefinitionFieldId, StructDefinitionId, TraitId, TupleId, TypeParamId, VM,
+    FieldId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
+    VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -831,7 +832,7 @@ pub enum ConstPoolEntry {
     EnumVariant(EnumDefinitionId, SourceTypeArray, usize),
     Struct(StructDefinitionId, SourceTypeArray),
     StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
-    Trait(TraitId, SourceTypeArray, SourceType),
+    Trait(TraitDefinitionId, SourceTypeArray, SourceType),
 }
 
 impl ConstPoolEntry {

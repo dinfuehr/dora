@@ -4,7 +4,7 @@ use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     AnnotationDefinitionId, ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId,
-    StructDefinitionId, TraitId, VM,
+    StructDefinitionId, TraitDefinitionId, VM,
 };
 
 #[derive(Debug)]
@@ -106,11 +106,11 @@ pub struct KnownStructs {
 
 #[derive(Debug)]
 pub struct KnownTraits {
-    pub equals: TraitId,
-    pub comparable: TraitId,
-    pub stringable: TraitId,
-    pub iterator: TraitId,
-    pub zero: TraitId,
+    pub equals: TraitDefinitionId,
+    pub comparable: TraitDefinitionId,
+    pub stringable: TraitDefinitionId,
+    pub iterator: TraitDefinitionId,
+    pub zero: TraitDefinitionId,
 }
 
 #[derive(Debug)]

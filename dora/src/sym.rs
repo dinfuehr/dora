@@ -5,7 +5,7 @@ use self::Sym::*;
 use crate::vm::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
     FctDefinitionId, FieldId, GlobalDefinitionId, ModuleId, NamespaceId, StructDefinitionId,
-    TraitId, TypeParamId, VarId, VM,
+    TraitDefinitionId, TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
@@ -83,7 +83,7 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_struct())
     }
 
-    pub fn get_trait(&self, name: Name) -> Option<TraitId> {
+    pub fn get_trait(&self, name: Name) -> Option<TraitDefinitionId> {
         self.get(name).and_then(|n| n.to_trait())
     }
 
@@ -149,7 +149,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_struct())
     }
 
-    pub fn get_trait(&self, name: Name) -> Option<TraitId> {
+    pub fn get_trait(&self, name: Name) -> Option<TraitDefinitionId> {
         self.get(name).and_then(|n| n.to_trait())
     }
 
@@ -170,7 +170,7 @@ impl SymTable {
 pub enum Sym {
     Class(ClassDefinitionId),
     Struct(StructDefinitionId),
-    Trait(TraitId),
+    Trait(TraitDefinitionId),
     TypeParam(TypeParamId),
     Enum(EnumDefinitionId),
     Field(FieldId),
@@ -220,7 +220,7 @@ impl Sym {
         }
     }
 
-    pub fn to_trait(&self) -> Option<TraitId> {
+    pub fn to_trait(&self) -> Option<TraitDefinitionId> {
         match *self {
             Trait(id) => Some(id),
             _ => None,

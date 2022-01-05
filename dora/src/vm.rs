@@ -70,7 +70,7 @@ pub use self::structs::{
     StructDefinitionField, StructDefinitionFieldId, StructDefinitionId, StructInstance,
     StructInstanceField, StructInstanceId,
 };
-pub use self::traits::{trait_accessible_from, TraitData, TraitId};
+pub use self::traits::{trait_accessible_from, TraitDefinition, TraitDefinitionId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
@@ -142,7 +142,7 @@ pub struct FullSemAnalysis {
     pub jit_fcts: GrowableVec<JitFct>,            // stores all function implementations
     pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
-    pub traits: Vec<RwLock<TraitData>>,           // stores all trait definitions
+    pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
     pub code_map: Mutex<CodeMap>,                 // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
@@ -160,7 +160,7 @@ pub struct FullSemAnalysis {
 impl FullSemAnalysis {
     pub fn new(args: Args) -> Box<FullSemAnalysis> {
         let empty_class_def_id: ClassInstanceId = 0.into();
-        let empty_trait_id: TraitId = 0.into();
+        let empty_trait_id: TraitDefinitionId = 0.into();
         let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumDefinitionId = 0.into();
         let empty_struct_id = 0.into();
@@ -323,7 +323,7 @@ pub struct VM {
     pub jit_fcts: GrowableVec<JitFct>,            // stores all function implementations
     pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
-    pub traits: Vec<RwLock<TraitData>>,           // stores all trait definitions
+    pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
     pub code_map: Mutex<CodeMap>,                 // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
@@ -349,7 +349,7 @@ pub struct VM {
 impl VM {
     pub fn new(args: Args) -> Box<VM> {
         let empty_class_def_id: ClassInstanceId = 0.into();
-        let empty_trait_id: TraitId = 0.into();
+        let empty_trait_id: TraitDefinitionId = 0.into();
         let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumDefinitionId = 0.into();
         let empty_struct_id = 0.into();
@@ -791,7 +791,7 @@ impl VM {
     }
 
     #[cfg(test)]
-    pub fn trait_by_name(&self, name: &str) -> TraitId {
+    pub fn trait_by_name(&self, name: &str) -> TraitDefinitionId {
         let name = self.interner.intern(name);
         let trait_id = NestedSymTable::new(self, self.global_namespace_id)
             .get_trait(name)

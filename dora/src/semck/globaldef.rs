@@ -14,7 +14,7 @@ use crate::vm::{
     ConstValue, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId, FctDefinition,
     FctParent, FileId, GlobalDefinition, GlobalDefinitionId, ImplData, ImplId, ImportData, Module,
     ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructDefinitionId,
-    TraitData, TraitId, TypeParam, TypeParamDefinition,
+    TraitDefinition, TraitDefinitionId, TypeParam, TypeParamDefinition,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -230,8 +230,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        let id: TraitId = (self.sa.traits.len() as u32).into();
-        let xtrait = TraitData {
+        let id: TraitDefinitionId = (self.sa.traits.len() as u32).into();
+        let xtrait = TraitDefinition {
             id,
             file_id: self.file_id,
             ast: node.clone(),

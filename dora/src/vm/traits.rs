@@ -9,28 +9,28 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
-    accessible_from, namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId, TypeParam,
-    TypeParamDefinition, TypeParamId, VM,
+    accessible_from, namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId,
+    TypeParam, TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TraitId(u32);
+pub struct TraitDefinitionId(u32);
 
-impl TraitId {
+impl TraitDefinitionId {
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
 
-impl From<u32> for TraitId {
-    fn from(data: u32) -> TraitId {
-        TraitId(data)
+impl From<u32> for TraitDefinitionId {
+    fn from(data: u32) -> TraitDefinitionId {
+        TraitDefinitionId(data)
     }
 }
 
 #[derive(Debug)]
-pub struct TraitData {
-    pub id: TraitId,
+pub struct TraitDefinition {
+    pub id: TraitDefinitionId,
     pub file_id: FileId,
     pub namespace_id: NamespaceId,
     pub is_pub: bool,
@@ -45,7 +45,7 @@ pub struct TraitData {
     pub vtables: RwLock<HashMap<SourceTypeArrayId, ClassInstanceId>>,
 }
 
-impl TraitData {
+impl TraitDefinition {
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }
@@ -108,7 +108,7 @@ impl TraitData {
 }
 
 struct TraitType {
-    trait_id: TraitId,
+    trait_id: TraitDefinitionId,
     type_params: SourceTypeArray,
 }
 
@@ -139,15 +139,19 @@ fn params_match(
     true
 }
 
-impl Index<TraitId> for Vec<RwLock<TraitData>> {
-    type Output = RwLock<TraitData>;
+impl Index<TraitDefinitionId> for Vec<RwLock<TraitDefinition>> {
+    type Output = RwLock<TraitDefinition>;
 
-    fn index(&self, index: TraitId) -> &RwLock<TraitData> {
+    fn index(&self, index: TraitDefinitionId) -> &RwLock<TraitDefinition> {
         &self[index.0 as usize]
     }
 }
 
-pub fn trait_accessible_from(vm: &VM, trait_id: TraitId, namespace_id: NamespaceId) -> bool {
+pub fn trait_accessible_from(
+    vm: &VM,
+    trait_id: TraitDefinitionId,
+    namespace_id: NamespaceId,
+) -> bool {
     let xtrait = vm.traits[trait_id].read();
 
     accessible_from(vm, xtrait.namespace_id, xtrait.is_pub, namespace_id)

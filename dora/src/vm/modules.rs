@@ -7,7 +7,7 @@ use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
     accessible_from, namespace_path, Candidate, FctDefinitionId, Field, FieldDef, FileId,
-    NamespaceId, TraitId, VM,
+    NamespaceId, TraitDefinitionId, VM,
 };
 
 use crate::vtable::VTableBox;
@@ -65,7 +65,7 @@ pub struct Module {
     pub methods: Vec<FctDefinitionId>,
     pub virtual_fcts: Vec<FctDefinitionId>,
 
-    pub traits: Vec<TraitId>,
+    pub traits: Vec<TraitDefinitionId>,
 }
 
 impl Module {

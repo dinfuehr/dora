@@ -5,7 +5,8 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_module, find_methods_in_struct,
-    ClassDefinitionId, FctDefinition, FctDefinitionId, FileId, SemAnalysis, TraitId, TypeParam, TypeParamDefinition,
+    ClassDefinitionId, FctDefinition, FctDefinitionId, FileId, SemAnalysis, TraitDefinitionId,
+    TypeParam, TypeParamDefinition,
 };
 
 use dora_parser::interner::Name;
@@ -15,7 +16,7 @@ use dora_parser::lexer::position::Position;
 enum LookupKind {
     Method(SourceType),
     Static(SourceType),
-    Trait(TraitId),
+    Trait(TraitDefinitionId),
     Callee(FctDefinitionId),
 }
 
@@ -318,7 +319,7 @@ impl<'a> MethodLookup<'a> {
 
     fn find_method_in_trait(
         &mut self,
-        trait_id: TraitId,
+        trait_id: TraitDefinitionId,
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {

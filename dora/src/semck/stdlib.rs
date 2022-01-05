@@ -12,7 +12,7 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     AnnotationDefinitionId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumDefinitionId,
     ExtensionId, FctDefinitionId, Intrinsic, ModuleId, NamespaceId, SemAnalysis,
-    StructDefinitionId, TraitId,
+    StructDefinitionId, TraitDefinitionId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast::Modifier;
@@ -282,7 +282,7 @@ fn internal_annotation(
     annotation_id
 }
 
-fn find_trait(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str) -> TraitId {
+fn find_trait(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str) -> TraitDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     symtable.get_trait(iname).expect("trait not found")

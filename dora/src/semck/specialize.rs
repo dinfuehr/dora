@@ -11,7 +11,7 @@ use crate::vm::{
     ensure_tuple, ClassDefinition, ClassDefinitionId, ClassInstance, ClassInstanceId,
     EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef,
     SemAnalysis, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
-    StructInstanceId, TraitData, TraitId, TupleId,
+    StructInstanceId, TraitDefinition, TraitDefinitionId, TupleId,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -688,7 +688,7 @@ pub fn specialize_tuple(
 
 pub fn specialize_trait_object(
     sa: &SemAnalysis,
-    trait_id: TraitId,
+    trait_id: TraitDefinitionId,
     trait_type_params: &SourceTypeArray,
     object_type: SourceType,
 ) -> ClassInstanceId {
@@ -706,7 +706,7 @@ pub fn specialize_trait_object(
 
 fn create_specialized_class_for_trait_object(
     sa: &SemAnalysis,
-    xtrait: &TraitData,
+    xtrait: &TraitDefinition,
     combined_type_params_id: SourceTypeArrayId,
     object_type: SourceType,
 ) -> ClassInstanceId {

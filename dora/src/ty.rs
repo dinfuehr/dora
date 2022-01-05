@@ -8,7 +8,7 @@ use crate::semck;
 use crate::vm::VM;
 use crate::vm::{
     impl_matches, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, EnumLayout,
-    FctDefinition, ImplId, ModuleId, StructDefinitionId, TraitId, TupleId, TypeParam,
+    FctDefinition, ImplId, ModuleId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParam,
     TypeParamDefinition, TypeParamId,
 };
 
@@ -48,7 +48,7 @@ pub enum SourceType {
     Tuple(TupleId),
 
     // some trait object
-    Trait(TraitId, SourceTypeArrayId),
+    Trait(TraitDefinitionId, SourceTypeArrayId),
 
     // some module
     Module(ModuleId),
@@ -677,7 +677,7 @@ pub fn implements_trait(
     vm: &VM,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
-    trait_id: TraitId,
+    trait_id: TraitDefinitionId,
 ) -> bool {
     match check_ty {
         SourceType::Tuple(_)
@@ -771,7 +771,7 @@ pub fn find_impl(
     vm: &VM,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
-    trait_id: TraitId,
+    trait_id: TraitDefinitionId,
 ) -> Option<ImplId> {
     match check_ty {
         SourceType::Tuple(_)
@@ -854,7 +854,7 @@ pub fn check_impls(
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
     check_type_param_defs2: Option<&TypeParamDefinition>,
-    trait_id: TraitId,
+    trait_id: TraitDefinitionId,
     impls: &[ImplId],
 ) -> Option<ImplId> {
     for &impl_id in impls {
