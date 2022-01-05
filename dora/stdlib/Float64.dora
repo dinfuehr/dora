@@ -33,6 +33,10 @@ impl Float64 {
   @pub @internal fun unaryPlus(): Float64;
   @pub @internal fun unaryMinus(): Float64;
   @pub @internal fun abs(): Float64;
+
+  @pub @internal fun roundToZero(): Float64;
+  @pub @internal fun roundUp(): Float64;
+  @pub @internal fun roundDown(): Float64;
   @pub @internal fun roundHalfEven(): Float64;
 
   @pub @internal fun isNan(): Bool;

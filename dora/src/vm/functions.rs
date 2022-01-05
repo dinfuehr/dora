@@ -512,7 +512,12 @@ pub enum Intrinsic {
     Float32Neg,
     Float32Abs,
     Float32IsNan,
+
+    Float32RoundToZero,
+    Float32RoundUp,
+    Float32RoundDown,
     Float32RoundHalfEven,
+
     Float32Sqrt,
 
     Float64ToInt32,
@@ -532,7 +537,12 @@ pub enum Intrinsic {
     Float64Neg,
     Float64Abs,
     Float64IsNan,
+
+    Float64RoundToZero,
+    Float64RoundUp,
+    Float64RoundDown,
     Float64RoundHalfEven,
+
     Float64Sqrt,
 
     OptionGetOrPanic,
@@ -577,7 +587,13 @@ impl Intrinsic {
             | Intrinsic::Int32CountOneBitsTrailing
             | Intrinsic::Float32Abs
             | Intrinsic::Float64Abs
+            | Intrinsic::Float32RoundToZero
+            | Intrinsic::Float32RoundUp
+            | Intrinsic::Float32RoundDown
             | Intrinsic::Float32RoundHalfEven
+            | Intrinsic::Float64RoundToZero
+            | Intrinsic::Float64RoundUp
+            | Intrinsic::Float64RoundDown
             | Intrinsic::Float64RoundHalfEven
             | Intrinsic::Float32Sqrt
             | Intrinsic::Float64Sqrt
@@ -697,6 +713,9 @@ impl Intrinsic {
             | Intrinsic::ReinterpretInt32AsFloat32
             | Intrinsic::Int32ToFloat32
             | Intrinsic::Int64ToFloat32
+            | Intrinsic::Float32RoundToZero
+            | Intrinsic::Float32RoundUp
+            | Intrinsic::Float32RoundDown
             | Intrinsic::Float32RoundHalfEven
             | Intrinsic::Float32Sqrt
             | Intrinsic::DemoteFloat64ToFloat32 => BytecodeType::Float32,
@@ -709,6 +728,9 @@ impl Intrinsic {
             | Intrinsic::Int32ToFloat64
             | Intrinsic::Int64ToFloat64
             | Intrinsic::ReinterpretInt64AsFloat64
+            | Intrinsic::Float64RoundToZero
+            | Intrinsic::Float64RoundUp
+            | Intrinsic::Float64RoundDown
             | Intrinsic::Float64RoundHalfEven
             | Intrinsic::Float64Sqrt
             | Intrinsic::PromoteFloat32ToFloat64 => BytecodeType::Float64,
