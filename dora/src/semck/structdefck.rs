@@ -5,7 +5,8 @@ use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{
-    FileId, NamespaceId, SemAnalysis, StructFieldData, StructFieldId, StructId, TypeParamId,
+    FileId, NamespaceId, SemAnalysis, StructDefinitionField, StructDefinitionFieldId, StructId,
+    TypeParamId,
 };
 
 use dora_parser::ast;
@@ -127,7 +128,7 @@ impl<'x> StructCheck<'x> {
         }
     }
 
-    fn visit_struct_field(&mut self, f: &ast::StructField, id: StructFieldId) {
+    fn visit_struct_field(&mut self, f: &ast::StructField, id: StructDefinitionFieldId) {
         let ty = semck::read_type(
             self.sa,
             &self.symtable,
@@ -150,7 +151,7 @@ impl<'x> StructCheck<'x> {
             return;
         }
 
-        let field = StructFieldData {
+        let field = StructDefinitionField {
             id,
             pos: f.pos,
             name: f.name,

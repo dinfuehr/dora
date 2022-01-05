@@ -61,8 +61,9 @@ pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
 pub use self::structs::{
-    find_methods_in_struct, struct_accessible_from, struct_field_accessible_from, StructData,
-    StructDef, StructDefId, StructFieldData, StructFieldDef, StructFieldId, StructId,
+    find_methods_in_struct, struct_accessible_from, struct_field_accessible_from, StructDefinition,
+    StructDefinitionField, StructDefinitionFieldId, StructId, StructInstance, StructInstanceField,
+    StructInstanceId,
 };
 pub use self::traits::{trait_accessible_from, TraitData, TraitId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};
@@ -122,8 +123,8 @@ pub struct FullSemAnalysis {
     pub known: KnownElements,
     pub package: Package,
     pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
-    pub structs: GrowableVec<RwLock<StructData>>, // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructDef>,    // stores all struct definitions
+    pub structs: GrowableVec<RwLock<StructDefinition>>, // stores all struct source definitions
+    pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<Class>>,    // stores all class source definitions
     pub class_defs: GrowableVec<ClassDef>,      // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
@@ -303,8 +304,8 @@ pub struct VM {
     pub known: KnownElements,
     pub package: Package,
     pub consts: GrowableVec<RwLock<ConstData>>, // stores all const definitions
-    pub structs: GrowableVec<RwLock<StructData>>, // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructDef>,    // stores all struct definitions
+    pub structs: GrowableVec<RwLock<StructDefinition>>, // stores all struct source definitions
+    pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<Class>>,    // stores all class source definitions
     pub class_defs: GrowableVec<ClassDef>,      // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions

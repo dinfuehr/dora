@@ -22,8 +22,8 @@ impl StructId {
     }
 }
 
-impl GrowableVec<RwLock<StructData>> {
-    pub fn idx(&self, index: StructId) -> Arc<RwLock<StructData>> {
+impl GrowableVec<RwLock<StructDefinition>> {
+    pub fn idx(&self, index: StructId) -> Arc<RwLock<StructDefinition>> {
         self.idx_usize(index.0 as usize)
     }
 }
@@ -35,7 +35,7 @@ impl From<u32> for StructId {
 }
 
 #[derive(Debug)]
-pub struct StructData {
+pub struct StructDefinition {
     pub id: StructId,
     pub file_id: FileId,
     pub ast: Arc<ast::Struct>,
@@ -48,14 +48,14 @@ pub struct StructData {
     pub internal_resolved: bool,
     pub pos: Position,
     pub name: Name,
-    pub fields: Vec<StructFieldData>,
-    pub field_names: HashMap<Name, StructFieldId>,
-    pub specializations: RwLock<HashMap<SourceTypeArray, StructDefId>>,
+    pub fields: Vec<StructDefinitionField>,
+    pub field_names: HashMap<Name, StructDefinitionFieldId>,
+    pub specializations: RwLock<HashMap<SourceTypeArray, StructInstanceId>>,
     pub impls: Vec<ImplId>,
     pub extensions: Vec<ExtensionId>,
 }
 
-impl StructData {
+impl StructDefinition {
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }
@@ -100,23 +100,23 @@ impl StructData {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct StructFieldId(pub usize);
+pub struct StructDefinitionFieldId(pub usize);
 
-impl From<usize> for StructFieldId {
-    fn from(data: usize) -> StructFieldId {
-        StructFieldId(data)
+impl From<usize> for StructDefinitionFieldId {
+    fn from(data: usize) -> StructDefinitionFieldId {
+        StructDefinitionFieldId(data)
     }
 }
 
-impl StructFieldId {
+impl StructDefinitionFieldId {
     pub fn to_usize(self) -> usize {
         self.0
     }
 }
 
 #[derive(Debug)]
-pub struct StructFieldData {
-    pub id: StructFieldId,
+pub struct StructDefinitionField {
+    pub id: StructDefinitionFieldId,
     pub pos: Position,
     pub name: Name,
     pub ty: SourceType,
@@ -124,35 +124,35 @@ pub struct StructFieldData {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct StructDefId(usize);
+pub struct StructInstanceId(usize);
 
-impl From<usize> for StructDefId {
-    fn from(data: usize) -> StructDefId {
-        StructDefId(data)
+impl From<usize> for StructInstanceId {
+    fn from(data: usize) -> StructInstanceId {
+        StructInstanceId(data)
     }
 }
 
-impl GrowableVec<StructDef> {
-    pub fn idx(&self, index: StructDefId) -> Arc<StructDef> {
+impl GrowableVec<StructInstance> {
+    pub fn idx(&self, index: StructInstanceId) -> Arc<StructInstance> {
         self.idx_usize(index.0)
     }
 }
 
-pub struct StructDef {
-    pub fields: Vec<StructFieldDef>,
+pub struct StructInstance {
+    pub fields: Vec<StructInstanceField>,
     pub size: i32,
     pub align: i32,
     pub ref_fields: Vec<i32>,
 }
 
-impl StructDef {
+impl StructInstance {
     pub fn contains_references(&self) -> bool {
         !self.ref_fields.is_empty()
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct StructFieldDef {
+pub struct StructInstanceField {
     pub offset: i32,
     pub ty: SourceType,
 }
@@ -167,7 +167,7 @@ pub fn struct_accessible_from(vm: &VM, struct_id: StructId, namespace_id: Namesp
 pub fn struct_field_accessible_from(
     vm: &VM,
     struct_id: StructId,
-    field_id: StructFieldId,
+    field_id: StructDefinitionFieldId,
     namespace_id: NamespaceId,
 ) -> bool {
     let xstruct = vm.structs.idx(struct_id);

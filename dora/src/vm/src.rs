@@ -7,8 +7,8 @@ use dora_parser::interner::Name;
 
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId, StructFieldId,
-    StructId, TraitId, TypeParamId,
+    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, ModuleId,
+    StructDefinitionFieldId, StructId, TraitId, TypeParamId,
 };
 
 #[derive(Debug)]
@@ -122,7 +122,7 @@ pub enum IdentType {
     Field(SourceType, FieldId),
 
     /// field expression: <expr>.<field_name>
-    StructField(SourceType, StructFieldId),
+    StructField(SourceType, StructDefinitionFieldId),
 
     /// name of structure
     Struct(StructId),

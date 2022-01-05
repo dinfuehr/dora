@@ -17,8 +17,8 @@ use crate::vm::{
     find_methods_in_enum, find_methods_in_struct, global_accessible_from, method_accessible_from,
     namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
     CallType, ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType,
-    Intrinsic, NamespaceId, SemAnalysis, StructData, StructId, TypeParam, TypeParamDefinition,
-    TypeParamId, Var, VarId,
+    Intrinsic, NamespaceId, SemAnalysis, StructDefinition, StructId, TypeParam,
+    TypeParamDefinition, TypeParamId, Var, VarId,
 };
 
 use dora_parser::ast;
@@ -2000,7 +2000,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_struct_args(
         &mut self,
-        xstruct: &StructData,
+        xstruct: &StructDefinition,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> bool {

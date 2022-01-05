@@ -9,8 +9,8 @@ use crate::size::InstanceSize;
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     ensure_tuple, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId, EnumId,
-    EnumLayout, FieldDef, SemAnalysis, StructData, StructDef, StructDefId, StructFieldDef,
-    StructId, TraitData, TraitId, TupleId,
+    EnumLayout, FieldDef, SemAnalysis, StructDefinition, StructId, StructInstance,
+    StructInstanceField, StructInstanceId, TraitData, TraitId, TupleId,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -53,7 +53,7 @@ pub fn specialize_struct_id_params(
     sa: &SemAnalysis,
     struct_id: StructId,
     type_params: SourceTypeArray,
-) -> StructDefId {
+) -> StructInstanceId {
     let struc = sa.structs.idx(struct_id);
     let struc = struc.read();
     specialize_struct(sa, &*struc, type_params)
@@ -61,9 +61,9 @@ pub fn specialize_struct_id_params(
 
 pub fn specialize_struct(
     sa: &SemAnalysis,
-    struc: &StructData,
+    struc: &StructDefinition,
     type_params: SourceTypeArray,
-) -> StructDefId {
+) -> StructInstanceId {
     if let Some(&id) = struc.specializations.read().get(&type_params) {
         return id;
     }
@@ -73,9 +73,9 @@ pub fn specialize_struct(
 
 fn create_specialized_struct(
     sa: &SemAnalysis,
-    xstruct: &StructData,
+    xstruct: &StructDefinition,
     type_params: SourceTypeArray,
-) -> StructDefId {
+) -> StructInstanceId {
     assert!(xstruct.primitive_ty.is_none());
 
     let mut size = 0;
@@ -91,7 +91,7 @@ fn create_specialized_struct(
         let field_align = ty.align(sa);
 
         let offset = mem::align_i32(size, field_align);
-        fields.push(StructFieldDef {
+        fields.push(StructInstanceField {
             offset,
             ty: ty.clone(),
         });
@@ -105,7 +105,7 @@ fn create_specialized_struct(
     size = mem::align_i32(size, align);
 
     let mut struct_defs = sa.struct_defs.lock();
-    let id: StructDefId = struct_defs.len().into();
+    let id: StructInstanceId = struct_defs.len().into();
 
     let mut specializations = xstruct.specializations.write();
 
@@ -116,7 +116,7 @@ fn create_specialized_struct(
     let old = specializations.insert(type_params.clone(), id);
     assert!(old.is_none());
 
-    struct_defs.push(Arc::new(StructDef {
+    struct_defs.push(Arc::new(StructInstance {
         size,
         align,
         fields,

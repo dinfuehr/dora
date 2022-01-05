@@ -12,8 +12,8 @@ use crate::ty::SourceType;
 use crate::vm::{
     self, AnnotationId, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
     ExtensionId, Fct, FctParent, FileId, GlobalData, GlobalId, ImplData, ImplId, ImportData,
-    Module, ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructData, StructId, TraitData,
-    TraitId, TypeParam, TypeParamDefinition,
+    Module, ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructId,
+    TraitData, TraitId, TypeParam, TypeParamDefinition,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -431,7 +431,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id = {
             let mut structs = self.sa.structs.lock();
             let id: StructId = (structs.len() as u32).into();
-            let mut xstruct = StructData {
+            let mut xstruct = StructDefinition {
                 id,
                 file_id: self.file_id,
                 ast: node.clone(),

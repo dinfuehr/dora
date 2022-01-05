@@ -9,8 +9,8 @@ use crate::bytecode::{
 use crate::driver::cmd::Args;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefId, ClassId, EnumId, FctId, FieldId, GlobalId, StructFieldId, StructId, TraitId,
-    TupleId, TypeParamId, VM,
+    ClassDefId, ClassId, EnumId, FctId, FieldId, GlobalId, StructDefinitionFieldId, StructId,
+    TraitId, TupleId, TypeParamId, VM,
 };
 
 pub struct BytecodeBuilder {
@@ -76,7 +76,7 @@ impl BytecodeBuilder {
         &mut self,
         id: StructId,
         type_params: SourceTypeArray,
-        field_idx: StructFieldId,
+        field_idx: StructDefinitionFieldId,
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::StructField(id, type_params, field_idx))

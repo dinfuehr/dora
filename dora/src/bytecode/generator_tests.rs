@@ -8,8 +8,8 @@ use crate::bytecode::{
 use crate::semck::test;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructFieldId, StructId, TraitId, TupleId,
-    TypeParamId, VM,
+    ensure_tuple, ClassId, EnumId, FieldId, GlobalId, StructDefinitionFieldId, StructId, TraitId,
+    TupleId, TypeParamId, VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -2525,7 +2525,11 @@ fn gen_struct_field() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::StructField(struct_id, SourceTypeArray::empty(), StructFieldId(0))
+                &ConstPoolEntry::StructField(
+                    struct_id,
+                    SourceTypeArray::empty(),
+                    StructDefinitionFieldId(0)
+                )
             );
         },
     );
@@ -2544,7 +2548,7 @@ fn gen_struct_field() {
                 &ConstPoolEntry::StructField(
                     struct_id,
                     SourceTypeArray::single(SourceType::Int32),
-                    StructFieldId(0)
+                    StructDefinitionFieldId(0)
                 )
             );
         },
