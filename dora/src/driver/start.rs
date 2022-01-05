@@ -1,6 +1,6 @@
 use crate::error::msg::SemError;
-use crate::vm::VM;
 use crate::vm::{init_global_addresses, Fct, FctId};
+use crate::vm::{SemAnalysis, VM};
 
 use crate::driver::cmd;
 use crate::object;
@@ -32,15 +32,15 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    let mut vm = VM::new(args);
+    let mut sa = SemAnalysis::new(args);
 
-    if !semck::check(&mut vm) {
+    if !semck::check(&mut sa) {
         return 1;
     }
 
-    if vm.diag.lock().has_errors() {
-        vm.diag.lock().dump(&vm);
-        let no_errors = vm.diag.lock().errors().len();
+    if sa.diag.lock().has_errors() {
+        sa.diag.lock().dump(&sa);
+        let no_errors = sa.diag.lock().errors().len();
 
         if no_errors == 1 {
             eprintln!("{} error found.", no_errors);
@@ -51,23 +51,25 @@ pub fn start() -> i32 {
         return 1;
     }
 
-    semck::generate_bytecode(&vm);
+    semck::generate_bytecode(&sa);
 
-    let main = if vm.args.cmd_test {
+    let main = if sa.args.cmd_test {
         None
     } else {
-        find_main(&vm)
+        find_main(&sa)
     };
 
-    if !vm.args.cmd_test && main.is_none() {
+    if !sa.args.cmd_test && main.is_none() {
         println!("error: no `main` function found in the program");
         return 1;
     }
 
     // if --check given, stop after type/semantic check
-    if vm.args.flag_check {
+    if sa.args.flag_check {
         return 0;
     }
+
+    let vm = VM::new_from_sa(sa);
 
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 

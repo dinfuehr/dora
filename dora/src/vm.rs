@@ -453,7 +453,11 @@ impl VM {
         vm
     }
 
-    pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
+    pub fn new_from_sa(sa: Box<VM>) -> Box<VM> {
+        sa
+    }
+
+    pub fn new_from_full_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
         let gc = Gc::new(&sa.args);
 
         let vm = Box::new(VM {

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::error::msg::SemError;
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
-use crate::vm::{FileId, TypeParam, TypeParamId, VM};
+use crate::vm::{FileId, SemAnalysis, TypeParam, TypeParamId};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -41,7 +41,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check(sa: &mut VM) -> bool {
+pub fn check(sa: &mut SemAnalysis) -> bool {
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
     if let Err(_) = globaldef::check(sa) {
@@ -115,10 +115,10 @@ pub fn check(sa: &mut VM) -> bool {
     true
 }
 
-pub fn generate_bytecode(vm: &VM) {
+pub fn generate_bytecode(sa: &SemAnalysis) {
     use crate::bytecode;
 
-    for fct in vm.fcts.iter() {
+    for fct in sa.fcts.iter() {
         let bc = {
             let fct = fct.read();
 
@@ -127,15 +127,15 @@ pub fn generate_bytecode(vm: &VM) {
             }
 
             let analysis = fct.analysis();
-            bytecode::generate(vm, &*fct, analysis)
+            bytecode::generate(sa, &*fct, analysis)
         };
 
         fct.write().bytecode = Some(bc);
     }
 }
 
-fn internalck(vm: &VM) {
-    for fct in vm.fcts.iter() {
+fn internalck(sa: &SemAnalysis) {
+    for fct in sa.fcts.iter() {
         let fct = fct.read();
 
         if fct.in_class() {
@@ -143,49 +143,49 @@ fn internalck(vm: &VM) {
         }
 
         if fct.internal && !fct.internal_resolved && !fct.has_body() {
-            vm.diag
+            sa.diag
                 .lock()
                 .report(fct.file_id, fct.pos, SemError::UnresolvedInternal);
         }
 
         if !fct.has_body() && !fct.in_trait() && !fct.internal {
-            vm.diag
+            sa.diag
                 .lock()
                 .report(fct.file_id, fct.pos, SemError::MissingFctBody);
         }
     }
 
-    for xstruct in vm.structs.iter() {
+    for xstruct in sa.structs.iter() {
         let xstruct = xstruct.read();
 
         if xstruct.internal && !xstruct.internal_resolved {
-            vm.diag
+            sa.diag
                 .lock()
                 .report(xstruct.file_id, xstruct.pos, SemError::UnresolvedInternal);
         }
     }
 
-    for cls in vm.classes.iter() {
+    for cls in sa.classes.iter() {
         let cls = cls.read();
 
         if cls.internal && !cls.internal_resolved {
-            vm.diag
+            sa.diag
                 .lock()
                 .report(cls.file_id, cls.pos, SemError::UnresolvedInternal);
         }
 
         for method in &cls.methods {
-            let method = vm.fcts.idx(*method);
+            let method = sa.fcts.idx(*method);
             let method = method.read();
 
             if method.internal && !method.internal_resolved && !method.has_body() {
-                vm.diag
+                sa.diag
                     .lock()
                     .report(method.file_id, method.pos, SemError::UnresolvedInternal);
             }
 
             if !method.has_body() && !method.is_abstract && !method.internal {
-                vm.diag
+                sa.diag
                     .lock()
                     .report(method.file_id, method.pos, SemError::MissingFctBody);
             }
@@ -205,8 +205,8 @@ pub fn expr_block_always_returns(e: &ast::ExprBlockType) -> bool {
     returnck::expr_block_returns_value(e).is_ok()
 }
 
-pub fn report_sym_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: Sym) {
-    let name = vm.interner.str(name).to_string();
+pub fn report_sym_shadow(sa: &SemAnalysis, name: Name, file: FileId, pos: Position, sym: Sym) {
+    let name = sa.interner.str(name).to_string();
 
     let msg = match sym {
         Sym::Class(_) => SemError::ShadowClass(name),
@@ -222,11 +222,11 @@ pub fn report_sym_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym: 
         _ => unreachable!(),
     };
 
-    vm.diag.lock().report(file, pos, msg);
+    sa.diag.lock().report(file, pos, msg);
 }
 
 fn check_type_params(
-    vm: &VM,
+    sa: &SemAnalysis,
     ast_type_params: &[ast::TypeParam],
     type_params: &mut Vec<TypeParam>,
     symtable: &mut NestedSymTable,
@@ -239,16 +239,16 @@ fn check_type_params(
 
         for (type_param_id, type_param) in ast_type_params.iter().enumerate() {
             if !names.insert(type_param.name) {
-                let name = vm.interner.str(type_param.name).to_string();
+                let name = sa.interner.str(type_param.name).to_string();
                 let msg = SemError::TypeParamNameNotUnique(name);
-                vm.diag.lock().report(file_id, type_param.pos, msg);
+                sa.diag.lock().report(file_id, type_param.pos, msg);
             }
 
             params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
 
             for bound in &type_param.bounds {
                 let ty = read_type(
-                    vm,
+                    sa,
                     symtable,
                     file_id,
                     bound,
@@ -260,7 +260,7 @@ fn check_type_params(
                     Some(SourceType::Trait(trait_id, _)) => {
                         if !type_params[type_param_id].trait_bounds.insert(trait_id) {
                             let msg = SemError::DuplicateTraitBound;
-                            vm.diag.lock().report(file_id, type_param.pos, msg);
+                            sa.diag.lock().report(file_id, type_param.pos, msg);
                         }
                     }
 
@@ -270,7 +270,7 @@ fn check_type_params(
 
                     _ => {
                         let msg = SemError::BoundExpected;
-                        vm.diag.lock().report(file_id, bound.pos(), msg);
+                        sa.diag.lock().report(file_id, bound.pos(), msg);
                     }
                 }
             }
@@ -282,7 +282,7 @@ fn check_type_params(
         params
     } else {
         let msg = SemError::TypeParamsExpected;
-        vm.diag.lock().report(file_id, pos, msg);
+        sa.diag.lock().report(file_id, pos, msg);
 
         Vec::new()
     }
@@ -292,7 +292,7 @@ fn check_type_params(
 pub mod tests {
     use crate::error::msg::SemError;
     use crate::test;
-    use crate::vm::VM;
+    use crate::vm::SemAnalysis;
     use dora_parser::lexer::position::Position;
 
     pub fn ok(code: &'static str) {
@@ -313,7 +313,7 @@ pub mod tests {
 
     pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R
     where
-        F: FnOnce(&VM) -> R,
+        F: FnOnce(&SemAnalysis) -> R,
     {
         test::parse_with_errors(code, |vm| {
             let diag = vm.diag.lock();
