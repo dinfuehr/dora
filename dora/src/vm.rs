@@ -144,7 +144,6 @@ pub struct FullSemAnalysis {
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
     pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,                 // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
     pub imports: Vec<ImportData>,                 // stores all imports
     pub native_stubs: Mutex<NativeStubs>,
@@ -264,7 +263,6 @@ impl FullSemAnalysis {
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
-            code_map: Mutex::new(CodeMap::new()),
             source_type_arrays: Mutex::new(SourceTypeArrays::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
@@ -511,7 +509,7 @@ impl VM {
             diag: sa.diag,
             fcts: sa.fcts,
             jit_fcts: sa.jit_fcts,
-            code_map: sa.code_map,
+            code_map: Mutex::new(CodeMap::new()),
             source_type_arrays: sa.source_type_arrays,
             lambda_types: sa.lambda_types,
             native_stubs: sa.native_stubs,
