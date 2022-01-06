@@ -35,7 +35,7 @@ pub use self::classes::{
     TypeParamId,
 };
 pub use self::code::{
-    Code, CodeDescriptor, CodeId, Comments, GcPoint, GcPoints, LazyCompilationData,
+    Code, CodeDescriptor, CodeId, CommentTable, GcPoint, GcPointTable, LazyCompilationData,
     LazyCompilationSite, PositionTable,
 };
 pub use self::code_map::CodeMap;

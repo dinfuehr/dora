@@ -63,8 +63,8 @@ pub struct Code {
 
     framesize: i32,
     lazy_compilation: LazyCompilationData,
-    gcpoints: GcPoints,
-    comments: Comments,
+    gcpoints: GcPointTable,
+    comments: CommentTable,
     positions: PositionTable,
 }
 
@@ -77,9 +77,9 @@ impl Code {
             &dseg,
             buffer,
             LazyCompilationData::new(),
-            GcPoints::new(),
+            GcPointTable::new(),
             0,
-            Comments::new(),
+            CommentTable::new(),
             PositionTable::new(),
             desc,
         )
@@ -90,9 +90,9 @@ impl Code {
         dseg: &DSeg,
         buffer: &[u8],
         lazy_compilation: LazyCompilationData,
-        gcpoints: GcPoints,
+        gcpoints: GcPointTable,
         framesize: i32,
-        comments: Comments,
+        comments: CommentTable,
         positions: PositionTable,
         desc: CodeDescriptor,
     ) -> Code {
@@ -193,13 +193,13 @@ impl fmt::Debug for Code {
 }
 
 #[derive(Debug)]
-pub struct GcPoints {
+pub struct GcPointTable {
     entries: Vec<(u32, GcPoint)>,
 }
 
-impl GcPoints {
-    pub fn new() -> GcPoints {
-        GcPoints {
+impl GcPointTable {
+    pub fn new() -> GcPointTable {
+        GcPointTable {
             entries: Vec::new(),
         }
     }
@@ -255,13 +255,13 @@ impl GcPoint {
     }
 }
 
-pub struct Comments {
+pub struct CommentTable {
     entries: Vec<(u32, String)>,
 }
 
-impl Comments {
-    pub fn new() -> Comments {
-        Comments {
+impl CommentTable {
+    pub fn new() -> CommentTable {
+        CommentTable {
             entries: Vec::new(),
         }
     }

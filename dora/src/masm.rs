@@ -9,8 +9,8 @@ use crate::mem;
 use crate::object::Header;
 use crate::ty::MachineMode;
 use crate::vm::{
-    Code, CodeDescriptor, Comments, GcPoint, GcPoints, LazyCompilationData, LazyCompilationSite,
-    PositionTable, Trap, VM,
+    Code, CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData,
+    LazyCompilationSite, PositionTable, Trap, VM,
 };
 pub use dora_asm::Label;
 use dora_parser::lexer::position::Position;
@@ -46,8 +46,8 @@ pub struct MacroAssembler {
     bailouts: Vec<(Label, Trap, Position)>,
     lazy_compilation: LazyCompilationData,
     dseg: DSeg,
-    gcpoints: GcPoints,
-    comments: Comments,
+    gcpoints: GcPointTable,
+    comments: CommentTable,
     positions: PositionTable,
     scratch_registers: ScratchRegisters,
 }
@@ -59,8 +59,8 @@ impl MacroAssembler {
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
             dseg: DSeg::new(),
-            gcpoints: GcPoints::new(),
-            comments: Comments::new(),
+            gcpoints: GcPointTable::new(),
+            comments: CommentTable::new(),
             positions: PositionTable::new(),
             scratch_registers: ScratchRegisters::new(),
         }
