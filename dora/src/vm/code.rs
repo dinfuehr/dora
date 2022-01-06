@@ -216,20 +216,15 @@ impl GcPoints {
     }
 
     pub fn insert(&mut self, offset: u32, gcpoint: GcPoint) {
-        if let Some((last_offset, last_gcpoint)) = self.entries.last() {
-            debug_assert!(offset > *last_offset);
-
-            if last_gcpoint == &gcpoint {
-                // The last gcpoint stores exactly the same offsets, so reuse that one.
-                return;
-            }
+        if let Some(last) = self.entries.last_mut() {
+            debug_assert!(offset > last.0);
         }
 
         self.entries.push((offset, gcpoint));
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct GcPoint {
     pub offsets: Vec<i32>,
 }
