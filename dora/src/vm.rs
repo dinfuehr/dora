@@ -67,7 +67,8 @@ pub use self::namespaces::{
 pub use self::specialize::{
     add_ref_fields, ensure_display, replace_type_param, specialize_class_id,
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple,
+    specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
+    specialize_type_list,
 };
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,

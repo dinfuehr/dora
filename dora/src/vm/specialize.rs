@@ -3,7 +3,6 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::language::specialize::specialize_type;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
@@ -15,6 +14,31 @@ use crate::vm::{
     TraitDefinition, TraitDefinitionId, TupleId, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
+
+pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
+    replace_type_param(vm, ty, type_params, None)
+}
+
+pub fn specialize_type_list(
+    vm: &VM,
+    list: &SourceTypeArray,
+    type_params: &SourceTypeArray,
+) -> SourceTypeArray {
+    let types = list.types();
+
+    if types.is_empty() {
+        return SourceTypeArray::empty();
+    }
+
+    let mut specialized_types = Vec::with_capacity(types.len());
+
+    for ty in types {
+        let ty = replace_type_param(vm, ty.clone(), type_params, None);
+        specialized_types.push(ty);
+    }
+
+    SourceTypeArray::with(specialized_types)
+}
 
 pub fn specialize_struct_id_params(
     vm: &VM,

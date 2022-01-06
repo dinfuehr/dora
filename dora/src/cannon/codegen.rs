@@ -16,7 +16,6 @@ use crate::cpu::{
     REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
-use crate::language::specialize::{specialize_type, specialize_type_list};
 use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
@@ -25,9 +24,9 @@ use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
     find_trait_impl, specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple, Code, EnumDefinitionId,
-    EnumLayout, FctDefinition, FctDefinitionId, FctDescriptor, GcPoint, GlobalDefinitionId,
-    Intrinsic, StructDefinitionId, Trap, TupleId, VM,
+    specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
+    specialize_type_list, Code, EnumDefinitionId, EnumLayout, FctDefinition, FctDefinitionId,
+    FctDescriptor, GcPoint, GlobalDefinitionId, Intrinsic, StructDefinitionId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 

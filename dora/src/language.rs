@@ -19,7 +19,7 @@ pub mod error;
 mod extensiondefck;
 mod fctbodyck;
 mod fctdefck;
-pub mod generator;
+mod generator;
 #[cfg(test)]
 mod generator_tests;
 mod globaldef;
@@ -30,15 +30,15 @@ mod importck;
 mod moduledefck;
 mod readty;
 mod returnck;
-pub mod specialize;
-pub(crate) mod stdlib;
+mod specialize;
+mod stdlib;
 mod structdefck;
 mod superck;
 pub mod sym;
 #[cfg(test)]
-pub mod test;
+mod test;
 mod traitdefck;
-pub mod typeparamck;
+mod typeparamck;
 
 macro_rules! return_on_error {
     ($vm: ident) => {{
