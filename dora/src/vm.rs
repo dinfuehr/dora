@@ -7,7 +7,6 @@ use std::sync::Arc;
 use crate::compiler;
 use crate::compiler::compile_stub;
 use crate::compiler::dora_stub;
-use crate::compiler::map::CodeMap;
 use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeStubs};
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
@@ -57,6 +56,7 @@ pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
 };
+pub use self::map::CodeMap;
 pub use self::modules::{
     find_methods_in_module, module_accessible_from, Module, ModuleDef, ModuleDefId, ModuleId,
 };
@@ -93,6 +93,7 @@ mod globals;
 mod impls;
 mod imports;
 mod known;
+mod map;
 mod modules;
 mod namespaces;
 mod specialize;
@@ -321,7 +322,7 @@ pub struct VM {
     pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>,  // stores all module definitions
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
-    pub namespaces: Vec<NamespaceData>,                         // storer all namespace definitions
+    pub namespaces: Vec<NamespaceData>,                         // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code: GrowableVec<Code>,                  // stores all function implementations
     pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
