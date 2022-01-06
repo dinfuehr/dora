@@ -8,8 +8,8 @@ use crate::bytecode::{
 use crate::semck::test;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ensure_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId, VM,
+    ensure_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
 };
 use dora_parser::lexer::position::Position;
 
@@ -55,7 +55,7 @@ fn code_method_with_struct_name(code: &'static str, struct_name: &'static str) -
 
 fn gen<F>(code: &'static str, testfct: F)
 where
-    F: FnOnce(&VM, Vec<Bytecode>),
+    F: FnOnce(&SemAnalysis, Vec<Bytecode>),
 {
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
@@ -68,7 +68,7 @@ where
 
 fn gen_fct<F>(code: &'static str, testfct: F)
 where
-    F: FnOnce(&VM, Vec<Bytecode>, BytecodeFunction),
+    F: FnOnce(&SemAnalysis, Vec<Bytecode>, BytecodeFunction),
 {
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");

@@ -4,21 +4,21 @@ use self::Sym::*;
 
 use crate::vm::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    FctDefinitionId, FieldId, GlobalDefinitionId, ModuleId, NamespaceId, StructDefinitionId,
-    TraitDefinitionId, TypeParamId, VarId, VM,
+    FctDefinitionId, FieldId, GlobalDefinitionId, ModuleId, NamespaceId, SemAnalysis,
+    StructDefinitionId, TraitDefinitionId, TypeParamId, VarId, VM,
 };
 use dora_parser::interner::Name;
 
 pub struct NestedSymTable<'a> {
-    vm: &'a VM,
+    sa: &'a SemAnalysis,
     namespace_id: NamespaceId,
     levels: Vec<SymTable>,
 }
 
 impl<'a> NestedSymTable<'a> {
-    pub fn new(vm: &'a VM, namespace_id: NamespaceId) -> NestedSymTable {
+    pub fn new(sa: &'a SemAnalysis, namespace_id: NamespaceId) -> NestedSymTable {
         NestedSymTable {
-            vm,
+            sa,
             namespace_id,
             levels: Vec::new(),
         }
@@ -49,7 +49,7 @@ impl<'a> NestedSymTable<'a> {
         }
 
         {
-            let namespace = &self.vm.namespaces[self.namespace_id.to_usize()];
+            let namespace = &self.sa.namespaces[self.namespace_id.to_usize()];
 
             if let Some(sym) = namespace.table.read().get(name) {
                 return Some(sym.clone());
@@ -57,7 +57,7 @@ impl<'a> NestedSymTable<'a> {
         }
 
         {
-            let namespace = &self.vm.namespaces[self.vm.prelude_namespace_id.to_usize()];
+            let namespace = &self.sa.namespaces[self.sa.prelude_namespace_id.to_usize()];
 
             if let Some(sym) = namespace.table.read().get(name) {
                 return Some(sym.clone());
