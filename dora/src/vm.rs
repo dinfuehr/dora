@@ -38,6 +38,7 @@ pub use self::code::{
     Code, CodeDescriptor, CodeId, Comments, GcPoint, GcPoints, LazyCompilationData,
     LazyCompilationSite, PositionTable,
 };
+pub use self::code_map::CodeMap;
 pub use self::consts::{const_accessible_from, ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{
     enum_accessible_from, find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumInstance,
@@ -56,7 +57,6 @@ pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
 };
-pub use self::map::CodeMap;
 pub use self::modules::{
     find_methods_in_module, module_accessible_from, Module, ModuleDef, ModuleDefId, ModuleId,
 };
@@ -85,6 +85,7 @@ pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 mod annotations;
 mod classes;
 mod code;
+mod code_map;
 mod consts;
 mod enums;
 mod extensions;
@@ -93,7 +94,6 @@ mod globals;
 mod impls;
 mod imports;
 mod known;
-mod map;
 mod modules;
 mod namespaces;
 mod specialize;
