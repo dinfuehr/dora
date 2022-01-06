@@ -1,13 +1,12 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::language::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, Candidate, FctDefinitionId, Field, FieldDef, FileId,
-    NamespaceId, TraitDefinitionId, VM,
+    accessible_from, namespace_path, replace_type_param, Candidate, FctDefinitionId, Field,
+    FieldDef, FileId, NamespaceId, TraitDefinitionId, VM,
 };
 
 use crate::vtable::VTableBox;

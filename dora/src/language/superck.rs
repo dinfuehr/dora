@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
-use crate::language::specialize::replace_type_param;
 use crate::vm::{
-    find_method_in_class, ClassDefinition, ClassDefinitionId, FctDefinition, FctDefinitionId,
-    SemAnalysis,
+    find_method_in_class, replace_type_param, ClassDefinition, ClassDefinitionId, FctDefinition,
+    FctDefinitionId, SemAnalysis,
 };
 
 pub fn check(sa: &mut SemAnalysis) {

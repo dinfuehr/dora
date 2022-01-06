@@ -3,7 +3,7 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::language::specialize::{replace_type_param, specialize_type};
+use crate::language::specialize::specialize_type;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
@@ -733,4 +733,112 @@ pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArra
         .collect::<Vec<_>>();
 
     ensure_tuple(vm, new_subtypes)
+}
+
+pub fn replace_type_param(
+    vm: &VM,
+    ty: SourceType,
+    type_params: &SourceTypeArray,
+    self_ty: Option<SourceType>,
+) -> SourceType {
+    match ty {
+        SourceType::TypeParam(tpid) => type_params[tpid.to_usize()].clone(),
+
+        SourceType::Class(cls_id, list_id) => {
+            let params = vm.source_type_arrays.lock().get(list_id);
+
+            let params = SourceTypeArray::with(
+                params
+                    .iter()
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .collect::<Vec<_>>(),
+            );
+
+            let list_id = vm.source_type_arrays.lock().insert(params);
+            SourceType::Class(cls_id, list_id)
+        }
+
+        SourceType::Trait(trait_id, list_id) => {
+            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+
+            let new_type_params = SourceTypeArray::with(
+                old_type_params
+                    .iter()
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .collect::<Vec<_>>(),
+            );
+
+            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            SourceType::Trait(trait_id, new_type_params_id)
+        }
+
+        SourceType::Struct(struct_id, list_id) => {
+            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+
+            let new_type_params = SourceTypeArray::with(
+                old_type_params
+                    .iter()
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .collect::<Vec<_>>(),
+            );
+
+            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            SourceType::Struct(struct_id, new_type_params_id)
+        }
+
+        SourceType::Enum(enum_id, list_id) => {
+            let old_type_params = vm.source_type_arrays.lock().get(list_id);
+
+            let new_type_params = SourceTypeArray::with(
+                old_type_params
+                    .iter()
+                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
+                    .collect::<Vec<_>>(),
+            );
+
+            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
+            SourceType::Enum(enum_id, new_type_params_id)
+        }
+
+        SourceType::This => self_ty.expect("no type for Self given"),
+
+        SourceType::Lambda(_) => unimplemented!(),
+
+        SourceType::Tuple(tuple_id) => {
+            let subtypes = {
+                let tuples = vm.tuples.lock();
+                let tuple = tuples.get_tuple(tuple_id);
+
+                if tuple.is_concrete_type() {
+                    return ty;
+                }
+
+                tuple.args()
+            };
+
+            let new_subtypes = subtypes
+                .iter()
+                .map(|t| replace_type_param(vm, t.clone(), type_params, self_ty.clone()))
+                .collect::<Vec<_>>();
+
+            let tuple_id = ensure_tuple(vm, new_subtypes);
+            SourceType::Tuple(tuple_id)
+        }
+
+        SourceType::Unit
+        | SourceType::UInt8
+        | SourceType::Bool
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Module(_)
+        | SourceType::Error => ty,
+
+        SourceType::Any | SourceType::Ptr => {
+            panic!("unexpected type = {:?}", ty);
+            // unreachable!()
+        }
+    }
 }
