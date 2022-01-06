@@ -19,6 +19,9 @@ pub mod error;
 mod extensiondefck;
 mod fctbodyck;
 mod fctdefck;
+pub mod generator;
+#[cfg(test)]
+mod generator_tests;
 mod globaldef;
 mod globaldefck;
 mod implck;
@@ -120,8 +123,6 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
 }
 
 pub fn generate_bytecode(sa: &SemAnalysis) {
-    use crate::bytecode;
-
     for fct in sa.fcts.iter() {
         let bc = {
             let fct = fct.read();
@@ -131,7 +132,7 @@ pub fn generate_bytecode(sa: &SemAnalysis) {
             }
 
             let analysis = fct.analysis();
-            bytecode::generate(sa, &*fct, analysis)
+            generator::generate(sa, &*fct, analysis)
         };
 
         fct.write().bytecode = Some(bc);
