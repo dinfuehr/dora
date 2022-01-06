@@ -6,10 +6,9 @@ use std::slice;
 
 use capstone::prelude::*;
 
-use crate::compiler::Code;
 use crate::driver::cmd::AsmSyntax;
 use crate::ty::SourceTypeArray;
-use crate::vm::{FctDefinition, VM};
+use crate::vm::{Code, FctDefinition, VM};
 
 pub fn supported() -> bool {
     true

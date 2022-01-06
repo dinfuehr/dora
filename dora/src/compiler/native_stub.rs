@@ -3,7 +3,6 @@ use std::mem::size_of;
 
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::CodeDescriptor;
-use crate::compiler::{Code, CodeId, FctDescriptor, GcPoint};
 use crate::cpu::{
     FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
     REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
@@ -15,7 +14,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType};
 use crate::vm::FctDefinitionId;
-use crate::vm::VM;
+use crate::vm::{Code, CodeId, FctDescriptor, GcPoint, VM};
 
 pub struct NativeStubs {
     map: HashMap<Address, CodeId>,

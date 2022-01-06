@@ -1,11 +1,10 @@
 use std::ptr;
 
-use crate::compiler::fct::CodeId;
 use crate::compiler::map::CodeDescriptor;
 use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
-use crate::vm::{get_vm, FctParent, VM};
+use crate::vm::{get_vm, CodeId, FctParent, VM};
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,

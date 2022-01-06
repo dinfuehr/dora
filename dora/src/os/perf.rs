@@ -1,5 +1,4 @@
-use crate::compiler::Code;
-use crate::vm::VM;
+use crate::vm::{Code, VM};
 use dora_parser::interner::Name;
 
 #[cfg(target_os = "linux")]

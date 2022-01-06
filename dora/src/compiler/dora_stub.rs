@@ -1,11 +1,10 @@
-use crate::compiler::fct::{Code, FctDescriptor};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::ty::MachineMode;
-use crate::vm::VM;
+use crate::vm::{Code, FctDescriptor, VM};
 
 pub fn generate<'a>(vm: &'a VM) -> Address {
     let ngen = DoraEntryGen {

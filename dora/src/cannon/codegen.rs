@@ -10,7 +10,6 @@ use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_native_stub, should_emit_asm, should_emit_debug, AllocationSize, AnyReg,
 };
-use crate::compiler::fct::{Code, FctDescriptor, GcPoint};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
@@ -26,9 +25,9 @@ use crate::stdlib;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
     find_trait_impl, specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple, EnumDefinitionId,
-    EnumLayout, FctDefinition, FctDefinitionId, GlobalDefinitionId, Intrinsic, StructDefinitionId,
-    Trap, TupleId, VM,
+    specialize_struct_id_params, specialize_trait_object, specialize_tuple, Code, EnumDefinitionId,
+    EnumLayout, FctDefinition, FctDefinitionId, FctDescriptor, GcPoint, GlobalDefinitionId,
+    Intrinsic, StructDefinitionId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 

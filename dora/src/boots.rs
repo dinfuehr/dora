@@ -6,14 +6,13 @@ use crate::boots::serializer::{
 };
 use crate::bytecode::{self, InstructionSet};
 use crate::compiler::codegen::should_emit_bytecode;
-use crate::compiler::fct::{Code, FctDescriptor};
 use crate::gc::Address;
 use crate::handle::handle;
 use crate::language::sym::NestedSymTable;
 use crate::object::{Obj, Ref, UInt8Array};
 use crate::threads::current_thread;
 use crate::ty::SourceTypeArray;
-use crate::vm::{FctDefinition, VM};
+use crate::vm::{Code, FctDefinition, FctDescriptor, VM};
 
 mod serializer;
 

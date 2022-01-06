@@ -3,7 +3,6 @@ use std::mem;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
-use crate::compiler::fct::{Code, FctDescriptor, GcPoint};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
@@ -13,7 +12,7 @@ use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::FctDefinitionId;
-use crate::vm::{GlobalDefinition, Trap, VM};
+use crate::vm::{Code, FctDescriptor, GcPoint, GlobalDefinition, Trap, VM};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,

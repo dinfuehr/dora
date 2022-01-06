@@ -4,7 +4,6 @@ use std::mem::size_of;
 use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, BytecodeType, Register};
 use crate::compiler;
 use crate::compiler::codegen::should_emit_bytecode;
-use crate::compiler::fct::{Code, FctDescriptor, LazyCompilationSite};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
@@ -18,8 +17,8 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, FctDefinition, FctDefinitionId,
-    FctParent, TypeParam, TypeParamId, VM,
+    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Code, FctDefinition, FctDefinitionId,
+    FctDescriptor, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,
 };
 
 // This code generates the compiler stub, there should only be one instance

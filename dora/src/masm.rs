@@ -3,16 +3,15 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::compiler::codegen::AnyReg;
-use crate::compiler::fct::{
-    Code, Comments, FctDescriptor, GcPoint, GcPoints, LazyCompilationData, LazyCompilationSite,
-    PositionTable,
-};
 use crate::cpu::{Reg, SCRATCH};
 use crate::dseg::DSeg;
 use crate::mem;
 use crate::object::Header;
 use crate::ty::MachineMode;
-use crate::vm::{Trap, VM};
+use crate::vm::{
+    Code, Comments, FctDescriptor, GcPoint, GcPoints, LazyCompilationData, LazyCompilationSite,
+    PositionTable, Trap, VM,
+};
 pub use dora_asm::Label;
 use dora_parser::lexer::position::Position;
 

@@ -8,13 +8,12 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType};
-use crate::compiler::fct::CodeId;
 use crate::gc::Address;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, FileId, ImplId,
-    ModuleId, NamespaceId, TraitDefinitionId, TypeParam, TypeParamId, VM,
+    accessible_from, namespace_path, AnalysisData, ClassDefinitionId, CodeId, ExtensionId, FileId,
+    ImplId, ModuleId, NamespaceId, TraitDefinitionId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]

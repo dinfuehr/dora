@@ -7,7 +7,6 @@ use std::sync::Arc;
 use crate::compiler;
 use crate::compiler::compile_stub;
 use crate::compiler::dora_stub;
-use crate::compiler::fct::Code;
 use crate::compiler::map::{CodeDescriptor, CodeMap};
 use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeStubs};
 use crate::driver::cmd::Args;
@@ -35,6 +34,10 @@ pub use self::classes::{
     find_methods_in_class, method_accessible_from, Candidate, ClassDefinition, ClassDefinitionId,
     ClassInstance, ClassInstanceId, Field, FieldDef, FieldId, TypeParam, TypeParamDefinition,
     TypeParamId,
+};
+pub use self::code::{
+    Code, CodeId, Comments, FctDescriptor, GcPoint, GcPoints, LazyCompilationData,
+    LazyCompilationSite, PositionTable,
 };
 pub use self::consts::{const_accessible_from, ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{
@@ -80,6 +83,7 @@ pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod annotations;
 mod classes;
+mod code;
 mod consts;
 mod enums;
 mod extensions;
