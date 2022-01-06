@@ -49,8 +49,8 @@ fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Position> {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn returns_unit() {

@@ -1,8 +1,8 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::{NestedSymTable, Sym, SymTable};
+use crate::language::error::msg::SemError;
+use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
@@ -600,8 +600,8 @@ fn read_type_lambda(
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn namespace_class() {

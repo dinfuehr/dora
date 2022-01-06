@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::semck;
-use crate::semck::sym::NestedSymTable;
+use crate::language;
+use crate::language::sym::NestedSymTable;
 use crate::vm::{
     FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis, TraitDefinition, TraitDefinitionId,
 };
@@ -65,7 +65,7 @@ impl<'x> TraitCheck<'x> {
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        semck::check_type_params(
+        language::check_type_params(
             self.sa,
             ast_type_params,
             &mut self.xtrait.type_params,
@@ -105,8 +105,8 @@ impl<'x> TraitCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn trait_method_with_body() {

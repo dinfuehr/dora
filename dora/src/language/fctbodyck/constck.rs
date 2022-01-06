@@ -1,5 +1,5 @@
-use crate::semck::error::msg::SemError;
-use crate::semck::fctbodyck::body::{check_lit_float, check_lit_int};
+use crate::language::error::msg::SemError;
+use crate::language::fctbodyck::body::{check_lit_float, check_lit_int};
 use crate::ty::SourceType;
 use crate::vm::{ConstDefinition, ConstValue, SemAnalysis};
 

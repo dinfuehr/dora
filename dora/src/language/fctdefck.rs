@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::{NestedSymTable, Sym};
-use crate::semck::{self, AllowSelf, TypeParamContext};
+use crate::language::error::msg::SemError;
+use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::{self, AllowSelf, TypeParamContext};
 use crate::ty::SourceType;
 use crate::vm::{self, FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParamId};
 
@@ -98,7 +98,7 @@ pub fn check(sa: &SemAnalysis) {
                     fct.type_params.push(vm::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type(
+                        let ty = language::read_type(
                             sa,
                             &sym_table,
                             fct.file_id,
@@ -145,7 +145,7 @@ pub fn check(sa: &SemAnalysis) {
                     .report(fct.file_id, p.pos, SemError::VariadicParameterNeedsToBeLast);
             }
 
-            let ty = semck::read_type(
+            let ty = language::read_type(
                 sa,
                 &sym_table,
                 fct.file_id,
@@ -167,7 +167,7 @@ pub fn check(sa: &SemAnalysis) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty = semck::read_type(
+            let ty = language::read_type(
                 sa,
                 &sym_table,
                 fct.file_id,
@@ -279,8 +279,8 @@ fn check_against_methods(sa: &SemAnalysis, fct: &FctDefinition, methods: &[FctDe
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn self_param() {

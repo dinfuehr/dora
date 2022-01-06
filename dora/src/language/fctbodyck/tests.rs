@@ -1,5 +1,5 @@
-use crate::semck::error::msg::SemError;
-use crate::semck::tests::*;
+use crate::language::error::msg::SemError;
+use crate::language::tests::*;
 use crate::vm::ConstValue;
 
 #[test]

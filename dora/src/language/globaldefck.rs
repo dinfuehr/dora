@@ -1,6 +1,6 @@
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::NestedSymTable;
-use crate::semck::{self, AllowSelf, TypeParamContext};
+use crate::language::error::msg::SemError;
+use crate::language::sym::NestedSymTable;
+use crate::language::{self, AllowSelf, TypeParamContext};
 use crate::ty::SourceType;
 use crate::vm::{FctDefinition, FctParent, FileId, GlobalDefinitionId, NamespaceId, SemAnalysis};
 use dora_parser::ast;
@@ -43,7 +43,7 @@ struct GlobalDefCheck<'a> {
 
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
-        let ty = semck::read_type(
+        let ty = language::read_type(
             self.sa,
             &self.symtable,
             self.file_id,
@@ -77,8 +77,8 @@ impl<'a> GlobalDefCheck<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn check_initializer() {

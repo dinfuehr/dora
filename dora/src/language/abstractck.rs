@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-use crate::semck::error::msg::SemError;
+use crate::language::error::msg::SemError;
 use crate::vm::{ClassDefinition, ClassDefinitionId, FctDefinitionId, SemAnalysis};
 
 pub fn check(sa: &SemAnalysis) {
@@ -120,8 +120,8 @@ fn find_abstract_methods(
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::{err, ok, pos};
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::{err, ok, pos};
 
     #[test]
     fn test_abstract_class_without_abstract_methods() {

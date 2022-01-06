@@ -2,9 +2,9 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::gc::Address;
+use crate::language::sym::{NestedSymTable, Sym};
 use crate::mem;
 use crate::object::Header;
-use crate::semck::sym::{NestedSymTable, Sym};
 use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
@@ -1295,7 +1295,7 @@ fn internal_extension_method(
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::tests::*;
+    use crate::language::tests::*;
 
     #[test]
     fn builtin_functions() {

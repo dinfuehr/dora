@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::NestedSymTable;
-use crate::semck::{self, AllowSelf};
+use crate::language::error::msg::SemError;
+use crate::language::sym::NestedSymTable;
+use crate::language::TypeParamContext;
+use crate::language::{self, AllowSelf};
 use crate::ty::{SourceType, SourceTypeArray};
-
 use crate::vm::{FctDefinition, FctParent, Field, FileId, ModuleId, NamespaceId, SemAnalysis};
+
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use semck::TypeParamContext;
 
 pub fn check(sa: &SemAnalysis) {
     for module in sa.modules.iter() {
@@ -71,7 +71,7 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn visit_field(&mut self, f: &ast::Field) {
-        let ty = semck::read_type(
+        let ty = language::read_type(
             self.sa,
             &self.sym,
             self.file_id.into(),
@@ -149,7 +149,7 @@ impl<'x> ModuleCheck<'x> {
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
-        let parent_ty = semck::read_type(
+        let parent_ty = language::read_type(
             self.sa,
             &self.sym,
             self.file_id,
@@ -205,8 +205,8 @@ impl<'x> ModuleCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn test_multiple_definition() {

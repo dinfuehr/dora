@@ -4,7 +4,7 @@ use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
 use crate::driver::cmd::Args;
-use crate::semck;
+use crate::language;
 use crate::vm::SemAnalysis;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
@@ -51,7 +51,7 @@ where
         }
     }
 
-    assert!(semck::check(&mut sa));
+    assert!(language::check(&mut sa));
 
     f(&sa)
 }

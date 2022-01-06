@@ -7,8 +7,8 @@ use dora_parser::ast::*;
 use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
 };
-use crate::semck::specialize::specialize_type;
-use crate::semck::{expr_always_returns, expr_block_always_returns};
+use crate::language::specialize::specialize_type;
+use crate::language::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
     AnalysisData, CallType, ConstDefinitionId, EnumDefinitionId, FctDefinition, FctDefinitionId,

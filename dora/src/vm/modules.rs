@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::semck::specialize::replace_type_param;
+use crate::language::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;

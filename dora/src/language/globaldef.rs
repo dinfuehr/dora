@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::gc::Address;
-use crate::semck::error::msg::SemError;
-use crate::semck::report_sym_shadow;
-use crate::semck::sym::Sym;
+use crate::language::error::msg::SemError;
+use crate::language::report_sym_shadow;
+use crate::language::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
     self, AnnotationDefinitionId, ClassDefinitionId, ConstDefinition, ConstDefinitionId,
@@ -604,8 +604,8 @@ pub fn should_file_be_parsed(path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn test_class() {

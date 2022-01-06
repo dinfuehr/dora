@@ -1,5 +1,5 @@
-use crate::semck::sym::NestedSymTable;
-use crate::semck::{self, AllowSelf, TypeParamContext};
+use crate::language::sym::NestedSymTable;
+use crate::language::{self, AllowSelf, TypeParamContext};
 use crate::ty::SourceType;
 use crate::vm::{ConstDefinitionId, FileId, NamespaceId, SemAnalysis};
 
@@ -41,7 +41,7 @@ struct ConstCheck<'x> {
 
 impl<'x> ConstCheck<'x> {
     fn check(&mut self) {
-        let ty = semck::read_type(
+        let ty = language::read_type(
             self.sa,
             &self.symtable,
             self.file_id,
@@ -59,8 +59,8 @@ impl<'x> ConstCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn const_unknown_type() {

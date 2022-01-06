@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::extensiondefck::check_for_unconstrained_type_params;
-use crate::semck::sym::NestedSymTable;
-use crate::semck::{self, AllowSelf, TypeParamContext};
+use crate::language::error::msg::SemError;
+use crate::language::extensiondefck::check_for_unconstrained_type_params;
+use crate::language::sym::NestedSymTable;
+use crate::language::{self, AllowSelf, TypeParamContext};
 use crate::ty::SourceType;
 use crate::vm::{
     FctDefinition, FctDefinitionId, FctParent, FileId, ImplId, NamespaceId, SemAnalysis,
@@ -60,7 +60,7 @@ impl<'x> ImplCheck<'x> {
 
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
-        if let Some(trait_ty) = semck::read_type(
+        if let Some(trait_ty) = language::read_type(
             self.sa,
             &self.sym,
             self.file_id.into(),
@@ -82,7 +82,7 @@ impl<'x> ImplCheck<'x> {
             }
         }
 
-        if let Some(class_ty) = semck::read_type(
+        if let Some(class_ty) = language::read_type(
             self.sa,
             &self.sym,
             self.file_id.into(),
@@ -175,7 +175,7 @@ impl<'x> ImplCheck<'x> {
         let ximpl = &self.sa.impls[self.impl_id];
         let mut ximpl = ximpl.write();
 
-        semck::check_type_params(
+        language::check_type_params(
             self.sa,
             ast_type_params,
             &mut ximpl.type_params,
@@ -208,8 +208,8 @@ impl<'x> ImplCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn impl_method_without_body() {

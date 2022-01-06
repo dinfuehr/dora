@@ -3,9 +3,9 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
+use crate::language::specialize::{replace_type_param, specialize_type};
 use crate::mem;
 use crate::object::Header;
-use crate::semck::specialize::{replace_type_param, specialize_type};
 use crate::size::InstanceSize;
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{

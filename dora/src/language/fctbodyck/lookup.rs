@@ -1,7 +1,7 @@
-use crate::semck::error::msg::SemError;
-use crate::semck::fctbodyck::body::args_compatible_fct;
-use crate::semck::specialize::replace_type_param;
-use crate::semck::typeparamck::{self, ErrorReporting};
+use crate::language::error::msg::SemError;
+use crate::language::fctbodyck::body::args_compatible_fct;
+use crate::language::specialize::replace_type_param;
+use crate::language::typeparamck::{self, ErrorReporting};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_module, find_methods_in_struct,

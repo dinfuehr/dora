@@ -12,11 +12,11 @@ use crate::compiler::map::{CodeDescriptor, CodeMap};
 use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeStubs};
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
+use crate::language::error::diag::Diagnostic;
+use crate::language::sym::{NestedSymTable, SymTable};
 use crate::object::{Ref, Testing};
 use crate::pkg::Package;
 use crate::safepoint;
-use crate::semck::error::diag::Diagnostic;
-use crate::semck::sym::{NestedSymTable, SymTable};
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
 use crate::threads::{

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::semck::error::msg::SemError;
+use crate::language::error::msg::SemError;
 use crate::vm::{FileId, SemAnalysis};
 
 use dora_parser::lexer::position::Position;
@@ -106,8 +106,8 @@ fn report(sa: &SemAnalysis, file: FileId, pos: Position, msg: SemError) {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn method_not_in_trait() {

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::NestedSymTable;
-use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
+use crate::language::error::msg::SemError;
+use crate::language::sym::NestedSymTable;
+use crate::language::{self, read_type, AllowSelf, TypeParamContext};
 use crate::ty::SourceType;
 use crate::vm::{
     EnumDefinitionId, ExtensionId, FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis,
@@ -190,7 +190,7 @@ impl<'x> ExtensionCheck<'x> {
         let extension = &self.sa.extensions[self.extension_id];
         let mut extension = extension.write();
 
-        semck::check_type_params(
+        language::check_type_params(
             self.sa,
             ast_type_params,
             &mut extension.type_params,
@@ -340,8 +340,8 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn extension_empty() {

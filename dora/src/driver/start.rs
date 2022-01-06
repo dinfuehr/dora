@@ -1,4 +1,4 @@
-use crate::semck::error::msg::SemError;
+use crate::language::error::msg::SemError;
 use crate::vm::{init_global_addresses, set_vm, FctDefinition, FctDefinitionId};
 use crate::vm::{SemAnalysis, VM};
 
@@ -6,7 +6,7 @@ use crate::driver::cmd;
 use crate::object;
 use crate::timer::Timer;
 
-use crate::semck;
+use crate::language;
 use crate::vm::{execute_on_main, namespace_contains, specialize_class_id, NamespaceId};
 
 pub fn start() -> i32 {
@@ -33,7 +33,7 @@ pub fn start() -> i32 {
 
     let mut sa = SemAnalysis::new(args);
 
-    if !semck::check(&mut sa) {
+    if !language::check(&mut sa) {
         return 1;
     }
 
@@ -50,7 +50,7 @@ pub fn start() -> i32 {
         return 1;
     }
 
-    semck::generate_bytecode(&sa);
+    language::generate_bytecode(&sa);
 
     let main = if sa.args.cmd_test {
         None

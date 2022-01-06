@@ -6,9 +6,9 @@ use parking_lot::RwLock;
 use dora_parser::ast;
 use dora_parser::ast::TypeParam;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::{NestedSymTable, Sym};
-use crate::semck::{read_type, AllowSelf, TypeParamContext};
+use crate::language::error::msg::SemError;
+use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::{read_type, AllowSelf, TypeParamContext};
 use crate::ty::SourceType;
 use crate::vm::{EnumDefinition, EnumVariant, FileId, SemAnalysis, TypeParamId};
 
@@ -202,8 +202,8 @@ impl<'x> EnumCheckVariants<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn enum_definitions() {

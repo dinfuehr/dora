@@ -1,6 +1,6 @@
 use dora_parser::lexer::position::Position;
 
-use crate::semck::error::msg::SemError;
+use crate::language::error::msg::SemError;
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinition, FileId, SemAnalysis,

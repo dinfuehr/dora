@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::{NestedSymTable, Sym, SymTable};
-use crate::semck::typeparamck::{self, ErrorReporting};
-use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
+use crate::language::error::msg::SemError;
+use crate::language::sym::{NestedSymTable, Sym, SymTable};
+use crate::language::typeparamck::{self, ErrorReporting};
+use crate::language::{self, read_type, AllowSelf, TypeParamContext};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinitionId, FctDefinition, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis,
@@ -169,7 +169,7 @@ impl<'x> ClsDefCheck<'x> {
         let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
-        let type_params = semck::check_type_params(
+        let type_params = language::check_type_params(
             self.sa,
             ast_type_params,
             &mut cls.type_params,
@@ -281,8 +281,8 @@ pub fn check_super_definition(sa: &SemAnalysis) {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn test_class_definition() {

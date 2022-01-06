@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::{NestedSymTable, Sym};
-use crate::semck::{self, AllowSelf, TypeParamContext};
+use crate::language::error::msg::SemError;
+use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::{self, AllowSelf, TypeParamContext};
 use crate::ty::SourceType;
 use crate::vm::{
     FileId, NamespaceId, SemAnalysis, StructDefinitionField, StructDefinitionFieldId,
@@ -82,7 +82,7 @@ impl<'x> StructCheck<'x> {
                 params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
 
                 for bound in &type_param.bounds {
-                    let ty = semck::read_type(
+                    let ty = language::read_type(
                         self.sa,
                         &self.symtable,
                         self.file_id,
@@ -129,7 +129,7 @@ impl<'x> StructCheck<'x> {
     }
 
     fn visit_struct_field(&mut self, f: &ast::StructField, id: StructDefinitionFieldId) {
-        let ty = semck::read_type(
+        let ty = language::read_type(
             self.sa,
             &self.symtable,
             self.file_id,
@@ -167,8 +167,8 @@ impl<'x> StructCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::tests::*;
+    use crate::language::error::msg::SemError;
+    use crate::language::tests::*;
 
     #[test]
     fn struct_field() {

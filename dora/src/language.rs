@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use crate::semck::error::msg::SemError;
-use crate::semck::sym::{NestedSymTable, Sym};
+use crate::language::error::msg::SemError;
+use crate::language::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{FileId, SemAnalysis, TypeParam, TypeParamId};
 use dora_parser::ast;
@@ -294,8 +294,8 @@ fn check_type_params(
 
 #[cfg(test)]
 pub mod tests {
-    use crate::semck::error::msg::SemError;
-    use crate::semck::test;
+    use crate::language::error::msg::SemError;
+    use crate::language::test;
     use crate::vm::SemAnalysis;
     use dora_parser::lexer::position::Position;
 
