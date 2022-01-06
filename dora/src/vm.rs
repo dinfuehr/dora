@@ -16,9 +16,9 @@ use crate::object::{Ref, Testing};
 use crate::pkg::Package;
 use crate::safepoint;
 use crate::semck::error::diag::Diagnostic;
+use crate::semck::sym::{NestedSymTable, SymTable};
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
-use crate::sym::{NestedSymTable, SymTable};
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
     STACK_SIZE,

@@ -10,7 +10,7 @@ use crate::compiler::fct::{Code, JitDescriptor};
 use crate::gc::Address;
 use crate::handle::handle;
 use crate::object::{Obj, Ref, UInt8Array};
-use crate::sym::NestedSymTable;
+use crate::semck::sym::NestedSymTable;
 use crate::threads::current_thread;
 use crate::ty::SourceTypeArray;
 use crate::vm::{FctDefinition, VM};

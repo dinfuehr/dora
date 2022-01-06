@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::semck::error::msg::SemError;
+use crate::semck::sym::{NestedSymTable, Sym, SymTable};
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{self, read_type, AllowSelf, TypeParamContext};
-use crate::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinitionId, FctDefinition, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis,

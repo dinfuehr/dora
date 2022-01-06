@@ -7,8 +7,8 @@ use dora_parser::ast;
 use dora_parser::ast::TypeParam;
 
 use crate::semck::error::msg::SemError;
+use crate::semck::sym::{NestedSymTable, Sym};
 use crate::semck::{read_type, AllowSelf, TypeParamContext};
-use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{EnumDefinition, EnumVariant, FileId, SemAnalysis, TypeParamId};
 

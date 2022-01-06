@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::sym::SymTable;
+use crate::semck::sym::SymTable;
 use crate::vm::VM;
 
 use dora_parser::interner::Name;

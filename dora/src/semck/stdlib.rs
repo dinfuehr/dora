@@ -4,10 +4,10 @@ use std::sync::Arc;
 use crate::gc::Address;
 use crate::mem;
 use crate::object::Header;
+use crate::semck::sym::{NestedSymTable, Sym};
 use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
-use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     AnnotationDefinitionId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumDefinitionId,

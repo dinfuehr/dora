@@ -35,7 +35,6 @@ mod semck;
 mod size;
 mod stack;
 mod stdlib;
-mod sym;
 mod threads;
 mod timer;
 mod ty;

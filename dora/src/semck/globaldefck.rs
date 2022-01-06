@@ -1,6 +1,6 @@
 use crate::semck::error::msg::SemError;
+use crate::semck::sym::NestedSymTable;
 use crate::semck::{self, AllowSelf, TypeParamContext};
-use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{FctDefinition, FctParent, FileId, GlobalDefinitionId, NamespaceId, SemAnalysis};
 use dora_parser::ast;

@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 
 use crate::semck::error::msg::SemError;
 use crate::semck::report_sym_shadow;
-use crate::sym::{NestedSymTable, Sym, SymTable};
+use crate::semck::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::{
     class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
     global_accessible_from, module_accessible_from, namespace_accessible_from, namespace_package,

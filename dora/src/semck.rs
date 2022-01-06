@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::semck::error::msg::SemError;
-use crate::sym::{NestedSymTable, Sym};
+use crate::semck::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
 use crate::vm::{FileId, SemAnalysis, TypeParam, TypeParamId};
 use dora_parser::ast;
@@ -31,6 +31,7 @@ pub mod specialize;
 pub(crate) mod stdlib;
 mod structdefck;
 mod superck;
+pub mod sym;
 #[cfg(test)]
 pub mod test;
 mod traitdefck;

@@ -7,8 +7,8 @@ use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use crate::semck::specialize::replace_type_param;
+use crate::semck::sym::SymTable;
 use crate::size::InstanceSize;
-use crate::sym::SymTable;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::VM;

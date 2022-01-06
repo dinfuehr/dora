@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::gc::Address;
 use crate::semck::error::msg::SemError;
 use crate::semck::report_sym_shadow;
-use crate::sym::Sym;
+use crate::semck::sym::Sym;
 use crate::ty::SourceType;
 use crate::vm::{
     self, AnnotationDefinitionId, ClassDefinitionId, ConstDefinition, ConstDefinitionId,

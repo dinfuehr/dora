@@ -6,10 +6,10 @@ use std::{f32, f64};
 use crate::semck::error::msg::SemError;
 use crate::semck::fctbodyck::lookup::MethodLookup;
 use crate::semck::specialize::replace_type_param;
+use crate::semck::sym::{NestedSymTable, Sym};
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::semck::{report_sym_shadow, TypeParamContext};
-use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     self, class_accessible_from, class_field_accessible_from, const_accessible_from, ensure_tuple,

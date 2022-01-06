@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::semck;
-use crate::sym::NestedSymTable;
+use crate::semck::sym::NestedSymTable;
 use crate::vm::{
     FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis, TraitDefinition, TraitDefinitionId,
 };

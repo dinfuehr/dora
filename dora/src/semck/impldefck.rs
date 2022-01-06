@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::semck::error::msg::SemError;
 use crate::semck::extensiondefck::check_for_unconstrained_type_params;
+use crate::semck::sym::NestedSymTable;
 use crate::semck::{self, AllowSelf, TypeParamContext};
-use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{
     FctDefinition, FctDefinitionId, FctParent, FileId, ImplId, NamespaceId, SemAnalysis,

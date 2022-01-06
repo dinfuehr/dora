@@ -1,5 +1,5 @@
+use crate::semck::sym::NestedSymTable;
 use crate::semck::{self, AllowSelf, TypeParamContext};
-use crate::sym::NestedSymTable;
 use crate::ty::SourceType;
 use crate::vm::{ConstDefinitionId, FileId, NamespaceId, SemAnalysis};
 

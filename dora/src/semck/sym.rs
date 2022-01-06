@@ -5,7 +5,7 @@ use self::Sym::*;
 use crate::vm::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
     FctDefinitionId, FieldId, GlobalDefinitionId, ModuleId, NamespaceId, SemAnalysis,
-    StructDefinitionId, TraitDefinitionId, TypeParamId, VarId, VM,
+    StructDefinitionId, TraitDefinitionId, TypeParamId, VarId,
 };
 use dora_parser::interner::Name;
 

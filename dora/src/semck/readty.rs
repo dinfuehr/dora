@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::semck::error::msg::SemError;
-use crate::sym::{NestedSymTable, Sym, SymTable};
+use crate::semck::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
