@@ -4,7 +4,6 @@ use std::mem::size_of;
 use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, BytecodeType, Register};
 use crate::compiler;
 use crate::compiler::codegen::should_emit_bytecode;
-use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
@@ -17,8 +16,8 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
-    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Code, FctDefinition, FctDefinitionId,
-    FctDescriptor, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,
+    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Code, CodeDescriptor, FctDefinition,
+    FctDefinitionId, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,
 };
 
 // This code generates the compiler stub, there should only be one instance
@@ -38,12 +37,7 @@ pub fn generate<'a>(vm: &'a VM) -> Address {
 
     let code = ngen.generate();
     let addr = code.instruction_start();
-    vm.insert_code_map(
-        code.ptr_start(),
-        code.ptr_end(),
-        CodeDescriptor::CompileStub,
-    );
-    vm.code.push(code);
+    vm.add_code(code);
 
     addr
 }
@@ -159,7 +153,7 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
-            .code(self.vm, framesize, FctDescriptor::CompileStub)
+            .code(self.vm, framesize, CodeDescriptor::CompileStub)
     }
 
     fn store_params(&mut self, mut offset: i32) {
@@ -201,17 +195,12 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
     let vm = get_vm();
 
     let lazy_compilation_site = {
-        let data = {
+        let code_id = {
             let code_map = vm.code_map.lock();
             code_map.get(ra.into()).expect("return address not found")
         };
 
-        let fct_id = match data {
-            CodeDescriptor::DoraFct(fct_id) => fct_id,
-            _ => panic!("expected function for code"),
-        };
-
-        let code = vm.code.idx(fct_id);
+        let code = vm.code.idx(code_id);
 
         let offset = ra - code.instruction_start().to_usize();
         code.lazy_for_offset(offset as u32)

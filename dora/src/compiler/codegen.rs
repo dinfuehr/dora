@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::boots;
 use crate::cannon;
-use crate::compiler::{native_stub, CodeDescriptor, NativeFct};
+use crate::compiler::{native_stub, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
@@ -86,8 +86,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         // CodeMap yet. This would lead to crash e.g. for lazy compilation.
         {
             let mut code_map = vm.code_map.lock();
-            let cdata = CodeDescriptor::DoraFct(code_id);
-            code_map.insert(ptr_start, ptr_end, cdata);
+            code_map.insert(ptr_start, ptr_end, code_id);
         }
 
         specials.insert(type_params.clone(), code_id);

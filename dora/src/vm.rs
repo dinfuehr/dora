@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::compiler;
 use crate::compiler::compile_stub;
 use crate::compiler::dora_stub;
-use crate::compiler::map::{CodeDescriptor, CodeMap};
+use crate::compiler::map::CodeMap;
 use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeStubs};
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
@@ -36,7 +36,7 @@ pub use self::classes::{
     TypeParamId,
 };
 pub use self::code::{
-    Code, CodeId, Comments, FctDescriptor, GcPoint, GcPoints, LazyCompilationData,
+    Code, CodeDescriptor, CodeId, Comments, GcPoint, GcPoints, LazyCompilationData,
     LazyCompilationSite, PositionTable,
 };
 pub use self::consts::{const_accessible_from, ConstDefinition, ConstDefinitionId, ConstValue};
@@ -577,7 +577,24 @@ impl VM {
         self.gc.dump_summary(runtime);
     }
 
-    pub fn insert_code_map(&self, start: Address, end: Address, desc: CodeDescriptor) {
+    pub fn add_code(&self, code: Code) -> CodeId {
+        let code_start = code.ptr_start();
+        let code_end = code.ptr_end();
+
+        let code_id = {
+            let mut code_vec = self.code.lock();
+            let code_id = code_vec.len().into();
+            code_vec.push(Arc::new(code));
+            code_id
+        };
+
+        let mut code_map = self.code_map.lock();
+        code_map.insert(code_start, code_end, code_id);
+
+        code_id
+    }
+
+    pub fn insert_code_map(&self, start: Address, end: Address, desc: CodeId) {
         let mut code_map = self.code_map.lock();
         code_map.insert(start, end, desc);
     }

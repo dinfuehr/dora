@@ -1,10 +1,9 @@
-use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::ty::MachineMode;
-use crate::vm::{Code, FctDescriptor, VM};
+use crate::vm::{Code, CodeDescriptor, VM};
 
 pub fn generate<'a>(vm: &'a VM) -> Address {
     let ngen = DoraEntryGen {
@@ -16,8 +15,7 @@ pub fn generate<'a>(vm: &'a VM) -> Address {
     let code = ngen.generate();
     let ptr = code.instruction_start();
 
-    vm.insert_code_map(code.ptr_start(), code.ptr_end(), CodeDescriptor::DoraStub);
-    vm.code.push(code);
+    vm.add_code(code);
 
     ptr
 }
@@ -61,6 +59,6 @@ impl<'a> DoraEntryGen<'a> {
         );
         self.masm.epilog();
 
-        self.masm.code(self.vm, framesize, FctDescriptor::DoraStub)
+        self.masm.code(self.vm, framesize, CodeDescriptor::DoraStub)
     }
 }

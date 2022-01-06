@@ -9,7 +9,7 @@ use crate::mem;
 use crate::object::Header;
 use crate::ty::MachineMode;
 use crate::vm::{
-    Code, Comments, FctDescriptor, GcPoint, GcPoints, LazyCompilationData, LazyCompilationSite,
+    Code, CodeDescriptor, Comments, GcPoint, GcPoints, LazyCompilationData, LazyCompilationSite,
     PositionTable, Trap, VM,
 };
 pub use dora_asm::Label;
@@ -66,7 +66,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn code(mut self, vm: &VM, stacksize: i32, desc: FctDescriptor) -> Code {
+    pub fn code(mut self, vm: &VM, stacksize: i32, desc: CodeDescriptor) -> Code {
         self.finish();
 
         // align data such that code starts at address that is

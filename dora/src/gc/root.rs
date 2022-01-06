@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use crate::compiler::map::CodeDescriptor;
 use crate::gc::Address;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::ty::SourceType;
-use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout, VM};
+use crate::vm::{
+    specialize_enum_id_params, specialize_struct_id_params, CodeDescriptor, EnumLayout, VM,
+};
 
 pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
@@ -134,45 +135,47 @@ fn from_dora_to_native_info(
 
 fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> bool {
     let code_map = vm.code_map.lock();
-    let data = code_map.get(pc.into());
+    let code_id = code_map.get(pc.into());
 
-    match data {
-        Some(CodeDescriptor::DoraFct(code_id)) => {
-            let code = vm.code.idx(code_id);
+    if let Some(code_id) = code_id {
+        let code = vm.code.idx(code_id);
 
-            let offset = pc - code.instruction_start().to_usize();
-            let gcpoint = code.gcpoint_for_offset(offset as u32).expect("no gcpoint");
+        match code.descriptor() {
+            CodeDescriptor::DoraFct(_) => {
+                let offset = pc - code.instruction_start().to_usize();
+                let gcpoint = code.gcpoint_for_offset(offset as u32).expect("no gcpoint");
 
-            for &offset in &gcpoint.offsets {
-                let addr = (fp as isize + offset as isize) as usize;
-                rootset.push(Slot::at(addr.into()));
+                for &offset in &gcpoint.offsets {
+                    let addr = (fp as isize + offset as isize) as usize;
+                    rootset.push(Slot::at(addr.into()));
+                }
+
+                true
             }
 
-            true
-        }
+            CodeDescriptor::NativeStub(_) => {
+                let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
 
-        Some(CodeDescriptor::NativeStub(code_id)) => {
-            let code = vm.code.idx(code_id);
-            let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
+                for &offset in &gcpoint.offsets {
+                    let addr = (fp as isize + offset as isize) as usize;
+                    rootset.push(Slot::at(addr.into()));
+                }
 
-            for &offset in &gcpoint.offsets {
-                let addr = (fp as isize + offset as isize) as usize;
-                rootset.push(Slot::at(addr.into()));
+                true
             }
 
-            true
-        }
+            CodeDescriptor::AllocStub => true,
+            CodeDescriptor::DoraStub => false,
+            CodeDescriptor::GuardCheckStub => true,
+            CodeDescriptor::SafepointStub => true,
+            CodeDescriptor::CompileStub => true,
 
-        Some(CodeDescriptor::AllocStub) => true,
-        Some(CodeDescriptor::DoraStub) => false,
-        Some(CodeDescriptor::GuardCheckStub) => true,
-        Some(CodeDescriptor::SafepointStub) => true,
-        Some(CodeDescriptor::CompileStub) => true,
-
-        _ => {
-            println!("data = {:?}", data);
-            panic!("invalid stack frame");
+            CodeDescriptor::VerifyStub | CodeDescriptor::TrapStub => unreachable!(),
         }
+    } else {
+        println!("no code found at pc = {:x}", pc);
+        code_map.dump(vm);
+        panic!("invalid stack frame");
     }
 }
 

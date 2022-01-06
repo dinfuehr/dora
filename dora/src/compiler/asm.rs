@@ -12,7 +12,7 @@ use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::FctDefinitionId;
-use crate::vm::{Code, FctDescriptor, GcPoint, GlobalDefinition, Trap, VM};
+use crate::vm::{Code, CodeDescriptor, GcPoint, GlobalDefinition, Trap, VM};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -564,7 +564,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
-    pub fn jit(mut self, stacksize: i32, desc: FctDescriptor) -> Code {
+    pub fn jit(mut self, stacksize: i32, desc: CodeDescriptor) -> Code {
         self.masm.debug();
         self.slow_paths();
         self.masm.code(self.vm, stacksize, desc)

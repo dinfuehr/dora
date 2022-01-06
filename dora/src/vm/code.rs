@@ -14,8 +14,8 @@ use crate::vm::VM;
 
 use dora_parser::Position;
 
-#[derive(Debug)]
-pub enum FctDescriptor {
+#[derive(Debug, Clone)]
+pub enum CodeDescriptor {
     DoraFct(FctDefinitionId),
     CompileStub,
     TrapStub,
@@ -59,7 +59,7 @@ pub struct Code {
     // pointer to beginning of function
     function_entry: Address,
 
-    desc: FctDescriptor,
+    desc: CodeDescriptor,
 
     framesize: i32,
     lazy_compilation: LazyCompilationData,
@@ -69,7 +69,7 @@ pub struct Code {
 }
 
 impl Code {
-    pub fn from_optimized_buffer(vm: &VM, buffer: &[u8], desc: FctDescriptor) -> Code {
+    pub fn from_optimized_buffer(vm: &VM, buffer: &[u8], desc: CodeDescriptor) -> Code {
         let dseg = DSeg::new();
 
         Code::from_buffer(
@@ -94,7 +94,7 @@ impl Code {
         framesize: i32,
         comments: Comments,
         positions: PositionTable,
-        desc: FctDescriptor,
+        desc: CodeDescriptor,
     ) -> Code {
         let code_space_size = dseg.size() as usize + buffer.len();
         let code_start = vm.gc.alloc_code(code_space_size);
@@ -149,8 +149,8 @@ impl Code {
 
     pub fn fct_id(&self) -> FctDefinitionId {
         match self.desc {
-            FctDescriptor::NativeStub(fct_id) => fct_id,
-            FctDescriptor::DoraFct(fct_id) => fct_id,
+            CodeDescriptor::NativeStub(fct_id) => fct_id,
+            CodeDescriptor::DoraFct(fct_id) => fct_id,
             _ => panic!("no fctid found"),
         }
     }
@@ -174,13 +174,17 @@ impl Code {
     pub fn lazy_for_offset(&self, offset: u32) -> Option<&LazyCompilationSite> {
         self.lazy_compilation.get(offset)
     }
+
+    pub fn descriptor(&self) -> CodeDescriptor {
+        self.desc.clone()
+    }
 }
 
 impl fmt::Debug for Code {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "JitBaselineFct {{ start: {:?}, end: {:?}, desc: {:?} }}",
+            "Code {{ start: {:?}, end: {:?}, desc: {:?} }}",
             self.ptr_start(),
             self.ptr_end(),
             self.desc,

@@ -2,10 +2,10 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::gc::Address;
-use crate::vm::{CodeId, VM};
+use crate::vm::{CodeDescriptor, CodeId, VM};
 
 pub struct CodeMap {
-    tree: BTreeMap<CodeSpan, CodeDescriptor>,
+    tree: BTreeMap<CodeSpan, CodeId>,
 }
 
 impl CodeMap {
@@ -18,60 +18,45 @@ impl CodeMap {
     pub fn dump(&self, vm: &VM) {
         println!("CodeMap {{");
 
-        for (key, data) in &self.tree {
+        for (key, &code_id) in &self.tree {
             print!("  {} - {} => ", key.start, key.end);
+            let code = vm.code.idx(code_id);
 
-            match data {
-                &CodeDescriptor::DoraFct(code_id) => {
-                    let code = vm.code.idx(code_id);
-                    let fct = vm.fcts.idx(code.fct_id());
+            match code.descriptor() {
+                CodeDescriptor::DoraFct(fct_id) => {
+                    let fct = vm.fcts.idx(fct_id);
                     let fct = fct.read();
 
                     println!("dora {}", fct.name_with_params(vm));
                 }
-                &CodeDescriptor::CompileStub => println!("compile_stub"),
-                &CodeDescriptor::TrapStub => println!("trap_stub"),
-                &CodeDescriptor::AllocStub => println!("alloc_stub"),
-                &CodeDescriptor::VerifyStub => println!("verify_stub"),
-                &CodeDescriptor::NativeStub(code_id) => {
-                    let code = vm.code.idx(code_id);
-                    let fct = vm.fcts.idx(code.fct_id());
+                CodeDescriptor::CompileStub => println!("compile_stub"),
+                CodeDescriptor::TrapStub => println!("trap_stub"),
+                CodeDescriptor::AllocStub => println!("alloc_stub"),
+                CodeDescriptor::VerifyStub => println!("verify_stub"),
+                CodeDescriptor::NativeStub(fct_id) => {
+                    let fct = vm.fcts.idx(fct_id);
                     let fct = fct.read();
 
                     println!("native stub {}", fct.name_with_params(vm));
                 }
-                &CodeDescriptor::DoraStub => println!("dora_stub"),
-                &CodeDescriptor::GuardCheckStub => println!("guard_check_stub"),
-                &CodeDescriptor::SafepointStub => println!("safepoint_stub"),
+                CodeDescriptor::DoraStub => println!("dora_stub"),
+                CodeDescriptor::GuardCheckStub => println!("guard_check_stub"),
+                CodeDescriptor::SafepointStub => println!("safepoint_stub"),
             }
         }
 
         println!("}}");
     }
 
-    pub fn insert(&mut self, start: Address, end: Address, data: CodeDescriptor) {
+    pub fn insert(&mut self, start: Address, end: Address, code_id: CodeId) {
         let span = CodeSpan::new(start, end);
-        assert!(self.tree.insert(span, data).is_none());
+        assert!(self.tree.insert(span, code_id).is_none());
     }
 
-    pub fn get(&self, ptr: Address) -> Option<CodeDescriptor> {
+    pub fn get(&self, ptr: Address) -> Option<CodeId> {
         let span = CodeSpan::new(ptr, ptr.offset(1));
-
         self.tree.get(&span).map(|el| *el)
     }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum CodeDescriptor {
-    DoraFct(CodeId),
-    CompileStub,
-    TrapStub,
-    AllocStub,
-    VerifyStub,
-    NativeStub(CodeId),
-    DoraStub,
-    GuardCheckStub,
-    SafepointStub,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -156,14 +141,14 @@ mod tests {
     fn test_insert() {
         let mut map = CodeMap::new();
 
-        map.insert(5.into(), 7.into(), CodeDescriptor::DoraFct(1.into()));
-        map.insert(7.into(), 9.into(), CodeDescriptor::DoraFct(2.into()));
+        map.insert(5.into(), 7.into(), 1.into());
+        map.insert(7.into(), 9.into(), 2.into());
 
         assert_eq!(None, map.get(4.into()));
-        assert_eq!(Some(CodeDescriptor::DoraFct(1.into())), map.get(5.into()));
-        assert_eq!(Some(CodeDescriptor::DoraFct(1.into())), map.get(6.into()));
-        assert_eq!(Some(CodeDescriptor::DoraFct(2.into())), map.get(7.into()));
-        assert_eq!(Some(CodeDescriptor::DoraFct(2.into())), map.get(8.into()));
+        assert_eq!(Some(1.into()), map.get(5.into()));
+        assert_eq!(Some(1.into()), map.get(6.into()));
+        assert_eq!(Some(2.into()), map.get(7.into()));
+        assert_eq!(Some(2.into()), map.get(8.into()));
         assert_eq!(None, map.get(9.into()));
     }
 
@@ -172,7 +157,7 @@ mod tests {
     fn test_insert_fails() {
         let mut map = CodeMap::new();
 
-        map.insert(5.into(), 7.into(), CodeDescriptor::DoraFct(1.into()));
-        map.insert(6.into(), 7.into(), CodeDescriptor::DoraFct(2.into()));
+        map.insert(5.into(), 7.into(), 1.into());
+        map.insert(6.into(), 7.into(), 2.into());
     }
 }

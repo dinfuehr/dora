@@ -2,7 +2,6 @@ use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
 use crate::compiler::codegen::AnyReg;
-use crate::compiler::CodeDescriptor;
 use crate::cpu::{
     FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
     REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
@@ -14,7 +13,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, SourceType};
 use crate::vm::FctDefinitionId;
-use crate::vm::{Code, CodeId, FctDescriptor, GcPoint, VM};
+use crate::vm::{Code, CodeDescriptor, CodeId, GcPoint, VM};
 
 pub struct NativeStubs {
     map: HashMap<Address, CodeId>,
@@ -54,8 +53,6 @@ pub struct NativeFct<'a> {
 }
 
 pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> CodeId {
-    let fct_desc = fct.desc.clone();
-
     let ngen = NativeGen {
         vm,
         masm: MacroAssembler::new(),
@@ -64,22 +61,7 @@ pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> CodeId {
     };
 
     let code = ngen.generate();
-    let code_start = code.ptr_start();
-    let code_end = code.ptr_end();
-    let code_id: CodeId = vm.code.push(code).into();
-
-    let code_desc = match fct_desc {
-        NativeFctDescriptor::NativeStub(_) => CodeDescriptor::NativeStub(code_id),
-        NativeFctDescriptor::TrapStub => CodeDescriptor::TrapStub,
-        NativeFctDescriptor::VerifyStub => CodeDescriptor::VerifyStub,
-        NativeFctDescriptor::AllocStub => CodeDescriptor::AllocStub,
-        NativeFctDescriptor::GuardCheckStub => CodeDescriptor::GuardCheckStub,
-        NativeFctDescriptor::SafepointStub => CodeDescriptor::SafepointStub,
-    };
-
-    vm.insert_code_map(code_start, code_end, code_desc);
-
-    code_id
+    vm.add_code(code)
 }
 
 struct NativeGen<'a> {
@@ -250,12 +232,12 @@ impl<'a> NativeGen<'a> {
         self.masm.nop();
 
         let desc = match self.fct.desc {
-            NativeFctDescriptor::NativeStub(fid) => FctDescriptor::NativeStub(fid),
-            NativeFctDescriptor::AllocStub => FctDescriptor::AllocStub,
-            NativeFctDescriptor::VerifyStub => FctDescriptor::VerifyStub,
-            NativeFctDescriptor::TrapStub => FctDescriptor::TrapStub,
-            NativeFctDescriptor::GuardCheckStub => FctDescriptor::GuardCheckStub,
-            NativeFctDescriptor::SafepointStub => FctDescriptor::SafepointStub,
+            NativeFctDescriptor::NativeStub(fid) => CodeDescriptor::NativeStub(fid),
+            NativeFctDescriptor::AllocStub => CodeDescriptor::AllocStub,
+            NativeFctDescriptor::VerifyStub => CodeDescriptor::VerifyStub,
+            NativeFctDescriptor::TrapStub => CodeDescriptor::TrapStub,
+            NativeFctDescriptor::GuardCheckStub => CodeDescriptor::GuardCheckStub,
+            NativeFctDescriptor::SafepointStub => CodeDescriptor::SafepointStub,
         };
 
         self.masm.code(self.vm, framesize, desc)

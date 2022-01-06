@@ -1,10 +1,9 @@
 use std::ptr;
 
-use crate::compiler::map::CodeDescriptor;
 use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
-use crate::vm::{get_vm, CodeId, FctParent, VM};
+use crate::vm::{get_vm, CodeDescriptor, CodeId, FctParent, VM};
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -138,43 +137,43 @@ fn frames_from_pc(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize, mut fp:
 
 fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) -> bool {
     let code_map = vm.code_map.lock();
-    let data = code_map.get(pc.into());
+    let code_id = code_map.get(pc.into());
 
-    match data {
-        Some(CodeDescriptor::DoraFct(fct_id)) => {
-            let code = vm.code.idx(fct_id);
+    if let Some(code_id) = code_id {
+        let code = vm.code.idx(code_id);
+        match code.descriptor() {
+            CodeDescriptor::DoraFct(_) => {
+                let offset = pc - code.instruction_start().to_usize();
+                let position = code
+                    .position_for_offset(offset as u32)
+                    .expect("position not found for program point");
 
-            let offset = pc - code.instruction_start().to_usize();
-            let position = code
-                .position_for_offset(offset as u32)
-                .expect("position not found for program point");
+                stacktrace.push_entry(code_id, position.line as i32);
 
-            stacktrace.push_entry(fct_id, position.line as i32);
+                true
+            }
 
-            true
+            CodeDescriptor::NativeStub(fct_id) => {
+                let fct = vm.fcts.idx(fct_id);
+                let fct = fct.read();
+
+                stacktrace.push_entry(code_id, fct.ast.pos.line as i32);
+
+                true
+            }
+
+            CodeDescriptor::TrapStub => true,
+            CodeDescriptor::GuardCheckStub => true,
+            CodeDescriptor::CompileStub => true,
+            CodeDescriptor::AllocStub => true,
+            CodeDescriptor::DoraStub => false,
+
+            CodeDescriptor::VerifyStub | CodeDescriptor::SafepointStub => unreachable!(),
         }
-
-        Some(CodeDescriptor::NativeStub(fct_id)) => {
-            let code = vm.code.idx(fct_id);
-            let fct = vm.fcts.idx(code.fct_id());
-            let fct = fct.read();
-
-            stacktrace.push_entry(fct_id, fct.ast.pos.line as i32);
-
-            true
-        }
-
-        Some(CodeDescriptor::TrapStub) => true,
-        Some(CodeDescriptor::GuardCheckStub) => true,
-        Some(CodeDescriptor::CompileStub) => true,
-        Some(CodeDescriptor::AllocStub) => true,
-        Some(CodeDescriptor::DoraStub) => false,
-
-        _ => {
-            println!("data = {:?}, pc = {:x}", data, pc);
-            code_map.dump(vm);
-            panic!("invalid stack frame");
-        }
+    } else {
+        println!("no code found at pc = {:x}", pc);
+        code_map.dump(vm);
+        panic!("invalid stack frame");
     }
 }
 
