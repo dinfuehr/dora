@@ -10,7 +10,7 @@ use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_native_stub, should_emit_asm, should_emit_debug, AllocationSize, AnyReg,
 };
-use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
+use crate::compiler::fct::{Code, FctDescriptor, GcPoint};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
@@ -141,7 +141,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let code = self
             .asm
-            .jit(self.framesize, JitDescriptor::DoraFct(self.fct.id));
+            .jit(self.framesize, FctDescriptor::DoraFct(self.fct.id));
 
         code
     }
@@ -5527,9 +5527,9 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
 fn ensure_jit_or_stub_ptr(fct: &FctDefinition, vm: &VM, type_params: SourceTypeArray) -> Address {
     let specials = fct.specializations.read();
 
-    if let Some(&jit_fct_id) = specials.get(&type_params) {
-        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-        return jit_fct.instruction_start();
+    if let Some(&code_id) = specials.get(&type_params) {
+        let code = vm.code.idx(code_id);
+        return code.instruction_start();
     }
 
     vm.compile_stub()

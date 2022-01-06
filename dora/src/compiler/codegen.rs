@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::boots;
 use crate::cannon;
-use crate::compiler::JitFct;
 use crate::compiler::{native_stub, CodeDescriptor, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::disassembler;
@@ -27,9 +26,9 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     {
         let specials = fct.specializations.read();
 
-        if let Some(&jit_fct_id) = specials.get(&type_params) {
-            let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-            return jit_fct.instruction_start();
+        if let Some(&code_id) = specials.get(&type_params) {
+            let code = vm.code.idx(code_id);
+            return code.instruction_start();
         }
     }
 
@@ -69,17 +68,17 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         let mut specials = fct.specializations.write();
 
         // check whether function was compiled in-between from another thread.
-        if let Some(&jit_fct_id) = specials.get(type_params) {
-            let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-            return jit_fct.instruction_start();
+        if let Some(&code_id) = specials.get(type_params) {
+            let code = vm.code.idx(code_id);
+            return code.instruction_start();
         }
 
         // insert the returned Code into the JitFct table to get the JitFctId.
-        let jit_fct_id = {
-            let mut jit_fcts = vm.jit_fcts.lock();
-            let jit_fct_id = jit_fcts.len().into();
-            jit_fcts.push(Arc::new(JitFct::Compiled(code)));
-            jit_fct_id
+        let code_id = {
+            let mut code_vec = vm.code.lock();
+            let code_id = code_vec.len().into();
+            code_vec.push(Arc::new(code));
+            code_id
         };
 
         // We need to insert into CodeMap before releasing the specializations-lock. Otherwise
@@ -87,11 +86,11 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         // CodeMap yet. This would lead to crash e.g. for lazy compilation.
         {
             let mut code_map = vm.code_map.lock();
-            let cdata = CodeDescriptor::DoraFct(jit_fct_id);
+            let cdata = CodeDescriptor::DoraFct(code_id);
             code_map.insert(ptr_start, ptr_end, cdata);
         }
 
-        specials.insert(type_params.clone(), jit_fct_id);
+        specials.insert(type_params.clone(), code_id);
     }
 
     fct_ptr
@@ -216,9 +215,9 @@ pub fn ensure_native_stub(
     let mut native_stubs = vm.native_stubs.lock();
     let ptr = internal_fct.ptr;
 
-    if let Some(jit_fct_id) = native_stubs.find_fct(ptr) {
-        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-        jit_fct.instruction_start()
+    if let Some(code_id) = native_stubs.find_fct(ptr) {
+        let code = vm.code.idx(code_id);
+        code.instruction_start()
     } else {
         let dbg = if let Some(fct_id) = fct_id {
             let fct = vm.fcts.idx(fct_id);
@@ -228,10 +227,10 @@ pub fn ensure_native_stub(
             false
         };
 
-        let jit_fct_id = native_stub::generate(vm, internal_fct, dbg);
-        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+        let code_id = native_stub::generate(vm, internal_fct, dbg);
+        let code = vm.code.idx(code_id);
 
-        let fct_ptr = jit_fct.instruction_start();
+        let fct_ptr = code.instruction_start();
 
         if let Some(fct_id) = fct_id {
             let fct = vm.fcts.idx(fct_id);
@@ -241,13 +240,13 @@ pub fn ensure_native_stub(
                     vm,
                     &*fct,
                     &SourceTypeArray::empty(),
-                    jit_fct.to_code().expect("still uncompiled"),
+                    &code,
                     vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
                 );
             }
         }
 
-        native_stubs.insert_fct(ptr, jit_fct_id);
+        native_stubs.insert_fct(ptr, code_id);
         fct_ptr
     }
 }

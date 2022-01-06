@@ -3,7 +3,7 @@ use std::mem::size_of;
 
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::CodeDescriptor;
-use crate::compiler::{Code, GcPoint, JitDescriptor, JitFct, JitFctId};
+use crate::compiler::{Code, CodeId, FctDescriptor, GcPoint};
 use crate::cpu::{
     FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
     REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
@@ -18,7 +18,7 @@ use crate::vm::FctDefinitionId;
 use crate::vm::VM;
 
 pub struct NativeStubs {
-    map: HashMap<Address, JitFctId>,
+    map: HashMap<Address, CodeId>,
 }
 
 impl NativeStubs {
@@ -28,11 +28,11 @@ impl NativeStubs {
         }
     }
 
-    pub fn find_fct(&self, ptr: Address) -> Option<JitFctId> {
-        self.map.get(&ptr).map(|&jit_fct_id| jit_fct_id)
+    pub fn find_fct(&self, ptr: Address) -> Option<CodeId> {
+        self.map.get(&ptr).map(|&code_id| code_id)
     }
 
-    pub fn insert_fct(&mut self, ptr: Address, fct: JitFctId) {
+    pub fn insert_fct(&mut self, ptr: Address, fct: CodeId) {
         self.map.entry(ptr).or_insert(fct);
     }
 }
@@ -54,7 +54,7 @@ pub struct NativeFct<'a> {
     pub desc: NativeFctDescriptor,
 }
 
-pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> JitFctId {
+pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> CodeId {
     let fct_desc = fct.desc.clone();
 
     let ngen = NativeGen {
@@ -64,13 +64,13 @@ pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> JitFctId {
         dbg,
     };
 
-    let jit_fct = ngen.generate();
-    let jit_start = jit_fct.ptr_start();
-    let jit_end = jit_fct.ptr_end();
-    let jit_fct_id: JitFctId = vm.jit_fcts.push(JitFct::Compiled(jit_fct)).into();
+    let code = ngen.generate();
+    let code_start = code.ptr_start();
+    let code_end = code.ptr_end();
+    let code_id: CodeId = vm.code.push(code).into();
 
     let code_desc = match fct_desc {
-        NativeFctDescriptor::NativeStub(_) => CodeDescriptor::NativeStub(jit_fct_id),
+        NativeFctDescriptor::NativeStub(_) => CodeDescriptor::NativeStub(code_id),
         NativeFctDescriptor::TrapStub => CodeDescriptor::TrapStub,
         NativeFctDescriptor::VerifyStub => CodeDescriptor::VerifyStub,
         NativeFctDescriptor::AllocStub => CodeDescriptor::AllocStub,
@@ -78,9 +78,9 @@ pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> JitFctId {
         NativeFctDescriptor::SafepointStub => CodeDescriptor::SafepointStub,
     };
 
-    vm.insert_code_map(jit_start, jit_end, code_desc);
+    vm.insert_code_map(code_start, code_end, code_desc);
 
-    jit_fct_id
+    code_id
 }
 
 struct NativeGen<'a> {
@@ -251,15 +251,15 @@ impl<'a> NativeGen<'a> {
         self.masm.nop();
 
         let desc = match self.fct.desc {
-            NativeFctDescriptor::NativeStub(fid) => JitDescriptor::NativeStub(fid),
-            NativeFctDescriptor::AllocStub => JitDescriptor::AllocStub,
-            NativeFctDescriptor::VerifyStub => JitDescriptor::VerifyStub,
-            NativeFctDescriptor::TrapStub => JitDescriptor::TrapStub,
-            NativeFctDescriptor::GuardCheckStub => JitDescriptor::GuardCheckStub,
-            NativeFctDescriptor::SafepointStub => JitDescriptor::SafepointStub,
+            NativeFctDescriptor::NativeStub(fid) => FctDescriptor::NativeStub(fid),
+            NativeFctDescriptor::AllocStub => FctDescriptor::AllocStub,
+            NativeFctDescriptor::VerifyStub => FctDescriptor::VerifyStub,
+            NativeFctDescriptor::TrapStub => FctDescriptor::TrapStub,
+            NativeFctDescriptor::GuardCheckStub => FctDescriptor::GuardCheckStub,
+            NativeFctDescriptor::SafepointStub => FctDescriptor::SafepointStub,
         };
 
-        self.masm.jit(self.vm, framesize, desc)
+        self.masm.code(self.vm, framesize, desc)
     }
 }
 

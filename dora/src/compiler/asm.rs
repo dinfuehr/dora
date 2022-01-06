@@ -3,7 +3,7 @@ use std::mem;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
-use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
+use crate::compiler::fct::{Code, FctDescriptor, GcPoint};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
@@ -565,10 +565,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
-    pub fn jit(mut self, stacksize: i32, desc: JitDescriptor) -> Code {
+    pub fn jit(mut self, stacksize: i32, desc: FctDescriptor) -> Code {
         self.masm.debug();
         self.slow_paths();
-        self.masm.jit(self.vm, stacksize, desc)
+        self.masm.code(self.vm, stacksize, desc)
     }
 
     pub fn native_call(

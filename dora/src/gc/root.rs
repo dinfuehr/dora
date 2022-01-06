@@ -137,13 +137,11 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
     let data = code_map.get(pc.into());
 
     match data {
-        Some(CodeDescriptor::DoraFct(fct_id)) => {
-            let jit_fct = vm.jit_fcts.idx(fct_id);
+        Some(CodeDescriptor::DoraFct(code_id)) => {
+            let code = vm.code.idx(code_id);
 
-            let offset = pc - jit_fct.instruction_start().to_usize();
-            let gcpoint = jit_fct
-                .gcpoint_for_offset(offset as u32)
-                .expect("no gcpoint");
+            let offset = pc - code.instruction_start().to_usize();
+            let gcpoint = code.gcpoint_for_offset(offset as u32).expect("no gcpoint");
 
             for &offset in &gcpoint.offsets {
                 let addr = (fp as isize + offset as isize) as usize;
@@ -153,9 +151,9 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
             true
         }
 
-        Some(CodeDescriptor::NativeStub(fct_id)) => {
-            let jit_fct = vm.jit_fcts.idx(fct_id);
-            let gcpoint = jit_fct.gcpoint_for_offset(0).expect("no gcpoint");
+        Some(CodeDescriptor::NativeStub(code_id)) => {
+            let code = vm.code.idx(code_id);
+            let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
 
             for &offset in &gcpoint.offsets {
                 let addr = (fp as isize + offset as isize) as usize;

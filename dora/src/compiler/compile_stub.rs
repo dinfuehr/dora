@@ -4,7 +4,7 @@ use std::mem::size_of;
 use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, BytecodeType, Register};
 use crate::compiler;
 use crate::compiler::codegen::should_emit_bytecode;
-use crate::compiler::fct::{Code, JitDescriptor, JitFct, LazyCompilationSite};
+use crate::compiler::fct::{Code, FctDescriptor, LazyCompilationSite};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
@@ -37,14 +37,14 @@ pub fn generate<'a>(vm: &'a VM) -> Address {
         dbg: vm.args.flag_emit_debug_compile,
     };
 
-    let jit_fct = ngen.generate();
-    let addr = jit_fct.instruction_start();
+    let code = ngen.generate();
+    let addr = code.instruction_start();
     vm.insert_code_map(
-        jit_fct.ptr_start(),
-        jit_fct.ptr_end(),
+        code.ptr_start(),
+        code.ptr_end(),
         CodeDescriptor::CompileStub,
     );
-    vm.jit_fcts.push(JitFct::Compiled(jit_fct));
+    vm.code.push(code);
 
     addr
 }
@@ -160,7 +160,7 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
-            .jit(self.vm, framesize, JitDescriptor::CompileStub)
+            .code(self.vm, framesize, FctDescriptor::CompileStub)
     }
 
     fn store_params(&mut self, mut offset: i32) {
@@ -212,11 +212,10 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
             _ => panic!("expected function for code"),
         };
 
-        let jit_fct = vm.jit_fcts.idx(fct_id);
+        let code = vm.code.idx(fct_id);
 
-        let offset = ra - jit_fct.instruction_start().to_usize();
-        jit_fct
-            .lazy_for_offset(offset as u32)
+        let offset = ra - code.instruction_start().to_usize();
+        code.lazy_for_offset(offset as u32)
             .expect("lazy compilation site not found")
             .clone()
     };

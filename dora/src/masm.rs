@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::{
-    Code, Comments, GcPoint, GcPoints, JitDescriptor, LazyCompilationData, LazyCompilationSite,
+    Code, Comments, FctDescriptor, GcPoint, GcPoints, LazyCompilationData, LazyCompilationSite,
     PositionTable,
 };
 use crate::cpu::{Reg, SCRATCH};
@@ -67,7 +67,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn jit(mut self, vm: &VM, stacksize: i32, desc: JitDescriptor) -> Code {
+    pub fn code(mut self, vm: &VM, stacksize: i32, desc: FctDescriptor) -> Code {
         self.finish();
 
         // align data such that code starts at address that is

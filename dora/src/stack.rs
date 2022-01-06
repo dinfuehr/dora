@@ -1,6 +1,6 @@
 use std::ptr;
 
-use crate::compiler::fct::JitFctId;
+use crate::compiler::fct::CodeId;
 use crate::compiler::map::CodeDescriptor;
 use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
@@ -20,15 +20,15 @@ impl NativeStacktrace {
         self.elems.len()
     }
 
-    pub fn push_entry(&mut self, fct_id: JitFctId, lineno: i32) {
+    pub fn push_entry(&mut self, fct_id: CodeId, lineno: i32) {
         self.elems.push(StackElem { fct_id, lineno });
     }
 
     pub fn dump(&self, vm: &VM) {
         let frames = self.elems.len();
         for (ind, elem) in self.elems.iter().enumerate() {
-            let jit_fct = vm.jit_fcts.idx(elem.fct_id);
-            let fct_id = jit_fct.fct_id();
+            let code = vm.code.idx(elem.fct_id);
+            let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
             let name = fct.name_with_params(vm);
@@ -45,8 +45,8 @@ impl NativeStacktrace {
     pub fn dump_err(&self, vm: &VM) {
         let frames = self.elems.len();
         for (ind, elem) in self.elems.iter().enumerate() {
-            let jit_fct = vm.jit_fcts.idx(elem.fct_id);
-            let fct_id = jit_fct.fct_id();
+            let code = vm.code.idx(elem.fct_id);
+            let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
             let name = fct.name_with_params(vm);
@@ -62,7 +62,7 @@ impl NativeStacktrace {
 }
 
 struct StackElem {
-    fct_id: JitFctId,
+    fct_id: CodeId,
     lineno: i32,
 }
 
@@ -143,10 +143,10 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
 
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) => {
-            let jit_fct = vm.jit_fcts.idx(fct_id);
+            let code = vm.code.idx(fct_id);
 
-            let offset = pc - jit_fct.instruction_start().to_usize();
-            let position = jit_fct
+            let offset = pc - code.instruction_start().to_usize();
+            let position = code
                 .position_for_offset(offset as u32)
                 .expect("position not found for program point");
 
@@ -156,8 +156,8 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
         }
 
         Some(CodeDescriptor::NativeStub(fct_id)) => {
-            let jit_fct = vm.jit_fcts.idx(fct_id);
-            let fct = vm.fcts.idx(jit_fct.fct_id());
+            let code = vm.code.idx(fct_id);
+            let fct = vm.fcts.idx(code.fct_id());
             let fct = fct.read();
 
             stacktrace.push_entry(fct_id, fct.ast.pos.line as i32);
@@ -204,9 +204,9 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     let mut ste = handle(ste);
     ste.line = lineno;
 
-    let jit_fct_id = JitFctId::from(fct_id as usize);
-    let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-    let fct = vm.fcts.idx(jit_fct.fct_id());
+    let code_id: CodeId = (fct_id as usize).into();
+    let code = vm.code.idx(code_id);
+    let fct = vm.fcts.idx(code.fct_id());
     let fct = fct.read();
     let name = fct.name_with_params(vm);
     ste.name = Str::from_buffer(vm, name.as_bytes());
@@ -224,9 +224,9 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     // ignore every element until first not inside susubclass of Stacktrace (ctor of Exception)
     if via_retrieve {
         for elem in stacktrace.elems.iter() {
-            let jit_fct_id = JitFctId::from(elem.fct_id.idx() as usize);
-            let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-            let fct_id = jit_fct.fct_id();
+            let code_id = elem.fct_id.idx().into();
+            let code = vm.code.idx(code_id);
+            let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
 

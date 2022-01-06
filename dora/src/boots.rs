@@ -6,7 +6,7 @@ use crate::boots::serializer::{
 };
 use crate::bytecode::{self, InstructionSet};
 use crate::compiler::codegen::should_emit_bytecode;
-use crate::compiler::fct::{Code, JitDescriptor};
+use crate::compiler::fct::{Code, FctDescriptor};
 use crate::gc::Address;
 use crate::handle::handle;
 use crate::language::sym::NestedSymTable;
@@ -58,7 +58,7 @@ pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> C
         );
     }
 
-    Code::from_optimized_buffer(vm, &machine_code_array, JitDescriptor::DoraFct(fct.id))
+    Code::from_optimized_buffer(vm, &machine_code_array, FctDescriptor::DoraFct(fct.id))
 }
 
 pub fn encode_test(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) {

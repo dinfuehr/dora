@@ -14,117 +14,8 @@ use crate::vm::VM;
 
 use dora_parser::Position;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct JitFctId(usize);
-
-impl JitFctId {
-    pub fn from(idx: usize) -> JitFctId {
-        JitFctId(idx)
-    }
-
-    pub fn idx(self) -> usize {
-        self.0
-    }
-}
-
-impl GrowableVec<JitFct> {
-    pub fn idx(&self, index: JitFctId) -> Arc<JitFct> {
-        self.idx_usize(index.0)
-    }
-}
-
-impl From<usize> for JitFctId {
-    fn from(data: usize) -> JitFctId {
-        JitFctId(data)
-    }
-}
-
-pub enum JitFct {
-    Compiled(Code),
-    Uncompiled,
-}
-
-impl JitFct {
-    pub fn fct_id(&self) -> FctDefinitionId {
-        match self {
-            &JitFct::Compiled(ref base) => base.fct_id(),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn instruction_start(&self) -> Address {
-        match self {
-            &JitFct::Compiled(ref base) => base.instruction_start(),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn instruction_end(&self) -> Address {
-        match self {
-            &JitFct::Compiled(ref base) => base.instruction_end(),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn ptr_start(&self) -> Address {
-        match self {
-            &JitFct::Compiled(ref base) => base.ptr_start(),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn ptr_end(&self) -> Address {
-        match self {
-            &JitFct::Compiled(ref base) => base.ptr_end(),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn to_code(&self) -> Option<&Code> {
-        match self {
-            &JitFct::Compiled(ref code) => Some(code),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn framesize(&self) -> i32 {
-        match self {
-            &JitFct::Compiled(ref base) => base.framesize(),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
-        match self {
-            &JitFct::Compiled(ref base) => base.gcpoint_for_offset(offset),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn position_for_offset(&self, offset: u32) -> Option<Position> {
-        match self {
-            &JitFct::Compiled(ref base) => base.position_for_offset(offset),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn comment_for_offset(&self, offset: u32) -> Option<&String> {
-        match self {
-            &JitFct::Compiled(ref base) => base.comment_for_offset(offset),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn lazy_for_offset(&self, offset: u32) -> Option<&LazyCompilationSite> {
-        match self {
-            &JitFct::Compiled(ref base) => base.lazy_for_offset(offset),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-}
-
 #[derive(Debug)]
-pub enum JitDescriptor {
+pub enum FctDescriptor {
     DoraFct(FctDefinitionId),
     CompileStub,
     TrapStub,
@@ -136,6 +27,31 @@ pub enum JitDescriptor {
     SafepointStub,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct CodeId(usize);
+
+impl CodeId {
+    pub fn from(idx: usize) -> CodeId {
+        CodeId(idx)
+    }
+
+    pub fn idx(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for CodeId {
+    fn from(data: usize) -> CodeId {
+        CodeId(data)
+    }
+}
+
+impl GrowableVec<Code> {
+    pub fn idx(&self, index: CodeId) -> Arc<Code> {
+        self.idx_usize(index.0)
+    }
+}
+
 pub struct Code {
     code_start: Address,
     code_end: Address,
@@ -143,7 +59,7 @@ pub struct Code {
     // pointer to beginning of function
     function_entry: Address,
 
-    desc: JitDescriptor,
+    desc: FctDescriptor,
 
     framesize: i32,
     lazy_compilation: LazyCompilationData,
@@ -153,7 +69,7 @@ pub struct Code {
 }
 
 impl Code {
-    pub fn from_optimized_buffer(vm: &VM, buffer: &[u8], desc: JitDescriptor) -> Code {
+    pub fn from_optimized_buffer(vm: &VM, buffer: &[u8], desc: FctDescriptor) -> Code {
         let dseg = DSeg::new();
 
         Code::from_buffer(
@@ -178,7 +94,7 @@ impl Code {
         framesize: i32,
         comments: Comments,
         positions: PositionTable,
-        desc: JitDescriptor,
+        desc: FctDescriptor,
     ) -> Code {
         let code_space_size = dseg.size() as usize + buffer.len();
         let code_start = vm.gc.alloc_code(code_space_size);
@@ -233,8 +149,8 @@ impl Code {
 
     pub fn fct_id(&self) -> FctDefinitionId {
         match self.desc {
-            JitDescriptor::NativeStub(fct_id) => fct_id,
-            JitDescriptor::DoraFct(fct_id) => fct_id,
+            FctDescriptor::NativeStub(fct_id) => fct_id,
+            FctDescriptor::DoraFct(fct_id) => fct_id,
             _ => panic!("no fctid found"),
         }
     }

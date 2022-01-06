@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::compiler;
 use crate::compiler::compile_stub;
 use crate::compiler::dora_stub;
-use crate::compiler::fct::JitFct;
+use crate::compiler::fct::Code;
 use crate::compiler::map::{CodeDescriptor, CodeMap};
 use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeStubs};
 use crate::driver::cmd::Args;
@@ -145,7 +145,6 @@ pub struct FullSemAnalysis {
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<NamespaceData>,                         // storer all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub jit_fcts: GrowableVec<JitFct>,            // stores all function implementations
     pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
     pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
@@ -268,7 +267,6 @@ impl FullSemAnalysis {
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
-            jit_fcts: GrowableVec::new(),
             source_type_arrays: Mutex::new(SourceTypeArrays::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
@@ -324,7 +322,7 @@ pub struct VM {
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<NamespaceData>,                         // storer all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub jit_fcts: GrowableVec<JitFct>,            // stores all function implementations
+    pub code: GrowableVec<Code>,                  // stores all function implementations
     pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
     pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
@@ -458,7 +456,7 @@ impl VM {
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
-            jit_fcts: GrowableVec::new(),
+            code: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             source_type_arrays: Mutex::new(SourceTypeArrays::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
@@ -514,7 +512,7 @@ impl VM {
             id_generator: sa.id_generator,
             diag: sa.diag,
             fcts: sa.fcts,
-            jit_fcts: sa.jit_fcts,
+            code: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             source_type_arrays: sa.source_type_arrays,
             lambda_types: sa.lambda_types,
@@ -883,9 +881,9 @@ impl VM {
                 return_type: SourceType::Unit,
                 desc: NativeFctDescriptor::TrapStub,
             };
-            let jit_fct_id = native_stub::generate(self, ifct, false);
-            let jit_fct = self.jit_fcts.idx(jit_fct_id);
-            let fct_ptr = jit_fct.instruction_start();
+            let code_id = native_stub::generate(self, ifct, false);
+            let code = self.code.idx(code_id);
+            let fct_ptr = code.instruction_start();
             *trap_stub_address = fct_ptr;
         }
 
@@ -902,9 +900,9 @@ impl VM {
                 return_type: SourceType::Unit,
                 desc: NativeFctDescriptor::GuardCheckStub,
             };
-            let jit_fct_id = native_stub::generate(self, ifct, false);
-            let jit_fct = self.jit_fcts.idx(jit_fct_id);
-            let fct_ptr = jit_fct.instruction_start();
+            let code_id = native_stub::generate(self, ifct, false);
+            let code = self.code.idx(code_id);
+            let fct_ptr = code.instruction_start();
             *stack_overflow_stub_address = fct_ptr;
         }
 
@@ -921,9 +919,9 @@ impl VM {
                 return_type: SourceType::Unit,
                 desc: NativeFctDescriptor::SafepointStub,
             };
-            let jit_fct_id = native_stub::generate(self, ifct, false);
-            let jit_fct = self.jit_fcts.idx(jit_fct_id);
-            let fct_ptr = jit_fct.instruction_start();
+            let code_id = native_stub::generate(self, ifct, false);
+            let code = self.code.idx(code_id);
+            let fct_ptr = code.instruction_start();
             *safepoint_stub_address = fct_ptr;
         }
 

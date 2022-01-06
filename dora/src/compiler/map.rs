@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use crate::compiler::fct::JitFctId;
+use crate::compiler::fct::CodeId;
 use crate::gc::Address;
 use crate::vm::VM;
 
@@ -23,9 +23,9 @@ impl CodeMap {
             print!("  {} - {} => ", key.start, key.end);
 
             match data {
-                &CodeDescriptor::DoraFct(jit_fct_id) => {
-                    let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-                    let fct = vm.fcts.idx(jit_fct.fct_id());
+                &CodeDescriptor::DoraFct(code_id) => {
+                    let code = vm.code.idx(code_id);
+                    let fct = vm.fcts.idx(code.fct_id());
                     let fct = fct.read();
 
                     println!("dora {}", fct.name_with_params(vm));
@@ -34,9 +34,9 @@ impl CodeMap {
                 &CodeDescriptor::TrapStub => println!("trap_stub"),
                 &CodeDescriptor::AllocStub => println!("alloc_stub"),
                 &CodeDescriptor::VerifyStub => println!("verify_stub"),
-                &CodeDescriptor::NativeStub(jit_fct_id) => {
-                    let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-                    let fct = vm.fcts.idx(jit_fct.fct_id());
+                &CodeDescriptor::NativeStub(code_id) => {
+                    let code = vm.code.idx(code_id);
+                    let fct = vm.fcts.idx(code.fct_id());
                     let fct = fct.read();
 
                     println!("native stub {}", fct.name_with_params(vm));
@@ -64,12 +64,12 @@ impl CodeMap {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CodeDescriptor {
-    DoraFct(JitFctId),
+    DoraFct(CodeId),
     CompileStub,
     TrapStub,
     AllocStub,
     VerifyStub,
-    NativeStub(JitFctId),
+    NativeStub(CodeId),
     DoraStub,
     GuardCheckStub,
     SafepointStub,

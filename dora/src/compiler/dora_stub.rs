@@ -1,4 +1,4 @@
-use crate::compiler::fct::{Code, JitDescriptor, JitFct};
+use crate::compiler::fct::{Code, FctDescriptor};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::gc::Address;
@@ -14,15 +14,11 @@ pub fn generate<'a>(vm: &'a VM) -> Address {
         dbg: vm.args.flag_emit_debug_entry,
     };
 
-    let jit_fct = ngen.generate();
-    let ptr = jit_fct.instruction_start();
+    let code = ngen.generate();
+    let ptr = code.instruction_start();
 
-    vm.insert_code_map(
-        jit_fct.ptr_start(),
-        jit_fct.ptr_end(),
-        CodeDescriptor::DoraStub,
-    );
-    vm.jit_fcts.push(JitFct::Compiled(jit_fct));
+    vm.insert_code_map(code.ptr_start(), code.ptr_end(), CodeDescriptor::DoraStub);
+    vm.code.push(code);
 
     ptr
 }
@@ -66,6 +62,6 @@ impl<'a> DoraEntryGen<'a> {
         );
         self.masm.epilog();
 
-        self.masm.jit(self.vm, framesize, JitDescriptor::DoraStub)
+        self.masm.code(self.vm, framesize, FctDescriptor::DoraStub)
     }
 }

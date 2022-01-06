@@ -8,7 +8,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType};
-use crate::compiler::fct::JitFctId;
+use crate::compiler::fct::CodeId;
 use crate::gc::Address;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
@@ -64,7 +64,7 @@ pub struct FctDefinition {
 
     pub vtable_index: Option<u32>,
     pub initialized: bool,
-    pub specializations: RwLock<HashMap<SourceTypeArray, JitFctId>>,
+    pub specializations: RwLock<HashMap<SourceTypeArray, CodeId>>,
     pub analysis: Option<AnalysisData>,
 
     pub type_params: Vec<TypeParam>,
