@@ -128,14 +128,14 @@ impl From<usize> for ModuleDefId {
     }
 }
 
-impl GrowableVec<RwLock<ModuleDef>> {
-    pub fn idx(&self, index: ModuleDefId) -> Arc<RwLock<ModuleDef>> {
+impl GrowableVec<RwLock<ModuleInstance>> {
+    pub fn idx(&self, index: ModuleDefId) -> Arc<RwLock<ModuleInstance>> {
         self.idx_usize(index.0)
     }
 }
 
 #[derive(Debug)]
-pub struct ModuleDef {
+pub struct ModuleInstance {
     pub id: ModuleDefId,
     pub mod_id: Option<ModuleId>,
     pub parent_id: Option<ModuleDefId>,
@@ -145,7 +145,7 @@ pub struct ModuleDef {
     pub vtable: Option<VTableBox>,
 }
 
-impl ModuleDef {
+impl ModuleInstance {
     pub fn name(&self, vm: &VM) -> String {
         if let Some(module_id) = self.mod_id {
             let module = vm.modules.idx(module_id);
