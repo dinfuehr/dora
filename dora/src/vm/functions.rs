@@ -12,8 +12,8 @@ use crate::gc::Address;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, AnalysisData, ClassDefinitionId, CodeId, ExtensionId, FileId,
-    ImplId, ModuleId, NamespaceId, TraitDefinitionId, TypeParam, TypeParamId, VM,
+    namespace_path, AnalysisData, ClassDefinitionId, CodeId, ExtensionId, FileId, ImplId, ModuleId,
+    NamespaceId, TraitDefinitionId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -724,11 +724,4 @@ impl Intrinsic {
             _ => panic!("no return type for {:?}", self),
         }
     }
-}
-
-pub fn fct_accessible_from(vm: &VM, fct_id: FctDefinitionId, namespace_id: NamespaceId) -> bool {
-    let fct = vm.fcts.idx(fct_id);
-    let fct = fct.read();
-
-    accessible_from(vm, fct.namespace_id, fct.is_pub, namespace_id)
 }

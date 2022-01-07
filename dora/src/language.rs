@@ -12,6 +12,7 @@ pub use globaldef::should_file_be_parsed;
 pub use readty::{read_type, AllowSelf, TypeParamContext};
 
 mod abstractck;
+mod access;
 mod clsdefck;
 mod constdefck;
 mod enumck;

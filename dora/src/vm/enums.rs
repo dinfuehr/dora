@@ -12,8 +12,8 @@ use dora_parser::lexer::position::Position;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, extension_matches, impl_matches, namespace_path, Candidate, ClassInstanceId,
-    ExtensionId, FileId, ImplId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId, VM,
+    extension_matches, impl_matches, namespace_path, Candidate, ClassInstanceId, ExtensionId,
+    FileId, ImplId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -208,10 +208,4 @@ pub fn find_methods_in_enum(
     }
 
     candidates
-}
-
-pub fn enum_accessible_from(vm: &VM, enum_id: EnumDefinitionId, namespace_id: NamespaceId) -> bool {
-    let xenum = vm.enums[enum_id].read();
-
-    accessible_from(vm, xenum.namespace_id, xenum.is_pub, namespace_id)
 }

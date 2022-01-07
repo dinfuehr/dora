@@ -29,10 +29,9 @@ use dora_parser::parser::NodeIdGenerator;
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
-    class_accessible_from, class_field_accessible_from, find_field_in_class, find_method_in_class,
-    find_methods_in_class, method_accessible_from, Candidate, ClassDefinition, ClassDefinitionId,
-    ClassInstance, ClassInstanceId, Field, FieldDef, FieldId, TypeParam, TypeParamDefinition,
-    TypeParamId,
+    find_field_in_class, find_method_in_class, find_methods_in_class, Candidate, ClassDefinition,
+    ClassDefinitionId, ClassInstance, ClassInstanceId, Field, FieldDef, FieldId, TypeParam,
+    TypeParamDefinition, TypeParamId,
 };
 pub use self::code::{
     Code, CodeDescriptor, CodeId, CommentTable, GcPoint, GcPointTable, LazyCompilationData,
@@ -41,16 +40,12 @@ pub use self::code::{
 pub use self::code_map::CodeMap;
 pub use self::consts::{const_accessible_from, ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{
-    enum_accessible_from, find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumInstance,
-    EnumInstanceId, EnumLayout, EnumVariant,
+    find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId,
+    EnumLayout, EnumVariant,
 };
 pub use self::extensions::{extension_matches, extension_matches_ty, ExtensionData, ExtensionId};
-pub use self::functions::{
-    fct_accessible_from, FctDefinition, FctDefinitionId, FctParent, Intrinsic,
-};
-pub use self::globals::{
-    global_accessible_from, init_global_addresses, GlobalDefinition, GlobalDefinitionId,
-};
+pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
+pub use self::globals::{init_global_addresses, GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{find_trait_impl, impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
 pub use self::known::{
@@ -74,9 +69,8 @@ pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
 pub use self::structs::{
-    find_methods_in_struct, struct_accessible_from, struct_field_accessible_from, StructDefinition,
-    StructDefinitionField, StructDefinitionFieldId, StructDefinitionId, StructInstance,
-    StructInstanceField, StructInstanceId,
+    find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
+    StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
 };
 pub use self::traits::{trait_accessible_from, TraitDefinition, TraitDefinitionId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};

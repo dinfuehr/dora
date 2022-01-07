@@ -12,8 +12,8 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
-    accessible_from, extension_matches, impl_matches, namespace_path, replace_type_param,
-    ExtensionId, FctDefinitionId, FctParent, FileId, ImplId, NamespaceId, TraitDefinitionId,
+    extension_matches, impl_matches, namespace_path, replace_type_param, ExtensionId,
+    FctDefinitionId, FileId, ImplId, NamespaceId, TraitDefinitionId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast;
@@ -656,65 +656,4 @@ impl IndexMut<FieldId> for Vec<Field> {
 pub struct FieldDef {
     pub offset: i32,
     pub ty: SourceType,
-}
-
-pub fn class_accessible_from(
-    vm: &VM,
-    cls_id: ClassDefinitionId,
-    namespace_id: NamespaceId,
-) -> bool {
-    let cls = vm.classes.idx(cls_id);
-    let cls = cls.read();
-
-    accessible_from(vm, cls.namespace_id, cls.is_pub, namespace_id)
-}
-
-pub fn class_field_accessible_from(
-    vm: &VM,
-    cls_id: ClassDefinitionId,
-    field_id: FieldId,
-    namespace_id: NamespaceId,
-) -> bool {
-    let cls = vm.classes.idx(cls_id);
-    let cls = cls.read();
-
-    let field = &cls.fields[field_id];
-
-    accessible_from(
-        vm,
-        cls.namespace_id,
-        cls.is_pub && field.is_pub,
-        namespace_id,
-    )
-}
-
-pub fn method_accessible_from(vm: &VM, fct_id: FctDefinitionId, namespace_id: NamespaceId) -> bool {
-    let fct = vm.fcts.idx(fct_id);
-    let fct = fct.read();
-
-    let element_pub = match fct.parent {
-        FctParent::Class(cls_id) => {
-            let cls = vm.classes.idx(cls_id);
-            let cls = cls.read();
-
-            cls.is_pub && fct.is_pub
-        }
-
-        FctParent::Extension(_) => fct.is_pub,
-        FctParent::Impl(_) | FctParent::Trait(_) => {
-            // TODO: This should probably be limited
-            return true;
-        }
-
-        FctParent::Module(module_id) => {
-            let module = vm.modules.idx(module_id);
-            let module = module.read();
-
-            module.is_pub && fct.is_pub
-        }
-
-        FctParent::None => unreachable!(),
-    };
-
-    accessible_from(vm, fct.namespace_id, element_pub, namespace_id)
 }

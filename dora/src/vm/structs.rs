@@ -9,8 +9,8 @@ use dora_parser::lexer::position::Position;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, extension_matches, impl_matches, namespace_path, Candidate, ExtensionId,
-    FileId, ImplId, NamespaceId, SourceTypeArray, TypeParam, TypeParamDefinition, TypeParamId, VM,
+    extension_matches, impl_matches, namespace_path, Candidate, ExtensionId, FileId, ImplId,
+    NamespaceId, SourceTypeArray, TypeParam, TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -155,36 +155,6 @@ impl StructInstance {
 pub struct StructInstanceField {
     pub offset: i32,
     pub ty: SourceType,
-}
-
-pub fn struct_accessible_from(
-    vm: &VM,
-    struct_id: StructDefinitionId,
-    namespace_id: NamespaceId,
-) -> bool {
-    let xstruct = vm.structs.idx(struct_id);
-    let xstruct = xstruct.read();
-
-    accessible_from(vm, xstruct.namespace_id, xstruct.is_pub, namespace_id)
-}
-
-pub fn struct_field_accessible_from(
-    vm: &VM,
-    struct_id: StructDefinitionId,
-    field_id: StructDefinitionFieldId,
-    namespace_id: NamespaceId,
-) -> bool {
-    let xstruct = vm.structs.idx(struct_id);
-    let xstruct = xstruct.read();
-
-    let field = &xstruct.fields[field_id.to_usize()];
-
-    accessible_from(
-        vm,
-        xstruct.namespace_id,
-        xstruct.is_pub && field.is_pub,
-        namespace_id,
-    )
 }
 
 pub fn find_methods_in_struct(

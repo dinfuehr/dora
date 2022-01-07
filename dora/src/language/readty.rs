@@ -1,13 +1,16 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
+use crate::language::access::{
+    class_accessible_from, enum_accessible_from, struct_accessible_from,
+};
 use crate::language::error::msg::SemError;
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
-    class_accessible_from, ensure_tuple, enum_accessible_from, struct_accessible_from,
-    trait_accessible_from, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinition, FileId,
-    ImplData, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamId,
+    ensure_tuple, trait_accessible_from, ClassDefinitionId, EnumDefinitionId, ExtensionId,
+    FctDefinition, FileId, ImplData, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParam,
+    TypeParamId,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};

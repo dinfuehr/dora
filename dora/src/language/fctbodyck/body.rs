@@ -3,6 +3,11 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
 
+use crate::language::access::{
+    class_accessible_from, class_field_accessible_from, enum_accessible_from, fct_accessible_from,
+    global_accessible_from, method_accessible_from, struct_accessible_from,
+    struct_field_accessible_from,
+};
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::specialize::replace_type_param;
@@ -12,10 +17,8 @@ use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf}
 use crate::language::{report_sym_shadow, TypeParamContext};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
-    self, class_accessible_from, class_field_accessible_from, const_accessible_from, ensure_tuple,
-    enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
-    find_methods_in_enum, find_methods_in_struct, global_accessible_from, method_accessible_from,
-    namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
+    self, const_accessible_from, ensure_tuple, find_field_in_class, find_methods_in_class,
+    find_methods_in_enum, find_methods_in_struct, namespace_accessible_from, AnalysisData,
     CallType, ClassDefinitionId, ConvInfo, EnumDefinitionId, FctDefinition, FctDefinitionId,
     FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, SemAnalysis,
     StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,

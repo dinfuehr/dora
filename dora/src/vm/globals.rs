@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::mem;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{accessible_from, namespace_path, FctDefinitionId, FileId, NamespaceId, VM};
+use crate::vm::{namespace_path, FctDefinitionId, FileId, NamespaceId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -90,15 +90,4 @@ pub fn init_global_addresses(vm: &VM) {
         glob.address_init = ptr.offset(initialized as usize);
         glob.address_value = ptr.offset(value as usize);
     }
-}
-
-pub fn global_accessible_from(
-    vm: &VM,
-    global_id: GlobalDefinitionId,
-    namespace_id: NamespaceId,
-) -> bool {
-    let global = vm.globals.idx(global_id);
-    let global = global.read();
-
-    accessible_from(vm, global.namespace_id, global.is_pub, namespace_id)
 }
