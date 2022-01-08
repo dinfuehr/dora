@@ -522,7 +522,7 @@ impl<'a> Parser<'a> {
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let has_open = modifiers.contains(Modifier::Open);
+        let is_open = modifiers.contains(Modifier::Open);
         let internal = modifiers.contains(Modifier::Internal);
         let is_abstract = modifiers.contains(Modifier::Abstract);
         let is_pub = modifiers.contains(Modifier::Pub);
@@ -536,7 +536,7 @@ impl<'a> Parser<'a> {
             name: ident,
             pos,
             span: Span::invalid(),
-            has_open,
+            is_open,
             internal,
             is_abstract,
             is_pub,
@@ -1042,10 +1042,10 @@ impl<'a> Parser<'a> {
             pos,
             span,
             method: self.in_class_or_module,
-            has_open: modifiers.contains(Modifier::Open),
-            has_override: modifiers.contains(Modifier::Override),
-            has_final: modifiers.contains(Modifier::Final),
-            has_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
+            is_open: modifiers.contains(Modifier::Open),
+            is_override: modifiers.contains(Modifier::Override),
+            is_final: modifiers.contains(Modifier::Final),
+            is_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
             is_pub: modifiers.contains(Modifier::Pub),
             is_static: modifiers.contains(Modifier::Static),
             internal: modifiers.contains(Modifier::Internal),
@@ -2243,10 +2243,10 @@ impl<'a> Parser<'a> {
             pos,
             span,
             method: self.in_class_or_module,
-            has_open: false,
-            has_override: false,
-            has_final: false,
-            has_optimize_immediately: false,
+            is_open: false,
+            is_override: false,
+            is_final: false,
+            is_optimize_immediately: false,
             is_pub: false,
             is_static: false,
             internal: false,
@@ -3434,7 +3434,7 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(false, class.has_open);
+        assert_eq!(false, class.is_open);
         assert_eq!(false, class.is_abstract);
         assert_eq!(Position::new(1, 1), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
@@ -3455,7 +3455,7 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(true, class.has_open);
+        assert_eq!(true, class.is_open);
         assert_eq!(Position::new(1, 7), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
     }
@@ -3516,7 +3516,7 @@ mod tests {
         let (prog, _) = parse("@open class Foo");
         let class = prog.cls0();
 
-        assert_eq!(true, class.has_open);
+        assert_eq!(true, class.is_open);
     }
 
     #[test]
@@ -3594,10 +3594,10 @@ mod tests {
         let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
-        assert_eq!(true, m1.has_open);
+        assert_eq!(true, m1.is_open);
 
         let m2 = &cls.methods[1];
-        assert_eq!(false, m2.has_open);
+        assert_eq!(false, m2.is_open);
     }
 
     #[test]
@@ -3610,16 +3610,16 @@ mod tests {
         let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
-        assert_eq!(false, m1.has_override);
-        assert_eq!(false, m1.has_open);
+        assert_eq!(false, m1.is_override);
+        assert_eq!(false, m1.is_open);
 
         let m2 = &cls.methods[1];
-        assert_eq!(true, m2.has_override);
-        assert_eq!(false, m2.has_open);
+        assert_eq!(true, m2.is_override);
+        assert_eq!(false, m2.is_open);
 
         let m3 = &cls.methods[2];
-        assert_eq!(false, m3.has_override);
-        assert_eq!(true, m3.has_open);
+        assert_eq!(false, m3.is_override);
+        assert_eq!(true, m3.is_open);
     }
 
     #[test]
@@ -3637,9 +3637,9 @@ mod tests {
         let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
-        assert_eq!(true, m1.has_override);
-        assert_eq!(false, m1.has_open);
-        assert_eq!(true, m1.has_final);
+        assert_eq!(true, m1.is_override);
+        assert_eq!(false, m1.is_open);
+        assert_eq!(true, m1.is_final);
     }
 
     #[test]

@@ -295,7 +295,7 @@ impl<'a> CannonCodeGen<'a> {
 
             let dest = Register(idx);
 
-            let param_ty = if idx == params.len() - 1 && self.fct.variadic_arguments {
+            let param_ty = if idx == params.len() - 1 && self.fct.is_variadic {
                 assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
                 SourceType::Ptr
             } else if param_ty.is_unit() {

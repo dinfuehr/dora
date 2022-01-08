@@ -124,7 +124,7 @@ fn check_fct_modifier(
 ) -> Option<FctDefinitionId> {
     // catch: class A { @open fun f() } (A is not derivable)
     // catch: @open @final fun f()
-    if fct.has_open && (!cls.has_open || fct.has_final) {
+    if fct.is_open && (!cls.is_open || fct.is_final) {
         let name = sa.interner.str(fct.name).to_string();
         sa.diag
             .lock()
@@ -133,7 +133,7 @@ fn check_fct_modifier(
     }
 
     if cls.parent_class.is_none() {
-        if fct.has_override {
+        if fct.is_override {
             let name = sa.interner.str(fct.name).to_string();
             sa.diag
                 .lock()
@@ -150,14 +150,14 @@ fn check_fct_modifier(
         let super_method = sa.fcts.idx(super_method);
         let super_method = super_method.read();
 
-        if !fct.has_override {
+        if !fct.is_override {
             let name = sa.interner.str(fct.name).to_string();
             sa.diag
                 .lock()
                 .report(fct.file_id, fct.pos(), SemError::MissingOverride(name));
         }
 
-        if !(super_method.has_open || super_method.has_override) || super_method.has_final {
+        if !(super_method.is_open || super_method.is_override) || super_method.is_final {
             let name = sa.interner.str(fct.name).to_string();
             sa.diag
                 .lock()
@@ -185,7 +185,7 @@ fn check_fct_modifier(
 
         Some(super_method.id)
     } else {
-        if fct.has_override {
+        if fct.is_override {
             let name = sa.interner.str(fct.name).to_string();
             sa.diag
                 .lock()

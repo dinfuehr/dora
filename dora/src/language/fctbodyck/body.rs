@@ -104,7 +104,7 @@ impl<'a> TypeCheck<'a> {
             .enumerate()
         {
             // is this last argument of function with variadic arguments?
-            let ty = if self.fct.variadic_arguments && ind == self.ast.params.len() - 1 {
+            let ty = if self.fct.is_variadic && ind == self.ast.params.len() - 1 {
                 // type of variable is Array[T]
                 self.sa.known.array_ty(self.sa, ty.clone())
             } else {
@@ -3339,7 +3339,7 @@ pub fn args_compatible_fct(
     self_ty: Option<SourceType>,
 ) -> bool {
     let arg_types = callee.params_without_self();
-    let variadic_arguments = callee.variadic_arguments;
+    let variadic_arguments = callee.is_variadic;
     args_compatible(
         sa,
         arg_types,

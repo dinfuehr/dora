@@ -1289,7 +1289,7 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         // Calculate number of non-variadic arguments
-        let non_variadic_arguments = if callee.variadic_arguments {
+        let non_variadic_arguments = if callee.is_variadic {
             arg_types.len() - arg_start_offset - 1
         } else {
             arg_types.len()
@@ -1307,7 +1307,7 @@ impl<'a> AstBytecodeGen<'a> {
             };
         }
 
-        if callee.variadic_arguments {
+        if callee.is_variadic {
             let array_reg = self.emit_array_with_variadic_arguments(
                 expr,
                 arg_types,

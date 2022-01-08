@@ -139,7 +139,7 @@ pub fn check(sa: &SemAnalysis) {
         }
 
         for p in &ast.params {
-            if fct.variadic_arguments {
+            if fct.is_variadic {
                 sa.diag
                     .lock()
                     .report(fct.file_id, p.pos, SemError::VariadicParameterNeedsToBeLast);
@@ -162,7 +162,7 @@ pub fn check(sa: &SemAnalysis) {
             fct.param_types.push(ty);
 
             if p.variadic {
-                fct.variadic_arguments = true;
+                fct.is_variadic = true;
             }
         }
 
@@ -242,12 +242,12 @@ fn check_static(sa: &SemAnalysis, fct: &FctDefinition) {
     }
 
     // static isn't allowed with these modifiers
-    if fct.is_abstract || fct.has_open || fct.has_override || fct.has_final {
+    if fct.is_abstract || fct.is_open || fct.is_override || fct.is_final {
         let modifier = if fct.is_abstract {
             "abstract"
-        } else if fct.has_open {
+        } else if fct.is_open {
             "open"
-        } else if fct.has_override {
+        } else if fct.is_override {
             "override"
         } else {
             "final"

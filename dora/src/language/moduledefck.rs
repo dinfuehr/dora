@@ -164,7 +164,7 @@ impl<'x> ModuleCheck<'x> {
                 let super_cls = self.sa.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 
-                if !super_cls.has_open {
+                if !super_cls.is_open {
                     let msg = SemError::UnderivableType(super_cls.name(self.sa));
                     self.sa
                         .diag

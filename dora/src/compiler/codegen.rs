@@ -33,7 +33,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         }
     }
 
-    let bc = if fct.has_optimize_immediately {
+    let bc = if fct.is_optimize_immediately {
         CompilerName::Boots
     } else {
         CompilerName::Cannon

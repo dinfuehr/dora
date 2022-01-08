@@ -44,10 +44,10 @@ pub struct FctDefinition {
     pub name: Name,
     pub namespace_id: NamespaceId,
     pub parent: FctParent,
-    pub has_open: bool,
-    pub has_override: bool,
-    pub has_final: bool,
-    pub has_optimize_immediately: bool,
+    pub is_open: bool,
+    pub is_override: bool,
+    pub is_final: bool,
+    pub is_optimize_immediately: bool,
     pub is_static: bool,
     pub is_pub: bool,
     pub is_abstract: bool,
@@ -59,7 +59,7 @@ pub struct FctDefinition {
     pub return_type: SourceType,
     pub is_constructor: bool,
     pub file_id: FileId,
-    pub variadic_arguments: bool,
+    pub is_variadic: bool,
 
     pub vtable_index: Option<u32>,
     pub initialized: bool,
@@ -92,10 +92,10 @@ impl FctDefinition {
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,
-            has_override: ast.has_override,
-            has_open: ast.has_open || ast.is_abstract,
-            has_final: ast.has_final,
-            has_optimize_immediately: ast.has_optimize_immediately,
+            is_override: ast.is_override,
+            is_open: ast.is_open || ast.is_abstract,
+            is_final: ast.is_final,
+            is_optimize_immediately: ast.is_optimize_immediately,
             is_pub: ast.is_pub,
             is_static: ast.is_static,
             is_abstract: ast.is_abstract,
@@ -106,7 +106,7 @@ impl FctDefinition {
             is_constructor: ast.is_constructor,
             vtable_index: None,
             initialized: false,
-            variadic_arguments: false,
+            is_variadic: false,
             specializations: RwLock::new(HashMap::new()),
             analysis: None,
             type_params: Vec::new(),
@@ -131,7 +131,7 @@ impl FctDefinition {
     }
 
     pub fn is_virtual(&self) -> bool {
-        (self.has_open || self.has_override) && !self.has_final
+        (self.is_open || self.is_override) && !self.is_final
     }
 
     pub fn in_class(&self) -> bool {

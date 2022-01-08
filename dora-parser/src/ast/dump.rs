@@ -242,7 +242,7 @@ impl<'a> AstDumper<'a> {
         );
 
         self.indent(|d| {
-            dump!(d, "open = {}", cls.has_open);
+            dump!(d, "open = {}", cls.is_open);
 
             if let Some(ref parent_class) = cls.parent_class {
                 d.dump_type(&parent_class.parent_ty);
@@ -366,9 +366,9 @@ impl<'a> AstDumper<'a> {
         dump!(self, "fct {} @ {} {}", self.str(fct.name), fct.pos, fct.id);
 
         self.indent(|d| {
-            dump!(d, "open = {}", fct.has_open);
-            dump!(d, "override = {}", fct.has_override);
-            dump!(d, "final = {}", fct.has_final);
+            dump!(d, "open = {}", fct.is_open);
+            dump!(d, "override = {}", fct.is_override);
+            dump!(d, "final = {}", fct.is_final);
             dump!(d, "internal = {}", fct.internal);
             dump!(d, "params");
             d.indent(|d| {
