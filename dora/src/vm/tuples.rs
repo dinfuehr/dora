@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::sync::Arc;
 
+use crate::language::ty::SourceType;
 use crate::mem;
-use crate::ty::SourceType;
 use crate::vm::{specialize_enum_id_params, EnumLayout, VM};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]

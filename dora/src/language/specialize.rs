@@ -1,4 +1,4 @@
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{ensure_tuple, SemAnalysis};
 
 pub fn specialize_type(

@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::language::error::msg::SemError;
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
-use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinitionId, FctDefinition, FctParent, Field, FieldId, FileId, NamespaceId, SemAnalysis,
 };

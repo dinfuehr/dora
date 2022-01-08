@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::gc::Address;
+use crate::language::ty::SourceType;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::ty::SourceType;
 use crate::vm::{
     specialize_enum_id_params, specialize_struct_id_params, CodeDescriptor, EnumLayout, VM,
 };

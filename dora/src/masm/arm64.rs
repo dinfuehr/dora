@@ -3,11 +3,12 @@ use dora_parser::lexer::position::Position;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
+use crate::language::ty::SourceTypeArray;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::ptr_width;
+use crate::mode::MachineMode;
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
 use crate::threads::ThreadLocalData;
-use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::{get_vm, FctDefinitionId, LazyCompilationSite, Trap};
 use crate::vtable::VTable;
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
@@ -1662,7 +1663,7 @@ impl From<FReg> for NeonRegister {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ty::MachineMode::{Int32, Ptr};
+    use crate::mode::MachineMode::{Int32, Ptr};
     use byteorder::{LittleEndian, WriteBytesExt};
 
     macro_rules! assert_emit {

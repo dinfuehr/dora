@@ -8,7 +8,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::{find_impl, SourceType, SourceTypeArray};
+use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
     extension_matches_ty, FctDefinitionId, FileId, NamespaceId, TraitDefinitionId, TypeParam,
     TypeParamDefinition, TypeParamId, VM,

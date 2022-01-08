@@ -8,13 +8,14 @@ use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
+use crate::mode::MachineMode;
 use crate::object::Obj;
 use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
     find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Code, CodeDescriptor, FctDefinition,
     FctDefinitionId, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,

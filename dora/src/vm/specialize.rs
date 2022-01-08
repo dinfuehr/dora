@@ -3,10 +3,10 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
+use crate::language::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
-use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     ensure_tuple, ClassDefinition, ClassDefinitionId, ClassInstance, ClassInstanceId,
     EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef,

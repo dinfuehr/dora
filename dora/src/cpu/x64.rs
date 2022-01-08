@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use std::sync::atomic::{compiler_fence, Ordering};
 
-use crate::ty::SourceType;
+use crate::language::ty::SourceType;
 use dora_asm::x64::Register;
 
 pub fn flush_icache(_: *const u8, _: usize) {

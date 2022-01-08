@@ -7,11 +7,12 @@ use crate::cpu::{
     REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
+use crate::language::ty::SourceType;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
+use crate::mode::MachineMode;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::ty::{MachineMode, SourceType};
 use crate::vm::FctDefinitionId;
 use crate::vm::{Code, CodeDescriptor, CodeId, GcPoint, VM};
 

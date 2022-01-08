@@ -1,7 +1,7 @@
 use crate::language::error::msg::SemError;
 use crate::language::sym::NestedSymTable;
+use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::ty::SourceType;
 use crate::vm::{FctDefinition, FctParent, FileId, GlobalDefinitionId, NamespaceId, SemAnalysis};
 use dora_parser::ast;
 

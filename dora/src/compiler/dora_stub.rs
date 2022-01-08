@@ -2,7 +2,7 @@ use crate::cpu::{CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
-use crate::ty::MachineMode;
+use crate::mode::MachineMode;
 use crate::vm::{Code, CodeDescriptor, VM};
 
 pub fn generate<'a>(vm: &'a VM) -> Address {

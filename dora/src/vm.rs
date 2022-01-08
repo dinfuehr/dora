@@ -11,6 +11,7 @@ use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeS
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
+use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray, SourceTypeArrays};
 use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
@@ -19,7 +20,6 @@ use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
     STACK_SIZE,
 };
-use crate::ty::{LambdaTypes, SourceType, SourceTypeArray, SourceTypeArrays};
 use crate::utils::GrowableVec;
 
 use dora_parser::ast;
@@ -560,17 +560,6 @@ impl VM {
     pub fn insert_code_map(&self, start: Address, end: Address, desc: CodeId) {
         let mut code_map = self.code_map.lock();
         code_map.insert(start, end, desc);
-    }
-
-    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
-        let mut fcts = self.fcts.lock();
-        let fctid = FctDefinitionId(fcts.len());
-
-        fct.id = fctid;
-
-        fcts.push(Arc::new(RwLock::new(fct)));
-
-        fctid
     }
 
     pub fn dora_stub(&self) -> Address {

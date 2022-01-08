@@ -7,7 +7,7 @@ use std::slice;
 use capstone::prelude::*;
 
 use crate::driver::cmd::AsmSyntax;
-use crate::ty::SourceTypeArray;
+use crate::language::ty::SourceTypeArray;
 use crate::vm::{Code, FctDefinition, VM};
 
 pub fn supported() -> bool {

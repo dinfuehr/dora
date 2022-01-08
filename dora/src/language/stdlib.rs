@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use crate::gc::Address;
 use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::stack;
 use crate::stdlib;
-use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     AnnotationDefinitionId, ClassDefinitionId, ClassInstance, ClassInstanceId, EnumDefinitionId,
     ExtensionId, FctDefinitionId, Intrinsic, ModuleId, NamespaceId, SemAnalysis,

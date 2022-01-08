@@ -5,7 +5,7 @@ use crate::bytecode;
 use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::handle::handle_scope;
-use crate::ty::SourceTypeArray;
+use crate::language::ty::SourceTypeArray;
 use crate::vm::{Code, FctDefinition, VM};
 
 mod codegen;

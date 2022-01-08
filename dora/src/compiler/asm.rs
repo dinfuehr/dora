@@ -7,10 +7,11 @@ use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
+use crate::mode::MachineMode;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
-use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::FctDefinitionId;
 use crate::vm::{Code, CodeDescriptor, GcPoint, GlobalDefinition, Trap, VM};
 

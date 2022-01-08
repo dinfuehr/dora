@@ -6,7 +6,7 @@ use crate::language::access::{
 };
 use crate::language::error::msg::SemError;
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
-use crate::ty::{implements_trait, SourceType, SourceTypeArray};
+use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
     ensure_tuple, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinition, FileId,
     ImplData, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamId,

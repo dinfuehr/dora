@@ -1,4 +1,4 @@
-use crate::ty::SourceType;
+use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{FileId, NamespaceId, TypeParam, VM};
 use dora_parser::ast::{AnnotationParam, AnnotationUsages, Modifier};

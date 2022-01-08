@@ -16,12 +16,13 @@ use crate::cpu::{
     REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
+use crate::mode::MachineMode;
 use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
-use crate::ty::{MachineMode, SourceType, SourceTypeArray};
 use crate::vm::{
     find_trait_impl, specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,

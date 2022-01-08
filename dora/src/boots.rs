@@ -9,9 +9,9 @@ use crate::compiler::codegen::should_emit_bytecode;
 use crate::gc::Address;
 use crate::handle::handle;
 use crate::language::sym::NestedSymTable;
+use crate::language::ty::SourceTypeArray;
 use crate::object::{Obj, Ref, UInt8Array};
 use crate::threads::current_thread;
-use crate::ty::SourceTypeArray;
 use crate::vm::{Code, CodeDescriptor, FctDefinition, VM};
 
 mod serializer;

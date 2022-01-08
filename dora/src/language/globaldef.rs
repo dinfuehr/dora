@@ -8,7 +8,7 @@ use crate::gc::Address;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sym::Sym;
-use crate::ty::SourceType;
+use crate::language::ty::SourceType;
 use crate::vm::{
     self, AnnotationDefinitionId, ClassDefinitionId, ConstDefinition, ConstDefinitionId,
     ConstValue, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId, FctDefinition,

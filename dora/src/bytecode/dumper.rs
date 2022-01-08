@@ -3,7 +3,7 @@ use std::io;
 use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::ty::SourceType;
+use crate::language::ty::SourceType;
 use crate::vm::{FctDefinition, GlobalDefinitionId, TupleId, VM};
 
 pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {

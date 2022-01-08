@@ -7,10 +7,11 @@ use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
+use crate::language::ty::SourceTypeArray;
 use crate::masm::Label;
 use crate::mem;
+use crate::mode::MachineMode;
 use crate::os;
-use crate::ty::{MachineMode, SourceTypeArray};
 use crate::vm::VM;
 use crate::vm::{FctDefinition, FctDefinitionId};
 

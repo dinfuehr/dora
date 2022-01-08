@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::language::error::msg::SemError;
 use crate::language::extensiondefck::check_for_unconstrained_type_params;
 use crate::language::sym::NestedSymTable;
+use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::ty::SourceType;
 use crate::vm::{
     FctDefinition, FctDefinitionId, FctParent, FileId, ImplId, NamespaceId, SemAnalysis,
 };

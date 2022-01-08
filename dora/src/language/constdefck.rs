@@ -1,6 +1,6 @@
 use crate::language::sym::NestedSymTable;
+use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::ty::SourceType;
 use crate::vm::{ConstDefinitionId, FileId, NamespaceId, SemAnalysis};
 
 use dora_parser::ast;

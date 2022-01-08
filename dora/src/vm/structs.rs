@@ -6,7 +6,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::SourceType;
+use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
     extension_matches, impl_matches, namespace_path, Candidate, ExtensionId, FileId, ImplId,

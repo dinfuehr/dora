@@ -11,9 +11,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
 use crate::handle::{handle, Handle};
+use crate::language::ty::SourceType;
 use crate::mem;
 use crate::size::InstanceSize;
-use crate::ty::SourceType;
 use crate::vm::{ClassInstance, ClassInstanceId, FieldId, VM};
 use crate::vtable::VTable;
 

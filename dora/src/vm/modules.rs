@@ -1,8 +1,8 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
+use crate::language::ty::SourceType;
 use crate::size::InstanceSize;
-use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
     namespace_path, replace_type_param, Candidate, FctDefinitionId, Field, FieldDef, FileId,

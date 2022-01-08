@@ -1,6 +1,6 @@
 use parking_lot::Mutex;
 
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     specialize_class_id, specialize_class_id_params, AnnotationDefinitionId, ClassDefinitionId,
     ClassInstanceId, EnumDefinitionId, FctDefinitionId, StructDefinitionId, TraitDefinitionId, VM,

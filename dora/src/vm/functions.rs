@@ -9,7 +9,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
     namespace_path, AnalysisData, ClassDefinitionId, CodeId, ExtensionId, FileId, ImplId, ModuleId,

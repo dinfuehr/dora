@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
 use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::ty::SourceType;
 use crate::vm::{
     FileId, NamespaceId, SemAnalysis, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId, TypeParamId,

@@ -8,8 +8,8 @@ use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
 };
 use crate::language::specialize::specialize_type;
+use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::language::{expr_always_returns, expr_block_always_returns};
-use crate::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
     AnalysisData, CallType, ConstDefinitionId, EnumDefinitionId, FctDefinition, FctDefinitionId,
     GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis, StructDefinitionId, TupleId, VarId,

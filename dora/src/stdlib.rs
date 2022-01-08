@@ -10,13 +10,13 @@ use std::time::Duration;
 use crate::boots;
 use crate::gc::{Address, GcReason};
 use crate::handle::{handle_scope, Handle};
+use crate::language::ty::SourceTypeArray;
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ManagedThread,
     ThreadState, STACK_SIZE,
 };
-use crate::ty::SourceTypeArray;
 use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, Trap};
 
 pub mod process;

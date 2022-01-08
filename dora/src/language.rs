@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
 use crate::language::sym::{NestedSymTable, Sym};
-use crate::ty::SourceType;
+use crate::language::ty::SourceType;
 use crate::vm::{FileId, SemAnalysis, TypeParam, TypeParamId};
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -40,6 +40,7 @@ pub(crate) mod sym;
 #[cfg(test)]
 mod test;
 mod traitdefck;
+pub(crate) mod ty;
 mod typeparamck;
 
 macro_rules! return_on_error {

@@ -2,8 +2,8 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::gc::Address;
+use crate::language::ty::SourceType;
 use crate::mem;
-use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{namespace_path, FctDefinitionId, FileId, NamespaceId, VM};
 

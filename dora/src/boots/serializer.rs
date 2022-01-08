@@ -4,8 +4,8 @@ use crate::bytecode::{
     BytecodeFunction, ConstPoolEntry, ConstPoolOpcode, InstructionSet, SourceTypeOpcode,
 };
 use crate::bytecode::{BytecodeType, BytecodeTypeKind};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::object::{byte_array_from_buffer, Obj, Ref};
-use crate::ty::{SourceType, SourceTypeArray};
 use crate::vm::VM;
 
 pub fn allocate_encoded_compilation_info(

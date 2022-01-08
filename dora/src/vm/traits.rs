@@ -7,7 +7,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
+use crate::language::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
     namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId, TypeParam,
     TypeParamDefinition, TypeParamId, VM,

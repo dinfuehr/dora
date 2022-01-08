@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::language::generator::generate_fct;
 use crate::language::test;
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ensure_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,

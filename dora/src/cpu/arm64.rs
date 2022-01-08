@@ -141,7 +141,7 @@ impl From<CondCode> for Cond {
 }
 
 use crate::cpu::{FReg, Reg};
-use crate::ty::SourceType;
+use crate::language::ty::SourceType;
 use dora_asm::arm64 as asm;
 use dora_asm::arm64::Register;
 

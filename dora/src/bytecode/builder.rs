@@ -7,7 +7,7 @@ use crate::bytecode::{
     Register,
 };
 use crate::driver::cmd::Args;
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId, FieldId,
     GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId,

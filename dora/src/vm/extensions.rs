@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::ty::SourceType;
+use crate::language::ty::SourceType;
 use crate::vm::{FctDefinitionId, FileId, NamespaceId, TypeParam, TypeParamId};
 
 pub use self::matching::{extension_matches, extension_matches_ty};
@@ -56,7 +56,7 @@ impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {
 }
 
 mod matching {
-    use crate::ty::{implements_trait, SourceType, SourceTypeArray};
+    use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
     use crate::vm::{ExtensionId, TypeParam, TypeParamDefinition, VM};
 
     pub fn extension_matches(

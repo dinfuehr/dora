@@ -6,13 +6,15 @@ use std::sync::Arc;
 #[cfg(test)]
 use crate::language::sym::NestedSymTable;
 use crate::language::sym::SymTable;
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 #[cfg(test)]
 use crate::vm::{
-    find_methods_in_class, find_methods_in_struct, ConstDefinitionId, EnumDefinitionId,
-    FctDefinitionId, FieldId, GlobalDefinitionId, StructDefinitionId, TraitDefinitionId,
+    find_methods_in_class, find_methods_in_struct, ConstDefinitionId, EnumDefinitionId, FieldId,
+    GlobalDefinitionId, StructDefinitionId, TraitDefinitionId,
 };
-use crate::vm::{ClassDefinitionId, File, FileId, NamespaceId, SemAnalysis};
+use crate::vm::{
+    ClassDefinitionId, FctDefinition, FctDefinitionId, File, FileId, NamespaceId, SemAnalysis,
+};
 
 use dora_parser::ast;
 
@@ -228,5 +230,16 @@ impl SemAnalysis {
 
     pub fn file(&self, idx: FileId) -> Arc<ast::File> {
         self.files.read().get(idx.to_usize()).unwrap().ast.clone()
+    }
+
+    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
+        let mut fcts = self.fcts.lock();
+        let fctid = FctDefinitionId(fcts.len());
+
+        fct.id = fctid;
+
+        fcts.push(Arc::new(RwLock::new(fct)));
+
+        fctid
     }
 }
