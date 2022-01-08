@@ -197,9 +197,7 @@ impl<'x> ModuleCheck<'x> {
         let module = self.sa.modules.idx(self.module_id);
         let mut module = module.write();
 
-        let list = SourceTypeArray::empty();
-        let list_id = self.sa.source_type_arrays.lock().insert(list);
-        module.parent_class = Some(SourceType::Class(object_cls, list_id));
+        module.parent_class = Some(SourceType::Class(object_cls, SourceTypeArray::empty()));
     }
 }
 

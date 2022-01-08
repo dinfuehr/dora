@@ -4075,12 +4075,8 @@ fn gen_trait_object() {
     ",
         |vm, code| {
             let trait_id = vm.trait_by_name("Foo");
-            let list_id = vm
-                .source_type_arrays
-                .lock()
-                .insert(SourceTypeArray::empty());
             let cls_id = vm.cls_by_name("Bar");
-            let object_ty = SourceType::Class(cls_id, list_id);
+            let object_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
             let expected = vec![
                 NewTraitObject(r(1), trait_id, SourceTypeArray::empty(), object_ty, r(0)),
                 Ret(r(1)),

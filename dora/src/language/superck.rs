@@ -164,7 +164,7 @@ fn check_fct_modifier(
                 .report(fct.file_id, fct.pos(), SemError::MethodNotOverridable(name));
         }
 
-        let type_params = super_type.type_params(sa);
+        let type_params = super_type.type_params();
 
         let super_method_params: Vec<_> = super_method
             .params_without_self()

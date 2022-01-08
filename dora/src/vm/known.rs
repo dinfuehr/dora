@@ -136,10 +136,8 @@ pub struct KnownFunctions {
 }
 
 impl KnownElements {
-    pub fn array_ty(&self, vm: &VM, element: SourceType) -> SourceType {
-        let list = SourceTypeArray::single(element);
-        let list_id = vm.source_type_arrays.lock().insert(list);
-        SourceType::Class(self.classes.array(), list_id)
+    pub fn array_ty(&self, element: SourceType) -> SourceType {
+        SourceType::Class(self.classes.array(), SourceTypeArray::single(element))
     }
 
     pub fn byte_array(&self, vm: &VM) -> ClassInstanceId {

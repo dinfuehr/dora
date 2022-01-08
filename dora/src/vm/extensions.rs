@@ -364,8 +364,8 @@ mod matching {
         ext_type_param_defs2: Option<&TypeParamDefinition>,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
-        let check_tps = check_ty.type_params(vm);
-        let ext_tps = ext_ty.type_params(vm);
+        let check_tps = check_ty.type_params();
+        let ext_tps = ext_ty.type_params();
 
         assert_eq!(check_tps.len(), ext_tps.len());
 

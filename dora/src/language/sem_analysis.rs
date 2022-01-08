@@ -101,7 +101,7 @@ impl SemAnalysis {
 
         let candidates = find_methods_in_struct(
             self,
-            xstruct.ty(self),
+            xstruct.ty(),
             &xstruct.type_params,
             None,
             function_name,
@@ -189,8 +189,7 @@ impl SemAnalysis {
         cls_id: ClassDefinitionId,
         type_list: SourceTypeArray,
     ) -> SourceType {
-        let list_id = self.source_type_arrays.lock().insert(type_list);
-        SourceType::Class(cls_id, list_id)
+        SourceType::Class(cls_id, type_list)
     }
 
     pub fn add_file(&self, path: Option<PathBuf>, namespace_id: NamespaceId, ast: Arc<ast::File>) {
@@ -221,11 +220,7 @@ impl SemAnalysis {
     }
 
     pub fn cls(&self, cls_id: ClassDefinitionId) -> SourceType {
-        let list_id = self
-            .source_type_arrays
-            .lock()
-            .insert(SourceTypeArray::empty());
-        SourceType::Class(cls_id, list_id)
+        SourceType::Class(cls_id, SourceTypeArray::empty())
     }
 
     pub fn file(&self, idx: FileId) -> Arc<ast::File> {

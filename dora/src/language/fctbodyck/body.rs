@@ -106,7 +106,7 @@ impl<'a> TypeCheck<'a> {
             // is this last argument of function with variadic arguments?
             let ty = if self.fct.is_variadic && ind == self.ast.params.len() - 1 {
                 // type of variable is Array[T]
-                self.sa.known.array_ty(self.sa, ty.clone())
+                self.sa.known.array_ty(ty.clone())
             } else {
                 ty.clone()
             };
@@ -341,7 +341,7 @@ impl<'a> TypeCheck<'a> {
 
         if let Some(cls_id) = object_type.cls_id() {
             if cls_id == self.sa.known.classes.array() {
-                let type_list = object_type.type_params(self.sa);
+                let type_list = object_type.type_params();
                 let var_ty = type_list[0].clone();
 
                 self.symtable.push_level();
@@ -588,7 +588,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let expr_enum_id = expr_type.enum_id();
-        let expr_type_params = expr_type.type_params(self.sa);
+        let expr_type_params = expr_type.type_params();
 
         let enum_variants = if let Some(expr_enum_id) = expr_enum_id {
             let xenum = self.sa.enums[expr_enum_id].read();
@@ -1021,7 +1021,7 @@ impl<'a> TypeCheck<'a> {
                 let cls = cls.read();
                 let field = &cls.fields[field_id];
 
-                let class_type_params = cls_ty.type_params(self.sa);
+                let class_type_params = cls_ty.type_params();
 
                 let fty = replace_type_param(self.sa, field.ty.clone(), &class_type_params, None);
 
@@ -1477,7 +1477,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let type_params = if expected_ty.is_enum_id(enum_id) && type_params.is_empty() {
-            expected_ty.type_params(self.sa)
+            expected_ty.type_params()
         } else {
             type_params
         };
@@ -1517,12 +1517,7 @@ impl<'a> TypeCheck<'a> {
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let list_id = self
-            .sa
-            .source_type_arrays
-            .lock()
-            .insert(type_params.clone());
-        let ty = SourceType::Enum(enum_id, list_id);
+        let ty = SourceType::Enum(enum_id, type_params);
 
         self.analysis
             .map_calls
@@ -1912,7 +1907,7 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &xstruct.fields[field_id.to_usize()];
-                let struct_type_params = object_type.type_params(self.sa);
+                let struct_type_params = object_type.type_params();
                 let field_type =
                     replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
 
@@ -1959,12 +1954,7 @@ impl<'a> TypeCheck<'a> {
         let xstruct = self.sa.structs.idx(struct_id);
         let xstruct = xstruct.read();
 
-        let list_id = self
-            .sa
-            .source_type_arrays
-            .lock()
-            .insert(type_params.clone());
-        let ty = SourceType::Struct(struct_id, list_id);
+        let ty = SourceType::Struct(struct_id, type_params.clone());
         let type_params_ok = typeparamck::check_struct(
             self.sa,
             self.fct,
@@ -2038,7 +2028,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let type_params = if expected_ty.is_cls_id(cls_id) && type_params.is_empty() {
-            expected_ty.type_params(self.sa)
+            expected_ty.type_params()
         } else {
             type_params
         };
@@ -2237,14 +2227,9 @@ impl<'a> TypeCheck<'a> {
                     &container_type_params,
                     ErrorReporting::Yes(self.file_id, e.pos),
                 ) {
-                    let list_id = self
-                        .sa
-                        .source_type_arrays
-                        .lock()
-                        .insert(container_type_params);
                     self.check_expr_call_static_method(
                         e,
-                        SourceType::Class(cls_id, list_id),
+                        SourceType::Class(cls_id, container_type_params),
                         method_name,
                         type_params,
                         &arg_types,
@@ -2269,12 +2254,7 @@ impl<'a> TypeCheck<'a> {
                         assert!(container_type_params.is_empty());
                         primitive_ty.clone()
                     } else {
-                        let list_id = self
-                            .sa
-                            .source_type_arrays
-                            .lock()
-                            .insert(container_type_params);
-                        SourceType::Struct(struct_id, list_id)
+                        SourceType::Struct(struct_id, container_type_params)
                     };
 
                     self.check_expr_call_static_method(
@@ -2323,12 +2303,7 @@ impl<'a> TypeCheck<'a> {
                         &container_type_params,
                         ErrorReporting::Yes(self.file_id, e.pos),
                     ) {
-                        let list_id = self
-                            .sa
-                            .source_type_arrays
-                            .lock()
-                            .insert(container_type_params);
-                        let object_ty = SourceType::Enum(enum_id, list_id);
+                        let object_ty = SourceType::Enum(enum_id, container_type_params);
 
                         self.check_expr_call_static_method(
                             e,
@@ -2408,7 +2383,7 @@ impl<'a> TypeCheck<'a> {
             let ctor = self.sa.fcts.idx(ctor_id);
             let ctor = ctor.read();
 
-            let parent_class_type_params = parent_class.type_params(self.sa);
+            let parent_class_type_params = parent_class.type_params();
 
             if args_compatible_fct(self.sa, &*ctor, &arg_types, &parent_class_type_params, None) {
                 self.analysis.map_tys.insert(e.id, parent_class);
@@ -2745,12 +2720,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         if type_params_ok {
-            let list_id = self
-                .sa
-                .source_type_arrays
-                .lock()
-                .insert(type_params.clone());
-            let ty = SourceType::Enum(enum_id, list_id);
+            let ty = SourceType::Enum(enum_id, type_params);
 
             self.analysis.set_ty(expr_id, ty.clone());
             ty
@@ -2867,7 +2837,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let type_params = if expected_ty.is_enum_id(enum_id) && type_params.is_empty() {
-            expected_ty.type_params(self.sa)
+            expected_ty.type_params()
         } else {
             type_params
         };
@@ -2902,12 +2872,7 @@ impl<'a> TypeCheck<'a> {
         );
 
         if type_params_ok {
-            let list_id = self
-                .sa
-                .source_type_arrays
-                .lock()
-                .insert(type_params.clone());
-            let ty = SourceType::Enum(enum_id, list_id);
+            let ty = SourceType::Enum(enum_id, type_params);
 
             self.analysis.set_ty(expr_id, ty.clone());
             ty
@@ -2948,7 +2913,7 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &xstruct.fields[field_id.to_usize()];
-                let struct_type_params = object_type.type_params(self.sa);
+                let struct_type_params = object_type.type_params();
                 let fty = replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
 
                 if !struct_field_accessible_from(self.sa, struct_id, field_id, self.namespace_id) {
@@ -2974,7 +2939,7 @@ impl<'a> TypeCheck<'a> {
                 let cls = cls.read();
 
                 let field = &cls.fields[field_id];
-                let class_type_params = cls_ty.type_params(self.sa);
+                let class_type_params = cls_ty.type_params();
                 let fty = replace_type_param(self.sa, field.ty.clone(), &class_type_params, None);
 
                 if !class_field_accessible_from(self.sa, cls_id, field_id, self.namespace_id) {
@@ -3426,27 +3391,24 @@ fn arg_allows(
 
         SourceType::TypeParam(_) => def == arg,
 
-        SourceType::Class(cls_id, list_id) => {
+        SourceType::Class(cls_id, ref params) => {
             if def == arg {
                 return true;
             }
 
             let other_cls_id;
-            let other_list_id;
+            let other_params;
 
             match arg {
-                SourceType::Class(cls_id, list_id) => {
+                SourceType::Class(cls_id, ref params) => {
                     other_cls_id = cls_id;
-                    other_list_id = list_id;
+                    other_params = params.clone();
                 }
 
                 _ => {
                     return false;
                 }
             };
-
-            let params = sa.source_type_arrays.lock().get(list_id);
-            let other_params = sa.source_type_arrays.lock().get(other_list_id);
 
             if params.len() == 0 && other_params.len() == 0 {
                 return arg.subclass_from(sa, def);

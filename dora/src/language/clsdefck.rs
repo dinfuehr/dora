@@ -51,12 +51,7 @@ impl<'x> ClsDefCheck<'x> {
         } else {
             let cls = self.sa.classes.idx(self.cls_id);
             let mut cls = cls.write();
-            let list_id = self
-                .sa
-                .source_type_arrays
-                .lock()
-                .insert(SourceTypeArray::empty());
-            cls.ty = Some(SourceType::Class(self.cls_id, list_id));
+            cls.ty = Some(SourceType::Class(self.cls_id, SourceTypeArray::empty()));
         }
 
         for field in &self.ast.fields {
@@ -179,9 +174,7 @@ impl<'x> ClsDefCheck<'x> {
         );
 
         let params = SourceTypeArray::with(type_params);
-        let list_id = self.sa.source_type_arrays.lock().insert(params);
-
-        cls.ty = Some(SourceType::Class(self.cls_id, list_id));
+        cls.ty = Some(SourceType::Class(self.cls_id, params));
     }
 
     fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
@@ -234,9 +227,8 @@ impl<'x> ClsDefCheck<'x> {
             let cls = self.sa.classes.idx(self.cls_id);
             let mut cls = cls.write();
 
-            let list = SourceTypeArray::empty();
-            let list_id = self.sa.source_type_arrays.lock().insert(list);
-            cls.parent_class = Some(SourceType::Class(object_cls, list_id));
+            let type_params = SourceTypeArray::empty();
+            cls.parent_class = Some(SourceType::Class(object_cls, type_params));
         }
     }
 

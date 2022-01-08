@@ -82,7 +82,7 @@ impl StructDefinition {
         &self.type_params[id.to_usize()]
     }
 
-    pub fn ty(&self, vm: &VM) -> SourceType {
+    pub fn ty(&self) -> SourceType {
         if let Some(ref primitive_ty) = self.primitive_ty {
             primitive_ty.clone()
         } else {
@@ -90,11 +90,7 @@ impl StructDefinition {
                 .into_iter()
                 .map(|id| SourceType::TypeParam(TypeParamId(id)))
                 .collect();
-            let list_id = vm
-                .source_type_arrays
-                .lock()
-                .insert(SourceTypeArray::with(type_params));
-            SourceType::Struct(self.id, list_id)
+            SourceType::Struct(self.id, SourceTypeArray::with(type_params))
         }
     }
 }

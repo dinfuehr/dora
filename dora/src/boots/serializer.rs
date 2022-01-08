@@ -154,26 +154,22 @@ fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
         SourceType::Float64 => {
             buffer.emit_u8(SourceTypeOpcode::Float64.to_int());
         }
-        SourceType::Class(cls_id, source_type_array_id) => {
-            let source_type_array = vm.source_type_arrays.lock().get(source_type_array_id);
+        SourceType::Class(cls_id, source_type_array) => {
             buffer.emit_u8(SourceTypeOpcode::Class.to_int());
             buffer.emit_u32(cls_id.to_usize() as u32);
             encode_source_type_array(vm, &source_type_array, buffer);
         }
-        SourceType::Struct(struct_id, source_type_array_id) => {
-            let source_type_array = vm.source_type_arrays.lock().get(source_type_array_id);
+        SourceType::Struct(struct_id, source_type_array) => {
             buffer.emit_u8(SourceTypeOpcode::Struct.to_int());
             buffer.emit_u32(struct_id.to_usize() as u32);
             encode_source_type_array(vm, &source_type_array, buffer);
         }
-        SourceType::Trait(trait_id, source_type_array_id) => {
-            let source_type_array = vm.source_type_arrays.lock().get(source_type_array_id);
+        SourceType::Trait(trait_id, source_type_array) => {
             buffer.emit_u8(SourceTypeOpcode::Trait.to_int());
             buffer.emit_u32(trait_id.to_usize() as u32);
             encode_source_type_array(vm, &source_type_array, buffer);
         }
-        SourceType::Enum(enum_id, source_type_array_id) => {
-            let source_type_array = vm.source_type_arrays.lock().get(source_type_array_id);
+        SourceType::Enum(enum_id, source_type_array) => {
             buffer.emit_u8(SourceTypeOpcode::Enum.to_int());
             buffer.emit_u32(enum_id.to_usize() as u32);
             encode_source_type_array(vm, &source_type_array, buffer);

@@ -3,7 +3,7 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::language::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
@@ -292,8 +292,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Sourc
         for &ref_offset in tuple.references() {
             ref_fields.push(offset + ref_offset);
         }
-    } else if let SourceType::Enum(enum_id, type_params_id) = ty.clone() {
-        let type_params = vm.source_type_arrays.lock().get(type_params_id);
+    } else if let SourceType::Enum(enum_id, type_params) = ty.clone() {
         let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
         let edef = vm.enum_defs.idx(edef_id);
 
@@ -303,8 +302,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Sourc
                 ref_fields.push(offset);
             }
         }
-    } else if let SourceType::Struct(struct_id, type_params_id) = ty.clone() {
-        let type_params = vm.source_type_arrays.lock().get(type_params_id);
+    } else if let SourceType::Struct(struct_id, type_params) = ty.clone() {
         let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
         let sdef = vm.struct_defs.idx(sdef_id);
 
@@ -334,10 +332,7 @@ pub fn specialize_class_id_params(
 
 pub fn specialize_class_ty(vm: &VM, ty: SourceType) -> ClassInstanceId {
     match ty {
-        SourceType::Class(cls_id, list_id) => {
-            let params = vm.source_type_arrays.lock().get(list_id);
-            specialize_class_id_params(vm, cls_id, &params)
-        }
+        SourceType::Class(cls_id, params) => specialize_class_id_params(vm, cls_id, &params),
 
         _ => unreachable!(),
     }
@@ -506,8 +501,7 @@ fn create_specialized_class_array(
                 }
             }
 
-            SourceType::Struct(struct_id, type_params_id) => {
-                let type_params = vm.source_type_arrays.lock().get(type_params_id);
+            SourceType::Struct(struct_id, type_params) => {
                 let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
                 let sdef = vm.struct_defs.idx(sdef_id);
 
@@ -522,8 +516,7 @@ fn create_specialized_class_array(
                 }
             }
 
-            SourceType::Enum(enum_id, type_params_id) => {
-                let type_params = vm.source_type_arrays.lock().get(type_params_id);
+            SourceType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
                 let edef = vm.enum_defs.idx(edef_id);
 
@@ -661,19 +654,18 @@ pub fn specialize_trait_object(
     let xtrait = vm.traits[trait_id].read();
 
     let combined_type_params = trait_type_params.connect_single(object_type.clone());
-    let combined_type_params_id = vm.source_type_arrays.lock().insert(combined_type_params);
 
-    if let Some(&id) = xtrait.vtables.read().get(&combined_type_params_id) {
+    if let Some(&id) = xtrait.vtables.read().get(&combined_type_params) {
         return id;
     }
 
-    create_specialized_class_for_trait_object(vm, &*xtrait, combined_type_params_id, object_type)
+    create_specialized_class_for_trait_object(vm, &*xtrait, combined_type_params, object_type)
 }
 
 fn create_specialized_class_for_trait_object(
     vm: &VM,
     xtrait: &TraitDefinition,
-    combined_type_params_id: SourceTypeArrayId,
+    combined_type_params_id: SourceTypeArray,
     object_type: SourceType,
 ) -> ClassInstanceId {
     let mut csize;
@@ -768,9 +760,7 @@ pub fn replace_type_param(
     match ty {
         SourceType::TypeParam(tpid) => type_params[tpid.to_usize()].clone(),
 
-        SourceType::Class(cls_id, list_id) => {
-            let params = vm.source_type_arrays.lock().get(list_id);
-
+        SourceType::Class(cls_id, params) => {
             let params = SourceTypeArray::with(
                 params
                     .iter()
@@ -778,13 +768,10 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let list_id = vm.source_type_arrays.lock().insert(params);
-            SourceType::Class(cls_id, list_id)
+            SourceType::Class(cls_id, params)
         }
 
-        SourceType::Trait(trait_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
-
+        SourceType::Trait(trait_id, old_type_params) => {
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
@@ -792,13 +779,10 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
-            SourceType::Trait(trait_id, new_type_params_id)
+            SourceType::Trait(trait_id, new_type_params)
         }
 
-        SourceType::Struct(struct_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
-
+        SourceType::Struct(struct_id, old_type_params) => {
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
@@ -806,13 +790,10 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
-            SourceType::Struct(struct_id, new_type_params_id)
+            SourceType::Struct(struct_id, new_type_params)
         }
 
-        SourceType::Enum(enum_id, list_id) => {
-            let old_type_params = vm.source_type_arrays.lock().get(list_id);
-
+        SourceType::Enum(enum_id, old_type_params) => {
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
@@ -820,8 +801,7 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = vm.source_type_arrays.lock().insert(new_type_params);
-            SourceType::Enum(enum_id, new_type_params_id)
+            SourceType::Enum(enum_id, new_type_params)
         }
 
         SourceType::This => self_ty.expect("no type for Self given"),

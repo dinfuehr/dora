@@ -254,7 +254,7 @@ impl<'x> ExtensionCheck<'x> {
     fn check_extension(&self, f: &ast::Function, extension_id: ExtensionId) -> bool {
         let extension = self.sa.extensions[extension_id].read();
 
-        if extension.ty.type_params(self.sa) != self.extension_ty.type_params(self.sa) {
+        if extension.ty.type_params() != self.extension_ty.type_params() {
             return true;
         }
 
@@ -315,11 +315,9 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
         | SourceType::Module(_)
         | SourceType::Ptr
         | SourceType::Trait(_, _) => {}
-        SourceType::Class(_, list_id)
-        | SourceType::Enum(_, list_id)
-        | SourceType::Struct(_, list_id) => {
-            let params = sa.source_type_arrays.lock().get(list_id);
-
+        SourceType::Class(_, params)
+        | SourceType::Enum(_, params)
+        | SourceType::Struct(_, params) => {
             for param in params.iter() {
                 discover_type_params(sa, param, used_type_params);
             }

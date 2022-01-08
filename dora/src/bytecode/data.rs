@@ -172,22 +172,18 @@ impl BytecodeType {
             SourceType::Float64 => BytecodeType::Float64,
             SourceType::Class(_, _) => BytecodeType::Ptr,
             SourceType::Trait(_, _) => BytecodeType::Ptr,
-            SourceType::Enum(id, list_id) => {
+            SourceType::Enum(id, params) => {
                 let xenum = vm.enums[id].read();
 
                 for variant in &xenum.variants {
                     if !variant.types.is_empty() {
-                        let type_params = vm.source_type_arrays.lock().get(list_id);
-                        return BytecodeType::Enum(id, type_params);
+                        return BytecodeType::Enum(id, params);
                     }
                 }
 
                 BytecodeType::Int32
             }
-            SourceType::Struct(id, list_id) => {
-                let type_params = vm.source_type_arrays.lock().get(list_id);
-                BytecodeType::Struct(id, type_params)
-            }
+            SourceType::Struct(id, params) => BytecodeType::Struct(id, params),
             SourceType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
             SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),

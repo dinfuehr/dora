@@ -296,7 +296,7 @@ pub fn find_field_in_class(
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
-        let type_list = class.type_params(vm);
+        let type_list = class.type_params();
 
         for field in &cls.fields {
             if field.name == name {
@@ -309,7 +309,7 @@ pub fn find_field_in_class(
         }
 
         if let Some(ref parent_class) = cls.parent_class {
-            let type_list = parent_class.type_params(vm);
+            let type_list = parent_class.type_params();
             class = replace_type_param(vm, parent_class.clone(), &type_list, None);
         } else {
             return None;
@@ -337,7 +337,7 @@ pub fn find_method_in_class(
         }
 
         if let Some(ref parent_class) = cls.parent_class {
-            let type_list = parent_class.type_params(vm);
+            let type_list = parent_class.type_params();
             class = replace_type_param(vm, parent_class.clone(), &type_list, None);
         } else {
             return None;
@@ -381,7 +381,7 @@ pub fn find_methods_in_class(
                 if !ignores.contains(&method.id) {
                     return vec![Candidate {
                         object_type: class_type.clone(),
-                        container_type_params: class_type.type_params(vm),
+                        container_type_params: class_type.type_params(),
                         fct_id: method.id,
                     }];
                 }
@@ -389,7 +389,7 @@ pub fn find_methods_in_class(
         }
 
         if let Some(ref parent_class) = cls.parent_class {
-            let type_list = class_type.type_params(vm);
+            let type_list = class_type.type_params();
             class_type = replace_type_param(vm, parent_class.clone(), &type_list, None);
         } else {
             break;
@@ -463,7 +463,7 @@ pub fn find_methods_in_class(
         }
 
         if let Some(parent_class) = cls.parent_class.clone() {
-            let type_list = class_type.type_params(vm);
+            let type_list = class_type.type_params();
             class_type = replace_type_param(vm, parent_class, &type_list, None);
         } else {
             break;

@@ -95,7 +95,7 @@ pub fn find_methods_in_module(vm: &VM, object_type: SourceType, name: Name) -> V
                 if !ignores.contains(&method.id) {
                     return vec![Candidate {
                         object_type: module_type.clone(),
-                        container_type_params: module_type.type_params(vm),
+                        container_type_params: module_type.type_params(),
                         fct_id: method.id,
                     }];
                 }
@@ -103,7 +103,7 @@ pub fn find_methods_in_module(vm: &VM, object_type: SourceType, name: Name) -> V
         }
 
         if let Some(parent_class) = module.parent_class.clone() {
-            let type_list = module_type.type_params(vm);
+            let type_list = module_type.type_params();
             module_type = replace_type_param(vm, parent_class, &type_list, None);
         } else {
             break;

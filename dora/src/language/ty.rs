@@ -40,16 +40,16 @@ pub enum SourceType {
     This,
 
     // some class
-    Class(ClassDefinitionId, SourceTypeArrayId),
+    Class(ClassDefinitionId, SourceTypeArray),
 
     // some struct
-    Struct(StructDefinitionId, SourceTypeArrayId),
+    Struct(StructDefinitionId, SourceTypeArray),
 
     // some tuple
     Tuple(TupleId),
 
     // some trait object
-    Trait(TraitDefinitionId, SourceTypeArrayId),
+    Trait(TraitDefinitionId, SourceTypeArray),
 
     // some module
     Module(ModuleId),
@@ -61,68 +61,68 @@ pub enum SourceType {
     Lambda(LambdaId),
 
     // some enum
-    Enum(EnumDefinitionId, SourceTypeArrayId),
+    Enum(EnumDefinitionId, SourceTypeArray),
 }
 
 impl SourceType {
     pub fn is_error(&self) -> bool {
-        match *self {
+        match self {
             SourceType::Error => true,
             _ => false,
         }
     }
 
     pub fn is_enum(&self) -> bool {
-        match *self {
+        match self {
             SourceType::Enum(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_enum_id(&self, enum_id: EnumDefinitionId) -> bool {
-        match *self {
-            SourceType::Enum(id, _) => id == enum_id,
+        match self {
+            SourceType::Enum(id, _) => *id == enum_id,
             _ => false,
         }
     }
 
     pub fn is_unit(&self) -> bool {
-        match *self {
+        match self {
             SourceType::Unit => true,
             _ => false,
         }
     }
 
     pub fn is_self(&self) -> bool {
-        match *self {
+        match self {
             SourceType::This => true,
             _ => false,
         }
     }
 
     pub fn is_cls(&self) -> bool {
-        match *self {
+        match self {
             SourceType::Class(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_cls_id(&self, cls_id: ClassDefinitionId) -> bool {
-        match *self {
-            SourceType::Class(id, _) => id == cls_id,
+        match self {
+            SourceType::Class(id, _) => *id == cls_id,
             _ => false,
         }
     }
 
     pub fn is_trait(&self) -> bool {
-        match *self {
+        match self {
             SourceType::Trait(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_module(&self) -> bool {
-        match *self {
+        match self {
             SourceType::Module(_) => true,
             _ => false,
         }
@@ -206,14 +206,14 @@ impl SourceType {
     }
 
     pub fn cls_id(&self) -> Option<ClassDefinitionId> {
-        match *self {
-            SourceType::Class(cls_id, _) => Some(cls_id),
+        match self {
+            SourceType::Class(cls_id, _) => Some(*cls_id),
             _ => None,
         }
     }
 
     pub fn primitive_struct_id(&self, vm: &VM) -> Option<StructDefinitionId> {
-        match *self {
+        match self {
             SourceType::Bool => Some(vm.known.structs.bool),
             SourceType::UInt8 => Some(vm.known.structs.uint8),
             SourceType::Char => Some(vm.known.structs.char),
@@ -225,76 +225,71 @@ impl SourceType {
         }
     }
 
-    pub fn from_cls(cls_id: ClassDefinitionId, vm: &VM) -> SourceType {
-        let list_id = vm
-            .source_type_arrays
-            .lock()
-            .insert(SourceTypeArray::empty());
-        SourceType::Class(cls_id, list_id)
+    pub fn from_cls(cls_id: ClassDefinitionId) -> SourceType {
+        SourceType::Class(cls_id, SourceTypeArray::empty())
     }
 
     pub fn module_id(&self) -> Option<ModuleId> {
-        match *self {
-            SourceType::Module(module_id) => Some(module_id),
+        match self {
+            SourceType::Module(module_id) => Some(*module_id),
             _ => None,
         }
     }
 
     pub fn enum_id(&self) -> Option<EnumDefinitionId> {
-        match *self {
-            SourceType::Enum(enum_id, _) => Some(enum_id),
+        match self {
+            SourceType::Enum(enum_id, _) => Some(*enum_id),
             _ => None,
         }
     }
 
     pub fn struct_id(&self) -> Option<StructDefinitionId> {
-        match *self {
-            SourceType::Struct(struct_id, _) => Some(struct_id),
+        match self {
+            SourceType::Struct(struct_id, _) => Some(*struct_id),
             _ => None,
         }
     }
 
     pub fn tuple_id(&self) -> Option<TupleId> {
-        match *self {
-            SourceType::Tuple(tuple_id) => Some(tuple_id),
+        match self {
+            SourceType::Tuple(tuple_id) => Some(*tuple_id),
             _ => None,
         }
     }
 
     pub fn type_param_id(&self) -> Option<TypeParamId> {
-        match *self {
-            SourceType::TypeParam(id) => Some(id),
+        match self {
+            SourceType::TypeParam(id) => Some(*id),
             _ => None,
         }
     }
 
-    pub fn type_params(&self, vm: &VM) -> SourceTypeArray {
+    pub fn type_params(&self) -> SourceTypeArray {
         match self {
-            &SourceType::Class(_, list_id)
-            | &SourceType::Enum(_, list_id)
-            | &SourceType::Struct(_, list_id)
-            | &SourceType::Trait(_, list_id) => vm.source_type_arrays.lock().get(list_id),
+            SourceType::Class(_, params)
+            | SourceType::Enum(_, params)
+            | SourceType::Struct(_, params)
+            | SourceType::Trait(_, params) => params.clone(),
             _ => SourceTypeArray::empty(),
         }
     }
 
     pub fn contains_type_param(&self, vm: &VM) -> bool {
         match self {
-            &SourceType::TypeParam(_) => true,
+            SourceType::TypeParam(_) => true,
 
-            &SourceType::Class(_, list_id) | &SourceType::Struct(_, list_id) => {
-                let params = vm.source_type_arrays.lock().get(list_id);
+            SourceType::Class(_, params) | SourceType::Struct(_, params) => {
                 params.iter().any(|t| t.contains_type_param(vm))
             }
 
-            &SourceType::Lambda(_) => unimplemented!(),
+            SourceType::Lambda(_) => unimplemented!(),
 
             _ => false,
         }
     }
 
     pub fn reference_type(&self) -> bool {
-        match *self {
+        match self {
             SourceType::Ptr => true,
             SourceType::Class(_, _) => true,
             SourceType::Trait(_, _) => true,
@@ -303,7 +298,7 @@ impl SourceType {
     }
 
     pub fn value_type(&self) -> bool {
-        match *self {
+        match self {
             SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
@@ -375,7 +370,7 @@ impl SourceType {
     }
 
     pub fn allows(&self, vm: &VM, other: SourceType) -> bool {
-        match *self {
+        match self {
             // allow all types for Error, there is already an error,
             // don't report too many messages for the same error
             SourceType::Error => true,
@@ -395,31 +390,31 @@ impl SourceType {
             }
             SourceType::Ptr => panic!("ptr does not allow any other types"),
             SourceType::This => unreachable!(),
-            SourceType::Class(self_cls_id, self_list_id) => {
+            SourceType::Class(self_cls_id, self_list) => {
                 if *self == other {
                     return true;
                 }
 
-                let (other_cls_id, other_list_id) = match other {
-                    SourceType::Class(cls_id, list_id) => (cls_id, list_id),
+                let (other_cls_id, other_list) = match other {
+                    SourceType::Class(cls_id, ref other_list) => (cls_id, other_list.clone()),
                     _ => {
                         return false;
                     }
                 };
 
-                if self_cls_id == other_cls_id {
-                    self_list_id == other_list_id
+                if *self_cls_id == other_cls_id {
+                    self_list == &other_list
                 } else {
                     other.subclass_from(vm, self.clone())
                 }
             }
             SourceType::Tuple(tuple_id) => match other {
                 SourceType::Tuple(other_tuple_id) => {
-                    if tuple_id == other_tuple_id {
+                    if *tuple_id == other_tuple_id {
                         return true;
                     }
 
-                    let subtypes = vm.tuples.lock().get(tuple_id);
+                    let subtypes = vm.tuples.lock().get(*tuple_id);
                     let other_subtypes = vm.tuples.lock().get(other_tuple_id);
 
                     if subtypes.len() != other_subtypes.len() {
@@ -456,7 +451,7 @@ impl SourceType {
     }
 
     pub fn size(&self, vm: &VM) -> i32 {
-        match *self {
+        match self {
             SourceType::Error => panic!("no size for error."),
             SourceType::Unit => 0,
             SourceType::Bool => 1,
@@ -466,9 +461,8 @@ impl SourceType {
             SourceType::Int64 => 8,
             SourceType::Float32 => 4,
             SourceType::Float64 => 8,
-            SourceType::Enum(eid, list_id) => {
-                let params = vm.source_type_arrays.lock().get(list_id);
-                let enum_def_id = specialize_enum_id_params(vm, eid, params);
+            SourceType::Enum(eid, params) => {
+                let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
                 let xenum = vm.enum_defs.idx(enum_def_id);
 
                 match xenum.layout {
@@ -482,21 +476,20 @@ impl SourceType {
             | SourceType::Module(_)
             | SourceType::Lambda(_)
             | SourceType::Ptr => mem::ptr_width(),
-            SourceType::Struct(sid, list_id) => {
-                let params = vm.source_type_arrays.lock().get(list_id);
-                let sid = specialize_struct_id_params(vm, sid, params);
+            SourceType::Struct(sid, params) => {
+                let sid = specialize_struct_id_params(vm, *sid, params.clone());
                 let struc = vm.struct_defs.idx(sid);
 
                 struc.size
             }
             SourceType::Trait(_, _) => mem::ptr_width(),
             SourceType::TypeParam(_) => panic!("no size for type variable."),
-            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).size(),
+            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(*tuple_id).size(),
         }
     }
 
     pub fn align(&self, vm: &VM) -> i32 {
-        match *self {
+        match self {
             SourceType::Error => panic!("no alignment for error."),
             SourceType::Unit => 0,
             SourceType::Bool => 1,
@@ -508,9 +501,8 @@ impl SourceType {
             SourceType::Float64 => 8,
             SourceType::This => panic!("no alignment for Self."),
             SourceType::Any => panic!("no alignment for Any."),
-            SourceType::Enum(eid, list_id) => {
-                let params = vm.source_type_arrays.lock().get(list_id);
-                let enum_def_id = specialize_enum_id_params(vm, eid, params);
+            SourceType::Enum(eid, params) => {
+                let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
                 let xenum = vm.enum_defs.idx(enum_def_id);
 
                 match xenum.layout {
@@ -522,21 +514,20 @@ impl SourceType {
             | SourceType::Module(_)
             | SourceType::Lambda(_)
             | SourceType::Ptr => mem::ptr_width(),
-            SourceType::Struct(sid, list_id) => {
-                let params = vm.source_type_arrays.lock().get(list_id);
-                let sid = specialize_struct_id_params(vm, sid, params);
+            SourceType::Struct(sid, params) => {
+                let sid = specialize_struct_id_params(vm, *sid, params.clone());
                 let struc = vm.struct_defs.idx(sid);
 
                 struc.align
             }
             SourceType::Trait(_, _) => mem::ptr_width(),
             SourceType::TypeParam(_) => panic!("no alignment for type variable."),
-            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).align(),
+            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(*tuple_id).align(),
         }
     }
 
     pub fn mode(&self) -> MachineMode {
-        match *self {
+        match self {
             SourceType::Error => panic!("no machine mode for error."),
             SourceType::Unit => panic!("no machine mode for ()."),
             SourceType::Bool => MachineMode::Int8,
@@ -561,7 +552,7 @@ impl SourceType {
     }
 
     pub fn is_defined_type(&self, vm: &VM) -> bool {
-        match *self {
+        match self {
             SourceType::Error | SourceType::This | SourceType::Any | SourceType::Ptr => false,
             SourceType::Unit
             | SourceType::Bool
@@ -575,11 +566,9 @@ impl SourceType {
             | SourceType::Trait(_, _)
             | SourceType::Lambda(_)
             | SourceType::TypeParam(_) => true,
-            SourceType::Enum(_, list_id)
-            | SourceType::Class(_, list_id)
-            | SourceType::Struct(_, list_id) => {
-                let params = vm.source_type_arrays.lock().get(list_id);
-
+            SourceType::Enum(_, params)
+            | SourceType::Class(_, params)
+            | SourceType::Struct(_, params) => {
                 for param in params.iter() {
                     if !param.is_defined_type(vm) {
                         return false;
@@ -589,7 +578,7 @@ impl SourceType {
                 true
             }
             SourceType::Tuple(tuple_id) => {
-                let subtypes = vm.tuples.lock().get(tuple_id);
+                let subtypes = vm.tuples.lock().get(*tuple_id);
 
                 for ty in subtypes.iter() {
                     if !ty.is_defined_type(vm) {
@@ -603,7 +592,7 @@ impl SourceType {
     }
 
     pub fn is_concrete_type(&self, vm: &VM) -> bool {
-        match *self {
+        match self {
             SourceType::Error | SourceType::This | SourceType::Any => false,
             SourceType::Unit
             | SourceType::Bool
@@ -616,11 +605,9 @@ impl SourceType {
             | SourceType::Module(_)
             | SourceType::Ptr
             | SourceType::Trait(_, _) => true,
-            SourceType::Class(_, list_id)
-            | SourceType::Enum(_, list_id)
-            | SourceType::Struct(_, list_id) => {
-                let params = vm.source_type_arrays.lock().get(list_id);
-
+            SourceType::Class(_, params)
+            | SourceType::Enum(_, params)
+            | SourceType::Struct(_, params) => {
                 for param in params.iter() {
                     if !param.is_concrete_type(vm) {
                         return false;
@@ -629,13 +616,14 @@ impl SourceType {
 
                 true
             }
-            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
+
+            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(*tuple_id).is_concrete_type(),
             SourceType::Lambda(_) => unimplemented!(),
             SourceType::TypeParam(_) => false,
         }
     }
 
-    pub fn from_bytecode(vm: &VM, ty: BytecodeType) -> SourceType {
+    pub fn from_bytecode(ty: BytecodeType) -> SourceType {
         match ty {
             BytecodeType::Bool => SourceType::Bool,
             BytecodeType::Char => SourceType::Char,
@@ -646,15 +634,9 @@ impl SourceType {
             BytecodeType::Ptr => SourceType::Ptr,
             BytecodeType::UInt8 => SourceType::UInt8,
             BytecodeType::TypeParam(id) => SourceType::TypeParam(TypeParamId(id as usize)),
-            BytecodeType::Struct(struct_id, type_params) => {
-                let list_id = vm.source_type_arrays.lock().insert(type_params);
-                SourceType::Struct(struct_id, list_id)
-            }
+            BytecodeType::Struct(struct_id, params) => SourceType::Struct(struct_id, params),
             BytecodeType::Tuple(tuple_id) => SourceType::Tuple(tuple_id),
-            BytecodeType::Enum(enum_id, type_params) => {
-                let list_id = vm.source_type_arrays.lock().insert(type_params);
-                SourceType::Enum(enum_id, list_id)
-            }
+            BytecodeType::Enum(enum_id, params) => SourceType::Enum(enum_id, params),
         }
     }
 }
@@ -882,22 +864,6 @@ pub fn check_impls(
     None
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct SourceTypeArrayId(u32);
-
-impl SourceTypeArrayId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl From<usize> for SourceTypeArrayId {
-    fn from(data: usize) -> SourceTypeArrayId {
-        assert!(data < u32::max_value() as usize);
-        SourceTypeArrayId(data as u32)
-    }
-}
-
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum SourceTypeArray {
     Empty,
@@ -1028,41 +994,6 @@ impl<'a> Iterator for SourceTypeArrayIter<'a> {
     }
 }
 
-pub struct SourceTypeArrays {
-    lists: HashMap<SourceTypeArray, SourceTypeArrayId>,
-    values: Vec<SourceTypeArray>,
-    next_id: usize,
-}
-
-impl SourceTypeArrays {
-    pub fn new() -> SourceTypeArrays {
-        SourceTypeArrays {
-            lists: HashMap::new(),
-            values: Vec::new(),
-            next_id: 0,
-        }
-    }
-
-    pub fn insert(&mut self, list: SourceTypeArray) -> SourceTypeArrayId {
-        if let Some(&val) = self.lists.get(&list) {
-            return val;
-        }
-
-        let id: SourceTypeArrayId = self.next_id.into();
-        self.lists.insert(list.clone(), id);
-
-        self.values.push(list);
-
-        self.next_id += 1;
-
-        id
-    }
-
-    pub fn get(&self, id: SourceTypeArrayId) -> SourceTypeArray {
-        self.values[id.to_usize()].clone()
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LambdaId(usize);
 
@@ -1134,8 +1065,7 @@ impl<'a> SourceTypePrinter<'a> {
             SourceType::Bool => "Bool".into(),
             SourceType::Ptr => panic!("type Ptr only for internal use."),
             SourceType::This => "Self".into(),
-            SourceType::Class(id, list_id) => {
-                let params = self.vm.source_type_arrays.lock().get(list_id);
+            SourceType::Class(id, params) => {
                 let cls = self.vm.classes.idx(id);
                 let cls = cls.read();
                 let base = self.vm.interner.str(cls.name);
@@ -1152,14 +1082,12 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", base, params)
                 }
             }
-            SourceType::Struct(sid, list_id) => {
+            SourceType::Struct(sid, params) => {
                 let struc = self.vm.structs.idx(sid);
                 let struc = struc.read();
                 let name = struc.name;
                 let name = self.vm.interner.str(name).to_string();
 
-                let params = self.vm.source_type_arrays.lock().get(list_id);
-
                 if params.len() == 0 {
                     name
                 } else {
@@ -1172,12 +1100,10 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Trait(tid, list_id) => {
+            SourceType::Trait(tid, params) => {
                 let xtrait = self.vm.traits[tid].read();
                 let name = self.vm.interner.str(xtrait.name).to_string();
 
-                let params = self.vm.source_type_arrays.lock().get(list_id);
-
                 if params.len() == 0 {
                     name
                 } else {
@@ -1190,11 +1116,9 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Enum(id, list_id) => {
+            SourceType::Enum(id, params) => {
                 let xenum = self.vm.enums[id].read();
                 let name = self.vm.interner.str(xenum.name).to_string();
-
-                let params = self.vm.source_type_arrays.lock().get(list_id);
 
                 if params.len() == 0 {
                     name

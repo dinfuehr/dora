@@ -86,7 +86,7 @@ pub fn check_super<'a>(sa: &SemAnalysis, cls: &ClassDefinition, error: ErrorRepo
         error,
     };
 
-    let params = object_type.type_params(sa);
+    let params = object_type.type_params();
 
     checker.check(&params)
 }

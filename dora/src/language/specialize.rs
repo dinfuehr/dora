@@ -39,9 +39,7 @@ pub fn replace_type_param(
     match ty {
         SourceType::TypeParam(tpid) => type_params[tpid.to_usize()].clone(),
 
-        SourceType::Class(cls_id, list_id) => {
-            let params = sa.source_type_arrays.lock().get(list_id);
-
+        SourceType::Class(cls_id, params) => {
             let params = SourceTypeArray::with(
                 params
                     .iter()
@@ -49,13 +47,10 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let list_id = sa.source_type_arrays.lock().insert(params);
-            SourceType::Class(cls_id, list_id)
+            SourceType::Class(cls_id, params)
         }
 
-        SourceType::Trait(trait_id, list_id) => {
-            let old_type_params = sa.source_type_arrays.lock().get(list_id);
-
+        SourceType::Trait(trait_id, old_type_params) => {
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
@@ -63,13 +58,10 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
-            SourceType::Trait(trait_id, new_type_params_id)
+            SourceType::Trait(trait_id, new_type_params)
         }
 
-        SourceType::Struct(struct_id, list_id) => {
-            let old_type_params = sa.source_type_arrays.lock().get(list_id);
-
+        SourceType::Struct(struct_id, old_type_params) => {
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
@@ -77,13 +69,10 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
-            SourceType::Struct(struct_id, new_type_params_id)
+            SourceType::Struct(struct_id, new_type_params)
         }
 
-        SourceType::Enum(enum_id, list_id) => {
-            let old_type_params = sa.source_type_arrays.lock().get(list_id);
-
+        SourceType::Enum(enum_id, old_type_params) => {
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
@@ -91,8 +80,7 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            let new_type_params_id = sa.source_type_arrays.lock().insert(new_type_params);
-            SourceType::Enum(enum_id, new_type_params_id)
+            SourceType::Enum(enum_id, new_type_params)
         }
 
         SourceType::This => self_ty.expect("no type for Self given"),

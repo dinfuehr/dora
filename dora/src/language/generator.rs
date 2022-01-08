@@ -169,7 +169,7 @@ impl<'a> AstBytecodeGen<'a> {
         // type of expression: Array[Something]
         let ty = self.ty(stmt.expr.id());
         // get type of element: Something for Array[Something]
-        let ty = ty.type_params(self.sa).types().first().cloned().unwrap();
+        let ty = ty.type_params().types().first().cloned().unwrap();
         self.visit_stmt_for_pattern_assign_array(&stmt.pattern, array_reg, index_reg, ty);
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
@@ -329,7 +329,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let iterator_reg = if let Some(make_iterator) = for_type_info.make_iterator {
             let object_type = self.ty(stmt.expr.id());
-            let object_type_params = object_type.type_params(self.sa);
+            let object_type_params = object_type.type_params();
 
             // Emit: <iterator> = <obj>.makeIterator();
             let iterator_reg = self.alloc_var(BytecodeType::Ptr);
@@ -349,7 +349,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.gen.emit_loop_start();
 
         let iterator_type = for_type_info.iterator_type.clone();
-        let iterator_type_params = iterator_type.type_params(self.sa);
+        let iterator_type_params = iterator_type.type_params();
 
         self.gen.emit_push_register(iterator_reg);
 
@@ -707,11 +707,11 @@ impl<'a> AstBytecodeGen<'a> {
         let object_type = self.ty(expr.object.id());
         let check_type = self.ty(expr.data_type.id());
 
-        if let SourceType::Trait(trait_id, _list_id) = check_type {
+        if let SourceType::Trait(trait_id, ref _type_params) = check_type {
             let object = self.visit_expr(&expr.object, DataDest::Alloc);
-            let idx =
-                self.gen
-                    .add_const_trait(trait_id, check_type.type_params(self.sa), object_type);
+            let idx = self
+                .gen
+                .add_const_trait(trait_id, check_type.type_params(), object_type);
             let dest = self.ensure_register(dest, BytecodeType::Ptr);
             self.gen.emit_new_trait_object(dest, idx, object, expr.pos);
             self.free_if_temp(object);
@@ -721,7 +721,7 @@ impl<'a> AstBytecodeGen<'a> {
         let conv = self.src.map_convs.get(expr.id).clone().unwrap();
         let ty = conv.check_type.clone();
         let cls_id = ty.cls_id().expect("class expected");
-        let type_params = ty.type_params(self.sa);
+        let type_params = ty.type_params();
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
         if expr.is {
@@ -761,9 +761,7 @@ impl<'a> AstBytecodeGen<'a> {
         let expr_reg = self.visit_expr(&node.expr, DataDest::Alloc);
 
         let variant_reg = self.alloc_temp(BytecodeType::Int32);
-        let idx = self
-            .gen
-            .add_const_enum(enum_id, enum_ty.type_params(self.sa));
+        let idx = self.gen.add_const_enum(enum_id, enum_ty.type_params());
         self.gen
             .emit_load_enum_variant(variant_reg, expr_reg, idx, node.pos);
 
@@ -815,7 +813,7 @@ impl<'a> AstBytecodeGen<'a> {
                             if let Some(_) = param.name {
                                 let idx = self.gen.add_const_enum_variant(
                                     enum_id,
-                                    enum_ty.type_params(self.sa),
+                                    enum_ty.type_params(),
                                     variant_id as usize,
                                 );
 
@@ -931,7 +929,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         if let Some(struct_id) = object_ty.struct_id() {
-            let type_params = object_ty.type_params(self.sa);
+            let type_params = object_ty.type_params();
             return self.visit_expr_dot_struct(expr, struct_id, type_params, dest);
         }
 
@@ -945,7 +943,7 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         let cls_id = cls_ty.cls_id().expect("class expected");
-        let type_params = cls_ty.type_params(self.sa);
+        let type_params = cls_ty.type_params();
         let field_idx = self
             .gen
             .add_const_field_types(cls_id, type_params.clone(), field_id);
@@ -1158,7 +1156,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let enum_id = enum_ty.enum_id().expect("enum expected");
-        let type_params = enum_ty.type_params(self.sa);
+        let type_params = enum_ty.type_params();
 
         let idx = self
             .gen
@@ -1331,9 +1329,9 @@ impl<'a> AstBytecodeGen<'a> {
 
         // We need array of elements
         let element_ty = arg_types.last().cloned().unwrap();
-        let ty = self.sa.known.array_ty(self.sa, element_ty.clone());
+        let ty = self.sa.known.array_ty(element_ty.clone());
         let cls_id = ty.cls_id().expect("class expected");
-        let type_params = ty.type_params(self.sa);
+        let type_params = ty.type_params();
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
         // Store length in a register
@@ -1383,7 +1381,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let ty = arg_types.first().cloned().unwrap();
 
                 let cls_id = ty.cls_id().expect("should be class");
-                let type_params = ty.type_params(self.sa);
+                let type_params = ty.type_params();
 
                 let idx = self.gen.add_const_cls_types(cls_id, type_params);
                 self.gen
@@ -1943,7 +1941,7 @@ impl<'a> AstBytecodeGen<'a> {
                         ty.cls_id().expect("class expected"),
                         self.sa.known.classes.array()
                     );
-                    let type_params = ty.type_params(self.sa);
+                    let type_params = ty.type_params();
                     assert_eq!(1, type_params.len());
                     let element_ty = type_params[0].clone();
                     self.emit_array_with_variadic_arguments(expr, &[element_ty], 0, dest)
@@ -1958,7 +1956,7 @@ impl<'a> AstBytecodeGen<'a> {
         // We need array of elements
         let element_ty = self.ty(expr.id);
         let cls_id = element_ty.cls_id().expect("class expected");
-        let type_params = element_ty.type_params(self.sa);
+        let type_params = element_ty.type_params();
         let cls_idx = self.gen.add_const_cls_types(cls_id, type_params);
 
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
@@ -2055,7 +2053,7 @@ impl<'a> AstBytecodeGen<'a> {
         assert!(dest.is_unit());
 
         let ty = self.ty(arr.id());
-        let ty = ty.type_params(self.sa);
+        let ty = ty.type_params();
         let ty = ty[0].clone();
         let ty: Option<BytecodeType> = if ty.is_unit() {
             None
@@ -2179,7 +2177,7 @@ impl<'a> AstBytecodeGen<'a> {
                     if ty.cls_id() == Some(self.sa.known.classes.string()) {
                         Some(BytecodeType::UInt8)
                     } else {
-                        let ty = ty.type_params(self.sa);
+                        let ty = ty.type_params();
                         let ty = ty[0].clone();
 
                         if ty.is_unit() {
@@ -2265,7 +2263,7 @@ impl<'a> AstBytecodeGen<'a> {
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params(self.sa);
+                    let type_params = ty.type_params();
                     let idx = self.gen.add_const_fct_types(fct_id, type_params);
                     self.gen.emit_push_register(lhs_reg);
                     self.gen.emit_push_register(rhs_reg);
@@ -2286,7 +2284,7 @@ impl<'a> AstBytecodeGen<'a> {
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params(self.sa);
+                    let type_params = ty.type_params();
                     let idx = self.gen.add_const_fct_types(fct_id, type_params);
                     self.gen.emit_push_register(lhs_reg);
                     self.gen.emit_push_register(rhs_reg);
@@ -2311,7 +2309,7 @@ impl<'a> AstBytecodeGen<'a> {
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params(self.sa);
+                    let type_params = ty.type_params();
                     let idx = self.gen.add_const_fct_types(fct_id, type_params);
                     self.gen.emit_push_register(lhs_reg);
                     self.gen.emit_push_register(rhs_reg);
@@ -2333,7 +2331,7 @@ impl<'a> AstBytecodeGen<'a> {
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params(self.sa);
+                    let type_params = ty.type_params();
                     let idx = self.gen.add_const_fct_types(fct_id, type_params);
                     self.gen.emit_push_register(lhs_reg);
                     self.gen.emit_push_register(rhs_reg);
@@ -2366,7 +2364,7 @@ impl<'a> AstBytecodeGen<'a> {
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params(self.sa);
+                    let type_params = ty.type_params();
                     let idx = self.gen.add_const_fct_types(fct_id, type_params);
                     self.gen.emit_push_register(lhs_reg);
                     self.gen.emit_push_register(rhs_reg);
@@ -2400,7 +2398,7 @@ impl<'a> AstBytecodeGen<'a> {
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params(self.sa);
+                    let type_params = ty.type_params();
                     let idx = self.gen.add_const_fct_types(fct_id, type_params);
                     self.gen.emit_push_register(lhs_reg);
                     self.gen.emit_push_register(rhs_reg);
@@ -2499,7 +2497,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.gen.emit_push_register(idx_reg);
             self.gen.emit_push_register(val_reg);
 
-            let type_params = obj_ty.type_params(self.sa);
+            let type_params = obj_ty.type_params();
 
             let callee_idx = self.gen.add_const_fct_types(fct_id, type_params);
             self.gen.emit_invoke_direct_void(callee_idx, expr.pos);
@@ -2520,7 +2518,7 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         let cls_id = cls_ty.cls_id().expect("class expected");
-        let type_params = cls_ty.type_params(self.sa);
+        let type_params = cls_ty.type_params();
         let field_idx = self
             .gen
             .add_const_field_types(cls_id, type_params.clone(), field_id);
@@ -2718,12 +2716,12 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn determine_call_type_params(&self, call_type: &CallType) -> SourceTypeArray {
         match call_type {
-            CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => ty.type_params(self.sa),
+            CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => ty.type_params(),
 
             CallType::Method(_, _, ref type_params) => type_params.clone(),
 
             CallType::ModuleMethod(ty, _, ref fct_type_params) => {
-                let cls_type_params = ty.type_params(self.sa);
+                let cls_type_params = ty.type_params();
                 assert!(cls_type_params.is_empty());
                 fct_type_params.clone()
             }
@@ -2762,20 +2760,20 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Method(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
 
             CallType::ModuleMethod(cls_ty, _, ref fct_type_params) => {
-                let cls_type_params = cls_ty.type_params(self.sa);
+                let cls_type_params = cls_ty.type_params();
                 let type_params = cls_type_params.connect(fct_type_params);
                 specialize_type(self.sa, ty, &type_params)
             }
 
             CallType::CtorParent(cls_ty, _) | CallType::Ctor(cls_ty, _) => {
-                let cls_type_params = cls_ty.type_params(self.sa);
+                let cls_type_params = cls_ty.type_params();
                 specialize_type(self.sa, ty, &cls_type_params)
             }
 
             CallType::Expr(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
 
             CallType::TraitObjectMethod(trait_ty, _) => {
-                let container_type_params = trait_ty.type_params(self.sa);
+                let container_type_params = trait_ty.type_params();
                 specialize_type(self.sa, ty, &container_type_params)
             }
             CallType::GenericMethod(id, _, _) | CallType::GenericStaticMethod(id, _, _) => {

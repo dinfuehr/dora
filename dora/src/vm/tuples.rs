@@ -173,9 +173,8 @@ fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> Option<ConcreteTupl
             align = max(align, element_align);
 
             continue;
-        } else if let SourceType::Enum(enum_id, type_params_id) = ty {
-            let type_params = vm.source_type_arrays.lock().get(*type_params_id);
-            let edef_id = specialize_enum_id_params(vm, *enum_id, type_params);
+        } else if let SourceType::Enum(enum_id, type_params) = ty {
+            let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
             let edef = vm.enum_defs.idx(edef_id);
 
             match edef.layout {

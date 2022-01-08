@@ -7,7 +7,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::language::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId, TypeParam,
     TypeParamDefinition, TypeParamId, VM,
@@ -42,7 +42,7 @@ pub struct TraitDefinition {
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
     pub static_names: HashMap<Name, FctDefinitionId>,
-    pub vtables: RwLock<HashMap<SourceTypeArrayId, ClassInstanceId>>,
+    pub vtables: RwLock<HashMap<SourceTypeArray, ClassInstanceId>>,
 }
 
 impl TraitDefinition {

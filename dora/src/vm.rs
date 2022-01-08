@@ -11,7 +11,7 @@ use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeS
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
-use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray, SourceTypeArrays};
+use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
@@ -144,7 +144,6 @@ pub struct FullSemAnalysis {
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
     pub imports: Vec<ImportData>,                 // stores all imports
     pub native_stubs: Mutex<NativeStubs>,
-    pub source_type_arrays: Mutex<SourceTypeArrays>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub parse_arg_file: bool,
     pub prelude_namespace_id: NamespaceId,
@@ -258,7 +257,6 @@ impl FullSemAnalysis {
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
-            source_type_arrays: Mutex::new(SourceTypeArrays::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
             parse_arg_file: true,
@@ -307,7 +305,6 @@ pub struct VM {
     pub imports: Vec<ImportData>,                 // stores all imports
     pub gc: Gc,                                   // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
-    pub source_type_arrays: Mutex<SourceTypeArrays>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub compile_stub: Mutex<Address>,
     pub dora_stub: Mutex<Address>,
@@ -432,7 +429,6 @@ impl VM {
             fcts: GrowableVec::new(),
             code: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
-            source_type_arrays: Mutex::new(SourceTypeArrays::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
             compile_stub: Mutex::new(Address::null()),
@@ -487,7 +483,6 @@ impl VM {
             fcts: sa.fcts,
             code: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
-            source_type_arrays: sa.source_type_arrays,
             lambda_types: sa.lambda_types,
             native_stubs: sa.native_stubs,
             compile_stub: Mutex::new(Address::null()),

@@ -327,8 +327,7 @@ fn ensure_thunk(
     ));
     thunk_fct.analysis = Some(AnalysisData::new());
 
-    let list_id = vm.source_type_arrays.lock().insert(type_params);
-    let mut param_types: Vec<SourceType> = vec![SourceType::Trait(trait_id, list_id)];
+    let mut param_types: Vec<SourceType> = vec![SourceType::Trait(trait_id, type_params)];
     param_types.extend_from_slice(fct.params_without_self());
     thunk_fct.param_types = param_types;
     thunk_fct.return_type = fct.return_type.clone();

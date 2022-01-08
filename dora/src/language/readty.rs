@@ -101,12 +101,7 @@ fn read_type_basic(
                 sa.diag.lock().report(file_id, basic.pos, msg);
             }
 
-            let list_id = sa
-                .source_type_arrays
-                .lock()
-                .insert(SourceTypeArray::empty());
-
-            Some(SourceType::Trait(trait_id, list_id))
+            Some(SourceType::Trait(trait_id, SourceTypeArray::empty()))
         }
 
         Sym::Struct(struct_id) => {
@@ -211,9 +206,8 @@ fn read_type_enum(
         basic.pos,
         ctxt,
     ) {
-        let list = SourceTypeArray::with(type_params);
-        let list_id = sa.source_type_arrays.lock().insert(list);
-        Some(SourceType::Enum(enum_id, list_id))
+        let type_params = SourceTypeArray::with(type_params);
+        Some(SourceType::Enum(enum_id, type_params))
     } else {
         None
     }
@@ -261,9 +255,10 @@ fn read_type_struct(
         if let Some(ref primitive_ty) = xstruct.primitive_ty {
             Some(primitive_ty.clone())
         } else {
-            let list = SourceTypeArray::with(type_params);
-            let list_id = sa.source_type_arrays.lock().insert(list);
-            Some(SourceType::Struct(struct_id, list_id))
+            Some(SourceType::Struct(
+                struct_id,
+                SourceTypeArray::with(type_params),
+            ))
         }
     } else {
         None
@@ -535,9 +530,10 @@ fn read_type_class(
             assert!(type_params.is_empty());
             Some(primitive_ty.clone())
         } else {
-            let list = SourceTypeArray::with(type_params);
-            let list_id = sa.source_type_arrays.lock().insert(list);
-            Some(SourceType::Class(cls_id, list_id))
+            Some(SourceType::Class(
+                cls_id,
+                SourceTypeArray::with(type_params),
+            ))
         }
     } else {
         None
