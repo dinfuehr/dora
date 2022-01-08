@@ -1,16 +1,14 @@
 use parking_lot::RwLock;
 
 use crate::language::access::{
-    class_accessible_from, enum_accessible_from, fct_accessible_from, global_accessible_from,
-    struct_accessible_from,
+    class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
+    global_accessible_from, module_accessible_from, namespace_accessible_from,
+    struct_accessible_from, trait_accessible_from,
 };
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
-use crate::vm::{
-    const_accessible_from, module_accessible_from, namespace_accessible_from, namespace_package,
-    trait_accessible_from, EnumDefinitionId, ImportData, NamespaceId, SemAnalysis,
-};
+use crate::vm::{namespace_package, EnumDefinitionId, ImportData, NamespaceId, SemAnalysis};
 
 use dora_parser::ast::ImportContext;
 use dora_parser::interner::Name;

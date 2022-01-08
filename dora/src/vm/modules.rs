@@ -5,8 +5,8 @@ use crate::size::InstanceSize;
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    accessible_from, namespace_path, replace_type_param, Candidate, FctDefinitionId, Field,
-    FieldDef, FileId, NamespaceId, TraitDefinitionId, VM,
+    namespace_path, replace_type_param, Candidate, FctDefinitionId, Field, FieldDef, FileId,
+    NamespaceId, TraitDefinitionId, VM,
 };
 
 use crate::vtable::VTableBox;
@@ -157,11 +157,4 @@ impl ModuleInstance {
             "<Unknown>".into()
         }
     }
-}
-
-pub fn module_accessible_from(vm: &VM, module_id: ModuleId, namespace_id: NamespaceId) -> bool {
-    let module = vm.modules.idx(module_id);
-    let module = module.read();
-
-    accessible_from(vm, module.namespace_id, module.is_pub, namespace_id)
 }

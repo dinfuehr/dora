@@ -1,3 +1,4 @@
+use crate::language::access::namespace_contains;
 use crate::language::error::msg::SemError;
 use crate::vm::{init_global_addresses, set_vm, FctDefinition, FctDefinitionId};
 use crate::vm::{SemAnalysis, VM};
@@ -7,7 +8,7 @@ use crate::object;
 use crate::timer::Timer;
 
 use crate::language;
-use crate::vm::{execute_on_main, namespace_contains, specialize_class_id, NamespaceId};
+use crate::vm::{execute_on_main, specialize_class_id, NamespaceId};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();

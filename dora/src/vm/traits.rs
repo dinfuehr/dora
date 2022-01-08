@@ -9,8 +9,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::{SourceType, SourceTypeArray, SourceTypeArrayId};
 use crate::vm::{
-    accessible_from, namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId,
-    TypeParam, TypeParamDefinition, TypeParamId, VM,
+    namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId, TypeParam,
+    TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -145,14 +145,4 @@ impl Index<TraitDefinitionId> for Vec<RwLock<TraitDefinition>> {
     fn index(&self, index: TraitDefinitionId) -> &RwLock<TraitDefinition> {
         &self[index.0 as usize]
     }
-}
-
-pub fn trait_accessible_from(
-    vm: &VM,
-    trait_id: TraitDefinitionId,
-    namespace_id: NamespaceId,
-) -> bool {
-    let xtrait = vm.traits[trait_id].read();
-
-    accessible_from(vm, xtrait.namespace_id, xtrait.is_pub, namespace_id)
 }

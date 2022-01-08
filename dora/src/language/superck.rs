@@ -200,43 +200,8 @@ fn check_fct_modifier(
 mod tests {
     use crate::language::error::msg::SemError;
     use crate::language::tests::{err, errors, ok, ok_with_test, pos};
-    use crate::mem;
-    use crate::object::Header;
-    use crate::size::InstanceSize;
     use crate::vm::SemAnalysis;
     use dora_parser::interner::Name;
-
-    #[test]
-    fn test_class_size() {
-        assert_eq!(
-            InstanceSize::Fixed(Header::size()),
-            class_size("class Foo", "Foo")
-        );
-        assert_eq!(
-            InstanceSize::Fixed(Header::size() + mem::ptr_width()),
-            class_size("class Foo(let a: Int32)", "Foo")
-        );
-        assert_eq!(
-            InstanceSize::Fixed(Header::size() + 8),
-            class_size("class Foo(let a: Int64)", "Foo")
-        );
-        assert_eq!(
-            InstanceSize::Fixed(Header::size() + mem::ptr_width()),
-            class_size("class Foo(let a: Bool)", "Foo")
-        );
-        assert_eq!(
-            InstanceSize::Fixed(Header::size() + mem::ptr_width()),
-            class_size("class Foo(let a: String)", "Foo")
-        );
-    }
-
-    fn class_size(code: &'static str, name: &'static str) -> InstanceSize {
-        ok_with_test(code, |sa| {
-            let id = sa.cls_def_by_name(sa.global_namespace_id, name);
-            let cls = sa.class_defs.idx(id);
-            cls.size.clone()
-        })
-    }
 
     #[test]
     fn test_cycle() {

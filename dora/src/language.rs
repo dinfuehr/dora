@@ -12,7 +12,7 @@ pub use globaldef::should_file_be_parsed;
 pub use readty::{read_type, AllowSelf, TypeParamContext};
 
 mod abstractck;
-mod access;
+pub(crate) mod access;
 mod clsdefck;
 mod constdefck;
 mod enumck;
@@ -31,11 +31,12 @@ mod importck;
 mod moduledefck;
 mod readty;
 mod returnck;
+mod sem_analysis;
 mod specialize;
 mod stdlib;
 mod structdefck;
 mod superck;
-pub mod sym;
+pub(crate) mod sym;
 #[cfg(test)]
 mod test;
 mod traitdefck;

@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{accessible_from, namespace_path, FileId, NamespaceId, VM};
+use crate::vm::{namespace_path, FileId, NamespaceId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstDefinitionId(usize);
@@ -81,15 +81,4 @@ impl ConstValue {
             _ => unreachable!(),
         }
     }
-}
-
-pub fn const_accessible_from(
-    vm: &VM,
-    const_id: ConstDefinitionId,
-    namespace_id: NamespaceId,
-) -> bool {
-    let xconst = vm.consts.idx(const_id);
-    let xconst = xconst.read();
-
-    accessible_from(vm, xconst.namespace_id, xconst.is_pub, namespace_id)
 }

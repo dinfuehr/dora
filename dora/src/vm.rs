@@ -11,7 +11,7 @@ use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeS
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
-use crate::language::sym::{NestedSymTable, SymTable};
+use crate::language::sym::SymTable;
 use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
@@ -38,7 +38,7 @@ pub use self::code::{
     LazyCompilationSite, PositionTable,
 };
 pub use self::code_map::CodeMap;
-pub use self::consts::{const_accessible_from, ConstDefinition, ConstDefinitionId, ConstValue};
+pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{
     find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId,
     EnumLayout, EnumVariant,
@@ -52,13 +52,8 @@ pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
 };
-pub use self::modules::{
-    find_methods_in_module, module_accessible_from, Module, ModuleDefId, ModuleId, ModuleInstance,
-};
-pub use self::namespaces::{
-    accessible_from, namespace_accessible_from, namespace_contains, namespace_package,
-    namespace_path, NamespaceData, NamespaceId,
-};
+pub use self::modules::{find_methods_in_module, Module, ModuleDefId, ModuleId, ModuleInstance};
+pub use self::namespaces::{namespace_package, namespace_path, NamespaceData, NamespaceId};
 pub use self::specialize::{
     add_ref_fields, ensure_display, replace_type_param, specialize_class_id,
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
@@ -72,7 +67,7 @@ pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
 };
-pub use self::traits::{trait_accessible_from, TraitDefinition, TraitDefinitionId};
+pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
@@ -621,128 +616,6 @@ impl VM {
             .clone()
     }
 
-    #[cfg(test)]
-    pub fn cls_by_name(&self, name: &'static str) -> ClassDefinitionId {
-        let name = self.interner.intern(name);
-
-        NestedSymTable::new(self, self.global_namespace_id)
-            .get_class(name)
-            .expect("class not found")
-    }
-
-    #[cfg(test)]
-    pub fn struct_by_name(&self, name: &'static str) -> StructDefinitionId {
-        let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.global_namespace_id)
-            .get_struct(name)
-            .expect("class not found")
-    }
-
-    #[cfg(test)]
-    pub fn enum_by_name(&self, name: &'static str) -> EnumDefinitionId {
-        let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.global_namespace_id)
-            .get_enum(name)
-            .expect("class not found")
-    }
-
-    #[cfg(test)]
-    pub fn const_by_name(&self, name: &'static str) -> ConstDefinitionId {
-        let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.global_namespace_id)
-            .get_const(name)
-            .expect("class not found")
-    }
-
-    #[cfg(test)]
-    pub fn cls_method_by_name(
-        &self,
-        class_name: &'static str,
-        function_name: &'static str,
-        is_static: bool,
-    ) -> Option<FctDefinitionId> {
-        let class_name = self.interner.intern(class_name);
-        let function_name = self.interner.intern(function_name);
-
-        let cls_id = NestedSymTable::new(self, self.global_namespace_id)
-            .get_class(class_name)
-            .expect("class not found");
-        let cls = self.classes.idx(cls_id);
-        let cls = cls.read();
-
-        let candidates = find_methods_in_class(
-            self,
-            cls.ty(),
-            &cls.type_params,
-            None,
-            function_name,
-            is_static,
-        );
-        if candidates.len() == 1 {
-            Some(candidates[0].fct_id)
-        } else {
-            None
-        }
-    }
-
-    #[cfg(test)]
-    pub fn struct_method_by_name(
-        &self,
-        struct_name: &'static str,
-        function_name: &'static str,
-        is_static: bool,
-    ) -> Option<FctDefinitionId> {
-        let struct_name = self.interner.intern(struct_name);
-        let function_name = self.interner.intern(function_name);
-
-        let struct_id = NestedSymTable::new(self, self.global_namespace_id)
-            .get_struct(struct_name)
-            .expect("struct not found");
-        let xstruct = self.structs.idx(struct_id);
-        let xstruct = xstruct.read();
-
-        let candidates = find_methods_in_struct(
-            self,
-            xstruct.ty(self),
-            &xstruct.type_params,
-            None,
-            function_name,
-            is_static,
-        );
-
-        if candidates.len() == 1 {
-            Some(candidates[0].fct_id)
-        } else {
-            None
-        }
-    }
-
-    pub fn cls_def_by_name(
-        &self,
-        namespace_id: NamespaceId,
-        name: &'static str,
-    ) -> ClassInstanceId {
-        let name = self.interner.intern(name);
-        let cls_id = NestedSymTable::new(self, namespace_id)
-            .get_class(name)
-            .expect("class not found");
-
-        specialize_class_id(self, cls_id)
-    }
-
-    pub fn cls_def_by_name_with_type_params(
-        &self,
-        name: &'static str,
-        type_params: SourceTypeArray,
-    ) -> ClassInstanceId {
-        let name = self.interner.intern(name);
-        let cls_id = NestedSymTable::new(self, self.global_namespace_id)
-            .get_class(name)
-            .expect("class not found");
-
-        specialize_class_id_params(self, cls_id, &type_params)
-    }
-
     pub fn field_in_class(&self, cls_def_id: ClassInstanceId, name: &'static str) -> FieldId {
         let cls_def = self.class_defs.idx(cls_def_id);
 
@@ -752,83 +625,6 @@ impl VM {
 
         let name = self.interner.intern(name);
         cls.field_by_name(name)
-    }
-
-    #[cfg(test)]
-    pub fn field_by_name(
-        &self,
-        class_name: &'static str,
-        field_name: &'static str,
-    ) -> (ClassDefinitionId, FieldId) {
-        let class_name = self.interner.intern(class_name);
-        let field_name = self.interner.intern(field_name);
-
-        let cls_id = NestedSymTable::new(self, self.global_namespace_id)
-            .get_class(class_name)
-            .expect("class not found");
-        let cls = self.classes.idx(cls_id);
-        let cls = cls.read();
-        let field_id = cls.field_by_name(field_name);
-
-        (cls_id, field_id)
-    }
-
-    pub fn fct_by_name(&self, name: &str) -> Option<FctDefinitionId> {
-        let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.global_namespace_id).get_fct(name)
-    }
-
-    pub fn fct_by_name_and_namespace(
-        &self,
-        name: &str,
-        namespace_id: NamespaceId,
-    ) -> Option<FctDefinitionId> {
-        let name = self.interner.intern(name);
-        NestedSymTable::new(self, namespace_id).get_fct(name)
-    }
-
-    #[cfg(test)]
-    pub fn ctor_by_name(&self, name: &str) -> FctDefinitionId {
-        let name = self.interner.intern(name);
-        let cls_id = NestedSymTable::new(self, self.global_namespace_id)
-            .get_class(name)
-            .expect("class not found");
-        let cls = self.classes.idx(cls_id);
-        let cls = cls.read();
-
-        cls.constructor.expect("no ctor found")
-    }
-
-    #[cfg(test)]
-    pub fn trait_by_name(&self, name: &str) -> TraitDefinitionId {
-        let name = self.interner.intern(name);
-        let trait_id = NestedSymTable::new(self, self.global_namespace_id)
-            .get_trait(name)
-            .expect("class not found");
-
-        trait_id
-    }
-
-    #[cfg(test)]
-    pub fn trait_method_by_name(&self, trait_name: &str, method_name: &str) -> FctDefinitionId {
-        let trait_id = self.trait_by_name(trait_name);
-        let method_name = self.interner.intern(method_name);
-
-        let xtrait = self.traits[trait_id].read();
-
-        xtrait
-            .instance_names
-            .get(&method_name)
-            .cloned()
-            .expect("method not found")
-    }
-
-    #[cfg(test)]
-    pub fn global_by_name(&self, name: &str) -> GlobalDefinitionId {
-        let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.global_namespace_id)
-            .get_global(name)
-            .expect("global not found")
     }
 
     pub fn cls(&self, cls_id: ClassDefinitionId) -> SourceType {
