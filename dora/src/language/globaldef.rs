@@ -355,7 +355,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 namespace_id: self.namespace_id,
                 ast: node.clone(),
                 pos: node.pos,
-                ty: self.sa.modu(id),
+                ty: SourceType::Module(id),
                 parent_class: None,
                 internal: node.internal,
                 internal_resolved: false,

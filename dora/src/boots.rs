@@ -68,30 +68,6 @@ pub fn encode_test(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) 
         type_params,
         get_architecture(),
     ));
-
-    // println!("before getting decode in rust");
-
-    // let decode_name = vm.interner.intern("decode");
-    // let decode_fct_id = NestedSymTable::new(vm, vm.boots_namespace_id)
-    //     .get_fct(decode_name)
-    //     .expect("decode()-method missing");
-    // let decode_address = vm.ensure_compiled(decode_fct_id);
-
-    // let tld_address = current_thread().tld_address();
-    // let dora_stub_address = vm.dora_stub();
-
-    // let decode_fct_ptr: extern "C" fn(Address, Address, Address) =
-    //     unsafe { mem::transmute(dora_stub_address) };
-
-    // vm.code_map.lock().dump(vm);
-
-    // decode_fct_ptr(
-    //     tld_address,
-    //     decode_address,
-    //     encoded_compilation_info.direct_ptr(),
-    // );
-
-    // println!("after decode in rust");
 }
 
 fn get_architecture() -> InstructionSet {

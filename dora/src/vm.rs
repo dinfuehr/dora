@@ -11,7 +11,6 @@ use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeS
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
-use crate::language::sym::SymTable;
 use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
@@ -275,21 +274,6 @@ impl FullSemAnalysis {
     pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
         VM::new_from_full_sa(sa)
     }
-
-    pub fn add_file(&self, path: Option<PathBuf>, namespace_id: NamespaceId, ast: Arc<ast::File>) {
-        let mut files = self.files.write();
-        let file_id = (files.len() as u32).into();
-        files.push(File {
-            id: file_id,
-            path,
-            namespace_id,
-            ast,
-        });
-    }
-
-    pub fn namespace_table(&self, namespace_id: NamespaceId) -> Arc<RwLock<SymTable>> {
-        self.namespaces[namespace_id.to_usize()].table.clone()
-    }
 }
 
 pub type SemAnalysis = VM;
@@ -545,17 +529,6 @@ impl VM {
         fct(tld, ptr, testing);
     }
 
-    pub fn add_file(&self, path: Option<PathBuf>, namespace_id: NamespaceId, ast: Arc<ast::File>) {
-        let mut files = self.files.write();
-        let file_id = (files.len() as u32).into();
-        files.push(File {
-            id: file_id,
-            path,
-            namespace_id,
-            ast,
-        });
-    }
-
     pub fn ensure_compiled(&self, fct_id: FctDefinitionId) -> Address {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = SourceTypeArray::empty();
@@ -598,64 +571,6 @@ impl VM {
         fcts.push(Arc::new(RwLock::new(fct)));
 
         fctid
-    }
-
-    pub fn namespace_table(&self, namespace_id: NamespaceId) -> Arc<RwLock<SymTable>> {
-        self.namespaces[namespace_id.to_usize()].table.clone()
-    }
-
-    pub fn stdlib_namespace(&self) -> Arc<RwLock<SymTable>> {
-        self.namespaces[self.stdlib_namespace_id.to_usize()]
-            .table
-            .clone()
-    }
-
-    pub fn prelude_namespace(&self) -> Arc<RwLock<SymTable>> {
-        self.namespaces[self.prelude_namespace_id.to_usize()]
-            .table
-            .clone()
-    }
-
-    pub fn field_in_class(&self, cls_def_id: ClassInstanceId, name: &'static str) -> FieldId {
-        let cls_def = self.class_defs.idx(cls_def_id);
-
-        let cls_id = cls_def.cls_id.unwrap();
-        let cls = self.classes.idx(cls_id);
-        let cls = cls.read();
-
-        let name = self.interner.intern(name);
-        cls.field_by_name(name)
-    }
-
-    pub fn cls(&self, cls_id: ClassDefinitionId) -> SourceType {
-        let list_id = self
-            .source_type_arrays
-            .lock()
-            .insert(SourceTypeArray::empty());
-        SourceType::Class(cls_id, list_id)
-    }
-
-    pub fn cls_with_type_params(
-        &self,
-        cls_id: ClassDefinitionId,
-        type_params: Vec<SourceType>,
-    ) -> SourceType {
-        let list = SourceTypeArray::with(type_params);
-        let list_id = self.source_type_arrays.lock().insert(list);
-        SourceType::Class(cls_id, list_id)
-    }
-
-    pub fn cls_with_type_list(
-        &self,
-        cls_id: ClassDefinitionId,
-        type_list: SourceTypeArray,
-    ) -> SourceType {
-        let list_id = self.source_type_arrays.lock().insert(type_list);
-        SourceType::Class(cls_id, list_id)
-    }
-
-    pub fn modu(&self, mod_id: ModuleId) -> SourceType {
-        SourceType::Module(mod_id)
     }
 
     pub fn dora_stub(&self) -> Address {
@@ -733,10 +648,6 @@ impl VM {
         }
 
         *safepoint_stub_address
-    }
-
-    pub fn file(&self, idx: FileId) -> Arc<ast::File> {
-        self.files.read().get(idx.to_usize()).unwrap().ast.clone()
     }
 }
 

@@ -1,12 +1,20 @@
+use parking_lot::RwLock;
+
+use std::path::PathBuf;
+use std::sync::Arc;
+
 #[cfg(test)]
 use crate::language::sym::NestedSymTable;
-use crate::vm::SemAnalysis;
+use crate::language::sym::SymTable;
+use crate::ty::{SourceType, SourceTypeArray};
 #[cfg(test)]
 use crate::vm::{
-    find_methods_in_class, find_methods_in_struct, ClassDefinitionId, ConstDefinitionId,
-    EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId, StructDefinitionId,
-    TraitDefinitionId,
+    find_methods_in_class, find_methods_in_struct, ConstDefinitionId, EnumDefinitionId,
+    FctDefinitionId, FieldId, GlobalDefinitionId, StructDefinitionId, TraitDefinitionId,
 };
+use crate::vm::{ClassDefinitionId, File, FileId, NamespaceId, SemAnalysis};
+
+use dora_parser::ast;
 
 impl SemAnalysis {
     #[cfg(test)]
@@ -172,5 +180,53 @@ impl SemAnalysis {
         NestedSymTable::new(self, self.global_namespace_id)
             .get_global(name)
             .expect("global not found")
+    }
+
+    pub fn cls_with_type_list(
+        &self,
+        cls_id: ClassDefinitionId,
+        type_list: SourceTypeArray,
+    ) -> SourceType {
+        let list_id = self.source_type_arrays.lock().insert(type_list);
+        SourceType::Class(cls_id, list_id)
+    }
+
+    pub fn add_file(&self, path: Option<PathBuf>, namespace_id: NamespaceId, ast: Arc<ast::File>) {
+        let mut files = self.files.write();
+        let file_id = (files.len() as u32).into();
+        files.push(File {
+            id: file_id,
+            path,
+            namespace_id,
+            ast,
+        });
+    }
+
+    pub fn namespace_table(&self, namespace_id: NamespaceId) -> Arc<RwLock<SymTable>> {
+        self.namespaces[namespace_id.to_usize()].table.clone()
+    }
+
+    pub fn stdlib_namespace(&self) -> Arc<RwLock<SymTable>> {
+        self.namespaces[self.stdlib_namespace_id.to_usize()]
+            .table
+            .clone()
+    }
+
+    pub fn prelude_namespace(&self) -> Arc<RwLock<SymTable>> {
+        self.namespaces[self.prelude_namespace_id.to_usize()]
+            .table
+            .clone()
+    }
+
+    pub fn cls(&self, cls_id: ClassDefinitionId) -> SourceType {
+        let list_id = self
+            .source_type_arrays
+            .lock()
+            .insert(SourceTypeArray::empty());
+        SourceType::Class(cls_id, list_id)
+    }
+
+    pub fn file(&self, idx: FileId) -> Arc<ast::File> {
+        self.files.read().get(idx.to_usize()).unwrap().ast.clone()
     }
 }
