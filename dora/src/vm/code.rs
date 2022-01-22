@@ -7,6 +7,7 @@ use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
 use crate::gc::Address;
 use crate::language::ty::SourceTypeArray;
+use crate::mem;
 use crate::os;
 use crate::utils::GrowableVec;
 use crate::vm::FctDefinitionId;
@@ -96,8 +97,12 @@ impl Code {
         positions: PositionTable,
         desc: CodeDescriptor,
     ) -> Code {
-        let code_space_size = dseg.size() as usize + buffer.len();
+        let code_object_header_size = mem::ptr_width_usize() * 4;
+        let code_space_size = code_object_header_size + dseg.size() as usize + buffer.len();
+
         let code_start = vm.gc.alloc_code(code_space_size);
+
+        let code_content_start = code_start.offset(code_object_header_size);
         let code_end = code_start.offset(code_space_size);
 
         if code_start.is_null() {
@@ -106,9 +111,9 @@ impl Code {
 
         os::jit_writable();
 
-        dseg.finish(code_start.to_ptr());
+        dseg.finish(code_content_start.to_ptr());
 
-        let function_entry = code_start.offset(dseg.size() as usize);
+        let function_entry = code_content_start.offset(dseg.size() as usize);
 
         unsafe {
             ptr::copy_nonoverlapping(buffer.as_ptr(), function_entry.to_mut_ptr(), buffer.len());
