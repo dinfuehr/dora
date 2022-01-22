@@ -76,7 +76,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
 
     os::jit_writable();
 
-    code_descriptor.constpool.finish(constpool_start.to_ptr());
+    code_descriptor.constpool.install(constpool_start.to_ptr());
 
     unsafe {
         ptr::copy_nonoverlapping(

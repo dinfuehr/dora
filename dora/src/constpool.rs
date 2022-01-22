@@ -46,7 +46,7 @@ impl ConstPool {
         self.size
     }
 
-    pub fn finish(&self, ptr: *const u8) {
+    pub fn install(&self, ptr: *const u8) {
         for entry in &self.entries {
             let offset = self.size - entry.disp;
 
