@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::mem::size_of;
+use std::sync::Arc;
 
 use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, BytecodeType, Register};
 use crate::compiler;
@@ -17,8 +18,8 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Code, CodeKind, FctDefinition,
-    FctDefinitionId, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,
+    find_trait_impl, get_vm, install_code_stub, AnalysisData, ClassInstanceId, Code, CodeKind,
+    FctDefinition, FctDefinitionId, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,
 };
 
 // This code generates the compiler stub, there should only be one instance
@@ -29,18 +30,14 @@ use crate::vm::{
 // now-compiled function directly on the next invocation. In the end the function is
 // executed.
 
-pub fn generate<'a>(vm: &'a VM) -> Address {
+pub fn generate<'a>(vm: &'a VM) -> Arc<Code> {
     let ngen = DoraCompileGen {
         vm,
         masm: MacroAssembler::new(),
         dbg: vm.args.flag_emit_debug_compile,
     };
 
-    let code = ngen.generate();
-    let addr = code.instruction_start();
-    vm.add_code(code);
-
-    addr
+    ngen.generate()
 }
 
 struct DoraCompileGen<'a> {
@@ -50,7 +47,7 @@ struct DoraCompileGen<'a> {
 }
 
 impl<'a> DoraCompileGen<'a> {
-    pub fn generate(mut self) -> Code {
+    pub fn generate(mut self) -> Arc<Code> {
         let offset_shadow_stack = 0;
         let offset_dtn = offset_shadow_stack
             + if cfg!(target_family = "windows") {
@@ -128,7 +125,8 @@ impl<'a> DoraCompileGen<'a> {
             CCALL_REG_PARAMS[2].into(),
             Mem::Base(REG_SP, offset_params + mem::ptr_width()),
         );
-        self.masm.raw_call(compile_request as *const u8);
+        self.masm
+            .raw_call(Address::from_ptr(compile_request as *const u8));
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -153,7 +151,8 @@ impl<'a> DoraCompileGen<'a> {
         // jump to compiled function
         self.masm.jump_reg(REG_TMP1);
 
-        self.masm.code(self.vm, framesize, CodeKind::CompileStub)
+        let code_descriptor = self.masm.code();
+        install_code_stub(self.vm, code_descriptor, CodeKind::CompileStub)
     }
 
     fn store_params(&mut self, mut offset: i32) {

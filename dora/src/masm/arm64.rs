@@ -3,6 +3,7 @@ use dora_parser::lexer::position::Position;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
+use crate::gc::Address;
 use crate::language::ty::SourceTypeArray;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::ptr_width;
@@ -99,7 +100,7 @@ impl MacroAssembler {
     pub fn direct_call(
         &mut self,
         fct_id: FctDefinitionId,
-        ptr: *const u8,
+        ptr: Address,
         type_params: SourceTypeArray,
     ) {
         let disp = self.add_addr(ptr);
@@ -118,7 +119,7 @@ impl MacroAssembler {
         ));
     }
 
-    pub fn raw_call(&mut self, ptr: *const u8) {
+    pub fn raw_call(&mut self, ptr: Address) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -856,8 +857,8 @@ impl MacroAssembler {
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
         let off = match mode {
-            MachineMode::Float32 => self.dseg.add_f32(imm as f32),
-            MachineMode::Float64 => self.dseg.add_f64(imm),
+            MachineMode::Float32 => self.constpool.add_f32(imm as f32),
+            MachineMode::Float64 => self.constpool.add_f64(imm),
             _ => unreachable!(),
         };
 
@@ -1624,7 +1625,7 @@ impl MacroAssembler {
     pub fn trap(&mut self, trap: Trap, pos: Position) {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
-        self.raw_call(vm.trap_stub().to_ptr());
+        self.raw_call(vm.trap_stub());
         self.emit_position(pos);
     }
 

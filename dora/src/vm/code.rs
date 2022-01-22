@@ -4,9 +4,9 @@ use std::ptr;
 use std::sync::Arc;
 
 use crate::cpu::flush_icache;
-use crate::dseg::DSeg;
 use crate::gc::Address;
 use crate::language::ty::SourceTypeArray;
+use crate::masm::CodeDescriptor;
 use crate::mem;
 use crate::os;
 use crate::utils::GrowableVec;
@@ -53,16 +53,64 @@ impl GrowableVec<Code> {
     }
 }
 
+pub fn install_code_stub(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) -> Arc<Code> {
+    let code = install_code(vm, code_descriptor, kind);
+    vm.add_code(code.clone());
+    code
+}
+
+pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) -> Arc<Code> {
+    let object_header_size = mem::ptr_width_usize() * 4;
+    let object_size =
+        object_header_size + code_descriptor.constpool.size() as usize + code_descriptor.code.len();
+
+    let object_start = vm.gc.alloc_code(object_size);
+    let object_end = object_start.offset(object_size);
+
+    let constpool_start = object_start.offset(object_header_size);
+    let instruction_start = constpool_start.offset(code_descriptor.constpool.size() as usize);
+
+    if object_start.is_null() {
+        panic!("out of memory: not enough executable memory left!");
+    }
+
+    os::jit_writable();
+
+    code_descriptor.constpool.finish(constpool_start.to_ptr());
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            code_descriptor.code.as_ptr(),
+            instruction_start.to_mut_ptr(),
+            code_descriptor.code.len(),
+        );
+    }
+
+    os::jit_executable();
+
+    flush_icache(object_start.to_ptr(), object_size);
+
+    Arc::new(Code {
+        object_start,
+        object_end,
+        instruction_start,
+        kind,
+        lazy_compilation: code_descriptor.lazy_compilation,
+        gcpoints: code_descriptor.gcpoints,
+        comments: code_descriptor.comments,
+        positions: code_descriptor.positions,
+    })
+}
+
 pub struct Code {
-    code_start: Address,
-    code_end: Address,
+    object_start: Address,
+    object_end: Address,
 
     // pointer to beginning of function
-    function_entry: Address,
+    instruction_start: Address,
 
-    desc: CodeKind,
+    kind: CodeKind,
 
-    framesize: i32,
     lazy_compilation: LazyCompilationData,
     gcpoints: GcPointTable,
     comments: CommentTable,
@@ -70,72 +118,6 @@ pub struct Code {
 }
 
 impl Code {
-    pub fn from_optimized_buffer(vm: &VM, buffer: &[u8], desc: CodeKind) -> Code {
-        let dseg = DSeg::new();
-
-        Code::from_buffer(
-            vm,
-            &dseg,
-            buffer,
-            LazyCompilationData::new(),
-            GcPointTable::new(),
-            0,
-            CommentTable::new(),
-            PositionTable::new(),
-            desc,
-        )
-    }
-
-    pub fn from_buffer(
-        vm: &VM,
-        dseg: &DSeg,
-        buffer: &[u8],
-        lazy_compilation: LazyCompilationData,
-        gcpoints: GcPointTable,
-        framesize: i32,
-        comments: CommentTable,
-        positions: PositionTable,
-        desc: CodeKind,
-    ) -> Code {
-        let code_object_header_size = mem::ptr_width_usize() * 4;
-        let code_space_size = code_object_header_size + dseg.size() as usize + buffer.len();
-
-        let code_start = vm.gc.alloc_code(code_space_size);
-
-        let code_content_start = code_start.offset(code_object_header_size);
-        let code_end = code_start.offset(code_space_size);
-
-        if code_start.is_null() {
-            panic!("out of memory: not enough executable memory left!");
-        }
-
-        os::jit_writable();
-
-        dseg.finish(code_content_start.to_ptr());
-
-        let function_entry = code_content_start.offset(dseg.size() as usize);
-
-        unsafe {
-            ptr::copy_nonoverlapping(buffer.as_ptr(), function_entry.to_mut_ptr(), buffer.len());
-        }
-
-        os::jit_executable();
-
-        flush_icache(code_start.to_ptr(), code_space_size);
-
-        Code {
-            code_start,
-            code_end,
-            function_entry,
-            desc,
-            lazy_compilation,
-            gcpoints,
-            comments,
-            framesize,
-            positions,
-        }
-    }
-
     pub fn position_for_offset(&self, offset: u32) -> Option<Position> {
         self.positions.get(offset)
     }
@@ -144,16 +126,16 @@ impl Code {
         self.gcpoints.get(offset)
     }
 
-    pub fn ptr_start(&self) -> Address {
-        self.code_start
+    pub fn object_start(&self) -> Address {
+        self.object_start
     }
 
-    pub fn ptr_end(&self) -> Address {
-        self.code_end
+    pub fn object_end(&self) -> Address {
+        self.object_end
     }
 
     pub fn fct_id(&self) -> FctDefinitionId {
-        match self.desc {
+        match self.kind {
             CodeKind::NativeStub(fct_id) => fct_id,
             CodeKind::DoraFct(fct_id) => fct_id,
             _ => panic!("no fctid found"),
@@ -161,15 +143,11 @@ impl Code {
     }
 
     pub fn instruction_start(&self) -> Address {
-        self.function_entry
+        self.instruction_start
     }
 
     pub fn instruction_end(&self) -> Address {
-        self.code_end
-    }
-
-    pub fn framesize(&self) -> i32 {
-        self.framesize
+        self.object_end
     }
 
     pub fn comment_for_offset(&self, offset: u32) -> Option<&String> {
@@ -181,7 +159,7 @@ impl Code {
     }
 
     pub fn descriptor(&self) -> CodeKind {
-        self.desc.clone()
+        self.kind.clone()
     }
 }
 
@@ -190,9 +168,9 @@ impl fmt::Debug for Code {
         write!(
             f,
             "Code {{ start: {:?}, end: {:?}, desc: {:?} }}",
-            self.ptr_start(),
-            self.ptr_end(),
-            self.desc,
+            self.object_start(),
+            self.object_end(),
+            self.kind,
         )
     }
 }

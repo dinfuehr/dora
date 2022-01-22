@@ -1,23 +1,19 @@
+use std::sync::Arc;
+
 use crate::cpu::{CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
-use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
-use crate::vm::{Code, CodeKind, VM};
+use crate::vm::{install_code_stub, Code, CodeKind, VM};
 
-pub fn generate<'a>(vm: &'a VM) -> Address {
+pub fn generate<'a>(vm: &'a VM) -> Arc<Code> {
     let ngen = DoraEntryGen {
         vm,
         masm: MacroAssembler::new(),
         dbg: vm.args.flag_emit_debug_entry,
     };
 
-    let code = ngen.generate();
-    let ptr = code.instruction_start();
-
-    vm.add_code(code);
-
-    ptr
+    ngen.generate()
 }
 
 struct DoraEntryGen<'a> {
@@ -27,7 +23,7 @@ struct DoraEntryGen<'a> {
 }
 
 impl<'a> DoraEntryGen<'a> {
-    pub fn generate(mut self) -> Code {
+    pub fn generate(mut self) -> Arc<Code> {
         let framesize = mem::ptr_width_usize();
         let framesize = mem::align_usize(framesize, 16) as i32;
 
@@ -59,6 +55,7 @@ impl<'a> DoraEntryGen<'a> {
         );
         self.masm.epilog();
 
-        self.masm.code(self.vm, framesize, CodeKind::DoraStub)
+        let code_descriptor = self.masm.code();
+        install_code_stub(self.vm, code_descriptor, CodeKind::DoraStub)
     }
 }

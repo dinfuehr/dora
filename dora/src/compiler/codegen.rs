@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::boots;
 use crate::cannon;
 use crate::compiler::{native_stub, NativeFct};
@@ -8,11 +6,9 @@ use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
 use crate::language::ty::SourceTypeArray;
-use crate::masm::Label;
-use crate::mem;
 use crate::mode::MachineMode;
 use crate::os;
-use crate::vm::VM;
+use crate::vm::{install_code, CodeKind, VM};
 use crate::vm::{FctDefinition, FctDefinitionId};
 
 pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &SourceTypeArray) -> Address {
@@ -39,10 +35,42 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         CompilerName::Cannon
     };
 
-    let code = match bc {
+    let code_descriptor = match bc {
         CompilerName::Cannon => cannon::compile(vm, &fct, &type_params),
-        CompilerName::Boots => boots::compile(vm, &fct, type_params),
+        CompilerName::Boots => boots::compile(vm, &fct, &type_params),
     };
+
+    let code;
+
+    {
+        let mut specials = fct.specializations.write();
+
+        // check whether function was compiled in-between from another thread.
+        if let Some(&code_id) = specials.get(type_params) {
+            let code = vm.code.idx(code_id);
+            return code.instruction_start();
+        }
+
+        code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct.id));
+
+        // insert the returned Code into the code table to get a CodeId.
+        let code_id = {
+            let mut code_vec = vm.code.lock();
+            let code_id = code_vec.len().into();
+            code_vec.push(code.clone());
+            code_id
+        };
+
+        // We need to insert into CodeMap before releasing the specializations-lock. Otherwise
+        // another thread could run that function while the function can't be found in the
+        // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
+        {
+            let mut code_map = vm.code_map.lock();
+            code_map.insert(code.object_start(), code.object_end(), code_id);
+        }
+
+        specials.insert(type_params.clone(), code_id);
+    }
 
     if vm.args.flag_enable_perf {
         os::perf::register_with_perf(&code, vm, fct.ast.name);
@@ -58,42 +86,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         );
     }
 
-    let fct_ptr = code.instruction_start();
-    let ptr_start = code.ptr_start();
-    let ptr_end = code.ptr_end();
-
-    debug_assert!(mem::is_aligned(ptr_start.to_usize(), 16));
-    debug_assert!(mem::is_aligned(fct_ptr.to_usize(), 16));
-
-    {
-        let mut specials = fct.specializations.write();
-
-        // check whether function was compiled in-between from another thread.
-        if let Some(&code_id) = specials.get(type_params) {
-            let code = vm.code.idx(code_id);
-            return code.instruction_start();
-        }
-
-        // insert the returned Code into the JitFct table to get the JitFctId.
-        let code_id = {
-            let mut code_vec = vm.code.lock();
-            let code_id = code_vec.len().into();
-            code_vec.push(Arc::new(code));
-            code_id
-        };
-
-        // We need to insert into CodeMap before releasing the specializations-lock. Otherwise
-        // another thread could run that function while the function can't be found in the
-        // CodeMap yet. This would lead to crash e.g. for lazy compilation.
-        {
-            let mut code_map = vm.code_map.lock();
-            code_map.insert(ptr_start, ptr_end, code_id);
-        }
-
-        specials.insert(type_params.clone(), code_id);
-    }
-
-    fct_ptr
+    code.instruction_start()
 }
 
 pub fn register_for_mode(mode: MachineMode) -> AnyReg {
@@ -102,12 +95,6 @@ pub fn register_for_mode(mode: MachineMode) -> AnyReg {
     } else {
         REG_RESULT.into()
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Next {
-    Flow(Label),
-    Return,
 }
 
 pub fn should_emit_debug(vm: &VM, fct: &FctDefinition) -> bool {
@@ -210,14 +197,13 @@ pub enum AllocationSize {
 pub fn ensure_native_stub(
     vm: &VM,
     fct_id: Option<FctDefinitionId>,
-    internal_fct: NativeFct,
+    native_fct: NativeFct,
 ) -> Address {
     let mut native_stubs = vm.native_stubs.lock();
-    let ptr = internal_fct.ptr;
+    let ptr = native_fct.fctptr;
 
-    if let Some(code_id) = native_stubs.find_fct(ptr) {
-        let code = vm.code.idx(code_id);
-        code.instruction_start()
+    if let Some(instruction_start) = native_stubs.find_fct(ptr) {
+        instruction_start
     } else {
         let dbg = if let Some(fct_id) = fct_id {
             let fct = vm.fcts.idx(fct_id);
@@ -227,10 +213,7 @@ pub fn ensure_native_stub(
             false
         };
 
-        let code_id = native_stub::generate(vm, internal_fct, dbg);
-        let code = vm.code.idx(code_id);
-
-        let fct_ptr = code.instruction_start();
+        let code = native_stub::generate(vm, native_fct, dbg);
 
         if let Some(fct_id) = fct_id {
             let fct = vm.fcts.idx(fct_id);
@@ -246,7 +229,7 @@ pub fn ensure_native_stub(
             }
         }
 
-        native_stubs.insert_fct(ptr, code_id);
-        fct_ptr
+        native_stubs.insert_fct(ptr, code.instruction_start());
+        code.instruction_start()
     }
 }

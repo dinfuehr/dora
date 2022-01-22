@@ -3,14 +3,15 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::compiler::codegen::AnyReg;
+use crate::constpool::ConstPool;
 use crate::cpu::{Reg, SCRATCH};
-use crate::dseg::DSeg;
+use crate::gc::Address;
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::object::Header;
 use crate::vm::{
-    Code, CodeKind, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite,
-    PositionTable, Trap, VM,
+    CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, PositionTable,
+    Trap,
 };
 pub use dora_asm::Label;
 use dora_parser::lexer::position::Position;
@@ -26,6 +27,28 @@ pub use self::arm64::*;
 
 #[cfg(target_arch = "aarch64")]
 pub mod arm64;
+
+pub struct CodeDescriptor {
+    pub constpool: ConstPool,
+    pub code: Vec<u8>,
+    pub lazy_compilation: LazyCompilationData,
+    pub gcpoints: GcPointTable,
+    pub comments: CommentTable,
+    pub positions: PositionTable,
+}
+
+impl CodeDescriptor {
+    pub fn from_buffer(code: Vec<u8>) -> CodeDescriptor {
+        CodeDescriptor {
+            constpool: ConstPool::new(),
+            code,
+            lazy_compilation: LazyCompilationData::new(),
+            gcpoints: GcPointTable::new(),
+            comments: CommentTable::new(),
+            positions: PositionTable::new(),
+        }
+    }
+}
 
 pub enum Mem {
     // rbp + val1
@@ -45,7 +68,7 @@ pub struct MacroAssembler {
     asm: Assembler,
     bailouts: Vec<(Label, Trap, Position)>,
     lazy_compilation: LazyCompilationData,
-    dseg: DSeg,
+    constpool: ConstPool,
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: PositionTable,
@@ -58,7 +81,7 @@ impl MacroAssembler {
             asm: Assembler::new(),
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
-            dseg: DSeg::new(),
+            constpool: ConstPool::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: PositionTable::new(),
@@ -66,26 +89,23 @@ impl MacroAssembler {
         }
     }
 
-    pub fn code(mut self, vm: &VM, stacksize: i32, desc: CodeKind) -> Code {
+    pub fn code(mut self) -> CodeDescriptor {
         self.finish();
 
         // align data such that code starts at address that is
         // aligned to 16
-        self.dseg.align(16);
+        self.constpool.align(16);
 
-        let buffer = self.asm.finalize();
+        let code = self.asm.finalize();
 
-        Code::from_buffer(
-            vm,
-            &self.dseg,
-            &buffer,
-            self.lazy_compilation,
-            self.gcpoints,
-            stacksize,
-            self.comments,
-            self.positions,
-            desc,
-        )
+        CodeDescriptor {
+            constpool: self.constpool,
+            code,
+            lazy_compilation: self.lazy_compilation,
+            gcpoints: self.gcpoints,
+            comments: self.comments,
+            positions: self.positions,
+        }
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -111,8 +131,8 @@ impl MacroAssembler {
         }
     }
 
-    pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
-        self.dseg.add_addr(ptr)
+    pub fn add_addr(&mut self, ptr: Address) -> i32 {
+        self.constpool.add_addr(ptr)
     }
 
     pub fn pos(&self) -> usize {

@@ -3,17 +3,17 @@ use std::mem;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
-use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
+use crate::compiler::native_stub::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
+use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::FctDefinitionId;
-use crate::vm::{Code, CodeKind, GcPoint, GlobalDefinition, Trap, VM};
+use crate::vm::{GcPoint, GlobalDefinition, Trap, VM};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -280,7 +280,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.cmp_mem(mode, mem, rhs);
     }
 
-    pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
+    pub fn add_addr(&mut self, ptr: Address) -> i32 {
         self.masm.add_addr(ptr)
     }
 
@@ -565,10 +565,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
-    pub fn jit(mut self, stacksize: i32, desc: CodeKind) -> Code {
+    pub fn code(mut self) -> CodeDescriptor {
         self.masm.debug();
         self.slow_paths();
-        self.masm.code(self.vm, stacksize, desc)
+        self.masm.code()
     }
 
     pub fn native_call(
@@ -581,7 +581,7 @@ impl<'a> BaselineAssembler<'a> {
         let ty = internal_fct.return_type.clone();
         let ptr = ensure_native_stub(self.vm, None, internal_fct);
 
-        self.masm.raw_call(ptr.to_ptr());
+        self.masm.raw_call(ptr);
 
         let mode = if ty.is_unit() { None } else { Some(ty.mode()) };
         self.call_epilog(pos, mode, dest, gcpoint);
@@ -590,7 +590,7 @@ impl<'a> BaselineAssembler<'a> {
     pub fn direct_call(
         &mut self,
         fct_id: FctDefinitionId,
-        ptr: *const u8,
+        ptr: Address,
         type_params: SourceTypeArray,
         pos: Position,
         gcpoint: GcPoint,
@@ -673,10 +673,10 @@ impl<'a> BaselineAssembler<'a> {
         );
 
         let internal_fct = NativeFct {
-            ptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
+            fctptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
             args: &[SourceType::Int64, SourceType::Bool],
             return_type: SourceType::Ptr,
-            desc: NativeFctDescriptor::AllocStub,
+            desc: NativeFctKind::AllocStub,
         };
 
         self.native_call(internal_fct, pos, gcpoint, dest.into());
@@ -808,7 +808,7 @@ impl<'a> BaselineAssembler<'a> {
         let lbl_global = self.masm.create_label();
         let lbl_return = self.masm.create_label();
 
-        let disp = self.masm.add_addr(glob.address_init.to_ptr());
+        let disp = self.masm.add_addr(glob.address_init);
         let pos = self.masm.pos() as i32;
         self.masm.load_constpool(REG_RESULT, disp + pos);
         self.masm.load_mem(
@@ -898,7 +898,7 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
-        self.masm.raw_call(self.vm.stack_overflow_stub().to_ptr());
+        self.masm.raw_call(self.vm.stack_overflow_stub());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(pos);
         self.masm.jump(lbl_return);
@@ -913,7 +913,7 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path safepoint".into());
-        self.masm.raw_call(self.vm.safepoint_stub().to_ptr());
+        self.masm.raw_call(self.vm.safepoint_stub());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(pos);
         self.masm.jump(lbl_return);
@@ -931,7 +931,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.bind_label(lbl_start);
         self.direct_call(
             fct_id,
-            ptr.to_ptr(),
+            ptr,
             SourceTypeArray::empty(),
             pos,
             gcpoint,
@@ -946,7 +946,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.emit_comment("slow path assert".into());
         self.masm
             .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT.int() as i64);
-        self.masm.raw_call(self.vm.trap_stub().to_ptr());
+        self.masm.raw_call(self.vm.trap_stub());
         self.masm.emit_gcpoint(GcPoint::new());
         self.masm.emit_position(pos);
     }

@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::compiler;
 use crate::compiler::compile_stub;
 use crate::compiler::dora_stub;
-use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeStubs};
+use crate::compiler::native_stub::{self, NativeFct, NativeFctKind, NativeStubs};
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
@@ -33,8 +33,8 @@ pub use self::classes::{
     TypeParamDefinition, TypeParamId,
 };
 pub use self::code::{
-    Code, CodeId, CodeKind, CommentTable, GcPoint, GcPointTable, LazyCompilationData,
-    LazyCompilationSite, PositionTable,
+    install_code, install_code_stub, Code, CodeId, CodeKind, CommentTable, GcPoint, GcPointTable,
+    LazyCompilationData, LazyCompilationSite, PositionTable,
 };
 pub use self::code_map::CodeMap;
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
@@ -535,14 +535,14 @@ impl VM {
         self.gc.dump_summary(runtime);
     }
 
-    pub fn add_code(&self, code: Code) -> CodeId {
-        let code_start = code.ptr_start();
-        let code_end = code.ptr_end();
+    pub fn add_code(&self, code: Arc<Code>) -> CodeId {
+        let code_start = code.object_start();
+        let code_end = code.object_end();
 
         let code_id = {
             let mut code_vec = self.code.lock();
             let code_id = code_vec.len().into();
-            code_vec.push(Arc::new(code));
+            code_vec.push(code);
             code_id
         };
 
@@ -561,7 +561,7 @@ impl VM {
         let mut dora_stub_address = self.dora_stub.lock();
 
         if dora_stub_address.is_null() {
-            *dora_stub_address = dora_stub::generate(self);
+            *dora_stub_address = dora_stub::generate(self).instruction_start();
         }
 
         *dora_stub_address
@@ -571,7 +571,7 @@ impl VM {
         let mut compile_stub_address = self.compile_stub.lock();
 
         if compile_stub_address.is_null() {
-            *compile_stub_address = compile_stub::generate(self);
+            *compile_stub_address = compile_stub::generate(self).instruction_start();
         }
 
         *compile_stub_address
@@ -582,15 +582,13 @@ impl VM {
 
         if trap_stub_address.is_null() {
             let ifct = NativeFct {
-                ptr: Address::from_ptr(stdlib::trap as *const u8),
+                fctptr: Address::from_ptr(stdlib::trap as *const u8),
                 args: &[SourceType::Int32],
                 return_type: SourceType::Unit,
-                desc: NativeFctDescriptor::TrapStub,
+                desc: NativeFctKind::TrapStub,
             };
-            let code_id = native_stub::generate(self, ifct, false);
-            let code = self.code.idx(code_id);
-            let fct_ptr = code.instruction_start();
-            *trap_stub_address = fct_ptr;
+            let code = native_stub::generate(self, ifct, false);
+            *trap_stub_address = code.instruction_start();
         }
 
         *trap_stub_address
@@ -601,15 +599,13 @@ impl VM {
 
         if stack_overflow_stub_address.is_null() {
             let ifct = NativeFct {
-                ptr: Address::from_ptr(safepoint::stack_overflow as *const u8),
+                fctptr: Address::from_ptr(safepoint::stack_overflow as *const u8),
                 args: &[],
                 return_type: SourceType::Unit,
-                desc: NativeFctDescriptor::GuardCheckStub,
+                desc: NativeFctKind::GuardCheckStub,
             };
-            let code_id = native_stub::generate(self, ifct, false);
-            let code = self.code.idx(code_id);
-            let fct_ptr = code.instruction_start();
-            *stack_overflow_stub_address = fct_ptr;
+            let code = native_stub::generate(self, ifct, false);
+            *stack_overflow_stub_address = code.instruction_start();
         }
 
         *stack_overflow_stub_address
@@ -620,15 +616,13 @@ impl VM {
 
         if safepoint_stub_address.is_null() {
             let ifct = NativeFct {
-                ptr: Address::from_ptr(safepoint::safepoint_slow as *const u8),
+                fctptr: Address::from_ptr(safepoint::safepoint_slow as *const u8),
                 args: &[],
                 return_type: SourceType::Unit,
-                desc: NativeFctDescriptor::SafepointStub,
+                desc: NativeFctKind::SafepointStub,
             };
-            let code_id = native_stub::generate(self, ifct, false);
-            let code = self.code.idx(code_id);
-            let fct_ptr = code.instruction_start();
-            *safepoint_stub_address = fct_ptr;
+            let code = native_stub::generate(self, ifct, false);
+            *safepoint_stub_address = code.instruction_start();
         }
 
         *safepoint_stub_address

@@ -1,5 +1,6 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
+use std::sync::Arc;
 
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::{
@@ -13,11 +14,11 @@ use crate::mem;
 use crate::mode::MachineMode;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::vm::FctDefinitionId;
-use crate::vm::{Code, CodeId, CodeKind, GcPoint, VM};
+use crate::vm::{install_code_stub, FctDefinitionId};
+use crate::vm::{Code, CodeKind, GcPoint, VM};
 
 pub struct NativeStubs {
-    map: HashMap<Address, CodeId>,
+    map: HashMap<Address, Address>,
 }
 
 impl NativeStubs {
@@ -27,17 +28,17 @@ impl NativeStubs {
         }
     }
 
-    pub fn find_fct(&self, ptr: Address) -> Option<CodeId> {
-        self.map.get(&ptr).map(|&code_id| code_id)
+    pub fn find_fct(&self, key: Address) -> Option<Address> {
+        self.map.get(&key).map(|&code_id| code_id)
     }
 
-    pub fn insert_fct(&mut self, ptr: Address, fct: CodeId) {
-        self.map.entry(ptr).or_insert(fct);
+    pub fn insert_fct(&mut self, key: Address, stub: Address) {
+        self.map.entry(key).or_insert(stub);
     }
 }
 
 #[derive(Clone)]
-pub enum NativeFctDescriptor {
+pub enum NativeFctKind {
     NativeStub(FctDefinitionId),
     AllocStub,
     VerifyStub,
@@ -47,13 +48,13 @@ pub enum NativeFctDescriptor {
 }
 
 pub struct NativeFct<'a> {
-    pub ptr: Address,
+    pub fctptr: Address,
     pub args: &'a [SourceType],
     pub return_type: SourceType,
-    pub desc: NativeFctDescriptor,
+    pub desc: NativeFctKind,
 }
 
-pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> CodeId {
+pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> Arc<Code> {
     let ngen = NativeGen {
         vm,
         masm: MacroAssembler::new(),
@@ -61,8 +62,7 @@ pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> CodeId {
         dbg,
     };
 
-    let code = ngen.generate();
-    vm.add_code(code)
+    ngen.generate()
 }
 
 struct NativeGen<'a> {
@@ -74,7 +74,7 @@ struct NativeGen<'a> {
 }
 
 impl<'a> NativeGen<'a> {
-    pub fn generate(mut self) -> Code {
+    pub fn generate(mut self) -> Arc<Code> {
         let save_return = self.fct.return_type != SourceType::Unit;
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
@@ -209,7 +209,7 @@ impl<'a> NativeGen<'a> {
             }
         }
 
-        self.masm.raw_call(self.fct.ptr.to_ptr());
+        self.masm.raw_call(self.fct.fctptr);
         self.masm.emit_only_gcpoint(GcPoint::from_offsets(offsets));
 
         if !self.fct.return_type.is_unit() {
@@ -232,16 +232,17 @@ impl<'a> NativeGen<'a> {
         self.masm.epilog();
         self.masm.nop();
 
-        let desc = match self.fct.desc {
-            NativeFctDescriptor::NativeStub(fid) => CodeKind::NativeStub(fid),
-            NativeFctDescriptor::AllocStub => CodeKind::AllocStub,
-            NativeFctDescriptor::VerifyStub => CodeKind::VerifyStub,
-            NativeFctDescriptor::TrapStub => CodeKind::TrapStub,
-            NativeFctDescriptor::GuardCheckStub => CodeKind::GuardCheckStub,
-            NativeFctDescriptor::SafepointStub => CodeKind::SafepointStub,
+        let kind = match self.fct.desc {
+            NativeFctKind::NativeStub(fid) => CodeKind::NativeStub(fid),
+            NativeFctKind::AllocStub => CodeKind::AllocStub,
+            NativeFctKind::VerifyStub => CodeKind::VerifyStub,
+            NativeFctKind::TrapStub => CodeKind::TrapStub,
+            NativeFctKind::GuardCheckStub => CodeKind::GuardCheckStub,
+            NativeFctKind::SafepointStub => CodeKind::SafepointStub,
         };
 
-        self.masm.code(self.vm, framesize, desc)
+        let code_descriptor = self.masm.code();
+        install_code_stub(self.vm, code_descriptor, kind)
     }
 }
 

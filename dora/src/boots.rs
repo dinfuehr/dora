@@ -10,13 +10,14 @@ use crate::gc::Address;
 use crate::handle::handle;
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceTypeArray;
+use crate::masm::CodeDescriptor;
 use crate::object::{Obj, Ref, UInt8Array};
 use crate::threads::current_thread;
-use crate::vm::{Code, CodeKind, FctDefinition, VM};
+use crate::vm::{FctDefinition, VM};
 
 mod serializer;
 
-pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> Code {
+pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> CodeDescriptor {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     if should_emit_bytecode(vm, fct) {
@@ -47,17 +48,17 @@ pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> C
         compile_address,
         encoded_compilation_info.direct_ptr(),
     ));
-    let mut machine_code_array = vec![0; machine_code.len()];
+    let mut code = vec![0; machine_code.len()];
 
     unsafe {
         ptr::copy_nonoverlapping(
             machine_code.data() as *mut u8,
-            machine_code_array.as_mut_ptr(),
+            code.as_mut_ptr(),
             machine_code.len(),
         );
     }
 
-    Code::from_optimized_buffer(vm, &machine_code_array, CodeKind::DoraFct(fct.id))
+    CodeDescriptor::from_buffer(code)
 }
 
 pub fn encode_test(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) {

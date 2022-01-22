@@ -10,14 +10,14 @@ use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_native_stub, should_emit_asm, should_emit_debug, AllocationSize, AnyReg,
 };
-use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
+use crate::compiler::native_stub::{NativeFct, NativeFctKind};
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
     REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::masm::{CondCode, Label, Mem};
+use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
 use crate::object::{offset_of_array_data, Header, Str};
@@ -26,8 +26,8 @@ use crate::stdlib;
 use crate::vm::{
     find_trait_impl, specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
-    specialize_type_list, Code, CodeKind, EnumDefinitionId, EnumLayout, FctDefinition,
-    FctDefinitionId, GcPoint, GlobalDefinitionId, Intrinsic, StructDefinitionId, Trap, TupleId, VM,
+    specialize_type_list, EnumDefinitionId, EnumLayout, FctDefinition, FctDefinitionId, GcPoint,
+    GlobalDefinitionId, Intrinsic, StructDefinitionId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -117,7 +117,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    pub fn generate(mut self) -> Code {
+    pub fn generate(mut self) -> CodeDescriptor {
         if should_emit_debug(self.vm, self.fct) {
             self.asm.debug();
         }
@@ -138,9 +138,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_slow_paths();
 
-        let code = self.asm.jit(self.framesize, CodeKind::DoraFct(self.fct.id));
-
-        code
+        self.asm.code()
     }
 
     fn emit_safepoint(&mut self) {
@@ -1249,7 +1247,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm
             .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Base(REG_TMP1, 0));
 
-        let disp = self.asm.add_addr(vtable as *const _ as *mut u8);
+        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
         let pos = self.asm.pos() as i32;
 
         // tmp2 = <vtable of T>
@@ -1999,7 +1997,7 @@ impl<'a> CannonCodeGen<'a> {
             self.asm.ensure_global(&*glob, fid, ptr, glob.pos, gcpoint);
         }
 
-        let disp = self.asm.add_addr(glob.address_value.to_ptr());
+        let disp = self.asm.add_addr(glob.address_value);
         let pos = self.asm.pos() as i32;
         self.asm.load_constpool(REG_TMP1, disp + pos);
 
@@ -2019,7 +2017,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::from_ty(self.vm, glob.ty.clone())
         );
 
-        let disp = self.asm.add_addr(glob.address_value.to_ptr());
+        let disp = self.asm.add_addr(glob.address_value);
         let pos = self.asm.pos() as i32;
 
         self.asm.load_constpool(REG_TMP1, disp + pos);
@@ -2031,7 +2029,7 @@ impl<'a> CannonCodeGen<'a> {
         self.copy_bytecode_ty(bytecode_type, dest, src);
 
         if glob.needs_initialization() {
-            let disp = self.asm.add_addr(glob.address_init.to_ptr());
+            let disp = self.asm.add_addr(glob.address_init);
             let pos = self.asm.pos() as i32;
             self.asm.load_constpool(REG_RESULT, disp + pos);
             self.asm.load_int_const(MachineMode::Int8, REG_TMP1, 1);
@@ -2082,7 +2080,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(bytecode_type, BytecodeType::Ptr);
 
         let handle = Str::from_buffer_in_perm(self.vm, lit_value.as_bytes());
-        let disp = self.asm.add_addr(handle.raw() as *const u8);
+        let disp = self.asm.add_addr(handle.address());
         let pos = self.asm.pos() as i32;
 
         self.asm.load_constpool(REG_RESULT, disp + pos);
@@ -2329,8 +2327,7 @@ impl<'a> CannonCodeGen<'a> {
         // store classptr in object
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
-        let cptr = vtable as *const VTable as *const u8;
-        let disp = self.asm.add_addr(cptr);
+        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
         let pos = self.asm.pos() as i32;
 
         self.asm.load_constpool(REG_TMP1.into(), disp + pos);
@@ -2409,8 +2406,7 @@ impl<'a> CannonCodeGen<'a> {
         // store classptr in object
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
-        let cptr = vtable as *const VTable as *const u8;
-        let disp = self.asm.add_addr(cptr);
+        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
         let pos = self.asm.pos() as i32;
 
         self.asm.load_constpool(REG_TMP1.into(), disp + pos);
@@ -2577,8 +2573,7 @@ impl<'a> CannonCodeGen<'a> {
                 comment!(self, format!("NewEnum: initialize object header"));
                 let vtable = cls.vtable.read();
                 let vtable: &VTable = vtable.as_ref().unwrap();
-                let cptr = vtable as *const VTable as *const u8;
-                let disp = self.asm.add_addr(cptr);
+                let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
                 let pos = self.asm.pos() as i32;
 
                 self.asm.load_constpool(REG_RESULT.into(), disp + pos);
@@ -2708,8 +2703,7 @@ impl<'a> CannonCodeGen<'a> {
         comment!(self, format!("NewTraitObject: initialize object header"));
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
-        let cptr = vtable as *const VTable as *const u8;
-        let disp = self.asm.add_addr(cptr);
+        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
         let pos = self.asm.pos() as i32;
 
         self.asm.load_constpool(REG_RESULT.into(), disp + pos);
@@ -3186,7 +3180,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.asm.direct_call(
             fct_id,
-            ptr.to_ptr(),
+            ptr,
             type_params,
             pos,
             gcpoint,
@@ -3268,7 +3262,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.asm.direct_call(
             fct_id,
-            ptr.to_ptr(),
+            ptr,
             type_params,
             pos,
             gcpoint,
@@ -3398,10 +3392,10 @@ impl<'a> CannonCodeGen<'a> {
 
             Intrinsic::Unreachable => {
                 let native_fct = NativeFct {
-                    ptr: Address::from_ptr(stdlib::unreachable as *const u8),
+                    fctptr: Address::from_ptr(stdlib::unreachable as *const u8),
                     args: &[],
                     return_type: SourceType::Unit,
-                    desc: NativeFctDescriptor::NativeStub(fct_id),
+                    desc: NativeFctKind::NativeStub(fct_id),
                 };
                 let gcpoint = self.create_gcpoint();
                 let result = REG_RESULT.into();
@@ -4300,10 +4294,10 @@ impl<'a> CannonCodeGen<'a> {
             if let Some(native_pointer) = fct.native_pointer {
                 assert!(type_params.is_empty());
                 let internal_fct = NativeFct {
-                    ptr: native_pointer,
+                    fctptr: native_pointer,
                     args: fct.params_with_self(),
                     return_type: fct.return_type.clone(),
-                    desc: NativeFctDescriptor::NativeStub(fid),
+                    desc: NativeFctKind::NativeStub(fid),
                 };
 
                 ensure_native_stub(self.vm, Some(fid), internal_fct)

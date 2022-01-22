@@ -3,6 +3,7 @@ use dora_parser::lexer::position::Position;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
+use crate::gc::Address;
 use crate::language::ty::SourceTypeArray;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
@@ -13,7 +14,7 @@ use crate::vm::{get_vm, FctDefinitionId, LazyCompilationSite, Trap};
 use crate::vtable::VTable;
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
-use dora_asm::x64::{Address, Condition, Immediate, ScaleFactor, XmmRegister};
+use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
 
 impl MacroAssembler {
     pub fn prolog_size(&mut self, stacksize: i32) {
@@ -44,7 +45,7 @@ impl MacroAssembler {
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
         self.asm.cmpq_ar(
-            Address::offset(REG_THREAD.into(), ThreadLocalData::stack_limit_offset()),
+            AsmAddress::offset(REG_THREAD.into(), ThreadLocalData::stack_limit_offset()),
             RSP.into(),
         );
 
@@ -53,7 +54,7 @@ impl MacroAssembler {
 
     pub fn safepoint(&mut self, lbl_slow: Label) {
         self.asm.cmpb_ai(
-            Address::offset(
+            AsmAddress::offset(
                 REG_THREAD.into(),
                 ThreadLocalData::safepoint_requested_offset(),
             ),
@@ -100,7 +101,7 @@ impl MacroAssembler {
     pub fn direct_call(
         &mut self,
         fct_id: FctDefinitionId,
-        ptr: *const u8,
+        ptr: Address,
         type_params: SourceTypeArray,
     ) {
         let disp = self.add_addr(ptr);
@@ -117,7 +118,7 @@ impl MacroAssembler {
         ));
     }
 
-    pub fn raw_call(&mut self, ptr: *const u8) {
+    pub fn raw_call(&mut self, ptr: Address) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -866,7 +867,7 @@ impl MacroAssembler {
                 _ => unreachable!(),
             };
             self.asm
-                .lea(dest.into(), Address::index(length.into(), scale, size));
+                .lea(dest.into(), AsmAddress::index(length.into(), scale, size));
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
@@ -912,28 +913,30 @@ impl MacroAssembler {
     }
 
     pub fn load_int32_synchronized(&mut self, dest: Reg, addr: Reg) {
-        self.asm.movl_ra(dest.into(), Address::reg(addr.into()));
+        self.asm.movl_ra(dest.into(), AsmAddress::reg(addr.into()));
     }
 
     pub fn load_int64_synchronized(&mut self, dest: Reg, addr: Reg) {
-        self.asm.movq_ra(dest.into(), Address::reg(addr.into()));
+        self.asm.movq_ra(dest.into(), AsmAddress::reg(addr.into()));
     }
 
     pub fn store_int32_synchronized(&mut self, dest: Reg, addr: Reg) {
-        self.asm.xchgl_ar(Address::reg(addr.into()), dest.into());
+        self.asm.xchgl_ar(AsmAddress::reg(addr.into()), dest.into());
     }
 
     pub fn store_int64_synchronized(&mut self, dest: Reg, addr: Reg) {
-        self.asm.xchgq_ar(Address::reg(addr.into()), dest.into());
+        self.asm.xchgq_ar(AsmAddress::reg(addr.into()), dest.into());
     }
 
     pub fn exchange_int32_synchronized(&mut self, old: Reg, new: Reg, address: Reg) {
-        self.asm.xchgl_ar(Address::reg(address.into()), new.into());
+        self.asm
+            .xchgl_ar(AsmAddress::reg(address.into()), new.into());
         self.asm.movl_rr(old.into(), new.into());
     }
 
     pub fn exchange_int64_synchronized(&mut self, old: Reg, new: Reg, address: Reg) {
-        self.asm.xchgq_ar(Address::reg(address.into()), new.into());
+        self.asm
+            .xchgq_ar(AsmAddress::reg(address.into()), new.into());
         self.asm.movq_rr(old.into(), new.into());
     }
 
@@ -945,7 +948,7 @@ impl MacroAssembler {
     ) -> Reg {
         assert_eq!(expected, RAX);
         self.asm
-            .lock_cmpxchgl_ar(Address::reg(address.into()), new.into());
+            .lock_cmpxchgl_ar(AsmAddress::reg(address.into()), new.into());
         RAX
     }
 
@@ -957,7 +960,7 @@ impl MacroAssembler {
     ) -> Reg {
         assert_eq!(expected, RAX);
         self.asm
-            .lock_cmpxchgq_ar(Address::reg(address.into()), new.into());
+            .lock_cmpxchgq_ar(AsmAddress::reg(address.into()), new.into());
         RAX
     }
 
@@ -968,7 +971,7 @@ impl MacroAssembler {
         address: Reg,
     ) -> Reg {
         self.asm
-            .lock_xaddl_ar(Address::reg(address.into()), value.into());
+            .lock_xaddl_ar(AsmAddress::reg(address.into()), value.into());
         value
     }
 
@@ -979,7 +982,7 @@ impl MacroAssembler {
         address: Reg,
     ) -> Reg {
         self.asm
-            .lock_xaddq_ar(Address::reg(address.into()), value.into());
+            .lock_xaddq_ar(AsmAddress::reg(address.into()), value.into());
         value
     }
 
@@ -1007,14 +1010,14 @@ impl MacroAssembler {
         if card_table_offset <= 0x7FFF_FFFF {
             // emit mov [card_table_offset + base], 0
             self.asm.movb_ai(
-                Address::offset(src.into(), card_table_offset as i32),
+                AsmAddress::offset(src.into(), card_table_offset as i32),
                 Immediate(0),
             );
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, card_table_offset as i64);
             self.asm.movb_ai(
-                Address::array(src.into(), (*scratch).into(), ScaleFactor::One, 0),
+                AsmAddress::array(src.into(), (*scratch).into(), ScaleFactor::One, 0),
                 Immediate(0),
             );
         }
@@ -1049,7 +1052,7 @@ impl MacroAssembler {
     }
 
     pub fn copy_pc(&mut self, dest: Reg) {
-        self.asm.lea(dest.into(), Address::rip(0));
+        self.asm.lea(dest.into(), AsmAddress::rip(0));
     }
 
     pub fn copy_ra(&mut self, dest: Reg) {
@@ -1084,7 +1087,7 @@ impl MacroAssembler {
         // next instruction has 7 bytes
         let disp = -(disp + 7);
 
-        self.asm.movq_ra(dest.into(), Address::rip(disp)); // 7 bytes
+        self.asm.movq_ra(dest.into(), AsmAddress::rip(disp)); // 7 bytes
     }
 
     pub fn call_reg(&mut self, reg: Reg) {
@@ -1124,15 +1127,15 @@ impl MacroAssembler {
 
         match mode {
             MachineMode::Float32 => {
-                let off = self.dseg.add_f32(imm as f32);
+                let off = self.constpool.add_f32(imm as f32);
                 self.asm
-                    .movss_ra(dest.into(), Address::rip(-(off + pos + inst_size)))
+                    .movss_ra(dest.into(), AsmAddress::rip(-(off + pos + inst_size)))
             }
 
             MachineMode::Float64 => {
-                let off = self.dseg.add_f64(imm);
+                let off = self.constpool.add_f64(imm);
                 self.asm
-                    .movsd_ra(dest.into(), Address::rip(-(off + pos + inst_size)))
+                    .movsd_ra(dest.into(), AsmAddress::rip(-(off + pos + inst_size)))
             }
 
             _ => unreachable!(),
@@ -1235,11 +1238,11 @@ impl MacroAssembler {
         };
 
         // align MMX data to 16 bytes
-        self.dseg.align(16);
-        self.dseg.add_i32(0);
-        self.dseg.add_i32(0);
-        self.dseg.add_i32(snd);
-        let disp = self.dseg.add_i32(fst);
+        self.constpool.align(16);
+        self.constpool.add_i32(0);
+        self.constpool.add_i32(0);
+        self.constpool.add_i32(snd);
+        let disp = self.constpool.add_i32(fst);
 
         let pos = self.pos() as i32;
 
@@ -1247,7 +1250,7 @@ impl MacroAssembler {
 
         let inst_size = 7 + if xmm_reg.needs_rex() { 1 } else { 0 };
 
-        let address = Address::rip(-(disp + pos + inst_size));
+        let address = AsmAddress::rip(-(disp + pos + inst_size));
 
         match mode {
             MachineMode::Float32 => self.asm.andps_ra(src.into(), address),
@@ -1268,11 +1271,11 @@ impl MacroAssembler {
         };
 
         // align MMX data to 16 bytes
-        self.dseg.align(16);
-        self.dseg.add_i32(0);
-        self.dseg.add_i32(0);
-        self.dseg.add_i32(snd);
-        let disp = self.dseg.add_i32(fst);
+        self.constpool.align(16);
+        self.constpool.add_i32(0);
+        self.constpool.add_i32(0);
+        self.constpool.add_i32(snd);
+        let disp = self.constpool.add_i32(fst);
 
         let pos = self.pos() as i32;
 
@@ -1282,7 +1285,7 @@ impl MacroAssembler {
             + if mode == MachineMode::Float64 { 1 } else { 0 }
             + if xmm_reg.needs_rex() { 1 } else { 0 };
 
-        let address = Address::rip(-(disp + pos + inst_size));
+        let address = AsmAddress::rip(-(disp + pos + inst_size));
 
         match mode {
             MachineMode::Float32 => self.asm.xorps_ra(src.into(), address),
@@ -1306,7 +1309,7 @@ impl MacroAssembler {
     pub fn trap(&mut self, trap: Trap, pos: Position) {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
-        self.raw_call(vm.trap_stub().to_ptr());
+        self.raw_call(vm.trap_stub());
         self.emit_position(pos);
     }
 
@@ -1356,10 +1359,10 @@ impl MachineMode {
     }
 }
 
-fn address_from_mem(mem: Mem) -> Address {
+fn address_from_mem(mem: Mem) -> AsmAddress {
     match mem {
-        Mem::Local(offset) => Address::offset(REG_FP.into(), offset),
-        Mem::Base(base, disp) => Address::offset(base.into(), disp),
+        Mem::Local(offset) => AsmAddress::offset(REG_FP.into(), offset),
+        Mem::Base(base, disp) => AsmAddress::offset(base.into(), disp),
         Mem::Index(base, index, scale, disp) => {
             let factor = match scale {
                 1 => ScaleFactor::One,
@@ -1368,7 +1371,7 @@ fn address_from_mem(mem: Mem) -> Address {
                 8 => ScaleFactor::Eight,
                 _ => unreachable!(),
             };
-            Address::array(base.into(), index.into(), factor, disp)
+            AsmAddress::array(base.into(), index.into(), factor, disp)
         }
         Mem::Offset(index, scale, disp) => {
             let factor = match scale {
@@ -1378,7 +1381,7 @@ fn address_from_mem(mem: Mem) -> Address {
                 8 => ScaleFactor::Eight,
                 _ => unreachable!(),
             };
-            Address::index(index.into(), factor, disp)
+            AsmAddress::index(index.into(), factor, disp)
         }
     }
 }
