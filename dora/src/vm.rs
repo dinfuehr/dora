@@ -253,6 +253,7 @@ impl FullSemAnalysis {
 
                 free_object_class_def: empty_class_def_id,
                 free_array_class_def: empty_class_def_id,
+                code_class_def: empty_class_def_id,
             },
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
@@ -422,6 +423,7 @@ impl VM {
 
                 free_object_class_def: empty_class_def_id,
                 free_array_class_def: empty_class_def_id,
+                code_class_def: empty_class_def_id,
             },
             gc,
             id_generator: NodeIdGenerator::new(),

@@ -24,6 +24,7 @@ pub struct KnownElements {
 
     pub free_object_class_def: ClassInstanceId,
     pub free_array_class_def: ClassInstanceId,
+    pub code_class_def: ClassInstanceId,
 }
 
 #[derive(Debug)]

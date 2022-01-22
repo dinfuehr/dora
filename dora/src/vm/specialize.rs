@@ -544,6 +544,7 @@ fn create_specialized_class_array(
         InstanceSize::Str => (0, 1),
         InstanceSize::TupleArray(element_size) => (0, element_size as usize),
         InstanceSize::StructArray(element_size) => (0, element_size as usize),
+        InstanceSize::CodeObject => (0, 1),
     };
 
     let mut vtable = VTableBox::new(

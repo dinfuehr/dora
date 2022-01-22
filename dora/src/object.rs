@@ -324,6 +324,8 @@ where
         InstanceSize::Fixed(_) => {
             visit_fixed_object(object, cls, f);
         }
+
+        InstanceSize::CodeObject => unreachable!(),
     }
 }
 
