@@ -3,7 +3,7 @@ use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
-use crate::vm::{Code, CodeDescriptor, VM};
+use crate::vm::{Code, CodeKind, VM};
 
 pub fn generate<'a>(vm: &'a VM) -> Address {
     let ngen = DoraEntryGen {
@@ -59,6 +59,6 @@ impl<'a> DoraEntryGen<'a> {
         );
         self.masm.epilog();
 
-        self.masm.code(self.vm, framesize, CodeDescriptor::DoraStub)
+        self.masm.code(self.vm, framesize, CodeKind::DoraStub)
     }
 }

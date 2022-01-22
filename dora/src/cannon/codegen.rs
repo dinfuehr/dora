@@ -26,7 +26,7 @@ use crate::stdlib;
 use crate::vm::{
     find_trait_impl, specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
-    specialize_type_list, Code, CodeDescriptor, EnumDefinitionId, EnumLayout, FctDefinition,
+    specialize_type_list, Code, CodeKind, EnumDefinitionId, EnumLayout, FctDefinition,
     FctDefinitionId, GcPoint, GlobalDefinitionId, Intrinsic, StructDefinitionId, Trap, TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
@@ -138,9 +138,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_slow_paths();
 
-        let code = self
-            .asm
-            .jit(self.framesize, CodeDescriptor::DoraFct(self.fct.id));
+        let code = self.asm.jit(self.framesize, CodeKind::DoraFct(self.fct.id));
 
         code
     }

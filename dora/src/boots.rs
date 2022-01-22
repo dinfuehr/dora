@@ -12,7 +12,7 @@ use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceTypeArray;
 use crate::object::{Obj, Ref, UInt8Array};
 use crate::threads::current_thread;
-use crate::vm::{Code, CodeDescriptor, FctDefinition, VM};
+use crate::vm::{Code, CodeKind, FctDefinition, VM};
 
 mod serializer;
 
@@ -57,7 +57,7 @@ pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> C
         );
     }
 
-    Code::from_optimized_buffer(vm, &machine_code_array, CodeDescriptor::DoraFct(fct.id))
+    Code::from_optimized_buffer(vm, &machine_code_array, CodeKind::DoraFct(fct.id))
 }
 
 pub fn encode_test(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) {

@@ -4,9 +4,7 @@ use crate::gc::Address;
 use crate::language::ty::SourceType;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::vm::{
-    specialize_enum_id_params, specialize_struct_id_params, CodeDescriptor, EnumLayout, VM,
-};
+use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, CodeKind, EnumLayout, VM};
 
 pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
@@ -139,7 +137,7 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
         let code = vm.code.idx(code_id);
 
         match code.descriptor() {
-            CodeDescriptor::DoraFct(_) => {
+            CodeKind::DoraFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
                 let gcpoint = code.gcpoint_for_offset(offset as u32).expect("no gcpoint");
 
@@ -151,7 +149,7 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
                 true
             }
 
-            CodeDescriptor::NativeStub(_) => {
+            CodeKind::NativeStub(_) => {
                 let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
 
                 for &offset in &gcpoint.offsets {
@@ -162,13 +160,13 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
                 true
             }
 
-            CodeDescriptor::AllocStub => true,
-            CodeDescriptor::DoraStub => false,
-            CodeDescriptor::GuardCheckStub => true,
-            CodeDescriptor::SafepointStub => true,
-            CodeDescriptor::CompileStub => true,
+            CodeKind::AllocStub => true,
+            CodeKind::DoraStub => false,
+            CodeKind::GuardCheckStub => true,
+            CodeKind::SafepointStub => true,
+            CodeKind::CompileStub => true,
 
-            CodeDescriptor::VerifyStub | CodeDescriptor::TrapStub => unreachable!(),
+            CodeKind::VerifyStub | CodeKind::TrapStub => unreachable!(),
         }
     } else {
         println!("no code found at pc = {:x}", pc);

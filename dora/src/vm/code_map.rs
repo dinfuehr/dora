@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::gc::Address;
-use crate::vm::{CodeDescriptor, CodeId, VM};
+use crate::vm::{CodeId, CodeKind, VM};
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, CodeId>,
@@ -23,25 +23,25 @@ impl CodeMap {
             let code = vm.code.idx(code_id);
 
             match code.descriptor() {
-                CodeDescriptor::DoraFct(fct_id) => {
+                CodeKind::DoraFct(fct_id) => {
                     let fct = vm.fcts.idx(fct_id);
                     let fct = fct.read();
 
                     println!("dora {}", fct.name_with_params(vm));
                 }
-                CodeDescriptor::CompileStub => println!("compile_stub"),
-                CodeDescriptor::TrapStub => println!("trap_stub"),
-                CodeDescriptor::AllocStub => println!("alloc_stub"),
-                CodeDescriptor::VerifyStub => println!("verify_stub"),
-                CodeDescriptor::NativeStub(fct_id) => {
+                CodeKind::CompileStub => println!("compile_stub"),
+                CodeKind::TrapStub => println!("trap_stub"),
+                CodeKind::AllocStub => println!("alloc_stub"),
+                CodeKind::VerifyStub => println!("verify_stub"),
+                CodeKind::NativeStub(fct_id) => {
                     let fct = vm.fcts.idx(fct_id);
                     let fct = fct.read();
 
                     println!("native stub {}", fct.name_with_params(vm));
                 }
-                CodeDescriptor::DoraStub => println!("dora_stub"),
-                CodeDescriptor::GuardCheckStub => println!("guard_check_stub"),
-                CodeDescriptor::SafepointStub => println!("safepoint_stub"),
+                CodeKind::DoraStub => println!("dora_stub"),
+                CodeKind::GuardCheckStub => println!("guard_check_stub"),
+                CodeKind::SafepointStub => println!("safepoint_stub"),
             }
         }
 

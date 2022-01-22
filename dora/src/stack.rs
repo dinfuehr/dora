@@ -3,7 +3,7 @@ use std::ptr;
 use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
-use crate::vm::{get_vm, CodeDescriptor, CodeId, FctParent, VM};
+use crate::vm::{get_vm, CodeId, CodeKind, FctParent, VM};
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -142,7 +142,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     if let Some(code_id) = code_id {
         let code = vm.code.idx(code_id);
         match code.descriptor() {
-            CodeDescriptor::DoraFct(_) => {
+            CodeKind::DoraFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
                 let position = code
                     .position_for_offset(offset as u32)
@@ -153,7 +153,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
                 true
             }
 
-            CodeDescriptor::NativeStub(fct_id) => {
+            CodeKind::NativeStub(fct_id) => {
                 let fct = vm.fcts.idx(fct_id);
                 let fct = fct.read();
 
@@ -162,13 +162,13 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
                 true
             }
 
-            CodeDescriptor::TrapStub => true,
-            CodeDescriptor::GuardCheckStub => true,
-            CodeDescriptor::CompileStub => true,
-            CodeDescriptor::AllocStub => true,
-            CodeDescriptor::DoraStub => false,
+            CodeKind::TrapStub => true,
+            CodeKind::GuardCheckStub => true,
+            CodeKind::CompileStub => true,
+            CodeKind::AllocStub => true,
+            CodeKind::DoraStub => false,
 
-            CodeDescriptor::VerifyStub | CodeDescriptor::SafepointStub => unreachable!(),
+            CodeKind::VerifyStub | CodeKind::SafepointStub => unreachable!(),
         }
     } else {
         println!("no code found at pc = {:x}", pc);

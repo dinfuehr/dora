@@ -9,8 +9,8 @@ use crate::mem;
 use crate::mode::MachineMode;
 use crate::object::Header;
 use crate::vm::{
-    Code, CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData,
-    LazyCompilationSite, PositionTable, Trap, VM,
+    Code, CodeKind, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite,
+    PositionTable, Trap, VM,
 };
 pub use dora_asm::Label;
 use dora_parser::lexer::position::Position;
@@ -66,7 +66,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn code(mut self, vm: &VM, stacksize: i32, desc: CodeDescriptor) -> Code {
+    pub fn code(mut self, vm: &VM, stacksize: i32, desc: CodeKind) -> Code {
         self.finish();
 
         // align data such that code starts at address that is

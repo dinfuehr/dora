@@ -17,7 +17,7 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Code, CodeDescriptor, FctDefinition,
+    find_trait_impl, get_vm, AnalysisData, ClassInstanceId, Code, CodeKind, FctDefinition,
     FctDefinitionId, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,
 };
 
@@ -153,8 +153,7 @@ impl<'a> DoraCompileGen<'a> {
         // jump to compiled function
         self.masm.jump_reg(REG_TMP1);
 
-        self.masm
-            .code(self.vm, framesize, CodeDescriptor::CompileStub)
+        self.masm.code(self.vm, framesize, CodeKind::CompileStub)
     }
 
     fn store_params(&mut self, mut offset: i32) {

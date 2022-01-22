@@ -14,7 +14,7 @@ use crate::mode::MachineMode;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::FctDefinitionId;
-use crate::vm::{Code, CodeDescriptor, CodeId, GcPoint, VM};
+use crate::vm::{Code, CodeId, CodeKind, GcPoint, VM};
 
 pub struct NativeStubs {
     map: HashMap<Address, CodeId>,
@@ -233,12 +233,12 @@ impl<'a> NativeGen<'a> {
         self.masm.nop();
 
         let desc = match self.fct.desc {
-            NativeFctDescriptor::NativeStub(fid) => CodeDescriptor::NativeStub(fid),
-            NativeFctDescriptor::AllocStub => CodeDescriptor::AllocStub,
-            NativeFctDescriptor::VerifyStub => CodeDescriptor::VerifyStub,
-            NativeFctDescriptor::TrapStub => CodeDescriptor::TrapStub,
-            NativeFctDescriptor::GuardCheckStub => CodeDescriptor::GuardCheckStub,
-            NativeFctDescriptor::SafepointStub => CodeDescriptor::SafepointStub,
+            NativeFctDescriptor::NativeStub(fid) => CodeKind::NativeStub(fid),
+            NativeFctDescriptor::AllocStub => CodeKind::AllocStub,
+            NativeFctDescriptor::VerifyStub => CodeKind::VerifyStub,
+            NativeFctDescriptor::TrapStub => CodeKind::TrapStub,
+            NativeFctDescriptor::GuardCheckStub => CodeKind::GuardCheckStub,
+            NativeFctDescriptor::SafepointStub => CodeKind::SafepointStub,
         };
 
         self.masm.code(self.vm, framesize, desc)

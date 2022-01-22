@@ -16,7 +16,7 @@ use crate::vm::VM;
 use dora_parser::Position;
 
 #[derive(Debug, Clone)]
-pub enum CodeDescriptor {
+pub enum CodeKind {
     DoraFct(FctDefinitionId),
     CompileStub,
     TrapStub,
@@ -60,7 +60,7 @@ pub struct Code {
     // pointer to beginning of function
     function_entry: Address,
 
-    desc: CodeDescriptor,
+    desc: CodeKind,
 
     framesize: i32,
     lazy_compilation: LazyCompilationData,
@@ -70,7 +70,7 @@ pub struct Code {
 }
 
 impl Code {
-    pub fn from_optimized_buffer(vm: &VM, buffer: &[u8], desc: CodeDescriptor) -> Code {
+    pub fn from_optimized_buffer(vm: &VM, buffer: &[u8], desc: CodeKind) -> Code {
         let dseg = DSeg::new();
 
         Code::from_buffer(
@@ -95,7 +95,7 @@ impl Code {
         framesize: i32,
         comments: CommentTable,
         positions: PositionTable,
-        desc: CodeDescriptor,
+        desc: CodeKind,
     ) -> Code {
         let code_object_header_size = mem::ptr_width_usize() * 4;
         let code_space_size = code_object_header_size + dseg.size() as usize + buffer.len();
@@ -154,8 +154,8 @@ impl Code {
 
     pub fn fct_id(&self) -> FctDefinitionId {
         match self.desc {
-            CodeDescriptor::NativeStub(fct_id) => fct_id,
-            CodeDescriptor::DoraFct(fct_id) => fct_id,
+            CodeKind::NativeStub(fct_id) => fct_id,
+            CodeKind::DoraFct(fct_id) => fct_id,
             _ => panic!("no fctid found"),
         }
     }
@@ -180,7 +180,7 @@ impl Code {
         self.lazy_compilation.get(offset)
     }
 
-    pub fn descriptor(&self) -> CodeDescriptor {
+    pub fn descriptor(&self) -> CodeKind {
         self.desc.clone()
     }
 }
