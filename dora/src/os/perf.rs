@@ -12,8 +12,8 @@ pub fn register_with_perf(code: &Code, vm: &VM, name: Name) {
     let mut options = OpenOptions::new();
     let mut file = options.create(true).append(true).open(&fname).unwrap();
 
-    let code_start = code.ptr_start().to_usize();
-    let code_end = code.ptr_end().to_usize();
+    let code_start = code.instruction_start().to_usize();
+    let code_end = code.instruction_end().to_usize();
     let name = vm.interner.str(name);
 
     let line = format!(
