@@ -69,7 +69,12 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    let vm = VM::new_from_sa(sa);
+    let vm = {
+        let mut mutable_vm = VM::new_from_sa(sa);
+        mutable_vm.setup_execution();
+        mutable_vm
+    };
+
     set_vm(&vm);
 
     let mut timer = Timer::new(vm.args.flag_gc_stats);

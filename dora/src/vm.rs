@@ -348,7 +348,7 @@ impl VM {
             NamespaceData::predefined(boots_namespace_id, Some(boots_name)),
         ];
 
-        let mut vm = Box::new(VM {
+        let vm = Box::new(VM {
             args,
             files: Arc::new(RwLock::new(Vec::new())),
             consts: GrowableVec::new(),
@@ -448,8 +448,6 @@ impl VM {
             wait_lists: WaitLists::new(),
         });
 
-        stdlib_setup::setup(&mut vm);
-
         vm
     }
 
@@ -505,6 +503,10 @@ impl VM {
         });
 
         vm
+    }
+
+    pub fn setup_execution(&mut self) {
+        stdlib_setup::setup(self);
     }
 
     pub fn gc_epoch(&self) -> usize {
