@@ -4286,7 +4286,7 @@ impl<'a> CannonCodeGen<'a> {
     fn get_call_target(&mut self, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            determine_call_target(self.fct, self.vm, type_params)
+            determine_call_target(self.vm, fid, type_params)
         } else {
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
@@ -4303,7 +4303,7 @@ impl<'a> CannonCodeGen<'a> {
                 ensure_native_stub(self.vm, Some(fid), internal_fct)
             } else {
                 debug_assert!(fct.has_body());
-                determine_call_target(&fct, self.vm, type_params)
+                determine_call_target(self.vm, fid, type_params)
             }
         }
     }
@@ -5507,10 +5507,10 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
     }
 }
 
-fn determine_call_target(fct: &FctDefinition, vm: &VM, type_params: SourceTypeArray) -> Address {
-    let specials = fct.specializations.read();
+fn determine_call_target(vm: &VM, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
+    let specials = vm.compiled_fcts.read();
 
-    if let Some(&code_id) = specials.get(&type_params) {
+    if let Some(&code_id) = specials.get(&(fid, type_params)) {
         let code = vm.code.idx(code_id);
         return code.instruction_start();
     }

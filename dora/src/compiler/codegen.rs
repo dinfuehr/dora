@@ -21,9 +21,9 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     debug_assert!(type_params.iter().all(|ty| !ty.contains_type_param(vm)));
 
     {
-        let specials = fct.specializations.read();
+        let specials = vm.compiled_fcts.read();
 
-        if let Some(&code_id) = specials.get(&type_params) {
+        if let Some(&code_id) = specials.get(&(fct.id, type_params.clone())) {
             let code = vm.code.idx(code_id);
             return code.instruction_start();
         }
@@ -43,10 +43,10 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     let code;
 
     {
-        let mut specials = fct.specializations.write();
+        let mut specials = vm.compiled_fcts.write();
 
         // check whether function was compiled in-between from another thread.
-        if let Some(&code_id) = specials.get(type_params) {
+        if let Some(&code_id) = specials.get(&(fct.id, type_params.clone())) {
             let code = vm.code.idx(code_id);
             return code.instruction_start();
         }
@@ -69,7 +69,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
             code_map.insert(code.object_start(), code.object_end(), code_id);
         }
 
-        specials.insert(type_params.clone(), code_id);
+        specials.insert((fct.id, type_params.clone()), code_id);
     }
 
     if vm.args.flag_enable_perf {

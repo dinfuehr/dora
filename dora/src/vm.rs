@@ -1,4 +1,6 @@
 use parking_lot::{Mutex, RwLock};
+use std::collections::HashMap;
+use std::hash::Hash;
 use std::mem;
 use std::path::PathBuf;
 use std::ptr;
@@ -297,15 +299,16 @@ pub struct VM {
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<NamespaceData>,                         // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub code: GrowableVec<Code>,                  // stores all function implementations
-    pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
-    pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
-    pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,                 // stores all compiled functions
+    pub compiled_fcts: RwLock<HashMap<(FctDefinitionId, SourceTypeArray), CodeId>>,
+    pub code: GrowableVec<Code>, // stores all function implementations
+    pub enums: Vec<RwLock<EnumDefinition>>, // store all enum source definitions
+    pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
+    pub traits: Vec<RwLock<TraitDefinition>>, // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>, // stores all impl definitions
+    pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
-    pub imports: Vec<ImportData>,                 // stores all imports
-    pub gc: Gc,                                   // garbage collector
+    pub imports: Vec<ImportData>, // stores all imports
+    pub gc: Gc,                  // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub compile_stub: Mutex<Address>,
@@ -430,6 +433,7 @@ impl VM {
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
+            compiled_fcts: RwLock::new(HashMap::new()),
             code: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
@@ -484,6 +488,7 @@ impl VM {
             id_generator: sa.id_generator,
             diag: sa.diag,
             fcts: sa.fcts,
+            compiled_fcts: RwLock::new(HashMap::new()),
             code: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             lambda_types: sa.lambda_types,

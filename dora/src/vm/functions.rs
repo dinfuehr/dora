@@ -1,6 +1,5 @@
 use parking_lot::RwLock;
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use dora_parser::ast;
@@ -9,10 +8,10 @@ use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
-use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    namespace_path, AnalysisData, ClassDefinitionId, CodeId, ExtensionId, FileId, ImplId, ModuleId,
+    namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, FileId, ImplId, ModuleId,
     NamespaceId, TraitDefinitionId, TypeParam, TypeParamId, VM,
 };
 
@@ -63,7 +62,6 @@ pub struct FctDefinition {
 
     pub vtable_index: Option<u32>,
     pub initialized: bool,
-    pub specializations: RwLock<HashMap<SourceTypeArray, CodeId>>,
     pub analysis: Option<AnalysisData>,
 
     pub type_params: Vec<TypeParam>,
@@ -107,7 +105,6 @@ impl FctDefinition {
             vtable_index: None,
             initialized: false,
             is_variadic: false,
-            specializations: RwLock::new(HashMap::new()),
             analysis: None,
             type_params: Vec::new(),
             container_type_params: 0,
