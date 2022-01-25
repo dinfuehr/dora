@@ -1992,7 +1992,7 @@ impl<'a> CannonCodeGen<'a> {
 
         if glob.needs_initialization() {
             let fid = glob.initializer.unwrap();
-            let ptr = self.ptr_for_fct_id(fid, SourceTypeArray::empty());
+            let ptr = self.get_call_target(fid, SourceTypeArray::empty());
             let gcpoint = self.create_gcpoint();
             self.asm.ensure_global(&*glob, fid, ptr, glob.pos, gcpoint);
         }
@@ -3173,7 +3173,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
-        let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
+        let ptr = self.get_call_target(fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(dest_ty);
@@ -3255,7 +3255,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
-        let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
+        let ptr = self.get_call_target(fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
@@ -4283,10 +4283,10 @@ impl<'a> CannonCodeGen<'a> {
         mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
-    fn ptr_for_fct_id(&mut self, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
+    fn get_call_target(&mut self, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(self.fct, self.vm, type_params)
+            determine_call_target(self.fct, self.vm, type_params)
         } else {
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
@@ -4303,7 +4303,7 @@ impl<'a> CannonCodeGen<'a> {
                 ensure_native_stub(self.vm, Some(fid), internal_fct)
             } else {
                 debug_assert!(fct.has_body());
-                ensure_jit_or_stub_ptr(&fct, self.vm, type_params)
+                determine_call_target(&fct, self.vm, type_params)
             }
         }
     }
@@ -5507,7 +5507,7 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
     }
 }
 
-fn ensure_jit_or_stub_ptr(fct: &FctDefinition, vm: &VM, type_params: SourceTypeArray) -> Address {
+fn determine_call_target(fct: &FctDefinition, vm: &VM, type_params: SourceTypeArray) -> Address {
     let specials = fct.specializations.read();
 
     if let Some(&code_id) = specials.get(&type_params) {
