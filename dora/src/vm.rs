@@ -86,6 +86,7 @@ mod modules;
 mod namespaces;
 mod specialize;
 mod src;
+mod stdlib_setup;
 mod structs;
 mod traits;
 mod tuples;
@@ -347,7 +348,7 @@ impl VM {
             NamespaceData::predefined(boots_namespace_id, Some(boots_name)),
         ];
 
-        let vm = Box::new(VM {
+        let mut vm = Box::new(VM {
             args,
             files: Arc::new(RwLock::new(Vec::new())),
             consts: GrowableVec::new(),
@@ -446,6 +447,8 @@ impl VM {
             boots_namespace_id,
             wait_lists: WaitLists::new(),
         });
+
+        stdlib_setup::setup(&mut vm);
 
         vm
     }
