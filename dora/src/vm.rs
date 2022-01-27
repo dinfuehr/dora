@@ -511,6 +511,10 @@ impl VM {
     }
 
     pub fn setup_execution(&mut self) {
+        // ensure this data is only created during execution
+        assert!(self.compiled_fcts.read().is_empty());
+        assert!(self.class_defs.len() == 0);
+
         stdlib_setup::setup(self);
     }
 
