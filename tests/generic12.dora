@@ -1,6 +1,6 @@
 fun main() {
-  let foo = Foo[Int32](10);
-  assert(foo.x == 10);
+  let foo = Foo[Int32](10I);
+  assert(foo.x == 10I);
 
   let foo = Foo[String]("hey");
   assert(foo.x == "hey");

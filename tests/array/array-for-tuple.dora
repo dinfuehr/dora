@@ -1,11 +1,11 @@
 fun main() {
-    let array = Array[(Int32, String)]((1, "abc"), (2, "def"), (3, "ghi"));
+    let array = Array[(Int32, String)]((1I, "abc"), (2I, "def"), (3I, "ghi"));
     for (idx, name) in array {
-        if idx == 1 {
+        if idx == 1I {
             assert(name == "abc");
-        } else if idx == 2 {
+        } else if idx == 2I {
             assert(name == "def");
-        } else if idx == 3 {
+        } else if idx == 3I {
             assert(name == "ghi");
         } else {
             unreachable[()]();

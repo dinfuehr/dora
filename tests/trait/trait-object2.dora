@@ -3,33 +3,27 @@ trait Foo { fun test(): Int32; }
 class Baz(let value: Int32)
 
 impl Foo for Baz {
-    fun test(): Int32 { self.value }
+    fun test(): Int32 = self.value;
 }
 
 struct Bar(value: Int32)
 
 impl Foo for Bar {
-    fun test(): Int32 { self.value }
+    fun test(): Int32 = self.value;
 }
 
 fun main() {
-    assert(invoke(baz(17)) == 17);
-    assert(invoke(baz(0)) == 0);
-    assert(invoke(baz(101)) == 101);
+    assert(invoke(baz(17I)) == 17I);
+    assert(invoke(baz(0I)) == 0I);
+    assert(invoke(baz(101I)) == 101I);
 
-    assert(invoke(bar(17)) == 17);
-    assert(invoke(bar(0)) == 0);
-    assert(invoke(bar(101)) == 101);
+    assert(invoke(bar(17I)) == 17I);
+    assert(invoke(bar(0I)) == 0I);
+    assert(invoke(bar(101I)) == 101I);
 }
 
-fun baz(value: Int32): Foo {
-    Baz(value) as Foo
-}
+fun baz(value: Int32): Foo = Baz(value) as Foo;
 
-fun bar(value: Int32): Foo {
-    Bar(value) as Foo
-}
+fun bar(value: Int32): Foo = Bar(value) as Foo;
 
-fun invoke(foo: Foo): Int32 {
-    foo.test()
-}
+fun invoke(foo: Foo): Int32 = foo.test();

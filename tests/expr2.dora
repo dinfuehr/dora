@@ -1,4 +1,4 @@
 fun main() {
-  let val = 101.toString();
+  let val = 101I.toString();
   assert(val == "101");
 }

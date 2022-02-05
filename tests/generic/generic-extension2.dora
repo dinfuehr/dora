@@ -10,8 +10,8 @@ impl MyClass[Foo] {
 }
 
 fun f() {
-    MyClass[Foo](1).do[Int32](MyClass[Int32](101));
-    MyClass[Foo](2).do[Float32](MyClass[Float32](102));
+    MyClass[Foo](1I).do[Int32](MyClass[Int32](101I));
+    MyClass[Foo](2I).do[Float32](MyClass[Float32](102I));
 }
 
 fun main() {

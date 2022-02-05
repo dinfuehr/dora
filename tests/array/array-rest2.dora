@@ -1,12 +1,12 @@
 fun main() {
-    assert(sum_args(1, 2) == 3);
-    assert(sum_args(7) == 7);
-    assert(sum_args() == 0);
-    assert(sum_args(1, 2, 3, 4, 5) == 15);
+    assert(sum_args(1I, 2I) == 3I);
+    assert(sum_args(7I) == 7I);
+    assert(sum_args() == 0I);
+    assert(sum_args(1I, 2I, 3I, 4I, 5I) == 15I);
 }
 
 fun sum_args(x: Int32...): Int32 {
-    var result = 0;
+    var result = 0I;
     var idx = 0L;
     
     while idx < x.size() {

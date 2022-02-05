@@ -61,7 +61,7 @@ class GraphBuilder {
 @test fun testEmptyGraph(_x: Testing) {
     let builder = GraphBuilder();
     let block = builder.addBlock();
-    let value = builder.createInt32Const(12);
+    let value = builder.createInt32Const(12I);
     builder.createReturn(value, Type::Int32);
 
     assertGraph(builder.build(), "

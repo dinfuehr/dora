@@ -1,8 +1,8 @@
 //= stdout "012"
 
 fun main() {
-    for i in std::range(0, 5) {
-        if i == 3 { break; }
+    for i in std::range(0I, 5I) {
+        if i == 3I { break; }
         print(i.toString());
     }
 }

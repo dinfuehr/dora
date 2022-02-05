@@ -1,11 +1,11 @@
 fun main() {
-    assert(1 == identity[Int32](1));
+    assert(1I == identity[Int32](1I));
     assert(42.5F == identity[Float32](42.5F));
     assert("abc" == identity[String]("abc"));
     assert(!identity[Bool](false));
     identity[()](());
-    let (x, y, z) = identity[(Int32, Bool, String)]((12, false, "foo"));
-    assert(x == 12 && !y && z == "foo");
+    let (x, y, z) = identity[(Int32, Bool, String)]((12I, false, "foo"));
+    assert(x == 12I && !y && z == "foo");
 }
 
 fun identity[T](val: T): T {

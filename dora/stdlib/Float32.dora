@@ -14,15 +14,15 @@ impl Float32 {
     var ix = self.asInt32();
     var iy = rhs.asInt32();
 
-    let sx = ix.shiftRightSigned(31).shiftRight(1);
-    let sy = iy.shiftRightSigned(31).shiftRight(1);
+    let sx = ix.shiftRightSigned(31I).shiftRight(1I);
+    let sy = iy.shiftRightSigned(31I).shiftRight(1I);
 
     ix = ix.bitwiseXor(sx);
     iy = iy.bitwiseXor(sy);
 
-    if ix < iy { return -1; }
-    if ix == iy { return 0; }
-    return 1;
+    if ix < iy { return -1I; }
+    if ix == iy { return 0I; }
+    return 1I;
   }
 
   @pub @internal fun plus(rhs: Float32): Float32;
@@ -40,9 +40,9 @@ impl Float32 {
   @pub fun hash(): Int32 = self.asInt32();
 
   // should be lets, not funs
-  @pub @static fun bits(): Int32 = 32;
-  @pub @static fun bytes(): Int32 = 4;
-  @pub @static fun infinityPositive(): Float32 = 0x7f800000.asFloat32();
-  @pub @static fun infinityNegative(): Float32 = 0xff800000.asFloat32();
-  @pub @static fun notANumber(): Float32 = 0x7fC00000.asFloat32();
+  @pub @static fun bits(): Int32 = 32I;
+  @pub @static fun bytes(): Int32 = 4I;
+  @pub @static fun infinityPositive(): Float32 = 0x7f800000I.asFloat32();
+  @pub @static fun infinityNegative(): Float32 = 0xff800000I.asFloat32();
+  @pub @static fun notANumber(): Float32 = 0x7fC00000I.asFloat32();
 }

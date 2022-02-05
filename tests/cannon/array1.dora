@@ -4,11 +4,11 @@ fun main() {
   assert(array.size() == 5L);
   assert(getLength(array) == 5L);
   
-  setArray(array, 2L, 50);
-  assert(array(2L) == 50);
+  setArray(array, 2L, 50I);
+  assert(array(2L) == 50I);
 
-  array(3L) = 40;
-  assert(getArray(array, 3L) == 40);
+  array(3L) = 40I;
+  assert(getArray(array, 3L) == 40I);
 }
 
 fun createArray(a: Int64): Array[Int32] { return Array[Int32]::zero(a); }

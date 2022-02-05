@@ -1,10 +1,10 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 fun main() {
-    let x = id[Bar](Bar("f" + "o" + "o", Foo(17)));
+    let x = id[Bar](Bar("f" + "o" + "o", Foo(17I)));
     std::forceCollect();
     assert(x.first == "foo");
-    assert(x.second.value == 17);
+    assert(x.second.value == 17I);
 }
 
 struct Bar(first: String, second: Foo)

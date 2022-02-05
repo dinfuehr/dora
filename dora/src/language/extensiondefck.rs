@@ -434,7 +434,7 @@ mod tests {
             impl[T] MyFoo[T] {
                 fun test(x: T) {}
             }
-            fun test(x: MyFoo[Int32]) { x.test(1); }
+            fun test(x: MyFoo[Int32]) { x.test(1I); }
         ");
     }
 

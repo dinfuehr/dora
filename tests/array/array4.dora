@@ -1,4 +1,4 @@
 fun main() {
-  let array = Array[Int32]::fill(20L, 2);
-  assert(2 == array(0L));
+  let array = Array[Int32]::fill(20L, 2I);
+  assert(2I == array(0L));
 }

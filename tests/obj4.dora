@@ -1,5 +1,5 @@
 fun main() {
-  let i = 1;
+  let i = 1I;
   let o1 = Foo();
   let o2 = o1.me();
   assert(o1 === o2);

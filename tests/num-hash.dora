@@ -1,10 +1,10 @@
 fun main() {
-  assert(true.hash() == 1);
-  assert(false.hash() == 0);
-  assert(1.toUInt8().hash() == 1);
-  assert(1.hash() == 1);
-  assert(1L.hash() == 1);
-  assert(1.0F.hash() == 1065353216);
+  assert(true.hash() == 1I);
+  assert(false.hash() == 0I);
+  assert(1.toUInt8().hash() == 1I);
+  assert(1.hash() == 1I);
+  assert(1L.hash() == 1I);
+  assert(1.0F.hash() == 1065353216I);
   // double needs a better hash implementation
-  assert(1.0.hash() == 0);
+  assert(1.0.hash() == 0I);
 }

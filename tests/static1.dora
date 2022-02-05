@@ -1,6 +1,6 @@
 fun main() {
-    let x = Foo::test(2, 3);
-    assert(x == 5);
+    let x = Foo::test(2I, 3I);
+    assert(x == 5I);
 }
 
 module Foo {

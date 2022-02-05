@@ -347,12 +347,12 @@ mod tests {
             SemError::ShadowParam("a".into()),
         );
         err(
-            "class Foo(a: Int32) fun f(x: Foo) { x.a = 1; }",
+            "class Foo(a: Int32) fun f(x: Foo) { x.a = 1I; }",
             pos(1, 38),
             SemError::UnknownField("a".into(), "Foo".into()),
         );
 
-        ok("class Foo(a: Int32) fun foo(): Foo { return Foo(1); } ");
+        ok("class Foo(a: Int32) fun foo(): Foo { return Foo(1I); } ");
     }
 
     #[test]

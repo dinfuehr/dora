@@ -1,8 +1,8 @@
 fun main() {
-  let a = A(10);
-  assert(a.x == 10);
-  assert(a.y == 20);
+  let a = A(10I);
+  assert(a.x == 10I);
+  assert(a.y == 20I);
 }
 
-class A(let x: Int32) extends B(x*2)
+class A(let x: Int32) extends B(x*2I)
 @open class B(let y: Int32)

@@ -20,23 +20,13 @@ fun g[T: X](): String {
 class Bar(let x: Int32)
 
 impl X for Bar {
-    @static fun foo(): Bar {
-        return Bar(1);
-    }
-
-    @static fun makeString(value: Bar): String {
-        return "BAR${value.x}";
-    }
+    @static fun foo(): Bar = Bar(1I);
+    @static fun makeString(value: Bar): String = "BAR${value.x}";
 }
 
 class Baz(let x: Int32)
 
 impl X for Baz {
-    @static fun foo(): Baz {
-        return Baz(2);
-    }
-
-    @static fun makeString(value: Baz): String {
-        return "BAZ${value.x}";        
-    }
+    @static fun foo(): Baz = Baz(2I);
+    @static fun makeString(value: Baz): String = "BAZ${value.x}";
 }

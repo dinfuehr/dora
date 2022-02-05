@@ -3,6 +3,6 @@ class A[X: std::Stringable](let x: X) {
 }
 
 fun main() {
-    assert("x1xblax" == A[Int32](1).msg[String]("bla"));
-    assert("xblax1x" == A[String]("bla").msg[Int32](1));
+    assert("x1xblax" == A[Int32](1I).msg[String]("bla"));
+    assert("xblax1x" == A[String]("bla").msg[Int32](1I));
 }

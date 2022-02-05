@@ -1,8 +1,8 @@
 fun main() {
-  let a = Array[Int32](1, 2, 3, 3, 4, 5, 4, 5, 4, 3, 3);
-  let b = Array[Int32](1, 2, 3, 3, 4, 5, 4, 5, 4, 3, 4);
-  let c = Array[Int32](1, 2, 3, 3, 4, 5, 4, 5, 4, 3);
-  let d = Array[Int32](2, 3, 3, 4, 5, 4, 5, 4, 3, 4);
+  let a = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 3I);
+  let b = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 4I);
+  let c = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I);
+  let d = Array[Int32](2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 4I);
   let e = Array[Int32]();
 
   assert(Array[Int32]::compare(a, 0L, a, 0L, 11L));

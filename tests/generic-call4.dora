@@ -15,10 +15,10 @@ class X
 impl Foo for X {
     fun bar(): Int32 {
         println("world");
-        return 2;
+        return 2I;
     }
 }
 
 fun main() {
-    assert(2 == A[X](X()).bar());
+    assert(2I == A[X](X()).bar());
 }

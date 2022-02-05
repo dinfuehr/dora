@@ -1,19 +1,19 @@
 fun main() {
     let x = Vec[Int32]();
 
-    x.push(1);
-    x.push(2);
-    x.push(3);
+    x.push(1I);
+    x.push(2I);
+    x.push(3I);
 
-    assert(3 == x.removeAt(2L));
-    assert(x(0L) == 1);
-    assert(x(1L) == 2);
+    assert(3I == x.removeAt(2L));
+    assert(x(0L) == 1I);
+    assert(x(1L) == 2I);
     assert(x.size() == 2L);
 
-    assert(1 == x.removeAt(0L));
-    assert(x(0L) == 2);
+    assert(1I == x.removeAt(0L));
+    assert(x(0L) == 2I);
     assert(x.size() == 1L);
 
-    assert(2 == x.removeAt(0L));
+    assert(2I == x.removeAt(0L));
     assert(x.size() == 0L);
 }

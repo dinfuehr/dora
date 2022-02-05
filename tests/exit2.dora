@@ -1,5 +1,5 @@
 //= error code 2
 
 fun main() {
-    std::exit(2);
+    std::exit(2I);
 }

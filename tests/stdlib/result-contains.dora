@@ -6,6 +6,6 @@ fun main() {
 
   assert(ok1.contains(ok));
   assert(ok1.contains("ok"));
-  assert(er1.contains(23).not());
+  assert(er1.contains(23I).not());
   assert(nan.contains(0.0/0.0).not());
 }

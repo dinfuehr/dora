@@ -11,6 +11,6 @@ impl Adder for A {
 }
 
 fun main() {
-    let x = A(3).add_me(A(7));
-    assert(x.a == 10);
+    let x = A(3I).add_me(A(7I));
+    assert(x.a == 10I);
 }

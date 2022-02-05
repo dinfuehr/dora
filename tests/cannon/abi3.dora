@@ -10,38 +10,12 @@ fun main() {
     assert(abi_9(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 9F);
 }
 
-fun abi_1(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return x;
-}
-
-fun abi_2(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return y;
-}
-
-fun abi_3(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return z;
-}
-
-fun abi_4(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return a;
-}
-
-fun abi_5(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return b;
-}
-
-fun abi_6(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return c;
-}
-
-fun abi_7(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return i;
-}
-
-fun abi_8(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return j;
-}
-
-fun abi_9(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 {
-    return k;
-}
+fun abi_1(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = x;
+fun abi_2(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = y;
+fun abi_3(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = z;
+fun abi_4(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = a;
+fun abi_5(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = b;
+fun abi_6(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = c;
+fun abi_7(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = i;
+fun abi_8(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = j;
+fun abi_9(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = k;

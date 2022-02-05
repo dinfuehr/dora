@@ -1,6 +1,6 @@
 fun main() {
     let x = Array[Int32]::zero(100L);
     assert(x.size() == 100L);
-    assert(x(0L) == 0);
-    assert(x(99L) == 0);
+    assert(x(0L) == 0I);
+    assert(x(99L) == 0I);
 }

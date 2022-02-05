@@ -3,11 +3,11 @@ class BytecodeWriter {
     let constPool: Vec[ConstPoolEntry] = Vec();
     let registers: Vec[BytecodeType] = Vec();
     let unresolvedJumps: Vec[UnresolvedJump] = Vec();
-    var arguments: Int32 = 0;
+    var arguments: Int32 = 0I;
 
     fun addRegister(ty: BytecodeType): BytecodeRegister {
         self.registers.push(ty);
-        BytecodeRegister(self.registers.size().toInt32() - 1)
+        BytecodeRegister(self.registers.size().toInt32() - 1I)
     }
 
     fun createLabel(): BytecodeLabel {
@@ -616,7 +616,7 @@ class BytecodeWriter {
         assert(!isWide(inst));
         assert(!isWide(instConst));
         let start = self.code.size().toInt32();
-        var target = 0;
+        var target = 0I;
 
         if (opnd.isSome() && isWide(opnd.getOrPanic().value)) || isWide(self.constPool.size().toInt32()) {
             self.emitWide();
@@ -625,13 +625,13 @@ class BytecodeWriter {
                 self.emitInt32(opnd.getOrPanic().value);
             }
             target = self.code.size().toInt32();
-            self.emitInt32(0);
+            self.emitInt32(0I);
         } else {
             self.emitOpcode(instConst);
             if opnd.isSome() {
                 self.emitByte(opnd.getOrPanic().value);
             }
-            let idx = self.addConst(ConstPoolEntry::Int32(0));
+            let idx = self.addConst(ConstPoolEntry::Int32(0I));
             target = self.code.size().toInt32();
             self.emitByte(idx.value);
         }
@@ -645,7 +645,7 @@ class BytecodeWriter {
 
     fun addConst(entry: ConstPoolEntry): ConstPoolId {
         self.constPool.push(entry);
-        ConstPoolId(self.constPool.size().toInt32() - 1)
+        ConstPoolId(self.constPool.size().toInt32() - 1I)
     }
 
     fun emitReg1(inst: Int32, r1: BytecodeRegister) {
@@ -756,54 +756,50 @@ class BytecodeWriter {
     }
 
     fun emitOpcode(opcode: Int32) {
-        if opcode >= 255 {
-            self.emitByte(255);
-            assert(opcode < 512);
-            self.emitByte(opcode - 255);
+        if opcode >= 255I {
+            self.emitByte(255I);
+            assert(opcode < 512I);
+            self.emitByte(opcode - 255I);
         } else {
             self.emitByte(opcode);
         }
     }
 
     fun emitByte(val: Int32) {
-        assert(val >= 0 && val <= 255);
+        assert(val >= 0I && val <= 255I);
         self.code.push(val.toUInt8());
     }
 
     fun emitInt32(val: Int32) {
-        assert(val >= 0);
+        assert(val >= 0I);
         self.emitByte(val & 0xFFI);
-        self.emitByte((val >>> 8) & 0xFFI);
-        self.emitByte((val >>> 16) & 0xFFI);
-        self.emitByte((val >>> 24) & 0xFFI);
+        self.emitByte((val >>> 8I) & 0xFFI);
+        self.emitByte((val >>> 16I) & 0xFFI);
+        self.emitByte((val >>> 24I) & 0xFFI);
     }
 
     fun patchInt32(idx: Int32, val: Int32) {
-        assert(val >= 0);
+        assert(val >= 0I);
         let idx = idx.toInt64();
         self.code(idx) = (val & 0xFFI).toUInt8();
-        self.code(idx + 1L) = ((val >>> 8) & 0xFFI).toUInt8();
-        self.code(idx + 2L) = ((val >>> 16) & 0xFFI).toUInt8();
-        self.code(idx + 3L) = ((val >>> 24) & 0xFFI).toUInt8();
+        self.code(idx + 1L) = ((val >>> 8I) & 0xFFI).toUInt8();
+        self.code(idx + 2L) = ((val >>> 16I) & 0xFFI).toUInt8();
+        self.code(idx + 3L) = ((val >>> 24I) & 0xFFI).toUInt8();
     }
 }
 
-fun isWide(val: Int32): Bool {
-    val > 255
-}
+fun isWide(val: Int32): Bool = val > 255I;
 
 class BytecodeLabel {
-    var off: Int32 = -1;
+    var off: Int32 = -1I;
 
     fun bindTo(offset: Int32): BytecodeLabel {
-        assert(offset >= 0);
+        assert(offset >= 0I);
         self.off = offset;
         self
     }
 
-    fun isBound(): Bool {
-        self.off >= 0
-    }
+    fun isBound(): Bool = self.off >= 0I;
 
     fun offset(): Int32 {
         assert(self.isBound());

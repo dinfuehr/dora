@@ -1,6 +1,6 @@
 fun main() {
-    assert(f[Bar]() == 1);
-    assert(f[Baz]() == 2);
+    assert(f[Bar]() == 1I);
+    assert(f[Baz]() == 2I);
 }
 
 trait X {
@@ -14,15 +14,11 @@ fun f[T: X](): Int32 {
 class Bar
 
 impl X for Bar {
-    @static fun foo(): Int32 {
-        return 1;
-    }
+    @static fun foo(): Int32 = 1I;
 }
 
 class Baz
 
 impl X for Baz {
-    @static fun foo(): Int32 {
-        return 2;
-    }
+    @static fun foo(): Int32 = 2I;
 }

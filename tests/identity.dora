@@ -4,8 +4,8 @@ fun main() {
     assert(b1 === b1);
     assert(b1 !== b2);
 
-    let i1 = 1;
-    let i2 = 2;
+    let i1 = 1I;
+    let i2 = 2I;
     assert(i1 === i1);
     assert(i1 !== i2);
 
@@ -28,13 +28,13 @@ fun main() {
     assert(0.0 !== -0.0);
     assert(0.0/0.0 === 0.0/0.0);
 
-    let f1 = Foo(1);
-    let f2 = Foo(2);
+    let f1 = Foo(1I);
+    let f2 = Foo(2I);
     assert(f1 === f1);
     assert(f1 !== f2);
 
-    assert(bar[Int32](1, 1));
-    assert(!bar[Int32](1, 2));
+    assert(bar[Int32](1I, 1I));
+    assert(!bar[Int32](1I, 2I));
 
     assert(bar[Float64](1.0, 1.0));
     assert(!bar[Float64](1.0, 2.0));
@@ -42,7 +42,7 @@ fun main() {
     assert(bar[Float64](0.0/0.0, 0.0/0.0));
 
     assert(bar[Foo](f1, f1));
-    assert(!bar[Foo](f1, Foo(1)));
+    assert(!bar[Foo](f1, Foo(1I)));
     assert(!bar[Foo](f1, f2));
 }
 

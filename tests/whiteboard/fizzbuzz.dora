@@ -1,21 +1,21 @@
 //= stdout file
 
 fun main() {
-    var i = 1;
+    var i = 1I;
 
-    while i <= 100 {
-        if i % 15 == 0 {
+    while i <= 100I {
+        if i % 15I == 0I {
             println("FizzBuzz");
 
-        } else if i % 5 == 0 {
+        } else if i % 5I == 0I {
             println("Buzz");
 
-        } else if i % 3 == 0 {
+        } else if i % 3I == 0I {
             println("Fizz");
         } else {
             println(i.toString());
         }
 
-        i = i + 1;
+        i = i + 1I;
     }
 }

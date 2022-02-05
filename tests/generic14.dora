@@ -1,15 +1,11 @@
 fun main() {
-    let x = SomeTest[Int32](1);
-    assert(x+0 == 1);
-    assert(x-0 == 1);
+    let x = SomeTest[Int32](1I);
+    assert(x+0I == 1I);
+    assert(x-0I == 1I);
 }
 
 class SomeTest[T](let x: T) {
-    fun plus(y: Int32): T {
-        return self.x;
-    }
+    fun plus(y: Int32): T = self.x;
 
-    fun minus(y: Int32): T {
-        return self.x;
-    }
+    fun minus(y: Int32): T = self.x;
 }

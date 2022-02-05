@@ -73,7 +73,7 @@ fun decodeBytecodeType(reader: ByteReader): BytecodeType {
 fun decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
     let size = reader.readInt32().toInt64();
 
-    let data = Array[ConstPoolEntry]::fill(size, ConstPoolEntry::Int32(0));
+    let data = Array[ConstPoolEntry]::fill(size, ConstPoolEntry::Int32(0I));
     var i = 0L;
 
     while i < size {
@@ -201,7 +201,7 @@ class ByteReader(let array: Array[UInt8]) {
         let by3 = self.readUInt8().toInt32();
         let by4 = self.readUInt8().toInt32();
 
-        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
+        (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
     }
 
     fun readInt64(): Int64 {
@@ -214,7 +214,7 @@ class ByteReader(let array: Array[UInt8]) {
         let by7 = self.readUInt8().toInt64();
         let by8 = self.readUInt8().toInt64();
 
-        (by8 << 56) | (by7 << 48) | (by6 << 40) | (by5 << 32) | (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
+        (by8 << 56I) | (by7 << 48I) | (by6 << 40I) | (by5 << 32I) | (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
     }
 
     fun readByteArray(): Array[UInt8] {

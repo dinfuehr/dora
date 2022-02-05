@@ -5,10 +5,10 @@ fun main() {
     assert(!Option[Int32]::None.isSome());
 
     assert(!Option[String]::Some("abc").isNone());
-    assert(!Option[Int32]::Some(12).isNone());
+    assert(!Option[Int32]::Some(12I).isNone());
     assert(Option[String]::Some("abc").isSome());
-    assert(Option[Int32]::Some(12).isSome());
+    assert(Option[Int32]::Some(12I).isSome());
 
     Option[String]::None.isNone();
-    Option[Int32]::Some(12).isNone();
+    Option[Int32]::Some(12I).isNone();
 }

@@ -14,7 +14,7 @@
         let value = self.data.get(entry_idx);
         let value_idx = idx - entry_idx;
 
-        return value & (1 << value_idx.toInt32()) != 0;
+        return value & (1I << value_idx.toInt32()) != 0I;
     }
 
     @pub fun insert(idx: Int64) {
@@ -28,7 +28,7 @@
         var value = self.data.get(entry_idx);
         let value_idx = idx - entry_idx;
 
-        value = value | (1 << value_idx.toInt32());
+        value = value | (1I << value_idx.toInt32());
 
         self.data.set(entry_idx, value);
     }
@@ -46,7 +46,7 @@
         var value = self.data.get(entry_idx);
         let value_idx = idx - entry_idx;
 
-        value = value & !(1 << value_idx.toInt32());
+        value = value & !(1I << value_idx.toInt32());
 
         self.data.set(entry_idx, value);
     }

@@ -26,40 +26,40 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
 
   while i < data.size() {
     let by = data(i).toInt32();
-    var codePoint = 0;
-    var nextUInt8s = 0;
-    var min = 0;
-    var max = 0;
+    var codePoint = 0I;
+    var nextUInt8s = 0I;
+    var min = 0I;
+    var max = 0I;
 
-    if by & 0x80 == 0 {
+    if by & 0x80I == 0I {
       nextUInt8s = 0;
       i = i + 1L;
       continue;
 
-    } else if by & 0xC0 == 0x80 {
+    } else if by & 0xC0I == 0x80I {
       return false;
 
-    } else if by & 0xE0 == 0xC0 {
+    } else if by & 0xE0I == 0xC0I {
       codePoint = by & 0x1FI;
       nextUInt8s = 1;
       min = 0x80;
       max = 0x7FFI;
 
-    } else if by & 0xF0 == 0xE0 {
+    } else if by & 0xF0I == 0xE0I {
       codePoint = by & 0xFI;
-      nextUInt8s = 2;
-      min = 0x800;
+      nextUInt8s = 2I;
+      min = 0x800I;
       max = 0xFFFFI;
 
-    } else if by & 0xF8 == 0xF0 {
-      codePoint = by & 0x7;
+    } else if by & 0xF8I == 0xF0I {
+      codePoint = by & 0x7I;
       nextUInt8s = 3;
       min = 0x10000;
       max = 0x10FFFFI;
     }
 
-    while nextUInt8s > 0 {
-      nextUInt8s = nextUInt8s - 1;
+    while nextUInt8s > 0I {
+      nextUInt8s = nextUInt8s - 1I;
       i = i + 1L;
 
       if i >= data.size() {
@@ -68,11 +68,11 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
 
       let by = data(i).toInt32();
 
-      if by & 0xC0 != 0x80 {
+      if by & 0xC0I != 0x80I {
         return false;
       }
 
-      codePoint = (codePoint << 6) | (by & 0x3FI);
+      codePoint = (codePoint << 6I) | (by & 0x3FI);
     }
 
     if codePoint < min || codePoint > max {

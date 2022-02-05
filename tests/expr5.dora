@@ -1,23 +1,23 @@
 fun main() {
-  Bar(1).exec();
+  Bar(1I).exec();
 }
 
 class Bar(var a: Int32) {
   fun exec() {
     Foo(self.f()).a = self.g();
-    assert(self.a == 100);
+    assert(self.a == 100I);
   }
 
   fun f(): Int32 {
-    assert(self.a == 1);
-    self.a = 10;
+    assert(self.a == 1I);
+    self.a = 10I;
 
     return self.a;
   }
 
   fun g(): Int32 {
-    assert(self.a == 10);
-    self.a = 100;
+    assert(self.a == 10I);
+    self.a = 100I;
 
     return self.a;
   }

@@ -1,6 +1,6 @@
 fun main() {
   assert(true.toString() == "true");
   assert(false.toString() == "false");
-  assert(0.toString() == "0");
+  assert(0I.toString() == "0");
   assert("toString".toString() == "toString");
 }

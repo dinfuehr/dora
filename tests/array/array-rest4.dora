@@ -1,11 +1,11 @@
 fun main() {
-    assert(sum_args(Foo(1), Foo(2)) == 3);
-    assert(sum_args(Foo(7)) == 7);
-    assert(sum_args() == 0);
+    assert(sum_args(Foo(1I), Foo(2I)) == 3I);
+    assert(sum_args(Foo(7I)) == 7I);
+    assert(sum_args() == 0I);
 }
 
 fun sum_args(x: Foo...): Int32 {
-    var result = 0;
+    var result = 0I;
     var idx = 0L;
     
     while idx < x.size() {

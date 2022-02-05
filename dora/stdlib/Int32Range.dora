@@ -1,0 +1,23 @@
+@pub class Int32Range(let lower: Int32, let upper: Int32) {
+  @pub fun makeIterator(): Int32RangeIter {
+    return Int32RangeIter(self);
+  }
+}
+
+@pub fun range(lower: Int32, upper: Int32): Int32Range = Int32Range(lower, upper);
+
+class Int32RangeIter(let range: Int32Range) {
+  var value: Int32 = range.lower;
+}
+
+impl Iterator for Int32RangeIter {
+  fun hasNext(): Bool {
+    return self.value < self.range.upper;
+  }
+
+  fun next(): Int32 {
+    let cur = self.value;
+    self.value = cur + 1I;
+    return cur;
+  }
+}

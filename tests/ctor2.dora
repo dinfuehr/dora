@@ -5,8 +5,8 @@ class X(a: Int32, b: Int32) {
 }
 
 fun main() {
-    let x = X(2, 4);
+    let x = X(2I, 4I);
 
-    assert(x.ma == 2);
-    assert(x.mb == 4);
+    assert(x.ma == 2I);
+    assert(x.mb == 4I);
 }

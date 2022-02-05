@@ -1,4 +1,4 @@
 fun main() {
-    let x: Int32 = 2147483647;
-    let y: Int32 = -2147483648;
+    let x: Int32 = 2147483647I;
+    let y: Int32 = -2147483648I;
 }

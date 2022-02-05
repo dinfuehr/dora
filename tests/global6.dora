@@ -12,5 +12,5 @@ fun main() {
 
 fun foo(): Int32 {
     println("foo");
-    17
+    17I
 }

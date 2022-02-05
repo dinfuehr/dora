@@ -15,9 +15,9 @@ fun main() {
         Bar::C(myclass) => myclass,
         Bar::D => unreachable[MyClass](),
     };
-    assert(myclass.value == 17);
+    assert(myclass.value == 17I);
 }
 
 fun foo(): Foo {
-    Foo::A(Bar::C(MyClass(17)))
+    Foo::A(Bar::C(MyClass(17I)))
 }

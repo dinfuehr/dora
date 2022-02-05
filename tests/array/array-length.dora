@@ -3,7 +3,7 @@ fun main() {
   assert(x.size() == 0L);
   assert(int32_array_len(x) == 0L);
 
-  let x = Array[Int32]::fill(5L, 100);
+  let x = Array[Int32]::fill(5L, 100I);
   assert(x.size() == 5L);
   assert(int32_array_len(x) == 5L);
 

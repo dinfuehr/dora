@@ -4,11 +4,11 @@ class Graph {
     var blocks: Vec[Option[Block]] = Vec();
     var postOrder: Vec[Block] = Vec();
 
-    var nextBlockIdValue: Int32 = 0;
-    var nextInstIdValue: Int32 = 0;
+    var nextBlockIdValue: Int32 = 0I;
+    var nextInstIdValue: Int32 = 0I;
 
     fun addBlock(block: Block) {
-        assert(block.graph.isNone() && block.id == -1);
+        assert(block.graph.isNone() && block.id == -1I);
 
         block.graph = Some(self);
         block.id = self.nextBlockId().value;
@@ -29,14 +29,14 @@ class Graph {
 
     fun nextInstId(): Int32 {
         let id = self.nextInstIdValue;
-        self.nextInstIdValue = id + 1;
+        self.nextInstIdValue = id + 1I;
 
         id
     }
 
     fun nextBlockId(): BlockId {
         let id = self.nextBlockIdValue;
-        self.nextBlockIdValue = id + 1;
+        self.nextBlockIdValue = id + 1I;
 
         BlockId(id)
     }
@@ -134,7 +134,7 @@ class ReversePostOrderIterator(let postOrder: Array[Block]) {
 struct BlockId(value: Int32)
 
 class Block() {
-    var id: Int32 = -1;
+    var id: Int32 = -1I;
 
     var phis: InstLinkedList = InstLinkedList();
     var instructions: InstLinkedList = InstLinkedList();
@@ -149,23 +149,20 @@ class Block() {
 
     var loopData: Option[LoopData] = None;
 
-    var postOrderIdx: Int32 = -1;
+    var postOrderIdx: Int32 = -1I;
 
-    fun getDominator(): Option[Block] {
-        self.dominator
-    }
+    fun getDominator(): Option[Block] = self.dominator;
 
     fun setDominator(block: Block) {
         self.dominator = Some(block);
     }
 
-    fun dominates(other: Block): Bool {
+    fun dominates(other: Block): Bool =
         if self == other {
             true
         } else {
             self.strictlyDominates(other)
-        }
-    }
+        };
 
     fun strictlyDominates(other: Block): Bool {
         var current = other.getDominator();
@@ -178,9 +175,7 @@ class Block() {
         false
     }
 
-    fun getDominatedBlocks(): Vec[Block] {
-        self.dominatedBlocks
-    }
+    fun getDominatedBlocks(): Vec[Block] = self.dominatedBlocks;
 
     fun addDominatedBlock(block: Block) {
         self.dominatedBlocks.push(block);
@@ -194,7 +189,7 @@ class Block() {
     }
 
     fun appendPhi(phi: PhiInst): PhiInst {
-        assert(phi.block.isNone() && phi.id == -1);
+        assert(phi.block.isNone() && phi.id == -1I);
 
         phi.block = Some(self);
         phi.id = self.graph.getOrPanic().nextInstId();
@@ -206,7 +201,7 @@ class Block() {
     }
 
     fun appendInst(inst: Inst): Inst {
-        assert(inst.block.isNone() && inst.id == -1);
+        assert(inst.block.isNone() && inst.id == -1I);
 
         inst.block = Some(self);
         inst.id = self.graph.getOrPanic().nextInstId();
@@ -314,7 +309,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
 }
 
 @abstract @open class Inst {
-    var id: Int32 = -1;
+    var id: Int32 = -1I;
     var block: Option[Block] = None;
 
     var previous: Option[Inst] = None;

@@ -1,8 +1,8 @@
 fun main() {
-  let x = X(2, 4);
+  let x = X(2I, 4I);
 
-  assert(x.a == 4);
-  assert(x.b == 2);
+  assert(x.a == 4I);
+  assert(x.b == 2I);
 }
 
 @open class Y(let a: Int32) {}

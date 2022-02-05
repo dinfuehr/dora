@@ -2,13 +2,13 @@ fun main() {
     let q = std::Queue[Int32]();
     assert(q.size() == 0L);
     assert(q.isEmpty());
-    q.enqueue(1);
+    q.enqueue(1I);
     assert(q.size() == 1L);
     assert(!q.isEmpty());
-    q.enqueue(2);
+    q.enqueue(2I);
     assert(q.size() == 2L);
-    assert(q.dequeue() == 1);
-    assert(q.dequeue() == 2);
+    assert(q.dequeue() == 1I);
+    assert(q.dequeue() == 2I);
     assert(q.size() == 0L);
     assert(q.isEmpty());
 }

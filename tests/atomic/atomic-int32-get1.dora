@@ -1,6 +1,6 @@
 fun main() {
-    let value = std::AtomicInt32(10);
-    assert(value.get() == 10);
-    value.set(20);
-    assert(value.get() == 20);
+    let value = std::AtomicInt32(10I);
+    assert(value.get() == 10I);
+    value.set(20I);
+    assert(value.get() == 20I);
 }

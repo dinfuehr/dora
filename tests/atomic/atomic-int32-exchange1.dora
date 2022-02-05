@@ -1,5 +1,5 @@
 fun main() {
-    let value = std::AtomicInt32(10);
-    assert(value.exchange(20) == 10);
-    assert(value.get() == 20);
+    let value = std::AtomicInt32(10I);
+    assert(value.exchange(20I) == 10I);
+    assert(value.get() == 20I);
 }

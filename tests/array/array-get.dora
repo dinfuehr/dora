@@ -1,7 +1,7 @@
 fun main() {
-  let x = Array[Int32]::fill(5L, 100);
-  assert(x(0L) == 100);
-  assert(int32_array_get(x, 4L) == 100);
+  let x = Array[Int32]::fill(5L, 100I);
+  assert(x(0L) == 100I);
+  assert(int32_array_get(x, 4L) == 100I);
 
   let x = Array[Int64]::fill(7L, 200L);
   assert(x(6L) == 200L);
@@ -19,9 +19,9 @@ fun main() {
   assert(x(0L) == "hello");
   assert(str_array_get(x, 2L) == "hello");
 
-  let x = Array[Foo]::fill(1L, Foo(1));
-  assert(x(0L).y == 1);
-  assert(foo_array_get(x, 0L).y == 1);
+  let x = Array[Foo]::fill(1L, Foo(1I));
+  assert(x(0L).y == 1I);
+  assert(foo_array_get(x, 0L).y == 1I);
 }
 
 fun int32_array_get(x: Array[Int32], idx: Int64): Int32 {

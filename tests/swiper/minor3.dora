@@ -2,20 +2,20 @@
 
 fun main() {
     var x = Vec[Array[Int32]]();
-    var i = 0;
+    var i = 0I;
 
-    while i < 100 {
-        if i % 2 == 0 {
+    while i < 100I {
+        if i % 2I == 0I {
             x.push(Array[Int32]::zero(2L));
         } else {
             x.push(Array[Int32]::zero(4L));
         }
         x.push(Array[Int32]::zero(512L));
         x.push(Array[Int32]::zero(2048L));
-        if i % 5 == 0 {
+        if i % 5I == 0I {
             std::forceMinorCollect();
         }
-        i = i + 1;
+        i = i + 1I;
     }
 }
 

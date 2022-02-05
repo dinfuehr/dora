@@ -1,7 +1,7 @@
 var glob_bool: Bool = false;
 var glob_char: Char = 'x';
 var glob_byte: UInt8 = 0Y;
-var glob_int: Int32 = 0;
+var glob_int: Int32 = 0I;
 var glob_long: Int64 = 0L;
 var glob_float: Float32 = 0.0F;
 var glob_double: Float64 = 0.0;
@@ -14,7 +14,7 @@ fun main() {
     assert(loadGlobalBool() == true);
     assert(loadGlobalChar() == '5');
     assert(loadGlobalByte() == 5Y);
-    assert(loadGlobalInt32() == 5);
+    assert(loadGlobalInt32() == 5I);
     assert(loadGlobalInt64() == 5L);
     assert(loadGlobalFloat32() == 5F);
     assert(loadGlobalFloat64() == 5D);
@@ -27,7 +27,7 @@ fun init_globs() {
     glob_bool = true;
     glob_char = '5';
     glob_byte = 5Y;
-    glob_int = 5;
+    glob_int = 5I;
     glob_long = 5L;
     glob_float = 5F;
     glob_double = 5D;
@@ -35,40 +35,22 @@ fun init_globs() {
     glob_obj = Foo();  
 }
 
-fun loadGlobalBool(): Bool {
-    return glob_bool;
-}
+fun loadGlobalBool(): Bool = glob_bool;
 
-fun loadGlobalByte(): UInt8 {
-    return glob_byte;
-}
+fun loadGlobalByte(): UInt8 = glob_byte;
 
-fun loadGlobalChar(): Char {
-    return glob_char;
-}
+fun loadGlobalChar(): Char = glob_char;
 
-fun loadGlobalInt32(): Int32 {
-    return glob_int;
-}
+fun loadGlobalInt32(): Int32 = glob_int;
 
-fun loadGlobalInt64(): Int64 {
-    return glob_long;
-}
+fun loadGlobalInt64(): Int64 = glob_long;
 
-fun loadGlobalFloat32(): Float32 {
-    return glob_float;
-}
+fun loadGlobalFloat32(): Float32 = glob_float;
 
-fun loadGlobalFloat64(): Float64 {
-    return glob_double;
-}
+fun loadGlobalFloat64(): Float64 = glob_double;
 
-fun loadGlobalString(): String {
-    return glob_string;
-}
+fun loadGlobalString(): String = glob_string;
 
-fun loadGlobalPtr(): Foo {
-    return glob_obj;
-}
+fun loadGlobalPtr(): Foo = glob_obj;
 
 class Foo()

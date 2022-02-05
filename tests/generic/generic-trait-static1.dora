@@ -1,6 +1,6 @@
 fun main() {
-    assert(17 == bar[SomeClass]());
-    assert(42 == bar[OtherClass]());
+    assert(17I == bar[SomeClass]());
+    assert(42I == bar[OtherClass]());
 }
 
 fun bar[T: Foo](): Int32 {
@@ -14,11 +14,11 @@ trait Foo {
 class SomeClass
 
 impl Foo for SomeClass {
-    @static fun baz(): Int32 { 17 }
+    @static fun baz(): Int32 = 17I;
 }
 
 class OtherClass
 
 impl Foo for OtherClass {
-    @static fun baz(): Int32 { 42 }
+    @static fun baz(): Int32 = 42I;
 }

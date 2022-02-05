@@ -1,5 +1,5 @@
 //= error code 1
 
 fun main() {
-    std::exit(1);
+    std::exit(1I);
 }

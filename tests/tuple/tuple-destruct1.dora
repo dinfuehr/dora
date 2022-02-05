@@ -1,9 +1,9 @@
 fun main() {
-    assert(myadd1((1, 4)) == 5);
-    assert(myadd1((3, 1)) == 4);
+    assert(myadd1((1I, 4I)) == 5I);
+    assert(myadd1((3I, 1I)) == 4I);
 
-    assert(myadd2((3, (1, 9))) == 13);
-    assert(myadd3((3, (100, 9))) == 12);
+    assert(myadd2((3I, (1I, 9I))) == 13I);
+    assert(myadd3((3I, (100I, 9I))) == 12I);
 }
 
 fun myadd1(x: (Int32, Int32)): Int32 {

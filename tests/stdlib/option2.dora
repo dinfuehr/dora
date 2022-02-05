@@ -2,20 +2,20 @@ fun main() {
   let x = None[Int32];
   assert(x.isNone());
   assert(!x.isSome());
-  assert(!x.has(0));
-  assert(!x.contains(0));
+  assert(!x.has(0I));
+  assert(!x.contains(0I));
   assert(x.equals(None[Int32]));
-  assert(!x.equals(Some[Int32](0)));
+  assert(!x.equals(Some[Int32](0I)));
   assert(x.toString() == "None");
 
-  let x = Some[Int32](42);
+  let x = Some[Int32](42I);
   assert(x.isSome());
   assert(!x.isNone());
-  assert(x.getOrPanic() == 42);
-  assert(x.has(42));
-  assert(x.contains(42));
-  assert(x.equals(Some[Int32](42)));
-  assert(!x.equals(Some[Int32](2)));
+  assert(x.getOrPanic() == 42I);
+  assert(x.has(42I));
+  assert(x.contains(42I));
+  assert(x.equals(Some[Int32](42I)));
+  assert(!x.equals(Some[Int32](2I)));
   assert(!x.equals(None[Int32]));
   assert(x.toString() == "Some(42)");
 }

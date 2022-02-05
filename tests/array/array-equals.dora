@@ -3,11 +3,11 @@ import std::Assert;
 fun main() {
   assert(Array[Int32]() == Array[Int32]());
   assert(Array[Int32]().equals(Array[Int32]()));
-  assert(Array[Int32](1) == Array[Int32](1));
-  assert(Array[Int32](1).equals(Array[Int32](1)));
-  assert(Array[Int32](1, 2, 3) == Array[Int32](1, 2, 3));
-  assert(Array[Int32](1, 2, 3).equals(Array[Int32](1, 2, 3)));
+  assert(Array[Int32](1I) == Array[Int32](1I));
+  assert(Array[Int32](1I).equals(Array[Int32](1I)));
+  assert(Array[Int32](1I, 2I, 3I) == Array[Int32](1I, 2I, 3I));
+  assert(Array[Int32](1I, 2I, 3I).equals(Array[Int32](1I, 2I, 3I)));
 
-  assert(Array[Int32](1, 2, 3) != Array[Int32](2, 3, 4));
-  assert(Array[Int32](1, 2, 3) != Array[Int32](1, 2, 3, 4));
+  assert(Array[Int32](1I, 2I, 3I) != Array[Int32](2I, 3I, 4I));
+  assert(Array[Int32](1I, 2I, 3I) != Array[Int32](1I, 2I, 3I, 4I));
 }

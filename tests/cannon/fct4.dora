@@ -3,7 +3,7 @@ fun main() {
   assert(foo.foo_bool() == false);
   assert(foo.foo_byte() == 6Y);
   assert(foo.foo_char() == '6');
-  assert(foo.foo_int32() == 6);
+  assert(foo.foo_int32() == 6I);
   assert(foo.foo_int64() == 6L);
   assert(foo.foo_float() == 6F);
   assert(foo.foo_double() == 6D);
@@ -25,7 +25,7 @@ class Foo {
 
   fun bar_byte(a: UInt8): UInt8 {
     assert(a == 3Y);
-    return (3+a.toInt32()).toUInt8();
+    return (3I+a.toInt32()).toUInt8();
   }
 
   fun foo_char(): Char {
@@ -34,16 +34,16 @@ class Foo {
 
   fun bar_char(a: Char): Char {
     assert(a == '3');
-    return (3+a.toInt32()).toChar().getOrPanic();
+    return (3I+a.toInt32()).toChar().getOrPanic();
   }
 
   fun foo_int32(): Int32 {
-    return self.bar_int32(3);
+    return self.bar_int32(3I);
   }
 
   fun bar_int32(a: Int32): Int32 {
-    assert(a == 3);
-    return 3+a;
+    assert(a == 3I);
+    return 3I+a;
   }
 
   fun foo_int64(): Int64 {

@@ -1,7 +1,7 @@
 fun main() {
-    assert(mysum1(Vec[Int32]()) == 0);
-    assert(mysum1(Vec[Int32](1)) == 1);
-    assert(mysum1(Vec[Int32](1, 2, 3, 4, 5)) == 15);
+    assert(mysum1(Vec[Int32]()) == 0I);
+    assert(mysum1(Vec[Int32](1I)) == 1I);
+    assert(mysum1(Vec[Int32](1I, 2I, 3I, 4I, 5I)) == 15I);
 
     assert(mysum2(Vec[Float32]()) == 0.0F);
     assert(mysum2(Vec[Float32](1.0F)) == 1.0F);
@@ -9,7 +9,7 @@ fun main() {
 }
 
 fun mysum1(x: Vec[Int32]): Int32 {
-    var entries = 0;
+    var entries = 0I;
     for val in x.makeIterator() {
         entries = entries + val;
     }

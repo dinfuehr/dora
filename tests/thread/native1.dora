@@ -12,10 +12,10 @@ fun main() {
 }
 
 fun nativeCalls() {
-    var i = 0;
+    var i = 0I;
 
-    while i < 100_000 {
-        std::sleep(0);
-        i = i + 1;
+    while i < 100_000I {
+        std::sleep(0I);
+        i = i + 1I;
     }
 }

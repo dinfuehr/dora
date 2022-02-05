@@ -1,8 +1,8 @@
 enum Foo { A(Int32, Int32), B }
 
 fun main() {
-    assert(value(Foo::A(2, 3)) == 5);
-    assert(value(Foo::B) == 0);
+    assert(value(Foo::A(2I, 3I)) == 5I);
+    assert(value(Foo::B) == 0I);
 }
 
 fun value(foo: Foo): Int32 {

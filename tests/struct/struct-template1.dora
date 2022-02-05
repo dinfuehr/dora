@@ -6,9 +6,9 @@ fun main() {
     assert(result.first == "test");
     assert(result.second);
 
-    let result = tpl[Bar](Bar(9));
+    let result = tpl[Bar](Bar(9I));
     std::forceCollect();
-    assert(result.first.value == 9);
+    assert(result.first.value == 9I);
     assert(result.second);
 }
 

@@ -1,25 +1,25 @@
 fun main() {
-  assert(8 == 8 >> 0);
-  assert(4 == 8 >> 1);
-  assert(2 == 8 >> 2);
-  assert(1 == 8 >> 3);
-  assert(0 == 8 >> 4);
+  assert(8I == 8I >> 0I);
+  assert(4I == 8I >> 1I);
+  assert(2I == 8I >> 2I);
+  assert(1I == 8I >> 3I);
+  assert(0I == 8I >> 4I);
 
-  assert(-8 == -8 >> 0);
-  assert(-4 == -8 >> 1);
-  assert(-2 == -8 >> 2);
-  assert(-1 == -8 >> 3);
-  assert(-1 == -8 >> 4);
+  assert(-8I == -8I >> 0I);
+  assert(-4I == -8I >> 1I);
+  assert(-2I == -8I >> 2I);
+  assert(-1I == -8I >> 3I);
+  assert(-1I == -8I >> 4I);
 
-  assert(8 == 8 >>> 0);
-  assert(4 == 8 >>> 1);
-  assert(2 == 8 >>> 2);
-  assert(1 == 8 >>> 3);
-  assert(0 == 8 >>> 4);
+  assert(8I == 8I >>> 0I);
+  assert(4I == 8I >>> 1I);
+  assert(2I == 8I >>> 2I);
+  assert(1I == 8I >>> 3I);
+  assert(0I == 8I >>> 4I);
 
-  assert(-8 == -8 >>> 0);
-  assert(2147483644 == -8 >>> 1);
-  assert(1073741822 == -8 >>> 2);
-  assert(536870911 == -8 >>> 3);
-  assert(268435455 == -8 >>> 4);
+  assert(-8I == -8I >>> 0I);
+  assert(2147483644I == -8I >>> 1I);
+  assert(1073741822I == -8I >>> 2I);
+  assert(536870911I == -8I >>> 3I);
+  assert(268435455I == -8I >>> 4I);
 }

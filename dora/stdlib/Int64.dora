@@ -49,16 +49,16 @@ impl Int64 {
   @pub @internal fun unaryMinus(): Int64;
   @pub @internal fun not(): Int64;
   @pub fun abs(): Int64 {
-    let s = self.shiftRightSigned(63);
+    let s = self.shiftRightSigned(63I);
     return self.bitwiseXor(s).wrappingSub(s);
   }
 
   @pub @internal fun countZeroBits(): Int32 = self.not().countOneBits();
   @pub @internal fun countOneBits(): Int32 {
     var x = self;
-    var c = 0;
+    var c = 0I;
     while (x != 0L) {
-      c = c + 1;
+      c = c + 1I;
       x = x.bitwiseAnd(x - 1L);
     }
     return c;
@@ -67,11 +67,11 @@ impl Int64 {
     if self == 0L {
       return Int64::bits();
     }
-    var t = 1L.shiftLeft(Int64::bits() - 1);
-    var r = 0;
+    var t = 1L.shiftLeft(Int64::bits() - 1I);
+    var r = 0I;
     while (self.bitwiseAnd(t)) == 0L {
-      t = t.shiftRight(1);
-      r = r + 1;
+      t = t.shiftRight(1I);
+      r = r + 1I;
     }
     return r;
   }
@@ -81,10 +81,10 @@ impl Int64 {
       return Int64::bits();
     }
     var t = 1L;
-    var r = 0;
+    var r = 0I;
     while (self.bitwiseAnd(t)) == 0L {
-      t = t.shiftLeft(1);
-      r = r + 1
+      t = t.shiftLeft(1I);
+      r = r + 1I
     }
     return r;
   }
@@ -92,8 +92,8 @@ impl Int64 {
 
   @pub fun hash(): Int32 = self.toInt32();
 
-  @pub @static fun bits(): Int32 = 64;
-  @pub @static fun bytes(): Int32 = 8;
+  @pub @static fun bits(): Int32 = 64I;
+  @pub @static fun bytes(): Int32 = 8I;
 
   @pub @static fun maxValue(): Int64 = 9223372036854775807L;
   @pub @static fun minValue(): Int64 = -9223372036854775808L;

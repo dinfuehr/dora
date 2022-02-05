@@ -1,9 +1,9 @@
 fun main() {
-  let a = A(Data(10), Data(20));
+  let a = A(Data(10I), Data(20I));
   std::forceCollect();
 
-  assert(a.x.data == 10);
-  assert(a.y.data == 20);
+  assert(a.x.data == 10I);
+  assert(a.y.data == 20I);
 }
 
 class A(let x: Data, d: Data) extends B(d)

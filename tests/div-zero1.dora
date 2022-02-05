@@ -2,9 +2,9 @@
 //= stderr "division by 0\n2: divide(Int32): Int32: 9\n1: main(): 5\n"
 
 fun main() {
-    divide(0);
+    divide(0I);
 }
 
 fun divide(x: Int32): Int32 {
-    4711 / x
+    4711I / x
 }

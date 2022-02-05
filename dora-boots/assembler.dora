@@ -16,14 +16,14 @@ class AssemblerBuffer {
 
     fun emitInt32(value: Int32) {
         self.emitByte((value & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 8) & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 16) & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 24) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 8I) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 16I) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 24I) & 0xFFI).toUInt8());
     }
 
     fun emitInt64(value: Int64) {
         self.emitInt32(value.toInt32());
-        self.emitInt32((value >>> 32).toInt32());
+        self.emitInt32((value >>> 32I).toInt32());
     }
 
     fun patchUInt8(offset: Int64, value: UInt8) {
@@ -32,9 +32,9 @@ class AssemblerBuffer {
 
     fun patchInt32(offset: Int64, value: Int32) {
         self.buffer(offset) = (value & 0xFFI).toUInt8();
-        self.buffer(offset + 1L) = ((value >>> 8) & 0xFFI).toUInt8();
-        self.buffer(offset + 2L) = ((value >>> 16) & 0xFFI).toUInt8();
-        self.buffer(offset + 3L) = ((value >>> 24) & 0xFFI).toUInt8();
+        self.buffer(offset + 1L) = ((value >>> 8I) & 0xFFI).toUInt8();
+        self.buffer(offset + 2L) = ((value >>> 16I) & 0xFFI).toUInt8();
+        self.buffer(offset + 3L) = ((value >>> 24I) & 0xFFI).toUInt8();
     }
 
     fun size(): Int64 {
@@ -87,7 +87,7 @@ class Label {
 
 @test fun testAssemblerBufferEmitInt(_x: Testing) {
     let asm = AssemblerBuffer();
-    asm.emitInt32(0x11223344);
+    asm.emitInt32(0x11223344I);
     let buffer = asm.toArray();
     assert(buffer(0L) == 0x44Y);
     assert(buffer(1L) == 0x33Y);
@@ -113,9 +113,9 @@ class MachineCode(let bytes: Array[UInt8]) {
 
     fun getInt32(idx: Int64): Int32 {
         self.bytes(idx).toInt32() |
-            self.bytes(idx+1L).toInt32() << 8 |
-            self.bytes(idx+2L).toInt32() << 16 |
-            self.bytes(idx+3L).toInt32() << 24
+            self.bytes(idx+1L).toInt32() << 8I |
+            self.bytes(idx+2L).toInt32() << 16I |
+            self.bytes(idx+3L).toInt32() << 24I
     }
 }
 

@@ -1,6 +1,6 @@
 fun main() {
-    let y = test(A(10));
-    assert(y == 10);
+    let y = test(A(10I));
+    assert(y == 10I);
 }
 
 class A(let x: Int32)

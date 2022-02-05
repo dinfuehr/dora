@@ -1,11 +1,11 @@
 fun main() {
-    assert(test(B(10)));
-    assert(!test(B(0)));
+    assert(test(B(10I)));
+    assert(!test(B(0I)));
 }
 
 fun test(a: A): Bool {
     let a = a as B;
-    return a.x != 0;
+    return a.x != 0I;
 }
 
 @open class A

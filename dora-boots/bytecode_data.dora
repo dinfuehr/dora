@@ -9,11 +9,11 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
 
     fun codeInt32At(idx: Int32): Int32 {
         let byte1 = self.codeAt(idx);
-        let byte2 = self.codeAt(idx+1);
-        let byte3 = self.codeAt(idx+2);
-        let byte4 = self.codeAt(idx+3);
+        let byte2 = self.codeAt(idx+1I);
+        let byte3 = self.codeAt(idx+2I);
+        let byte4 = self.codeAt(idx+3I);
 
-        (byte4 << 24) | (byte3 << 16) | (byte2 << 8) | byte1
+        (byte4 << 24I) | (byte3 << 16I) | (byte2 << 8I) | byte1
     }
 }
 

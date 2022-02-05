@@ -1,5 +1,5 @@
 //= error code 2
 
 fun main(): Int32 {
-  return 2;
+  return 2I;
 }

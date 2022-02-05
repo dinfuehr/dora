@@ -1,8 +1,8 @@
 //= stdout "x = 1\ny = 2\nz = 3\n"
 
-var x: Int32 = 0;
-var y: Int32 = 0;
-var z: Int32 = 0;
+var x: Int32 = 0I;
+var y: Int32 = 0I;
+var z: Int32 = 0I;
 
 fun main() {
     init_globals();
@@ -11,15 +11,15 @@ fun main() {
 }
 
 fun init_globals() {
-    x = 1;
-    y = 2;
-    z = 3;
+    x = 1I;
+    y = 2I;
+    z = 3I;
 }
 
 fun assert_globals() {
-    assert(x == 1);
-    assert(y == 2);
-    assert(z == 3);
+    assert(x == 1I);
+    assert(y == 2I);
+    assert(z == 3I);
 }
 
 fun dump_globals() {

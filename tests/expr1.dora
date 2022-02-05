@@ -1,18 +1,18 @@
 fun main() {
-    assert((1 + 3) == 4);
-    assert((-1 + 3) == 2);
-    assert((0 + 2) == 2);
-    assert((2 + 0) == 2);
+    assert((1I + 3I) == 4I);
+    assert((-1I + 3I) == 2I);
+    assert((0I + 2I) == 2I);
+    assert((2I + 0I) == 2I);
 
-    let x = -5 + 4;
-    assert(-1 == x);
+    let x = -5I + 4I;
+    assert(-1I == x);
 
-    assert(+1 != -1);
-    assert(+2 == 2);
+    assert(+1I != -1I);
+    assert(+2I == 2I);
 
-    assert(!(-1) == 0);
-    assert(!(-2) == 1);
-    assert(-1 == !0);
+    assert(!(-1I) == 0I);
+    assert(!(-2I) == 1I);
+    assert(-1I == !0I);
 
     assert(true);
     assert(!false);
@@ -23,19 +23,19 @@ fun main() {
     let x = false;
     assert(!x);
 
-    assert(10 == 1+(2+(3+4)));
-    assert(-1 == 1-2);
-    assert(3 == 2-(3-4));
-    assert(-2 == 1-(2-(3-4)));
-    assert(42 == 7*(1+(2+3)));
+    assert(10I == 1I+(2I+(3I+4I)));
+    assert(-1I == 1I-2I);
+    assert(3I == 2I-(3I-4I));
+    assert(-2I == 1I-(2I-(3I-4I)));
+    assert(42I == 7I*(1I+(2I+3I)));
 
-    assert(3 == 1|2);
-    assert(1 == 1&3);
-    assert(1 == 3^2);
+    assert(3I == 1I|2I);
+    assert(1I == 1I&3I);
+    assert(1I == 3I^2I);
 
-    assert(6 == 2*3);
-    assert(2 == 8/3);
-    assert(0 == 9%3);
+    assert(6I == 2I*3I);
+    assert(2I == 8I/3I);
+    assert(0I == 9I%3I);
 
     assert(true == (true || true));
     assert(true == (true || false));

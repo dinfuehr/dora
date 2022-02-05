@@ -1,16 +1,16 @@
 //= stdout "78"
 
 class X(j: Int32) {
-  var i: Int32 = 0;
+  var i: Int32 = 0I;
   {
-    let x = 2;
-    let y = 3;
+    let x = 2I;
+    let y = 3I;
     self.i = x * y + j;
   }
   print(self.i.toString());
 }
 
 fun main() {
-  X(1);
-  X(2);
+  X(1I);
+  X(2I);
 }

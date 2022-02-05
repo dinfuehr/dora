@@ -1,5 +1,5 @@
 //= error overflow
 
 fun main() {
-    let x = Int32::minValue() * -1;
+    let x = Int32::minValue() * -1I;
 }

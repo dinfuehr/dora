@@ -1,16 +1,16 @@
 fun main() {
-  assert(1 < 2);
-  assert(-4 < 2);
+  assert(1I < 2I);
+  assert(-4I < 2I);
 
-  assert(2 > 1);
-  assert(-5 > -10);
+  assert(2I > 1I);
+  assert(-5I > -10I);
 
-  assert(2 == 2);
-  assert(-2 != 2);
+  assert(2I == 2I);
+  assert(-2I != 2I);
 
-  assert(2 <= 2);
-  assert(1 <= 2);
+  assert(2I <= 2I);
+  assert(1I <= 2I);
 
-  assert(-3 >= -3);
-  assert(100 >= 0);
+  assert(-3I >= -3I);
+  assert(100I >= 0I);
 }

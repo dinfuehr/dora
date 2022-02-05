@@ -1,5 +1,5 @@
 fun main() {
-    assert(5.compareTo(2) == 1);
-    assert(5.compareTo(5) == 0);
-    assert(5.compareTo(7) == -1);
+    assert(5I.compareTo(2I) == 1I);
+    assert(5I.compareTo(5I) == 0I);
+    assert(5I.compareTo(7I) == -1I);
 }

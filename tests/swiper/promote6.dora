@@ -4,19 +4,19 @@ class Foo(let x: Int32)
 
 fun main() {
     let a = Array[Int64]::fill(70L, 0L);
-    let f1 = Foo(3);
+    let f1 = Foo(3I);
     let x = CardSpanningObject(f1);
     std::forceMinorCollect();
     assert(x.field0 === f1);
     assert(x.field64 === f1);
 
-    x.field0 = Foo(1);
+    x.field0 = Foo(1I);
     std::forceMinorCollect();
-    assert(x.field0.x == 1);
+    assert(x.field0.x == 1I);
     assert(x.field64 === f1);
 
     std::forceMinorCollect();
-    assert(x.field0.x == 1);
+    assert(x.field0.x == 1I);
     assert(x.field64 === f1);
 }
 

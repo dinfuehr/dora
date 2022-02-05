@@ -1,13 +1,13 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Foo(1, None[Foo]);
+  let x = Foo(1I, None[Foo]);
   std::forceMinorCollect();
   std::forceMinorCollect();
   // write into old object x reference to young object
-  x.next = Some[Foo](Foo(2, None[Foo]));
+  x.next = Some[Foo](Foo(2I, None[Foo]));
   std::forceMinorCollect();
-  assert(x.next.getOrPanic().a == 2);
+  assert(x.next.getOrPanic().a == 2I);
 }
 
 class Foo(let a: Int32, var next: Option[Foo])

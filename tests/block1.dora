@@ -4,16 +4,16 @@ fun main() {
     t3();
 }
 
-fun g(): Int32 { return 1; }
+fun g(): Int32 = 1I;
 
 fun t1() {
     let x: Int32 = { g() };
-    assert(x == 1);
+    assert(x == 1I);
 }
 
 fun t2() {
-    let x: Int32 = { g(); 1 };
-    assert(x == 1);
+    let x: Int32 = { g(); 1I };
+    assert(x == 1I);
 }
 
 fun t3() {

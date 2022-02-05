@@ -1,7 +1,7 @@
 struct Foo(f1: Int32, f2: Bool)
 
 fun f(): Foo {
-    let x = Foo(10, false);
+    let x = Foo(10I, false);
     let y = x;
     y
 }

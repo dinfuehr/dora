@@ -3,7 +3,7 @@ fun stringify[T: std::Stringable](t: T): String {
 }
 
 fun main() {
-    assert(stringify[Int32](1) == "1");
+    assert(stringify[Int32](1I) == "1");
     assert(stringify[Float32](1.0F) == "1");
     assert(stringify[Float64](0.2) == "0.2");
 }

@@ -1,14 +1,14 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Foo(1, None[Foo]);
+  let x = Foo(1I, None[Foo]);
   std::forceMinorCollect();
-  x.next = Some[Foo](Foo(2, None[Foo]));
-  x.next.getOrPanic().next = Some[Foo](Foo(3, None[Foo]));
+  x.next = Some[Foo](Foo(2I, None[Foo]));
+  x.next.getOrPanic().next = Some[Foo](Foo(3I, None[Foo]));
   std::forceMinorCollect();
-  assert(x.a == 1);
-  assert(x.next.getOrPanic().a == 2);
-  assert(x.next.getOrPanic().next.getOrPanic().a == 3);
+  assert(x.a == 1I);
+  assert(x.next.getOrPanic().a == 2I);
+  assert(x.next.getOrPanic().next.getOrPanic().a == 3I);
 }
 
 class Foo(let a: Int32, var next: Option[Foo])

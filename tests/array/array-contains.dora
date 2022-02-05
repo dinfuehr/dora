@@ -2,8 +2,8 @@ fun main() {
   let x = Array[Bool]::fill(3L, true);
   assert(x.contains(true));
 
-  let x = Array[Int32]::fill(3L, 3);
-  assert(x.contains(3));
+  let x = Array[Int32]::fill(3L, 3I);
+  assert(x.contains(3I));
 
   let x = Array[Int64]::fill(3L, 3L);
   assert(x.contains(3L));

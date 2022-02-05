@@ -1,26 +1,20 @@
 fun main() {
   let b = B();
-  assert(b.printBase() == 2);
-  assert(b.printSpecial() == 1);
+  assert(b.printBase() == 2I);
+  assert(b.printSpecial() == 1I);
 
   let c = C();
-  assert(c.printBase() == 2);
-  assert(c.printSpecial() == 1);
+  assert(c.printBase() == 2I);
+  assert(c.printSpecial() == 1I);
 }
 
 @open @abstract class A {
- @abstract fun printSpecial(): Int32;
- fun printBase(): Int32 {
-   return 2;
- }
+  @abstract fun printSpecial(): Int32;
+  fun printBase(): Int32 = 2I;
 }
 
 @open class B extends A {
- @override fun printSpecial(): Int32 {
-   return 1;
- }
+  @override fun printSpecial(): Int32 = 1I;
 }
 
-class C extends B {
-
-}
+class C extends B {}

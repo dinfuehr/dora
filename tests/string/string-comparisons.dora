@@ -20,9 +20,9 @@ fun main() {
   let z = "h".plus("ello");
   assert(y == z);
 
-  assert("a".compareTo("b") < 0);
-  assert("b".compareTo("b") == 0);
-  assert("b".compareTo("a") > 0);
+  assert("a".compareTo("b") < 0I);
+  assert("b".compareTo("b") == 0I);
+  assert("b".compareTo("a") > 0I);
 
   assert(!"a".equals("b"));
   assert("a".equals("a"));

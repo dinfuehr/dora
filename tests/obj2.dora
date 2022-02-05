@@ -1,6 +1,6 @@
 fun main() {
-  let obj = Foo(1);
-  assert(obj.a == 1);
+  let obj = Foo(1I);
+  assert(obj.a == 1I);
 }
 
 class Foo(let a: Int32)

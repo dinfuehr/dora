@@ -6,12 +6,10 @@ impl Foo {
     }
 }
 
-fun f(a: Foo, b: Foo): Foo {
-    a + b
-}
+fun f(a: Foo, b: Foo): Foo = a + b;
 
 fun main() {
-    assert(f(Foo(11), Foo(17)).value == 28);
-    assert(f(Foo(-12), Foo(12)).value == 0);
-    assert(f(Foo(3), Foo(7)).value == 10);
+    assert(f(Foo(11I), Foo(17I)).value == 28I);
+    assert(f(Foo(-12I), Foo(12I)).value == 0I);
+    assert(f(Foo(3I), Foo(7I)).value == 10I);
 }

@@ -11,11 +11,11 @@ enum MyEnum {
 
 fun main() {
     let foo = Foo(
-        AnotherStruct(3.5F, MyClass(10)),
-        MyClass(11),
-        MyEnum::B(MyClass(12))
+        AnotherStruct(3.5F, MyClass(10I)),
+        MyClass(11I),
+        MyEnum::B(MyClass(12I))
     );
     std::forceCollect();
-    assert(foo.f1.second.value == 10);
-    assert(foo.f2.value == 11);
+    assert(foo.f1.second.value == 10I);
+    assert(foo.f2.value == 11I);
 }

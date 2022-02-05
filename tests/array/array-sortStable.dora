@@ -5,9 +5,9 @@ fun main() {
 }
 
 fun int32() {
-  let x = Array[Int32](2, 3, 0, 4);
+  let x = Array[Int32](2I, 3I, 0I, 4I);
   Array[Int32]::sortStable(x);
-  assert(x == Array[Int32](0, 2, 3, 4));
+  assert(x == Array[Int32](0I, 2I, 3I, 4I));
 }
 
 fun int64() {

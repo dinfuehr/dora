@@ -1,13 +1,13 @@
 fun main() {
-  var i = 0;
-  var sum = 0;
+  var i = 0I;
+  var sum = 0I;
 
-  while i < 10 {
-    if i == 4 { break; }
-    i = i + 1;
+  while i < 10I {
+    if i == 4I { break; }
+    i = i + 1I;
     sum = sum + i;
   }
 
-  assert(i == 4);
-  assert(sum == 10);
+  assert(i == 4I);
+  assert(sum == 10I);
 }
