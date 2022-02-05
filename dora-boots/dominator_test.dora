@@ -6,7 +6,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 
     for (idx, expectedDominatorId) in idoms.enumerate() {
         // Block 0 is entry block and idoms doesn't contain that block so skip it.
-        let block = graph.getBlockWithId(idx.toInt32() + 1);
+        let block = graph.getBlockWithId(idx.toInt32() + 1I);
 
         let dominator = block.getDominator();
 
@@ -40,13 +40,13 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 0, 1);
+    assertDominatedBlocks(fct, 0I, 1I);
 }
 
 @test fun testDominatorSimple(_x: Testing) {
     let writer = BytecodeWriter();
     let arg0 = writer.addRegister(BytecodeType::Bool);
-    writer.setArguments(1);
+    writer.setArguments(1I);
     let elseBlock = writer.createLabel();
     writer.emitJumpIfFalse(arg0, elseBlock);
     let returnBlock = writer.createLabel();
@@ -57,7 +57,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 0, 0, 0);
+    assertDominatedBlocks(fct, 0I, 0I, 0I);
 }
 
 @test fun testDominatorIfReturnInBothBranches(_x: Testing) {
@@ -65,9 +65,9 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
-    let condBlock = graph.getBlockWithId(0);
-    let thenBlock = graph.getBlockWithId(1);
-    let elseBlock = graph.getBlockWithId(2);
+    let condBlock = graph.getBlockWithId(0I);
+    let thenBlock = graph.getBlockWithId(1I);
+    let elseBlock = graph.getBlockWithId(2I);
 
     assert(condBlock.getDominator().isNone());
     assert(condBlock.getDominatedBlocks().size() == 2L);
@@ -84,10 +84,10 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
-    let varBlock = graph.getBlockWithId(0);
-    let whileHeader = graph.getBlockWithId(1);
-    let whileBody = graph.getBlockWithId(3);
-    let returnBlock = graph.getBlockWithId(2);
+    let varBlock = graph.getBlockWithId(0I);
+    let whileHeader = graph.getBlockWithId(1I);
+    let whileBody = graph.getBlockWithId(3I);
+    let returnBlock = graph.getBlockWithId(2I);
 
     assert(varBlock.getDominator().isNone());
 

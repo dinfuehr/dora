@@ -1,6 +1,6 @@
 fun main() {
-  let a = 1;
-  assert(Foo(a+1).a == 2);
+  let a = 1I;
+  assert(Foo(a+1I).a == 2I);
 }
 
 class Foo(let a: Int32)

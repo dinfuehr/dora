@@ -1,16 +1,16 @@
 fun main() {
-    assert(Bar[String]().value == 10);
-    assert(Bar[Float32]().value == 10);
+    assert(Bar[String]().value == 10I);
+    assert(Bar[Float32]().value == 10I);
 
     let x = Baz[Float32]();
-    assert(x.test() == 10);
+    assert(x.test() == 10I);
     x.assignMe();
-    assert(x.test() == 20);
+    assert(x.test() == 20I);
 }
 
 @open @abstract class Foo[A](var value: A)
-@open class Bar[A] extends Foo[Int32](10)
+@open class Bar[A] extends Foo[Int32](10I)
 class Baz[A] extends Bar[A] {
-    fun test(): Int32 { self.value }
-    fun assignMe() { self.value = 20; }
+    fun test(): Int32 = self.value;
+    fun assignMe() { self.value = 20I; }
 }

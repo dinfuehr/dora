@@ -9,46 +9,46 @@ fun main() {
 }
 
 fun insertFirst() {
-  let xs = Vec[Int32](1, 2, 3);
-  xs.insertAt(0L, -23);
-  assert(xs == Vec[Int32](-23, 1, 2, 3));
+  let xs = Vec[Int32](1I, 2I, 3I);
+  xs.insertAt(0L, -23I);
+  assert(xs == Vec[Int32](-23I, 1I, 2I, 3I));
 }
 
 fun insertFirstNoResize() {
-  let xs = Vec[Int32](1, 2, 3);
+  let xs = Vec[Int32](1I, 2I, 3I);
   xs.removeAt(0L);
-  xs.insertAt(0L, -23);
-  assert(xs == Vec[Int32](-23, 2, 3));
+  xs.insertAt(0L, -23I);
+  assert(xs == Vec[Int32](-23I, 2I, 3I));
 }
 
 fun insertMiddle() {
-  let xs = Vec[Int32](1, 2, 3);
-  xs.insertAt(1L, -23);
-  assert(xs == Vec[Int32](1, -23, 2, 3));
+  let xs = Vec[Int32](1I, 2I, 3I);
+  xs.insertAt(1L, -23I);
+  assert(xs == Vec[Int32](1I, -23I, 2I, 3I));
 }
 
 fun insertMiddleNoResize() {
-  let xs = Vec[Int32](1, 2, 3);
+  let xs = Vec[Int32](1I, 2I, 3I);
   xs.removeAt(1L);
-  xs.insertAt(1L, -23);
-  assert(xs == Vec[Int32](1, -23, 3));
+  xs.insertAt(1L, -23I);
+  assert(xs == Vec[Int32](1I, -23I, 3I));
 }
 
 fun insertLast() {
-  let xs = Vec[Int32](1, 2, 3);
-  xs.insertAt(xs.size(), -23);
-  assert(xs == Vec[Int32](1, 2, 3, -23));
+  let xs = Vec[Int32](1I, 2I, 3I);
+  xs.insertAt(xs.size(), -23I);
+  assert(xs == Vec[Int32](1I, 2I, 3I, -23I));
 }
 
 fun insertLastNoResize() {
-  let xs = Vec[Int32](1, 2, 3);
+  let xs = Vec[Int32](1I, 2I, 3I);
   xs.removeAt(xs.size() - 1L);
-  xs.insertAt(xs.size(), -23);
-  assert(xs == Vec[Int32](1, 2, -23));
+  xs.insertAt(xs.size(), -23I);
+  assert(xs == Vec[Int32](1I, 2I, -23I));
 }
 
 fun insertEmpty() {
   let xs = Vec[Int32]();
-  xs.insertAt(0L, -23);
-  assert(xs == Vec[Int32](-23));
+  xs.insertAt(0L, -23I);
+  assert(xs == Vec[Int32](-23I));
 }

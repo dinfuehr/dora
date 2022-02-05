@@ -15,9 +15,9 @@ fun main() {
     assert(xor(20L, 5L) == 17L);
     assert(and(20L, 5L) == 4L);
 
-    assert(shl(20L, 2) == 80L);
-    assert(shr(20L, 2) == 5L);
-    assert(sar(20L, 2) == 5L);
+    assert(shl(20L, 2I) == 80L);
+    assert(shr(20L, 2I) == 5L);
+    assert(sar(20L, 2I) == 5L);
 
     assert(!eq(20L, 5L));
     assert(eq(5L, 5L));

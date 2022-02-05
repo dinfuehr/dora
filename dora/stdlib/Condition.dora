@@ -1,5 +1,5 @@
 @pub class Condition {
-    let waiters: AtomicInt32 = AtomicInt32(0);
+    let waiters: AtomicInt32 = AtomicInt32(0I);
 
     @pub fun wait(mtx: Mutex) {
         self.enqueue();
@@ -9,7 +9,7 @@
     }
 
     @pub fun notifyOne() {
-        if self.waiters.get() == 0 {
+        if self.waiters.get() == 0I {
             return;
         }
 
@@ -17,11 +17,11 @@
     }
 
     @pub fun notifyAll() {
-        if self.waiters.get() == 0 {
+        if self.waiters.get() == 0I {
             return;
         }
 
-        self.waiters.set(0);
+        self.waiters.set(0I);
         self.wakeupAll();
     }
 

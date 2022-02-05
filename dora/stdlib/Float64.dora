@@ -14,15 +14,15 @@ impl Float64 {
     var ix = self.asInt64();
     var iy = rhs.asInt64();
 
-    let sx = ix.shiftRightSigned(63).shiftRight(1);
-    let sy = iy.shiftRightSigned(63).shiftRight(1);
+    let sx = ix.shiftRightSigned(63I).shiftRight(1I);
+    let sy = iy.shiftRightSigned(63I).shiftRight(1I);
 
     ix = ix.bitwiseXor(sx);
     iy = iy.bitwiseXor(sy);
 
-    if ix < iy { return -1; }
-    if ix == iy { return 0; }
-    return 1;
+    if ix < iy { return -1I; }
+    if ix == iy { return 0I; }
+    return 1I;
   }
 
   @pub @internal fun plus(rhs: Float64): Float64;
@@ -40,8 +40,8 @@ impl Float64 {
   @pub fun hash(): Int32 = self.asInt64().toInt32();
 
   // should be lets, not funs
-  @pub @static fun bits(): Int32 = 64;
-  @pub @static fun bytes(): Int32 = 8;
+  @pub @static fun bits(): Int32 = 64I;
+  @pub @static fun bytes(): Int32 = 8I;
   @pub @static fun infinityPositive(): Float64 = 0x7ff0000000000000L.asFloat64();
   @pub @static fun infinityNegative(): Float64 = 0xfff0000000000000L.asFloat64();
   @pub @static fun notANumber(): Float64 = 0x7ff8000000000000L.asFloat64();

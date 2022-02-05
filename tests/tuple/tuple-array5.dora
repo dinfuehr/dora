@@ -3,9 +3,9 @@
 class Foo (let value: Int32)
 
 fun main() {
-    let x = Array[(Int32, Foo)]::fill(7L, (0, Foo(100)));
-    x(0L) = (1, Foo(1));
-    x(4L) = (4, Foo(4));
+    let x = Array[(Int32, Foo)]::fill(7L, (0I, Foo(100I)));
+    x(0L) = (1I, Foo(1I));
+    x(4L) = (4I, Foo(4I));
     std::forceCollect();
     assert(x(0L).0 == x(0L).1.value);
     assert(x(4L).0 == x(4L).1.value);

@@ -1,14 +1,14 @@
 struct Foo(f1: Int32, f2: Int32)
 
 fun main() {
-    let arr = Array[Foo]::fill(10L, Foo(10, 17));
+    let arr = Array[Foo]::fill(10L, Foo(10I, 17I));
     assert(arr.size() == 10L);
-    assert(arr(0L).f1 == 10);
-    assert(arr(0L).f2 == 17);
+    assert(arr(0L).f1 == 10I);
+    assert(arr(0L).f2 == 17I);
 
-    arr(0L) = Foo(100, 170);
-    assert(arr(0L).f1 == 100);
-    assert(arr(0L).f2 == 170);
+    arr(0L) = Foo(100I, 170I);
+    assert(arr(0L).f1 == 100I);
+    assert(arr(0L).f2 == 170I);
 
     let arr = Array[Foo]::empty();
     assert(arr.size() == 0L);

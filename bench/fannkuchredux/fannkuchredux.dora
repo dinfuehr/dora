@@ -1,59 +1,59 @@
 fun main() {
-  var n = 7;
-  if std::argc() > 0 { n = std::argv(0).toInt32().getOrPanic(); }
+  var n = 7I;
+  if std::argc() > 0I { n = std::argv(0I).toInt32().getOrPanic(); }
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
 
 fun fannkuch(n: Int32): Int32 {
-  let perm = Array[Int32]::fill(n.toInt64(), 0);
-  let perm1 = Array[Int32]::fill(n.toInt64(), 0);
-  let count = Array[Int32]::fill(n.toInt64(), 0);
-  var maxFlipsCount = 0;
-  var permCount = 0;
-  var checksum = 0;
+  let perm = Array[Int32]::fill(n.toInt64(), 0I);
+  let perm1 = Array[Int32]::fill(n.toInt64(), 0I);
+  let count = Array[Int32]::fill(n.toInt64(), 0I);
+  var maxFlipsCount = 0I;
+  var permCount = 0I;
+  var checksum = 0I;
 
-  var i = 0;
+  var i = 0I;
   while i < n {
     perm1(i.toInt64()) = i;
-    i = i + 1;
+    i = i + 1I;
   }
 
   var r = n;
 
   while true {
-    while r != 1 {
-      count((r-1).toInt64()) = r;
-      r = r - 1;
+    while r != 1I {
+      count((r-1I).toInt64()) = r;
+      r = r - 1I;
     }
 
-    var i = 0;
+    var i = 0I;
     while i < n {
       perm(i.toInt64()) = perm1(i.toInt64());
-      i = i + 1;
+      i = i + 1I;
     }
 
-    var flipsCount = 0;
+    var flipsCount = 0I;
     var k = perm(0L);
 
-    while k != 0 {
-      let k2 = (k+1) / 2;
+    while k != 0I {
+      let k2 = (k+1I) / 2I;
 
-      var i = 0;
+      var i = 0I;
       while i < k2 {
         let temp = perm(i.toInt64());
         perm(i.toInt64()) = perm((k-i).toInt64());
         perm((k-i).toInt64()) = temp;
 
-        i = i + 1;
+        i = i + 1I;
       }
 
-      flipsCount = flipsCount + 1;
+      flipsCount = flipsCount + 1I;
       k = perm(0L);
     }
 
     maxFlipsCount = Int32::max(maxFlipsCount, flipsCount);
 
-    if permCount % 2 == 0 {
+    if permCount % 2I == 0I {
       checksum = checksum + flipsCount;
     } else {
       checksum = checksum - flipsCount;
@@ -66,25 +66,25 @@ fun fannkuch(n: Int32): Int32 {
       }
 
       let perm0 = perm1(0L);
-      var i = 0;
+      var i = 0I;
 
       while i < r {
-        let j = i + 1;
+        let j = i + 1I;
         perm1(i.toInt64()) = perm1(j.toInt64());
         i = j;
       }
 
       perm1(r.toInt64()) = perm0;
 
-      count(r.toInt64()) = count(r.toInt64()) - 1;
+      count(r.toInt64()) = count(r.toInt64()) - 1I;
 
-      if count(r.toInt64()) > 0 { break; }
+      if count(r.toInt64()) > 0I { break; }
 
-      r = r + 1;
+      r = r + 1I;
     }
 
-    permCount = permCount + 1;
+    permCount = permCount + 1I;
   }
 
-  return -1;
+  return -1I;
 }

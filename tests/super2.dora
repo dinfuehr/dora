@@ -10,6 +10,6 @@ class B extends A {
   }
 
   fun bar(): Int32 {
-    return 1;
+    return 1I;
   }
 }

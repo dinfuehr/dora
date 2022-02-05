@@ -1,6 +1,6 @@
 fun main() {
-    assert(0xFF == 255);
-    assert(0x10 == 16);
+    assert(0xFFI == 255I);
+    assert(0x10I == 16I);
 
     assert(0xFFL == 255L);
     assert(0x10L == 16L);

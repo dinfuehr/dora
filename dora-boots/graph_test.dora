@@ -16,10 +16,10 @@
     graph.addBlock(block);
     graph.setEntryBlock(block);
 
-    let const1 = Int32Const(1);
+    let const1 = Int32Const(1I);
     block.appendInst(const1);
 
-    let const2 = Int32Const(2);
+    let const2 = Int32Const(2I);
     block.appendInst(const2);
 
     let inst = BinaryInst(BinOp::Add, Type::int32(), const1, const2);

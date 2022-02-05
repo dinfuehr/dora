@@ -11,5 +11,5 @@ fun main() {
 
 fun someInt(): Int32 {
   println("someInt");
-  return 1;
+  return 1I;
 }

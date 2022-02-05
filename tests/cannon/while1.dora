@@ -1,7 +1,7 @@
 fun main() {
-    var i = 0;
-    while i < 10 {
-        i = i + 1;
+    var i = 0I;
+    while i < 10I {
+        i = i + 1I;
     }
-    assert(i == 10);
+    assert(i == 10I);
 }

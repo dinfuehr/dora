@@ -1,8 +1,8 @@
 fun main() {
-  let x = Array[Int32]::fill(2L, 100);
-  int32_array_set(x, 1L, 200);
-  assert(x(0L) == 100);
-  assert(x(1L) == 200);
+  let x = Array[Int32]::fill(2L, 100I);
+  int32_array_set(x, 1L, 200I);
+  assert(x(0L) == 100I);
+  assert(x(1L) == 200I);
 
   let x = Array[Int64]::fill(2L, 200L);
   int64_array_set(x, 1L, 100L);
@@ -24,10 +24,10 @@ fun main() {
   assert(x(0L) == "hello");
   assert(x(1L) == "abc");
 
-  let x = Array[Foo]::fill(2L, Foo(1));
-  foo_array_set(x, 1L, Foo(2));
-  assert(x(0L).y == 1);
-  assert(x(1L).y == 2);
+  let x = Array[Foo]::fill(2L, Foo(1I));
+  foo_array_set(x, 1L, Foo(2I));
+  assert(x(0L).y == 1I);
+  assert(x(1L).y == 2I);
 }
 
 fun int32_array_set(x: Array[Int32], idx: Int64, val: Int32) {

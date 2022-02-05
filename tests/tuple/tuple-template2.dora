@@ -1,10 +1,10 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 fun main() {
-    let x = id[(String, Foo)](("f" + "o" + "o", Foo(17)));
+    let x = id[(String, Foo)](("f" + "o" + "o", Foo(17I)));
     std::forceCollect();
     assert(x.0 == "foo");
-    assert(x.1.value == 17);
+    assert(x.1.value == 17I);
 }
 
 class Foo(let value: Int32)

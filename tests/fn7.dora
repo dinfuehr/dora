@@ -1,7 +1,5 @@
 fun main() {
-  assert(f(1) == 2);
+  assert(f(1I) == 2I);
 }
 
-fun f(a: Int32): Int32 {
-  return a + 1;
-}
+fun f(a: Int32): Int32 = a + 1I;

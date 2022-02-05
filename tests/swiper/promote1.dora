@@ -1,10 +1,10 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Foo(1);
+  let x = Foo(1I);
   std::forceMinorCollect();
   std::forceMinorCollect();
-  assert(x.a == 1);
+  assert(x.a == 1I);
 }
 
 class Foo(let a: Int32)

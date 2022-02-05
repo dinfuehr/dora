@@ -1,6 +1,6 @@
 fun main() {
     let x = A::default();
-    assert(x.a == 0);
+    assert(x.a == 0I);
 }
 
 trait DefaultValue {
@@ -11,6 +11,6 @@ class A(let a: Int32)
 
 impl DefaultValue for A {
     @static fun default(): A {
-        return A(0);
+        return A(0I);
     }
 }

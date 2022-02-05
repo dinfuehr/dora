@@ -24,7 +24,7 @@ fun performDce(graph: Graph) {
 @test fun testRemoveUnusedConstant(_x: Testing) {
     let builder = GraphBuilder();
     let block = builder.addBlock();
-    let value = builder.createInt32Const(12);
+    let value = builder.createInt32Const(12I);
     builder.createReturnVoid();
     let graph = builder.build();
     performDce(graph);
@@ -37,8 +37,8 @@ fun performDce(graph: Graph) {
 @test fun testRemoveUnusedAdd(_x: Testing) {
     let builder = GraphBuilder();
     let block = builder.addBlock();
-    let lhs = builder.createInt32Const(12);
-    let rhs = builder.createInt32Const(17);
+    let lhs = builder.createInt32Const(12I);
+    let rhs = builder.createInt32Const(17I);
     builder.createAdd(lhs, rhs, Type::Int32);
     builder.createReturnVoid();
     let graph = builder.build();

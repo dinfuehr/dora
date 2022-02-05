@@ -1,4 +1,4 @@
 fun main() {
-    assert(Int32::minValue() == Int32::maxValue().wrappingAdd(1));
+    assert(Int32::minValue() == Int32::maxValue().wrappingAdd(1I));
     assert(Int64::minValue() == Int64::maxValue().wrappingAdd(1L));
 }

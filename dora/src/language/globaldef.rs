@@ -718,30 +718,30 @@ mod tests {
 
     #[test]
     fn test_module_with_fun() {
-        ok("module Foo { fun bar(): Int32 = 0; }");
+        ok("module Foo { fun bar(): Int32 = 0I; }");
     }
 
     #[test]
     fn test_module_with_let() {
-        ok("module Foo { let bar: Int32 = 0; }");
+        ok("module Foo { let bar: Int32 = 0I; }");
     }
 
     #[test]
     fn test_const() {
-        ok("const foo: Int32 = 0;");
+        ok("const foo: Int32 = 0I;");
         err(
-            "const foo: Int32 = 0; fun foo() {}",
-            pos(1, 23),
+            "const foo: Int32 = 0I; fun foo() {}",
+            pos(1, 24),
             SemError::ShadowConst("foo".into()),
         );
         err(
-            "const foo: Int32 = 0; class foo {}",
-            pos(1, 23),
+            "const foo: Int32 = 0I; class foo {}",
+            pos(1, 24),
             SemError::ShadowConst("foo".into()),
         );
         err(
-            "const foo: Int32 = 0; struct foo {}",
-            pos(1, 23),
+            "const foo: Int32 = 0I; struct foo {}",
+            pos(1, 24),
             SemError::ShadowConst("foo".into()),
         );
     }

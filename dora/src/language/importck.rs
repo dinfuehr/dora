@@ -326,8 +326,8 @@ mod tests {
 
     #[test]
     fn check_initializer() {
-        ok("let a: Int32 = 0;");
-        ok("let a: Int32 = 0; var b: Int32 = a + 1;");
+        ok("let a: Int32 = 0I;");
+        ok("let a: Int32 = 0I; var b: Int32 = a + 1I;");
         err(
             "var a: Int32 = foo;",
             pos(1, 16),

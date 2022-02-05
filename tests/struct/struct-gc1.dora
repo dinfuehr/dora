@@ -12,6 +12,4 @@ fun main() {
     };
 }
 
-fun createFoo(): Foo {
-    Foo(1)
-}
+fun createFoo(): Foo = Foo(1I);

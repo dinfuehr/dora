@@ -1160,7 +1160,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         let value = data(self.pos.toInt64());
 
         if value.toInt32() == BC_WIDE {
-            self.pos = self.pos + 1;
+            self.pos = self.pos + 1I;
             true
         } else {
             false
@@ -1170,9 +1170,9 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
     fun readOpcode(): Int32 {
         let first = self.readByte();
 
-        if first == 255 {
+        if first == 255I {
             let second = self.readByte();
-            second + 255
+            second + 255I
         } else {
             first
         }
@@ -1213,7 +1213,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
     fun readByte(): Int32 {
         let data = self.data;
         let value = data(self.pos.toInt64());
-        self.pos = self.pos + 1;
+        self.pos = self.pos + 1I;
 
         value.toInt32()
     }
@@ -1224,6 +1224,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         let by3 = self.readByte();
         let by4 = self.readByte();
 
-        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
+        (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
     }
 }

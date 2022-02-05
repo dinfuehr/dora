@@ -3,5 +3,5 @@ fun main(): Int32 {
 }
 
 fun myzero(): Int32 {
-  return 0;
+  return 0I;
 }

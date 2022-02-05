@@ -3,14 +3,14 @@ import std::HashMap;
 
 fun main() {
   let map = HashMap[Int32, String]();
-  map.insert(1, "a");
-  map.insert(2, "b");
-  map.insert(3, "c");
-  map.insert(3, "d");
+  map.insert(1I, "a");
+  map.insert(2I, "b");
+  map.insert(3I, "c");
+  map.insert(3I, "d");
 
   Assert::map[Int32, String](map)
-    .contains(1)
-    .containsAll(1, 2, 3)
+    .contains(1I)
+    .containsAll(1I, 2I, 3I)
     .hasSize(3L)
     .isNotEmpty();
 

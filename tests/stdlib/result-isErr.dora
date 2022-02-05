@@ -1,4 +1,4 @@
 fun main() {
-  assert(Result[Int32, String]::Ok(23).isErr().not());
+  assert(Result[Int32, String]::Ok(23I).isErr().not());
   assert(Result[Int32, String]::Err("err").isErr());
 }

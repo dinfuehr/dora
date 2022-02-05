@@ -10,10 +10,10 @@ annotation flurbs[S, T](x: Int, y: Double)
 
 class Boo() extends Bar {
   @override
-  fun foo(): Int32 = 1;
+  fun foo(): Int32 = 1I;
 
   @static @pub
-  fun goo(): Int32 = 1;
+  fun goo(): Int32 = 1I;
 }
 
 fun main() {}

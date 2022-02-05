@@ -1,8 +1,8 @@
 class Foo {
-    let vec: Vec[Int32] = Vec[Int32](1, 2, 3);
+    let vec: Vec[Int32] = Vec[Int32](1I, 2I, 3I);
 }
 
 fun main() {
     let foo = Foo();
-    assert(foo.vec(0L) == 1);
+    assert(foo.vec(0L) == 1I);
 }

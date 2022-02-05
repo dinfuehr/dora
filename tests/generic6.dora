@@ -1,5 +1,5 @@
 fun main() {
-    foo[Int32](1);
+    foo[Int32](1I);
     foo[Float32](3F);
     foo[String]("hello");
 }

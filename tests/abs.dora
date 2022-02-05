@@ -28,9 +28,9 @@ fun float64() {
 
 fun int32() {
   assert(Int32::minValue().abs() == Int32::minValue());
-  assert((-1).abs() == 1);
-  assert(0.abs() == 0);
-  assert(1.abs() == 1);
+  assert((-1I).abs() == 1I);
+  assert(0I.abs() == 0I);
+  assert(1I.abs() == 1I);
   assert(Int32::maxValue().abs() == Int32::maxValue());
 }
 

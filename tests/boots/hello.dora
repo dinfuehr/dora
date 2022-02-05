@@ -2,8 +2,8 @@
 
 fun main() {
     f();
-    // assert(g() == 17);
+    // assert(g() == 17I);
 }
 
 @optimizeImmediately fun f() {}
-@optimizeImmediately fun g(): Int32 { 17 }
+@optimizeImmediately fun g(): Int32 { 17I }

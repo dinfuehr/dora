@@ -1,7 +1,7 @@
 fun main() {
-    var counter = 0;
-    for i in std::range(0, 0) {
-        counter = counter + 1;
+    var counter = 0I;
+    for i in std::range(0I, 0I) {
+        counter = counter + 1I;
     }
-    assert(counter == 0);
+    assert(counter == 0I);
 }

@@ -2,9 +2,9 @@
 
 fun main() {
     let x = Vec[String]();
-    x.push(1.toString());
-    x.push(2.toString());
-    x.push(3.toString());
+    x.push(1I.toString());
+    x.push(2I.toString());
+    x.push(3I.toString());
 
     std::forceCollect();
 

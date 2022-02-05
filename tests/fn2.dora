@@ -1,18 +1,18 @@
 fun main() {
-  var result = fact(5);
-  assert(result == 120);
+  var result = fact(5I);
+  assert(result == 120I);
 
-  result = fact(-10);
-  assert(result == 1);
+  result = fact(-10I);
+  assert(result == 1I);
 
-  result = fact(3);
-  assert(result == 6);
+  result = fact(3I);
+  assert(result == 6I);
 }
 
 fun fact(x: Int32): Int32 {
-  if x <= 1 {
-    return 1;
+  if x <= 1I {
+    return 1I;
   } else {
-    return x*fact(x-1);
+    return x*fact(x-1I);
   }
 }

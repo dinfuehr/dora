@@ -1,10 +1,10 @@
 fun main() {
-  let x = Array[Foo]::fill(5L, Foo(17));
-  x(0L) = Foo(1);
-  x(4L) = Foo(2);
+  let x = Array[Foo]::fill(5L, Foo(17I));
+  x(0L) = Foo(1I);
+  x(4L) = Foo(2I);
   std::forceCollect();
-  assert(x(0L).x == 1);
-  assert(x(4L).x == 2);
+  assert(x(0L).x == 1I);
+  assert(x(4L).x == 2I);
 }
 
 class Foo(let x: Int32)

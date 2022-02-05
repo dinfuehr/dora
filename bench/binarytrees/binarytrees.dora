@@ -1,15 +1,15 @@
 fun main() {
-  var maxDepth = 6;
+  var maxDepth = 6I;
 
-  if std::argc() > 0 {
-    maxDepth = std::argv(0).toInt32().getOrPanic();
+  if std::argc() > 0I {
+    maxDepth = std::argv(0I).toInt32().getOrPanic();
   }
 
-  if 6 > maxDepth {
-    maxDepth = 6;
+  if 6I > maxDepth {
+    maxDepth = 6I;
   }
 
-  let stretchDepth = maxDepth + 1;
+  let stretchDepth = maxDepth + 1I;
   println("stretch tree of depth " + stretchDepth.toString() +
           "\t check: " + checkTree(createTree(stretchDepth)).toString());
 
@@ -18,13 +18,13 @@ fun main() {
 
 fun trees(maxDepth: Int32) {
   let longLastingNode = createTree(maxDepth);
-  var depth = 4;
+  var depth = 4I;
 
   while depth <= maxDepth {
-    let iterations = 16 << (maxDepth - depth);
+    let iterations = 16I << (maxDepth - depth);
 
     loops(iterations, depth);
-    depth = depth + 2;
+    depth = depth + 2I;
   }
 
   println("long lived tree of depth " + maxDepth.toString()
@@ -32,12 +32,12 @@ fun trees(maxDepth: Int32) {
 }
 
 fun loops(iterations: Int32, depth: Int32) {
-  var check = 0;
-  var item = 0;
+  var check = 0I;
+  var item = 0I;
 
   while item < iterations {
     check = check + checkTree(createTree(depth));
-    item = item + 1;
+    item = item + 1I;
   }
 
   println(iterations.toString() + "\t trees of depth " +
@@ -46,10 +46,10 @@ fun loops(iterations: Int32, depth: Int32) {
 
 fun createTree(depth: Int32): TreeNode {
   var depth = depth;
-  let node = TreeNode(0, Option[TreeNode]::None, Option[TreeNode]::None);
+  let node = TreeNode(0I, Option[TreeNode]::None, Option[TreeNode]::None);
 
-  if depth > 0 {
-    depth = depth - 1;
+  if depth > 0I {
+    depth = depth - 1I;
     node.left = Option[TreeNode]::Some(createTree(depth));
     node.right = Option[TreeNode]::Some(createTree(depth));
   }
@@ -59,11 +59,11 @@ fun createTree(depth: Int32): TreeNode {
 
 fun checkTree(node: TreeNode): Int32 {
   if node.left.isNone() {
-    return 1;
+    return 1I;
   }
 
   return checkTree(node.left.getOrPanic()) +
-         checkTree(node.right.getOrPanic()) + 1;
+         checkTree(node.right.getOrPanic()) + 1I;
 }
 
 class TreeNode(let item: Int32, var left: Option[TreeNode], var right: Option[TreeNode])

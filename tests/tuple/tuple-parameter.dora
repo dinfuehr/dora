@@ -1,50 +1,50 @@
 fun main() {
-    assert(3 == tpl1((1, 2), 4711));
-    assert(6 == tpl2(1, (2, 3), 4711));
-    assert(10 == tpl3(1, 2, (3, 4), 4711));
-    assert(15 == tpl4(1, 2, 3, (4, 5), 4711));
-    assert(21 == tpl5(1, 2, 3, 4, (5, 6), 4711));
-    assert(28 == tpl6(1, 2, 3, 4, 5, (6, 7), 4711));
-    assert(36 == tpl7(1, 2, 3, 4, 5, 6, (7, 8), 4711));
-    assert(45 == tpl8(1, 2, 3, 4, 5, 6, 7, (8, 9), 4711));
+    assert(3I == tpl1((1I, 2I), 4711I));
+    assert(6I == tpl2(1I, (2I, 3I), 4711I));
+    assert(10I == tpl3(1I, 2I, (3I, 4I), 4711I));
+    assert(15I == tpl4(1I, 2I, 3I, (4I, 5I), 4711I));
+    assert(21I == tpl5(1I, 2I, 3I, 4I, (5I, 6I), 4711I));
+    assert(28I == tpl6(1I, 2I, 3I, 4I, 5I, (6I, 7I), 4711I));
+    assert(36I == tpl7(1I, 2I, 3I, 4I, 5I, 6I, (7I, 8I), 4711I));
+    assert(45I == tpl8(1I, 2I, 3I, 4I, 5I, 6I, 7I, (8I, 9I), 4711I));
 }
 
 fun tpl1(x: (Int32, Int32), control: Int32): Int32 {
-    assert(control == 4711);
+    assert(control == 4711I);
     x.0 + x.1
 }
 
 fun tpl2(a0: Int32, x: (Int32, Int32), control: Int32): Int32 {
-    assert(control == 4711);
+    assert(control == 4711I);
     a0 + x.0 + x.1
 }
 
 fun tpl3(a0: Int32, a1: Int32, x: (Int32, Int32), control: Int32): Int32 {
-    assert(control == 4711);
+    assert(control == 4711I);
     a0 + a1 + x.0 + x.1
 }
 
 fun tpl4(a0: Int32, a1: Int32, a2: Int32, x: (Int32, Int32), control: Int32): Int32 {
-    assert(control == 4711);
+    assert(control == 4711I);
     a0 + a1 + a2 + x.0 + x.1
 }
 
 fun tpl5(a0: Int32, a1: Int32, a2: Int32, a3: Int32, x: (Int32, Int32), control: Int32): Int32 {
-    assert(control == 4711);
+    assert(control == 4711I);
     a0 + a1 + a2 + a3 + x.0 + x.1
 }
 
 fun tpl6(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, x: (Int32, Int32), control: Int32): Int32 {
-    assert(control == 4711);
+    assert(control == 4711I);
     a0 + a1 + a2 + a3 + a4 + x.0 + x.1
 }
 
 fun tpl7(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, a5: Int32, x: (Int32, Int32), control: Int32): Int32 {
-    assert(control == 4711);
+    assert(control == 4711I);
     a0 + a1 + a2 + a3 + a4 + a5 + x.0 + x.1
 }
 
 fun tpl8(a0: Int32, a1: Int32, a2: Int32, a3: Int32, a4: Int32, a5: Int32, a6: Int32, x: (Int32, Int32), control: Int32): Int32 {
-    assert(control == 4711);
+    assert(control == 4711I);
     a0 + a1 + a2 + a3 + a4 + a5 + a6 + x.0 + x.1
 }

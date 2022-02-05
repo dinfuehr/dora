@@ -1,5 +1,5 @@
 fun main() {
-    let x = 97.toChar().getOrPanic();
+    let x = 97I.toChar().getOrPanic();
     assert(x == 'a');
 
     let y = 65L.toChar().getOrPanic();

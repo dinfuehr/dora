@@ -1,11 +1,11 @@
 fun main() {
-  let a = A(10);
+  let a = A(10I);
 
-  assert(a.x == 10);
-  assert(a.y == 20);
+  assert(a.x == 10I);
+  assert(a.y == 20I);
 }
 
-class A(x1: Int32) extends B(x1*2) {
+class A(x1: Int32) extends B(x1*2I) {
   let x: Int32 = x1;
 }
 

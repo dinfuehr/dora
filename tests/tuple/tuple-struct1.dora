@@ -2,9 +2,9 @@ struct Pair(x: Int32, y: Int32)
 
 fun main() {
     let (p1, p2) = f();
-    assert((p1.x + p1.y) * (p2.x + p2.y) == 18);
+    assert((p1.x + p1.y) * (p2.x + p2.y) == 18I);
 }
 
 fun f(): (Pair, Pair) {
-    (Pair(1, 2), Pair(5, 1))
+    (Pair(1I, 2I), Pair(5I, 1I))
 }

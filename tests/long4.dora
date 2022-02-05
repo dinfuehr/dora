@@ -1,5 +1,5 @@
 fun main() {
-    assert(three().toInt32() == 3);
+    assert(three().toInt32() == 3I);
 }
 
 fun three(): Int64 {

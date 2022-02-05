@@ -1,18 +1,14 @@
 fun main() {
-  assert(1 == A()("hello"));
+  assert(1I == A()("hello"));
 
   assert(B()(true));
   assert(!B()(false));
 }
 
 class A {
-  fun get(index: String): Int32 {
-    return 1;
-  }
+  fun get(index: String): Int32 = 1I;
 }
 
 class B {
-  fun get(index: Bool): Bool {
-    return index;
-  }
+  fun get(index: Bool): Bool = index;
 }

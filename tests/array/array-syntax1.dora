@@ -1,15 +1,13 @@
 fun main() {
     let a = Array[Int32]::zero(10L);
-    assert(array_get(a, 0L) == 0);
+    assert(array_get(a, 0L) == 0I);
 
-    array_set(a, 0L, 7);
-    assert(array_get(a, 0L) == 7);
+    array_set(a, 0L, 7I);
+    assert(array_get(a, 0L) == 7I);
 }
 
 fun array_set(a: Array[Int32], idx: Int64, value: Int32) {
     a(idx) = value;
 }
 
-fun array_get(a: Array[Int32], idx: Int64): Int32 {
-    return a(idx);
-}
+fun array_get(a: Array[Int32], idx: Int64): Int32 = a(idx);

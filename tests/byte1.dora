@@ -1,12 +1,12 @@
 fun main() {
-    let x = 257.toUInt8();
-    assert(x == 1.toUInt8());
+    let x = 257I.toUInt8();
+    assert(x == 1I.toUInt8());
 
-    let x = (-1).toUInt8();
-    assert(x == 255.toUInt8());
+    let x = (-1I).toUInt8();
+    assert(x == 255I.toUInt8());
 
     let x = 129Y.toInt32();
-    assert(x == 129);
+    assert(x == 129I);
 
     let x = 129Y.toInt64();
     assert(x == 129L);

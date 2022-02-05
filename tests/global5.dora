@@ -4,7 +4,7 @@ var x: Int32 = foo();
 
 fun main() {
     println("before");
-    x = 19;
+    x = 19I;
     println("x = ${x}");
     println("middle");
     println("x = ${x}");
@@ -14,5 +14,5 @@ fun main() {
 
 fun foo(): Int32 {
     println("foo");
-    17
+    17I
 }

@@ -1,8 +1,8 @@
 //= vm-args --gc=copy --gc-stress --gc-verify
 
 fun main() {
-    assert(17 * 17 == bar[SomeClass](SomeClass(17)));
-    assert(42 * 42 == bar[OtherClass](OtherClass(42)));
+    assert(17I * 17I == bar[SomeClass](SomeClass(17I)));
+    assert(42I * 42I == bar[OtherClass](OtherClass(42I)));
 }
 
 fun bar[T: Foo](obj: T): Int32 {
@@ -18,11 +18,11 @@ trait Foo {
 class SomeClass(let value: Int32)
 
 impl Foo for SomeClass {
-    fun baz(): Int32 { self.value }
+    fun baz(): Int32 = self.value;
 }
 
 class OtherClass(let value: Int32)
 
 impl Foo for OtherClass {
-    fun baz(): Int32 { self.value }
+    fun baz(): Int32 = self.value;
 }

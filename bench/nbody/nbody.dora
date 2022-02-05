@@ -1,14 +1,14 @@
 fun main() {
     SOLAR_MASS = 4.0 * PI * PI;
-    let n = std::argv(0).toInt32().getOrPanic();
+    let n = std::argv(0I).toInt32().getOrPanic();
     let bodies = NBodySystem();
 
-    var i = 0;
+    var i = 0I;
     println(bodies.energy().toString());
 
     while i < n {
         bodies.advance(0.01);
-        i = i + 1;
+        i = i + 1I;
     }
 
     println(bodies.energy().toString());

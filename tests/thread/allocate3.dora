@@ -8,12 +8,12 @@ class MyThread() extends std::Thread {
 }
 
 fun main() {
-    var i = 0;
+    var i = 0I;
 
-    while i < 4 {
+    while i < 4I {
         let thread = MyThread();
         thread.start();
-        i = i + 1;
+        i = i + 1I;
     }
 
     allocator();
@@ -21,31 +21,31 @@ fun main() {
 }
 
 fun allocator() {
-    var i = 0;
+    var i = 0I;
 
-    while i < 10_000 {
+    while i < 10_000I {
         let foo = {
             let v1 = Foo(i, None[Foo]);
-            let v2 = Foo(i + 1, Some[Foo](v1));
-            let v3 = Foo(i + 2, Some[Foo](v2));
-            let v4 = Foo(i + 3, Some[Foo](v3));
-            Foo(i + 4, Some[Foo](v4))
+            let v2 = Foo(i + 1I, Some[Foo](v1));
+            let v3 = Foo(i + 2I, Some[Foo](v2));
+            let v4 = Foo(i + 3I, Some[Foo](v3));
+            Foo(i + 4I, Some[Foo](v4))
         };
 
-        if i % 500 == 0 { std::forceMinorCollect(); }
+        if i % 500I == 0I { std::forceMinorCollect(); }
 
         var tmp = foo;
-        assert(tmp.value == i + 4);
+        assert(tmp.value == i + 4I);
         tmp = tmp.next.getOrPanic();
-        assert(tmp.value == i + 3);
+        assert(tmp.value == i + 3I);
         tmp = tmp.next.getOrPanic();
-        assert(tmp.value == i + 2);
+        assert(tmp.value == i + 2I);
         tmp = tmp.next.getOrPanic();
-        assert(tmp.value == i + 1);
+        assert(tmp.value == i + 1I);
         tmp = tmp.next.getOrPanic();
         assert(tmp.value == i);
 
-        i = i + 1;
+        i = i + 1I;
     }
 }
 

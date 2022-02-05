@@ -1,9 +1,9 @@
 fun main() {
-    assert(test_call() == 1);
+    assert(test_call() == 1I);
 }
 
 fun test_call(): Int32 = Foo::bar[Int32]();
 
 module Foo {
-    fun bar[T](): Int32 = 1;
+    fun bar[T](): Int32 = 1I;
 }

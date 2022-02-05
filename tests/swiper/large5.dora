@@ -3,10 +3,10 @@
 
 fun main() {
     var x = Vec[Array[Int32]]();
-    var i = 0;
+    var i = 0I;
 
-    while i < 100_000 {
+    while i < 100_000I {
         x.push(Array[Int32]::zero(32L * 1024L));
-        i = i + 1;
+        i = i + 1I;
     }
 }

@@ -1,7 +1,7 @@
 //= error at 9:12
 
 fun main() {
-  let x = X(1);
+  let x = X(1I);
 }
 
 class X(let a: Int32) {

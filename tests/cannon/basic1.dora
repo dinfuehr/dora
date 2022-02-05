@@ -2,7 +2,7 @@ fun main() {
     assert(returnBool() == true);
     assert(returnChar() == '5');
     assert(returnByte() == 5Y);
-    assert(returnInt32() == 5);
+    assert(returnInt32() == 5I);
     assert(returnInt64() == 5L);
     assert(returnFloat32() == 5F);
     assert(returnFloat64() == 5D);
@@ -22,7 +22,7 @@ fun returnByte(): UInt8 {
 }
 
 fun returnInt32(): Int32 {
-    return 5;
+    return 5I;
 }
 
 fun returnInt64(): Int64 {

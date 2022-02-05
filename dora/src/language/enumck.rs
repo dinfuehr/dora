@@ -220,7 +220,7 @@ mod tests {
     fn enum_with_argument() {
         ok("
             enum Foo { A(Int32), B(Float32), C}
-            fun give_me_a(): Foo { Foo::A(1) }
+            fun give_me_a(): Foo { Foo::A(1I) }
             fun give_me_b(): Foo { Foo::B(2.0F) }
             fun give_me_c(): Foo { Foo::C }
 
@@ -350,7 +350,7 @@ mod tests {
     fn check_enum_value() {
         ok("
             enum Foo { A(Int32), B }
-            fun foo(): Foo { Foo::A(1) }
+            fun foo(): Foo { Foo::A(1I) }
             fun bar(): Foo { Foo::B }
         ");
 
@@ -391,7 +391,7 @@ mod tests {
     fn enum_with_generic_argument() {
         ok("
             enum Foo[T] { A(T), B }
-            fun foo() { let tmp = Foo[Int32]::A(0); }
+            fun foo() { let tmp = Foo[Int32]::A(0I); }
         ");
 
         err(

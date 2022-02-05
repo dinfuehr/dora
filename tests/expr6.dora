@@ -1,23 +1,23 @@
 fun main() {
-  let a = 1;
-  let b = 2;
+  let a = 1I;
+  let b = 2I;
 
   // a + h() --> 4
   // b * i() --> 10
-  // g(4, 10) --> 36
+  // g(4, 10I) --> 36
   // j() --> 7
-  // f(36, 7) --> 288
+  // f(36, 7I) --> 288
 
-  assert(f(g(a + h(), b * i()), j()) == 288);
+  assert(f(g(a + h(), b * i()), j()) == 288I);
 }
 
-fun h(): Int32 { return 3; }
-fun i(): Int32 { return 5; }
-fun j(): Int32 { return 7; }
+fun h(): Int32 { return 3I; }
+fun i(): Int32 { return 5I; }
+fun j(): Int32 { return 7I; }
 
 fun f(x: Int32, y: Int32): Int32 {
-  return x * (y+1);
+  return x * (y+1I);
 }
 fun g(x: Int32, y: Int32): Int32 {
-  return x * (y-1);
+  return x * (y-1I);
 }

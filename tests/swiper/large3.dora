@@ -3,17 +3,17 @@
 class Foo(let x: Int32)
 
 fun main() {
-    let filler = Foo(0);
+    let filler = Foo(0I);
     let x = Array[Foo]::fill(16L * 1024L, filler);
     std::forceCollect();
     assert(x(0L) === filler);
 
-    x(0L) = Foo(1);
+    x(0L) = Foo(1I);
     std::forceMinorCollect();
-    assert(x(0L).x == 1);
+    assert(x(0L).x == 1I);
 
-    x(16L * 1024L - 1L) = Foo(2);
+    x(16L * 1024L - 1L) = Foo(2I);
     std::forceMinorCollect();
-    assert(x(0L).x == 1);
-    assert(x(16L * 1024L - 1L).x == 2);
+    assert(x(0L).x == 1I);
+    assert(x(16L * 1024L - 1L).x == 2I);
 }

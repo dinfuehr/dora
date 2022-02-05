@@ -119,7 +119,7 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
 
     fun run() {
         // create block for first instruction
-        let entryBlock = self.ensureBlockAt(0);
+        let entryBlock = self.ensureBlockAt(0I);
         self.graph.setEntryBlock(entryBlock);
 
         // iterate all bytecodes

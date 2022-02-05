@@ -178,7 +178,7 @@
     var at = array.size();
     while data != 0L {
       array(at - 1L) = ('0'.toInt64() + (data & 1L)).toUInt8();
-      data = data.shiftRight(1);
+      data = data.shiftRight(1I);
       at = at - 1L;
     }
     return String::fromBytesPart(array, at, array.size() - at + 1L).getOrPanic();
@@ -192,13 +192,13 @@
     while data != 0L {
       let digit = (data & 0xFL).toInt32();
 
-      if digit < 10 {
+      if digit < 10I {
         array(at - 1L) = ('0'.toInt32() + digit).toUInt8();
       } else {
-        array(at - 1L) = ('A'.toInt32() + digit - 10).toUInt8();
+        array(at - 1L) = ('A'.toInt32() + digit - 10I).toUInt8();
       }
 
-      data = data.shiftRight(4);
+      data = data.shiftRight(4I);
       at = at - 1L;
     }
     return String::fromBytesPart(array, at, array.size() - at + 1L).getOrPanic();

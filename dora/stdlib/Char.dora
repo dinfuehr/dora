@@ -13,34 +13,34 @@ impl Char {
   @pub fun encodeUtf8(bytes: Array[UInt8], offset: Int64) {
     let val = self.toInt32();
 
-    if val < 0x80 {
+    if val < 0x80I {
       bytes.set(offset, val.toUInt8());
-    } else if val < 0x800 {
-      bytes.set(offset, (0xC0 | ((val >> 6) & 0x1FI)).toUInt8());
-      bytes.set(offset+1L, (0x80 | (val & 0x3FI)).toUInt8());
-    } else if val < 0x10000 {
-      bytes.set(offset, (0xE0 | ((val >> 12) & 0x0FI)).toUInt8());
-      bytes.set(offset+1L, (0x80 | ((val >> 6) & 0x3FI)).toUInt8());
-      bytes.set(offset+2L, (0x80 | (val & 0x3FI)).toUInt8());
+    } else if val < 0x800I {
+      bytes.set(offset, (0xC0I | ((val >> 6I) & 0x1FI)).toUInt8());
+      bytes.set(offset+1L, (0x80I | (val & 0x3FI)).toUInt8());
+    } else if val < 0x10000I {
+      bytes.set(offset, (0xE0I | ((val >> 12I) & 0x0FI)).toUInt8());
+      bytes.set(offset+1L, (0x80I | ((val >> 6I) & 0x3FI)).toUInt8());
+      bytes.set(offset+2L, (0x80I | (val & 0x3FI)).toUInt8());
     } else {
-      bytes.set(offset, (0xF0 | ((val >> 18) & 0x07)).toUInt8());
-      bytes.set(offset+1L, (0x80 | ((val >> 12) & 0x3FI)).toUInt8());
-      bytes.set(offset+2L, (0x80 | ((val >> 6) & 0x3FI)).toUInt8());
-      bytes.set(offset+3L, (0x80 | (val & 0x3FI)).toUInt8());
+      bytes.set(offset, (0xF0I | ((val >> 18I) & 0x07I)).toUInt8());
+      bytes.set(offset+1L, (0x80I | ((val >> 12I) & 0x3FI)).toUInt8());
+      bytes.set(offset+2L, (0x80I | ((val >> 6I) & 0x3FI)).toUInt8());
+      bytes.set(offset+3L, (0x80I | (val & 0x3FI)).toUInt8());
     }
   }
 
   @pub fun lenUtf8(): Int32 {
     let val = self.toInt32();
 
-    if val < 0x80 {
-      return 1;
-    } else if val < 0x800 {
-      return 2;
-    } else if val < 0x10000 {
-      return 3;
+    if val < 0x80I {
+      return 1I;
+    } else if val < 0x800I {
+      return 2I;
+    } else if val < 0x10000I {
+      return 3I;
     } else {
-      return 4;
+      return 4I;
     }
   }
 }

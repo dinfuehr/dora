@@ -1,10 +1,10 @@
 fun main() {
     let x = Vec[Int32]();
-    x.push(1);
-    x.push(2);
-    x.push(3);
+    x.push(1I);
+    x.push(2I);
+    x.push(3I);
 
-    assert(x.pop() == 3);
-    assert(x.pop() == 2);
-    assert(x.pop() == 1);
+    assert(x.pop() == 3I);
+    assert(x.pop() == 2I);
+    assert(x.pop() == 1I);
 }

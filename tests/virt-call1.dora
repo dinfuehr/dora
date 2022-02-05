@@ -3,9 +3,7 @@
 }
 
 class Bar extends Foo {
-    @override fun test(): Int32 {
-        17
-    }
+    @override fun test(): Int32 = 17I;
 }
 
 fun test(foo: Foo): Int32 {
@@ -13,5 +11,5 @@ fun test(foo: Foo): Int32 {
 }
 
 fun main() {
-    assert(test(Bar()) == 17);
+    assert(test(Bar()) == 17I);
 }

@@ -1,5 +1,5 @@
 fun main() {
-    let a = A[Int32](0);
+    let a = A[Int32](0I);
     consume(a.x);
 
     let b = A[String]("");
@@ -11,7 +11,7 @@ class A[T](default: T) {
 }
 
 fun consume(x: Array[Int32]) {
-    assert(x(9L) == 0);
+    assert(x(9L) == 0I);
 }
 
 fun consume2(x: Array[String]) {

@@ -12,8 +12,8 @@ fun main() {
     assert(array(9L) == '\0');
 
     let array = Array[Int32]::zero(10L);
-    assert(array(0L) == 0);
-    assert(array(9L) == 0);
+    assert(array(0L) == 0I);
+    assert(array(9L) == 0I);
 
     let array = Array[Int64]::zero(10L);
     assert(array(0L) == 0L);

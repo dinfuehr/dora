@@ -1,9 +1,9 @@
-const UNLOCKED: Int32 = 0;
-const LOCKED: Int32 = 1;
-const SLEEPING: Int32 = 2;
+const UNLOCKED: Int32 = 0I;
+const LOCKED: Int32 = 1I;
+const SLEEPING: Int32 = 2I;
 
 @pub class Mutex {
-    let data: AtomicInt32 = AtomicInt32(0);
+    let data: AtomicInt32 = AtomicInt32(0I);
 
     @pub fun lock() {
         let previous = self.data.compareExchange(UNLOCKED, LOCKED);

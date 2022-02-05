@@ -1,31 +1,31 @@
 fun main() {
-  f(1, 2, 3, 4, 5, 6, 7, 8);
+  f(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I);
   g("a", "b", "c", "d", "e", "f", "g", "h");
 
   let x = Foo1();
-  x.f(1, 2, 3, 4, 5, 6, 7, 8);
+  x.f(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I);
 
-  let x = Foo2(1, 2, 3, 4, 5, 6, 7, 8);
-  assert(x.a == 1);
-  assert(x.b == 2);
-  assert(x.c == 3);
-  assert(x.d == 4);
-  assert(x.e == 5);
-  assert(x.f == 6);
-  assert(x.g == 7);
-  assert(x.h == 8);
+  let x = Foo2(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I);
+  assert(x.a == 1I);
+  assert(x.b == 2I);
+  assert(x.c == 3I);
+  assert(x.d == 4I);
+  assert(x.e == 5I);
+  assert(x.f == 6I);
+  assert(x.g == 7I);
+  assert(x.h == 8I);
 }
 
 fun f(a: Int32, b: Int32, c: Int32, d: Int32,
      e: Int32, f: Int32, g: Int32, h: Int32) {
-   assert(a == 1);
-   assert(b == 2);
-   assert(c == 3);
-   assert(d == 4);
-   assert(e == 5);
-   assert(f == 6);
-   assert(g == 7);
-   assert(h == 8);
+   assert(a == 1I);
+   assert(b == 2I);
+   assert(c == 3I);
+   assert(d == 4I);
+   assert(e == 5I);
+   assert(f == 6I);
+   assert(g == 7I);
+   assert(h == 8I);
 }
 
 fun g(a: String, b: String, c: String, d: String,
@@ -43,14 +43,14 @@ fun g(a: String, b: String, c: String, d: String,
 class Foo1 {
   fun f(a: Int32, b: Int32, c: Int32, d: Int32,
        e: Int32, f: Int32, g: Int32, h: Int32) {
-    assert(a == 1);
-    assert(b == 2);
-    assert(c == 3);
-    assert(d == 4);
-    assert(e == 5);
-    assert(f == 6);
-    assert(g == 7);
-    assert(h == 8);
+    assert(a == 1I);
+    assert(b == 2I);
+    assert(c == 3I);
+    assert(d == 4I);
+    assert(e == 5I);
+    assert(f == 6I);
+    assert(g == 7I);
+    assert(h == 8I);
   }
 }
 

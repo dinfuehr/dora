@@ -12,7 +12,7 @@ fun main() {
     storeBool(fooBool, true);
     storeByte(fooByte, 1Y);
     storeChar(fooChar, '1');
-    storeInt32(fooInt32, 23);
+    storeInt32(fooInt32, 23I);
     storeInt64(fooInt64, 1L);
     storeFloat32(fooFloat32, 1F);
     storeFloat64(fooFloat64, 1D);
@@ -22,13 +22,13 @@ fun main() {
     assert(fooBool.y == true);
     assert(fooByte.y == 1Y);
     assert(fooChar.y == '1');
-    assert(fooInt32.y == 23);
+    assert(fooInt32.y == 23I);
     assert(fooInt64.y == 1L);
     assert(fooFloat32.y == 1F);
     assert(fooFloat64.y == 1D);
     assert(fooString.y == "1");
     assert(fooPtr.y === fooInt32);
-    assert(fooPtr.y.y == 23)
+    assert(fooPtr.y.y == 23I)
 }
 
 fun storeBool(x: FooBool, z: Bool) {
@@ -77,7 +77,7 @@ class FooChar() {
     var y: Char = '\0';
 }
 class FooInt32() {
-    var y: Int32 = 0;
+    var y: Int32 = 0I;
 }
 class FooInt64() {
     var y: Int64 = 0L;

@@ -1,13 +1,13 @@
 enum Foo { A, B }
 
 fun main() {
-    assert(value(Foo::A) == 1);
-    assert(value(Foo::B) == 2);
+    assert(value(Foo::A) == 1I);
+    assert(value(Foo::B) == 2I);
 }
 
 fun value(foo: Foo): Int32 {
     match foo {
-        Foo::A => 1,
-        Foo::B => 2
+        Foo::A => 1I,
+        Foo::B => 2I
     }
 }

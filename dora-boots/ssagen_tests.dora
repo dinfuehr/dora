@@ -21,7 +21,7 @@ fun bcSsaGenRetVoid() {}
 ");
 }
 
-fun bcSsaGenRetIntConst(): Int32 { 4711 }
+fun bcSsaGenRetIntConst(): Int32 = 4711I;
 
 @test fun testSsaGenRetInt64Const(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenRetInt64Const");
@@ -34,7 +34,7 @@ fun bcSsaGenRetIntConst(): Int32 { 4711 }
 ");
 }
 
-fun bcSsaGenRetInt64Const(): Int64 { 4711L }
+fun bcSsaGenRetInt64Const(): Int64 = 4711L;
 
 @test fun testSsaGenIdInt(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenIdInt");
@@ -47,7 +47,7 @@ fun bcSsaGenRetInt64Const(): Int64 { 4711L }
 ");
 }
 
-fun bcSsaGenIdInt(x: Int32): Int32 { x }
+fun bcSsaGenIdInt(x: Int32): Int32 = x;
 
 @test fun testSsaGenAddIntArguments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenAddIntArguments");
@@ -62,7 +62,7 @@ fun bcSsaGenIdInt(x: Int32): Int32 { x }
 ");
 }
 
-fun bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 { a + b }
+fun bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 = a + b;
 
 @test fun testSsaGenAddFloat32Arguments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenAddFloat32Arguments");
@@ -77,7 +77,7 @@ fun bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 { a + b }
 ");
 }
 
-fun bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 { a + b }
+fun bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 = a + b;
 
 @test fun testSsaGenMultipleAssignments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenMultipleAssignments");
@@ -97,11 +97,11 @@ fun bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 { a + b }
 }
 
 fun bcSsaGenMultipleAssignments(d: Int32): Int32 {
-    var a = 42;
+    var a = 42I;
     var b = a;
     var c = a + b;
 
-    a = c + 23;
+    a = c + 23I;
     c = a + d;
 
     a + c
@@ -120,7 +120,7 @@ fun bcSsaGenMultipleAssignments(d: Int32): Int32 {
 ")
 }
 
-fun bcSsaGenSubIntArguments(a: Int32, b: Int32): Int32 { a - b }
+fun bcSsaGenSubIntArguments(a: Int32, b: Int32): Int32 = a - b;
 
 @test fun testSsaGenNegIntArgument(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenNegIntArgument");
@@ -134,7 +134,7 @@ fun bcSsaGenSubIntArguments(a: Int32, b: Int32): Int32 { a - b }
 ");
 }
 
-fun bcSsaGenNegIntArgument(a: Int32): Int32 { -a }
+fun bcSsaGenNegIntArgument(a: Int32): Int32 = -a;
 
 @test fun testSsaGenMulIntArguments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenMulIntArguments");
@@ -149,7 +149,7 @@ fun bcSsaGenNegIntArgument(a: Int32): Int32 { -a }
 ");
 }
 
-fun bcSsaGenMulIntArguments(a: Int32, b: Int32): Int32 { a * b }
+fun bcSsaGenMulIntArguments(a: Int32, b: Int32): Int32 = a * b;
 
 @test fun testSsaGenSimpleIf(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenSimpleIf");
@@ -170,8 +170,8 @@ fun bcSsaGenMulIntArguments(a: Int32, b: Int32): Int32 { a * b }
 }
 
 fun bcSsaGenSimpleIf(a: Bool): Int32 {
-    var result = 1;
-    if a { result = 10; }
+    var result = 1I;
+    if a { result = 10I; }
     return result;
 }
 
@@ -217,9 +217,9 @@ fun bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
 }
 
 fun bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
-    var x = 1;
-    var y = 27;
-    if a { x = 4; }
+    var x = 1I;
+    var y = 27I;
+    if a { x = 4I; }
     x + y
 }
 
@@ -247,7 +247,7 @@ fun bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
 
 fun bcSsaGenWhileCountDown(x: Int32): Int32 {
     var x = x;
-    while x > 0 { x = x - 1; }
+    while x > 0I { x = x - 1I; }
     x
 }
 
@@ -278,9 +278,9 @@ fun bcSsaGenWhileCountDown(x: Int32): Int32 {
 
 fun bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
     var x = x;
-    var sum = 0;
-    while x > 0 {
-        x = x - 1;
+    var sum = 0I;
+    while x > 0I {
+        x = x - 1I;
         sum = sum + x;
     }
     sum
@@ -339,9 +339,7 @@ fun bcSsaGenStoreArrayElementInt32(x: Array[Int32], idx: Int64, value: Int32) {
 ");
 }
 
-fun bcSsaGenDivInt32(lhs: Int32, rhs: Int32): Int32 {
-    lhs / rhs
-}
+fun bcSsaGenDivInt32(lhs: Int32, rhs: Int32): Int32 = lhs / rhs;
 
 @test fun testSsaGenDivInt64(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenDivInt64");
@@ -357,6 +355,4 @@ fun bcSsaGenDivInt32(lhs: Int32, rhs: Int32): Int32 {
 ");
 }
 
-fun bcSsaGenDivInt64(lhs: Int64, rhs: Int64): Int64 {
-    lhs / rhs
-}
+fun bcSsaGenDivInt64(lhs: Int64, rhs: Int64): Int64 = lhs / rhs;

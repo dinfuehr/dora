@@ -1,16 +1,16 @@
 fun main() {
-    assert(8 % 2 == 0);
-    assert(7 % 2 == 1);
-    assert((-3) % 2 == -1);
-    assert((-2) % 2 == 0);
+    assert(8I % 2I == 0I);
+    assert(7I % 2I == 1I);
+    assert((-3I) % 2I == -1I);
+    assert((-2I) % 2I == 0I);
 
-    assert(-7 % -2 == -1);
-    assert(-7 % 2 == -1);
-    assert(7 % -2 == 1);
-    assert(7 % 2 == 1);
+    assert(-7I % -2I == -1I);
+    assert(-7I % 2I == -1I);
+    assert(7I % -2I == 1I);
+    assert(7I % 2I == 1I);
 
-    assert(-7 / -2 == 3);
-    assert(-7 / 2 == -3);
-    assert(7 / -2 == -3);
-    assert(7 / 2 == 3);
+    assert(-7I / -2I == 3I);
+    assert(-7I / 2I == -3I);
+    assert(7I / -2I == -3I);
+    assert(7I / 2I == 3I);
 }

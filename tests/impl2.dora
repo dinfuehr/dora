@@ -13,6 +13,6 @@ impl Foo for A {
 }
 
 fun main() {
-    let a = A(1);
+    let a = A(1I);
     a.bla();
 }

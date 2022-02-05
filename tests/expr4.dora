@@ -2,5 +2,5 @@ fun main() {
   f(g());
 }
 
-fun f(a: Int32) { assert(a == 1); }
-fun g(): Int32 { return 1; }
+fun f(a: Int32) { assert(a == 1I); }
+fun g(): Int32 { return 1I; }

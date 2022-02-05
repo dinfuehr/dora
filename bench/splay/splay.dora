@@ -2,22 +2,22 @@ import std::fatalError;
 import std::timestamp;
 
 fun main() {
-    if std::argc() != 3 {
+    if std::argc() != 3I {
         println("usage: splay <seed> <tree-size> <iterations>");
-        std::exit(1);
+        std::exit(1I);
     }
 
-    rnd = std::Random(std::argv(0).toInt64().getOrPanic());
-    splayTreeSize = std::argv(1).toInt32().getOrPanic();
-    let iterations = std::argv(2).toInt32().getOrPanic();
+    rnd = std::Random(std::argv(0I).toInt64().getOrPanic());
+    splayTreeSize = std::argv(1I).toInt32().getOrPanic();
+    let iterations = std::argv(2I).toInt32().getOrPanic();
 
     let bench = Benchmark();
     bench.setup();
 
-    var i = 0;
+    var i = 0I;
     while i < iterations {
         bench.run();
-        i = i + 1;
+        i = i + 1I;
     }
 
     bench.tearDown();
@@ -25,42 +25,42 @@ fun main() {
 
 var rnd: std::Random = std::Random(0L);
 
-var splayTreeSize: Int32 = 0;
-const splayTreeModifications: Int32 = 1000;
-const splayTreePayloadDepth: Int32 = 5;
+var splayTreeSize: Int32 = 0I;
+const splayTreeModifications: Int32 = 1000I;
+const splayTreePayloadDepth: Int32 = 5I;
 
 class Benchmark {
     var splayTree: SplayTree = SplayTree();
-    var splaySamples: Int32 = 0;
+    var splaySamples: Int32 = 0I;
     var splaySampleTimeStart: Int64 = 0L;
     var splaySumOfSquaredPauses: Int64 = 0L;
 
     fun setup() {
-        var i = 0;
+        var i = 0I;
         self.splaySampleTimeStart = timestamp();
 
         while i < splayTreeSize {
             self.insertNewNode();
 
-            if (i+1) % 20 == 19 {
+            if (i+1I) % 20I == 19I {
                 // self.updateStats(timestamp());
             }
 
-            i = i + 1;
+            i = i + 1I;
         }
     }
 
     fun updateStats(time: Int64) {
         let pause = time - self.splaySampleTimeStart;
         self.splaySampleTimeStart = time;
-        self.splaySamples = self.splaySamples + 1;
+        self.splaySamples = self.splaySamples + 1I;
         self.splaySumOfSquaredPauses = self.splaySumOfSquaredPauses + pause * pause;
     }
 
     fun tearDown() {
         let keys = self.splayTree.exportKeys();
 
-        self.splaySamples = 0;
+        self.splaySamples = 0I;
         self.splaySumOfSquaredPauses = 0L;
 
         var length = keys.size();
@@ -81,7 +81,7 @@ class Benchmark {
     }
 
     fun run() {
-        var i = 0;
+        var i = 0I;
 
         while i < splayTreeModifications {
             let key = self.insertNewNode();
@@ -93,14 +93,14 @@ class Benchmark {
                 self.splayTree.remove(greatest.getOrPanic().key);
             }
 
-            i = i + 1;
+            i = i + 1I;
         }
 
         // self.updateStats(timestamp());
     }
 
     fun insertNewNode(): Int32 {
-        var key: Int32 = 0;
+        var key: Int32 = 0I;
 
         while true {
             key = self.generateKey();
@@ -129,13 +129,13 @@ class Benchmark {
 }
 
 fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
-    if depth == 0 {
+    if depth == 0I {
         let arr = Array[Int32]::zero(10L);
-        var i = 0;
+        var i = 0I;
 
-        while i < 10 {
+        while i < 10I {
             arr(i.toInt64()) = i;
-            i = i + 1;
+            i = i + 1I;
         }
 
         let text = "String for key " + tag + " in leaf node";
@@ -144,8 +144,8 @@ fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
         return PayloadNode(
             Option[Array[Int32]]::None,
             "",
-            Option[PayloadNode]::Some(generatePayloadTree(depth-1, tag)),
-            Option[PayloadNode]::Some(generatePayloadTree(depth-1, tag)),
+            Option[PayloadNode]::Some(generatePayloadTree(depth-1I, tag)),
+            Option[PayloadNode]::Some(generatePayloadTree(depth-1I, tag)),
         );
     }
 }
@@ -274,7 +274,7 @@ class SplayTree {
             return;
         }
 
-        var dummy = SplayNode(0, Option[PayloadNode]::None);
+        var dummy = SplayNode(0I, Option[PayloadNode]::None);
         var left = dummy;
         var right = dummy;
 

@@ -1,7 +1,7 @@
 //= stdout "0 -> 2\n1 -> 4\n2 -> 8\n"
 
 fun main() {
-    for idx_and_value in Array[Int32](2, 4, 8).enumerate() {
+    for idx_and_value in Array[Int32](2I, 4I, 8I).enumerate() {
         let (idx, value) = idx_and_value;
         println("${idx} -> ${value}");
     }

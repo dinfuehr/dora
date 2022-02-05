@@ -1,8 +1,8 @@
 fun main() {
-    assert(number_args(1, 2) == 2L);
-    assert(number_args(7) == 1L);
+    assert(number_args(1I, 2I) == 2L);
+    assert(number_args(7I) == 1L);
     assert(number_args() == 0L);
-    assert(number_args(1, 2, 3, 4, 5) == 5L);
+    assert(number_args(1I, 2I, 3I, 4I, 5I) == 5L);
 }
 
 fun number_args(x: Int32...): Int64 {

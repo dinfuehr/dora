@@ -1,9 +1,9 @@
 fun main() {
     let map = std::HashMap[Int32, String]();
 
-    assert(map.insert(1024, "1024").isNone());
-    assert(map.insert(2048, "2048").isNone());
+    assert(map.insert(1024I, "1024").isNone());
+    assert(map.insert(2048I, "2048").isNone());
 
-    assert(map.remove(1024).isSome());
-    assert(map.insert(2048, "new 2048").isSome());
+    assert(map.remove(1024I).isSome());
+    assert(map.insert(2048I, "new 2048").isSome());
 }

@@ -4,9 +4,9 @@ struct Foo(f1: Int32, f2: Bar)
 class Bar(let value: Int32)
 
 fun main() {
-    let x = Array[Foo]::fill(10L, Foo(0, Bar(0)));
-    x(0L) = Foo(1, Bar(1));
-    x(4L) = Foo(2, Bar(2));
+    let x = Array[Foo]::fill(10L, Foo(0I, Bar(0I)));
+    x(0L) = Foo(1I, Bar(1I));
+    x(4L) = Foo(2I, Bar(2I));
     std::forceCollect();
     assert(x(0L).f1 == x(0L).f2.value);
     assert(x(4L).f1 == x(4L).f2.value);

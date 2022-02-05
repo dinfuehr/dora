@@ -1,7 +1,7 @@
 fun main() {
-    let value = std::AtomicInt32(10);
-    assert(value.compareExchange(12, 20) == 10);
-    assert(value.get() == 10);
-    assert(value.compareExchange(10, 15) == 10);
-    assert(value.get() == 15);
+    let value = std::AtomicInt32(10I);
+    assert(value.compareExchange(12I, 20I) == 10I);
+    assert(value.get() == 10I);
+    assert(value.compareExchange(10I, 15I) == 10I);
+    assert(value.get() == 15I);
 }

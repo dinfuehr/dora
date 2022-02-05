@@ -1,15 +1,15 @@
 fun main() {
-    let map = std::HashMap[Int32, String]((1, "a"), (2, "b"), (3, "c"), (4, "d"));
+    let map = std::HashMap[Int32, String]((1I, "a"), (2I, "b"), (3I, "c"), (4I, "d"));
     assert(map.size() == 4L);
 
-    assert(map.contains(1));
-    assert(map.contains(2));
-    assert(map.contains(3));
-    assert(map.contains(4));
-    assert(!map.contains(0));
+    assert(map.contains(1I));
+    assert(map.contains(2I));
+    assert(map.contains(3I));
+    assert(map.contains(4I));
+    assert(!map.contains(0I));
 
-    assert(map.get(1).getOrPanic() == "a");
-    assert(map.get(2).getOrPanic() == "b");
-    assert(map.get(3).getOrPanic() == "c");
-    assert(map.get(4).getOrPanic() == "d");
+    assert(map.get(1I).getOrPanic() == "a");
+    assert(map.get(2I).getOrPanic() == "b");
+    assert(map.get(3I).getOrPanic() == "c");
+    assert(map.get(4I).getOrPanic() == "d");
 }

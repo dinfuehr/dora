@@ -2,7 +2,7 @@
 //= stderr "fatal error: len 2 exceeds size of array\n3: fatalError(String): 1\n2: Array::compare(Array[T], Int64, Array[T], Int64, Int64): Bool: 126\n1: main(): 8\n"
 
 fun main() {
-  let a = Array[Int32](1, 2, 3, 3, 4, 5, 4, 5, 4, 3, 3);
+  let a = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 3I);
   let e = Array[Int32]();
 
   assert(Array[Int32]::compare(a, 0L, e, 0L, 2L));

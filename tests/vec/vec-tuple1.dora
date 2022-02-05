@@ -14,7 +14,7 @@ fun main() {
 }
 
 fun build_vec(): Vec[(Int32, String)] {
-    Vec[(Int32, String)]((1, "a" + "b" + "c"), (2, "d" + "e" + "f"), (3, "g" + "h" + "i"))
+    Vec[(Int32, String)]((1I, "a" + "b" + "c"), (2I, "d" + "e" + "f"), (3I, "g" + "h" + "i"))
 }
 
 fun pop_vec(vec: Vec[(Int32, String)], expected: String) {

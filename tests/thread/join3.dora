@@ -1,6 +1,6 @@
 class MyThread extends std::Thread {
     @override fun run() {
-        std::sleep(1);
+        std::sleep(1I);
         std::forceCollect();
     }
 }

@@ -1,4 +1,4 @@
-const i: Int32 = 1;
+const i: Int32 = 1I;
 const l: Int64 = 2L;
 const yes: Bool = true;
 const zero: UInt8 = 0Y;
@@ -6,7 +6,7 @@ const f: Float32 = 3.0F;
 const d: Float64 = 4.0;
 
 fun main() {
-    assert(i == 1);
+    assert(i == 1I);
     assert(l == 2L);
     assert(yes == true);
     assert(zero == 0Y);

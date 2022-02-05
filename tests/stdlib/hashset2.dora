@@ -2,51 +2,51 @@ fun main() {
     let set = std::HashSet[Int32]();
     assert(set.isEmpty());
 
-    var i = 0;
+    var i = 0I;
 
-    while i < 1000 {
+    while i < 1000I {
         set.insert(i);
-        i = i + 1;
+        i = i + 1I;
     }
 
     assert(set.size() == 1000L);
     assert(set.isEmpty().not());
     assert(set.capacity() == 2048L);
-    assert(!set.contains(-1));
-    assert(!set.contains(1000));
+    assert(!set.contains(-1I));
+    assert(!set.contains(1000I));
 
-    i = 0;
+    i = 0I;
 
-    while i < 1000 {
+    while i < 1000I {
         assert(set.contains(i));
-        i = i + 1;
+        i = i + 1I;
     }
 
-    i = 900;
+    i = 900I;
 
-    while i < 1000 {
+    while i < 1000I {
         set.remove(i);
         assert(!set.contains(i));
-        i = i + 1;
+        i = i + 1I;
     }
 
     assert(set.size() == 900L);
     assert(set.isEmpty().not());
     assert(set.capacity() == 2048L);
 
-    i = 0;
+    i = 0I;
 
-    while i < 900 {
+    while i < 900I {
         assert(set.contains(i));
-        i = i + 1;
+        i = i + 1I;
     }
 
-    i = 300;
+    i = 300I;
 
-    while i < 900 {
+    while i < 900I {
         set.remove(i);
         assert(!set.contains(i));
-        i = i + 1;
+        i = i + 1I;
     }
 
     assert(set.size() == 300L);

@@ -1,6 +1,6 @@
 fun main() {
-  assert(true.toInt32() == 1);
-  assert(false.toInt32() == 0);
+  assert(true.toInt32() == 1I);
+  assert(false.toInt32() == 0I);
   assert(true.not() == false);
   assert(false.not() == true);
 }

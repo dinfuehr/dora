@@ -1,12 +1,12 @@
 fun main() {
-  let f = Foo(12);
+  let f = Foo(12I);
   var a1 = f.a1();
   let a2 = f.a2();
   assert(a1 == a2);
 
-  f.setA(101);
+  f.setA(101I);
   a1 = f.a1();
-  assert(101 == a1);
+  assert(101I == a1);
 }
 
 class Foo(var a: Int32) {

@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy"
 
-const THREADS: Int32 = 10;
-const ITERATIONS: Int32 = 10_000;
+const THREADS: Int32 = 10I;
+const ITERATIONS: Int32 = 10_000I;
 const QUEUE_SIZE: Int64 = 20L;
 
 class SharedQueue[T](let capacity: Int64) {
@@ -37,27 +37,27 @@ class SharedQueue[T](let capacity: Int64) {
 }
 
 class Producer(let queue: SharedQueue[Int32]) extends std::Thread {
-    var sum: Int32 = 0;
+    var sum: Int32 = 0I;
 
     @override fun run() {
-        var i = 0;
+        var i = 0I;
 
         while i < ITERATIONS {
             self.queue.enqueue(i);
             self.sum = self.sum + i;
-            i = i + 1;
+            i = i + 1I;
         }
     }
 }
 
 class Consumer(let queue: SharedQueue[Int32]) extends std::Thread {
-    var sum: Int32 = 0;
+    var sum: Int32 = 0I;
 
     @override fun run() {
         while true {
             let value = self.queue.dequeue();
 
-            if value == -1 {
+            if value == -1I {
                 break;
             }
 
@@ -67,7 +67,7 @@ class Consumer(let queue: SharedQueue[Int32]) extends std::Thread {
 }
 
 fun main() {
-    var i = 0;
+    var i = 0I;
     let queue = SharedQueue[Int32](QUEUE_SIZE);
     let producers = Vec[Producer]();
 
@@ -75,20 +75,20 @@ fun main() {
         let producer = Producer(queue);
         producer.start();
         producers.push(producer);
-        i = i + 1;
+        i = i + 1I;
     }
 
     let consumer = Consumer(queue);
     consumer.start();
 
-    var producerSum = 0;
+    var producerSum = 0I;
 
     for producer in producers {
         producer.join();
         producerSum = producerSum + producer.sum;
     }
 
-    queue.enqueue(-1);
+    queue.enqueue(-1I);
     consumer.join();
 
     assert(consumer.sum == producerSum);

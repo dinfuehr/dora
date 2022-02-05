@@ -1,16 +1,16 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let default = Foo(42);
+  let default = Foo(42I);
   var x = Array[Foo]::fill(128L, default);
   std::forceMinorCollect();
-  x(0L) = Foo(1);
-  x(127L) = Foo(2);
+  x(0L) = Foo(1I);
+  x(127L) = Foo(2I);
   std::forceMinorCollect();
-  assert(x(0L).a == 1);
+  assert(x(0L).a == 1I);
   assert(x(1L) === default);
   assert(x(126L) === default);
-  assert(x(127L).a == 2);
+  assert(x(127L).a == 2I);
 }
 
 class Foo(let a: Int32)

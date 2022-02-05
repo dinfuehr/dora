@@ -1,17 +1,17 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Foo(100);
-  let y = Foo(101);
+  let x = Foo(100I);
+  let y = Foo(101I);
   let z = Array[Foo]::fill(512L, x);
   std::forceMinorCollect();
   std::forceMinorCollect();
   // write into old object x reference to young object
-  z(0L) = Foo(2);
-  z(511L) = Foo(3);
+  z(0L) = Foo(2I);
+  z(511L) = Foo(3I);
   std::forceMinorCollect();
-  assert(z(0L).a == 2);
-  assert(z(511L).a == 3);
+  assert(z(0L).a == 2I);
+  assert(z(511L).a == 3I);
 }
 
 class Foo(let a: Int32)

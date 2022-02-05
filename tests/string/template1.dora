@@ -2,14 +2,14 @@ fun main() {
     let x = "a${1}b${2}c${3}d";
     assert(x == "a1b2c3d");
 
-    let x = "a${Foo(1)}b${Foo(2)}c${Foo(3)}d";
+    let x = "a${Foo(1I)}b${Foo(2I)}c${Foo(3I)}d";
     assert(x == "a1b2c3d");
 
     let x = "a${1.1}b${2.3F}c${4.3}d";
     assert(x == "a1.1b2.3c4.3d");
 
-    let val = 4;
-    let x = "a${val*3}b${1+val}c${val%2}d${val.toString()}e";
+    let val = 4I;
+    let x = "a${val*3I}b${1I+val}c${val%2I}d${val.toString()}e";
     assert(x == "a12b5c0d4e");
 }
 

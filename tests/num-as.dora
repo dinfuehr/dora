@@ -1,27 +1,27 @@
 fun main() {
     let testBuggy = true;
 
-    assert(0.0F.asInt32() == 0);
-    assert(1.4E-45F.asInt32() == 1);
-    assert(4.2E-45F.asInt32() == 3);
-    assert((-1F).asInt32() == (-1082130432));
-    assert((-0F).asInt32() == (-2147483648));
+    assert(0.0F.asInt32() == 0I);
+    assert(1.4E-45F.asInt32() == 1I);
+    assert(4.2E-45F.asInt32() == 3I);
+    assert((-1F).asInt32() == (-1082130432I));
+    assert((-0F).asInt32() == (-2147483648I));
 
     // x64 and AArch64 use different sign bits for the NaN returned
     // by 0.0F/0.0F, be more forgiving here and mask out the sign bit.
-    assert((0.0F/0.0F).asInt32() & !(1 << 31) == 0x7FC0_0000);
+    assert((0.0F/0.0F).asInt32() & !(1I << 31I) == 0x7FC0_0000I);
 
     assert(0.0.asInt64() == 0L);
     assert(1.4E-45.asInt64() == 3936137728114922858L);
     assert(4.2E-45.asInt64() == 3942895214107701263L);
     assert((-1.0).asInt64() == (-4616189618054758400L));
     assert((-0.0).asInt64() == (-9223372036854775808L));
-    assert((0.0/0.0).asInt64() & !(1L << 63) == 0x7FF8_0000_0000_0000L);
+    assert((0.0/0.0).asInt64() & !(1L << 63I) == 0x7FF8_0000_0000_0000L);
 
-    assert(0.0F == 0.asFloat32());
-    assert(1.4E-45F == 1.asFloat32());
-    assert(4.2E-45F == 3.asFloat32());
-    assert((-1).asFloat32().isNan());
+    assert(0.0F == 0I.asFloat32());
+    assert(1.4E-45F == 1I.asFloat32());
+    assert(4.2E-45F == 3I.asFloat32());
+    assert((-1I).asFloat32().isNan());
     assert((-0.0F) == Int32::minValue().asFloat32());
     assert(Int32::maxValue().asFloat32().isNan());
 
@@ -34,7 +34,7 @@ fun main() {
     assert((-0.0) == Int64::minValue().asFloat64());
     assert(Int64::maxValue().asFloat64().isNan());
 
-    let x = 123456789;
+    let x = 123456789I;
     assert(x == x.asFloat32().asInt32());
     assert(x.toInt64() == x.toInt64().asFloat64().asInt64());
     assert(x.toFloat32() == x.toFloat32().asInt32().asFloat32());

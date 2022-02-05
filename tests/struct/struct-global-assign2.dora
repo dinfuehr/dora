@@ -2,16 +2,16 @@
 
 struct Bar(first: Foo, second: Foo)
 
-var x: Bar = Bar(Foo(0), Foo(0));
+var x: Bar = Bar(Foo(0I), Foo(0I));
 
 fun main() {
     std::forceCollect();
-    x = Bar(Foo(17), Foo(42));
-    assert(x.first.value == 17);
-    assert(x.second.value == 42);
+    x = Bar(Foo(17I), Foo(42I));
+    assert(x.first.value == 17I);
+    assert(x.second.value == 42I);
     std::forceCollect();
-    assert(x.first.value == 17);
-    assert(x.second.value == 42);
+    assert(x.first.value == 17I);
+    assert(x.second.value == 42I);
 }
 
 class Foo(let value: Int32)

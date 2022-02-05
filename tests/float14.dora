@@ -1,15 +1,11 @@
 fun main() {
     let x = SomeTest();
-    assert(x+0 == 1.0F);
-    assert(x-0 == 2.0F);
+    assert(x+0I == 1.0F);
+    assert(x-0I == 2.0F);
 }
 
 class SomeTest {
-    fun plus(y: Int32): Float32 {
-        return 1.0F;
-    }
+    fun plus(y: Int32): Float32 = 1.0F;
 
-    fun minus(y: Int32): Float32 {
-        return 2.0F;
-    }
+    fun minus(y: Int32): Float32 = 2.0F;
 }

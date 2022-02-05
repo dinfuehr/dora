@@ -2,13 +2,13 @@ fun main() {
   let a = nested();
   std::forceCollect();
 
-  assert(a.next.getOrPanic().next.getOrPanic().value == 3);
+  assert(a.next.getOrPanic().next.getOrPanic().value == 3I);
 }
 
 fun nested(): Foo {
-  let x = Foo(3, None[Foo]);
-  let y = Foo(2, Some[Foo](x));
-  let z = Foo(1, Some[Foo](y));
+  let x = Foo(3I, None[Foo]);
+  let y = Foo(2I, Some[Foo](x));
+  let z = Foo(1I, Some[Foo](y));
 
   return z;
 }

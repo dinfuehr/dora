@@ -1,122 +1,84 @@
 fun main() {
-    assert(not(20) == -21);
+    assert(not(20I) == -21I);
 
-    assert(add(20, 7) == 27);
-    assert(sub(20, 7) == 13);
-    assert(mul(20, 7) == 140);
-    assert(div(20, 7) == 2);
+    assert(add(20I, 7I) == 27I);
+    assert(sub(20I, 7I) == 13I);
+    assert(mul(20I, 7I) == 140I);
+    assert(div(20I, 7I) == 2I);
     
-    assert(mod(20, 7) == 6);
+    assert(mod(20I, 7I) == 6I);
 
-    assert(neg(20) == -20);
-    assert(neg(-5) == 5);
+    assert(neg(20I) == -20I);
+    assert(neg(-5I) == 5I);
 
-    assert(or(20, 5) == 21);
-    assert(xor(20, 5) == 17);
-    assert(and(20, 5) == 4);
+    assert(or(20I, 5I) == 21I);
+    assert(xor(20I, 5I) == 17I);
+    assert(and(20I, 5I) == 4I);
 
-    assert(shl(20, 2) == 80);
-    assert(shr(20, 2) == 5);
-    assert(sar(20, 2) == 5);
+    assert(shl(20I, 2I) == 80I);
+    assert(shr(20I, 2I) == 5I);
+    assert(sar(20I, 2I) == 5I);
 
-    assert(!eq(20, 5));
-    assert(eq(5, 5));
-    assert(!eq(5, 20));
+    assert(!eq(20I, 5I));
+    assert(eq(5I, 5I));
+    assert(!eq(5I, 20I));
 
-    assert(ne(20, 5));
-    assert(!ne(5, 5));
-    assert(ne(5, 20));
+    assert(ne(20I, 5I));
+    assert(!ne(5I, 5I));
+    assert(ne(5I, 20I));
 
 
-    assert(!lt(20, 5));
-    assert(!lt(5, 5));
-    assert(lt(5, 20));
+    assert(!lt(20I, 5I));
+    assert(!lt(5I, 5I));
+    assert(lt(5I, 20I));
 
-    assert(!le(20, 5));
-    assert(le(5, 5));
-    assert(le(5, 20));
+    assert(!le(20I, 5I));
+    assert(le(5I, 5I));
+    assert(le(5I, 20I));
 
-    assert(ge(20, 5));
-    assert(ge(5, 5));
-    assert(!ge(5, 20));
+    assert(ge(20I, 5I));
+    assert(ge(5I, 5I));
+    assert(!ge(5I, 20I));
 
-    assert(gt(20, 5));
-    assert(!gt(5, 5));
-    assert(!gt(5, 20));
+    assert(gt(20I, 5I));
+    assert(!gt(5I, 5I));
+    assert(!gt(5I, 20I));
 }
 
-fun not(x: Int32): Int32 {
-    return !x;
-}
+fun not(x: Int32): Int32 = !x;
 
-fun add(x: Int32, y: Int32): Int32 {
-    return x+y;
-}
+fun add(x: Int32, y: Int32): Int32 = x+y;
 
-fun sub(x: Int32, y: Int32): Int32 {
-    return x-y;
-}
+fun sub(x: Int32, y: Int32): Int32 = x-y;
 
-fun mul(x: Int32, y: Int32): Int32 {
-    return x*y;
-}
+fun mul(x: Int32, y: Int32): Int32 = x*y;
 
-fun div(x: Int32, y: Int32): Int32 {
-    return x/y;
-}
+fun div(x: Int32, y: Int32): Int32 = x/y;
 
-fun mod(y: Int32, z: Int32): Int32 {
-    return y%z;
-}
+fun mod(y: Int32, z: Int32): Int32 = y%z;
 
-fun or(x: Int32, y: Int32): Int32 {
-    return x | y;
-}
+fun or(x: Int32, y: Int32): Int32 = x | y;
 
-fun xor(x: Int32, y: Int32): Int32 {
-    return x ^ y;
-}
+fun xor(x: Int32, y: Int32): Int32 = x ^ y;
 
-fun and(x: Int32, y: Int32): Int32 {
-    return x & y;
-}
+fun and(x: Int32, y: Int32): Int32 = x & y;
 
-fun shl(x: Int32, y: Int32): Int32 {
-    return x << y;
-}
+fun shl(x: Int32, y: Int32): Int32 = x << y;
 
-fun shr(x: Int32, y: Int32): Int32 {
-    return x >>> y;
-}
+fun shr(x: Int32, y: Int32): Int32 = x >>> y;
 
-fun sar(x: Int32, y: Int32): Int32 {
-    return x >> y;
-}
+fun sar(x: Int32, y: Int32): Int32 = x >> y;
 
-fun eq(x: Int32, y: Int32): Bool {
-    return x == y;
-}
+fun eq(x: Int32, y: Int32): Bool = x == y;
 
-fun ne(x: Int32, y: Int32): Bool {
-    return x != y;
-}
+fun ne(x: Int32, y: Int32): Bool = x != y;
 
-fun lt(x: Int32, y: Int32): Bool {
-    return x < y;
-}
+fun lt(x: Int32, y: Int32): Bool = x < y;
 
-fun le(x: Int32, y: Int32): Bool {
-    return x <= y;
-}
+fun le(x: Int32, y: Int32): Bool = x <= y;
 
-fun ge(x: Int32, y: Int32): Bool {
-    return x >= y;
-}
+fun ge(x: Int32, y: Int32): Bool = x >= y;
 
-fun gt(x: Int32, y: Int32): Bool {
-    return x > y;
-}
+fun gt(x: Int32, y: Int32): Bool = x > y;
 
-fun neg(x: Int32): Int32 {
-    return -x;
-}
+fun neg(x: Int32): Int32 = -x;

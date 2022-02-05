@@ -5,19 +5,19 @@ fun main() {
   let x = UInt8::maxValue().toStringBinary();
   assert(x == "11111111");
 
-  let x = 12.toUInt8().toStringBinary();
+  let x = 12I.toUInt8().toStringBinary();
   assert(x == "1100");
 
-  let x = 67.toUInt8().toStringBinary();
+  let x = 67I.toUInt8().toStringBinary();
   assert(x == "1000011");
 
-  let x = 129.toUInt8().toStringBinary();
+  let x = 129I.toUInt8().toStringBinary();
   assert(x == "10000001");
 
-  let x = (-1).toUInt8().toStringBinary();
+  let x = (-1I).toUInt8().toStringBinary();
   assert(x == "11111111");
 
-  let x = (-129).toUInt8().toStringBinary();
+  let x = (-129I).toUInt8().toStringBinary();
   assert(x == "1111111");
 
 
@@ -27,18 +27,18 @@ fun main() {
   let x = UInt8::maxValue().toStringHex();
   assert(x == "FF");
 
-  let x = 12.toUInt8().toStringHex();
+  let x = 12I.toUInt8().toStringHex();
   assert(x == "C");
 
-  let x = 67.toUInt8().toStringHex();
+  let x = 67I.toUInt8().toStringHex();
   assert(x == "43");
 
-  let x = 129.toUInt8().toStringHex();
+  let x = 129I.toUInt8().toStringHex();
   assert(x == "81");
 
-  let x = (-1).toUInt8().toStringHex();
+  let x = (-1I).toUInt8().toStringHex();
   assert(x == "FF");
 
-  let x = (-129).toUInt8().toStringHex();
+  let x = (-129I).toUInt8().toStringHex();
   assert(x == "7F");
 }

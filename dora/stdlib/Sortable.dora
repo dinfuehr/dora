@@ -37,16 +37,16 @@ impl Sortable for Int64 {
 
 impl Sortable for Float32 {
   fun sortsAs(other: Float32): Int32 = self.sortsAs(other);
-  fun sortsBefore(other: Float32): Bool = self.sortsAs(other) < 0;
-  fun sortsAfter(other: Float32): Bool = self.sortsAs(other) > 0;
-  fun sortsSame(other: Float32): Bool = self.sortsAs(other) == 0;
+  fun sortsBefore(other: Float32): Bool = self.sortsAs(other) < 0I;
+  fun sortsAfter(other: Float32): Bool = self.sortsAs(other) > 0I;
+  fun sortsSame(other: Float32): Bool = self.sortsAs(other) == 0I;
 }
 
 impl Sortable for Float64 {
   fun sortsAs(other: Float64): Int32 = self.sortsAs(other);
-  fun sortsBefore(other: Float64): Bool = self.sortsAs(other) < 0;
-  fun sortsAfter(other: Float64): Bool = self.sortsAs(other) > 0;
-  fun sortsSame(other: Float64): Bool = self.sortsAs(other) == 0;
+  fun sortsBefore(other: Float64): Bool = self.sortsAs(other) < 0I;
+  fun sortsAfter(other: Float64): Bool = self.sortsAs(other) > 0I;
+  fun sortsSame(other: Float64): Bool = self.sortsAs(other) == 0I;
 }
 
 impl Sortable for String {

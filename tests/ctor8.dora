@@ -1,29 +1,24 @@
 fun main() {
-  let x = X::one(1);
+  let x = X::one(1I);
 
-  assert(x.a == 1);
-  assert(x.b == 0);
-  assert(x.c == 0);
+  assert(x.a == 1I);
+  assert(x.b == 0I);
+  assert(x.c == 0I);
 
-  let x = X::two(1, 2);
+  let x = X::two(1I, 2I);
 
-  assert(x.a == 1);
-  assert(x.b == 2);
-  assert(x.c == 0);
+  assert(x.a == 1I);
+  assert(x.b == 2I);
+  assert(x.c == 0I);
 
-  let x = X(1, 2, 3);
+  let x = X(1I, 2I, 3I);
 
-  assert(x.a == 1);
-  assert(x.b == 2);
-  assert(x.c == 3);
+  assert(x.a == 1I);
+  assert(x.b == 2I);
+  assert(x.c == 3I);
 }
 
 class X(let a: Int32, let b: Int32, let c: Int32) {
-  @static fun one(a: Int32): X {
-    X(a, 0, 0)
-  }
-
-  @static fun two(a: Int32, b: Int32): X {
-    X(a, b, 0)
-  }
+  @static fun one(a: Int32): X = X(a, 0I, 0I);
+  @static fun two(a: Int32, b: Int32): X = X(a, b, 0I);
 }

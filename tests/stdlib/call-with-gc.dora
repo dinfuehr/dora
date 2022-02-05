@@ -1,13 +1,13 @@
 fun main() {
-    let bar = Bar(101);
+    let bar = Bar(101I);
     std::call("foo");
-    assert(bar.value == 101);
+    assert(bar.value == 101I);
 }
 
 class Bar(let value: Int32)
 
 fun foo() {
-    let bar2 = Bar(102);
+    let bar2 = Bar(102I);
     std::forceCollect();
-    assert(bar2.value == 102);
+    assert(bar2.value == 102I);
 }

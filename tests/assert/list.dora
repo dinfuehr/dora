@@ -1,9 +1,9 @@
 fun main() {
   let list = std::Vec[Int32]();
-  list.push(1);
-  list.push(2);
-  list.push(3);
-  list.push(3);
+  list.push(1I);
+  list.push(2I);
+  list.push(3I);
+  list.push(3I);
 
   std::Assert::list[Int32](list).hasSize(4L);
   std::Assert::list[Int32](list).isNotEmpty();

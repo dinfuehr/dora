@@ -3,5 +3,5 @@
 
 fun main() {
   let array = Array[Int32]::zero(0L);
-  array(0L) = 10;
+  array(0L) = 10I;
 }

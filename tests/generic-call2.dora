@@ -14,10 +14,10 @@ impl Foo for X {
     fun bar(): Int32 {
         println("world");
 
-        return 4;
+        return 4I;
     }
 }
 
 fun main() {
-    assert(4 == foo[X](X()));
+    assert(4I == foo[X](X()));
 }

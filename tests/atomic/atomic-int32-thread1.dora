@@ -1,29 +1,29 @@
 import std::AtomicInt32;
 
-const THREADS: Int32 = 4;
-const ITERATIONS: Int32 = 100_000;
+const THREADS: Int32 = 4I;
+const ITERATIONS: Int32 = 100_000I;
 
 class MyThread(let counter: AtomicInt32) extends std::Thread {
     @override fun run() {
-        var i = 0;
+        var i = 0I;
         while i < ITERATIONS {
-            self.counter.fetchAdd(1);
-            i = i + 1;
+            self.counter.fetchAdd(1I);
+            i = i + 1I;
         }
     }
 }
 
 fun main() {
-    let shared = AtomicInt32(0);
+    let shared = AtomicInt32(0I);
     let threads = Vec[MyThread]();
 
-    var i = 0;
+    var i = 0I;
 
     while i < THREADS {
         let thread = MyThread(shared);
         thread.start();
         threads.push(thread);
-        i = i + 1;
+        i = i + 1I;
     }
 
     for thread in threads {

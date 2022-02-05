@@ -1,7 +1,7 @@
 //= stdout "1"
 
 fun main() {
-    let a = A[Int32](1);
+    let a = A[Int32](1I);
     print(a.x.toString());
 }
 

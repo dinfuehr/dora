@@ -1,5 +1,5 @@
 fun main() {
-  let ok = Result[Int32, String]::Ok(23);
+  let ok = Result[Int32, String]::Ok(23I);
   let er = Result[Int32, String]::Err("err");
 
   assert(ok.getErrOrDefault() == "");

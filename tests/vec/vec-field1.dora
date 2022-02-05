@@ -1,15 +1,15 @@
 class Foo {
-    let vec: Vec[Int32] = Vec[Int32](1, 2, 3);
+    let vec: Vec[Int32] = Vec[Int32](1I, 2I, 3I);
 }
 
 fun main() {
     let foo = Foo();
-    assert((foo.vec)(0L) == 1);
-    assert((foo.vec)(1L) == 2);
-    assert((foo.vec)(2L) == 3);
+    assert((foo.vec)(0L) == 1I);
+    assert((foo.vec)(1L) == 2I);
+    assert((foo.vec)(2L) == 3I);
     assert(foo.vec.size() == 3L);
-    foo.vec(0L) = 100;
-    assert((foo.vec)(0L) == 100);
-    assert((foo.vec)(1L) == 2);
-    assert((foo.vec)(2L) == 3);
+    foo.vec(0L) = 100I;
+    assert((foo.vec)(0L) == 100I);
+    assert((foo.vec)(1L) == 2I);
+    assert((foo.vec)(2L) == 3I);
 }

@@ -1,15 +1,15 @@
 fun main() {
-    let foo = Foo(123);
-    assert(foo.a == 124);
+    let foo = Foo(123I);
+    assert(foo.a == 124I);
 
-    let bar = Bar(124);
-    assert(bar.a == 125);
+    let bar = Bar(124I);
+    assert(bar.a == 125I);
 }
 
 class Foo(x: Int32) {
-    let a: Int32 = x+1;
+    let a: Int32 = x+1I;
 }
 
 class Bar(x: Int32) {
-    var a: Int32 = x+1;
+    var a: Int32 = x+1I;
 }

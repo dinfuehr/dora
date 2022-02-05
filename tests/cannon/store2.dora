@@ -1,7 +1,7 @@
 var glob_bool: Bool = false;
 var glob_char: Char = 'x';
 var glob_byte: UInt8 = 0Y;
-var glob_int32: Int32 = 0;
+var glob_int32: Int32 = 0I;
 var glob_int64: Int64 = 0L;
 var glob_float: Float32 = 0.0F;
 var glob_double: Float64 = 0.0;
@@ -10,12 +10,12 @@ var glob_obj: Foo = Foo();
 
 fun main() {
     let obj = Foo();
-    init_globs(true, '5', 5Y, 5, 5L, 5F, 5D, "5", obj);
+    init_globs(true, '5', 5Y, 5I, 5L, 5F, 5D, "5", obj);
     
     assert(glob_bool == true);
     assert(glob_char == '5');
     assert(glob_byte == 5Y);
-    assert(glob_int32 == 5);
+    assert(glob_int32 == 5I);
     assert(glob_int64 == 5L);
     assert(glob_float == 5F);
     assert(glob_double == 5D);

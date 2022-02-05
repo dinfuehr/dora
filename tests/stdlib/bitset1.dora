@@ -5,10 +5,10 @@ fun main() {
     assert(set.contains(0L));
     assert(set.contains(63L));
 
-    var i = 1;
-    while i < 63 {
+    var i = 1I;
+    while i < 63I {
         assert(!set.contains(i.toInt64()));
-        i = i + 1;
+        i = i + 1I;
     }
 
     set.insert(0L);

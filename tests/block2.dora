@@ -1,7 +1,7 @@
 fun main() {
-    assert(myid[Int32](1) == 1);
-    assert(myid[Int32](100) == 100);
-    assert(myid[Int32](4) == 4);
+    assert(myid[Int32](1I) == 1I);
+    assert(myid[Int32](100I) == 100I);
+    assert(myid[Int32](4I) == 4I);
 
     assert(myid[Bool](false) == false);
     assert(myid[Bool](true) == true);

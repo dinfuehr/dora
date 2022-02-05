@@ -7,7 +7,7 @@ fun main() {
     std::forceCollect();
     match array(0L) {
         Foo::A(a, b, c) => {
-            assert(a == 112);
+            assert(a == 112I);
             assert(b == "abc");
             assert(c == 17.5F);
         },
@@ -16,5 +16,5 @@ fun main() {
 }
 
 fun createArray(): Array[Foo] {
-    Array[Foo](Foo::A(112, "abc", 17.5F))
+    Array[Foo](Foo::A(112I, "abc", 17.5F))
 }

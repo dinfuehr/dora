@@ -2,53 +2,35 @@ fun main() {
     assert(loadBool(FooBool(true)) == true);
     assert(loadByte(FooByte(1Y)) == 1Y);
     assert(loadChar(FooChar('1')) == '1');
-    assert(loadInt32(FooInt32(23)) == 23);
+    assert(loadInt32(FooInt32(23I)) == 23I);
     assert(loadInt64(FooInt64(1L)) == 1L);
     assert(loadFloat32(FooFloat32(1F)) == 1F);
     assert(loadFloat64(FooFloat64(1D)) == 1D);
     assert(loadString(FooString("1")) == "1");
 
-    let ptr = FooInt32(1);
+    let ptr = FooInt32(1I);
     let fooPtr = FooPtr(ptr);
     assert(loadPtr(fooPtr) === ptr);
-    assert(loadPtr(fooPtr).y == 1);
+    assert(loadPtr(fooPtr).y == 1I);
 }
 
-fun loadBool(x: FooBool): Bool {
-    return x.y;
-}
+fun loadBool(x: FooBool): Bool = x.y;
 
-fun loadByte(x: FooByte): UInt8 {
-    return x.y;
-}
+fun loadByte(x: FooByte): UInt8 = x.y;
 
-fun loadChar(x: FooChar): Char {
-    return x.y;
-}
+fun loadChar(x: FooChar): Char = x.y;
 
-fun loadInt32(x: FooInt32): Int32 {
-    return x.y;
-}
+fun loadInt32(x: FooInt32): Int32 = x.y;
 
-fun loadInt64(x: FooInt64): Int64 {
-    return x.y;
-}
+fun loadInt64(x: FooInt64): Int64 = x.y;
 
-fun loadFloat32(x: FooFloat32): Float32 {
-    return x.y;
-}
+fun loadFloat32(x: FooFloat32): Float32 = x.y;
 
-fun loadFloat64(x: FooFloat64): Float64 {
-    return x.y;
-}
+fun loadFloat64(x: FooFloat64): Float64 = x.y;
 
-fun loadString(x: FooString): String {
-    return x.y;
-}
+fun loadString(x: FooString): String = x.y;
 
-fun loadPtr(x: FooPtr): FooInt32 {
-    return x.y;
-}
+fun loadPtr(x: FooPtr): FooInt32 = x.y;
 
 class FooBool(let y: Bool)
 class FooByte(let y: UInt8)

@@ -1,5 +1,5 @@
 fun main() {
-  assert(zero() == 0);
+  assert(zero() == 0I);
 }
 
-fun zero(): Int32 { return 0; }
+fun zero(): Int32 = 0I;
