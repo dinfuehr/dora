@@ -138,9 +138,9 @@ pub struct FullSemAnalysis {
     pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleInstance>>, // stores all module definitions
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
-    pub namespaces: Vec<NamespaceData>,                         // storer all namespace definitions
+    pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub enums: Vec<RwLock<EnumDefinition>>,       // store all enum source definitions
+    pub enums: Vec<RwLock<EnumDefinition>>,       // stores all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
     pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
@@ -174,10 +174,16 @@ impl FullSemAnalysis {
         let boots_name = interner.intern("boots");
 
         let namespaces = vec![
-            NamespaceData::predefined(prelude_namespace_id, None),
-            NamespaceData::predefined(stdlib_namespace_id, Some(stdlib_name)),
-            NamespaceData::predefined(global_namespace_id, None),
-            NamespaceData::predefined(boots_namespace_id, Some(boots_name)),
+            RwLock::new(NamespaceData::predefined(prelude_namespace_id, None)),
+            RwLock::new(NamespaceData::predefined(
+                stdlib_namespace_id,
+                Some(stdlib_name),
+            )),
+            RwLock::new(NamespaceData::predefined(global_namespace_id, None)),
+            RwLock::new(NamespaceData::predefined(
+                boots_namespace_id,
+                Some(boots_name),
+            )),
         ];
 
         let sa = Box::new(FullSemAnalysis {
@@ -297,7 +303,7 @@ pub struct VM {
     pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
     pub module_instances: GrowableVec<RwLock<ModuleInstance>>, // stores all module definitions
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
-    pub namespaces: Vec<NamespaceData>,                         // stores all namespace definitions
+    pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub compiled_fcts: RwLock<HashMap<(FctDefinitionId, SourceTypeArray), CodeId>>,
     pub code: GrowableVec<Code>, // stores all function implementations
@@ -345,10 +351,16 @@ impl VM {
         let boots_name = interner.intern("boots");
 
         let namespaces = vec![
-            NamespaceData::predefined(prelude_namespace_id, None),
-            NamespaceData::predefined(stdlib_namespace_id, Some(stdlib_name)),
-            NamespaceData::predefined(global_namespace_id, None),
-            NamespaceData::predefined(boots_namespace_id, Some(boots_name)),
+            RwLock::new(NamespaceData::predefined(prelude_namespace_id, None)),
+            RwLock::new(NamespaceData::predefined(
+                stdlib_namespace_id,
+                Some(stdlib_name),
+            )),
+            RwLock::new(NamespaceData::predefined(global_namespace_id, None)),
+            RwLock::new(NamespaceData::predefined(
+                boots_namespace_id,
+                Some(boots_name),
+            )),
         ];
 
         let vm = Box::new(VM {

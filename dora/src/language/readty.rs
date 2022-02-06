@@ -157,7 +157,7 @@ fn table_for_namespace(
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
         Some(Sym::Namespace(namespace_id)) => {
-            Ok(sa.namespaces[namespace_id.to_usize()].table.clone())
+            Ok(sa.namespaces[namespace_id.to_usize()].read().table.clone())
         }
 
         _ => {

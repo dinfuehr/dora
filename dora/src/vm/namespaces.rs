@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::language::sym::SymTable;
 use crate::vm::VM;
 
+use dora_parser::ast::Namespace;
 use dora_parser::interner::Name;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -24,6 +25,7 @@ impl From<usize> for NamespaceId {
 #[derive(Debug)]
 pub struct NamespaceData {
     pub id: NamespaceId,
+    pub ast: Option<Arc<Namespace>>,
     pub parent_namespace_id: Option<NamespaceId>,
     pub name: Option<Name>,
     pub table: Arc<RwLock<SymTable>>,
@@ -36,6 +38,7 @@ impl NamespaceData {
     pub fn predefined(id: NamespaceId, name: Option<Name>) -> NamespaceData {
         NamespaceData {
             id,
+            ast: None,
             parent_namespace_id: None,
             name,
             table: Arc::new(RwLock::new(SymTable::new())),
@@ -45,34 +48,32 @@ impl NamespaceData {
         }
     }
 
-    pub fn new(vm: &mut VM, parent_id: NamespaceId, name: Name, is_pub: bool) -> NamespaceId {
+    pub fn new(vm: &mut VM, parent_id: NamespaceId, ast: &Arc<Namespace>) -> NamespaceData {
         let id: NamespaceId = vm.namespaces.len().into();
 
-        let parent = &vm.namespaces[parent_id.to_usize()];
+        let parent = &vm.namespaces[parent_id.to_usize()].read();
         let mut parents = parent.parents.clone();
         parents.push(parent_id);
 
         let depth = parents.len();
 
-        let data = NamespaceData {
+        NamespaceData {
             id,
+            ast: Some(ast.clone()),
             parent_namespace_id: Some(parent_id),
-            name: Some(name),
+            name: Some(ast.name),
             table: Arc::new(RwLock::new(SymTable::new())),
-            is_pub,
+            is_pub: ast.is_pub,
             parents,
             depth,
-        };
-
-        vm.namespaces.push(data);
-        id
+        }
     }
 
     pub fn name(&self, vm: &VM) -> String {
         let mut path = String::new();
 
         for &namespace_id in &self.parents {
-            let namespace = &vm.namespaces[namespace_id.to_usize()];
+            let namespace = &vm.namespaces[namespace_id.to_usize()].read();
 
             if let Some(name) = namespace.name {
                 if !path.is_empty() {
@@ -96,7 +97,7 @@ impl NamespaceData {
 }
 
 pub fn namespace_package(vm: &VM, namespace_id: NamespaceId) -> NamespaceId {
-    let namespace = &vm.namespaces[namespace_id.to_usize()];
+    let namespace = &vm.namespaces[namespace_id.to_usize()].read();
 
     if let Some(&global_id) = namespace.parents.first() {
         global_id
@@ -106,7 +107,7 @@ pub fn namespace_package(vm: &VM, namespace_id: NamespaceId) -> NamespaceId {
 }
 
 pub fn namespace_path(vm: &VM, namespace_id: NamespaceId, name: Name) -> String {
-    let namespace = &vm.namespaces[namespace_id.to_usize()];
+    let namespace = &vm.namespaces[namespace_id.to_usize()].read();
     let mut result = namespace.name(vm);
 
     if !result.is_empty() {

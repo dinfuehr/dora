@@ -26,7 +26,7 @@ fn check_import(sa: &SemAnalysis, import: &ImportData) {
         ImportContext::This => import.namespace_id,
         ImportContext::Package => namespace_package(sa, import.namespace_id),
         ImportContext::Super => {
-            let namespace = &sa.namespaces[import.namespace_id.to_usize()];
+            let namespace = &sa.namespaces[import.namespace_id.to_usize()].read();
             if let Some(namespace_id) = namespace.parent_namespace_id {
                 namespace_id
             } else {
@@ -58,7 +58,7 @@ fn check_import(sa: &SemAnalysis, import: &ImportData) {
         match sym {
             Some(Sym::Namespace(namespace_id)) => {
                 if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
-                    let namespace = &sa.namespaces[namespace_id.to_usize()];
+                    let namespace = &sa.namespaces[namespace_id.to_usize()].read();
                     let msg = SemError::NotAccessible(namespace.name(sa));
                     sa.diag.lock().report(import.file_id, import.ast.pos, msg);
                     return;
@@ -96,11 +96,11 @@ fn read_path(
         for &name in &path[1..] {
             match sym {
                 Some(Sym::Namespace(namespace_id)) => {
-                    let namespace = &sa.namespaces[namespace_id.to_usize()];
+                    let namespace = &sa.namespaces[namespace_id.to_usize()].read();
                     let symtable = namespace.table.read();
 
                     if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
-                        let namespace = &sa.namespaces[namespace_id.to_usize()];
+                        let namespace = &sa.namespaces[namespace_id.to_usize()].read();
                         let msg = SemError::NotAccessible(namespace.name(sa));
                         sa.diag.lock().report(import.file_id, import.ast.pos, msg);
                         return Err(());
@@ -139,7 +139,7 @@ fn import_namespace(
     element_name: Name,
     target_name: Name,
 ) {
-    let namespace = &sa.namespaces[namespace_id.to_usize()];
+    let namespace = &sa.namespaces[namespace_id.to_usize()].read();
     let sym = namespace.table.read().get(element_name);
 
     match sym {
@@ -159,7 +159,7 @@ fn import_namespace(
 
         Some(Sym::Namespace(namespace_id)) => {
             if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
-                let namespace = &sa.namespaces[namespace_id.to_usize()];
+                let namespace = &sa.namespaces[namespace_id.to_usize()].read();
                 let msg = SemError::NotAccessible(namespace.name(sa));
                 sa.diag.lock().report(import.file_id, import.ast.pos, msg);
             }

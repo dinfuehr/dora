@@ -190,10 +190,10 @@ fn accessible_from(
     // find the common parent of both namespaces
     let common_parent_id = common_parent(sa, target_id, from_id);
 
-    let target = &sa.namespaces[target_id.to_usize()];
+    let target = &sa.namespaces[target_id.to_usize()].read();
 
     if let Some(common_parent_id) = common_parent_id {
-        let common_parent_depth = sa.namespaces[common_parent_id.to_usize()].depth;
+        let common_parent_depth = sa.namespaces[common_parent_id.to_usize()].read().depth;
 
         if common_parent_depth + 1 == target.depth {
             // siblings are accessible
@@ -201,7 +201,7 @@ fn accessible_from(
         } else {
             let start_depth = common_parent_depth + 2;
             for ns_id in &target.parents[start_depth..] {
-                let ns = &sa.namespaces[ns_id.to_usize()];
+                let ns = &sa.namespaces[ns_id.to_usize()].read();
                 if !ns.is_pub {
                     return false;
                 }
@@ -213,7 +213,7 @@ fn accessible_from(
         // no common parent: means we try to access another package
         // the whole path needs to be public
         for ns_id in &target.parents {
-            let ns = &sa.namespaces[ns_id.to_usize()];
+            let ns = &sa.namespaces[ns_id.to_usize()].read();
             if !ns.is_pub {
                 return false;
             }
@@ -232,8 +232,8 @@ fn common_parent(
         return Some(lhs_id);
     }
 
-    let lhs = &sa.namespaces[lhs_id.to_usize()];
-    let rhs = &sa.namespaces[rhs_id.to_usize()];
+    let lhs = &sa.namespaces[lhs_id.to_usize()].read();
+    let rhs = &sa.namespaces[rhs_id.to_usize()].read();
 
     if lhs.depth > rhs.depth {
         if lhs.parents[rhs.depth] == rhs_id {
@@ -265,6 +265,6 @@ pub fn namespace_contains(sa: &SemAnalysis, parent_id: NamespaceId, child_id: Na
         return true;
     }
 
-    let namespace = &sa.namespaces[child_id.to_usize()];
+    let namespace = &sa.namespaces[child_id.to_usize()].read();
     namespace.parents.contains(&parent_id)
 }
