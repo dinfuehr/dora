@@ -49,19 +49,19 @@ impl<'a> NestedSymTable<'a> {
         }
 
         {
-            let namespace = &self.sa.namespaces[self.namespace_id.to_usize()];
+            let namespace = &self.sa.namespaces[self.namespace_id.to_usize()].read();
 
             if let Some(sym) = namespace.table.read().get(name) {
                 return Some(sym.clone());
-            }
+            };
         }
 
         {
-            let namespace = &self.sa.namespaces[self.sa.prelude_namespace_id.to_usize()];
+            let namespace = &self.sa.namespaces[self.sa.prelude_namespace_id.to_usize()].read();
 
             if let Some(sym) = namespace.table.read().get(name) {
                 return Some(sym.clone());
-            }
+            };
         }
 
         None

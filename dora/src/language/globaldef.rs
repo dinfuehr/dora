@@ -212,9 +212,12 @@ struct GlobalDef<'x> {
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let id = NamespaceData::new(self.sa, self.namespace_id, node.name, node.is_pub);
-
+        let namespace = NamespaceData::new(self.sa, self.namespace_id, node);
+        let id = namespace.id.clone();
         let sym = Sym::Namespace(id);
+
+        self.sa.namespaces.push(RwLock::new(namespace));
+
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }

@@ -204,17 +204,22 @@ impl SemAnalysis {
     }
 
     pub fn namespace_table(&self, namespace_id: NamespaceId) -> Arc<RwLock<SymTable>> {
-        self.namespaces[namespace_id.to_usize()].table.clone()
+        self.namespaces[namespace_id.to_usize()]
+            .read()
+            .table
+            .clone()
     }
 
     pub fn stdlib_namespace(&self) -> Arc<RwLock<SymTable>> {
         self.namespaces[self.stdlib_namespace_id.to_usize()]
+            .read()
             .table
             .clone()
     }
 
     pub fn prelude_namespace(&self) -> Arc<RwLock<SymTable>> {
         self.namespaces[self.prelude_namespace_id.to_usize()]
+            .read()
             .table
             .clone()
     }
