@@ -417,7 +417,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let mut classes = self.sa.classes.lock();
 
             let id: ClassDefinitionId = classes.len().into();
-            let cls = vm::ClassDefinition::new(&self.sa, id, self.file_id, node, self.namespace_id);
+            let cls = vm::ClassDefinition::new(id, self.file_id, self.namespace_id, node);
 
             classes.push(Arc::new(RwLock::new(cls)));
 
@@ -495,13 +495,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
-        let fct = FctDefinition::new(
-            self.sa,
-            self.file_id,
-            self.namespace_id,
-            node,
-            FctParent::None,
-        );
+        let fct = FctDefinition::new(self.file_id, self.namespace_id, node, FctParent::None);
         let fctid = self.sa.add_fct(fct);
         let sym = Sym::Fct(fctid);
 

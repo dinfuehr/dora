@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{namespace_path, FileId, NamespaceId, VM};
+use crate::vm::{namespace_path, AnnotationDefinition, FileId, NamespaceId, SemAnalysis, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstDefinitionId(usize);
@@ -39,6 +39,47 @@ pub struct ConstDefinition {
 }
 
 impl ConstDefinition {
+    pub fn new(
+        id: ConstDefinitionId,
+        file_id: FileId,
+        namespace_id: NamespaceId,
+        ast: &Arc<ast::Const>,
+        expr: Box<ast::Expr>,
+    ) -> Self {
+        ConstDefinition {
+            id,
+            file_id,
+            ast: ast.clone(),
+            namespace_id,
+            is_pub: false,
+            pos: ast.pos,
+            name: ast.name,
+            ty: SourceType::Error,
+            expr,
+            value: ConstValue::None,
+        }
+    }
+
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+        AnnotationDefinition::reject_modifiers(
+            sa,
+            self.file_id,
+            annotation_usages,
+            &[
+                sa.known.annotations.abstract_,
+                sa.known.annotations.final_,
+                sa.known.annotations.internal,
+                sa.known.annotations.open,
+                sa.known.annotations.optimize_immediately,
+                sa.known.annotations.override_,
+                sa.known.annotations.static_,
+                sa.known.annotations.test,
+            ],
+        );
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }

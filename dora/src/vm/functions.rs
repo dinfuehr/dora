@@ -11,8 +11,8 @@ use crate::gc::Address;
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, FileId, ImplId, ModuleId,
-    NamespaceId, TraitDefinitionId, TypeParam, TypeParamId, VM,
+    namespace_path, AnalysisData, AnnotationDefinition, ClassDefinitionId, ExtensionId, FileId,
+    ImplId, ModuleId, NamespaceId, SemAnalysis, TraitDefinitionId, TypeParam, TypeParamId, VM,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -74,7 +74,6 @@ pub struct FctDefinition {
 
 impl FctDefinition {
     pub fn new(
-        _vm: &VM,
         file_id: FileId,
         namespace_id: NamespaceId,
         ast: &Arc<ast::Function>,
@@ -113,6 +112,21 @@ impl FctDefinition {
             native_pointer: None,
             thunk_id: RwLock::new(None),
         }
+    }
+
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        self.is_abstract = AnnotationDefinition::is_abstract(annotation_usages, sa);
+        self.is_final = AnnotationDefinition::is_final(annotation_usages, sa);
+        self.internal = AnnotationDefinition::is_internal(annotation_usages, sa);
+        self.is_optimize_immediately =
+            AnnotationDefinition::is_optimize_immediately(annotation_usages, sa);
+        self.is_open = AnnotationDefinition::is_open(annotation_usages, sa);
+        self.is_override = AnnotationDefinition::is_override(annotation_usages, sa);
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+        self.is_static = AnnotationDefinition::is_static(annotation_usages, sa);
+        self.is_test = AnnotationDefinition::is_test(annotation_usages, sa);
+        AnnotationDefinition::reject_modifiers(sa, self.file_id, annotation_usages, &[]);
     }
 
     pub fn container_type_params(&self) -> &[TypeParam] {

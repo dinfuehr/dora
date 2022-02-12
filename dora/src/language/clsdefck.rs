@@ -98,7 +98,6 @@ impl<'x> ClsDefCheck<'x> {
 
     fn visit_ctor(&mut self, node: &Arc<ast::Function>) {
         let fct = FctDefinition::new(
-            self.sa,
             self.file_id,
             self.namespace_id,
             node,
@@ -114,7 +113,6 @@ impl<'x> ClsDefCheck<'x> {
 
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
         let fct = FctDefinition::new(
-            self.sa,
             self.file_id,
             self.namespace_id,
             f,

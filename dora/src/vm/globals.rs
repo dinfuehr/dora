@@ -5,7 +5,9 @@ use crate::gc::Address;
 use crate::language::ty::SourceType;
 use crate::mem;
 use crate::utils::GrowableVec;
-use crate::vm::{namespace_path, FctDefinitionId, FileId, NamespaceId, VM};
+use crate::vm::{
+    namespace_path, AnnotationDefinition, FctDefinitionId, FileId, NamespaceId, SemAnalysis, VM,
+};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -43,6 +45,26 @@ pub struct GlobalDefinition {
 }
 
 impl GlobalDefinition {
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+        AnnotationDefinition::reject_modifiers(
+            sa,
+            self.file_id,
+            annotation_usages,
+            &[
+                sa.known.annotations.abstract_,
+                sa.known.annotations.final_,
+                sa.known.annotations.internal,
+                sa.known.annotations.open,
+                sa.known.annotations.optimize_immediately,
+                sa.known.annotations.override_,
+                sa.known.annotations.static_,
+                sa.known.annotations.test,
+            ],
+        );
+    }
+
     pub fn needs_initialization(&self) -> bool {
         self.initializer.is_some() && !self.is_initialized()
     }

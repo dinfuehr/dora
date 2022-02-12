@@ -5,7 +5,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 
 use crate::language::sym::SymTable;
-use crate::vm::{FileId, VM};
+use crate::vm::{AnnotationDefinition, FileId, SemAnalysis, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct NamespaceId(pub usize);
@@ -74,6 +74,29 @@ impl NamespaceData {
             is_pub: ast.is_pub,
             parents,
             depth,
+        }
+    }
+
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        #[allow(unused_variables)]
+        if let Some(ast) = &self.ast {
+            let annotation_usages = &ast::AnnotationUsages::new();
+            self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+            AnnotationDefinition::reject_modifiers(
+                sa,
+                self.file_id,
+                annotation_usages,
+                &[
+                    sa.known.annotations.abstract_,
+                    sa.known.annotations.final_,
+                    sa.known.annotations.internal,
+                    sa.known.annotations.open,
+                    sa.known.annotations.optimize_immediately,
+                    sa.known.annotations.override_,
+                    sa.known.annotations.static_,
+                    sa.known.annotations.test,
+                ],
+            );
         }
     }
 

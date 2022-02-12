@@ -195,13 +195,7 @@ impl<'x> ImplCheck<'x> {
 
         let parent = FctParent::Impl(self.impl_id);
 
-        let fct = FctDefinition::new(
-            self.sa,
-            self.file_id.into(),
-            self.namespace_id,
-            method,
-            parent,
-        );
+        let fct = FctDefinition::new(self.file_id.into(), self.namespace_id, method, parent);
         self.sa.add_fct(fct)
     }
 }

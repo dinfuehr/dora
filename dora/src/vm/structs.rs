@@ -9,8 +9,9 @@ use dora_parser::lexer::position::Position;
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    extension_matches, impl_matches, namespace_path, Candidate, ExtensionId, FileId, ImplId,
-    NamespaceId, SourceTypeArray, TypeParam, TypeParamDefinition, TypeParamId, VM,
+    extension_matches, impl_matches, namespace_path, AnnotationDefinition, Candidate, ExtensionId,
+    FileId, ImplId, NamespaceId, SemAnalysis, SourceTypeArray, TypeParam, TypeParamDefinition,
+    TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -56,6 +57,53 @@ pub struct StructDefinition {
 }
 
 impl StructDefinition {
+    pub fn new(
+        id: StructDefinitionId,
+        file_id: FileId,
+        namespace_id: NamespaceId,
+        ast: &Arc<ast::Struct>,
+    ) -> StructDefinition {
+        StructDefinition {
+            id,
+            file_id,
+            ast: ast.clone(),
+            primitive_ty: None,
+            namespace_id,
+            type_params: Vec::new(),
+            type_params2: TypeParamDefinition::new(),
+            is_pub: false,
+            internal: false,
+            internal_resolved: false,
+            pos: ast.pos,
+            name: ast.name,
+            fields: Vec::new(),
+            field_names: HashMap::new(),
+            specializations: RwLock::new(HashMap::new()),
+            impls: Vec::new(),
+            extensions: Vec::new(),
+        }
+    }
+
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        self.internal = AnnotationDefinition::is_internal(annotation_usages, sa);
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+        AnnotationDefinition::reject_modifiers(
+            sa,
+            self.file_id,
+            annotation_usages,
+            &[
+                sa.known.annotations.abstract_,
+                sa.known.annotations.final_,
+                sa.known.annotations.open,
+                sa.known.annotations.optimize_immediately,
+                sa.known.annotations.override_,
+                sa.known.annotations.static_,
+                sa.known.annotations.test,
+            ],
+        )
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }

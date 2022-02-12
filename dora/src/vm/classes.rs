@@ -10,11 +10,11 @@ use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
 use crate::utils::GrowableVec;
-use crate::vm::VM;
 use crate::vm::{
     extension_matches, impl_matches, namespace_path, replace_type_param, ExtensionId,
     FctDefinitionId, FileId, ImplId, NamespaceId, TraitDefinitionId,
 };
+use crate::vm::{AnnotationDefinition, SemAnalysis, VM};
 use crate::vtable::VTableBox;
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -92,11 +92,10 @@ pub struct ClassDefinition {
 
 impl ClassDefinition {
     pub fn new(
-        _vm: &VM,
         id: ClassDefinitionId,
         file_id: FileId,
-        ast: &Arc<ast::Class>,
         namespace_id: NamespaceId,
+        ast: &Arc<ast::Class>,
     ) -> ClassDefinition {
         let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
             type_params
@@ -137,6 +136,26 @@ impl ClassDefinition {
             is_str: false,
             primitive_type: None,
         }
+    }
+
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        self.is_abstract = AnnotationDefinition::is_abstract(annotation_usages, sa);
+        self.internal = AnnotationDefinition::is_internal(annotation_usages, sa);
+        self.is_open = AnnotationDefinition::is_open(annotation_usages, sa);
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+        AnnotationDefinition::reject_modifiers(
+            sa,
+            self.file_id,
+            annotation_usages,
+            &[
+                sa.known.annotations.final_,
+                sa.known.annotations.optimize_immediately,
+                sa.known.annotations.override_,
+                sa.known.annotations.static_,
+                sa.known.annotations.test,
+            ],
+        );
     }
 
     pub fn is_generic(&self) -> bool {
@@ -636,6 +655,23 @@ pub struct Field {
     pub offset: i32,
     pub mutable: bool,
     pub is_pub: bool,
+}
+
+impl Field {
+    pub fn new(id: FieldId, f: &ast::Field, ty: SourceType, offset: i32) -> Field {
+        Field {
+            id,
+            name: f.name,
+            ty,
+            offset,
+            mutable: f.mutable,
+            is_pub: false,
+        }
+    }
+
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis, annotation_usages: &ast::AnnotationUsages) {
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+    }
 }
 
 impl Index<FieldId> for Vec<Field> {

@@ -5,8 +5,8 @@ use crate::language::ty::SourceType;
 use crate::size::InstanceSize;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    namespace_path, replace_type_param, Candidate, FctDefinitionId, Field, FieldDef, FileId,
-    NamespaceId, TraitDefinitionId, VM,
+    namespace_path, replace_type_param, AnnotationDefinition, Candidate, FctDefinitionId, Field,
+    FieldDef, FileId, NamespaceId, SemAnalysis, TraitDefinitionId, VM,
 };
 
 use crate::vtable::VTableBox;
@@ -68,6 +68,55 @@ pub struct Module {
 }
 
 impl Module {
+    pub fn new(
+        id: ModuleId,
+        file_id: FileId,
+        namespace_id: NamespaceId,
+        ast: &Arc<ast::Module>,
+        ty: SourceType,
+        has_constructor: bool,
+    ) -> Self {
+        Module {
+            id,
+            file_id,
+            ast: ast.clone(),
+            namespace_id,
+            pos: ast.pos,
+            name: ast.name,
+            ty,
+            parent_class: None,
+            internal: false,
+            internal_resolved: false,
+            has_constructor,
+            is_pub: false,
+            constructor: None,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            virtual_fcts: Vec::new(),
+            traits: Vec::new(),
+        }
+    }
+
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        self.internal = AnnotationDefinition::is_internal(annotation_usages, sa);
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+        AnnotationDefinition::reject_modifiers(
+            sa,
+            self.file_id,
+            annotation_usages,
+            &[
+                sa.known.annotations.abstract_,
+                sa.known.annotations.final_,
+                sa.known.annotations.open,
+                sa.known.annotations.optimize_immediately,
+                sa.known.annotations.override_,
+                sa.known.annotations.static_,
+                sa.known.annotations.test,
+            ],
+        );
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }

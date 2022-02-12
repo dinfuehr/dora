@@ -5,7 +5,9 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::language::ty::SourceType;
-use crate::vm::{FctDefinitionId, FileId, NamespaceId, TypeParam, TypeParamId};
+use crate::vm::{
+    AnnotationDefinition, FctDefinitionId, FileId, NamespaceId, SemAnalysis, TypeParam, TypeParamId,
+};
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;
@@ -42,6 +44,26 @@ pub struct ExtensionData {
 }
 
 impl ExtensionData {
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        AnnotationDefinition::reject_modifiers(
+            sa,
+            self.file_id,
+            annotation_usages,
+            &[
+                sa.known.annotations.abstract_,
+                sa.known.annotations.final_,
+                sa.known.annotations.internal,
+                sa.known.annotations.open,
+                sa.known.annotations.optimize_immediately,
+                sa.known.annotations.override_,
+                sa.known.annotations.pub_,
+                sa.known.annotations.static_,
+                sa.known.annotations.test,
+            ],
+        );
+    }
+
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }

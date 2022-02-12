@@ -12,8 +12,9 @@ use dora_parser::lexer::position::Position;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    extension_matches, impl_matches, namespace_path, Candidate, ClassInstanceId, ExtensionId,
-    FileId, ImplId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId, VM,
+    extension_matches, impl_matches, namespace_path, AnnotationDefinition, Candidate,
+    ClassInstanceId, ExtensionId, FileId, ImplId, NamespaceId, SemAnalysis, TypeParam,
+    TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -59,6 +60,26 @@ pub struct EnumDefinition {
 }
 
 impl EnumDefinition {
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+        AnnotationDefinition::reject_modifiers(
+            sa,
+            self.file_id,
+            annotation_usages,
+            &[
+                sa.known.annotations.abstract_,
+                sa.known.annotations.final_,
+                sa.known.annotations.internal,
+                sa.known.annotations.open,
+                sa.known.annotations.optimize_immediately,
+                sa.known.annotations.override_,
+                sa.known.annotations.static_,
+                sa.known.annotations.test,
+            ],
+        );
+    }
+
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }

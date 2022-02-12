@@ -9,8 +9,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId, TypeParam,
-    TypeParamDefinition, TypeParamId, VM,
+    namespace_path, AnnotationDefinition, ClassInstanceId, FctDefinitionId, FileId, NamespaceId,
+    SemAnalysis, TypeParam, TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -46,6 +46,49 @@ pub struct TraitDefinition {
 }
 
 impl TraitDefinition {
+    pub fn new(
+        id: TraitDefinitionId,
+        file_id: FileId,
+        namespace_id: NamespaceId,
+        ast: &Arc<ast::Trait>,
+    ) -> Self {
+        TraitDefinition {
+            id,
+            file_id,
+            namespace_id,
+            is_pub: false,
+            ast: ast.clone(),
+            pos: ast.pos,
+            name: ast.name,
+            type_params: Vec::new(),
+            type_params2: TypeParamDefinition::new(),
+            methods: Vec::new(),
+            instance_names: HashMap::new(),
+            static_names: HashMap::new(),
+            vtables: RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub fn init_modifiers(&mut self, sa: &SemAnalysis) {
+        let annotation_usages = &ast::AnnotationUsages::new();
+        self.is_pub = AnnotationDefinition::is_pub(annotation_usages, sa);
+        AnnotationDefinition::reject_modifiers(
+            sa,
+            self.file_id,
+            annotation_usages,
+            &[
+                sa.known.annotations.abstract_,
+                sa.known.annotations.final_,
+                sa.known.annotations.internal,
+                sa.known.annotations.open,
+                sa.known.annotations.optimize_immediately,
+                sa.known.annotations.override_,
+                sa.known.annotations.static_,
+                sa.known.annotations.test,
+            ],
+        );
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }
