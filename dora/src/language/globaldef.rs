@@ -212,7 +212,7 @@ struct GlobalDef<'x> {
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let namespace = NamespaceData::new(self.sa, self.namespace_id, node);
+        let namespace = NamespaceData::new(self.sa, self.file_id, self.namespace_id, node);
         let id = namespace.id.clone();
         let sym = Sym::Namespace(id);
 

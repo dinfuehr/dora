@@ -1,11 +1,11 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::language::sym::SymTable;
-use crate::vm::VM;
-
-use dora_parser::ast::Namespace;
+use dora_parser::ast;
 use dora_parser::interner::Name;
+
+use crate::language::sym::SymTable;
+use crate::vm::{FileId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct NamespaceId(pub usize);
@@ -25,7 +25,8 @@ impl From<usize> for NamespaceId {
 #[derive(Debug)]
 pub struct NamespaceData {
     pub id: NamespaceId,
-    pub ast: Option<Arc<Namespace>>,
+    pub file_id: FileId,
+    pub ast: Option<Arc<ast::Namespace>>,
     pub parent_namespace_id: Option<NamespaceId>,
     pub name: Option<Name>,
     pub table: Arc<RwLock<SymTable>>,
@@ -38,6 +39,7 @@ impl NamespaceData {
     pub fn predefined(id: NamespaceId, name: Option<Name>) -> NamespaceData {
         NamespaceData {
             id,
+            file_id: FileId(0),
             ast: None,
             parent_namespace_id: None,
             name,
@@ -48,7 +50,12 @@ impl NamespaceData {
         }
     }
 
-    pub fn new(vm: &mut VM, parent_id: NamespaceId, ast: &Arc<Namespace>) -> NamespaceData {
+    pub fn new(
+        vm: &mut VM,
+        file_id: FileId,
+        parent_id: NamespaceId,
+        ast: &Arc<ast::Namespace>,
+    ) -> NamespaceData {
         let id: NamespaceId = vm.namespaces.len().into();
 
         let parent = &vm.namespaces[parent_id.to_usize()].read();
@@ -59,6 +66,7 @@ impl NamespaceData {
 
         NamespaceData {
             id,
+            file_id,
             ast: Some(ast.clone()),
             parent_namespace_id: Some(parent_id),
             name: Some(ast.name),
