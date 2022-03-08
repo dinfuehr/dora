@@ -15,6 +15,7 @@ use crate::object::{Obj, Ref, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::{FctDefinition, VM};
 
+mod ir;
 mod serializer;
 
 pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> CodeDescriptor {
