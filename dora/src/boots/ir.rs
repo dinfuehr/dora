@@ -1,8 +1,10 @@
 pub struct Graph {
     block_entry: Option<BlockId>,
     block_exit: Option<BlockId>,
+
     blocks: Vec<Block>,
     instructions: Vec<Inst>,
+    inputs: Vec<Input>,
 
     next_block_id: usize,
     next_inst_id: usize,
@@ -15,6 +17,7 @@ impl Graph {
             block_exit: None,
             blocks: Vec::new(),
             instructions: Vec::new(),
+            inputs: Vec::new(),
             next_block_id: 0,
             next_inst_id: 0,
         }
@@ -45,6 +48,8 @@ impl Graph {
             id: inst_id,
             previous_inst: None,
             next_inst: None,
+            uses_head: None,
+            uses_tail: None,
             inputs: Vec::new(),
         });
         inst_id
@@ -66,7 +71,26 @@ pub struct InstId(usize);
 
 pub struct Inst {
     id: InstId,
+
     previous_inst: Option<InstId>,
     next_inst: Option<InstId>,
+
+    uses_head: Option<InputId>,
+    uses_tail: Option<InputId>,
+
     inputs: Vec<InstId>,
+}
+
+#[derive(Copy, Clone)]
+pub struct InputId(usize);
+
+pub struct Input {
+    id: InputId,
+
+    value: InstId,
+    user: InstId,
+    idx: usize,
+
+    previous_use: Option<InputId>,
+    next_use: Option<InputId>,
 }
