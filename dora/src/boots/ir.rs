@@ -51,6 +51,7 @@ impl Graph {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct BlockId(usize);
 
 pub struct Block {
@@ -60,6 +61,7 @@ pub struct Block {
     instructions_tail: Option<InstId>,
 }
 
+#[derive(Copy, Clone)]
 pub struct InstId(usize);
 
 pub struct Inst {
