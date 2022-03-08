@@ -1,4 +1,4 @@
-pub struct Function {
+pub struct Graph {
     block_entry: Option<BlockId>,
     block_exit: Option<BlockId>,
     blocks: Vec<Block>,
@@ -6,6 +6,38 @@ pub struct Function {
 
     next_block_id: usize,
     next_inst_id: usize,
+}
+
+impl Graph {
+    fn new() -> Graph {
+        Graph {
+            block_entry: None,
+            block_exit: None,
+            blocks: Vec::new(),
+            instructions: Vec::new(),
+            next_block_id: 0,
+            next_inst_id: 0,
+        }
+    }
+
+    fn block(&self, id: BlockId) -> &Block {
+        &self.blocks[id.0]
+    }
+
+    fn block_mut(&mut self, id: BlockId) -> &mut Block {
+        &mut self.blocks[id.0]
+    }
+
+    fn create_block(&mut self) -> BlockId {
+        let block_id = BlockId(self.blocks.len());
+        self.blocks.push(Block {
+            id: block_id,
+            predecessors: Vec::new(),
+            instructions_head: None,
+            instructions_tail: None,
+        });
+        block_id
+    }
 }
 
 pub struct BlockId(usize);
