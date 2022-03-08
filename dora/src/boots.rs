@@ -17,6 +17,7 @@ use crate::vm::{FctDefinition, VM};
 
 mod ir;
 mod serializer;
+mod ssagen;
 
 pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> CodeDescriptor {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");

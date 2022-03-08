@@ -38,6 +38,17 @@ impl Graph {
         });
         block_id
     }
+
+    fn create_inst(&mut self) -> InstId {
+        let inst_id = InstId(self.instructions.len());
+        self.instructions.push(Inst {
+            id: inst_id,
+            previous_inst: None,
+            next_inst: None,
+            inputs: Vec::new(),
+        });
+        inst_id
+    }
 }
 
 pub struct BlockId(usize);
@@ -53,7 +64,7 @@ pub struct InstId(usize);
 
 pub struct Inst {
     id: InstId,
-    previous_inst: InstId,
-    next_inst: InstId,
+    previous_inst: Option<InstId>,
+    next_inst: Option<InstId>,
     inputs: Vec<InstId>,
 }
