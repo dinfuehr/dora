@@ -55,14 +55,14 @@ fun decodeBytecodeType(reader: ByteReader): BytecodeType {
     } else if opcode == BC_TYPE_PTR {
         BytecodeType::Ptr
     } else if opcode == BC_TYPE_STRUCT {
-        let structId = reader.readInt32();
+        let structId = reader.readId();
         let typeParams = decodeSourceTypeArray(reader);
         BytecodeType::Struct(structId, typeParams)
     } else if opcode == BC_TYPE_TUPLE {
         let typeParams = decodeSourceTypeArray(reader);
         BytecodeType::Tuple(typeParams)
     } else if opcode == BC_TYPE_TYPE_PARAM {
-        let idx = reader.readInt32();
+        let idx = reader.readId();
         BytecodeType::TypeParam(idx)
     } else {
         println("unknown SourceType opcode = ${opcode}");
@@ -159,22 +159,22 @@ fun decodeSourceType(reader: ByteReader): SourceType {
     } else if opcode == SOURCE_TYPE_OPCODE_FLOAT64 {
         SourceType::Float64
     } else if opcode == SOURCE_TYPE_OPCODE_CLASS {
-        let clsId = reader.readInt32();
+        let clsId = reader.readId();
         let typeParams = decodeSourceTypeArray(reader);
         SourceType::Class(clsId, typeParams)
     } else if opcode == SOURCE_TYPE_OPCODE_STRUCT {
-        let structId = reader.readInt32();
+        let structId = reader.readId();
         let typeParams = decodeSourceTypeArray(reader);
         SourceType::Struct(structId, typeParams)
     } else if opcode == SOURCE_TYPE_OPCODE_TRAIT {
-        let traitId = reader.readInt32();
+        let traitId = reader.readId();
         let typeParams = decodeSourceTypeArray(reader);
         SourceType::Trait(traitId, typeParams)
     } else if opcode == SOURCE_TYPE_OPCODE_TUPLE {
         let typeParams = decodeSourceTypeArray(reader);
         SourceType::Tuple(typeParams)
     } else if opcode == SOURCE_TYPE_OPCODE_TYPE_PARAM {
-        let idx = reader.readInt32();
+        let idx = reader.readId();
         SourceType::TypeParam(idx)
     } else {
         println("unknown SourceType ${opcode}");
@@ -202,6 +202,10 @@ class ByteReader(let array: Array[UInt8]) {
         let by4 = self.readUInt8().toInt32();
 
         (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
+    }
+
+    fun readId(): Int32 {
+        self.readInt32()
     }
 
     fun readInt64(): Int64 {
