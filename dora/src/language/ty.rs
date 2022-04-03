@@ -5,13 +5,13 @@ use std::sync::Arc;
 use crate::bytecode::BytecodeType;
 use crate::mem;
 use crate::mode::MachineMode;
-use crate::vm::VM;
 use crate::vm::{
     impl_matches, specialize_enum_id_params, specialize_struct_id_params, ClassDefinition,
     ClassDefinitionId, EnumDefinition, EnumDefinitionId, EnumLayout, FctDefinition, ImplId,
     ModuleId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParam, TypeParamDefinition,
     TypeParamId,
 };
+use crate::vm::{SemAnalysis, VM};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
@@ -657,7 +657,7 @@ pub fn type_names(vm: &VM, types: &[SourceType]) -> String {
 }
 
 pub fn implements_trait(
-    vm: &VM,
+    sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
     trait_id: TraitDefinitionId,
@@ -670,9 +670,9 @@ pub fn implements_trait(
         | SourceType::Lambda(_) => false,
 
         SourceType::Enum(enum_id, _) => {
-            let xenum = vm.enums[enum_id].read();
+            let xenum = sa.enums[enum_id].read();
             check_impls(
-                vm,
+                sa,
                 check_ty,
                 check_type_param_defs,
                 None,
@@ -689,18 +689,18 @@ pub fn implements_trait(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64 => {
-            if vm.known.traits.zero == trait_id {
+            if sa.known.traits.zero == trait_id {
                 return true;
             }
 
             let struct_id = check_ty
-                .primitive_struct_id(vm)
+                .primitive_struct_id(sa)
                 .expect("primitive expected");
-            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
             check_impls(
-                vm,
+                sa,
                 check_ty,
                 check_type_param_defs,
                 None,
@@ -711,11 +711,11 @@ pub fn implements_trait(
         }
 
         SourceType::Struct(struct_id, _) => {
-            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
             check_impls(
-                vm,
+                sa,
                 check_ty,
                 check_type_param_defs,
                 None,
@@ -727,11 +727,11 @@ pub fn implements_trait(
 
         SourceType::Class(_, _) => {
             let cls_id = check_ty.cls_id().expect("class expected");
-            let cls = vm.classes.idx(cls_id);
+            let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
 
             check_impls(
-                vm,
+                sa,
                 check_ty.clone(),
                 check_type_param_defs,
                 None,
@@ -833,7 +833,7 @@ pub fn find_impl(
 }
 
 pub fn check_impls(
-    vm: &VM,
+    sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
     check_type_param_defs2: Option<&TypeParamDefinition>,
@@ -841,7 +841,7 @@ pub fn check_impls(
     impls: &[ImplId],
 ) -> Option<ImplId> {
     for &impl_id in impls {
-        let ximpl = &vm.impls[impl_id];
+        let ximpl = &sa.impls[impl_id];
         let ximpl = ximpl.read();
 
         if ximpl.trait_id != Some(trait_id) {
@@ -849,7 +849,7 @@ pub fn check_impls(
         }
 
         if impl_matches(
-            vm,
+            sa,
             check_ty.clone(),
             check_type_param_defs,
             check_type_param_defs2,

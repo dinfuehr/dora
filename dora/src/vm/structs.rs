@@ -9,8 +9,8 @@ use dora_parser::lexer::position::Position;
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
 use crate::vm::{
-    extension_matches, impl_matches, namespace_path, Candidate, ExtensionId, FileId, ImplId,
-    NamespaceId, SourceTypeArray, TypeParam, TypeParamDefinition, TypeParamId, VM,
+    namespace_path, ExtensionId, FileId, ImplId, NamespaceId, SourceTypeArray, TypeParam,
+    TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -151,80 +151,4 @@ impl StructInstance {
 pub struct StructInstanceField {
     pub offset: i32,
     pub ty: SourceType,
-}
-
-pub fn find_methods_in_struct(
-    vm: &VM,
-    object_type: SourceType,
-    type_param_defs: &[TypeParam],
-    type_param_defs2: Option<&TypeParamDefinition>,
-    name: Name,
-    is_static: bool,
-) -> Vec<Candidate> {
-    let struct_id = if object_type.is_primitive() {
-        object_type
-            .primitive_struct_id(vm)
-            .expect("primitive expected")
-    } else {
-        object_type.struct_id().expect("struct expected")
-    };
-
-    let xstruct = vm.structs.idx(struct_id);
-    let xstruct = xstruct.read();
-
-    for &extension_id in &xstruct.extensions {
-        if let Some(bindings) = extension_matches(
-            vm,
-            object_type.clone(),
-            type_param_defs,
-            type_param_defs2,
-            extension_id,
-        ) {
-            let extension = vm.extensions[extension_id].read();
-
-            let table = if is_static {
-                &extension.static_names
-            } else {
-                &extension.instance_names
-            };
-
-            if let Some(&fct_id) = table.get(&name) {
-                return vec![Candidate {
-                    object_type: object_type.clone(),
-                    container_type_params: bindings,
-                    fct_id,
-                }];
-            }
-        }
-    }
-
-    let mut candidates = Vec::new();
-
-    for &impl_id in &xstruct.impls {
-        if let Some(bindings) = impl_matches(
-            vm,
-            object_type.clone(),
-            type_param_defs,
-            type_param_defs2,
-            impl_id,
-        ) {
-            let ximpl = vm.impls[impl_id].read();
-
-            let table = if is_static {
-                &ximpl.static_names
-            } else {
-                &ximpl.instance_names
-            };
-
-            if let Some(&method_id) = table.get(&name) {
-                candidates.push(Candidate {
-                    object_type: object_type.clone(),
-                    container_type_params: bindings.clone(),
-                    fct_id: method_id,
-                });
-            }
-        }
-    }
-
-    candidates
 }
