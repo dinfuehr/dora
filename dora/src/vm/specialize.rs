@@ -3,6 +3,7 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
+use crate::language::sem_analysis::{StructInstanceField, StructInstanceId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
@@ -10,8 +11,8 @@ use crate::size::InstanceSize;
 use crate::vm::{
     ensure_tuple, ClassDefinition, ClassDefinitionId, ClassInstance, ClassInstanceId,
     EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef,
-    StructDefinition, StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
-    TraitDefinition, TraitDefinitionId, TupleId, VM,
+    StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, TraitDefinitionId,
+    TupleId, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 

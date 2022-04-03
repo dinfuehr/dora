@@ -10,7 +10,7 @@ use crate::language::access::{
 };
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
-use crate::language::sem_analysis::find_methods_in_struct;
+use crate::language::sem_analysis::{find_methods_in_struct, StructDefinition, StructDefinitionId};
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
@@ -21,8 +21,7 @@ use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     AnalysisData, CallType, ClassDefinitionId, ConvInfo, EnumDefinitionId, FctDefinition,
     FctDefinitionId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId,
-    SemAnalysis, StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
-    Var, VarId,
+    SemAnalysis, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
 };
 
 use dora_parser::ast;

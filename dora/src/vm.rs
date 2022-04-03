@@ -13,6 +13,8 @@ use crate::compiler::native_stub::{self, NativeFct, NativeFctKind, NativeStubs};
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
+use crate::language::sem_analysis::StructDefinitionId;
+use crate::language::sem_analysis::{StructDefinition, StructInstance};
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
 use crate::safepoint;
@@ -64,10 +66,6 @@ pub use self::specialize::{
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
-pub use self::structs::{
-    StructDefinition, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
-    StructInstance, StructInstanceField, StructInstanceId,
-};
 pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
@@ -89,7 +87,6 @@ mod namespaces;
 mod specialize;
 mod src;
 mod stdlib_setup;
-mod structs;
 mod traits;
 mod tuples;
 mod waitlists;
@@ -161,7 +158,7 @@ impl FullSemAnalysis {
         let empty_trait_id: TraitDefinitionId = 0.into();
         let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumDefinitionId = 0.into();
-        let empty_struct_id = 0.into();
+        let empty_struct_id: StructDefinitionId = 0.into();
         let empty_annotation_id: AnnotationDefinitionId = 0.into();
 
         let prelude_namespace_id = NamespaceId(0);

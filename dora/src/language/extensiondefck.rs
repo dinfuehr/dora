@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use crate::language::error::msg::SemError;
+use crate::language::sem_analysis::StructDefinitionId;
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
 use crate::vm::{
     EnumDefinitionId, ExtensionId, FctDefinition, FctParent, FileId, NamespaceId, SemAnalysis,
-    StructDefinitionId, TypeParam,
+    TypeParam,
 };
 
 use dora_parser::ast;

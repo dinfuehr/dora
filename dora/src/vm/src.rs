@@ -5,11 +5,11 @@ use std::sync::Arc;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 
+use crate::language::sem_analysis::StructDefinitionFieldId;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, Intrinsic, ModuleId, StructDefinitionFieldId, StructDefinitionId,
-    TraitDefinitionId, TypeParamId,
+    GlobalDefinitionId, Intrinsic, ModuleId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 
 #[derive(Debug)]

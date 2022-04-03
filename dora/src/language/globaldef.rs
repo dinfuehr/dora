@@ -7,14 +7,15 @@ use std::sync::Arc;
 use crate::gc::Address;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
+use crate::language::sem_analysis::{StructDefinition, StructDefinitionId};
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 use crate::vm::{
     self, AnnotationDefinitionId, ClassDefinitionId, ConstDefinition, ConstDefinitionId,
     ConstValue, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId, FctDefinition,
     FctParent, FileId, GlobalDefinition, GlobalDefinitionId, ImplData, ImplId, ImportData, Module,
-    ModuleId, NamespaceData, NamespaceId, SemAnalysis, StructDefinition, StructDefinitionId,
-    TraitDefinition, TraitDefinitionId, TypeParam, TypeParamDefinition,
+    ModuleId, NamespaceData, NamespaceId, SemAnalysis, TraitDefinition, TraitDefinitionId,
+    TypeParam, TypeParamDefinition,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};

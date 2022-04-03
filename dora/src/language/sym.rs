@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use self::Sym::*;
 
+use crate::language::sem_analysis::StructDefinitionId;
 use crate::vm::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
     FctDefinitionId, FieldId, GlobalDefinitionId, ModuleId, NamespaceId, SemAnalysis,
-    StructDefinitionId, TraitDefinitionId, TypeParamId, VarId,
+    TraitDefinitionId, TypeParamId, VarId,
 };
 use dora_parser::interner::Name;
 

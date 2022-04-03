@@ -31,7 +31,7 @@ mod importck;
 mod moduledefck;
 mod readty;
 mod returnck;
-mod sem_analysis;
+pub mod sem_analysis;
 mod specialize;
 mod stdlib;
 mod structdefck;
