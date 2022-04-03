@@ -6,12 +6,14 @@ use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::language::generator::generate_fct;
-use crate::language::sem_analysis::{StructDefinitionFieldId, StructDefinitionId};
+use crate::language::sem_analysis::{
+    GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId,
+};
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ensure_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
-    TraitDefinitionId, TupleId, TypeParamId,
+    ensure_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, SemAnalysis, TraitDefinitionId,
+    TupleId, TypeParamId,
 };
 use dora_parser::lexer::position::Position;
 

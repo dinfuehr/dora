@@ -4,7 +4,8 @@ use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
     Register,
 };
-use crate::vm::{GlobalDefinitionId, TupleId};
+use crate::language::sem_analysis::GlobalDefinitionId;
+use crate::vm::TupleId;
 
 use dora_parser::lexer::position::Position;
 

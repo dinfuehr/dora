@@ -5,24 +5,25 @@ use parking_lot::RwLock;
 
 use dora_parser::ast;
 
-pub use self::structs::{
-    find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
-    StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
-};
-
 #[cfg(test)]
 use crate::language::sym::NestedSymTable;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 #[cfg(test)]
 use crate::vm::{
-    find_methods_in_class, ConstDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId,
-    TraitDefinitionId,
+    find_methods_in_class, ConstDefinitionId, EnumDefinitionId, FieldId, TraitDefinitionId,
 };
 use crate::vm::{
     ClassDefinitionId, FctDefinition, FctDefinitionId, File, FileId, NamespaceId, SemAnalysis,
 };
 
+pub use self::globals::{init_global_addresses, GlobalDefinition, GlobalDefinitionId};
+pub use self::structs::{
+    find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
+    StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
+};
+
+mod globals;
 mod structs;
 
 impl SemAnalysis {

@@ -1,7 +1,8 @@
 use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
 };
-use crate::vm::{GlobalDefinitionId, TupleId};
+use crate::language::sem_analysis::GlobalDefinitionId;
+use crate::vm::TupleId;
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeReader::new(data, visitor).read();

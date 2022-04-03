@@ -14,7 +14,7 @@ use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::StructDefinitionId;
-use crate::language::sem_analysis::{StructDefinition, StructInstance};
+use crate::language::sem_analysis::{GlobalDefinition, StructDefinition, StructInstance};
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
 use crate::safepoint;
@@ -48,7 +48,6 @@ pub use self::enums::{
 };
 pub use self::extensions::{extension_matches, extension_matches_ty, ExtensionData, ExtensionId};
 pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
-pub use self::globals::{init_global_addresses, GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{find_trait_impl, impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
 pub use self::known::{
@@ -78,7 +77,6 @@ mod consts;
 mod enums;
 mod extensions;
 mod functions;
-mod globals;
 mod impls;
 mod imports;
 mod known;

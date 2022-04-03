@@ -7,11 +7,13 @@ use crate::bytecode::{
     Register,
 };
 use crate::driver::cmd::Args;
-use crate::language::sem_analysis::{StructDefinitionFieldId, StructDefinitionId};
+use crate::language::sem_analysis::{
+    GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId,
+};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, TraitDefinitionId, TupleId, TypeParamId, VM,
+    TraitDefinitionId, TupleId, TypeParamId, VM,
 };
 
 pub struct BytecodeBuilder {
