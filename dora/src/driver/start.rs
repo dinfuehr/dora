@@ -1,7 +1,6 @@
 use crate::language::access::namespace_contains;
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::init_global_addresses;
-use crate::vm::{set_vm, FctDefinition, FctDefinitionId};
+use crate::vm::{init_global_addresses, set_vm, FctDefinition, FctDefinitionId};
 use crate::vm::{SemAnalysis, VM};
 
 use crate::driver::cmd;

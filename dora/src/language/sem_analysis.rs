@@ -17,7 +17,7 @@ use crate::vm::{
     ClassDefinitionId, FctDefinition, FctDefinitionId, File, FileId, NamespaceId, SemAnalysis,
 };
 
-pub use self::globals::{init_global_addresses, GlobalDefinition, GlobalDefinitionId};
+pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
