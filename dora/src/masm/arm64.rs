@@ -887,42 +887,6 @@ impl MacroAssembler {
         self.asm.cset_w(dest.into(), Cond::VS);
     }
 
-    pub fn float_srt(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
-        match mode {
-            MachineMode::Float32 => {
-                self.asm.fmov_sf_ws(R8.into(), lhs.into());
-                self.asm.fmov_sf_ws(R9.into(), rhs.into());
-                self.asm.movz(R12.into(), 31, 0);
-                self.asm.asrv(R10.into(), R8.into(), R12.into());
-                self.asm.asrv(R11.into(), R9.into(), R12.into());
-                self.asm
-                    .eor_sh(R8.into(), R8.into(), R10.into(), Shift::LSR, 1);
-                self.asm
-                    .eor_sh(R9.into(), R9.into(), R11.into(), Shift::LSR, 1);
-                self.asm.cmp(R8.into(), R9.into());
-                self.asm.cset(R8.into(), Cond::NE);
-                self.asm
-                    .csinv(dest.into(), R8.into(), REG_ZERO.into(), Cond::GE);
-            }
-            MachineMode::Float64 => {
-                self.asm.fmov_sf_d(R8.into(), lhs.into());
-                self.asm.fmov_sf_d(R9.into(), rhs.into());
-                self.asm.movz_w(R12.into(), 63, 0);
-                self.asm.asrv_w(R10.into(), R8.into(), R12.into());
-                self.asm.asrv_w(R11.into(), R9.into(), R12.into());
-                self.asm
-                    .eor_sh_w(R8.into(), R8.into(), R10.into(), Shift::LSR, 1);
-                self.asm
-                    .eor_sh_w(R9.into(), R9.into(), R11.into(), Shift::LSR, 1);
-                self.asm.cmp_w(R8.into(), R9.into());
-                self.asm.cset_w(R8.into(), Cond::NE);
-                self.asm
-                    .csinv_w(dest.into(), R8.into(), REG_ZERO.into(), Cond::GE);
-            }
-            _ => unimplemented!(),
-        }
-    }
-
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
         let off = match mode {
             MachineMode::Float32 => self.constpool.add_f32(imm as f32),

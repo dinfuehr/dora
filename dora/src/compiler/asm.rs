@@ -459,10 +459,6 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.float_cmp(mode, dest, lhs, rhs, cond);
     }
 
-    pub fn float_srt(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
-        self.masm.float_srt(mode, dest, lhs, rhs);
-    }
-
     pub fn determine_array_size(
         &mut self,
         dest: Reg,

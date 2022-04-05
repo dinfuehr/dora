@@ -10,7 +10,20 @@ impl Float64 {
 
   @pub @internal fun equals(rhs: Float64): Bool;
   @pub @internal fun compareTo(rhs: Float64): Int32;
-  @pub @internal fun sortsAs(rhs: Float64): Int32;
+  @pub fun sortsAs(rhs: Float64): Int32 {
+    var ix = self.asInt64();
+    var iy = rhs.asInt64();
+
+    let sx = ix.shiftRightSigned(63I).shiftRight(1I);
+    let sy = iy.shiftRightSigned(63I).shiftRight(1I);
+
+    ix = ix.bitwiseXor(sx);
+    iy = iy.bitwiseXor(sy);
+
+    if ix < iy { return -1I; }
+    if ix == iy { return 0I; }
+    return 1I;
+  }
 
   @pub @internal fun plus(rhs: Float64): Float64;
   @pub @internal fun minus(rhs: Float64): Float64;

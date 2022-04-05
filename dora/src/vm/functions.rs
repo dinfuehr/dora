@@ -498,7 +498,6 @@ pub enum Intrinsic {
 
     Float32Eq,
     Float32Cmp,
-    Float32Srt,
 
     Float32Add,
     Float32Sub,
@@ -524,7 +523,6 @@ pub enum Intrinsic {
 
     Float64Eq,
     Float64Cmp,
-    Float64Srt,
 
     Float64Add,
     Float64Sub,
@@ -585,8 +583,6 @@ impl Intrinsic {
             | Intrinsic::Int32CountOneBitsTrailing
             | Intrinsic::Float32Abs
             | Intrinsic::Float64Abs
-            | Intrinsic::Float32Srt
-            | Intrinsic::Float64Srt
             | Intrinsic::Float32RoundToZero
             | Intrinsic::Float32RoundUp
             | Intrinsic::Float32RoundDown
@@ -713,7 +709,6 @@ impl Intrinsic {
             | Intrinsic::ReinterpretInt32AsFloat32
             | Intrinsic::Int32ToFloat32
             | Intrinsic::Int64ToFloat32
-            | Intrinsic::Float32Srt
             | Intrinsic::Float32RoundToZero
             | Intrinsic::Float32RoundUp
             | Intrinsic::Float32RoundDown
@@ -729,7 +724,6 @@ impl Intrinsic {
             | Intrinsic::Int32ToFloat64
             | Intrinsic::Int64ToFloat64
             | Intrinsic::ReinterpretInt64AsFloat64
-            | Intrinsic::Float64Srt
             | Intrinsic::Float64RoundToZero
             | Intrinsic::Float64RoundUp
             | Intrinsic::Float64RoundDown

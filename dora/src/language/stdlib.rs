@@ -667,7 +667,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     intrinsic_method(sa, stdlib, "Float32", "equals", Intrinsic::Float32Eq);
     intrinsic_method(sa, stdlib, "Float32", "compareTo", Intrinsic::Float32Cmp);
-    intrinsic_method(sa, stdlib, "Float32", "sortsAs", Intrinsic::Float32Srt);
 
     intrinsic_method(sa, stdlib, "Float32", "plus", Intrinsic::Float32Add);
     intrinsic_method(sa, stdlib, "Float32", "minus", Intrinsic::Float32Sub);
@@ -732,7 +731,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     intrinsic_method(sa, stdlib, "Float64", "equals", Intrinsic::Float64Eq);
     intrinsic_method(sa, stdlib, "Float64", "compareTo", Intrinsic::Float64Cmp);
-    intrinsic_method(sa, stdlib, "Float64", "sortsAs", Intrinsic::Float64Srt);
 
     intrinsic_method(sa, stdlib, "Float64", "plus", Intrinsic::Float64Add);
     intrinsic_method(sa, stdlib, "Float64", "minus", Intrinsic::Float64Sub);

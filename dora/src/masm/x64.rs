@@ -327,64 +327,6 @@ impl MacroAssembler {
         self.asm.setcc_r(Condition::Parity, dest.into());
     }
 
-    pub fn float_srt(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
-        match mode {
-            MachineMode::Float32 => {
-                // copy float bits to integer registers
-                self.asm.movd_rx(RAX.into(), lhs.into());
-                self.asm.movd_rx(RDI.into(), rhs.into());
-                // create additional copies to work on
-                self.asm.movd_rx(RDX.into(), lhs.into());
-                self.asm.movd_rx(RSI.into(), rhs.into());
-                // arithmetic right shift by 31 bits to create all-0/all-1 pattern from sign
-                self.asm.sarl_ri(RDX.into(), Immediate(31));
-                self.asm.sarl_ri(RSI.into(), Immediate(31));
-                // logical right shift by 1 bit to zero upper bit of sign patterns
-                self.asm.shrl_ri(RDX.into(), Immediate(1));
-                self.asm.shrl_ri(RSI.into(), Immediate(1));
-                // xor sign patterns onto values to flip bits if sign was 1
-                self.asm.xorl_rr(RDX.into(), RAX.into());
-                self.asm.xorl_rr(RSI.into(), RDI.into());
-                // zeroing register (to avoid performance degradation due to partial register use later)
-                self.asm.xorl_rr(RDI.into(), RDI.into());
-                // comparisons to return -1, 0 or 1
-                self.asm.cmpl_rr(RDX.into(), RSI.into());
-                self.asm.setcc_r(Condition::NotEqual, RDI.into());
-                self.asm.movzxb_rr(RDI.into(), RDI.into());
-                self.asm.movl_ri(RAX.into(), Immediate(-1));
-                self.asm
-                    .cmovl(Condition::GreaterOrEqual, dest.into(), RDI.into());
-            }
-            MachineMode::Float64 => {
-                // copy float bits to integer registers
-                self.asm.movq_rx(RAX.into(), lhs.into());
-                self.asm.movq_rx(RDI.into(), rhs.into());
-                // create additional copies to work on
-                self.asm.movq_rx(RDX.into(), lhs.into());
-                self.asm.movq_rx(RSI.into(), rhs.into());
-                // arithmetic right shift by 63 bits to create all-0/all-1 pattern from sign
-                self.asm.sarq_ri(RDX.into(), Immediate(63));
-                self.asm.sarq_ri(RSI.into(), Immediate(63));
-                // logical right shift by 1 bit to zero upper bit of sign patterns
-                self.asm.shrq_ri(RDX.into(), Immediate(1));
-                self.asm.shrq_ri(RSI.into(), Immediate(1));
-                // xor sign patterns onto values to flip bits if sign was 1
-                self.asm.xorq_rr(RDX.into(), RAX.into());
-                self.asm.xorq_rr(RSI.into(), RDI.into());
-                // zeroing register (to avoid performance degradation due to partial register use later)
-                self.asm.xorq_rr(RDI.into(), RDI.into());
-                // comparisons to return -1, 0 or 1
-                self.asm.cmpq_rr(RDX.into(), RSI.into());
-                self.asm.setcc_r(Condition::NotEqual, RDI.into());
-                self.asm.movzxb_rr(RDI.into(), RDI.into());
-                self.asm.movq_ri(RAX.into(), Immediate(-1));
-                self.asm
-                    .cmovq(Condition::GreaterOrEqual, dest.into(), RDI.into());
-            }
-            _ => unimplemented!(),
-        };
-    }
-
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
         if mode.is64() {
             self.asm.testq_rr(lhs.into(), lhs.into());

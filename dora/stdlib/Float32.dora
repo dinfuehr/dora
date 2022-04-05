@@ -10,7 +10,20 @@ impl Float32 {
 
   @pub @internal fun equals(rhs: Float32): Bool;
   @pub @internal fun compareTo(rhs: Float32): Int32;
-  @pub @internal fun sortsAs(rhs: Float32): Int32;
+  @pub fun sortsAs(rhs: Float32): Int32 {
+    var ix = self.asInt32();
+    var iy = rhs.asInt32();
+
+    let sx = ix.shiftRightSigned(31I).shiftRight(1I);
+    let sy = iy.shiftRightSigned(31I).shiftRight(1I);
+
+    ix = ix.bitwiseXor(sx);
+    iy = iy.bitwiseXor(sy);
+
+    if ix < iy { return -1I; }
+    if ix == iy { return 0I; }
+    return 1I;
+  }
 
   @pub @internal fun plus(rhs: Float32): Float32;
   @pub @internal fun minus(rhs: Float32): Float32;
