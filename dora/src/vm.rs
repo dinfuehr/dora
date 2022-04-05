@@ -13,8 +13,9 @@ use crate::compiler::native_stub::{self, NativeFct, NativeFctKind, NativeStubs};
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
-use crate::language::sem_analysis::StructDefinitionId;
-use crate::language::sem_analysis::{GlobalDefinition, StructDefinition, StructInstance};
+use crate::language::sem_analysis::{
+    ConstDefinition, GlobalDefinition, StructDefinition, StructDefinitionId, StructInstance,
+};
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
 use crate::safepoint;
@@ -41,7 +42,6 @@ pub use self::code::{
     LazyCompilationData, LazyCompilationSite, PositionTable,
 };
 pub use self::code_map::CodeMap;
-pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{
     find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId,
     EnumLayout, EnumVariant,
@@ -74,7 +74,6 @@ mod annotations;
 mod classes;
 mod code;
 mod code_map;
-mod consts;
 mod enums;
 mod extensions;
 mod functions;

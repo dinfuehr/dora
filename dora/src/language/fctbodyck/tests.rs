@@ -1,6 +1,6 @@
 use crate::language::error::msg::SemError;
+use crate::language::sem_analysis::ConstValue;
 use crate::language::tests::*;
-use crate::vm::ConstValue;
 
 #[test]
 fn type_method_len() {

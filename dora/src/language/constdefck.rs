@@ -1,7 +1,8 @@
+use crate::language::sem_analysis::ConstDefinitionId;
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::{ConstDefinitionId, FileId, NamespaceId, SemAnalysis};
+use crate::vm::{FileId, NamespaceId, SemAnalysis};
 
 use dora_parser::ast;
 
