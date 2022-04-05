@@ -6,14 +6,15 @@ use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
+use crate::language::sem_analysis::namespace_path;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{
-    extension_matches, impl_matches, namespace_path, replace_type_param, ExtensionId,
-    FctDefinitionId, FileId, ImplId, NamespaceId, TraitDefinitionId,
+    extension_matches, impl_matches, replace_type_param, ExtensionId, FctDefinitionId, FileId,
+    ImplId, NamespaceId, TraitDefinitionId,
 };
 use crate::vtable::VTableBox;
 use dora_parser::ast;

@@ -8,7 +8,8 @@ use crate::object;
 use crate::timer::Timer;
 
 use crate::language;
-use crate::vm::{execute_on_main, specialize_class_id, NamespaceId};
+use crate::language::sem_analysis::NamespaceId;
+use crate::vm::{execute_on_main, specialize_class_id};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();

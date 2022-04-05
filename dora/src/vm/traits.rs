@@ -7,10 +7,10 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
+use crate::language::sem_analysis::{namespace_path, NamespaceId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    namespace_path, ClassInstanceId, FctDefinitionId, FileId, NamespaceId, TypeParam,
-    TypeParamDefinition, TypeParamId, VM,
+    ClassInstanceId, FctDefinitionId, FileId, TypeParam, TypeParamDefinition, TypeParamId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

@@ -14,7 +14,8 @@ use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
-    ConstDefinition, GlobalDefinition, StructDefinition, StructDefinitionId, StructInstance,
+    ConstDefinition, GlobalDefinition, NamespaceData, NamespaceId, StructDefinition,
+    StructDefinitionId, StructInstance,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -56,7 +57,6 @@ pub use self::known::{
     KnownTraits,
 };
 pub use self::modules::{find_methods_in_module, Module, ModuleDefId, ModuleId, ModuleInstance};
-pub use self::namespaces::{namespace_package, namespace_path, NamespaceData, NamespaceId};
 pub use self::specialize::{
     add_ref_fields, ensure_display, replace_type_param, specialize_class_id,
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
@@ -82,7 +82,6 @@ mod impls;
 mod imports;
 mod known;
 mod modules;
-mod namespaces;
 mod specialize;
 mod src;
 mod stdlib_setup;

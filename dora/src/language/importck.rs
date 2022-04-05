@@ -7,8 +7,9 @@ use crate::language::access::{
 };
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
+use crate::language::sem_analysis::{namespace_package, NamespaceId};
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
-use crate::vm::{namespace_package, EnumDefinitionId, ImportData, NamespaceId, SemAnalysis};
+use crate::vm::{EnumDefinitionId, ImportData, SemAnalysis};
 
 use dora_parser::ast::ImportContext;
 use dora_parser::interner::Name;

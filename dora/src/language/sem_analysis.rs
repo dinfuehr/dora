@@ -11,12 +11,11 @@ use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 #[cfg(test)]
 use crate::vm::{find_methods_in_class, EnumDefinitionId, FieldId, TraitDefinitionId};
-use crate::vm::{
-    ClassDefinitionId, FctDefinition, FctDefinitionId, File, FileId, NamespaceId, SemAnalysis,
-};
+use crate::vm::{ClassDefinitionId, FctDefinition, FctDefinitionId, File, FileId, SemAnalysis};
 
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
+pub use self::namespaces::{namespace_package, namespace_path, NamespaceData, NamespaceId};
 pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
@@ -24,6 +23,7 @@ pub use self::structs::{
 
 mod consts;
 mod globals;
+mod namespaces;
 mod structs;
 
 impl SemAnalysis {
