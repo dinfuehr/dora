@@ -11,7 +11,8 @@ use crate::language::access::{
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::sem_analysis::{
-    find_methods_in_struct, NamespaceId, StructDefinition, StructDefinitionId,
+    find_methods_in_struct, AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NamespaceId,
+    StructDefinition, StructDefinitionId, Var, VarId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -21,9 +22,8 @@ use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf}
 use crate::language::{report_sym_shadow, TypeParamContext};
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
-    AnalysisData, CallType, ClassDefinitionId, ConvInfo, EnumDefinitionId, FctDefinition,
-    FctDefinitionId, FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, SemAnalysis, TypeParam,
-    TypeParamDefinition, TypeParamId, Var, VarId,
+    ClassDefinitionId, EnumDefinitionId, FctDefinition, FctDefinitionId, FctParent, FileId,
+    Intrinsic, SemAnalysis, TypeParam, TypeParamDefinition, TypeParamId,
 };
 
 use dora_parser::ast;

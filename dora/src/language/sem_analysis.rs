@@ -16,6 +16,9 @@ use crate::vm::{ClassDefinitionId, FctDefinition, FctDefinitionId, File, FileId,
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::namespaces::{namespace_package, namespace_path, NamespaceData, NamespaceId};
+pub use self::src::{
+    AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
+};
 pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
@@ -24,6 +27,7 @@ pub use self::structs::{
 mod consts;
 mod globals;
 mod namespaces;
+mod src;
 mod structs;
 
 impl SemAnalysis {

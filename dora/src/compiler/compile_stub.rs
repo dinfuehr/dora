@@ -9,6 +9,7 @@ use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
+use crate::language::sem_analysis::AnalysisData;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
@@ -18,8 +19,8 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    find_trait_impl, get_vm, install_code_stub, AnalysisData, ClassInstanceId, Code, CodeKind,
-    FctDefinition, FctDefinitionId, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,
+    find_trait_impl, get_vm, install_code_stub, ClassInstanceId, Code, CodeKind, FctDefinition,
+    FctDefinitionId, FctParent, LazyCompilationSite, TypeParam, TypeParamId, VM,
 };
 
 // This code generates the compiler stub, there should only be one instance

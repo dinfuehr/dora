@@ -7,13 +7,15 @@ use dora_parser::ast::*;
 use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
 };
-use crate::language::sem_analysis::{ConstDefinitionId, GlobalDefinitionId, StructDefinitionId};
+use crate::language::sem_analysis::{
+    AnalysisData, CallType, ConstDefinitionId, GlobalDefinitionId, IdentType, StructDefinitionId,
+    VarId,
+};
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::language::{expr_always_returns, expr_block_always_returns};
 use crate::vm::{
-    AnalysisData, CallType, EnumDefinitionId, FctDefinition, FctDefinitionId, IdentType, Intrinsic,
-    SemAnalysis, TupleId, VarId,
+    EnumDefinitionId, FctDefinition, FctDefinitionId, Intrinsic, SemAnalysis, TupleId,
 };
 
 pub struct LoopLabels {
