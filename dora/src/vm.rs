@@ -14,8 +14,8 @@ use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
-    ConstDefinition, GlobalDefinition, NamespaceData, NamespaceId, StructDefinition,
-    StructDefinitionId, StructInstance,
+    ClassDefinition, ConstDefinition, GlobalDefinition, NamespaceData, NamespaceId,
+    StructDefinition, StructDefinitionId, StructInstance,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -33,11 +33,7 @@ use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
-pub use self::classes::{
-    find_field_in_class, find_method_in_class, find_methods_in_class, Candidate, ClassDefinition,
-    ClassDefinitionId, ClassInstance, ClassInstanceId, Field, FieldDef, FieldId, TypeParam,
-    TypeParamDefinition, TypeParamId,
-};
+pub use self::classes::{ClassInstance, ClassInstanceId, Field, FieldDef, FieldId};
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CommentTable, GcPoint, GcPointTable,
     LazyCompilationData, LazyCompilationSite, PositionTable,

@@ -3,13 +3,15 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::bytecode::BytecodeType;
-use crate::language::sem_analysis::StructDefinitionId;
+use crate::language::sem_analysis::{
+    ClassDefinition, ClassDefinitionId, StructDefinitionId, TypeParam, TypeParamDefinition,
+    TypeParamId,
+};
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::vm::{
-    impl_matches, specialize_enum_id_params, specialize_struct_id_params, ClassDefinition,
-    ClassDefinitionId, EnumDefinition, EnumDefinitionId, EnumLayout, FctDefinition, ImplId,
-    ModuleId, TraitDefinitionId, TupleId, TypeParam, TypeParamDefinition, TypeParamId,
+    impl_matches, specialize_enum_id_params, specialize_struct_id_params, EnumDefinition,
+    EnumDefinitionId, EnumLayout, FctDefinition, ImplId, ModuleId, TraitDefinitionId, TupleId,
 };
 use crate::vm::{SemAnalysis, VM};
 

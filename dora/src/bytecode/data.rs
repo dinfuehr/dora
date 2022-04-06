@@ -1,15 +1,16 @@
 use std::fmt;
 
 use crate::bytecode::read_opcode_and_width;
-use crate::language::sem_analysis::{StructDefinitionFieldId, StructDefinitionId};
+use crate::language::sem_analysis::{
+    ClassDefinitionId, StructDefinitionFieldId, StructDefinitionId, TypeParamId,
+};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem::ptr_width;
 use crate::mode::MachineMode;
 use crate::utils::enumeration;
 use crate::vm::{
-    get_vm, specialize_enum_id_params, specialize_struct_id_params, ClassDefinitionId,
-    ClassInstanceId, EnumDefinitionId, EnumLayout, FctDefinitionId, FieldId, TraitDefinitionId,
-    TupleId, TypeParamId, VM,
+    get_vm, specialize_enum_id_params, specialize_struct_id_params, ClassInstanceId,
+    EnumDefinitionId, EnumLayout, FctDefinitionId, FieldId, TraitDefinitionId, TupleId, VM,
 };
 use dora_parser::lexer::position::Position;
 

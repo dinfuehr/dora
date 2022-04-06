@@ -7,11 +7,11 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::language::sem_analysis::{namespace_path, NamespaceId};
-use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{
-    ClassInstanceId, FctDefinitionId, FileId, TypeParam, TypeParamDefinition, TypeParamId, VM,
+use crate::language::sem_analysis::{
+    namespace_path, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
 };
+use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::vm::{ClassInstanceId, FctDefinitionId, FileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitDefinitionId(u32);

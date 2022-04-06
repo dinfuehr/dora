@@ -1,9 +1,10 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
+use crate::language::sem_analysis::{TypeParam, TypeParamId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
-use crate::vm::{FileId, SemAnalysis, TypeParam, TypeParamId};
+use crate::vm::{FileId, SemAnalysis};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;

@@ -1,9 +1,9 @@
 use crate::language::sem_analysis::{
-    ConstDefinitionId, GlobalDefinitionId, NamespaceId, StructDefinitionFieldId, StructDefinitionId,
+    ClassDefinitionId, ConstDefinitionId, GlobalDefinitionId, NamespaceId, StructDefinitionFieldId,
+    StructDefinitionId,
 };
 use crate::vm::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FctParent, FieldId, ModuleId,
-    SemAnalysis, TraitDefinitionId,
+    EnumDefinitionId, FctDefinitionId, FctParent, FieldId, ModuleId, SemAnalysis, TraitDefinitionId,
 };
 
 pub fn global_accessible_from(

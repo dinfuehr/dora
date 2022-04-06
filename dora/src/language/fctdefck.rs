@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
+use crate::language::sem_analysis::{TypeParam, TypeParamId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::{self, FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParamId};
+use crate::vm::{FctDefinition, FctDefinitionId, FctParent, SemAnalysis};
 
 pub fn check(sa: &SemAnalysis) {
     for fct in sa.fcts.iter() {
@@ -95,7 +96,7 @@ pub fn check(sa: &SemAnalysis) {
                         sa.diag.lock().report(fct.file_id, type_param.pos, msg);
                     }
 
-                    fct.type_params.push(vm::TypeParam::new(type_param.name));
+                    fct.type_params.push(TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
                         let ty = language::read_type(

@@ -5,12 +5,14 @@ use crate::language::access::{
     class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
 };
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::StructDefinitionId;
+use crate::language::sem_analysis::{
+    ClassDefinitionId, StructDefinitionId, TypeParam, TypeParamId,
+};
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::vm::{
-    ensure_tuple, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinition, FileId,
-    ImplData, SemAnalysis, TraitDefinitionId, TypeParam, TypeParamId,
+    ensure_tuple, EnumDefinitionId, ExtensionId, FctDefinition, FileId, ImplData, SemAnalysis,
+    TraitDefinitionId,
 };
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};

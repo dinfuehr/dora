@@ -1,12 +1,14 @@
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::body::args_compatible_fct;
-use crate::language::sem_analysis::find_methods_in_struct;
+use crate::language::sem_analysis::{
+    find_methods_in_class, find_methods_in_struct, ClassDefinitionId, TypeParam,
+    TypeParamDefinition,
+};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::vm::{
-    find_methods_in_class, find_methods_in_enum, find_methods_in_module, replace_type_param,
-    ClassDefinitionId, FctDefinition, FctDefinitionId, FileId, SemAnalysis, TraitDefinitionId,
-    TypeParam, TypeParamDefinition,
+    find_methods_in_enum, find_methods_in_module, replace_type_param, FctDefinition,
+    FctDefinitionId, FileId, SemAnalysis, TraitDefinitionId,
 };
 
 use dora_parser::interner::Name;

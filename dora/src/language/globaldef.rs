@@ -8,16 +8,16 @@ use crate::gc::Address;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    ConstDefinition, ConstDefinitionId, ConstValue, GlobalDefinition, GlobalDefinitionId,
-    NamespaceData, NamespaceId, StructDefinition, StructDefinitionId,
+    ClassDefinition, ClassDefinitionId, ConstDefinition, ConstDefinitionId, ConstValue,
+    GlobalDefinition, GlobalDefinitionId, NamespaceData, NamespaceId, StructDefinition,
+    StructDefinitionId, TypeParam, TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 use crate::vm::{
-    self, AnnotationDefinitionId, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
-    ExtensionData, ExtensionId, FctDefinition, FctParent, FileId, ImplData, ImplId, ImportData,
-    Module, ModuleId, SemAnalysis, TraitDefinition, TraitDefinitionId, TypeParam,
-    TypeParamDefinition,
+    self, AnnotationDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId,
+    FctDefinition, FctParent, FileId, ImplData, ImplId, ImportData, Module, ModuleId, SemAnalysis,
+    TraitDefinition, TraitDefinitionId,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -420,7 +420,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             let mut classes = self.sa.classes.lock();
 
             let id: ClassDefinitionId = classes.len().into();
-            let cls = vm::ClassDefinition::new(&self.sa, id, self.file_id, node, self.namespace_id);
+            let cls = ClassDefinition::new(&self.sa, id, self.file_id, node, self.namespace_id);
 
             classes.push(Arc::new(RwLock::new(cls)));
 

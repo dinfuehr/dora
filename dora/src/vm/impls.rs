@@ -8,10 +8,10 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
+use crate::language::sem_analysis::{TypeParam, TypeParamDefinition, TypeParamId};
 use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::vm::{
-    extension_matches_ty, FctDefinitionId, FileId, NamespaceId, TraitDefinitionId, TypeParam,
-    TypeParamDefinition, TypeParamId, VM,
+    extension_matches_ty, FctDefinitionId, FileId, NamespaceId, TraitDefinitionId, VM,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

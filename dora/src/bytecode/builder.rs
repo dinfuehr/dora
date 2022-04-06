@@ -8,12 +8,11 @@ use crate::bytecode::{
 };
 use crate::driver::cmd::Args;
 use crate::language::sem_analysis::{
-    GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId,
+    ClassDefinitionId, GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
-    ClassDefinitionId, ClassInstanceId, EnumDefinitionId, FctDefinitionId, FieldId,
-    TraitDefinitionId, TupleId, TypeParamId, VM,
+    ClassInstanceId, EnumDefinitionId, FctDefinitionId, FieldId, TraitDefinitionId, TupleId, VM,
 };
 
 pub struct BytecodeBuilder {

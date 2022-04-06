@@ -7,13 +7,12 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::language::sem_analysis::{namespace_path, NamespaceId};
+use crate::language::sem_analysis::{
+    namespace_path, Candidate, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
+};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
-use crate::vm::{
-    extension_matches, impl_matches, Candidate, ExtensionId, FileId, ImplId, SemAnalysis,
-    TypeParam, TypeParamDefinition, TypeParamId, VM,
-};
+use crate::vm::{extension_matches, impl_matches, ExtensionId, FileId, ImplId, SemAnalysis, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructDefinitionId(u32);

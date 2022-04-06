@@ -1,11 +1,15 @@
-use crate::language::ty::SourceType;
-use crate::utils::GrowableVec;
-use crate::vm::{FileId, NamespaceId, TypeParam, VM};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
+
 use dora_parser::ast::{AnnotationParam, AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
 use dora_parser::Position;
-use parking_lot::RwLock;
-use std::sync::Arc;
+
+use crate::language::sem_analysis::TypeParam;
+use crate::language::ty::SourceType;
+use crate::utils::GrowableVec;
+use crate::vm::{FileId, NamespaceId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct AnnotationDefinitionId(usize);

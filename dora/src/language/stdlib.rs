@@ -1,13 +1,13 @@
 use crate::gc::Address;
-use crate::language::sem_analysis::{NamespaceId, StructDefinitionId};
+use crate::language::sem_analysis::{ClassDefinitionId, NamespaceId, StructDefinitionId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 
 use crate::stack;
 use crate::stdlib;
 use crate::vm::{
-    AnnotationDefinitionId, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinitionId,
-    Intrinsic, ModuleId, SemAnalysis, TraitDefinitionId,
+    AnnotationDefinitionId, EnumDefinitionId, ExtensionId, FctDefinitionId, Intrinsic, ModuleId,
+    SemAnalysis, TraitDefinitionId,
 };
 use dora_parser::ast::Modifier;
 

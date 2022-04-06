@@ -2,12 +2,12 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    NamespaceId, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
+    NamespaceId, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::{FileId, SemAnalysis, TypeParamId};
+use crate::vm::{FileId, SemAnalysis};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;

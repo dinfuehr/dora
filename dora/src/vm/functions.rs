@@ -8,13 +8,12 @@ use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
-use crate::language::sem_analysis::{namespace_path, AnalysisData};
+use crate::language::sem_analysis::{
+    namespace_path, AnalysisData, ClassDefinitionId, TypeParam, TypeParamId,
+};
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{
-    ClassDefinitionId, ExtensionId, FileId, ImplId, ModuleId, NamespaceId, TraitDefinitionId,
-    TypeParam, TypeParamId, VM,
-};
+use crate::vm::{ExtensionId, FileId, ImplId, ModuleId, NamespaceId, TraitDefinitionId, VM};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);
