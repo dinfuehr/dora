@@ -14,8 +14,9 @@ use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
-    ClassDefinition, ConstDefinition, FctDefinition, FctDefinitionId, GlobalDefinition,
-    NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, StructInstance,
+    AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, FctDefinition,
+    FctDefinitionId, GlobalDefinition, NamespaceData, NamespaceId, StructDefinition,
+    StructDefinitionId, StructInstance,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -32,7 +33,6 @@ use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
-pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{ClassInstance, ClassInstanceId, Field, FieldDef, FieldId};
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CommentTable, GcPoint, GcPointTable,
@@ -62,7 +62,6 @@ pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
-mod annotations;
 mod classes;
 mod code;
 mod code_map;

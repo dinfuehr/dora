@@ -13,6 +13,7 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{EnumDefinitionId, FieldId, TraitDefinitionId};
 use crate::vm::{File, FileId, SemAnalysis};
 
+pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
     find_field_in_class, find_method_in_class, find_methods_in_class, Candidate, ClassDefinition,
     ClassDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
@@ -29,6 +30,7 @@ pub use self::structs::{
     StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
 };
 
+mod annotations;
 mod classes;
 mod consts;
 mod functions;

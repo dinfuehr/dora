@@ -8,16 +8,16 @@ use crate::gc::Address;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    ClassDefinition, ClassDefinitionId, ConstDefinition, ConstDefinitionId, ConstValue,
-    FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId, NamespaceData, NamespaceId,
-    StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition,
+    AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
+    ConstDefinition, ConstDefinitionId, ConstValue, FctDefinition, FctParent, GlobalDefinition,
+    GlobalDefinitionId, NamespaceData, NamespaceId, StructDefinition, StructDefinitionId,
+    TypeParam, TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 use crate::vm::{
-    self, AnnotationDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId,
-    FileId, ImplData, ImplId, ImportData, Module, ModuleId, SemAnalysis, TraitDefinition,
-    TraitDefinitionId,
+    EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId, FileId, ImplData, ImplId,
+    ImportData, Module, ModuleId, SemAnalysis, TraitDefinition, TraitDefinitionId,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -479,13 +479,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let id = {
             let mut annotations = self.sa.annotations.lock();
             let id: AnnotationDefinitionId = annotations.len().into();
-            let annotation = vm::AnnotationDefinition::new(
-                id,
-                self.file_id,
-                node.pos,
-                node.name,
-                self.namespace_id,
-            );
+            let annotation =
+                AnnotationDefinition::new(id, self.file_id, node.pos, node.name, self.namespace_id);
             annotations.push(Arc::new(RwLock::new(annotation)));
             id
         };
