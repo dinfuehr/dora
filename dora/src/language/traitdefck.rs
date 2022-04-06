@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
 use crate::language;
-use crate::language::sem_analysis::NamespaceId;
+use crate::language::sem_analysis::{FctDefinition, FctParent, NamespaceId};
 use crate::language::sym::NestedSymTable;
-use crate::vm::{
-    FctDefinition, FctParent, FileId, SemAnalysis, TraitDefinition, TraitDefinitionId,
-};
+use crate::vm::{FileId, SemAnalysis, TraitDefinition, TraitDefinitionId};
 
 use dora_parser::ast;
 

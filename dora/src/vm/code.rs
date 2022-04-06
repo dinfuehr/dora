@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use crate::cpu::flush_icache;
 use crate::gc::Address;
+use crate::language::sem_analysis::FctDefinitionId;
 use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
 use crate::mem;
 use crate::os;
 use crate::utils::GrowableVec;
-use crate::vm::FctDefinitionId;
 use crate::vm::VM;
 
 use dora_parser::Position;

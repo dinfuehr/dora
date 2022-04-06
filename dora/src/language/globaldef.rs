@@ -9,15 +9,15 @@ use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, ConstDefinition, ConstDefinitionId, ConstValue,
-    GlobalDefinition, GlobalDefinitionId, NamespaceData, NamespaceId, StructDefinition,
-    StructDefinitionId, TypeParam, TypeParamDefinition,
+    FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId, NamespaceData, NamespaceId,
+    StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 use crate::vm::{
     self, AnnotationDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId,
-    FctDefinition, FctParent, FileId, ImplData, ImplId, ImportData, Module, ModuleId, SemAnalysis,
-    TraitDefinition, TraitDefinitionId,
+    FileId, ImplData, ImplId, ImportData, Module, ModuleId, SemAnalysis, TraitDefinition,
+    TraitDefinitionId,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};

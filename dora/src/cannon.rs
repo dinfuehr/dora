@@ -5,9 +5,10 @@ use crate::bytecode;
 use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::handle::handle_scope;
+use crate::language::sem_analysis::FctDefinition;
 use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
-use crate::vm::{FctDefinition, VM};
+use crate::vm::VM;
 
 mod codegen;
 mod liveness;

@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{TypeParam, TypeParamId};
+use crate::language::sem_analysis::{FctDefinitionId, TypeParam, TypeParamId};
 use crate::language::ty::SourceType;
-use crate::vm::{FctDefinitionId, FileId, NamespaceId};
+use crate::vm::{FileId, NamespaceId};
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;

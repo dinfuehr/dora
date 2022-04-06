@@ -5,11 +5,11 @@ use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
+use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
 use crate::language::ty::SourceTypeArray;
 use crate::mode::MachineMode;
 use crate::os;
 use crate::vm::{install_code, CodeKind, VM};
-use crate::vm::{FctDefinition, FctDefinitionId};
 
 pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &SourceTypeArray) -> Address {
     let fct = vm.fcts.idx(id);

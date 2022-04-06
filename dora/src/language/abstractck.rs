@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{ClassDefinition, ClassDefinitionId};
-use crate::vm::{FctDefinitionId, SemAnalysis};
+use crate::language::sem_analysis::{ClassDefinition, ClassDefinitionId, FctDefinitionId};
+use crate::vm::SemAnalysis;
 
 pub fn check(sa: &SemAnalysis) {
     let mut abstract_methods: HashMap<ClassDefinitionId, Rc<Vec<FctDefinitionId>>> = HashMap::new();

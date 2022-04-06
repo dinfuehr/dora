@@ -2,10 +2,10 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::gc::Address;
-use crate::language::sem_analysis::{namespace_path, NamespaceId};
+use crate::language::sem_analysis::{namespace_path, FctDefinitionId, NamespaceId};
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctDefinitionId, FileId, VM};
+use crate::vm::{FileId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;

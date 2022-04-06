@@ -8,12 +8,13 @@ use crate::bytecode::{self, InstructionSet};
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::gc::Address;
 use crate::handle::handle;
+use crate::language::sem_analysis::FctDefinition;
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
 use crate::object::{Obj, Ref, UInt8Array};
 use crate::threads::current_thread;
-use crate::vm::{FctDefinition, VM};
+use crate::vm::VM;
 
 mod ir;
 mod serializer;

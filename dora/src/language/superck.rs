@@ -1,8 +1,10 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{find_method_in_class, ClassDefinition, ClassDefinitionId};
-use crate::vm::{replace_type_param, FctDefinition, FctDefinitionId, SemAnalysis};
+use crate::language::sem_analysis::{
+    find_method_in_class, ClassDefinition, ClassDefinitionId, FctDefinition, FctDefinitionId,
+};
+use crate::vm::{replace_type_param, SemAnalysis};
 
 pub fn check(sa: &mut SemAnalysis) {
     cycle_detection(sa);

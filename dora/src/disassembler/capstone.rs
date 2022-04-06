@@ -7,8 +7,9 @@ use std::slice;
 use capstone::prelude::*;
 
 use crate::driver::cmd::AsmSyntax;
+use crate::language::sem_analysis::FctDefinition;
 use crate::language::ty::SourceTypeArray;
-use crate::vm::{Code, FctDefinition, VM};
+use crate::vm::{Code, VM};
 
 pub fn supported() -> bool {
     true

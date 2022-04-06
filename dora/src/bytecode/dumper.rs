@@ -3,9 +3,9 @@ use std::io;
 use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::language::sem_analysis::GlobalDefinitionId;
+use crate::language::sem_analysis::{FctDefinition, GlobalDefinitionId};
 use crate::language::ty::SourceType;
-use crate::vm::{FctDefinition, TupleId, VM};
+use crate::vm::{TupleId, VM};
 
 pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
