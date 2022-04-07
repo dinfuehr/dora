@@ -11,14 +11,12 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
     ConstDefinition, ConstDefinitionId, ConstValue, EnumDefinition, EnumDefinitionId,
     ExtensionData, ExtensionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
-    NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, TypeParam,
-    TypeParamDefinition,
+    NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, TraitDefinition,
+    TraitDefinitionId, TypeParam, TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
-use crate::vm::{
-    FileId, ImplData, ImplId, ImportData, SemAnalysis, TraitDefinition, TraitDefinitionId,
-};
+use crate::vm::{FileId, ImplData, ImplId, ImportData, SemAnalysis};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;

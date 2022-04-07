@@ -17,6 +17,7 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, EnumDefinition,
     EnumDefinitionId, ExtensionData, FctDefinition, FctDefinitionId, GlobalDefinition,
     NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, StructInstance,
+    TraitDefinition, TraitDefinitionId,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -53,7 +54,6 @@ pub use self::specialize::{
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
     specialize_type_list,
 };
-pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::{ensure_tuple, TupleId, Tuples};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
@@ -67,7 +67,6 @@ mod imports;
 mod known;
 mod specialize;
 mod stdlib_setup;
-mod traits;
 mod tuples;
 mod waitlists;
 

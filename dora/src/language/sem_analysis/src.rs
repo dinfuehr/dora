@@ -7,10 +7,10 @@ use dora_parser::interner::Name;
 
 use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
-    Intrinsic, StructDefinitionFieldId, StructDefinitionId, TypeParamId,
+    Intrinsic, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{FieldId, TraitDefinitionId};
+use crate::vm::FieldId;
 
 #[derive(Debug)]
 pub struct AnalysisData {

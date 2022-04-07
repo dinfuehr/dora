@@ -4,9 +4,10 @@ use self::Sym::*;
 
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    FctDefinitionId, GlobalDefinitionId, NamespaceId, StructDefinitionId, TypeParamId, VarId,
+    FctDefinitionId, GlobalDefinitionId, NamespaceId, StructDefinitionId, TraitDefinitionId,
+    TypeParamId, VarId,
 };
-use crate::vm::{FieldId, SemAnalysis, TraitDefinitionId};
+use crate::vm::{FieldId, SemAnalysis};
 use dora_parser::interner::Name;
 
 pub struct NestedSymTable<'a> {

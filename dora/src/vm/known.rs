@@ -1,10 +1,10 @@
 use parking_lot::Mutex;
 
-use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId};
+use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     specialize_class_id, specialize_class_id_params, AnnotationDefinitionId, ClassInstanceId,
-    EnumDefinitionId, StructDefinitionId, TraitDefinitionId, VM,
+    EnumDefinitionId, StructDefinitionId, VM,
 };
 
 #[derive(Debug)]

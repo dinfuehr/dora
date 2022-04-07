@@ -10,7 +10,7 @@ use crate::language::sym::NestedSymTable;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 #[cfg(test)]
-use crate::vm::{FieldId, TraitDefinitionId};
+use crate::vm::FieldId;
 use crate::vm::{File, FileId, SemAnalysis};
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
@@ -31,6 +31,7 @@ pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
 };
+pub use self::traits::{TraitDefinition, TraitDefinitionId};
 
 mod annotations;
 mod classes;
@@ -42,6 +43,7 @@ mod globals;
 mod namespaces;
 mod src;
 mod structs;
+mod traits;
 
 impl SemAnalysis {
     #[cfg(test)]

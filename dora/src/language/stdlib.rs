@@ -1,14 +1,14 @@
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinitionId,
-    Intrinsic, NamespaceId, StructDefinitionId,
+    Intrinsic, NamespaceId, StructDefinitionId, TraitDefinitionId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 
 use crate::stack;
 use crate::stdlib;
-use crate::vm::{SemAnalysis, TraitDefinitionId};
+use crate::vm::SemAnalysis;
 use dora_parser::ast::Modifier;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
