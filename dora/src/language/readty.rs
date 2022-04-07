@@ -6,11 +6,12 @@ use crate::language::access::{
 };
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinition, StructDefinitionId, TypeParam, TypeParamId,
+    ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinition, StructDefinitionId, TypeParam,
+    TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
-use crate::vm::{ensure_tuple, ExtensionId, FileId, ImplData, SemAnalysis, TraitDefinitionId};
+use crate::vm::{ensure_tuple, FileId, ImplData, SemAnalysis, TraitDefinitionId};
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 use dora_parser::lexer::position::Position;

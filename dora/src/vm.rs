@@ -15,8 +15,8 @@ use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, EnumDefinition,
-    EnumDefinitionId, FctDefinition, FctDefinitionId, GlobalDefinition, NamespaceData, NamespaceId,
-    StructDefinition, StructDefinitionId, StructInstance,
+    EnumDefinitionId, ExtensionData, FctDefinition, FctDefinitionId, GlobalDefinition,
+    NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, StructInstance,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -40,7 +40,6 @@ pub use self::code::{
 };
 pub use self::code_map::CodeMap;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
-pub use self::extensions::{extension_matches, extension_matches_ty, ExtensionData, ExtensionId};
 pub use self::globals::init_global_addresses;
 pub use self::impls::{find_trait_impl, impl_matches, ImplData, ImplId};
 pub use self::imports::ImportData;
@@ -62,7 +61,6 @@ mod classes;
 mod code;
 mod code_map;
 mod enums;
-mod extensions;
 mod globals;
 mod impls;
 mod imports;

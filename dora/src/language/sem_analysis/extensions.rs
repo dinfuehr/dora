@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{FctDefinitionId, TypeParam, TypeParamId};
+use crate::language::sem_analysis::{FctDefinitionId, NamespaceId, TypeParam, TypeParamId};
 use crate::language::ty::SourceType;
-use crate::vm::{FileId, NamespaceId};
+use crate::vm::FileId;
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;
@@ -57,9 +57,9 @@ impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {
 }
 
 mod matching {
-    use crate::language::sem_analysis::{TypeParam, TypeParamDefinition};
+    use crate::language::sem_analysis::{ExtensionId, TypeParam, TypeParamDefinition};
     use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
-    use crate::vm::{ExtensionId, VM};
+    use crate::vm::VM;
 
     pub fn extension_matches(
         vm: &VM,

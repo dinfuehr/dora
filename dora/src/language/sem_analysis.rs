@@ -20,6 +20,7 @@ pub use self::classes::{
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumVariant};
+pub use self::extensions::{extension_matches, extension_matches_ty, ExtensionData, ExtensionId};
 pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::namespaces::{namespace_package, namespace_path, NamespaceData, NamespaceId};
@@ -35,6 +36,7 @@ mod annotations;
 mod classes;
 mod consts;
 mod enums;
+mod extensions;
 mod functions;
 mod globals;
 mod namespaces;

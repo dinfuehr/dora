@@ -8,11 +8,12 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    namespace_path, Candidate, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
+    extension_matches, namespace_path, Candidate, ExtensionId, NamespaceId, TypeParam,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
-use crate::vm::{extension_matches, impl_matches, ExtensionId, FileId, ImplId, SemAnalysis, VM};
+use crate::vm::{impl_matches, FileId, ImplId, SemAnalysis, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructDefinitionId(u32);

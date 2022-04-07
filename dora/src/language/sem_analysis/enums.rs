@@ -10,10 +10,11 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    namespace_path, Candidate, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
+    extension_matches, namespace_path, Candidate, ExtensionId, NamespaceId, TypeParam,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{extension_matches, impl_matches, EnumInstanceId, ExtensionId, FileId, ImplId, VM};
+use crate::vm::{impl_matches, EnumInstanceId, FileId, ImplId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumDefinitionId(u32);

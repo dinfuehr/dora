@@ -10,14 +10,14 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
     ConstDefinition, ConstDefinitionId, ConstValue, EnumDefinition, EnumDefinitionId,
-    FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId, NamespaceData, NamespaceId,
-    StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition,
+    ExtensionData, ExtensionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
+    NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, TypeParam,
+    TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 use crate::vm::{
-    ExtensionData, ExtensionId, FileId, ImplData, ImplId, ImportData, SemAnalysis, TraitDefinition,
-    TraitDefinitionId,
+    FileId, ImplData, ImplId, ImportData, SemAnalysis, TraitDefinition, TraitDefinitionId,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};

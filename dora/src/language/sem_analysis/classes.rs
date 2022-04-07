@@ -7,13 +7,15 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Position;
 
-use crate::language::sem_analysis::{namespace_path, FctDefinitionId, NamespaceId};
+use crate::language::sem_analysis::{
+    extension_matches, namespace_path, ExtensionId, FctDefinitionId, NamespaceId,
+};
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
 use crate::vm::{
-    extension_matches, impl_matches, replace_type_param, ClassInstanceId, ExtensionId, Field,
-    FieldId, FileId, ImplId, TraitDefinitionId, VM,
+    impl_matches, replace_type_param, ClassInstanceId, Field, FieldId, FileId, ImplId,
+    TraitDefinitionId, VM,
 };
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
