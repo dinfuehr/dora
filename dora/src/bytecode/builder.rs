@@ -9,10 +9,10 @@ use crate::bytecode::{
 use crate::driver::cmd::Args;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{ClassInstanceId, FieldId, TupleId, VM};
+use crate::vm::{ClassInstanceId, FieldId, VM};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,

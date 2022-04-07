@@ -4,16 +4,14 @@ use std::sync::Arc;
 
 use crate::bytecode::BytecodeType;
 use crate::language::sem_analysis::{
-    impl_matches, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
-    FctDefinition, ImplId, StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamDefinition,
-    TypeParamId,
+    get_tuple_subtypes, impl_matches, ClassDefinition, ClassDefinitionId, EnumDefinition,
+    EnumDefinitionId, FctDefinition, ImplId, StructDefinitionId, TraitDefinitionId, TupleId,
+    TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::vm::{get_concrete_tuple, SemAnalysis, VM};
-use crate::vm::{
-    get_tuple_subtypes, specialize_enum_id_params, specialize_struct_id_params, EnumLayout, TupleId,
-};
+use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {

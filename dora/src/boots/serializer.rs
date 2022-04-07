@@ -6,9 +6,10 @@ use crate::bytecode::{
     BytecodeFunction, ConstPoolEntry, ConstPoolOpcode, InstructionSet, SourceTypeOpcode,
 };
 use crate::bytecode::{BytecodeType, BytecodeTypeKind};
+use crate::language::sem_analysis::get_tuple_subtypes;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::object::{byte_array_from_buffer, Obj, Ref};
-use crate::vm::{get_tuple_subtypes, VM};
+use crate::vm::VM;
 
 pub fn allocate_encoded_compilation_info(
     vm: &VM,

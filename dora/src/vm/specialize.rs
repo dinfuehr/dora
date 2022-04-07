@@ -4,16 +4,17 @@ use std::ptr;
 use std::sync::Arc;
 
 use crate::language::sem_analysis::{
-    ClassDefinitionId, StructInstanceField, StructInstanceId, TraitDefinitionId,
+    ensure_tuple, ClassDefinitionId, StructInstanceField, StructInstanceId, TraitDefinitionId,
+    TupleId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    ensure_tuple, get_tuple_subtypes, ClassDefinition, ClassInstance, ClassInstanceId,
-    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef,
-    StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, TupleId, VM,
+    get_tuple_subtypes, ClassDefinition, ClassInstance, ClassInstanceId, EnumDefinition,
+    EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef, StructDefinition,
+    StructDefinitionId, StructInstance, TraitDefinition, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 

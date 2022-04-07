@@ -3,7 +3,7 @@ use std::fmt;
 use crate::bytecode::read_opcode_and_width;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId, TypeParamId,
+    StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem::ptr_width;
@@ -11,7 +11,7 @@ use crate::mode::MachineMode;
 use crate::utils::enumeration;
 use crate::vm::{
     get_concrete_tuple, get_vm, specialize_enum_id_params, specialize_struct_id_params,
-    ClassInstanceId, EnumLayout, FieldId, TupleId, VM,
+    ClassInstanceId, EnumLayout, FieldId, VM,
 };
 use dora_parser::lexer::position::Position;
 

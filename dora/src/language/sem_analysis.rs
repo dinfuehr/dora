@@ -34,6 +34,7 @@ pub use self::structs::{
     StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
 };
 pub use self::traits::{TraitDefinition, TraitDefinitionId};
+pub use self::tuples::{ensure_tuple, get_tuple_subtypes, TupleId, Tuples};
 
 mod annotations;
 mod classes;
@@ -48,6 +49,7 @@ mod namespaces;
 mod src;
 mod structs;
 mod traits;
+mod tuples;
 
 impl SemAnalysis {
     #[cfg(test)]

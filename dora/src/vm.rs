@@ -14,10 +14,11 @@ use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
-    AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, EnumDefinition,
-    EnumDefinitionId, ExtensionData, FctDefinition, FctDefinitionId, GlobalDefinition, ImplData,
-    ImportData, NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, StructInstance,
-    TraitDefinition, TraitDefinitionId,
+    get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
+    ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionData, FctDefinition,
+    FctDefinitionId, GlobalDefinition, ImplData, ImportData, NamespaceData, NamespaceId,
+    StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, TraitDefinitionId,
+    Tuples,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -52,9 +53,7 @@ pub use self::specialize::{
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
     specialize_type_list,
 };
-pub use self::tuples::{
-    ensure_tuple, get_concrete_tuple, get_tuple_subtypes, ConcreteTuple, TupleId, Tuples,
-};
+pub use self::tuples::{get_concrete_tuple, ConcreteTuple};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;

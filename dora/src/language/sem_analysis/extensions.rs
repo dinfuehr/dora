@@ -57,9 +57,11 @@ impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {
 }
 
 mod matching {
-    use crate::language::sem_analysis::{ExtensionId, TypeParam, TypeParamDefinition};
+    use crate::language::sem_analysis::{
+        get_tuple_subtypes, ExtensionId, TypeParam, TypeParamDefinition,
+    };
     use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
-    use crate::vm::{get_tuple_subtypes, VM};
+    use crate::vm::VM;
 
     pub fn extension_matches(
         vm: &VM,
