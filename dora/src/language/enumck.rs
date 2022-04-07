@@ -7,11 +7,11 @@ use dora_parser::ast;
 use dora_parser::ast::TypeParam;
 
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::TypeParamId;
+use crate::language::sem_analysis::{EnumDefinition, EnumVariant, TypeParamId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
-use crate::vm::{EnumDefinition, EnumVariant, FileId, SemAnalysis};
+use crate::vm::{FileId, SemAnalysis};
 
 pub fn check(sa: &SemAnalysis) {
     for xenum in &sa.enums {

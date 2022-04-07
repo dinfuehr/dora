@@ -10,7 +10,7 @@ use crate::language::sym::NestedSymTable;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 #[cfg(test)]
-use crate::vm::{EnumDefinitionId, FieldId, TraitDefinitionId};
+use crate::vm::{FieldId, TraitDefinitionId};
 use crate::vm::{File, FileId, SemAnalysis};
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
@@ -19,6 +19,7 @@ pub use self::classes::{
     ClassDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
+pub use self::enums::{find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumVariant};
 pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::namespaces::{namespace_package, namespace_path, NamespaceData, NamespaceId};
@@ -33,6 +34,7 @@ pub use self::structs::{
 mod annotations;
 mod classes;
 mod consts;
+mod enums;
 mod functions;
 mod globals;
 mod namespaces;

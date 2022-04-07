@@ -2,10 +2,11 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    ClassDefinition, ClassDefinitionId, FctDefinition, StructDefinitionId, TypeParam,
+    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinition, StructDefinitionId,
+    TypeParam,
 };
 use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
-use crate::vm::{EnumDefinitionId, FileId, SemAnalysis, TraitDefinitionId};
+use crate::vm::{FileId, SemAnalysis, TraitDefinitionId};
 
 pub enum ErrorReporting {
     Yes(FileId, Position),

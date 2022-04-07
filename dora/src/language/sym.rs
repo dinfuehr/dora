@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::language::sem_analysis::{
-    AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, FctDefinitionId,
-    GlobalDefinitionId, NamespaceId, StructDefinitionId, TypeParamId, VarId,
+    AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
+    FctDefinitionId, GlobalDefinitionId, NamespaceId, StructDefinitionId, TypeParamId, VarId,
 };
-use crate::vm::{EnumDefinitionId, FieldId, SemAnalysis, TraitDefinitionId};
+use crate::vm::{FieldId, SemAnalysis, TraitDefinitionId};
 use dora_parser::interner::Name;
 
 pub struct NestedSymTable<'a> {
