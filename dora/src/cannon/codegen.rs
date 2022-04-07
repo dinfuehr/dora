@@ -1379,7 +1379,7 @@ impl<'a> CannonCodeGen<'a> {
             .vm
             .tuples
             .lock()
-            .get_ty_and_offset(tuple_id, idx as usize);
+            .get_subtype_at_with_offset(tuple_id, idx as usize);
 
         if let Some(dest_type) = self.specialize_register_type_unit(dest) {
             let src_offset = self.register_offset(src);
@@ -1533,7 +1533,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn copy_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset, src: RegOrOffset) {
-        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let subtypes = self.vm.tuples.lock().get_subtypes(tuple_id);
         let offsets = self
             .vm
             .tuples
@@ -1669,7 +1669,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn zero_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset) {
-        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let subtypes = self.vm.tuples.lock().get_subtypes(tuple_id);
         let offsets = self
             .vm
             .tuples
@@ -1729,7 +1729,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn zero_refs_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset) {
-        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let subtypes = self.vm.tuples.lock().get_subtypes(tuple_id);
         let offsets = self
             .vm
             .tuples
@@ -2467,7 +2467,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
-        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let subtypes = self.vm.tuples.lock().get_subtypes(tuple_id);
         let offsets = self
             .vm
             .tuples

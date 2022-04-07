@@ -743,7 +743,7 @@ pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArra
             return tuple_id;
         }
 
-        tuple.args()
+        tuple.subtypes()
     };
 
     let new_subtypes = subtypes
@@ -820,7 +820,7 @@ pub fn replace_type_param(
                     return ty;
                 }
 
-                tuple.args()
+                tuple.subtypes()
             };
 
             let new_subtypes = subtypes

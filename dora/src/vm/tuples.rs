@@ -22,6 +22,7 @@ impl TupleId {
     }
 }
 
+#[derive(Clone)]
 pub struct ConcreteTuple {
     offsets: Vec<i32>,
     references: Vec<i32>,
@@ -30,7 +31,7 @@ pub struct ConcreteTuple {
 }
 
 pub struct Tuple {
-    args: Arc<Vec<SourceType>>,
+    subtypes: Arc<Vec<SourceType>>,
     concrete: Option<ConcreteTuple>,
 }
 
@@ -40,7 +41,7 @@ impl Tuple {
     }
 
     pub fn is_defined_type(&self, vm: &VM) -> bool {
-        for arg in self.args.as_ref() {
+        for arg in self.subtypes.as_ref() {
             if !arg.is_defined_type(vm) {
                 return false;
             }
@@ -49,8 +50,8 @@ impl Tuple {
         true
     }
 
-    pub fn args(&self) -> Arc<Vec<SourceType>> {
-        self.args.clone()
+    pub fn subtypes(&self) -> Arc<Vec<SourceType>> {
+        self.subtypes.clone()
     }
 
     pub fn offsets(&self) -> &[i32] {
@@ -87,15 +88,15 @@ impl Tuples {
         }
     }
 
-    pub fn get_ty(&self, id: TupleId, idx: usize) -> SourceType {
+    pub fn get_subtype_at(&self, id: TupleId, idx: usize) -> SourceType {
         let tuple = self.get_tuple(id);
-        tuple.args[idx].clone()
+        tuple.subtypes[idx].clone()
     }
 
-    pub fn get_ty_and_offset(&self, id: TupleId, idx: usize) -> (SourceType, i32) {
+    pub fn get_subtype_at_with_offset(&self, id: TupleId, idx: usize) -> (SourceType, i32) {
         let tuple = self.get_tuple(id);
         (
-            tuple.args[idx].clone(),
+            tuple.subtypes[idx].clone(),
             tuple
                 .concrete
                 .as_ref()
@@ -108,8 +109,8 @@ impl Tuples {
         &self.all[id.0 as usize]
     }
 
-    pub fn get(&self, id: TupleId) -> Arc<Vec<SourceType>> {
-        self.all[id.0 as usize].args.clone()
+    pub fn get_subtypes(&self, id: TupleId) -> Arc<Vec<SourceType>> {
+        self.all[id.0 as usize].subtypes.clone()
     }
 }
 
@@ -129,8 +130,8 @@ pub fn ensure_tuple(vm: &VM, args: Vec<SourceType>) -> TupleId {
     }
 
     tuples.all.push(Tuple {
-        args: args.clone(),
-        concrete,
+        subtypes: args.clone(),
+        concrete: concrete.clone(),
     });
 
     let id = TupleId((tuples.all.len() - 1).try_into().unwrap());

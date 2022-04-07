@@ -249,7 +249,7 @@ mod matching {
             }
 
             SourceType::Tuple(check_tuple_id) => {
-                let check_subtypes = vm.tuples.lock().get(check_tuple_id);
+                let check_subtypes = vm.tuples.lock().get_subtypes(check_tuple_id);
 
                 let ext_tuple_id = if let Some(tuple_id) = ext_ty.tuple_id() {
                     tuple_id
@@ -257,7 +257,7 @@ mod matching {
                     return false;
                 };
 
-                let ext_subtypes = vm.tuples.lock().get(ext_tuple_id);
+                let ext_subtypes = vm.tuples.lock().get_subtypes(ext_tuple_id);
 
                 if check_subtypes.len() != ext_subtypes.len() {
                     return false;

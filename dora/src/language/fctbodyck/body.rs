@@ -304,7 +304,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let tuple_id = ty.tuple_id().expect("type should be tuple");
-                let parts = self.sa.tuples.lock().get(tuple_id).len();
+                let parts = self.sa.tuples.lock().get_subtypes(tuple_id).len();
 
                 if parts != tuple.parts.len() {
                     let ty_name = ty.name_fct(self.sa, self.fct);
@@ -321,7 +321,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 for (idx, part) in tuple.parts.iter().enumerate() {
-                    let ty = self.sa.tuples.lock().get_ty(tuple_id, idx);
+                    let ty = self.sa.tuples.lock().get_subtype_at(tuple_id, idx);
                     self.check_stmt_let_pattern(part, ty, mutable);
                 }
             }
@@ -2958,7 +2958,7 @@ impl<'a> TypeCheck<'a> {
             _ => unreachable!(),
         };
 
-        let tuple = self.sa.tuples.lock().get(tuple_id);
+        let tuple = self.sa.tuples.lock().get_subtypes(tuple_id);
 
         if index >= tuple.len() as u64 {
             let msg = SemError::IllegalTupleIndex(index, object_type.name_fct(self.sa, self.fct));
@@ -3403,8 +3403,8 @@ fn arg_allows(
                     return true;
                 }
 
-                let subtypes = sa.tuples.lock().get(tuple_id);
-                let other_subtypes = sa.tuples.lock().get(other_tuple_id);
+                let subtypes = sa.tuples.lock().get_subtypes(tuple_id);
+                let other_subtypes = sa.tuples.lock().get_subtypes(other_tuple_id);
 
                 if subtypes.len() != other_subtypes.len() {
                     return false;

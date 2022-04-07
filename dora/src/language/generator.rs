@@ -307,7 +307,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
 
                 LetPattern::Tuple(ref tuple) => {
-                    let ty = self.sa.tuples.lock().get_ty(tuple_id, idx);
+                    let ty = self.sa.tuples.lock().get_subtype_at(tuple_id, idx);
 
                     if !ty.is_unit() {
                         let temp_reg = self.alloc_temp(BytecodeType::from_ty(self.sa, ty.clone()));
@@ -1026,7 +1026,7 @@ impl<'a> AstBytecodeGen<'a> {
         let tuple = self.visit_expr(&expr.lhs, DataDest::Alloc);
         let idx = expr.rhs.to_lit_int().unwrap().value as u32;
 
-        let ty = self.sa.tuples.lock().get_ty(tuple_id, idx as usize);
+        let ty = self.sa.tuples.lock().get_subtype_at(tuple_id, idx as usize);
 
         if ty.is_unit() {
             assert!(dest.is_unit());

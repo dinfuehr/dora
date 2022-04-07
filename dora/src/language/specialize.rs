@@ -96,7 +96,7 @@ pub fn replace_type_param(
                     return ty;
                 }
 
-                tuple.args()
+                tuple.subtypes()
             };
 
             let new_subtypes = subtypes

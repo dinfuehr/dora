@@ -323,7 +323,7 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
             }
         }
         SourceType::Tuple(tuple_id) => {
-            let subtypes = sa.tuples.lock().get(tuple_id);
+            let subtypes = sa.tuples.lock().get_subtypes(tuple_id);
 
             for subtype in subtypes.iter() {
                 discover_type_params(sa, subtype.clone(), used_type_params);

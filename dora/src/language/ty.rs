@@ -397,8 +397,8 @@ impl SourceType {
                         return true;
                     }
 
-                    let subtypes = vm.tuples.lock().get(*tuple_id);
-                    let other_subtypes = vm.tuples.lock().get(other_tuple_id);
+                    let subtypes = vm.tuples.lock().get_subtypes(*tuple_id);
+                    let other_subtypes = vm.tuples.lock().get_subtypes(other_tuple_id);
 
                     if subtypes.len() != other_subtypes.len() {
                         return false;
@@ -550,7 +550,7 @@ impl SourceType {
                 true
             }
             SourceType::Tuple(tuple_id) => {
-                let subtypes = vm.tuples.lock().get(*tuple_id);
+                let subtypes = vm.tuples.lock().get_subtypes(*tuple_id);
 
                 for ty in subtypes.iter() {
                     if !ty.is_defined_type(vm) {
@@ -1127,7 +1127,7 @@ impl<'a> SourceTypePrinter<'a> {
             }
 
             SourceType::Tuple(tuple_id) => {
-                let types = self.vm.tuples.lock().get(tuple_id);
+                let types = self.vm.tuples.lock().get_subtypes(tuple_id);
 
                 let types = types
                     .iter()

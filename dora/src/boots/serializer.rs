@@ -98,7 +98,7 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
         }
         BytecodeType::Tuple(tuple_id) => {
             buffer.emit_u8(BytecodeTypeKind::Tuple as u8);
-            let subtypes = vm.tuples.lock().get(*tuple_id);
+            let subtypes = vm.tuples.lock().get_subtypes(*tuple_id);
             buffer.emit_u32(subtypes.len() as u32);
             for subty in subtypes.iter() {
                 encode_source_type(vm, subty.clone(), buffer);
@@ -178,7 +178,7 @@ fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
         }
         SourceType::Tuple(tuple_id) => {
             buffer.emit_u8(SourceTypeOpcode::Tuple.to_int());
-            let subtypes = vm.tuples.lock().get(tuple_id);
+            let subtypes = vm.tuples.lock().get_subtypes(tuple_id);
             buffer.emit_u32(subtypes.len() as u32);
             for subty in subtypes.iter() {
                 encode_source_type(vm, subty.clone(), buffer);
