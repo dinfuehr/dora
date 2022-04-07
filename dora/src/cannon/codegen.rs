@@ -5606,14 +5606,9 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
 }
 
 fn determine_call_target(vm: &VM, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
-    let specials = vm.compiled_fcts.read();
-
-    if let Some(&code_id) = specials.get(&(fid, type_params)) {
-        let code = vm.code.idx(code_id);
-        return code.instruction_start();
-    }
-
-    vm.compile_stub()
+    vm.compilation_database
+        .is_compiled(vm, fid, type_params)
+        .unwrap_or(vm.compile_stub())
 }
 
 #[derive(Copy, Clone)]

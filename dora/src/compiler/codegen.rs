@@ -20,13 +20,12 @@ pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &SourceTypeArray) -> 
 pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> Address {
     debug_assert!(type_params.iter().all(|ty| !ty.contains_type_param(vm)));
 
+    // Block here if compilation is already in progress.
+    if let Some(instruction_start) =
+        vm.compilation_database
+            .compilation_request(vm, fct.id, type_params.clone())
     {
-        let specials = vm.compiled_fcts.read();
-
-        if let Some(&code_id) = specials.get(&(fct.id, type_params.clone())) {
-            let code = vm.code.idx(code_id);
-            return code.instruction_start();
-        }
+        return instruction_start;
     }
 
     let bc = if fct.is_optimize_immediately {
@@ -40,37 +39,27 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         CompilerName::Boots => boots::compile(vm, &fct, &type_params),
     };
 
-    let code;
+    let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct.id));
 
+    // insert the returned Code into the code table to get a CodeId.
+    let code_id = {
+        let mut code_vec = vm.code.lock();
+        let code_id = code_vec.len().into();
+        code_vec.push(code.clone());
+        code_id
+    };
+
+    // We need to insert into CodeMap before releasing the specializations-lock. Otherwise
+    // another thread could run that function while the function can't be found in the
+    // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
     {
-        let mut specials = vm.compiled_fcts.write();
-
-        // check whether function was compiled in-between from another thread.
-        if let Some(&code_id) = specials.get(&(fct.id, type_params.clone())) {
-            let code = vm.code.idx(code_id);
-            return code.instruction_start();
-        }
-
-        code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct.id));
-
-        // insert the returned Code into the code table to get a CodeId.
-        let code_id = {
-            let mut code_vec = vm.code.lock();
-            let code_id = code_vec.len().into();
-            code_vec.push(code.clone());
-            code_id
-        };
-
-        // We need to insert into CodeMap before releasing the specializations-lock. Otherwise
-        // another thread could run that function while the function can't be found in the
-        // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
-        {
-            let mut code_map = vm.code_map.lock();
-            code_map.insert(code.object_start(), code.object_end(), code_id);
-        }
-
-        specials.insert((fct.id, type_params.clone()), code_id);
+        let mut code_map = vm.code_map.lock();
+        code_map.insert(code.object_start(), code.object_end(), code_id);
     }
+
+    // Mark compilation as finished and resume threads waiting for compilation.
+    vm.compilation_database
+        .finish_compilation(fct.id, type_params.clone(), code_id);
 
     if vm.args.flag_enable_perf {
         os::perf::register_with_perf(&code, vm, fct.ast.name);

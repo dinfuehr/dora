@@ -1,5 +1,4 @@
 use parking_lot::{Mutex, RwLock};
-use std::collections::HashMap;
 use std::hash::Hash;
 use std::mem;
 use std::path::PathBuf;
@@ -37,8 +36,8 @@ use dora_parser::parser::NodeIdGenerator;
 
 pub use self::classes::{ClassInstance, ClassInstanceId, Field, FieldDef, FieldId};
 pub use self::code::{
-    install_code, install_code_stub, Code, CodeId, CodeKind, CommentTable, GcPoint, GcPointTable,
-    LazyCompilationData, LazyCompilationSite, PositionTable,
+    install_code, install_code_stub, Code, CodeId, CodeKind, CommentTable, CompilationDatabase,
+    GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, PositionTable,
 };
 pub use self::code_map::CodeMap;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
@@ -272,7 +271,7 @@ pub struct VM {
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub compiled_fcts: RwLock<HashMap<(FctDefinitionId, SourceTypeArray), CodeId>>,
+    pub compilation_database: CompilationDatabase,
     pub code: GrowableVec<Code>, // stores all function implementations
     pub enums: Vec<RwLock<EnumDefinition>>, // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
@@ -410,7 +409,7 @@ impl VM {
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
-            compiled_fcts: RwLock::new(HashMap::new()),
+            compilation_database: CompilationDatabase::new(),
             code: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
@@ -463,7 +462,7 @@ impl VM {
             id_generator: sa.id_generator,
             diag: sa.diag,
             fcts: sa.fcts,
-            compiled_fcts: RwLock::new(HashMap::new()),
+            compilation_database: CompilationDatabase::new(),
             code: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             lambda_types: sa.lambda_types,
@@ -487,7 +486,7 @@ impl VM {
 
     pub fn setup_execution(&mut self) {
         // ensure this data is only created during execution
-        assert!(self.compiled_fcts.read().is_empty());
+        assert!(self.compilation_database.is_empty());
         assert!(self.class_defs.len() == 0);
 
         stdlib_setup::setup(self);
