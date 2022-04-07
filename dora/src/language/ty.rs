@@ -10,8 +10,8 @@ use crate::language::sem_analysis::{
 };
 use crate::mem;
 use crate::mode::MachineMode;
+use crate::vm::{get_concrete_tuple, SemAnalysis, VM};
 use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout, TupleId};
-use crate::vm::{SemAnalysis, VM};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
@@ -463,7 +463,7 @@ impl SourceType {
             }
             SourceType::Trait(_, _) => mem::ptr_width(),
             SourceType::TypeParam(_) => panic!("no size for type variable."),
-            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(*tuple_id).size(),
+            SourceType::Tuple(tuple_id) => get_concrete_tuple(vm, *tuple_id).size(),
         }
     }
 
@@ -498,7 +498,7 @@ impl SourceType {
             }
             SourceType::Trait(_, _) => mem::ptr_width(),
             SourceType::TypeParam(_) => panic!("no alignment for type variable."),
-            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(*tuple_id).align(),
+            SourceType::Tuple(tuple_id) => get_concrete_tuple(vm, *tuple_id).align(),
         }
     }
 

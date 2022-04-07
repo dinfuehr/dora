@@ -52,7 +52,7 @@ pub use self::specialize::{
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
     specialize_type_list,
 };
-pub use self::tuples::{ensure_tuple, TupleId, Tuples};
+pub use self::tuples::{ensure_tuple, get_concrete_tuple, ConcreteTuple, TupleId, Tuples};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;

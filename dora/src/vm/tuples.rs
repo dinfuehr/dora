@@ -30,6 +30,28 @@ pub struct ConcreteTuple {
     align: i32,
 }
 
+impl ConcreteTuple {
+    pub fn offsets(&self) -> &[i32] {
+        &self.offsets
+    }
+
+    pub fn contains_references(&self) -> bool {
+        !self.references.is_empty()
+    }
+
+    pub fn references(&self) -> &[i32] {
+        &self.references
+    }
+
+    pub fn size(&self) -> i32 {
+        self.size
+    }
+
+    pub fn align(&self) -> i32 {
+        self.align
+    }
+}
+
 pub struct Tuple {
     subtypes: Arc<Vec<SourceType>>,
     concrete: Option<ConcreteTuple>,
@@ -40,38 +62,8 @@ impl Tuple {
         self.concrete.is_some()
     }
 
-    pub fn is_defined_type(&self, vm: &VM) -> bool {
-        for arg in self.subtypes.as_ref() {
-            if !arg.is_defined_type(vm) {
-                return false;
-            }
-        }
-
-        true
-    }
-
     pub fn subtypes(&self) -> Arc<Vec<SourceType>> {
         self.subtypes.clone()
-    }
-
-    pub fn offsets(&self) -> &[i32] {
-        &self.concrete.as_ref().unwrap().offsets
-    }
-
-    pub fn contains_references(&self) -> bool {
-        !self.concrete.as_ref().unwrap().references.is_empty()
-    }
-
-    pub fn references(&self) -> &[i32] {
-        &self.concrete.as_ref().unwrap().references
-    }
-
-    pub fn size(&self) -> i32 {
-        self.concrete.as_ref().unwrap().size
-    }
-
-    pub fn align(&self) -> i32 {
-        self.concrete.as_ref().unwrap().align
     }
 }
 
@@ -214,4 +206,9 @@ fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> Option<ConcreteTupl
         size,
         align,
     })
+}
+
+pub fn get_concrete_tuple(vm: &VM, id: TupleId) -> ConcreteTuple {
+    let subtypes = vm.tuples.lock().get_subtypes(id);
+    determine_tuple_size(vm, &*subtypes).expect("concrete tuple expected")
 }

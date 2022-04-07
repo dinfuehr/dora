@@ -28,9 +28,10 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
-    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
-    specialize_type_list, EnumLayout, GcPoint, Trap, TupleId, VM,
+    get_concrete_tuple, specialize_class_id_params, specialize_enum_class,
+    specialize_enum_id_params, specialize_struct_id_params, specialize_trait_object,
+    specialize_tuple, specialize_type, specialize_type_list, EnumLayout, GcPoint, Trap, TupleId,
+    VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -218,8 +219,8 @@ impl<'a> CannonCodeGen<'a> {
 
                     BytecodeType::Tuple(tuple_id) => {
                         let offset = self.register_offset(Register(idx));
-                        let tuples = self.vm.tuples.lock();
-                        for &ref_offset in tuples.get_tuple(tuple_id).references() {
+                        let tuple = get_concrete_tuple(self.vm, tuple_id);
+                        for &ref_offset in tuple.references() {
                             self.references.push(offset + ref_offset);
                         }
                     }
@@ -1534,15 +1535,9 @@ impl<'a> CannonCodeGen<'a> {
 
     fn copy_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset, src: RegOrOffset) {
         let subtypes = self.vm.tuples.lock().get_subtypes(tuple_id);
-        let offsets = self
-            .vm
-            .tuples
-            .lock()
-            .get_tuple(tuple_id)
-            .offsets()
-            .to_owned();
+        let tuple = get_concrete_tuple(self.vm, tuple_id);
 
-        for (subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             let src = src.offset(subtype_offset);
             let dest = dest.offset(subtype_offset);
             self.copy_ty(subtype.clone(), dest, src);
@@ -1670,15 +1665,9 @@ impl<'a> CannonCodeGen<'a> {
 
     fn zero_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset) {
         let subtypes = self.vm.tuples.lock().get_subtypes(tuple_id);
-        let offsets = self
-            .vm
-            .tuples
-            .lock()
-            .get_tuple(tuple_id)
-            .offsets()
-            .to_owned();
+        let tuple = get_concrete_tuple(self.vm, tuple_id);
 
-        for (subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
         }
     }
@@ -1730,15 +1719,9 @@ impl<'a> CannonCodeGen<'a> {
 
     fn zero_refs_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset) {
         let subtypes = self.vm.tuples.lock().get_subtypes(tuple_id);
-        let offsets = self
-            .vm
-            .tuples
-            .lock()
-            .get_tuple(tuple_id)
-            .offsets()
-            .to_owned();
+        let tuple = get_concrete_tuple(self.vm, tuple_id);
 
-        for (subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             self.zero_refs_ty(subtype.clone(), dest.offset(subtype_offset));
         }
     }
@@ -1904,12 +1887,8 @@ impl<'a> CannonCodeGen<'a> {
                         RegOrOffset::Offset(src_offset),
                     );
 
-                    needs_write_barrier = self
-                        .vm
-                        .tuples
-                        .lock()
-                        .get_tuple(tuple_id)
-                        .contains_references()
+                    needs_write_barrier =
+                        get_concrete_tuple(self.vm, tuple_id).contains_references()
                 }
 
                 BytecodeType::Struct(struct_id, type_params) => {
@@ -2468,18 +2447,12 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
         let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
         let subtypes = self.vm.tuples.lock().get_subtypes(tuple_id);
-        let offsets = self
-            .vm
-            .tuples
-            .lock()
-            .get_tuple(tuple_id)
-            .offsets()
-            .to_owned();
+        let tuple = get_concrete_tuple(self.vm, tuple_id);
         let dest_offset = self.register_offset(dest);
         let mut arg_idx = 0;
         let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
 
-        for (subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             if subtype.is_unit() {
                 continue;
             }
@@ -2810,7 +2783,8 @@ impl<'a> CannonCodeGen<'a> {
 
         match src_type {
             BytecodeType::Tuple(tuple_id) => {
-                let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+                let tuple = get_concrete_tuple(self.vm, tuple_id);
+                let element_size = tuple.size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let src_offset = self.register_offset(src);
@@ -2821,12 +2795,7 @@ impl<'a> CannonCodeGen<'a> {
                     RegOrOffset::Offset(src_offset),
                 );
 
-                let needs_write_barrier = self
-                    .vm
-                    .tuples
-                    .lock()
-                    .get_tuple(tuple_id)
-                    .contains_references();
+                let needs_write_barrier = tuple.contains_references();
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
                     let card_table_offset = self.vm.gc.card_table_offset();
@@ -2965,7 +2934,7 @@ impl<'a> CannonCodeGen<'a> {
 
         match dest_type {
             BytecodeType::Tuple(tuple_id) => {
-                let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+                let element_size = get_concrete_tuple(self.vm, tuple_id).size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let dest_offset = self.register_offset(dest);
@@ -4164,7 +4133,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(arguments[0], REG_RESULT.into());
                 self.emit_load_register(arguments[1], REG_TMP1.into());
 
-                let tuple_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+                let tuple_size = get_concrete_tuple(self.vm, tuple_id).size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, tuple_size);
                 self.zero_refs_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));

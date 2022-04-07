@@ -10,8 +10,8 @@ use crate::mem::ptr_width;
 use crate::mode::MachineMode;
 use crate::utils::enumeration;
 use crate::vm::{
-    get_vm, specialize_enum_id_params, specialize_struct_id_params, ClassInstanceId, EnumLayout,
-    FieldId, TupleId, VM,
+    get_concrete_tuple, get_vm, specialize_enum_id_params, specialize_struct_id_params,
+    ClassInstanceId, EnumLayout, FieldId, TupleId, VM,
 };
 use dora_parser::lexer::position::Position;
 
@@ -71,10 +71,7 @@ impl BytecodeType {
             BytecodeType::Float32 => 4,
             BytecodeType::Float64 => 8,
             BytecodeType::Ptr => ptr_width(),
-            BytecodeType::Tuple(tuple_id) => {
-                let vm = get_vm();
-                vm.tuples.lock().get_tuple(*tuple_id).size()
-            }
+            BytecodeType::Tuple(tuple_id) => get_concrete_tuple(get_vm(), *tuple_id).size(),
             BytecodeType::TypeParam(_) => unreachable!(),
             BytecodeType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());

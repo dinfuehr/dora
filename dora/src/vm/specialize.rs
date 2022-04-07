@@ -17,6 +17,8 @@ use crate::vm::{
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
+use super::get_concrete_tuple;
+
 pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
     replace_type_param(vm, ty, type_params, None)
 }
@@ -288,8 +290,7 @@ pub fn specialize_enum_class(
 
 pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
     if let Some(tuple_id) = ty.tuple_id() {
-        let tuples = vm.tuples.lock();
-        let tuple = tuples.get_tuple(tuple_id);
+        let tuple = get_concrete_tuple(vm, tuple_id);
 
         for &ref_offset in tuple.references() {
             ref_fields.push(offset + ref_offset);
@@ -489,8 +490,7 @@ fn create_specialized_class_array(
                 InstanceSize::ObjArray
             }
             SourceType::Tuple(tuple_id) => {
-                let tuples = vm.tuples.lock();
-                let tuple = tuples.get_tuple(tuple_id);
+                let tuple = get_concrete_tuple(vm, tuple_id);
 
                 if tuple.contains_references() {
                     for &offset in tuple.references() {
