@@ -1,0 +1,9 @@
+var x: (String, Bool) = ("", false);
+
+fun main() {
+    std::forceCollect();
+    x = ("my string", true);
+    std::forceCollect();
+    assert(x.0 == "my string");
+    assert(x.1);
+}

@@ -60,7 +60,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                 let tuples = vm.tuples.lock();
                 let tuple = tuples.get_tuple(tuple_id);
 
-                for &offset in tuple.offsets() {
+                for &offset in tuple.references() {
                     let slot_address = glob.address_value.offset(offset as usize);
                     let slot = Slot::at(slot_address);
                     rootset.push(slot);
