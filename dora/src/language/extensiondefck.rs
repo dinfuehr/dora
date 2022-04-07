@@ -8,7 +8,7 @@ use crate::language::sem_analysis::{
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{get_tuple_subtypes, FileId, SemAnalysis};
 
 use dora_parser::ast;
 use dora_parser::lexer::position::Position;
@@ -323,7 +323,7 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
             }
         }
         SourceType::Tuple(tuple_id) => {
-            let subtypes = sa.tuples.lock().get_subtypes(tuple_id);
+            let subtypes = get_tuple_subtypes(sa, tuple_id);
 
             for subtype in subtypes.iter() {
                 discover_type_params(sa, subtype.clone(), used_type_params);

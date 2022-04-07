@@ -11,7 +11,9 @@ use crate::language::sem_analysis::{
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::vm::{get_concrete_tuple, SemAnalysis, VM};
-use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout, TupleId};
+use crate::vm::{
+    get_tuple_subtypes, specialize_enum_id_params, specialize_struct_id_params, EnumLayout, TupleId,
+};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
@@ -397,8 +399,8 @@ impl SourceType {
                         return true;
                     }
 
-                    let subtypes = vm.tuples.lock().get_subtypes(*tuple_id);
-                    let other_subtypes = vm.tuples.lock().get_subtypes(other_tuple_id);
+                    let subtypes = get_tuple_subtypes(vm, *tuple_id);
+                    let other_subtypes = get_tuple_subtypes(vm, other_tuple_id);
 
                     if subtypes.len() != other_subtypes.len() {
                         return false;
@@ -550,7 +552,7 @@ impl SourceType {
                 true
             }
             SourceType::Tuple(tuple_id) => {
-                let subtypes = vm.tuples.lock().get_subtypes(*tuple_id);
+                let subtypes = get_tuple_subtypes(vm, *tuple_id);
 
                 for ty in subtypes.iter() {
                     if !ty.is_defined_type(vm) {
@@ -588,7 +590,16 @@ impl SourceType {
                 true
             }
 
-            SourceType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(*tuple_id).is_concrete_type(),
+            SourceType::Tuple(tuple_id) => {
+                let subtypes = get_tuple_subtypes(vm, *tuple_id);
+                for subtype in subtypes.iter() {
+                    if !subtype.is_concrete_type(vm) {
+                        return false;
+                    }
+                }
+
+                true
+            }
             SourceType::Lambda(_) => unimplemented!(),
             SourceType::TypeParam(_) => false,
         }
@@ -1127,7 +1138,7 @@ impl<'a> SourceTypePrinter<'a> {
             }
 
             SourceType::Tuple(tuple_id) => {
-                let types = self.vm.tuples.lock().get_subtypes(tuple_id);
+                let types = get_tuple_subtypes(self.vm, tuple_id);
 
                 let types = types
                     .iter()

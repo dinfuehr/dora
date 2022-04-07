@@ -11,9 +11,9 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    ensure_tuple, ClassDefinition, ClassInstance, ClassInstanceId, EnumDefinition,
-    EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef, StructDefinition,
-    StructDefinitionId, StructInstance, TraitDefinition, TupleId, VM,
+    ensure_tuple, get_tuple_subtypes, ClassDefinition, ClassInstance, ClassInstanceId,
+    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef,
+    StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, TupleId, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -735,16 +735,7 @@ fn create_specialized_class_for_trait_object(
 }
 
 pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArray) -> TupleId {
-    let subtypes = {
-        let tuples = vm.tuples.lock();
-        let tuple = tuples.get_tuple(tuple_id);
-
-        if tuple.is_concrete_type() {
-            return tuple_id;
-        }
-
-        tuple.subtypes()
-    };
+    let subtypes = get_tuple_subtypes(vm, tuple_id);
 
     let new_subtypes = subtypes
         .iter()
@@ -812,16 +803,7 @@ pub fn replace_type_param(
         SourceType::Lambda(_) => unimplemented!(),
 
         SourceType::Tuple(tuple_id) => {
-            let subtypes = {
-                let tuples = vm.tuples.lock();
-                let tuple = tuples.get_tuple(tuple_id);
-
-                if tuple.is_concrete_type() {
-                    return ty;
-                }
-
-                tuple.subtypes()
-            };
+            let subtypes = get_tuple_subtypes(vm, tuple_id);
 
             let new_subtypes = subtypes
                 .iter()

@@ -22,7 +22,7 @@ use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::language::{report_sym_shadow, TypeParamContext};
-use crate::vm::{ensure_tuple, FileId, SemAnalysis};
+use crate::vm::{ensure_tuple, get_tuple_subtypes, FileId, SemAnalysis};
 
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
@@ -304,25 +304,24 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let tuple_id = ty.tuple_id().expect("type should be tuple");
-                let parts = self.sa.tuples.lock().get_subtypes(tuple_id).len();
+                let subtypes = get_tuple_subtypes(self.sa, tuple_id);
 
-                if parts != tuple.parts.len() {
+                if subtypes.len() != tuple.parts.len() {
                     let ty_name = ty.name_fct(self.sa, self.fct);
                     self.sa.diag.lock().report(
                         self.file_id,
                         tuple.pos,
                         SemError::LetPatternExpectedTupleWithLength(
                             ty_name,
-                            parts,
+                            subtypes.len(),
                             tuple.parts.len(),
                         ),
                     );
                     return;
                 }
 
-                for (idx, part) in tuple.parts.iter().enumerate() {
-                    let ty = self.sa.tuples.lock().get_subtype_at(tuple_id, idx);
-                    self.check_stmt_let_pattern(part, ty, mutable);
+                for (part, subtype) in tuple.parts.iter().zip(subtypes.iter()) {
+                    self.check_stmt_let_pattern(&*part, subtype.clone(), mutable);
                 }
             }
         }
@@ -2958,7 +2957,7 @@ impl<'a> TypeCheck<'a> {
             _ => unreachable!(),
         };
 
-        let tuple = self.sa.tuples.lock().get_subtypes(tuple_id);
+        let tuple = get_tuple_subtypes(self.sa, tuple_id);
 
         if index >= tuple.len() as u64 {
             let msg = SemError::IllegalTupleIndex(index, object_type.name_fct(self.sa, self.fct));
@@ -3403,8 +3402,8 @@ fn arg_allows(
                     return true;
                 }
 
-                let subtypes = sa.tuples.lock().get_subtypes(tuple_id);
-                let other_subtypes = sa.tuples.lock().get_subtypes(other_tuple_id);
+                let subtypes = get_tuple_subtypes(sa, tuple_id);
+                let other_subtypes = get_tuple_subtypes(sa, other_tuple_id);
 
                 if subtypes.len() != other_subtypes.len() {
                     return false;
