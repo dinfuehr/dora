@@ -1,5 +1,3 @@
-import std::Assert;
-
 fun main() {
   assert(Array[Int32]() == Array[Int32]());
   assert(Array[Int32]().equals(Array[Int32]()));

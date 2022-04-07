@@ -1,8 +1,0 @@
-fun main() {
-    let x = Foo::test(2I, 3I);
-    assert(x == 5I);
-}
-
-module Foo {
-    fun test(a: Int32, b: Int32): Int32 = a + b;
-}

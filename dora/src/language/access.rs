@@ -2,7 +2,7 @@ use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, FctDefinitionId, FctParent, GlobalDefinitionId,
     NamespaceId, StructDefinitionFieldId, StructDefinitionId,
 };
-use crate::vm::{EnumDefinitionId, FieldId, ModuleId, SemAnalysis, TraitDefinitionId};
+use crate::vm::{EnumDefinitionId, FieldId, SemAnalysis, TraitDefinitionId};
 
 pub fn global_accessible_from(
     sa: &SemAnalysis,
@@ -67,13 +67,6 @@ pub fn method_accessible_from(
             return true;
         }
 
-        FctParent::Module(module_id) => {
-            let module = sa.modules.idx(module_id);
-            let module = module.read();
-
-            module.is_pub && fct.is_pub
-        }
-
         FctParent::None => unreachable!(),
     };
 
@@ -129,17 +122,6 @@ pub fn struct_field_accessible_from(
         xstruct.is_pub && field.is_pub,
         namespace_id,
     )
-}
-
-pub fn module_accessible_from(
-    sa: &SemAnalysis,
-    module_id: ModuleId,
-    namespace_id: NamespaceId,
-) -> bool {
-    let module = sa.modules.idx(module_id);
-    let module = module.read();
-
-    accessible_from(sa, module.namespace_id, module.is_pub, namespace_id)
 }
 
 pub fn namespace_accessible_from(

@@ -77,16 +77,6 @@ impl File {
     }
 
     #[cfg(test)]
-    pub fn mod0(&self) -> &Module {
-        self.elements[0].to_module().unwrap()
-    }
-
-    #[cfg(test)]
-    pub fn modu(&self, index: usize) -> &Module {
-        self.elements[index].to_module().unwrap()
-    }
-
-    #[cfg(test)]
     pub fn ann0(&self) -> &Annotation {
         self.elements[0].to_annotation().unwrap()
     }
@@ -118,7 +108,6 @@ pub enum Elem {
     Struct(Arc<Struct>),
     Trait(Arc<Trait>),
     Impl(Arc<Impl>),
-    Module(Arc<Module>),
     Annotation(Arc<Annotation>),
     Global(Arc<Global>),
     Const(Arc<Const>),
@@ -136,7 +125,6 @@ impl Elem {
             &Elem::Struct(ref s) => s.id,
             &Elem::Trait(ref t) => t.id,
             &Elem::Impl(ref i) => i.id,
-            &Elem::Module(ref m) => m.id,
             &Elem::Annotation(ref a) => a.id,
             &Elem::Global(ref g) => g.id,
             &Elem::Const(ref c) => c.id,
@@ -199,13 +187,6 @@ impl Elem {
     pub fn to_impl(&self) -> Option<&Impl> {
         match self {
             &Elem::Impl(ref ximpl) => Some(ximpl),
-            _ => None,
-        }
-    }
-
-    pub fn to_module(&self) -> Option<&Module> {
-        match self {
-            &Elem::Module(ref module) => Some(module),
             _ => None,
         }
     }
@@ -544,22 +525,6 @@ pub struct Class {
     pub methods: Vec<Arc<Function>>,
     pub initializers: Vec<Box<Stmt>>,
     pub type_params: Option<Vec<TypeParam>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Module {
-    pub id: NodeId,
-    pub name: Name,
-    pub pos: Position,
-    pub parent_class: Option<ParentClass>,
-    pub internal: bool,
-    pub has_constructor: bool,
-    pub is_pub: bool,
-
-    pub constructor: Option<Arc<Function>>,
-    pub fields: Vec<Field>,
-    pub methods: Vec<Arc<Function>>,
-    pub initializers: Vec<Box<Stmt>>,
 }
 
 #[derive(Clone, Debug)]

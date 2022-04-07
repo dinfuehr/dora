@@ -8,7 +8,7 @@ use crate::language::ty::SourceType;
 
 use crate::stack;
 use crate::stdlib;
-use crate::vm::{EnumDefinitionId, ExtensionId, ModuleId, SemAnalysis, TraitDefinitionId};
+use crate::vm::{EnumDefinitionId, ExtensionId, SemAnalysis, TraitDefinitionId};
 use dora_parser::ast::Modifier;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
@@ -984,20 +984,6 @@ fn find_static(
     let intern_name = sa.interner.intern(name);
 
     match sym {
-        Some(Sym::Module(module_id)) => {
-            let module = sa.modules.idx(module_id);
-            let module = module.read();
-
-            for &mid in &module.methods {
-                let mtd = sa.fcts.idx(mid);
-                let mtd = mtd.read();
-
-                if mtd.name == intern_name {
-                    return mid;
-                }
-            }
-        }
-
         Some(Sym::Class(cls_id)) => {
             let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
@@ -1155,10 +1141,6 @@ fn common_method(
             internal_class_method(sa, cls_id, method_name, is_static, implementation);
         }
 
-        Some(Sym::Module(module_id)) => {
-            internal_module_method(sa, module_id, method_name, is_static, implementation);
-        }
-
         Some(Sym::Struct(struct_id)) => {
             let xstruct = sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
@@ -1182,34 +1164,6 @@ fn common_method(
         }
 
         _ => panic!("unexpected type"),
-    }
-}
-
-fn internal_module_method(
-    sa: &SemAnalysis,
-    module_id: ModuleId,
-    name: &str,
-    _is_static: bool,
-    implementation: FctImplementation,
-) {
-    let module = sa.modules.idx(module_id);
-    let module = module.read();
-    let name_interned = sa.interner.intern(name);
-
-    for &mid in &module.methods {
-        let mtd = sa.fcts.idx(mid);
-        let mut mtd = mtd.write();
-
-        if mtd.name == name_interned {
-            match implementation {
-                FctImplementation::Intrinsic(intrinsic) => mtd.intrinsic = Some(intrinsic),
-                FctImplementation::Native(address) => {
-                    mtd.native_pointer = Some(address);
-                }
-            }
-            mtd.internal_resolved = true;
-            return;
-        }
     }
 }
 

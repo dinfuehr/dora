@@ -2,8 +2,8 @@ use parking_lot::RwLock;
 
 use crate::language::access::{
     class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
-    global_accessible_from, module_accessible_from, namespace_accessible_from,
-    struct_accessible_from, trait_accessible_from,
+    global_accessible_from, namespace_accessible_from, struct_accessible_from,
+    trait_accessible_from,
 };
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
@@ -238,20 +238,6 @@ fn import_namespace(
             let new_sym = Sym::Struct(struct_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
-            }
-        }
-
-        Some(Sym::Module(module_id)) => {
-            if !module_accessible_from(sa, module_id, import.namespace_id) {
-                let module = sa.modules.idx(module_id);
-                let module = module.read();
-                let msg = SemError::NotAccessible(module.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
-            }
-
-            let new_sym = Sym::Module(module_id);
-            if let Some(old_sym) = table.write().insert(target_name, new_sym) {
                 report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
             }
         }

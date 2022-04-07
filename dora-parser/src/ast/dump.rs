@@ -69,7 +69,6 @@ impl<'a> AstDumper<'a> {
             Elem::Struct(ref struc) => self.dump_struct(struc),
             Elem::Trait(ref xtrait) => self.dump_trait(xtrait),
             Elem::Impl(ref ximpl) => self.dump_impl(ximpl),
-            Elem::Module(ref module) => self.dump_module(module),
             Elem::Annotation(ref annotation) => self.dump_annotation(annotation),
             Elem::Global(ref global) => self.dump_global(global),
             Elem::Const(ref xconst) => self.dump_const(xconst),
@@ -268,46 +267,6 @@ impl<'a> AstDumper<'a> {
             dump!(d, "methods");
             d.indent(|d| {
                 for mtd in &cls.methods {
-                    d.dump_fct(mtd);
-                }
-            });
-        });
-    }
-
-    fn dump_module(&mut self, modu: &Module) {
-        dump!(
-            self,
-            "module {} @ {} {}",
-            self.str(modu.name),
-            modu.pos,
-            modu.id
-        );
-
-        self.indent(|d| {
-            if let Some(ref parent_class) = modu.parent_class {
-                d.dump_type(&parent_class.parent_ty);
-
-                for param in &parent_class.params {
-                    d.dump_expr(param);
-                }
-            }
-
-            dump!(d, "fields");
-
-            d.indent(|d| {
-                for field in &modu.fields {
-                    d.dump_field(field);
-                }
-            });
-
-            dump!(d, "constructor");
-            if let Some(ctor) = &modu.constructor {
-                d.indent(|d| d.dump_fct(ctor));
-            }
-
-            dump!(d, "methods");
-            d.indent(|d| {
-                for mtd in &modu.methods {
                     d.dump_fct(mtd);
                 }
             });

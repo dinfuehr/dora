@@ -188,7 +188,7 @@ fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
             buffer.emit_u8(SourceTypeOpcode::TypeParam.to_int());
             buffer.emit_id(type_param_id.to_usize());
         }
-        SourceType::Module(_) | SourceType::Lambda(_) => unimplemented!(),
+        SourceType::Lambda(_) => unimplemented!(),
     }
 }
 

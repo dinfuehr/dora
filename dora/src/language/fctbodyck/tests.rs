@@ -82,60 +82,6 @@ fn return_type() {
 }
 
 #[test]
-fn type_module_method_call() {
-    ok("module Foo {
-                fun bar() {}
-                fun baz(): Int32 { return 1I; }
-            }
-
-            fun f2() { Foo::bar(); }
-            fun g(): Int32 { return Foo::baz(); }");
-
-    ok("module Foo {
-                fun bar[T : std::Equals + std::Hash](t: T): T = t;
-            }
-
-            fun foo() { Foo::bar[Int32](1I); }");
-
-    err(
-        "module Foo {
-                 fun foo(): Bar = Bar();
-               }
-               class Bar[T]",
-        pos(2, 29),
-        SemError::WrongNumberTypeParams(1, 0),
-    );
-
-    err(
-        "module Foo {
-                 fun foo[T](): Bar = Bar[T]();
-               }
-               class Bar[T]",
-        pos(2, 32),
-        SemError::WrongNumberTypeParams(1, 0),
-    );
-
-    ok("module Foo {
-                 fun foo[T](): Bar[T] = Bar[T]();
-               }
-               class Bar[T]
-
-               fun bar() {
-                 Foo::foo[Int32]();
-               }");
-
-    err(
-        "module Foo {
-                 fun bar(): Int32 { return 0I; }
-             }
-
-             fun f(): String { return Foo::bar(); }",
-        pos(5, 32),
-        SemError::ReturnType("String".into(), "Int32".into()),
-    );
-}
-
-#[test]
 fn type_method_defined_twice() {
     err(
         "class Foo {
@@ -3487,21 +3433,6 @@ fn namespace_import_self() {
 }
 
 #[test]
-fn namespace_import_module() {
-    ok("
-        import foo::Bar;
-        fun f() {
-            Bar::baz();
-        }
-        namespace foo {
-            @pub module Bar {
-                @pub fun baz() {}
-            }
-        }
-    ");
-}
-
-#[test]
 fn namespace_import_errors() {
     err(
         "
@@ -3583,13 +3514,6 @@ fn different_fct_call_kinds() {
         SemError::NoTypeParamsExpected,
     );
     ok("class Foo fun f() { Foo(); }");
-    ok("module Foo { fun bar() {} } fun f() { Foo::bar(); }");
-    err(
-        "module Foo { fun bar() {} } fun f() { Foo[Int32]::bar(); }",
-        pos(1, 42),
-        SemError::NoTypeParamsExpected,
-    );
-    ok("module Foo { fun bar() {} } fun f() { Foo::bar(); }");
     errors(
         "fun f() { 1I[Int32](); }",
         &[

@@ -51,7 +51,6 @@ pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
 };
-pub use self::modules::{find_methods_in_module, Module, ModuleDefId, ModuleId, ModuleInstance};
 pub use self::specialize::{
     add_ref_fields, ensure_display, replace_type_param, specialize_class_id,
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
@@ -71,7 +70,6 @@ mod globals;
 mod impls;
 mod imports;
 mod known;
-mod modules;
 mod specialize;
 mod stdlib_setup;
 mod traits;
@@ -119,8 +117,6 @@ pub struct FullSemAnalysis {
     pub class_defs: GrowableVec<ClassInstance>,       // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>,       // stores all extension definitions
     pub tuples: Mutex<Tuples>,                        // stores all tuple definitions
-    pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
-    pub module_defs: GrowableVec<RwLock<ModuleInstance>>, // stores all module definitions
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
@@ -180,8 +176,6 @@ impl FullSemAnalysis {
             class_defs: GrowableVec::new(),
             extensions: Vec::new(),
             tuples: Mutex::new(Tuples::new()),
-            modules: GrowableVec::new(),
-            module_defs: GrowableVec::new(),
             annotations: GrowableVec::new(),
             namespaces,
             enums: Vec::new(),
@@ -284,8 +278,6 @@ pub struct VM {
     pub class_defs: GrowableVec<ClassInstance>,       // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>,       // stores all extension definitions
     pub tuples: Mutex<Tuples>,                        // stores all tuple definitions
-    pub modules: GrowableVec<RwLock<Module>>,         // stores all module source definitions
-    pub module_instances: GrowableVec<RwLock<ModuleInstance>>, // stores all module definitions
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
@@ -357,8 +349,6 @@ impl VM {
             class_defs: GrowableVec::new(),
             extensions: Vec::new(),
             tuples: Mutex::new(Tuples::new()),
-            modules: GrowableVec::new(),
-            module_instances: GrowableVec::new(),
             annotations: GrowableVec::new(),
             namespaces,
             enums: Vec::new(),
@@ -468,8 +458,6 @@ impl VM {
             class_defs: sa.class_defs,
             extensions: sa.extensions,
             tuples: sa.tuples,
-            modules: sa.modules,
-            module_instances: sa.module_defs,
             annotations: sa.annotations,
             namespaces: sa.namespaces,
             enums: sa.enums,

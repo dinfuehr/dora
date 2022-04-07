@@ -6,7 +6,7 @@ use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, FctDefinitionId,
     GlobalDefinitionId, NamespaceId, StructDefinitionId, TypeParamId, VarId,
 };
-use crate::vm::{EnumDefinitionId, FieldId, ModuleId, SemAnalysis, TraitDefinitionId};
+use crate::vm::{EnumDefinitionId, FieldId, SemAnalysis, TraitDefinitionId};
 use dora_parser::interner::Name;
 
 pub struct NestedSymTable<'a> {
@@ -87,10 +87,6 @@ impl<'a> NestedSymTable<'a> {
         self.get(name).and_then(|n| n.to_trait())
     }
 
-    pub fn get_module(&self, name: Name) -> Option<ModuleId> {
-        self.get(name).and_then(|n| n.to_module())
-    }
-
     pub fn get_enum(&self, name: Name) -> Option<EnumDefinitionId> {
         self.get(name).and_then(|n| n.to_enum())
     }
@@ -153,10 +149,6 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_trait())
     }
 
-    pub fn get_module(&self, name: Name) -> Option<ModuleId> {
-        self.get(name).and_then(|n| n.to_module())
-    }
-
     pub fn get_enum(&self, name: Name) -> Option<EnumDefinitionId> {
         self.get(name).and_then(|n| n.to_enum())
     }
@@ -176,7 +168,6 @@ pub enum Sym {
     Field(FieldId),
     Fct(FctDefinitionId),
     Var(VarId),
-    Module(ModuleId),
     Annotation(AnnotationDefinitionId),
     Global(GlobalDefinitionId),
     Const(ConstDefinitionId),
@@ -300,20 +291,6 @@ impl Sym {
     pub fn to_global(&self) -> Option<GlobalDefinitionId> {
         match *self {
             Global(id) => Some(id),
-            _ => None,
-        }
-    }
-
-    pub fn is_module(&self) -> bool {
-        match *self {
-            Module(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_module(&self) -> Option<ModuleId> {
-        match *self {
-            Module(id) => Some(id),
             _ => None,
         }
     }

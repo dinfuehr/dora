@@ -838,7 +838,6 @@ pub fn replace_type_param(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Module(_)
         | SourceType::Error => ty,
 
         SourceType::Any | SourceType::Ptr => {

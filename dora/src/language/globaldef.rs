@@ -17,7 +17,7 @@ use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 use crate::vm::{
     EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId, FileId, ImplData, ImplId,
-    ImportData, Module, ModuleId, SemAnalysis, TraitDefinition, TraitDefinitionId,
+    ImportData, SemAnalysis, TraitDefinition, TraitDefinitionId,
 };
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -349,44 +349,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_module(&mut self, node: &Arc<ast::Module>) {
-        let id = {
-            let mut modules = self.sa.modules.lock();
-
-            let id: ModuleId = modules.len().into();
-            let module = Module {
-                id: id,
-                name: node.name,
-                file_id: self.file_id,
-                namespace_id: self.namespace_id,
-                ast: node.clone(),
-                pos: node.pos,
-                ty: SourceType::Module(id),
-                parent_class: None,
-                internal: node.internal,
-                internal_resolved: false,
-                has_constructor: node.has_constructor,
-                is_pub: node.is_pub,
-
-                constructor: None,
-                fields: Vec::new(),
-                methods: Vec::new(),
-                virtual_fcts: Vec::new(),
-
-                traits: Vec::new(),
-            };
-
-            modules.push(Arc::new(RwLock::new(module)));
-
-            id
-        };
-
-        let sym = Sym::Module(id);
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
-        }
-    }
-
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
         let id = {
             let mut consts = self.sa.consts.lock();
@@ -700,31 +662,6 @@ mod tests {
             pos(1, 14),
             SemError::ShadowTrait("Foo".into()),
         );
-    }
-
-    #[test]
-    fn test_module() {
-        ok("module Foo {}");
-        err(
-            "module Foo {} struct Foo {}",
-            pos(1, 15),
-            SemError::ShadowModule("Foo".into()),
-        );
-        err(
-            "module Foo {} fun Foo() {}",
-            pos(1, 15),
-            SemError::ShadowModule("Foo".into()),
-        );
-    }
-
-    #[test]
-    fn test_module_with_fun() {
-        ok("module Foo { fun bar(): Int32 = 0I; }");
-    }
-
-    #[test]
-    fn test_module_with_let() {
-        ok("module Foo { let bar: Int32 = 0I; }");
     }
 
     #[test]

@@ -135,12 +135,6 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Impl(Arc::new(ximpl)))
             }
 
-            TokenKind::Module => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let module = self.parse_module(&modifiers)?;
-                Ok(Elem::Module(Arc::new(module)))
-            }
-
             TokenKind::Annotation => {
                 let annotation = self.parse_annotation(&modifiers)?;
                 Ok(Elem::Annotation(Arc::new(annotation)))
@@ -581,48 +575,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ParseErrorAndPos> {
-        let internal = modifiers.contains(Modifier::Internal);
-        let is_pub = modifiers.contains(Modifier::Pub);
-
-        let pos = self.expect_token(TokenKind::Module)?.position;
-        let ident = self.expect_identifier()?;
-        let mut module = Module {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            parent_class: None,
-            internal: internal,
-            has_constructor: false,
-            is_pub,
-            constructor: None,
-            fields: Vec::new(),
-            methods: Vec::new(),
-            initializers: Vec::new(),
-        };
-
-        self.in_class_or_module = true;
-
-        module.parent_class = if self.token.is(TokenKind::Colon) {
-            self.advance_token()?;
-
-            let start = self.token.span.start();
-            let pos = self.token.position;
-            let parent_ty = self.parse_type()?;
-            let params = self.parse_parent_class_params()?;
-            let span = self.span_from(start);
-
-            Some(ParentClass::new(pos, span, parent_ty, params))
-        } else {
-            None
-        };
-
-        self.parse_module_body(&mut module)?;
-        self.in_class_or_module = false;
-
-        Ok(module)
-    }
-
     fn parse_annotation(&mut self, modifiers: &Modifiers) -> Result<Annotation, ParseErrorAndPos> {
         let internal = modifiers.contains(Modifier::Internal);
 
@@ -872,51 +824,6 @@ impl<'a> Parser<'a> {
                 _ => {
                     let initializer = self.parse_statement()?;
                     cls.initializers.push(initializer);
-                }
-            }
-        }
-
-        self.advance_token()?;
-        Ok(())
-    }
-
-    fn parse_module_body(&mut self, module: &mut Module) -> Result<(), ParseErrorAndPos> {
-        if !self.token.is(TokenKind::LBrace) {
-            return Ok(());
-        }
-
-        self.advance_token()?;
-
-        while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_annotation_usages()?;
-
-            match self.token.kind {
-                TokenKind::Fun => {
-                    let mods = &[
-                        Modifier::Abstract,
-                        Modifier::Internal,
-                        Modifier::Open,
-                        Modifier::Override,
-                        Modifier::Final,
-                        Modifier::Pub,
-                        Modifier::Static,
-                    ];
-                    self.restrict_modifiers(&modifiers, mods)?;
-
-                    let fct = self.parse_function(&modifiers)?;
-                    module.methods.push(Arc::new(fct));
-                }
-
-                TokenKind::Var | TokenKind::Let => {
-                    self.ban_modifiers(&modifiers)?;
-
-                    let field = self.parse_field(&modifiers)?;
-                    module.fields.push(field);
-                }
-
-                _ => {
-                    let initializer = self.parse_statement()?;
-                    module.initializers.push(initializer);
                 }
             }
         }
@@ -3517,34 +3424,6 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(true, class.is_open);
-    }
-
-    #[test]
-    fn parse_module() {
-        let (prog, interner) = parse("module Foo");
-        let module = prog.mod0();
-
-        assert_eq!(0, module.fields.len());
-        assert_eq!(Position::new(1, 1), module.pos);
-        assert_eq!("Foo", *interner.str(module.name));
-    }
-
-    #[test]
-    fn parse_module_with_parent() {
-        let (prog, _interner) = parse("module Foo : Bar");
-        let module = prog.mod0();
-
-        assert!(module.parent_class.is_some());
-    }
-
-    #[test]
-    fn parse_module_with_body() {
-        let (prog, _) =
-            parse("module Foo { let x: Int = 23; var y: String = \"abc\"; fun z() {} }");
-        let module = prog.mod0();
-
-        assert_eq!(2, module.fields.len());
-        assert_eq!(1, module.methods.len());
     }
 
     #[test]

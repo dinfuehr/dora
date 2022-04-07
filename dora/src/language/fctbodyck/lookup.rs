@@ -6,10 +6,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
-use crate::vm::{
-    find_methods_in_enum, find_methods_in_module, replace_type_param, FileId, SemAnalysis,
-    TraitDefinitionId,
-};
+use crate::vm::{find_methods_in_enum, replace_type_param, FileId, SemAnalysis, TraitDefinitionId};
 
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -274,9 +271,7 @@ impl<'a> MethodLookup<'a> {
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {
-        let candidates = if object_type.is_module() {
-            find_methods_in_module(self.sa, object_type, name)
-        } else if object_type.is_enum() {
+        let candidates = if object_type.is_enum() {
             find_methods_in_enum(
                 self.sa,
                 object_type,

@@ -1,9 +1,0 @@
-module Foo {
-  fun foo[T](): Bar[T] = Bar[T](23I);
-}
-
-class Bar[T](let x: Int32)
-
-fun main() {
-  Foo::foo[Int32]();
-}

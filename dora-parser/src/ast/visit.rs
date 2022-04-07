@@ -21,10 +21,6 @@ pub trait Visitor: Sized {
         walk_class(self, c);
     }
 
-    fn visit_module(&mut self, m: &Arc<Module>) {
-        walk_module(self, m);
-    }
-
     fn visit_struct(&mut self, s: &Arc<Struct>) {
         walk_struct(self, s);
     }
@@ -103,7 +99,6 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
         Elem::Struct(ref s) => v.visit_struct(s),
         Elem::Trait(ref t) => v.visit_trait(t),
         Elem::Impl(ref i) => v.visit_impl(i),
-        Elem::Module(ref m) => v.visit_module(m),
         Elem::Annotation(ref a) => v.visit_annotation(a),
         Elem::Global(ref g) => v.visit_global(g),
         Elem::Const(ref c) => v.visit_const(c),
@@ -144,20 +139,6 @@ pub fn walk_class<V: Visitor>(v: &mut V, c: &Arc<Class>) {
     }
 
     for m in &c.methods {
-        v.visit_method(m);
-    }
-}
-
-pub fn walk_module<V: Visitor>(v: &mut V, m: &Arc<Module>) {
-    for f in &m.fields {
-        v.visit_field(f);
-    }
-
-    if let Some(ctor) = &m.constructor {
-        v.visit_ctor(ctor);
-    }
-
-    for m in &m.methods {
         v.visit_method(m);
     }
 }

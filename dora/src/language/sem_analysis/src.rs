@@ -10,7 +10,7 @@ use crate::language::sem_analysis::{
     StructDefinitionFieldId, StructDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{EnumDefinitionId, FieldId, ModuleId, TraitDefinitionId};
+use crate::vm::{EnumDefinitionId, FieldId, TraitDefinitionId};
 
 #[derive(Debug)]
 pub struct AnalysisData {
@@ -130,9 +130,6 @@ pub enum IdentType {
 
     // name of constant
     Const(ConstDefinitionId),
-
-    // name of module
-    Module(ModuleId),
 
     // name of function with type params: some_fct[T1, T2, ...]
     Fct(FctDefinitionId, SourceTypeArray),

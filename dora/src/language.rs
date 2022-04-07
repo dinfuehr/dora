@@ -29,7 +29,6 @@ mod globaldefck;
 mod implck;
 mod impldefck;
 mod importck;
-mod moduledefck;
 mod readty;
 mod returnck;
 pub mod sem_analysis;
@@ -81,7 +80,6 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
 
     // checks class/struct/trait definitions/bodies
     clsdefck::check(sa);
-    moduledefck::check(sa);
     structdefck::check(sa);
     traitdefck::check(sa);
     globaldefck::check(sa);
@@ -225,7 +223,6 @@ pub fn report_sym_shadow(sa: &SemAnalysis, name: Name, file: FileId, pos: Positi
         Sym::Fct(_) => SemError::ShadowFunction(name),
         Sym::Global(_) => SemError::ShadowGlobal(name),
         Sym::Const(_) => SemError::ShadowConst(name),
-        Sym::Module(_) => SemError::ShadowModule(name),
         Sym::Var(_) => SemError::ShadowParam(name),
         Sym::Namespace(_) => SemError::ShadowNamespace(name),
         _ => unreachable!(),

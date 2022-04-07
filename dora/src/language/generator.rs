@@ -2592,7 +2592,6 @@ impl<'a> AstBytecodeGen<'a> {
             &IdentType::EnumValue(enum_id, ref type_params, variant_id) => {
                 self.emit_new_enum(enum_id, type_params.clone(), variant_id, ident.pos, dest)
             }
-            &IdentType::Module(_) => unimplemented!(),
 
             &IdentType::Field(_, _) => unreachable!(),
             &IdentType::Struct(_) => unreachable!(),

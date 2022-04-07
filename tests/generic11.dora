@@ -1,8 +1,0 @@
-fun main() {
-  assert(Foo::id[Int32](1I) == 1I);
-  assert(Foo::id[String]("hello") == "hel" + "lo");
-}
-
-module Foo {
-  fun id[T](val: T): T = val;
-}

@@ -834,18 +834,6 @@ impl<'a> TypeCheck<'a> {
                 variant_id,
             ),
 
-            Some(Sym::Module(module_id)) => {
-                let module = self.sa.modules.idx(module_id);
-                let ty = module.read().ty.clone();
-                self.analysis.set_ty(e.id, ty.clone());
-
-                self.analysis
-                    .map_idents
-                    .insert(e.id, IdentType::Module(module_id));
-
-                ty
-            }
-
             None => {
                 let name = self.sa.interner.str(e.name).to_string();
                 self.sa.diag.lock().report(
@@ -1822,14 +1810,9 @@ impl<'a> TypeCheck<'a> {
                 CallType::TraitObjectMethod(object_type, fct_id)
             } else {
                 let method_type = lookup.found_class_type().unwrap();
-                if method_type.is_module() {
-                    CallType::ModuleMethod(method_type, fct_id, fct_type_params.clone())
-                } else {
-                    let container_type_params =
-                        lookup.found_container_type_params().clone().unwrap();
-                    let type_params = container_type_params.connect(&fct_type_params);
-                    CallType::Method(method_type, fct_id, type_params)
-                }
+                let container_type_params = lookup.found_container_type_params().clone().unwrap();
+                let type_params = container_type_params.connect(&fct_type_params);
+                CallType::Method(method_type, fct_id, type_params)
             };
 
             self.analysis
@@ -2206,19 +2189,6 @@ impl<'a> TypeCheck<'a> {
         };
 
         match sym {
-            Some(Sym::Module(module_id)) => {
-                if !container_type_params.is_empty() {
-                    let msg = SemError::NoTypeParamsExpected;
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id, callee_as_path.lhs.pos(), msg);
-                }
-
-                let module_ty = SourceType::Module(module_id);
-                self.check_expr_call_method(e, module_ty, method_name, type_params, &arg_types)
-            }
-
             Some(Sym::Class(cls_id)) => {
                 if typeparamck::check_class(
                     self.sa,
@@ -3456,8 +3426,6 @@ fn arg_allows(
 
             _ => false,
         },
-
-        SourceType::Module(_) => def == arg,
 
         SourceType::Lambda(_) => {
             // for now expect the exact same params and return types

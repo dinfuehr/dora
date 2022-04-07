@@ -1,5 +1,3 @@
-import std::Assert;
-
 fun main() {
   assert(Vec[Int32]() == Vec[Int32]());
   assert(Vec[Int32]().equals(Vec[Int32]()));

@@ -65,8 +65,6 @@ pub fn check(sa: &SemAnalysis) {
                 }
             }
 
-            FctParent::Module(_) => {}
-
             FctParent::Trait(trait_id) => {
                 let xtrait = sa.traits[trait_id].read();
 
@@ -206,12 +204,6 @@ pub fn check(sa: &SemAnalysis) {
             FctParent::Impl(implid) => {
                 let ximpl = sa.impls[implid].read();
                 check_against_methods(sa, &*fct, &ximpl.methods);
-            }
-
-            FctParent::Module(modid) => {
-                let module = sa.modules.idx(modid);
-                let module = module.read();
-                check_against_methods(sa, &*fct, &module.methods);
             }
 
             _ => {}

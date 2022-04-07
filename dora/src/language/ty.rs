@@ -11,7 +11,7 @@ use crate::mem;
 use crate::mode::MachineMode;
 use crate::vm::{
     impl_matches, specialize_enum_id_params, specialize_struct_id_params, EnumDefinition,
-    EnumDefinitionId, EnumLayout, ImplId, ModuleId, TraitDefinitionId, TupleId,
+    EnumDefinitionId, EnumLayout, ImplId, TraitDefinitionId, TupleId,
 };
 use crate::vm::{SemAnalysis, VM};
 
@@ -52,9 +52,6 @@ pub enum SourceType {
 
     // some trait object
     Trait(TraitDefinitionId, SourceTypeArray),
-
-    // some module
-    Module(ModuleId),
 
     // some type variable
     TypeParam(TypeParamId),
@@ -119,13 +116,6 @@ impl SourceType {
     pub fn is_trait(&self) -> bool {
         match self {
             SourceType::Trait(_, _) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_module(&self) -> bool {
-        match self {
-            SourceType::Module(_) => true,
             _ => false,
         }
     }
@@ -229,13 +219,6 @@ impl SourceType {
 
     pub fn from_cls(cls_id: ClassDefinitionId) -> SourceType {
         SourceType::Class(cls_id, SourceTypeArray::empty())
-    }
-
-    pub fn module_id(&self) -> Option<ModuleId> {
-        match self {
-            SourceType::Module(module_id) => Some(*module_id),
-            _ => None,
-        }
     }
 
     pub fn enum_id(&self) -> Option<EnumDefinitionId> {
@@ -439,7 +422,6 @@ impl SourceType {
 
                 _ => false,
             },
-            SourceType::Module(_) => *self == other,
 
             SourceType::TypeParam(_) => *self == other,
 
@@ -474,10 +456,7 @@ impl SourceType {
             }
             SourceType::This => panic!("no size for Self."),
             SourceType::Any => panic!("no size for Any."),
-            SourceType::Class(_, _)
-            | SourceType::Module(_)
-            | SourceType::Lambda(_)
-            | SourceType::Ptr => mem::ptr_width(),
+            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => mem::ptr_width(),
             SourceType::Struct(sid, params) => {
                 let sid = specialize_struct_id_params(vm, *sid, params.clone());
                 let struc = vm.struct_defs.idx(sid);
@@ -512,10 +491,7 @@ impl SourceType {
                     EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.align(vm),
                 }
             }
-            SourceType::Class(_, _)
-            | SourceType::Module(_)
-            | SourceType::Lambda(_)
-            | SourceType::Ptr => mem::ptr_width(),
+            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => mem::ptr_width(),
             SourceType::Struct(sid, params) => {
                 let sid = specialize_struct_id_params(vm, *sid, params.clone());
                 let struc = vm.struct_defs.idx(sid);
@@ -542,10 +518,7 @@ impl SourceType {
             SourceType::Enum(_, _) => MachineMode::Int32,
             SourceType::This => panic!("no machine mode for Self."),
             SourceType::Any => panic!("no machine mode for Any."),
-            SourceType::Class(_, _)
-            | SourceType::Module(_)
-            | SourceType::Lambda(_)
-            | SourceType::Ptr => MachineMode::Ptr,
+            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => MachineMode::Ptr,
             SourceType::Struct(_, _) => panic!("no machine mode for struct."),
             SourceType::Trait(_, _) => MachineMode::Ptr,
             SourceType::TypeParam(_) => panic!("no machine mode for type variable."),
@@ -564,7 +537,6 @@ impl SourceType {
             | SourceType::Int64
             | SourceType::Float32
             | SourceType::Float64
-            | SourceType::Module(_)
             | SourceType::Trait(_, _)
             | SourceType::Lambda(_)
             | SourceType::TypeParam(_) => true,
@@ -604,7 +576,6 @@ impl SourceType {
             | SourceType::Int64
             | SourceType::Float32
             | SourceType::Float64
-            | SourceType::Module(_)
             | SourceType::Ptr
             | SourceType::Trait(_, _) => true,
             SourceType::Class(_, params)
@@ -667,7 +638,6 @@ pub fn implements_trait(
     match check_ty {
         SourceType::Tuple(_)
         | SourceType::Unit
-        | SourceType::Module(_)
         | SourceType::Trait(_, _)
         | SourceType::Lambda(_) => false,
 
@@ -761,7 +731,6 @@ pub fn find_impl(
     match check_ty {
         SourceType::Tuple(_)
         | SourceType::Unit
-        | SourceType::Module(_)
         | SourceType::Trait(_, _)
         | SourceType::Lambda(_) => None,
 
@@ -1134,11 +1103,7 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Module(id) => {
-                let module = self.vm.modules.idx(id);
-                let module = module.read();
-                self.vm.interner.str(module.name).to_string()
-            }
+
             SourceType::TypeParam(idx) => {
                 if let Some(type_params) = self.type_params {
                     self.vm

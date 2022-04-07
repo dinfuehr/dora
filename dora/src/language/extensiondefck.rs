@@ -312,7 +312,6 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Module(_)
         | SourceType::Ptr
         | SourceType::Trait(_, _) => {}
         SourceType::Class(_, params)

@@ -13,7 +13,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{ExtensionId, FileId, ImplId, ModuleId, TraitDefinitionId, VM};
+use crate::vm::{ExtensionId, FileId, ImplId, TraitDefinitionId, VM};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);
@@ -334,7 +334,6 @@ impl FctDefinition {
 pub enum FctParent {
     Class(ClassDefinitionId),
     Trait(TraitDefinitionId),
-    Module(ModuleId),
     Impl(ImplId),
     Extension(ExtensionId),
     None,
