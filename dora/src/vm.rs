@@ -15,8 +15,8 @@ use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, EnumDefinition,
-    EnumDefinitionId, ExtensionData, FctDefinition, FctDefinitionId, GlobalDefinition, ImportData,
-    NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, StructInstance,
+    EnumDefinitionId, ExtensionData, FctDefinition, FctDefinitionId, GlobalDefinition, ImplData,
+    ImportData, NamespaceData, NamespaceId, StructDefinition, StructDefinitionId, StructInstance,
     TraitDefinition, TraitDefinitionId,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
@@ -42,7 +42,6 @@ pub use self::code::{
 pub use self::code_map::CodeMap;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::globals::init_global_addresses;
-pub use self::impls::{find_trait_impl, impl_matches, ImplData, ImplId};
 pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
@@ -61,7 +60,6 @@ mod code;
 mod code_map;
 mod enums;
 mod globals;
-mod impls;
 mod known;
 mod specialize;
 mod stdlib_setup;

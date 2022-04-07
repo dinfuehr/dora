@@ -8,14 +8,13 @@ use dora_parser::interner::Name;
 use dora_parser::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches, namespace_path, ExtensionId, FctDefinitionId, NamespaceId, TraitDefinitionId,
+    extension_matches, impl_matches, namespace_path, ExtensionId, FctDefinitionId, ImplId,
+    NamespaceId, TraitDefinitionId,
 };
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::GrowableVec;
-use crate::vm::{
-    impl_matches, replace_type_param, ClassInstanceId, Field, FieldId, FileId, ImplId, VM,
-};
+use crate::vm::{replace_type_param, ClassInstanceId, Field, FieldId, FileId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassDefinitionId(usize);

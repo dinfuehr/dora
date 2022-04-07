@@ -17,8 +17,8 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    EnumDefinitionId, FctDefinition, FctDefinitionId, GlobalDefinitionId, Intrinsic,
-    StructDefinitionId,
+    find_trait_impl, EnumDefinitionId, FctDefinition, FctDefinitionId, GlobalDefinitionId,
+    Intrinsic, StructDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
@@ -28,7 +28,7 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
-    find_trait_impl, specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
+    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
     specialize_type_list, EnumLayout, GcPoint, Trap, TupleId, VM,
 };

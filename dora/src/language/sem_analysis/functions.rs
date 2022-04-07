@@ -9,12 +9,12 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, NamespaceId, TraitDefinitionId,
-    TypeParam, TypeParamId,
+    namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, ImplId, NamespaceId,
+    TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FileId, ImplId, VM};
+use crate::vm::{FileId, VM};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);

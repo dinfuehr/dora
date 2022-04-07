@@ -4,15 +4,13 @@ use std::sync::Arc;
 
 use crate::bytecode::BytecodeType;
 use crate::language::sem_analysis::{
-    ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, FctDefinition,
-    StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
+    impl_matches, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
+    FctDefinition, ImplId, StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamDefinition,
+    TypeParamId,
 };
 use crate::mem;
 use crate::mode::MachineMode;
-use crate::vm::{
-    impl_matches, specialize_enum_id_params, specialize_struct_id_params, EnumLayout, ImplId,
-    TupleId,
-};
+use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout, TupleId};
 use crate::vm::{SemAnalysis, VM};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
