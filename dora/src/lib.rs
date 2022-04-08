@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
-#![feature(allocator_api)]
 #![feature(new_uninit)]
 #![recursion_limit = "256"]
 
