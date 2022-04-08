@@ -1,4 +1,4 @@
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -7,18 +7,18 @@ use crate::gc::Address;
 use crate::vm::{CodeId, CodeKind, VM};
 
 pub struct CodeMap {
-    tree: Mutex<BTreeMap<CodeSpan, CodeId>>,
+    tree: RwLock<BTreeMap<CodeSpan, CodeId>>,
 }
 
 impl CodeMap {
     pub fn new() -> CodeMap {
         CodeMap {
-            tree: Mutex::new(BTreeMap::new()),
+            tree: RwLock::new(BTreeMap::new()),
         }
     }
 
     pub fn dump(&self, vm: &VM) {
-        let tree = self.tree.lock();
+        let tree = self.tree.read();
         println!("CodeMap {{");
 
         for (key, &code_id) in tree.iter() {
@@ -52,13 +52,13 @@ impl CodeMap {
     }
 
     pub fn insert(&self, start: Address, end: Address, code_id: CodeId) {
-        let mut tree = self.tree.lock();
+        let mut tree = self.tree.write();
         let span = CodeSpan::new(start, end);
         assert!(tree.insert(span, code_id).is_none());
     }
 
     pub fn get(&self, ptr: Address) -> Option<CodeId> {
-        let tree = self.tree.lock();
+        let tree = self.tree.read();
         let span = CodeSpan::new(ptr, ptr.offset(1));
         tree.get(&span).map(|el| *el)
     }
