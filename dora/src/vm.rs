@@ -36,10 +36,11 @@ use dora_parser::parser::NodeIdGenerator;
 
 pub use self::classes::{ClassInstance, ClassInstanceId, Field, FieldDef, FieldId};
 pub use self::code::{
-    install_code, install_code_stub, Code, CodeId, CodeKind, CommentTable, CompilationDatabase,
-    GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, PositionTable,
+    install_code, install_code_stub, Code, CodeId, CodeKind, CommentTable, GcPoint, GcPointTable,
+    LazyCompilationData, LazyCompilationSite, PositionTable,
 };
 pub use self::code_map::CodeMap;
+pub use self::compilation::CompilationDatabase;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::globals::init_global_addresses;
 pub use self::known::{
@@ -58,6 +59,7 @@ pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 mod classes;
 mod code;
 mod code_map;
+mod compilation;
 mod enums;
 mod globals;
 mod known;
