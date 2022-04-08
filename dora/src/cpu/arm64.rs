@@ -1,3 +1,4 @@
+#[cfg(not(target_os = "macos"))]
 use std::arch::asm;
 
 use dora_asm::arm64::Cond;
