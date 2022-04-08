@@ -136,6 +136,16 @@ struct HeadAndTail {
     head: DoraThreadPtr,
     tail: DoraThreadPtr,
 }
+
+impl Default for HeadAndTail {
+    fn default() -> HeadAndTail {
+        HeadAndTail {
+            head: DoraThreadPtr::null(),
+            tail: DoraThreadPtr::null(),
+        }
+    }
+}
+
 #[repr(C)]
 pub struct ManagedMutex {
     header: Header,
@@ -158,14 +168,14 @@ const MIN_CAPACITY: usize = 8;
 const EMPTY: usize = 0;
 const DELETED: usize = 1;
 
-pub struct ObjectHashMap<T> {
+pub struct ObjectHashMap<T: Default + Clone> {
     data: Box<[HashMapEntry<T>]>,
     entries: usize,
     capacity: usize,
     gc_epoch: usize,
 }
 
-impl<T> ObjectHashMap<T> {
+impl<T: Default + Clone> ObjectHashMap<T> {
     fn new() -> ObjectHashMap<T> {
         ObjectHashMap {
             data: Box::new([]),
@@ -176,8 +186,8 @@ impl<T> ObjectHashMap<T> {
     }
 
     fn with_capacity(capacity: usize) -> ObjectHashMap<T> {
-        let boxed_slice =
-            unsafe { Box::<[HashMapEntry<T>]>::new_zeroed_slice(capacity).assume_init() };
+        let default: HashMapEntry<T> = Default::default();
+        let boxed_slice = vec![default; capacity].into_boxed_slice();
         ObjectHashMap {
             data: boxed_slice,
             entries: 0,
@@ -352,7 +362,17 @@ fn capacity_for_entries(entries: usize) -> usize {
     capacity
 }
 
-struct HashMapEntry<T> {
+#[derive(Clone)]
+struct HashMapEntry<T: Clone + Default> {
     key: Address,
     value: T,
+}
+
+impl<T: Default + Clone> Default for HashMapEntry<T> {
+    fn default() -> Self {
+        HashMapEntry {
+            key: Address::null(),
+            value: Default::default(),
+        }
+    }
 }
