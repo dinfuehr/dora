@@ -40,13 +40,13 @@ jobs:
           rust-version: "nightly"
 
       - name: ASAN Build Debug
-        run: RUSTFLAGS="-Z sanitizer=address" cargo build --target x86_64-unknown-linux-gnu
+        run: RUSTFLAGS="-Z sanitizer=address" cargo +nightly build --target x86_64-unknown-linux-gnu
 
       - name: ASAN Tests Debug
         run: ruby tools/tester.rb --binary=target/x86_64-unknown-linux-gnu/debug/dora
 
       - name: ASAN Build Release
-        run: RUSTFLAGS="-Z sanitizer=address" cargo build --release --target x86_64-unknown-linux-gnu
+        run: RUSTFLAGS="-Z sanitizer=address" cargo +nightly build --release --target x86_64-unknown-linux-gnu
 
       - name: ASAN Tests Release
         run: ruby tools/tester.rb --binary=target/x86_64-unknown-linux-gnu/release/dora
