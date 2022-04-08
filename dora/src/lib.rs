@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
+#![feature(asm)]
 #![recursion_limit = "256"]
 
 extern crate alloc;

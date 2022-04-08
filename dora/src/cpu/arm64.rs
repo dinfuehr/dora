@@ -28,29 +28,28 @@ pub fn flush_icache(start: *const u8, len: usize) {
 
     while ptr < end {
         unsafe {
-            asm!("dc civac, $0":: "r"(ptr) : "memory" : "volatile");
+            asm!("dc civac, {}", in(reg) ptr);
         }
 
         ptr += dcacheline_size;
     }
 
     unsafe {
-        asm!("dsb ish" ::: "memory" : "volatile");
+        asm!("dsb ish");
     }
 
     ptr = istart;
 
     while ptr < end {
         unsafe {
-            asm!("ic ivau, $0":: "r"(ptr) : "memory" : "volatile");
+            asm!("ic ivau, {}", in(reg) ptr);
         }
 
         ptr += icacheline_size;
     }
 
     unsafe {
-        asm!("dsb ish
-              isb" ::: "memory" : "volatile");
+        asm!("dsb ish", "isb");
     }
 }
 
@@ -86,7 +85,7 @@ fn check_support_for_lse_atomics() -> bool {
 fn check_support_for_lse_atomics() -> bool {
     let value: usize;
     unsafe {
-        asm!("mrs $0, ID_AA64DFR1_EL1": "=r"(value)::: "volatile");
+        asm!("mrs {}, ID_AA64DFR1_EL1", out(reg) value);
     }
     (value >> 20) & 0xF == 0b0010
 }
@@ -96,7 +95,7 @@ pub fn cacheline_sizes() -> (usize, usize) {
     let value: usize;
 
     unsafe {
-        asm!("mrs $0, ctr_el0": "=r"(value)::: "volatile");
+        asm!("mrs {}, ctr_el0", out(reg) value);
     }
 
     let insn = 4 << (value & 0xF);
