@@ -70,6 +70,7 @@ $all_configs = {
   default: '',
   region: '--gc=region'
 }
+$exit_after_n_failures = nil
 
 def process_arguments
   idx = 0
@@ -85,6 +86,8 @@ def process_arguments
       $stress = true
       $stress_timeout = m[1].to_i
       $stress_timeout = 60 if $stress_timeout < 1
+    elsif (m = /\A\-\-exit\-after\-n\-failures\=(\d+)\z/.match(arg))
+      $exit_after_n_failures = m[1].to_i
     elsif (m = /\A\-\-binary\=(\S+)\z/.match(arg))
       $binary = m[1].to_s
     elsif arg == "--binary"
@@ -258,14 +261,60 @@ def load_test_files
   end
 end
 
+def next_test(worklist, synchronization)
+  return nil if synchronization.cancelled?
+
+  if $stress
+    test_idx = rand(worklist.size)
+    worklist[test_idx]
+  else
+    worklist.pop
+  end
+end
+
+class ThreadSynchronization
+  attr_accessor :mutex
+  attr_accessor :cv_cancel
+  attr_accessor :cancelled
+
+  def initialize
+    self.mutex = Mutex.new
+    self.cv_cancel = ConditionVariable.new
+    self.cancelled = false
+  end
+
+  def cancel
+    self.cancelled = true
+    self.cv_cancel.broadcast
+  end
+
+  def cancelled?
+    self.cancelled
+  end
+
+  def sleep_until_timeout_or_cancelled(timeout)
+    self.mutex.synchronize do
+      # wait `timeout` seconds for cancel signal
+      self.cv_cancel.wait(mutex, timeout)
+
+      # Either we reached timeout or one thread woke us up.
+      # In any case make sure that all other threads stop as well.
+      self.cancel
+    end
+  end
+end
+
 def run_tests
   tests = 0
   passed = 0
   failed = 0
   ignore = 0
 
-  mutex = Mutex.new
   threads = []
+
+  synchronization = ThreadSynchronization.new
+  mutex = synchronization.mutex
+
   faillist = []
   cancel = false
 
@@ -299,12 +348,7 @@ def run_tests
     thread = Thread.new do
       loop do
         test_with_config = mutex.synchronize do
-          if $stress
-            test_idx = rand(worklist.size)
-            cancel ? nil : worklist[test_idx]
-          else
-            worklist.pop
-          end
+          next_test(worklist, synchronization)
         end
 
         break unless test_with_config
@@ -312,16 +356,22 @@ def run_tests
 
         test_result = run_test(test_case, config, mutex)
 
-        case test_result.status
-        when :ignore then ignore += 1
-        when :passed then passed += 1
-        when :failed then failed += 1
-        else
-          raise "unknown status #{test_result.status.inspect}"
-        end
-
         mutex.synchronize do
-          faillist.push(test_with_config) if test_result.status == :failed
+          case test_result.status
+          when :ignore then ignore += 1
+          when :passed then passed += 1
+          when :failed then failed += 1
+          else
+            raise "unknown status #{test_result.status.inspect}"
+          end
+
+          if test_result.status == :failed
+            faillist.push(test_with_config)
+
+            if $exit_after_n_failures && faillist.length >= $exit_after_n_failures
+              synchronization.cancel
+            end
+          end
           print_result(test_case, config, test_result)
           STDOUT.flush
 
@@ -333,10 +383,7 @@ def run_tests
   end
 
   if $stress
-    sleep $stress_timeout
-    mutex.synchronize do
-      cancel = true
-    end
+    synchronization.sleep_until_timeout_or_cancelled($stress_timeout)
   end
 
   for thread in threads do
