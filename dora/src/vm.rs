@@ -279,7 +279,7 @@ pub struct VM {
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
     pub traits: Vec<RwLock<TraitDefinition>>, // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>, // stores all impl definitions
-    pub code_map: Mutex<CodeMap>, // stores all compiled functions
+    pub code_map: CodeMap,       // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
     pub imports: Vec<ImportData>, // stores all imports
     pub gc: Gc,                  // garbage collector
@@ -413,7 +413,7 @@ impl VM {
             fcts: GrowableVec::new(),
             compilation_database: CompilationDatabase::new(),
             code: GrowableVec::new(),
-            code_map: Mutex::new(CodeMap::new()),
+            code_map: CodeMap::new(),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
             compile_stub: Mutex::new(Address::null()),
@@ -466,7 +466,7 @@ impl VM {
             fcts: sa.fcts,
             compilation_database: CompilationDatabase::new(),
             code: GrowableVec::new(),
-            code_map: Mutex::new(CodeMap::new()),
+            code_map: CodeMap::new(),
             lambda_types: sa.lambda_types,
             native_stubs: sa.native_stubs,
             compile_stub: Mutex::new(Address::null()),
@@ -538,15 +538,9 @@ impl VM {
             code_id
         };
 
-        let mut code_map = self.code_map.lock();
-        code_map.insert(code_start, code_end, code_id);
+        self.code_map.insert(code_start, code_end, code_id);
 
         code_id
-    }
-
-    pub fn insert_code_map(&self, start: Address, end: Address, desc: CodeId) {
-        let mut code_map = self.code_map.lock();
-        code_map.insert(start, end, desc);
     }
 
     pub fn dora_stub(&self) -> Address {

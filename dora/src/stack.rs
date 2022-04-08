@@ -137,8 +137,7 @@ fn frames_from_pc(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize, mut fp:
 }
 
 fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) -> bool {
-    let code_map = vm.code_map.lock();
-    let code_id = code_map.get(pc.into());
+    let code_id = vm.code_map.get(pc.into());
 
     if let Some(code_id) = code_id {
         let code = vm.code.idx(code_id);
@@ -173,7 +172,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
         }
     } else {
         println!("no code found at pc = {:x}", pc);
-        code_map.dump(vm);
+        vm.code_map.dump(vm);
         panic!("invalid stack frame");
     }
 }

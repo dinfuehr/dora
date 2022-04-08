@@ -1,3 +1,5 @@
+use parking_lot::Mutex;
+
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
@@ -5,20 +7,21 @@ use crate::gc::Address;
 use crate::vm::{CodeId, CodeKind, VM};
 
 pub struct CodeMap {
-    tree: BTreeMap<CodeSpan, CodeId>,
+    tree: Mutex<BTreeMap<CodeSpan, CodeId>>,
 }
 
 impl CodeMap {
     pub fn new() -> CodeMap {
         CodeMap {
-            tree: BTreeMap::new(),
+            tree: Mutex::new(BTreeMap::new()),
         }
     }
 
     pub fn dump(&self, vm: &VM) {
+        let tree = self.tree.lock();
         println!("CodeMap {{");
 
-        for (key, &code_id) in &self.tree {
+        for (key, &code_id) in tree.iter() {
             print!("  {} - {} => ", key.start, key.end);
             let code = vm.code.idx(code_id);
 
@@ -48,14 +51,16 @@ impl CodeMap {
         println!("}}");
     }
 
-    pub fn insert(&mut self, start: Address, end: Address, code_id: CodeId) {
+    pub fn insert(&self, start: Address, end: Address, code_id: CodeId) {
+        let mut tree = self.tree.lock();
         let span = CodeSpan::new(start, end);
-        assert!(self.tree.insert(span, code_id).is_none());
+        assert!(tree.insert(span, code_id).is_none());
     }
 
     pub fn get(&self, ptr: Address) -> Option<CodeId> {
+        let tree = self.tree.lock();
         let span = CodeSpan::new(ptr, ptr.offset(1));
-        self.tree.get(&span).map(|el| *el)
+        tree.get(&span).map(|el| *el)
     }
 }
 
@@ -139,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_insert() {
-        let mut map = CodeMap::new();
+        let map = CodeMap::new();
 
         map.insert(5.into(), 7.into(), 1.into());
         map.insert(7.into(), 9.into(), 2.into());
@@ -155,7 +160,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_insert_fails() {
-        let mut map = CodeMap::new();
+        let map = CodeMap::new();
 
         map.insert(5.into(), 7.into(), 1.into());
         map.insert(6.into(), 7.into(), 2.into());

@@ -41,21 +41,10 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
 
     let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct.id));
 
-    // insert the returned Code into the code table to get a CodeId.
-    let code_id = {
-        let mut code_vec = vm.code.lock();
-        let code_id = code_vec.len().into();
-        code_vec.push(code.clone());
-        code_id
-    };
-
-    // We need to insert into CodeMap before releasing the specializations-lock. Otherwise
+    // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
     // another thread could run that function while the function can't be found in the
     // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
-    {
-        let mut code_map = vm.code_map.lock();
-        code_map.insert(code.object_start(), code.object_end(), code_id);
-    }
+    let code_id = vm.add_code(code.clone());
 
     // Mark compilation as finished and resume threads waiting for compilation.
     vm.compilation_database

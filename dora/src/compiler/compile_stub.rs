@@ -197,10 +197,10 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
     let vm = get_vm();
 
     let lazy_compilation_site = {
-        let code_id = {
-            let code_map = vm.code_map.lock();
-            code_map.get(ra.into()).expect("return address not found")
-        };
+        let code_id = vm
+            .code_map
+            .get(ra.into())
+            .expect("return address not found");
 
         let code = vm.code.idx(code_id);
 
