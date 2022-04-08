@@ -1,3 +1,5 @@
+use std::arch::asm;
+
 use dora_asm::arm64::Cond;
 use lazy_static::lazy_static;
 
@@ -141,7 +143,7 @@ impl From<CondCode> for Cond {
 
 use crate::cpu::{FReg, Reg};
 use crate::language::ty::SourceType;
-use dora_asm::arm64 as asm;
+use dora_asm::arm64 as arm64_asm;
 use dora_asm::arm64::Register;
 
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
@@ -261,10 +263,10 @@ impl From<Reg> for Register {
         if reg.0 < 31 {
             Register::new(reg.0)
         } else if reg == REG_ZERO {
-            asm::REG_ZERO
+            arm64_asm::REG_ZERO
         } else {
             assert_eq!(reg, REG_SP);
-            asm::REG_SP
+            arm64_asm::REG_SP
         }
     }
 }
