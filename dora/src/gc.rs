@@ -71,12 +71,12 @@ impl Gc {
         let collector_name = args.flag_gc.unwrap_or(CollectorName::Swiper);
 
         let collector: Box<dyn Collector + Sync> = match collector_name {
-            CollectorName::Zero => box ZeroCollector::new(args),
-            CollectorName::Compact => box MarkCompactCollector::new(args),
-            CollectorName::Copy => box CopyCollector::new(args),
-            CollectorName::Sweep => box SweepCollector::new(args),
-            CollectorName::Swiper => box Swiper::new(args),
-            CollectorName::Region => box RegionCollector::new(args),
+            CollectorName::Zero => Box::new(ZeroCollector::new(args)),
+            CollectorName::Compact => Box::new(MarkCompactCollector::new(args)),
+            CollectorName::Copy => Box::new(CopyCollector::new(args)),
+            CollectorName::Sweep => Box::new(SweepCollector::new(args)),
+            CollectorName::Swiper => Box::new(Swiper::new(args)),
+            CollectorName::Region => Box::new(RegionCollector::new(args)),
         };
 
         let supports_tlab = !args.flag_disable_tlab && collector.supports_tlab();

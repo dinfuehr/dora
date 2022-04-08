@@ -1,9 +1,6 @@
-#![feature(asm)]
-#![feature(box_syntax)]
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 #![feature(allocator_api)]
-#![feature(llvm_asm)]
 #![feature(new_uninit)]
 #![recursion_limit = "256"]
 

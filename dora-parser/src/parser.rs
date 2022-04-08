@@ -2292,12 +2292,6 @@ impl<'a> Parser<'a> {
     }
 }
 
-#[derive(Clone, Debug)]
-struct Delegation {
-    pub pos: Position,
-    pub args: Vec<Box<Expr>>,
-}
-
 #[derive(Debug)]
 pub struct NodeIdGenerator {
     value: RefCell<usize>,

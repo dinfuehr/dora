@@ -59,7 +59,7 @@ pub struct HandleMemoryInner {
 
 impl HandleMemoryInner {
     pub fn new() -> HandleMemoryInner {
-        let buffer = box HandleBuffer::new();
+        let buffer = Box::new(HandleBuffer::new());
 
         HandleMemoryInner {
             buffers: vec![buffer],
@@ -88,7 +88,7 @@ impl HandleMemoryInner {
     }
 
     pub fn push_buffer(&mut self) {
-        self.buffers.push(box HandleBuffer::new());
+        self.buffers.push(Box::new(HandleBuffer::new()));
     }
 
     pub fn push_border(&mut self) {
