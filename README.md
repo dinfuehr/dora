@@ -8,7 +8,7 @@ Build with:
 
 
 ## Compilation & Testing
-Install Rust stable with [rustup.rs](http://rustup.rs). Dora uses `cargo` for building:
+Install Rust with the help of [rustup.rs](http://rustup.rs). Use the specific nightly version listed in the [rust-toolchain](https://github.com/dinfuehr/dora/blob/master/rust-toolchain) file. Dora uses `cargo` for building:
 
 ```
 # build in debug and release mode
