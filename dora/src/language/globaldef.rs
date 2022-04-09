@@ -9,10 +9,10 @@ use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
-    ConstDefinition, ConstDefinitionId, ConstValue, EnumDefinition, EnumDefinitionId,
-    ExtensionData, ExtensionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
-    ImplData, ImplId, ImportData, NamespaceData, NamespaceId, StructDefinition, StructDefinitionId,
-    TraitDefinition, TraitDefinitionId, TypeParam, TypeParamDefinition,
+    ConstDefinition, ConstValue, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId,
+    FctDefinition, FctParent, GlobalDefinition, ImplData, ImplId, ImportData, NamespaceData,
+    NamespaceId, StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId,
+    TypeParam, TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -270,28 +270,22 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
-        let id = {
-            let mut globals = self.sa.globals.lock();
-            let id: GlobalDefinitionId = (globals.len() as u32).into();
-            let global = GlobalDefinition {
-                id,
-                file_id: self.file_id,
-                ast: node.clone(),
-                namespace_id: self.namespace_id,
-                pos: node.pos,
-                name: node.name,
-                is_pub: node.is_pub,
-                ty: SourceType::Unit,
-                mutable: node.mutable,
-                initializer: None,
-                address_init: Address::null(),
-                address_value: Address::null(),
-            };
-
-            globals.push(Arc::new(RwLock::new(global)));
-
-            id
+        let global = GlobalDefinition {
+            id: 0.into(),
+            file_id: self.file_id,
+            ast: node.clone(),
+            namespace_id: self.namespace_id,
+            pos: node.pos,
+            name: node.name,
+            is_pub: node.is_pub,
+            ty: SourceType::Unit,
+            mutable: node.mutable,
+            initializer: None,
+            address_init: Address::null(),
+            address_value: Address::null(),
         };
+
+        let id = self.sa.globals.push(global);
 
         let sym = Sym::Global(id);
         if let Some(sym) = self.insert(node.name, sym) {
@@ -348,26 +342,20 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
-        let id = {
-            let mut consts = self.sa.consts.lock();
-            let id: ConstDefinitionId = consts.len().into();
-            let xconst = ConstDefinition {
-                id,
-                file_id: self.file_id,
-                ast: node.clone(),
-                namespace_id: self.namespace_id,
-                pos: node.pos,
-                name: node.name,
-                is_pub: node.is_pub,
-                ty: SourceType::Error,
-                expr: node.expr.clone(),
-                value: ConstValue::None,
-            };
-
-            consts.push(Arc::new(RwLock::new(xconst)));
-
-            id
+        let xconst = ConstDefinition {
+            id: 0.into(),
+            file_id: self.file_id,
+            ast: node.clone(),
+            namespace_id: self.namespace_id,
+            pos: node.pos,
+            name: node.name,
+            is_pub: node.is_pub,
+            ty: SourceType::Error,
+            expr: node.expr.clone(),
+            value: ConstValue::None,
         };
+
+        let id = self.sa.consts.push(xconst);
 
         let sym = Sym::Const(id);
         if let Some(sym) = self.insert(node.name, sym) {

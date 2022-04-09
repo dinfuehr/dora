@@ -1,10 +1,11 @@
 use parking_lot::RwLock;
+use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::gc::Address;
 use crate::language::sem_analysis::{namespace_path, FctDefinitionId, NamespaceId};
 use crate::language::ty::SourceType;
-use crate::utils::GrowableVec;
+use crate::utils::{GrowableVec, Id};
 use crate::vm::{FileId, VM};
 
 use dora_parser::ast;
@@ -13,6 +14,22 @@ use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlobalDefinitionId(u32);
+
+impl Id for GlobalDefinition {
+    type IdType = GlobalDefinitionId;
+
+    fn id_to_usize(id: GlobalDefinitionId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> GlobalDefinitionId {
+        GlobalDefinitionId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut GlobalDefinition, id: GlobalDefinitionId) {
+        value.id = id;
+    }
+}
 
 impl GlobalDefinitionId {
     pub fn to_usize(self) -> usize {

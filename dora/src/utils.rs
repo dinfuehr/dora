@@ -1,4 +1,4 @@
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::{Mutex, MutexGuard, RwLock};
 use std::sync::Arc;
 
 pub struct GrowableVec<T> {
@@ -57,6 +57,74 @@ impl<'a, T> Iterator for GrowableVecIter<'a, T> {
             let idx = self.idx;
             self.idx += 1;
             Some(self.vec.idx_usize(idx))
+        } else {
+            None
+        }
+    }
+}
+
+pub trait Id {
+    type IdType: Copy + Clone;
+
+    fn usize_to_id(value: usize) -> Self::IdType;
+    fn id_to_usize(value: Self::IdType) -> usize;
+    fn store_id(value: &mut Self, id: Self::IdType);
+}
+
+type ElementType<T> = Arc<RwLock<T>>;
+
+pub struct SharedVec<T: Id> {
+    elements: Vec<Arc<RwLock<T>>>,
+}
+
+impl<T: Id> SharedVec<T> {
+    pub fn new() -> SharedVec<T> {
+        SharedVec {
+            elements: Vec::new(),
+        }
+    }
+
+    pub fn push(&mut self, mut value: T) -> T::IdType {
+        let id = T::usize_to_id(self.elements.len());
+        T::store_id(&mut value, id);
+        self.elements.push(Arc::new(RwLock::new(value)));
+        id
+    }
+
+    pub fn len(&self) -> usize {
+        self.elements.len()
+    }
+
+    pub fn idx(&self, idx: T::IdType) -> ElementType<T> {
+        self.elements[T::id_to_usize(idx)].clone()
+    }
+
+    pub fn iter(&self) -> SharedVecIter<T> {
+        SharedVecIter {
+            vec: &self.elements,
+            idx: 0,
+            len: self.elements.len(),
+        }
+    }
+}
+
+pub struct SharedVecIter<'a, T>
+where
+    T: 'a,
+{
+    vec: &'a Vec<ElementType<T>>,
+    idx: usize,
+    len: usize,
+}
+
+impl<'a, T> Iterator for SharedVecIter<'a, T> {
+    type Item = ElementType<T>;
+
+    fn next(&mut self) -> Option<ElementType<T>> {
+        if self.idx < self.len {
+            let idx = self.idx;
+            self.idx += 1;
+            Some(self.vec[idx].clone())
         } else {
             None
         }

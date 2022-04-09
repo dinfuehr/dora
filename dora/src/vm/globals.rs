@@ -3,11 +3,10 @@ use crate::mem;
 use crate::vm::VM;
 
 pub fn init_global_addresses(vm: &VM) {
-    let globals = vm.globals.lock();
     let mut size = 0;
-    let mut offsets = Vec::with_capacity(globals.len());
+    let mut offsets = Vec::with_capacity(vm.globals.len());
 
-    for glob in globals.iter() {
+    for glob in vm.globals.iter() {
         let glob = glob.read();
 
         let initialized = size;
@@ -23,7 +22,7 @@ pub fn init_global_addresses(vm: &VM) {
 
     let ptr = vm.gc.alloc_perm(size as usize);
 
-    for (ind, glob) in globals.iter().enumerate() {
+    for (ind, glob) in vm.globals.iter().enumerate() {
         let mut glob = glob.write();
         let (initialized, value) = offsets[ind];
 

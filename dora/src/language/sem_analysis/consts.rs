@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{namespace_path, NamespaceId};
 use crate::language::ty::SourceType;
-use crate::utils::GrowableVec;
+use crate::utils::{GrowableVec, Id};
 use crate::vm::{FileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -22,6 +22,22 @@ impl From<usize> for ConstDefinitionId {
 impl GrowableVec<RwLock<ConstDefinition>> {
     pub fn idx(&self, index: ConstDefinitionId) -> Arc<RwLock<ConstDefinition>> {
         self.idx_usize(index.0 as usize)
+    }
+}
+
+impl Id for ConstDefinition {
+    type IdType = ConstDefinitionId;
+
+    fn id_to_usize(id: ConstDefinitionId) -> usize {
+        id.0
+    }
+
+    fn usize_to_id(value: usize) -> ConstDefinitionId {
+        ConstDefinitionId(value)
+    }
+
+    fn store_id(value: &mut ConstDefinition, id: ConstDefinitionId) {
+        value.id = id;
     }
 }
 
