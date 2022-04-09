@@ -141,12 +141,11 @@ impl FullSemAnalysis {
         let boots_name = interner.intern("boots");
 
         let mut namespaces = MutableVec::new();
-        let prelude_namespace_id = namespaces.push(NamespaceDefinition::predefined(0.into(), None));
+        let prelude_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
         let stdlib_namespace_id =
-            namespaces.push(NamespaceDefinition::predefined(0.into(), Some(stdlib_name)));
-        let global_namespace_id = namespaces.push(NamespaceDefinition::predefined(0.into(), None));
-        let boots_namespace_id =
-            namespaces.push(NamespaceDefinition::predefined(0.into(), Some(boots_name)));
+            namespaces.push(NamespaceDefinition::predefined(Some(stdlib_name)));
+        let global_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
+        let boots_namespace_id = namespaces.push(NamespaceDefinition::predefined(Some(boots_name)));
 
         let sa = Box::new(FullSemAnalysis {
             args,
@@ -304,12 +303,11 @@ impl VM {
         let boots_name = interner.intern("boots");
 
         let mut namespaces = MutableVec::new();
-        let prelude_namespace_id = namespaces.push(NamespaceDefinition::predefined(0.into(), None));
+        let prelude_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
         let stdlib_namespace_id =
-            namespaces.push(NamespaceDefinition::predefined(0.into(), Some(stdlib_name)));
-        let global_namespace_id = namespaces.push(NamespaceDefinition::predefined(0.into(), None));
-        let boots_namespace_id =
-            namespaces.push(NamespaceDefinition::predefined(0.into(), Some(boots_name)));
+            namespaces.push(NamespaceDefinition::predefined(Some(stdlib_name)));
+        let global_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
+        let boots_namespace_id = namespaces.push(NamespaceDefinition::predefined(Some(boots_name)));
 
         let vm = Box::new(VM {
             args,

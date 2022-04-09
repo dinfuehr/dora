@@ -35,13 +35,13 @@ impl Id for NamespaceDefinition {
     }
 
     fn store_id(value: &mut NamespaceDefinition, id: NamespaceDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Debug)]
 pub struct NamespaceDefinition {
-    pub id: NamespaceDefinitionId,
+    pub id: Option<NamespaceDefinitionId>,
     pub ast: Option<Arc<Namespace>>,
     pub parent_namespace_id: Option<NamespaceDefinitionId>,
     pub name: Option<Name>,
@@ -52,9 +52,9 @@ pub struct NamespaceDefinition {
 }
 
 impl NamespaceDefinition {
-    pub fn predefined(id: NamespaceDefinitionId, name: Option<Name>) -> NamespaceDefinition {
+    pub fn predefined(name: Option<Name>) -> NamespaceDefinition {
         NamespaceDefinition {
-            id,
+            id: None,
             ast: None,
             parent_namespace_id: None,
             name,
@@ -70,8 +70,6 @@ impl NamespaceDefinition {
         parent_id: NamespaceDefinitionId,
         ast: &Arc<Namespace>,
     ) -> NamespaceDefinition {
-        let id: NamespaceDefinitionId = vm.namespaces.len().into();
-
         let parent = &vm.namespaces[parent_id].read();
         let mut parents = parent.parents.clone();
         parents.push(parent_id);
@@ -79,7 +77,7 @@ impl NamespaceDefinition {
         let depth = parents.len();
 
         NamespaceDefinition {
-            id,
+            id: None,
             ast: Some(ast.clone()),
             parent_namespace_id: Some(parent_id),
             name: Some(ast.name),
