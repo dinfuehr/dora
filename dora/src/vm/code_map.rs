@@ -23,7 +23,7 @@ impl CodeMap {
 
         for (key, &code_id) in tree.iter() {
             print!("  {} - {} => ", key.start, key.end);
-            let code = vm.code.idx(code_id);
+            let code = vm.code_objects.get(code_id);
 
             match code.descriptor() {
                 CodeKind::DoraFct(fct_id) => {

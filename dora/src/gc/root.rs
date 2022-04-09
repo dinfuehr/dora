@@ -134,7 +134,7 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
     let code_id = vm.code_map.get(pc.into());
 
     if let Some(code_id) = code_id {
-        let code = vm.code.idx(code_id);
+        let code = vm.code_objects.get(code_id);
 
         match code.descriptor() {
             CodeKind::DoraFct(_) => {

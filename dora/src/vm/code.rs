@@ -1,3 +1,5 @@
+use parking_lot::RwLock;
+
 use std::collections::HashSet;
 use std::fmt;
 use std::ptr;
@@ -337,4 +339,28 @@ impl LazyCompilationData {
 pub enum LazyCompilationSite {
     Direct(FctDefinitionId, i32, SourceTypeArray),
     Virtual(bool, FctDefinitionId, u32, SourceTypeArray),
+}
+
+pub struct CodeObjects {
+    data: RwLock<Vec<Arc<Code>>>,
+}
+
+impl CodeObjects {
+    pub fn new() -> CodeObjects {
+        CodeObjects {
+            data: RwLock::new(Vec::new()),
+        }
+    }
+
+    pub fn get(&self, id: CodeId) -> Arc<Code> {
+        let data = self.data.read();
+        data[id.idx()].clone()
+    }
+
+    pub fn add(&self, object: Arc<Code>) -> CodeId {
+        let mut data = self.data.write();
+        let code_id: CodeId = data.len().into();
+        data.push(object);
+        code_id
+    }
 }

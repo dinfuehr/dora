@@ -41,7 +41,7 @@ impl CompilationDatabase {
         if let Some(status) = inner.get(&(id, type_params.clone())) {
             match status {
                 CompilationStatus::Compiled(code_id) => {
-                    let code = vm.code.idx(*code_id);
+                    let code = vm.code_objects.get(*code_id);
                     Some(code.instruction_start())
                 }
 
@@ -64,7 +64,7 @@ impl CompilationDatabase {
             if let Some(status) = inner.get(&(id, type_params.clone())) {
                 match status {
                     CompilationStatus::Compiled(code_id) => {
-                        let code = vm.code.idx(*code_id);
+                        let code = vm.code_objects.get(*code_id);
                         return Some(code.instruction_start());
                     }
 

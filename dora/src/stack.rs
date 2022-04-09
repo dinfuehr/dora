@@ -26,7 +26,7 @@ impl NativeStacktrace {
     pub fn dump(&self, vm: &VM) {
         let frames = self.elems.len();
         for (ind, elem) in self.elems.iter().enumerate() {
-            let code = vm.code.idx(elem.fct_id);
+            let code = vm.code_objects.get(elem.fct_id);
             let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
@@ -44,7 +44,7 @@ impl NativeStacktrace {
     pub fn dump_err(&self, vm: &VM) {
         let frames = self.elems.len();
         for (ind, elem) in self.elems.iter().enumerate() {
-            let code = vm.code.idx(elem.fct_id);
+            let code = vm.code_objects.get(elem.fct_id);
             let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
@@ -140,7 +140,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     let code_id = vm.code_map.get(pc.into());
 
     if let Some(code_id) = code_id {
-        let code = vm.code.idx(code_id);
+        let code = vm.code_objects.get(code_id);
         match code.descriptor() {
             CodeKind::DoraFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
@@ -203,7 +203,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     ste.line = lineno;
 
     let code_id: CodeId = (fct_id as usize).into();
-    let code = vm.code.idx(code_id);
+    let code = vm.code_objects.get(code_id);
     let fct = vm.fcts.idx(code.fct_id());
     let fct = fct.read();
     let name = fct.name_with_params(vm);
@@ -223,7 +223,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     if via_retrieve {
         for elem in stacktrace.elems.iter() {
             let code_id = elem.fct_id.idx().into();
-            let code = vm.code.idx(code_id);
+            let code = vm.code_objects.get(code_id);
             let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();

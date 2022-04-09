@@ -202,7 +202,7 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
             .get(ra.into())
             .expect("return address not found");
 
-        let code = vm.code.idx(code_id);
+        let code = vm.code_objects.get(code_id);
 
         let offset = ra - code.instruction_start().to_usize();
         code.lazy_for_offset(offset as u32)

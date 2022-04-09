@@ -36,8 +36,8 @@ use dora_parser::parser::NodeIdGenerator;
 
 pub use self::classes::{ClassInstance, ClassInstanceId, Field, FieldDef, FieldId};
 pub use self::code::{
-    install_code, install_code_stub, Code, CodeId, CodeKind, CommentTable, GcPoint, GcPointTable,
-    LazyCompilationData, LazyCompilationSite, PositionTable,
+    install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
+    GcPointTable, LazyCompilationData, LazyCompilationSite, PositionTable,
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
@@ -273,16 +273,16 @@ pub struct VM {
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
+    pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
-    pub code: GrowableVec<Code>, // stores all function implementations
     pub enums: Vec<RwLock<EnumDefinition>>, // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
     pub traits: Vec<RwLock<TraitDefinition>>, // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>, // stores all impl definitions
-    pub code_map: CodeMap,       // stores all compiled functions
+    pub impls: Vec<RwLock<ImplData>>,       // stores all impl definitions
+    pub code_map: CodeMap,                  // stores all compiled functions
     pub globals: GrowableVec<RwLock<GlobalDefinition>>, // stores all global variables
-    pub imports: Vec<ImportData>, // stores all imports
-    pub gc: Gc,                  // garbage collector
+    pub imports: Vec<ImportData>,           // stores all imports
+    pub gc: Gc,                             // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub compile_stub: Mutex<Address>,
@@ -412,7 +412,7 @@ impl VM {
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
             compilation_database: CompilationDatabase::new(),
-            code: GrowableVec::new(),
+            code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
@@ -465,7 +465,7 @@ impl VM {
             diag: sa.diag,
             fcts: sa.fcts,
             compilation_database: CompilationDatabase::new(),
-            code: GrowableVec::new(),
+            code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
             lambda_types: sa.lambda_types,
             native_stubs: sa.native_stubs,
@@ -531,12 +531,7 @@ impl VM {
         let code_start = code.object_start();
         let code_end = code.object_end();
 
-        let code_id = {
-            let mut code_vec = self.code.lock();
-            let code_id = code_vec.len().into();
-            code_vec.push(code);
-            code_id
-        };
+        let code_id = self.code_objects.add(code);
 
         self.code_map.insert(code_start, code_end, code_id);
 
