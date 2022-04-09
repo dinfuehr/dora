@@ -321,7 +321,7 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
-pub extern "C" fn spawn_thread(managed_thread: Handle<ManagedThread>) {
+pub extern "C" fn start_thread(managed_thread: Handle<ManagedThread>) {
     let vm = get_vm();
 
     // Create new thread in Parked state.

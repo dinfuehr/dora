@@ -810,7 +810,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         stdlib,
         "Thread",
         "start",
-        stdlib::spawn_thread as *const u8,
+        stdlib::start_thread as *const u8,
     );
 
     native_method(
