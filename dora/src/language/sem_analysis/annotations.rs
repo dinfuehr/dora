@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::sync::Arc;
 
 use parking_lot::RwLock;
@@ -6,9 +7,9 @@ use dora_parser::ast::{AnnotationParam, AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
 use dora_parser::Position;
 
-use crate::language::sem_analysis::{NamespaceId, TypeParam};
+use crate::language::sem_analysis::{NamespaceDefinitionId, TypeParam};
 use crate::language::ty::SourceType;
-use crate::utils::GrowableVec;
+use crate::utils::{GrowableVec, Id};
 use crate::vm::{FileId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -38,13 +39,29 @@ impl GrowableVec<RwLock<AnnotationDefinition>> {
     }
 }
 
+impl Id for AnnotationDefinition {
+    type IdType = AnnotationDefinitionId;
+
+    fn id_to_usize(id: AnnotationDefinitionId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> AnnotationDefinitionId {
+        AnnotationDefinitionId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut AnnotationDefinition, id: AnnotationDefinitionId) {
+        value.id = id;
+    }
+}
+
 #[derive(Debug)]
 pub struct AnnotationDefinition {
     pub id: AnnotationDefinitionId,
     pub file_id: FileId,
     pub pos: Position,
     pub name: Name,
-    pub namespace_id: NamespaceId,
+    pub namespace_id: NamespaceDefinitionId,
     pub ty: SourceType,
     pub internal_annotation: Option<Modifier>,
 
@@ -58,7 +75,7 @@ impl AnnotationDefinition {
         file_id: FileId,
         pos: Position,
         name: Name,
-        namespace_id: NamespaceId,
+        namespace_id: NamespaceDefinitionId,
     ) -> AnnotationDefinition {
         AnnotationDefinition {
             id,

@@ -1,7 +1,7 @@
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
-    FctDefinitionId, Intrinsic, NamespaceId, StructDefinitionId, TraitDefinitionId,
+    FctDefinitionId, Intrinsic, NamespaceDefinitionId, StructDefinitionId, TraitDefinitionId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -163,13 +163,21 @@ pub fn discover_known_methods(sa: &mut SemAnalysis) {
         find_method(sa, stdlib, "StringBuffer", "toString");
 }
 
-fn find_class(sa: &SemAnalysis, namespace_id: NamespaceId, name: &str) -> ClassDefinitionId {
+fn find_class(
+    sa: &SemAnalysis,
+    namespace_id: NamespaceDefinitionId,
+    name: &str,
+) -> ClassDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     symtable.get_class(iname).expect("class not found")
 }
 
-fn internal_class(sa: &SemAnalysis, namespace_id: NamespaceId, name: &str) -> ClassDefinitionId {
+fn internal_class(
+    sa: &SemAnalysis,
+    namespace_id: NamespaceDefinitionId,
+    name: &str,
+) -> ClassDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     let clsid = symtable.get_class(iname).expect("class not found");
@@ -183,7 +191,7 @@ fn internal_class(sa: &SemAnalysis, namespace_id: NamespaceId, name: &str) -> Cl
 
 fn internal_struct(
     sa: &mut SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     name: &str,
     ty: Option<SourceType>,
 ) -> StructDefinitionId {
@@ -203,7 +211,7 @@ fn internal_struct(
 
 fn internal_annotation(
     sa: &mut SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     name: &str,
     internal_annotation: Modifier,
 ) -> AnnotationDefinitionId {
@@ -220,13 +228,21 @@ fn internal_annotation(
     annotation_id
 }
 
-fn find_trait(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str) -> TraitDefinitionId {
+fn find_trait(
+    sa: &mut SemAnalysis,
+    namespace_id: NamespaceDefinitionId,
+    name: &str,
+) -> TraitDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     symtable.get_trait(iname).expect("trait not found")
 }
 
-fn find_enum(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str) -> EnumDefinitionId {
+fn find_enum(
+    sa: &mut SemAnalysis,
+    namespace_id: NamespaceDefinitionId,
+    name: &str,
+) -> EnumDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     symtable.get_enum(iname).expect("enum not found")
@@ -924,7 +940,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
 fn intrinsic_ctor(
     sa: &SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     class_name: &str,
     intrinsic: Intrinsic,
 ) {
@@ -945,7 +961,7 @@ fn intrinsic_ctor(
 
 fn find_method(
     sa: &SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     container_name: &str,
     name: &str,
 ) -> FctDefinitionId {
@@ -973,7 +989,7 @@ fn find_method(
 
 fn find_static(
     sa: &SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     container_name: &str,
     name: &str,
 ) -> FctDefinitionId {
@@ -1004,7 +1020,12 @@ fn find_static(
     panic!("cannot find static method `{}`", name)
 }
 
-fn native_fct(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str, fctptr: *const u8) {
+fn native_fct(
+    sa: &mut SemAnalysis,
+    namespace_id: NamespaceDefinitionId,
+    name: &str,
+    fctptr: *const u8,
+) {
     common_fct(
         sa,
         namespace_id,
@@ -1015,7 +1036,7 @@ fn native_fct(sa: &mut SemAnalysis, namespace_id: NamespaceId, name: &str, fctpt
 
 fn intrinsic_fct(
     sa: &mut SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     name: &str,
     intrinsic: Intrinsic,
 ) {
@@ -1029,7 +1050,7 @@ fn intrinsic_fct(
 
 fn common_fct(
     sa: &mut SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     name: &str,
     kind: FctImplementation,
 ) {
@@ -1057,7 +1078,7 @@ enum FctImplementation {
 
 fn native_method(
     sa: &SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     container_name: &str,
     method_name: &str,
     fctptr: *const u8,
@@ -1074,7 +1095,7 @@ fn native_method(
 
 fn intrinsic_method(
     sa: &SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     container_name: &str,
     method_name: &str,
     intrinsic: Intrinsic,
@@ -1091,7 +1112,7 @@ fn intrinsic_method(
 
 fn native_static(
     sa: &SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     container_name: &str,
     method_name: &str,
     fctptr: *const u8,
@@ -1108,7 +1129,7 @@ fn native_static(
 
 fn intrinsic_static(
     sa: &SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     container_name: &str,
     method_name: &str,
     intrinsic: Intrinsic,
@@ -1125,7 +1146,7 @@ fn intrinsic_static(
 
 fn common_method(
     sa: &SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     container_name: &str,
     method_name: &str,
     is_static: bool,

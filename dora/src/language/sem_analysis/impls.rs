@@ -10,7 +10,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches_ty, FctDefinitionId, NamespaceId, TraitDefinitionId, TypeParam,
+    extension_matches_ty, FctDefinitionId, NamespaceDefinitionId, TraitDefinitionId, TypeParam,
     TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
@@ -47,7 +47,7 @@ pub struct ImplDefinition {
     pub id: ImplDefinitionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Impl>,
-    pub namespace_id: NamespaceId,
+    pub namespace_id: NamespaceDefinitionId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub trait_id: Option<TraitDefinitionId>,

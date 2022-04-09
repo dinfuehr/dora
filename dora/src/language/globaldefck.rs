@@ -1,5 +1,5 @@
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{FctDefinition, FctParent, GlobalDefinitionId, NamespaceId};
+use crate::language::sem_analysis::{FctDefinition, FctParent, GlobalDefinitionId, NamespaceDefinitionId};
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
@@ -36,7 +36,7 @@ pub fn check<'a>(sa: &SemAnalysis) {
 struct GlobalDefCheck<'a> {
     sa: &'a SemAnalysis,
     file_id: FileId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     global_id: GlobalDefinitionId,
     ast: &'a ast::Global,
     symtable: NestedSymTable<'a>,

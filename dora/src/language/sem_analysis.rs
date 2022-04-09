@@ -26,8 +26,10 @@ pub use self::extensions::{
 pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{find_trait_impl, impl_matches, ImplDefinition, ImplDefinitionId};
-pub use self::imports::ImportData;
-pub use self::namespaces::{namespace_package, namespace_path, NamespaceData, NamespaceId};
+pub use self::imports::ImportDefinition;
+pub use self::namespaces::{
+    namespace_package, namespace_path, NamespaceDefinition, NamespaceDefinitionId,
+};
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
@@ -230,7 +232,7 @@ impl SemAnalysis {
     pub fn add_file(
         &mut self,
         path: Option<PathBuf>,
-        namespace_id: NamespaceId,
+        namespace_id: NamespaceDefinitionId,
         ast: Arc<ast::File>,
     ) {
         let mut files = self.files.write();
@@ -243,22 +245,19 @@ impl SemAnalysis {
         });
     }
 
-    pub fn namespace_table(&self, namespace_id: NamespaceId) -> Arc<RwLock<SymTable>> {
-        self.namespaces[namespace_id.to_usize()]
-            .read()
-            .table
-            .clone()
+    pub fn namespace_table(&self, namespace_id: NamespaceDefinitionId) -> Arc<RwLock<SymTable>> {
+        self.namespaces[namespace_id].read().table.clone()
     }
 
     pub fn stdlib_namespace(&self) -> Arc<RwLock<SymTable>> {
-        self.namespaces[self.stdlib_namespace_id.to_usize()]
+        self.namespaces[self.stdlib_namespace_id]
             .read()
             .table
             .clone()
     }
 
     pub fn prelude_namespace(&self) -> Arc<RwLock<SymTable>> {
-        self.namespaces[self.prelude_namespace_id.to_usize()]
+        self.namespaces[self.prelude_namespace_id]
             .read()
             .table
             .clone()

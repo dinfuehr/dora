@@ -4,20 +4,20 @@ use self::Sym::*;
 
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    FctDefinitionId, GlobalDefinitionId, NamespaceId, StructDefinitionId, TraitDefinitionId,
-    TypeParamId, VarId,
+    FctDefinitionId, GlobalDefinitionId, NamespaceDefinitionId, StructDefinitionId,
+    TraitDefinitionId, TypeParamId, VarId,
 };
 use crate::vm::{FieldId, SemAnalysis};
 use dora_parser::interner::Name;
 
 pub struct NestedSymTable<'a> {
     sa: &'a SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     levels: Vec<SymTable>,
 }
 
 impl<'a> NestedSymTable<'a> {
-    pub fn new(sa: &'a SemAnalysis, namespace_id: NamespaceId) -> NestedSymTable {
+    pub fn new(sa: &'a SemAnalysis, namespace_id: NamespaceDefinitionId) -> NestedSymTable {
         NestedSymTable {
             sa,
             namespace_id,
@@ -25,7 +25,7 @@ impl<'a> NestedSymTable<'a> {
         }
     }
 
-    pub fn namespace_id(&self) -> NamespaceId {
+    pub fn namespace_id(&self) -> NamespaceDefinitionId {
         self.namespace_id
     }
 
@@ -50,7 +50,7 @@ impl<'a> NestedSymTable<'a> {
         }
 
         {
-            let namespace = &self.sa.namespaces[self.namespace_id.to_usize()].read();
+            let namespace = &self.sa.namespaces[self.namespace_id].read();
 
             if let Some(sym) = namespace.table.read().get(name) {
                 return Some(sym.clone());
@@ -58,7 +58,7 @@ impl<'a> NestedSymTable<'a> {
         }
 
         {
-            let namespace = &self.sa.namespaces[self.sa.prelude_namespace_id.to_usize()].read();
+            let namespace = &self.sa.namespaces[self.sa.prelude_namespace_id].read();
 
             if let Some(sym) = namespace.table.read().get(name) {
                 return Some(sym.clone());
@@ -172,7 +172,7 @@ pub enum Sym {
     Annotation(AnnotationDefinitionId),
     Global(GlobalDefinitionId),
     Const(ConstDefinitionId),
-    Namespace(NamespaceId),
+    Namespace(NamespaceDefinitionId),
     EnumValue(EnumDefinitionId, usize),
 }
 

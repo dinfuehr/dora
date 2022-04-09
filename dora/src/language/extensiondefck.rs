@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctParent,
-    NamespaceId, StructDefinitionId, TypeParam,
+    NamespaceDefinitionId, StructDefinitionId, TypeParam,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
@@ -44,7 +44,7 @@ pub fn check(sa: &SemAnalysis) {
 struct ExtensionCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: FileId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     sym: NestedSymTable<'x>,
     extension_id: ExtensionDefinitionId,
     extension_ty: SourceType,

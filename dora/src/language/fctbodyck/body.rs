@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
     ensure_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, get_tuple_subtypes, AnalysisData, CallType, ClassDefinitionId,
     ConvInfo, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent,
-    ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructDefinition, StructDefinitionId,
+    ForTypeInfo, IdentType, Intrinsic, NamespaceDefinitionId, StructDefinition, StructDefinitionId,
     TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
 };
 use crate::language::specialize::replace_type_param;
@@ -36,7 +36,7 @@ pub struct TypeCheck<'a> {
     pub sa: &'a SemAnalysis,
     pub fct: &'a FctDefinition,
     pub file_id: FileId,
-    pub namespace_id: NamespaceId,
+    pub namespace_id: NamespaceDefinitionId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a ast::Function,
     pub symtable: NestedSymTable<'a>,
@@ -2310,7 +2310,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let sym = {
-                    let namespace = &self.sa.namespaces[namespace_id.to_usize()].read();
+                    let namespace = &self.sa.namespaces[namespace_id].read();
                     let table = namespace.table.read();
 
                     table.get(method_name)
@@ -2460,7 +2460,7 @@ impl<'a> TypeCheck<'a> {
 
             match sym {
                 Some(Sym::Namespace(namespace_id)) => {
-                    let namespace = &self.sa.namespaces[namespace_id.to_usize()].read();
+                    let namespace = &self.sa.namespaces[namespace_id].read();
                     let symtable = namespace.table.read();
                     let sym = symtable.get(element_name);
 
@@ -2493,12 +2493,12 @@ impl<'a> TypeCheck<'a> {
             match sym {
                 Some(Sym::Namespace(namespace_id)) => {
                     if !namespace_accessible_from(self.sa, namespace_id, self.namespace_id) {
-                        let namespace = &self.sa.namespaces[namespace_id.to_usize()].read();
+                        let namespace = &self.sa.namespaces[namespace_id].read();
                         let msg = SemError::NotAccessible(namespace.name(self.sa));
                         self.sa.diag.lock().report(self.file_id, path.pos, msg);
                     }
 
-                    let namespace = &self.sa.namespaces[namespace_id.to_usize()].read();
+                    let namespace = &self.sa.namespaces[namespace_id].read();
                     let symtable = namespace.table.read();
                     sym = symtable.get(name);
                 }
@@ -2554,10 +2554,10 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprPathType,
         expected_ty: SourceType,
-        namespace_id: NamespaceId,
+        namespace_id: NamespaceDefinitionId,
         element_name: Name,
     ) -> SourceType {
-        let namespace = &self.sa.namespaces[namespace_id.to_usize()].read();
+        let namespace = &self.sa.namespaces[namespace_id].read();
         let table = namespace.table.read();
 
         let sym = table.get(element_name);

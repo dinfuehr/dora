@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, namespace_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
+    ImplDefinitionId, NamespaceDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, Id};
@@ -53,7 +53,7 @@ pub struct StructDefinition {
     pub file_id: FileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
-    pub namespace_id: NamespaceId,
+    pub namespace_id: NamespaceDefinitionId,
     pub type_params: Vec<TypeParam>,
     pub type_params2: TypeParamDefinition,
     pub is_pub: bool,

@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::gc::Address;
-use crate::language::sem_analysis::{namespace_path, FctDefinitionId, NamespaceId};
+use crate::language::sem_analysis::{namespace_path, FctDefinitionId, NamespaceDefinitionId};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 use crate::vm::{FileId, VM};
@@ -48,7 +48,7 @@ pub struct GlobalDefinition {
     pub file_id: FileId,
     pub ast: Arc<ast::Global>,
     pub pos: Position,
-    pub namespace_id: NamespaceId,
+    pub namespace_id: NamespaceDefinitionId,
     pub is_pub: bool,
     pub ty: SourceType,
     pub mutable: bool,

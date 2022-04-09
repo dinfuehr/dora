@@ -11,7 +11,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, namespace_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
+    ImplDefinitionId, NamespaceDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -60,7 +60,7 @@ impl Id for EnumDefinition {
 pub struct EnumDefinition {
     pub id: EnumDefinitionId,
     pub file_id: FileId,
-    pub namespace_id: NamespaceId,
+    pub namespace_id: NamespaceDefinitionId,
     pub ast: Arc<ast::Enum>,
     pub pos: Position,
     pub name: Name,

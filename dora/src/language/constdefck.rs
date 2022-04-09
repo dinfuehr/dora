@@ -1,4 +1,4 @@
-use crate::language::sem_analysis::{ConstDefinitionId, NamespaceId};
+use crate::language::sem_analysis::{ConstDefinitionId, NamespaceDefinitionId};
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
@@ -36,7 +36,7 @@ struct ConstCheck<'x> {
     const_id: ConstDefinitionId,
     file_id: FileId,
     ast: &'x ast::Const,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     symtable: NestedSymTable<'x>,
 }
 

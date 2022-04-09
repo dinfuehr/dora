@@ -1,6 +1,6 @@
 use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FctParent,
-    GlobalDefinitionId, NamespaceId, StructDefinitionFieldId, StructDefinitionId,
+    GlobalDefinitionId, NamespaceDefinitionId, StructDefinitionFieldId, StructDefinitionId,
     TraitDefinitionId,
 };
 use crate::vm::{FieldId, SemAnalysis};
@@ -8,7 +8,7 @@ use crate::vm::{FieldId, SemAnalysis};
 pub fn global_accessible_from(
     sa: &SemAnalysis,
     global_id: GlobalDefinitionId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let global = sa.globals.idx(global_id);
     let global = global.read();
@@ -19,7 +19,7 @@ pub fn global_accessible_from(
 pub fn class_accessible_from(
     sa: &SemAnalysis,
     cls_id: ClassDefinitionId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
@@ -31,7 +31,7 @@ pub fn class_field_accessible_from(
     sa: &SemAnalysis,
     cls_id: ClassDefinitionId,
     field_id: FieldId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
@@ -49,7 +49,7 @@ pub fn class_field_accessible_from(
 pub fn method_accessible_from(
     sa: &SemAnalysis,
     fct_id: FctDefinitionId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
@@ -77,7 +77,7 @@ pub fn method_accessible_from(
 pub fn fct_accessible_from(
     sa: &SemAnalysis,
     fct_id: FctDefinitionId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
@@ -88,7 +88,7 @@ pub fn fct_accessible_from(
 pub fn enum_accessible_from(
     sa: &SemAnalysis,
     enum_id: EnumDefinitionId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let xenum = sa.enums[enum_id].read();
 
@@ -98,7 +98,7 @@ pub fn enum_accessible_from(
 pub fn struct_accessible_from(
     sa: &SemAnalysis,
     struct_id: StructDefinitionId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let xstruct = sa.structs.idx(struct_id);
     let xstruct = xstruct.read();
@@ -110,7 +110,7 @@ pub fn struct_field_accessible_from(
     sa: &SemAnalysis,
     struct_id: StructDefinitionId,
     field_id: StructDefinitionFieldId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let xstruct = sa.structs.idx(struct_id);
     let xstruct = xstruct.read();
@@ -127,8 +127,8 @@ pub fn struct_field_accessible_from(
 
 pub fn namespace_accessible_from(
     sa: &SemAnalysis,
-    target_id: NamespaceId,
-    from_id: NamespaceId,
+    target_id: NamespaceDefinitionId,
+    from_id: NamespaceDefinitionId,
 ) -> bool {
     accessible_from(sa, target_id, true, from_id)
 }
@@ -136,7 +136,7 @@ pub fn namespace_accessible_from(
 pub fn trait_accessible_from(
     sa: &SemAnalysis,
     trait_id: TraitDefinitionId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let xtrait = sa.traits[trait_id].read();
 
@@ -146,7 +146,7 @@ pub fn trait_accessible_from(
 pub fn const_accessible_from(
     vm: &SemAnalysis,
     const_id: ConstDefinitionId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 ) -> bool {
     let xconst = vm.consts.idx(const_id);
     let xconst = xconst.read();
@@ -156,9 +156,9 @@ pub fn const_accessible_from(
 
 fn accessible_from(
     sa: &SemAnalysis,
-    target_id: NamespaceId,
+    target_id: NamespaceDefinitionId,
     element_pub: bool,
-    from_id: NamespaceId,
+    from_id: NamespaceDefinitionId,
 ) -> bool {
     // each namespace can access itself
     if target_id == from_id {
@@ -173,18 +173,18 @@ fn accessible_from(
     // find the common parent of both namespaces
     let common_parent_id = common_parent(sa, target_id, from_id);
 
-    let target = &sa.namespaces[target_id.to_usize()].read();
+    let target = &sa.namespaces[target_id].read();
 
     if let Some(common_parent_id) = common_parent_id {
-        let common_parent_depth = sa.namespaces[common_parent_id.to_usize()].read().depth;
+        let common_parent_depth = sa.namespaces[common_parent_id].read().depth;
 
         if common_parent_depth + 1 == target.depth {
             // siblings are accessible
             element_pub
         } else {
             let start_depth = common_parent_depth + 2;
-            for ns_id in &target.parents[start_depth..] {
-                let ns = &sa.namespaces[ns_id.to_usize()].read();
+            for &ns_id in &target.parents[start_depth..] {
+                let ns = &sa.namespaces[ns_id].read();
                 if !ns.is_pub {
                     return false;
                 }
@@ -195,8 +195,8 @@ fn accessible_from(
     } else {
         // no common parent: means we try to access another package
         // the whole path needs to be public
-        for ns_id in &target.parents {
-            let ns = &sa.namespaces[ns_id.to_usize()].read();
+        for &ns_id in &target.parents {
+            let ns = &sa.namespaces[ns_id].read();
             if !ns.is_pub {
                 return false;
             }
@@ -208,15 +208,15 @@ fn accessible_from(
 
 fn common_parent(
     sa: &SemAnalysis,
-    lhs_id: NamespaceId,
-    rhs_id: NamespaceId,
-) -> Option<NamespaceId> {
+    lhs_id: NamespaceDefinitionId,
+    rhs_id: NamespaceDefinitionId,
+) -> Option<NamespaceDefinitionId> {
     if lhs_id == rhs_id {
         return Some(lhs_id);
     }
 
-    let lhs = &sa.namespaces[lhs_id.to_usize()].read();
-    let rhs = &sa.namespaces[rhs_id.to_usize()].read();
+    let lhs = &sa.namespaces[lhs_id].read();
+    let rhs = &sa.namespaces[rhs_id].read();
 
     if lhs.depth > rhs.depth {
         if lhs.parents[rhs.depth] == rhs_id {
@@ -243,11 +243,15 @@ fn common_parent(
     None
 }
 
-pub fn namespace_contains(sa: &SemAnalysis, parent_id: NamespaceId, child_id: NamespaceId) -> bool {
+pub fn namespace_contains(
+    sa: &SemAnalysis,
+    parent_id: NamespaceDefinitionId,
+    child_id: NamespaceDefinitionId,
+) -> bool {
     if parent_id == child_id {
         return true;
     }
 
-    let namespace = &sa.namespaces[child_id.to_usize()].read();
+    let namespace = &sa.namespaces[child_id].read();
     namespace.parents.contains(&parent_id)
 }

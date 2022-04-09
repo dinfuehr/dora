@@ -8,10 +8,10 @@ use crate::gc::Address;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, ConstValue,
-    EnumDefinition, ExtensionDefinition, FctDefinition, FctParent, GlobalDefinition,
-    ImplDefinition, ImportData, NamespaceData, NamespaceId, StructDefinition, TraitDefinition,
-    TypeParam, TypeParamDefinition,
+    AnnotationDefinition, ClassDefinition, ConstDefinition, ConstValue, EnumDefinition,
+    ExtensionDefinition, FctDefinition, FctParent, GlobalDefinition, ImplDefinition,
+    ImportDefinition, NamespaceDefinition, NamespaceDefinitionId, StructDefinition,
+    TraitDefinition, TypeParam, TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -100,7 +100,11 @@ fn check_files(sa: &mut SemAnalysis, start: usize) -> (usize, Vec<ParseFile>) {
     (files.len(), files_to_parse)
 }
 
-fn parse_dir(sa: &mut SemAnalysis, dirname: &str, namespace_id: NamespaceId) -> Result<(), i32> {
+fn parse_dir(
+    sa: &mut SemAnalysis,
+    dirname: &str,
+    namespace_id: NamespaceDefinitionId,
+) -> Result<(), i32> {
     let path = Path::new(dirname);
 
     if path.is_dir() {
@@ -159,7 +163,10 @@ fn parse_file(sa: &mut SemAnalysis, file: ParseFile) -> Result<(), i32> {
     }
 }
 
-pub fn parse_bundled_stdlib(sa: &mut SemAnalysis, namespace_id: NamespaceId) -> Result<(), i32> {
+pub fn parse_bundled_stdlib(
+    sa: &mut SemAnalysis,
+    namespace_id: NamespaceDefinitionId,
+) -> Result<(), i32> {
     use crate::driver::start::STDLIB;
 
     for (filename, content) in STDLIB {
@@ -171,7 +178,7 @@ pub fn parse_bundled_stdlib(sa: &mut SemAnalysis, namespace_id: NamespaceId) -> 
 
 fn parse_bundled_stdlib_file(
     sa: &mut SemAnalysis,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     filename: &str,
     content: &str,
 ) -> Result<(), i32> {
@@ -200,23 +207,21 @@ fn parse_bundled_stdlib_file(
 
 struct ParseFile {
     path: PathBuf,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
 }
 
 struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
     file_id: FileId,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     files_to_parse: &'x mut Vec<ParseFile>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let namespace = NamespaceData::new(self.sa, self.namespace_id, node);
-        let id = namespace.id.clone();
+        let namespace = NamespaceDefinition::new(self.sa, self.namespace_id, node);
+        let id = self.sa.namespaces.push(namespace);
         let sym = Sym::Namespace(id);
-
-        self.sa.namespaces.push(RwLock::new(namespace));
 
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
@@ -258,7 +263,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_import(&mut self, node: &Arc<ast::Import>) {
-        let import = ImportData {
+        let import = ImportDefinition {
             namespace_id: self.namespace_id,
             file_id: self.file_id,
             ast: node.clone(),
@@ -406,14 +411,14 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_annotation(&mut self, node: &Arc<ast::Annotation>) {
-        let id = {
-            let mut annotations = self.sa.annotations.lock();
-            let id: AnnotationDefinitionId = annotations.len().into();
-            let annotation =
-                AnnotationDefinition::new(id, self.file_id, node.pos, node.name, self.namespace_id);
-            annotations.push(Arc::new(RwLock::new(annotation)));
-            id
-        };
+        let annotation = AnnotationDefinition::new(
+            0.into(),
+            self.file_id,
+            node.pos,
+            node.name,
+            self.namespace_id,
+        );
+        let id = self.sa.annotations.push(annotation);
 
         let sym = Sym::Annotation(id);
 
@@ -473,7 +478,11 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 }
 
 impl<'x> GlobalDef<'x> {
-    fn parse_directory_into_namespace(&mut self, node: &ast::Namespace, namespace_id: NamespaceId) {
+    fn parse_directory_into_namespace(
+        &mut self,
+        node: &ast::Namespace,
+        namespace_id: NamespaceDefinitionId,
+    ) {
         let files = self.sa.files.clone();
         let files = files.read();
         let file = &files[self.file_id.to_usize()];

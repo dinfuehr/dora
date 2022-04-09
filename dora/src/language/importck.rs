@@ -7,7 +7,9 @@ use crate::language::access::{
 };
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
-use crate::language::sem_analysis::{namespace_package, EnumDefinitionId, ImportData, NamespaceId};
+use crate::language::sem_analysis::{
+    namespace_package, EnumDefinitionId, ImportDefinition, NamespaceDefinitionId,
+};
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::SemAnalysis;
 
@@ -20,14 +22,14 @@ pub fn check<'a>(sa: &SemAnalysis) {
     }
 }
 
-fn check_import(sa: &SemAnalysis, import: &ImportData) {
+fn check_import(sa: &SemAnalysis, import: &ImportDefinition) {
     let table = sa.namespace_table(import.namespace_id);
 
     let namespace_id = match import.ast.context {
         ImportContext::This => import.namespace_id,
         ImportContext::Package => namespace_package(sa, import.namespace_id),
         ImportContext::Super => {
-            let namespace = &sa.namespaces[import.namespace_id.to_usize()].read();
+            let namespace = &sa.namespaces[import.namespace_id].read();
             if let Some(namespace_id) = namespace.parent_namespace_id {
                 namespace_id
             } else {
@@ -59,7 +61,7 @@ fn check_import(sa: &SemAnalysis, import: &ImportData) {
         match sym {
             Some(Sym::Namespace(namespace_id)) => {
                 if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
-                    let namespace = &sa.namespaces[namespace_id.to_usize()].read();
+                    let namespace = &sa.namespaces[namespace_id].read();
                     let msg = SemError::NotAccessible(namespace.name(sa));
                     sa.diag.lock().report(import.file_id, import.ast.pos, msg);
                     return;
@@ -85,7 +87,7 @@ fn check_import(sa: &SemAnalysis, import: &ImportData) {
 
 fn read_path(
     sa: &SemAnalysis,
-    import: &ImportData,
+    import: &ImportDefinition,
     symtable: &NestedSymTable,
 ) -> Result<Option<Sym>, ()> {
     if !import.ast.path.is_empty() {
@@ -97,11 +99,11 @@ fn read_path(
         for &name in &path[1..] {
             match sym {
                 Some(Sym::Namespace(namespace_id)) => {
-                    let namespace = &sa.namespaces[namespace_id.to_usize()].read();
+                    let namespace = &sa.namespaces[namespace_id].read();
                     let symtable = namespace.table.read();
 
                     if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
-                        let namespace = &sa.namespaces[namespace_id.to_usize()].read();
+                        let namespace = &sa.namespaces[namespace_id].read();
                         let msg = SemError::NotAccessible(namespace.name(sa));
                         sa.diag.lock().report(import.file_id, import.ast.pos, msg);
                         return Err(());
@@ -134,13 +136,13 @@ fn read_path(
 
 fn import_namespace(
     sa: &SemAnalysis,
-    import: &ImportData,
+    import: &ImportDefinition,
     table: &RwLock<SymTable>,
-    namespace_id: NamespaceId,
+    namespace_id: NamespaceDefinitionId,
     element_name: Name,
     target_name: Name,
 ) {
-    let namespace = &sa.namespaces[namespace_id.to_usize()].read();
+    let namespace = &sa.namespaces[namespace_id].read();
     let sym = namespace.table.read().get(element_name);
 
     match sym {
@@ -160,7 +162,7 @@ fn import_namespace(
 
         Some(Sym::Namespace(namespace_id)) => {
             if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
-                let namespace = &sa.namespaces[namespace_id.to_usize()].read();
+                let namespace = &sa.namespaces[namespace_id].read();
                 let msg = SemError::NotAccessible(namespace.name(sa));
                 sa.diag.lock().report(import.file_id, import.ast.pos, msg);
             }
@@ -278,7 +280,7 @@ fn import_namespace(
 
 fn import_enum(
     sa: &SemAnalysis,
-    import: &ImportData,
+    import: &ImportDefinition,
     table: &RwLock<SymTable>,
     enum_id: EnumDefinitionId,
     element_name: Name,

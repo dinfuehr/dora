@@ -9,7 +9,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    namespace_path, FctDefinitionId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
+    namespace_path, FctDefinitionId, NamespaceDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -50,7 +50,7 @@ impl Id for TraitDefinition {
 pub struct TraitDefinition {
     pub id: TraitDefinitionId,
     pub file_id: FileId,
-    pub namespace_id: NamespaceId,
+    pub namespace_id: NamespaceDefinitionId,
     pub is_pub: bool,
     pub ast: Arc<ast::Trait>,
     pub pos: Position,
