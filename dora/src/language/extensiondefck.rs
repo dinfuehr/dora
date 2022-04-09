@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    get_tuple_subtypes, EnumDefinitionId, ExtensionId, FctDefinition, FctParent, NamespaceId,
-    StructDefinitionId, TypeParam,
+    get_tuple_subtypes, EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctParent,
+    NamespaceId, StructDefinitionId, TypeParam,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
@@ -15,7 +15,7 @@ use dora_parser::lexer::position::Position;
 use fixedbitset::FixedBitSet;
 
 pub fn check(sa: &SemAnalysis) {
-    for extension in &sa.extensions {
+    for extension in sa.extensions.iter() {
         let (extension_id, file_id, namespace_id, ast) = {
             let extension = extension.read();
 
@@ -46,7 +46,7 @@ struct ExtensionCheck<'x> {
     file_id: FileId,
     namespace_id: NamespaceId,
     sym: NestedSymTable<'x>,
-    extension_id: ExtensionId,
+    extension_id: ExtensionDefinitionId,
     extension_ty: SourceType,
     ast: &'x ast::Impl,
 }
@@ -252,7 +252,7 @@ impl<'x> ExtensionCheck<'x> {
         true
     }
 
-    fn check_extension(&self, f: &ast::Function, extension_id: ExtensionId) -> bool {
+    fn check_extension(&self, f: &ast::Function, extension_id: ExtensionDefinitionId) -> bool {
         let extension = self.sa.extensions[extension_id].read();
 
         if extension.ty.type_params() != self.extension_ty.type_params() {

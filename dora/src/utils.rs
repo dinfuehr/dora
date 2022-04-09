@@ -75,13 +75,13 @@ pub trait Id {
 
 type ElementType<T> = Arc<RwLock<T>>;
 
-pub struct SharedVec<T: Id> {
+pub struct MutableVec<T: Id> {
     elements: Vec<Arc<RwLock<T>>>,
 }
 
-impl<T: Id> SharedVec<T> {
-    pub fn new() -> SharedVec<T> {
-        SharedVec {
+impl<T: Id> MutableVec<T> {
+    pub fn new() -> MutableVec<T> {
+        MutableVec {
             elements: Vec::new(),
         }
     }
@@ -110,7 +110,7 @@ impl<T: Id> SharedVec<T> {
     }
 }
 
-impl<T: Id> Index<T::IdType> for SharedVec<T> {
+impl<T: Id> Index<T::IdType> for MutableVec<T> {
     type Output = ElementType<T>;
     fn index(&self, index: T::IdType) -> &ElementType<T> {
         &self.elements[T::id_to_usize(index)]

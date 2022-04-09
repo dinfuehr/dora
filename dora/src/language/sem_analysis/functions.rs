@@ -9,8 +9,8 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    namespace_path, AnalysisData, ClassDefinitionId, ExtensionId, ImplDefinitionId, NamespaceId,
-    TraitDefinitionId, TypeParam, TypeParamId,
+    namespace_path, AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId,
+    NamespaceId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
@@ -336,7 +336,7 @@ pub enum FctParent {
     Class(ClassDefinitionId),
     Trait(TraitDefinitionId),
     Impl(ImplDefinitionId),
-    Extension(ExtensionId),
+    Extension(ExtensionDefinitionId),
     None,
 }
 

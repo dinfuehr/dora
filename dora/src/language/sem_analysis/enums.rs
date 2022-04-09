@@ -10,8 +10,8 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches, impl_matches, namespace_path, Candidate, ExtensionId, ImplDefinitionId,
-    NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
+    extension_matches, impl_matches, namespace_path, Candidate, ExtensionDefinitionId,
+    ImplDefinitionId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -70,7 +70,7 @@ pub struct EnumDefinition {
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
     pub impls: Vec<ImplDefinitionId>,
-    pub extensions: Vec<ExtensionId>,
+    pub extensions: Vec<ExtensionDefinitionId>,
     pub specializations: RwLock<HashMap<SourceTypeArray, EnumInstanceId>>,
     pub simple_enumeration: bool,
 }

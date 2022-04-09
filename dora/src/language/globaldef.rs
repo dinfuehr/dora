@@ -9,7 +9,7 @@ use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, ConstValue,
-    EnumDefinition, ExtensionData, ExtensionId, FctDefinition, FctParent, GlobalDefinition,
+    EnumDefinition, ExtensionDefinition, FctDefinition, FctParent, GlobalDefinition,
     ImplDefinition, ImportData, NamespaceData, NamespaceId, StructDefinition, TraitDefinition,
     TypeParam, TypeParamDefinition,
 };
@@ -315,15 +315,14 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             };
             self.sa.impls.push(ximpl);
         } else {
-            let id: ExtensionId = self.sa.extensions.len().into();
             let mut extension_type_params = Vec::new();
             if let Some(ref type_params) = node.type_params {
                 for param in type_params {
                     extension_type_params.push(TypeParam::new(param.name));
                 }
             }
-            let extension = ExtensionData {
-                id,
+            let extension = ExtensionDefinition {
+                id: 0.into(),
                 file_id: self.file_id,
                 namespace_id: self.namespace_id,
                 ast: node.clone(),
@@ -334,7 +333,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 instance_names: HashMap::new(),
                 static_names: HashMap::new(),
             };
-            self.sa.extensions.push(RwLock::new(extension));
+            self.sa.extensions.push(extension);
         }
     }
 

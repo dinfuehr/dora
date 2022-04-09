@@ -14,7 +14,7 @@ use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
-    ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionData, FctDefinition,
+    ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
     FctDefinitionId, GlobalDefinition, ImplDefinition, ImportData, NamespaceData, NamespaceId,
     StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, TraitDefinitionId,
     Tuples,
@@ -28,7 +28,7 @@ use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
     STACK_SIZE,
 };
-use crate::utils::{GrowableVec, SharedVec};
+use crate::utils::{GrowableVec, MutableVec};
 
 use dora_parser::ast;
 use dora_parser::interner::*;
@@ -102,21 +102,21 @@ pub struct FullSemAnalysis {
     pub files: Arc<RwLock<Vec<File>>>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
-    pub consts: SharedVec<ConstDefinition>, // stores all const definitions
-    pub structs: SharedVec<StructDefinition>, // stores all struct source definitions
+    pub consts: MutableVec<ConstDefinition>, // stores all const definitions
+    pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
-    pub classes: SharedVec<ClassDefinition>, // stores all class source definitions
+    pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
     pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
-    pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
-    pub tuples: Mutex<Tuples>,              // stores all tuple definitions
+    pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
+    pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub enums: SharedVec<EnumDefinition>,         // stores all enum source definitions
+    pub enums: MutableVec<EnumDefinition>,        // stores all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
-    pub traits: SharedVec<TraitDefinition>,       // stores all trait definitions
-    pub impls: SharedVec<ImplDefinition>,         // stores all impl definitions
-    pub globals: SharedVec<GlobalDefinition>,     // stores all global variables
+    pub traits: MutableVec<TraitDefinition>,      // stores all trait definitions
+    pub impls: MutableVec<ImplDefinition>,        // stores all impl definitions
+    pub globals: MutableVec<GlobalDefinition>,    // stores all global variables
     pub imports: Vec<ImportData>,                 // stores all imports
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
@@ -161,20 +161,20 @@ impl FullSemAnalysis {
         let sa = Box::new(FullSemAnalysis {
             args,
             files: Arc::new(RwLock::new(Vec::new())),
-            consts: SharedVec::new(),
-            structs: SharedVec::new(),
+            consts: MutableVec::new(),
+            structs: MutableVec::new(),
             struct_defs: GrowableVec::new(),
-            classes: SharedVec::new(),
+            classes: MutableVec::new(),
             class_defs: GrowableVec::new(),
-            extensions: Vec::new(),
+            extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: GrowableVec::new(),
             namespaces,
-            enums: SharedVec::new(),
+            enums: MutableVec::new(),
             enum_defs: GrowableVec::new(),
-            traits: SharedVec::new(),
-            impls: SharedVec::new(),
-            globals: SharedVec::new(),
+            traits: MutableVec::new(),
+            impls: MutableVec::new(),
+            globals: MutableVec::new(),
             imports: Vec::new(),
             interner,
             known: KnownElements {
@@ -263,26 +263,26 @@ pub struct VM {
     pub files: Arc<RwLock<Vec<File>>>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
-    pub consts: SharedVec<ConstDefinition>, // stores all const definitions
-    pub structs: SharedVec<StructDefinition>, // stores all struct source definitions
+    pub consts: MutableVec<ConstDefinition>, // stores all const definitions
+    pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
-    pub classes: SharedVec<ClassDefinition>, // stores all class source definitions
+    pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
     pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
-    pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
-    pub tuples: Mutex<Tuples>,              // stores all tuple definitions
+    pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
+    pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
-    pub enums: SharedVec<EnumDefinition>, // store all enum source definitions
+    pub enums: MutableVec<EnumDefinition>, // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
-    pub traits: SharedVec<TraitDefinition>, // stores all trait definitions
-    pub impls: SharedVec<ImplDefinition>, // stores all impl definitions
-    pub code_map: CodeMap,                // stores all compiled functions
-    pub globals: SharedVec<GlobalDefinition>, // stores all global variables
-    pub imports: Vec<ImportData>,         // stores all imports
-    pub gc: Gc,                           // garbage collector
+    pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
+    pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
+    pub code_map: CodeMap,                 // stores all compiled functions
+    pub globals: MutableVec<GlobalDefinition>, // stores all global variables
+    pub imports: Vec<ImportData>,          // stores all imports
+    pub gc: Gc,                            // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub compile_stub: Mutex<Address>,
@@ -334,20 +334,20 @@ impl VM {
         let vm = Box::new(VM {
             args,
             files: Arc::new(RwLock::new(Vec::new())),
-            consts: SharedVec::new(),
-            structs: SharedVec::new(),
+            consts: MutableVec::new(),
+            structs: MutableVec::new(),
             struct_defs: GrowableVec::new(),
-            classes: SharedVec::new(),
+            classes: MutableVec::new(),
             class_defs: GrowableVec::new(),
-            extensions: Vec::new(),
+            extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: GrowableVec::new(),
             namespaces,
-            enums: SharedVec::new(),
+            enums: MutableVec::new(),
             enum_defs: GrowableVec::new(),
-            traits: SharedVec::new(),
-            impls: SharedVec::new(),
-            globals: SharedVec::new(),
+            traits: MutableVec::new(),
+            impls: MutableVec::new(),
+            globals: MutableVec::new(),
             imports: Vec::new(),
             interner,
             known: KnownElements {

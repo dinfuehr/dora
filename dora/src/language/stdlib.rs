@@ -1,7 +1,7 @@
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    AnnotationDefinitionId, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinitionId,
-    Intrinsic, NamespaceId, StructDefinitionId, TraitDefinitionId,
+    AnnotationDefinitionId, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
+    FctDefinitionId, Intrinsic, NamespaceId, StructDefinitionId, TraitDefinitionId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -1199,7 +1199,7 @@ fn internal_class_method(
 
 fn internal_extension_method(
     sa: &SemAnalysis,
-    extensions: &[ExtensionId],
+    extensions: &[ExtensionDefinitionId],
     name_as_string: &str,
     is_static: bool,
     kind: FctImplementation,

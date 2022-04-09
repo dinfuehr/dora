@@ -1,11 +1,13 @@
 use parking_lot::RwLock;
 
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
 use crate::language::sem_analysis::{FctDefinitionId, NamespaceId, TypeParam, TypeParamId};
 use crate::language::ty::SourceType;
+use crate::utils::Id;
 use crate::vm::FileId;
 
 pub use self::matching::{extension_matches, extension_matches_ty};
@@ -14,23 +16,39 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ExtensionId(u32);
+pub struct ExtensionDefinitionId(u32);
 
-impl From<usize> for ExtensionId {
-    fn from(data: usize) -> ExtensionId {
-        ExtensionId(data as u32)
+impl From<usize> for ExtensionDefinitionId {
+    fn from(data: usize) -> ExtensionDefinitionId {
+        ExtensionDefinitionId(data as u32)
     }
 }
 
-impl ExtensionId {
+impl ExtensionDefinitionId {
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
 
+impl Id for ExtensionDefinition {
+    type IdType = ExtensionDefinitionId;
+
+    fn id_to_usize(id: ExtensionDefinitionId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> ExtensionDefinitionId {
+        ExtensionDefinitionId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut ExtensionDefinition, id: ExtensionDefinitionId) {
+        value.id = id;
+    }
+}
+
 #[derive(Debug)]
-pub struct ExtensionData {
-    pub id: ExtensionId,
+pub struct ExtensionDefinition {
+    pub id: ExtensionDefinitionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Impl>,
     pub namespace_id: NamespaceId,
@@ -42,23 +60,23 @@ pub struct ExtensionData {
     pub static_names: HashMap<Name, FctDefinitionId>,
 }
 
-impl ExtensionData {
+impl ExtensionDefinition {
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
 }
 
-impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {
-    type Output = RwLock<ExtensionData>;
+impl Index<ExtensionDefinitionId> for Vec<RwLock<ExtensionDefinition>> {
+    type Output = RwLock<ExtensionDefinition>;
 
-    fn index(&self, index: ExtensionId) -> &RwLock<ExtensionData> {
+    fn index(&self, index: ExtensionDefinitionId) -> &RwLock<ExtensionDefinition> {
         &self[index.to_usize()]
     }
 }
 
 mod matching {
     use crate::language::sem_analysis::{
-        get_tuple_subtypes, ExtensionId, TypeParam, TypeParamDefinition,
+        get_tuple_subtypes, ExtensionDefinitionId, TypeParam, TypeParamDefinition,
     };
     use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
     use crate::vm::VM;
@@ -68,7 +86,7 @@ mod matching {
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         check_type_param_defs2: Option<&TypeParamDefinition>,
-        extension_id: ExtensionId,
+        extension_id: ExtensionDefinitionId,
     ) -> Option<SourceTypeArray> {
         let extension = vm.extensions[extension_id].read();
         extension_matches_ty(
