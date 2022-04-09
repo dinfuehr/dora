@@ -90,7 +90,7 @@ jobs:
       - name: Install rust
         uses: hecrj/setup-rust-action@v1
         with:
-          rust-version: "nightly"
+          rust-version: "stable"
 
       - name: Install ruby
         uses: ruby/setup-ruby@v1
