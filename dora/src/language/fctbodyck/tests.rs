@@ -654,6 +654,15 @@ fn lit_int64() {
 }
 
 #[test]
+fn lit_int64_as_default() {
+    ok("fun f(): Int64 { return 1; }");
+    ok("fun f(): Int64 {
+        let x = 1;
+        return x;
+    }");
+}
+
+#[test]
 fn overload_plus() {
     ok("class A { fun plus(rhs: A): Int32 { return 0; } }
             fun f(): Int32 { return A() + A(); }");

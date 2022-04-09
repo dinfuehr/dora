@@ -3451,7 +3451,7 @@ pub fn check_lit_int(
             SourceType::UInt8 => SourceType::UInt8,
             SourceType::Int32 => SourceType::Int32,
             SourceType::Int64 => SourceType::Int64,
-            _ => SourceType::Int32,
+            _ => SourceType::Int64,
         },
     };
 
