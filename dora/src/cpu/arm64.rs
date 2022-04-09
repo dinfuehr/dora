@@ -86,11 +86,7 @@ fn check_support_for_lse_atomics() -> bool {
 
 #[cfg(not(target_os = "macos"))]
 fn check_support_for_lse_atomics() -> bool {
-    let value: usize;
-    unsafe {
-        asm!("mrs {}, ID_AA64DFR1_EL1", out(reg) value);
-    }
-    (value >> 20) & 0xF == 0b0010
+    std::arch::is_aarch64_feature_detected!("lse")
 }
 
 #[cfg(not(target_os = "macos"))]
