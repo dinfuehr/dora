@@ -1,4 +1,3 @@
-use parking_lot::RwLock;
 use std::sync::Arc;
 
 use dora_parser::ast;
@@ -7,7 +6,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{namespace_path, NamespaceId};
 use crate::language::ty::SourceType;
-use crate::utils::{GrowableVec, Id};
+use crate::utils::Id;
 use crate::vm::{FileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -16,12 +15,6 @@ pub struct ConstDefinitionId(usize);
 impl From<usize> for ConstDefinitionId {
     fn from(data: usize) -> ConstDefinitionId {
         ConstDefinitionId(data)
-    }
-}
-
-impl GrowableVec<RwLock<ConstDefinition>> {
-    pub fn idx(&self, index: ConstDefinitionId) -> Arc<RwLock<ConstDefinition>> {
-        self.idx_usize(index.0 as usize)
     }
 }
 

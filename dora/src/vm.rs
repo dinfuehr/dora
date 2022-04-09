@@ -114,8 +114,8 @@ pub struct FullSemAnalysis {
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub enums: SharedVec<EnumDefinition>,         // stores all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
-    pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
+    pub traits: SharedVec<TraitDefinition>,       // stores all trait definitions
+    pub impls: SharedVec<ImplData>,               // stores all impl definitions
     pub globals: SharedVec<GlobalDefinition>,     // stores all global variables
     pub imports: Vec<ImportData>,                 // stores all imports
     pub native_stubs: Mutex<NativeStubs>,
@@ -172,8 +172,8 @@ impl FullSemAnalysis {
             namespaces,
             enums: SharedVec::new(),
             enum_defs: GrowableVec::new(),
-            traits: Vec::new(),
-            impls: Vec::new(),
+            traits: SharedVec::new(),
+            impls: SharedVec::new(),
             globals: SharedVec::new(),
             imports: Vec::new(),
             interner,
@@ -277,8 +277,8 @@ pub struct VM {
     pub compilation_database: CompilationDatabase,
     pub enums: SharedVec<EnumDefinition>, // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
-    pub traits: Vec<RwLock<TraitDefinition>>, // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,     // stores all impl definitions
+    pub traits: SharedVec<TraitDefinition>, // stores all trait definitions
+    pub impls: SharedVec<ImplData>,       // stores all impl definitions
     pub code_map: CodeMap,                // stores all compiled functions
     pub globals: SharedVec<GlobalDefinition>, // stores all global variables
     pub imports: Vec<ImportData>,         // stores all imports
@@ -345,8 +345,8 @@ impl VM {
             namespaces,
             enums: SharedVec::new(),
             enum_defs: GrowableVec::new(),
-            traits: Vec::new(),
-            impls: Vec::new(),
+            traits: SharedVec::new(),
+            impls: SharedVec::new(),
             globals: SharedVec::new(),
             imports: Vec::new(),
             interner,

@@ -6,7 +6,7 @@ use crate::vm::{FileId, SemAnalysis};
 use dora_parser::lexer::position::Position;
 
 pub fn check(sa: &mut SemAnalysis) {
-    for ximpl in &sa.impls {
+    for ximpl in sa.impls.iter() {
         let impl_for = {
             let ximpl = ximpl.read();
             let xtrait = sa.traits[ximpl.trait_id()].read();

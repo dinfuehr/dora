@@ -1,6 +1,7 @@
 use parking_lot::RwLock;
 
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
@@ -13,6 +14,7 @@ use crate::language::sem_analysis::{
     TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
+use crate::utils::Id;
 use crate::vm::{FileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -21,6 +23,22 @@ pub struct ImplId(u32);
 impl From<u32> for ImplId {
     fn from(data: u32) -> ImplId {
         ImplId(data)
+    }
+}
+
+impl Id for ImplData {
+    type IdType = ImplId;
+
+    fn id_to_usize(id: ImplId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> ImplId {
+        ImplId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut ImplData, id: ImplId) {
+        value.id = id;
     }
 }
 

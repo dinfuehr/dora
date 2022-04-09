@@ -1,5 +1,6 @@
 use parking_lot::RwLock;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
@@ -11,6 +12,7 @@ use crate::language::sem_analysis::{
     namespace_path, FctDefinitionId, NamespaceId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::utils::Id;
 use crate::vm::{ClassInstanceId, FileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -25,6 +27,22 @@ impl TraitDefinitionId {
 impl From<u32> for TraitDefinitionId {
     fn from(data: u32) -> TraitDefinitionId {
         TraitDefinitionId(data)
+    }
+}
+
+impl Id for TraitDefinition {
+    type IdType = TraitDefinitionId;
+
+    fn id_to_usize(id: TraitDefinitionId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> TraitDefinitionId {
+        TraitDefinitionId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut TraitDefinition, id: TraitDefinitionId) {
+        value.id = id;
     }
 }
 

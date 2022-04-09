@@ -1,11 +1,10 @@
-use parking_lot::RwLock;
 use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::gc::Address;
 use crate::language::sem_analysis::{namespace_path, FctDefinitionId, NamespaceId};
 use crate::language::ty::SourceType;
-use crate::utils::{GrowableVec, Id};
+use crate::utils::Id;
 use crate::vm::{FileId, VM};
 
 use dora_parser::ast;
@@ -70,11 +69,5 @@ impl GlobalDefinition {
 
     fn is_initialized(&self) -> bool {
         unsafe { *self.address_init.to_ptr::<bool>() }
-    }
-}
-
-impl GrowableVec<RwLock<GlobalDefinition>> {
-    pub fn idx(&self, index: GlobalDefinitionId) -> Arc<RwLock<GlobalDefinition>> {
-        self.idx_usize(index.0 as usize)
     }
 }

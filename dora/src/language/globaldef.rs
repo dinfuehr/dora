@@ -10,8 +10,8 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, ConstValue,
     EnumDefinition, ExtensionData, ExtensionId, FctDefinition, FctParent, GlobalDefinition,
-    ImplData, ImplId, ImportData, NamespaceData, NamespaceId, StructDefinition, TraitDefinition,
-    TraitDefinitionId, TypeParam, TypeParamDefinition,
+    ImplData, ImportData, NamespaceData, NamespaceId, StructDefinition, TraitDefinition, TypeParam,
+    TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -233,9 +233,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        let id: TraitDefinitionId = (self.sa.traits.len() as u32).into();
         let xtrait = TraitDefinition {
-            id,
+            id: 0.into(),
             file_id: self.file_id,
             ast: node.clone(),
             namespace_id: self.namespace_id,
@@ -250,7 +249,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             vtables: RwLock::new(HashMap::new()),
         };
 
-        self.sa.traits.push(RwLock::new(xtrait));
+        let id = self.sa.traits.push(xtrait);
 
         let sym = Sym::Trait(id);
         if let Some(sym) = self.insert(node.name, sym) {
@@ -294,7 +293,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         if node.trait_type.is_some() {
-            let id: ImplId = (self.sa.impls.len() as u32).into();
             let mut impl_type_params = Vec::new();
             if let Some(ref type_params) = node.type_params {
                 for param in type_params {
@@ -302,7 +300,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 }
             }
             let ximpl = ImplData {
-                id,
+                id: 0.into(),
                 file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
@@ -315,7 +313,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 static_names: HashMap::new(),
                 impl_for: HashMap::new(),
             };
-            self.sa.impls.push(RwLock::new(ximpl));
+            self.sa.impls.push(ximpl);
         } else {
             let id: ExtensionId = self.sa.extensions.len().into();
             let mut extension_type_params = Vec::new();

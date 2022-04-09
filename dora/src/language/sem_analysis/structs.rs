@@ -25,12 +25,6 @@ impl StructDefinitionId {
     }
 }
 
-impl GrowableVec<RwLock<StructDefinition>> {
-    pub fn idx(&self, index: StructDefinitionId) -> Arc<RwLock<StructDefinition>> {
-        self.idx_usize(index.0 as usize)
-    }
-}
-
 impl From<u32> for StructDefinitionId {
     fn from(data: u32) -> StructDefinitionId {
         StructDefinitionId(data)

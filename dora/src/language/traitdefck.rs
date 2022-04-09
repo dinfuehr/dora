@@ -10,7 +10,7 @@ use crate::vm::{FileId, SemAnalysis};
 use dora_parser::ast;
 
 pub fn check(sa: &SemAnalysis) {
-    for xtrait in &sa.traits {
+    for xtrait in sa.traits.iter() {
         let (trait_id, file_id, ast, namespace_id) = {
             let xtrait = xtrait.read();
             (
