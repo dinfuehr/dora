@@ -9,7 +9,8 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    namespace_path, FctDefinitionId, NamespaceDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
+    namespace_path, FctDefinitionId, NamespaceDefinitionId, TypeParam, TypeParamDefinition,
+    TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;

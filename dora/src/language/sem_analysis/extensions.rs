@@ -5,7 +5,9 @@ use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{FctDefinitionId, NamespaceDefinitionId, TypeParam, TypeParamId};
+use crate::language::sem_analysis::{
+    FctDefinitionId, NamespaceDefinitionId, TypeParam, TypeParamId,
+};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 use crate::vm::FileId;

@@ -1,5 +1,7 @@
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{FctDefinition, FctParent, GlobalDefinitionId, NamespaceDefinitionId};
+use crate::language::sem_analysis::{
+    FctDefinition, FctParent, GlobalDefinitionId, NamespaceDefinitionId,
+};
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
