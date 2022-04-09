@@ -14,6 +14,7 @@ use crate::language::sem_analysis::{
     TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::utils::Id;
 use crate::vm::{EnumInstanceId, FileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -36,6 +37,22 @@ impl Index<EnumDefinitionId> for Vec<RwLock<EnumDefinition>> {
 
     fn index(&self, index: EnumDefinitionId) -> &RwLock<EnumDefinition> {
         &self[index.0 as usize]
+    }
+}
+
+impl Id for EnumDefinition {
+    type IdType = EnumDefinitionId;
+
+    fn id_to_usize(id: EnumDefinitionId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> EnumDefinitionId {
+        EnumDefinitionId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut EnumDefinition, id: EnumDefinitionId) {
+        value.id = id;
     }
 }
 
@@ -100,7 +117,8 @@ pub fn find_methods_in_enum(
     is_static: bool,
 ) -> Vec<Candidate> {
     let enum_id = object_type.enum_id().unwrap();
-    let xenum = vm.enums[enum_id].read();
+    let xenum = vm.enums.idx(enum_id);
+    let xenum = xenum.read();
 
     for &extension_id in &xenum.extensions {
         if let Some(bindings) = extension_matches(

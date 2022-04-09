@@ -225,7 +225,12 @@ impl SemAnalysis {
         SourceType::Class(cls_id, type_list)
     }
 
-    pub fn add_file(&self, path: Option<PathBuf>, namespace_id: NamespaceId, ast: Arc<ast::File>) {
+    pub fn add_file(
+        &mut self,
+        path: Option<PathBuf>,
+        namespace_id: NamespaceId,
+        ast: Arc<ast::File>,
+    ) {
         let mut files = self.files.write();
         let file_id = (files.len() as u32).into();
         files.push(File {

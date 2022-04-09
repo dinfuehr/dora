@@ -105,14 +105,14 @@ pub struct FullSemAnalysis {
     pub consts: SharedVec<ConstDefinition>, // stores all const definitions
     pub structs: SharedVec<StructDefinition>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
-    pub classes: GrowableVec<RwLock<ClassDefinition>>, // stores all class source definitions
+    pub classes: SharedVec<ClassDefinition>, // stores all class source definitions
     pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,              // stores all tuple definitions
     pub annotations: GrowableVec<RwLock<AnnotationDefinition>>, // stores all annotation source definitions
     pub namespaces: Vec<RwLock<NamespaceData>>,                 // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub enums: Vec<RwLock<EnumDefinition>>,       // stores all enum source definitions
+    pub enums: SharedVec<EnumDefinition>,         // stores all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
     pub traits: Vec<RwLock<TraitDefinition>>,     // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,             // stores all impl definitions
@@ -164,13 +164,13 @@ impl FullSemAnalysis {
             consts: SharedVec::new(),
             structs: SharedVec::new(),
             struct_defs: GrowableVec::new(),
-            classes: GrowableVec::new(),
+            classes: SharedVec::new(),
             class_defs: GrowableVec::new(),
             extensions: Vec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: GrowableVec::new(),
             namespaces,
-            enums: Vec::new(),
+            enums: SharedVec::new(),
             enum_defs: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
@@ -266,7 +266,7 @@ pub struct VM {
     pub consts: SharedVec<ConstDefinition>, // stores all const definitions
     pub structs: SharedVec<StructDefinition>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
-    pub classes: GrowableVec<RwLock<ClassDefinition>>, // stores all class source definitions
+    pub classes: SharedVec<ClassDefinition>, // stores all class source definitions
     pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
     pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,              // stores all tuple definitions
@@ -275,14 +275,14 @@ pub struct VM {
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
-    pub enums: Vec<RwLock<EnumDefinition>>, // store all enum source definitions
+    pub enums: SharedVec<EnumDefinition>, // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
     pub traits: Vec<RwLock<TraitDefinition>>, // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,       // stores all impl definitions
-    pub code_map: CodeMap,                  // stores all compiled functions
+    pub impls: Vec<RwLock<ImplData>>,     // stores all impl definitions
+    pub code_map: CodeMap,                // stores all compiled functions
     pub globals: SharedVec<GlobalDefinition>, // stores all global variables
-    pub imports: Vec<ImportData>,           // stores all imports
-    pub gc: Gc,                             // garbage collector
+    pub imports: Vec<ImportData>,         // stores all imports
+    pub gc: Gc,                           // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub compile_stub: Mutex<Address>,
@@ -337,13 +337,13 @@ impl VM {
             consts: SharedVec::new(),
             structs: SharedVec::new(),
             struct_defs: GrowableVec::new(),
-            classes: GrowableVec::new(),
+            classes: SharedVec::new(),
             class_defs: GrowableVec::new(),
             extensions: Vec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: GrowableVec::new(),
             namespaces,
-            enums: Vec::new(),
+            enums: SharedVec::new(),
             enum_defs: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),

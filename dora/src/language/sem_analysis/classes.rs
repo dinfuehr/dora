@@ -13,7 +13,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::GrowableVec;
+use crate::utils::{GrowableVec, Id};
 use crate::vm::{replace_type_param, ClassInstanceId, Field, FieldId, FileId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -44,6 +44,22 @@ impl From<usize> for ClassDefinitionId {
 impl GrowableVec<RwLock<ClassDefinition>> {
     pub fn idx(&self, index: ClassDefinitionId) -> Arc<RwLock<ClassDefinition>> {
         self.idx_usize(index.0)
+    }
+}
+
+impl Id for ClassDefinition {
+    type IdType = ClassDefinitionId;
+
+    fn id_to_usize(id: ClassDefinitionId) -> usize {
+        id.0
+    }
+
+    fn usize_to_id(value: usize) -> ClassDefinitionId {
+        ClassDefinitionId(value)
+    }
+
+    fn store_id(value: &mut ClassDefinition, id: ClassDefinitionId) {
+        value.id = id;
     }
 }
 

@@ -8,11 +8,10 @@ use crate::gc::Address;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
-    ConstDefinition, ConstValue, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId,
-    FctDefinition, FctParent, GlobalDefinition, ImplData, ImplId, ImportData, NamespaceData,
-    NamespaceId, StructDefinition, TraitDefinition, TraitDefinitionId, TypeParam,
-    TypeParamDefinition,
+    AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, ConstValue,
+    EnumDefinition, ExtensionData, ExtensionId, FctDefinition, FctParent, GlobalDefinition,
+    ImplData, ImplId, ImportData, NamespaceData, NamespaceId, StructDefinition, TraitDefinition,
+    TraitDefinitionId, TypeParam, TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -364,16 +363,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
-        let id = {
-            let mut classes = self.sa.classes.lock();
-
-            let id: ClassDefinitionId = classes.len().into();
-            let cls = ClassDefinition::new(&self.sa, id, self.file_id, node, self.namespace_id);
-
-            classes.push(Arc::new(RwLock::new(cls)));
-
-            id
-        };
+        let cls = ClassDefinition::new(&self.sa, 0.into(), self.file_id, node, self.namespace_id);
+        let id = self.sa.classes.push(cls);
 
         let sym = Sym::Class(id);
 
@@ -451,9 +442,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        let id: EnumDefinitionId = self.sa.enums.len().into();
         let mut xenum = EnumDefinition {
-            id,
+            id: 0.into(),
             file_id: self.file_id,
             namespace_id: self.namespace_id,
             ast: node.clone(),
@@ -476,7 +466,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             }
         }
 
-        self.sa.enums.push(RwLock::new(xenum));
+        let id = self.sa.enums.push(xenum);
 
         let sym = Sym::Enum(id);
         if let Some(sym) = self.insert(node.name, sym) {

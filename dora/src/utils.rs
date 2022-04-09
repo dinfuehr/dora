@@ -1,4 +1,6 @@
 use parking_lot::{Mutex, MutexGuard, RwLock};
+
+use std::ops::Index;
 use std::sync::Arc;
 
 pub struct GrowableVec<T> {
@@ -105,6 +107,13 @@ impl<T: Id> SharedVec<T> {
             idx: 0,
             len: self.elements.len(),
         }
+    }
+}
+
+impl<T: Id> Index<T::IdType> for SharedVec<T> {
+    type Output = ElementType<T>;
+    fn index(&self, index: T::IdType) -> &ElementType<T> {
+        &self.elements[T::id_to_usize(index)]
     }
 }
 

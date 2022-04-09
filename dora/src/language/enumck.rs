@@ -14,14 +14,14 @@ use crate::language::{read_type, AllowSelf, TypeParamContext};
 use crate::vm::{FileId, SemAnalysis};
 
 pub fn check(sa: &SemAnalysis) {
-    for xenum in &sa.enums {
+    for xenum in sa.enums.iter() {
         let ast = xenum.read().ast.clone();
 
         let mut enumck = EnumCheck {
             sa,
             file_id: xenum.read().file_id,
             ast: &ast,
-            xenum,
+            xenum: &xenum,
         };
 
         enumck.check();
@@ -144,7 +144,7 @@ impl<'x> EnumCheck<'x> {
 }
 
 pub fn check_variants(sa: &SemAnalysis) {
-    for xenum in &sa.enums {
+    for xenum in sa.enums.iter() {
         let mut xenum = xenum.write();
         let ast = xenum.ast.clone();
 
