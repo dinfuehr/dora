@@ -103,7 +103,7 @@ pub struct FullSemAnalysis {
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub consts: SharedVec<ConstDefinition>, // stores all const definitions
-    pub structs: GrowableVec<RwLock<StructDefinition>>, // stores all struct source definitions
+    pub structs: SharedVec<StructDefinition>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<ClassDefinition>>, // stores all class source definitions
     pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
@@ -162,7 +162,7 @@ impl FullSemAnalysis {
             args,
             files: Arc::new(RwLock::new(Vec::new())),
             consts: SharedVec::new(),
-            structs: GrowableVec::new(),
+            structs: SharedVec::new(),
             struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
             class_defs: GrowableVec::new(),
@@ -264,7 +264,7 @@ pub struct VM {
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub consts: SharedVec<ConstDefinition>, // stores all const definitions
-    pub structs: GrowableVec<RwLock<StructDefinition>>, // stores all struct source definitions
+    pub structs: SharedVec<StructDefinition>, // stores all struct source definitions
     pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<ClassDefinition>>, // stores all class source definitions
     pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
@@ -335,7 +335,7 @@ impl VM {
             args,
             files: Arc::new(RwLock::new(Vec::new())),
             consts: SharedVec::new(),
-            structs: GrowableVec::new(),
+            structs: SharedVec::new(),
             struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
             class_defs: GrowableVec::new(),

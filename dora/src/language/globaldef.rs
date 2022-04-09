@@ -11,8 +11,8 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
     ConstDefinition, ConstValue, EnumDefinition, EnumDefinitionId, ExtensionData, ExtensionId,
     FctDefinition, FctParent, GlobalDefinition, ImplData, ImplId, ImportData, NamespaceData,
-    NamespaceId, StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId,
-    TypeParam, TypeParamDefinition,
+    NamespaceId, StructDefinition, TraitDefinition, TraitDefinitionId, TypeParam,
+    TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -383,39 +383,33 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
-        let id = {
-            let mut structs = self.sa.structs.lock();
-            let id: StructDefinitionId = (structs.len() as u32).into();
-            let mut xstruct = StructDefinition {
-                id,
-                file_id: self.file_id,
-                ast: node.clone(),
-                namespace_id: self.namespace_id,
-                primitive_ty: None,
-                is_pub: node.is_pub,
-                pos: node.pos,
-                name: node.name,
-                internal: node.internal,
-                internal_resolved: false,
-                type_params: Vec::new(),
-                type_params2: TypeParamDefinition::new(),
-                fields: Vec::new(),
-                field_names: HashMap::new(),
-                specializations: RwLock::new(HashMap::new()),
-                impls: Vec::new(),
-                extensions: Vec::new(),
-            };
-
-            if let Some(ref type_params) = node.type_params {
-                for param in type_params {
-                    xstruct.type_params.push(TypeParam::new(param.name));
-                }
-            }
-
-            structs.push(Arc::new(RwLock::new(xstruct)));
-
-            id
+        let mut xstruct = StructDefinition {
+            id: 0.into(),
+            file_id: self.file_id,
+            ast: node.clone(),
+            namespace_id: self.namespace_id,
+            primitive_ty: None,
+            is_pub: node.is_pub,
+            pos: node.pos,
+            name: node.name,
+            internal: node.internal,
+            internal_resolved: false,
+            type_params: Vec::new(),
+            type_params2: TypeParamDefinition::new(),
+            fields: Vec::new(),
+            field_names: HashMap::new(),
+            specializations: RwLock::new(HashMap::new()),
+            impls: Vec::new(),
+            extensions: Vec::new(),
         };
+
+        if let Some(ref type_params) = node.type_params {
+            for param in type_params {
+                xstruct.type_params.push(TypeParam::new(param.name));
+            }
+        }
+
+        let id = self.sa.structs.push(xstruct);
 
         let sym = Sym::Struct(id);
         if let Some(sym) = self.insert(node.name, sym) {

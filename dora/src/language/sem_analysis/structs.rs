@@ -1,4 +1,5 @@
 use std::collections::hash_map::HashMap;
+use std::convert::TryInto;
 use std::sync::Arc;
 
 use parking_lot::RwLock;
@@ -12,7 +13,7 @@ use crate::language::sem_analysis::{
     TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::GrowableVec;
+use crate::utils::{GrowableVec, Id};
 use crate::vm::{FileId, SemAnalysis, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -33,6 +34,22 @@ impl GrowableVec<RwLock<StructDefinition>> {
 impl From<u32> for StructDefinitionId {
     fn from(data: u32) -> StructDefinitionId {
         StructDefinitionId(data)
+    }
+}
+
+impl Id for StructDefinition {
+    type IdType = StructDefinitionId;
+
+    fn id_to_usize(id: StructDefinitionId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> StructDefinitionId {
+        StructDefinitionId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut StructDefinition, id: StructDefinitionId) {
+        value.id = id;
     }
 }
 
