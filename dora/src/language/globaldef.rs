@@ -10,8 +10,8 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ConstDefinition, ConstValue,
     EnumDefinition, ExtensionData, ExtensionId, FctDefinition, FctParent, GlobalDefinition,
-    ImplData, ImportData, NamespaceData, NamespaceId, StructDefinition, TraitDefinition, TypeParam,
-    TypeParamDefinition,
+    ImplDefinition, ImportData, NamespaceData, NamespaceId, StructDefinition, TraitDefinition,
+    TypeParam, TypeParamDefinition,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -299,7 +299,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                     impl_type_params.push(TypeParam::new(param.name));
                 }
             }
-            let ximpl = ImplData {
+            let ximpl = ImplDefinition {
                 id: 0.into(),
                 file_id: self.file_id,
                 ast: node.clone(),

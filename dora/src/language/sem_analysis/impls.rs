@@ -18,33 +18,33 @@ use crate::utils::Id;
 use crate::vm::{FileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ImplId(u32);
+pub struct ImplDefinitionId(u32);
 
-impl From<u32> for ImplId {
-    fn from(data: u32) -> ImplId {
-        ImplId(data)
+impl From<u32> for ImplDefinitionId {
+    fn from(data: u32) -> ImplDefinitionId {
+        ImplDefinitionId(data)
     }
 }
 
-impl Id for ImplData {
-    type IdType = ImplId;
+impl Id for ImplDefinition {
+    type IdType = ImplDefinitionId;
 
-    fn id_to_usize(id: ImplId) -> usize {
+    fn id_to_usize(id: ImplDefinitionId) -> usize {
         id.0 as usize
     }
 
-    fn usize_to_id(value: usize) -> ImplId {
-        ImplId(value.try_into().unwrap())
+    fn usize_to_id(value: usize) -> ImplDefinitionId {
+        ImplDefinitionId(value.try_into().unwrap())
     }
 
-    fn store_id(value: &mut ImplData, id: ImplId) {
+    fn store_id(value: &mut ImplDefinition, id: ImplDefinitionId) {
         value.id = id;
     }
 }
 
 #[derive(Debug)]
-pub struct ImplData {
-    pub id: ImplId,
+pub struct ImplDefinition {
+    pub id: ImplDefinitionId,
     pub file_id: FileId,
     pub ast: Arc<ast::Impl>,
     pub namespace_id: NamespaceId,
@@ -58,7 +58,7 @@ pub struct ImplData {
     pub impl_for: HashMap<FctDefinitionId, FctDefinitionId>,
 }
 
-impl ImplData {
+impl ImplDefinition {
     pub fn trait_id(&self) -> TraitDefinitionId {
         self.trait_id.expect("trait_id not initialized yet.")
     }
@@ -68,10 +68,10 @@ impl ImplData {
     }
 }
 
-impl Index<ImplId> for Vec<RwLock<ImplData>> {
-    type Output = RwLock<ImplData>;
+impl Index<ImplDefinitionId> for Vec<RwLock<ImplDefinition>> {
+    type Output = RwLock<ImplDefinition>;
 
-    fn index(&self, index: ImplId) -> &RwLock<ImplData> {
+    fn index(&self, index: ImplDefinitionId) -> &RwLock<ImplDefinition> {
         &self[index.0 as usize]
     }
 }
@@ -81,7 +81,7 @@ pub fn impl_matches(
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
     check_type_param_defs2: Option<&TypeParamDefinition>,
-    impl_id: ImplId,
+    impl_id: ImplDefinitionId,
 ) -> Option<SourceTypeArray> {
     let ximpl = vm.impls[impl_id].read();
     extension_matches_ty(

@@ -6,7 +6,7 @@ use crate::language::access::{
 };
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    ensure_tuple, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinition, ImplData,
+    ensure_tuple, ClassDefinitionId, EnumDefinitionId, ExtensionId, FctDefinition, ImplDefinition,
     StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
@@ -23,7 +23,7 @@ pub enum TypeParamContext<'a> {
     Struct(StructDefinitionId),
     Fct(&'a FctDefinition),
     Trait(TraitDefinitionId),
-    Impl(&'a ImplData),
+    Impl(&'a ImplDefinition),
     Extension(ExtensionId),
     None,
 }

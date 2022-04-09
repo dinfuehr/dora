@@ -15,7 +15,7 @@ use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionData, FctDefinition,
-    FctDefinitionId, GlobalDefinition, ImplData, ImportData, NamespaceData, NamespaceId,
+    FctDefinitionId, GlobalDefinition, ImplDefinition, ImportData, NamespaceData, NamespaceId,
     StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, TraitDefinitionId,
     Tuples,
 };
@@ -115,7 +115,7 @@ pub struct FullSemAnalysis {
     pub enums: SharedVec<EnumDefinition>,         // stores all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>,     // stores all enum definitions
     pub traits: SharedVec<TraitDefinition>,       // stores all trait definitions
-    pub impls: SharedVec<ImplData>,               // stores all impl definitions
+    pub impls: SharedVec<ImplDefinition>,         // stores all impl definitions
     pub globals: SharedVec<GlobalDefinition>,     // stores all global variables
     pub imports: Vec<ImportData>,                 // stores all imports
     pub native_stubs: Mutex<NativeStubs>,
@@ -278,7 +278,7 @@ pub struct VM {
     pub enums: SharedVec<EnumDefinition>, // store all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
     pub traits: SharedVec<TraitDefinition>, // stores all trait definitions
-    pub impls: SharedVec<ImplData>,       // stores all impl definitions
+    pub impls: SharedVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                // stores all compiled functions
     pub globals: SharedVec<GlobalDefinition>, // stores all global variables
     pub imports: Vec<ImportData>,         // stores all imports

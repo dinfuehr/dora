@@ -8,8 +8,8 @@ use dora_parser::interner::Name;
 use dora_parser::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches, impl_matches, namespace_path, ExtensionId, FctDefinitionId, ImplId,
-    NamespaceId, TraitDefinitionId,
+    extension_matches, impl_matches, namespace_path, ExtensionId, FctDefinitionId,
+    ImplDefinitionId, NamespaceId, TraitDefinitionId,
 };
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -87,7 +87,7 @@ pub struct ClassDefinition {
     pub methods: Vec<FctDefinitionId>,
     pub virtual_fcts: Vec<FctDefinitionId>,
 
-    pub impls: Vec<ImplId>,
+    pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionId>,
 
     pub type_params: Vec<TypeParam>,

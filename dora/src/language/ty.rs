@@ -5,8 +5,8 @@ use std::sync::Arc;
 use crate::bytecode::BytecodeType;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, impl_matches, ClassDefinition, ClassDefinitionId, EnumDefinition,
-    EnumDefinitionId, FctDefinition, ImplId, StructDefinitionId, TraitDefinitionId, TupleId,
-    TypeParam, TypeParamDefinition, TypeParamId,
+    EnumDefinitionId, FctDefinition, ImplDefinitionId, StructDefinitionId, TraitDefinitionId,
+    TupleId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::mem;
 use crate::mode::MachineMode;
@@ -734,7 +734,7 @@ pub fn find_impl(
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
     trait_id: TraitDefinitionId,
-) -> Option<ImplId> {
+) -> Option<ImplDefinitionId> {
     match check_ty {
         SourceType::Tuple(_)
         | SourceType::Unit
@@ -816,8 +816,8 @@ pub fn check_impls(
     check_type_param_defs: &[TypeParam],
     check_type_param_defs2: Option<&TypeParamDefinition>,
     trait_id: TraitDefinitionId,
-    impls: &[ImplId],
-) -> Option<ImplId> {
+    impls: &[ImplDefinitionId],
+) -> Option<ImplDefinitionId> {
     for &impl_id in impls {
         let ximpl = &sa.impls[impl_id];
         let ximpl = ximpl.read();
