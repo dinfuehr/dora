@@ -234,15 +234,15 @@ impl SemAnalysis {
         path: Option<PathBuf>,
         namespace_id: NamespaceDefinitionId,
         ast: Arc<ast::File>,
-    ) {
-        let mut files = self.files.write();
-        let file_id = (files.len() as u32).into();
-        files.push(File {
+    ) -> FileId {
+        let file_id = (self.files.len() as u32).into();
+        self.files.push(File {
             id: file_id,
             path,
             namespace_id,
             ast,
         });
+        file_id
     }
 
     pub fn namespace_table(&self, namespace_id: NamespaceDefinitionId) -> Arc<RwLock<SymTable>> {
@@ -268,7 +268,7 @@ impl SemAnalysis {
     }
 
     pub fn file(&self, idx: FileId) -> Arc<ast::File> {
-        self.files.read().get(idx.to_usize()).unwrap().ast.clone()
+        self.files[idx.to_usize()].ast.clone()
     }
 
     pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {

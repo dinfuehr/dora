@@ -99,7 +99,7 @@ pub struct FullSemAnalysis {
     pub args: Args,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
-    pub files: Arc<RwLock<Vec<File>>>,
+    pub files: Vec<File>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
@@ -150,7 +150,7 @@ impl FullSemAnalysis {
 
         let sa = Box::new(FullSemAnalysis {
             args,
-            files: Arc::new(RwLock::new(Vec::new())),
+            files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
             struct_defs: GrowableVec::new(),
@@ -250,7 +250,7 @@ pub struct VM {
     pub args: Args,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
-    pub files: Arc<RwLock<Vec<File>>>,
+    pub files: Vec<File>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
@@ -313,7 +313,7 @@ impl VM {
 
         let vm = Box::new(VM {
             args,
-            files: Arc::new(RwLock::new(Vec::new())),
+            files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
             struct_defs: GrowableVec::new(),

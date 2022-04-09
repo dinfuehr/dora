@@ -1,5 +1,5 @@
 use parking_lot::RwLock;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -23,40 +23,47 @@ use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
 pub fn check(sa: &mut SemAnalysis) -> Result<(), i32> {
-    parse_initial_files(sa)?;
+    let mut files_to_scan: VecDeque<ScanFile> = VecDeque::new();
+    let mut files_to_parse: VecDeque<ParseFile> = VecDeque::new();
 
-    let mut next_file = 0;
-
-    loop {
-        let (next, files_to_parse) = check_files(sa, next_file);
-        next_file = next;
-
-        if files_to_parse.is_empty() {
-            break;
+    {
+        for file in &sa.files {
+            files_to_scan.push_back(ScanFile {
+                file_id: file.id,
+                path: None,
+                namespace_id: file.namespace_id,
+                ast: file.ast.clone(),
+            });
         }
+    }
 
-        for file in files_to_parse {
-            parse_file(sa, file)?;
-        }
+    parse_initial_files(sa, &mut files_to_scan)?;
+
+    while !files_to_scan.is_empty() {
+        scan_files(sa, &mut files_to_scan, &mut files_to_parse);
+        parse_files(sa, &mut files_to_parse, &mut files_to_scan)?;
     }
 
     Ok(())
 }
 
-fn parse_initial_files(sa: &mut SemAnalysis) -> Result<(), i32> {
+fn parse_initial_files(
+    sa: &mut SemAnalysis,
+    files_to_scan: &mut VecDeque<ScanFile>,
+) -> Result<(), i32> {
     let stdlib_dir = sa.args.flag_stdlib.clone();
     let namespace_id = sa.stdlib_namespace_id;
 
     if let Some(stdlib) = stdlib_dir {
-        parse_dir(sa, &stdlib, namespace_id)?;
+        parse_dir(sa, &stdlib, namespace_id, files_to_scan)?;
     } else {
-        parse_bundled_stdlib(sa, namespace_id)?;
+        parse_bundled_stdlib(sa, namespace_id, files_to_scan)?;
     }
 
     let boots_dir = sa.args.flag_boots.clone();
 
     if let Some(boots) = boots_dir {
-        parse_dir(sa, &boots, sa.boots_namespace_id)?;
+        parse_dir(sa, &boots, sa.boots_namespace_id, files_to_scan)?;
     }
 
     if sa.parse_arg_file && !sa.args.arg_file.is_empty() {
@@ -68,9 +75,10 @@ fn parse_initial_files(sa: &mut SemAnalysis) -> Result<(), i32> {
                 path: PathBuf::from(path),
                 namespace_id: sa.global_namespace_id,
             };
-            parse_file(sa, file)?;
+            let file = parse_file(sa, &file)?;
+            files_to_scan.push_back(file);
         } else if path.is_dir() {
-            parse_dir(sa, &arg_file, sa.global_namespace_id)?;
+            parse_dir(sa, &arg_file, sa.global_namespace_id, files_to_scan)?;
         } else {
             println!("file or directory `{}` does not exist.", &arg_file);
             return Err(1);
@@ -80,30 +88,35 @@ fn parse_initial_files(sa: &mut SemAnalysis) -> Result<(), i32> {
     Ok(())
 }
 
-fn check_files(sa: &mut SemAnalysis, start: usize) -> (usize, Vec<ParseFile>) {
-    let files = sa.files.clone();
-    let files = files.read();
-
-    let mut files_to_parse = Vec::new();
-
-    for file in &files[start..] {
+fn scan_files(
+    sa: &mut SemAnalysis,
+    files_to_scan: &mut VecDeque<ScanFile>,
+    files_to_parse: &mut VecDeque<ParseFile>,
+) {
+    while !files_to_scan.is_empty() {
+        let ScanFile {
+            file_id,
+            path,
+            namespace_id,
+            ast,
+        } = files_to_scan.pop_front().expect("no element");
         let mut gdef = GlobalDef {
             sa,
-            file_id: file.id,
-            namespace_id: file.namespace_id,
-            files_to_parse: &mut files_to_parse,
+            file_id,
+            path,
+            namespace_id,
+            files_to_parse,
         };
 
-        gdef.visit_file(&file.ast);
+        gdef.visit_file(&ast);
     }
-
-    (files.len(), files_to_parse)
 }
 
 fn parse_dir(
     sa: &mut SemAnalysis,
     dirname: &str,
     namespace_id: NamespaceDefinitionId,
+    files_to_scan: &mut VecDeque<ScanFile>,
 ) -> Result<(), i32> {
     let path = Path::new(dirname);
 
@@ -116,7 +129,8 @@ fn parse_dir(
                     path: PathBuf::from(path),
                     namespace_id,
                 };
-                parse_file(sa, file)?;
+                let file = parse_file(sa, &file)?;
+                files_to_scan.push_back(file);
             }
         }
 
@@ -128,9 +142,23 @@ fn parse_dir(
     }
 }
 
-fn parse_file(sa: &mut SemAnalysis, file: ParseFile) -> Result<(), i32> {
+fn parse_files(
+    sa: &mut SemAnalysis,
+    files_to_parse: &mut VecDeque<ParseFile>,
+    files_to_scan: &mut VecDeque<ScanFile>,
+) -> Result<(), i32> {
+    while !files_to_parse.is_empty() {
+        let file = files_to_parse.pop_front().expect("no file");
+        let file = parse_file(sa, &file)?;
+        files_to_scan.push_back(file);
+    }
+
+    Ok(())
+}
+
+fn parse_file(sa: &mut SemAnalysis, file: &ParseFile) -> Result<ScanFile, i32> {
     let namespace_id = file.namespace_id;
-    let path = file.path;
+    let path = file.path.clone();
 
     let reader = match Reader::from_file(path.to_str().unwrap()) {
         Ok(reader) => reader,
@@ -145,8 +173,14 @@ fn parse_file(sa: &mut SemAnalysis, file: ParseFile) -> Result<(), i32> {
 
     match parser.parse() {
         Ok(ast) => {
-            sa.add_file(Some(path), namespace_id, Arc::new(ast));
-            Ok(())
+            let ast = Arc::new(ast);
+            let file_id = sa.add_file(Some(path.clone()), namespace_id, ast.clone());
+            Ok(ScanFile {
+                file_id,
+                namespace_id: file.namespace_id,
+                path: Some(path.clone()),
+                ast,
+            })
         }
 
         Err(error) => {
@@ -163,14 +197,16 @@ fn parse_file(sa: &mut SemAnalysis, file: ParseFile) -> Result<(), i32> {
     }
 }
 
-pub fn parse_bundled_stdlib(
+fn parse_bundled_stdlib(
     sa: &mut SemAnalysis,
     namespace_id: NamespaceDefinitionId,
+    files_to_scan: &mut VecDeque<ScanFile>,
 ) -> Result<(), i32> {
     use crate::driver::start::STDLIB;
 
     for (filename, content) in STDLIB {
-        parse_bundled_stdlib_file(sa, namespace_id, filename, content)?;
+        let file = parse_bundled_stdlib_file(sa, namespace_id, filename, content)?;
+        files_to_scan.push_back(file);
     }
 
     Ok(())
@@ -181,14 +217,21 @@ fn parse_bundled_stdlib_file(
     namespace_id: NamespaceDefinitionId,
     filename: &str,
     content: &str,
-) -> Result<(), i32> {
+) -> Result<ScanFile, i32> {
     let reader = Reader::from_string(filename, content);
     let parser = Parser::new(reader, &sa.id_generator, &mut sa.interner);
 
     match parser.parse() {
         Ok(ast) => {
-            sa.add_file(None, namespace_id, Arc::new(ast));
-            Ok(())
+            let ast = Arc::new(ast);
+            let file_id = sa.add_file(None, namespace_id, ast.clone());
+            let path = PathBuf::from(filename);
+            Ok(ScanFile {
+                file_id,
+                path: Some(path),
+                namespace_id,
+                ast,
+            })
         }
 
         Err(error) => {
@@ -210,11 +253,19 @@ struct ParseFile {
     namespace_id: NamespaceDefinitionId,
 }
 
+struct ScanFile {
+    file_id: FileId,
+    path: Option<PathBuf>,
+    namespace_id: NamespaceDefinitionId,
+    ast: Arc<ast::File>,
+}
+
 struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
     file_id: FileId,
+    path: Option<PathBuf>,
     namespace_id: NamespaceDefinitionId,
-    files_to_parse: &'x mut Vec<ParseFile>,
+    files_to_parse: &'x mut VecDeque<ParseFile>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
@@ -483,34 +534,27 @@ impl<'x> GlobalDef<'x> {
         node: &ast::Namespace,
         namespace_id: NamespaceDefinitionId,
     ) {
-        let files = self.sa.files.clone();
-        let files = files.read();
-        let file = &files[self.file_id.to_usize()];
+        let mut dir_path = self.path.as_ref().expect("no path").clone();
+        dir_path.pop();
+        let name = self.sa.interner.str(node.name).to_string();
+        dir_path.push(&name);
 
-        if let Some(mut path) = file.path.clone() {
-            path.pop();
-            let name = self.sa.interner.str(node.name).to_string();
-            path.push(&name);
+        if dir_path.is_dir() {
+            for entry in fs::read_dir(dir_path).unwrap() {
+                let path = entry.unwrap().path();
 
-            if path.is_dir() {
-                for entry in fs::read_dir(path).unwrap() {
-                    let path = entry.unwrap().path();
-
-                    if should_file_be_parsed(&path) {
-                        self.files_to_parse.push(ParseFile {
-                            path,
-                            namespace_id: namespace_id,
-                        });
-                    }
+                if should_file_be_parsed(&path) {
+                    self.files_to_parse.push_back(ParseFile {
+                        path,
+                        namespace_id: namespace_id,
+                    });
                 }
-            } else {
-                self.sa
-                    .diag
-                    .lock()
-                    .report(self.file_id, node.pos, SemError::DirectoryNotFound);
             }
         } else {
-            unimplemented!();
+            self.sa
+                .diag
+                .lock()
+                .report(self.file_id, node.pos, SemError::DirectoryNotFound);
         }
     }
 
