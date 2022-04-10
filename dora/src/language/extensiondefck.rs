@@ -20,7 +20,7 @@ pub fn check(sa: &SemAnalysis) {
             let extension = extension.read();
 
             (
-                extension.id,
+                extension.id(),
                 extension.file_id,
                 extension.namespace_id,
                 extension.ast.clone(),

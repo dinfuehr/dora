@@ -43,13 +43,13 @@ impl Id for TraitDefinition {
     }
 
     fn store_id(value: &mut TraitDefinition, id: TraitDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Debug)]
 pub struct TraitDefinition {
-    pub id: TraitDefinitionId,
+    pub id: Option<TraitDefinitionId>,
     pub file_id: FileId,
     pub namespace_id: NamespaceDefinitionId,
     pub is_pub: bool,
@@ -65,6 +65,10 @@ pub struct TraitDefinition {
 }
 
 impl TraitDefinition {
+    pub fn id(&self) -> TraitDefinitionId {
+        self.id.expect("id missing")
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }

@@ -26,7 +26,7 @@ impl Id for GlobalDefinition {
     }
 
     fn store_id(value: &mut GlobalDefinition, id: GlobalDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
@@ -44,7 +44,7 @@ impl From<u32> for GlobalDefinitionId {
 
 #[derive(Debug)]
 pub struct GlobalDefinition {
-    pub id: GlobalDefinitionId,
+    pub id: Option<GlobalDefinitionId>,
     pub file_id: FileId,
     pub ast: Arc<ast::Global>,
     pub pos: Position,
@@ -59,6 +59,10 @@ pub struct GlobalDefinition {
 }
 
 impl GlobalDefinition {
+    pub fn id(&self) -> GlobalDefinitionId {
+        self.id.expect("id missing")
+    }
+
     pub fn needs_initialization(&self) -> bool {
         self.initializer.is_some() && !self.is_initialized()
     }

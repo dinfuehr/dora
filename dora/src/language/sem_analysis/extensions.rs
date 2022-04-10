@@ -44,13 +44,13 @@ impl Id for ExtensionDefinition {
     }
 
     fn store_id(value: &mut ExtensionDefinition, id: ExtensionDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Debug)]
 pub struct ExtensionDefinition {
-    pub id: ExtensionDefinitionId,
+    pub id: Option<ExtensionDefinitionId>,
     pub file_id: FileId,
     pub ast: Arc<ast::Impl>,
     pub namespace_id: NamespaceDefinitionId,
@@ -63,6 +63,10 @@ pub struct ExtensionDefinition {
 }
 
 impl ExtensionDefinition {
+    pub fn id(&self) -> ExtensionDefinitionId {
+        self.id.expect("id missing")
+    }
+
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }

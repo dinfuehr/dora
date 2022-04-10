@@ -290,7 +290,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
         let xtrait = TraitDefinition {
-            id: 0.into(),
+            id: None,
             file_id: self.file_id,
             ast: node.clone(),
             namespace_id: self.namespace_id,
@@ -325,7 +325,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
         let global = GlobalDefinition {
-            id: 0.into(),
+            id: None,
             file_id: self.file_id,
             ast: node.clone(),
             namespace_id: self.namespace_id,
@@ -356,7 +356,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 }
             }
             let ximpl = ImplDefinition {
-                id: 0.into(),
+                id: None,
                 file_id: self.file_id,
                 ast: node.clone(),
                 namespace_id: self.namespace_id,
@@ -378,7 +378,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
                 }
             }
             let extension = ExtensionDefinition {
-                id: 0.into(),
+                id: None,
                 file_id: self.file_id,
                 namespace_id: self.namespace_id,
                 ast: node.clone(),
@@ -395,7 +395,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
         let xconst = ConstDefinition {
-            id: 0.into(),
+            id: None,
             file_id: self.file_id,
             ast: node.clone(),
             namespace_id: self.namespace_id,

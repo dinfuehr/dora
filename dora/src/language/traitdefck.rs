@@ -14,7 +14,7 @@ pub fn check(sa: &SemAnalysis) {
         let (trait_id, file_id, ast, namespace_id) = {
             let xtrait = xtrait.read();
             (
-                xtrait.id,
+                xtrait.id(),
                 xtrait.file_id,
                 xtrait.ast.clone(),
                 xtrait.namespace_id,

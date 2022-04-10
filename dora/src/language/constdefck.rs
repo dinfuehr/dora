@@ -11,7 +11,7 @@ pub fn check(sa: &SemAnalysis) {
         let (const_id, file_id, ast, namespace_id) = {
             let xconst = xconst.read();
             (
-                xconst.id,
+                xconst.id(),
                 xconst.file_id,
                 xconst.ast.clone(),
                 xconst.namespace_id,

@@ -30,13 +30,13 @@ impl Id for ConstDefinition {
     }
 
     fn store_id(value: &mut ConstDefinition, id: ConstDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ConstDefinition {
-    pub id: ConstDefinitionId,
+    pub id: Option<ConstDefinitionId>,
     pub file_id: FileId,
     pub ast: Arc<ast::Const>,
     pub namespace_id: NamespaceDefinitionId,
@@ -49,6 +49,10 @@ pub struct ConstDefinition {
 }
 
 impl ConstDefinition {
+    pub fn id(&self) -> ConstDefinitionId {
+        self.id.expect("id missing")
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }

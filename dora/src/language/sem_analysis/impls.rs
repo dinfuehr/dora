@@ -38,13 +38,13 @@ impl Id for ImplDefinition {
     }
 
     fn store_id(value: &mut ImplDefinition, id: ImplDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Debug)]
 pub struct ImplDefinition {
-    pub id: ImplDefinitionId,
+    pub id: Option<ImplDefinitionId>,
     pub file_id: FileId,
     pub ast: Arc<ast::Impl>,
     pub namespace_id: NamespaceDefinitionId,
@@ -59,6 +59,10 @@ pub struct ImplDefinition {
 }
 
 impl ImplDefinition {
+    pub fn id(&self) -> ImplDefinitionId {
+        self.id.expect("id missing")
+    }
+
     pub fn trait_id(&self) -> TraitDefinitionId {
         self.trait_id.expect("trait_id not initialized yet.")
     }

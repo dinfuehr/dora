@@ -18,7 +18,7 @@ pub fn check(sa: &SemAnalysis) {
             let ximpl = ximpl.read();
 
             (
-                ximpl.id,
+                ximpl.id(),
                 ximpl.file_id,
                 ximpl.namespace_id,
                 ximpl.ast.clone(),
@@ -119,7 +119,7 @@ impl<'x> ImplCheck<'x> {
                 SourceType::Enum(enum_id, _) => {
                     let xenum = &self.sa.enums[enum_id];
                     let mut xenum = xenum.write();
-                    xenum.impls.push(ximpl.id);
+                    xenum.impls.push(ximpl.id());
                 }
 
                 SourceType::Bool
@@ -135,19 +135,19 @@ impl<'x> ImplCheck<'x> {
                         .expect("primitive expected");
                     let xstruct = self.sa.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
-                    xstruct.impls.push(ximpl.id);
+                    xstruct.impls.push(ximpl.id());
                 }
 
                 SourceType::Struct(struct_id, _) => {
                     let xstruct = self.sa.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
-                    xstruct.impls.push(ximpl.id);
+                    xstruct.impls.push(ximpl.id());
                 }
 
                 SourceType::Class(cls_id, _) => {
                     let cls = self.sa.classes.idx(cls_id);
                     let mut cls = cls.write();
-                    cls.impls.push(ximpl.id);
+                    cls.impls.push(ximpl.id());
                 }
 
                 _ => unreachable!(),

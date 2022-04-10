@@ -13,7 +13,7 @@ pub fn check<'a>(sa: &SemAnalysis) {
         let (global_id, file_id, ast, namespace_id) = {
             let global = global.read();
             (
-                global.id,
+                global.id(),
                 global.file_id,
                 global.ast.clone(),
                 global.namespace_id,
