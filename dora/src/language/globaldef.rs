@@ -295,12 +295,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_import(&mut self, node: &Arc<ast::Import>) {
-        let import = ImportDefinition {
-            namespace_id: self.namespace_id,
-            file_id: self.file_id,
-            ast: node.clone(),
-        };
-
+        let import = ImportDefinition::new(self.file_id, self.namespace_id, node);
         self.sa.imports.push(import);
     }
 
