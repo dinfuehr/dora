@@ -54,34 +54,34 @@ mod tests {
 
     #[test]
     fn returns_unit() {
-        ok("fun f() {}");
-        ok("fun f() { if true { return; } }");
-        ok("fun f() { while true { return; } }");
+        ok("fn f() {}");
+        ok("fn f() { if true { return; } }");
+        ok("fn f() { while true { return; } }");
     }
 
     #[test]
     fn returns_int() {
         err(
-            "fun f(): Int32 { }",
-            pos(1, 16),
+            "fn f(): Int32 { }",
+            pos(1, 15),
             SemError::ReturnType("Int32".into(), "()".into()),
         );
         err(
-            "fun f(): Int32 { if true { return 1; } }",
-            pos(1, 16),
+            "fn f(): Int32 { if true { return 1; } }",
+            pos(1, 15),
             SemError::ReturnType("Int32".into(), "()".into()),
         );
         err(
-            "fun f(): Int32 { if true { } else { return 1; } }",
-            pos(1, 16),
+            "fn f(): Int32 { if true { } else { return 1; } }",
+            pos(1, 15),
             SemError::ReturnType("Int32".into(), "()".into()),
         );
         err(
-            "fun f(): Int32 { while true { return 1; } }",
-            pos(1, 16),
+            "fn f(): Int32 { while true { return 1; } }",
+            pos(1, 15),
             SemError::ReturnType("Int32".into(), "()".into()),
         );
-        ok("fun f(): Int32 { if true { return 1; } else { return 2; } }");
-        ok("fun f(): Int32 { return 1; 1+2; }");
+        ok("fn f(): Int32 { if true { return 1; } else { return 2; } }");
+        ok("fn f(): Int32 { return 1; 1+2; }");
     }
 }

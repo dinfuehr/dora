@@ -116,7 +116,7 @@ mod tests {
             trait Foo {}
             class A
             impl Foo for A {
-                fun bar() {}
+                fn bar() {}
             }",
             pos(5, 17),
             SemError::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
@@ -128,7 +128,7 @@ mod tests {
         err(
             "
             trait Foo {
-                fun bar();
+                fn bar();
             }
             class A
             impl Foo for A {}",
@@ -140,13 +140,13 @@ mod tests {
     #[test]
     fn method_returning_self() {
         ok("trait Foo {
-                fun foo(): Self;
+                fn foo(): Self;
             }
 
             class A
 
             impl Foo for A {
-                fun foo(): A { return A(); }
+                fn foo(): A { return A(); }
             }");
     }
 
@@ -157,7 +157,7 @@ mod tests {
             trait Foo {}
             class A
             impl Foo for A {
-                @static fun bar() {}
+                @static fn bar() {}
             }",
             pos(5, 25),
             SemError::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
@@ -169,7 +169,7 @@ mod tests {
         err(
             "
             trait Foo {
-                @static fun bar();
+                @static fn bar();
             }
             class A
             impl Foo for A {}",
@@ -182,15 +182,15 @@ mod tests {
     fn method_return_type_check() {
         err(
             "trait X {
-                fun m(): Bool;
-                fun n(): Bool;
+                fn m(): Bool;
+                fn n(): Bool;
               }
               
               class CX
               
               impl X for CX {
-                fun m(): Int32 = 0;
-                fun n(): Bool = true;
+                fn m(): Int32 = 0;
+                fn n(): Bool = true;
               }",
             pos(9, 17),
             SemError::ReturnTypeMismatch("Int32".into(), "Bool".into()),
@@ -201,7 +201,7 @@ mod tests {
     fn impl_method_with_default_body() {
         ok("
             trait Foo {
-                fun foo(): Int32 { 1 }
+                fn foo(): Int32 { 1 }
             }
             class Bar {}
             impl Foo for Bar {}");

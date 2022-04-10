@@ -453,12 +453,12 @@ mod tests {
             SemError::ShadowClass("Foo".into()),
         );
         err(
-            "fun Foo() {} class Foo",
-            pos(1, 14),
+            "fn Foo() {} class Foo",
+            pos(1, 13),
             SemError::ShadowFunction("Foo".into()),
         );
         err(
-            "class Foo fun Foo() {}",
+            "class Foo fn Foo() {}",
             pos(1, 11),
             SemError::ShadowClass("Foo".into()),
         );
@@ -498,12 +498,12 @@ mod tests {
             SemError::ShadowStruct("Foo".into()),
         );
         err(
-            "fun Foo() {} struct Foo {}",
-            pos(1, 14),
+            "fn Foo() {} struct Foo {}",
+            pos(1, 13),
             SemError::ShadowFunction("Foo".into()),
         );
         err(
-            "struct Foo {} fun Foo() {}",
+            "struct Foo {} fn Foo() {}",
             pos(1, 15),
             SemError::ShadowStruct("Foo".into()),
         );
@@ -543,7 +543,7 @@ mod tests {
     fn test_const() {
         ok("const foo: Int32 = 0I;");
         err(
-            "const foo: Int32 = 0I; fun foo() {}",
+            "const foo: Int32 = 0I; fn foo() {}",
             pos(1, 24),
             SemError::ShadowConst("foo".into()),
         );
@@ -573,7 +573,7 @@ mod tests {
     #[test]
     fn test_namespace() {
         ok("namespace foo {} namespace bar {}");
-        ok("fun bar() {} namespace foo { fun bar() {} }");
+        ok("fn bar() {} namespace foo { fn bar() {} }");
 
         err(
             "namespace foo {} namespace foo {}",
@@ -582,8 +582,8 @@ mod tests {
         );
 
         err(
-            "namespace foo { fun bar() {} fun bar() {} }",
-            pos(1, 30),
+            "namespace foo { fn bar() {} fn bar() {} }",
+            pos(1, 29),
             SemError::ShadowFunction("bar".into()),
         );
     }

@@ -371,7 +371,7 @@ mod tests {
             "
             import foo::bar;
             namespace foo {
-                fun bar() {}
+                fn bar() {}
             }
         ",
             pos(2, 13),

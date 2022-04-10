@@ -211,10 +211,10 @@ mod tests {
         err(
             "
             trait Foo {
-                fun foo(): Int32;
+                fn foo(): Int32;
             }
             class Bar {}
-            impl Foo for Bar { fun foo(): Int32; }",
+            impl Foo for Bar { fn foo(): Int32; }",
             pos(6, 32),
             SemError::MissingFctBody,
         );
@@ -225,12 +225,12 @@ mod tests {
         err(
             "
             trait Foo {
-                fun foo(): Int32;
+                fn foo(): Int32;
             }
             class Bar {}
             impl Foo for Bar {
-                fun foo(): Int32 { return 0; }
-                fun foo(): Int32 { return 1; }
+                fn foo(): Int32 { return 0; }
+                fn foo(): Int32 { return 1; }
             }",
             pos(8, 17),
             SemError::MethodExists("foo".into(), pos(7, 17)),
@@ -264,9 +264,9 @@ mod tests {
     #[test]
     fn impl_definitions() {
         ok("trait Foo {} class A {} impl Foo for A {}");
-        ok("trait Foo { fun toBool(): Bool; }
+        ok("trait Foo { fn toBool(): Bool; }
             class A {}
-            impl Foo for A { fun toBool(): Bool { return false; } }");
+            impl Foo for A { fn toBool(): Bool { return false; } }");
     }
 
     #[test]

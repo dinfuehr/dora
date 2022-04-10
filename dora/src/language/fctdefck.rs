@@ -280,8 +280,8 @@ mod tests {
     #[test]
     fn self_param() {
         err(
-            "fun foo(x: Self) {}",
-            pos(1, 12),
+            "fn foo(x: Self) {}",
+            pos(1, 11),
             SemError::SelfTypeUnavailable,
         );
     }
@@ -289,8 +289,8 @@ mod tests {
     #[test]
     fn self_return_type() {
         err(
-            "fun foo(): Self {}",
-            pos(1, 12),
+            "fn foo(): Self {}",
+            pos(1, 11),
             SemError::SelfTypeUnavailable,
         );
     }
@@ -299,8 +299,8 @@ mod tests {
     fn allow_same_method_as_static_and_non_static() {
         err(
             "class Foo {
-                @static fun foo() {}
-                fun foo() {}
+                @static fn foo() {}
+                fn foo() {}
             }",
             pos(3, 17),
             SemError::MethodExists("foo".into(), pos(2, 25)),
@@ -309,25 +309,25 @@ mod tests {
 
     #[test]
     fn fct_with_type_params() {
-        ok("fun f[T]() {}");
-        ok("fun f[X, Y]() {}");
+        ok("fn f[T]() {}");
+        ok("fn f[X, Y]() {}");
         err(
-            "fun f[T, T]() {}",
-            pos(1, 10),
+            "fn f[T, T]() {}",
+            pos(1, 9),
             SemError::TypeParamNameNotUnique("T".into()),
         );
-        err("fun f[]() {}", pos(1, 1), SemError::TypeParamsExpected);
+        err("fn f[]() {}", pos(1, 1), SemError::TypeParamsExpected);
     }
 
     #[test]
     fn fct_with_type_param_in_annotation() {
-        ok("fun f[T](val: T) {}");
+        ok("fn f[T](val: T) {}");
     }
 
     #[test]
     fn abstract_method_in_non_abstract_class() {
         err(
-            "class A { @abstract fun foo(); }",
+            "class A { @abstract fn foo(); }",
             pos(1, 21),
             SemError::AbstractMethodNotInAbstractClass,
         );
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn abstract_method_with_implementation() {
         err(
-            "@abstract class A { @abstract fun foo() {} }",
+            "@abstract class A { @abstract fn foo() {} }",
             pos(1, 31),
             SemError::AbstractMethodWithImplementation,
         );
@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn abstract_static_method() {
         err(
-            "@abstract class A { @static @abstract fun foo(); }",
+            "@abstract class A { @static @abstract fn foo(); }",
             pos(1, 39),
             SemError::ModifierNotAllowedForStaticMethod("abstract".into()),
         );
@@ -354,7 +354,7 @@ mod tests {
     #[test]
     fn open_static_method() {
         err(
-            "@abstract class A { @static @open fun foo() {} }",
+            "@abstract class A { @static @open fn foo() {} }",
             pos(1, 35),
             SemError::ModifierNotAllowedForStaticMethod("open".into()),
         );
@@ -363,7 +363,7 @@ mod tests {
     #[test]
     fn override_static_method() {
         err(
-            "@abstract class A { @static @override fun foo() {} }",
+            "@abstract class A { @static @override fn foo() {} }",
             pos(1, 39),
             SemError::ModifierNotAllowedForStaticMethod("override".into()),
         );
@@ -372,7 +372,7 @@ mod tests {
     #[test]
     fn final_static_method() {
         err(
-            "@abstract class A { @final @static fun foo() {} }",
+            "@abstract class A { @final @static fn foo() {} }",
             pos(1, 36),
             SemError::ModifierNotAllowedForStaticMethod("final".into()),
         );
@@ -380,18 +380,18 @@ mod tests {
 
     #[test]
     fn lambdas() {
-        ok("fun f() { || {}; }");
-        ok("fun f() { |a: Int32| {}; }");
-        ok("fun f() { || -> Int32 { return 2; }; }");
+        ok("fn f() { || {}; }");
+        ok("fn f() { |a: Int32| {}; }");
+        ok("fn f() { || -> Int32 { return 2; }; }");
 
         err(
-            "fun f() { || -> Foo { }; }",
-            pos(1, 17),
+            "fn f() { || -> Foo { }; }",
+            pos(1, 16),
             SemError::UnknownIdentifier("Foo".into()),
         );
         err(
-            "fun f() { |a: Foo| { }; }",
-            pos(1, 15),
+            "fn f() { |a: Foo| { }; }",
+            pos(1, 14),
             SemError::UnknownIdentifier("Foo".into()),
         );
     }
@@ -399,21 +399,21 @@ mod tests {
     #[test]
     fn generic_bounds() {
         err(
-            "fun f[T: Foo]() {}",
-            pos(1, 10),
+            "fn f[T: Foo]() {}",
+            pos(1, 9),
             SemError::UnknownIdentifier("Foo".into()),
         );
         err(
-            "class Foo fun f[T: Foo]() {}",
-            pos(1, 20),
+            "class Foo fn f[T: Foo]() {}",
+            pos(1, 19),
             SemError::BoundExpected,
         );
-        ok("trait Foo {} fun f[T: Foo]() {}");
+        ok("trait Foo {} fn f[T: Foo]() {}");
 
         err(
             "trait Foo {}
-            fun f[T: Foo + Foo]() {  }",
-            pos(2, 19),
+            fn f[T: Foo + Foo]() {  }",
+            pos(2, 18),
             SemError::DuplicateTraitBound,
         );
     }
@@ -422,8 +422,8 @@ mod tests {
     fn check_previous_defined_type_params() {
         // Type params need to be cleaned up such that the following code is an error:
         err(
-            "fun f(a: T) {}",
-            pos(1, 10),
+            "fn f(a: T) {}",
+            pos(1, 9),
             SemError::UnknownIdentifier("T".into()),
         );
     }
