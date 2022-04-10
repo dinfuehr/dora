@@ -360,10 +360,10 @@ mod tests {
 
     #[test]
     fn extension_method() {
-        ok("class A impl A { fun foo() {} fun bar() {} }");
+        ok("class A impl A { fn foo() {} fn bar() {} }");
         err(
-            "class A impl A { fun foo() {} fun foo() {} }",
-            pos(1, 31),
+            "class A impl A { fn foo() {} fn foo() {} }",
+            pos(1, 30),
             SemError::MethodExists("foo".into(), pos(1, 18)),
         );
     }
@@ -371,16 +371,16 @@ mod tests {
     #[test]
     fn extension_defined_twice() {
         err(
-            "class A { fun foo() {} }
-            impl A { fun foo() {} }",
+            "class A { fn foo() {} }
+            impl A { fn foo() {} }",
             pos(2, 22),
             SemError::MethodExists("foo".into(), pos(1, 11)),
         );
 
         err(
             "class A
-            impl A { fun foo() {} }
-            impl A { fun foo() {} }",
+            impl A { fn foo() {} }
+            impl A { fn foo() {} }",
             pos(3, 22),
             SemError::MethodExists("foo".into(), pos(2, 22)),
         );
@@ -390,15 +390,15 @@ mod tests {
     fn extension_defined_twice_with_type_params_in_class() {
         err(
             "class Foo[T]
-            impl Foo[Int32] { fun foo() {} }
-            impl Foo[Int32] { fun foo() {} }",
+            impl Foo[Int32] { fn foo() {} }
+            impl Foo[Int32] { fn foo() {} }",
             pos(3, 31),
             SemError::MethodExists("foo".into(), pos(2, 31)),
         );
 
         ok("class Foo[T]
-            impl Foo[Int32] { fun foo() {} }
-            impl Foo[Int64] { fun foo() {} }");
+            impl Foo[Int32] { fn foo() {} }
+            impl Foo[Int64] { fn foo() {} }");
     }
 
     #[test]
@@ -417,11 +417,11 @@ mod tests {
     fn extension_enum() {
         ok("enum MyEnum { A, B } impl MyEnum {}");
         ok("enum MyEnum { A, B } impl MyEnum {} impl MyEnum {}");
-        ok("enum MyEnum { A, B } impl MyEnum { fun foo() {} fun bar() {} }");
+        ok("enum MyEnum { A, B } impl MyEnum { fn foo() {} fn bar() {} }");
 
         err(
-            "enum MyEnum { A, B } impl MyEnum { fun foo() {} fun foo() {} }",
-            pos(1, 49),
+            "enum MyEnum { A, B } impl MyEnum { fn foo() {} fn foo() {} }",
+            pos(1, 48),
             SemError::MethodExists("foo".into(), pos(1, 36)),
         );
     }
@@ -431,9 +431,9 @@ mod tests {
         ok("
             enum MyFoo[T] { A(T), B }
             impl[T] MyFoo[T] {
-                fun test(x: T) {}
+                fn test(x: T) {}
             }
-            fun test(x: MyFoo[Int32]) { x.test(1I); }
+            fn test(x: MyFoo[Int32]) { x.test(1I); }
         ");
     }
 
@@ -463,11 +463,11 @@ mod tests {
         ok("
             struct Foo { f1: Int32, f2: Int32 }
             impl Foo {
-                fun sum(): Int32 {
+                fn sum(): Int32 {
                     self.f1 + self.f2
                 }
             }
-            fun test(x: Foo): Int32 { x.sum() }
+            fn test(x: Foo): Int32 { x.sum() }
         ");
     }
 
@@ -475,9 +475,9 @@ mod tests {
     fn extension_struct_type_params() {
         ok("
             struct Foo[T](value: T)
-            trait MyTrait { fun bar(): Int32; }
+            trait MyTrait { fn bar(): Int32; }
             impl[X: MyTrait] Foo[X] {
-                fun getmyhash(): Int32 {
+                fn getmyhash(): Int32 {
                     self.value.bar()
                 }
             }
@@ -488,7 +488,7 @@ mod tests {
     fn extension_namespace() {
         err(
             "
-            impl foo::MyFoo { fun bar() {} }
+            impl foo::MyFoo { fn bar() {} }
             namespace foo { class MyFoo }
         ",
             pos(2, 18),
@@ -496,7 +496,7 @@ mod tests {
         );
 
         ok("
-            impl foo::MyFoo { fun bar() {} }
+            impl foo::MyFoo { fn bar() {} }
             namespace foo { @pub class MyFoo }
         ");
     }

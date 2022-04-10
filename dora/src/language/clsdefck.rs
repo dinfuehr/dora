@@ -342,12 +342,12 @@ mod tests {
             SemError::ShadowParam("a".into()),
         );
         err(
-            "class Foo(a: Int32) fun f(x: Foo) { x.a = 1I; }",
-            pos(1, 38),
+            "class Foo(a: Int32) fn f(x: Foo) { x.a = 1I; }",
+            pos(1, 37),
             SemError::UnknownField("a".into(), "Foo".into()),
         );
 
-        ok("class Foo(a: Int32) fun foo(): Foo { return Foo(1I); } ");
+        ok("class Foo(a: Int32) fn foo(): Foo { return Foo(1I); } ");
     }
 
     #[test]
@@ -444,8 +444,8 @@ mod tests {
     #[test]
     fn test_defining_static_method_twice() {
         err(
-            "class X { @static fun foo() {} @static fun foo(a: String) {} }",
-            pos(1, 40),
+            "class X { @static fn foo() {} @static fn foo(a: String) {} }",
+            pos(1, 39),
             SemError::MethodExists("foo".into(), pos(1, 19)),
         );
     }

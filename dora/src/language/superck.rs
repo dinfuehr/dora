@@ -122,8 +122,8 @@ fn check_fct_modifier(
     cls: &ClassDefinition,
     fct: &FctDefinition,
 ) -> Option<FctDefinitionId> {
-    // catch: class A { @open fun f() } (A is not derivable)
-    // catch: @open @final fun f()
+    // catch: class A { @open fn f() } (A is not derivable)
+    // catch: @open @final fn f()
     if fct.is_open && (!cls.is_open || fct.is_final) {
         let name = sa.interner.str(fct.name).to_string();
         sa.diag
@@ -217,23 +217,23 @@ mod tests {
     #[test]
     fn test_superfluous_override() {
         err(
-            "class A { @override fun f() {} }",
+            "class A { @override fn f() {} }",
             pos(1, 21),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { } class A: B { @override fun f() {} }",
+            "@open class B { } class A: B { @override fn f() {} }",
             pos(1, 42),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { fun g() {} } class A: B { @override fun f() {} }",
-            pos(1, 53),
+            "@open class B { fn g() {} } class A: B { @override fn f() {} }",
+            pos(1, 52),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { @open fun f(a: Int32) {} } class A: B { @override fun f() {} }",
-            pos(1, 67),
+            "@open class B { @open fn f(a: Int32) {} } class A: B { @override fn f() {} }",
+            pos(1, 66),
             SemError::OverrideMismatch,
         );
     }
@@ -241,23 +241,23 @@ mod tests {
     #[test]
     fn test_override() {
         err(
-            "@open class A { fun f() {} } class B: A { @override fun f() {} }",
-            pos(1, 53),
+            "@open class A { fn f() {} } class B: A { @override fn f() {} }",
+            pos(1, 52),
             SemError::MethodNotOverridable("f".into()),
         );
-        ok("@open class A { @open fun f() {} } class B: A { @override fun f() {} }");
-        ok("@open class A { @open fun f() {} }
-            @open class B: A { @override fun f() {} }
-            @open class C: B { @override fun f() {} }");
+        ok("@open class A { @open fn f() {} } class B: A { @override fn f() {} }");
+        ok("@open class A { @open fn f() {} }
+            @open class B: A { @override fn f() {} }
+            @open class C: B { @override fn f() {} }");
         err(
-            "@open class A { @open fun f() {} } class B: A { fun f() {} }",
-            pos(1, 49),
+            "@open class A { @open fn f() {} } class B: A { fn f() {} }",
+            pos(1, 48),
             SemError::MissingOverride("f".into()),
         );
         err(
-            "@open class A { @open fun f() {} }
-             @open class B: A { @final @override fun f() {} }
-             class C: B { @override fun f() {} }",
+            "@open class A { @open fn f() {} }
+             @open class B: A { @final @override fn f() {} }
+             class C: B { @override fn f() {} }",
             pos(3, 37),
             SemError::MethodNotOverridable("f".into()),
         );
@@ -266,23 +266,23 @@ mod tests {
     #[test]
     fn test_overload_method_in_super_class() {
         errors(
-            "@open class A { @open fun f() {} }
-            class B: A { fun f(a: Int32) {} }",
+            "@open class A { @open fn f() {} }
+            class B: A { fn f(a: Int32) {} }",
             &[
                 (pos(2, 26), SemError::MissingOverride("f".into())),
                 (pos(2, 26), SemError::OverrideMismatch),
             ],
         );
 
-        ok("@open class A { @static fun f() {} }
-            class B: A { @static fun f(a: Int32) {} }");
+        ok("@open class A { @static fn f() {} }
+            class B: A { @static fn f(a: Int32) {} }");
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
         err(
-            "@open class A { @open fun f() {} }
-             class B: A { @override fun f(): Int32 { return 1; } }",
+            "@open class A { @open fn f() {} }
+             class B: A { @override fn f(): Int32 { return 1; } }",
             pos(2, 37),
             SemError::OverrideMismatch,
         );
@@ -293,11 +293,11 @@ mod tests {
         err(
             "
         @open @abstract class Foo {
-            @open fun test(x: Int32): Int32 { x * 2 }
+            @open fn test(x: Int32): Int32 { x * 2 }
         }
 
         class Bar: Foo {
-            @override fun test(x: String): Int32 { 0 }
+            @override fn test(x: String): Int32 { 0 }
         }
     ",
             pos(7, 23),
@@ -307,13 +307,13 @@ mod tests {
 
     #[test]
     fn test_open() {
-        ok("@open class A { @open fun f() {} }");
+        ok("@open class A { @open fn f() {} }");
     }
 
     #[test]
     fn test_superfluous_open() {
         err(
-            "class A { @open fun f() {} }",
+            "class A { @open fn f() {} }",
             pos(1, 17),
             SemError::SuperfluousOpen("f".into()),
         );
@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn test_final() {
-        ok("@open class A { @final fun f() {} }");
+        ok("@open class A { @final fn f() {} }");
     }
 
     #[test]
@@ -333,7 +333,7 @@ mod tests {
             assert_eq!(cls.virtual_fcts.len(), 0);
         });
 
-        ok_with_test("@open class A { @open fun f() {} }", |sa| {
+        ok_with_test("@open class A { @open fn f() {} }", |sa| {
             let cls_id = sa.cls_by_name("A");
             let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
@@ -341,9 +341,9 @@ mod tests {
         });
 
         ok_with_test(
-            "@open class A { @open fun f() {} }
-                      @open class B: A { @override fun f() {}
-                                        @open fun g() {} }",
+            "@open class A { @open fn f() {} }
+                      @open class B: A { @override fn f() {}
+                                        @open fn g() {} }",
             |sa| {
                 let cls_id = sa.cls_by_name("A");
                 let cls = sa.classes.idx(cls_id);
