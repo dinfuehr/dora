@@ -1,21 +1,21 @@
 @pub @internal class Array[T](values: T...) {
-  @pub @internal fun size(): Int64;
-  @pub @internal fun get(idx: Int64): T;
-  @pub @internal fun set(idx: Int64, val: T);
+  @pub @internal fn size(): Int64;
+  @pub @internal fn get(idx: Int64): T;
+  @pub @internal fn set(idx: Int64, val: T);
 
-  @pub fun isEmpty(): Bool = self.size() == 0L;
+  @pub fn isEmpty(): Bool = self.size() == 0L;
 
-  @pub fun enumerate(): ArrayEnumerator[T] {
+  @pub fn enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T](self)
   }
 
-  @pub @static fun empty(): Array[T] {
+  @pub @static fn empty(): Array[T] {
     Array[T]::unsafeNew(0L)
   }
 
-  @static @internal fun unsafeNew(size: Int64): Array[T];
+  @static @internal fn unsafeNew(size: Int64): Array[T];
 
-  @pub @static fun fill(len: Int64, value: T): Array[T] {
+  @pub @static fn fill(len: Int64, value: T): Array[T] {
     let array = Array[T]::unsafeNew(len);
     var i = 0L;
 
@@ -27,7 +27,7 @@
     return array;
   }
 
-  @pub @static fun copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
+  @pub @static fn copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
     var i = 0L;
 
     while i < len {
@@ -38,7 +38,7 @@
 }
 
 impl[T: Default] Array[T] {
-  @pub @static fun new(len: Int64): Array[T] {
+  @pub @static fn new(len: Int64): Array[T] {
     let array = Array[T]::unsafeNew(len);
     var i = 0L;
     let value = T::default();
@@ -53,7 +53,7 @@ impl[T: Default] Array[T] {
 }
 
 impl[T: Zero] Array[T] {
-  @pub @static fun zero(len: Int64): Array[T] {
+  @pub @static fn zero(len: Int64): Array[T] {
     Array[T]::unsafeNew(len)
   }
 }
@@ -61,11 +61,11 @@ impl[T: Zero] Array[T] {
 @pub class ArrayEnumerator[T](let array: Array[T]) {
   var idx: Int64 = 0L;
 
-  @pub fun hasNext(): Bool {
+  @pub fn hasNext(): Bool {
     self.idx < self.array.size()
   }
 
-  @pub fun next(): (Int64, T) {
+  @pub fn next(): (Int64, T) {
     let current_idx = self.idx;
     self.idx = self.idx + 1L;
     (current_idx, self.array(current_idx))
@@ -75,7 +75,7 @@ impl[T: Zero] Array[T] {
 impl[T: Sortable] Array[T] {
   // a stable in-place sort, currently implemented by insertion sort
   @pub @static
-  fun sortStable(array: Array[T]) {
+  fn sortStable(array: Array[T]) {
     var i = 1L;
     while i < array.size() {
       var temp: T = array.get(i);
@@ -91,7 +91,7 @@ impl[T: Sortable] Array[T] {
 }
 
 impl[T: Equals] Array[T] {
-  @pub fun equals(other: Array[T]): Bool {
+  @pub fn equals(other: Array[T]): Bool {
     if self.size() != other.size() {
       return false;
     }
@@ -105,7 +105,7 @@ impl[T: Equals] Array[T] {
     return true;
   }
 
-  @pub fun contains(value: T): Bool {
+  @pub fn contains(value: T): Bool {
     var i = 0L;
 
     while i < self.size() {
@@ -119,7 +119,7 @@ impl[T: Equals] Array[T] {
     return false;
   }
 
-  @pub @static fun compare(a: Array[T], aPos: Int64, b: Array[T], bPos: Int64, len: Int64): Bool {
+  @pub @static fn compare(a: Array[T], aPos: Int64, b: Array[T], bPos: Int64, len: Int64): Bool {
     let aSize = a.size() - aPos;
     let bSize = b.size() - bPos;
     if aSize < len || bSize < len {
@@ -143,7 +143,7 @@ impl[T: Equals] Array[T] {
 }
 
 impl[T: Identity] Array[T] {
-  @pub fun has(value: T): Bool {
+  @pub fn has(value: T): Bool {
     var i = 0L;
 
     while i < self.size() {
@@ -158,7 +158,7 @@ impl[T: Identity] Array[T] {
 }
 
 impl[T: Stringable] Array[T] {
-  @pub fun toString(): String {
+  @pub fn toString(): String {
     let sb = StringBuffer();
     sb.append("Array(");
     let size = self.size();

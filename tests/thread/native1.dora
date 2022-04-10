@@ -1,17 +1,17 @@
 class MyThread() extends std::Thread {
-    @override fun run() {
+    @override fn run() {
         nativeCalls();
     }
 }
 
-fun main() {
+fn main() {
     let thread = MyThread();
     thread.start();
 
     nativeCalls();
 }
 
-fun nativeCalls() {
+fn nativeCalls() {
     var i = 0I;
 
     while i < 100_000I {

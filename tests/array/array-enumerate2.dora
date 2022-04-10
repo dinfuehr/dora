@@ -1,9 +1,9 @@
-fun main() {
+fn main() {
     iterateManually();
     iterateWithForIn();
 }
 
-fun iterateManually() {
+fn iterateManually() {
     let it = Array[String]("a", "b", "c").enumerate();
     assert(it.hasNext());
     let (idx, value) = it.next();
@@ -17,7 +17,7 @@ fun iterateManually() {
     assert(!it.hasNext());
 }
 
-fun iterateWithForIn() {
+fn iterateWithForIn() {
     for idx_and_value in Array[String]("a", "b", "c").enumerate() {
         let (idx, value) = idx_and_value;
 

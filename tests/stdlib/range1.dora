@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = std::range(0I, 5I).makeIterator();
 
     assert(x.hasNext());

@@ -1,18 +1,18 @@
 class CodeGen(let info: CompilationInfo) {
     let asm: AssemblerX64 = AssemblerX64();
 
-    fun prolog() {
+    fn prolog() {
         self.asm.pushqr(RBP);
         self.asm.movqrr(RBP, RSP);
     }
 
-    fun epilog() {
+    fn epilog() {
         self.asm.movqrr(RSP, RBP);
         self.asm.popqr(RBP);
         self.asm.retq();
     }
 
-    fun generate(): Array[UInt8] {
+    fn generate(): Array[UInt8] {
         assert(self.info.arch == Architecture::X64);
         self.prolog();
         self.epilog();

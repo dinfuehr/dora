@@ -8,11 +8,11 @@
         self.capacity = capacity;
     }
 
-    @pub fun size(): Int64 {
+    @pub fn size(): Int64 {
         self.capacity
     }
 
-    @pub fun contains(idx: Int64): Bool {
+    @pub fn contains(idx: Int64): Bool {
         if idx < 0L || idx >= self.capacity {
             fatalError("index out of bounds");
         }
@@ -24,7 +24,7 @@
         return value & (1I << value_idx.toInt32()) != 0I;
     }
 
-    @pub fun insert(idx: Int64) {
+    @pub fn insert(idx: Int64) {
         if idx < 0L || idx >= self.capacity {
             fatalError("index out of bounds");
         }
@@ -38,7 +38,7 @@
         self.data.set(entry_idx, value);
     }
 
-    @pub fun remove(idx: Int64) {
+    @pub fn remove(idx: Int64) {
         if idx < 0L || idx >= self.capacity {
             fatalError("index out of bounds");
         }

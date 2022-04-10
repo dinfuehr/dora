@@ -1,3 +1,3 @@
-fun main() {
+fn main() {
     std::exit(0I);
 }

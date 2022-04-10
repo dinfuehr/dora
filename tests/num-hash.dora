@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(true.hash() == 1I);
   assert(false.hash() == 0I);
   assert(1.toUInt8().hash() == 1I);

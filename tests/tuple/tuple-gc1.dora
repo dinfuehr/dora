@@ -2,7 +2,7 @@
 
 class Foo(let value: Int32)
 
-fun main() {
+fn main() {
     let tpl: (Foo) = if false {
         (createFoo(),)
     } else {
@@ -11,4 +11,4 @@ fun main() {
     };
 }
 
-fun createFoo(): Foo = Foo(1I);
+fn createFoo(): Foo = Foo(1I);

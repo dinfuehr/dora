@@ -1,28 +1,28 @@
 @pub trait Hash {
-  fun hash(): Int32;
-  // fun hashTo(hasher: Hasher);
+  fn hash(): Int32;
+  // fn hashTo(hasher: Hasher);
 }
 
 impl Hash for Bool {
-  fun hash(): Int32 = self.hash();
+  fn hash(): Int32 = self.hash();
 }
 
 impl Hash for UInt8 {
-  fun hash(): Int32 = self.hash();
+  fn hash(): Int32 = self.hash();
 }
 
 impl Hash for Int32 {
-  fun hash(): Int32 = self.hash();
+  fn hash(): Int32 = self.hash();
 }
 
 impl Hash for Int64 {
-  fun hash(): Int32 = self.hash();
+  fn hash(): Int32 = self.hash();
 }
 
 impl Hash for Float32 {
-  fun hash(): Int32 = self.hash();
+  fn hash(): Int32 = self.hash();
 }
 
 impl Hash for Float64 {
-  fun hash(): Int32 = self.hash();
+  fn hash(): Int32 = self.hash();
 }

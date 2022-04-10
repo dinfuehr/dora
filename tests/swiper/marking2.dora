@@ -1,6 +1,6 @@
 //= ignore
 
-fun main() {
+fn main() {
     var list: Foo = nil;
     var i = 1I;
 

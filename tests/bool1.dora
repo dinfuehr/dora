@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(true.toInt32() == 1I);
   assert(false.toInt32() == 0I);
   assert(true.not() == false);

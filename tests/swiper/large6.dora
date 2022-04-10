@@ -4,7 +4,7 @@ const SIZE: Int64 = 100L;
 const STEP: Int64 = 5L;
 const REMOVED: Int64 = 20L;
 
-fun main() {
+fn main() {
     var x = Vec[Array[Int32]]();
     var i = 0L;
 

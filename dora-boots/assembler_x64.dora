@@ -35,8 +35,8 @@ let XMM14: XmmRegister = XmmRegister(14I);
 let XMM15: XmmRegister = XmmRegister(15I);
 
 class XmmRegister(let value: Int32) {
-    fun lowBits(): Int32 = self.value & 0b111I;
-    fun needsRexBit(): Bool = self.value > 7I;
+    fn lowBits(): Int32 = self.value & 0b111I;
+    fn needsRexBit(): Bool = self.value > 7I;
 }
 
 enum JumpDistance {
@@ -48,35 +48,35 @@ class AssemblerX64 extends Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
     let jumps: Vec[(Int64, Label, JumpDistance)] = Vec();
 
-    fun createLabel(): Label {
+    fn createLabel(): Label {
         self.buffer.createLabel()
     }
 
-    fun bindLabel(lbl: Label) {
+    fn bindLabel(lbl: Label) {
         self.buffer.bindLabel(lbl);
     }
 
-    fun createAndBindLabel(): Label {
+    fn createAndBindLabel(): Label {
         self.buffer.createAndBindLabel()
     }
 
-    fun addlrr(dest: Register, src: Register) {
+    fn addlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x01Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun addqri(reg: Register, imm: Immediate) {
+    fn addqri(reg: Register, imm: Immediate) {
         self.emitAlu64Imm(reg, imm, 0b000I, 0x05Y);
     }
 
-    fun addqrr(dest: Register, src: Register) {
+    fn addqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x01Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun addssrr(dest: XmmRegister, src: XmmRegister) {
+    fn addssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -84,7 +84,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun addsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn addsdrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -92,47 +92,47 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun andlrr(dest: Register, src: Register) {
+    fn andlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x21Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun andqri(lhs: Register, imm: Immediate) {
+    fn andqri(lhs: Register, imm: Immediate) {
         self.emitAlu64Imm(lhs, imm, 0b100I, 0x25Y);
     }
 
-    fun andqrr(dest: Register, src: Register) {
+    fn andqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x21Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun callr(src: Register) {
+    fn callr(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xFFY);
         self.emitModRmOpcode(0b010I, src);
     }
 
-    fun cdq() {
+    fn cdq() {
         self.emitByte(0x99Y);
     }
 
-    fun cmovl(condition: Condition, dest: Register, src: Register) {
+    fn cmovl(condition: Condition, dest: Register, src: Register) {
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte((0x40I + condition.toInt32()).toUInt8());
         self.emitModRmReg(dest, src);
     }
 
-    fun cmovq(condition: Condition, dest: Register, src: Register) {
+    fn cmovq(condition: Condition, dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0FY);
         self.emitByte((0x40I + condition.toInt32()).toUInt8());
         self.emitModRmReg(dest, src);
     }
 
-    fun cmpbai(lhs: Address, rhs: Immediate) {
+    fn cmpbai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt8() || rhs.isUInt8());
         self.emitRex32AddressOptional(lhs);
         self.emitByte(0x80Y);
@@ -140,13 +140,13 @@ class AssemblerX64 extends Assembler {
         self.emitByte(rhs.toUInt8());
     }
 
-    fun cmpbar(lhs: Address, rhs: Register) {
+    fn cmpbar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressByteOptional(rhs, lhs);
         self.emitByte(0x38Y);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fun cmplai(lhs: Address, imm: Immediate) {
+    fn cmplai(lhs: Address, imm: Immediate) {
         assert(imm.isInt32() || imm.isUInt32());
         self.emitRex32AddressOptional(lhs);
 
@@ -161,17 +161,17 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun cmplar(lhs: Address, rhs: Register) {
+    fn cmplar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressOptional(rhs, lhs);
         self.emitByte(0x39Y);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fun cmplri(lhs: Register, imm: Immediate) {
+    fn cmplri(lhs: Register, imm: Immediate) {
         self.emitAlu32Imm(lhs, imm, 0b111I, 0x3DY);
     }
 
-    fun cmpqai(lhs: Address, imm: Immediate) {
+    fn cmpqai(lhs: Address, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex64Address(lhs);
 
@@ -186,34 +186,34 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun cmpqar(lhs: Address, rhs: Register) {
+    fn cmpqar(lhs: Address, rhs: Register) {
         self.emitRex64ModRmAddress(rhs, lhs);
         self.emitByte(0x39Y);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fun cmplrr(dest: Register, src: Register) {
+    fn cmplrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x39Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun cmpqri(lhs: Register, imm: Immediate) {
+    fn cmpqri(lhs: Register, imm: Immediate) {
         self.emitAlu64Imm(lhs, imm, 0b111I, 0x3DY);
     }
 
-    fun cmpqrr(dest: Register, src: Register) {
+    fn cmpqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x39Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun cqo() {
+    fn cqo() {
         self.emitRex64();
         self.emitByte(0x99Y);
     }
 
-    fun cvtsd2ssrr(dest: XmmRegister, src: XmmRegister) {
+    fn cvtsd2ssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -221,7 +221,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun cvtsi2ssdrr(dest: XmmRegister, src: Register) {
+    fn cvtsi2ssdrr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF3Y);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -229,7 +229,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun cvtsi2ssqrr(dest: XmmRegister, src: Register) {
+    fn cvtsi2ssqrr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF3Y);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -237,7 +237,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun cvtsi2sddrr(dest: XmmRegister, src: Register) {
+    fn cvtsi2sddrr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF2Y);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -245,7 +245,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun cvtsi2sdqrr(dest: XmmRegister, src: Register) {
+    fn cvtsi2sdqrr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF2Y);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -253,7 +253,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun cvtss2sdrr(dest: XmmRegister, src: XmmRegister) {
+    fn cvtss2sdrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -261,7 +261,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun cvttsd2sidrr(dest: Register, src: XmmRegister) {
+    fn cvttsd2sidrr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -269,7 +269,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun cvttsd2siqrr(dest: Register, src: XmmRegister) {
+    fn cvttsd2siqrr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -277,7 +277,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun cvttss2sidrr(dest: Register, src: XmmRegister) {
+    fn cvttss2sidrr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -285,7 +285,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun cvttss2siqrr(dest: Register, src: XmmRegister) {
+    fn cvttss2siqrr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -293,7 +293,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun divssrr(dest: XmmRegister, src: XmmRegister) {
+    fn divssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -301,7 +301,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun divsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn divsdrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -309,37 +309,37 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun idivlr(src: Register) {
+    fn idivlr(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xF7Y);
         self.emitModRmOpcode(0b111I, src);
     }
 
-    fun idivqr(src: Register) {
+    fn idivqr(src: Register) {
         self.emitRex64RmField(src);
         self.emitByte(0xF7Y);
         self.emitModRmOpcode(0b111I, src);
     }
 
-    fun imullrr(dest: Register, src: Register) {
+    fn imullrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0xAFY);
         self.emitModRmReg(dest, src);
     }
 
-    fun imulqrr(dest: Register, src: Register) {
+    fn imulqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0xAFY);
         self.emitModRmReg(dest, src);
     }
 
-    fun int3() {
+    fn int3() {
         self.emitByte(0xCCY);
     }
 
-    fun jcc(condition: Condition, dest: Label) {
+    fn jcc(condition: Condition, dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -365,7 +365,7 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun jccNear(condition: Condition, dest: Label) {
+    fn jccNear(condition: Condition, dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -381,13 +381,13 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun jmpr(reg: Register) {
+    fn jmpr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xFFY);
         self.emitModRmOpcode(0b100I, reg);
     }
 
-    fun jmp(dest: Label) {
+    fn jmp(dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -411,7 +411,7 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun jmpNear(dest: Label) {
+    fn jmpNear(dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -427,13 +427,13 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun lea(dest: Register, src: Address) {
+    fn lea(dest: Register, src: Address) {
         self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x8DY);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun lzcntlrr(dest: Register, src: Register) {
+    fn lzcntlrr(dest: Register, src: Register) {
         self.emitByte(0xF3Y);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -441,7 +441,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmReg(dest, src);
     }
 
-    fun lzcntqrr(dest: Register, src: Register) {
+    fn lzcntqrr(dest: Register, src: Register) {
         self.emitByte(0xF3Y);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0FY);
@@ -449,7 +449,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmReg(dest, src);
     }
 
-    fun movbai(dest: Address, src: Immediate) {
+    fn movbai(dest: Address, src: Immediate) {
         assert(src.isInt8() || src.isUInt8());
         self.emitRex32AddressOptional(dest);
         self.emitByte(0xC6Y);
@@ -457,13 +457,13 @@ class AssemblerX64 extends Assembler {
         self.emitByte(src.toUInt8());
     }
 
-    fun movbar(dest: Address, src: Register) {
+    fn movbar(dest: Address, src: Register) {
         self.emitRex32ModRmAddressByteOptional(src, dest);
         self.emitByte(0x88Y);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fun movdrx(dest: Register, src: XmmRegister) {
+    fn movdrx(dest: Register, src: XmmRegister) {
         self.emitByte(0x66Y);
         self.emitRexOptional(false, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0FY);
@@ -471,7 +471,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, src.lowBits(), dest.lowBits());
     }
 
-    fun movdxr(dest: XmmRegister, src: Register) {
+    fn movdxr(dest: XmmRegister, src: Register) {
         self.emitByte(0x66Y);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -479,7 +479,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun movlai(dest: Address, imm: Immediate) {
+    fn movlai(dest: Address, imm: Immediate) {
         assert(imm.isInt32() || imm.isUInt32());
         self.emitRex32AddressOptional(dest);
         self.emitByte(0xC7Y);
@@ -487,38 +487,38 @@ class AssemblerX64 extends Assembler {
         self.emitInt32(imm.toInt32());
     }
 
-    fun movlar(dest: Address, src: Register) {
+    fn movlar(dest: Address, src: Register) {
         self.emitRex32ModRmAddressOptional(src, dest);
         self.emitByte(0x89Y);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fun movlra(dest: Register, src: Address) {
+    fn movlra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x8BY);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun movlri(dest: Register, imm: Immediate) {
+    fn movlri(dest: Register, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex32RmFieldOptional(dest);
         self.emitByte((0xB8I + dest.lowBits()).toUInt8());
         self.emitInt32(imm.toInt32());
     }
 
-    fun movlrr(dest: Register, src: Register) {
+    fn movlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x89Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun movqar(dest: Address, src: Register) {
+    fn movqar(dest: Address, src: Register) {
         self.emitRex64ModRmAddress(src, dest);
         self.emitByte(0x89Y);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fun movqai(dest: Address, imm: Immediate) {
+    fn movqai(dest: Address, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex64Address(dest);
         self.emitByte(0xC7Y);
@@ -526,13 +526,13 @@ class AssemblerX64 extends Assembler {
         self.emitInt32(imm.toInt32());
     }
 
-    fun movqra(dest: Register, src: Address) {
+    fn movqra(dest: Register, src: Address) {
         self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x8BY);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun movqri(dest: Register, imm: Immediate) {
+    fn movqri(dest: Register, imm: Immediate) {
         if imm.isInt32() {
             self.emitRex64RmField(dest);
             self.emitByte(0xC7Y);
@@ -545,13 +545,13 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun movqrr(dest: Register, src: Register) {
+    fn movqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x89Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun movqrx(dest: Register, src: XmmRegister) {
+    fn movqrx(dest: Register, src: XmmRegister) {
         self.emitByte(0x66Y);
         self.emitRexOptional(true, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0FY);
@@ -559,7 +559,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, src.lowBits(), dest.lowBits());
     }
 
-    fun movqxr(dest: XmmRegister, src: Register) {
+    fn movqxr(dest: XmmRegister, src: Register) {
         self.emitByte(0x66Y);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0FY);
@@ -567,7 +567,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRm(0b11I, dest.lowBits(), src.lowBits());
     }
 
-    fun movsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn movsdrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -575,7 +575,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun movsdra(dest: XmmRegister, src: Address) {
+    fn movsdra(dest: XmmRegister, src: Address) {
         self.emitByte(0xF2Y);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0FY);
@@ -583,7 +583,7 @@ class AssemblerX64 extends Assembler {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun movsdar(dest: Address, src: XmmRegister) {
+    fn movsdar(dest: Address, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0FY);
@@ -591,7 +591,7 @@ class AssemblerX64 extends Assembler {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fun movssar(dest: Address, src: XmmRegister) {
+    fn movssar(dest: Address, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0FY);
@@ -599,7 +599,7 @@ class AssemblerX64 extends Assembler {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fun movssrr(dest: XmmRegister, src: XmmRegister) {
+    fn movssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -607,7 +607,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun movssra(dest: XmmRegister, src: Address) {
+    fn movssra(dest: XmmRegister, src: Address) {
         self.emitByte(0xF3Y);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0FY);
@@ -615,55 +615,55 @@ class AssemblerX64 extends Assembler {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun movsxblra(dest: Register, src: Address) {
+    fn movsxblra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0xBEY);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun movsxblrr(dest: Register, src: Register) {
+    fn movsxblrr(dest: Register, src: Register) {
         self.emitRex32ModRmByteOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0xBEY);
         self.emitModRmReg(dest, src);
     }
 
-    fun movsxbqra(dest: Register, src: Address) {
+    fn movsxbqra(dest: Register, src: Address) {
         self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0xBEY);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun movsxbqrr(dest: Register, src: Register) {
+    fn movsxbqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0xBEY);
         self.emitModRmReg(dest, src);
     }
 
-    fun movsxlqrr(dest: Register, src: Register) {
+    fn movsxlqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x63Y);
         self.emitModRmReg(dest, src);
     }
 
-    fun movzxbrr(dest: Register, src: Register) {
+    fn movzxbrr(dest: Register, src: Register) {
         self.emitRex32ModRmByteOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0xB6Y);
         self.emitModRmReg(dest, src);
     }
 
-    fun movzxbra(dest: Register, src: Address) {
+    fn movzxbra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0xB6Y);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun mulssrr(dest: XmmRegister, src: XmmRegister) {
+    fn mulssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -671,7 +671,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun mulsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn mulsdrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -679,52 +679,52 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun neglr(reg: Register) {
+    fn neglr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xF7Y);
         self.emitModRmOpcode(0b011I, reg);
     }
 
-    fun negqr(reg: Register) {
+    fn negqr(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xF7Y);
         self.emitModRmOpcode(0b011I, reg);
     }
 
-    fun nop() {
+    fn nop() {
         self.emitByte(0x90Y);
     }
 
-    fun notlr(reg: Register) {
+    fn notlr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xF7Y);
         self.emitModRmOpcode(0b010I, reg);
     }
 
-    fun notqr(reg: Register) {
+    fn notqr(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xF7Y);
         self.emitModRmOpcode(0b010I, reg);
     }
 
-    fun orlrr(dest: Register, src: Register) {
+    fn orlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x09Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun orqrr(dest: Register, src: Register) {
+    fn orqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x09Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun pushqr(reg: Register) {
+    fn pushqr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x50I + reg.lowBits()).toUInt8());
     }
 
-    fun popcntlrr(dest: Register, src: Register) {
+    fn popcntlrr(dest: Register, src: Register) {
         self.emitByte(0xF3Y);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -732,7 +732,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmReg(dest, src);
     }
 
-    fun popcntqrr(dest: Register, src: Register) {
+    fn popcntqrr(dest: Register, src: Register) {
         self.emitByte(0xF3Y);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0FY);
@@ -740,12 +740,12 @@ class AssemblerX64 extends Assembler {
         self.emitModRmReg(dest, src);
     }
 
-    fun popqr(reg: Register) {
+    fn popqr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x58I + reg.lowBits()).toUInt8());
     }
 
-    fun pxorrr(dest: XmmRegister, src: XmmRegister) {
+    fn pxorrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0x66Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -753,41 +753,41 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun retq() {
+    fn retq() {
         self.emitByte(0xC3Y);
     }
 
-    fun rollr(reg: Register) {
+    fn rollr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b000I, reg);
     }
 
-    fun rolqr(reg: Register) {
+    fn rolqr(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b000I, reg);
     }
 
-    fun rorlr(reg: Register) {
+    fn rorlr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b001I, reg);
     }
 
-    fun rorqr(reg: Register) {
+    fn rorqr(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b001I, reg);
     }
 
-    fun sarlr(reg: Register) {
+    fn sarlr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b111I, reg);
     }
 
-    fun sarlri(lhs: Register, rhs: Immediate) {
+    fn sarlri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1Y);
@@ -795,13 +795,13 @@ class AssemblerX64 extends Assembler {
         self.emitByte(rhs.toUInt8());
     }
 
-    fun sarqr(reg: Register) {
+    fn sarqr(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b111I, reg);
     }
 
-    fun sarqri(lhs: Register, rhs: Immediate) {
+    fn sarqri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1Y);
@@ -809,7 +809,7 @@ class AssemblerX64 extends Assembler {
         self.emitByte(rhs.toUInt8());
     }
 
-    fun setccr(condition: Condition, dest: Register) {
+    fn setccr(condition: Condition, dest: Register) {
         if dest.needsRexBit() || dest.lowBits() > 3I {
             self.emitRex(false, false, false, dest.needsRexBit());
         }
@@ -819,13 +819,13 @@ class AssemblerX64 extends Assembler {
         self.emitModRmOpcode(0I, dest);
     }
 
-    fun shllr(reg: Register) {
+    fn shllr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b100I, reg);
     }
 
-    fun shllri(lhs: Register, rhs: Immediate) {
+    fn shllri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1Y);
@@ -833,13 +833,13 @@ class AssemblerX64 extends Assembler {
         self.emitByte(rhs.toUInt8());
     }
 
-    fun shlqr(reg: Register) {
+    fn shlqr(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b100I, reg);
     }
 
-    fun shlqri(lhs: Register, rhs: Immediate) {
+    fn shlqri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1Y);
@@ -847,13 +847,13 @@ class AssemblerX64 extends Assembler {
         self.emitByte(rhs.toUInt8());
     }
 
-    fun shrlr(reg: Register) {
+    fn shrlr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b101I, reg);
     }
 
-    fun shrlri(lhs: Register, rhs: Immediate) {
+    fn shrlri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1Y);
@@ -861,13 +861,13 @@ class AssemblerX64 extends Assembler {
         self.emitByte(rhs.toUInt8());
     }
 
-    fun shrqr(reg: Register) {
+    fn shrqr(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3Y);
         self.emitModRmOpcode(0b101I, reg);
     }
 
-    fun shrqri(lhs: Register, rhs: Immediate) {
+    fn shrqri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1Y);
@@ -875,7 +875,7 @@ class AssemblerX64 extends Assembler {
         self.emitByte(rhs.toUInt8());
     }
 
-    fun sqrtssrr(dest: XmmRegister, src: XmmRegister) {
+    fn sqrtssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -883,7 +883,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun sqrtsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn sqrtsdrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -891,23 +891,23 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun sublrr(dest: Register, src: Register) {
+    fn sublrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x29Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun subqri(reg: Register, imm: Immediate) {
+    fn subqri(reg: Register, imm: Immediate) {
         self.emitAlu64Imm(reg, imm, 0b101I, 0x2DY);
     }
 
-    fun subqrr(dest: Register, src: Register) {
+    fn subqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x29Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun subssrr(dest: XmmRegister, src: XmmRegister) {
+    fn subssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -915,7 +915,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun subsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn subsdrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -923,13 +923,13 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun testlrr(lhs: Register, rhs: Register) {
+    fn testlrr(lhs: Register, rhs: Register) {
         self.emitRex32ModRmOptional(rhs, lhs);
         self.emitByte(0x85Y);
         self.emitModRmReg(rhs, lhs);
     }
 
-    fun testlri(lhs: Register, imm: Immediate) {
+    fn testlri(lhs: Register, imm: Immediate) {
         assert(imm.isInt32());
 
         if imm.isUInt8() {
@@ -954,13 +954,13 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun testlar(lhs: Address, rhs: Register) {
+    fn testlar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressOptional(rhs, lhs);
         self.emitByte(0x85Y);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fun testlai(lhs: Address, rhs: Immediate) {
+    fn testlai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt32());
         self.emitRex32AddressOptional(lhs);
         self.emitByte(0xF7Y);
@@ -968,13 +968,13 @@ class AssemblerX64 extends Assembler {
         self.emitInt32(rhs.toInt32());
     }
 
-    fun testqrr(lhs: Register, rhs: Register) {
+    fn testqrr(lhs: Register, rhs: Register) {
         self.emitRex64ModRm(rhs, lhs);
         self.emitByte(0x85Y);
         self.emitModRmReg(rhs, lhs);
     }
 
-    fun testqai(lhs: Address, rhs: Immediate) {
+    fn testqai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt32());
         self.emitRex64Address(lhs);
         self.emitByte(0xF7Y);
@@ -982,13 +982,13 @@ class AssemblerX64 extends Assembler {
         self.emitInt32(rhs.toInt32());
     }
 
-    fun testqar(lhs: Address, rhs: Register) {
+    fn testqar(lhs: Address, rhs: Register) {
         self.emitRex64ModRmAddress(rhs, lhs);
         self.emitByte(0x85Y);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fun tzcntlrr(dest: Register, src: Register) {
+    fn tzcntlrr(dest: Register, src: Register) {
         self.emitByte(0xF3Y);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -996,7 +996,7 @@ class AssemblerX64 extends Assembler {
         self.emitModRmReg(dest, src);
     }
 
-    fun tzcntqrr(dest: Register, src: Register) {
+    fn tzcntqrr(dest: Register, src: Register) {
         self.emitByte(0xF3Y);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0FY);
@@ -1004,14 +1004,14 @@ class AssemblerX64 extends Assembler {
         self.emitModRmReg(dest, src);
     }
 
-    fun ucomissrr(dest: XmmRegister, src: XmmRegister) {
+    fn ucomissrr(dest: XmmRegister, src: XmmRegister) {
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0x2EY);
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun ucomisdrr(dest: XmmRegister, src: XmmRegister) {
+    fn ucomisdrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0x66Y);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
@@ -1019,17 +1019,17 @@ class AssemblerX64 extends Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun xorlrr(dest: Register, src: Register) {
+    fn xorlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x31Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun xorlri(lhs: Register, rhs: Immediate) {
+    fn xorlri(lhs: Register, rhs: Immediate) {
         self.emitAlu32Imm(lhs, rhs, 0b110I, 0x35Y);
     }
 
-    fun xorpdra(dest: XmmRegister, src: Address) {
+    fn xorpdra(dest: XmmRegister, src: Address) {
         self.emitByte(0x66Y);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0FY);
@@ -1037,27 +1037,27 @@ class AssemblerX64 extends Assembler {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun xorpsra(dest: XmmRegister, src: Address) {
+    fn xorpsra(dest: XmmRegister, src: Address) {
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0x57Y);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fun xorpsrr(dest: XmmRegister, src: XmmRegister) {
+    fn xorpsrr(dest: XmmRegister, src: XmmRegister) {
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0FY);
         self.emitByte(0x57Y);
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fun xorqrr(dest: Register, src: Register) {
+    fn xorqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x31Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
+    fn emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
         assert(imm.isInt32());
         self.emitRex64RmField(reg);
 
@@ -1075,7 +1075,7 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun emitAlu32Imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
+    fn emitAlu32Imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
         assert(imm.isInt32());
         self.emitRex32RmFieldOptional(reg);
 
@@ -1093,85 +1093,85 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun emitRex32RmFieldOptional(reg: Register) {
+    fn emitRex32RmFieldOptional(reg: Register) {
         if reg.needsRexBit() {
             self.emitRex(false, false, false, true);
         }
     }
 
-    fun emitRex64RmField(modrm_rm: Register) {
+    fn emitRex64RmField(modrm_rm: Register) {
         self.emitRex(true, false, false, modrm_rm.needsRexBit());
     }
 
-    fun emitRex64ModRm(modrm_reg: Register, modrm_rm: Register) {
+    fn emitRex64ModRm(modrm_reg: Register, modrm_rm: Register) {
         self.emitRex(true, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
     }
 
-    fun emitRex32ModRmOptional(modrm_reg: Register, modrm_rm: Register) {
+    fn emitRex32ModRmOptional(modrm_reg: Register, modrm_rm: Register) {
         if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() {
             self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
         }
     }
 
-    fun emitRex32ModRmByteOptional(modrm_reg: Register, modrm_rm: Register) {
+    fn emitRex32ModRmByteOptional(modrm_reg: Register, modrm_rm: Register) {
         if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() || modrm_rm.value > 3I {
             self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
         }
     }
 
-    fun emitRex32ModRmAddressOptional(reg: Register, address: Address) {
+    fn emitRex32ModRmAddressOptional(reg: Register, address: Address) {
         if address.rex != 0Y || reg.needsRexBit() {
             let rex = 0x40I | address.rex.toInt32() | if reg.needsRexBit() { 0x04I } else { 0I };
             self.emitByte(rex.toUInt8());
         };
     }
 
-    fun emitRex32ModRmAddressByteOptional(reg: Register, address: Address) {
+    fn emitRex32ModRmAddressByteOptional(reg: Register, address: Address) {
         if address.rex != 0Y || reg.value > 3I {
             let rex = 0x40I | address.rex.toInt32() | if reg.needsRexBit() { 0x04I } else { 0I };
             self.emitByte(rex.toUInt8());
         };
     }
 
-    fun emitRex32AddressOptional(address: Address) {
+    fn emitRex32AddressOptional(address: Address) {
         if address.rex != 0Y {
             self.emitByte((0x40I | address.rex.toInt32()).toUInt8());
         }
     }
 
-    fun emitRex64ModRmAddress(reg: Register, address: Address) {
+    fn emitRex64ModRmAddress(reg: Register, address: Address) {
         let rex = 0x48I | address.rex.toInt32() | if reg.needsRexBit() { 0x04I } else { 0I };
         self.emitByte(rex.toUInt8());
     }
 
-    fun emitRex64Address(address: Address) {
+    fn emitRex64Address(address: Address) {
         self.emitByte((0x48I | address.rex.toInt32()).toUInt8());
     }
 
-    fun emitRex64() {
+    fn emitRex64() {
         self.emitRex(true, false, false, false);
     }
 
-    fun emitRexSseModRmOptional(reg: XmmRegister, rm: XmmRegister) {
+    fn emitRexSseModRmOptional(reg: XmmRegister, rm: XmmRegister) {
         if reg.needsRexBit() || rm.needsRexBit() {
             self.emitRex(false, reg.needsRexBit(), false, rm.needsRexBit());
         }
     }
 
-    fun emitRexSseAddressOptional(reg: XmmRegister, address: Address) {
+    fn emitRexSseAddressOptional(reg: XmmRegister, address: Address) {
         if reg.needsRexBit() || address.rex != 0Y {
             let value = 0x40I | address.rex.toInt32() | if reg.needsRexBit() { 0x04I } else { 0I };
             self.emitByte(value.toUInt8());
         }
     }
 
-    fun emitRexOptional(w: Bool, r: Bool, x: Bool, b: Bool) {
+    fn emitRexOptional(w: Bool, r: Bool, x: Bool, b: Bool) {
         if w || r || x || b {
             self.emitRex(w, r, x, b);
         }
     }
 
-    fun emitRex(w: Bool, r: Bool, x: Bool, b: Bool) {
+    fn emitRex(w: Bool, r: Bool, x: Bool, b: Bool) {
         // w - 64-bit width
         // r - extension of modrm-reg field
         // x - extension of sib index field
@@ -1180,7 +1180,7 @@ class AssemblerX64 extends Assembler {
         self.emitByte(opcode.toUInt8());
     }
 
-    fun emitAddress(reg_or_opcode: Int32, address: Address) {
+    fn emitAddress(reg_or_opcode: Int32, address: Address) {
         assert(reg_or_opcode < 8I);
 
         self.emitByte((reg_or_opcode << 3I | address.bytes(0L).toInt32()).toUInt8());
@@ -1193,62 +1193,62 @@ class AssemblerX64 extends Assembler {
         }
     }
 
-    fun emitModRmReg(reg: Register, rm: Register) {
+    fn emitModRmReg(reg: Register, rm: Register) {
         self.emitModRm(0b11I, reg.lowBits(), rm.lowBits());
     }
 
-    fun emitModRmOpcode(opcode: Int32, rm: Register) {
+    fn emitModRmOpcode(opcode: Int32, rm: Register) {
         self.emitModRm(0b11I, opcode, rm.lowBits());
     }
 
-    fun emitModRmSseRegisters(reg: XmmRegister, rm: XmmRegister) {
+    fn emitModRmSseRegisters(reg: XmmRegister, rm: XmmRegister) {
         self.emitModRm(0b11I, reg.lowBits(), rm.lowBits());
     }
 
-    fun emitModRm(mode: Int32, reg: Int32, rm: Int32) {
+    fn emitModRm(mode: Int32, reg: Int32, rm: Int32) {
         assert(mode < 4I && reg < 8I && rm < 8I);
         self.emitByte((mode << 6I | reg << 3I | rm).toUInt8());
     }
 
-    fun emitSib(scale: Int32, index: Int32, base: Int32) {
+    fn emitSib(scale: Int32, index: Int32, base: Int32) {
         assert(scale < 4I);
         assert(index < 8I);
         assert(base < 8I);
         self.emitByte((scale << 6I | index << 3I | base).toUInt8());
     }
 
-    fun emitByte(value: UInt8) {
+    fn emitByte(value: UInt8) {
         self.buffer.emitByte(value);
     }
 
-    fun emitInt32(value: Int32) {
+    fn emitInt32(value: Int32) {
         self.buffer.emitInt32(value);
     }
 
-    fun emitInt64(value: Int64) {
+    fn emitInt64(value: Int64) {
         self.buffer.emitInt64(value);
     }
 
-    fun emitJump(lbl: Label, kind: JumpDistance) {
+    fn emitJump(lbl: Label, kind: JumpDistance) {
         let pc = self.buffer.size();
         self.jumps.push((pc, lbl, kind));
     }
 
-    fun size(): Int64 {
+    fn size(): Int64 {
         self.buffer.size()
     }
 
-    fun finalize(): Array[UInt8] {
+    fn finalize(): Array[UInt8] {
         self.resolveJumps();
         self.buffer.toArray()
     }
 
-    fun finalizeTesting(): MachineCode {
+    fn finalizeTesting(): MachineCode {
         self.resolveJumps();
         MachineCode(self.buffer.toArray())
     }
 
-    fun resolveJumps() {
+    fn resolveJumps() {
         for (pc, lbl, distance) in self.jumps {
             assert(lbl.isBound());
 
@@ -1300,7 +1300,7 @@ enum Condition {
 }
 
 impl Condition {
-    fun toInt32(): Int32 {
+    fn toInt32(): Int32 {
         if self == Condition::Overflow {
             0b0000I
         } else if self == Condition::NoOverflow {
@@ -1364,34 +1364,34 @@ impl Condition {
 }
 
 class Immediate(let value: Int64) {
-    fun isInt8(): Bool {
+    fn isInt8(): Bool {
         let limit = 1L << 7I;
         -limit <= self.value && self.value < limit
     }
 
-    fun isUInt8(): Bool {
+    fn isUInt8(): Bool {
         0L <= self.value && self.value < 256L
     }
 
-    fun isInt32(): Bool {
+    fn isInt32(): Bool {
         let limit = 1L << 32I;
         -limit <= self.value && self.value < limit
     }
 
-    fun isUInt32(): Bool {
+    fn isUInt32(): Bool {
         let limit = 1L << 32I;
         0L <= self.value && self.value < limit
     }
 
-    fun toUInt8(): UInt8 {
+    fn toUInt8(): UInt8 {
         self.value.toUInt8()
     }
 
-    fun toInt32(): Int32 {
+    fn toInt32(): Int32 {
         self.value.toInt32()
     }
 
-    fun toInt64(): Int64 {
+    fn toInt64(): Int64 {
         self.value
     }
 }
@@ -1404,7 +1404,7 @@ enum ScaleFactor {
 }
 
 impl ScaleFactor {
-    fun value(): Int32 {
+    fn value(): Int32 {
         if self == ScaleFactor::One {
             0I
         } else if self == ScaleFactor::Two {
@@ -1424,7 +1424,7 @@ class Address {
     var length: Int64 = 0L;
     let bytes: Array[UInt8] = Array[UInt8]::zero(6L);
 
-    fun set_modrm(mode: Int32, reg: Register) {
+    fn set_modrm(mode: Int32, reg: Register) {
         assert(self.length == 0L);
         assert(0I <= mode && mode < 4I);
 
@@ -1436,7 +1436,7 @@ class Address {
         self.length = self.length + 1L;
     }
 
-    fun set_sib(scale: ScaleFactor, index: Register, base: Register) {
+    fn set_sib(scale: ScaleFactor, index: Register, base: Register) {
         assert(self.length == 1L);
 
         if base.needsRexBit() {
@@ -1451,13 +1451,13 @@ class Address {
         self.length = self.length + 1L;
     }
 
-    fun set_disp8(imm: Int32) {
+    fn set_disp8(imm: Int32) {
         assert(self.length == 1L || self.length == 2L);
         self.bytes(self.length) = imm.toUInt8();
         self.length = self.length + 1L;
     }
 
-    fun set_disp32(imm: Int32) {
+    fn set_disp32(imm: Int32) {
         assert(self.length == 1L || self.length == 2L);
         self.bytes(self.length) = imm.toUInt8();
         self.bytes(self.length + 1L) = (imm >> 8I).toUInt8();
@@ -1466,7 +1466,7 @@ class Address {
         self.length = self.length + 4L;
     }
 
-    @static fun offset(base: Register, offset: Int32): Address {
+    @static fn offset(base: Register, offset: Int32): Address {
         let address = Address();
 
         let mode = if offset == 0I && base != RBP {
@@ -1496,7 +1496,7 @@ class Address {
         address
     }
 
-    @static fun index(index: Register, factor: ScaleFactor, disp: Int32): Address {
+    @static fn index(index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address();
 
         address.set_modrm(0b00I, RSP);
@@ -1508,7 +1508,7 @@ class Address {
         address
     }
 
-    @static fun array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
+    @static fn array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address();
 
         let mode = if disp == 0I && base != RBP {
@@ -1537,7 +1537,7 @@ class Address {
         address
     }
 
-    @static fun rip(disp: Int32): Address {
+    @static fn rip(disp: Int32): Address {
         let address = Address();
 
         address.set_modrm(0b00I, RBP);
@@ -1547,7 +1547,7 @@ class Address {
     }
 }
 
-@test fun testConditionCodes() {
+@test fn testConditionCodes() {
     assert(Condition::Overflow.toInt32() == 0b0000I);
 
     assert(Condition::NoOverflow.toInt32() == 0b0001I);
@@ -1595,12 +1595,12 @@ class Address {
 }
 
 impl Register {
-    fun lowBits(): Int32 = self.value & 0b111I;
+    fn lowBits(): Int32 = self.value & 0b111I;
 
-    fun needsRexBit(): Bool = self.value > 7I;
+    fn needsRexBit(): Bool = self.value > 7I;
 }
 
-@test fun testAsmRegisters() {
+@test fn testAsmRegisters() {
     assert(RAX.lowBits() == 0I && !RAX.needsRexBit());
     assert(RCX.lowBits() == 1I && !RCX.needsRexBit());
     assert(RDX.lowBits() == 2I && !RDX.needsRexBit());
@@ -1620,7 +1620,7 @@ impl Register {
     assert(R15.lowBits() == 7I && R15.needsRexBit());
 }
 
-@test fun testAsmPushqr(_x: Testing) {
+@test fn testAsmPushqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.pushqr(RAX);
     asm.pushqr(RSP);
@@ -1634,7 +1634,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmPopqr(_x: Testing) {
+@test fn testAsmPopqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.popqr(RAX);
     asm.popqr(RSP);
@@ -1648,7 +1648,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovqrr(_x: Testing) {
+@test fn testAsmMovqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movqrr(R15, RAX);
     asm.movqrr(RAX, R15);
@@ -1658,7 +1658,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovlrr(_x: Testing) {
+@test fn testAsmMovlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movlrr(R15, RAX);
     asm.movlrr(RAX, R15);
@@ -1670,7 +1670,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmAddqrr(_x: Testing) {
+@test fn testAsmAddqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.addqrr(RAX, RBX);
     asm.addqrr(RAX, R12);
@@ -1684,7 +1684,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmAddlrr(_x: Testing) {
+@test fn testAsmAddlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.addlrr(RAX, RBX);
     asm.addlrr(RCX, R15);
@@ -1694,7 +1694,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmAddqri(_x: Testing) {
+@test fn testAsmAddqri(_x: Testing) {
     let asm = AssemblerX64();
     asm.addqri(RAX, Immediate(0x11L));
     asm.addqri(R15, Immediate(0x11L));
@@ -1710,7 +1710,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSubqrr(_x: Testing) {
+@test fn testAsmSubqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.subqrr(RAX, RBX);
     asm.subqrr(RCX, R15);
@@ -1720,7 +1720,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSubqri(_x: Testing) {
+@test fn testAsmSubqri(_x: Testing) {
     let asm = AssemblerX64();
     asm.subqri(RAX, Immediate(0x11L));
     asm.subqri(R15, Immediate(0x11L));
@@ -1736,7 +1736,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmRetq(_x: Testing) {
+@test fn testAsmRetq(_x: Testing) {
     let asm = AssemblerX64();
     asm.retq();
     let buffer = asm.finalizeTesting();
@@ -1744,7 +1744,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmNop(_x: Testing) {
+@test fn testAsmNop(_x: Testing) {
     let asm = AssemblerX64();
     asm.nop();
     let buffer = asm.finalizeTesting();
@@ -1752,7 +1752,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCdqCqo(_x: Testing) {
+@test fn testAsmCdqCqo(_x: Testing) {
     let asm = AssemblerX64();
     asm.cdq();
     asm.cqo();
@@ -1762,7 +1762,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmOrlrr(_x: Testing) {
+@test fn testAsmOrlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.orlrr(RAX, R15);
     asm.orlrr(RAX, RCX);
@@ -1775,7 +1775,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmOrqrr(_x: Testing) {
+@test fn testAsmOrqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.orqrr(RAX, R15);
     asm.orqrr(RAX, RCX);
@@ -1788,7 +1788,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmAndlrr(_x: Testing) {
+@test fn testAsmAndlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.andlrr(RAX, R15);
     asm.andlrr(RAX, RCX);
@@ -1801,7 +1801,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmAndqrr(_x: Testing) {
+@test fn testAsmAndqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.andqrr(RAX, R15);
     asm.andqrr(RAX, RCX);
@@ -1814,7 +1814,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmXorlrr(_x: Testing) {
+@test fn testAsmXorlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.xorlrr(RAX, R15);
     asm.xorlrr(RAX, RCX);
@@ -1827,7 +1827,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmXorqrr(_x: Testing) {
+@test fn testAsmXorqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.xorqrr(RAX, R15);
     asm.xorqrr(RAX, RCX);
@@ -1840,7 +1840,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmplrr(_x: Testing) {
+@test fn testAsmCmplrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmplrr(RAX, R15);
     asm.cmplrr(R15, RBX);
@@ -1853,7 +1853,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmpqrr(_x: Testing) {
+@test fn testAsmCmpqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmpqrr(RAX, R15);
     asm.cmpqrr(R15, RBX);
@@ -1866,7 +1866,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmImullrr(_x: Testing) {
+@test fn testAsmImullrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.imullrr(RAX, RBX);
     asm.imullrr(RCX, R15);
@@ -1877,7 +1877,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmImulqrr(_x: Testing) {
+@test fn testAsmImulqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.imulqrr(RAX, RBX);
     asm.imulqrr(RCX, R15);
@@ -1888,7 +1888,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmIdivlr(_x: Testing) {
+@test fn testAsmIdivlr(_x: Testing) {
     let asm = AssemblerX64();
     asm.idivlr(RAX);
     asm.idivlr(R15);
@@ -1899,7 +1899,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmIdivqr(_x: Testing) {
+@test fn testAsmIdivqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.idivqr(RAX);
     asm.idivqr(R15);
@@ -1910,7 +1910,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSetccr(_x: Testing) {
+@test fn testAsmSetccr(_x: Testing) {
     let asm = AssemblerX64();
     asm.setccr(Condition::Equal, RAX);
     asm.setccr(Condition::NotEqual, R15);
@@ -1929,7 +1929,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCallr(_x: Testing) {
+@test fn testAsmCallr(_x: Testing) {
     let asm = AssemblerX64();
     asm.callr(RAX);
     asm.callr(R15);
@@ -1940,7 +1940,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmovl(_x: Testing) {
+@test fn testAsmCmovl(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmovl(Condition::Equal, R15, RAX);
     asm.cmovl(Condition::NotEqual, RAX, R13);
@@ -1951,7 +1951,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmovq(_x: Testing) {
+@test fn testAsmCmovq(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmovq(Condition::Greater, RAX, RCX);
     asm.cmovq(Condition::Equal, R15, RAX);
@@ -1964,7 +1964,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovlri(_x: Testing) {
+@test fn testAsmMovlri(_x: Testing) {
     let asm = AssemblerX64();
     asm.movlri(RAX, Immediate(2L));
     asm.movlri(R14, Immediate(3L));
@@ -1975,7 +1975,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovqri(_x: Testing) {
+@test fn testAsmMovqri(_x: Testing) {
     let asm = AssemblerX64();
     asm.movqri(RAX, Immediate(1L));
     asm.movqri(R15, Immediate(-1L));
@@ -1986,7 +1986,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testTestlrr(_x: Testing) {
+@test fn testTestlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.testlrr(RAX, RAX);
     asm.testlrr(RSI, RAX);
@@ -1999,7 +1999,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testTestqrr(_x: Testing) {
+@test fn testTestqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.testqrr(RAX, RAX);
     asm.testqrr(RSI, RAX);
@@ -2012,7 +2012,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovqra(_x: Testing) {
+@test fn testAsmMovqra(_x: Testing) {
     let asm = AssemblerX64();
     asm.movqra(RAX, Address::offset(RSP, 0I));
     asm.movqra(RAX, Address::offset(RSP, 1I));
@@ -2049,7 +2049,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovqar(_x: Testing) {
+@test fn testAsmMovqar(_x: Testing) {
     let asm = AssemblerX64();
     asm.movqar(Address::offset(RBP, 0I), RAX);
     asm.movqar(Address::array(RAX, RBP, ScaleFactor::Four, 1I), RAX);
@@ -2061,7 +2061,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovlra(_x: Testing) {
+@test fn testAsmMovlra(_x: Testing) {
     let asm = AssemblerX64();
     asm.movlra(RAX, Address::offset(RBP, 0I));
     asm.movlra(RAX, Address::rip(0I));
@@ -2073,7 +2073,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovlar(_x: Testing) {
+@test fn testAsmMovlar(_x: Testing) {
     let asm = AssemblerX64();
     asm.movlar(Address::offset(RBP, 0I), RAX);
     asm.movlar(Address::offset(RBP, 0I), R15);
@@ -2091,7 +2091,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmLea(_x: Testing) {
+@test fn testAsmLea(_x: Testing) {
     let asm = AssemblerX64();
     asm.lea(RAX, Address::offset(RAX, 0I));
     asm.lea(RAX, Address::offset(RAX, 1I));
@@ -2107,7 +2107,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovbar(_x: Testing) {
+@test fn testAsmMovbar(_x: Testing) {
     let asm = AssemblerX64();
     asm.movbar(Address::offset(RSP, 0I), RAX);
     asm.movbar(Address::offset(RSP, 0I), RSI);
@@ -2121,7 +2121,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovbai(_x: Testing) {
+@test fn testAsmMovbai(_x: Testing) {
     let asm = AssemblerX64();
     asm.movbai(Address::offset(RAX, 0I), Immediate(1L));
     asm.movbai(Address::offset(RAX, 0I), Immediate(127L));
@@ -2139,7 +2139,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovqai(_x: Testing) {
+@test fn testAsmMovqai(_x: Testing) {
     let asm = AssemblerX64();
     asm.movqai(Address::offset(RAX, 0I), Immediate(1L));
     asm.movqai(Address::offset(R8, 0I), Immediate(Int32::maxValue().toInt64()));
@@ -2155,7 +2155,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovlai(_x: Testing) {
+@test fn testAsmMovlai(_x: Testing) {
     let asm = AssemblerX64();
     asm.movlai(Address::offset(RAX, 0I), Immediate(1L));
     asm.movlai(Address::offset(R8, 0I), Immediate((1L << 32I) - 1L));
@@ -2171,7 +2171,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmTestlri(_x: Testing) {
+@test fn testAsmTestlri(_x: Testing) {
     let asm = AssemblerX64();
     asm.testlri(RAX, Immediate(1L));
     asm.testlri(RCX, Immediate(255L));
@@ -2203,7 +2203,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmTestlar(_x: Testing) {
+@test fn testAsmTestlar(_x: Testing) {
     let asm = AssemblerX64();
     asm.testlar(Address::offset(RDI, 1I), RAX);
     asm.testlar(Address::offset(RDI, 0I), RAX);
@@ -2227,7 +2227,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmTestlai(_x: Testing) {
+@test fn testAsmTestlai(_x: Testing) {
     let asm = AssemblerX64();
     asm.testlai(Address::offset(RAX, 0I), Immediate(1L));
     asm.testlai(Address::offset(RAX, 1I), Immediate(1L));
@@ -2243,7 +2243,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmTestqai(_x: Testing) {
+@test fn testAsmTestqai(_x: Testing) {
     let asm = AssemblerX64();
     asm.testqai(Address::offset(RAX, 0I), Immediate(1L));
     asm.testqai(Address::offset(RAX, 1I), Immediate(1L));
@@ -2259,7 +2259,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmTestqar(_x: Testing) {
+@test fn testAsmTestqar(_x: Testing) {
     let asm = AssemblerX64();
     asm.testqar(Address::offset(RDI, 1I), RAX);
     asm.testqar(Address::offset(R8, 0I), R15);
@@ -2271,7 +2271,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovzxbrr(_x: Testing) {
+@test fn testAsmMovzxbrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movzxbrr(RAX, RAX);
     asm.movzxbrr(RAX, RDI);
@@ -2291,7 +2291,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovzxbra(_x: Testing) {
+@test fn testAsmMovzxbra(_x: Testing) {
     let asm = AssemblerX64();
     asm.movzxbra(RAX, Address::offset(RAX, 0I));
     asm.movzxbra(R8, Address::offset(RAX, 0I));
@@ -2305,7 +2305,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovsxblrr(_x: Testing) {
+@test fn testAsmMovsxblrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movsxblrr(RAX, RAX);
     asm.movsxblrr(RAX, R8);
@@ -2329,7 +2329,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testasmMovsxblra(_x: Testing) {
+@test fn testasmMovsxblra(_x: Testing) {
     let asm = AssemblerX64();
     asm.movsxblra(RAX, Address::offset(RAX, 0I));
     asm.movsxblra(R8, Address::offset(RAX, 0I));
@@ -2345,7 +2345,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovsxbqrr(_x: Testing) {
+@test fn testAsmMovsxbqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movsxbqrr(RAX, RAX);
     asm.movsxbqrr(RAX, R8);
@@ -2369,7 +2369,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovsxbqra(_x: Testing) {
+@test fn testAsmMovsxbqra(_x: Testing) {
     let asm = AssemblerX64();
     asm.movsxbqra(RAX, Address::offset(RAX, 0I));
     asm.movsxbqra(R8, Address::offset(RAX, 0I));
@@ -2385,7 +2385,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovsxlqrr(_x: Testing) {
+@test fn testAsmMovsxlqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movsxlqrr(R15, RAX);
     asm.movsxlqrr(RAX, R15);
@@ -2397,7 +2397,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovssrr(_x: Testing) {
+@test fn testAsmMovssrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movssrr(XMM0, XMM1);
     asm.movssrr(XMM8, XMM1);
@@ -2411,7 +2411,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovssra(_x: Testing) {
+@test fn testAsmMovssra(_x: Testing) {
     let asm = AssemblerX64();
     asm.movssra(XMM0, Address::offset(RAX, 0I));
     asm.movssra(XMM8, Address::offset(RAX, 0I));
@@ -2435,7 +2435,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovssar(_x: Testing) {
+@test fn testAsmMovssar(_x: Testing) {
     let asm = AssemblerX64();
     asm.movssar(Address::offset(RAX, 0I), XMM0);
     asm.movssar(Address::offset(RAX, 0I), XMM8);
@@ -2447,7 +2447,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovsdrr(_x: Testing) {
+@test fn testAsmMovsdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movsdrr(XMM0, XMM1);
     asm.movsdrr(XMM8, XMM1);
@@ -2461,7 +2461,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovsdra(_x: Testing) {
+@test fn testAsmMovsdra(_x: Testing) {
     let asm = AssemblerX64();
     asm.movsdra(XMM0, Address::offset(RAX, 0I));
     asm.movsdra(XMM8, Address::offset(RAX, 0I));
@@ -2485,7 +2485,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovsdar(_x: Testing) {
+@test fn testAsmMovsdar(_x: Testing) {
     let asm = AssemblerX64();
     asm.movsdar(Address::offset(RAX, 0I), XMM0);
     asm.movsdar(Address::offset(RAX, 0I), XMM8);
@@ -2497,7 +2497,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmAddssrr(_x: Testing) {
+@test fn testAsmAddssrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.addssrr(XMM0, XMM1);
     asm.addssrr(XMM3, XMM15);
@@ -2511,7 +2511,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmAddsdrr(_x: Testing) {
+@test fn testAsmAddsdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.addsdrr(XMM0, XMM1);
     asm.addsdrr(XMM3, XMM15);
@@ -2525,7 +2525,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSubssrr(_x: Testing) {
+@test fn testAsmSubssrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.subssrr(XMM0, XMM1);
     asm.subssrr(XMM3, XMM15);
@@ -2539,7 +2539,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSubsdrr(_x: Testing) {
+@test fn testAsmSubsdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.subsdrr(XMM0, XMM1);
     asm.subsdrr(XMM3, XMM15);
@@ -2553,7 +2553,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMulssrr(_x: Testing) {
+@test fn testAsmMulssrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.mulssrr(XMM0, XMM1);
     asm.mulssrr(XMM3, XMM15);
@@ -2567,7 +2567,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMulsdrr(_x: Testing) {
+@test fn testAsmMulsdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.mulsdrr(XMM0, XMM1);
     asm.mulsdrr(XMM3, XMM15);
@@ -2581,7 +2581,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmDivssrr(_x: Testing) {
+@test fn testAsmDivssrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.divssrr(XMM0, XMM1);
     asm.divssrr(XMM3, XMM15);
@@ -2595,7 +2595,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmDivsdrr(_x: Testing) {
+@test fn testAsmDivsdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.divsdrr(XMM0, XMM1);
     asm.divsdrr(XMM3, XMM15);
@@ -2609,7 +2609,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmUcomissrr(_x: Testing) {
+@test fn testAsmUcomissrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.ucomissrr(XMM1, XMM0);
     asm.ucomissrr(XMM15, XMM3);
@@ -2623,7 +2623,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmUcomisdrr(_x: Testing) {
+@test fn testAsmUcomisdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.ucomisdrr(XMM1, XMM0);
     asm.ucomisdrr(XMM15, XMM3);
@@ -2637,7 +2637,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmPxorrr(_x: Testing) {
+@test fn testAsmPxorrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.pxorrr(XMM1, XMM0);
     asm.pxorrr(XMM15, XMM3);
@@ -2651,7 +2651,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSqrtssrr(_x: Testing) {
+@test fn testAsmSqrtssrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.sqrtssrr(XMM1, XMM0);
     asm.sqrtssrr(XMM15, XMM3);
@@ -2665,7 +2665,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSqrtsdrr(_x: Testing) {
+@test fn testAsmSqrtsdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.sqrtsdrr(XMM1, XMM0);
     asm.sqrtsdrr(XMM15, XMM3);
@@ -2679,7 +2679,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmTzcntlrr(_x: Testing) {
+@test fn testAsmTzcntlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.tzcntlrr(RDI, RAX);
     asm.tzcntlrr(RAX, RDI);
@@ -2691,7 +2691,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmTzcntqrr(_x: Testing) {
+@test fn testAsmTzcntqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.tzcntqrr(RDI, RAX);
     asm.tzcntqrr(RAX, RDI);
@@ -2703,7 +2703,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmLzcntlrr(_x: Testing) {
+@test fn testAsmLzcntlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.lzcntlrr(RDI, RAX);
     asm.lzcntlrr(RAX, RDI);
@@ -2715,7 +2715,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmLzcntqrr(_x: Testing) {
+@test fn testAsmLzcntqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.lzcntqrr(RDI, RAX);
     asm.lzcntqrr(RAX, RDI);
@@ -2727,7 +2727,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmPopcntlrr(_x: Testing) {
+@test fn testAsmPopcntlrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.popcntlrr(RDI, RAX);
     asm.popcntlrr(RAX, RDI);
@@ -2739,7 +2739,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmPopcntqrr(_x: Testing) {
+@test fn testAsmPopcntqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.popcntqrr(RDI, RAX);
     asm.popcntqrr(RAX, RDI);
@@ -2751,7 +2751,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvtss2sdrr(_x: Testing) {
+@test fn testAsmCvtss2sdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvtss2sdrr(XMM0, XMM1);
     asm.cvtss2sdrr(XMM3, XMM15);
@@ -2765,7 +2765,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvtsd2ssrr(_x: Testing) {
+@test fn testAsmCvtsd2ssrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvtsd2ssrr(XMM0, XMM1);
     asm.cvtsd2ssrr(XMM3, XMM15);
@@ -2779,7 +2779,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovdrx(_x: Testing) {
+@test fn testAsmMovdrx(_x: Testing) {
     let asm = AssemblerX64();
     asm.movdrx(RDI, XMM0);
     asm.movdrx(R8, XMM0);
@@ -2805,7 +2805,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovdxr(_x: Testing) {
+@test fn testAsmMovdxr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movdxr(XMM0, RAX);
     asm.movdxr(XMM0, R8);
@@ -2831,7 +2831,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovqrx(_x: Testing) {
+@test fn testAsmMovqrx(_x: Testing) {
     let asm = AssemblerX64();
     asm.movqrx(RDI, XMM0);
     asm.movqrx(R8, XMM0);
@@ -2857,7 +2857,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmMovqxr(_x: Testing) {
+@test fn testAsmMovqxr(_x: Testing) {
     let asm = AssemblerX64();
     asm.movqxr(XMM0, RAX);
     asm.movqxr(XMM0, R8);
@@ -2883,7 +2883,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmXorpsra(_x: Testing) {
+@test fn testAsmXorpsra(_x: Testing) {
     let asm = AssemblerX64();
     asm.xorpsra(XMM0, Address::offset(RBP, -8I));
     asm.xorpsra(XMM8, Address::offset(R8, 0I));
@@ -2895,7 +2895,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmXorpsrr(_x: Testing) {
+@test fn testAsmXorpsrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.xorpsrr(XMM0, XMM1);
     asm.xorpsrr(XMM7, XMM8);
@@ -2907,7 +2907,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmXorpdra(_x: Testing) {
+@test fn testAsmXorpdra(_x: Testing) {
     let asm = AssemblerX64();
     asm.xorpdra(XMM0, Address::offset(RBP, -8I));
     asm.xorpdra(XMM8, Address::offset(R8, 0I));
@@ -2919,7 +2919,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmXorlri(_x: Testing) {
+@test fn testAsmXorlri(_x: Testing) {
     let asm = AssemblerX64();
     asm.xorlri(RAX, Immediate(1L));
     asm.xorlri(R8, Immediate(127L));
@@ -2941,7 +2941,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmpbar(_x: Testing) {
+@test fn testAsmCmpbar(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmpbar(Address::offset(RAX, 0I), RAX);
     asm.cmpbar(Address::offset(RAX, 0I), RBX);
@@ -2961,7 +2961,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmpbai(_x: Testing) {
+@test fn testAsmCmpbai(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmpbai(Address::offset(RAX, 0I), Immediate(1L));
     asm.cmpbai(Address::offset(RAX, 0I), Immediate(127L));
@@ -2979,7 +2979,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmplri(_x: Testing) {
+@test fn testAsmCmplri(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmplri(RAX, Immediate(0L));
     asm.cmplri(R15, Immediate(0L));
@@ -2993,7 +2993,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmplai(_x: Testing) {
+@test fn testAsmCmplai(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmplai(Address::offset(RAX, 0I), Immediate(127L));
     asm.cmplai(Address::offset(RAX, 0I), Immediate(-128L));
@@ -3009,7 +3009,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmplar(_x: Testing) {
+@test fn testAsmCmplar(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmplar(Address::offset(RBX, 1I), RAX);
     asm.cmplar(Address::offset(RBX, 1I), R10);
@@ -3021,7 +3021,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmpqai(_x: Testing) {
+@test fn testAsmCmpqai(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmpqai(Address::offset(RAX, 0I), Immediate(127L));
     asm.cmpqai(Address::offset(RAX, 0I), Immediate(-128L));
@@ -3037,7 +3037,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmpqar(_x: Testing) {
+@test fn testAsmCmpqar(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmpqar(Address::offset(RBX, 1I), RAX);
     asm.cmpqar(Address::offset(RBX, 256I), RAX);
@@ -3057,7 +3057,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCmpqri(_x: Testing) {
+@test fn testAsmCmpqri(_x: Testing) {
     let asm = AssemblerX64();
     asm.cmpqri(RAX, Immediate(127L));
     asm.cmpqri(R15, Immediate(-128L));
@@ -3071,7 +3071,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmNotlr(_x: Testing) {
+@test fn testAsmNotlr(_x: Testing) {
     let asm = AssemblerX64();
     asm.notlr(RAX);
     asm.notlr(R15);
@@ -3083,7 +3083,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmNotqr(_x: Testing) {
+@test fn testAsmNotqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.notqr(RAX);
     asm.notqr(R15);
@@ -3095,7 +3095,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmNeglr(_x: Testing) {
+@test fn testAsmNeglr(_x: Testing) {
     let asm = AssemblerX64();
     asm.neglr(RAX);
     asm.neglr(R15);
@@ -3107,7 +3107,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmNegqr(_x: Testing) {
+@test fn testAsmNegqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.negqr(RAX);
     asm.negqr(R15);
@@ -3119,7 +3119,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmAndqri(_x: Testing) {
+@test fn testAsmAndqri(_x: Testing) {
     let asm = AssemblerX64();
     asm.andqri(RAX, Immediate(-8L));
     asm.andqri(RAX, Immediate(128L));
@@ -3135,7 +3135,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJmpr(_x: Testing) {
+@test fn testAsmJmpr(_x: Testing) {
     let asm = AssemblerX64();
     asm.jmpr(RAX);
     asm.jmpr(RDI);
@@ -3151,7 +3151,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmShrlri(_x: Testing) {
+@test fn testAsmShrlri(_x: Testing) {
     let asm = AssemblerX64();
     asm.shrlri(RAX, Immediate(2L));
     asm.shrlri(R8, Immediate(2L));
@@ -3163,7 +3163,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmShrlr(_x: Testing) {
+@test fn testAsmShrlr(_x: Testing) {
     let asm = AssemblerX64();
     asm.shrlr(RAX);
     asm.shrlr(R8);
@@ -3175,7 +3175,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmShrqri(_x: Testing) {
+@test fn testAsmShrqri(_x: Testing) {
     let asm = AssemblerX64();
     asm.shrqri(RAX, Immediate(2L));
     asm.shrqri(R8, Immediate(2L));
@@ -3187,7 +3187,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmShrqr(_x: Testing) {
+@test fn testAsmShrqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.shrqr(RAX);
     asm.shrqr(R8);
@@ -3199,7 +3199,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSarlri(_x: Testing) {
+@test fn testAsmSarlri(_x: Testing) {
     let asm = AssemblerX64();
     asm.sarlri(RAX, Immediate(2L));
     asm.sarlri(R8, Immediate(2L));
@@ -3211,7 +3211,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSarlr(_x: Testing) {
+@test fn testAsmSarlr(_x: Testing) {
     let asm = AssemblerX64();
     asm.sarlr(RAX);
     asm.sarlr(R8);
@@ -3223,7 +3223,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSarqri(_x: Testing) {
+@test fn testAsmSarqri(_x: Testing) {
     let asm = AssemblerX64();
     asm.sarqri(RAX, Immediate(2L));
     asm.sarqri(R8, Immediate(2L));
@@ -3235,7 +3235,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmSarqr(_x: Testing) {
+@test fn testAsmSarqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.sarqr(RAX);
     asm.sarqr(R8);
@@ -3247,7 +3247,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmShllri(_x: Testing) {
+@test fn testAsmShllri(_x: Testing) {
     let asm = AssemblerX64();
     asm.shllri(RAX, Immediate(2L));
     asm.shllri(R8, Immediate(2L));
@@ -3259,7 +3259,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmShllr(_x: Testing) {
+@test fn testAsmShllr(_x: Testing) {
     let asm = AssemblerX64();
     asm.shllr(RAX);
     asm.shllr(R8);
@@ -3271,7 +3271,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmShlqri(_x: Testing) {
+@test fn testAsmShlqri(_x: Testing) {
     let asm = AssemblerX64();
     asm.shlqri(RAX, Immediate(2L));
     asm.shlqri(R8, Immediate(2L));
@@ -3283,7 +3283,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmShlqr(_x: Testing) {
+@test fn testAsmShlqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.shlqr(RAX);
     asm.shlqr(R8);
@@ -3295,7 +3295,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmRollr(_x: Testing) {
+@test fn testAsmRollr(_x: Testing) {
     let asm = AssemblerX64();
     asm.rollr(RAX);
     asm.rollr(R8);
@@ -3307,7 +3307,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmRolqr(_x: Testing) {
+@test fn testAsmRolqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.rolqr(RAX);
     asm.rolqr(R8);
@@ -3319,7 +3319,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmRorlr(_x: Testing) {
+@test fn testAsmRorlr(_x: Testing) {
     let asm = AssemblerX64();
     asm.rorlr(RAX);
     asm.rorlr(R8);
@@ -3331,7 +3331,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmRorqr(_x: Testing) {
+@test fn testAsmRorqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.rorqr(RAX);
     asm.rorqr(R8);
@@ -3343,7 +3343,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvtsi2ssdrr(_x: Testing) {
+@test fn testAsmCvtsi2ssdrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvtsi2ssdrr(XMM0, RCX);
     asm.cvtsi2ssdrr(XMM3, R15);
@@ -3357,7 +3357,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvtsi2ssqrr(_x: Testing) {
+@test fn testAsmCvtsi2ssqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvtsi2ssqrr(XMM0, RCX);
     asm.cvtsi2ssqrr(XMM3, R15);
@@ -3371,7 +3371,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvtsi2sddrr(_x: Testing) {
+@test fn testAsmCvtsi2sddrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvtsi2sddrr(XMM0, RCX);
     asm.cvtsi2sddrr(XMM3, R15);
@@ -3385,7 +3385,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvtsi2sdqrr(_x: Testing) {
+@test fn testAsmCvtsi2sdqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvtsi2sdqrr(XMM0, RCX);
     asm.cvtsi2sdqrr(XMM3, R15);
@@ -3399,7 +3399,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvttss2sidrr(_x: Testing) {
+@test fn testAsmCvttss2sidrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvttss2sidrr(RCX, XMM0);
     asm.cvttss2sidrr(R15, XMM3);
@@ -3413,7 +3413,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvttss2siqrr(_x: Testing) {
+@test fn testAsmCvttss2siqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvttss2siqrr(RCX, XMM0);
     asm.cvttss2siqrr(R15, XMM3);
@@ -3427,7 +3427,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvttsd2sidrr(_x: Testing) {
+@test fn testAsmCvttsd2sidrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvttsd2sidrr(RCX, XMM0);
     asm.cvttsd2sidrr(R15, XMM3);
@@ -3441,7 +3441,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmCvttsd2siqrr(_x: Testing) {
+@test fn testAsmCvttsd2siqrr(_x: Testing) {
     let asm = AssemblerX64();
     asm.cvttsd2siqrr(RCX, XMM0);
     asm.cvttsd2siqrr(R15, XMM3);
@@ -3455,7 +3455,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJmpBackwardNear(_x: Testing) {
+@test fn testAsmJmpBackwardNear(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
     asm.jmp(lbl);
@@ -3466,7 +3466,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJmpBackwardStillNear(_x: Testing) {
+@test fn testAsmJmpBackwardStillNear(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
     for x in range(0I, 126I) {
@@ -3481,7 +3481,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJmpBackwardAlreadyFar(_x: Testing) {
+@test fn testAsmJmpBackwardAlreadyFar(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
     for x in range(0I, 127I) {
@@ -3496,7 +3496,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJmpForward(_x: Testing) {
+@test fn testAsmJmpForward(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createLabel();
     asm.jmp(lbl);
@@ -3508,7 +3508,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJmpNearForward(_x: Testing) {
+@test fn testAsmJmpNearForward(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createLabel();
     asm.jmpNear(lbl);
@@ -3520,7 +3520,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJmpNearBackward(_x: Testing) {
+@test fn testAsmJmpNearBackward(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
     asm.jmpNear(lbl);
@@ -3531,7 +3531,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJccNearBackward(_x: Testing) {
+@test fn testAsmJccNearBackward(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
     asm.jccNear(Condition::Overflow, lbl);
@@ -3542,7 +3542,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJccNearForward(_x: Testing) {
+@test fn testAsmJccNearForward(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createLabel();
     asm.jccNear(Condition::Overflow, lbl);
@@ -3554,7 +3554,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJccBackwardNear(_x: Testing) {
+@test fn testAsmJccBackwardNear(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
     asm.jcc(Condition::Overflow, lbl);
@@ -3565,7 +3565,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJccBackwardStillNear(_x: Testing) {
+@test fn testAsmJccBackwardStillNear(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
     for x in range(0I, 126I) {
@@ -3580,7 +3580,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJccBackwardAlreadyFar(_x: Testing) {
+@test fn testAsmJccBackwardAlreadyFar(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
     for x in range(0I, 127I) {
@@ -3595,7 +3595,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmJccForward(_x: Testing) {
+@test fn testAsmJccForward(_x: Testing) {
     let asm = AssemblerX64();
     let lbl = asm.createLabel();
     asm.jcc(Condition::Overflow, lbl);
@@ -3607,7 +3607,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-fun assertAsmNop(code: MachineCode, length: Int64) {
+fn assertAsmNop(code: MachineCode, length: Int64) {
     assert(length > 0L);
 
     var idx = 0L;

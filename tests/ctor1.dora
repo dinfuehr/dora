@@ -4,6 +4,6 @@ class X(msg: String) {
     print(msg);
 }
 
-fun main() {
+fn main() {
     X("xyz");
 }

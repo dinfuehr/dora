@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = 0F / 0F;
     assert(x.isNan());
 

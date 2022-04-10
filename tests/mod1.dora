@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(8I % 2I == 0I);
     assert(7I % 2I == 1I);
     assert((-3I) % 2I == -1I);

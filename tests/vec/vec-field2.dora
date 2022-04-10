@@ -2,7 +2,7 @@ class Foo {
     let vec: Vec[Int32] = Vec[Int32](1I, 2I, 3I);
 }
 
-fun main() {
+fn main() {
     let foo = Foo();
     assert(foo.vec(0L) == 1I);
 }

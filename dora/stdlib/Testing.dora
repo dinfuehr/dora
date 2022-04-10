@@ -1,7 +1,7 @@
 @pub class Testing {
     var failed: Bool = false;
 
-    fun fail() {
+    fn fail() {
         self.failed = true;
     }
 }

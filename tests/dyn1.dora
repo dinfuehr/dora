@@ -1,15 +1,15 @@
 //= stdout "ABC"
 
-@open class A { @open fun foo() { print("A"); } }
-class B extends A { @override fun foo() { print("B"); } }
-class C extends A { @override fun foo() { print("C"); } }
+@open class A { @open fn foo() { print("A"); } }
+class B extends A { @override fn foo() { print("B"); } }
+class C extends A { @override fn foo() { print("C"); } }
 
-fun main() {
+fn main() {
   test(A());
   test(B());
   test(C());
 }
 
-fun test(a: A) {
+fn test(a: A) {
   a.foo();
 }

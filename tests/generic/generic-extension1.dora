@@ -1,22 +1,22 @@
 class Foo[T]
 
 impl Foo[Int32] {
-    fun foo(): Int32 = 1I;
+    fn foo(): Int32 = 1I;
 }
 
 impl Foo[Int64] {
-    fun foo(): Int32 = 2I;
+    fn foo(): Int32 = 2I;
 }
 
-fun main() {
+fn main() {
     assert(f1(Foo[Int32]()) == 1I);
     assert(f2(Foo[Int64]()) == 2I);
 }
 
-fun f1(x: Foo[Int32]): Int32 {
+fn f1(x: Foo[Int32]): Int32 {
     x.foo()
 }
 
-fun f2(x: Foo[Int64]): Int32 {
+fn f2(x: Foo[Int64]): Int32 {
     x.foo()
 }

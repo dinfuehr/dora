@@ -1,9 +1,9 @@
 //= error
 
-fun main() {
+fn main() {
     std::call("foo");
 }
 
-fun foo(a: Int32) {
+fn foo(a: Int32) {
     println(a.toString());
 }

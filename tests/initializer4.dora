@@ -10,7 +10,7 @@ class X(j: Int32) {
   print(self.i.toString());
 }
 
-fun main() {
+fn main() {
   X(1I);
   X(2I);
 }

@@ -2,7 +2,7 @@
 
 class Foo(let x: Int32)
 
-fun main() {
+fn main() {
     let default = Foo(17I);
     let x = Array[Foo]::fill(64L, default);
     std::forceMinorCollect();

@@ -1,6 +1,6 @@
 //= stdout file
 
-fun main() {
+fn main() {
     let primes = sieve(100L);
     var i = 0L;
 
@@ -10,7 +10,7 @@ fun main() {
     }
 }
 
-fun sieve(limit: Int64): Vec[Int64] {
+fn sieve(limit: Int64): Vec[Int64] {
     let primes = Vec[Int64]();
 
     if limit >= 2L {

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = 257I.toUInt8();
     assert(x == 1I.toUInt8());
 

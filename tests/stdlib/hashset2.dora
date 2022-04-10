@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let set = std::HashSet[Int32]();
     assert(set.isEmpty());
 

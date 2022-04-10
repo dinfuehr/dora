@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(9D.sqrt() == 3D);
 
     let x = 0D / 0D;

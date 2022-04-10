@@ -4,7 +4,7 @@ struct Bar(first: Foo, second: Foo)
 
 var x: Bar = Bar(Foo(0I), Foo(0I));
 
-fun main() {
+fn main() {
     std::forceCollect();
     x = Bar(Foo(17I), Foo(42I));
     assert(x.first.value == 17I);

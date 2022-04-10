@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = 1I;
     assert(1F == x.toFloat32());
 

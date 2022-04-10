@@ -1,10 +1,10 @@
-fun main() {
+fn main() {
     assert(slowLength(Array[Int32]()) == 0L);
     assert(slowLength(Array[Int32](1I)) == 1L);
     assert(slowLength(Array[Int32](1I, 2I)) == 2L);
 }
 
-fun slowLength(x: Array[Int32]): Int64 {
+fn slowLength(x: Array[Int32]): Int64 {
     var entries = 0L;
     for val in x {
         entries = entries + 1L;

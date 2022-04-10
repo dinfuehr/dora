@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let val = 101I.toString();
   assert(val == "101");
 }

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     var counter = 0I;
     for i in std::range(0I, 0I) {
         counter = counter + 1I;

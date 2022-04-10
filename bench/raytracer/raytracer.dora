@@ -15,35 +15,35 @@ class RayTracer {
     var size: Int;
     var numobjects: Int;
     
-    fun createScene(): Scene {
+    fn createScene(): Scene {
 
     }
 
-    fun setScene(scene: Scene) {
+    fn setScene(scene: Scene) {
 
     }
 
-    fun render(interval: Interval) {
+    fn render(interval: Interval) {
 
     }
 
-    fun intersect(r: Ray, maxt: Float64): Bool {
+    fn intersect(r: Ray, maxt: Float64): Bool {
 
     }
 
-    fun Shadow(r: Ray, tmax: Float64): Int {
+    fn Shadow(r: Ray, tmax: Float64): Int {
 
     }
 
-    fun SpecularDirection(i: Vec3, n: Vec3): Vec3 {
+    fn SpecularDirection(i: Vec3, n: Vec3): Vec3 {
 
     }
 
-    fun shade(level: Int, weight: Float64, p: Vec3, n: Vec3, i: Vec3, hit: Isect) {
+    fn shade(level: Int, weight: Float64, p: Vec3, n: Vec3, i: Vec3, hit: Isect) {
 
     }
 
-    fun trace(level: Int, weight: Float64, r: Ray) {
+    fn trace(level: Int, weight: Float64, r: Ray) {
         
     }
 }

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let buffer = write('$');
     assert(buffer(0L) == 0x24Y);
     assert(buffer(1L) == 0Y);
@@ -22,7 +22,7 @@ fun main() {
     assert(buffer(4L) == 0Y);
 }
 
-fun write(ch: Char): Array[UInt8] {
+fn write(ch: Char): Array[UInt8] {
     let buffer = Array[UInt8]::zero(5L);
     ch.encodeUtf8(buffer, 0L);
     return buffer;

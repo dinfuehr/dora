@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   var maxDepth = 6I;
 
   if std::argc() > 0I {
@@ -16,7 +16,7 @@ fun main() {
   trees(maxDepth);
 }
 
-fun trees(maxDepth: Int32) {
+fn trees(maxDepth: Int32) {
   let longLastingNode = createTree(maxDepth);
   var depth = 4I;
 
@@ -31,7 +31,7 @@ fun trees(maxDepth: Int32) {
     + "\t check: " + checkTree(longLastingNode).toString());
 }
 
-fun loops(iterations: Int32, depth: Int32) {
+fn loops(iterations: Int32, depth: Int32) {
   var check = 0I;
   var item = 0I;
 
@@ -44,7 +44,7 @@ fun loops(iterations: Int32, depth: Int32) {
     depth.toString() + "\t check: " + check.toString());
 }
 
-fun createTree(depth: Int32): TreeNode {
+fn createTree(depth: Int32): TreeNode {
   var depth = depth;
   let node = TreeNode(0I, Option[TreeNode]::None, Option[TreeNode]::None);
 
@@ -57,7 +57,7 @@ fun createTree(depth: Int32): TreeNode {
   return node;
 }
 
-fun checkTree(node: TreeNode): Int32 {
+fn checkTree(node: TreeNode): Int32 {
   if node.left.isNone() {
     return 1I;
   }

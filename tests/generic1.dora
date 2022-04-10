@@ -1,6 +1,6 @@
 //= stdout "1"
 
-fun main() {
+fn main() {
     let a = A[Int32](1I);
     print(a.x.toString());
 }

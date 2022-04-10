@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let array = createArray(5L);
 
   assert(array.size() == 5L);
@@ -11,7 +11,7 @@ fun main() {
   assert(getArray(array, 3L) == 40I);
 }
 
-fun createArray(a: Int64): Array[Int32] { return Array[Int32]::zero(a); }
-fun getLength(a: Array[Int32]): Int64 { return a.size(); }
-fun setArray(arr: Array[Int32], idx: Int64, value: Int32) { arr(idx) = value; }
-fun getArray(arr: Array[Int32], idx: Int64): Int32 { return arr(idx); }
+fn createArray(a: Int64): Array[Int32] { return Array[Int32]::zero(a); }
+fn getLength(a: Array[Int32]): Int64 { return a.size(); }
+fn setArray(arr: Array[Int32], idx: Int64, value: Int32) { arr(idx) = value; }
+fn getArray(arr: Array[Int32], idx: Int64): Int32 { return arr(idx); }

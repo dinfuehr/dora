@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(not(20I) == -21I);
 
     assert(add(20I, 7I) == 27I);
@@ -45,40 +45,40 @@ fun main() {
     assert(!gt(5I, 20I));
 }
 
-fun not(x: Int32): Int32 = !x;
+fn not(x: Int32): Int32 = !x;
 
-fun add(x: Int32, y: Int32): Int32 = x+y;
+fn add(x: Int32, y: Int32): Int32 = x+y;
 
-fun sub(x: Int32, y: Int32): Int32 = x-y;
+fn sub(x: Int32, y: Int32): Int32 = x-y;
 
-fun mul(x: Int32, y: Int32): Int32 = x*y;
+fn mul(x: Int32, y: Int32): Int32 = x*y;
 
-fun div(x: Int32, y: Int32): Int32 = x/y;
+fn div(x: Int32, y: Int32): Int32 = x/y;
 
-fun mod(y: Int32, z: Int32): Int32 = y%z;
+fn mod(y: Int32, z: Int32): Int32 = y%z;
 
-fun or(x: Int32, y: Int32): Int32 = x | y;
+fn or(x: Int32, y: Int32): Int32 = x | y;
 
-fun xor(x: Int32, y: Int32): Int32 = x ^ y;
+fn xor(x: Int32, y: Int32): Int32 = x ^ y;
 
-fun and(x: Int32, y: Int32): Int32 = x & y;
+fn and(x: Int32, y: Int32): Int32 = x & y;
 
-fun shl(x: Int32, y: Int32): Int32 = x << y;
+fn shl(x: Int32, y: Int32): Int32 = x << y;
 
-fun shr(x: Int32, y: Int32): Int32 = x >>> y;
+fn shr(x: Int32, y: Int32): Int32 = x >>> y;
 
-fun sar(x: Int32, y: Int32): Int32 = x >> y;
+fn sar(x: Int32, y: Int32): Int32 = x >> y;
 
-fun eq(x: Int32, y: Int32): Bool = x == y;
+fn eq(x: Int32, y: Int32): Bool = x == y;
 
-fun ne(x: Int32, y: Int32): Bool = x != y;
+fn ne(x: Int32, y: Int32): Bool = x != y;
 
-fun lt(x: Int32, y: Int32): Bool = x < y;
+fn lt(x: Int32, y: Int32): Bool = x < y;
 
-fun le(x: Int32, y: Int32): Bool = x <= y;
+fn le(x: Int32, y: Int32): Bool = x <= y;
 
-fun ge(x: Int32, y: Int32): Bool = x >= y;
+fn ge(x: Int32, y: Int32): Bool = x >= y;
 
-fun gt(x: Int32, y: Int32): Bool = x > y;
+fn gt(x: Int32, y: Int32): Bool = x > y;
 
-fun neg(x: Int32): Int32 = -x;
+fn neg(x: Int32): Int32 = -x;

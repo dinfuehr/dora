@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x: Int64 = 1L;
     let y = 2L;
     let z = x.plus(y);

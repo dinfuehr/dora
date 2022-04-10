@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = None[Int32];
   assert(x.isNone());
   assert(!x.isSome());

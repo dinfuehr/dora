@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(not(20L) == -21L);
 
     assert(add(20L, 7L) == 27L);
@@ -45,78 +45,78 @@ fun main() {
     assert(!gt(5L, 20L));
 }
 
-fun not(x: Int64): Int64 {
+fn not(x: Int64): Int64 {
     return !x;
 }
 
-fun add(x: Int64, y: Int64): Int64 {
+fn add(x: Int64, y: Int64): Int64 {
     return x+y;
 }
 
-fun sub(x: Int64, y: Int64): Int64 {
+fn sub(x: Int64, y: Int64): Int64 {
     return x-y;
 }
 
-fun mul(x: Int64, y: Int64): Int64 {
+fn mul(x: Int64, y: Int64): Int64 {
     return x*y;
 }
 
-fun div(x: Int64, y: Int64): Int64 {
+fn div(x: Int64, y: Int64): Int64 {
     return x/y;
 }
 
-fun mod(y: Int64, z: Int64): Int64 {
+fn mod(y: Int64, z: Int64): Int64 {
     return y%z;
 }
 
-fun or(x: Int64, y: Int64): Int64 {
+fn or(x: Int64, y: Int64): Int64 {
     return x | y;
 }
 
-fun xor(x: Int64, y: Int64): Int64 {
+fn xor(x: Int64, y: Int64): Int64 {
     return x ^ y;
 }
 
-fun and(x: Int64, y: Int64): Int64 {
+fn and(x: Int64, y: Int64): Int64 {
     return x & y;
 }
 
-fun shl(x: Int64, y: Int32): Int64 {
+fn shl(x: Int64, y: Int32): Int64 {
     return x << y;
 }
 
-fun shr(x: Int64, y: Int32): Int64 {
+fn shr(x: Int64, y: Int32): Int64 {
     return x >>> y;
 }
 
-fun sar(x: Int64, y: Int32): Int64 {
+fn sar(x: Int64, y: Int32): Int64 {
     return x >> y;
 }
 
-fun eq(x: Int64, y: Int64): Bool {
+fn eq(x: Int64, y: Int64): Bool {
     return x == y;
 }
 
-fun ne(x: Int64, y: Int64): Bool {
+fn ne(x: Int64, y: Int64): Bool {
     return x != y;
 }
 
-fun lt(x: Int64, y: Int64): Bool {
+fn lt(x: Int64, y: Int64): Bool {
     return x < y;
 }
 
-fun le(x: Int64, y: Int64): Bool {
+fn le(x: Int64, y: Int64): Bool {
     return x <= y;
 }
 
-fun ge(x: Int64, y: Int64): Bool {
+fn ge(x: Int64, y: Int64): Bool {
     return x >= y;
 }
 
-fun gt(x: Int64, y: Int64): Bool {
+fn gt(x: Int64, y: Int64): Bool {
     return x > y;
 }
 
-fun neg(x: Int64): Int64 {
+fn neg(x: Int64): Int64 {
     return -x;
 }

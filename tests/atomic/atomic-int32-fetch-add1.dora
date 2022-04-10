@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let value = std::AtomicInt32(10I);
     assert(value.fetchAdd(2I) == 10I);
     assert(value.fetchAdd(5I) == 12I);

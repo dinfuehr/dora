@@ -1,11 +1,11 @@
-fun readGraph(data: String): Graph {
+fn readGraph(data: String): Graph {
     unreachable[Graph]()
 }
 
 class GraphReader(let content: String) {
     let lexer: Lexer = Lexer(content);
 
-    fun read() {
+    fn read() {
 
     }
 }
@@ -13,7 +13,7 @@ class GraphReader(let content: String) {
 class Lexer(let content: String) {
     var idx: Int64 = 0L;
 
-    fun look(): Option[Char] {
+    fn look(): Option[Char] {
         if self.idx == self.content.size() {
             return None;
         }
@@ -21,7 +21,7 @@ class Lexer(let content: String) {
         Some(self.content.getByte(self.idx).toChar())
     }
 
-    fun readChar() {
+    fn readChar() {
         if self.idx == self.content.size() {
             std::fatalError("already at end of file");
         } else {
@@ -29,7 +29,7 @@ class Lexer(let content: String) {
         }
     }
 
-    fun readToken(): Token {
+    fn readToken(): Token {
         while true {
             self.skipWhitespace();
 
@@ -55,13 +55,13 @@ class Lexer(let content: String) {
         unreachable[Token]()
     }
 
-    fun skipWhitespace() {
+    fn skipWhitespace() {
         while isWhitespace(self.look()) {
             self.readChar();
         }
     }
 
-    fun readIdentifier(): Token {
+    fn readIdentifier(): Token {
         let buffer = StringBuffer::empty();
 
         while isIdentifierStart(self.look()) || isDigit(self.look()) {
@@ -73,7 +73,7 @@ class Lexer(let content: String) {
         Token::Ident(buffer.toString())
     }
 
-    fun readNewline(): Token {
+    fn readNewline(): Token {
         let ch = self.look().getOrPanic();
         assert(ch == '\n');
         self.readChar();
@@ -81,7 +81,7 @@ class Lexer(let content: String) {
         Token::Newline
     }
 
-    fun readOperator(): Token {
+    fn readOperator(): Token {
         let ch = self.look().getOrPanic();
         self.readChar();
 
@@ -98,7 +98,7 @@ class Lexer(let content: String) {
         }
     }
 
-    fun readNumber(): Token {
+    fn readNumber(): Token {
         let buffer = StringBuffer::empty();
 
         while isDigit(self.look()) {
@@ -112,7 +112,7 @@ class Lexer(let content: String) {
     }
 }
 
-fun isWhitespace(ch: Option[Char]): Bool {
+fn isWhitespace(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -122,7 +122,7 @@ fun isWhitespace(ch: Option[Char]): Bool {
     ch == ' ' || ch == '\t'
 }
 
-fun isOperator(ch: Option[Char]): Bool {
+fn isOperator(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -132,7 +132,7 @@ fun isOperator(ch: Option[Char]): Bool {
     ch == ':' || ch == '=' || ch == '%' || ch == '@'
 }
 
-fun isIdentifierStart(ch: Option[Char]): Bool {
+fn isIdentifierStart(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -142,7 +142,7 @@ fun isIdentifierStart(ch: Option[Char]): Bool {
     (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
 }
 
-fun isDigit(ch: Option[Char]): Bool {
+fn isDigit(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -152,7 +152,7 @@ fun isDigit(ch: Option[Char]): Bool {
     (ch >= '0' && ch <= '9')
 }
 
-fun isNewline(ch: Option[Char]): Bool {
+fn isNewline(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -175,13 +175,13 @@ namespace tests {
     import super::Token;
     import super::Lexer;
 
-    @test fun readSingleIdentifier(_x: std::Testing) {
+    @test fn readSingleIdentifier(_x: std::Testing) {
         let lexer = Lexer("foo");
         assertIdent(lexer, "foo");
         assertEnd(lexer);
     }
 
-    @test fun readMultipleIdentifiers(_x: std::Testing) {
+    @test fn readMultipleIdentifiers(_x: std::Testing) {
         let lexer = Lexer("foo bar baz");
         assertIdent(lexer, "foo");
         assertIdent(lexer, "bar");
@@ -189,7 +189,7 @@ namespace tests {
         assertEnd(lexer);
     }
 
-    @test fun readMultipleLines(_x: std::Testing) {
+    @test fn readMultipleLines(_x: std::Testing) {
         let lexer = Lexer("foo\nbar\nbaz");
         assertIdent(lexer, "foo");
         assertNewline(lexer);
@@ -199,7 +199,7 @@ namespace tests {
         assertEnd(lexer);
     }
 
-    @test fun readOperators(_x: std::Testing) {
+    @test fn readOperators(_x: std::Testing) {
         let lexer = Lexer(":=@%");
         assertColon(lexer);
         assertEq(lexer);
@@ -208,14 +208,14 @@ namespace tests {
         assertEnd(lexer);
     }
 
-    @test fun readNumbers(_x: std::Testing) {
+    @test fn readNumbers(_x: std::Testing) {
         let lexer = Lexer("11212 17");
         assertNumber(lexer, 11212L);
         assertNumber(lexer, 17L);
         assertEnd(lexer);
     }
 
-    fun assertIdent(lexer: Lexer, ident: String) {
+    fn assertIdent(lexer: Lexer, ident: String) {
         let token = lexer.readToken();
 
         match token {
@@ -229,7 +229,7 @@ namespace tests {
         }
     }
 
-    fun assertNumber(lexer: Lexer, number: Int64) {
+    fn assertNumber(lexer: Lexer, number: Int64) {
         let token = lexer.readToken();
 
         match token {
@@ -243,7 +243,7 @@ namespace tests {
         }
     }
 
-    fun assertNewline(lexer: Lexer) {
+    fn assertNewline(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -254,7 +254,7 @@ namespace tests {
         }
     }
 
-    fun assertEq(lexer: Lexer) {
+    fn assertEq(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -265,7 +265,7 @@ namespace tests {
         }
     }
 
-    fun assertColon(lexer: Lexer) {
+    fn assertColon(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -276,7 +276,7 @@ namespace tests {
         }
     }
 
-    fun assertAt(lexer: Lexer) {
+    fn assertAt(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -287,7 +287,7 @@ namespace tests {
         }
     }
 
-    fun assertPercent(lexer: Lexer) {
+    fn assertPercent(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -298,7 +298,7 @@ namespace tests {
         }
     }
 
-    fun assertEnd(lexer: Lexer) {
+    fn assertEnd(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {

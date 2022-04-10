@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let array = Array[String]::new(10L);
     assert(array(0L) == "");
     assert(array(0L) == array(9L));

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(foo_bool() == true);
   assert(foo_byte() == 3Y);
   assert(foo_char() == '3');
@@ -9,66 +9,66 @@ fun main() {
   assert(foo_string() == "3");
 }
 
-fun foo_bool(): Bool {
+fn foo_bool(): Bool {
   return bar_bool();
 }
 
-fun bar_bool(): Bool {
+fn bar_bool(): Bool {
   return true;
 }
 
-fun foo_byte(): UInt8 {
+fn foo_byte(): UInt8 {
   return bar_byte();
 }
 
-fun bar_byte(): UInt8 {
+fn bar_byte(): UInt8 {
   return 3Y;
 }
 
-fun foo_char(): Char {
+fn foo_char(): Char {
   return bar_char();
 }
 
-fun bar_char(): Char {
+fn bar_char(): Char {
   return '3';
 }
 
-fun foo_int32(): Int32 {
+fn foo_int32(): Int32 {
   return bar_int32();
 }
 
-fun bar_int32(): Int32 {
+fn bar_int32(): Int32 {
   return 3I;
 }
 
-fun foo_int64(): Int64 {
+fn foo_int64(): Int64 {
   return bar_int64();
 }
 
-fun bar_int64(): Int64 {
+fn bar_int64(): Int64 {
   return 3L;
 }
 
-fun foo_float(): Float32 {
+fn foo_float(): Float32 {
   return bar_float();
 }
 
-fun bar_float(): Float32 {
+fn bar_float(): Float32 {
   return 3F;
 }
 
-fun foo_double(): Float64 {
+fn foo_double(): Float64 {
   return bar_double();
 }
 
-fun bar_double(): Float64 {
+fn bar_double(): Float64 {
   return 3D;
 }
 
-fun foo_string(): String {
+fn foo_string(): String {
   return bar_string();
 }
 
-fun bar_string(): String {
+fn bar_string(): String {
   return "3";
 }

@@ -7,21 +7,21 @@ import Option::Some;
 import Option::None;
 
 impl[T] Option[T] {
-  @pub fun isNone(): Bool {
+  @pub fn isNone(): Bool {
     match self {
       Some(_) => false,
       None => true,
     }
   }
 
-  @pub fun isSome(): Bool {
+  @pub fn isSome(): Bool {
     match self {
       Some(_) => true,
       None => false,
     }
   }
 
-  @pub fun getOrPanic(): T {
+  @pub fn getOrPanic(): T {
     match self {
       Some(value) => value,
       None => {
@@ -31,7 +31,7 @@ impl[T] Option[T] {
     }
   }
 
-  fun unwrapNone() {
+  fn unwrapNone() {
     match self {
       Some(_) => {
         fatalError("cannot unwrap Some.");
@@ -40,21 +40,21 @@ impl[T] Option[T] {
     }
   }
 
-  @pub fun unwrapOr(alt: T): T {
+  @pub fn unwrapOr(alt: T): T {
     match self {
       Some(value) => value,
       None => alt,
     }
   }
 
-  @pub fun has(val: T): Bool {
+  @pub fn has(val: T): Bool {
     match self {
       Some(actual) => actual === val,
       None => false,
     }
   }
 
-  @pub fun or(alt: Option[T]): Option[T] {
+  @pub fn or(alt: Option[T]): Option[T] {
     if self.isSome() {
       return self;
     } else {
@@ -64,7 +64,7 @@ impl[T] Option[T] {
 }
 
 impl[T: Default] Option[T] {
-  @pub fun getOrDefault(): T {
+  @pub fn getOrDefault(): T {
     match self {
       Some(actual) => actual,
       None => T::default(),
@@ -73,7 +73,7 @@ impl[T: Default] Option[T] {
 }
 
 impl[T: Zero] Option[T] {
-  @pub fun getOrZero(): T {
+  @pub fn getOrZero(): T {
     match self {
       Some(actual) => actual,
       None => T::zero(),
@@ -82,7 +82,7 @@ impl[T: Zero] Option[T] {
 }
 
 impl[T: Equals] Option[T] {
-  @pub fun contains(rhs: T): Bool {
+  @pub fn contains(rhs: T): Bool {
     if self.isSome() {
       let lhs = self.getOrPanic();
       lhs.equals(rhs)
@@ -91,7 +91,7 @@ impl[T: Equals] Option[T] {
     }
   }
 
-  @pub fun equals(rhs: Option[T]): Bool {
+  @pub fn equals(rhs: Option[T]): Bool {
     if self.isSome() {
       if rhs.isSome() {
         let lhs = self.getOrPanic();
@@ -107,7 +107,7 @@ impl[T: Equals] Option[T] {
 }
 
 impl[T: Stringable] Option[T] {
-  @pub fun toString(): String {
+  @pub fn toString(): String {
     match self {
       Some(value) => "Some(${value})",
       None => "None",

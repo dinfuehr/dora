@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   str[Bool](true);
   str[Bool](false);
   str[UInt8](1.toUInt8());
@@ -8,4 +8,4 @@ fun main() {
   str[Float64](1D);
 }
 
-fun str[T : std::Stringable](val: T): String = val.toString();
+fn str[T : std::Stringable](val: T): String = val.toString();

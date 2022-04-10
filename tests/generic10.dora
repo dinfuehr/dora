@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let bar = Bar[Int32](11I);
     assert(bar.x.fst == 11I);
     assert(bar.x.snd == 10I);

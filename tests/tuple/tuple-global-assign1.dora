@@ -2,7 +2,7 @@ var x: (String, Bool) = ("", false);
 var y: (String, Bool) = ("", false);
 var tmp: (String, Bool) = ("", false);
 
-fun main() {
+fn main() {
     x = ("my string", true);
     y = ("another string", false);
     tmp = x;

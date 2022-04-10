@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = X::empty();
 
   assert(x.x == 2I);
@@ -7,7 +7,7 @@ fun main() {
 class X(something: Int32) {
   let x: Int32 = something;
 
-  @static fun empty(): X {
+  @static fn empty(): X {
     X(2I)
   }
 }

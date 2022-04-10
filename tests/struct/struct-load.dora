@@ -1,16 +1,16 @@
 struct Foo(f1: Int32, f2: Bool)
 
-fun f(): Int32 {
+fn f(): Int32 {
     let x = Foo(10I, false);
     x.f1
 }
 
-fun g(): Bool {
+fn g(): Bool {
     let x = Foo(10I, false);
     x.f2
 }
 
-fun main() {
+fn main() {
     assert(f() == 10I);
     assert(!g());
 }

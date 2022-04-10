@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let array = Array[Bool]::zero(10L);
     assert(array(0L) == false);
     assert(array(9L) == false);

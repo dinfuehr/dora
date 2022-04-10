@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     var x = ("my string", true);
     var y = ("another string", false);
     var tmp = x;

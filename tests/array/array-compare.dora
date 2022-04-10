@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let a = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 3I);
   let b = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 4I);
   let c = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I);

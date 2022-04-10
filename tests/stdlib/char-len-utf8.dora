@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert('a'.lenUtf8() == 1I);
     assert('ü'.lenUtf8() == 2I);
     assert('ß'.lenUtf8() == 2I);

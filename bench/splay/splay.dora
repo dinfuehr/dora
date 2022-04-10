@@ -1,7 +1,7 @@
 import std::fatalError;
 import std::timestamp;
 
-fun main() {
+fn main() {
     if std::argc() != 3I {
         println("usage: splay <seed> <tree-size> <iterations>");
         std::exit(1I);
@@ -35,7 +35,7 @@ class Benchmark {
     var splaySampleTimeStart: Int64 = 0L;
     var splaySumOfSquaredPauses: Int64 = 0L;
 
-    fun setup() {
+    fn setup() {
         var i = 0I;
         self.splaySampleTimeStart = timestamp();
 
@@ -50,14 +50,14 @@ class Benchmark {
         }
     }
 
-    fun updateStats(time: Int64) {
+    fn updateStats(time: Int64) {
         let pause = time - self.splaySampleTimeStart;
         self.splaySampleTimeStart = time;
         self.splaySamples = self.splaySamples + 1I;
         self.splaySumOfSquaredPauses = self.splaySumOfSquaredPauses + pause * pause;
     }
 
-    fun tearDown() {
+    fn tearDown() {
         let keys = self.splayTree.exportKeys();
 
         self.splaySamples = 0I;
@@ -80,7 +80,7 @@ class Benchmark {
         }
     }
 
-    fun run() {
+    fn run() {
         var i = 0I;
 
         while i < splayTreeModifications {
@@ -99,7 +99,7 @@ class Benchmark {
         // self.updateStats(timestamp());
     }
 
-    fun insertNewNode(): Int32 {
+    fn insertNewNode(): Int32 {
         var key: Int32 = 0I;
 
         while true {
@@ -116,11 +116,11 @@ class Benchmark {
         return key;
     }
 
-    fun generateKey(): Int32 {
+    fn generateKey(): Int32 {
         return rnd.nextInt32();
     }
 
-    fun rms() {
+    fn rms() {
         let pauses = self.splaySumOfSquaredPauses;
         let samples = self.splaySamples;
 
@@ -128,7 +128,7 @@ class Benchmark {
     }
 }
 
-fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
+fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
     if depth == 0I {
         let arr = Array[Int32]::zero(10L);
         var i = 0I;
@@ -153,11 +153,11 @@ fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
 class SplayTree {
     var root: Option[SplayNode] = Option[SplayNode]::None;
 
-    fun isEmpty(): Bool {
+    fn isEmpty(): Bool {
         return self.root.isNone();
     }
 
-    fun insert(key: Int32, value: PayloadNode) {
+    fn insert(key: Int32, value: PayloadNode) {
         if self.isEmpty() {
             self.root = Option[SplayNode]::Some(SplayNode(key, Option[PayloadNode]::Some(value)));
             return;
@@ -187,7 +187,7 @@ class SplayTree {
         self.root = Option[SplayNode]::Some(node);
     }
 
-    fun remove(key: Int32): Option[SplayNode] {
+    fn remove(key: Int32): Option[SplayNode] {
         if self.isEmpty() {
             return Option[SplayNode]::None;
         }
@@ -213,7 +213,7 @@ class SplayTree {
         return removed;
     }
 
-    fun find(key: Int32): Option[SplayNode] {
+    fn find(key: Int32): Option[SplayNode] {
         if self.isEmpty() {
             return Option[SplayNode]::None;
         }
@@ -228,7 +228,7 @@ class SplayTree {
         }
     }
 
-    fun findMax(startNode: Option[SplayNode]): Option[SplayNode] {
+    fn findMax(startNode: Option[SplayNode]): Option[SplayNode] {
         if self.isEmpty() {
             return Option[SplayNode]::None;
         }
@@ -246,7 +246,7 @@ class SplayTree {
         Option[SplayNode]::Some(current)
     }
 
-    fun findGreatestLessThan(key: Int32): Option[SplayNode] {
+    fn findGreatestLessThan(key: Int32): Option[SplayNode] {
         if self.isEmpty() {
             return Option[SplayNode]::None;
         }
@@ -263,13 +263,13 @@ class SplayTree {
         }
     }
 
-    fun exportKeys(): Vec[Int32] {
+    fn exportKeys(): Vec[Int32] {
         let keys = Vec[Int32]();
         exportKeysTraverse(keys, self.root);
         return keys;
     }
 
-    fun splay(key: Int32) {
+    fn splay(key: Int32) {
         if self.isEmpty() {
             return;
         }
@@ -337,7 +337,7 @@ class SplayTree {
     }
 }
 
-fun exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
+fn exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
     var current = node;
 
     while current.isSome() {

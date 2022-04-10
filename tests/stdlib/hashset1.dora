@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let set = std::HashSet[Int32]();
     set.insert(1I);
     set.insert(10000I);

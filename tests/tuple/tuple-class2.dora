@@ -6,7 +6,7 @@ class TupleClass {
 
 class Foo(let value: Int32)
 
-fun main() {
+fn main() {
     let tpl = TupleClass();
     std::forceCollect();
     assert(tpl.value.0.value == 4711I);

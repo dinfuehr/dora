@@ -1,10 +1,10 @@
 //= error assert
 //= stderr "assert failed\n3: foo(): 9\n2: call(String): 17\n1: main(): 5\n"
 
-fun main() {
+fn main() {
     std::call("foo");
 }
 
-fun foo() {
+fn foo() {
     assert(false);
 }

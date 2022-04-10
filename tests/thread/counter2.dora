@@ -1,19 +1,19 @@
 //= stdout "done\n"
 
 class MyThread(var executed: Bool) extends std::Thread {
-    @override fun run() {
+    @override fn run() {
         self.f();
     }
 
-    fun f() {
+    fn f() {
         self.g();
     }
 
-    fun g() {
+    fn g() {
         self.executed = true;
     }
 
-    fun h() {
+    fn h() {
         while !self.executed {
             // sleep(1);
         }
@@ -22,7 +22,7 @@ class MyThread(var executed: Bool) extends std::Thread {
     }
 }
 
-fun main() {
+fn main() {
     let thread = MyThread(false);
     thread.start();
 

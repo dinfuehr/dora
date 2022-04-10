@@ -40,7 +40,7 @@ let REG_LR: Register = R30;
 struct NeonRegister(value: Int32)
 
 impl NeonRegister {
-    fun encoding(): Int32 {
+    fn encoding(): Int32 {
         self.value
     }
 }
@@ -109,62 +109,62 @@ enum CondCode {
 class AssemblerArm64 extends Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
-    fun ret() {
+    fn ret() {
         let inst = clsx::uncondBranchReg(0b0010I, 0b11111I, 0I, REG_LR, 0I);
         self.buffer.emitInt32(inst);
     }
 
-    fun retReg(rn: Register) {
+    fn retReg(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0010I, 0b11111I, 0I, rn, 0I);
         self.buffer.emitInt32(inst);
     }
 
-    fun b(label: Label) {
+    fn b(label: Label) {
         unreachable[()]();
     }
 
-    fun bl(label: Label) {
+    fn bl(label: Label) {
         unreachable[()]();
     }
 
-    fun blr(rn: Register) {
+    fn blr(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0001I, 0b11111I, 0I, rn, 0I);
         self.buffer.emitInt32(inst);
     }
 
-    fun br(rn: Register) {
+    fn br(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0000I, 0b11111I, 0I, rn, 0I);
         self.buffer.emitInt32(inst);
     }
 
-    fun finalize(): Array[UInt8] {
+    fn finalize(): Array[UInt8] {
         self.buffer.toArray()
     }
 
-    fun finalizeTesting(): MachineCode {
+    fn finalizeTesting(): MachineCode {
         MachineCode(self.buffer.toArray())
     }
 }
 
 impl Register {
-    fun isGpr(): Bool {
+    fn isGpr(): Bool {
         self.value <= 30I
     }
 
-    fun isGprOrZero(): Bool {
+    fn isGprOrZero(): Bool {
         self.isGpr() || self == REG_ZERO
     }
 
-    fun isGprOrSp(): Bool {
+    fn isGprOrSp(): Bool {
         self.isGpr() || self == REG_SP
     }
 
-    fun encoding(): Int32 {
+    fn encoding(): Int32 {
         assert(self.isGpr());
         self.value
     }
 
-    fun encodingZero(): Int32 {
+    fn encodingZero(): Int32 {
         assert(self.isGprOrZero());
 
         if self.isGpr() {
@@ -174,7 +174,7 @@ impl Register {
         }
     }
 
-    fun encodingSp(): Int32 {
+    fn encodingSp(): Int32 {
         assert(self.isGprOrSp());
 
         if self.isGpr() {
@@ -188,14 +188,14 @@ impl Register {
 namespace clsx {
     import super::Register;
 
-    @pub fun uncondBranchImm(op: Int32, imm26: Int32): Int32 {
+    @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1I));
         assert(fitsSigned(imm26, 26I));
 
         0b101I << 26I | op << 31I | (imm26 & 0x3FFFFFFI)
     }
 
-    @pub fun uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
+    @pub fn uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
         assert(fitsUnsigned(opc, 4I));
         assert(fitsUnsigned(op2, 5I));
         assert(fitsUnsigned(op3, 6I));
@@ -205,22 +205,22 @@ namespace clsx {
         0b1101011I << 25I | opc << 21I | op2 << 16I | op3 << 10I | rn.encoding() << 5I | op4
     }
 
-    fun fitsBit(value: Int32): Bool {
+    fn fitsBit(value: Int32): Bool {
         value >= 0I && value < 2I
     }
 
-    fun fitsSigned(value: Int32, bits: Int32): Bool {
+    fn fitsSigned(value: Int32, bits: Int32): Bool {
         assert(bits > 0I && bits < 32I);
         -(1I << (bits - 1I)) <= value && value < (1I << (bits - 1I))
     }
 
-    fun fitsUnsigned(value: Int32, bits: Int32): Bool {
+    fn fitsUnsigned(value: Int32, bits: Int32): Bool {
         assert(bits > 0I && bits < 32I);
         value >= 0I && value < (1I << bits)
     }
 }
 
-@test fun testAsmRet(_x: Testing) {
+@test fn testAsmRet(_x: Testing) {
     let asm = AssemblerArm64();
     asm.ret();
     asm.retReg(R0);

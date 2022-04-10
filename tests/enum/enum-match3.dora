@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(value1(None[Int32]) == 0I);
     assert(value1(Some[Int32](5I)) == 5I);
 
@@ -6,14 +6,14 @@ fun main() {
     assert(value2(None[Int32]) == 0I);
 }
 
-fun value1(x: Option[Int32]): Int32 {
+fn value1(x: Option[Int32]): Int32 {
     match x {
         Some(a) => a,
         None => 0I
     }
 }
 
-fun value2(x: Option[Int32]): Int32 {
+fn value2(x: Option[Int32]): Int32 {
     match x {
         None => 0I,
         Some(a) => a

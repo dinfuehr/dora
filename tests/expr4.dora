@@ -1,6 +1,6 @@
-fun main() {
+fn main() {
   f(g());
 }
 
-fun f(a: Int32) { assert(a == 1I); }
-fun g(): Int32 { return 1I; }
+fn f(a: Int32) { assert(a == 1I); }
+fn g(): Int32 { return 1I; }

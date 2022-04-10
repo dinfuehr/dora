@@ -2,7 +2,7 @@
 
 let x: Int32 = foo();
 
-fun main() {
+fn main() {
     println("before");
     println("x = ${x}");
     println("middle");
@@ -11,7 +11,7 @@ fun main() {
     x;
 }
 
-fun foo(): Int32 {
+fn foo(): Int32 {
     println("foo");
     17
 }

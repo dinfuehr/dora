@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   testBothEmpty();
   testNeedleEmpty();
   testHaystackEmpty();
@@ -8,33 +8,33 @@ fun main() {
   testFailure();
 }
 
-fun testBothEmpty() {
+fn testBothEmpty() {
   assert("".contains(""));
 }
 
-fun testNeedleEmpty() {
+fn testNeedleEmpty() {
   assert("abc".contains(""));
 }
 
-fun testHaystackEmpty() {
+fn testHaystackEmpty() {
   assert("".contains("abc").not());
 }
 
-fun testNeedleLarger() {
+fn testNeedleLarger() {
   assert("abc".contains("abcdef").not());
 }
 
-fun testSuccess() {
+fn testSuccess() {
   assert("abcdef".contains("abc"));
   assert("defabc".contains("abc"));
   assert("ababbaadef".contains("aa"));
   assert("apapplapple".contains("apple"));
 }
 
-fun testMultipleMatch() {
+fn testMultipleMatch() {
   assert("abcdefabc".contains("abc"));
 }
 
-fun testFailure() {
+fn testFailure() {
   assert("def".contains("abc").not());
 }

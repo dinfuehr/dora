@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fun main() {
+fn main() {
   var x = foo(1I, foo(2I, foo(3I, None[Foo])));
   std::forceMinorCollect();
   x.getOrPanic().next.getOrPanic().next.getOrPanic().next = foo(4I, None[Foo]);
@@ -16,6 +16,6 @@ fun main() {
 
 class Foo(let a: Int32, var next: Option[Foo])
 
-fun foo(a: Int32, next: Option[Foo]): Option[Foo] {
+fn foo(a: Int32, next: Option[Foo]): Option[Foo] {
   Some[Foo](Foo(a, next))
 }

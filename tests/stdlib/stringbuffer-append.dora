@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let buf = std::StringBuffer::empty();
     buf.appendChar('a');
     buf.appendChar('b');

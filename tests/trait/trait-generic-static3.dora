@@ -1,18 +1,18 @@
-fun main() {
+fn main() {
     assert("x${f[Bar]()}y${f[Baz]()}z" == "xBAR1yBAZ2z");
     assert("x${g[Bar]()}y${g[Baz]()}z" == "xBAR1yBAZ2z");
 }
 
 trait X {
-    @static fun foo(): Self;
-    @static fun makeString(x: Self): String;
+    @static fn foo(): Self;
+    @static fn makeString(x: Self): String;
 }
 
-fun f[T: X](): String {
+fn f[T: X](): String {
     return T::makeString(T::foo());
 }
 
-fun g[T: X](): String {
+fn g[T: X](): String {
     let value: T = T::foo();
     return T::makeString(value);
 }
@@ -20,13 +20,13 @@ fun g[T: X](): String {
 class Bar(let x: Int32)
 
 impl X for Bar {
-    @static fun foo(): Bar = Bar(1I);
-    @static fun makeString(value: Bar): String = "BAR${value.x}";
+    @static fn foo(): Bar = Bar(1I);
+    @static fn makeString(value: Bar): String = "BAR${value.x}";
 }
 
 class Baz(let x: Int32)
 
 impl X for Baz {
-    @static fun foo(): Baz = Baz(2I);
-    @static fun makeString(value: Baz): String = "BAZ${value.x}";
+    @static fn foo(): Baz = Baz(2I);
+    @static fn makeString(value: Baz): String = "BAZ${value.x}";
 }

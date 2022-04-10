@@ -1,7 +1,7 @@
 //= error
 //= stderr "fatal error: len 2 exceeds size of array\n3: fatalError(String): 1\n2: Array::compare(Array[T], Int64, Array[T], Int64, Int64): Bool: 126\n1: main(): 8\n"
 
-fun main() {
+fn main() {
   let a = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 3I);
   let e = Array[Int32]();
 

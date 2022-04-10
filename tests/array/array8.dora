@@ -1,7 +1,7 @@
 //= error array
 //= stderr "array index out of bounds\n1: main(): 6\n"
 
-fun main() {
+fn main() {
   let array = Array[Int32]::zero(0L);
   array(0L) = 10I;
 }

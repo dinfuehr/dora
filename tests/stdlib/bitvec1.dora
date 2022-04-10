@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let set = std::BitVec();
     set.insert(0L);
     set.insert(63L);

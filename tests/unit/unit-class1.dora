@@ -1,9 +1,9 @@
 class A(var value: ())
 
-fun main() {
+fn main() {
     let a = A(());
     a.value = ();
     let x: () = foo(a);
 }
 
-fun foo(a: A): () { a.value }
+fn foo(a: A): () { a.value }

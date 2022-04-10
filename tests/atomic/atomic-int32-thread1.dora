@@ -4,7 +4,7 @@ const THREADS: Int32 = 4I;
 const ITERATIONS: Int32 = 100_000I;
 
 class MyThread(let counter: AtomicInt32) extends std::Thread {
-    @override fun run() {
+    @override fn run() {
         var i = 0I;
         while i < ITERATIONS {
             self.counter.fetchAdd(1I);
@@ -13,7 +13,7 @@ class MyThread(let counter: AtomicInt32) extends std::Thread {
     }
 }
 
-fun main() {
+fn main() {
     let shared = AtomicInt32(0I);
     let threads = Vec[MyThread]();
 

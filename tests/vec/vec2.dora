@@ -1,6 +1,6 @@
 //= stdout "321"
 
-fun main() {
+fn main() {
     let x = Vec[String]();
     x.push(1I.toString());
     x.push(2I.toString());

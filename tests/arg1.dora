@@ -1,6 +1,6 @@
 //= args 1 2 3
 
-fun main() {
+fn main() {
   let val = std::argc().toString();
   println(val);
   println(std::argv(0I));

@@ -6,32 +6,32 @@ class Foo(let value: Int32) {
 
 struct Bar(f1: Foo, f2: Foo, f3: Foo)
 
-fun main() {
+fn main() {
     assert(tpl1() == 1I);
     assert(tpl2() == 2I);
     assert(tpl3() == 3I);
     assert(tplsum() == 6I);
 }
 
-fun tpl1(): Int32 {
+fn tpl1(): Int32 {
     let x = Bar(Foo(1I), Foo(2I), Foo(3I));
     std::forceCollect();
     x.f1.value
 }
 
-fun tpl2(): Int32 {
+fn tpl2(): Int32 {
     let x = Bar(Foo(1I), Foo(2I), Foo(3I));
     std::forceCollect();
     x.f2.value
 }
 
-fun tpl3(): Int32 {
+fn tpl3(): Int32 {
     let x = Bar(Foo(1I), Foo(2I), Foo(3I));
     std::forceCollect();
     x.f3.value
 }
 
-fun tplsum(): Int32 {
+fn tplsum(): Int32 {
     let x = Bar(Foo(1I), Foo(2I), Foo(3I));
     std::forceCollect();
     x.f1.value + x.f2.value + x.f3.value

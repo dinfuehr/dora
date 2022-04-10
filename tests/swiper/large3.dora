@@ -2,7 +2,7 @@
 
 class Foo(let x: Int32)
 
-fun main() {
+fn main() {
     let filler = Foo(0I);
     let x = Array[Foo]::fill(16L * 1024L, filler);
     std::forceCollect();

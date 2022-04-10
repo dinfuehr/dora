@@ -184,7 +184,7 @@ const CONSTPOOL_OPCODE_FIELD: Int32 = 13I;
 const CONSTPOOL_OPCODE_FIELD_FIXED: Int32 = 14I;
 const CONSTPOOL_OPCODE_GENERIC: Int32 = 15I;
 
-fun bytecodeName(opcode: Int32): String {
+fn bytecodeName(opcode: Int32): String {
   if opcode == BC_WIDE { return "Wide"; }
   if opcode == BC_ADD_INT32 { return "AddInt32"; }
   if opcode == BC_ADD_INT64 { return "AddInt64"; }
@@ -341,7 +341,7 @@ fun bytecodeName(opcode: Int32): String {
   "UNKNOWN(${opcode})"
 }
 
-fun bytecodeTypeName(code: Int32): String {
+fn bytecodeTypeName(code: Int32): String {
   if code == BC_TYPE_BOOL { return "Bool"; }
   if code == BC_TYPE_U_INT8 { return "UInt8"; }
   if code == BC_TYPE_CHAR { return "Char"; }

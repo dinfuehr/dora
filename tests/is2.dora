@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(!isl7(L1()));
   assert(!isl7(L2()));
   assert(!isl7(L3()));
@@ -10,7 +10,7 @@ fun main() {
   assert(!isl7(LX()));
 }
 
-fun isl7(a: L1): Bool {
+fn isl7(a: L1): Bool {
   return a is L7;
 }
 

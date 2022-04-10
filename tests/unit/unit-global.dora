@@ -1,10 +1,10 @@
 var x: () = ();
 
-fun main() {
+fn main() {
     x = ();
     foo();
 }
 
-fun foo(): () {
+fn foo(): () {
     x
 }

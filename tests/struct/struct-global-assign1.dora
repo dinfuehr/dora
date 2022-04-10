@@ -4,7 +4,7 @@ var x: Bar = Bar("", false);
 var y: Bar = Bar("", false);
 var tmp: Bar = Bar("", false);
 
-fun main() {
+fn main() {
     x = Bar("my string", true);
     y = Bar("another string", false);
     tmp = x;

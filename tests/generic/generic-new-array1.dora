@@ -1,8 +1,8 @@
-fun main() {
+fn main() {
     assert(0L == newArray[Int32]().size());
     assert(0L == newArray[()]().size());
 }
 
-fun newArray[T](): Array[T] {
+fn newArray[T](): Array[T] {
     Array[T]::empty()
 }

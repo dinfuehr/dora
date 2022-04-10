@@ -1,4 +1,4 @@
-fun compile(encoded: Array[UInt8]): Array[UInt8] {
+fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader(encoded);
     let ci = decodeCompilationInfo(reader);
     assert(!reader.moreBytes());
@@ -6,9 +6,9 @@ fun compile(encoded: Array[UInt8]): Array[UInt8] {
     CodeGen(ci).generate()
 }
 
-@internal fun getEncodedBytecodeFunctionByName(fct: String): Array[UInt8];
+@internal fn getEncodedBytecodeFunctionByName(fct: String): Array[UInt8];
 
-fun getBytecodeFunctionByName(fct: String): BytecodeFunction {
+fn getBytecodeFunctionByName(fct: String): BytecodeFunction {
     let encoded = getEncodedBytecodeFunctionByName(fct);
     let reader = ByteReader(encoded);
     let bc = decodeBytecodeFunction(reader);

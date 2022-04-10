@@ -8,7 +8,7 @@ class X(let msg: String) {
   }
 }
 
-fun main() {
+fn main() {
   X("abc");
   X("xyz");
 }

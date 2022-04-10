@@ -5,7 +5,7 @@ const SLEEPING: Int32 = 2I;
 @pub class Mutex {
     let data: AtomicInt32 = AtomicInt32(0I);
 
-    @pub fun lock() {
+    @pub fn lock() {
         let previous = self.data.compareExchange(UNLOCKED, LOCKED);
 
         if previous != UNLOCKED {
@@ -13,7 +13,7 @@ const SLEEPING: Int32 = 2I;
         }
     }
 
-    fun lockSlow(previous: Int32) {
+    fn lockSlow(previous: Int32) {
         var previous = previous;
         var lockSuccess = false;
 
@@ -29,12 +29,12 @@ const SLEEPING: Int32 = 2I;
         }
     }
 
-    fun transitionToSleepingState(previous: Int32): Bool {
+    fn transitionToSleepingState(previous: Int32): Bool {
         if previous == SLEEPING { return true; }
         self.data.compareExchange(LOCKED, SLEEPING) != UNLOCKED
     }
 
-    @pub fun unlock() {
+    @pub fn unlock() {
         let previous = self.data.exchange(UNLOCKED);
 
         if previous != LOCKED {
@@ -42,11 +42,11 @@ const SLEEPING: Int32 = 2I;
         }
     }
 
-    fun unlockSlow(previous: Int32) {
+    fn unlockSlow(previous: Int32) {
         assert(previous == SLEEPING);
         self.notify();
     }
 
-    @internal fun wait(status: Int32);
-    @internal fun notify();
+    @internal fn wait(status: Int32);
+    @internal fn notify();
 }

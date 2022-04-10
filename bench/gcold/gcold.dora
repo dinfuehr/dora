@@ -25,7 +25,7 @@ var promoteRate: Int32 = 0I;
 var ptrMutRate: Int32 = 0I;
 var steps: Int32 = 0I;
 
-fun height(t: Option[TreeNode]): Int32 {
+fn height(t: Option[TreeNode]): Int32 {
     if t.isNone() {
         return 0I;
     } else {
@@ -33,7 +33,7 @@ fun height(t: Option[TreeNode]): Int32 {
     }
 }
 
-fun shortestPath(t: Option[TreeNode]): Int32 {
+fn shortestPath(t: Option[TreeNode]): Int32 {
     if t.isNone() {
         return 0I;
     } else {
@@ -41,7 +41,7 @@ fun shortestPath(t: Option[TreeNode]): Int32 {
     }
 }
 
-fun heightToNodes(h: Int32): Int64 {
+fn heightToNodes(h: Int32): Int64 {
     var h = h;
     if (h == 0I) {
         return 0L;
@@ -57,11 +57,11 @@ fun heightToNodes(h: Int32): Int64 {
     return n + n - 1L;
 }
 
-fun heightToBytes(h: Int32): Int64 {
+fn heightToBytes(h: Int32): Int64 {
     return BYTES_PER_NODE.toInt64() * heightToNodes(h);
 }
 
-fun nodesToHeight(nnodes: Int64): Int32 {
+fn nodesToHeight(nnodes: Int64): Int32 {
     var h = 1I;
     var n = 1L;
 
@@ -73,11 +73,11 @@ fun nodesToHeight(nnodes: Int64): Int32 {
     return h - 1I;
 }
 
-fun bytesToHeight(bytes: Int64): Int32 {
+fn bytesToHeight(bytes: Int64): Int32 {
     return nodesToHeight(bytes / BYTES_PER_NODE.toInt64());
 }
 
-fun makeTree(h: Int32): TreeNode {
+fn makeTree(h: Int32): TreeNode {
     let res = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0I);
     nodes = nodes + 1L;
     if h > 1I {
@@ -88,7 +88,7 @@ fun makeTree(h: Int32): TreeNode {
     res
 }
 
-fun initialize() {
+fn initialize() {
     let ntrees = (size * MEG).toInt64() / treeSize;
     let default = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0I);
     trees = Array[TreeNode]::fill(ntrees, default);
@@ -106,7 +106,7 @@ fun initialize() {
     println("  (" + nodes.toString() + " nodes)");
 }
 
-fun checkTrees() {
+fn checkTrees() {
     let ntrees = trees.size();
 
     var i = 0L;
@@ -125,7 +125,7 @@ fun checkTrees() {
     }
 }
 
-fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
+fn replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
     let canGoLeft = full.left.isSome() && full.left.getOrPanic().value > partial.value;
     let canGoRight = full.right.isSome() && full.right.getOrPanic().value > partial.value;
 
@@ -148,13 +148,13 @@ fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
     }
 }
 
-fun replaceTree(full: TreeNode, partial: TreeNode) {
+fn replaceTree(full: TreeNode, partial: TreeNode) {
     let dir = (partial.value % 2I) == 0I;
     actuallyMut = actuallyMut + 1L;
     replaceTreeWork(full, partial, dir);
 }
 
-fun oldGenAlloc(n: Int64) {
+fn oldGenAlloc(n: Int64) {
     let full = n / treeSize;
     var partial = n % treeSize;
 
@@ -184,7 +184,7 @@ fun oldGenAlloc(n: Int64) {
     }
 }
 
-fun oldGenSwapSubtrees() {
+fn oldGenSwapSubtrees() {
     let index1 = rnd.nextInt32WithBound(trees.size().toInt32());
     let index2 = rnd.nextInt32WithBound(trees.size().toInt32());
     let depth = rnd.nextInt32WithBound(treeHeight);
@@ -220,7 +220,7 @@ fun oldGenSwapSubtrees() {
     actuallyMut = actuallyMut + 2L;
 }
 
-fun oldGenMut(n: Int64) {
+fn oldGenMut(n: Int64) {
     var i = 0L;
 
     while i < n/2L {
@@ -229,7 +229,7 @@ fun oldGenMut(n: Int64) {
     }
 }
 
-fun doMutWork(n: Int64) {
+fn doMutWork(n: Int64) {
     var sum = 0I;
     let limit = workUnits.toInt64() * n / 10L;
 
@@ -243,7 +243,7 @@ fun doMutWork(n: Int64) {
     mutatorSum = mutatorSum + sum.toInt64();
 }
 
-fun doYoungGenAlloc(n: Int64, nwords: Int32) {
+fn doYoungGenAlloc(n: Int64, nwords: Int32) {
     let nbytes = nwords * BYTES_PER_WORD;
     var allocated = 0L;
 
@@ -255,7 +255,7 @@ fun doYoungGenAlloc(n: Int64, nwords: Int32) {
     youngBytes = youngBytes + allocated;
 }
 
-fun doStep(n: Int64) {
+fn doStep(n: Int64) {
     let mutations = actuallyMut;
 
     doYoungGenAlloc(n, WORDS_DEAD);
@@ -264,7 +264,7 @@ fun doStep(n: Int64) {
     oldGenMut(Int64::max(0L, (mutations + ptrMutRate.toInt64()) - actuallyMut));
 }
 
-fun main() {
+fn main() {
     rnd = std::Random(1234567890L);
 
     if std::argc() != 5I {

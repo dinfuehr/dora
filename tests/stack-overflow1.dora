@@ -1,9 +1,9 @@
 //= error stack-overflow
 
-fun main() {
+fn main() {
     f();
 }
 
-fun f() {
+fn f() {
     f();
 }

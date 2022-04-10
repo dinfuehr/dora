@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let foo = Foo(123I);
 
     assert(foo.a == 123I);

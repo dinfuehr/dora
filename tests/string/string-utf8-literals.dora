@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let val = "abc";
     assert(val.size() == 3L);
     assert(val.codePoints().size() == 3L);

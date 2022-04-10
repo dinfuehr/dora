@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let y = (1I, ());
     assert(y.0 == 1I);
     let z = y.1;

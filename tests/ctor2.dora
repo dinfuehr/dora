@@ -4,7 +4,7 @@ class X(a: Int32, b: Int32) {
 
 }
 
-fun main() {
+fn main() {
     let x = X(2I, 4I);
 
     assert(x.ma == 2I);

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(5I.compareTo(2I) == 1I);
     assert(5I.compareTo(5I) == 0I);
     assert(5I.compareTo(7I) == -1I);

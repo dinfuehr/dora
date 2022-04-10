@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = X::one(1I);
 
   assert(x.a == 1I);
@@ -19,6 +19,6 @@ fun main() {
 }
 
 class X(let a: Int32, let b: Int32, let c: Int32) {
-  @static fun one(a: Int32): X = X(a, 0I, 0I);
-  @static fun two(a: Int32, b: Int32): X = X(a, b, 0I);
+  @static fn one(a: Int32): X = X(a, 0I, 0I);
+  @static fn two(a: Int32, b: Int32): X = X(a, b, 0I);
 }

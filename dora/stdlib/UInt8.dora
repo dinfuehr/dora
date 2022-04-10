@@ -1,22 +1,22 @@
 @pub @internal struct UInt8
 
 impl UInt8 {
-  @pub @internal fun toChar(): Char;
-  @pub @internal fun toInt32(): Int32;
-  @pub @internal fun toInt64(): Int64;
-  @pub @internal fun toString(): String;
+  @pub @internal fn toChar(): Char;
+  @pub @internal fn toInt32(): Int32;
+  @pub @internal fn toInt64(): Int64;
+  @pub @internal fn toString(): String;
 
-  @pub fun toStringBinary(): String = String::binary(self.toInt64());
-  @pub fun toStringHex(): String = String::hex(self.toInt64());
+  @pub fn toStringBinary(): String = String::binary(self.toInt64());
+  @pub fn toStringHex(): String = String::hex(self.toInt64());
 
-  @pub @internal fun equals(rhs: UInt8): Bool;
-  @pub @internal fun compareTo(rhs: UInt8): Int32;
+  @pub @internal fn equals(rhs: UInt8): Bool;
+  @pub @internal fn compareTo(rhs: UInt8): Int32;
 
-  @pub fun hash(): Int32 = self.toInt32();
+  @pub fn hash(): Int32 = self.toInt32();
 
-  @pub @static fun bits(): Int32 = 8;
-  @pub @static fun bytes(): Int32 = 1;
+  @pub @static fn bits(): Int32 = 8;
+  @pub @static fn bytes(): Int32 = 1;
 
-  @pub @static fun maxValue(): UInt8 = 255Y;
-  @pub @static fun minValue(): UInt8 = 0Y;
+  @pub @static fn maxValue(): UInt8 = 255Y;
+  @pub @static fn minValue(): UInt8 = 0Y;
 }

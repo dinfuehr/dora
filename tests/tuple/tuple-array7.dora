@@ -2,7 +2,7 @@
 
 class Foo (let value: Int32)
 
-fun main() {
+fn main() {
     let x = Array[(Int32, Foo)]::fill(32L, (0I, Foo(1_000I)));
     std::forceMinorCollect();
     std::forceMinorCollect();

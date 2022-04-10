@@ -1,6 +1,6 @@
 //= ignore
 
-fun main() {
+fn main() {
     let arr = Vec[Foo]();
 
     var i = 0I;
@@ -16,7 +16,7 @@ fun main() {
     std::forceCollect();
 }
 
-fun tree(depth: Int32): Foo {
+fn tree(depth: Int32): Foo {
     if depth == 0I {
         return Foo(nil, nil, nil, nil, nil);
     }

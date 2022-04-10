@@ -1,6 +1,6 @@
 //= stdout file
 
-fun main() {
+fn main() {
     var i = 1I;
 
     while i <= 100I {

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let a = A[Int32]();
     consume(a.x);
 }
@@ -7,6 +7,6 @@ class A[T] {
     let x: Array[T] = Array[T]::empty();
 }
 
-fun consume(x: Array[Int32]) {
+fn consume(x: Array[Int32]) {
     assert(x.size() == 0L);
 }

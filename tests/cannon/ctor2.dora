@@ -1,11 +1,11 @@
 @open class Y(let a: Int32) {}
 class X(let b: Int32, a: Int32) extends Y(a) {}
 
-fun cannonMain(): X {
+fn cannonMain(): X {
     return X(2I, 4I);
 }
 
-fun main() {
+fn main() {
   let x = cannonMain();
 
   assert(x.a == 4I);

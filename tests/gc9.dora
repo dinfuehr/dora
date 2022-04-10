@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = A(10I);
     let y = x;
 

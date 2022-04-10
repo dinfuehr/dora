@@ -2,7 +2,7 @@
 
 class Foo (let value: Int32)
 
-fun main() {
+fn main() {
     let x = Array[(Int32, Foo)]::fill(1024L, (0I, Foo(0I)));
     for i in std::range(0I, x.size().toInt32()) {
         x(i.toInt64()) = (i, Foo(i));

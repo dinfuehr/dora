@@ -1,10 +1,10 @@
 class Foo[A]
 
-fun is_foo_int(f: Object): Bool {
+fn is_foo_int(f: Object): Bool {
     return f is Foo[Int32];
 }
 
-fun main() {
+fn main() {
     let x = Object();
     assert(!is_foo_int(x));
 

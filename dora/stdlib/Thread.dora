@@ -1,8 +1,8 @@
 @pub @open @abstract class Thread {
   var native_ptr: Int64 = 0L;
 
-  @pub @internal fun start();
-  @pub @internal fun join();
+  @pub @internal fn start();
+  @pub @internal fn join();
 
-  @pub @abstract fun run();
+  @pub @abstract fn run();
 }

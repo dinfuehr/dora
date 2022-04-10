@@ -13,22 +13,22 @@ import std::VecIter;
 class CompilationJob(let compilation_info: CompilationInfo) {
     var graph: Option[Graph] = None;
 
-    fun run() {
+    fn run() {
         self.createGraph();
         self.optimizeGraph();
         self.assembleCode();
     }
 
-    fun createGraph() {
+    fn createGraph() {
         let graph = createGraph(self.compilation_info.bc);
         self.graph = Some(graph);
     }
 
-    fun optimizeGraph() {
+    fn optimizeGraph() {
         // TODO
     }
 
-    fun assembleCode() {
+    fn assembleCode() {
         // TODO
     }
 }

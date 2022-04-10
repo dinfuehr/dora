@@ -1,4 +1,4 @@
-fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
+fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
@@ -21,7 +21,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     }
 }
 
-@test fun testDominatorRetVoid(_x: Testing) {
+@test fn testDominatorRetVoid(_x: Testing) {
     let writer = BytecodeWriter();
     writer.emitRetVoid();
     let fct = writer.generate();
@@ -29,7 +29,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     assertDominatedBlocks(fct);
 }
 
-@test fun testDominatorEmptyBlocks(_x: Testing) {
+@test fn testDominatorEmptyBlocks(_x: Testing) {
     let writer = BytecodeWriter();
     let next = writer.createLabel();
     writer.emitJump(next);
@@ -43,7 +43,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     assertDominatedBlocks(fct, 0I, 1I);
 }
 
-@test fun testDominatorSimple(_x: Testing) {
+@test fn testDominatorSimple(_x: Testing) {
     let writer = BytecodeWriter();
     let arg0 = writer.addRegister(BytecodeType::Bool);
     writer.setArguments(1I);
@@ -60,7 +60,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     assertDominatedBlocks(fct, 0I, 0I, 0I);
 }
 
-@test fun testDominatorIfReturnInBothBranches(_x: Testing) {
+@test fn testDominatorIfReturnInBothBranches(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenIfReturnInBothBranches");
     let graph = createGraph(fct);
     graph.buildDominatorTree();
@@ -79,7 +79,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     assert(elseBlock.getDominatedBlocks().size() == 0L);
 }
 
-@test fun testDominatorWhileCountDown(_x: Testing) {
+@test fn testDominatorWhileCountDown(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDown");
     let graph = createGraph(fct);
     graph.buildDominatorTree();

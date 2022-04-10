@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(boolEq(true, false) == false);
   assert(boolEq(true, true) == true);
   assert(boolEq(false, false) == true);
@@ -10,10 +10,10 @@ fun main() {
   assert(boolNe(false, false) == false);
 }
 
-fun boolEq(a: Bool, b: Bool): Bool {
+fn boolEq(a: Bool, b: Bool): Bool {
   return a == b;
 }
 
-fun boolNe(a: Bool, b: Bool): Bool {
+fn boolNe(a: Bool, b: Bool): Bool {
   return a != b;
 }

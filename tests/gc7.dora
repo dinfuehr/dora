@@ -1,10 +1,10 @@
-fun main() {
+fn main() {
   foo();
   std::forceCollect();
   foo();
 }
 
-fun foo() {
+fn foo() {
   let x = "abc";
   assert(x.size() == 3L);
   println(x);

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = 1L.shiftLeft(1I);
     assert(x == 2L);
 

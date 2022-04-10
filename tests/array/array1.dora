@@ -1,5 +1,5 @@
-fun main() {
+fn main() {
   foo(Array[Int32]());
 }
 
-fun foo(a: Array[Int32]) {}
+fn foo(a: Array[Int32]) {}

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = (1I, 2I, (3I, 4I));
     assert(x.0 == 1I);
     assert(x.1 == 2I);

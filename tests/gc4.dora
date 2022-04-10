@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let a = 1I;
   let b = 2I;
   let c = true;

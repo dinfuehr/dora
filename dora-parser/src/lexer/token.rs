@@ -145,7 +145,7 @@ impl TokenKind {
             TokenKind::Package => "package",
 
             // "small" shapes
-            TokenKind::Fn => "fun",
+            TokenKind::Fn => "fn",
             TokenKind::Let => "let",
             TokenKind::Mut => "mut",
             TokenKind::Var => "var",

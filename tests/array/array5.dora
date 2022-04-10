@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(1I == A()("hello"));
 
   assert(B()(true));
@@ -6,9 +6,9 @@ fun main() {
 }
 
 class A {
-  fun get(index: String): Int32 = 1I;
+  fn get(index: String): Int32 = 1I;
 }
 
 class B {
-  fun get(index: Bool): Bool = index;
+  fn get(index: Bool): Bool = index;
 }

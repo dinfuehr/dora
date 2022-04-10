@@ -3,7 +3,7 @@
 enum Foo { A(Int32, String, Float32), B }
 class Bar(let foo: Foo)
 
-fun main() {
+fn main() {
     let object = createObject();
     std::forceCollect();
     match object.foo {
@@ -16,6 +16,6 @@ fun main() {
     }
 }
 
-fun createObject(): Bar {
+fn createObject(): Bar {
     Bar(Foo::A(112I, "abc", 17.5F))
 }

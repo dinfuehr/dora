@@ -1,14 +1,14 @@
 @pub class Condition {
     let waiters: AtomicInt32 = AtomicInt32(0I);
 
-    @pub fun wait(mtx: Mutex) {
+    @pub fn wait(mtx: Mutex) {
         self.enqueue();
         mtx.unlock();
         self.block();
         mtx.lock();
     }
 
-    @pub fun notifyOne() {
+    @pub fn notifyOne() {
         if self.waiters.get() == 0I {
             return;
         }
@@ -16,7 +16,7 @@
         self.wakeupOne();
     }
 
-    @pub fun notifyAll() {
+    @pub fn notifyAll() {
         if self.waiters.get() == 0I {
             return;
         }
@@ -25,9 +25,9 @@
         self.wakeupAll();
     }
 
-    @internal fun enqueue();
-    @internal fun block();
+    @internal fn enqueue();
+    @internal fn block();
 
-    @internal fun wakeupOne();
-    @internal fun wakeupAll();
+    @internal fn wakeupOne();
+    @internal fn wakeupAll();
 }

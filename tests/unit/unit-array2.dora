@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = Array[()]::fill(7L, ());
     assert(x.size() == 7L);
     let y: () = x(0L);

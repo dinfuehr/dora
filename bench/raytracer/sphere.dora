@@ -13,7 +13,7 @@ class Sphere extends Primitive {
         self.b = Vec3();
     }
 
-    fun intersect(ry: Ray): Isect {
+    fn intersect(ry: Ray): Isect {
         v.sub2(c, ry.P);
         let b = Vec::dot(v, ry.D);
         let disc = b*b - Vec::dot(v, v) + r2;
@@ -48,21 +48,21 @@ class Sphere extends Primitive {
         return ip;
     }
 
-    fun normal(p: Vec3): Vec3 {
+    fn normal(p: Vec3): Vec3 {
         let r = Vec::sub(p, self.c);
         r.normalize();
         return r;
     }
 
-    fun toString() {
+    fn toString() {
         return "Sphere {" + c.toString() + "," + r.toString() + "}";
     }
 
-    fun getCenter(): Vec3 {
+    fn getCenter(): Vec3 {
         return self.c;
     }
 
-    fun setCenter(c: Vec3) {
+    fn setCenter(c: Vec3) {
         self.c = c;
     }
 }

@@ -5,13 +5,13 @@
         self.surf = Surface();
     }
 
-    fun setColor(r: Float64, g: Float64, b: Float64) {
+    fn setColor(r: Float64, g: Float64, b: Float64) {
         self.surf.color = Vec3(r, g, b);
     }
 
-    @abstract fun normal(pnt: Vec3): Vec3;
-    @abstract fun intersect(ry: Ray): Isect;
-    @abstract fun toString(): String;
-    @abstract fun getCenter(): Vec3;
-    @abstract fun setCenter(c: Vec3);
+    @abstract fn normal(pnt: Vec3): Vec3;
+    @abstract fn intersect(ry: Ray): Isect;
+    @abstract fn toString(): String;
+    @abstract fn getCenter(): Vec3;
+    @abstract fn setCenter(c: Vec3);
 }

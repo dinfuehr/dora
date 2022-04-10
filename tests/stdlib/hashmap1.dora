@@ -1,7 +1,7 @@
 import std::BitSet;
 import std::HashMap;
 
-fun main() {
+fn main() {
     let map = HashMap[Int32, String]();
     map.insert(1I, "a");
     map.insert(10000I, "b");
@@ -37,7 +37,7 @@ fun main() {
     check_iterator2(map);
 }
 
-fun check_iterator1(map: HashMap[Int32, String]) {
+fn check_iterator1(map: HashMap[Int32, String]) {
     let it = map.makeIterator();
     let set = BitSet(3L);
 
@@ -68,7 +68,7 @@ fun check_iterator1(map: HashMap[Int32, String]) {
     assert(set.contains(2L));
 }
 
-fun check_iterator2(map: HashMap[Int32, String]) {
+fn check_iterator2(map: HashMap[Int32, String]) {
     let it = map.makeIterator();
     let set = BitSet(3L);
 

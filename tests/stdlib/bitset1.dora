@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let set = std::BitSet(64L);
     set.insert(0L);
     set.insert(63L);

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   var result = fact(5I);
   assert(result == 120I);
 
@@ -9,7 +9,7 @@ fun main() {
   assert(result == 6I);
 }
 
-fun fact(x: Int32): Int32 {
+fn fact(x: Int32): Int32 {
   if x <= 1I {
     return 1I;
   } else {

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = Array[Foo]::fill(5L, Foo(17I));
   x(0L) = Foo(1I);
   x(4L) = Foo(2I);

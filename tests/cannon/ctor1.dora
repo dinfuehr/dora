@@ -3,10 +3,10 @@
 class X(let msg: String) {
 }
 
-fun cannonMain(): X {
+fn cannonMain(): X {
     return X("xyz");
 }
 
-fun main() {
+fn main() {
     print(cannonMain().msg);
 }

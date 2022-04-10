@@ -4,7 +4,7 @@ enum Foo { A(Int32, String, Float32), B }
 
 var foo_value: Foo = Foo::B;
 
-fun main() {
+fn main() {
     match foo_value {
         Foo::A(_, _, _) => unreachable[()](),
         Foo::B => (),

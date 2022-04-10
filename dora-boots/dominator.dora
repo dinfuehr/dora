@@ -1,4 +1,4 @@
-fun buildDominatorTree(graph: Graph) {
+fn buildDominatorTree(graph: Graph) {
     let visited = findBackEdges(graph);
     removeUnreachableBlocks(graph, visited);
     computePostOrder(graph);
@@ -6,7 +6,7 @@ fun buildDominatorTree(graph: Graph) {
     discoverLoopBlocks(graph);
 }
 
-fun findBackEdges(graph: Graph): BitSet {
+fn findBackEdges(graph: Graph): BitSet {
     // worklist contains current path in the graph
     let worklist = Vec[Block]();
 
@@ -50,7 +50,7 @@ fun findBackEdges(graph: Graph): BitSet {
     visited
 }
 
-fun removeUnreachableBlocks(graph: Graph, visited: BitSet) {
+fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
     // Remove instructions as user from other instructions
     for block in graph.insertionOrderIterator() {
         if visited.contains(block.id.toInt64()) {
@@ -82,7 +82,7 @@ fun removeUnreachableBlocks(graph: Graph, visited: BitSet) {
     }
 }
 
-fun computePostOrder(graph: Graph) {
+fn computePostOrder(graph: Graph) {
     let postOrder = Vec[Block]();
     postOrder.reserve(graph.blockCount().toInt64());
 
@@ -120,7 +120,7 @@ fun computePostOrder(graph: Graph) {
     graph.setPostOrder(postOrder);
 }
 
-fun computeDominators(graph: Graph) {
+fn computeDominators(graph: Graph) {
     // Algorithm from paper "A Simple, Fast Dominance Algorithm"
     for block in graph.reversePostOrderIterator() {
         if block.isEntryBlock() {
@@ -195,7 +195,7 @@ fun computeDominators(graph: Graph) {
     }
 }
 
-fun commonDominator(b1: Block, b2: Block): Block {
+fn commonDominator(b1: Block, b2: Block): Block {
     var finger1 = b1;
     var finger2 = b2;
 
@@ -214,7 +214,7 @@ fun commonDominator(b1: Block, b2: Block): Block {
     finger1
 }
 
-fun discoverLoopBlocks(graph: Graph) {
+fn discoverLoopBlocks(graph: Graph) {
     for block in graph.postOrderIterator() {
         if block.isLoopHeader() {
             let loop = block.getLoopData().getOrPanic();
@@ -227,7 +227,7 @@ fun discoverLoopBlocks(graph: Graph) {
     }
 }
 
-fun discoverBlocks(block: Block, loop: LoopData) {
+fn discoverBlocks(block: Block, loop: LoopData) {
     if loop.containsBlock(block) {
         return;
     }
@@ -240,7 +240,7 @@ fun discoverBlocks(block: Block, loop: LoopData) {
     }
 }
 
-fun updateLoopData(block: Block, loop: LoopData) {
+fn updateLoopData(block: Block, loop: LoopData) {
     let currentLoop = block.getLoopData();
 
     if currentLoop.isNone() {

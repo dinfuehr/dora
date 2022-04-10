@@ -5,555 +5,555 @@ class BytecodeWriter {
     let unresolvedJumps: Vec[UnresolvedJump] = Vec();
     var arguments: Int32 = 0I;
 
-    fun addRegister(ty: BytecodeType): BytecodeRegister {
+    fn addRegister(ty: BytecodeType): BytecodeRegister {
         self.registers.push(ty);
         BytecodeRegister(self.registers.size().toInt32() - 1I)
     }
 
-    fun createLabel(): BytecodeLabel {
+    fn createLabel(): BytecodeLabel {
         BytecodeLabel()
     }
 
-    fun defineLabel(): BytecodeLabel {
+    fn defineLabel(): BytecodeLabel {
         BytecodeLabel().bindTo(self.code.size().toInt32())
     }
 
-    fun bindLabel(lbl: BytecodeLabel) {
+    fn bindLabel(lbl: BytecodeLabel) {
         lbl.bindTo(self.code.size().toInt32());
     }
 
-    fun setArguments(arguments: Int32) {
+    fn setArguments(arguments: Int32) {
         self.arguments = arguments;
     }
 
-    fun emitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ADD_INT32, dest, lhs, rhs);
     }
 
-    fun emitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ADD_INT64, dest, lhs, rhs);
     }
 
-    fun emitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ADD_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ADD_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SUB_INT32, dest, lhs, rhs);
     }
 
-    fun emitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SUB_INT64, dest, lhs, rhs);
     }
 
-    fun emitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SUB_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SUB_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NEG_INT32, dest, src);
     }
 
-    fun emitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NEG_INT64, dest, src);
     }
 
-    fun emitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NEG_FLOAT32, dest, src);
     }
 
-    fun emitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NEG_FLOAT64, dest, src);
     }
 
-    fun emitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_MUL_INT32, dest, lhs, rhs);
     }
 
-    fun emitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_MUL_INT64, dest, lhs, rhs);
     }
 
-    fun emitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_MUL_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_MUL_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_DIV_INT32, dest, lhs, rhs);
     }
 
-    fun emitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_DIV_INT64, dest, lhs, rhs);
     }
 
-    fun emitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_DIV_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_DIV_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_MOD_INT32, dest, lhs, rhs);
     }
 
-    fun emitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_MOD_INT64, dest, lhs, rhs);
     }
 
-    fun emitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_AND_INT32, dest, lhs, rhs);
     }
 
-    fun emitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_AND_INT64, dest, lhs, rhs);
     }
 
-    fun emitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_OR_INT32, dest, lhs, rhs);
     }
 
-    fun emitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_OR_INT64, dest, lhs, rhs);
     }
 
-    fun emitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_XOR_INT32, dest, lhs, rhs);
     }
 
-    fun emitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_XOR_INT64, dest, lhs, rhs);
     }
 
-    fun emitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NOT_BOOL, dest, src);
     }
 
-    fun emitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NOT_INT32, dest, src);
     }
 
-    fun emitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NOT_INT64, dest, src);
     }
 
-    fun emitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SHL_INT32, dest, lhs, rhs);
     }
 
-    fun emitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SHR_INT32, dest, lhs, rhs);
     }
 
-    fun emitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SAR_INT32, dest, lhs, rhs);
     }
 
-    fun emitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SHL_INT64, dest, lhs, rhs);
     }
 
-    fun emitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SHR_INT64, dest, lhs, rhs);
     }
 
-    fun emitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SAR_INT64, dest, lhs, rhs);
     }
 
-    fun emitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ROL_INT32, dest, lhs, rhs);
     }
 
-    fun emitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ROR_INT32, dest, lhs, rhs);
     }
 
-    fun emitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ROL_INT64, dest, lhs, rhs);
     }
 
-    fun emitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ROR_INT64, dest, lhs, rhs);
     }
 
-    fun emitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_UINT8_TO_CHAR, dest, src);
     }
 
-    fun emitExtendByteToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitExtendByteToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_UINT8_TO_INT32, dest, src);
     }
 
-    fun emitExtendByteToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitExtendByteToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_UINT8_TO_INT64, dest, src);
     }
 
-    fun emitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_INT32_TO_INT64, dest, src);
     }
 
-    fun emitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_CHAR_TO_INT64, dest, src);
     }
 
-    fun emitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_CHAR_TO_INT32, dest, src);
     }
 
-    fun emitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT32_TO_UINT8, dest, src);
     }
 
-    fun emitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT32_TO_CHAR, dest, src);
     }
 
-    fun emitCastInt64toUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitCastInt64toUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT64_TO_UINT8, dest, src);
     }
 
-    fun emitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT64_TO_CHAR, dest, src);
     }
 
-    fun emitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT64_TO_INT32, dest, src);
     }
 
-    fun emitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {
+    fn emitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {
         self.emitReg2AndCls(BC_INSTANCE_OF, dest, src, cls);
     }
 
-    fun emitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {
+    fn emitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {
         self.emitReg1AndCls(BC_CHECKED_CAST, src, cls);
     }
 
-    fun emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_MOV, dest, src);
     }
 
-    fun emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+    fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
         self.emitField(BC_LOAD_FIELD, dest, obj, cls, field);
     }
 
-    fun emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+    fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
         self.emitField(BC_STORE_FIELD, src, obj, cls, field);
     }
 
-    fun emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
+    fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
         self.emitGlobal(BC_LOAD_GLOBAL, dest, glob);
     }
 
-    fun emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
+    fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
         self.emitGlobal(BC_STORE_GLOBAL, src, glob);
     }
 
-    fun emitPushRegister(src: BytecodeRegister) {
+    fn emitPushRegister(src: BytecodeRegister) {
         self.emitReg1(BC_PUSH_REGISTER, src);
     }
 
-    fun emitConstTrue(dest: BytecodeRegister) {
+    fn emitConstTrue(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_TRUE, dest);
     }
 
-    fun emitConstFalse(dest: BytecodeRegister) {
+    fn emitConstFalse(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_FALSE, dest);
     }
 
-    fun emitConstZeroByte(dest: BytecodeRegister) {
+    fn emitConstZeroByte(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_ZERO_UINT8, dest);
     }
 
-    fun emitConstZeroChar(dest: BytecodeRegister) {
+    fn emitConstZeroChar(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_ZERO_CHAR, dest);
     }
 
-    fun emitConstZeroInt32(dest: BytecodeRegister) {
+    fn emitConstZeroInt32(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_ZERO_INT32, dest);
     }
 
-    fun emitConstZeroInt64(dest: BytecodeRegister) {
+    fn emitConstZeroInt64(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_ZERO_INT64, dest);
     }
 
-    fun emitConstZeroFloat32(dest: BytecodeRegister) {
+    fn emitConstZeroFloat32(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_ZERO_FLOAT32, dest);
     }
 
-    fun emitConstZeroFloat64(dest: BytecodeRegister) {
+    fn emitConstZeroFloat64(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_ZERO_FLOAT64, dest);
     }
 
-    fun emitConstByte(dest: BytecodeRegister, value: UInt8) {
+    fn emitConstByte(dest: BytecodeRegister, value: UInt8) {
         self.emitReg1AndByte(BC_CONST_UINT8, dest, value);
     }
 
-    fun emitConstChar(dest: BytecodeRegister, value: Char) {
+    fn emitConstChar(dest: BytecodeRegister, value: Char) {
         let idx = self.addConst(ConstPoolEntry::Char(value));
         self.emitReg1AndIdx(BC_CONST_CHAR, dest, idx);
     }
 
-    fun emitConstInt32(dest: BytecodeRegister, value: Int32) {
+    fn emitConstInt32(dest: BytecodeRegister, value: Int32) {
         let idx = self.addConst(ConstPoolEntry::Int32(value));
         self.emitReg1AndIdx(BC_CONST_INT32, dest, idx);
     }
 
-    fun emitConstInt64(dest: BytecodeRegister, value: Int64) {
+    fn emitConstInt64(dest: BytecodeRegister, value: Int64) {
         let idx = self.addConst(ConstPoolEntry::Int64(value));
         self.emitReg1AndIdx(BC_CONST_INT64, dest, idx);
     }
 
-    fun emitConstFloat32(dest: BytecodeRegister, value: Float32) {
+    fn emitConstFloat32(dest: BytecodeRegister, value: Float32) {
         let idx = self.addConst(ConstPoolEntry::Float32(value));
         self.emitReg1AndIdx(BC_CONST_FLOAT32, dest, idx);
     }
 
-    fun emitConstFloat64(dest: BytecodeRegister, value: Float64) {
+    fn emitConstFloat64(dest: BytecodeRegister, value: Float64) {
         let idx = self.addConst(ConstPoolEntry::Float64(value));
         self.emitReg1AndIdx(BC_CONST_FLOAT64, dest, idx);
     }
 
-    fun emitConstString(dest: BytecodeRegister, value: String) {
+    fn emitConstString(dest: BytecodeRegister, value: String) {
         let idx = self.addConst(ConstPoolEntry::String(value));
         self.emitReg1AndIdx(BC_CONST_STRING, dest, idx);
     }
 
-    fun emitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_BOOL, dest, lhs, rhs);
     }
 
-    fun emitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_BOOL, dest, lhs, rhs);
     }
 
-    fun emitTestEqByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestEqByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_UINT8, dest, lhs, rhs);
     }
 
-    fun emitTestNeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestNeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_UINT8, dest, lhs, rhs);
     }
 
-    fun emitTestGtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GT_UINT8, dest, lhs, rhs);
     }
 
-    fun emitTestGeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GE_UINT8, dest, lhs, rhs);
     }
 
-    fun emitTestLtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LT_UINT8, dest, lhs, rhs);
     }
 
-    fun emitTestLeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LE_UINT8, dest, lhs, rhs);
     }
 
-    fun emitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_CHAR, dest, lhs, rhs);
     }
 
-    fun emitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_CHAR, dest, lhs, rhs);
     }
 
-    fun emitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GT_CHAR, dest, lhs, rhs);
     }
 
-    fun emitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GE_CHAR, dest, lhs, rhs);
     }
 
-    fun emitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LT_CHAR, dest, lhs, rhs);
     }
 
-    fun emitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LE_CHAR, dest, lhs, rhs);
     }
 
-    fun emitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_ENUM, dest, lhs, rhs);
     }
 
-    fun emitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_ENUM, dest, lhs, rhs);
     }
 
-    fun emitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_INT32, dest, lhs, rhs);
     }
 
-    fun emitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_INT32, dest, lhs, rhs);
     }
 
-    fun emitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GT_INT32, dest, lhs, rhs);
     }
 
-    fun emitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GE_INT32, dest, lhs, rhs);
     }
 
-    fun emitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LT_INT32, dest, lhs, rhs);
     }
 
-    fun emitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LE_INT32, dest, lhs, rhs);
     }
 
-    fun emitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GT_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GE_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LT_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LE_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GT_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GE_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LT_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LE_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GT_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GE_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LT_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LE_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitAssert(value: BytecodeRegister) {
+    fn emitAssert(value: BytecodeRegister) {
         self.emitReg1(BC_ASSERT, value);
     }
 
-    fun emitJumpLoop(lbl: BytecodeLabel) {
+    fn emitJumpLoop(lbl: BytecodeLabel) {
         assert(lbl.isBound());
         let offset = self.code.size().toInt32() - lbl.offset();
         self.emitJmp(BC_JUMP_LOOP, offset);
     }
 
-    fun emitJumpIfFalse(opnd: BytecodeRegister, lbl: BytecodeLabel) {
+    fn emitJumpIfFalse(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.isBound());
         self.emitJmpForward(BC_JUMP_IF_FALSE, BC_JUMP_IF_FALSE_CONST, Some[BytecodeRegister](opnd), lbl);
     }
 
-    fun emitJumpIfTrue(opnd: BytecodeRegister, lbl: BytecodeLabel) {
+    fn emitJumpIfTrue(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.isBound());
         self.emitJmpForward(BC_JUMP_IF_TRUE, BC_JUMP_IF_TRUE_CONST, Some[BytecodeRegister](opnd), lbl);
     }
 
-    fun emitJump(lbl: BytecodeLabel) {
+    fn emitJump(lbl: BytecodeLabel) {
         assert(!lbl.isBound());
         self.emitJmpForward(BC_JUMP, BC_JUMP_CONST, None[BytecodeRegister], lbl);
     }
 
-    fun emitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFctVoid(BC_INVOKE_DIRECT_VOID, fct, start, count);
     }
 
-    fun emitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFctVoid(BC_INVOKE_VIRTUAL_VOID, fct, start, count);
     }
 
-    fun emitInvokeVirtual(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitInvokeVirtual(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFctVoid(BC_INVOKE_STATIC_VOID, fct, start, count);
     }
 
-    fun emitInvokeStatic(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitInvokeStatic(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC, dest, fct, start, count);
     }
 
-    fun emitNewObject(dest: BytecodeRegister, cls: ClassDefId) {
+    fn emitNewObject(dest: BytecodeRegister, cls: ClassDefId) {
         self.emitVal3(BC_NEW_OBJECT, dest.value, cls.value);
     }
 
-    fun emitRetVoid() {
+    fn emitRetVoid() {
         self.emitInst(BC_RET_VOID);
     }
 
-    fun emitRet(opnd: BytecodeRegister) {
+    fn emitRet(opnd: BytecodeRegister) {
         self.emitReg1(BC_RET, opnd);
     }
 
-    fun generate(): BytecodeFunction {
+    fn generate(): BytecodeFunction {
         self.resolveJumps();
         let code = self.code.toArray();
         let constPool = self.constPool.toArray();
@@ -563,7 +563,7 @@ class BytecodeWriter {
         BytecodeFunction(code, constPool, registers, arguments)
     }
 
-    fun resolveJumps() {
+    fn resolveJumps() {
         for jump in self.unresolvedJumps {
             assert(jump.label.isBound());
 
@@ -600,19 +600,19 @@ class BytecodeWriter {
         self.unresolvedJumps.clear();
     }
 
-    fun emitFctVoid(inst: Int32, fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitFctVoid(inst: Int32, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitVal4(inst, fct.value, start.value, count);
     }
 
-    fun emitFct(inst: Int32, dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitFct(inst: Int32, dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitVal5(inst, dest.value, fct.value, start.value, count);
     }
 
-    fun emitJmp(inst: Int32, offset: Int32) {
+    fn emitJmp(inst: Int32, offset: Int32) {
         self.emitVal2(inst, offset);
     }
 
-    fun emitJmpForward(inst: Int32, instConst: Int32, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
+    fn emitJmpForward(inst: Int32, instConst: Int32, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
         assert(!isWide(inst));
         assert(!isWide(instConst));
         let start = self.code.size().toInt32();
@@ -639,49 +639,49 @@ class BytecodeWriter {
         self.unresolvedJumps.push(UnresolvedJump(start, target, lbl));
     }
 
-    fun emitInst(inst: Int32) {
+    fn emitInst(inst: Int32) {
         self.emitVal1(inst);
     }
 
-    fun addConst(entry: ConstPoolEntry): ConstPoolId {
+    fn addConst(entry: ConstPoolEntry): ConstPoolId {
         self.constPool.push(entry);
         ConstPoolId(self.constPool.size().toInt32() - 1I)
     }
 
-    fun emitReg1(inst: Int32, r1: BytecodeRegister) {
+    fn emitReg1(inst: Int32, r1: BytecodeRegister) {
         self.emitVal2(inst, r1.value);
     }
 
-    fun emitReg1AndIdx(inst: Int32, r1: BytecodeRegister, idx: ConstPoolId) {
+    fn emitReg1AndIdx(inst: Int32, r1: BytecodeRegister, idx: ConstPoolId) {
         self.emitVal3(inst, r1.value, idx.value);
     }
 
-    fun emitReg1AndByte(inst: Int32, r1: BytecodeRegister, offset: UInt8) {
+    fn emitReg1AndByte(inst: Int32, r1: BytecodeRegister, offset: UInt8) {
         self.emitVal2(inst, r1.value);
         self.emitByte(offset.toInt32());
     }
 
-    fun emitReg1AndCls(inst: Int32, r1: BytecodeRegister, cls: ClassDefId) {
+    fn emitReg1AndCls(inst: Int32, r1: BytecodeRegister, cls: ClassDefId) {
         self.emitVal3(inst, r1.value, cls.value);
     }
 
-    fun emitReg2(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister) {
+    fn emitReg2(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister) {
         self.emitVal3(inst, r1.value, r2.value);
     }
 
-    fun emitReg2AndCls(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassDefId) {
+    fn emitReg2AndCls(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassDefId) {
         self.emitVal4(inst, r1.value, r2.value, cls.value);
     }
 
-    fun emitReg3(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
+    fn emitReg3(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
         self.emitVal4(inst, r1.value, r2.value, r3.value);
     }
 
-    fun emitGlobal(inst: Int32, r1: BytecodeRegister, glob: GlobalId) {
+    fn emitGlobal(inst: Int32, r1: BytecodeRegister, glob: GlobalId) {
         self.emitVal3(inst, r1.value, glob.value);
     }
 
-    fun emitField(
+    fn emitField(
         inst: Int32,
         r1: BytecodeRegister,
         r2: BytecodeRegister,
@@ -691,11 +691,11 @@ class BytecodeWriter {
         self.emitVal5(inst, r1.value, r2.value, cls.value, field.value);
     }
 
-    fun emitVal1(opcode: Int32) {
+    fn emitVal1(opcode: Int32) {
         self.emitOpcode(opcode);
     }
 
-    fun emitVal2(opcode: Int32, v1: Int32) {
+    fn emitVal2(opcode: Int32, v1: Int32) {
         if isWide(v1) {
             self.emitWide();
             self.emitOpcode(opcode);
@@ -706,7 +706,7 @@ class BytecodeWriter {
         }
     }
 
-    fun emitVal3(opcode: Int32, v1: Int32, v2: Int32) {
+    fn emitVal3(opcode: Int32, v1: Int32, v2: Int32) {
         if isWide(v1) || isWide(v2) {
             self.emitWide();
             self.emitOpcode(opcode);
@@ -719,7 +719,7 @@ class BytecodeWriter {
         }
     }
 
-    fun emitVal4(opcode: Int32, v1: Int32, v2: Int32, v3: Int32) {
+    fn emitVal4(opcode: Int32, v1: Int32, v2: Int32, v3: Int32) {
         if isWide(v1) || isWide(v2) || isWide(v3) {
             self.emitWide();
             self.emitOpcode(opcode);
@@ -734,7 +734,7 @@ class BytecodeWriter {
         }
     }
 
-    fun emitVal5(opcode: Int32, v1: Int32, v2: Int32, v3: Int32, v4: Int32) {
+    fn emitVal5(opcode: Int32, v1: Int32, v2: Int32, v3: Int32, v4: Int32) {
         if isWide(v1) || isWide(v2) || isWide(v3) || isWide(v4) {
             self.emitWide();
             self.emitOpcode(opcode);
@@ -751,11 +751,11 @@ class BytecodeWriter {
         }
     }
 
-    fun emitWide() {
+    fn emitWide() {
         self.emitByte(BC_WIDE);
     }
 
-    fun emitOpcode(opcode: Int32) {
+    fn emitOpcode(opcode: Int32) {
         if opcode >= 255I {
             self.emitByte(255I);
             assert(opcode < 512I);
@@ -765,12 +765,12 @@ class BytecodeWriter {
         }
     }
 
-    fun emitByte(val: Int32) {
+    fn emitByte(val: Int32) {
         assert(val >= 0I && val <= 255I);
         self.code.push(val.toUInt8());
     }
 
-    fun emitInt32(val: Int32) {
+    fn emitInt32(val: Int32) {
         assert(val >= 0I);
         self.emitByte(val & 0xFFI);
         self.emitByte((val >>> 8I) & 0xFFI);
@@ -778,7 +778,7 @@ class BytecodeWriter {
         self.emitByte((val >>> 24I) & 0xFFI);
     }
 
-    fun patchInt32(idx: Int32, val: Int32) {
+    fn patchInt32(idx: Int32, val: Int32) {
         assert(val >= 0I);
         let idx = idx.toInt64();
         self.code(idx) = (val & 0xFFI).toUInt8();
@@ -788,20 +788,20 @@ class BytecodeWriter {
     }
 }
 
-fun isWide(val: Int32): Bool = val > 255I;
+fn isWide(val: Int32): Bool = val > 255I;
 
 class BytecodeLabel {
     var off: Int32 = -1I;
 
-    fun bindTo(offset: Int32): BytecodeLabel {
+    fn bindTo(offset: Int32): BytecodeLabel {
         assert(offset >= 0I);
         self.off = offset;
         self
     }
 
-    fun isBound(): Bool = self.off >= 0I;
+    fn isBound(): Bool = self.off >= 0I;
 
-    fun offset(): Int32 {
+    fn offset(): Int32 {
         assert(self.isBound());
         self.off
     }

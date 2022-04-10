@@ -1,10 +1,10 @@
-fun main() {
+fn main() {
     assert(number_args(1I, 2I) == 2L);
     assert(number_args(7I) == 1L);
     assert(number_args() == 0L);
     assert(number_args(1I, 2I, 3I, 4I, 5I) == 5L);
 }
 
-fun number_args(x: Int32...): Int64 {
+fn number_args(x: Int32...): Int64 {
     x.size()
 }

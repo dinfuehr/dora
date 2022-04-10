@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(returnBool() == true);
     assert(returnChar() == '5');
     assert(returnByte() == 5Y);
@@ -9,34 +9,34 @@ fun main() {
     assert(returnString() == "5");
 }
 
-fun returnBool(): Bool {
+fn returnBool(): Bool {
     return true;
 }
 
-fun returnChar(): Char {
+fn returnChar(): Char {
     return '5';
 }
 
-fun returnByte(): UInt8 {
+fn returnByte(): UInt8 {
     return 5Y;
 }
 
-fun returnInt32(): Int32 {
+fn returnInt32(): Int32 {
     return 5I;
 }
 
-fun returnInt64(): Int64 {
+fn returnInt64(): Int64 {
     return 5L;
 }
 
-fun returnFloat32(): Float32 {
+fn returnFloat32(): Float32 {
     return 5F;
 }
 
-fun returnFloat64(): Float64 {
+fn returnFloat64(): Float64 {
     return 5D;
 }
 
-fun returnString(): String {
+fn returnString(): String {
     return "5";
 }

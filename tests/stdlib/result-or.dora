@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let ok1 = Result[Int32, String]::Ok(23I);
   let ok2 = Result[Int32, String]::Ok(42I);
   let er1 = Result[Int32, String]::Err("err1");

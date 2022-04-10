@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fun main() {
+fn main() {
   let x = Array[Foo]::fill(2L, Foo(42I));
   std::forceMinorCollect();
   std::forceMinorCollect();

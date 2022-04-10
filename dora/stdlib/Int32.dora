@@ -1,60 +1,60 @@
 @pub @internal struct Int32
 
 impl Int32 {
-  @pub @internal fun toUInt8(): UInt8;
-  @pub fun toChar(): Option[Char] {
+  @pub @internal fn toUInt8(): UInt8;
+  @pub fn toChar(): Option[Char] {
     if self >= 0I && self <= 0x10FFFFI && (self < 0xD800I || self > 0xDFFFI) {
       Option[Char]::Some(self.toCharUnchecked())
     } else {
       Option[Char]::None
     }
   }
-  @pub @internal fun toCharUnchecked(): Char;
-  @pub @internal fun toInt64(): Int64;
-  @pub @internal fun toString(): String;
+  @pub @internal fn toCharUnchecked(): Char;
+  @pub @internal fn toInt64(): Int64;
+  @pub @internal fn toString(): String;
 
-  @pub fun toStringBinary(): String = String::binary(self.toInt64() & 0xFFFFFFFFL);
-  @pub fun toStringHex(): String = String::hex(self.toInt64() & 0xFFFFFFFFL);
+  @pub fn toStringBinary(): String = String::binary(self.toInt64() & 0xFFFFFFFFL);
+  @pub fn toStringHex(): String = String::hex(self.toInt64() & 0xFFFFFFFFL);
 
-  @pub @internal fun toFloat32(): Float32;
-  @pub @internal fun toFloat64(): Float64;
+  @pub @internal fn toFloat32(): Float32;
+  @pub @internal fn toFloat64(): Float64;
 
-  @pub @internal fun asFloat32(): Float32;
+  @pub @internal fn asFloat32(): Float32;
 
-  @pub @internal fun equals(rhs: Int32): Bool;
-  @pub @internal fun compareTo(rhs: Int32): Int32;
+  @pub @internal fn equals(rhs: Int32): Bool;
+  @pub @internal fn compareTo(rhs: Int32): Int32;
 
-  @pub @internal fun plus(rhs: Int32): Int32;
-  @pub @internal fun minus(rhs: Int32): Int32;
-  @pub @internal fun times(rhs: Int32): Int32;
-  @pub @internal fun div(rhs: Int32): Int32;
-  @pub @internal fun mod(rhs: Int32): Int32;
+  @pub @internal fn plus(rhs: Int32): Int32;
+  @pub @internal fn minus(rhs: Int32): Int32;
+  @pub @internal fn times(rhs: Int32): Int32;
+  @pub @internal fn div(rhs: Int32): Int32;
+  @pub @internal fn mod(rhs: Int32): Int32;
 
-  @pub @internal fun wrappingAdd(rhs: Int32): Int32;
-  @pub @internal fun wrappingSub(rhs: Int32): Int32;
-  @pub @internal fun wrappingMul(rhs: Int32): Int32;
+  @pub @internal fn wrappingAdd(rhs: Int32): Int32;
+  @pub @internal fn wrappingSub(rhs: Int32): Int32;
+  @pub @internal fn wrappingMul(rhs: Int32): Int32;
 
-  @pub @internal fun bitwiseOr(rhs: Int32): Int32;
-  @pub @internal fun bitwiseAnd(rhs: Int32): Int32;
-  @pub @internal fun bitwiseXor(rhs: Int32): Int32;
+  @pub @internal fn bitwiseOr(rhs: Int32): Int32;
+  @pub @internal fn bitwiseAnd(rhs: Int32): Int32;
+  @pub @internal fn bitwiseXor(rhs: Int32): Int32;
 
-  @pub @internal fun shiftLeft(by: Int32): Int32;
-  @pub @internal fun shiftRightSigned(by: Int32): Int32;
-  @pub @internal fun shiftRight(by: Int32): Int32;
+  @pub @internal fn shiftLeft(by: Int32): Int32;
+  @pub @internal fn shiftRightSigned(by: Int32): Int32;
+  @pub @internal fn shiftRight(by: Int32): Int32;
 
-  @pub @internal fun rotateLeft(by: Int32): Int32;
-  @pub @internal fun rotateRight(by: Int32): Int32;
+  @pub @internal fn rotateLeft(by: Int32): Int32;
+  @pub @internal fn rotateRight(by: Int32): Int32;
 
-  @pub @internal fun unaryPlus(): Int32;
-  @pub @internal fun unaryMinus(): Int32;
-  @pub @internal fun not(): Int32;
-  @pub fun abs(): Int32 {
+  @pub @internal fn unaryPlus(): Int32;
+  @pub @internal fn unaryMinus(): Int32;
+  @pub @internal fn not(): Int32;
+  @pub fn abs(): Int32 {
     let s = self.shiftRightSigned(31I);
     return self.bitwiseXor(s).wrappingSub(s);
   }
 
-  @pub @internal fun countZeroBits(): Int32 = self.not().countOneBits();
-  @pub @internal fun countOneBits(): Int32 {
+  @pub @internal fn countZeroBits(): Int32 = self.not().countOneBits();
+  @pub @internal fn countOneBits(): Int32 {
     var x = self;
     var c = 0I;
     while (x != 0I) {
@@ -63,7 +63,7 @@ impl Int32 {
     }
     return c;
   }
-  @pub @internal fun countZeroBitsLeading(): Int32 {
+  @pub @internal fn countZeroBitsLeading(): Int32 {
     if self == 0I {
       return Int32::bits();
     }
@@ -75,8 +75,8 @@ impl Int32 {
     }
     return r;
   }
-  @pub @internal fun countOneBitsLeading(): Int32 = self.not().countZeroBitsLeading();
-  @pub @internal fun countZeroBitsTrailing(): Int32 {
+  @pub @internal fn countOneBitsLeading(): Int32 = self.not().countZeroBitsLeading();
+  @pub @internal fn countZeroBitsTrailing(): Int32 {
     if self == 0I {
       return Int32::bits();
     }
@@ -88,16 +88,16 @@ impl Int32 {
     }
     return r;
   }
-  @pub @internal fun countOneBitsTrailing(): Int32 = self.not().countZeroBitsTrailing();
+  @pub @internal fn countOneBitsTrailing(): Int32 = self.not().countZeroBitsTrailing();
 
-  @pub fun hash(): Int32 = self;
+  @pub fn hash(): Int32 = self;
 
-  @pub @static fun bits(): Int32 = 32I;
-  @pub @static fun bytes(): Int32 = 4I;
+  @pub @static fn bits(): Int32 = 32I;
+  @pub @static fn bytes(): Int32 = 4I;
 
-  @pub @static fun maxValue(): Int32 = 2147483647I;
-  @pub @static fun minValue(): Int32 = -2147483648I;
+  @pub @static fn maxValue(): Int32 = 2147483647I;
+  @pub @static fn minValue(): Int32 = -2147483648I;
 
-  @pub @static fun min(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { lhs } else { rhs };
-  @pub @static fun max(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { rhs } else { lhs };
+  @pub @static fn min(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { lhs } else { rhs };
+  @pub @static fn max(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { rhs } else { lhs };
 }

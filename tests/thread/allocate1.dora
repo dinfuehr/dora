@@ -2,13 +2,13 @@
 //= config region
 
 class MyThread() extends std::Thread {
-    @override fun run() {
+    @override fn run() {
         allocator();
         println("done");
     }
 }
 
-fun main() {
+fn main() {
     var i = 0I;
 
     while i < 4I {
@@ -21,7 +21,7 @@ fun main() {
     println("done");
 }
 
-fun allocator() {
+fn allocator() {
     var i = 0I;
 
     while i < 10_000I {

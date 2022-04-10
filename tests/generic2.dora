@@ -1,6 +1,6 @@
 //= stdout "hello1"
 
-fun main() {
+fn main() {
   let a = A[String](foo(1I));
   std::forceCollect();
   print(a.x);
@@ -8,6 +8,6 @@ fun main() {
 
 class A[T](let x: T)
 
-fun foo(a: Int32): String {
+fn foo(a: Int32): String {
   return "hello" + a.toString();
 }

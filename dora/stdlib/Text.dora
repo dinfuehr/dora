@@ -1,31 +1,31 @@
 @pub class Text(let value: String, let locale: Locale) {
 
-  @pub fun plus(rhs: Text): Text {
+  @pub fn plus(rhs: Text): Text {
     if self.locale != rhs.locale {
       fatalError("locales different");
     }
     return Text(self.value + rhs.value, self.locale);
   }
 
-  @pub fun asString(): String = self.value;
+  @pub fn asString(): String = self.value;
 
-  @pub fun toString(): String = "Text(" + self.value + ", " + self.locale.toString() + ")";
+  @pub fn toString(): String = "Text(" + self.value + ", " + self.locale.toString() + ")";
 
-  @pub fun asBytes(): Array[UInt8] {
+  @pub fn asBytes(): Array[UInt8] {
     unimplemented();
     return Array[UInt8]::empty();
   }
 
-  @pub fun isEmpty(): Bool = self.value.isEmpty();
+  @pub fn isEmpty(): Bool = self.value.isEmpty();
 
-  @pub fun codePoints(): CodepointIterator = CodepointIterator(self.value, 0L);
+  @pub fn codePoints(): CodepointIterator = CodepointIterator(self.value, 0L);
 
-  @pub fun toUpperCase(): Text {
+  @pub fn toUpperCase(): Text {
     unimplemented();
     return self;
   }
 
-  @pub fun toLowerCase(): Text {
+  @pub fn toLowerCase(): Text {
     unimplemented();
     return self;
   }

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(myid[Int32](1I) == 1I);
     assert(myid[Int32](100I) == 100I);
     assert(myid[Int32](4I) == 4I);
@@ -14,4 +14,4 @@ fun main() {
     assert(myid[Float64](1.0) == 1.0);
 }
 
-fun myid[T](x: T): T { x }
+fn myid[T](x: T): T { x }

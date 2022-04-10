@@ -1,6 +1,6 @@
 var x: (String, Bool) = ("", false);
 
-fun main() {
+fn main() {
     std::forceCollect();
     x = ("my string", true);
     std::forceCollect();

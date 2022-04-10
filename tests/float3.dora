@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = 1F;
     let y = 2F;
     let z = 0F / 0F;

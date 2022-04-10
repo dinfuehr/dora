@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let some1 = Option[Int32]::Some(23I);
   let none1 = Option[Int32]::None;
   let some2 = Option[String]::Some("some");

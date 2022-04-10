@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let rnd = std::Random(0L);
 
     assert(rnd.nextInt32() == -1155484576I);

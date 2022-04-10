@@ -7,7 +7,7 @@ class TupleClass {
 struct Pair(first: Foo, second: Int64)
 class Foo(let value: Int32)
 
-fun main() {
+fn main() {
     let tpl = TupleClass();
     std::forceCollect();
     tpl.value = Pair(Foo(4711I), 4712L);

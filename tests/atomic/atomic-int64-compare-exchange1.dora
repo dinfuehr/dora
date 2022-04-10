@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let value = std::AtomicInt64(10L);
     assert(value.compareExchange(12L, 20L) == 10L);
     assert(value.get() == 10L);

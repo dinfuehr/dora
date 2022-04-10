@@ -1,6 +1,6 @@
 //= error code 1
 //= stderr "fatal error: bla\n2: fatalError(String): 1\n1: main(): 5\n"
 
-fun main() {
+fn main() {
     std::fatalError("bla");
 }

@@ -1,10 +1,10 @@
-fun main() {
+fn main() {
     assert(sum_args((1I, 2I), (3I, 4I)) == 10I);
     assert(sum_args() == 0I);
     assert(sum_args((0I, 1I)) == 1I);
 }
 
-fun sum_args(x: (Int32, Int32)...): Int32 {
+fn sum_args(x: (Int32, Int32)...): Int32 {
     var result = 0I;
     var idx = 0L;
 

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let a = A(10I);
   assert(a.x == 10I);
   assert(a.y == 20I);

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(rotateLeft(-12I, 1I) == -23I);
     assert(rotateLeft(-12I, 32I) == -12I);
     assert(rotateLeft(-12I, -1I) == 2147483642I);
@@ -8,6 +8,6 @@ fun main() {
     assert(rotateRight(-12I, -1I) == -23I);
 }
 
-fun rotateLeft(x: Int32, y: Int32): Int32 = x.rotateLeft(y);
+fn rotateLeft(x: Int32, y: Int32): Int32 = x.rotateLeft(y);
 
-fun rotateRight(x: Int32, y: Int32): Int32 = x.rotateRight(y);
+fn rotateRight(x: Int32, y: Int32): Int32 = x.rotateRight(y);

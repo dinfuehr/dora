@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let value = std::AtomicInt32(10I);
     assert(value.get() == 10I);
     value.set(20I);

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let map = std::HashMap[Int32, String]((1I, "a"), (2I, "b"), (3I, "c"), (4I, "d"));
     assert(map.size() == 4L);
 

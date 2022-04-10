@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = Float64::infinityNegative().roundUp();
   assert(x == Float64::infinityNegative());
 

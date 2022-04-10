@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = Bar();
     assert(x.value == 10I);
     x.value = 100I;

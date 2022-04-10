@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(1I < 2I);
   assert(-4I < 2I);
 

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     if argc() != 2 {
         println("usage: falsesharing <threads> <iterations>");
     }
@@ -17,7 +17,7 @@ fun main() {
     }
 }
 
-fun construct(size: Int64): Array[Foo] {
+fn construct(size: Int64): Array[Foo] {
     let objects: Array[Foo] = Array::fill[Foo](size, Foo(nil, nil));
 
     var i = 0L;
@@ -49,7 +49,7 @@ fun construct(size: Int64): Array[Foo] {
 }
 
 class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let objects: Array[Foo]) extends Thread {
-  @override fun run() {
+  @override fn run() {
 	let size = self.objects.size();
 	let objects_per_thread = size / self.threads;
 	assert(size % self.threads == 0L);

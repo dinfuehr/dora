@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let i = 1I;
   let o1 = Foo();
   let o2 = o1.me();
@@ -6,5 +6,5 @@ fun main() {
 }
 
 class Foo {
-  fun me(): Foo { return self; }
+  fn me(): Foo { return self; }
 }

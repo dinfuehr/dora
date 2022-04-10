@@ -2,7 +2,7 @@
 
 class Foo
 
-fun main() {
+fn main() {
     let filler = Foo();
     let x = Array[Foo]::fill(16L * 1024L, filler);
     let y = Array[Foo]::fill(16L * 1024L, filler);

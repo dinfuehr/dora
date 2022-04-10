@@ -1,6 +1,6 @@
 //= stdout "10\n10\n"
 
-fun main() {
+fn main() {
     let a = A(10I);
     let x = a.test();
     println(a.a.toString());
@@ -9,7 +9,7 @@ fun main() {
 }
 
 class A(let a: Int32) {
-    fun test(): Int32 {
+    fn test(): Int32 {
         std::forceCollect();
         return self.a;
     }

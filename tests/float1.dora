@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let a = 1F + 2F;
     let b = 2F - 1F;
     let c = 2F * 3F;

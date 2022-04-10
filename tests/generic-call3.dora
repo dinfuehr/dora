@@ -1,11 +1,11 @@
 //= stdout "hello\n"
 
 trait Foo {
-    fun bar();
+    fn bar();
 }
 
 class A[T: Foo](let t: T) {
-    fun bar() {
+    fn bar() {
         self.t.bar();
     }
 }
@@ -13,11 +13,11 @@ class A[T: Foo](let t: T) {
 class X
 
 impl Foo for X {
-    fun bar() {
+    fn bar() {
         println("hello");
     }
 }
 
-fun main() {
+fn main() {
     A[X](X()).bar();
 }

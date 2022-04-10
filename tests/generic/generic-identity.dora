@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(1I == identity[Int32](1I));
     assert(42.5F == identity[Float32](42.5F));
     assert("abc" == identity[String]("abc"));
@@ -8,7 +8,7 @@ fun main() {
     assert(x == 12I && !y && z == "foo");
 }
 
-fun identity[T](val: T): T {
+fn identity[T](val: T): T {
     let tmp = val;
     tmp
 }

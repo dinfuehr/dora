@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let f1 = Foo1(1I);
   let f2 = Foo2(1I, 2I);
   assert(f2.a == 1I);

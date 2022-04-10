@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(1F < 3F);
     assert(!(1F < 1F));
     assert(1F <= 1F);

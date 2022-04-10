@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let map = std::HashMap[Int32, String]();
 
     assert(map.insert(1024I, "1024").isNone());

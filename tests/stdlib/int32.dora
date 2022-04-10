@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = 1I.unaryPlus();
     assert(x == (+1I));
 

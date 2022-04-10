@@ -1,17 +1,17 @@
 class A[X] {
-    fun t1[Y](x: X, y: Y): Y { return y; }
-    fun t2[Y](x: X, y: Y): X { return x; }
+    fn t1[Y](x: X, y: Y): Y { return y; }
+    fn t2[Y](x: X, y: Y): X { return x; }
 }
 
-fun t1(a: A[Int32]): String {
+fn t1(a: A[Int32]): String {
     return a.t1[String](1I, "bla");
 }
 
-fun t2(a: A[Int32]): Int32 {
+fn t2(a: A[Int32]): Int32 {
     return a.t2[String](1I, "bla");
 }
 
-fun main() {
+fn main() {
     assert("bla" == t1(A[Int32]()));
     assert(1I == t2(A[Int32]()));
 }

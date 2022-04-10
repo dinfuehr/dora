@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = 0I.countZeroBits();
   assert(x == 32I);
   let x = 1I.countZeroBits();

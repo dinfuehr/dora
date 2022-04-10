@@ -7,7 +7,7 @@ class Graph {
     var nextBlockIdValue: Int32 = 0I;
     var nextInstIdValue: Int32 = 0I;
 
-    fun addBlock(block: Block) {
+    fn addBlock(block: Block) {
         assert(block.graph.isNone() && block.id == -1I);
 
         block.graph = Some(self);
@@ -15,37 +15,37 @@ class Graph {
         self.blocks.push(Some[Block](block));
     }
 
-    fun getBlockWithId(id: Int32): Block {
+    fn getBlockWithId(id: Int32): Block {
         self.blocks(id.toInt64()).getOrPanic()
     }
 
-    fun setEntryBlock(block: Block) {
+    fn setEntryBlock(block: Block) {
         self.entryBlock = Some(block);
     }
 
-    fun getEntryBlock(): Block {
+    fn getEntryBlock(): Block {
         self.entryBlock.getOrPanic()
     }
 
-    fun nextInstId(): Int32 {
+    fn nextInstId(): Int32 {
         let id = self.nextInstIdValue;
         self.nextInstIdValue = id + 1I;
 
         id
     }
 
-    fun nextBlockId(): BlockId {
+    fn nextBlockId(): BlockId {
         let id = self.nextBlockIdValue;
         self.nextBlockIdValue = id + 1I;
 
         BlockId(id)
     }
 
-    fun blockCount(): Int32 {
+    fn blockCount(): Int32 {
         self.nextBlockIdValue
     }
 
-    fun setPostOrder(postOrder: Vec[Block]) {
+    fn setPostOrder(postOrder: Vec[Block]) {
         self.postOrder = postOrder;
 
         for (idx, block) in self.postOrder.enumerate() {
@@ -53,24 +53,24 @@ class Graph {
         }
     }
 
-    fun rebuildDominatorTree() {
+    fn rebuildDominatorTree() {
         // TODO: clear data of dominance and loop analysis
         self.buildDominatorTree();
     }
 
-    fun buildDominatorTree() {
+    fn buildDominatorTree() {
         buildDominatorTree(self);
     }
 
-    fun insertionOrderIterator(): InsertionOrderIterator {
+    fn insertionOrderIterator(): InsertionOrderIterator {
         InsertionOrderIterator(self.blocks.toArray())
     }
 
-    fun postOrderIterator(): PostOrderIterator {
+    fn postOrderIterator(): PostOrderIterator {
         PostOrderIterator(self.postOrder.toArray())
     }
 
-    fun reversePostOrderIterator(): ReversePostOrderIterator {
+    fn reversePostOrderIterator(): ReversePostOrderIterator {
         ReversePostOrderIterator(self.postOrder.toArray())
     }
 }
@@ -78,19 +78,19 @@ class Graph {
 class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
     var idx: Int64 = 0L;
 
-    fun hasNext(): Bool {
+    fn hasNext(): Bool {
         self.findNextBlock();
 
         self.idx < self.blocks.size()
     }
 
-    fun next(): Block {
+    fn next(): Block {
         let block = self.blocks(self.idx).getOrPanic();
         self.idx = self.idx + 1L;
         block
     }
 
-    fun findNextBlock() {
+    fn findNextBlock() {
         while self.idx < self.blocks.size() {
             let block = self.blocks(self.idx);
 
@@ -106,11 +106,11 @@ class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
 class PostOrderIterator(let postOrder: Array[Block]) {
     var idx: Int64 = 0L;
 
-    fun hasNext(): Bool {
+    fn hasNext(): Bool {
         self.idx < self.postOrder.size()
     }
 
-    fun next(): Block {
+    fn next(): Block {
         let block = self.postOrder(self.idx);
         self.idx = self.idx + 1L;
         block
@@ -120,11 +120,11 @@ class PostOrderIterator(let postOrder: Array[Block]) {
 class ReversePostOrderIterator(let postOrder: Array[Block]) {
     var idx: Int64 = self.postOrder.size() - 1L;
 
-    fun hasNext(): Bool {
+    fn hasNext(): Bool {
         self.idx != -1L
     }
 
-    fun next(): Block {
+    fn next(): Block {
         let block = self.postOrder(self.idx);
         self.idx = self.idx - 1L;
         block
@@ -151,20 +151,20 @@ class Block() {
 
     var postOrderIdx: Int32 = -1I;
 
-    fun getDominator(): Option[Block] = self.dominator;
+    fn getDominator(): Option[Block] = self.dominator;
 
-    fun setDominator(block: Block) {
+    fn setDominator(block: Block) {
         self.dominator = Some(block);
     }
 
-    fun dominates(other: Block): Bool =
+    fn dominates(other: Block): Bool =
         if self == other {
             true
         } else {
             self.strictlyDominates(other)
         };
 
-    fun strictlyDominates(other: Block): Bool {
+    fn strictlyDominates(other: Block): Bool {
         var current = other.getDominator();
 
         while current.isSome() {
@@ -175,20 +175,20 @@ class Block() {
         false
     }
 
-    fun getDominatedBlocks(): Vec[Block] = self.dominatedBlocks;
+    fn getDominatedBlocks(): Vec[Block] = self.dominatedBlocks;
 
-    fun addDominatedBlock(block: Block) {
+    fn addDominatedBlock(block: Block) {
         self.dominatedBlocks.push(block);
     }
 
-    fun addSuccessor(block: Block): Edge {
+    fn addSuccessor(block: Block): Edge {
         let edge = Edge(self, block);
         self.successors.push(edge);
         block.predecessors.push(edge);
         edge
     }
 
-    fun appendPhi(phi: PhiInst): PhiInst {
+    fn appendPhi(phi: PhiInst): PhiInst {
         assert(phi.block.isNone() && phi.id == -1I);
 
         phi.block = Some(self);
@@ -200,7 +200,7 @@ class Block() {
         phi
     }
 
-    fun appendInst(inst: Inst): Inst {
+    fn appendInst(inst: Inst): Inst {
         assert(inst.block.isNone() && inst.id == -1I);
 
         inst.block = Some(self);
@@ -212,64 +212,64 @@ class Block() {
         inst
     }
 
-    fun addBackEdge(block: Block) {
+    fn addBackEdge(block: Block) {
         if self.loopData.isNone() {
             self.loopData = Some(LoopData(self));
         }
         self.loopData.getOrPanic().addBackEdge(block);
     }
 
-    fun isLoopHeader(): Bool {
+    fn isLoopHeader(): Bool {
         self.loopData.isSome() && self.loopData.getOrPanic().header === self
     }
 
-    fun getLoopData(): Option[LoopData] {
+    fn getLoopData(): Option[LoopData] {
         self.loopData
     }
 
-    fun setLoopData(loop: LoopData) {
+    fn setLoopData(loop: LoopData) {
         self.loopData = Some(loop);
     }
 
-    fun clearLoopData() {
+    fn clearLoopData() {
         self.loopData = None;
     }
 
-    fun isEntryBlock(): Bool {
+    fn isEntryBlock(): Bool {
         self.graph.getOrPanic().getEntryBlock() === self
     }
 
-    fun instructionsIterator(): InstIterator {
+    fn instructionsIterator(): InstIterator {
         InstIterator(self)
     }
 
-    fun reverseInstructionsIterator(): BackwardInstIterator {
+    fn reverseInstructionsIterator(): BackwardInstIterator {
         BackwardInstIterator(self)
     }
 
-    fun phisIterator(): PhiInstIterator {
+    fn phisIterator(): PhiInstIterator {
         PhiInstIterator(self)
     }
 
-    fun firstInst(): Inst {
+    fn firstInst(): Inst {
         self.instructions.firstInst()
     }
 
-    fun lastInst(): Inst {
+    fn lastInst(): Inst {
         self.instructions.lastInst()
     }
 
-    fun removePhi(inst: PhiInst) {
+    fn removePhi(inst: PhiInst) {
         unimplemented();
     }
 }
 
 impl Hash for Block {
-  fun hash(): Int32 = self.id.hash();
+  fn hash(): Int32 = self.id.hash();
 }
 
 impl Equals for Block {
-  fun equals(other: Block): Bool = self === other;
+  fn equals(other: Block): Bool = self === other;
 }
 
 import std::BitVec;
@@ -278,27 +278,27 @@ class LoopData(let header: Block) {
     var backEdges: Vec[Block] = Vec();
     let blocks: BitVec = BitVec();
 
-    fun getHeader(): Block {
+    fn getHeader(): Block {
         self.header
     }
 
-    fun addBackEdge(block: Block) {
+    fn addBackEdge(block: Block) {
         self.backEdges.push(block);
     }
 
-    fun numberBackEdges(): Int32 {
+    fn numberBackEdges(): Int32 {
         self.backEdges.size().toInt32()
     }
 
-    fun addBlock(block: Block) {
+    fn addBlock(block: Block) {
         self.blocks.insert(block.id.toInt64());
     }
 
-    fun containsBlock(block: Block): Bool {
+    fn containsBlock(block: Block): Bool {
         self.blocks.contains(block.id.toInt64())
     }
 
-    fun containsLoop(other: LoopData): Bool {
+    fn containsLoop(other: LoopData): Bool {
         self.containsBlock(other.header)
     }
 }
@@ -322,16 +322,16 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
 
     var inputs: Vec[Input] = Vec();
 
-    fun getType(): Type {
+    fn getType(): Type {
         return self.ty;
     }
 
-    fun addInput(inst: Inst) {
+    fn addInput(inst: Inst) {
         let input = Input(self.inputs.size().toInt32(), inst, self);
         self.inputs.push(input);
     }
 
-    fun addUse(input: Input) {
+    fn addUse(input: Input) {
         assert(input.value === self);
 
         if self.useListHead.isNone() {
@@ -354,7 +354,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         }
     }
 
-    fun remove() {
+    fn remove() {
         assert(!self.hasUses());
         assert(self.block.isSome());
 
@@ -370,32 +370,32 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         self.block = None;
     }
 
-    fun registerUses() {
+    fn registerUses() {
         for input in self.inputs {
             input.value.addUse(input);
         }
     }
 
-    fun removeAsUser() {
+    fn removeAsUser() {
         for input in self.inputs {
             removeUse(input);
         }
     }
 
-    fun hasUses(): Bool {
+    fn hasUses(): Bool {
         let result = self.useListHead.isSome();
         assert(result == self.useListTail.isSome());
         result
     }
 
-    fun replaceWith(replacement: Inst) {
+    fn replaceWith(replacement: Inst) {
         while self.useListHead.isSome() {
             let input = self.useListHead.getOrPanic();
             input.usedBy.replaceInput(replacement, input.idx);
         }
     }
 
-    fun replaceInput(replacement: Inst, idx: Int32) {
+    fn replaceInput(replacement: Inst, idx: Int32) {
         let input = self.inputs(idx.toInt64());
 
         if input.value === replacement {
@@ -407,7 +407,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         replacement.addUse(input);
     }
 
-    fun users(): Array[Inst] {
+    fn users(): Array[Inst] {
         let data = Vec[Inst]();
         var current = self.useListHead;
 
@@ -420,11 +420,11 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         data.toArray()
     }
 
-    fun uses(): UseIterator {
+    fn uses(): UseIterator {
         UseIterator(self)
     }
 
-    fun dominates(other: Inst): Bool {
+    fn dominates(other: Inst): Bool {
         let sblock = self.block.getOrPanic();
         let oblock = other.block.getOrPanic();
 
@@ -447,30 +447,30 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         }
     }
 
-    fun isDeadAndRemovable(): Bool {
+    fn isDeadAndRemovable(): Bool {
         self.isRemovable() && !self.hasUses()
     }
 
-    @open @abstract fun dumpName(): String;
-    @open @abstract fun isTerminator(): Bool;
-    @open @abstract fun isRemovable(): Bool;
+    @open @abstract fn dumpName(): String;
+    @open @abstract fn isTerminator(): Bool;
+    @open @abstract fn isRemovable(): Bool;
 }
 
 class UseIterator(inst: Inst) {
     var current: Option[Input] = inst.useListHead;
 
-    fun hasNext(): Bool {
+    fn hasNext(): Bool {
         self.current.isSome()
     }
 
-    fun next(): Input {
+    fn next(): Input {
         let input = self.current.getOrPanic();
         self.current = input.nextUse;
         input
     }
 }
 
-fun removeUse(input: Input) {
+fn removeUse(input: Input) {
     let inst = input.value;
 
     if input.previousUse.isSome() {
@@ -494,50 +494,50 @@ fun removeUse(input: Input) {
 @abstract @open class Const extends Inst
 
 class NullConst(let value: UInt8) extends Const {
-    @override fun dumpName(): String { "Const.Null" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "Const.Null" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class Int32Const(let value: Int32) extends Const {
-    @override fun dumpName(): String { "Const.Int32(#${self.value})" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "Const.Int32(#${self.value})" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class Int64Const(let value: Int64) extends Const {
-    @override fun dumpName(): String { "Const.Int64(#${self.value})" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "Const.Int64(#${self.value})" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class Float32Const(let value: Float32) extends Const {
-    @override fun dumpName(): String { "Const.Float32(#${self.value})" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "Const.Float32(#${self.value})" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class Float64Const(let value: Float64) extends Const {
-    @override fun dumpName(): String { "Const.Float64(#${self.value})" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "Const.Float64(#${self.value})" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class LoadGlobalInst(ty: Type, let global: GlobalId) extends Inst {
     self.ty = ty;
 
-    @override fun dumpName(): String { "LoadGlobal.${self.ty}(${self.global.value})" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "LoadGlobal.${self.ty}(${self.global.value})" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst) extends Inst {
     self.addInput(value);
     self.ty = ty;
 
-    @override fun dumpName(): String { "StoreGlobal.${self.ty}(${self.global.value})" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "StoreGlobal.${self.ty}(${self.global.value})" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { false }
 }
 
 
@@ -545,9 +545,9 @@ class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst) extends Inst {
     self.addInput(opnd);
     self.ty = ty;
 
-    @override fun dumpName(): String { "${unOpName(self.op)}.${self.ty}" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "${unOpName(self.op)}.${self.ty}" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst) extends Inst {
@@ -555,9 +555,9 @@ class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst) extends 
     self.addInput(rhs);
     self.ty = ty;
 
-    @override fun dumpName(): String { "${binOpName(self.op)}.${self.ty}" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "${binOpName(self.op)}.${self.ty}" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst) extends Inst {
@@ -565,38 +565,38 @@ class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst) extends I
     self.addInput(rhs);
     self.ty = ty;
 
-    @override fun dumpName(): String { "${self.op.name()}.${self.ty}" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "${self.op.name()}.${self.ty}" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class UndefInst extends Inst {
-    @override fun dumpName(): String { "Undef" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "Undef" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class PhiInst extends Inst {
-    @override fun dumpName(): String { "Phi" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "Phi" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class BoundsCheck(let index: Inst, let length: Inst) extends Inst {
     self.addInput(index);
     self.addInput(length);
 
-    @override fun dumpName(): String { "BoundsCheck" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "BoundsCheck" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { false }
 }
 
 class DivZeroCheck(let value: Inst) extends Inst {
     self.addInput(value);
 
-    @override fun dumpName(): String { "DivZeroCheck" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "DivZeroCheck" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { false }
 }
 
 class ArrayGet(let array: Inst, let index: Inst, ty: Type) extends Inst {
@@ -605,9 +605,9 @@ class ArrayGet(let array: Inst, let index: Inst, ty: Type) extends Inst {
     self.addInput(array);
     self.addInput(index);
 
-    @override fun dumpName(): String { "ArrayGet.${self.ty}" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "ArrayGet.${self.ty}" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class ArraySet(let array: Inst, let index: Inst, let value: Inst) extends Inst {
@@ -615,17 +615,17 @@ class ArraySet(let array: Inst, let index: Inst, let value: Inst) extends Inst {
     self.addInput(index);
     self.addInput(value);
 
-    @override fun dumpName(): String { "ArraySet" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "ArraySet" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { false }
 }
 
 class ArrayLength(let array: Inst) extends Inst {
     self.addInput(array);
 
-    @override fun dumpName(): String { "ArrayLength" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "ArrayLength" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class FieldInfo(let offset: Int32, let volatile: Bool)
@@ -635,62 +635,62 @@ class FieldGet(let obj: Inst, let field: FieldInfo, ty: Type) extends Inst {
 
     self.addInput(obj);
 
-    @override fun dumpName(): String { "FieldGet.${self.ty}" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "FieldGet.${self.ty}" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class FieldSet(let obj: Inst, let field: FieldInfo, let value: Inst) extends Inst {
     self.addInput(obj);
     self.addInput(value);
 
-    @override fun dumpName(): String { "FieldSet" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "FieldSet" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { false }
 }
 
 class ArgInst(let index: Int32, ty: Type) extends Inst {
     self.ty = ty;
 
-    @override fun dumpName(): String { "Arg.${self.ty}(${self.index})" }
-    @override fun isTerminator(): Bool { false }
-    @override fun isRemovable(): Bool { true }
+    @override fn dumpName(): String { "Arg.${self.ty}(${self.index})" }
+    @override fn isTerminator(): Bool { false }
+    @override fn isRemovable(): Bool { true }
 }
 
 class ReturnInst(let value: Inst, ty: Type) extends Inst {
     self.ty = ty;
     self.addInput(value);
 
-    @override fun dumpName(): String { "Ret.${self.ty}" }
-    @override fun isTerminator(): Bool { true }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "Ret.${self.ty}" }
+    @override fn isTerminator(): Bool { true }
+    @override fn isRemovable(): Bool { false }
 }
 
 class ReturnVoidInst extends Inst {
-    @override fun dumpName(): String { "Ret.Void" }
-    @override fun isTerminator(): Bool { true }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "Ret.Void" }
+    @override fn isTerminator(): Bool { true }
+    @override fn isRemovable(): Bool { false }
 }
 
 class IfInst(let cond: Inst, let true_block: Block, let false_block: Block) extends Inst {
     self.addInput(cond);
 
-    @override fun dumpName(): String { "If(@${self.true_block.id}, @${self.false_block.id})" }
-    @override fun isTerminator(): Bool { true }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "If(@${self.true_block.id}, @${self.false_block.id})" }
+    @override fn isTerminator(): Bool { true }
+    @override fn isRemovable(): Bool { false }
 }
 
 class GotoInst(let block: Block) extends Inst {
-    @override fun dumpName(): String { "Goto(@${self.block.id})" }
-    @override fun isTerminator(): Bool { true }
-    @override fun isRemovable(): Bool { false }
+    @override fn dumpName(): String { "Goto(@${self.block.id})" }
+    @override fn isTerminator(): Bool { true }
+    @override fn isRemovable(): Bool { false }
 }
 
 enum BinOp {
     Add, Sub, Mul, Div, Mod, And, Or, Xor, Shl, Shr, Sar
 }
 
-fun binOpName(op: BinOp): String {
+fn binOpName(op: BinOp): String {
     if op == BinOp::Add {
         "Add"
     } else if op == BinOp::Sub {
@@ -728,7 +728,7 @@ enum TestOp {
 }
 
 impl TestOp {
-    fun name(): String {
+    fn name(): String {
         if self == TestOp::Equal {
             "Equal"
         } else if self == TestOp::NotEqual {
@@ -751,7 +751,7 @@ enum UnOp {
     Neg, FNeg, Not,
 }
 
-fun unOpName(op: UnOp): String {
+fn unOpName(op: UnOp): String {
     if op == UnOp::Neg {
         "Neg"
     } else if op == UnOp::Not {
@@ -765,19 +765,19 @@ class InstLinkedList {
     var first: Option[Inst] = None;
     var last: Option[Inst] = None;
 
-    fun isEmpty(): Bool {
+    fn isEmpty(): Bool {
         self.first.isNone()
     }
 
-    fun firstInst(): Inst {
+    fn firstInst(): Inst {
         self.first.getOrPanic()
     }
 
-    fun lastInst(): Inst {
+    fn lastInst(): Inst {
         self.last.getOrPanic()
     }
 
-    fun appendInst(inst: Inst) {
+    fn appendInst(inst: Inst) {
         if self.first.isNone() {
             inst.previous = None;
             inst.next = None;
@@ -794,7 +794,7 @@ class InstLinkedList {
         }
     }
 
-    fun removeInst(inst: Inst) {
+    fn removeInst(inst: Inst) {
         if inst.previous.isSome() {
             let previous = inst.previous.getOrPanic();
             previous.next = inst.next;
@@ -814,11 +814,11 @@ class InstLinkedList {
 class InstIterator(block: Block) {
     var current: Option[Inst] = block.instructions.first;
 
-    fun hasNext(): Bool {
+    fn hasNext(): Bool {
         self.current.isSome()
     }
 
-    fun next(): Inst {
+    fn next(): Inst {
         let inst = self.current.getOrPanic();
         self.current = inst.next;
         inst
@@ -828,11 +828,11 @@ class InstIterator(block: Block) {
 class PhiInstIterator(block: Block) {
     var current: Option[Inst] = block.phis.first;
 
-    fun hasNext(): Bool {
+    fn hasNext(): Bool {
         self.current.isSome()
     }
 
-    fun next(): PhiInst {
+    fn next(): PhiInst {
         let inst = self.current.getOrPanic();
         self.current = inst.next;
         inst as PhiInst
@@ -842,11 +842,11 @@ class PhiInstIterator(block: Block) {
 class BackwardInstIterator(block: Block) {
     var current: Option[Inst] = block.instructions.last;
 
-    fun hasNext(): Bool {
+    fn hasNext(): Bool {
         self.current.isSome()
     }
 
-    fun next(): Inst {
+    fn next(): Inst {
         let inst = self.current.getOrPanic();
         self.current = inst.previous;
         inst
@@ -856,7 +856,7 @@ class BackwardInstIterator(block: Block) {
 class Edge(let source: Block, let target: Block) {
     var backward: Bool = false;
 
-    fun markAsBackwardEdge() {
+    fn markAsBackwardEdge() {
         assert(!self.backward);
         self.backward = true;
     }

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let array = Array[(Int32, String)]((1I, "abc"), (2I, "def"), (3I, "ghi"));
     for (idx, name) in array {
         if idx == 1I {

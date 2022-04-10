@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = Array[Bool]::fill(3L, true);
     assert(x.has(true));
 

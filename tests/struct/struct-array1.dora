@@ -1,6 +1,6 @@
 struct Foo(f1: Int32, f2: Int32)
 
-fun main() {
+fn main() {
     let arr = Array[Foo]::fill(10L, Foo(10I, 17I));
     assert(arr.size() == 10L);
     assert(arr(0L).f1 == 10I);

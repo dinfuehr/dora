@@ -2,7 +2,7 @@
 
 class Foo(let x: Int32)
 
-fun main() {
+fn main() {
     let a = Array[Int64]::fill(70L, 0L);
     let f1 = Foo(3I);
     let x = CardSpanningObject(f1);

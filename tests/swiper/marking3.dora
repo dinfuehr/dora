@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     std::forceCollect();
     std::forceCollect();
     std::forceCollect();

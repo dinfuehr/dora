@@ -1,11 +1,11 @@
-fun main() {
+fn main() {
     t(A());
     t(B());
     t(C());
     t("abc");
 }
 
-fun t(o: Object) {}
+fn t(o: Object) {}
 
 class A
 @open class B

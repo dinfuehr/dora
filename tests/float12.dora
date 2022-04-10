@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = 1.75F;
     assert(1.75D == x.toFloat64());
 

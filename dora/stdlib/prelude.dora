@@ -1,27 +1,27 @@
-@pub @internal fun fatalError(msg: String);
-@pub @internal fun abort();
-@pub @internal fun exit(status: Int32);
-@pub @internal fun unreachable[T](): T;
+@pub @internal fn fatalError(msg: String);
+@pub @internal fn abort();
+@pub @internal fn exit(status: Int32);
+@pub @internal fn unreachable[T](): T;
 
-@pub fun unimplemented() = fatalError("not yet implemented");
+@pub fn unimplemented() = fatalError("not yet implemented");
 
-@pub @internal fun print(text: String);
-@pub @internal fun println(text: String);
-@pub @internal fun assert(val: Bool);
-@pub @internal fun debug();
-@pub @internal fun argc(): Int32;
-@pub @internal fun argv(idx: Int32): String;
-@pub @internal fun forceCollect();
-@pub @internal fun forceMinorCollect();
+@pub @internal fn print(text: String);
+@pub @internal fn println(text: String);
+@pub @internal fn assert(val: Bool);
+@pub @internal fn debug();
+@pub @internal fn argc(): Int32;
+@pub @internal fn argv(idx: Int32): String;
+@pub @internal fn forceCollect();
+@pub @internal fn forceMinorCollect();
 
-@pub @internal fun call(fct: String);
+@pub @internal fn call(fct: String);
 
-@pub @internal fun timestamp(): Int64;
-@pub @internal fun spawn(path: String, arguments: String...);
+@pub @internal fn timestamp(): Int64;
+@pub @internal fn spawn(path: String, arguments: String...);
 
 @pub class Object
 
-fun isValidUtf8(data: Array[UInt8]): Bool {
+fn isValidUtf8(data: Array[UInt8]): Bool {
   var i = 0L;
 
   while i < data.size() {
@@ -85,6 +85,6 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
   return true;
 }
 
-@internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
+@internal fn unsafeKillRefs[T](arr: Array[T], idx: Int64);
 
-@pub @internal fun sleep(seconds: Int32);
+@pub @internal fn sleep(seconds: Int32);

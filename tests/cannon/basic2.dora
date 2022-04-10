@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(moveBool(true) == true);
     assert(moveBool(false) == false);
 
@@ -11,42 +11,42 @@ fun main() {
     assert(moveString("5") == "5");
 }
 
-fun moveBool(x: Bool): Bool {
+fn moveBool(x: Bool): Bool {
     let y = x;
     return y;
 }
 
-fun moveChar(x: Char): Char {
+fn moveChar(x: Char): Char {
     let y = x;
     return y;
 }
 
-fun moveByte(x: UInt8): UInt8 {
+fn moveByte(x: UInt8): UInt8 {
     let y = x;
     return y;
 }
 
-fun moveInt32(x: Int32): Int32 {
+fn moveInt32(x: Int32): Int32 {
     let y = x;
     return y;
 }
 
-fun moveInt64(x: Int64): Int64 {
+fn moveInt64(x: Int64): Int64 {
     let y = x;
     return y;
 }
 
-fun moveFloat32(x: Float32): Float32 {
+fn moveFloat32(x: Float32): Float32 {
     let y = x;
     return y;
 }
 
-fun moveFloat64(x: Float64): Float64 {
+fn moveFloat64(x: Float64): Float64 {
     let y = x;
     return y;
 }
 
-fun moveString(x: String): String {
+fn moveString(x: String): String {
     let y = x;
     return y;
 }

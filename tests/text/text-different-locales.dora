@@ -4,7 +4,7 @@
 import std::Locale;
 import std::Text;
 
-fun main() {
+fn main() {
   let en = Locale("en");
   let de = Locale("de");
   let hello = Text("hello ", en);

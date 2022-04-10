@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(0xFFI == 255I);
     assert(0x10I == 16I);
 

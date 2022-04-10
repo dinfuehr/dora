@@ -1,7 +1,7 @@
 @pub class AtomicInt32(let value: Int32) {
-    @pub @internal fun get(): Int32;
-    @pub @internal fun set(value: Int32);
-    @pub @internal fun exchange(value: Int32): Int32;
-    @pub @internal fun compareExchange(expected: Int32, value: Int32): Int32;
-    @pub @internal fun fetchAdd(value: Int32): Int32;
+    @pub @internal fn get(): Int32;
+    @pub @internal fn set(value: Int32);
+    @pub @internal fn exchange(value: Int32): Int32;
+    @pub @internal fn compareExchange(expected: Int32, value: Int32): Int32;
+    @pub @internal fn fetchAdd(value: Int32): Int32;
 }

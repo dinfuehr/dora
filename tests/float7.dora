@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let array = Array[Float32]::empty();
     assert(0L == array.size());
 

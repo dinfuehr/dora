@@ -3,25 +3,25 @@
 class MyThread extends std::Thread {
     var executed: Bool = false;
 
-    @override fun run() {
+    @override fn run() {
         f(self);
     }
 }
 
-fun f(thread: MyThread) {
+fn f(thread: MyThread) {
     g(thread);
 }
 
-fun g(thread: MyThread) {
+fn g(thread: MyThread) {
     thread.executed = true;
 }
 
-fun h(thread: MyThread) {
+fn h(thread: MyThread) {
     thread.join();
     println("done");
 }
 
-fun main() {
+fn main() {
     let thread = MyThread();
     thread.start();
 

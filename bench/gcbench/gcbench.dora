@@ -6,7 +6,7 @@ class Node(var left: Option[Node], var right: Option[Node]) {
     var i: Int32 = 0I;
     var j: Int32 = 0I;
 
-    @static fun leaf(): Node = Node(Option[Node]::None, Option[Node]::None);
+    @static fn leaf(): Node = Node(Option[Node]::None, Option[Node]::None);
 }
 
 var stretchTreeDepth: Int32 = 0I;
@@ -15,15 +15,15 @@ const kArraySize: Int32 = 500000I;
 const kMinTreeDepth: Int32 = 4I;
 const kMaxTreeDepth: Int32 = 16I;
 
-fun treeSize (i: Int32): Int32 {
+fn treeSize (i: Int32): Int32 {
     return (1I << (i + 1I)) - 1I;
 }
 
-fun numIters(i: Int32): Int32 {
+fn numIters(i: Int32): Int32 {
     return 4I * treeSize(stretchTreeDepth) / treeSize(i);
 }
 
-fun populate(depth: Int32, thisNode: Node) {
+fn populate(depth: Int32, thisNode: Node) {
     var depth = depth;
     if depth <= 0I {
         return;
@@ -36,7 +36,7 @@ fun populate(depth: Int32, thisNode: Node) {
     }
 }
 
-fun makeTree(iDepth: Int32): Node {
+fn makeTree(iDepth: Int32): Node {
     if iDepth <= 0I {
         return Node::leaf();
     } else {
@@ -44,7 +44,7 @@ fun makeTree(iDepth: Int32): Node {
     }
 }
 
-fun timeConstruction(depth: Int32) {
+fn timeConstruction(depth: Int32) {
     let iNumIters = numIters(depth);
     println("Creating " + iNumIters.toString() + " trees of depth " + depth.toString());
     let start = timestamp();
@@ -75,7 +75,7 @@ fun timeConstruction(depth: Int32) {
     println("\tBottom up construction took " + msecs.toString() + "ms");
 }
 
-fun main() {
+fn main() {
     if argc() != 1I {
         println("usage: gcbench <depth>");
         std::exit(1I);

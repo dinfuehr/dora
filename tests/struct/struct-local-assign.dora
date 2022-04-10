@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     var x = Pair("my string", true);
     var y = Pair("another string", false);
     var tmp = x;

@@ -1,10 +1,10 @@
 //= vm-args "--gc=swiper"
 
 class MyThread extends std::Thread {
-    @override fun run() {}
+    @override fn run() {}
 }
 
-fun main() {
+fn main() {
     var i = 0I;
 
     while i < 10_000I {

@@ -1,6 +1,6 @@
 //= error at 6:13
 
-fun main() {
+fn main() {
     let a = 255Y;
     let b = 0Y;
     let c = 256Y;

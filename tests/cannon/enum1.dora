@@ -1,4 +1,4 @@
-fun main() {    
+fn main() {    
     assert(!eq(Foo::A, Foo::B));
     assert(eq(Foo::B, Foo::B));
     assert(!eq(Foo::B, Foo::A));
@@ -8,11 +8,11 @@ fun main() {
     assert(ne(Foo::B, Foo::A));
 }
 
-fun eq(x: Foo, y: Foo): Bool {
+fn eq(x: Foo, y: Foo): Bool {
     return x == y;
 }
 
-fun ne(x: Foo, y: Foo): Bool {
+fn ne(x: Foo, y: Foo): Bool {
     return x != y;
 }
 

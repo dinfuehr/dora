@@ -4,7 +4,7 @@ const THREADS: Int32 = 20I;
 const ITERATIONS: Int32 = 10_000I;
 
 class MyThread(let mtx: std::Mutex, let value: SharedInt) extends std::Thread {
-    @override fun run() {
+    @override fn run() {
         var i = 0I;
         var last: Object = Object();
 
@@ -27,14 +27,14 @@ class MyThread(let mtx: std::Mutex, let value: SharedInt) extends std::Thread {
 }
 
 class SharedInt(var value: Int32) {
-    fun increment(): Int32 {
+    fn increment(): Int32 {
         let old = self.value;
         self.value = self.value + 1I;
         old
     }
 }
 
-fun main() {
+fn main() {
     var i = 0I;
     var threads = Vec[MyThread]();
     var mtx = std::Mutex();

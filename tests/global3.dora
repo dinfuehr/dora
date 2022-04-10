@@ -1,6 +1,6 @@
 var a: A = A(42I);
 
-fun main() {
+fn main() {
     std::forceCollect();
     assert(a.val == 42I);
     std::forceCollect();
@@ -10,7 +10,7 @@ fun main() {
     assert(a.val == 10I);
 }
 
-fun create(): A {
+fn create(): A {
     return A(10I);
 }
 

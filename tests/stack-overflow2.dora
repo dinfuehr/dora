@@ -1,20 +1,20 @@
 //= error stack-overflow
 
-fun main() {
+fn main() {
     let thread = MyThread();
     thread.start();
 }
 
 class MyThread extends std::Thread {
-    @override fun run() {
+    @override fn run() {
         g();
     }
 }
 
-fun g() {
+fn g() {
     f();
 }
 
-fun f() {
+fn f() {
     f();
 }

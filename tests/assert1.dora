@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let a = true;
   assert(a);
 

@@ -1,15 +1,15 @@
-fun main() {
+fn main() {
   let b = B();
 
   assert(asa(b) === b);
   assert(asb(b) === b);
 }
 
-fun asb(a: A): B {
+fn asb(a: A): B {
   return a as B;
 }
 
-fun asa(b: B): A {
+fn asa(b: B): A {
   return b as A;
 }
 

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let vec = Vec[Int32]();
     vec.push(1I);
     vec.push(2I);

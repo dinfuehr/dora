@@ -1,4 +1,4 @@
-fun createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
+fn createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
     let blockMap = BlockMap(bc);
 
     // The first pass creates blocks
@@ -13,15 +13,15 @@ fun createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): Block
 class BlockMap(let bc: BytecodeFunction) {
     let blocks: HashMap[Int32, Block] = HashMap();
 
-    fun insert(offset: Int32, block: Block) {
+    fn insert(offset: Int32, block: Block) {
         self.blocks.insert(offset, block);
     }
 
-    fun blockAt(offset: Int32): Option[Block] {
+    fn blockAt(offset: Int32): Option[Block] {
         self.blocks(offset)
     }
 
-    fun nextBlockAt(offset: Int32): Option[Block] {
+    fn nextBlockAt(offset: Int32): Option[Block] {
         var offset = offset.toInt64();
         while offset < self.bc.code.size() {
             let result = self.blockAt(offset.toInt32());
@@ -38,16 +38,16 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
     var currentBlock: Option[Block] = None;
     var blockTerminated: Bool = false;
 
-    fun run() {
+    fn run() {
         // iterate all bytecodes
         readBytecode(self.bc.code, self);
     }
 
-    fun markBlockTerminated() {
+    fn markBlockTerminated() {
         self.blockTerminated = true;
     }
 
-    @override fun visitInstruction(offset: Int32) {
+    @override fn visitInstruction(offset: Int32) {
         self.offset = offset;
 
         let result = self.blockMap.blocks(offset);
@@ -67,47 +67,47 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
         self.blockTerminated = false;
     }
 
-    @override fun visitJumpLoop(offset: Int32) {
+    @override fn visitJumpLoop(offset: Int32) {
         let targetBlock = self.blockMap.blockAt(self.offset - offset).getOrPanic();
         self.currentBlock.getOrPanic().addSuccessor(targetBlock);
         self.markBlockTerminated();
     }
 
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
+    @override fn visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
         let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
         self.currentBlock.getOrPanic().addSuccessor(targetBlock);
     }
-    @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
+    @override fn visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
         self.currentBlock.getOrPanic().addSuccessor(targetBlock);
     }
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
+    @override fn visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
         let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
         self.currentBlock.getOrPanic().addSuccessor(targetBlock);
     }
-    @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
+    @override fn visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
         self.currentBlock.getOrPanic().addSuccessor(targetBlock);
     }
-    @override fun visitJump(offset: Int32) {
+    @override fn visitJump(offset: Int32) {
         let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
         self.currentBlock.getOrPanic().addSuccessor(targetBlock);
         self.markBlockTerminated();
     }
-    @override fun visitJumpConst(idx: ConstPoolId) {
+    @override fn visitJumpConst(idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
         self.currentBlock.getOrPanic().addSuccessor(targetBlock);
-        self.markBlockTerminated();
-    }
-
-    @override fun visitRetVoid() {
         self.markBlockTerminated();
     }
 
-    @override fun visitRet(opnd: BytecodeRegister) {
+    @override fn visitRetVoid() {
+        self.markBlockTerminated();
+    }
+
+    @override fn visitRet(opnd: BytecodeRegister) {
         self.markBlockTerminated();
     }
 }
@@ -117,7 +117,7 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
     var nextInstructionIsBlockStart: Bool = false;
     let blockStarts: BitSet = BitSet(bc.code.size());
 
-    fun run() {
+    fn run() {
         // create block for first instruction
         let entryBlock = self.ensureBlockAt(0I);
         self.graph.setEntryBlock(entryBlock);
@@ -126,7 +126,7 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         readBytecode(self.bc.code, self);
     }
 
-    fun ensureBlockAt(offset: Int32): Block {
+    fn ensureBlockAt(offset: Int32): Block {
         let result = self.blockMap.blockAt(offset);
         if result.isSome() { return result.getOrPanic(); }
 
@@ -136,15 +136,15 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         block
     }
 
-    fun markBlockStart(offset: Int32) {
+    fn markBlockStart(offset: Int32) {
         self.blockStarts.insert(offset.toInt64());
     }
 
-    fun markNextInstructionAsBlockStart() {
+    fn markNextInstructionAsBlockStart() {
         self.nextInstructionIsBlockStart = true;
     }
 
-    @override fun visitInstruction(offset: Int32) {
+    @override fn visitInstruction(offset: Int32) {
         self.offset = offset;
 
         if self.nextInstructionIsBlockStart || self.blockStarts.contains(offset.toInt64()) {
@@ -153,48 +153,48 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         }
     }
 
-    @override fun visitLoopStart() {
+    @override fn visitLoopStart() {
         self.ensureBlockAt(self.offset);
     }
 
-    @override fun visitJumpLoop(offset: Int32) {
+    @override fn visitJumpLoop(offset: Int32) {
         let target = self.offset - offset;
         assert(self.blockMap.blockAt(target).isSome());
     }
 
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
+    @override fn visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
+    @override fn visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
+    @override fn visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
+    @override fn visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitJump(offset: Int32) {
+    @override fn visitJump(offset: Int32) {
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitJumpConst(idx: ConstPoolId) {
+    @override fn visitJumpConst(idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt32().getOrPanic();
         self.markBlockStart(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
 
-    @override fun visitRetVoid() {
+    @override fn visitRetVoid() {
         self.markNextInstructionAsBlockStart();
     }
 
-    @override fun visitRet(opnd: BytecodeRegister) {
+    @override fn visitRet(opnd: BytecodeRegister) {
         self.markNextInstructionAsBlockStart();
     }
 }

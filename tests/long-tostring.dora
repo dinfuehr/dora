@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = Int64::minValue().toStringBinary();
   assert(x == "1000000000000000000000000000000000000000000000000000000000000000");
 

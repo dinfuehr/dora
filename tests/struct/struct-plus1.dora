@@ -1,14 +1,14 @@
 struct Foo(value: Int32)
 
 impl Foo {
-    fun plus(other: Foo): Foo {
+    fn plus(other: Foo): Foo {
         Foo(self.value + other.value)
     }
 }
 
-fun f(a: Foo, b: Foo): Foo = a + b;
+fn f(a: Foo, b: Foo): Foo = a + b;
 
-fun main() {
+fn main() {
     assert(f(Foo(11I), Foo(17I)).value == 28I);
     assert(f(Foo(-12I), Foo(12I)).value == 0I);
     assert(f(Foo(3I), Foo(7I)).value == 10I);

@@ -1,18 +1,18 @@
 //= stdout "xyz\n"
 
 trait Foo {
-    fun bla();
+    fn bla();
 }
 
 class A
 
 impl Foo for A {
-    fun bla() {
+    fn bla() {
         println("xyz");
     }
 }
 
-fun main() {
+fn main() {
     let a = A();
     a.bla();
 }

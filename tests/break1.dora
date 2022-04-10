@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   var i = 0I;
   var sum = 0I;
 

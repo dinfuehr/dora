@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let set = std::HashSet[Int32](1I, 10_000I, 7I);
     assert(set.size() == 3L);
     assert(set.contains(1I));

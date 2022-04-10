@@ -1,8 +1,8 @@
 class A[X: std::Stringable](let x: X) {
-    fun msg[Y: std::Stringable](y: Y): String { return "x${self.x}x${y}x"; }
+    fn msg[Y: std::Stringable](y: Y): String { return "x${self.x}x${y}x"; }
 }
 
-fun main() {
+fn main() {
     assert("x1xblax" == A[Int32](1I).msg[String]("bla"));
     assert("xblax1x" == A[String]("bla").msg[Int32](1I));
 }

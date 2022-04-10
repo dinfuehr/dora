@@ -1,12 +1,12 @@
 //= error cast
 //= stderr "cast failed\n2: asl7(L1): L7: 10\n1: main(): 6\n"
 
-fun main() {
+fn main() {
   let l1 = L1();
   assert(asl7(l1) === l1);
 }
 
-fun asl7(a: L1): L7 {
+fn asl7(a: L1): L7 {
   return a as L7;
 }
 

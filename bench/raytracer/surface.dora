@@ -15,7 +15,7 @@ class Surface {
         self.ior = 1.0;
     }
 
-    fun toString() {
+    fn toString() {
         return "Surface { color=" + color.toString() + " }";
     }
 }

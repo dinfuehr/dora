@@ -1,6 +1,6 @@
 //= error at 5:8
 
-fun main() {
+fn main() {
     let foo = Vec[Int32]();
     foo.array.size();
 }

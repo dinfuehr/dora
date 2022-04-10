@@ -1,4 +1,4 @@
-fun main() {    
+fn main() {    
     assert(!eq('2', '5'));
     assert(eq('5', '5'));
     assert(!eq('5', '2'));
@@ -25,26 +25,26 @@ fun main() {
     assert(!gt('5', '7'));
 }
 
-fun eq(x: Char, y: Char): Bool {
+fn eq(x: Char, y: Char): Bool {
     return x == y;
 }
 
-fun ne(x: Char, y: Char): Bool {
+fn ne(x: Char, y: Char): Bool {
     return x != y;
 }
 
-fun lt(x: Char, y: Char): Bool {
+fn lt(x: Char, y: Char): Bool {
     return x < y;
 }
 
-fun le(x: Char, y: Char): Bool {
+fn le(x: Char, y: Char): Bool {
     return x <= y;
 }
 
-fun ge(x: Char, y: Char): Bool {
+fn ge(x: Char, y: Char): Bool {
     return x >= y;
 }
 
-fun gt(x: Char, y: Char): Bool {
+fn gt(x: Char, y: Char): Bool {
     return x > y;
 }

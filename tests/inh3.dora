@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let a = A(Data(10I), Data(20I));
   std::forceCollect();
 

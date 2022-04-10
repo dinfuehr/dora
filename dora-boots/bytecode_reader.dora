@@ -1,382 +1,382 @@
-fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
+fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     BytecodeReader(code, visitor).read();
 }
 
 @open @abstract class BytecodeVisitor {
-    @open fun visitInstruction(offset: Int32) {}
+    @open fn visitInstruction(offset: Int32) {}
 
-    @open fun visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitCastInt64ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitCastInt64ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
-    @open fun visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
+    @open fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
+    @open fn visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
 
-    @open fun visitMov(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fn visitMov(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
 
-    @open fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fn visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fn visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
 
-    @open fun visitPushRegister(src: BytecodeRegister) { unimplemented(); }
+    @open fn visitPushRegister(src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstZeroInt32(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstZeroInt64(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstZeroFloat32(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstZeroFloat64(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
-    @open fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
+    @open fn visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
+    @open fn visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }
+    @open fn visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
+    @open fn visitConstZeroInt32(dest: BytecodeRegister) { unimplemented(); }
+    @open fn visitConstZeroInt64(dest: BytecodeRegister) { unimplemented(); }
+    @open fn visitConstZeroFloat32(dest: BytecodeRegister) { unimplemented(); }
+    @open fn visitConstZeroFloat64(dest: BytecodeRegister) { unimplemented(); }
+    @open fn visitConstUInt8(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
+    @open fn visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @open fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitAssert(value: BytecodeRegister) { unimplemented(); }
+    @open fn visitAssert(value: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitLoopStart() { unimplemented(); }
-    @open fun visitJumpLoop(offset: Int32) { unimplemented(); }
+    @open fn visitLoopStart() { unimplemented(); }
+    @open fn visitJumpLoop(offset: Int32) { unimplemented(); }
 
-    @open fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) { unimplemented(); }
-    @open fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) { unimplemented(); }
-    @open fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitJump(offset: Int32) { unimplemented(); }
-    @open fun visitJumpConst(idx: ConstPoolId) { unimplemented(); }
+    @open fn visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) { unimplemented(); }
+    @open fn visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) { unimplemented(); }
+    @open fn visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitJump(offset: Int32) { unimplemented(); }
+    @open fn visitJumpConst(idx: ConstPoolId) { unimplemented(); }
 
-    @open fun visitInvokeDirectVoid(fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fn visitInvokeDirectVoid(fct: FctId) { unimplemented(); }
+    @open fn visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
-    @open fun visitInvokeVirtualVoid(fct: FctId) { unimplemented(); }
-    @open fun visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fn visitInvokeVirtualVoid(fct: FctId) { unimplemented(); }
+    @open fn visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
-    @open fun visitInvokeStaticVoid(fct: FctId) { unimplemented(); }
-    @open fun visitInvokeStatic(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fn visitInvokeStaticVoid(fct: FctId) { unimplemented(); }
+    @open fn visitInvokeStatic(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
-    @open fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
-    @open fun visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) { unimplemented(); }
+    @open fn visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
+    @open fn visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) { unimplemented(); }
     
-    @open fun visitNilCheck(obj: BytecodeRegister) { unimplemented(); }
+    @open fn visitNilCheck(obj: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) { unimplemented(); }
-    @open fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
+    @open fn visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) { unimplemented(); }
+    @open fn visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
-    @open fun visitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
+    @open fn visitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
+    @open fn visitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitRetVoid() { unimplemented(); }
-    @open fun visitRet(opnd: BytecodeRegister) { unimplemented(); }
+    @open fn visitRetVoid() { unimplemented(); }
+    @open fn visitRet(opnd: BytecodeRegister) { unimplemented(); }
 }
 
 @open @abstract class EmptyBytecodeVisitor extends BytecodeVisitor {
-    @override fun visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitCastInt64ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitCastInt64ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {}
-    @override fun visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {}
+    @override fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {}
+    @override fn visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {}
 
-    @override fun visitMov(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fn visitMov(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
 
-    @override fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {}
+    @override fn visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fn visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {}
 
-    @override fun visitPushRegister(src: BytecodeRegister) {}
+    @override fn visitPushRegister(src: BytecodeRegister) {}
 
-    @override fun visitConstTrue(dest: BytecodeRegister) {}
-    @override fun visitConstFalse(dest: BytecodeRegister) {}
-    @override fun visitConstZeroUInt8(dest: BytecodeRegister) {}
-    @override fun visitConstZeroChar(dest: BytecodeRegister) {}
-    @override fun visitConstZeroInt32(dest: BytecodeRegister) {}
-    @override fun visitConstZeroInt64(dest: BytecodeRegister) {}
-    @override fun visitConstZeroFloat32(dest: BytecodeRegister) {}
-    @override fun visitConstZeroFloat64(dest: BytecodeRegister) {}
-    @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) {}
-    @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitConstTrue(dest: BytecodeRegister) {}
+    @override fn visitConstFalse(dest: BytecodeRegister) {}
+    @override fn visitConstZeroUInt8(dest: BytecodeRegister) {}
+    @override fn visitConstZeroChar(dest: BytecodeRegister) {}
+    @override fn visitConstZeroInt32(dest: BytecodeRegister) {}
+    @override fn visitConstZeroInt64(dest: BytecodeRegister) {}
+    @override fn visitConstZeroFloat32(dest: BytecodeRegister) {}
+    @override fn visitConstZeroFloat64(dest: BytecodeRegister) {}
+    @override fn visitConstUInt8(dest: BytecodeRegister, value: UInt8) {}
+    @override fn visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitConstString(dest: BytecodeRegister, idx: ConstPoolId) {}
 
-    @override fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitAssert(value: BytecodeRegister) {}
+    @override fn visitAssert(value: BytecodeRegister) {}
 
-    @override fun visitLoopStart() {}
-    @override fun visitJumpLoop(offset: Int32) {}
+    @override fn visitLoopStart() {}
+    @override fn visitJumpLoop(offset: Int32) {}
 
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {}
-    @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {}
-    @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitJump(offset: Int32) {}
-    @override fun visitJumpConst(idx: ConstPoolId) {}
+    @override fn visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {}
+    @override fn visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {}
+    @override fn visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitJump(offset: Int32) {}
+    @override fn visitJumpConst(idx: ConstPoolId) {}
 
-    @override fun visitInvokeDirectVoid(fct: FctId) {}
-    @override fun visitInvokeDirect(dest: BytecodeRegister, fct: FctId) {}
+    @override fn visitInvokeDirectVoid(fct: FctId) {}
+    @override fn visitInvokeDirect(dest: BytecodeRegister, fct: FctId) {}
 
-    @override fun visitInvokeVirtualVoid(fct: FctId) {}
-    @override fun visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) {}
+    @override fn visitInvokeVirtualVoid(fct: FctId) {}
+    @override fn visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) {}
 
-    @override fun visitInvokeStaticVoid(fct: FctId) {}
-    @override fun visitInvokeStatic(dest: BytecodeRegister, fct: FctId) {}
+    @override fn visitInvokeStaticVoid(fct: FctId) {}
+    @override fn visitInvokeStatic(dest: BytecodeRegister, fct: FctId) {}
 
-    @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
-    @override fun visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) {}
+    @override fn visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
+    @override fn visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) {}
 
-    @override fun visitNilCheck(obj: BytecodeRegister) {}
+    @override fn visitNilCheck(obj: BytecodeRegister) {}
 
-    @override fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) {}
-    @override fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) {}
+    @override fn visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) {}
+    @override fn visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) {}
 
-    @override fun visitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
-    @override fun visitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
+    @override fn visitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
+    @override fn visitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
 
-    @override fun visitRetVoid() {}
-    @override fun visitRet(opnd: BytecodeRegister) {}
+    @override fn visitRetVoid() {}
+    @override fn visitRet(opnd: BytecodeRegister) {}
 }
 
 class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
     var pos: Int32 = 0;
     var length: Int32 = data.size().toInt32();
 
-    fun read() {
+    fn read() {
         while self.pos < self.length {
             self.visitor.visitInstruction(self.pos);
             let wide = self.hasWideOperands();
@@ -385,7 +385,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readInstruction(wide: Bool, opcode: Int32) {
+    fn readInstruction(wide: Bool, opcode: Int32) {
         if opcode == BC_WIDE {
             fatalError("unexpected WIDE");
 
@@ -1151,11 +1151,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readRegister(wide: Bool): BytecodeRegister {
+    fn readRegister(wide: Bool): BytecodeRegister {
         BytecodeRegister(self.readIndex(wide))
     }
 
-    fun hasWideOperands(): Bool {
+    fn hasWideOperands(): Bool {
         let data = self.data;
         let value = data(self.pos.toInt64());
 
@@ -1167,7 +1167,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readOpcode(): Int32 {
+    fn readOpcode(): Int32 {
         let first = self.readByte();
 
         if first == 255I {
@@ -1178,31 +1178,31 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readClassDefId(wide: Bool): ClassDefId {
+    fn readClassDefId(wide: Bool): ClassDefId {
         ClassDefId(self.readIndex(wide))
     }
 
-    fun readGlobalId(wide: Bool): GlobalId {
+    fn readGlobalId(wide: Bool): GlobalId {
         GlobalId(self.readIndex(wide))
     }
 
-    fun readFieldId(wide: Bool): FieldId {
+    fn readFieldId(wide: Bool): FieldId {
         FieldId(self.readIndex(wide))
     }
 
-    fun readFctId(wide: Bool): FctId {
+    fn readFctId(wide: Bool): FctId {
         FctId(self.readIndex(wide))
     }
 
-    fun readConstPoolId(wide: Bool): ConstPoolId {
+    fn readConstPoolId(wide: Bool): ConstPoolId {
         ConstPoolId(self.readIndex(wide))
     }
 
-    fun readOffset(wide: Bool): Int32 {
+    fn readOffset(wide: Bool): Int32 {
         self.readIndex(wide)
     }
 
-    fun readIndex(wide: Bool): Int32 {
+    fn readIndex(wide: Bool): Int32 {
         if wide {
             self.readInt32()
         } else {
@@ -1210,7 +1210,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readByte(): Int32 {
+    fn readByte(): Int32 {
         let data = self.data;
         let value = data(self.pos.toInt64());
         self.pos = self.pos + 1I;
@@ -1218,7 +1218,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         value.toInt32()
     }
 
-    fun readInt32(): Int32 {
+    fn readInt32(): Int32 {
         let by1 = self.readByte();
         let by2 = self.readByte();
         let by3 = self.readByte();

@@ -1,8 +1,8 @@
-fun deadCodeElimination(graph: Graph) {
+fn deadCodeElimination(graph: Graph) {
     removeDeadInstructions(graph)
 }
 
-fun removeDeadInstructions(graph: Graph) {
+fn removeDeadInstructions(graph: Graph) {
     for block in graph.postOrderIterator() {
         for inst in block.reverseInstructionsIterator() {
             if inst.isDeadAndRemovable() {
@@ -12,7 +12,7 @@ fun removeDeadInstructions(graph: Graph) {
     }
 }
 
-fun performDce(graph: Graph) {
+fn performDce(graph: Graph) {
     verifyGraph(graph);
     buildDominatorTree(graph);
     verifyGraph(graph);
@@ -21,7 +21,7 @@ fun performDce(graph: Graph) {
 }
 
 
-@test fun testRemoveUnusedConstant(_x: Testing) {
+@test fn testRemoveUnusedConstant(_x: Testing) {
     let builder = GraphBuilder();
     let block = builder.addBlock();
     let value = builder.createInt32Const(12I);
@@ -34,7 +34,7 @@ fun performDce(graph: Graph) {
 ");
 }
 
-@test fun testRemoveUnusedAdd(_x: Testing) {
+@test fn testRemoveUnusedAdd(_x: Testing) {
     let builder = GraphBuilder();
     let block = builder.addBlock();
     let lhs = builder.createInt32Const(12I);

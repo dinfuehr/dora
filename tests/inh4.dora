@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let b = B();
   assert(b.printBase() == 2I);
   assert(b.printSpecial() == 1I);
@@ -9,12 +9,12 @@ fun main() {
 }
 
 @open @abstract class A {
-  @abstract fun printSpecial(): Int32;
-  fun printBase(): Int32 = 2I;
+  @abstract fn printSpecial(): Int32;
+  fn printBase(): Int32 = 2I;
 }
 
 @open class B extends A {
-  @override fun printSpecial(): Int32 = 1I;
+  @override fn printSpecial(): Int32 = 1I;
 }
 
 class C extends B {}

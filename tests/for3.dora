@@ -1,6 +1,6 @@
 //= stdout "0124"
 
-fun main() {
+fn main() {
     for i in std::range(0I, 5I) {
         if i == 3I { continue; }
         print(i.toString());

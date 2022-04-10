@@ -1,11 +1,11 @@
-fun main() {
+fn main() {
     let x = Bar(42I).tpl1();
     std::forceCollect();
     assert(x.1.value == 17I);
 }
 
 @open class Bar(let value: Int32) {
-    @open fun tpl1(): (Int32, Foo) {
+    @open fn tpl1(): (Int32, Foo) {
         assert(self.value == 42I);
         (1I, Foo(17I))
     }

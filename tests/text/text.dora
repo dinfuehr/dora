@@ -1,7 +1,7 @@
 import std::Locale;
 import std::Text;
 
-fun main() {
+fn main() {
   let hallo = Text("hallo ", Locale::de());
   let welt = Text("welt!", Locale::de());
   let result = hallo + welt;

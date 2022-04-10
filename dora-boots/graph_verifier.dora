@@ -1,17 +1,17 @@
-fun verifyGraph(graph: Graph) {
+fn verifyGraph(graph: Graph) {
     GraphVerifier(graph).run()
 }
 
 class GraphVerifier(let graph: Graph) {
     var currentBlock: Block = graph.getEntryBlock();
 
-    fun run() {
+    fn run() {
         for block in self.graph.insertionOrderIterator() {
             self.verifyBlock(block);
         }
     }
 
-    fun verifyBlock(block: Block) {
+    fn verifyBlock(block: Block) {
         self.currentBlock = block;
 
         // block needs to belong to current graph
@@ -32,7 +32,7 @@ class GraphVerifier(let graph: Graph) {
         assert(block.lastInst().isTerminator());
     }
 
-    fun verifyInst(inst: Inst) {
+    fn verifyInst(inst: Inst) {
         assert(inst.block.getOrPanic() === self.currentBlock);
 
         for use in inst.uses() {

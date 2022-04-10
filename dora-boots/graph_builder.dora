@@ -3,7 +3,7 @@ class GraphBuilder {
     var insertion: Option[Block] = None;
     var entryBlock: Option[Block] = None;
 
-    fun addBlock(): Block {
+    fn addBlock(): Block {
         let block = Block();
 
         if self.entryBlock.isNone() {
@@ -16,32 +16,32 @@ class GraphBuilder {
         block
     }
 
-    fun createInt32Const(value: Int32): Inst {
+    fn createInt32Const(value: Int32): Inst {
         let inst = Int32Const(value);
         self.appendInst(inst)
     }
 
-    fun createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
+    fn createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
         let inst = BinaryInst(BinOp::Add, ty, lhs, rhs);
         self.appendInst(inst)
     }
 
-    fun createReturn(inst: Inst, ty: Type): Inst {
+    fn createReturn(inst: Inst, ty: Type): Inst {
         let inst = ReturnInst(inst, ty);
         self.appendInst(inst)
     }
 
-    fun createReturnVoid(): Inst {
+    fn createReturnVoid(): Inst {
         let inst = ReturnVoidInst();
         self.appendInst(inst)
     }
 
-    fun createGoto(block: Block): Inst {
+    fn createGoto(block: Block): Inst {
         let inst = GotoInst(block);
         self.appendInst(inst)
     }
 
-    fun appendInst(inst: Inst): Inst {
+    fn appendInst(inst: Inst): Inst {
         self.insertion.getOrPanic().appendInst(inst);
 
         if inst.isTerminator() {
@@ -51,14 +51,14 @@ class GraphBuilder {
         inst
     }
 
-    fun build(): Graph {
+    fn build(): Graph {
         assert(self.entryBlock.isSome());
 
         self.graph
     }
 }
 
-@test fun testEmptyGraph(_x: Testing) {
+@test fn testEmptyGraph(_x: Testing) {
     let builder = GraphBuilder();
     let block = builder.addBlock();
     let value = builder.createInt32Const(12I);

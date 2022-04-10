@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = Foo(1I);
   std::forceCollect();
   assert(x.a == 1I);

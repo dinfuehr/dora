@@ -1,5 +1,5 @@
 @pub @internal class String {
-  @pub fun equals(rhs: String): Bool {
+  @pub fn equals(rhs: String): Bool {
     var i = 0L;
 
     if self.size() != rhs.size() {
@@ -19,25 +19,25 @@
     return true;
   }
 
-  @pub fun toString(): String = self;
+  @pub fn toString(): String = self;
 
-  @pub @internal fun compareTo(rhs: String): Int32;
+  @pub @internal fn compareTo(rhs: String): Int32;
 
-  @pub @internal fun size(): Int64;
+  @pub @internal fn size(): Int64;
 
-  @internal fun toInt32Success(): Bool;
-  @internal fun toInt64Success(): Bool;
+  @internal fn toInt32Success(): Bool;
+  @internal fn toInt64Success(): Bool;
 
-  @internal fun toInt32OrZero(): Int32;
-  @internal fun toInt64OrZero(): Int64;
+  @internal fn toInt32OrZero(): Int32;
+  @internal fn toInt64OrZero(): Int64;
 
-  @internal fun toFloat32Success(): Bool;
-  @internal fun toFloat64Success(): Bool;
+  @internal fn toFloat32Success(): Bool;
+  @internal fn toFloat64Success(): Bool;
 
-  @internal fun toFloat32OrZero(): Float32;
-  @internal fun toFloat64OrZero(): Float64;
+  @internal fn toFloat32OrZero(): Float32;
+  @internal fn toFloat64OrZero(): Float64;
 
-  @pub fun toInt32(): Option[Int32] {
+  @pub fn toInt32(): Option[Int32] {
     if self.toInt32Success() {
       Option[Int32]::Some(self.toInt32OrZero())
     } else {
@@ -45,7 +45,7 @@
     }
   }
 
-  @pub fun toInt64(): Option[Int64] {
+  @pub fn toInt64(): Option[Int64] {
     if self.toInt64Success() {
       Option[Int64]::Some(self.toInt64OrZero())
     } else {
@@ -53,7 +53,7 @@
     }
   }
 
-  @pub fun toFloat32(): Option[Float32] {
+  @pub fn toFloat32(): Option[Float32] {
     if self.toFloat32Success() {
       Option[Float32]::Some(self.toFloat32OrZero())
     } else {
@@ -61,7 +61,7 @@
     }
   }
 
-  @pub fun toFloat64(): Option[Float64] {
+  @pub fn toFloat64(): Option[Float64] {
     if self.toFloat64Success() {
       Option[Float64]::Some(self.toFloat64OrZero())
     } else {
@@ -69,17 +69,17 @@
     }
   }
 
-  @pub @internal fun plus(rhs: String): String;
+  @pub @internal fn plus(rhs: String): String;
 
-  @pub @internal fun getByte(idx: Int64): UInt8;
+  @pub @internal fn getByte(idx: Int64): UInt8;
 
-  @pub @internal fun clone(): String;
+  @pub @internal fn clone(): String;
 
-  @pub fun isEmpty(): Bool = self.size() == 0L;
+  @pub fn isEmpty(): Bool = self.size() == 0L;
 
-  @pub fun contains(val: String): Bool = self.indexOfFirst(val).isSome();
+  @pub fn contains(val: String): Bool = self.indexOfFirst(val).isSome();
 
-  @pub fun indexOfFirst(val: String): Option[Int64] {
+  @pub fn indexOfFirst(val: String): Option[Int64] {
     let m = val.size();
     if m == 0L {
       return Some(0L);
@@ -116,7 +116,7 @@
     return Option[Int64]::None;
   }
 
-  @static fun compare(a: String, aPos: Int64, b: String, bPos: Int64, len: Int64): Bool {
+  @static fn compare(a: String, aPos: Int64, b: String, bPos: Int64, len: Int64): Bool {
     var i = 0L;
 
     while i < len {
@@ -129,7 +129,7 @@
     return true;
   }
 
-  @pub fun startsWith(val: String): Bool {
+  @pub fn startsWith(val: String): Bool {
     let valLen = val.size();
     if valLen > self.size() {
       return false;
@@ -144,7 +144,7 @@
     return true;
   }
 
-  @pub fun endsWith(val: String): Bool {
+  @pub fn endsWith(val: String): Bool {
     let slfLen = self.size();
     let valLen = val.size();
     if valLen > slfLen {
@@ -161,17 +161,17 @@
     return true;
   }
 
-  @pub fun codePoints(): CodepointIterator = CodepointIterator(self, 0L);
+  @pub fn codePoints(): CodepointIterator = CodepointIterator(self, 0L);
 
-  @pub @static @internal fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] ;
+  @pub @static @internal fn fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] ;
 
-  @pub @static fun fromBytes(val: Array[UInt8]): Option[String] {
+  @pub @static fn fromBytes(val: Array[UInt8]): Option[String] {
     String::fromBytesPart(val, 0L, val.size())
   }
 
-  @pub @static @internal fun fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
+  @pub @static @internal fn fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
 
-  @pub @static fun binary(data: Int64): String {
+  @pub @static fn binary(data: Int64): String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8]::zero(64L);
@@ -184,7 +184,7 @@
     return String::fromBytesPart(array, at, array.size() - at + 1L).getOrPanic();
   }
 
-  @pub @static fun hex(data: Int64): String {
+  @pub @static fn hex(data: Int64): String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8]::zero(16L);

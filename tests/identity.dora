@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let b1 = 1.toUInt8();
     let b2 = 2.toUInt8();
     assert(b1 === b1);
@@ -48,6 +48,6 @@ fun main() {
 
 class Foo(i: Int32) {}
 
-fun bar[T](a: T, b: T): Bool {
+fn bar[T](a: T, b: T): Bool {
     return a === b;
 }

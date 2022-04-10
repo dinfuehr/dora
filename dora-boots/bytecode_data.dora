@@ -1,13 +1,13 @@
 class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int32) {
-    fun constPool(idx: ConstPoolId): ConstPoolEntry {
+    fn constPool(idx: ConstPoolId): ConstPoolEntry {
         self.const_pool(idx.value.toInt64())
     }
 
-    fun codeAt(idx: Int32): Int32 {
+    fn codeAt(idx: Int32): Int32 {
         self.code(idx.toInt64()).toInt32()
     }
 
-    fun codeInt32At(idx: Int32): Int32 {
+    fn codeInt32At(idx: Int32): Int32 {
         let byte1 = self.codeAt(idx);
         let byte2 = self.codeAt(idx+1I);
         let byte3 = self.codeAt(idx+2I);
@@ -27,28 +27,28 @@ enum ConstPoolEntry {
 }
 
 impl ConstPoolEntry {
-    fun toInt32(): Option[Int32] {
+    fn toInt32(): Option[Int32] {
         match self {
             ConstPoolEntry::Int32(value) => Some(value),
             _ => None,
         }
     }
 
-    fun toInt64(): Option[Int64] {
+    fn toInt64(): Option[Int64] {
         match self {
             ConstPoolEntry::Int64(value) => Some(value),
             _ => None,
         }
     }
 
-    fun toFloat32(): Option[Float32] {
+    fn toFloat32(): Option[Float32] {
         match self {
             ConstPoolEntry::Float32(value) => Some(value),
             _ => None,
         }
     }
 
-    fun toFloat64(): Option[Float64] {
+    fn toFloat64(): Option[Float64] {
         match self {
             ConstPoolEntry::Float64(value) => Some(value),
             _ => None,
@@ -57,7 +57,7 @@ impl ConstPoolEntry {
 }
 
 impl Stringable for ConstPoolEntry {
-    fun toString(): String {
+    fn toString(): String {
         match self {
             ConstPoolEntry::Int32(value) => "Int32 ${value}",
             ConstPoolEntry::Int64(value) => "Int64 ${value}",
@@ -88,19 +88,19 @@ enum SourceType {
 struct BytecodeRegister(value: Int32)
 
 impl Equals for BytecodeRegister {
-    fun equals(other: BytecodeRegister): Bool {
+    fn equals(other: BytecodeRegister): Bool {
         self.value == other.value
     }
 }
 
 impl Hash for BytecodeRegister {
-    fun hash(): Int32 {
+    fn hash(): Int32 {
         self.value
     }
 }
 
 impl Stringable for BytecodeRegister {
-    fun toString(): String = "r${self.value}";
+    fn toString(): String = "r${self.value}";
 }
 
 struct ClassDefId(value: Int32)
@@ -109,7 +109,7 @@ struct GlobalId(value: Int32)
 struct ConstPoolId(value: Int32)
 
 impl ConstPoolId {
-    fun equals(rhs: ConstPoolId): Bool {
+    fn equals(rhs: ConstPoolId): Bool {
         self.value == rhs.value
     }
 }
@@ -131,7 +131,7 @@ enum BytecodeType {
 }
 
 impl Stringable for BytecodeType {
-    fun toString(): String {
+    fn toString(): String {
         match self {
             BytecodeType::Ptr => "Ptr",
             BytecodeType::UInt8 => "UInt8",

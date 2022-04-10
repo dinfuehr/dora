@@ -1,26 +1,26 @@
-fun main() {
+fn main() {
     assert(tpl1() == 1.0F);
     assert(tpl2() == 2.0F);
     assert(tpl3() == 3.0F);
     assert(tplsum() == 6.0F);
 }
 
-fun tpl1(): Float32 {
+fn tpl1(): Float32 {
     let x = (1.0F, 2.0F, 3.0F);
     x.0
 }
 
-fun tpl2(): Float32 {
+fn tpl2(): Float32 {
     let x = (1.0F, 2.0F, 3.0F);
     x.1
 }
 
-fun tpl3(): Float32 {
+fn tpl3(): Float32 {
     let x = (1.0F, 2.0F, 3.0F);
     x.2
 }
 
-fun tplsum(): Float32 {
+fn tplsum(): Float32 {
     let x = (1.0F, 2.0F, 3.0F);
     x.0 + x.1 + x.2
 }

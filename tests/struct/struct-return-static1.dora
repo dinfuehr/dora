@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-fun main() {
+fn main() {
     let x = tpl1(42I);
     std::forceCollect();
     assert(x.second.value == 17I);
@@ -8,7 +8,7 @@ fun main() {
 
 struct Pair(first: Int32, second: Foo)
 
-fun tpl1(value: Int32): Pair {
+fn tpl1(value: Int32): Pair {
     assert(value == 42I);
     Pair(1I, Foo(17I))
 }

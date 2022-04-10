@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = "ABC";
 
     assert(x.getByte(0L) == 65Y);

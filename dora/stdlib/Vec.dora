@@ -2,7 +2,7 @@
   var array: Array[T] = values;
   var len: Int64 = values.size();
 
-  @pub fun get(idx: Int64): T {
+  @pub fn get(idx: Int64): T {
     if idx < 0L || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
@@ -10,7 +10,7 @@
     return self.array(idx);
   }
 
-  @pub fun set(idx: Int64, val: T) {
+  @pub fn set(idx: Int64, val: T) {
     if idx < 0L || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
@@ -18,7 +18,7 @@
     self.array.set(idx, val);
   }
 
-  @pub fun reserve(newcap: Int64) {
+  @pub fn reserve(newcap: Int64) {
     assert(newcap >= 0L);
 
     if self.capacity() >= newcap {
@@ -30,7 +30,7 @@
     self.array = newarray;
   }
 
-  @pub fun push(val: T) {
+  @pub fn push(val: T) {
     let currentCapacity = self.capacity();
 
     if self.len == currentCapacity {
@@ -45,7 +45,7 @@
     self.len = self.len + 1L;
   }
 
-  @pub fun insertAt(idx: Int64, val: T) {
+  @pub fn insertAt(idx: Int64, val: T) {
     assert(idx <= self.len);
     if idx == self.len {
       self.push(val);
@@ -74,7 +74,7 @@
     self.len = self.len + 1L;
   }
 
-  fun newCapacity(currentCapacity: Int64): Int64 {
+  fn newCapacity(currentCapacity: Int64): Int64 {
     if currentCapacity == 0L {
       4L
     } else {
@@ -82,13 +82,13 @@
     }
   }
 
-  @pub fun toArray(): Array[T] {
+  @pub fn toArray(): Array[T] {
     let newarray = Array[T]::unsafeNew(self.len);
     Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
     newarray
   }
 
-  @pub fun pop(): T {
+  @pub fn pop(): T {
     if self.len == 0L {
       fatalError("no element left to pop");
     }
@@ -104,7 +104,7 @@
     temp
   }
 
-  @pub fun trimToLen() {
+  @pub fn trimToLen() {
     if self.len != self.capacity() {
       if self.len == 0L {
         self.array = Array[T]::empty();
@@ -116,7 +116,7 @@
     }
   }
 
-  @pub fun removeItem(value: T) {
+  @pub fn removeItem(value: T) {
     let len = self.len;
     var destIdx = 0L;
     var srcIdx = 0L;
@@ -140,7 +140,7 @@
     }
   }
 
-  @pub fun removeAt(ind: Int64): T {
+  @pub fn removeAt(ind: Int64): T {
     var ind = ind;
     assert(ind < self.len);
     let temp = self.get(ind);
@@ -157,19 +157,19 @@
     temp
   }
 
-  @pub fun size(): Int64 {
+  @pub fn size(): Int64 {
     return self.len;
   }
 
-  @pub fun isEmpty(): Bool {
+  @pub fn isEmpty(): Bool {
     self.len == 0L
   }
 
-  @pub fun capacity(): Int64 {
+  @pub fn capacity(): Int64 {
     self.array.size()
   }
 
-  @pub fun first(): Option[T] {
+  @pub fn first(): Option[T] {
     if self.len == 0L {
       Option[T]::None
     } else {
@@ -177,7 +177,7 @@
     }
   }
 
-  @pub fun last(): Option[T] {
+  @pub fn last(): Option[T] {
     if self.len == 0L {
       Option[T]::None
     } else {
@@ -185,20 +185,20 @@
     }
   }
 
-  @pub fun clear() {
+  @pub fn clear() {
     self.len = 0L;
     self.array = Array[T]::empty();
   }
 
-  @pub fun makeIterator(): VecIter[T] {
+  @pub fn makeIterator(): VecIter[T] {
     VecIter[T](self)
   }
 
-  @pub fun makeReverseIterator(): ReverseVecIter[T] {
+  @pub fn makeReverseIterator(): ReverseVecIter[T] {
     ReverseVecIter[T](self)
   }
 
-  @pub fun enumerate(): VecEnumerator[T] {
+  @pub fn enumerate(): VecEnumerator[T] {
     VecEnumerator[T](self)
   }
 }
@@ -206,11 +206,11 @@
 @pub class VecEnumerator[T](let data: Vec[T]) {
   var idx: Int64 = 0L;
 
-  @pub fun hasNext(): Bool {
+  @pub fn hasNext(): Bool {
     self.idx < self.data.size()
   }
 
-  @pub fun next(): (Int64, T) {
+  @pub fn next(): (Int64, T) {
     let current_idx = self.idx;
     self.idx = self.idx + 1L;
     (current_idx, self.data(current_idx))
@@ -220,11 +220,11 @@
 @pub class VecIter[T](let data: Vec[T]) {
   var idx: Int64 = 0L;
 
-  @pub fun hasNext(): Bool {
+  @pub fn hasNext(): Bool {
     self.idx < self.data.size()
   }
 
-  @pub fun next(): T {
+  @pub fn next(): T {
     let result = self.data(self.idx);
     self.idx = self.idx + 1L;
     result
@@ -234,11 +234,11 @@
 @pub class ReverseVecIter[T](let data: Vec[T]) {
   var idx: Int64 = data.size() - 1L;
 
-  @pub fun hasNext(): Bool {
+  @pub fn hasNext(): Bool {
     self.idx != -1L
   }
 
-  @pub fun next(): T {
+  @pub fn next(): T {
     let result = self.data(self.idx);
     self.idx = self.idx - 1L;
     result
@@ -246,7 +246,7 @@
 }
 
 impl[T: Equals] Vec[T] {
-  @pub fun equals(other: Vec[T]): Bool {
+  @pub fn equals(other: Vec[T]): Bool {
     if self.size() != other.size() {
       return false;
     }
@@ -260,7 +260,7 @@ impl[T: Equals] Vec[T] {
     return true;
   }
 
-  @pub fun contains(value: T): Bool {
+  @pub fn contains(value: T): Bool {
     var i = 0L;
 
     while i < self.size() {
@@ -274,7 +274,7 @@ impl[T: Equals] Vec[T] {
     return false;
   }
 
-  @pub fun removeEquals(elem: T) {
+  @pub fn removeEquals(elem: T) {
     var i = 0L;
 
     while i < self.size() {
@@ -288,7 +288,7 @@ impl[T: Equals] Vec[T] {
 }
 
 impl[T: Identity] Vec[T] {
-  @pub fun has(value: T): Bool {
+  @pub fn has(value: T): Bool {
     var i = 0L;
 
     while i < self.size() {
@@ -303,7 +303,7 @@ impl[T: Identity] Vec[T] {
 }
 
 impl[T: Stringable] Vec[T] {
-  @pub fun toString(): String {
+  @pub fn toString(): String {
     let sb = StringBuffer();
     sb.append("Vec(");
     let size = self.len;

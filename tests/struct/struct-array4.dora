@@ -3,7 +3,7 @@
 struct Foo(f1: Int32, f2: Bar)
 class Bar(let value: Int32)
 
-fun main() {
+fn main() {
     let x = Array[Foo]::fill(10L, Foo(0I, Bar(0I)));
     x(0L) = Foo(1I, Bar(1I));
     x(4L) = Foo(2I, Bar(2I));

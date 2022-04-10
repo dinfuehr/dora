@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = fone();
     assert(1F == x);
 
@@ -6,10 +6,10 @@ fun main() {
     assert(y == 1D);
 }
 
-fun fone(): Float32 {
+fn fone(): Float32 {
     return 1F;
 }
 
-fun done(): Float64 {
+fn done(): Float64 {
     return 1D;
 }

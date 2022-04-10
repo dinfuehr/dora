@@ -1,6 +1,6 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
-fun main() {
+fn main() {
     var x = Foo(Option[Foo]::None);
     var i = 0I;
 

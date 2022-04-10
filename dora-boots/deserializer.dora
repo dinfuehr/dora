@@ -1,11 +1,11 @@
-fun decodeCompilationInfo(reader: ByteReader): CompilationInfo {
+fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
     let typeParams = decodeTypeParams(reader);
     let arch = decodeArchitecture(reader);
     CompilationInfo(bc, typeParams, arch)
 }
 
-fun decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
+fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
     let code = decodeBytecodeArray(reader);
     let constpool = decodeConstPool(reader);
     let registers = decodeRegisters(reader);
@@ -13,15 +13,15 @@ fun decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
     BytecodeFunction(code, constpool, registers, arguments)
 }
 
-fun decodeBytecodeArray(reader: ByteReader): Array[UInt8] {
+fn decodeBytecodeArray(reader: ByteReader): Array[UInt8] {
     reader.readByteArray()
 }
 
-fun decodeTypeParams(reader: ByteReader): Array[SourceType] {
+fn decodeTypeParams(reader: ByteReader): Array[SourceType] {
     decodeSourceTypeArray(reader)
 }
 
-fun decodeRegisters(reader: ByteReader): Array[BytecodeType] {
+fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
     let size = reader.readInt32().toInt64();
     let data = Array[BytecodeType]::fill(size, BytecodeType::UInt8);
 
@@ -35,7 +35,7 @@ fun decodeRegisters(reader: ByteReader): Array[BytecodeType] {
     data
 }
 
-fun decodeBytecodeType(reader: ByteReader): BytecodeType {
+fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     let opcode = reader.readUInt8().toInt32();
 
     if opcode == BC_TYPE_BOOL {
@@ -70,7 +70,7 @@ fun decodeBytecodeType(reader: ByteReader): BytecodeType {
     }
 }
 
-fun decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
+fn decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
     let size = reader.readInt32().toInt64();
 
     let data = Array[ConstPoolEntry]::fill(size, ConstPoolEntry::Int32(0I));
@@ -84,7 +84,7 @@ fun decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
     data
 }
 
-fun decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
+fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     let opcode = reader.readUInt8().toInt32();
 
     if opcode == CONSTPOOL_OPCODE_INT32 {
@@ -113,7 +113,7 @@ fun decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     }
 }
 
-fun decodeArchitecture(reader: ByteReader): Architecture {
+fn decodeArchitecture(reader: ByteReader): Architecture {
     let value = reader.readUInt8().toInt32();
     if value == INSTRUCTION_SET_X64 {
         Architecture::X64
@@ -125,7 +125,7 @@ fun decodeArchitecture(reader: ByteReader): Architecture {
     }
 }
 
-fun decodeSourceTypeArray(reader: ByteReader): Array[SourceType] {
+fn decodeSourceTypeArray(reader: ByteReader): Array[SourceType] {
     let size = reader.readInt32().toInt64();
     let data = Array[SourceType]::fill(size, SourceType::Unit);
 
@@ -139,7 +139,7 @@ fun decodeSourceTypeArray(reader: ByteReader): Array[SourceType] {
     data
 }
 
-fun decodeSourceType(reader: ByteReader): SourceType {
+fn decodeSourceType(reader: ByteReader): SourceType {
     let opcode = reader.readUInt8().toInt32();
 
     if opcode == SOURCE_TYPE_OPCODE_UNIT {
@@ -185,17 +185,17 @@ fun decodeSourceType(reader: ByteReader): SourceType {
 class ByteReader(let array: Array[UInt8]) {
     var idx: Int64 = 0L;
 
-    fun moreBytes(): Bool {
+    fn moreBytes(): Bool {
         self.idx < self.array.size()
     }
 
-    fun readUInt8(): UInt8 {
+    fn readUInt8(): UInt8 {
         let value = self.array(self.idx);
         self.idx = self.idx + 1L;
         value
     }
 
-    fun readInt32(): Int32 {
+    fn readInt32(): Int32 {
         let by1 = self.readUInt8().toInt32();
         let by2 = self.readUInt8().toInt32();
         let by3 = self.readUInt8().toInt32();
@@ -204,11 +204,11 @@ class ByteReader(let array: Array[UInt8]) {
         (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
     }
 
-    fun readId(): Int32 {
+    fn readId(): Int32 {
         self.readInt32()
     }
 
-    fun readInt64(): Int64 {
+    fn readInt64(): Int64 {
         let by1 = self.readUInt8().toInt64();
         let by2 = self.readUInt8().toInt64();
         let by3 = self.readUInt8().toInt64();
@@ -221,7 +221,7 @@ class ByteReader(let array: Array[UInt8]) {
         (by8 << 56I) | (by7 << 48I) | (by6 << 40I) | (by5 << 32I) | (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
     }
 
-    fun readByteArray(): Array[UInt8] {
+    fn readByteArray(): Array[UInt8] {
         let len = self.readInt32().toInt64();
         let data = Array[UInt8]::zero(len);
 
@@ -235,17 +235,17 @@ class ByteReader(let array: Array[UInt8]) {
         data
     }
 
-    fun readStringContent(length: Int64): String {
+    fn readStringContent(length: Int64): String {
         let value = String::fromBytesPart(self.array, self.idx, length).getOrPanic();
         self.idx = self.idx + length;
         value
     }
 
-    fun position(): Int64 {
+    fn position(): Int64 {
         self.idx
     }
 
-    fun skipBytes(value: Int64) {
+    fn skipBytes(value: Int64) {
         self.idx = self.idx + value;
     }
 }

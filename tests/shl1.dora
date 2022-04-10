@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(1I == 1I << 0I);
   assert(2I == 1I << 1I);
   assert(4I == 1I << 2I);

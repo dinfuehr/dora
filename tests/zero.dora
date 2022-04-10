@@ -1,5 +1,5 @@
-fun main() {
+fn main() {
   assert(zero() == 0I);
 }
 
-fun zero(): Int32 = 0I;
+fn zero(): Int32 = 0I;

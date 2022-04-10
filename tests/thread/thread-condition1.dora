@@ -10,7 +10,7 @@ class SharedQueue[T](let capacity: Int64) {
     let conditionNonFull: std::Condition = std::Condition();
     let queue: std::Queue[T] = std::Queue[T]();
 
-    fun enqueue(value: T) {
+    fn enqueue(value: T) {
         self.mtx.lock();
 
         while self.queue.size() == self.capacity {
@@ -22,7 +22,7 @@ class SharedQueue[T](let capacity: Int64) {
         self.conditionNonEmpty.notifyAll();
     }
 
-    fun dequeue(): T {
+    fn dequeue(): T {
         self.mtx.lock();
 
         while self.queue.size() == 0L {
@@ -39,7 +39,7 @@ class SharedQueue[T](let capacity: Int64) {
 class Producer(let queue: SharedQueue[Int32]) extends std::Thread {
     var sum: Int32 = 0I;
 
-    @override fun run() {
+    @override fn run() {
         var i = 0I;
 
         while i < ITERATIONS {
@@ -53,7 +53,7 @@ class Producer(let queue: SharedQueue[Int32]) extends std::Thread {
 class Consumer(let queue: SharedQueue[Int32]) extends std::Thread {
     var sum: Int32 = 0I;
 
-    @override fun run() {
+    @override fn run() {
         while true {
             let value = self.queue.dequeue();
 
@@ -66,7 +66,7 @@ class Consumer(let queue: SharedQueue[Int32]) extends std::Thread {
     }
 }
 
-fun main() {
+fn main() {
     var i = 0I;
     let queue = SharedQueue[Int32](QUEUE_SIZE);
     let producers = Vec[Producer]();

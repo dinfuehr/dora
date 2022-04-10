@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = UInt8::minValue().toStringBinary();
   assert(x == "0");
 

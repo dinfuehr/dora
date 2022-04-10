@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let testBuggy = true;
 
     assert(0.0F.asInt32() == 0I);

@@ -2,7 +2,7 @@
 
 enum Foo { A(Int32, String, Float32), B }
 
-fun main() {
+fn main() {
     let value = Foo::A(112I, "abc", 17.5F);
     std::forceCollect();
     match value {

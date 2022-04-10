@@ -1,7 +1,7 @@
-fun main() {
+fn main() {
     assert(three().toInt32() == 3I);
 }
 
-fun three(): Int64 {
+fn three(): Int64 {
     return 3L;
 }

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert(Array[Int32]() == Array[Int32]());
   assert(Array[Int32]().equals(Array[Int32]()));
   assert(Array[Int32](1I) == Array[Int32](1I));

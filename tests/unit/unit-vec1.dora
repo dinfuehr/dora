@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let data = Vec[()]();
     assert(data.size() == 0L);
 

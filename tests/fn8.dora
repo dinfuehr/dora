@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let a = 1I;
   assert(Foo(a+1I).a == 2I);
 }

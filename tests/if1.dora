@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy"
 
-fun main() {
+fn main() {
     assert(f(true) == 1I);
     assert(f(false) == 2I);
 
@@ -14,19 +14,19 @@ fun main() {
     assert(i(false) == "not one");
 }
 
-fun f(x: Bool): Int32 = if x { 1I } else { 2I };
+fn f(x: Bool): Int32 = if x { 1I } else { 2I };
 
-fun g(x: Bool): Int32 {
+fn g(x: Bool): Int32 {
     let ret = if x { 1I } else { 2I };
 
     ret
 }
 
-fun h(x: Bool, y: Int32): String {
+fn h(x: Bool, y: Int32): String {
     (if x { "t${y}" } else { "f${y}" }) + { std::forceCollect(); "end" }
 }
 
-fun i(x: Bool): String {
+fn i(x: Bool): String {
   let i = if x { 1I } else { return "not one"; };
   i.toString()
 }

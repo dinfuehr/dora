@@ -8,39 +8,39 @@ class Scene {
         self.objects = Vec[Primitive]();
     }
 
-    fun addLight(l: Light) {
+    fn addLight(l: Light) {
         self.lights.push(l);
     }
 
-    fun addObject(object: Primitive) {
+    fn addObject(object: Primitive) {
         self.objects.push(object);
     }
 
-    fun setView(view: View) {
+    fn setView(view: View) {
         self.view = view;
     }
 
-    fun getView(): View {
+    fn getView(): View {
         return self.view;
     }
 
-    fun getLight(number: Int): Light {
+    fn getLight(number: Int): Light {
         return self.lights[number];
     }
 
-    fun getObject(number: Int): Primitive {
+    fn getObject(number: Int): Primitive {
         return self.objects[number];
     }
 
-    fun getLights(): Int {
+    fn getLights(): Int {
         return self.lights.size();
     }
 
-    fun getObjects(): Int {
+    fn getObjects(): Int {
         return self.objects.size();
     }
 
-    fun setObject(object: Primitive, pos: Int) {
+    fn setObject(object: Primitive, pos: Int) {
         self.objects[pos] = object;
     }
 }

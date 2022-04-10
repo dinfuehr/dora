@@ -11,66 +11,66 @@ enum Type {
 }
 
 impl Type {
-    fun isUnit(): Bool {
+    fn isUnit(): Bool {
         match self {
             Type::Unit => true,
             _ => false,
         }
     }
 
-    fun isUInt8(): Bool {
+    fn isUInt8(): Bool {
         match self {
             Type::UInt8 => true,
             _ => false,
         }
     }
 
-    fun isInt32(): Bool {
+    fn isInt32(): Bool {
         match self {
             Type::Int32 => true,
             _ => false,
         }
     }
 
-    fun isInt64(): Bool {
+    fn isInt64(): Bool {
         match self {
             Type::Int64 => true,
             _ => false,
         }
     }
 
-    fun isFloat32(): Bool {
+    fn isFloat32(): Bool {
         match self {
             Type::Float32 => true,
             _ => false,
         }
     }
 
-    fun isFloat64(): Bool {
+    fn isFloat64(): Bool {
         match self {
             Type::Float64 => true,
             _ => false,
         }
     }
 
-    fun isPtr(): Bool {
+    fn isPtr(): Bool {
         match self {
             Type::Ptr => true,
             _ => false,
         }
     }
 
-    @static fun unit(): Type { Type::Unit }
-    @static fun bool(): Type { Type::Bool }
-    @static fun uint8(): Type { Type::UInt8 }
-    @static fun char(): Type { Type::Char }
-    @static fun int32(): Type { Type::Int32 }
-    @static fun int64(): Type { Type::Int64 }
-    @static fun float32(): Type { Type::Float32 }
-    @static fun float64(): Type { Type::Float64 }
-    @static fun ptr(): Type { Type::Ptr }
+    @static fn unit(): Type { Type::Unit }
+    @static fn bool(): Type { Type::Bool }
+    @static fn uint8(): Type { Type::UInt8 }
+    @static fn char(): Type { Type::Char }
+    @static fn int32(): Type { Type::Int32 }
+    @static fn int64(): Type { Type::Int64 }
+    @static fn float32(): Type { Type::Float32 }
+    @static fn float64(): Type { Type::Float64 }
+    @static fn ptr(): Type { Type::Ptr }
 
-    @static fun fromBytecodeType(ty: BytecodeType): Type {
+    @static fn fromBytecodeType(ty: BytecodeType): Type {
         match ty {
             BytecodeType::Bool => Type::Bool,
             BytecodeType::UInt8 => Type::UInt8,
@@ -86,7 +86,7 @@ impl Type {
 }
 
 impl Stringable for Type {
-    fun toString(): String {
+    fn toString(): String {
         match self {
             Type::Unit => "Unit",
             Type::Bool => "Bool",

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert("abc".size() == 3L);
 
   let x = "abcdef";

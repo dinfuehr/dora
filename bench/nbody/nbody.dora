@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     SOLAR_MASS = 4.0 * PI * PI;
     let n = std::argv(0I).toInt32().getOrPanic();
     let bodies = NBodySystem();
@@ -39,7 +39,7 @@ class NBodySystem {
         self.bodies(0L).offsetMomentum(px, py, pz);
     }
 
-    fun advance(dt: Float64) {
+    fn advance(dt: Float64) {
         for (i, iBody) in self.bodies.enumerate() {
             var j = i + 1L;
 
@@ -73,7 +73,7 @@ class NBodySystem {
         }
    }
 
-   fun energy(): Float64 {
+   fn energy(): Float64 {
       var dx = 0.0;
       var dy = 0.0;
       var dz = 0.0;
@@ -119,14 +119,14 @@ class Body {
     var vz: Float64 = 0.0;
     var mass: Float64 = 0.0;
 
-   fun offsetMomentum(px: Float64, py: Float64, pz: Float64): Body {
+   fn offsetMomentum(px: Float64, py: Float64, pz: Float64): Body {
       self.vx = -px / SOLAR_MASS;
       self.vy = -py / SOLAR_MASS;
       self.vz = -pz / SOLAR_MASS;
       return self;
    }
 
-    @static fun jupiter(): Body {
+    @static fn jupiter(): Body {
         let p = Body();
         p.x = 4.84143144246472090e+00;
         p.y = -1.16032004402742839e+00;
@@ -138,7 +138,7 @@ class Body {
         return p;
     }
 
-   @static fun saturn(): Body {
+   @static fn saturn(): Body {
       let p = Body();
       p.x = 8.34336671824457987e+00;
       p.y = 4.12479856412430479e+00;
@@ -150,7 +150,7 @@ class Body {
       return p;
    }
 
-   @static fun uranus(): Body {
+   @static fn uranus(): Body {
       let p = Body();
       p.x = 1.28943695621391310e+01;
       p.y = -1.51111514016986312e+01;
@@ -162,7 +162,7 @@ class Body {
       return p;
    }
 
-   @static fun neptune(): Body {
+   @static fn neptune(): Body {
       let p = Body();
       p.x = 1.53796971148509165e+01;
       p.y = -2.59193146099879641e+01;
@@ -174,7 +174,7 @@ class Body {
       return p;
    }
 
-   @static fun sun(): Body {
+   @static fn sun(): Body {
       let p = Body();
       p.mass = SOLAR_MASS;
       return p;

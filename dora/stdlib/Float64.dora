@@ -1,16 +1,16 @@
 @pub @internal struct Float64
 
 impl Float64 {
-  @pub @internal fun toInt32(): Int32;
-  @pub @internal fun toInt64(): Int64;
-  @pub @internal fun toFloat32(): Float32;
-  @pub @internal fun toString(): String;
+  @pub @internal fn toInt32(): Int32;
+  @pub @internal fn toInt64(): Int64;
+  @pub @internal fn toFloat32(): Float32;
+  @pub @internal fn toString(): String;
 
-  @pub @internal fun asInt64(): Int64;
+  @pub @internal fn asInt64(): Int64;
 
-  @pub @internal fun equals(rhs: Float64): Bool;
-  @pub @internal fun compareTo(rhs: Float64): Int32;
-  @pub fun sortsAs(rhs: Float64): Int32 {
+  @pub @internal fn equals(rhs: Float64): Bool;
+  @pub @internal fn compareTo(rhs: Float64): Int32;
+  @pub fn sortsAs(rhs: Float64): Int32 {
     var ix = self.asInt64();
     var iy = rhs.asInt64();
 
@@ -25,29 +25,29 @@ impl Float64 {
     return 1I;
   }
 
-  @pub @internal fun plus(rhs: Float64): Float64;
-  @pub @internal fun minus(rhs: Float64): Float64;
-  @pub @internal fun times(rhs: Float64): Float64;
-  @pub @internal fun div(rhs: Float64): Float64;
+  @pub @internal fn plus(rhs: Float64): Float64;
+  @pub @internal fn minus(rhs: Float64): Float64;
+  @pub @internal fn times(rhs: Float64): Float64;
+  @pub @internal fn div(rhs: Float64): Float64;
 
-  @pub @internal fun unaryPlus(): Float64;
-  @pub @internal fun unaryMinus(): Float64;
-  @pub @internal fun abs(): Float64;
+  @pub @internal fn unaryPlus(): Float64;
+  @pub @internal fn unaryMinus(): Float64;
+  @pub @internal fn abs(): Float64;
 
-  @pub @internal fun roundToZero(): Float64;
-  @pub @internal fun roundUp(): Float64;
-  @pub @internal fun roundDown(): Float64;
-  @pub @internal fun roundHalfEven(): Float64;
+  @pub @internal fn roundToZero(): Float64;
+  @pub @internal fn roundUp(): Float64;
+  @pub @internal fn roundDown(): Float64;
+  @pub @internal fn roundHalfEven(): Float64;
 
-  @pub @internal fun isNan(): Bool;
-  @pub @internal fun sqrt(): Float64;
+  @pub @internal fn isNan(): Bool;
+  @pub @internal fn sqrt(): Float64;
 
-  @pub fun hash(): Int32 = self.asInt64().toInt32();
+  @pub fn hash(): Int32 = self.asInt64().toInt32();
 
   // should be lets, not funs
-  @pub @static fun bits(): Int32 = 64I;
-  @pub @static fun bytes(): Int32 = 8I;
-  @pub @static fun infinityPositive(): Float64 = 0x7ff0000000000000L.asFloat64();
-  @pub @static fun infinityNegative(): Float64 = 0xfff0000000000000L.asFloat64();
-  @pub @static fun notANumber(): Float64 = 0x7ff8000000000000L.asFloat64();
+  @pub @static fn bits(): Int32 = 64I;
+  @pub @static fn bytes(): Int32 = 8I;
+  @pub @static fn infinityPositive(): Float64 = 0x7ff0000000000000L.asFloat64();
+  @pub @static fn infinityNegative(): Float64 = 0xfff0000000000000L.asFloat64();
+  @pub @static fn notANumber(): Float64 = 0x7ff8000000000000L.asFloat64();
 }

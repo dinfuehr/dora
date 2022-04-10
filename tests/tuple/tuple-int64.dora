@@ -1,26 +1,26 @@
-fun main() {
+fn main() {
     assert(tpl1() == 1L);
     assert(tpl2() == 2L);
     assert(tpl3() == 3L);
     assert(tplsum() == 6L);
 }
 
-fun tpl1(): Int64 {
+fn tpl1(): Int64 {
     let x = (1L, 2L, 3L);
     x.0
 }
 
-fun tpl2(): Int64 {
+fn tpl2(): Int64 {
     let x = (1L, 2L, 3L);
     x.1
 }
 
-fun tpl3(): Int64 {
+fn tpl3(): Int64 {
     let x = (1L, 2L, 3L);
     x.2
 }
 
-fun tplsum(): Int64 {
+fn tplsum(): Int64 {
     let x = (1L, 2L, 3L);
     x.0 + x.1 + x.2
 }

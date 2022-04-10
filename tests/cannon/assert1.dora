@@ -1,16 +1,16 @@
 //= error assert
-fun main() {
+fn main() {
   var x = Foo(12I);
   x.test();
   x.test2(1I);
 }
 
 class Foo(let i: Int32) {
-  fun test() {
+  fn test() {
     var x = self.i;
   }
 
-  fun test2(i: Int32) {
+  fn test2(i: Int32) {
     assert(i == 2I);
   }
 }

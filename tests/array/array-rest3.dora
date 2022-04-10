@@ -1,11 +1,11 @@
-fun main() {
+fn main() {
     assert(sum_args(1.0F, 2.0F) == 3.0F);
     assert(sum_args(7.0F) == 7.0F);
     assert(sum_args() == 0.0F);
     assert(sum_args(1.0F, 2.0F, 3.0F, 4.0F, 5.0F) == 15.0F);
 }
 
-fun sum_args(x: Float32...): Float32 {
+fn sum_args(x: Float32...): Float32 {
     var result = 0.0F;
     var idx = 0L;
     

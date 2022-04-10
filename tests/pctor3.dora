@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let y = Y(101I, 3I);
 
     assert(y.a == 3I);

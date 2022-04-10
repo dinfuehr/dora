@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let threads = argv(0).toInt().getOrPanic();
 
     var i = 0;
@@ -11,12 +11,12 @@ fun main() {
 }
 
 class MyThread() extends Thread {
-    @override fun run() {
+    @override fn run() {
         allocator();
     }
 }
 
-fun allocator() {
+fn allocator() {
     var i = 0;
 
     while i < 20_000_000 {

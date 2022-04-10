@@ -1,4 +1,4 @@
-fun main() {    
+fn main() {    
     assert(!eq(20Y, 5Y));
     assert(eq(5Y, 5Y));
     assert(!eq(5Y, 20Y));
@@ -25,26 +25,26 @@ fun main() {
     assert(!gt(5Y, 20Y));
 }
 
-fun eq(x: UInt8, y: UInt8): Bool {
+fn eq(x: UInt8, y: UInt8): Bool {
     return x == y;
 }
 
-fun ne(x: UInt8, y: UInt8): Bool {
+fn ne(x: UInt8, y: UInt8): Bool {
     return x != y;
 }
 
-fun lt(x: UInt8, y: UInt8): Bool {
+fn lt(x: UInt8, y: UInt8): Bool {
     return x < y;
 }
 
-fun le(x: UInt8, y: UInt8): Bool {
+fn le(x: UInt8, y: UInt8): Bool {
     return x <= y;
 }
 
-fun ge(x: UInt8, y: UInt8): Bool {
+fn ge(x: UInt8, y: UInt8): Bool {
     return x >= y;
 }
 
-fun gt(x: UInt8, y: UInt8): Bool {
+fn gt(x: UInt8, y: UInt8): Bool {
     return x > y;
 }

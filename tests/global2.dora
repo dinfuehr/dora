@@ -4,25 +4,25 @@ var x: Int32 = 0I;
 var y: Int32 = 0I;
 var z: Int32 = 0I;
 
-fun main() {
+fn main() {
     init_globals();
     assert_globals();
     dump_globals();
 }
 
-fun init_globals() {
+fn init_globals() {
     x = 1I;
     y = 2I;
     z = 3I;
 }
 
-fun assert_globals() {
+fn assert_globals() {
     assert(x == 1I);
     assert(y == 2I);
     assert(z == 3I);
 }
 
-fun dump_globals() {
+fn dump_globals() {
     println("x = " + x.toString());
     println("y = " + y.toString());
     println("z = " + z.toString());

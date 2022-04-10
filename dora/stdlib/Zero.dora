@@ -20,5 +20,5 @@
 
 // @restricted / @internal
 @pub trait Zero {
-  @static fun zero(): Self; // should be `let` instead of `fun`
+  @static fn zero(): Self; // should be `let` instead of `fn`
 }

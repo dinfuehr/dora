@@ -1,4 +1,4 @@
-@test fun testSsaGenRetVoid(_x: Testing) {
+@test fn testSsaGenRetVoid(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenRetVoid");
     let graph = createGraph(fct);
 
@@ -8,9 +8,9 @@
 ");
 }
 
-fun bcSsaGenRetVoid() {}
+fn bcSsaGenRetVoid() {}
 
-@test fun testSsaGenRetIntConst(_x: Testing) {
+@test fn testSsaGenRetIntConst(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenRetIntConst");
     let graph = createGraph(fct);
 
@@ -21,9 +21,9 @@ fun bcSsaGenRetVoid() {}
 ");
 }
 
-fun bcSsaGenRetIntConst(): Int32 = 4711I;
+fn bcSsaGenRetIntConst(): Int32 = 4711I;
 
-@test fun testSsaGenRetInt64Const(_x: Testing) {
+@test fn testSsaGenRetInt64Const(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenRetInt64Const");
     let graph = createGraph(fct);
 
@@ -34,9 +34,9 @@ fun bcSsaGenRetIntConst(): Int32 = 4711I;
 ");
 }
 
-fun bcSsaGenRetInt64Const(): Int64 = 4711L;
+fn bcSsaGenRetInt64Const(): Int64 = 4711L;
 
-@test fun testSsaGenIdInt(_x: Testing) {
+@test fn testSsaGenIdInt(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenIdInt");
     let graph = createGraph(fct);
 
@@ -47,9 +47,9 @@ fun bcSsaGenRetInt64Const(): Int64 = 4711L;
 ");
 }
 
-fun bcSsaGenIdInt(x: Int32): Int32 = x;
+fn bcSsaGenIdInt(x: Int32): Int32 = x;
 
-@test fun testSsaGenAddIntArguments(_x: Testing) {
+@test fn testSsaGenAddIntArguments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenAddIntArguments");
     let graph = createGraph(fct);
 
@@ -62,9 +62,9 @@ fun bcSsaGenIdInt(x: Int32): Int32 = x;
 ");
 }
 
-fun bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 = a + b;
+fn bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 = a + b;
 
-@test fun testSsaGenAddFloat32Arguments(_x: Testing) {
+@test fn testSsaGenAddFloat32Arguments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenAddFloat32Arguments");
     let graph = createGraph(fct);
 
@@ -77,9 +77,9 @@ fun bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 = a + b;
 ");
 }
 
-fun bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 = a + b;
+fn bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 = a + b;
 
-@test fun testSsaGenMultipleAssignments(_x: Testing) {
+@test fn testSsaGenMultipleAssignments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenMultipleAssignments");
     let graph = createGraph(fct);
 
@@ -96,7 +96,7 @@ fun bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 = a + b;
 ");
 }
 
-fun bcSsaGenMultipleAssignments(d: Int32): Int32 {
+fn bcSsaGenMultipleAssignments(d: Int32): Int32 {
     var a = 42I;
     var b = a;
     var c = a + b;
@@ -107,7 +107,7 @@ fun bcSsaGenMultipleAssignments(d: Int32): Int32 {
     a + c
 }
 
-@test fun testSsaGenSubIntArguments(_x: Testing) {
+@test fn testSsaGenSubIntArguments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenSubIntArguments");
     let graph = createGraph(fct);
 
@@ -120,9 +120,9 @@ fun bcSsaGenMultipleAssignments(d: Int32): Int32 {
 ")
 }
 
-fun bcSsaGenSubIntArguments(a: Int32, b: Int32): Int32 = a - b;
+fn bcSsaGenSubIntArguments(a: Int32, b: Int32): Int32 = a - b;
 
-@test fun testSsaGenNegIntArgument(_x: Testing) {
+@test fn testSsaGenNegIntArgument(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenNegIntArgument");
     let graph = createGraph(fct);
 
@@ -134,9 +134,9 @@ fun bcSsaGenSubIntArguments(a: Int32, b: Int32): Int32 = a - b;
 ");
 }
 
-fun bcSsaGenNegIntArgument(a: Int32): Int32 = -a;
+fn bcSsaGenNegIntArgument(a: Int32): Int32 = -a;
 
-@test fun testSsaGenMulIntArguments(_x: Testing) {
+@test fn testSsaGenMulIntArguments(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenMulIntArguments");
     let graph = createGraph(fct);
 
@@ -149,9 +149,9 @@ fun bcSsaGenNegIntArgument(a: Int32): Int32 = -a;
 ");
 }
 
-fun bcSsaGenMulIntArguments(a: Int32, b: Int32): Int32 = a * b;
+fn bcSsaGenMulIntArguments(a: Int32, b: Int32): Int32 = a * b;
 
-@test fun testSsaGenSimpleIf(_x: Testing) {
+@test fn testSsaGenSimpleIf(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenSimpleIf");
     let graph = createGraph(fct);
 
@@ -169,13 +169,13 @@ fun bcSsaGenMulIntArguments(a: Int32, b: Int32): Int32 = a * b;
 ");
 }
 
-fun bcSsaGenSimpleIf(a: Bool): Int32 {
+fn bcSsaGenSimpleIf(a: Bool): Int32 {
     var result = 1I;
     if a { result = 10I; }
     return result;
 }
 
-@test fun testSsaGenIfReturnInBothBranches(_x: Testing) {
+@test fn testSsaGenIfReturnInBothBranches(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenIfReturnInBothBranches");
     let graph = createGraph(fct);
 
@@ -192,11 +192,11 @@ fun bcSsaGenSimpleIf(a: Bool): Int32 {
 ");
 }
 
-fun bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
+fn bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
     if a { return 1; } else { return 2; }
 }
 
-@test fun testSsaGenIfWithConditionalAssignment(_x: Testing) {
+@test fn testSsaGenIfWithConditionalAssignment(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenIfWithConditionalAssignment");
     let graph = createGraph(fct);
 
@@ -216,14 +216,14 @@ fun bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
 ");
 }
 
-fun bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
+fn bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
     var x = 1I;
     var y = 27I;
     if a { x = 4I; }
     x + y
 }
 
-@test fun testSsaGenWhileCountDown(_x: Testing) {
+@test fn testSsaGenWhileCountDown(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDown");
     let graph = createGraph(fct);
 
@@ -245,13 +245,13 @@ fun bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
 ");
 }
 
-fun bcSsaGenWhileCountDown(x: Int32): Int32 {
+fn bcSsaGenWhileCountDown(x: Int32): Int32 {
     var x = x;
     while x > 0I { x = x - 1I; }
     x
 }
 
-@test fun testSsaGenWhileCountDownWithSum(_x: Testing) {
+@test fn testSsaGenWhileCountDownWithSum(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDownWithSum");
     let graph = createGraph(fct);
 
@@ -276,7 +276,7 @@ fun bcSsaGenWhileCountDown(x: Int32): Int32 {
 ");
 }
 
-fun bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
+fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
     var x = x;
     var sum = 0I;
     while x > 0I {
@@ -286,7 +286,7 @@ fun bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
     sum
 }
 
-@test fun testSsaGenLoadArrayElementInt32(_x: Testing) {
+@test fn testSsaGenLoadArrayElementInt32(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenLoadArrayElementInt32");
     let graph = createGraph(fct);
 
@@ -301,11 +301,11 @@ fun bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
 ");
 }
 
-fun bcSsaGenLoadArrayElementInt32(x: Array[Int32], idx: Int64): Int32 {
+fn bcSsaGenLoadArrayElementInt32(x: Array[Int32], idx: Int64): Int32 {
     x(idx)
 }
 
-@test fun testSsaGenStoreArrayElementInt32(_x: Testing) {
+@test fn testSsaGenStoreArrayElementInt32(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenStoreArrayElementInt32");
     let graph = createGraph(fct);
 
@@ -321,11 +321,11 @@ fun bcSsaGenLoadArrayElementInt32(x: Array[Int32], idx: Int64): Int32 {
 ");
 }
 
-fun bcSsaGenStoreArrayElementInt32(x: Array[Int32], idx: Int64, value: Int32) {
+fn bcSsaGenStoreArrayElementInt32(x: Array[Int32], idx: Int64, value: Int32) {
     x(idx) = value;
 }
 
-@test fun testSsaGenDivInt32(_x: Testing) {
+@test fn testSsaGenDivInt32(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenDivInt32");
     let graph = createGraph(fct);
 
@@ -339,9 +339,9 @@ fun bcSsaGenStoreArrayElementInt32(x: Array[Int32], idx: Int64, value: Int32) {
 ");
 }
 
-fun bcSsaGenDivInt32(lhs: Int32, rhs: Int32): Int32 = lhs / rhs;
+fn bcSsaGenDivInt32(lhs: Int32, rhs: Int32): Int32 = lhs / rhs;
 
-@test fun testSsaGenDivInt64(_x: Testing) {
+@test fn testSsaGenDivInt64(_x: Testing) {
     let fct = getBytecodeFunctionByName("bcSsaGenDivInt64");
     let graph = createGraph(fct);
 
@@ -355,4 +355,4 @@ fun bcSsaGenDivInt32(lhs: Int32, rhs: Int32): Int32 = lhs / rhs;
 ");
 }
 
-fun bcSsaGenDivInt64(lhs: Int64, rhs: Int64): Int64 = lhs / rhs;
+fn bcSsaGenDivInt64(lhs: Int64, rhs: Int64): Int64 = lhs / rhs;

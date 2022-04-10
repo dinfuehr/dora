@@ -2,7 +2,7 @@ const MIN_DEPTH: Int32 = 4I;
 const DEFAULT_DEPTH: Int32 = 6I;
 const DEFAULT_THREADS: Int32 = 4I;
 
-fun main() {
+fn main() {
     let maxDepth = if std::argc() > 0I {
         std::argv(0I).toInt32().getOrPanic()
     } else {
@@ -46,7 +46,7 @@ fun main() {
 }
 
 class TreeThread(let nextDepth: std::AtomicInt32, let maxDepth: Int32, let results: Array[String]) extends std::Thread {
-    @override fun run() {
+    @override fn run() {
         while true {
             let depth = self.nextDepth.fetchAdd(2I);
             if depth > self.maxDepth { return; }
@@ -56,7 +56,7 @@ class TreeThread(let nextDepth: std::AtomicInt32, let maxDepth: Int32, let resul
     }
 }
 
-fun loops(maxDepth: Int32, depth: Int32): String {
+fn loops(maxDepth: Int32, depth: Int32): String {
     let iterations = 16I << (maxDepth - depth);
     var check = 0I;
     var item = 0I;
@@ -70,7 +70,7 @@ fun loops(maxDepth: Int32, depth: Int32): String {
         depth.toString() + "\t check: " + check.toString()
 }
 
-fun createTree(depth: Int32): TreeNode {
+fn createTree(depth: Int32): TreeNode {
     var depth = depth;
     let node = TreeNode(0I, Option[TreeNode]::None, Option[TreeNode]::None);
 
@@ -83,7 +83,7 @@ fun createTree(depth: Int32): TreeNode {
     return node;
 }
 
-fun checkTree(node: TreeNode): Int32 {
+fn checkTree(node: TreeNode): Int32 {
   if node.left.isNone() {
     return 1I;
   }

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let x = X(10I);
 
     assert(x.x == 1I);

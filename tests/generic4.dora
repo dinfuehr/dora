@@ -1,17 +1,17 @@
 //= stdout "hello1"
 
-fun main() {
+fn main() {
   let a = A[String](foo(1I));
   std::forceCollect();
   print(a.getx());
 }
 
 class A[T](let x: T) {
-    fun getx(): T {
+    fn getx(): T {
         return self.x;
     }
 }
 
-fun foo(a: Int32): String {
+fn foo(a: Int32): String {
   return "hello" + a.toString();
 }

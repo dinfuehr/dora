@@ -1,15 +1,15 @@
 //= error at 9:14
 
-fun main() { }
+fn main() { }
 
 @open class A { }
 
 class B extends A {
-  fun foo() {
+  fn foo() {
     super.bar();
   }
 
-  fun bar(): Int32 {
+  fn bar(): Int32 {
     return 1I;
   }
 }

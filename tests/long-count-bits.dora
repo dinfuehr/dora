@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let x = 0L.countZeroBits();
   assert(x == 64I);
   let x = 1L.countZeroBits();

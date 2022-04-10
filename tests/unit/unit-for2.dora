@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     var sum = 0L;
     for x in Vec[()]((), (), (), ()) {
         sum = sum + 1L;

@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   assert("1".toInt32().getOrPanic() == 1I);
   assert("100".toInt32().getOrPanic() == 100I);
   assert("789".toInt32().getOrPanic() == 789I);

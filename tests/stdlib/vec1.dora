@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     let vec = Vec[Int32]();
     assert(vec.size() == 0L);
     assert(vec.capacity() == 0L);

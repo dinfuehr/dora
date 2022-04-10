@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
     assert(loadBool(FooBool(true)) == true);
     assert(loadByte(FooByte(1Y)) == 1Y);
     assert(loadChar(FooChar('1')) == '1');
@@ -14,23 +14,23 @@ fun main() {
     assert(loadPtr(fooPtr).y == 1I);
 }
 
-fun loadBool(x: FooBool): Bool = x.y;
+fn loadBool(x: FooBool): Bool = x.y;
 
-fun loadByte(x: FooByte): UInt8 = x.y;
+fn loadByte(x: FooByte): UInt8 = x.y;
 
-fun loadChar(x: FooChar): Char = x.y;
+fn loadChar(x: FooChar): Char = x.y;
 
-fun loadInt32(x: FooInt32): Int32 = x.y;
+fn loadInt32(x: FooInt32): Int32 = x.y;
 
-fun loadInt64(x: FooInt64): Int64 = x.y;
+fn loadInt64(x: FooInt64): Int64 = x.y;
 
-fun loadFloat32(x: FooFloat32): Float32 = x.y;
+fn loadFloat32(x: FooFloat32): Float32 = x.y;
 
-fun loadFloat64(x: FooFloat64): Float64 = x.y;
+fn loadFloat64(x: FooFloat64): Float64 = x.y;
 
-fun loadString(x: FooString): String = x.y;
+fn loadString(x: FooString): String = x.y;
 
-fun loadPtr(x: FooPtr): FooInt32 = x.y;
+fn loadPtr(x: FooPtr): FooInt32 = x.y;
 
 class FooBool(let y: Bool)
 class FooByte(let y: UInt8)

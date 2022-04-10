@@ -9,7 +9,7 @@ enum MyEnum {
     B(MyClass)
 }
 
-fun main() {
+fn main() {
     let foo = Foo(
         AnotherStruct(3.5F, MyClass(10I)),
         MyClass(11I),

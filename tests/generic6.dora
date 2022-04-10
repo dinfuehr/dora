@@ -1,7 +1,7 @@
-fun main() {
+fn main() {
     foo[Int32](1I);
     foo[Float32](3F);
     foo[String]("hello");
 }
 
-fun foo[T](val: T) {}
+fn foo[T](val: T) {}

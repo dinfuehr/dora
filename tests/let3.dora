@@ -1,11 +1,11 @@
 //= error at 9:12
 
-fun main() {
+fn main() {
   let x = X(1I);
 }
 
 class X(let a: Int32) {
-  fun set(b: Int32) {
+  fn set(b: Int32) {
     self.a = b;
   }
 }

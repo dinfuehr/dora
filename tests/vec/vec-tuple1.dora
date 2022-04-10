@@ -1,6 +1,6 @@
 //= vm-args "--gc-verify --gc=copy"
 
-fun main() {
+fn main() {
     let x = build_vec();
     std::forceCollect();
     assert(x.size() == 3L);
@@ -13,11 +13,11 @@ fun main() {
     assert(x.size() == 0L);
 }
 
-fun build_vec(): Vec[(Int32, String)] {
+fn build_vec(): Vec[(Int32, String)] {
     Vec[(Int32, String)]((1I, "a" + "b" + "c"), (2I, "d" + "e" + "f"), (3I, "g" + "h" + "i"))
 }
 
-fun pop_vec(vec: Vec[(Int32, String)], expected: String) {
+fn pop_vec(vec: Vec[(Int32, String)], expected: String) {
     let (_, str) = vec.pop();
     assert(str == expected);
 }

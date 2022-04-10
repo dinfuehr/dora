@@ -1,14 +1,14 @@
-fun main() {
+fn main() {
   assert(!isb(A()));
   assert(isb(B()));
   assert(isa(B()));
 }
 
-fun isb(a: A): Bool {
+fn isb(a: A): Bool {
   return a is B;
 }
 
-fun isa(b: B): Bool {
+fn isa(b: B): Bool {
   return b is A;
 }
 

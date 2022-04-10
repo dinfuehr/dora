@@ -1,4 +1,4 @@
-fun main() {
+fn main() {
   let b = B();
 
   assert(b.foo(1I) == 2I);
@@ -6,13 +6,13 @@ fun main() {
 }
 
 @open class A {
-  @open fun foo(a: Int32): Int32 {
+  @open fn foo(a: Int32): Int32 {
     return a;
   }
 }
 
 class B extends A {
-  @override fun foo(a: Int32): Int32 {
+  @override fn foo(a: Int32): Int32 {
     return super.foo(a) + 1I;
   }
 }

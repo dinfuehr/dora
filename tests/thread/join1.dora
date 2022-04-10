@@ -1,13 +1,13 @@
 //= stdout "one\ntwo\n"
 
 class MyThread extends std::Thread {
-    @override fun run() {
+    @override fn run() {
         std::sleep(2I);
         println("one");
     }
 }
 
-fun main() {
+fn main() {
     let thread = MyThread();
     thread.start();
     thread.join();

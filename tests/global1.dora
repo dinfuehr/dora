@@ -4,7 +4,7 @@ var x: Int32 = 0I;
 var y: Int32 = 0I;
 var z: Int32 = 0I;
 
-fun main() {
+fn main() {
     println("x = " + x.toString());
     println("y = " + y.toString());
     println("z = " + z.toString());

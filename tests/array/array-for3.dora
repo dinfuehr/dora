@@ -1,10 +1,10 @@
-fun main() {
+fn main() {
     assert(mysum(Array[Int32]()) == 0I);
     assert(mysum(Array[Int32](1I)) == 1I);
     assert(mysum(Array[Int32](1I, 2I, 3I, 4I, 5I)) == 15I);
 }
 
-fun mysum(x: Array[Int32]): Int32 {
+fn mysum(x: Array[Int32]): Int32 {
     var entries = 0I;
     for val in x {
         entries = entries + val;
