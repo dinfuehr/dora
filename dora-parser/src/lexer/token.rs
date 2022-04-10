@@ -29,7 +29,7 @@ pub enum TokenKind {
     Package,
 
     // "small" shapes
-    Fun,
+    Fn,
     Let,
     Mut,
     Var,
@@ -145,7 +145,7 @@ impl TokenKind {
             TokenKind::Package => "package",
 
             // "small" shapes
-            TokenKind::Fun => "fun",
+            TokenKind::Fn => "fun",
             TokenKind::Let => "let",
             TokenKind::Mut => "mut",
             TokenKind::Var => "var",

@@ -1,9 +1,9 @@
 //= boots
 
-fun main() {
+fn main() {
     f();
     // assert(g() == 17I);
 }
 
-@optimizeImmediately fun f() {}
-@optimizeImmediately fun g(): Int32 { 17I }
+@optimizeImmediately fn f() {}
+@optimizeImmediately fn g(): Int32 { 17I }

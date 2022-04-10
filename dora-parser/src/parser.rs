@@ -89,7 +89,7 @@ impl<'a> Parser<'a> {
         let modifiers = self.parse_annotation_usages()?;
 
         match self.token.kind {
-            TokenKind::Fun => {
+            TokenKind::Fn => {
                 self.restrict_modifiers(
                     &modifiers,
                     &[
@@ -798,7 +798,7 @@ impl<'a> Parser<'a> {
             let modifiers = self.parse_annotation_usages()?;
 
             match self.token.kind {
-                TokenKind::Fun => {
+                TokenKind::Fn => {
                     let mods = &[
                         Modifier::Abstract,
                         Modifier::Internal,
@@ -934,7 +934,7 @@ impl<'a> Parser<'a> {
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Fun)?.position;
+        let pos = self.expect_token(TokenKind::Fn)?.position;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
         let params = self.parse_function_params()?;

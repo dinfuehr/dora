@@ -574,7 +574,8 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("package", TokenKind::Package);
 
     // "small" shapes
-    keywords.insert("fun", TokenKind::Fun);
+    keywords.insert("fun", TokenKind::Fn);
+    keywords.insert("fn", TokenKind::Fn);
     keywords.insert("let", TokenKind::Let);
     keywords.insert("mut", TokenKind::Mut);
     keywords.insert("var", TokenKind::Var);
@@ -1026,7 +1027,7 @@ mod tests {
     #[test]
     fn test_keywords() {
         let mut reader = Lexer::from_str("fun let while if else match");
-        assert_tok(&mut reader, TokenKind::Fun, 1, 1);
+        assert_tok(&mut reader, TokenKind::Fn, 1, 1);
         assert_tok(&mut reader, TokenKind::Let, 1, 5);
         assert_tok(&mut reader, TokenKind::While, 1, 9);
         assert_tok(&mut reader, TokenKind::If, 1, 15);
