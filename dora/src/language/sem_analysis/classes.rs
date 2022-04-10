@@ -59,13 +59,13 @@ impl Id for ClassDefinition {
     }
 
     fn store_id(value: &mut ClassDefinition, id: ClassDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Debug)]
 pub struct ClassDefinition {
-    pub id: ClassDefinitionId,
+    pub id: Option<ClassDefinitionId>,
     pub file_id: FileId,
     pub ast: Arc<ast::Class>,
     pub namespace_id: NamespaceDefinitionId,
@@ -102,8 +102,6 @@ pub struct ClassDefinition {
 
 impl ClassDefinition {
     pub fn new(
-        _vm: &VM,
-        id: ClassDefinitionId,
         file_id: FileId,
         ast: &Arc<ast::Class>,
         namespace_id: NamespaceDefinitionId,
@@ -115,7 +113,7 @@ impl ClassDefinition {
                 .collect()
         });
         ClassDefinition {
-            id,
+            id: None,
             file_id,
             ast: ast.clone(),
             namespace_id: namespace_id,
@@ -147,6 +145,10 @@ impl ClassDefinition {
             is_str: false,
             primitive_type: None,
         }
+    }
+
+    pub fn id(&self) -> ClassDefinitionId {
+        self.id.expect("missing id")
     }
 
     pub fn is_generic(&self) -> bool {
@@ -219,7 +221,7 @@ impl ClassDefinition {
     }
 
     pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctDefinitionId> {
-        let mut classid = self.id;
+        let mut classid = self.id();
 
         loop {
             let cls = vm.classes.idx(classid);
@@ -269,7 +271,7 @@ impl ClassDefinition {
     }
 
     pub fn subclass_from(&self, vm: &VM, super_id: ClassDefinitionId) -> bool {
-        let mut cls_id = self.id;
+        let mut cls_id = self.id();
 
         loop {
             if cls_id == super_id {

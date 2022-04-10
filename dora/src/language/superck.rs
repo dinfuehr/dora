@@ -21,7 +21,7 @@ fn cycle_detection(sa: &mut SemAnalysis) {
         let cls = cls.read();
 
         let mut map: HashSet<ClassDefinitionId> = HashSet::new();
-        map.insert(cls.id);
+        map.insert(cls.id());
 
         let mut parent_class = cls.parent_class.clone();
 
@@ -47,7 +47,7 @@ fn determine_vtables(sa: &SemAnalysis) {
 
     for cls in sa.classes.iter() {
         let mut cls = cls.write();
-        if !lens.contains(&cls.id) {
+        if !lens.contains(&cls.id()) {
             determine_vtable(sa, &mut lens, &mut *cls);
         }
     }
@@ -96,7 +96,7 @@ fn determine_vtable(
         }
     }
 
-    lens.insert(cls.id);
+    lens.insert(cls.id());
 }
 
 pub fn check_override(sa: &SemAnalysis) {

@@ -58,7 +58,7 @@ impl<'x> EnumCheck<'x> {
                         &symtable,
                         self.file_id.into(),
                         ty,
-                        TypeParamContext::Enum(self.xenum.read().id),
+                        TypeParamContext::Enum(self.xenum.read().id()),
                         AllowSelf::No,
                     )
                     .unwrap_or(SourceType::Error);
@@ -103,7 +103,7 @@ impl<'x> EnumCheck<'x> {
                         symtable,
                         self.file_id,
                         bound,
-                        TypeParamContext::Enum(self.xenum.read().id),
+                        TypeParamContext::Enum(self.xenum.read().id()),
                         AllowSelf::No,
                     );
 

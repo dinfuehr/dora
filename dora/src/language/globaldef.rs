@@ -416,7 +416,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
-        let cls = ClassDefinition::new(&self.sa, 0.into(), self.file_id, node, self.namespace_id);
+        let cls = ClassDefinition::new(self.file_id, node, self.namespace_id);
         let id = self.sa.classes.push(cls);
 
         let sym = Sym::Class(id);
@@ -428,7 +428,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
         let mut xstruct = StructDefinition {
-            id: 0.into(),
+            id: None,
             file_id: self.file_id,
             ast: node.clone(),
             namespace_id: self.namespace_id,
@@ -462,13 +462,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_annotation(&mut self, node: &Arc<ast::Annotation>) {
-        let annotation = AnnotationDefinition::new(
-            0.into(),
-            self.file_id,
-            node.pos,
-            node.name,
-            self.namespace_id,
-        );
+        let annotation =
+            AnnotationDefinition::new(self.file_id, node.pos, node.name, self.namespace_id);
         let id = self.sa.annotations.push(annotation);
 
         let sym = Sym::Annotation(id);
@@ -496,7 +491,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
         let mut xenum = EnumDefinition {
-            id: 0.into(),
+            id: None,
             file_id: self.file_id,
             namespace_id: self.namespace_id,
             ast: node.clone(),

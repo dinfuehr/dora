@@ -18,7 +18,7 @@ pub fn check(sa: &SemAnalysis) {
         let (struct_id, file_id, ast, namespace_id) = {
             let xstruct = xstruct.read();
             (
-                xstruct.id,
+                xstruct.id(),
                 xstruct.file_id,
                 xstruct.ast.clone(),
                 xstruct.namespace_id,

@@ -52,13 +52,13 @@ impl Id for EnumDefinition {
     }
 
     fn store_id(value: &mut EnumDefinition, id: EnumDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Debug)]
 pub struct EnumDefinition {
-    pub id: EnumDefinitionId,
+    pub id: Option<EnumDefinitionId>,
     pub file_id: FileId,
     pub namespace_id: NamespaceDefinitionId,
     pub ast: Arc<ast::Enum>,
@@ -76,6 +76,10 @@ pub struct EnumDefinition {
 }
 
 impl EnumDefinition {
+    pub fn id(&self) -> EnumDefinitionId {
+        self.id.expect("id missing")
+    }
+
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }

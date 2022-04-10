@@ -77,7 +77,7 @@ fn find_abstract_methods(
 ) -> Rc<Vec<FctDefinitionId>> {
     assert!(cls.is_abstract);
 
-    if let Some(mtds) = abstract_methods.get(&cls.id) {
+    if let Some(mtds) = abstract_methods.get(&cls.id()) {
         return mtds.clone();
     }
 
@@ -114,7 +114,7 @@ fn find_abstract_methods(
     }
 
     let ret = Rc::new(abstracts);
-    abstract_methods.insert(cls.id, ret.clone());
+    abstract_methods.insert(cls.id(), ret.clone());
 
     ret
 }

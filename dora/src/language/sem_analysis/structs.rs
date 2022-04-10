@@ -43,13 +43,13 @@ impl Id for StructDefinition {
     }
 
     fn store_id(value: &mut StructDefinition, id: StructDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Debug)]
 pub struct StructDefinition {
-    pub id: StructDefinitionId,
+    pub id: Option<StructDefinitionId>,
     pub file_id: FileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
@@ -69,6 +69,10 @@ pub struct StructDefinition {
 }
 
 impl StructDefinition {
+    pub fn id(&self) -> StructDefinitionId {
+        self.id.expect("missing id")
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         namespace_path(vm, self.namespace_id, self.name)
     }
@@ -103,7 +107,7 @@ impl StructDefinition {
                 .into_iter()
                 .map(|id| SourceType::TypeParam(TypeParamId(id)))
                 .collect();
-            SourceType::Struct(self.id, SourceTypeArray::with(type_params))
+            SourceType::Struct(self.id(), SourceTypeArray::with(type_params))
         }
     }
 }

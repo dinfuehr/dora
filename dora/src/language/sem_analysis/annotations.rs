@@ -1,7 +1,4 @@
 use std::convert::TryInto;
-use std::sync::Arc;
-
-use parking_lot::RwLock;
 
 use dora_parser::ast::{AnnotationParam, AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
@@ -9,7 +6,7 @@ use dora_parser::Position;
 
 use crate::language::sem_analysis::{NamespaceDefinitionId, TypeParam};
 use crate::language::ty::SourceType;
-use crate::utils::{GrowableVec, Id};
+use crate::utils::Id;
 use crate::vm::{FileId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -33,12 +30,6 @@ impl From<usize> for AnnotationDefinitionId {
     }
 }
 
-impl GrowableVec<RwLock<AnnotationDefinition>> {
-    pub fn idx(&self, index: AnnotationDefinitionId) -> Arc<RwLock<AnnotationDefinition>> {
-        self.idx_usize(index.0)
-    }
-}
-
 impl Id for AnnotationDefinition {
     type IdType = AnnotationDefinitionId;
 
@@ -51,13 +42,13 @@ impl Id for AnnotationDefinition {
     }
 
     fn store_id(value: &mut AnnotationDefinition, id: AnnotationDefinitionId) {
-        value.id = id;
+        value.id = Some(id);
     }
 }
 
 #[derive(Debug)]
 pub struct AnnotationDefinition {
-    pub id: AnnotationDefinitionId,
+    pub id: Option<AnnotationDefinitionId>,
     pub file_id: FileId,
     pub pos: Position,
     pub name: Name,
@@ -71,14 +62,13 @@ pub struct AnnotationDefinition {
 
 impl AnnotationDefinition {
     pub fn new(
-        id: AnnotationDefinitionId,
         file_id: FileId,
         pos: Position,
         name: Name,
         namespace_id: NamespaceDefinitionId,
     ) -> AnnotationDefinition {
         AnnotationDefinition {
-            id,
+            id: None,
             file_id,
             pos,
             name,
@@ -88,6 +78,10 @@ impl AnnotationDefinition {
             type_params: None,
             term_params: None,
         }
+    }
+
+    pub fn id(&self) -> AnnotationDefinitionId {
+        self.id.expect("id missing")
     }
 
     pub fn internal(&self) -> bool {

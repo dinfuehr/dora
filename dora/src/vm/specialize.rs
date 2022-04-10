@@ -177,7 +177,7 @@ fn create_specialized_enum(
 
     let enum_def = Arc::new(EnumInstance {
         id,
-        enum_id: xenum.id,
+        enum_id: xenum.id(),
         type_params: type_params.clone(),
         layout,
         variants: RwLock::new(variants),
@@ -447,7 +447,7 @@ fn create_specialized_class_regular(
 
     let class_def = Arc::new(ClassInstance {
         id,
-        cls_id: Some(cls.id),
+        cls_id: Some(cls.id()),
         trait_object: None,
         type_params: type_params.clone(),
         parent_id,
@@ -572,7 +572,7 @@ fn create_specialized_class_array(
 
     let class_def = Arc::new(ClassInstance {
         id,
-        cls_id: Some(cls.id),
+        cls_id: Some(cls.id()),
         trait_object: None,
         type_params: type_params.clone(),
         parent_id: Some(parent_cls_def_id),
