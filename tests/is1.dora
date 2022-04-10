@@ -13,4 +13,4 @@ fn isa(b: B): Bool {
 }
 
 @open class A {}
-class B extends A {}
+class B: A {}

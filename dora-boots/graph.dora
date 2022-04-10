@@ -491,39 +491,39 @@ fn removeUse(input: Input) {
     input.nextUse = None;
 }
 
-@abstract @open class Const extends Inst
+@abstract @open class Const: Inst
 
-class NullConst(let value: UInt8) extends Const {
+class NullConst(let value: UInt8): Const {
     @override fn dumpName(): String { "Const.Null" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class Int32Const(let value: Int32) extends Const {
+class Int32Const(let value: Int32): Const {
     @override fn dumpName(): String { "Const.Int32(#${self.value})" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class Int64Const(let value: Int64) extends Const {
+class Int64Const(let value: Int64): Const {
     @override fn dumpName(): String { "Const.Int64(#${self.value})" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class Float32Const(let value: Float32) extends Const {
+class Float32Const(let value: Float32): Const {
     @override fn dumpName(): String { "Const.Float32(#${self.value})" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class Float64Const(let value: Float64) extends Const {
+class Float64Const(let value: Float64): Const {
     @override fn dumpName(): String { "Const.Float64(#${self.value})" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class LoadGlobalInst(ty: Type, let global: GlobalId) extends Inst {
+class LoadGlobalInst(ty: Type, let global: GlobalId): Inst {
     self.ty = ty;
 
     @override fn dumpName(): String { "LoadGlobal.${self.ty}(${self.global.value})" }
@@ -531,7 +531,7 @@ class LoadGlobalInst(ty: Type, let global: GlobalId) extends Inst {
     @override fn isRemovable(): Bool { true }
 }
 
-class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst) extends Inst {
+class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst): Inst {
     self.addInput(value);
     self.ty = ty;
 
@@ -541,7 +541,7 @@ class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst) extends I
 }
 
 
-class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst) extends Inst {
+class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst): Inst {
     self.addInput(opnd);
     self.ty = ty;
 
@@ -550,7 +550,7 @@ class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst) extends Inst {
     @override fn isRemovable(): Bool { true }
 }
 
-class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst) extends Inst {
+class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
     self.addInput(lhs);
     self.addInput(rhs);
     self.ty = ty;
@@ -560,7 +560,7 @@ class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst) extends 
     @override fn isRemovable(): Bool { true }
 }
 
-class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst) extends Inst {
+class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
     self.addInput(lhs);
     self.addInput(rhs);
     self.ty = ty;
@@ -570,19 +570,19 @@ class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst) extends I
     @override fn isRemovable(): Bool { true }
 }
 
-class UndefInst extends Inst {
+class UndefInst: Inst {
     @override fn dumpName(): String { "Undef" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class PhiInst extends Inst {
+class PhiInst: Inst {
     @override fn dumpName(): String { "Phi" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class BoundsCheck(let index: Inst, let length: Inst) extends Inst {
+class BoundsCheck(let index: Inst, let length: Inst): Inst {
     self.addInput(index);
     self.addInput(length);
 
@@ -591,7 +591,7 @@ class BoundsCheck(let index: Inst, let length: Inst) extends Inst {
     @override fn isRemovable(): Bool { false }
 }
 
-class DivZeroCheck(let value: Inst) extends Inst {
+class DivZeroCheck(let value: Inst): Inst {
     self.addInput(value);
 
     @override fn dumpName(): String { "DivZeroCheck" }
@@ -599,7 +599,7 @@ class DivZeroCheck(let value: Inst) extends Inst {
     @override fn isRemovable(): Bool { false }
 }
 
-class ArrayGet(let array: Inst, let index: Inst, ty: Type) extends Inst {
+class ArrayGet(let array: Inst, let index: Inst, ty: Type): Inst {
     self.ty = ty;
 
     self.addInput(array);
@@ -610,7 +610,7 @@ class ArrayGet(let array: Inst, let index: Inst, ty: Type) extends Inst {
     @override fn isRemovable(): Bool { true }
 }
 
-class ArraySet(let array: Inst, let index: Inst, let value: Inst) extends Inst {
+class ArraySet(let array: Inst, let index: Inst, let value: Inst): Inst {
     self.addInput(array);
     self.addInput(index);
     self.addInput(value);
@@ -620,7 +620,7 @@ class ArraySet(let array: Inst, let index: Inst, let value: Inst) extends Inst {
     @override fn isRemovable(): Bool { false }
 }
 
-class ArrayLength(let array: Inst) extends Inst {
+class ArrayLength(let array: Inst): Inst {
     self.addInput(array);
 
     @override fn dumpName(): String { "ArrayLength" }
@@ -630,7 +630,7 @@ class ArrayLength(let array: Inst) extends Inst {
 
 class FieldInfo(let offset: Int32, let volatile: Bool)
 
-class FieldGet(let obj: Inst, let field: FieldInfo, ty: Type) extends Inst {
+class FieldGet(let obj: Inst, let field: FieldInfo, ty: Type): Inst {
     self.ty = ty;
 
     self.addInput(obj);
@@ -640,7 +640,7 @@ class FieldGet(let obj: Inst, let field: FieldInfo, ty: Type) extends Inst {
     @override fn isRemovable(): Bool { true }
 }
 
-class FieldSet(let obj: Inst, let field: FieldInfo, let value: Inst) extends Inst {
+class FieldSet(let obj: Inst, let field: FieldInfo, let value: Inst): Inst {
     self.addInput(obj);
     self.addInput(value);
 
@@ -649,7 +649,7 @@ class FieldSet(let obj: Inst, let field: FieldInfo, let value: Inst) extends Ins
     @override fn isRemovable(): Bool { false }
 }
 
-class ArgInst(let index: Int32, ty: Type) extends Inst {
+class ArgInst(let index: Int32, ty: Type): Inst {
     self.ty = ty;
 
     @override fn dumpName(): String { "Arg.${self.ty}(${self.index})" }
@@ -657,7 +657,7 @@ class ArgInst(let index: Int32, ty: Type) extends Inst {
     @override fn isRemovable(): Bool { true }
 }
 
-class ReturnInst(let value: Inst, ty: Type) extends Inst {
+class ReturnInst(let value: Inst, ty: Type): Inst {
     self.ty = ty;
     self.addInput(value);
 
@@ -666,13 +666,13 @@ class ReturnInst(let value: Inst, ty: Type) extends Inst {
     @override fn isRemovable(): Bool { false }
 }
 
-class ReturnVoidInst extends Inst {
+class ReturnVoidInst: Inst {
     @override fn dumpName(): String { "Ret.Void" }
     @override fn isTerminator(): Bool { true }
     @override fn isRemovable(): Bool { false }
 }
 
-class IfInst(let cond: Inst, let true_block: Block, let false_block: Block) extends Inst {
+class IfInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {
     self.addInput(cond);
 
     @override fn dumpName(): String { "If(@${self.true_block.id}, @${self.false_block.id})" }
@@ -680,7 +680,7 @@ class IfInst(let cond: Inst, let true_block: Block, let false_block: Block) exte
     @override fn isRemovable(): Bool { false }
 }
 
-class GotoInst(let block: Block) extends Inst {
+class GotoInst(let block: Block): Inst {
     @override fn dumpName(): String { "Goto(@${self.block.id})" }
     @override fn isTerminator(): Bool { true }
     @override fn isRemovable(): Bool { false }

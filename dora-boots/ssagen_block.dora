@@ -33,7 +33,7 @@ class BlockMap(let bc: BytecodeFunction) {
     }
 }
 
-class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap) extends EmptyBytecodeVisitor {
+class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap): EmptyBytecodeVisitor {
     var offset: Int32 = 0;
     var currentBlock: Option[Block] = None;
     var blockTerminated: Bool = false;
@@ -112,7 +112,7 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
     }
 }
 
-class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap) extends EmptyBytecodeVisitor {
+class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap): EmptyBytecodeVisitor {
     var offset: Int32 = 0;
     var nextInstructionIsBlockStart: Bool = false;
     let blockStarts: BitSet = BitSet(bc.code.size());

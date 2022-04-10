@@ -1,7 +1,7 @@
 //= vm-args "--gc-young-size=64M --max-heap-size=128M"
 //= config region
 
-class MyThread() extends std::Thread {
+class MyThread(): std::Thread {
     @override fn run() {
         allocator();
         println("done");

@@ -9,4 +9,4 @@ fn test(a: A): Bool {
 }
 
 @open class A
-class B(let x: Int32) extends A
+class B(let x: Int32): A

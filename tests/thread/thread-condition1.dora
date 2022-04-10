@@ -36,7 +36,7 @@ class SharedQueue[T](let capacity: Int64) {
     }
 }
 
-class Producer(let queue: SharedQueue[Int32]) extends std::Thread {
+class Producer(let queue: SharedQueue[Int32]): std::Thread {
     var sum: Int32 = 0I;
 
     @override fn run() {
@@ -50,7 +50,7 @@ class Producer(let queue: SharedQueue[Int32]) extends std::Thread {
     }
 }
 
-class Consumer(let queue: SharedQueue[Int32]) extends std::Thread {
+class Consumer(let queue: SharedQueue[Int32]): std::Thread {
     var sum: Int32 = 0I;
 
     @override fn run() {

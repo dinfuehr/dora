@@ -5,7 +5,7 @@ fn main() {
     thread.start();
 }
 
-class MyThread extends std::Thread {
+class MyThread: std::Thread {
     @override fn run() {
         g();
     }

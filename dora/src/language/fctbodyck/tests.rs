@@ -533,22 +533,20 @@ fn reassign_self() {
 
 #[test]
 fn super_class() {
-    ok("@open class A class B extends A");
-    ok("@open class A class B extends A()");
-    ok("@open class A(a: Int32) class B extends A(1I)");
+    ok("@open class A class B: A");
+    ok("@open class A class B: A()");
+    ok("@open class A(a: Int32) class B: A(1I)");
     err(
-        "@open class A(a: Int32) class B extends A(true)",
-        pos(1, 41),
+        "@open class A(a: Int32) class B: A(true)",
+        pos(1, 34),
         SemError::UnknownCtor,
     );
 }
 
 #[test]
 fn access_super_class_field() {
-    ok(
-        "@open class A(var a: Int32) class B(x: Int32) extends A(x*2I)
-            fun foo(b: B) { b.a = b.a + 10I; }",
-    );
+    ok("@open class A(var a: Int32) class B(x: Int32): A(x*2I)
+            fun foo(b: B) { b.a = b.a + 10I; }");
 }
 
 #[test]
@@ -559,43 +557,43 @@ fn same_names() {
 
 #[test]
 fn check_is() {
-    ok("@open class A class B extends A
+    ok("@open class A class B: A
             fun f(a: A): Bool { return a is B; }");
-    ok("@open class A class B extends A
+    ok("@open class A class B: A
             fun f(b: B): Bool { return b is A; }");
     ok("class A
             fun f(a: A): Bool { return a is A; }");
     err(
-        "@open class A class B extends A
+        "@open class A class B: A
              fun f(a: A): Bool { return a is String; }",
         pos(2, 43),
         SemError::TypesIncompatible("A".into(), "String".into()),
     );
     err(
-        "@open class A class B extends A class C
+        "@open class A class B: A class C
              fun f(a: A): Bool { return a is C; }",
         pos(2, 43),
         SemError::TypesIncompatible("A".into(), "C".into()),
     );
 
-    ok("@open class A() class B() extends A() fun f(): A { return B(); }");
-    ok("@open class A() class B() extends A() fun f() { let a: A = B(); }");
+    ok("@open class A() class B(): A() fun f(): A { return B(); }");
+    ok("@open class A() class B(): A() fun f() { let a: A = B(); }");
 }
 
 #[test]
 fn check_as() {
-    ok("@open class A class B extends A
+    ok("@open class A class B: A
             fun f(a: A): B { return a as B; }");
     ok("class A
             fun f(a: A): A { return a as A; }");
     err(
-        "@open class A class B extends A
+        "@open class A class B: A
              fun f(a: A): String { return a as String; }",
         pos(2, 45),
         SemError::TypesIncompatible("A".into(), "String".into()),
     );
     err(
-        "@open class A class B extends A class C
+        "@open class A class B: A class C
              fun f(a: A): C { return a as C; }",
         pos(2, 40),
         SemError::TypesIncompatible("A".into(), "C".into()),
@@ -604,7 +602,7 @@ fn check_as() {
 
 #[test]
 fn check_upcast() {
-    ok("@open class A class B extends A
+    ok("@open class A class B: A
             fun f(b: B): A {
                 let a: A = b;
                 return a;
@@ -618,7 +616,7 @@ fn check_upcast() {
 #[test]
 fn super_delegation() {
     ok("@open class A { fun f() {} }
-            class B extends A { fun g() {} }
+            class B: A { fun g() {} }
 
             fun foo(b: B) {
                 b.f();
@@ -629,15 +627,15 @@ fn super_delegation() {
 #[test]
 fn super_method_call() {
     ok("@open class A { @open fun f(): Int32 { return 1I; } }
-            class B extends A { @override fun f(): Int32 { return super.f() + 1I; } }");
+            class B: A { @override fun f(): Int32 { return super.f() + 1I; } }");
 }
 
 #[test]
 fn super_as_normal_expression() {
     err(
         "@open class A { }
-            class B extends A { fun me() { let x = super; } }",
-        pos(2, 52),
+            class B: A { fun me() { let x = super; } }",
+        pos(2, 45),
         SemError::SuperNeedsMethodCall,
     );
 }
@@ -1604,7 +1602,7 @@ fn test_fct_and_class_type_params() {
 #[test]
 fn test_subtyping() {
     ok("
-    @open class A class B extends A
+    @open class A class B: A
     class Test {
         fun foo(a: A) {}
     }
@@ -2183,21 +2181,21 @@ fn test_tuple_element() {
 fn test_inheritance_with_generics() {
     ok("
         @open class Foo[A](let a: A)
-        class Bar extends Foo[Int32](10I)
+        class Bar: Foo[Int32](10I)
     ");
 
     err(
         "
         @open class Foo[A](let a: A)
-        class Bar extends Foo(10I)
+        class Bar: Foo(10I)
     ",
-        pos(3, 27),
+        pos(3, 20),
         SemError::WrongNumberTypeParams(1, 0),
     );
 
     ok("
         @open class Foo[A](let a: A)
-        class Bar[A](x: A) extends Foo[A](x)
+        class Bar[A](x: A): Foo[A](x)
     ");
 }
 
@@ -2205,8 +2203,8 @@ fn test_inheritance_with_generics() {
 fn test_fields_with_generics() {
     ok("
         @open @abstract class Foo[A](var a: A)
-        @open class Bar[A] extends Foo[Int32](10I)
-        class Baz[A] extends Bar[A] {
+        @open class Bar[A]: Foo[Int32](10I)
+        class Baz[A]: Bar[A] {
             fun test(): Int32 { self.a }
             fun assignMe() { self.a = 10I; }
         }
@@ -2220,11 +2218,11 @@ fn test_methods_with_generics() {
             @abstract fun test(): A;
         }
 
-        class Bar[A](let bar: A) extends Foo[A] {
+        class Bar[A](let bar: A): Foo[A] {
             @override fun test(): A { self.bar }
         }
 
-        class Baz[A](let baz: A) extends Foo[Int32] {
+        class Baz[A](let baz: A): Foo[Int32] {
             @override fun test(): Int32 { 0I }
         }
     ");
@@ -2234,11 +2232,11 @@ fn test_methods_with_generics() {
             @open fun test(x: A): A { x }
         }
 
-        class Bar[A](let bar: A) extends Foo[A] {
+        class Bar[A](let bar: A): Foo[A] {
             @override fun test(x: A): A { self.bar }
         }
 
-        class Baz[A](let baz: A) extends Foo[Int32] {
+        class Baz[A](let baz: A): Foo[Int32] {
             @override fun test(x: Int32): Int32 { x+x }
         }
     ");
@@ -2265,9 +2263,9 @@ fn test_type_params_with_bounds_in_subclass() {
         "
         trait SomeTrait {}
         @open class Foo[A: SomeTrait]
-        class Bar extends Foo[Int32]
+        class Bar: Foo[Int32]
     ",
-        pos(4, 27),
+        pos(4, 20),
         SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
     );
 }
@@ -2277,10 +2275,10 @@ fn test_type_params_with_bounds_in_subclass_wrong_order() {
     err(
         "
         trait SomeTrait {}
-        class Bar extends Foo[Int32]
+        class Bar: Foo[Int32]
         @open class Foo[A: SomeTrait]
     ",
-        pos(3, 27),
+        pos(3, 20),
         SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
     );
 }

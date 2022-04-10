@@ -298,29 +298,25 @@ mod tests {
     #[test]
     fn class_with_unknown_super_class() {
         err(
-            "class B extends A {}",
-            pos(1, 17),
+            "class B: A {}",
+            pos(1, 10),
             SemError::UnknownIdentifier("A".into()),
         );
         err(
-            "@open class B extends A {}",
-            pos(1, 23),
+            "@open class B: A {}",
+            pos(1, 16),
             SemError::UnknownIdentifier("A".into()),
         );
-        err(
-            "class B extends Int32 {}",
-            pos(1, 17),
-            SemError::ClassExpected,
-        );
+        err("class B: Int32 {}", pos(1, 10), SemError::ClassExpected);
     }
 
     #[test]
     fn class_with_open_modifier() {
         ok("@open class A {}");
-        ok("@open class A {} class B extends A {}");
+        ok("@open class A {} class B: A {}");
         err(
-            "class A {} class B extends A {}",
-            pos(1, 28),
+            "class A {} class B: A {}",
+            pos(1, 21),
             SemError::UnderivableType("A".into()),
         );
     }
@@ -439,8 +435,8 @@ mod tests {
         err(
             "
             @open class A
-            class B extends A[Int32] {}",
-            pos(3, 29),
+            class B: A[Int32] {}",
+            pos(3, 22),
             SemError::WrongNumberTypeParams(0, 1),
         );
     }

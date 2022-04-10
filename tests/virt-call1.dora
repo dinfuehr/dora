@@ -2,7 +2,7 @@
     @open @abstract fn test(): Int32;
 }
 
-class Bar extends Foo {
+class Bar: Foo {
     @override fn test(): Int32 = 17I;
 }
 

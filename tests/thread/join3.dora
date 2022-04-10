@@ -1,4 +1,4 @@
-class MyThread extends std::Thread {
+class MyThread: std::Thread {
     @override fn run() {
         std::sleep(1I);
         std::forceCollect();

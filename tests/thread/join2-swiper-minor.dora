@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper"
 
-class MyThread extends std::Thread {
+class MyThread: std::Thread {
     @override fn run() {}
 }
 

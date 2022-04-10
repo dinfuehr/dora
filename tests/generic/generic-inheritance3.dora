@@ -9,8 +9,8 @@ fn main() {
 }
 
 @open @abstract class Foo[A](var value: A)
-@open class Bar[A] extends Foo[Int32](10I)
-class Baz[A] extends Bar[A] {
+@open class Bar[A]: Foo[Int32](10I)
+class Baz[A]: Bar[A] {
     fn test(): Int32 = self.value;
     fn assignMe() { self.value = 20I; }
 }

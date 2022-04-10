@@ -217,7 +217,7 @@ impl std::Stringable for TaskControlBlock {
     @abstract fn toString(): String;
 }
 
-class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32) extends Task {
+class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32): Task {
     @override fn run(packet: Option[Packet]): Option[TaskControlBlock] {
         self.count = self.count - 1I;
         if self.count == 0I {
@@ -237,7 +237,7 @@ class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32) exte
     }
 }
 
-class DeviceTask(let scheduler: Scheduler) extends Task {
+class DeviceTask(let scheduler: Scheduler): Task {
     var seed: Option[Packet] = Option[Packet]::None;
 
     @override fn run(packet: Option[Packet]): Option[TaskControlBlock] {
@@ -259,7 +259,7 @@ class DeviceTask(let scheduler: Scheduler) extends Task {
     }
 }
 
-class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32) extends Task {
+class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32): Task {
     @override fn run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isNone() {
             return self.scheduler.suspendCurrent();
@@ -289,7 +289,7 @@ class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32) extends
     }
 }
 
-class HandlerTask(let scheduler: Scheduler) extends Task {
+class HandlerTask(let scheduler: Scheduler): Task {
     var v1: Option[Packet] = Option[Packet]::None;
     var v2: Option[Packet] = Option[Packet]::None;
 

@@ -1,6 +1,6 @@
 //= stdout "done\n"
 
-class MyThread extends std::Thread {
+class MyThread: std::Thread {
     var executed: Bool = false;
 
     @override fn run() {

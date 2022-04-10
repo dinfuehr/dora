@@ -6,5 +6,5 @@ fn main() {
 }
 
 @open @abstract class Foo[A](var value: A)
-class Bar extends Foo[Int32](10I)
+class Bar: Foo[Int32](10I)
 

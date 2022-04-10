@@ -4,7 +4,7 @@ fn main() { }
 
 @open class A { }
 
-class B extends A {
+class B: A {
   fn foo() {
     super.bar();
   }

@@ -206,10 +206,10 @@ mod tests {
     #[test]
     fn test_cycle() {
         errors(
-            "@open class A extends B @open class B extends A",
+            "@open class A: B @open class B: A",
             &[
                 (pos(1, 7), SemError::CycleInHierarchy),
-                (pos(1, 31), SemError::CycleInHierarchy),
+                (pos(1, 24), SemError::CycleInHierarchy),
             ],
         );
     }
@@ -222,18 +222,18 @@ mod tests {
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { } class A extends B { @override fun f() {} }",
-            pos(1, 49),
+            "@open class B { } class A: B { @override fun f() {} }",
+            pos(1, 42),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { fun g() {} } class A extends B { @override fun f() {} }",
-            pos(1, 60),
+            "@open class B { fun g() {} } class A: B { @override fun f() {} }",
+            pos(1, 53),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { @open fun f(a: Int32) {} } class A extends B { @override fun f() {} }",
-            pos(1, 74),
+            "@open class B { @open fun f(a: Int32) {} } class A: B { @override fun f() {} }",
+            pos(1, 67),
             SemError::OverrideMismatch,
         );
     }
@@ -241,24 +241,24 @@ mod tests {
     #[test]
     fn test_override() {
         err(
-            "@open class A { fun f() {} } class B extends A { @override fun f() {} }",
-            pos(1, 60),
+            "@open class A { fun f() {} } class B: A { @override fun f() {} }",
+            pos(1, 53),
             SemError::MethodNotOverridable("f".into()),
         );
-        ok("@open class A { @open fun f() {} } class B extends A { @override fun f() {} }");
+        ok("@open class A { @open fun f() {} } class B: A { @override fun f() {} }");
         ok("@open class A { @open fun f() {} }
-            @open class B extends A { @override fun f() {} }
-            @open class C extends B { @override fun f() {} }");
+            @open class B: A { @override fun f() {} }
+            @open class C: B { @override fun f() {} }");
         err(
-            "@open class A { @open fun f() {} } class B extends A { fun f() {} }",
-            pos(1, 56),
+            "@open class A { @open fun f() {} } class B: A { fun f() {} }",
+            pos(1, 49),
             SemError::MissingOverride("f".into()),
         );
         err(
             "@open class A { @open fun f() {} }
-             @open class B extends A { @final @override fun f() {} }
-             class C extends B { @override fun f() {} }",
-            pos(3, 44),
+             @open class B: A { @final @override fun f() {} }
+             class C: B { @override fun f() {} }",
+            pos(3, 37),
             SemError::MethodNotOverridable("f".into()),
         );
     }
@@ -267,23 +267,23 @@ mod tests {
     fn test_overload_method_in_super_class() {
         errors(
             "@open class A { @open fun f() {} }
-            class B extends A { fun f(a: Int32) {} }",
+            class B: A { fun f(a: Int32) {} }",
             &[
-                (pos(2, 33), SemError::MissingOverride("f".into())),
-                (pos(2, 33), SemError::OverrideMismatch),
+                (pos(2, 26), SemError::MissingOverride("f".into())),
+                (pos(2, 26), SemError::OverrideMismatch),
             ],
         );
 
         ok("@open class A { @static fun f() {} }
-            class B extends A { @static fun f(a: Int32) {} }");
+            class B: A { @static fun f(a: Int32) {} }");
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
         err(
             "@open class A { @open fun f() {} }
-             class B extends A { @override fun f(): Int32 { return 1; } }",
-            pos(2, 44),
+             class B: A { @override fun f(): Int32 { return 1; } }",
+            pos(2, 37),
             SemError::OverrideMismatch,
         );
     }
@@ -296,7 +296,7 @@ mod tests {
             @open fun test(x: Int32): Int32 { x * 2 }
         }
 
-        class Bar extends Foo {
+        class Bar: Foo {
             @override fun test(x: String): Int32 { 0 }
         }
     ",
@@ -342,7 +342,7 @@ mod tests {
 
         ok_with_test(
             "@open class A { @open fun f() {} }
-                      @open class B extends A { @override fun f() {}
+                      @open class B: A { @override fun f() {}
                                         @open fun g() {} }",
             |sa| {
                 let cls_id = sa.cls_by_name("A");

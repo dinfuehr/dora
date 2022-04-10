@@ -3,7 +3,7 @@
 const THREADS: Int32 = 20I;
 const ITERATIONS: Int32 = 10_000I;
 
-class MyThread(let mtx: std::Mutex, let value: SharedInt) extends std::Thread {
+class MyThread(let mtx: std::Mutex, let value: SharedInt): std::Thread {
     @override fn run() {
         var i = 0I;
         var last: Object = Object();

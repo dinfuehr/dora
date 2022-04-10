@@ -11,7 +11,7 @@ fn createGraph(bc: BytecodeFunction): Graph {
     graph
 }
 
-class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap) extends BytecodeVisitor {
+class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap): BytecodeVisitor {
     var currentBlock: Option[Block] = None;
     var offset: Int32 = 0I;
     var currentDef: Array[HashMap[Block, Inst]] = Array[HashMap[Block, Inst]]::empty();

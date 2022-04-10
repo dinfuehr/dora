@@ -2240,7 +2240,7 @@ fn gen_virtual_method_call_void_check_correct_self() {
             @open @abstract class Bar {
                 @open @abstract fun g();
             }
-            class Foo extends Bar {
+            class Foo: Bar {
                 @override fun g() {}
             }
             ",
@@ -2270,7 +2270,7 @@ fn gen_virtual_method_call_void_with_0_args() {
             @open @abstract class Bar {
                 @open @abstract fun g();
             }
-            class Foo extends Bar {
+            class Foo: Bar {
                 @override fun g() {}
             }
             ",
@@ -2300,7 +2300,7 @@ fn gen_virtual_method_call_void_with_1_arg() {
             @open @abstract class Bar {
                 @open @abstract fun g(a: Int32);
             }
-            class Foo extends Bar {
+            class Foo: Bar {
                 @override fun g(a: Int32) {}
             }
             ",
@@ -2332,7 +2332,7 @@ fn gen_virtual_method_call_void_with_3_args() {
             @open @abstract class Bar {
                 @open @abstract fun g(a: Int32, b: Int32, c: Int32);
             }
-            class Foo extends Bar {
+            class Foo: Bar {
                 @override fun g(a: Int32, b: Int32, c: Int32) {}
             }
             ",
@@ -2368,7 +2368,7 @@ fn gen_virtual_method_call_int_with_0_args() {
             @open @abstract class Bar {
                 @open @abstract fun g(): Int32;
             }
-            class Foo extends Bar {
+            class Foo: Bar {
                 @override fun g(): Int32 { 1I }
             }
             ",
@@ -2398,7 +2398,7 @@ fn gen_virtual_method_call_int_with_1_arg() {
             @open @abstract class Bar {
                 @open @abstract fun g(a: Int32): Int32;
             }
-            class Foo extends Bar {
+            class Foo: Bar {
                 @override fun g(a: Int32): Int32 { 1I }
             }
             ",
@@ -2430,7 +2430,7 @@ fn gen_virtual_method_call_int_with_3_args() {
             @open @abstract class Bar {
                 @open @abstract fun g(a: Int32, b: Int32, c: Int32): Int32;
             }
-            class Foo extends Bar {
+            class Foo: Bar {
                 @override fun g(a: Int32, b: Int32, c: Int32): Int32 { 1I }
             }
             ",
@@ -3554,7 +3554,7 @@ fn gen_truncate_float64_to_int64() {
 #[test]
 fn gen_instanceof() {
     gen_fct(
-        "@open class A class B extends A fun f(a: A): Bool { a is B }",
+        "@open class A class B: A fun f(a: A): Bool { a is B }",
         |vm, code, fct| {
             let cls_id = vm.cls_by_name("B");
             let expected = vec![InstanceOf(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
@@ -3570,7 +3570,7 @@ fn gen_instanceof() {
 #[test]
 fn gen_checked_cast() {
     gen_fct(
-        "@open class A class B extends A fun f(a: A): B { a as B }",
+        "@open class A class B: A fun f(a: A): B { a as B }",
         |vm, code, fct| {
             let cls_id = vm.cls_by_name("B");
             let expected = vec![CheckedCast(r(0), ConstPoolIdx(0)), Ret(r(0))];
@@ -3587,7 +3587,7 @@ fn gen_checked_cast() {
 fn gen_checked_cast_effect() {
     gen_fct(
         "@open class A
-        class B extends A
+        class B: A
         fun f(a: A): B { let b = a as B; b }",
         |vm, code, fct| {
             let cls_id = vm.cls_by_name("B");

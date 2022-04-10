@@ -158,17 +158,17 @@ import std::exit;
     }
 }
 
-class NodeA extends Node {}
-class NodeB extends Node { let x1: Int64 = 0L; }
-class NodeC extends Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
-class NodeD extends Node { let x1: Float64 = 0.0; let x2: Float64 = 0.0; let x3: Float64 = 0.0; }
+class NodeA: Node {}
+class NodeB: Node { let x1: Int64 = 0L; }
+class NodeC: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
+class NodeD: Node { let x1: Float64 = 0.0; let x2: Float64 = 0.0; let x3: Float64 = 0.0; }
 
-class Node40 extends Node {}
-class Node48 extends Node { let x1: Int64 = 0L; }
-class Node56 extends Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
-class Node64 extends Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; }
-class Node72 extends Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; }
-class Node80 extends Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; let x5: Int64 = 0L; }
+class Node40: Node {}
+class Node48: Node { let x1: Int64 = 0L; }
+class Node56: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
+class Node64: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; }
+class Node72: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; }
+class Node80: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; let x5: Int64 = 0L; }
 
 fn main() {
     if argc() < 4I {

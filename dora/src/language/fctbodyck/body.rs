@@ -3070,7 +3070,7 @@ impl<'a> TypeCheck<'a> {
         let mut valid = false;
 
         if object_type.subclass_from(self.sa, check_type.clone()) {
-            // open class A { } class B extends A { }
+            // open class A { } class B: A { }
             // (b is A) is valid
 
             valid = true;

@@ -13,8 +13,8 @@ fn main() {
   fn printBase(): Int32 = 2I;
 }
 
-@open class B extends A {
+@open class B: A {
   @override fn printSpecial(): Int32 = 1I;
 }
 
-class C extends B {}
+class C: B {}

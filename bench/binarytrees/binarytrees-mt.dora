@@ -45,7 +45,7 @@ fn main() {
         + "\t check: " + checkTree(longLastingNode).toString());
 }
 
-class TreeThread(let nextDepth: std::AtomicInt32, let maxDepth: Int32, let results: Array[String]) extends std::Thread {
+class TreeThread(let nextDepth: std::AtomicInt32, let maxDepth: Int32, let results: Array[String]): std::Thread {
     @override fn run() {
         while true {
             let depth = self.nextDepth.fetchAdd(2I);

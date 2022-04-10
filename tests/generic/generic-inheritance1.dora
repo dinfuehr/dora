@@ -3,5 +3,5 @@ fn main() {
 }
 
 @open @abstract class Foo[A]
-class Bar extends Foo[Int32]
+class Bar: Foo[Int32]
 

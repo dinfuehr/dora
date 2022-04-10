@@ -4,5 +4,5 @@ fn main() {
   assert(a.y == 20I);
 }
 
-class A(let x: Int32) extends B(x*2I)
+class A(let x: Int32): B(x*2I)
 @open class B(let y: Int32)

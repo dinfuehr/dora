@@ -1,8 +1,8 @@
 //= stdout "ABC"
 
 @open class A { @open fn foo() { print("A"); } }
-class B extends A { @override fn foo() { print("B"); } }
-class C extends A { @override fn foo() { print("C"); } }
+class B: A { @override fn foo() { print("B"); } }
+class C: A { @override fn foo() { print("C"); } }
 
 fn main() {
   test(A());

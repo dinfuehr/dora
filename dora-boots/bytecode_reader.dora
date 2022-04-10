@@ -188,7 +188,7 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fn visitRet(opnd: BytecodeRegister) { unimplemented(); }
 }
 
-@open @abstract class EmptyBytecodeVisitor extends BytecodeVisitor {
+@open @abstract class EmptyBytecodeVisitor: BytecodeVisitor {
     @override fn visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fn visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fn visitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}

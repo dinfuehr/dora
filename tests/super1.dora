@@ -11,7 +11,7 @@ fn main() {
   }
 }
 
-class B extends A {
+class B: A {
   @override fn foo(a: Int32): Int32 {
     return super.foo(a) + 1I;
   }

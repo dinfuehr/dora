@@ -14,4 +14,4 @@ fn asa(b: B): A {
 }
 
 @open class A {}
-class B extends A {}
+class B: A {}

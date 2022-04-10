@@ -11,9 +11,9 @@ fn main() {
   }
 }
 
-@open class B extends A {}
+@open class B: A {}
 
-class C extends B {
+class C: B {
   @override fn foo(a: Int32): Int32 {
     return super.foo(a) + 1I;
   }

@@ -3,7 +3,7 @@ import std::AtomicInt32;
 const THREADS: Int32 = 4I;
 const ITERATIONS: Int32 = 100_000I;
 
-class MyThread(let counter: AtomicInt32) extends std::Thread {
+class MyThread(let counter: AtomicInt32): std::Thread {
     @override fn run() {
         var i = 0I;
         while i < ITERATIONS {
