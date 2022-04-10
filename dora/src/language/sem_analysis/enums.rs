@@ -76,6 +76,38 @@ pub struct EnumDefinition {
 }
 
 impl EnumDefinition {
+    pub fn new(
+        file_id: FileId,
+        namespace_id: NamespaceDefinitionId,
+        node: &Arc<ast::Enum>,
+    ) -> EnumDefinition {
+        let mut type_params = Vec::new();
+
+        if let Some(ref ast_type_params) = node.type_params {
+            for param in ast_type_params {
+                type_params.push(TypeParam::new(param.name));
+            }
+        }
+
+        EnumDefinition {
+            id: None,
+            file_id: file_id,
+            namespace_id: namespace_id,
+            ast: node.clone(),
+            pos: node.pos,
+            name: node.name,
+            type_params,
+            type_params2: TypeParamDefinition::new(),
+            is_pub: node.is_pub,
+            variants: Vec::new(),
+            name_to_value: HashMap::new(),
+            impls: Vec::new(),
+            extensions: Vec::new(),
+            specializations: RwLock::new(HashMap::new()),
+            simple_enumeration: false,
+        }
+    }
+
     pub fn id(&self) -> EnumDefinitionId {
         self.id.expect("id missing")
     }

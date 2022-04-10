@@ -49,6 +49,25 @@ pub struct ConstDefinition {
 }
 
 impl ConstDefinition {
+    pub fn new(
+        file_id: FileId,
+        namespace_id: NamespaceDefinitionId,
+        node: &Arc<ast::Const>,
+    ) -> ConstDefinition {
+        ConstDefinition {
+            id: None,
+            file_id,
+            ast: node.clone(),
+            namespace_id,
+            pos: node.pos,
+            name: node.name,
+            is_pub: node.is_pub,
+            ty: SourceType::Error,
+            expr: node.expr.clone(),
+            value: ConstValue::None,
+        }
+    }
+
     pub fn id(&self) -> ConstDefinitionId {
         self.id.expect("id missing")
     }

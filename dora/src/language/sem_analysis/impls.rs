@@ -59,6 +59,34 @@ pub struct ImplDefinition {
 }
 
 impl ImplDefinition {
+    pub fn new(
+        file_id: FileId,
+        namespace_id: NamespaceDefinitionId,
+        node: &Arc<ast::Impl>,
+    ) -> ImplDefinition {
+        let mut type_params = Vec::new();
+        if let Some(ref ast_type_params) = node.type_params {
+            for param in ast_type_params {
+                type_params.push(TypeParam::new(param.name));
+            }
+        }
+
+        ImplDefinition {
+            id: None,
+            file_id,
+            ast: node.clone(),
+            namespace_id,
+            type_params,
+            pos: node.pos,
+            trait_id: None,
+            ty: SourceType::Error,
+            methods: Vec::new(),
+            instance_names: HashMap::new(),
+            static_names: HashMap::new(),
+            impl_for: HashMap::new(),
+        }
+    }
+
     pub fn id(&self) -> ImplDefinitionId {
         self.id.expect("id missing")
     }

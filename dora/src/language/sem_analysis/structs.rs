@@ -69,6 +69,40 @@ pub struct StructDefinition {
 }
 
 impl StructDefinition {
+    pub fn new(
+        file_id: FileId,
+        namespace_id: NamespaceDefinitionId,
+        node: &Arc<ast::Struct>,
+    ) -> StructDefinition {
+        let mut type_params = Vec::new();
+
+        if let Some(ref ast_type_params) = node.type_params {
+            for param in ast_type_params {
+                type_params.push(TypeParam::new(param.name));
+            }
+        }
+
+        StructDefinition {
+            id: None,
+            file_id,
+            ast: node.clone(),
+            namespace_id,
+            primitive_ty: None,
+            is_pub: node.is_pub,
+            pos: node.pos,
+            name: node.name,
+            internal: node.internal,
+            internal_resolved: false,
+            type_params,
+            type_params2: TypeParamDefinition::new(),
+            fields: Vec::new(),
+            field_names: HashMap::new(),
+            specializations: RwLock::new(HashMap::new()),
+            impls: Vec::new(),
+            extensions: Vec::new(),
+        }
+    }
+
     pub fn id(&self) -> StructDefinitionId {
         self.id.expect("missing id")
     }

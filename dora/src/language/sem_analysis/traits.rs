@@ -65,6 +65,28 @@ pub struct TraitDefinition {
 }
 
 impl TraitDefinition {
+    pub fn new(
+        file_id: FileId,
+        namespace_id: NamespaceDefinitionId,
+        node: &Arc<ast::Trait>,
+    ) -> TraitDefinition {
+        TraitDefinition {
+            id: None,
+            file_id,
+            ast: node.clone(),
+            namespace_id,
+            is_pub: node.is_pub,
+            pos: node.pos,
+            name: node.name,
+            type_params: Vec::new(),
+            type_params2: TypeParamDefinition::new(),
+            methods: Vec::new(),
+            instance_names: HashMap::new(),
+            static_names: HashMap::new(),
+            vtables: RwLock::new(HashMap::new()),
+        }
+    }
+
     pub fn id(&self) -> TraitDefinitionId {
         self.id.expect("id missing")
     }

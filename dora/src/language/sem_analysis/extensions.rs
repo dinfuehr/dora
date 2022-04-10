@@ -63,6 +63,32 @@ pub struct ExtensionDefinition {
 }
 
 impl ExtensionDefinition {
+    pub fn new(
+        file_id: FileId,
+        namespace_id: NamespaceDefinitionId,
+        node: &Arc<ast::Impl>,
+    ) -> ExtensionDefinition {
+        let mut type_params = Vec::new();
+        if let Some(ref ast_type_params) = node.type_params {
+            for param in ast_type_params {
+                type_params.push(TypeParam::new(param.name));
+            }
+        }
+
+        ExtensionDefinition {
+            id: None,
+            file_id,
+            namespace_id,
+            ast: node.clone(),
+            pos: node.pos,
+            type_params,
+            ty: SourceType::Error,
+            methods: Vec::new(),
+            instance_names: HashMap::new(),
+            static_names: HashMap::new(),
+        }
+    }
+
     pub fn id(&self) -> ExtensionDefinitionId {
         self.id.expect("id missing")
     }

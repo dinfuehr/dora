@@ -1,20 +1,16 @@
-use parking_lot::RwLock;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::gc::Address;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    AnnotationDefinition, ClassDefinition, ConstDefinition, ConstValue, EnumDefinition,
-    ExtensionDefinition, FctDefinition, FctParent, GlobalDefinition, ImplDefinition,
-    ImportDefinition, NamespaceDefinition, NamespaceDefinitionId, StructDefinition,
-    TraitDefinition, TypeParam, TypeParamDefinition,
+    AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
+    FctDefinition, FctParent, GlobalDefinition, ImplDefinition, ImportDefinition,
+    NamespaceDefinition, NamespaceDefinitionId, StructDefinition, TraitDefinition,
 };
 use crate::language::sym::Sym;
-use crate::language::ty::SourceType;
 use crate::vm::{FileId, SemAnalysis};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -289,22 +285,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        let xtrait = TraitDefinition {
-            id: None,
-            file_id: self.file_id,
-            ast: node.clone(),
-            namespace_id: self.namespace_id,
-            is_pub: node.is_pub,
-            pos: node.pos,
-            name: node.name,
-            type_params: Vec::new(),
-            type_params2: TypeParamDefinition::new(),
-            methods: Vec::new(),
-            instance_names: HashMap::new(),
-            static_names: HashMap::new(),
-            vtables: RwLock::new(HashMap::new()),
-        };
-
+        let xtrait = TraitDefinition::new(self.file_id, self.namespace_id, node);
         let id = self.sa.traits.push(xtrait);
 
         let sym = Sym::Trait(id);
@@ -324,21 +305,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
-        let global = GlobalDefinition {
-            id: None,
-            file_id: self.file_id,
-            ast: node.clone(),
-            namespace_id: self.namespace_id,
-            pos: node.pos,
-            name: node.name,
-            is_pub: node.is_pub,
-            ty: SourceType::Unit,
-            mutable: node.mutable,
-            initializer: None,
-            address_init: Address::null(),
-            address_value: Address::null(),
-        };
-
+        let global = GlobalDefinition::new(self.file_id, self.namespace_id, node);
         let id = self.sa.globals.push(global);
 
         let sym = Sym::Global(id);
@@ -349,64 +316,16 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         if node.trait_type.is_some() {
-            let mut impl_type_params = Vec::new();
-            if let Some(ref type_params) = node.type_params {
-                for param in type_params {
-                    impl_type_params.push(TypeParam::new(param.name));
-                }
-            }
-            let ximpl = ImplDefinition {
-                id: None,
-                file_id: self.file_id,
-                ast: node.clone(),
-                namespace_id: self.namespace_id,
-                type_params: impl_type_params,
-                pos: node.pos,
-                trait_id: None,
-                ty: SourceType::Error,
-                methods: Vec::new(),
-                instance_names: HashMap::new(),
-                static_names: HashMap::new(),
-                impl_for: HashMap::new(),
-            };
+            let ximpl = ImplDefinition::new(self.file_id, self.namespace_id, node);
             self.sa.impls.push(ximpl);
         } else {
-            let mut extension_type_params = Vec::new();
-            if let Some(ref type_params) = node.type_params {
-                for param in type_params {
-                    extension_type_params.push(TypeParam::new(param.name));
-                }
-            }
-            let extension = ExtensionDefinition {
-                id: None,
-                file_id: self.file_id,
-                namespace_id: self.namespace_id,
-                ast: node.clone(),
-                pos: node.pos,
-                type_params: extension_type_params,
-                ty: SourceType::Error,
-                methods: Vec::new(),
-                instance_names: HashMap::new(),
-                static_names: HashMap::new(),
-            };
+            let extension = ExtensionDefinition::new(self.file_id, self.namespace_id, node);
             self.sa.extensions.push(extension);
         }
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
-        let xconst = ConstDefinition {
-            id: None,
-            file_id: self.file_id,
-            ast: node.clone(),
-            namespace_id: self.namespace_id,
-            pos: node.pos,
-            name: node.name,
-            is_pub: node.is_pub,
-            ty: SourceType::Error,
-            expr: node.expr.clone(),
-            value: ConstValue::None,
-        };
-
+        let xconst = ConstDefinition::new(self.file_id, self.namespace_id, node);
         let id = self.sa.consts.push(xconst);
 
         let sym = Sym::Const(id);
@@ -427,32 +346,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
-        let mut xstruct = StructDefinition {
-            id: None,
-            file_id: self.file_id,
-            ast: node.clone(),
-            namespace_id: self.namespace_id,
-            primitive_ty: None,
-            is_pub: node.is_pub,
-            pos: node.pos,
-            name: node.name,
-            internal: node.internal,
-            internal_resolved: false,
-            type_params: Vec::new(),
-            type_params2: TypeParamDefinition::new(),
-            fields: Vec::new(),
-            field_names: HashMap::new(),
-            specializations: RwLock::new(HashMap::new()),
-            impls: Vec::new(),
-            extensions: Vec::new(),
-        };
-
-        if let Some(ref type_params) = node.type_params {
-            for param in type_params {
-                xstruct.type_params.push(TypeParam::new(param.name));
-            }
-        }
-
+        let xstruct = StructDefinition::new(self.file_id, self.namespace_id, node);
         let id = self.sa.structs.push(xstruct);
 
         let sym = Sym::Struct(id);
@@ -484,30 +378,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        let mut xenum = EnumDefinition {
-            id: None,
-            file_id: self.file_id,
-            namespace_id: self.namespace_id,
-            ast: node.clone(),
-            pos: node.pos,
-            name: node.name,
-            type_params: Vec::new(),
-            type_params2: TypeParamDefinition::new(),
-            is_pub: node.is_pub,
-            variants: Vec::new(),
-            name_to_value: HashMap::new(),
-            impls: Vec::new(),
-            extensions: Vec::new(),
-            specializations: RwLock::new(HashMap::new()),
-            simple_enumeration: false,
-        };
-
-        if let Some(ref type_params) = node.type_params {
-            for param in type_params {
-                xenum.type_params.push(TypeParam::new(param.name));
-            }
-        }
-
+        let xenum = EnumDefinition::new(self.file_id, self.namespace_id, node);
         let id = self.sa.enums.push(xenum);
 
         let sym = Sym::Enum(id);

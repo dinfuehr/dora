@@ -59,6 +59,27 @@ pub struct GlobalDefinition {
 }
 
 impl GlobalDefinition {
+    pub fn new(
+        file_id: FileId,
+        namespace_id: NamespaceDefinitionId,
+        node: &Arc<ast::Global>,
+    ) -> GlobalDefinition {
+        GlobalDefinition {
+            id: None,
+            file_id,
+            ast: node.clone(),
+            namespace_id,
+            pos: node.pos,
+            name: node.name,
+            is_pub: node.is_pub,
+            ty: SourceType::Unit,
+            mutable: node.mutable,
+            initializer: None,
+            address_init: Address::null(),
+            address_value: Address::null(),
+        }
+    }
+
     pub fn id(&self) -> GlobalDefinitionId {
         self.id.expect("id missing")
     }
