@@ -397,17 +397,21 @@ fn type_bin_op() {
 
 #[test]
 fn type_function_return_type() {
-    ok("fn foo(): Int32 { return 1I; }\nfun f() { let i: Int32 = foo(); }");
+    ok("fn foo(): Int32 { return 1I; } fn f() { let i: Int32 = foo(); }");
     err(
-        "fn foo(): Int32 { return 1I; }\nfun f() { let i: Bool = foo(); }",
-        pos(2, 11),
+        "
+        fn foo(): Int32 { return 1I; }
+        fn f() { let i: Bool = foo(); }",
+        pos(3, 18),
         SemError::AssignType("i".into(), "Bool".into(), "Int32".into()),
     );
 }
 
 #[test]
 fn type_ident_in_function_params() {
-    ok("fn f(a: Int32) {}\nfun g() { let a = 1I; f(a); }");
+    ok("
+    fn f(a: Int32) {}
+    fn g() { let a = 1I; f(a); }");
 }
 
 #[test]
@@ -417,23 +421,29 @@ fn type_recursive_function_call() {
 
 #[test]
 fn type_function_params() {
-    ok("fn foo() {}\nfun f() { foo(); }");
-    ok("fn foo(a: Int32) {}\nfun f() { foo(1I); }");
-    ok("fn foo(a: Int32, b: Bool) {}\nfun f() { foo(1I, true); }");
+    ok("fn foo() {} fn f() { foo(); }");
+    ok("fn foo(a: Int32) {} fn f() { foo(1I); }");
+    ok("fn foo(a: Int32, b: Bool) {} fn f() { foo(1I, true); }");
 
     err(
-        "fn foo() {}\nfun f() { foo(1I); }",
-        pos(2, 14),
+        "
+        fn foo() {}
+        fn f() { foo(1I); }",
+        pos(3, 21),
         SemError::ParamTypesIncompatible("foo".into(), vec![], vec!["Int32".into()]),
     );
     err(
-        "fn foo(a: Int32) {}\nfun f() { foo(true); }",
-        pos(2, 14),
+        "
+        fn foo(a: Int32) {}
+        fn f() { foo(true); }",
+        pos(3, 21),
         SemError::ParamTypesIncompatible("foo".into(), vec!["Int32".into()], vec!["Bool".into()]),
     );
     err(
-        "fn foo(a: Int32, b: Bool) {}\nfun f() { foo(1I, 2I); }",
-        pos(2, 14),
+        "
+        fn foo(a: Int32, b: Bool) {}
+        fn f() { foo(1I, 2I); }",
+        pos(3, 21),
         SemError::ParamTypesIncompatible(
             "foo".into(),
             vec!["Int32".into(), "Bool".into()],
@@ -2802,14 +2812,16 @@ fn check_wrong_number_type_params() {
 
 #[test]
 fn multiple_functions() {
-    ok("fn f() {}\nfun g() {}");
+    ok("fn f() {} fn g() {}");
 }
 
 #[test]
 fn redefine_function() {
     err(
-        "fn f() {}\nfun f() {}",
-        pos(2, 1),
+        "
+        fn f() {}
+        fn f() {}",
+        pos(3, 9),
         SemError::ShadowFunction("f".into()),
     );
 }
@@ -2896,10 +2908,10 @@ fn recursive_function_call() {
 
 #[test]
 fn function_call() {
-    ok("fn a() {}\nfun b() { a(); }");
+    ok("fn a() {} fn b() { a(); }");
 
     // non-forward definition of functions
-    ok("fn a() { b(); }\nfun b() {}");
+    ok("fn a() { b(); } fn b() {}");
 }
 
 #[test]

@@ -2845,7 +2845,7 @@ mod tests {
 
     #[test]
     fn parse_function() {
-        let (prog, interner) = parse("fun b() { }");
+        let (prog, interner) = parse("fn b() { }");
         let fct = prog.fct0();
 
         assert_eq!("b", *interner.str(fct.name));
@@ -2856,10 +2856,10 @@ mod tests {
 
     #[test]
     fn parse_function_with_single_param() {
-        let (p1, interner1) = parse("fun f(a:int) { }");
+        let (p1, interner1) = parse("fn f(a:int) { }");
         let f1 = p1.fct0();
 
-        let (p2, interner2) = parse("fun f(a:int,) { }");
+        let (p2, interner2) = parse("fn f(a:int,) { }");
         let f2 = p2.fct0();
 
         assert_eq!(f1.params.len(), 1);
@@ -2883,10 +2883,10 @@ mod tests {
 
     #[test]
     fn parse_function_with_multiple_params() {
-        let (p1, interner1) = parse("fun f(a:int, b:str) { }");
+        let (p1, interner1) = parse("fn f(a:int, b:str) { }");
         let f1 = p1.fct0();
 
-        let (p2, interner2) = parse("fun f(a:int, b:str,) { }");
+        let (p2, interner2) = parse("fn f(a:int, b:str,) { }");
         let f2 = p2.fct0();
 
         let p1a = &f1.params[0];
@@ -3039,7 +3039,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_functions() {
-        let (prog, interner) = parse("fun f() { } fun g() { }");
+        let (prog, interner) = parse("fn f() { } fn g() { }");
 
         let f = prog.fct0();
         assert_eq!("f", *interner.str(f.name));
@@ -3049,7 +3049,7 @@ mod tests {
         let g = prog.fct(1);
         assert_eq!("g", *interner.str(g.name));
         assert_eq!(false, g.method);
-        assert_eq!(Position::new(1, 13), g.pos);
+        assert_eq!(Position::new(1, 12), g.pos);
     }
 
     #[test]
@@ -3273,8 +3273,8 @@ mod tests {
     fn parse_method() {
         let (prog, interner) = parse(
             "class Foo {
-            fun zero(): int { return 0; }
-            fun id(a: String): String { return a; }
+            fn zero(): int { return 0; }
+            fn id(a: String): String { return a; }
         }",
         );
 
@@ -3313,8 +3313,8 @@ mod tests {
     fn parse_abstract_method() {
         let (prog, _) = parse(
             "class Foo {
-            @abstract fun zero();
-            fun foo();
+            @abstract fn zero();
+            fn foo();
         }",
         );
 
@@ -3463,7 +3463,7 @@ mod tests {
 
     #[test]
     fn parse_open_method() {
-        let (prog, _) = parse("class A { @open fun f() {} fun g() {} }");
+        let (prog, _) = parse("class A { @open fn f() {} fn g() {} }");
         let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
@@ -3476,9 +3476,9 @@ mod tests {
     #[test]
     fn parse_override_method() {
         let (prog, _) = parse(
-            "class A { fun f() {}
-                @override fun g() {}
-                @open fun h() {} }",
+            "class A { fn f() {}
+                @override fn g() {}
+                @open fn h() {} }",
         );
         let cls = prog.cls0();
 
@@ -3506,7 +3506,7 @@ mod tests {
 
     #[test]
     fn parse_final_method() {
-        let (prog, _) = parse("@open class A { @final @override fun g() {} }");
+        let (prog, _) = parse("@open class A { @final @override fn g() {} }");
         let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
@@ -3533,14 +3533,14 @@ mod tests {
 
     #[test]
     fn parse_internal() {
-        let (prog, _) = parse("@internal fun foo();");
+        let (prog, _) = parse("@internal fn foo();");
         let fct = prog.fct0();
         assert!(fct.internal);
     }
 
     #[test]
     fn parse_function_without_body() {
-        let (prog, _) = parse("fun foo();");
+        let (prog, _) = parse("fn foo();");
         let fct = prog.fct0();
         assert!(fct.block.is_none());
     }
@@ -3692,7 +3692,7 @@ mod tests {
 
     #[test]
     fn parse_trait_with_function() {
-        let (prog, interner) = parse("trait Foo { fun empty(); }");
+        let (prog, interner) = parse("trait Foo { fn empty(); }");
         let xtrait = prog.trait0();
 
         assert_eq!("Foo", *interner.str(xtrait.name));
@@ -3702,7 +3702,7 @@ mod tests {
 
     #[test]
     fn parse_trait_with_static_function() {
-        let (prog, interner) = parse("trait Foo { @static fun empty(); }");
+        let (prog, interner) = parse("trait Foo { @static fn empty(); }");
         let xtrait = prog.trait0();
 
         assert_eq!("Foo", *interner.str(xtrait.name));
@@ -3725,7 +3725,7 @@ mod tests {
 
     #[test]
     fn parse_impl_with_function() {
-        let (prog, interner) = parse("impl Bar for B { fun foo(); }");
+        let (prog, interner) = parse("impl Bar for B { fn foo(); }");
         let ximpl = prog.impl0();
 
         assert_eq!(
@@ -3739,7 +3739,7 @@ mod tests {
 
     #[test]
     fn parse_impl_with_static_function() {
-        let (prog, interner) = parse("impl Bar for B { @static fun foo(); }");
+        let (prog, interner) = parse("impl Bar for B { @static fn foo(); }");
         let ximpl = prog.impl0();
 
         assert_eq!(
@@ -3807,7 +3807,7 @@ mod tests {
     fn parse_static_method() {
         let (prog, _) = parse(
             "class A {
-                @static fun test() {}
+                @static fn test() {}
               }",
         );
         let cls = prog.cls0();
@@ -3828,7 +3828,7 @@ mod tests {
 
     #[test]
     fn parse_fct_with_type_params() {
-        let (prog, _) = parse("fun f[T]() {}");
+        let (prog, _) = parse("fn f[T]() {}");
         let fct = prog.fct0();
 
         assert_eq!(1, fct.type_params.as_ref().unwrap().len());
@@ -3987,10 +3987,10 @@ mod tests {
     #[test]
     fn parse_if_expr() {
         parse_err(
-            "fun f() { if true { 1 } else { 2 } * 4 }",
+            "fn f() { if true { 1 } else { 2 } * 4 }",
             ParseError::ExpectedFactor("*".into()),
             1,
-            36,
+            35,
         );
     }
 
@@ -4033,7 +4033,7 @@ mod tests {
 
     #[test]
     fn parse_namespace() {
-        let (prog, _) = parse("namespace foo { fun bar() {} fun baz() {} }");
+        let (prog, _) = parse("namespace foo { fn bar() {} fn baz() {} }");
         let namespace = prog.namespace0();
         let elements = namespace.elements.as_ref().unwrap();
         assert_eq!(elements.len(), 2);
