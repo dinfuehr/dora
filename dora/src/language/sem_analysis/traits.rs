@@ -95,7 +95,7 @@ impl TraitDefinition {
             let method = method.read();
 
             if method.name == name && method.is_static == is_static {
-                return Some(method.id);
+                return Some(method.id());
             }
         }
 
@@ -118,7 +118,7 @@ impl TraitDefinition {
                 && method.is_static == is_static
                 && params_match(replace.clone(), method.params_without_self(), args)
             {
-                return Some(method.id);
+                return Some(method.id());
             }
         }
 

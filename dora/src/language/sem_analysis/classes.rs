@@ -232,7 +232,7 @@ impl ClassDefinition {
                 let method = method.read();
 
                 if method.name == name && method.is_static == is_static {
-                    return Some(method.id);
+                    return Some(method.id());
                 }
             }
 
@@ -344,7 +344,7 @@ pub fn find_method_in_class(
             let method = method.read();
 
             if method.name == name && method.is_static == false {
-                return Some((class, method.id));
+                return Some((class, method.id()));
             }
         }
 
@@ -390,11 +390,11 @@ pub fn find_methods_in_class(
                     ignores.insert(overrides);
                 }
 
-                if !ignores.contains(&method.id) {
+                if !ignores.contains(&method.id()) {
                     return vec![Candidate {
                         object_type: class_type.clone(),
                         container_type_params: class_type.type_params(),
-                        fct_id: method.id,
+                        fct_id: method.id(),
                     }];
                 }
             }

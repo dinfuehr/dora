@@ -474,13 +474,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
-        let fct = FctDefinition::new(
-            self.sa,
-            self.file_id,
-            self.namespace_id,
-            node,
-            FctParent::None,
-        );
+        let fct = FctDefinition::new(self.file_id, self.namespace_id, node, FctParent::None);
         let fctid = self.sa.add_fct(fct);
         let sym = Sym::Fct(fctid);
 

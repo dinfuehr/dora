@@ -4382,7 +4382,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn get_call_target(&mut self, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
-        if self.fct.id == fid {
+        if self.fct.id() == fid {
             // we want to recursively invoke the function we are compiling right now
             determine_call_target(self.vm, fid, type_params)
         } else {

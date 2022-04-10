@@ -23,7 +23,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
         vm.compilation_database
-            .compilation_request(vm, fct.id, type_params.clone())
+            .compilation_request(vm, fct.id(), type_params.clone())
     {
         return instruction_start;
     }
@@ -39,7 +39,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         CompilerName::Boots => boots::compile(vm, &fct, &type_params),
     };
 
-    let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct.id));
+    let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct.id()));
 
     // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
     // another thread could run that function while the function can't be found in the
@@ -48,7 +48,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
 
     // Mark compilation as finished and resume threads waiting for compilation.
     vm.compilation_database
-        .finish_compilation(fct.id, type_params.clone(), code_id);
+        .finish_compilation(fct.id(), type_params.clone(), code_id);
 
     if vm.args.flag_enable_perf {
         os::perf::register_with_perf(&code, vm, fct.ast.name);

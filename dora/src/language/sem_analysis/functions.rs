@@ -38,7 +38,7 @@ impl GrowableVec<RwLock<FctDefinition>> {
 }
 
 pub struct FctDefinition {
-    pub id: FctDefinitionId,
+    pub id: Option<FctDefinitionId>,
     pub ast: Arc<ast::Function>,
     pub pos: Position,
     pub name: Name,
@@ -75,14 +75,13 @@ pub struct FctDefinition {
 
 impl FctDefinition {
     pub fn new(
-        _vm: &VM,
         file_id: FileId,
         namespace_id: NamespaceDefinitionId,
         ast: &Arc<ast::Function>,
         parent: FctParent,
     ) -> FctDefinition {
         FctDefinition {
-            id: FctDefinitionId(0),
+            id: None,
             file_id,
             pos: ast.pos,
             ast: ast.clone(),
@@ -114,6 +113,10 @@ impl FctDefinition {
             native_pointer: None,
             thunk_id: RwLock::new(None),
         }
+    }
+
+    pub fn id(&self) -> FctDefinitionId {
+        self.id.expect("id missing")
     }
 
     pub fn container_type_params(&self) -> &[TypeParam] {

@@ -255,7 +255,7 @@ fn check_static(sa: &SemAnalysis, fct: &FctDefinition) {
 
 fn check_against_methods(sa: &SemAnalysis, fct: &FctDefinition, methods: &[FctDefinitionId]) {
     for &method in methods {
-        if method == fct.id {
+        if method == fct.id() {
             continue;
         }
 

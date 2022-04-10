@@ -81,15 +81,15 @@ fn find_abstract_methods(
         return mtds.clone();
     }
 
-    let mut abstracts = Vec::new();
-    let mut overrides = HashSet::new();
+    let mut abstracts: Vec<FctDefinitionId> = Vec::new();
+    let mut overrides: HashSet<FctDefinitionId> = HashSet::new();
 
     for &mtd in &cls.methods {
         let mtd = sa.fcts.idx(mtd);
         let mtd = mtd.read();
 
         if mtd.is_abstract {
-            abstracts.push(mtd.id);
+            abstracts.push(mtd.id());
         }
 
         if let Some(override_mtd) = mtd.overrides {

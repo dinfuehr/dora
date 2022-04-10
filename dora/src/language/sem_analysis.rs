@@ -275,7 +275,7 @@ impl SemAnalysis {
         let mut fcts = self.fcts.lock();
         let fctid = FctDefinitionId(fcts.len());
 
-        fct.id = fctid;
+        fct.id = Some(fctid);
 
         fcts.push(Arc::new(RwLock::new(fct)));
 

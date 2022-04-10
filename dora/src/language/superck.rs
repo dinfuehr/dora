@@ -183,7 +183,7 @@ fn check_fct_modifier(
                 .report(fct.file_id, fct.pos(), SemError::OverrideMismatch);
         }
 
-        Some(super_method.id)
+        Some(super_method.id())
     } else {
         if fct.is_override {
             let name = sa.interner.str(fct.name).to_string();

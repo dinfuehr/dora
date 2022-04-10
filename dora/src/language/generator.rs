@@ -2747,9 +2747,9 @@ impl<'a> AstBytecodeGen<'a> {
 
         match *call_type {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
-                self.gen.add_const_generic(id, fct.id, type_params)
+                self.gen.add_const_generic(id, fct.id(), type_params)
             }
-            _ => self.gen.add_const_fct_types(fct.id, type_params),
+            _ => self.gen.add_const_fct_types(fct.id(), type_params),
         }
     }
 
@@ -2814,7 +2814,7 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         // the function we compile right now is never an intrinsic
-        if self.fct.id == fid {
+        if self.fct.id() == fid {
             return None;
         }
 

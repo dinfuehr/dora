@@ -124,7 +124,7 @@ fn run_tests(vm: &VM, namespace_id: NamespaceDefinitionId) -> i32 {
 
             print!("test {} ... ", vm.interner.str(fct.name));
 
-            if run_test(vm, fct.id) {
+            if run_test(vm, fct.id()) {
                 passed += 1;
                 println!("ok");
             } else {

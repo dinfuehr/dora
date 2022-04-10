@@ -310,7 +310,7 @@ fn ensure_thunk(
     let callee_id = find_trait_impl(vm, fct_id, trait_id, object_ty.clone());
 
     let mut thunk_fct =
-        FctDefinition::new(vm, fct.file_id, fct.namespace_id, &fct.ast, FctParent::None);
+        FctDefinition::new(fct.file_id, fct.namespace_id, &fct.ast, FctParent::None);
     thunk_fct.type_params = fct.type_params.clone();
     let mut traits = HashSet::new();
     traits.insert(trait_id);
@@ -381,7 +381,7 @@ fn generate_bytecode_for_thunk(
 
     let type_param_id = TypeParamId(thunk_fct.type_params.len() - 1);
     let target_fct_idx =
-        gen.add_const_generic(type_param_id, trait_fct.id, SourceTypeArray::empty());
+        gen.add_const_generic(type_param_id, trait_fct.id(), SourceTypeArray::empty());
 
     if !trait_fct.return_type.is_unit() {
         let ty = BytecodeType::from_ty(vm, trait_fct.return_type.clone());

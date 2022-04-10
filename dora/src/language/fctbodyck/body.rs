@@ -2359,7 +2359,7 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.map_tys.insert(e.id, parent_class);
 
                 let cls_ty = self.sa.cls_with_type_list(cls_id, parent_class_type_params);
-                let call_type = CallType::CtorParent(cls_ty, ctor.id);
+                let call_type = CallType::CtorParent(cls_ty, ctor.id());
                 self.analysis.map_calls.insert(e.id, Arc::new(call_type));
                 return SourceType::Error;
             }
