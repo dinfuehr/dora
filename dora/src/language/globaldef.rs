@@ -19,131 +19,223 @@ use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
 pub fn check(sa: &mut SemAnalysis) -> Result<(), i32> {
-    let mut files_to_scan: VecDeque<ScanFile> = VecDeque::new();
-    let mut files_to_parse: VecDeque<ParseFile> = VecDeque::new();
-
-    parse_initial_files(sa, &mut files_to_scan)?;
-
-    while !files_to_scan.is_empty() {
-        scan_files(sa, &mut files_to_scan, &mut files_to_parse);
-        parse_files(sa, &mut files_to_parse, &mut files_to_scan)?;
-    }
-
-    Ok(())
+    let mut discoverer = DiscoverFiles::new(sa);
+    discoverer.discover()
 }
 
-fn parse_initial_files(
-    sa: &mut SemAnalysis,
-    files_to_scan: &mut VecDeque<ScanFile>,
-) -> Result<(), i32> {
-    let stdlib_dir = sa.args.flag_stdlib.clone();
-    let namespace_id = sa.stdlib_namespace_id;
+struct DiscoverFiles<'a> {
+    sa: &'a mut SemAnalysis,
+    files_to_scan: VecDeque<ScanFile>,
+    files_to_parse: VecDeque<ParseFile>,
+}
 
-    if let Some(stdlib) = stdlib_dir {
-        parse_dir(sa, &stdlib, namespace_id, files_to_scan)?;
-    } else {
-        parse_bundled_stdlib(sa, namespace_id, files_to_scan)?;
-    }
-
-    let boots_dir = sa.args.flag_boots.clone();
-
-    if let Some(boots) = boots_dir {
-        parse_dir(sa, &boots, sa.boots_namespace_id, files_to_scan)?;
-    }
-
-    if sa.parse_arg_file && !sa.args.arg_file.is_empty() {
-        let arg_file = sa.args.arg_file.clone();
-        let path = Path::new(&arg_file);
-
-        if path.is_file() {
-            let file = ParseFile {
-                path: PathBuf::from(path),
-                namespace_id: sa.global_namespace_id,
-            };
-            let file = parse_file(sa, &file)?;
-            files_to_scan.push_back(file);
-        } else if path.is_dir() {
-            parse_dir(sa, &arg_file, sa.global_namespace_id, files_to_scan)?;
-        } else {
-            println!("file or directory `{}` does not exist.", &arg_file);
-            return Err(1);
+impl<'a> DiscoverFiles<'a> {
+    fn new(sa: &mut SemAnalysis) -> DiscoverFiles {
+        DiscoverFiles {
+            sa,
+            files_to_scan: VecDeque::new(),
+            files_to_parse: VecDeque::new(),
         }
     }
 
-    if let Some(content) = sa.additional_file_to_parse {
-        let file = parse_string(sa, sa.global_namespace_id, "<<code>>".into(), content)?;
-        files_to_scan.push_back(file);
+    fn discover(&mut self) -> Result<(), i32> {
+        self.parse_initial_files()?;
+
+        while !self.files_to_scan.is_empty() {
+            self.scan_files();
+            self.parse_files()?;
+        }
+
+        Ok(())
     }
 
-    Ok(())
-}
+    fn parse_initial_files(&mut self) -> Result<(), i32> {
+        self.parse_stdlib()?;
+        self.parse_boots()?;
+        self.parse_program()?;
+        self.parse_additional_file_as_string()?;
 
-fn scan_files(
-    sa: &mut SemAnalysis,
-    files_to_scan: &mut VecDeque<ScanFile>,
-    files_to_parse: &mut VecDeque<ParseFile>,
-) {
-    while !files_to_scan.is_empty() {
-        let ScanFile {
-            file_id,
-            path,
-            namespace_id,
-            ast,
-        } = files_to_scan.pop_front().expect("no element");
-        let mut gdef = GlobalDef {
-            sa,
-            file_id,
-            path,
-            namespace_id,
-            files_to_parse,
-        };
-
-        gdef.visit_file(&ast);
+        Ok(())
     }
-}
 
-fn parse_dir(
-    sa: &mut SemAnalysis,
-    dirname: &str,
-    namespace_id: NamespaceDefinitionId,
-    files_to_scan: &mut VecDeque<ScanFile>,
-) -> Result<(), i32> {
-    let path = Path::new(dirname);
+    fn parse_stdlib(&mut self) -> Result<(), i32> {
+        let stdlib_dir = self.sa.args.flag_stdlib.clone();
+        let namespace_id = self.sa.stdlib_namespace_id;
 
-    if path.is_dir() {
-        for entry in fs::read_dir(path).unwrap() {
-            let path = entry.unwrap().path();
+        if let Some(stdlib) = stdlib_dir {
+            self.parse_dir(&stdlib, namespace_id)?;
+        } else {
+            self.parse_bundled_stdlib(namespace_id)?;
+        }
 
-            if should_file_be_parsed(&path) {
+        Ok(())
+    }
+
+    fn parse_bundled_stdlib(&mut self, namespace_id: NamespaceDefinitionId) -> Result<(), i32> {
+        use crate::driver::start::STDLIB;
+
+        for (filename, content) in STDLIB {
+            let file = parse_string(self.sa, namespace_id, filename, content)?;
+            self.files_to_scan.push_back(file);
+        }
+
+        Ok(())
+    }
+
+    fn parse_boots(&mut self) -> Result<(), i32> {
+        let boots_dir = self.sa.args.flag_boots.clone();
+
+        if let Some(boots) = boots_dir {
+            self.parse_dir(&boots, self.sa.boots_namespace_id)?;
+        }
+
+        Ok(())
+    }
+
+    fn parse_program(&mut self) -> Result<(), i32> {
+        if self.sa.parse_arg_file && !self.sa.args.arg_file.is_empty() {
+            let arg_file = self.sa.args.arg_file.clone();
+            let path = Path::new(&arg_file);
+
+            if path.is_file() {
                 let file = ParseFile {
                     path: PathBuf::from(path),
-                    namespace_id,
+                    namespace_id: self.sa.global_namespace_id,
                 };
-                let file = parse_file(sa, &file)?;
-                files_to_scan.push_back(file);
+                let file = self.parse_file(&file)?;
+                self.files_to_scan.push_back(file);
+            } else if path.is_dir() {
+                self.parse_dir(&arg_file, self.sa.global_namespace_id)?;
+            } else {
+                println!("file or directory `{}` does not exist.", &arg_file);
+                return Err(1);
             }
         }
 
         Ok(())
-    } else {
-        println!("directory `{}` does not exist.", dirname);
-
-        Err(1)
-    }
-}
-
-fn parse_files(
-    sa: &mut SemAnalysis,
-    files_to_parse: &mut VecDeque<ParseFile>,
-    files_to_scan: &mut VecDeque<ScanFile>,
-) -> Result<(), i32> {
-    while !files_to_parse.is_empty() {
-        let file = files_to_parse.pop_front().expect("no file");
-        let file = parse_file(sa, &file)?;
-        files_to_scan.push_back(file);
     }
 
-    Ok(())
+    fn parse_additional_file_as_string(&mut self) -> Result<(), i32> {
+        if let Some(content) = self.sa.additional_file_to_parse {
+            let file = parse_string(
+                self.sa,
+                self.sa.global_namespace_id,
+                "<<code>>".into(),
+                content,
+            )?;
+            self.files_to_scan.push_back(file);
+        }
+
+        Ok(())
+    }
+
+    fn scan_files(&mut self) {
+        while !self.files_to_scan.is_empty() {
+            let ScanFile {
+                file_id,
+                path,
+                namespace_id,
+                ast,
+            } = self.files_to_scan.pop_front().expect("no element");
+            self.scan_file(file_id, path, namespace_id, &*ast);
+        }
+    }
+
+    fn scan_file(
+        &mut self,
+        file_id: FileId,
+        path: Option<PathBuf>,
+        namespace_id: NamespaceDefinitionId,
+        ast: &ast::File,
+    ) {
+        let mut gdef = GlobalDef {
+            sa: self.sa,
+            file_id,
+            path,
+            namespace_id,
+            files_to_parse: &mut self.files_to_parse,
+        };
+
+        gdef.visit_file(ast);
+    }
+
+    fn parse_files(&mut self) -> Result<(), i32> {
+        while !self.files_to_parse.is_empty() {
+            let file = self.files_to_parse.pop_front().expect("no file");
+            let file = self.parse_file(&file)?;
+            self.files_to_scan.push_back(file);
+        }
+
+        Ok(())
+    }
+
+    fn parse_dir(&mut self, dirname: &str, namespace_id: NamespaceDefinitionId) -> Result<(), i32> {
+        let path = Path::new(dirname);
+
+        if path.is_dir() {
+            for entry in fs::read_dir(path).unwrap() {
+                let path = entry.unwrap().path();
+
+                if should_file_be_parsed(&path) {
+                    let file = ParseFile {
+                        path: PathBuf::from(path),
+                        namespace_id,
+                    };
+                    let file = self.parse_file(&file)?;
+                    self.files_to_scan.push_back(file);
+                }
+            }
+
+            Ok(())
+        } else {
+            println!("directory `{}` does not exist.", dirname);
+
+            Err(1)
+        }
+    }
+
+    fn parse_file(&mut self, file: &ParseFile) -> Result<ScanFile, i32> {
+        let namespace_id = file.namespace_id;
+        let path = file.path.clone();
+
+        let reader = match Reader::from_file(path.to_str().unwrap()) {
+            Ok(reader) => reader,
+
+            Err(_) => {
+                println!("unable to read file `{}`", path.to_str().unwrap());
+                return Err(1);
+            }
+        };
+
+        let parser = Parser::new(reader, &self.sa.id_generator, &mut self.sa.interner);
+
+        match parser.parse() {
+            Ok(ast) => {
+                let ast = Arc::new(ast);
+                let file_id = self
+                    .sa
+                    .add_file(Some(path.clone()), namespace_id, ast.clone());
+                Ok(ScanFile {
+                    file_id,
+                    namespace_id: file.namespace_id,
+                    path: Some(path.clone()),
+                    ast,
+                })
+            }
+
+            Err(error) => {
+                println!(
+                    "error in {} at {}: {}",
+                    path.to_str().unwrap(),
+                    error.pos,
+                    error.error.message()
+                );
+                println!("error during parsing.");
+
+                Err(1)
+            }
+        }
+    }
 }
 
 fn parse_file(sa: &mut SemAnalysis, file: &ParseFile) -> Result<ScanFile, i32> {
@@ -185,21 +277,6 @@ fn parse_file(sa: &mut SemAnalysis, file: &ParseFile) -> Result<ScanFile, i32> {
             Err(1)
         }
     }
-}
-
-fn parse_bundled_stdlib(
-    sa: &mut SemAnalysis,
-    namespace_id: NamespaceDefinitionId,
-    files_to_scan: &mut VecDeque<ScanFile>,
-) -> Result<(), i32> {
-    use crate::driver::start::STDLIB;
-
-    for (filename, content) in STDLIB {
-        let file = parse_string(sa, namespace_id, filename, content)?;
-        files_to_scan.push_back(file);
-    }
-
-    Ok(())
 }
 
 fn parse_string(
