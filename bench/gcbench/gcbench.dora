@@ -1,6 +1,6 @@
-import std::argc;
-import std::argv;
-import std::timestamp;
+use std::argc;
+use std::argv;
+use std::timestamp;
 
 class Node(var left: Option[Node], var right: Option[Node]) {
     var i: Int32 = 0I;

@@ -1,5 +1,5 @@
-import std::BitSet;
-import std::HashMap;
+use std::BitSet;
+use std::HashMap;
 
 fn main() {
     let map = HashMap[Int32, String]();

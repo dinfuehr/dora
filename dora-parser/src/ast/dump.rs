@@ -75,7 +75,7 @@ impl<'a> AstDumper<'a> {
             Elem::Enum(ref xenum) => self.dump_enum(xenum),
             Elem::Alias(ref alias) => self.dump_alias(alias),
             Elem::Namespace(ref namespace) => self.dump_namespace(namespace),
-            Elem::Import(ref import) => self.dump_import(import),
+            Elem::Use(ref node) => self.dump_use(node),
         }
     }
 
@@ -114,8 +114,8 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_import(&mut self, import: &Import) {
-        dump!(self, "import @ {} {}", import.pos, import.id);
+    fn dump_use(&mut self, node: &Use) {
+        dump!(self, "use @ {} {}", node.pos, node.id);
     }
 
     fn dump_alias(&mut self, alias: &Alias) {

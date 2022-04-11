@@ -1,5 +1,5 @@
-import std::fatalError;
-import std::timestamp;
+use std::fatalError;
+use std::timestamp;
 
 fn main() {
     if std::argc() != 3I {

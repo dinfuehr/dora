@@ -186,7 +186,7 @@ impl Register {
 }
 
 namespace clsx {
-    import super::Register;
+    use super::Register;
 
     @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1I));

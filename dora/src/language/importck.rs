@@ -13,7 +13,7 @@ use crate::language::sem_analysis::{
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::SemAnalysis;
 
-use dora_parser::ast::ImportContext;
+use dora_parser::ast::UseContext;
 use dora_parser::interner::Name;
 
 pub fn check<'a>(sa: &SemAnalysis) {
@@ -26,9 +26,9 @@ fn check_import(sa: &SemAnalysis, import: &ImportDefinition) {
     let table = sa.namespace_table(import.namespace_id);
 
     let namespace_id = match import.ast.context {
-        ImportContext::This => import.namespace_id,
-        ImportContext::Package => namespace_package(sa, import.namespace_id),
-        ImportContext::Super => {
+        UseContext::This => import.namespace_id,
+        UseContext::Package => namespace_package(sa, import.namespace_id),
+        UseContext::Super => {
             let namespace = &sa.namespaces[import.namespace_id].read();
             if let Some(namespace_id) = namespace.parent_namespace_id {
                 namespace_id
@@ -337,7 +337,7 @@ mod tests {
     fn import_namespace() {
         err(
             "
-            import foo::bar::Foo;
+            use foo::bar::Foo;
             namespace foo {
                 namespace bar {
                     class Foo
@@ -353,7 +353,7 @@ mod tests {
     fn import_class() {
         err(
             "
-            import foo::bar::Foo;
+            use foo::bar::Foo;
             namespace foo {
                 @pub namespace bar {
                     class Foo
@@ -369,7 +369,7 @@ mod tests {
     fn import_fct() {
         err(
             "
-            import foo::bar;
+            use foo::bar;
             namespace foo {
                 fn bar() {}
             }
@@ -383,7 +383,7 @@ mod tests {
     fn import_global() {
         err(
             "
-            import foo::bar;
+            use foo::bar;
             namespace foo {
                 var bar: Int32 = 12;
             }
@@ -397,7 +397,7 @@ mod tests {
     fn import_const() {
         err(
             "
-            import foo::bar;
+            use foo::bar;
             namespace foo {
                 const bar: Int32 = 12;
             }
@@ -411,7 +411,7 @@ mod tests {
     fn import_enum() {
         err(
             "
-            import foo::Bar;
+            use foo::Bar;
             namespace foo {
                 enum Bar { A, B, C }
             }
@@ -425,7 +425,7 @@ mod tests {
     fn import_enum_value() {
         err(
             "
-            import foo::Bar::A;
+            use foo::Bar::A;
             namespace foo {
                 enum Bar { A, B, C }
             }
@@ -439,7 +439,7 @@ mod tests {
     fn import_trait() {
         err(
             "
-            import foo::Bar;
+            use foo::Bar;
             namespace foo {
                 trait Bar {}
             }
@@ -452,7 +452,7 @@ mod tests {
     #[test]
     fn import_struct() {
         ok("
-            import foo::Bar;
+            use foo::Bar;
             namespace foo {
                 @pub struct Bar { f: Int32 }
             }
@@ -460,7 +460,7 @@ mod tests {
 
         err(
             "
-            import foo::Bar;
+            use foo::Bar;
             namespace foo {
                 struct Bar { f: Int32 }
             }

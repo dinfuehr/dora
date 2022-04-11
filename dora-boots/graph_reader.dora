@@ -172,8 +172,8 @@ enum Token {
 }
 
 namespace tests {
-    import super::Token;
-    import super::Lexer;
+    use super::Token;
+    use super::Lexer;
 
     @test fn readSingleIdentifier(_x: std::Testing) {
         let lexer = Lexer("foo");

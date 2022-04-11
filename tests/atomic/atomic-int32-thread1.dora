@@ -1,4 +1,4 @@
-import std::AtomicInt32;
+use std::AtomicInt32;
 
 const THREADS: Int32 = 4I;
 const ITERATIONS: Int32 = 100_000I;

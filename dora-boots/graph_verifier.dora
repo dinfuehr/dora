@@ -35,8 +35,8 @@ class GraphVerifier(let graph: Graph) {
     fn verifyInst(inst: Inst) {
         assert(inst.block.getOrPanic() === self.currentBlock);
 
-        for use in inst.uses() {
-            assert(inst.dominates(use.usedBy));
+        for user in inst.uses() {
+            assert(inst.dominates(user.usedBy));
         }
     }
 }

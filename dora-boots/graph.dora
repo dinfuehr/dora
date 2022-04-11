@@ -272,7 +272,7 @@ impl Equals for Block {
   fn equals(other: Block): Bool = self === other;
 }
 
-import std::BitVec;
+use std::BitVec;
 
 class LoopData(let header: Block) {
     var backEdges: Vec[Block] = Vec();

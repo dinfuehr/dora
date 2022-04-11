@@ -3,8 +3,8 @@
   None,
 }
 
-import Option::Some;
-import Option::None;
+use Option::Some;
+use Option::None;
 
 impl[T] Option[T] {
   @pub fn isNone(): Bool {

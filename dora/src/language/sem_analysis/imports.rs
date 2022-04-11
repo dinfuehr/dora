@@ -5,7 +5,7 @@ use crate::vm::FileId;
 use dora_parser::ast;
 
 pub struct ImportDefinition {
-    pub ast: Arc<ast::Import>,
+    pub ast: Arc<ast::Use>,
     pub namespace_id: NamespaceDefinitionId,
     pub file_id: FileId,
 }
@@ -14,7 +14,7 @@ impl ImportDefinition {
     pub fn new(
         file_id: FileId,
         namespace_id: NamespaceDefinitionId,
-        node: &Arc<ast::Import>,
+        node: &Arc<ast::Use>,
     ) -> ImportDefinition {
         ImportDefinition {
             namespace_id,

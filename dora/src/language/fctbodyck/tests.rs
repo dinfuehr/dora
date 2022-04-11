@@ -2048,31 +2048,31 @@ fn test_enum_equals() {
 
 #[test]
 fn test_import_enum_value() {
-    ok("enum A { V1(Int32), V2 } import A::V1; fn f(): A { V1(1I) }");
-    ok("enum A[T] { V1(Int32), V2 } import A::V1; fn f(): A[Int32] { V1[Int32](1I) }");
-    ok("enum A[T] { V1(Int32), V2 } import A::V1; fn f(): A[Int32] { V1(1I) }");
+    ok("enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1(1I) }");
+    ok("enum A[T] { V1(Int32), V2 } use A::V1; fn f(): A[Int32] { V1[Int32](1I) }");
+    ok("enum A[T] { V1(Int32), V2 } use A::V1; fn f(): A[Int32] { V1(1I) }");
 
-    ok("enum A { V1, V2 } import A::V2; fn f(): A { V2 }");
+    ok("enum A { V1, V2 } use A::V2; fn f(): A { V2 }");
 
     err(
-        "enum A { V1(Int32), V2 } import A::V1; fn f(): A { V1 }",
-        pos(1, 52),
+        "enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1 }",
+        pos(1, 49),
         SemError::EnumArgsIncompatible("A".into(), "V1".into(), vec!["Int32".into()], Vec::new()),
     );
 
     err(
-        "enum A { V1(Int32), V2 } import A::V2; fn f(): A { V2(0I) }",
-        pos(1, 54),
+        "enum A { V1(Int32), V2 } use A::V2; fn f(): A { V2(0I) }",
+        pos(1, 51),
         SemError::EnumArgsIncompatible("A".into(), "V2".into(), Vec::new(), vec!["Int32".into()]),
     );
 
-    ok("enum A[T] { V1(Int32), V2 } import A::V2; fn f(): A[Int32] { V2 }");
+    ok("enum A[T] { V1(Int32), V2 } use A::V2; fn f(): A[Int32] { V2 }");
 
-    ok("enum A[T] { V1, V2 } import A::V2; fn f(): A[Int32] { V2[Int32] }");
+    ok("enum A[T] { V1, V2 } use A::V2; fn f(): A[Int32] { V2[Int32] }");
 
     err(
-        "enum A[T] { V1, V2 } import A::V2; fn f(): A[Int32] { V2[Int32, Float32] }",
-        pos(1, 57),
+        "enum A[T] { V1, V2 } use A::V2; fn f(): A[Int32] { V2[Int32, Float32] }",
+        pos(1, 54),
         SemError::WrongNumberTypeParams(1, 2),
     );
 }
@@ -3264,13 +3264,13 @@ fn namespace_const() {
 fn namespace_enum_value() {
     ok("
         fn f() { foo::A; }
-        namespace foo { @pub enum Foo { A, B } import Foo::A; }
+        namespace foo { @pub enum Foo { A, B } use Foo::A; }
     ");
 
     err(
         "
         fn f() { foo::A; }
-        namespace foo { enum Foo { A, B } import Foo::A; }
+        namespace foo { enum Foo { A, B } use Foo::A; }
     ",
         pos(2, 21),
         SemError::NotAccessible("foo::Foo".into()),
@@ -3278,13 +3278,13 @@ fn namespace_enum_value() {
 
     ok("
         fn f() { foo::bar::A; }
-        namespace foo { @pub namespace bar { @pub enum Foo { A, B } import Foo::A; } }
+        namespace foo { @pub namespace bar { @pub enum Foo { A, B } use Foo::A; } }
     ");
 
     err(
         "
         fn f() { foo::bar::A; }
-        namespace foo { @pub namespace bar { enum Foo { A, B } import Foo::A; } }
+        namespace foo { @pub namespace bar { enum Foo { A, B } use Foo::A; } }
     ",
         pos(2, 26),
         SemError::NotAccessible("foo::bar::Foo".into()),
@@ -3333,13 +3333,13 @@ fn namespace_enum() {
 #[test]
 fn namespace_import() {
     ok("
-        import foo::bar;
+        use foo::bar;
         fn f() { bar(); }
         namespace foo { @pub fn bar() {} }
     ");
 
     ok("
-        import foo::bar::baz;
+        use foo::bar::baz;
         fn f() { baz(); }
         namespace foo { @pub namespace bar {
             @pub fn baz() {}
@@ -3347,19 +3347,19 @@ fn namespace_import() {
     ");
 
     ok("
-        import foo::bar as baz;
+        use foo::bar as baz;
         fn f() { baz(); }
         namespace foo { @pub fn bar() {} }
     ");
 
     ok("
-        import foo::bar;
+        use foo::bar;
         fn f(): Int32 { bar }
         namespace foo { @pub var bar: Int32 = 10I; }
     ");
 
     ok("
-        import foo::bar::baz;
+        use foo::bar::baz;
         fn f(): Int32 { baz }
         namespace foo { @pub namespace bar {
             @pub var baz: Int32 = 10I;
@@ -3367,7 +3367,7 @@ fn namespace_import() {
     ");
 
     ok("
-        import foo::bar;
+        use foo::bar;
         fn f(): Int32 { bar }
         namespace foo { @pub var bar: Int32 = 10I; }
     ");
@@ -3376,13 +3376,13 @@ fn namespace_import() {
 #[test]
 fn namespace_import_class() {
     ok("
-        import foo::Bar;
+        use foo::Bar;
         fn f() { Bar(); }
         namespace foo { @pub class Bar }
     ");
 
     ok("
-        import foo::Bar;
+        use foo::Bar;
         fn f() {
             Bar();
             Bar::baz();
@@ -3398,7 +3398,7 @@ fn namespace_import_class() {
 #[test]
 fn namespace_import_trait() {
     ok("
-        import foo::Bar;
+        use foo::Bar;
         namespace foo { @pub trait Bar{} }
     ");
 }
@@ -3406,7 +3406,7 @@ fn namespace_import_trait() {
 #[test]
 fn namespace_import_std() {
     ok("
-        import std::HashMap;
+        use std::HashMap;
     ");
 }
 
@@ -3415,7 +3415,7 @@ fn namespace_import_package() {
     ok("
         class Foo
         namespace bar {
-            import package::Foo;
+            use package::Foo;
             fn getfoo(): Foo { Foo() }
         }
     ");
@@ -3427,20 +3427,20 @@ fn namespace_import_super() {
         namespace baz {
             class Foo
             namespace bar {
-                import super::Foo;
+                use super::Foo;
 
                 fn getfoo(): Foo { Foo() }
             }
         }
     ");
 
-    err("import super::Foo;", pos(1, 1), SemError::NoSuperNamespace);
+    err("use super::Foo;", pos(1, 1), SemError::NoSuperNamespace);
 }
 
 #[test]
 fn namespace_import_self() {
     ok("
-        import self::bar::Foo;
+        use self::bar::Foo;
         fn getfoo(): Foo { Foo() }
         namespace bar { @pub class Foo }
     ");
@@ -3450,7 +3450,7 @@ fn namespace_import_self() {
 fn namespace_import_errors() {
     err(
         "
-        import foo::bar::baz;
+        use foo::bar::baz;
         namespace foo { @pub namespace bar {} }
     ",
         pos(2, 9),
@@ -3459,7 +3459,7 @@ fn namespace_import_errors() {
 
     err(
         "
-        import foo::bar;
+        use foo::bar;
     ",
         pos(2, 9),
         SemError::ExpectedPath,
@@ -3467,7 +3467,7 @@ fn namespace_import_errors() {
 
     err(
         "
-        import foo::bar::baz;
+        use foo::bar::baz;
     ",
         pos(2, 9),
         SemError::ExpectedPath,
@@ -3475,7 +3475,7 @@ fn namespace_import_errors() {
 
     err(
         "
-        import foo::bar::baz;
+        use foo::bar::baz;
         fn foo() {}
     ",
         pos(2, 9),
@@ -3484,7 +3484,7 @@ fn namespace_import_errors() {
 
     err(
         "
-        import foo::bar;
+        use foo::bar;
         fn foo() {}
     ",
         pos(2, 9),

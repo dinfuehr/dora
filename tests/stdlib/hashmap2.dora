@@ -1,4 +1,4 @@
-import std::HashMap;
+use std::HashMap;
 
 fn main() {
     let map = HashMap[Int32, String]();

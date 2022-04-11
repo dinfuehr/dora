@@ -45,8 +45,8 @@ pub trait Visitor: Sized {
         walk_namespace(self, e);
     }
 
-    fn visit_import(&mut self, i: &Arc<Import>) {
-        walk_import(self, i);
+    fn visit_use(&mut self, i: &Arc<Use>) {
+        walk_use(self, i);
     }
 
     fn visit_struct_field(&mut self, f: &StructField) {
@@ -105,7 +105,7 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
         Elem::Enum(ref e) => v.visit_enum(e),
         Elem::Alias(ref e) => v.visit_alias(e),
         Elem::Namespace(ref e) => v.visit_namespace(e),
-        Elem::Import(ref i) => v.visit_import(i),
+        Elem::Use(ref i) => v.visit_use(i),
     }
 }
 
@@ -166,7 +166,7 @@ pub fn walk_namespace<V: Visitor>(v: &mut V, namespace: &Arc<Namespace>) {
     }
 }
 
-pub fn walk_import<V: Visitor>(_v: &mut V, _import: &Arc<Import>) {
+pub fn walk_use<V: Visitor>(_v: &mut V, _use: &Arc<Use>) {
     // nothing to do
 }
 

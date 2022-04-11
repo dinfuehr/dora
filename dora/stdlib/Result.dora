@@ -3,8 +3,8 @@
   Err(E),
 }
 
-import Result::Ok;
-import Result::Err;
+use Result::Ok;
+use Result::Err;
 
 impl[V, E] Result[V, E] {
   @pub fn isOk(): Bool {

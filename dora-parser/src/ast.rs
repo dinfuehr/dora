@@ -114,7 +114,7 @@ pub enum Elem {
     Enum(Arc<Enum>),
     Alias(Arc<Alias>),
     Namespace(Arc<Namespace>),
-    Import(Arc<Import>),
+    Use(Arc<Use>),
 }
 
 impl Elem {
@@ -131,7 +131,7 @@ impl Elem {
             &Elem::Enum(ref e) => e.id,
             &Elem::Alias(ref e) => e.id,
             &Elem::Namespace(ref e) => e.id,
-            &Elem::Import(ref e) => e.id,
+            &Elem::Use(ref e) => e.id,
         }
     }
 
@@ -236,18 +236,18 @@ pub struct Namespace {
 }
 
 #[derive(Clone, Debug)]
-pub struct Import {
+pub struct Use {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
     pub path: Vec<Name>,
-    pub context: ImportContext,
+    pub context: UseContext,
     pub element_name: Name,
     pub target_name: Option<Name>,
 }
 
 #[derive(Clone, Debug)]
-pub enum ImportContext {
+pub enum UseContext {
     This,
     Super,
     Package,

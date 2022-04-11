@@ -24,7 +24,7 @@ pub enum TokenKind {
     Impl,
     Annotation,
     Namespace,
-    Import,
+    Use,
     Package,
 
     // "small" shapes
@@ -139,7 +139,7 @@ impl TokenKind {
             TokenKind::Impl => "impl",
             TokenKind::Annotation => "annotation",
             TokenKind::Namespace => "namespace",
-            TokenKind::Import => "import",
+            TokenKind::Use => "use",
             TokenKind::Package => "package",
 
             // "small" shapes

@@ -1,6 +1,6 @@
-import std::argc;
-import std::argv;
-import std::exit;
+use std::argc;
+use std::argv;
+use std::exit;
 
 @open @abstract class Node {
     var birthday: Int32 = 0I;

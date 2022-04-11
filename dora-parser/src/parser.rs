@@ -170,10 +170,10 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Namespace(Arc::new(namespace)))
             }
 
-            TokenKind::Import => {
+            TokenKind::Use => {
                 self.ban_modifiers(&modifiers)?;
-                let import = self.parse_import()?;
-                Ok(Elem::Import(Arc::new(import)))
+                let use_stmt = self.parse_use()?;
+                Ok(Elem::Use(Arc::new(use_stmt)))
             }
 
             _ => {
@@ -183,24 +183,24 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_import(&mut self) -> Result<Import, ParseErrorAndPos> {
+    fn parse_use(&mut self) -> Result<Use, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Import)?.position;
+        let pos = self.expect_token(TokenKind::Use)?.position;
         let mut path = Vec::new();
 
         let context = if self.token.is(TokenKind::This) {
             self.expect_token(TokenKind::This)?;
-            ImportContext::This
+            UseContext::This
         } else if self.token.is(TokenKind::Package) {
             self.expect_token(TokenKind::Package)?;
-            ImportContext::Package
+            UseContext::Package
         } else if self.token.is(TokenKind::Super) {
             self.expect_token(TokenKind::Super)?;
-            ImportContext::Super
+            UseContext::Super
         } else {
             let name = self.expect_identifier()?;
             path.push(name);
-            ImportContext::This
+            UseContext::This
         };
 
         self.expect_token(TokenKind::ColonColon)?;
@@ -228,7 +228,7 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
         let span = self.span_from(start);
 
-        Ok(Import {
+        Ok(Use {
             id: self.generate_id(),
             pos,
             span,
