@@ -7,8 +7,8 @@ use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
-    FctDefinition, FctParent, GlobalDefinition, ImplDefinition, ImportDefinition,
-    NamespaceDefinition, NamespaceDefinitionId, StructDefinition, TraitDefinition,
+    FctDefinition, FctParent, GlobalDefinition, ImplDefinition, NamespaceDefinition,
+    NamespaceDefinitionId, StructDefinition, TraitDefinition, UseDefinition,
 };
 use crate::language::sym::Sym;
 use crate::vm::{FileId, SemAnalysis};
@@ -289,8 +289,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_use(&mut self, node: &Arc<ast::Use>) {
-        let import = ImportDefinition::new(self.file_id, self.namespace_id, node);
-        self.sa.imports.push(import);
+        let use_def = UseDefinition::new(self.file_id, self.namespace_id, node);
+        self.sa.uses.push(use_def);
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {

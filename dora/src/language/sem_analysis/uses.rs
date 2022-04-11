@@ -4,19 +4,19 @@ use crate::language::sem_analysis::NamespaceDefinitionId;
 use crate::vm::FileId;
 use dora_parser::ast;
 
-pub struct ImportDefinition {
+pub struct UseDefinition {
     pub ast: Arc<ast::Use>,
     pub namespace_id: NamespaceDefinitionId,
     pub file_id: FileId,
 }
 
-impl ImportDefinition {
+impl UseDefinition {
     pub fn new(
         file_id: FileId,
         namespace_id: NamespaceDefinitionId,
         node: &Arc<ast::Use>,
-    ) -> ImportDefinition {
-        ImportDefinition {
+    ) -> UseDefinition {
+        UseDefinition {
             namespace_id,
             file_id,
             ast: node.clone(),

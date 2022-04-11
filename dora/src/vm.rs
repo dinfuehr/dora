@@ -15,9 +15,9 @@ use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
-    FctDefinitionId, GlobalDefinition, ImplDefinition, ImportDefinition, NamespaceDefinition,
-    NamespaceDefinitionId, StructDefinition, StructDefinitionId, StructInstance, TraitDefinition,
-    TraitDefinitionId, Tuples,
+    FctDefinitionId, GlobalDefinition, ImplDefinition, NamespaceDefinition, NamespaceDefinitionId,
+    StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, TraitDefinitionId,
+    Tuples, UseDefinition,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -118,7 +118,7 @@ pub struct FullSemAnalysis {
     pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
     pub impls: MutableVec<ImplDefinition>,   // stores all impl definitions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
-    pub imports: Vec<ImportDefinition>,      // stores all imports
+    pub uses: Vec<UseDefinition>,            // stores all uses
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub parse_arg_file: bool,
@@ -166,7 +166,7 @@ impl FullSemAnalysis {
             traits: MutableVec::new(),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
-            imports: Vec::new(),
+            uses: Vec::new(),
             interner,
             known: KnownElements {
                 classes: KnownClasses::new(),
@@ -273,7 +273,7 @@ pub struct VM {
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
-    pub imports: Vec<ImportDefinition>,    // stores all imports
+    pub uses: Vec<UseDefinition>,          // stores all uses
     pub gc: Gc,                            // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
@@ -330,7 +330,7 @@ impl VM {
             traits: MutableVec::new(),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
-            imports: Vec::new(),
+            uses: Vec::new(),
             interner,
             known: KnownElements {
                 classes: KnownClasses::new(),
@@ -440,7 +440,7 @@ impl VM {
             traits: sa.traits,
             impls: sa.impls,
             globals: sa.globals,
-            imports: sa.imports,
+            uses: sa.uses,
             interner: sa.interner,
             known: sa.known,
             gc,

@@ -26,7 +26,6 @@ pub use self::extensions::{
 pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{find_trait_impl, impl_matches, ImplDefinition, ImplDefinitionId};
-pub use self::imports::ImportDefinition;
 pub use self::namespaces::{
     namespace_package, namespace_path, NamespaceDefinition, NamespaceDefinitionId,
 };
@@ -39,6 +38,7 @@ pub use self::structs::{
 };
 pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::{ensure_tuple, get_tuple_subtypes, TupleId, Tuples};
+pub use self::uses::UseDefinition;
 
 mod annotations;
 mod classes;
@@ -48,12 +48,12 @@ mod extensions;
 mod functions;
 mod globals;
 mod impls;
-mod imports;
 mod namespaces;
 mod src;
 mod structs;
 mod traits;
 mod tuples;
+mod uses;
 
 impl SemAnalysis {
     #[cfg(test)]

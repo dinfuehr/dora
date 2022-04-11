@@ -2047,7 +2047,7 @@ fn test_enum_equals() {
 }
 
 #[test]
-fn test_import_enum_value() {
+fn test_use_enum_value() {
     ok("enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1(1I) }");
     ok("enum A[T] { V1(Int32), V2 } use A::V1; fn f(): A[Int32] { V1[Int32](1I) }");
     ok("enum A[T] { V1(Int32), V2 } use A::V1; fn f(): A[Int32] { V1(1I) }");
@@ -3331,7 +3331,7 @@ fn namespace_enum() {
 }
 
 #[test]
-fn namespace_import() {
+fn namespace_use() {
     ok("
         use foo::bar;
         fn f() { bar(); }
@@ -3374,7 +3374,7 @@ fn namespace_import() {
 }
 
 #[test]
-fn namespace_import_class() {
+fn namespace_use_class() {
     ok("
         use foo::Bar;
         fn f() { Bar(); }
@@ -3396,7 +3396,7 @@ fn namespace_import_class() {
 }
 
 #[test]
-fn namespace_import_trait() {
+fn namespace_use_trait() {
     ok("
         use foo::Bar;
         namespace foo { @pub trait Bar{} }
@@ -3404,14 +3404,14 @@ fn namespace_import_trait() {
 }
 
 #[test]
-fn namespace_import_std() {
+fn namespace_use_std() {
     ok("
         use std::HashMap;
     ");
 }
 
 #[test]
-fn namespace_import_package() {
+fn namespace_use_package() {
     ok("
         class Foo
         namespace bar {
@@ -3422,7 +3422,7 @@ fn namespace_import_package() {
 }
 
 #[test]
-fn namespace_import_super() {
+fn namespace_use_super() {
     ok("
         namespace baz {
             class Foo
@@ -3438,7 +3438,7 @@ fn namespace_import_super() {
 }
 
 #[test]
-fn namespace_import_self() {
+fn namespace_use_self() {
     ok("
         use self::bar::Foo;
         fn getfoo(): Foo { Foo() }
@@ -3447,7 +3447,7 @@ fn namespace_import_self() {
 }
 
 #[test]
-fn namespace_import_errors() {
+fn namespace_use_errors() {
     err(
         "
         use foo::bar::baz;

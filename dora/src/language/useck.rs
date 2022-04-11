@@ -8,7 +8,7 @@ use crate::language::access::{
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    namespace_package, EnumDefinitionId, ImportDefinition, NamespaceDefinitionId,
+    namespace_package, EnumDefinitionId, NamespaceDefinitionId, UseDefinition,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::SemAnalysis;
@@ -17,25 +17,25 @@ use dora_parser::ast::UseContext;
 use dora_parser::interner::Name;
 
 pub fn check<'a>(sa: &SemAnalysis) {
-    for import in &sa.imports {
-        check_import(sa, import);
+    for use_def in &sa.uses {
+        check_use(sa, use_def);
     }
 }
 
-fn check_import(sa: &SemAnalysis, import: &ImportDefinition) {
-    let table = sa.namespace_table(import.namespace_id);
+fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
+    let table = sa.namespace_table(use_def.namespace_id);
 
-    let namespace_id = match import.ast.context {
-        UseContext::This => import.namespace_id,
-        UseContext::Package => namespace_package(sa, import.namespace_id),
+    let namespace_id = match use_def.ast.context {
+        UseContext::This => use_def.namespace_id,
+        UseContext::Package => namespace_package(sa, use_def.namespace_id),
         UseContext::Super => {
-            let namespace = &sa.namespaces[import.namespace_id].read();
+            let namespace = &sa.namespaces[use_def.namespace_id].read();
             if let Some(namespace_id) = namespace.parent_namespace_id {
                 namespace_id
             } else {
                 sa.diag.lock().report(
-                    import.file_id.into(),
-                    import.ast.pos,
+                    use_def.file_id.into(),
+                    use_def.ast.pos,
                     SemError::NoSuperNamespace,
                 );
                 return;
@@ -45,13 +45,13 @@ fn check_import(sa: &SemAnalysis, import: &ImportDefinition) {
 
     let symtable = NestedSymTable::new(sa, namespace_id);
 
-    let element_name = import.ast.element_name;
-    let target_name = import.ast.target_name.unwrap_or(element_name);
+    let element_name = use_def.ast.element_name;
+    let target_name = use_def.ast.target_name.unwrap_or(element_name);
 
-    if import.ast.path.is_empty() {
-        import_namespace(sa, import, &table, namespace_id, element_name, target_name);
+    if use_def.ast.path.is_empty() {
+        use_namespace(sa, use_def, &table, namespace_id, element_name, target_name);
     } else {
-        let sym = match read_path(sa, import, &symtable) {
+        let sym = match read_path(sa, use_def, &symtable) {
             Ok(sym) => sym,
             Err(()) => {
                 return;
@@ -60,24 +60,24 @@ fn check_import(sa: &SemAnalysis, import: &ImportDefinition) {
 
         match sym {
             Some(Sym::Namespace(namespace_id)) => {
-                if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
+                if !namespace_accessible_from(sa, namespace_id, use_def.namespace_id) {
                     let namespace = &sa.namespaces[namespace_id].read();
                     let msg = SemError::NotAccessible(namespace.name(sa));
-                    sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                    sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                     return;
                 }
 
-                import_namespace(sa, import, &table, namespace_id, element_name, target_name)
+                use_namespace(sa, use_def, &table, namespace_id, element_name, target_name)
             }
 
             Some(Sym::Enum(enum_id)) => {
-                import_enum(sa, import, &table, enum_id, element_name, target_name)
+                use_enum(sa, use_def, &table, enum_id, element_name, target_name)
             }
 
             _ => {
                 sa.diag.lock().report(
-                    import.file_id.into(),
-                    import.ast.pos,
+                    use_def.file_id.into(),
+                    use_def.ast.pos,
                     SemError::ExpectedPath,
                 );
             }
@@ -87,11 +87,11 @@ fn check_import(sa: &SemAnalysis, import: &ImportDefinition) {
 
 fn read_path(
     sa: &SemAnalysis,
-    import: &ImportDefinition,
+    use_def: &UseDefinition,
     symtable: &NestedSymTable,
 ) -> Result<Option<Sym>, ()> {
-    if !import.ast.path.is_empty() {
-        let path = &import.ast.path;
+    if !use_def.ast.path.is_empty() {
+        let path = &use_def.ast.path;
         let first_name = path.first().cloned().unwrap();
 
         let mut sym = symtable.get(first_name);
@@ -102,10 +102,10 @@ fn read_path(
                     let namespace = &sa.namespaces[namespace_id].read();
                     let symtable = namespace.table.read();
 
-                    if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
+                    if !namespace_accessible_from(sa, namespace_id, use_def.namespace_id) {
                         let namespace = &sa.namespaces[namespace_id].read();
                         let msg = SemError::NotAccessible(namespace.name(sa));
-                        sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                        sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                         return Err(());
                     }
 
@@ -114,13 +114,13 @@ fn read_path(
 
                 None => {
                     let msg = SemError::ExpectedPath;
-                    sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                    sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                     return Err(());
                 }
 
                 _ => {
                     let msg = SemError::ExpectedNamespace;
-                    sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                    sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                     return Err(());
                 }
             }
@@ -129,14 +129,14 @@ fn read_path(
         Ok(sym)
     } else {
         let msg = SemError::ExpectedPath;
-        sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+        sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
         Err(())
     }
 }
 
-fn import_namespace(
+fn use_namespace(
     sa: &SemAnalysis,
-    import: &ImportDefinition,
+    use_def: &UseDefinition,
     table: &RwLock<SymTable>,
     namespace_id: NamespaceDefinitionId,
     element_name: Name,
@@ -147,114 +147,114 @@ fn import_namespace(
 
     match sym {
         Some(Sym::Fct(fct_id)) => {
-            if !fct_accessible_from(sa, fct_id, import.namespace_id) {
+            if !fct_accessible_from(sa, fct_id, use_def.namespace_id) {
                 let fct = &sa.fcts.idx(fct_id);
                 let fct = fct.read();
                 let msg = SemError::NotAccessible(fct.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
             let new_sym = Sym::Fct(fct_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
         }
 
         Some(Sym::Namespace(namespace_id)) => {
-            if !namespace_accessible_from(sa, namespace_id, import.namespace_id) {
+            if !namespace_accessible_from(sa, namespace_id, use_def.namespace_id) {
                 let namespace = &sa.namespaces[namespace_id].read();
                 let msg = SemError::NotAccessible(namespace.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
             let new_sym = Sym::Namespace(namespace_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
         }
 
         Some(Sym::Global(global_id)) => {
-            if !global_accessible_from(sa, global_id, import.namespace_id) {
+            if !global_accessible_from(sa, global_id, use_def.namespace_id) {
                 let global = &sa.globals.idx(global_id);
                 let global = global.read();
                 let msg = SemError::NotAccessible(global.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
             let new_sym = Sym::Global(global_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
         }
 
         Some(Sym::Const(const_id)) => {
-            if !const_accessible_from(sa, const_id, import.namespace_id) {
+            if !const_accessible_from(sa, const_id, use_def.namespace_id) {
                 let xconst = &sa.consts.idx(const_id);
                 let xconst = xconst.read();
                 let msg = SemError::NotAccessible(xconst.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
             let new_sym = Sym::Const(const_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
         }
 
         Some(Sym::Class(cls_id)) => {
-            if !class_accessible_from(sa, cls_id, import.namespace_id) {
+            if !class_accessible_from(sa, cls_id, use_def.namespace_id) {
                 let cls = &sa.classes.idx(cls_id);
                 let cls = cls.read();
                 let msg = SemError::NotAccessible(cls.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
             let new_sym = Sym::Class(cls_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
         }
 
         Some(Sym::Enum(enum_id)) => {
-            if !enum_accessible_from(sa, enum_id, import.namespace_id) {
+            if !enum_accessible_from(sa, enum_id, use_def.namespace_id) {
                 let xenum = sa.enums[enum_id].read();
                 let msg = SemError::NotAccessible(xenum.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
             let new_sym = Sym::Enum(enum_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
         }
 
         Some(Sym::Struct(struct_id)) => {
-            if !struct_accessible_from(sa, struct_id, import.namespace_id) {
+            if !struct_accessible_from(sa, struct_id, use_def.namespace_id) {
                 let xstruct = sa.structs.idx(struct_id);
                 let xstruct = xstruct.read();
                 let msg = SemError::NotAccessible(xstruct.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
             let new_sym = Sym::Struct(struct_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
         }
 
         Some(Sym::Trait(trait_id)) => {
-            if !trait_accessible_from(sa, trait_id, import.namespace_id) {
+            if !trait_accessible_from(sa, trait_id, use_def.namespace_id) {
                 let xtrait = sa.traits[trait_id].read();
                 let msg = SemError::NotAccessible(xtrait.name(sa));
-                sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
             let new_sym = Sym::Trait(trait_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, import.file_id, import.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
         }
 
@@ -262,25 +262,25 @@ fn import_namespace(
             let name = sa.interner.str(element_name).to_string();
             let namespace_name = namespace.name(sa);
             sa.diag.lock().report(
-                import.file_id.into(),
-                import.ast.pos,
+                use_def.file_id.into(),
+                use_def.ast.pos,
                 SemError::UnknownIdentifierInNamespace(namespace_name, name),
             );
         }
 
         _ => {
             sa.diag.lock().report(
-                import.file_id.into(),
-                import.ast.pos,
+                use_def.file_id.into(),
+                use_def.ast.pos,
                 SemError::ExpectedPath,
             );
         }
     }
 }
 
-fn import_enum(
+fn use_enum(
     sa: &SemAnalysis,
-    import: &ImportDefinition,
+    use_def: &UseDefinition,
     table: &RwLock<SymTable>,
     enum_id: EnumDefinitionId,
     element_name: Name,
@@ -288,21 +288,27 @@ fn import_enum(
 ) {
     let xenum = sa.enums[enum_id].read();
 
-    if !enum_accessible_from(sa, enum_id, import.namespace_id) {
+    if !enum_accessible_from(sa, enum_id, use_def.namespace_id) {
         let msg = SemError::NotAccessible(xenum.name(sa));
-        sa.diag.lock().report(import.file_id, import.ast.pos, msg);
+        sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
     }
 
     if let Some(&variant_id) = xenum.name_to_value.get(&element_name) {
         let sym = Sym::EnumValue(enum_id, variant_id as usize);
         if let Some(sym) = table.write().insert(target_name, sym) {
-            report_sym_shadow(sa, target_name, import.file_id.into(), import.ast.pos, sym);
+            report_sym_shadow(
+                sa,
+                target_name,
+                use_def.file_id.into(),
+                use_def.ast.pos,
+                sym,
+            );
         }
     } else {
         let name = sa.interner.str(element_name).to_string();
         sa.diag.lock().report(
-            import.file_id.into(),
-            import.ast.pos,
+            use_def.file_id.into(),
+            use_def.ast.pos,
             SemError::UnknownEnumValue(name),
         );
     }
@@ -334,7 +340,7 @@ mod tests {
     }
 
     #[test]
-    fn import_namespace() {
+    fn use_namespace() {
         err(
             "
             use foo::bar::Foo;
@@ -350,7 +356,7 @@ mod tests {
     }
 
     #[test]
-    fn import_class() {
+    fn use_class() {
         err(
             "
             use foo::bar::Foo;
@@ -366,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn import_fct() {
+    fn use_fct() {
         err(
             "
             use foo::bar;
@@ -380,7 +386,7 @@ mod tests {
     }
 
     #[test]
-    fn import_global() {
+    fn use_global() {
         err(
             "
             use foo::bar;
@@ -394,7 +400,7 @@ mod tests {
     }
 
     #[test]
-    fn import_const() {
+    fn use_const() {
         err(
             "
             use foo::bar;
@@ -408,7 +414,7 @@ mod tests {
     }
 
     #[test]
-    fn import_enum() {
+    fn use_enum() {
         err(
             "
             use foo::Bar;
@@ -422,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn import_enum_value() {
+    fn use_enum_value() {
         err(
             "
             use foo::Bar::A;
@@ -436,7 +442,7 @@ mod tests {
     }
 
     #[test]
-    fn import_trait() {
+    fn use_trait() {
         err(
             "
             use foo::Bar;
@@ -450,7 +456,7 @@ mod tests {
     }
 
     #[test]
-    fn import_struct() {
+    fn use_struct() {
         ok("
             use foo::Bar;
             namespace foo {

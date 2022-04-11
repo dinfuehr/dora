@@ -28,7 +28,6 @@ mod globaldef;
 mod globaldefck;
 mod implck;
 mod impldefck;
-mod importck;
 mod readty;
 mod returnck;
 pub mod sem_analysis;
@@ -42,6 +41,7 @@ mod test;
 mod traitdefck;
 pub(crate) mod ty;
 mod typeparamck;
+mod useck;
 
 macro_rules! return_on_error {
     ($vm: ident) => {{
@@ -72,7 +72,7 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     stdlib::fill_prelude(sa);
 
     // discover all types
-    importck::check(sa);
+    useck::check(sa);
     return_on_error!(sa);
 
     // find all trait implementations for classes
