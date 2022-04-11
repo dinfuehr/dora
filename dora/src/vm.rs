@@ -97,6 +97,7 @@ pub struct File {
 
 pub struct FullSemAnalysis {
     pub args: Args,
+    pub additional_file_to_parse: Option<&'static str>,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
     pub files: Vec<File>,
@@ -149,6 +150,7 @@ impl FullSemAnalysis {
 
         let sa = Box::new(FullSemAnalysis {
             args,
+            additional_file_to_parse: None,
             files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
@@ -247,6 +249,7 @@ pub type SemAnalysis = VM;
 
 pub struct VM {
     pub args: Args,
+    pub additional_file_to_parse: Option<&'static str>,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
     pub files: Vec<File>,
@@ -311,6 +314,7 @@ impl VM {
 
         let vm = Box::new(VM {
             args,
+            additional_file_to_parse: None,
             files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
@@ -420,6 +424,7 @@ impl VM {
 
         let vm = Box::new(VM {
             args: sa.args,
+            additional_file_to_parse: sa.additional_file_to_parse,
             files: sa.files,
             consts: sa.consts,
             structs: sa.structs,

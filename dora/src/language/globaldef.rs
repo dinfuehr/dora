@@ -22,17 +22,6 @@ pub fn check(sa: &mut SemAnalysis) -> Result<(), i32> {
     let mut files_to_scan: VecDeque<ScanFile> = VecDeque::new();
     let mut files_to_parse: VecDeque<ParseFile> = VecDeque::new();
 
-    {
-        for file in &sa.files {
-            files_to_scan.push_back(ScanFile {
-                file_id: file.id,
-                path: None,
-                namespace_id: file.namespace_id,
-                ast: file.ast.clone(),
-            });
-        }
-    }
-
     parse_initial_files(sa, &mut files_to_scan)?;
 
     while !files_to_scan.is_empty() {
@@ -79,6 +68,11 @@ fn parse_initial_files(
             println!("file or directory `{}` does not exist.", &arg_file);
             return Err(1);
         }
+    }
+
+    if let Some(content) = sa.additional_file_to_parse {
+        let file = parse_string(sa, sa.global_namespace_id, "<<code>>".into(), content)?;
+        files_to_scan.push_back(file);
     }
 
     Ok(())
@@ -201,14 +195,14 @@ fn parse_bundled_stdlib(
     use crate::driver::start::STDLIB;
 
     for (filename, content) in STDLIB {
-        let file = parse_bundled_stdlib_file(sa, namespace_id, filename, content)?;
+        let file = parse_string(sa, namespace_id, filename, content)?;
         files_to_scan.push_back(file);
     }
 
     Ok(())
 }
 
-fn parse_bundled_stdlib_file(
+fn parse_string(
     sa: &mut SemAnalysis,
     namespace_id: NamespaceDefinitionId,
     filename: &str,
