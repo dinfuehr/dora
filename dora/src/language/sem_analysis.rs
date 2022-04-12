@@ -3,8 +3,6 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
-use dora_parser::ast;
-
 #[cfg(test)]
 use crate::language::sym::NestedSymTable;
 use crate::language::sym::SymTable;
@@ -235,7 +233,6 @@ impl SemAnalysis {
         content: String,
         line_ends: Vec<u32>,
         namespace_id: NamespaceDefinitionId,
-        ast: Arc<ast::File>,
     ) -> FileId {
         let file_id = (self.files.len() as u32).into();
         self.files.push(File {
@@ -244,7 +241,6 @@ impl SemAnalysis {
             content,
             line_ends,
             namespace_id,
-            ast,
         });
         file_id
     }

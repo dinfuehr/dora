@@ -30,7 +30,6 @@ use crate::threads::{
 };
 use crate::utils::{GrowableVec, MutableVec};
 
-use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
@@ -94,7 +93,6 @@ pub struct File {
     pub content: String,
     pub line_ends: Vec<u32>,
     pub namespace_id: NamespaceDefinitionId,
-    pub ast: Arc<ast::File>,
 }
 
 pub struct FullSemAnalysis {

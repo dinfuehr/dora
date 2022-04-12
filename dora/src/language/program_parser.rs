@@ -39,39 +39,39 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn parse_all(&mut self) -> Result<(), i32> {
-        self.parse_initial_files()?;
+        self.add_initial_files()?;
 
-        while !self.files_to_scan.is_empty() {
-            self.scan_files();
+        while !self.files_to_scan.is_empty() || !self.files_to_parse.is_empty() {
             self.parse_files()?;
+            self.scan_files();
         }
 
         Ok(())
     }
 
-    fn parse_initial_files(&mut self) -> Result<(), i32> {
-        self.parse_stdlib()?;
-        self.parse_boots()?;
-        self.parse_program()?;
-        self.parse_additional_file_as_string()?;
+    fn add_initial_files(&mut self) -> Result<(), i32> {
+        self.add_stdlib_files()?;
+        self.add_boots_files()?;
+        self.add_program_files()?;
+        self.add_test_files()?;
 
         Ok(())
     }
 
-    fn parse_stdlib(&mut self) -> Result<(), i32> {
+    fn add_stdlib_files(&mut self) -> Result<(), i32> {
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
         let namespace_id = self.sa.stdlib_namespace_id;
 
         if let Some(stdlib) = stdlib_dir {
-            self.parse_dir(&stdlib, namespace_id)?;
+            self.add_files_in_directory(&stdlib, namespace_id)?;
         } else {
-            self.parse_bundled_stdlib(namespace_id)?;
+            self.add_bundled_stdlib(namespace_id)?;
         }
 
         Ok(())
     }
 
-    fn parse_bundled_stdlib(&mut self, namespace_id: NamespaceDefinitionId) -> Result<(), i32> {
+    fn add_bundled_stdlib(&mut self, namespace_id: NamespaceDefinitionId) -> Result<(), i32> {
         use crate::driver::start::STDLIB;
 
         for (filename, content) in STDLIB {
@@ -81,23 +81,23 @@ impl<'a> ProgramParser<'a> {
                 path,
                 namespace_id,
             };
-            self.parse_file(&file)?;
+            self.files_to_parse.push_back(file);
         }
 
         Ok(())
     }
 
-    fn parse_boots(&mut self) -> Result<(), i32> {
+    fn add_boots_files(&mut self) -> Result<(), i32> {
         let boots_dir = self.sa.args.flag_boots.clone();
 
         if let Some(boots) = boots_dir {
-            self.parse_dir(&boots, self.sa.boots_namespace_id)?;
+            self.add_files_in_directory(&boots, self.sa.boots_namespace_id)?;
         }
 
         Ok(())
     }
 
-    fn parse_program(&mut self) -> Result<(), i32> {
+    fn add_program_files(&mut self) -> Result<(), i32> {
         if self.sa.parse_arg_file && !self.sa.args.arg_file.is_empty() {
             let arg_file = self.sa.args.arg_file.clone();
             let path = Path::new(&arg_file);
@@ -108,9 +108,9 @@ impl<'a> ProgramParser<'a> {
                     path: PathBuf::from(path),
                     namespace_id: self.sa.global_namespace_id,
                 };
-                self.parse_file(&file)?;
+                self.files_to_parse.push_back(file);
             } else if path.is_dir() {
-                self.parse_dir(&arg_file, self.sa.global_namespace_id)?;
+                self.add_files_in_directory(&arg_file, self.sa.global_namespace_id)?;
             } else {
                 println!("file or directory `{}` does not exist.", &arg_file);
                 return Err(1);
@@ -120,7 +120,7 @@ impl<'a> ProgramParser<'a> {
         Ok(())
     }
 
-    fn parse_additional_file_as_string(&mut self) -> Result<(), i32> {
+    fn add_test_files(&mut self) -> Result<(), i32> {
         if let Some(content) = self.sa.additional_file_to_parse {
             let file = ParseFile {
                 content: FileContent::String(content.to_string()),
@@ -172,7 +172,11 @@ impl<'a> ProgramParser<'a> {
         Ok(())
     }
 
-    fn parse_dir(&mut self, dirname: &str, namespace_id: NamespaceDefinitionId) -> Result<(), i32> {
+    fn add_files_in_directory(
+        &mut self,
+        dirname: &str,
+        namespace_id: NamespaceDefinitionId,
+    ) -> Result<(), i32> {
         let path = Path::new(dirname);
 
         if path.is_dir() {
@@ -185,7 +189,7 @@ impl<'a> ProgramParser<'a> {
                         path,
                         namespace_id,
                     };
-                    self.parse_file(&file)?;
+                    self.files_to_parse.push_back(file);
                 }
             }
 
@@ -212,7 +216,6 @@ impl<'a> ProgramParser<'a> {
                     ast.content.clone(),
                     ast.line_ends.clone(),
                     namespace_id,
-                    ast.clone(),
                 );
                 self.files_to_scan.push_back(ScanFile {
                     file_id,
