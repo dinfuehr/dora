@@ -1,7 +1,5 @@
 use parking_lot::{Mutex, RwLock};
-use std::hash::Hash;
 use std::mem;
-use std::path::PathBuf;
 use std::ptr;
 use std::sync::Arc;
 
@@ -16,8 +14,8 @@ use crate::language::sem_analysis::{
     get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
     FctDefinitionId, GlobalDefinition, ImplDefinition, NamespaceDefinition, NamespaceDefinitionId,
-    StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, TraitDefinitionId,
-    Tuples, UseDefinition,
+    SourceFile, StructDefinition, StructDefinitionId, StructInstance, TraitDefinition,
+    TraitDefinitionId, Tuples, UseDefinition,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -85,14 +83,6 @@ pub fn set_vm(vm: &VM) {
 pub fn stack_pointer() -> Address {
     let local: i32 = 0;
     Address::from_ptr(&local as *const i32)
-}
-
-pub struct SourceFile {
-    pub id: SourceFileId,
-    pub path: PathBuf,
-    pub content: String,
-    pub line_ends: Vec<u32>,
-    pub namespace_id: NamespaceDefinitionId,
 }
 
 pub struct FullSemAnalysis {
@@ -594,21 +584,6 @@ impl VM {
 }
 
 unsafe impl Sync for VM {}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct SourceFileId(u32);
-
-impl From<u32> for SourceFileId {
-    fn from(data: u32) -> SourceFileId {
-        SourceFileId(data)
-    }
-}
-
-impl SourceFileId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Trap {

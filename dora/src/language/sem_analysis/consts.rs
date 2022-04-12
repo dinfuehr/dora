@@ -4,10 +4,10 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::language::sem_analysis::{namespace_path, NamespaceDefinitionId};
+use crate::language::sem_analysis::{namespace_path, NamespaceDefinitionId, SourceFileId};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::{SourceFileId, VM};
+use crate::vm::VM;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstDefinitionId(usize);

@@ -2,13 +2,13 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    NamespaceDefinitionId, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
-    TypeParamId,
+    NamespaceDefinitionId, SourceFileId, StructDefinitionField, StructDefinitionFieldId,
+    StructDefinitionId, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::{SemAnalysis, SourceFileId};
+use crate::vm::SemAnalysis;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;

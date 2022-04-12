@@ -1,4 +1,5 @@
-use crate::vm::{SemAnalysis, SourceFileId};
+use crate::language::sem_analysis::SourceFileId;
+use crate::vm::SemAnalysis;
 use dora_parser::lexer::position::Position;
 
 #[derive(Clone, PartialEq, Eq, Debug)]

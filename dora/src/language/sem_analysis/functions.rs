@@ -10,11 +10,11 @@ use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     namespace_path, AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId,
-    NamespaceDefinitionId, TraitDefinitionId, TypeParam, TypeParamId,
+    NamespaceDefinitionId, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{SourceFileId, VM};
+use crate::vm::VM;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);

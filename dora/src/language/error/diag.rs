@@ -1,5 +1,6 @@
 use crate::language::error::msg::{SemError, SemErrorAndPos};
-use crate::vm::{SourceFileId, SemAnalysis};
+use crate::language::sem_analysis::SourceFileId;
+use crate::vm::SemAnalysis;
 
 use dora_parser::lexer::position::Position;
 

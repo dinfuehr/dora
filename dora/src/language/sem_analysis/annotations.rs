@@ -4,10 +4,10 @@ use dora_parser::ast::{AnnotationParam, AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
 use dora_parser::Position;
 
-use crate::language::sem_analysis::{NamespaceDefinitionId, TypeParam};
+use crate::language::sem_analysis::{NamespaceDefinitionId, SourceFileId, TypeParam};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::{SourceFileId, VM};
+use crate::vm::VM;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct AnnotationDefinitionId(usize);

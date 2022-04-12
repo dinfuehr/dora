@@ -6,11 +6,10 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::language::sem_analysis::{
-    FctDefinitionId, NamespaceDefinitionId, TypeParam, TypeParamId,
+    FctDefinitionId, NamespaceDefinitionId, SourceFileId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::SourceFileId;
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;

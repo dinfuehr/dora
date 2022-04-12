@@ -9,12 +9,12 @@ use dora_parser::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, namespace_path, ExtensionDefinitionId, FctDefinitionId,
-    ImplDefinitionId, NamespaceDefinitionId, TraitDefinitionId,
+    ImplDefinitionId, NamespaceDefinitionId, SourceFileId, TraitDefinitionId,
 };
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, Id};
-use crate::vm::{replace_type_param, ClassInstanceId, Field, FieldId, SourceFileId, VM};
+use crate::vm::{replace_type_param, ClassInstanceId, Field, FieldId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassDefinitionId(usize);

@@ -2,10 +2,12 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::gc::Address;
-use crate::language::sem_analysis::{namespace_path, FctDefinitionId, NamespaceDefinitionId};
+use crate::language::sem_analysis::{
+    namespace_path, FctDefinitionId, NamespaceDefinitionId, SourceFileId,
+};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::{SourceFileId, VM};
+use crate::vm::VM;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;

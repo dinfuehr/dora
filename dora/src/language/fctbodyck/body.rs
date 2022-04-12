@@ -14,8 +14,8 @@ use crate::language::sem_analysis::{
     ensure_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, get_tuple_subtypes, AnalysisData, CallType, ClassDefinitionId,
     ConvInfo, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent,
-    ForTypeInfo, IdentType, Intrinsic, NamespaceDefinitionId, StructDefinition, StructDefinitionId,
-    TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
+    ForTypeInfo, IdentType, Intrinsic, NamespaceDefinitionId, SourceFileId, StructDefinition,
+    StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -23,7 +23,7 @@ use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::language::{report_sym_shadow, TypeParamContext};
-use crate::vm::{SourceFileId, SemAnalysis};
+use crate::vm::SemAnalysis;
 
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;

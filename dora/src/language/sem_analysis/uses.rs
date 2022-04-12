@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use crate::language::sem_analysis::NamespaceDefinitionId;
-use crate::vm::SourceFileId;
+use crate::language::sem_analysis::{NamespaceDefinitionId, SourceFileId};
 use dora_parser::ast;
 
 pub struct UseDefinition {

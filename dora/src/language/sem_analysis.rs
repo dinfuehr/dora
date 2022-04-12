@@ -9,7 +9,7 @@ use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 #[cfg(test)]
 use crate::vm::FieldId;
-use crate::vm::{SemAnalysis, SourceFile, SourceFileId};
+use crate::vm::SemAnalysis;
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
@@ -27,6 +27,7 @@ pub use self::impls::{find_trait_impl, impl_matches, ImplDefinition, ImplDefinit
 pub use self::namespaces::{
     namespace_package, namespace_path, NamespaceDefinition, NamespaceDefinitionId,
 };
+pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
 };
@@ -47,6 +48,7 @@ mod functions;
 mod globals;
 mod impls;
 mod namespaces;
+mod source_files;
 mod src;
 mod structs;
 mod traits;

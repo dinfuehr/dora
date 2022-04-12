@@ -10,12 +10,12 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches_ty, FctDefinitionId, NamespaceDefinitionId, TraitDefinitionId, TypeParam,
-    TypeParamDefinition, TypeParamId,
+    extension_matches_ty, FctDefinitionId, NamespaceDefinitionId, SourceFileId, TraitDefinitionId,
+    TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::{SourceFileId, VM};
+use crate::vm::VM;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplDefinitionId(u32);
