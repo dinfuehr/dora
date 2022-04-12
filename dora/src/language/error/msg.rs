@@ -555,7 +555,7 @@ impl SemErrorAndPos {
     pub fn message(&self, sa: &SemAnalysis) -> String {
         let file = sa.file(self.file);
         format!(
-            "error in {} at {}: {}",
+            "error in {:?} at {}: {}",
             file.path,
             self.pos,
             self.msg.message()

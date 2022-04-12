@@ -90,7 +90,9 @@ pub fn stack_pointer() -> Address {
 
 pub struct File {
     pub id: FileId,
-    pub path: Option<PathBuf>,
+    pub path: PathBuf,
+    pub content: String,
+    pub line_ends: Vec<u32>,
     pub namespace_id: NamespaceDefinitionId,
     pub ast: Arc<ast::File>,
 }

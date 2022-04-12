@@ -1,10 +1,9 @@
 use std::fs;
-use std::io::{self, Error, Read};
+use std::io::{Error, Read};
 
 use crate::lexer::position::Position;
 
 pub struct Reader {
-    name: String,
     content: String,
     line_ends: Vec<u32>,
 
@@ -15,32 +14,21 @@ pub struct Reader {
 }
 
 impl Reader {
-    pub fn from_input() -> Result<Reader, Error> {
-        let mut src = String::new();
-        io::stdin().read_to_string(&mut src)?;
-
-        Ok(common_init("<<stdin>>".into(), src))
-    }
-
     pub fn from_file(filename: &str) -> Result<Reader, Error> {
         let mut src = String::new();
 
         let mut file = fs::File::open(filename)?;
         file.read_to_string(&mut src)?;
 
-        Ok(common_init(filename.into(), src))
+        Ok(common_init(src))
     }
 
-    pub fn from_string(filename: &str, src: &str) -> Reader {
-        common_init(filename.into(), src.into())
+    pub fn from_string(src: &str) -> Reader {
+        common_init(src.into())
     }
 
     pub fn set_tabwidth(&mut self, tabwidth: u32) {
         self.tabwidth = tabwidth;
-    }
-
-    pub fn path(&self) -> &str {
-        &self.name
     }
 
     pub fn advance(&mut self) -> Option<char> {
@@ -94,14 +82,13 @@ impl Reader {
         self.idx as u32
     }
 
-    pub fn data(self) -> (String, String, Vec<u32>) {
-        (self.name, self.content, self.line_ends)
+    pub fn data(self) -> (String, Vec<u32>) {
+        (self.content, self.line_ends)
     }
 }
 
-fn common_init(name: String, content: String) -> Reader {
+fn common_init(content: String) -> Reader {
     let reader = Reader {
-        name,
         content,
         line_ends: Vec::new(),
 
@@ -119,7 +106,7 @@ mod tests {
 
     #[test]
     fn read_from_str() {
-        let mut reader = Reader::from_string("<<code>>", "abc");
+        let mut reader = Reader::from_string("abc");
 
         assert_eq!(Some('a'), reader.curr());
         assert_eq!(Some('b'), reader.nth(1));

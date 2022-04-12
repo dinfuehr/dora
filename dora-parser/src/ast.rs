@@ -14,7 +14,6 @@ pub mod visit;
 
 #[derive(Clone, Debug)]
 pub struct File {
-    pub path: String,
     pub content: String,
     pub line_ends: Vec<u32>,
     pub elements: Vec<Elem>,

@@ -9,7 +9,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub use globaldef::should_file_be_parsed;
+pub use program_parser::should_file_be_parsed;
 pub use readty::{read_type, AllowSelf, TypeParamContext};
 
 mod abstractck;
@@ -24,10 +24,10 @@ mod fctdefck;
 mod generator;
 #[cfg(test)]
 mod generator_tests;
-mod globaldef;
 mod globaldefck;
 mod implck;
 mod impldefck;
+mod program_parser;
 mod readty;
 mod returnck;
 pub mod sem_analysis;
@@ -54,7 +54,7 @@ macro_rules! return_on_error {
 pub fn check(sa: &mut SemAnalysis) -> bool {
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
-    if let Err(_) = globaldef::check(sa) {
+    if let Err(_) = program_parser::parse(sa) {
         return false;
     }
     return_on_error!(sa);

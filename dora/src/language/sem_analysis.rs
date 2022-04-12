@@ -231,7 +231,9 @@ impl SemAnalysis {
 
     pub fn add_file(
         &mut self,
-        path: Option<PathBuf>,
+        path: PathBuf,
+        content: String,
+        line_ends: Vec<u32>,
         namespace_id: NamespaceDefinitionId,
         ast: Arc<ast::File>,
     ) -> FileId {
@@ -239,6 +241,8 @@ impl SemAnalysis {
         self.files.push(File {
             id: file_id,
             path,
+            content,
+            line_ends,
             namespace_id,
             ast,
         });
@@ -267,8 +271,8 @@ impl SemAnalysis {
         SourceType::Class(cls_id, SourceTypeArray::empty())
     }
 
-    pub fn file(&self, idx: FileId) -> Arc<ast::File> {
-        self.files[idx.to_usize()].ast.clone()
+    pub fn file(&self, idx: FileId) -> &File {
+        &self.files[idx.to_usize()]
     }
 
     pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {

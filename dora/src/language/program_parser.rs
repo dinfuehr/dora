@@ -18,27 +18,27 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
-pub fn check(sa: &mut SemAnalysis) -> Result<(), i32> {
-    let mut discoverer = DiscoverFiles::new(sa);
-    discoverer.discover()
+pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
+    let mut discoverer = ProgramParser::new(sa);
+    discoverer.parse_all()
 }
 
-struct DiscoverFiles<'a> {
+struct ProgramParser<'a> {
     sa: &'a mut SemAnalysis,
     files_to_scan: VecDeque<ScanFile>,
     files_to_parse: VecDeque<ParseFile>,
 }
 
-impl<'a> DiscoverFiles<'a> {
-    fn new(sa: &mut SemAnalysis) -> DiscoverFiles {
-        DiscoverFiles {
+impl<'a> ProgramParser<'a> {
+    fn new(sa: &mut SemAnalysis) -> ProgramParser {
+        ProgramParser {
             sa,
             files_to_scan: VecDeque::new(),
             files_to_parse: VecDeque::new(),
         }
     }
 
-    fn discover(&mut self) -> Result<(), i32> {
+    fn parse_all(&mut self) -> Result<(), i32> {
         self.parse_initial_files()?;
 
         while !self.files_to_scan.is_empty() {
@@ -75,8 +75,13 @@ impl<'a> DiscoverFiles<'a> {
         use crate::driver::start::STDLIB;
 
         for (filename, content) in STDLIB {
-            let file = self.parse_string(namespace_id, filename, content)?;
-            self.files_to_scan.push_back(file);
+            let path = PathBuf::from(filename);
+            let file = ParseFile {
+                content: FileContent::String(content.to_string()),
+                path,
+                namespace_id,
+            };
+            self.parse_file(&file)?;
         }
 
         Ok(())
@@ -99,6 +104,7 @@ impl<'a> DiscoverFiles<'a> {
 
             if path.is_file() {
                 let file = ParseFile {
+                    content: FileContent::Disk,
                     path: PathBuf::from(path),
                     namespace_id: self.sa.global_namespace_id,
                 };
@@ -116,9 +122,12 @@ impl<'a> DiscoverFiles<'a> {
 
     fn parse_additional_file_as_string(&mut self) -> Result<(), i32> {
         if let Some(content) = self.sa.additional_file_to_parse {
-            let file =
-                self.parse_string(self.sa.global_namespace_id, "<<code>>".into(), content)?;
-            self.files_to_scan.push_back(file);
+            let file = ParseFile {
+                content: FileContent::String(content.to_string()),
+                path: PathBuf::from("<<code>>"),
+                namespace_id: self.sa.global_namespace_id,
+            };
+            self.parse_file(&file)?;
         }
 
         Ok(())
@@ -172,7 +181,8 @@ impl<'a> DiscoverFiles<'a> {
 
                 if should_file_be_parsed(&path) {
                     let file = ParseFile {
-                        path: PathBuf::from(path),
+                        content: FileContent::Disk,
+                        path,
                         namespace_id,
                     };
                     self.parse_file(&file)?;
@@ -189,29 +199,25 @@ impl<'a> DiscoverFiles<'a> {
 
     fn parse_file(&mut self, file: &ParseFile) -> Result<(), i32> {
         let namespace_id = file.namespace_id;
-        let path = file.path.clone();
 
-        let reader = match Reader::from_file(path.to_str().unwrap()) {
-            Ok(reader) => reader,
-
-            Err(_) => {
-                println!("unable to read file `{}`", path.to_str().unwrap());
-                return Err(1);
-            }
-        };
-
+        let reader = create_reader(file)?;
         let parser = Parser::new(reader, &self.sa.id_generator, &mut self.sa.interner);
 
         match parser.parse() {
             Ok(ast) => {
                 let ast = Arc::new(ast);
-                let file_id = self
-                    .sa
-                    .add_file(Some(path.clone()), namespace_id, ast.clone());
+                let path = Some(file.path.clone());
+                let file_id = self.sa.add_file(
+                    file.path.clone(),
+                    ast.content.clone(),
+                    ast.line_ends.clone(),
+                    namespace_id,
+                    ast.clone(),
+                );
                 self.files_to_scan.push_back(ScanFile {
                     file_id,
-                    namespace_id: file.namespace_id,
-                    path: Some(path.clone()),
+                    namespace_id,
+                    path,
                     ast,
                 });
                 Ok(())
@@ -219,44 +225,8 @@ impl<'a> DiscoverFiles<'a> {
 
             Err(error) => {
                 println!(
-                    "error in {} at {}: {}",
-                    path.to_str().unwrap(),
-                    error.pos,
-                    error.error.message()
-                );
-                println!("error during parsing.");
-
-                Err(1)
-            }
-        }
-    }
-
-    fn parse_string(
-        &mut self,
-        namespace_id: NamespaceDefinitionId,
-        filename: &str,
-        content: &str,
-    ) -> Result<ScanFile, i32> {
-        let reader = Reader::from_string(filename, content);
-        let parser = Parser::new(reader, &self.sa.id_generator, &mut self.sa.interner);
-
-        match parser.parse() {
-            Ok(ast) => {
-                let ast = Arc::new(ast);
-                let file_id = self.sa.add_file(None, namespace_id, ast.clone());
-                let path = PathBuf::from(filename);
-                Ok(ScanFile {
-                    file_id,
-                    path: Some(path),
-                    namespace_id,
-                    ast,
-                })
-            }
-
-            Err(error) => {
-                println!(
-                    "error in {} at {}: {}",
-                    filename,
+                    "error in {:?} at {}: {}",
+                    file.path,
                     error.pos,
                     error.error.message()
                 );
@@ -268,7 +238,28 @@ impl<'a> DiscoverFiles<'a> {
     }
 }
 
+fn create_reader(file: &ParseFile) -> Result<Reader, i32> {
+    let filename = file.path.to_str().unwrap();
+    match file.content {
+        FileContent::String(ref content) => Ok(Reader::from_string(content)),
+        FileContent::Disk => match Reader::from_file(filename) {
+            Ok(reader) => Ok(reader),
+
+            Err(_) => {
+                println!("unable to read file `{}`", file.path.to_str().unwrap());
+                Err(1)
+            }
+        },
+    }
+}
+
+enum FileContent {
+    String(String),
+    Disk,
+}
+
 struct ParseFile {
+    content: FileContent,
     path: PathBuf,
     namespace_id: NamespaceDefinitionId,
 }
@@ -425,6 +416,7 @@ impl<'x> GlobalDef<'x> {
                 if should_file_be_parsed(&path) {
                     self.files_to_parse.push_back(ParseFile {
                         path,
+                        content: FileContent::Disk,
                         namespace_id: namespace_id,
                     });
                 }
