@@ -87,8 +87,8 @@ pub fn stack_pointer() -> Address {
     Address::from_ptr(&local as *const i32)
 }
 
-pub struct File {
-    pub id: FileId,
+pub struct SourceFile {
+    pub id: SourceFileId,
     pub path: PathBuf,
     pub content: String,
     pub line_ends: Vec<u32>,
@@ -100,7 +100,7 @@ pub struct FullSemAnalysis {
     pub additional_file_to_parse: Option<&'static str>,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
-    pub files: Vec<File>,
+    pub source_files: Vec<SourceFile>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
@@ -151,7 +151,7 @@ impl FullSemAnalysis {
         let sa = Box::new(FullSemAnalysis {
             args,
             additional_file_to_parse: None,
-            files: Vec::new(),
+            source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
             struct_defs: GrowableVec::new(),
@@ -252,7 +252,7 @@ pub struct VM {
     pub additional_file_to_parse: Option<&'static str>,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
-    pub files: Vec<File>,
+    pub source_files: Vec<SourceFile>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
@@ -315,7 +315,7 @@ impl VM {
         let vm = Box::new(VM {
             args,
             additional_file_to_parse: None,
-            files: Vec::new(),
+            source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
             struct_defs: GrowableVec::new(),
@@ -425,7 +425,7 @@ impl VM {
         let vm = Box::new(VM {
             args: sa.args,
             additional_file_to_parse: sa.additional_file_to_parse,
-            files: sa.files,
+            source_files: sa.source_files,
             consts: sa.consts,
             structs: sa.structs,
             struct_defs: sa.struct_defs,
@@ -596,15 +596,15 @@ impl VM {
 unsafe impl Sync for VM {}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct FileId(u32);
+pub struct SourceFileId(u32);
 
-impl From<u32> for FileId {
-    fn from(data: u32) -> FileId {
-        FileId(data)
+impl From<u32> for SourceFileId {
+    fn from(data: u32) -> SourceFileId {
+        SourceFileId(data)
     }
 }
 
-impl FileId {
+impl SourceFileId {
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }

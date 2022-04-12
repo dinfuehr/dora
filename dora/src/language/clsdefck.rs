@@ -8,7 +8,7 @@ use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
-use crate::vm::{Field, FieldId, FileId, SemAnalysis};
+use crate::vm::{Field, FieldId, SemAnalysis, SourceFileId};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -37,7 +37,7 @@ pub fn check(sa: &SemAnalysis) {
 struct ClsDefCheck<'x> {
     sa: &'x SemAnalysis,
     cls_id: ClassDefinitionId,
-    file_id: FileId,
+    file_id: SourceFileId,
     ast: &'x ast::Class,
     namespace_id: NamespaceDefinitionId,
     sym: NestedSymTable<'x>,
@@ -233,7 +233,7 @@ impl<'x> ClsDefCheck<'x> {
 
     fn check_if_symbol_exists(&mut self, name: Name, pos: Position, table: &SymTable) {
         if let Some(sym) = table.get(name) {
-            let file: FileId = self.file_id.into();
+            let file: SourceFileId = self.file_id.into();
 
             match sym {
                 Sym::Fct(method) => {

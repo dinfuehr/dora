@@ -5,7 +5,7 @@ use crate::language::sem_analysis::{
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 use dora_parser::ast;
 
 pub fn check<'a>(sa: &SemAnalysis) {
@@ -37,7 +37,7 @@ pub fn check<'a>(sa: &SemAnalysis) {
 
 struct GlobalDefCheck<'a> {
     sa: &'a SemAnalysis,
-    file_id: FileId,
+    file_id: SourceFileId,
     namespace_id: NamespaceDefinitionId,
     global_id: GlobalDefinitionId,
     ast: &'a ast::Global,

@@ -6,10 +6,10 @@ use crate::language::sem_analysis::{
     TraitDefinitionId, TypeParam,
 };
 use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 
 pub enum ErrorReporting {
-    Yes(FileId, Position),
+    Yes(SourceFileId, Position),
     No,
 }
 
@@ -150,7 +150,7 @@ impl<'a> TypeParamCheck<'a> {
 
     fn fail_trait_bound(
         &self,
-        file_id: FileId,
+        file_id: SourceFileId,
         pos: Position,
         trait_id: TraitDefinitionId,
         ty: SourceType,

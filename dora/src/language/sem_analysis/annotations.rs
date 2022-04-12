@@ -7,7 +7,7 @@ use dora_parser::Position;
 use crate::language::sem_analysis::{NamespaceDefinitionId, TypeParam};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::{FileId, VM};
+use crate::vm::{SourceFileId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct AnnotationDefinitionId(usize);
@@ -49,7 +49,7 @@ impl Id for AnnotationDefinition {
 #[derive(Debug)]
 pub struct AnnotationDefinition {
     pub id: Option<AnnotationDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub pos: Position,
     pub name: Name,
     pub namespace_id: NamespaceDefinitionId,
@@ -62,7 +62,7 @@ pub struct AnnotationDefinition {
 
 impl AnnotationDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         pos: Position,
         name: Name,
         namespace_id: NamespaceDefinitionId,

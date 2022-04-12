@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::language::sem_analysis::{namespace_path, FctDefinitionId, NamespaceDefinitionId};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::{FileId, VM};
+use crate::vm::{SourceFileId, VM};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -45,7 +45,7 @@ impl From<u32> for GlobalDefinitionId {
 #[derive(Debug)]
 pub struct GlobalDefinition {
     pub id: Option<GlobalDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub ast: Arc<ast::Global>,
     pub pos: Position,
     pub namespace_id: NamespaceDefinitionId,
@@ -60,7 +60,7 @@ pub struct GlobalDefinition {
 
 impl GlobalDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_id: NamespaceDefinitionId,
         node: &Arc<ast::Global>,
     ) -> GlobalDefinition {

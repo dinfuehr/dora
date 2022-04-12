@@ -5,7 +5,7 @@ use crate::language::sem_analysis::{
     FctDefinition, FctParent, NamespaceDefinitionId, TraitDefinition, TraitDefinitionId,
 };
 use crate::language::sym::NestedSymTable;
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 
 use dora_parser::ast;
 
@@ -41,7 +41,7 @@ pub fn check(sa: &SemAnalysis) {
 
 struct TraitCheck<'x> {
     sa: &'x SemAnalysis,
-    file_id: FileId,
+    file_id: SourceFileId,
     trait_id: TraitDefinitionId,
     ast: &'x ast::Trait,
     namespace_id: NamespaceDefinitionId,

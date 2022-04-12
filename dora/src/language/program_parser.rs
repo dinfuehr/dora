@@ -11,7 +11,7 @@ use crate::language::sem_analysis::{
     NamespaceDefinitionId, StructDefinition, TraitDefinition, UseDefinition,
 };
 use crate::language::sym::Sym;
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SemAnalysis, SourceFileId};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;
@@ -147,7 +147,7 @@ impl<'a> ProgramParser<'a> {
 
     fn scan_file(
         &mut self,
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_path: Option<PathBuf>,
         namespace_id: NamespaceDefinitionId,
         ast: &ast::File,
@@ -211,7 +211,7 @@ impl<'a> ProgramParser<'a> {
             Ok(ast) => {
                 let ast = Arc::new(ast);
                 let path = Some(file.path.clone());
-                let file_id = self.sa.add_file(
+                let file_id = self.sa.add_source_file(
                     file.path.clone(),
                     ast.content.clone(),
                     ast.line_ends.clone(),
@@ -268,7 +268,7 @@ struct ParseFile {
 }
 
 struct ScanFile {
-    file_id: FileId,
+    file_id: SourceFileId,
     path: Option<PathBuf>,
     namespace_id: NamespaceDefinitionId,
     ast: Arc<ast::File>,
@@ -276,7 +276,7 @@ struct ScanFile {
 
 struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
-    file_id: FileId,
+    file_id: SourceFileId,
     namespace_path: Option<PathBuf>,
     namespace_id: NamespaceDefinitionId,
     files_to_parse: &'x mut VecDeque<ParseFile>,

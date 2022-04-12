@@ -8,7 +8,7 @@ use crate::language::sem_analysis::{
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SemAnalysis, SourceFileId};
 
 use dora_parser::ast;
 use dora_parser::lexer::position::Position;
@@ -43,7 +43,7 @@ pub fn check(sa: &SemAnalysis) {
 
 struct ExtensionCheck<'x> {
     sa: &'x SemAnalysis,
-    file_id: FileId,
+    file_id: SourceFileId,
     namespace_id: NamespaceDefinitionId,
     sym: NestedSymTable<'x>,
     extension_id: ExtensionDefinitionId,
@@ -281,7 +281,7 @@ pub fn check_for_unconstrained_type_params(
     sa: &SemAnalysis,
     ty: SourceType,
     type_params_defs: &[TypeParam],
-    file_id: FileId,
+    file_id: SourceFileId,
     pos: Position,
 ) {
     let mut bitset = FixedBitSet::with_capacity(type_params_defs.len());

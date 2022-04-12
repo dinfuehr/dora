@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 use crate::language::sem_analysis::{namespace_path, NamespaceDefinitionId};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::{FileId, VM};
+use crate::vm::{SourceFileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstDefinitionId(usize);
@@ -37,7 +37,7 @@ impl Id for ConstDefinition {
 #[derive(Clone, Debug)]
 pub struct ConstDefinition {
     pub id: Option<ConstDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub ast: Arc<ast::Const>,
     pub namespace_id: NamespaceDefinitionId,
     pub is_pub: bool,
@@ -50,7 +50,7 @@ pub struct ConstDefinition {
 
 impl ConstDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_id: NamespaceDefinitionId,
         node: &Arc<ast::Const>,
     ) -> ConstDefinition {

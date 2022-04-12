@@ -11,7 +11,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 
 use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
 use dora_parser::lexer::position::Position;
@@ -37,7 +37,7 @@ pub enum AllowSelf {
 pub fn read_type(
     sa: &SemAnalysis,
     table: &NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     t: &Type,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
@@ -62,7 +62,7 @@ pub fn read_type(
 fn read_type_basic(
     sa: &SemAnalysis,
     table: &NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     basic: &TypeBasicType,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
@@ -127,7 +127,7 @@ fn read_type_basic(
 fn read_type_path(
     sa: &SemAnalysis,
     table: &NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     basic: &TypeBasicType,
 ) -> Result<Option<Sym>, ()> {
     let names = &basic.path.names;
@@ -152,7 +152,7 @@ fn read_type_path(
 
 fn table_for_namespace(
     sa: &SemAnalysis,
-    file_id: FileId,
+    file_id: SourceFileId,
     basic: &TypeBasicType,
     sym: Option<Sym>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
@@ -170,7 +170,7 @@ fn table_for_namespace(
 fn read_type_enum(
     sa: &SemAnalysis,
     table: &NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     basic: &TypeBasicType,
     enum_id: EnumDefinitionId,
     ctxt: TypeParamContext,
@@ -215,7 +215,7 @@ fn read_type_enum(
 fn read_type_struct(
     sa: &SemAnalysis,
     table: &NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     basic: &TypeBasicType,
     struct_id: StructDefinitionId,
     ctxt: TypeParamContext,
@@ -268,7 +268,7 @@ fn check_type_params(
     sa: &SemAnalysis,
     tp_definitions: &[TypeParam],
     type_params: &[SourceType],
-    file_id: FileId,
+    file_id: SourceFileId,
     pos: Position,
     ctxt: TypeParamContext,
 ) -> bool {
@@ -350,7 +350,7 @@ fn check_bounds_for_type_param_id(
     tp_definition: &TypeParam,
     tp_id: TypeParamId,
     success: &mut bool,
-    file_id: FileId,
+    file_id: SourceFileId,
     pos: Position,
     ctxt: TypeParamContext,
 ) {
@@ -459,7 +459,7 @@ fn check_bounds_for_type_param(
     tp_definition: &TypeParam,
     tp_definition_arg: &TypeParam,
     success: &mut bool,
-    file_id: FileId,
+    file_id: SourceFileId,
     pos: Position,
     _ctxt: TypeParamContext,
 ) {
@@ -480,7 +480,7 @@ fn fail_for_each_trait_bound(
     tp_definition: &TypeParam,
     tp_ty: SourceType,
     success: &mut bool,
-    file_id: FileId,
+    file_id: SourceFileId,
     pos: Position,
 ) {
     for &trait_bound in &tp_definition.trait_bounds {
@@ -496,7 +496,7 @@ fn fail_for_each_trait_bound(
 fn read_type_class(
     sa: &SemAnalysis,
     table: &NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     basic: &TypeBasicType,
     cls_id: ClassDefinitionId,
     ctxt: TypeParamContext,
@@ -542,7 +542,7 @@ fn read_type_class(
 fn read_type_tuple(
     sa: &SemAnalysis,
     table: &NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     tuple: &TypeTupleType,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
@@ -568,7 +568,7 @@ fn read_type_tuple(
 fn read_type_lambda(
     sa: &SemAnalysis,
     table: &NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     lambda: &TypeLambdaType,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,

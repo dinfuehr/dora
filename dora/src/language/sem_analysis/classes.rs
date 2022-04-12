@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, Id};
-use crate::vm::{replace_type_param, ClassInstanceId, Field, FieldId, FileId, VM};
+use crate::vm::{replace_type_param, ClassInstanceId, Field, FieldId, SourceFileId, VM};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassDefinitionId(usize);
@@ -66,7 +66,7 @@ impl Id for ClassDefinition {
 #[derive(Debug)]
 pub struct ClassDefinition {
     pub id: Option<ClassDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub ast: Arc<ast::Class>,
     pub namespace_id: NamespaceDefinitionId,
     pub pos: Position,
@@ -102,7 +102,7 @@ pub struct ClassDefinition {
 
 impl ClassDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         ast: &Arc<ast::Class>,
         namespace_id: NamespaceDefinitionId,
     ) -> ClassDefinition {

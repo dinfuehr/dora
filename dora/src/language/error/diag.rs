@@ -1,5 +1,5 @@
 use crate::language::error::msg::{SemError, SemErrorAndPos};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 
 use dora_parser::lexer::position::Position;
 
@@ -16,7 +16,7 @@ impl Diagnostic {
         &self.errors
     }
 
-    pub fn report(&mut self, file: FileId, pos: Position, msg: SemError) {
+    pub fn report(&mut self, file: SourceFileId, pos: Position, msg: SemError) {
         self.errors.push(SemErrorAndPos::new(file, pos, msg));
     }
 

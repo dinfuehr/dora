@@ -15,7 +15,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::{FileId, VM};
+use crate::vm::{SourceFileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplDefinitionId(u32);
@@ -45,7 +45,7 @@ impl Id for ImplDefinition {
 #[derive(Debug)]
 pub struct ImplDefinition {
     pub id: Option<ImplDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
     pub namespace_id: NamespaceDefinitionId,
     pub pos: Position,
@@ -60,7 +60,7 @@ pub struct ImplDefinition {
 
 impl ImplDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_id: NamespaceDefinitionId,
         node: &Arc<ast::Impl>,
     ) -> ImplDefinition {

@@ -2,7 +2,7 @@ use crate::language::sem_analysis::{ConstDefinitionId, NamespaceDefinitionId};
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SemAnalysis, SourceFileId};
 
 use dora_parser::ast;
 
@@ -34,7 +34,7 @@ pub fn check(sa: &SemAnalysis) {
 struct ConstCheck<'x> {
     sa: &'x SemAnalysis,
     const_id: ConstDefinitionId,
-    file_id: FileId,
+    file_id: SourceFileId,
     ast: &'x ast::Const,
     namespace_id: NamespaceDefinitionId,
     symtable: NestedSymTable<'x>,

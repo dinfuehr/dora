@@ -4,7 +4,7 @@ use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{TypeParam, TypeParamId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SemAnalysis, SourceFileId};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -212,7 +212,13 @@ pub fn expr_block_always_returns(e: &ast::ExprBlockType) -> bool {
     returnck::expr_block_returns_value(e).is_ok()
 }
 
-pub fn report_sym_shadow(sa: &SemAnalysis, name: Name, file: FileId, pos: Position, sym: Sym) {
+pub fn report_sym_shadow(
+    sa: &SemAnalysis,
+    name: Name,
+    file: SourceFileId,
+    pos: Position,
+    sym: Sym,
+) {
     let name = sa.interner.str(name).to_string();
 
     let msg = match sym {
@@ -236,7 +242,7 @@ fn check_type_params(
     ast_type_params: &[ast::TypeParam],
     type_params: &mut Vec<TypeParam>,
     symtable: &mut NestedSymTable,
-    file_id: FileId,
+    file_id: SourceFileId,
     pos: Position,
 ) -> Vec<SourceType> {
     if ast_type_params.len() > 0 {

@@ -10,7 +10,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::FileId;
+use crate::vm::SourceFileId;
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;
@@ -51,7 +51,7 @@ impl Id for ExtensionDefinition {
 #[derive(Debug)]
 pub struct ExtensionDefinition {
     pub id: Option<ExtensionDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
     pub namespace_id: NamespaceDefinitionId,
     pub pos: Position,
@@ -64,7 +64,7 @@ pub struct ExtensionDefinition {
 
 impl ExtensionDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_id: NamespaceDefinitionId,
         node: &Arc<ast::Impl>,
     ) -> ExtensionDefinition {

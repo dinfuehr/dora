@@ -6,7 +6,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
-use crate::vm::{replace_type_param, FileId, SemAnalysis};
+use crate::vm::{replace_type_param, SemAnalysis, SourceFileId};
 
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -22,7 +22,7 @@ enum LookupKind {
 pub struct MethodLookup<'a> {
     sa: &'a SemAnalysis,
     caller: &'a FctDefinition,
-    file: FileId,
+    file: SourceFileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [SourceType]>,

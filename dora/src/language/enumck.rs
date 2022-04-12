@@ -11,7 +11,7 @@ use crate::language::sem_analysis::{EnumDefinition, EnumVariant, TypeParamId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 
 pub fn check(sa: &SemAnalysis) {
     for xenum in sa.enums.iter() {
@@ -30,7 +30,7 @@ pub fn check(sa: &SemAnalysis) {
 
 struct EnumCheck<'x> {
     sa: &'x SemAnalysis,
-    file_id: FileId,
+    file_id: SourceFileId,
     ast: &'x Arc<ast::Enum>,
     xenum: &'x RwLock<EnumDefinition>,
 }
@@ -161,7 +161,7 @@ pub fn check_variants(sa: &SemAnalysis) {
 
 struct EnumCheckVariants<'x> {
     sa: &'x SemAnalysis,
-    file_id: FileId,
+    file_id: SourceFileId,
     ast: &'x Arc<ast::Enum>,
     xenum: &'x mut EnumDefinition,
 }

@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::{FileId, VM};
+use crate::vm::{SourceFileId, VM};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);
@@ -58,7 +58,7 @@ pub struct FctDefinition {
     pub param_types: Vec<SourceType>,
     pub return_type: SourceType,
     pub is_constructor: bool,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub is_variadic: bool,
 
     pub vtable_index: Option<u32>,
@@ -75,7 +75,7 @@ pub struct FctDefinition {
 
 impl FctDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_id: NamespaceDefinitionId,
         ast: &Arc<ast::Function>,
         parent: FctParent,

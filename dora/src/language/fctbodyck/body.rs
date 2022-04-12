@@ -23,7 +23,7 @@ use crate::language::ty::{implements_trait, SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::language::{report_sym_shadow, TypeParamContext};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
@@ -35,7 +35,7 @@ use fixedbitset::FixedBitSet;
 pub struct TypeCheck<'a> {
     pub sa: &'a SemAnalysis,
     pub fct: &'a FctDefinition,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub namespace_id: NamespaceDefinitionId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a ast::Function,
@@ -3438,7 +3438,7 @@ fn arg_allows(
 
 pub fn check_lit_int(
     sa: &SemAnalysis,
-    file: FileId,
+    file: SourceFileId,
     e: &ast::ExprLitIntType,
     negate: bool,
     expected_type: SourceType,
@@ -3499,7 +3499,7 @@ pub fn check_lit_int(
 
 pub fn check_lit_float(
     sa: &SemAnalysis,
-    file: FileId,
+    file: SourceFileId,
     e: &ast::ExprLitFloatType,
     negate: bool,
 ) -> (SourceType, f64) {

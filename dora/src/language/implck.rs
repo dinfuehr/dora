@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::language::error::msg::SemError;
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 
 use dora_parser::lexer::position::Position;
 
@@ -100,7 +100,7 @@ pub fn check(sa: &mut SemAnalysis) {
     }
 }
 
-fn report(sa: &SemAnalysis, file: FileId, pos: Position, msg: SemError) {
+fn report(sa: &SemAnalysis, file: SourceFileId, pos: Position, msg: SemError) {
     sa.diag.lock().report(file, pos, msg);
 }
 

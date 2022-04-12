@@ -9,7 +9,7 @@ use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 #[cfg(test)]
 use crate::vm::FieldId;
-use crate::vm::{File, FileId, SemAnalysis};
+use crate::vm::{SemAnalysis, SourceFile, SourceFileId};
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
@@ -227,15 +227,15 @@ impl SemAnalysis {
         SourceType::Class(cls_id, type_list)
     }
 
-    pub fn add_file(
+    pub fn add_source_file(
         &mut self,
         path: PathBuf,
         content: String,
         line_ends: Vec<u32>,
         namespace_id: NamespaceDefinitionId,
-    ) -> FileId {
-        let file_id = (self.files.len() as u32).into();
-        self.files.push(File {
+    ) -> SourceFileId {
+        let file_id = (self.source_files.len() as u32).into();
+        self.source_files.push(SourceFile {
             id: file_id,
             path,
             content,
@@ -267,8 +267,8 @@ impl SemAnalysis {
         SourceType::Class(cls_id, SourceTypeArray::empty())
     }
 
-    pub fn file(&self, idx: FileId) -> &File {
-        &self.files[idx.to_usize()]
+    pub fn source_file(&self, idx: SourceFileId) -> &SourceFile {
+        &self.source_files[idx.to_usize()]
     }
 
     pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {

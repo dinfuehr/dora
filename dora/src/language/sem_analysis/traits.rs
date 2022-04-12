@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::{ClassInstanceId, FileId, VM};
+use crate::vm::{ClassInstanceId, SourceFileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitDefinitionId(u32);
@@ -50,7 +50,7 @@ impl Id for TraitDefinition {
 #[derive(Debug)]
 pub struct TraitDefinition {
     pub id: Option<TraitDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub namespace_id: NamespaceDefinitionId,
     pub is_pub: bool,
     pub ast: Arc<ast::Trait>,
@@ -66,7 +66,7 @@ pub struct TraitDefinition {
 
 impl TraitDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_id: NamespaceDefinitionId,
         node: &Arc<ast::Trait>,
     ) -> TraitDefinition {

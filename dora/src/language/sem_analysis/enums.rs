@@ -15,7 +15,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::{EnumInstanceId, FileId, VM};
+use crate::vm::{EnumInstanceId, SourceFileId, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumDefinitionId(u32);
@@ -59,7 +59,7 @@ impl Id for EnumDefinition {
 #[derive(Debug)]
 pub struct EnumDefinition {
     pub id: Option<EnumDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub namespace_id: NamespaceDefinitionId,
     pub ast: Arc<ast::Enum>,
     pub pos: Position,
@@ -77,7 +77,7 @@ pub struct EnumDefinition {
 
 impl EnumDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_id: NamespaceDefinitionId,
         node: &Arc<ast::Enum>,
     ) -> EnumDefinition {

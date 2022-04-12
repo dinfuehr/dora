@@ -8,7 +8,7 @@ use crate::language::sem_analysis::{
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::{FileId, SemAnalysis};
+use crate::vm::{SourceFileId, SemAnalysis};
 
 use dora_parser::ast;
 
@@ -40,7 +40,7 @@ pub fn check(sa: &SemAnalysis) {
 
 struct ImplCheck<'x> {
     sa: &'x SemAnalysis,
-    file_id: FileId,
+    file_id: SourceFileId,
     impl_id: ImplDefinitionId,
     namespace_id: NamespaceDefinitionId,
     sym: NestedSymTable<'x>,

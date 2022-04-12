@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, Id};
-use crate::vm::{FileId, SemAnalysis, VM};
+use crate::vm::{SourceFileId, SemAnalysis, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructDefinitionId(u32);
@@ -50,7 +50,7 @@ impl Id for StructDefinition {
 #[derive(Debug)]
 pub struct StructDefinition {
     pub id: Option<StructDefinitionId>,
-    pub file_id: FileId,
+    pub file_id: SourceFileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
     pub namespace_id: NamespaceDefinitionId,
@@ -70,7 +70,7 @@ pub struct StructDefinition {
 
 impl StructDefinition {
     pub fn new(
-        file_id: FileId,
+        file_id: SourceFileId,
         namespace_id: NamespaceDefinitionId,
         node: &Arc<ast::Struct>,
     ) -> StructDefinition {
