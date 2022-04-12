@@ -75,7 +75,7 @@ impl<'a> DiscoverFiles<'a> {
         use crate::driver::start::STDLIB;
 
         for (filename, content) in STDLIB {
-            let file = parse_string(self.sa, namespace_id, filename, content)?;
+            let file = self.parse_string(namespace_id, filename, content)?;
             self.files_to_scan.push_back(file);
         }
 
@@ -102,8 +102,7 @@ impl<'a> DiscoverFiles<'a> {
                     path: PathBuf::from(path),
                     namespace_id: self.sa.global_namespace_id,
                 };
-                let file = self.parse_file(&file)?;
-                self.files_to_scan.push_back(file);
+                self.parse_file(&file)?;
             } else if path.is_dir() {
                 self.parse_dir(&arg_file, self.sa.global_namespace_id)?;
             } else {
@@ -117,12 +116,8 @@ impl<'a> DiscoverFiles<'a> {
 
     fn parse_additional_file_as_string(&mut self) -> Result<(), i32> {
         if let Some(content) = self.sa.additional_file_to_parse {
-            let file = parse_string(
-                self.sa,
-                self.sa.global_namespace_id,
-                "<<code>>".into(),
-                content,
-            )?;
+            let file =
+                self.parse_string(self.sa.global_namespace_id, "<<code>>".into(), content)?;
             self.files_to_scan.push_back(file);
         }
 
@@ -144,14 +139,14 @@ impl<'a> DiscoverFiles<'a> {
     fn scan_file(
         &mut self,
         file_id: FileId,
-        path: Option<PathBuf>,
+        namespace_path: Option<PathBuf>,
         namespace_id: NamespaceDefinitionId,
         ast: &ast::File,
     ) {
         let mut gdef = GlobalDef {
             sa: self.sa,
             file_id,
-            path,
+            namespace_path,
             namespace_id,
             files_to_parse: &mut self.files_to_parse,
         };
@@ -162,8 +157,7 @@ impl<'a> DiscoverFiles<'a> {
     fn parse_files(&mut self) -> Result<(), i32> {
         while !self.files_to_parse.is_empty() {
             let file = self.files_to_parse.pop_front().expect("no file");
-            let file = self.parse_file(&file)?;
-            self.files_to_scan.push_back(file);
+            self.parse_file(&file)?;
         }
 
         Ok(())
@@ -181,8 +175,7 @@ impl<'a> DiscoverFiles<'a> {
                         path: PathBuf::from(path),
                         namespace_id,
                     };
-                    let file = self.parse_file(&file)?;
-                    self.files_to_scan.push_back(file);
+                    self.parse_file(&file)?;
                 }
             }
 
@@ -194,7 +187,7 @@ impl<'a> DiscoverFiles<'a> {
         }
     }
 
-    fn parse_file(&mut self, file: &ParseFile) -> Result<ScanFile, i32> {
+    fn parse_file(&mut self, file: &ParseFile) -> Result<(), i32> {
         let namespace_id = file.namespace_id;
         let path = file.path.clone();
 
@@ -215,12 +208,13 @@ impl<'a> DiscoverFiles<'a> {
                 let file_id = self
                     .sa
                     .add_file(Some(path.clone()), namespace_id, ast.clone());
-                Ok(ScanFile {
+                self.files_to_scan.push_back(ScanFile {
                     file_id,
                     namespace_id: file.namespace_id,
                     path: Some(path.clone()),
                     ast,
-                })
+                });
+                Ok(())
             }
 
             Err(error) => {
@@ -236,81 +230,40 @@ impl<'a> DiscoverFiles<'a> {
             }
         }
     }
-}
 
-fn parse_file(sa: &mut SemAnalysis, file: &ParseFile) -> Result<ScanFile, i32> {
-    let namespace_id = file.namespace_id;
-    let path = file.path.clone();
+    fn parse_string(
+        &mut self,
+        namespace_id: NamespaceDefinitionId,
+        filename: &str,
+        content: &str,
+    ) -> Result<ScanFile, i32> {
+        let reader = Reader::from_string(filename, content);
+        let parser = Parser::new(reader, &self.sa.id_generator, &mut self.sa.interner);
 
-    let reader = match Reader::from_file(path.to_str().unwrap()) {
-        Ok(reader) => reader,
+        match parser.parse() {
+            Ok(ast) => {
+                let ast = Arc::new(ast);
+                let file_id = self.sa.add_file(None, namespace_id, ast.clone());
+                let path = PathBuf::from(filename);
+                Ok(ScanFile {
+                    file_id,
+                    path: Some(path),
+                    namespace_id,
+                    ast,
+                })
+            }
 
-        Err(_) => {
-            println!("unable to read file `{}`", path.to_str().unwrap());
-            return Err(1);
-        }
-    };
+            Err(error) => {
+                println!(
+                    "error in {} at {}: {}",
+                    filename,
+                    error.pos,
+                    error.error.message()
+                );
+                println!("error during parsing.");
 
-    let parser = Parser::new(reader, &sa.id_generator, &mut sa.interner);
-
-    match parser.parse() {
-        Ok(ast) => {
-            let ast = Arc::new(ast);
-            let file_id = sa.add_file(Some(path.clone()), namespace_id, ast.clone());
-            Ok(ScanFile {
-                file_id,
-                namespace_id: file.namespace_id,
-                path: Some(path.clone()),
-                ast,
-            })
-        }
-
-        Err(error) => {
-            println!(
-                "error in {} at {}: {}",
-                path.to_str().unwrap(),
-                error.pos,
-                error.error.message()
-            );
-            println!("error during parsing.");
-
-            Err(1)
-        }
-    }
-}
-
-fn parse_string(
-    sa: &mut SemAnalysis,
-    namespace_id: NamespaceDefinitionId,
-    filename: &str,
-    content: &str,
-) -> Result<ScanFile, i32> {
-    let reader = Reader::from_string(filename, content);
-    let parser = Parser::new(reader, &sa.id_generator, &mut sa.interner);
-
-    match parser.parse() {
-        Ok(ast) => {
-            let ast = Arc::new(ast);
-            let file_id = sa.add_file(None, namespace_id, ast.clone());
-            let path = PathBuf::from(filename);
-            Ok(ScanFile {
-                file_id,
-                path: Some(path),
-                namespace_id,
-                ast,
-            })
-        }
-
-        Err(error) => {
-            println!(
-                "error in {} at {}: {}",
-                filename,
-                error.pos,
-                error.error.message()
-            );
-            println!("error during parsing.");
-
-            Err(1)
+                Err(1)
+            }
         }
     }
 }
@@ -330,7 +283,7 @@ struct ScanFile {
 struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
     file_id: FileId,
-    path: Option<PathBuf>,
+    namespace_path: Option<PathBuf>,
     namespace_id: NamespaceDefinitionId,
     files_to_parse: &'x mut VecDeque<ParseFile>,
 }
@@ -460,7 +413,7 @@ impl<'x> GlobalDef<'x> {
         node: &ast::Namespace,
         namespace_id: NamespaceDefinitionId,
     ) {
-        let mut dir_path = self.path.as_ref().expect("no path").clone();
+        let mut dir_path = self.namespace_path.as_ref().expect("no path").clone();
         dir_path.pop();
         let name = self.sa.interner.str(node.name).to_string();
         dir_path.push(&name);
