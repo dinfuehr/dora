@@ -1,11 +1,11 @@
 use std::fs;
 use std::io::{Error, Read};
+use std::sync::Arc;
 
 use crate::lexer::position::Position;
 
 pub struct Reader {
-    content: String,
-    line_ends: Vec<u32>,
+    content: Arc<String>,
 
     idx: usize,
     pos: Position,
@@ -20,11 +20,12 @@ impl Reader {
         let mut file = fs::File::open(filename)?;
         file.read_to_string(&mut src)?;
 
-        Ok(common_init(src))
+        Ok(common_init(Arc::new(src)))
     }
 
     pub fn from_string(src: &str) -> Reader {
-        common_init(src.into())
+        let content = Arc::new(src.to_string());
+        common_init(content)
     }
 
     pub fn set_tabwidth(&mut self, tabwidth: u32) {
@@ -37,7 +38,6 @@ impl Reader {
         match curr {
             Some('\n') => {
                 self.pos = Position::new(self.pos.line + 1, 1);
-                self.line_ends.push(self.idx as u32);
             }
 
             Some('\t') => {
@@ -82,15 +82,14 @@ impl Reader {
         self.idx as u32
     }
 
-    pub fn data(self) -> (String, Vec<u32>) {
-        (self.content, self.line_ends)
+    pub fn content(&self) -> Arc<String> {
+        self.content.clone()
     }
 }
 
-fn common_init(content: String) -> Reader {
+fn common_init(content: Arc<String>) -> Reader {
     let reader = Reader {
         content,
-        line_ends: Vec::new(),
 
         idx: 0,
         pos: Position::new(1, 1),

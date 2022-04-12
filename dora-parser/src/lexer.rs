@@ -503,10 +503,6 @@ impl Lexer {
     fn is_multi_comment_end(&self) -> bool {
         self.curr() == Some('*') && self.next() == Some('/')
     }
-
-    pub fn data(self) -> (String, Vec<u32>) {
-        self.reader.data()
-    }
 }
 
 fn is_digit(ch: Option<char>) -> bool {

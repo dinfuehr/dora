@@ -67,13 +67,7 @@ impl<'a> Parser<'a> {
             elements.push(self.parse_top_level_element()?);
         }
 
-        let (content, line_ends) = self.lexer.data();
-
-        let ast_file = ast::File {
-            content,
-            line_ends,
-            elements,
-        };
+        let ast_file = ast::File { elements };
 
         Ok(ast_file)
     }

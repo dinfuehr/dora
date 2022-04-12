@@ -205,18 +205,18 @@ impl<'a> ProgramParser<'a> {
         let namespace_id = file.namespace_id;
 
         let reader = create_reader(file)?;
+        let content = reader.content();
+
+        let file_id = self
+            .sa
+            .add_source_file(file.path.clone(), content, namespace_id);
+
         let parser = Parser::new(reader, &self.sa.id_generator, &mut self.sa.interner);
 
         match parser.parse() {
             Ok(ast) => {
                 let ast = Arc::new(ast);
                 let path = Some(file.path.clone());
-                let file_id = self.sa.add_source_file(
-                    file.path.clone(),
-                    ast.content.clone(),
-                    ast.line_ends.clone(),
-                    namespace_id,
-                );
                 self.files_to_scan.push_back(ScanFile {
                     file_id,
                     namespace_id,

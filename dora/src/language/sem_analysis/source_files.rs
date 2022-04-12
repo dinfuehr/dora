@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::language::sem_analysis::NamespaceDefinitionId;
 
@@ -20,7 +21,6 @@ impl SourceFileId {
 pub struct SourceFile {
     pub id: SourceFileId,
     pub path: PathBuf,
-    pub content: String,
-    pub line_ends: Vec<u32>,
+    pub content: Arc<String>,
     pub namespace_id: NamespaceDefinitionId,
 }

@@ -232,8 +232,7 @@ impl SemAnalysis {
     pub fn add_source_file(
         &mut self,
         path: PathBuf,
-        content: String,
-        line_ends: Vec<u32>,
+        content: Arc<String>,
         namespace_id: NamespaceDefinitionId,
     ) -> SourceFileId {
         let file_id = (self.source_files.len() as u32).into();
@@ -241,7 +240,6 @@ impl SemAnalysis {
             id: file_id,
             path,
             content,
-            line_ends,
             namespace_id,
         });
         file_id
