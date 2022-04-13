@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::fs;
+use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -25,7 +26,6 @@ pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
 
 struct ProgramParser<'a> {
     sa: &'a mut SemAnalysis,
-    files_to_scan: VecDeque<ScanFile>,
     files_to_parse: VecDeque<ParseFile>,
 }
 
@@ -33,7 +33,6 @@ impl<'a> ProgramParser<'a> {
     fn new(sa: &mut SemAnalysis) -> ProgramParser {
         ProgramParser {
             sa,
-            files_to_scan: VecDeque::new(),
             files_to_parse: VecDeque::new(),
         }
     }
@@ -41,9 +40,8 @@ impl<'a> ProgramParser<'a> {
     fn parse_all(&mut self) -> Result<(), i32> {
         self.add_initial_files()?;
 
-        while !self.files_to_scan.is_empty() || !self.files_to_parse.is_empty() {
-            self.parse_files()?;
-            self.scan_files();
+        while let Some(file) = self.files_to_parse.pop_front() {
+            self.parse_file(&file)?;
         }
 
         Ok(())
@@ -76,12 +74,7 @@ impl<'a> ProgramParser<'a> {
 
         for (filename, content) in STDLIB {
             let path = PathBuf::from(filename);
-            let file = ParseFile {
-                content: FileContent::String(content.to_string()),
-                path,
-                namespace_id,
-            };
-            self.files_to_parse.push_back(file);
+            self.add_file_from_string(path, content.to_string(), namespace_id);
         }
 
         Ok(())
@@ -103,12 +96,7 @@ impl<'a> ProgramParser<'a> {
             let path = Path::new(&arg_file);
 
             if path.is_file() {
-                let file = ParseFile {
-                    content: FileContent::Disk,
-                    path: PathBuf::from(path),
-                    namespace_id: self.sa.global_namespace_id,
-                };
-                self.files_to_parse.push_back(file);
+                self.add_file_on_disk(PathBuf::from(path), self.sa.global_namespace_id)?;
             } else if path.is_dir() {
                 self.add_files_in_directory(&arg_file, self.sa.global_namespace_id)?;
             } else {
@@ -127,22 +115,10 @@ impl<'a> ProgramParser<'a> {
                 path: PathBuf::from("<<code>>"),
                 namespace_id: self.sa.global_namespace_id,
             };
-            self.parse_file(&file)?;
+            self.files_to_parse.push_back(file);
         }
 
         Ok(())
-    }
-
-    fn scan_files(&mut self) {
-        while !self.files_to_scan.is_empty() {
-            let ScanFile {
-                file_id,
-                path,
-                namespace_id,
-                ast,
-            } = self.files_to_scan.pop_front().expect("no element");
-            self.scan_file(file_id, path, namespace_id, &*ast);
-        }
     }
 
     fn scan_file(
@@ -163,15 +139,6 @@ impl<'a> ProgramParser<'a> {
         gdef.visit_file(ast);
     }
 
-    fn parse_files(&mut self) -> Result<(), i32> {
-        while !self.files_to_parse.is_empty() {
-            let file = self.files_to_parse.pop_front().expect("no file");
-            self.parse_file(&file)?;
-        }
-
-        Ok(())
-    }
-
     fn add_files_in_directory(
         &mut self,
         dirname: &str,
@@ -184,12 +151,7 @@ impl<'a> ProgramParser<'a> {
                 let path = entry.unwrap().path();
 
                 if should_file_be_parsed(&path) {
-                    let file = ParseFile {
-                        content: FileContent::Disk,
-                        path,
-                        namespace_id,
-                    };
-                    self.files_to_parse.push_back(file);
+                    self.add_file_on_disk(path.clone(), namespace_id)?;
                 }
             }
 
@@ -199,6 +161,41 @@ impl<'a> ProgramParser<'a> {
 
             Err(1)
         }
+    }
+
+    fn add_file_on_disk(
+        &mut self,
+        path: PathBuf,
+        namespace_id: NamespaceDefinitionId,
+    ) -> Result<(), i32> {
+        let result = file_as_string(&path);
+
+        let content = match result {
+            Ok(content) => content,
+
+            Err(_) => {
+                println!("unable to read file `{:?}`", path);
+                return Err(1);
+            }
+        };
+
+        self.add_file_from_string(path, content, namespace_id);
+        Ok(())
+    }
+
+    fn add_file_from_string(
+        &mut self,
+        path: PathBuf,
+        content: String,
+        namespace_id: NamespaceDefinitionId,
+    ) {
+        let file = ParseFile {
+            content: FileContent::String(content),
+            path,
+            namespace_id,
+        };
+
+        self.files_to_parse.push_back(file);
     }
 
     fn parse_file(&mut self, file: &ParseFile) -> Result<(), i32> {
@@ -215,14 +212,8 @@ impl<'a> ProgramParser<'a> {
 
         match parser.parse() {
             Ok(ast) => {
-                let ast = Arc::new(ast);
                 let path = Some(file.path.clone());
-                self.files_to_scan.push_back(ScanFile {
-                    file_id,
-                    namespace_id,
-                    path,
-                    ast,
-                });
+                self.scan_file(file_id, path, namespace_id, &ast);
                 Ok(())
             }
 
@@ -239,6 +230,13 @@ impl<'a> ProgramParser<'a> {
             }
         }
     }
+}
+
+fn file_as_string(path: &PathBuf) -> Result<String, Error> {
+    let mut content = String::new();
+    let mut file = fs::File::open(&path)?;
+    file.read_to_string(&mut content)?;
+    Ok(content)
 }
 
 fn create_reader(file: &ParseFile) -> Result<Reader, i32> {
@@ -265,13 +263,6 @@ struct ParseFile {
     content: FileContent,
     path: PathBuf,
     namespace_id: NamespaceDefinitionId,
-}
-
-struct ScanFile {
-    file_id: SourceFileId,
-    path: Option<PathBuf>,
-    namespace_id: NamespaceDefinitionId,
-    ast: Arc<ast::File>,
 }
 
 struct GlobalDef<'x> {
