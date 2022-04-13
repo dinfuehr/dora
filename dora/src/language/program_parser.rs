@@ -110,12 +110,11 @@ impl<'a> ProgramParser<'a> {
 
     fn add_test_files(&mut self) -> Result<(), i32> {
         if let Some(content) = self.sa.additional_file_to_parse {
-            let file = ParseFile {
-                content: FileContent::String(content.to_string()),
-                path: PathBuf::from("<<code>>"),
-                namespace_id: self.sa.global_namespace_id,
-            };
-            self.files_to_parse.push_back(file);
+            self.add_file_from_string(
+                PathBuf::from("<<code>>"),
+                content.to_string(),
+                self.sa.global_namespace_id,
+            );
         }
 
         Ok(())
@@ -127,16 +126,55 @@ impl<'a> ProgramParser<'a> {
         namespace_path: Option<PathBuf>,
         namespace_id: NamespaceDefinitionId,
         ast: &ast::File,
-    ) {
+    ) -> Result<(), i32> {
         let mut gdef = GlobalDef {
             sa: self.sa,
             file_id,
-            namespace_path,
+            namespace_path: namespace_path.clone(),
             namespace_id,
-            files_to_parse: &mut self.files_to_parse,
+            unresolved_namespaces: Vec::new(),
         };
 
         gdef.visit_file(ast);
+
+        for id in gdef.unresolved_namespaces {
+            self.add_namespace_files(file_id, &namespace_path, id)?;
+        }
+
+        Ok(())
+    }
+
+    fn add_namespace_files(
+        &mut self,
+        file_id: SourceFileId,
+        namespace_path: &Option<PathBuf>,
+        id: NamespaceDefinitionId,
+    ) -> Result<(), i32> {
+        let namespace = self.sa.namespaces[id].clone();
+        let namespace = namespace.read();
+        let node = namespace.ast.clone().unwrap();
+
+        let mut dir_path = namespace_path.as_ref().expect("no path").clone();
+        dir_path.pop();
+        let name = self.sa.interner.str(node.name).to_string();
+        dir_path.push(&name);
+
+        if dir_path.is_dir() {
+            for entry in fs::read_dir(dir_path).unwrap() {
+                let path = entry.unwrap().path();
+
+                if should_file_be_parsed(&path) {
+                    self.add_file_on_disk(path, id)?;
+                }
+            }
+        } else {
+            self.sa
+                .diag
+                .lock()
+                .report(file_id, node.pos, SemError::DirectoryNotFound);
+        }
+
+        Ok(())
     }
 
     fn add_files_in_directory(
@@ -213,7 +251,7 @@ impl<'a> ProgramParser<'a> {
         match parser.parse() {
             Ok(ast) => {
                 let path = Some(file.path.clone());
-                self.scan_file(file_id, path, namespace_id, &ast);
+                self.scan_file(file_id, path, namespace_id, &ast)?;
                 Ok(())
             }
 
@@ -270,7 +308,7 @@ struct GlobalDef<'x> {
     file_id: SourceFileId,
     namespace_path: Option<PathBuf>,
     namespace_id: NamespaceDefinitionId,
-    files_to_parse: &'x mut VecDeque<ParseFile>,
+    unresolved_namespaces: Vec<NamespaceDefinitionId>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
@@ -284,7 +322,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
 
         if node.elements.is_none() {
-            self.parse_directory_into_namespace(node, id);
+            self.unresolved_namespaces.push(id);
         } else {
             let saved_namespace_id = self.namespace_id;
             self.namespace_id = id;
@@ -393,36 +431,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 }
 
 impl<'x> GlobalDef<'x> {
-    fn parse_directory_into_namespace(
-        &mut self,
-        node: &ast::Namespace,
-        namespace_id: NamespaceDefinitionId,
-    ) {
-        let mut dir_path = self.namespace_path.as_ref().expect("no path").clone();
-        dir_path.pop();
-        let name = self.sa.interner.str(node.name).to_string();
-        dir_path.push(&name);
-
-        if dir_path.is_dir() {
-            for entry in fs::read_dir(dir_path).unwrap() {
-                let path = entry.unwrap().path();
-
-                if should_file_be_parsed(&path) {
-                    self.files_to_parse.push_back(ParseFile {
-                        path,
-                        content: FileContent::Disk,
-                        namespace_id: namespace_id,
-                    });
-                }
-            }
-        } else {
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, node.pos, SemError::DirectoryNotFound);
-        }
-    }
-
     fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         let level = self.sa.namespace_table(self.namespace_id);
         let mut level = level.write();
