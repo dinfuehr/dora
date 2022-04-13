@@ -14,18 +14,18 @@ const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
       return ((bound.toInt64().wrappingMul(num)) >>> 31I).toInt32();
     }
 
-    var mod = 0I;
+    var modulo = 0I;
 
     while true {
       let num = self.nextInt31();
-      mod = num % bound;
+      modulo = num % bound;
 
-      if num - mod + bound_minus_1 >= 0I {
+      if num - modulo + bound_minus_1 >= 0I {
         break;
       }
     }
 
-    return mod;
+    return modulo;
   }
 
   @pub fn nextInt32(): Int32 {

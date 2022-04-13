@@ -6,7 +6,7 @@ fn main() {
     assert(mul(20L, 7L) == 140L);
     assert(div(20L, 7L) == 2L);
     
-    assert(mod(20L, 7L) == 6L);
+    assert(modulo(20L, 7L) == 6L);
 
     assert(neg(20L) == -20L);
     assert(neg(-5L) == 5L);
@@ -65,7 +65,7 @@ fn div(x: Int64, y: Int64): Int64 {
     return x/y;
 }
 
-fn mod(y: Int64, z: Int64): Int64 {
+fn modulo(y: Int64, z: Int64): Int64 {
     return y%z;
 }
 

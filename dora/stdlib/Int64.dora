@@ -28,7 +28,7 @@ impl Int64 {
   @pub @internal fn minus(rhs: Int64): Int64;
   @pub @internal fn times(rhs: Int64): Int64;
   @pub @internal fn div(rhs: Int64): Int64;
-  @pub @internal fn mod(rhs: Int64): Int64;
+  @pub @internal fn modulo(rhs: Int64): Int64;
 
   @pub @internal fn wrappingAdd(rhs: Int64): Int64;
   @pub @internal fn wrappingSub(rhs: Int64): Int64;

@@ -352,7 +352,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     intrinsic_method(sa, stdlib, "Int32", "minus", Intrinsic::Int32Sub);
     intrinsic_method(sa, stdlib, "Int32", "times", Intrinsic::Int32Mul);
     intrinsic_method(sa, stdlib, "Int32", "div", Intrinsic::Int32Div);
-    intrinsic_method(sa, stdlib, "Int32", "mod", Intrinsic::Int32Mod);
+    intrinsic_method(sa, stdlib, "Int32", "modulo", Intrinsic::Int32Mod);
 
     intrinsic_method(
         sa,
@@ -482,7 +482,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     intrinsic_method(sa, stdlib, "Int64", "minus", Intrinsic::Int64Sub);
     intrinsic_method(sa, stdlib, "Int64", "times", Intrinsic::Int64Mul);
     intrinsic_method(sa, stdlib, "Int64", "div", Intrinsic::Int64Div);
-    intrinsic_method(sa, stdlib, "Int64", "mod", Intrinsic::Int64Mod);
+    intrinsic_method(sa, stdlib, "Int64", "modulo", Intrinsic::Int64Mod);
 
     intrinsic_method(
         sa,

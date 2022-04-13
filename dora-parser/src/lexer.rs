@@ -561,6 +561,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("impl", TokenKind::Impl);
     keywords.insert("annotation", TokenKind::Annotation);
     keywords.insert("namespace", TokenKind::Namespace);
+    keywords.insert("mod", TokenKind::Namespace);
     keywords.insert("use", TokenKind::Use);
     keywords.insert("package", TokenKind::Package);
 

@@ -6,7 +6,7 @@ fn main() {
     assert(mul(20I, 7I) == 140I);
     assert(div(20I, 7I) == 2I);
     
-    assert(mod(20I, 7I) == 6I);
+    assert(modulo(20I, 7I) == 6I);
 
     assert(neg(20I) == -20I);
     assert(neg(-5I) == 5I);
@@ -55,7 +55,7 @@ fn mul(x: Int32, y: Int32): Int32 = x*y;
 
 fn div(x: Int32, y: Int32): Int32 = x/y;
 
-fn mod(y: Int32, z: Int32): Int32 = y%z;
+fn modulo(y: Int32, z: Int32): Int32 = y%z;
 
 fn or(x: Int32, y: Int32): Int32 = x | y;
 

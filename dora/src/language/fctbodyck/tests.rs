@@ -696,7 +696,7 @@ fn overload_div() {
 
 #[test]
 fn overload_mod() {
-    ok("class A { fn mod(rhs: A): Int32 { return 0; } }
+    ok("class A { fn modulo(rhs: A): Int32 { return 0; } }
             fn f(): Int32 { return A() % A(); }");
 }
 

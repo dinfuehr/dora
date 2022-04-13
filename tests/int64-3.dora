@@ -29,7 +29,7 @@ fn main() {
     let x = 9L / 8L;
     assert(x == 1L);
 
-    let x = 10L.mod(8L);
+    let x = 10L.modulo(8L);
     assert(x == 2L);
 
     let x = 10L % 8L;

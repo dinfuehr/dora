@@ -1173,7 +1173,7 @@ impl<'a> TypeCheck<'a> {
             ast::BinOp::Sub => self.check_expr_bin_method(e, e.op, "minus", lhs_type, rhs_type),
             ast::BinOp::Mul => self.check_expr_bin_method(e, e.op, "times", lhs_type, rhs_type),
             ast::BinOp::Div => self.check_expr_bin_method(e, e.op, "div", lhs_type, rhs_type),
-            ast::BinOp::Mod => self.check_expr_bin_method(e, e.op, "mod", lhs_type, rhs_type),
+            ast::BinOp::Mod => self.check_expr_bin_method(e, e.op, "modulo", lhs_type, rhs_type),
             ast::BinOp::BitOr => {
                 self.check_expr_bin_method(e, e.op, "bitwiseOr", lhs_type, rhs_type)
             }

@@ -28,7 +28,7 @@ impl Int32 {
   @pub @internal fn minus(rhs: Int32): Int32;
   @pub @internal fn times(rhs: Int32): Int32;
   @pub @internal fn div(rhs: Int32): Int32;
-  @pub @internal fn mod(rhs: Int32): Int32;
+  @pub @internal fn modulo(rhs: Int32): Int32;
 
   @pub @internal fn wrappingAdd(rhs: Int32): Int32;
   @pub @internal fn wrappingSub(rhs: Int32): Int32;
