@@ -18,6 +18,7 @@ impl SourceFileId {
     }
 }
 
+#[derive(Clone)]
 pub struct SourceFile {
     pub id: SourceFileId,
     pub path: PathBuf,

@@ -52,8 +52,7 @@ macro_rules! return_on_error {
 }
 
 pub fn check(sa: &mut SemAnalysis) -> bool {
-    // add user defined fcts and classes to vm
-    // this check does not look into fct or class bodies
+    // This phase loads and parses all files. Also creates top-level-elements.
     if let Err(_) = program_parser::parse(sa) {
         return false;
     }

@@ -137,7 +137,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
     let name = vm.interner.intern(fct_name);
 
     if let Some(fct_id) = vm
-        .namespace_table(vm.global_namespace_id)
+        .namespace_table(vm.program_namespace_id)
         .read()
         .get_fct(name)
     {

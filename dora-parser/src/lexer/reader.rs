@@ -28,6 +28,10 @@ impl Reader {
         common_init(content)
     }
 
+    pub fn from_arc_string(content: Arc<String>) -> Reader {
+        common_init(content)
+    }
+
     pub fn set_tabwidth(&mut self, tabwidth: u32) {
         self.tabwidth = tabwidth;
     }

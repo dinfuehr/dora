@@ -26,7 +26,7 @@ pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
 
 struct ProgramParser<'a> {
     sa: &'a mut SemAnalysis,
-    files_to_parse: VecDeque<ParseFile>,
+    files_to_parse: VecDeque<SourceFileId>,
 }
 
 impl<'a> ProgramParser<'a> {
@@ -40,8 +40,8 @@ impl<'a> ProgramParser<'a> {
     fn parse_all(&mut self) -> Result<(), i32> {
         self.add_initial_files()?;
 
-        while let Some(file) = self.files_to_parse.pop_front() {
-            self.parse_file(&file)?;
+        while let Some(file_id) = self.files_to_parse.pop_front() {
+            self.parse_file(file_id)?;
         }
 
         Ok(())
@@ -96,9 +96,9 @@ impl<'a> ProgramParser<'a> {
             let path = Path::new(&arg_file);
 
             if path.is_file() {
-                self.add_file_on_disk(PathBuf::from(path), self.sa.global_namespace_id)?;
+                self.add_file_on_disk(PathBuf::from(path), self.sa.program_namespace_id)?;
             } else if path.is_dir() {
-                self.add_files_in_directory(&arg_file, self.sa.global_namespace_id)?;
+                self.add_files_in_directory(&arg_file, self.sa.program_namespace_id)?;
             } else {
                 println!("file or directory `{}` does not exist.", &arg_file);
                 return Err(1);
@@ -113,7 +113,7 @@ impl<'a> ProgramParser<'a> {
             self.add_file_from_string(
                 PathBuf::from("<<code>>"),
                 content.to_string(),
-                self.sa.global_namespace_id,
+                self.sa.program_namespace_id,
             );
         }
 
@@ -130,7 +130,6 @@ impl<'a> ProgramParser<'a> {
         let mut gdef = GlobalDef {
             sa: self.sa,
             file_id,
-            namespace_path: namespace_path.clone(),
             namespace_id,
             unresolved_namespaces: Vec::new(),
         };
@@ -227,25 +226,18 @@ impl<'a> ProgramParser<'a> {
         content: String,
         namespace_id: NamespaceDefinitionId,
     ) {
-        let file = ParseFile {
-            content: FileContent::String(content),
-            path,
-            namespace_id,
-        };
-
-        self.files_to_parse.push_back(file);
-    }
-
-    fn parse_file(&mut self, file: &ParseFile) -> Result<(), i32> {
-        let namespace_id = file.namespace_id;
-
-        let reader = create_reader(file)?;
-        let content = reader.content();
-
         let file_id = self
             .sa
-            .add_source_file(file.path.clone(), content, namespace_id);
+            .add_source_file(path, Arc::new(content), namespace_id);
+        self.files_to_parse.push_back(file_id);
+    }
 
+    fn parse_file(&mut self, file_id: SourceFileId) -> Result<(), i32> {
+        let file = self.sa.source_file(file_id).clone();
+        let namespace_id = file.namespace_id;
+        let content = file.content.clone();
+
+        let reader = Reader::from_arc_string(content.clone());
         let parser = Parser::new(reader, &self.sa.id_generator, &mut self.sa.interner);
 
         match parser.parse() {
@@ -277,36 +269,9 @@ fn file_as_string(path: &PathBuf) -> Result<String, Error> {
     Ok(content)
 }
 
-fn create_reader(file: &ParseFile) -> Result<Reader, i32> {
-    let filename = file.path.to_str().unwrap();
-    match file.content {
-        FileContent::String(ref content) => Ok(Reader::from_string(content)),
-        FileContent::Disk => match Reader::from_file(filename) {
-            Ok(reader) => Ok(reader),
-
-            Err(_) => {
-                println!("unable to read file `{}`", file.path.to_str().unwrap());
-                Err(1)
-            }
-        },
-    }
-}
-
-enum FileContent {
-    String(String),
-    Disk,
-}
-
-struct ParseFile {
-    content: FileContent,
-    path: PathBuf,
-    namespace_id: NamespaceDefinitionId,
-}
-
 struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
     file_id: SourceFileId,
-    namespace_path: Option<PathBuf>,
     namespace_id: NamespaceDefinitionId,
     unresolved_namespaces: Vec<NamespaceDefinitionId>,
 }

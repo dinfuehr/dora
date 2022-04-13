@@ -114,7 +114,7 @@ pub struct FullSemAnalysis {
     pub parse_arg_file: bool,
     pub prelude_namespace_id: NamespaceDefinitionId,
     pub stdlib_namespace_id: NamespaceDefinitionId,
-    pub global_namespace_id: NamespaceDefinitionId,
+    pub program_namespace_id: NamespaceDefinitionId,
     pub boots_namespace_id: NamespaceDefinitionId,
 }
 
@@ -135,7 +135,7 @@ impl FullSemAnalysis {
         let prelude_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
         let stdlib_namespace_id =
             namespaces.push(NamespaceDefinition::predefined(Some(stdlib_name)));
-        let global_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
+        let program_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
         let boots_namespace_id = namespaces.push(NamespaceDefinition::predefined(Some(boots_name)));
 
         let sa = Box::new(FullSemAnalysis {
@@ -223,7 +223,7 @@ impl FullSemAnalysis {
             parse_arg_file: true,
             prelude_namespace_id,
             stdlib_namespace_id,
-            global_namespace_id,
+            program_namespace_id,
             boots_namespace_id,
         });
 
@@ -276,7 +276,7 @@ pub struct VM {
     pub parse_arg_file: bool,
     pub prelude_namespace_id: NamespaceDefinitionId,
     pub stdlib_namespace_id: NamespaceDefinitionId,
-    pub global_namespace_id: NamespaceDefinitionId,
+    pub program_namespace_id: NamespaceDefinitionId,
     pub boots_namespace_id: NamespaceDefinitionId,
     pub wait_lists: WaitLists,
 }
@@ -299,7 +299,7 @@ impl VM {
         let prelude_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
         let stdlib_namespace_id =
             namespaces.push(NamespaceDefinition::predefined(Some(stdlib_name)));
-        let global_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
+        let program_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
         let boots_namespace_id = namespaces.push(NamespaceDefinition::predefined(Some(boots_name)));
 
         let vm = Box::new(VM {
@@ -397,7 +397,7 @@ impl VM {
             parse_arg_file: true,
             prelude_namespace_id,
             stdlib_namespace_id,
-            global_namespace_id,
+            program_namespace_id,
             boots_namespace_id,
             wait_lists: WaitLists::new(),
         });
@@ -451,7 +451,7 @@ impl VM {
             parse_arg_file: sa.parse_arg_file,
             prelude_namespace_id: sa.prelude_namespace_id,
             stdlib_namespace_id: sa.stdlib_namespace_id,
-            global_namespace_id: sa.global_namespace_id,
+            program_namespace_id: sa.program_namespace_id,
             boots_namespace_id: sa.boots_namespace_id,
             wait_lists: WaitLists::new(),
         });

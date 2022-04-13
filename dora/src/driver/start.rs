@@ -87,7 +87,7 @@ pub fn start() -> i32 {
         let namespace_id = if vm.args.flag_test_boots {
             vm.boots_namespace_id
         } else {
-            vm.global_namespace_id
+            vm.program_namespace_id
         };
 
         run_tests(&vm, namespace_id)
@@ -205,7 +205,7 @@ pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_st
 fn find_main(sa: &SemAnalysis) -> Option<FctDefinitionId> {
     let name = sa.interner.intern("main");
     let fctid = if let Some(id) = sa
-        .namespace_table(sa.global_namespace_id)
+        .namespace_table(sa.program_namespace_id)
         .read()
         .get_fct(name)
     {
