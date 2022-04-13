@@ -1,5 +1,7 @@
+use std::collections::Queue;
+
 fn main() {
-    let q = std::Queue[Int32]();
+    let q = Queue[Int32]();
 
     for i in std::range(0I, 100I) {
         q.enqueue(i);

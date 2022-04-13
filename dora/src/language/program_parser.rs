@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
@@ -24,9 +24,34 @@ pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
     discoverer.parse_all()
 }
 
+#[derive(Copy, Clone)]
+enum NamespaceLookup {
+    Disallowed,
+    Directory,
+    Stdlib,
+}
+
+type PreparedBundle = HashMap<PathBuf, Vec<(PathBuf, String)>>;
+
+fn prepare_bundle(files: &[(&'static str, &'static str)]) -> PreparedBundle {
+    let mut result = HashMap::new();
+
+    for (file, content) in files {
+        let file_path = PathBuf::from(file);
+        let mut directory = file_path.clone();
+        directory.pop();
+
+        let files_in_directory = result.entry(directory).or_insert_with(|| Vec::new());
+        files_in_directory.push((file_path, content.to_string()));
+    }
+
+    result
+}
+
 struct ProgramParser<'a> {
     sa: &'a mut SemAnalysis,
-    files_to_parse: VecDeque<SourceFileId>,
+    files_to_parse: VecDeque<(SourceFileId, NamespaceLookup)>,
+    stdlib: PreparedBundle,
 }
 
 impl<'a> ProgramParser<'a> {
@@ -34,14 +59,15 @@ impl<'a> ProgramParser<'a> {
         ProgramParser {
             sa,
             files_to_parse: VecDeque::new(),
+            stdlib: HashMap::new(),
         }
     }
 
     fn parse_all(&mut self) -> Result<(), i32> {
         self.add_initial_files()?;
 
-        while let Some(file_id) = self.files_to_parse.pop_front() {
-            self.parse_file(file_id)?;
+        while let Some((file_id, namespace_lookup)) = self.files_to_parse.pop_front() {
+            self.parse_file(file_id, namespace_lookup)?;
         }
 
         Ok(())
@@ -57,12 +83,15 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_stdlib_files(&mut self) -> Result<(), i32> {
+        use crate::driver::start::STDLIB;
+
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
         let namespace_id = self.sa.stdlib_namespace_id;
 
         if let Some(stdlib) = stdlib_dir {
             self.add_files_in_directory(PathBuf::from(stdlib), namespace_id, None)?;
         } else {
+            self.stdlib = prepare_bundle(STDLIB);
             self.add_bundled_stdlib(namespace_id)?;
         }
 
@@ -70,11 +99,18 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_bundled_stdlib(&mut self, namespace_id: NamespaceDefinitionId) -> Result<(), i32> {
-        use crate::driver::start::STDLIB;
+        let path = PathBuf::from("stdlib");
+        self.add_bundled_directory(path, namespace_id)
+    }
 
-        for (filename, content) in STDLIB {
-            let path = PathBuf::from(filename);
-            self.add_file_from_string(path, content.to_string(), namespace_id);
+    fn add_bundled_directory(
+        &mut self,
+        path: PathBuf,
+        namespace_id: NamespaceDefinitionId,
+    ) -> Result<(), i32> {
+        let files = self.stdlib.remove(&path).expect("missing directory");
+        for (path, content) in files {
+            self.add_file_from_string(path, content, namespace_id, NamespaceLookup::Stdlib);
         }
 
         Ok(())
@@ -114,6 +150,7 @@ impl<'a> ProgramParser<'a> {
                 PathBuf::from("<<code>>"),
                 content.to_string(),
                 self.sa.program_namespace_id,
+                NamespaceLookup::Disallowed,
             );
         }
 
@@ -125,6 +162,7 @@ impl<'a> ProgramParser<'a> {
         file_id: SourceFileId,
         file_path: PathBuf,
         namespace_id: NamespaceDefinitionId,
+        namespace_lookup: NamespaceLookup,
         ast: &ast::File,
     ) -> Result<(), i32> {
         let mut gdef = GlobalDef {
@@ -141,7 +179,7 @@ impl<'a> ProgramParser<'a> {
             directory.pop();
 
             for id in gdef.unresolved_namespaces {
-                self.add_namespace_files(directory.clone(), id)?;
+                self.add_namespace_files(directory.clone(), id, namespace_lookup)?;
             }
         }
 
@@ -152,6 +190,7 @@ impl<'a> ProgramParser<'a> {
         &mut self,
         directory: PathBuf,
         id: NamespaceDefinitionId,
+        namespace_lookup: NamespaceLookup,
     ) -> Result<(), i32> {
         let namespace = self.sa.namespaces[id].clone();
         let namespace = namespace.read();
@@ -162,7 +201,14 @@ impl<'a> ProgramParser<'a> {
         let name = self.sa.interner.str(node.name).to_string();
         namespace_directory.push(&name);
 
-        self.add_files_in_directory(namespace_directory, id, Some((file_id, node.pos)))
+        match namespace_lookup {
+            NamespaceLookup::Directory => {
+                self.add_files_in_directory(namespace_directory, id, Some((file_id, node.pos)))
+            }
+
+            NamespaceLookup::Disallowed => panic!("cannot include other files here."),
+            NamespaceLookup::Stdlib => self.add_bundled_directory(namespace_directory, id),
+        }
     }
 
     fn add_files_in_directory(
@@ -205,7 +251,7 @@ impl<'a> ProgramParser<'a> {
 
         match result {
             Ok(content) => {
-                self.add_file_from_string(path, content, namespace_id);
+                self.add_file_from_string(path, content, namespace_id, NamespaceLookup::Directory);
                 Ok(())
             }
 
@@ -229,14 +275,19 @@ impl<'a> ProgramParser<'a> {
         path: PathBuf,
         content: String,
         namespace_id: NamespaceDefinitionId,
+        namespace_lookup: NamespaceLookup,
     ) {
         let file_id = self
             .sa
             .add_source_file(path, Arc::new(content), namespace_id);
-        self.files_to_parse.push_back(file_id);
+        self.files_to_parse.push_back((file_id, namespace_lookup));
     }
 
-    fn parse_file(&mut self, file_id: SourceFileId) -> Result<(), i32> {
+    fn parse_file(
+        &mut self,
+        file_id: SourceFileId,
+        namespace_lookup: NamespaceLookup,
+    ) -> Result<(), i32> {
         let namespace_id;
         let content;
         let path;
@@ -253,7 +304,7 @@ impl<'a> ProgramParser<'a> {
 
         match parser.parse() {
             Ok(ast) => {
-                self.scan_file(file_id, path, namespace_id, &ast)?;
+                self.scan_file(file_id, path, namespace_id, namespace_lookup, &ast)?;
                 Ok(())
             }
 

@@ -1,5 +1,7 @@
+use std::collections::Queue;
+
 fn main() {
-    let q = std::Queue[Int32]();
+    let q = Queue[Int32]();
     assert(q.size() == 0L);
     assert(q.isEmpty());
     q.enqueue(1I);

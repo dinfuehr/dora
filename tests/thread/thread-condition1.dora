@@ -1,5 +1,7 @@
 //= vm-args "--gc=copy"
 
+use std::collections::Queue;
+
 const THREADS: Int32 = 10I;
 const ITERATIONS: Int32 = 10_000I;
 const QUEUE_SIZE: Int64 = 20L;
@@ -8,7 +10,7 @@ class SharedQueue[T](let capacity: Int64) {
     let mtx: std::Mutex = std::Mutex();
     let conditionNonEmpty: std::Condition = std::Condition();
     let conditionNonFull: std::Condition = std::Condition();
-    let queue: std::Queue[T] = std::Queue[T]();
+    let queue: Queue[T] = Queue[T]();
 
     fn enqueue(value: T) {
         self.mtx.lock();

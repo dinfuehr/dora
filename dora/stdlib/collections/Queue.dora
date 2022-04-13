@@ -28,7 +28,7 @@
     assert(self.count > 0L);
 
     let value = self.elements.get(self.front);
-    unsafeKillRefs[T](self.elements, self.front);
+    std::unsafeKillRefs[T](self.elements, self.front);
 
     self.moveFront();
     self.count = self.count - 1L;

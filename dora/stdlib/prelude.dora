@@ -21,6 +21,8 @@
 
 @pub class Object
 
+@pub mod collections;
+
 fn isValidUtf8(data: Array[UInt8]): Bool {
   var i = 0L;
 
