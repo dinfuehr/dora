@@ -233,24 +233,30 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn parse_file(&mut self, file_id: SourceFileId) -> Result<(), i32> {
-        let file = self.sa.source_file(file_id).clone();
-        let namespace_id = file.namespace_id;
-        let content = file.content.clone();
+        let namespace_id;
+        let content;
+        let path;
 
-        let reader = Reader::from_arc_string(content.clone());
+        {
+            let file = self.sa.source_file(file_id);
+            namespace_id = file.namespace_id;
+            content = file.content.clone();
+            path = file.path.clone();
+        }
+
+        let reader = Reader::from_arc_string(content);
         let parser = Parser::new(reader, &self.sa.id_generator, &mut self.sa.interner);
 
         match parser.parse() {
             Ok(ast) => {
-                let path = Some(file.path.clone());
-                self.scan_file(file_id, path, namespace_id, &ast)?;
+                self.scan_file(file_id, Some(path), namespace_id, &ast)?;
                 Ok(())
             }
 
             Err(error) => {
                 println!(
                     "error in {:?} at {}: {}",
-                    file.path,
+                    path,
                     error.pos,
                     error.error.message()
                 );
