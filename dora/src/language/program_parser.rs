@@ -16,7 +16,6 @@ use crate::vm::SemAnalysis;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;
-use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
 pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
@@ -244,8 +243,8 @@ impl<'a> ProgramParser<'a> {
             path = file.path.clone();
         }
 
-        let reader = Reader::from_arc_string(content);
-        let parser = Parser::new(reader, &self.sa.id_generator, &mut self.sa.interner);
+        let parser =
+            Parser::from_shared_string(content, &self.sa.id_generator, &mut self.sa.interner);
 
         match parser.parse() {
             Ok(ast) => {

@@ -34,7 +34,25 @@ enum StmtOrExpr {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(
+    pub fn from_string(
+        code: &'static str,
+        id_generator: &'a NodeIdGenerator,
+        interner: &'a mut Interner,
+    ) -> Parser<'a> {
+        let reader = Reader::from_string(code);
+        Parser::common_init(reader, id_generator, interner)
+    }
+
+    pub fn from_shared_string(
+        content: Arc<String>,
+        id_generator: &'a NodeIdGenerator,
+        interner: &'a mut Interner,
+    ) -> Parser<'a> {
+        let reader = Reader::from_shared_string(content);
+        Parser::common_init(reader, id_generator, interner)
+    }
+
+    fn common_init(
         reader: Reader,
         id_generator: &'a NodeIdGenerator,
         interner: &'a mut Interner,
@@ -2312,7 +2330,6 @@ mod tests {
 
     use crate::error::ParseError;
     use crate::lexer::position::Position;
-    use crate::lexer::reader::Reader;
     use crate::parser::{NodeIdGenerator, Parser};
 
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
@@ -2320,8 +2337,7 @@ mod tests {
         let mut interner = Interner::new();
 
         let expr = {
-            let reader = Reader::from_string(code);
-            let mut parser = Parser::new(reader, &id_generator, &mut interner);
+            let mut parser = Parser::from_string(code, &id_generator, &mut interner);
             assert!(parser.init().is_ok());
 
             let result = parser.parse_expression();
@@ -2340,8 +2356,7 @@ mod tests {
         let err = {
             let id_generator = NodeIdGenerator::new();
             let mut interner = Interner::new();
-            let reader = Reader::from_string(code);
-            let mut parser = Parser::new(reader, &id_generator, &mut interner);
+            let mut parser = Parser::from_string(code, &id_generator, &mut interner);
 
             assert!(parser.init().is_ok());
             parser.parse_expression().unwrap_err()
@@ -2355,8 +2370,7 @@ mod tests {
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
         let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
-        let reader = Reader::from_string(code);
-        let mut parser = Parser::new(reader, &id_generator, &mut interner);
+        let mut parser = Parser::from_string(code, &id_generator, &mut interner);
         assert!(parser.init().is_ok());
 
         parser.parse_statement().unwrap()
@@ -2366,8 +2380,7 @@ mod tests {
         let err = {
             let id_generator = NodeIdGenerator::new();
             let mut interner = Interner::new();
-            let reader = Reader::from_string(code);
-            let mut parser = Parser::new(reader, &id_generator, &mut interner);
+            let mut parser = Parser::from_string(code, &id_generator, &mut interner);
 
             assert!(parser.init().is_ok());
             parser.parse_statement().unwrap_err()
@@ -2382,8 +2395,7 @@ mod tests {
         let mut interner = Interner::new();
         let ty = {
             let id_generator = NodeIdGenerator::new();
-            let reader = Reader::from_string(code);
-            let mut parser = Parser::new(reader, &id_generator, &mut interner);
+            let mut parser = Parser::from_string(code, &id_generator, &mut interner);
             assert!(parser.init().is_ok());
 
             parser.parse_type().unwrap()
@@ -2396,8 +2408,7 @@ mod tests {
         let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
 
-        let reader = Reader::from_string(code);
-        let file = Parser::new(reader, &id_generator, &mut interner)
+        let file = Parser::from_string(code, &id_generator, &mut interner)
             .parse()
             .unwrap();
 
@@ -2408,8 +2419,7 @@ mod tests {
         let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
 
-        let reader = Reader::from_string(code);
-        let err = Parser::new(reader, &id_generator, &mut interner)
+        let err = Parser::from_string(code, &id_generator, &mut interner)
             .parse()
             .unwrap_err();
 

@@ -1,4 +1,5 @@
-pub use lexer::position::Position;
+pub use self::lexer::position::Position;
+pub use self::parser::Parser;
 
 pub mod ast;
 mod builder;

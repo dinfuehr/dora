@@ -1,5 +1,3 @@
-use std::fs;
-use std::io::{Error, Read};
 use std::sync::Arc;
 
 use crate::lexer::position::Position;
@@ -14,22 +12,20 @@ pub struct Reader {
 }
 
 impl Reader {
-    pub fn from_file(filename: &str) -> Result<Reader, Error> {
-        let mut src = String::new();
-
-        let mut file = fs::File::open(filename)?;
-        file.read_to_string(&mut src)?;
-
-        Ok(common_init(Arc::new(src)))
-    }
-
     pub fn from_string(src: &str) -> Reader {
-        let content = Arc::new(src.to_string());
-        common_init(content)
+        Reader::from_shared_string(Arc::new(src.to_string()))
     }
 
-    pub fn from_arc_string(content: Arc<String>) -> Reader {
-        common_init(content)
+    pub fn from_shared_string(content: Arc<String>) -> Reader {
+        let reader = Reader {
+            content,
+
+            idx: 0,
+            pos: Position::new(1, 1),
+            tabwidth: 4,
+        };
+
+        reader
     }
 
     pub fn set_tabwidth(&mut self, tabwidth: u32) {
@@ -89,18 +85,6 @@ impl Reader {
     pub fn content(&self) -> Arc<String> {
         self.content.clone()
     }
-}
-
-fn common_init(content: Arc<String>) -> Reader {
-    let reader = Reader {
-        content,
-
-        idx: 0,
-        pos: Position::new(1, 1),
-        tabwidth: 4,
-    };
-
-    reader
 }
 
 #[cfg(test)]
