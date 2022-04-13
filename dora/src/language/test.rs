@@ -24,7 +24,7 @@ where
     let args: Args = Default::default();
     let mut sa = SemAnalysis::new(args);
     sa.parse_arg_file = false;
-    sa.additional_file_to_parse = Some(code);
+    sa.test_file_as_string = Some(code);
 
     assert!(language::check(&mut sa));
 

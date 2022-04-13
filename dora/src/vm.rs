@@ -87,7 +87,7 @@ pub fn stack_pointer() -> Address {
 
 pub struct FullSemAnalysis {
     pub args: Args,
-    pub additional_file_to_parse: Option<&'static str>,
+    pub test_file_as_string: Option<&'static str>,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
     pub source_files: Vec<SourceFile>,
@@ -140,7 +140,7 @@ impl FullSemAnalysis {
 
         let sa = Box::new(FullSemAnalysis {
             args,
-            additional_file_to_parse: None,
+            test_file_as_string: None,
             source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
@@ -239,7 +239,7 @@ pub type SemAnalysis = VM;
 
 pub struct VM {
     pub args: Args,
-    pub additional_file_to_parse: Option<&'static str>,
+    pub test_file_as_string: Option<&'static str>,
     pub interner: Interner,
     pub id_generator: NodeIdGenerator,
     pub source_files: Vec<SourceFile>,
@@ -304,7 +304,7 @@ impl VM {
 
         let vm = Box::new(VM {
             args,
-            additional_file_to_parse: None,
+            test_file_as_string: None,
             source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
@@ -414,7 +414,7 @@ impl VM {
 
         let vm = Box::new(VM {
             args: sa.args,
-            additional_file_to_parse: sa.additional_file_to_parse,
+            test_file_as_string: sa.test_file_as_string,
             source_files: sa.source_files,
             consts: sa.consts,
             structs: sa.structs,

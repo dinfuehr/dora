@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::language::sem_analysis::SourceFileId;
 use crate::vm::SemAnalysis;
 use dora_parser::lexer::position::Position;
@@ -153,7 +155,8 @@ pub enum SemError {
     IndexExpected,
     IllegalTupleIndex(u64, String),
     UninitializedVar,
-    DirectoryNotFound,
+    DirectoryNotFound(PathBuf),
+    FileNoAccess(PathBuf),
 }
 
 impl SemError {
@@ -536,7 +539,8 @@ impl SemError {
                 format!("illegal index `{}` for type `{}`", idx, ty)
             }
             SemError::UninitializedVar => "cannot read uninitialized variable.".into(),
-            SemError::DirectoryNotFound => "directory not found.".into(),
+            SemError::DirectoryNotFound(ref path) => format!("directory `{:?}` not found.", path),
+            SemError::FileNoAccess(ref path) => format!("cannot access file `{:?}`", path),
         }
     }
 }

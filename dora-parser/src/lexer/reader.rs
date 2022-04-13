@@ -81,10 +81,6 @@ impl Reader {
     pub fn idx(&self) -> u32 {
         self.idx as u32
     }
-
-    pub fn content(&self) -> Arc<String> {
-        self.content.clone()
-    }
 }
 
 #[cfg(test)]

@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::language::sym::SymTable;
+use crate::language::SourceFileId;
 use crate::utils::Id;
 use crate::vm::VM;
 
@@ -42,8 +43,9 @@ impl Id for NamespaceDefinition {
 #[derive(Debug)]
 pub struct NamespaceDefinition {
     pub id: Option<NamespaceDefinitionId>,
-    pub ast: Option<Arc<Namespace>>,
     pub parent_namespace_id: Option<NamespaceDefinitionId>,
+    pub file_id: Option<SourceFileId>,
+    pub ast: Option<Arc<Namespace>>,
     pub name: Option<Name>,
     pub table: Arc<RwLock<SymTable>>,
     pub is_pub: bool,
@@ -56,6 +58,7 @@ impl NamespaceDefinition {
         NamespaceDefinition {
             id: None,
             ast: None,
+            file_id: None,
             parent_namespace_id: None,
             name,
             table: Arc::new(RwLock::new(SymTable::new())),
@@ -68,6 +71,7 @@ impl NamespaceDefinition {
     pub fn new(
         vm: &mut VM,
         parent_id: NamespaceDefinitionId,
+        file_id: SourceFileId,
         ast: &Arc<Namespace>,
     ) -> NamespaceDefinition {
         let parent = &vm.namespaces[parent_id].read();
@@ -79,6 +83,7 @@ impl NamespaceDefinition {
         NamespaceDefinition {
             id: None,
             ast: Some(ast.clone()),
+            file_id: Some(file_id),
             parent_namespace_id: Some(parent_id),
             name: Some(ast.name),
             table: Arc::new(RwLock::new(SymTable::new())),

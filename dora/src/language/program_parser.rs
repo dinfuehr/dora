@@ -17,6 +17,7 @@ use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;
 use dora_parser::parser::Parser;
+use dora_parser::Position;
 
 pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
     let mut discoverer = ProgramParser::new(sa);
@@ -60,7 +61,7 @@ impl<'a> ProgramParser<'a> {
         let namespace_id = self.sa.stdlib_namespace_id;
 
         if let Some(stdlib) = stdlib_dir {
-            self.add_files_in_directory(&stdlib, namespace_id)?;
+            self.add_files_in_directory(PathBuf::from(stdlib), namespace_id, None)?;
         } else {
             self.add_bundled_stdlib(namespace_id)?;
         }
@@ -83,7 +84,7 @@ impl<'a> ProgramParser<'a> {
         let boots_dir = self.sa.args.flag_boots.clone();
 
         if let Some(boots) = boots_dir {
-            self.add_files_in_directory(&boots, self.sa.boots_namespace_id)?;
+            self.add_files_in_directory(PathBuf::from(boots), self.sa.boots_namespace_id, None)?;
         }
 
         Ok(())
@@ -92,12 +93,12 @@ impl<'a> ProgramParser<'a> {
     fn add_program_files(&mut self) -> Result<(), i32> {
         if self.sa.parse_arg_file && !self.sa.args.arg_file.is_empty() {
             let arg_file = self.sa.args.arg_file.clone();
-            let path = Path::new(&arg_file);
+            let path = PathBuf::from(&arg_file);
 
             if path.is_file() {
-                self.add_file_on_disk(PathBuf::from(path), self.sa.program_namespace_id)?;
+                self.add_file(PathBuf::from(path), self.sa.program_namespace_id, None)?;
             } else if path.is_dir() {
-                self.add_files_in_directory(&arg_file, self.sa.program_namespace_id)?;
+                self.add_files_in_directory(path, self.sa.program_namespace_id, None)?;
             } else {
                 println!("file or directory `{}` does not exist.", &arg_file);
                 return Err(1);
@@ -108,7 +109,7 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_test_files(&mut self) -> Result<(), i32> {
-        if let Some(content) = self.sa.additional_file_to_parse {
+        if let Some(content) = self.sa.test_file_as_string {
             self.add_file_from_string(
                 PathBuf::from("<<code>>"),
                 content.to_string(),
@@ -122,7 +123,7 @@ impl<'a> ProgramParser<'a> {
     fn scan_file(
         &mut self,
         file_id: SourceFileId,
-        namespace_path: Option<PathBuf>,
+        file_path: PathBuf,
         namespace_id: NamespaceDefinitionId,
         ast: &ast::File,
     ) -> Result<(), i32> {
@@ -135,8 +136,13 @@ impl<'a> ProgramParser<'a> {
 
         gdef.visit_file(ast);
 
-        for id in gdef.unresolved_namespaces {
-            self.add_namespace_files(file_id, &namespace_path, id)?;
+        if !gdef.unresolved_namespaces.is_empty() {
+            let mut directory = file_path;
+            directory.pop();
+
+            for id in gdef.unresolved_namespaces {
+                self.add_namespace_files(directory.clone(), id)?;
+            }
         }
 
         Ok(())
@@ -144,79 +150,78 @@ impl<'a> ProgramParser<'a> {
 
     fn add_namespace_files(
         &mut self,
-        file_id: SourceFileId,
-        namespace_path: &Option<PathBuf>,
+        directory: PathBuf,
         id: NamespaceDefinitionId,
     ) -> Result<(), i32> {
         let namespace = self.sa.namespaces[id].clone();
         let namespace = namespace.read();
         let node = namespace.ast.clone().unwrap();
+        let file_id = namespace.file_id.expect("missing file_id");
 
-        let mut dir_path = namespace_path.as_ref().expect("no path").clone();
-        dir_path.pop();
+        let mut namespace_directory = directory;
         let name = self.sa.interner.str(node.name).to_string();
-        dir_path.push(&name);
+        namespace_directory.push(&name);
 
-        if dir_path.is_dir() {
-            for entry in fs::read_dir(dir_path).unwrap() {
-                let path = entry.unwrap().path();
-
-                if should_file_be_parsed(&path) {
-                    self.add_file_on_disk(path, id)?;
-                }
-            }
-        } else {
-            self.sa
-                .diag
-                .lock()
-                .report(file_id, node.pos, SemError::DirectoryNotFound);
-        }
-
-        Ok(())
+        self.add_files_in_directory(namespace_directory, id, Some((file_id, node.pos)))
     }
 
     fn add_files_in_directory(
         &mut self,
-        dirname: &str,
+        path: PathBuf,
         namespace_id: NamespaceDefinitionId,
+        error_location: Option<(SourceFileId, Position)>,
     ) -> Result<(), i32> {
-        let path = Path::new(dirname);
-
         if path.is_dir() {
             for entry in fs::read_dir(path).unwrap() {
                 let path = entry.unwrap().path();
 
                 if should_file_be_parsed(&path) {
-                    self.add_file_on_disk(path.clone(), namespace_id)?;
+                    self.add_file(path.clone(), namespace_id, error_location)?;
                 }
             }
 
             Ok(())
+        } else if let Some((file_id, pos)) = error_location {
+            self.sa
+                .diag
+                .lock()
+                .report(file_id, pos, SemError::DirectoryNotFound(path));
+
+            Ok(())
         } else {
-            println!("directory `{}` does not exist.", dirname);
+            println!("directory `{:?}` does not exist.", path);
 
             Err(1)
         }
     }
 
-    fn add_file_on_disk(
+    fn add_file(
         &mut self,
         path: PathBuf,
         namespace_id: NamespaceDefinitionId,
+        error_location: Option<(SourceFileId, Position)>,
     ) -> Result<(), i32> {
         let result = file_as_string(&path);
 
-        let content = match result {
-            Ok(content) => content,
+        match result {
+            Ok(content) => {
+                self.add_file_from_string(path, content, namespace_id);
+                Ok(())
+            }
 
             Err(_) => {
-                println!("unable to read file `{:?}`", path);
-                return Err(1);
+                if let Some((file_id, pos)) = error_location {
+                    self.sa
+                        .diag
+                        .lock()
+                        .report(file_id, pos, SemError::FileNoAccess(path));
+                    Ok(())
+                } else {
+                    println!("unable to read file `{:?}`", path);
+                    Err(1)
+                }
             }
-        };
-
-        self.add_file_from_string(path, content, namespace_id);
-        Ok(())
+        }
     }
 
     fn add_file_from_string(
@@ -248,7 +253,7 @@ impl<'a> ProgramParser<'a> {
 
         match parser.parse() {
             Ok(ast) => {
-                self.scan_file(file_id, Some(path), namespace_id, &ast)?;
+                self.scan_file(file_id, path, namespace_id, &ast)?;
                 Ok(())
             }
 
@@ -283,7 +288,7 @@ struct GlobalDef<'x> {
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let namespace = NamespaceDefinition::new(self.sa, self.namespace_id, node);
+        let namespace = NamespaceDefinition::new(self.sa, self.namespace_id, self.file_id, node);
         let id = self.sa.namespaces.push(namespace);
         let sym = Sym::Namespace(id);
 
