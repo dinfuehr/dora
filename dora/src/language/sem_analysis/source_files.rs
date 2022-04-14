@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::NamespaceDefinitionId;
+use crate::language::sem_analysis::ModuleDefinitionId;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SourceFileId(u32);
@@ -22,5 +22,5 @@ pub struct SourceFile {
     pub id: SourceFileId,
     pub path: PathBuf,
     pub content: Arc<String>,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
 }

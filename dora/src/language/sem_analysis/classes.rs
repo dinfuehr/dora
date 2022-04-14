@@ -9,7 +9,7 @@ use dora_parser::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, namespace_path, ExtensionDefinitionId, FctDefinitionId,
-    ImplDefinitionId, NamespaceDefinitionId, SourceFileId, TraitDefinitionId,
+    ImplDefinitionId, ModuleDefinitionId, SourceFileId, TraitDefinitionId,
 };
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -68,7 +68,7 @@ pub struct ClassDefinition {
     pub id: Option<ClassDefinitionId>,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Class>,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub pos: Position,
     pub name: Name,
     pub primitive_type: Option<SourceType>,
@@ -104,7 +104,7 @@ impl ClassDefinition {
     pub fn new(
         file_id: SourceFileId,
         ast: &Arc<ast::Class>,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
     ) -> ClassDefinition {
         let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
             type_params

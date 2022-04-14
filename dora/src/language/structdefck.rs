@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    NamespaceDefinitionId, SourceFileId, StructDefinitionField, StructDefinitionFieldId,
+    ModuleDefinitionId, SourceFileId, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
@@ -44,7 +44,7 @@ struct StructCheck<'x> {
     struct_id: StructDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Struct,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
     symtable: NestedSymTable<'x>,
     fields: HashSet<Name>,
 }

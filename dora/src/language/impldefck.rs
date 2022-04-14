@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::language::error::msg::SemError;
 use crate::language::extensiondefck::check_for_unconstrained_type_params;
 use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, FctParent, ImplDefinitionId, NamespaceDefinitionId,
+    FctDefinition, FctDefinitionId, FctParent, ImplDefinitionId, ModuleDefinitionId,
     SourceFileId,
 };
 use crate::language::sym::NestedSymTable;
@@ -43,7 +43,7 @@ struct ImplCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: SourceFileId,
     impl_id: ImplDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
     sym: NestedSymTable<'x>,
     ast: &'x ast::Impl,
 }

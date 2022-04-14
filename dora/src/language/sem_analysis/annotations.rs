@@ -4,7 +4,7 @@ use dora_parser::ast::{AnnotationParam, AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
 use dora_parser::Position;
 
-use crate::language::sem_analysis::{NamespaceDefinitionId, SourceFileId, TypeParam};
+use crate::language::sem_analysis::{ModuleDefinitionId, SourceFileId, TypeParam};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 use crate::vm::VM;
@@ -52,7 +52,7 @@ pub struct AnnotationDefinition {
     pub file_id: SourceFileId,
     pub pos: Position,
     pub name: Name,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub ty: SourceType,
     pub internal_annotation: Option<Modifier>,
 
@@ -65,7 +65,7 @@ impl AnnotationDefinition {
         file_id: SourceFileId,
         pos: Position,
         name: Name,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
     ) -> AnnotationDefinition {
         AnnotationDefinition {
             id: None,

@@ -4,7 +4,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::language::sem_analysis::{namespace_path, NamespaceDefinitionId, SourceFileId};
+use crate::language::sem_analysis::{namespace_path, ModuleDefinitionId, SourceFileId};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 use crate::vm::VM;
@@ -39,7 +39,7 @@ pub struct ConstDefinition {
     pub id: Option<ConstDefinitionId>,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Const>,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub is_pub: bool,
     pub pos: Position,
     pub name: Name,
@@ -51,7 +51,7 @@ pub struct ConstDefinition {
 impl ConstDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         node: &Arc<ast::Const>,
     ) -> ConstDefinition {
         ConstDefinition {

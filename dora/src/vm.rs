@@ -13,7 +13,7 @@ use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
-    FctDefinitionId, GlobalDefinition, ImplDefinition, NamespaceDefinition, NamespaceDefinitionId,
+    FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
     SourceFile, StructDefinition, StructDefinitionId, StructInstance, TraitDefinition,
     TraitDefinitionId, Tuples, UseDefinition,
 };
@@ -101,7 +101,7 @@ pub struct FullSemAnalysis {
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
-    pub namespaces: MutableVec<NamespaceDefinition>, // stores all namespace definitions
+    pub namespaces: MutableVec<ModuleDefinition>, // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub enums: MutableVec<EnumDefinition>,   // stores all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
@@ -112,10 +112,10 @@ pub struct FullSemAnalysis {
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub parse_arg_file: bool,
-    pub prelude_namespace_id: NamespaceDefinitionId,
-    pub stdlib_namespace_id: NamespaceDefinitionId,
-    pub program_namespace_id: NamespaceDefinitionId,
-    pub boots_namespace_id: NamespaceDefinitionId,
+    pub prelude_namespace_id: ModuleDefinitionId,
+    pub stdlib_namespace_id: ModuleDefinitionId,
+    pub program_namespace_id: ModuleDefinitionId,
+    pub boots_namespace_id: ModuleDefinitionId,
 }
 
 impl FullSemAnalysis {
@@ -132,11 +132,10 @@ impl FullSemAnalysis {
         let boots_name = interner.intern("boots");
 
         let mut namespaces = MutableVec::new();
-        let prelude_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
-        let stdlib_namespace_id =
-            namespaces.push(NamespaceDefinition::predefined(Some(stdlib_name)));
-        let program_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
-        let boots_namespace_id = namespaces.push(NamespaceDefinition::predefined(Some(boots_name)));
+        let prelude_namespace_id = namespaces.push(ModuleDefinition::predefined(None));
+        let stdlib_namespace_id = namespaces.push(ModuleDefinition::predefined(Some(stdlib_name)));
+        let program_namespace_id = namespaces.push(ModuleDefinition::predefined(None));
+        let boots_namespace_id = namespaces.push(ModuleDefinition::predefined(Some(boots_name)));
 
         let sa = Box::new(FullSemAnalysis {
             args,
@@ -253,7 +252,7 @@ pub struct VM {
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
-    pub namespaces: MutableVec<NamespaceDefinition>, // stores all namespace definitions
+    pub namespaces: MutableVec<ModuleDefinition>, // stores all namespace definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
@@ -274,10 +273,10 @@ pub struct VM {
     pub safepoint_stub: Mutex<Address>,
     pub threads: Threads,
     pub parse_arg_file: bool,
-    pub prelude_namespace_id: NamespaceDefinitionId,
-    pub stdlib_namespace_id: NamespaceDefinitionId,
-    pub program_namespace_id: NamespaceDefinitionId,
-    pub boots_namespace_id: NamespaceDefinitionId,
+    pub prelude_namespace_id: ModuleDefinitionId,
+    pub stdlib_namespace_id: ModuleDefinitionId,
+    pub program_namespace_id: ModuleDefinitionId,
+    pub boots_namespace_id: ModuleDefinitionId,
     pub wait_lists: WaitLists,
 }
 
@@ -296,11 +295,10 @@ impl VM {
         let boots_name = interner.intern("boots");
 
         let mut namespaces = MutableVec::new();
-        let prelude_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
-        let stdlib_namespace_id =
-            namespaces.push(NamespaceDefinition::predefined(Some(stdlib_name)));
-        let program_namespace_id = namespaces.push(NamespaceDefinition::predefined(None));
-        let boots_namespace_id = namespaces.push(NamespaceDefinition::predefined(Some(boots_name)));
+        let prelude_namespace_id = namespaces.push(ModuleDefinition::predefined(None));
+        let stdlib_namespace_id = namespaces.push(ModuleDefinition::predefined(Some(stdlib_name)));
+        let program_namespace_id = namespaces.push(ModuleDefinition::predefined(None));
+        let boots_namespace_id = namespaces.push(ModuleDefinition::predefined(Some(boots_name)));
 
         let vm = Box::new(VM {
             args,

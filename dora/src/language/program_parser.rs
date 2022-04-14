@@ -8,8 +8,8 @@ use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
-    FctDefinition, FctParent, GlobalDefinition, ImplDefinition, NamespaceDefinition,
-    NamespaceDefinitionId, SourceFileId, StructDefinition, TraitDefinition, UseDefinition,
+    FctDefinition, FctParent, GlobalDefinition, ImplDefinition, ModuleDefinition,
+    ModuleDefinitionId, SourceFileId, StructDefinition, TraitDefinition, UseDefinition,
 };
 use crate::language::sym::Sym;
 use crate::vm::SemAnalysis;
@@ -98,7 +98,7 @@ impl<'a> ProgramParser<'a> {
         Ok(())
     }
 
-    fn add_bundled_stdlib(&mut self, namespace_id: NamespaceDefinitionId) -> Result<(), i32> {
+    fn add_bundled_stdlib(&mut self, namespace_id: ModuleDefinitionId) -> Result<(), i32> {
         let path = PathBuf::from("stdlib");
         self.add_bundled_directory(path, namespace_id)
     }
@@ -106,7 +106,7 @@ impl<'a> ProgramParser<'a> {
     fn add_bundled_directory(
         &mut self,
         path: PathBuf,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
     ) -> Result<(), i32> {
         let files = self.stdlib.remove(&path).expect("missing directory");
         for (path, content) in files {
@@ -161,7 +161,7 @@ impl<'a> ProgramParser<'a> {
         &mut self,
         file_id: SourceFileId,
         file_path: PathBuf,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         namespace_lookup: NamespaceLookup,
         ast: &ast::File,
     ) -> Result<(), i32> {
@@ -189,7 +189,7 @@ impl<'a> ProgramParser<'a> {
     fn add_namespace_files(
         &mut self,
         directory: PathBuf,
-        id: NamespaceDefinitionId,
+        id: ModuleDefinitionId,
         namespace_lookup: NamespaceLookup,
     ) -> Result<(), i32> {
         let namespace = self.sa.namespaces[id].clone();
@@ -214,7 +214,7 @@ impl<'a> ProgramParser<'a> {
     fn add_files_in_directory(
         &mut self,
         path: PathBuf,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         error_location: Option<(SourceFileId, Position)>,
     ) -> Result<(), i32> {
         if path.is_dir() {
@@ -244,7 +244,7 @@ impl<'a> ProgramParser<'a> {
     fn add_file(
         &mut self,
         path: PathBuf,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         error_location: Option<(SourceFileId, Position)>,
     ) -> Result<(), i32> {
         let result = file_as_string(&path);
@@ -274,7 +274,7 @@ impl<'a> ProgramParser<'a> {
         &mut self,
         path: PathBuf,
         content: String,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         namespace_lookup: NamespaceLookup,
     ) {
         let file_id = self
@@ -333,13 +333,13 @@ fn file_as_string(path: &PathBuf) -> Result<String, Error> {
 struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
     file_id: SourceFileId,
-    namespace_id: NamespaceDefinitionId,
-    unresolved_namespaces: Vec<NamespaceDefinitionId>,
+    namespace_id: ModuleDefinitionId,
+    unresolved_namespaces: Vec<ModuleDefinitionId>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
-    fn visit_namespace(&mut self, node: &Arc<ast::Namespace>) {
-        let namespace = NamespaceDefinition::new(self.sa, self.namespace_id, self.file_id, node);
+    fn visit_module(&mut self, node: &Arc<ast::Module>) {
+        let namespace = ModuleDefinition::new(self.sa, self.namespace_id, self.file_id, node);
         let id = self.sa.namespaces.push(namespace);
         let sym = Sym::Namespace(id);
 
@@ -352,7 +352,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         } else {
             let saved_namespace_id = self.namespace_id;
             self.namespace_id = id;
-            visit::walk_namespace(self, node);
+            visit::walk_module(self, node);
             self.namespace_id = saved_namespace_id;
         }
     }

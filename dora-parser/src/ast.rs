@@ -54,8 +54,8 @@ impl File {
     }
 
     #[cfg(test)]
-    pub fn namespace0(&self) -> &Namespace {
-        self.elements[0].to_namespace().unwrap()
+    pub fn module0(&self) -> &Module {
+        self.elements[0].to_module().unwrap()
     }
 
     #[cfg(test)]
@@ -110,7 +110,7 @@ pub enum Elem {
     Const(Arc<Const>),
     Enum(Arc<Enum>),
     Alias(Arc<Alias>),
-    Namespace(Arc<Namespace>),
+    Module(Arc<Module>),
     Use(Arc<Use>),
 }
 
@@ -127,7 +127,7 @@ impl Elem {
             &Elem::Const(ref c) => c.id,
             &Elem::Enum(ref e) => e.id,
             &Elem::Alias(ref e) => e.id,
-            &Elem::Namespace(ref e) => e.id,
+            &Elem::Module(ref e) => e.id,
             &Elem::Use(ref e) => e.id,
         }
     }
@@ -160,9 +160,9 @@ impl Elem {
         }
     }
 
-    pub fn to_namespace(&self) -> Option<&Namespace> {
+    pub fn to_module(&self) -> Option<&Module> {
         match self {
-            &Elem::Namespace(ref namespace) => Some(namespace),
+            &Elem::Module(ref module) => Some(module),
             _ => None,
         }
     }
@@ -223,7 +223,7 @@ pub struct Global {
 }
 
 #[derive(Clone, Debug)]
-pub struct Namespace {
+pub struct Module {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,

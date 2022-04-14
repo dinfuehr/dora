@@ -24,9 +24,7 @@ pub use self::extensions::{
 pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{find_trait_impl, impl_matches, ImplDefinition, ImplDefinitionId};
-pub use self::namespaces::{
-    namespace_package, namespace_path, NamespaceDefinition, NamespaceDefinitionId,
-};
+pub use self::modules::{namespace_package, namespace_path, ModuleDefinition, ModuleDefinitionId};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
@@ -47,7 +45,7 @@ mod extensions;
 mod functions;
 mod globals;
 mod impls;
-mod namespaces;
+mod modules;
 mod source_files;
 mod src;
 mod structs;
@@ -233,7 +231,7 @@ impl SemAnalysis {
         &mut self,
         path: PathBuf,
         content: Arc<String>,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
     ) -> SourceFileId {
         let file_id = (self.source_files.len() as u32).into();
         self.source_files.push(SourceFile {
@@ -245,7 +243,7 @@ impl SemAnalysis {
         file_id
     }
 
-    pub fn namespace_table(&self, namespace_id: NamespaceDefinitionId) -> Arc<RwLock<SymTable>> {
+    pub fn namespace_table(&self, namespace_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
         self.namespaces[namespace_id].read().table.clone()
     }
 

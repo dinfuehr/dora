@@ -74,7 +74,7 @@ impl<'a> AstDumper<'a> {
             Elem::Const(ref xconst) => self.dump_const(xconst),
             Elem::Enum(ref xenum) => self.dump_enum(xenum),
             Elem::Alias(ref alias) => self.dump_alias(alias),
-            Elem::Namespace(ref namespace) => self.dump_namespace(namespace),
+            Elem::Module(ref node) => self.dump_module(node),
             Elem::Use(ref node) => self.dump_use(node),
         }
     }
@@ -132,17 +132,17 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_namespace(&mut self, namespace: &Namespace) {
+    fn dump_module(&mut self, module: &Module) {
         dump!(
             self,
-            "namespace {} @ {} {}",
-            self.str(namespace.name),
-            namespace.pos,
-            namespace.id
+            "module {} @ {} {}",
+            self.str(module.name),
+            module.pos,
+            module.id
         );
 
         self.indent(|d| {
-            if let Some(ref elements) = namespace.elements {
+            if let Some(ref elements) = module.elements {
                 for e in elements {
                     d.dump_elem(e);
                 }

@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
     ensure_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, get_tuple_subtypes, AnalysisData, CallType, ClassDefinitionId,
     ConvInfo, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent,
-    ForTypeInfo, IdentType, Intrinsic, NamespaceDefinitionId, SourceFileId, StructDefinition,
+    ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SourceFileId, StructDefinition,
     StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
 };
 use crate::language::specialize::replace_type_param;
@@ -36,7 +36,7 @@ pub struct TypeCheck<'a> {
     pub sa: &'a SemAnalysis,
     pub fct: &'a FctDefinition,
     pub file_id: SourceFileId,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a ast::Function,
     pub symtable: NestedSymTable<'a>,
@@ -2554,7 +2554,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprPathType,
         expected_ty: SourceType,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         element_name: Name,
     ) -> SourceType {
         let namespace = &self.sa.namespaces[namespace_id].read();

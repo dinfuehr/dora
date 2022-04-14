@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, namespace_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, NamespaceDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
+    ImplDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
     TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -54,7 +54,7 @@ pub struct StructDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub type_params: Vec<TypeParam>,
     pub type_params2: TypeParamDefinition,
     pub is_pub: bool,
@@ -72,7 +72,7 @@ pub struct StructDefinition {
 impl StructDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         node: &Arc<ast::Struct>,
     ) -> StructDefinition {
         let mut type_params = Vec::new();

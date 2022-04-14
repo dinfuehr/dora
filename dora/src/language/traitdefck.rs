@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::language;
 use crate::language::sem_analysis::{
-    FctDefinition, FctParent, NamespaceDefinitionId, SourceFileId, TraitDefinition,
+    FctDefinition, FctParent, ModuleDefinitionId, SourceFileId, TraitDefinition,
     TraitDefinitionId,
 };
 use crate::language::sym::NestedSymTable;
@@ -45,7 +45,7 @@ struct TraitCheck<'x> {
     file_id: SourceFileId,
     trait_id: TraitDefinitionId,
     ast: &'x ast::Trait,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
     xtrait: &'x mut TraitDefinition,
     sym: NestedSymTable<'x>,
     vtable_index: u32,

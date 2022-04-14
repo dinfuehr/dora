@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, FctDefinition, FctParent, NamespaceDefinitionId, SourceFileId,
+    ClassDefinitionId, FctDefinition, FctParent, ModuleDefinitionId, SourceFileId,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -39,7 +39,7 @@ struct ClsDefCheck<'x> {
     cls_id: ClassDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Class,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
     sym: NestedSymTable<'x>,
 }
 

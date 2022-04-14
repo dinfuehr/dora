@@ -6,7 +6,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::language::sem_analysis::{
-    FctDefinitionId, NamespaceDefinitionId, SourceFileId, TypeParam, TypeParamId,
+    FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
@@ -52,7 +52,7 @@ pub struct ExtensionDefinition {
     pub id: Option<ExtensionDefinitionId>,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub ty: SourceType,
@@ -64,7 +64,7 @@ pub struct ExtensionDefinition {
 impl ExtensionDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         node: &Arc<ast::Impl>,
     ) -> ExtensionDefinition {
         let mut type_params = Vec::new();

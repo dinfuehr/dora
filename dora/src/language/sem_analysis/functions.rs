@@ -10,7 +10,7 @@ use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     namespace_path, AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId,
-    NamespaceDefinitionId, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
+    ModuleDefinitionId, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
@@ -42,7 +42,7 @@ pub struct FctDefinition {
     pub ast: Arc<ast::Function>,
     pub pos: Position,
     pub name: Name,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub parent: FctParent,
     pub is_open: bool,
     pub is_override: bool,
@@ -76,7 +76,7 @@ pub struct FctDefinition {
 impl FctDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         ast: &Arc<ast::Function>,
         parent: FctParent,
     ) -> FctDefinition {

@@ -8,7 +8,7 @@ use crate::language::access::{
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    namespace_package, EnumDefinitionId, NamespaceDefinitionId, UseDefinition,
+    namespace_package, EnumDefinitionId, ModuleDefinitionId, UseDefinition,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::SemAnalysis;
@@ -30,7 +30,7 @@ fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
         UseContext::Package => namespace_package(sa, use_def.namespace_id),
         UseContext::Super => {
             let namespace = &sa.namespaces[use_def.namespace_id].read();
-            if let Some(namespace_id) = namespace.parent_namespace_id {
+            if let Some(namespace_id) = namespace.parent_module_id {
                 namespace_id
             } else {
                 sa.diag.lock().report(
@@ -138,7 +138,7 @@ fn use_namespace(
     sa: &SemAnalysis,
     use_def: &UseDefinition,
     table: &RwLock<SymTable>,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
     element_name: Name,
     target_name: Name,
 ) {

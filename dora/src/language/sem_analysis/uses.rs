@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{NamespaceDefinitionId, SourceFileId};
+use crate::language::sem_analysis::{ModuleDefinitionId, SourceFileId};
 use dora_parser::ast;
 
 pub struct UseDefinition {
     pub ast: Arc<ast::Use>,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
 }
 
 impl UseDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         node: &Arc<ast::Use>,
     ) -> UseDefinition {
         UseDefinition {

@@ -41,8 +41,8 @@ pub trait Visitor: Sized {
         walk_alias(self, e);
     }
 
-    fn visit_namespace(&mut self, e: &Arc<Namespace>) {
-        walk_namespace(self, e);
+    fn visit_module(&mut self, e: &Arc<Module>) {
+        walk_module(self, e);
     }
 
     fn visit_use(&mut self, i: &Arc<Use>) {
@@ -104,7 +104,7 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
         Elem::Const(ref c) => v.visit_const(c),
         Elem::Enum(ref e) => v.visit_enum(e),
         Elem::Alias(ref e) => v.visit_alias(e),
-        Elem::Namespace(ref e) => v.visit_namespace(e),
+        Elem::Module(ref e) => v.visit_module(e),
         Elem::Use(ref i) => v.visit_use(i),
     }
 }
@@ -158,8 +158,8 @@ pub fn walk_alias<V: Visitor>(v: &mut V, a: &Arc<Alias>) {
     v.visit_type(&a.ty);
 }
 
-pub fn walk_namespace<V: Visitor>(v: &mut V, namespace: &Arc<Namespace>) {
-    if let Some(ref elements) = namespace.elements {
+pub fn walk_module<V: Visitor>(v: &mut V, node: &Arc<Module>) {
+    if let Some(ref elements) = node.elements {
         for e in elements {
             walk_elem(v, e);
         }

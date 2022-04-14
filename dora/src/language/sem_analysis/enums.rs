@@ -11,7 +11,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, namespace_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, NamespaceDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
+    ImplDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
     TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -61,7 +61,7 @@ impl Id for EnumDefinition {
 pub struct EnumDefinition {
     pub id: Option<EnumDefinitionId>,
     pub file_id: SourceFileId,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub ast: Arc<ast::Enum>,
     pub pos: Position,
     pub name: Name,
@@ -79,7 +79,7 @@ pub struct EnumDefinition {
 impl EnumDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         node: &Arc<ast::Enum>,
     ) -> EnumDefinition {
         let mut type_params = Vec::new();

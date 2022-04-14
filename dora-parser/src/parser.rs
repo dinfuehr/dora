@@ -177,8 +177,8 @@ impl<'a> Parser<'a> {
 
             TokenKind::Mod => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let namespace = self.parse_namespace(&modifiers)?;
-                Ok(Elem::Namespace(Arc::new(namespace)))
+                let module = self.parse_module(&modifiers)?;
+                Ok(Elem::Module(Arc::new(module)))
             }
 
             TokenKind::Use => {
@@ -273,7 +273,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_namespace(&mut self, modifiers: &Modifiers) -> Result<Namespace, ParseErrorAndPos> {
+    fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Mod)?.position;
         let name = self.expect_identifier()?;
@@ -296,7 +296,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(Namespace {
+        Ok(Module {
             id: self.generate_id(),
             pos,
             span,
@@ -4037,8 +4037,8 @@ mod tests {
     #[test]
     fn parse_module() {
         let (prog, _) = parse("mod foo { fn bar() {} fn baz() {} }");
-        let namespace = prog.namespace0();
-        let elements = namespace.elements.as_ref().unwrap();
+        let module = prog.module0();
+        let elements = module.elements.as_ref().unwrap();
         assert_eq!(elements.len(), 2);
         assert!(elements[0].to_function().is_some());
         assert!(elements[1].to_function().is_some());
@@ -4047,8 +4047,8 @@ mod tests {
     #[test]
     fn parse_mod_without_body() {
         let (prog, _) = parse("mod foo;");
-        let namespace = prog.namespace0();
-        assert!(namespace.elements.is_none());
+        let module = prog.module0();
+        assert!(module.elements.is_none());
     }
 
     #[test]

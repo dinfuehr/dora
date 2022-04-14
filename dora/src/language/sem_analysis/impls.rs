@@ -10,7 +10,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches_ty, FctDefinitionId, NamespaceDefinitionId, SourceFileId, TraitDefinitionId,
+    extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SourceFileId, TraitDefinitionId,
     TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
@@ -47,7 +47,7 @@ pub struct ImplDefinition {
     pub id: Option<ImplDefinitionId>,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
-    pub namespace_id: NamespaceDefinitionId,
+    pub namespace_id: ModuleDefinitionId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub trait_id: Option<TraitDefinitionId>,
@@ -61,7 +61,7 @@ pub struct ImplDefinition {
 impl ImplDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: NamespaceDefinitionId,
+        namespace_id: ModuleDefinitionId,
         node: &Arc<ast::Impl>,
     ) -> ImplDefinition {
         let mut type_params = Vec::new();

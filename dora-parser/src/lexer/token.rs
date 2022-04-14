@@ -138,7 +138,7 @@ impl TokenKind {
             TokenKind::Trait => "trait",
             TokenKind::Impl => "impl",
             TokenKind::Annotation => "annotation",
-            TokenKind::Mod => "namespace",
+            TokenKind::Mod => "mod",
             TokenKind::Use => "use",
             TokenKind::Package => "package",
 

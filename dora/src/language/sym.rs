@@ -4,20 +4,20 @@ use self::Sym::*;
 
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    FctDefinitionId, GlobalDefinitionId, NamespaceDefinitionId, StructDefinitionId,
-    TraitDefinitionId, TypeParamId, VarId,
+    FctDefinitionId, GlobalDefinitionId, ModuleDefinitionId, StructDefinitionId, TraitDefinitionId,
+    TypeParamId, VarId,
 };
 use crate::vm::{FieldId, SemAnalysis};
 use dora_parser::interner::Name;
 
 pub struct NestedSymTable<'a> {
     sa: &'a SemAnalysis,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
     levels: Vec<SymTable>,
 }
 
 impl<'a> NestedSymTable<'a> {
-    pub fn new(sa: &'a SemAnalysis, namespace_id: NamespaceDefinitionId) -> NestedSymTable {
+    pub fn new(sa: &'a SemAnalysis, namespace_id: ModuleDefinitionId) -> NestedSymTable {
         NestedSymTable {
             sa,
             namespace_id,
@@ -25,7 +25,7 @@ impl<'a> NestedSymTable<'a> {
         }
     }
 
-    pub fn namespace_id(&self) -> NamespaceDefinitionId {
+    pub fn namespace_id(&self) -> ModuleDefinitionId {
         self.namespace_id
     }
 
@@ -172,7 +172,7 @@ pub enum Sym {
     Annotation(AnnotationDefinitionId),
     Global(GlobalDefinitionId),
     Const(ConstDefinitionId),
-    Namespace(NamespaceDefinitionId),
+    Namespace(ModuleDefinitionId),
     EnumValue(EnumDefinitionId, usize),
 }
 

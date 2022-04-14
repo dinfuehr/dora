@@ -1,6 +1,6 @@
 use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FctParent,
-    GlobalDefinitionId, NamespaceDefinitionId, StructDefinitionFieldId, StructDefinitionId,
+    GlobalDefinitionId, ModuleDefinitionId, StructDefinitionFieldId, StructDefinitionId,
     TraitDefinitionId,
 };
 use crate::vm::{FieldId, SemAnalysis};
@@ -8,7 +8,7 @@ use crate::vm::{FieldId, SemAnalysis};
 pub fn global_accessible_from(
     sa: &SemAnalysis,
     global_id: GlobalDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let global = sa.globals.idx(global_id);
     let global = global.read();
@@ -19,7 +19,7 @@ pub fn global_accessible_from(
 pub fn class_accessible_from(
     sa: &SemAnalysis,
     cls_id: ClassDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
@@ -31,7 +31,7 @@ pub fn class_field_accessible_from(
     sa: &SemAnalysis,
     cls_id: ClassDefinitionId,
     field_id: FieldId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
@@ -49,7 +49,7 @@ pub fn class_field_accessible_from(
 pub fn method_accessible_from(
     sa: &SemAnalysis,
     fct_id: FctDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
@@ -77,7 +77,7 @@ pub fn method_accessible_from(
 pub fn fct_accessible_from(
     sa: &SemAnalysis,
     fct_id: FctDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
@@ -88,7 +88,7 @@ pub fn fct_accessible_from(
 pub fn enum_accessible_from(
     sa: &SemAnalysis,
     enum_id: EnumDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let xenum = sa.enums[enum_id].read();
 
@@ -98,7 +98,7 @@ pub fn enum_accessible_from(
 pub fn struct_accessible_from(
     sa: &SemAnalysis,
     struct_id: StructDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let xstruct = sa.structs.idx(struct_id);
     let xstruct = xstruct.read();
@@ -110,7 +110,7 @@ pub fn struct_field_accessible_from(
     sa: &SemAnalysis,
     struct_id: StructDefinitionId,
     field_id: StructDefinitionFieldId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let xstruct = sa.structs.idx(struct_id);
     let xstruct = xstruct.read();
@@ -127,8 +127,8 @@ pub fn struct_field_accessible_from(
 
 pub fn namespace_accessible_from(
     sa: &SemAnalysis,
-    target_id: NamespaceDefinitionId,
-    from_id: NamespaceDefinitionId,
+    target_id: ModuleDefinitionId,
+    from_id: ModuleDefinitionId,
 ) -> bool {
     accessible_from(sa, target_id, true, from_id)
 }
@@ -136,7 +136,7 @@ pub fn namespace_accessible_from(
 pub fn trait_accessible_from(
     sa: &SemAnalysis,
     trait_id: TraitDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let xtrait = sa.traits[trait_id].read();
 
@@ -146,7 +146,7 @@ pub fn trait_accessible_from(
 pub fn const_accessible_from(
     vm: &SemAnalysis,
     const_id: ConstDefinitionId,
-    namespace_id: NamespaceDefinitionId,
+    namespace_id: ModuleDefinitionId,
 ) -> bool {
     let xconst = vm.consts.idx(const_id);
     let xconst = xconst.read();
@@ -156,9 +156,9 @@ pub fn const_accessible_from(
 
 fn accessible_from(
     sa: &SemAnalysis,
-    target_id: NamespaceDefinitionId,
+    target_id: ModuleDefinitionId,
     element_pub: bool,
-    from_id: NamespaceDefinitionId,
+    from_id: ModuleDefinitionId,
 ) -> bool {
     // each namespace can access itself
     if target_id == from_id {
@@ -208,9 +208,9 @@ fn accessible_from(
 
 fn common_parent(
     sa: &SemAnalysis,
-    lhs_id: NamespaceDefinitionId,
-    rhs_id: NamespaceDefinitionId,
-) -> Option<NamespaceDefinitionId> {
+    lhs_id: ModuleDefinitionId,
+    rhs_id: ModuleDefinitionId,
+) -> Option<ModuleDefinitionId> {
     if lhs_id == rhs_id {
         return Some(lhs_id);
     }
@@ -245,8 +245,8 @@ fn common_parent(
 
 pub fn namespace_contains(
     sa: &SemAnalysis,
-    parent_id: NamespaceDefinitionId,
-    child_id: NamespaceDefinitionId,
+    parent_id: ModuleDefinitionId,
+    child_id: ModuleDefinitionId,
 ) -> bool {
     if parent_id == child_id {
         return true;

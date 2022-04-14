@@ -9,7 +9,7 @@ use crate::object;
 use crate::timer::Timer;
 
 use crate::language;
-use crate::language::sem_analysis::NamespaceDefinitionId;
+use crate::language::sem_analysis::ModuleDefinitionId;
 use crate::vm::{execute_on_main, specialize_class_id};
 
 pub fn start() -> i32 {
@@ -105,7 +105,7 @@ pub fn start() -> i32 {
     code
 }
 
-fn run_tests(vm: &VM, namespace_id: NamespaceDefinitionId) -> i32 {
+fn run_tests(vm: &VM, namespace_id: ModuleDefinitionId) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
