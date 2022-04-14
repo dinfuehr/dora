@@ -23,7 +23,7 @@ pub enum TokenKind {
     Trait,
     Impl,
     Annotation,
-    Namespace,
+    Mod,
     Use,
     Package,
 
@@ -58,7 +58,7 @@ pub enum TokenKind {
     Sub,
     Mul,
     Div,
-    Mod,
+    Modulo,
 
     // operators – logic
     Not,
@@ -138,7 +138,7 @@ impl TokenKind {
             TokenKind::Trait => "trait",
             TokenKind::Impl => "impl",
             TokenKind::Annotation => "annotation",
-            TokenKind::Namespace => "namespace",
+            TokenKind::Mod => "namespace",
             TokenKind::Use => "use",
             TokenKind::Package => "package",
 
@@ -173,7 +173,7 @@ impl TokenKind {
             TokenKind::Sub => "-",
             TokenKind::Mul => "*",
             TokenKind::Div => "/",
-            TokenKind::Mod => "%",
+            TokenKind::Modulo => "%",
 
             // operators – logic
             TokenKind::Not => "!",

@@ -604,13 +604,13 @@ mod tests {
     fn namespace_class() {
         ok("
             fn f(x: foo::Foo) {}
-            namespace foo { @pub class Foo }
+            mod foo { @pub class Foo }
         ");
 
         err(
             "
             fn f(x: foo::Foo) {}
-            namespace foo { class Foo }
+            mod foo { class Foo }
         ",
             pos(2, 21),
             SemError::NotAccessible("foo::Foo".into()),
@@ -618,16 +618,16 @@ mod tests {
     }
 
     #[test]
-    fn namespace_enum() {
+    fn mod_enum() {
         ok("
             fn f(x: foo::Foo) {}
-            namespace foo { @pub enum Foo { A, B } }
+            mod foo { @pub enum Foo { A, B } }
         ");
 
         err(
             "
             fn f(x: foo::Foo) {}
-            namespace foo { enum Foo { A, B } }
+            mod foo { enum Foo { A, B } }
         ",
             pos(2, 21),
             SemError::NotAccessible("foo::Foo".into()),
@@ -635,16 +635,16 @@ mod tests {
     }
 
     #[test]
-    fn namespace_trait() {
+    fn mod_trait() {
         ok("
             fn f(x: foo::Foo) {}
-            namespace foo { @pub trait Foo {} }
+            mod foo { @pub trait Foo {} }
         ");
 
         err(
             "
             fn f(x: foo::Foo) {}
-            namespace foo { trait Foo {} }
+            mod foo { trait Foo {} }
         ",
             pos(2, 21),
             SemError::NotAccessible("foo::Foo".into()),

@@ -243,7 +243,7 @@ impl Lexer {
             }
             '*' => TokenKind::Mul,
             '/' => TokenKind::Div,
-            '%' => TokenKind::Mod,
+            '%' => TokenKind::Modulo,
 
             '(' => TokenKind::LParen,
             ')' => TokenKind::RParen,
@@ -560,8 +560,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("trait", TokenKind::Trait);
     keywords.insert("impl", TokenKind::Impl);
     keywords.insert("annotation", TokenKind::Annotation);
-    keywords.insert("namespace", TokenKind::Namespace);
-    keywords.insert("mod", TokenKind::Namespace);
+    keywords.insert("mod", TokenKind::Mod);
     keywords.insert("use", TokenKind::Use);
     keywords.insert("package", TokenKind::Package);
 
@@ -1025,11 +1024,11 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Else, 1, 17);
         assert_tok(&mut reader, TokenKind::Match, 1, 22);
 
-        let mut reader = Lexer::from_str("self class super namespace");
+        let mut reader = Lexer::from_str("self class super mod");
         assert_tok(&mut reader, TokenKind::This, 1, 1);
         assert_tok(&mut reader, TokenKind::Class, 1, 6);
         assert_tok(&mut reader, TokenKind::Super, 1, 12);
-        assert_tok(&mut reader, TokenKind::Namespace, 1, 18);
+        assert_tok(&mut reader, TokenKind::Mod, 1, 18);
 
         let mut reader = Lexer::from_str("break continue return");
         assert_tok(&mut reader, TokenKind::Break, 1, 1);
@@ -1059,7 +1058,7 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Sub, 1, 3);
         assert_tok(&mut reader, TokenKind::Mul, 1, 4);
         assert_tok(&mut reader, TokenKind::Div, 1, 5);
-        assert_tok(&mut reader, TokenKind::Mod, 1, 6);
+        assert_tok(&mut reader, TokenKind::Modulo, 1, 6);
         assert_tok(&mut reader, TokenKind::Dot, 1, 7);
         assert_tok(&mut reader, TokenKind::At, 1, 8);
         assert_tok(&mut reader, TokenKind::DotDotDot, 1, 9);

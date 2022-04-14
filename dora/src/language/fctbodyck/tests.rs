@@ -1728,11 +1728,11 @@ fn test_struct_with_type_params() {
 }
 
 #[test]
-fn test_struct_namespace() {
+fn test_struct_mod() {
     err(
         "
         fn f() { foo::Foo(1I); }
-        namespace foo { struct Foo(f1: Int32) }
+        mod foo { struct Foo(f1: Int32) }
         ",
         pos(2, 26),
         SemError::NotAccessible("foo::Foo".into()),
@@ -2937,11 +2937,11 @@ fn for_var() {
 }
 
 #[test]
-fn namespace_fct_call() {
+fn mod_fct_call() {
     err(
         "
         fn f() { foo::g(); }
-        namespace foo { fn g() {} }
+        mod foo { fn g() {} }
     ",
         pos(2, 24),
         SemError::NotAccessible("foo::g".into()),
@@ -2949,13 +2949,13 @@ fn namespace_fct_call() {
 
     ok("
         fn f() { foo::g(); }
-        namespace foo { @pub fn g() {} }
+        mod foo { @pub fn g() {} }
     ");
 
     ok("
         fn f() { foo::bar::baz(); }
-        namespace foo {
-            @pub namespace bar {
+        mod foo {
+            @pub mod bar {
                 @pub fn baz() {}
             }
         }
@@ -2964,8 +2964,8 @@ fn namespace_fct_call() {
     err(
         "
         fn f() { foo::bar::baz(); }
-        namespace foo {
-            @pub namespace bar {
+        mod foo {
+            @pub mod bar {
                 fn baz() {}
             }
         }
@@ -2976,16 +2976,16 @@ fn namespace_fct_call() {
 }
 
 #[test]
-fn namespace_ctor_call() {
+fn mod_ctor_call() {
     ok("
         fn f() { foo::Foo(); }
-        namespace foo { @pub class Foo }
+        mod foo { @pub class Foo }
     ");
 
     err(
         "
         fn f() { foo::Foo(); }
-        namespace foo { class Foo }
+        mod foo { class Foo }
     ",
         pos(2, 26),
         SemError::NotAccessible("foo::Foo".into()),
@@ -2993,13 +2993,13 @@ fn namespace_ctor_call() {
 
     ok("
         fn f() { foo::bar::Foo(); }
-        namespace foo { @pub namespace bar { @pub class Foo } }
+        mod foo { @pub mod bar { @pub class Foo } }
     ");
 
     err(
         "
         fn f() { foo::bar::Foo(); }
-        namespace foo { @pub namespace bar { class Foo } }
+        mod foo { @pub mod bar { class Foo } }
     ",
         pos(2, 31),
         SemError::NotAccessible("foo::bar::Foo".into()),
@@ -3007,11 +3007,11 @@ fn namespace_ctor_call() {
 }
 
 #[test]
-fn namespace_class_field() {
+fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
-        namespace foo { @pub class Foo { var bar: Int32 = 0I; } }
+        mod foo { @pub class Foo { var bar: Int32 = 0I; } }
     ",
         pos(2, 38),
         SemError::NotAccessible("bar".into()),
@@ -3020,7 +3020,7 @@ fn namespace_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar(10L); }
-        namespace foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
+        mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
     ",
         pos(2, 42),
         SemError::NotAccessible("bar".into()),
@@ -3029,7 +3029,7 @@ fn namespace_class_field() {
     err(
         "
         fn f(x: foo::Foo) { x.bar(10L) = 10I; }
-        namespace foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
+        mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
     ",
         pos(2, 30),
         SemError::NotAccessible("bar".into()),
@@ -3037,21 +3037,21 @@ fn namespace_class_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar; }
-        namespace foo { @pub class Foo { @pub var bar: Int32 = 0I; } }
+        mod foo { @pub class Foo { @pub var bar: Int32 = 0I; } }
     ");
 }
 
 #[test]
-fn namespace_class_method() {
+fn mod_class_method() {
     ok("
         fn f(x: foo::Foo) { x.bar(); }
-        namespace foo { @pub class Foo { @pub fn bar() {} } }
+        mod foo { @pub class Foo { @pub fn bar() {} } }
     ");
 
     err(
         "
         fn f(x: foo::Foo) { x.bar(); }
-        namespace foo { @pub class Foo { fn bar() {} } }
+        mod foo { @pub class Foo { fn bar() {} } }
     ",
         pos(2, 34),
         SemError::NotAccessible("foo::bar".into()),
@@ -3059,16 +3059,16 @@ fn namespace_class_method() {
 }
 
 #[test]
-fn namespace_class_static_method() {
+fn mod_class_static_method() {
     ok("
         fn f() { foo::Foo::bar(); }
-        namespace foo { @pub class Foo { @pub @static fn bar() {} } }
+        mod foo { @pub class Foo { @pub @static fn bar() {} } }
     ");
 
     err(
         "
         fn f() { foo::Foo::bar(); }
-        namespace foo { @pub class Foo { @static fn bar() {} } }
+        mod foo { @pub class Foo { @static fn bar() {} } }
     ",
         pos(2, 31),
         SemError::NotAccessible("foo::bar".into()),
@@ -3076,11 +3076,11 @@ fn namespace_class_static_method() {
 }
 
 #[test]
-fn namespace_struct_field() {
+fn mod_struct_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
-        namespace foo { @pub struct Foo(bar: Int32) }
+        mod foo { @pub struct Foo(bar: Int32) }
     ",
         pos(2, 38),
         SemError::NotAccessible("bar".into()),
@@ -3088,13 +3088,13 @@ fn namespace_struct_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar(10L); }
-        namespace foo { @pub struct Foo(@pub bar: Array[Int32]) }
+        mod foo { @pub struct Foo(@pub bar: Array[Int32]) }
     ");
 
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar(10L); }
-        namespace foo { @pub struct Foo(bar: Array[Int32]) }
+        mod foo { @pub struct Foo(bar: Array[Int32]) }
     ",
         pos(2, 42),
         SemError::NotAccessible("bar".into()),
@@ -3103,7 +3103,7 @@ fn namespace_struct_field() {
     err(
         "
         fn f(x: foo::Foo) { x.bar(10L) = 10I; }
-        namespace foo { @pub struct Foo(bar: Array[Int32]) }
+        mod foo { @pub struct Foo(bar: Array[Int32]) }
     ",
         pos(2, 30),
         SemError::NotAccessible("bar".into()),
@@ -3111,15 +3111,15 @@ fn namespace_struct_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar; }
-        namespace foo { @pub struct Foo(@pub bar: Int32) }
+        mod foo { @pub struct Foo(@pub bar: Int32) }
     ");
 }
 
 #[test]
-fn namespace_path_in_type() {
+fn mod_path_in_type() {
     ok("
         fn f(): foo::Foo { foo::Foo() }
-        namespace foo { @pub class Foo }
+        mod foo { @pub class Foo }
     ");
 
     err(
@@ -3142,7 +3142,7 @@ fn namespace_path_in_type() {
     err(
         "
         fn f(): foo::bar::Foo { 1I }
-        namespace foo {}
+        mod foo {}
     ",
         pos(2, 17),
         SemError::ExpectedNamespace,
@@ -3150,16 +3150,16 @@ fn namespace_path_in_type() {
 }
 
 #[test]
-fn namespace_global() {
+fn mod_global() {
     ok("
         fn f(): Int32 { foo::x }
-        namespace foo { @pub var x: Int32 = 1I; }
+        mod foo { @pub var x: Int32 = 1I; }
     ");
 
     err(
         "
         fn f(): Int32 { foo::x }
-        namespace foo { var x: Int32 = 1I; }
+        mod foo { var x: Int32 = 1I; }
     ",
         pos(2, 28),
         SemError::NotAccessible("foo::x".into()),
@@ -3167,16 +3167,16 @@ fn namespace_global() {
 }
 
 #[test]
-fn namespace_trait() {
+fn mod_trait() {
     ok("
-        namespace foo { class Foo trait Bar { fn f(x: Foo); } }
+        mod foo { class Foo trait Bar { fn f(x: Foo); } }
     ");
 }
 
 #[test]
-fn namespace_impl() {
+fn mod_impl() {
     ok("
-        namespace foo {
+        mod foo {
             class Foo
             trait Bar { fn f(x: Foo); }
             class AnotherClass
@@ -3188,9 +3188,9 @@ fn namespace_impl() {
 }
 
 #[test]
-fn namespace_class() {
+fn mod_class() {
     ok("
-        namespace foo {
+        mod foo {
             class Foo(let x: Bar) {
                 fn foo(x: Bar) {}
             }
@@ -3200,11 +3200,11 @@ fn namespace_class() {
 }
 
 #[test]
-fn namespace_struct() {
+fn mod_struct() {
     err(
         "
         fn f() { foo::Foo(1I); }
-        namespace foo {
+        mod foo {
             struct Foo(f: Int32)
         }
     ",
@@ -3214,14 +3214,14 @@ fn namespace_struct() {
 
     ok("
         fn f() { foo::Foo(1I); }
-        namespace foo {
+        mod foo {
             @pub struct Foo(f: Int32)
         }
     ");
 
     ok("
         fn f(value: foo::Foo) {}
-        namespace foo {
+        mod foo {
             @pub struct Foo(f: Int32)
         }
     ");
@@ -3229,7 +3229,7 @@ fn namespace_struct() {
     err(
         "
         fn f(value: foo::Foo) {}
-        namespace foo {
+        mod foo {
             struct Foo(f: Int32)
         }
     ",
@@ -3239,16 +3239,16 @@ fn namespace_struct() {
 }
 
 #[test]
-fn namespace_const() {
+fn mod_const() {
     ok("
         fn f(): Int32 { foo::x }
-        namespace foo { @pub const x: Int32 = 1I; }
+        mod foo { @pub const x: Int32 = 1I; }
     ");
 
     err(
         "
         fn f(): Int32 { foo::x }
-        namespace foo { const x: Int32 = 1I; }
+        mod foo { const x: Int32 = 1I; }
     ",
         pos(2, 28),
         SemError::NotAccessible("foo::x".into()),
@@ -3256,21 +3256,21 @@ fn namespace_const() {
 
     ok("
         fn f(): Int32 { foo::bar::x }
-        namespace foo { @pub namespace bar { @pub const x: Int32 = 1I; } }
+        mod foo { @pub mod bar { @pub const x: Int32 = 1I; } }
     ");
 }
 
 #[test]
-fn namespace_enum_value() {
+fn mod_enum_value() {
     ok("
         fn f() { foo::A; }
-        namespace foo { @pub enum Foo { A, B } use Foo::A; }
+        mod foo { @pub enum Foo { A, B } use Foo::A; }
     ");
 
     err(
         "
         fn f() { foo::A; }
-        namespace foo { enum Foo { A, B } use Foo::A; }
+        mod foo { enum Foo { A, B } use Foo::A; }
     ",
         pos(2, 21),
         SemError::NotAccessible("foo::Foo".into()),
@@ -3278,13 +3278,13 @@ fn namespace_enum_value() {
 
     ok("
         fn f() { foo::bar::A; }
-        namespace foo { @pub namespace bar { @pub enum Foo { A, B } use Foo::A; } }
+        mod foo { @pub mod bar { @pub enum Foo { A, B } use Foo::A; } }
     ");
 
     err(
         "
         fn f() { foo::bar::A; }
-        namespace foo { @pub namespace bar { enum Foo { A, B } use Foo::A; } }
+        mod foo { @pub mod bar { enum Foo { A, B } use Foo::A; } }
     ",
         pos(2, 26),
         SemError::NotAccessible("foo::bar::Foo".into()),
@@ -3292,13 +3292,13 @@ fn namespace_enum_value() {
 }
 
 #[test]
-fn namespace_enum() {
+fn mod_enum() {
     err(
         "
         fn f() {
             foo::Foo::B;
         }
-        namespace foo { enum Foo { A(Bar), B } class Bar }
+        mod foo { enum Foo { A(Bar), B } class Bar }
     ",
         pos(3, 21),
         SemError::NotAccessible("foo::Foo".into()),
@@ -3308,14 +3308,14 @@ fn namespace_enum() {
         fn f() {
             foo::Foo::B;
         }
-        namespace foo { @pub enum Foo { A, B } }
+        mod foo { @pub enum Foo { A, B } }
     ");
 
     ok("
         fn f() {
             foo::Foo::A(1I);
         }
-        namespace foo { @pub enum Foo { A(Int32), B } }
+        mod foo { @pub enum Foo { A(Int32), B } }
     ");
 
     err(
@@ -3323,7 +3323,7 @@ fn namespace_enum() {
         fn f() {
             foo::Foo::A(1I);
         }
-        namespace foo { enum Foo { A(Int32), B } }
+        mod foo { enum Foo { A(Int32), B } }
     ",
         pos(3, 24),
         SemError::NotAccessible("foo::Foo".into()),
@@ -3331,17 +3331,17 @@ fn namespace_enum() {
 }
 
 #[test]
-fn namespace_use() {
+fn mod_use() {
     ok("
         use foo::bar;
         fn f() { bar(); }
-        namespace foo { @pub fn bar() {} }
+        mod foo { @pub fn bar() {} }
     ");
 
     ok("
         use foo::bar::baz;
         fn f() { baz(); }
-        namespace foo { @pub namespace bar {
+        mod foo { @pub mod bar {
             @pub fn baz() {}
         } }
     ");
@@ -3349,19 +3349,19 @@ fn namespace_use() {
     ok("
         use foo::bar as baz;
         fn f() { baz(); }
-        namespace foo { @pub fn bar() {} }
+        mod foo { @pub fn bar() {} }
     ");
 
     ok("
         use foo::bar;
         fn f(): Int32 { bar }
-        namespace foo { @pub var bar: Int32 = 10I; }
+        mod foo { @pub var bar: Int32 = 10I; }
     ");
 
     ok("
         use foo::bar::baz;
         fn f(): Int32 { baz }
-        namespace foo { @pub namespace bar {
+        mod foo { @pub mod bar {
             @pub var baz: Int32 = 10I;
         } }
     ");
@@ -3369,16 +3369,16 @@ fn namespace_use() {
     ok("
         use foo::bar;
         fn f(): Int32 { bar }
-        namespace foo { @pub var bar: Int32 = 10I; }
+        mod foo { @pub var bar: Int32 = 10I; }
     ");
 }
 
 #[test]
-fn namespace_use_class() {
+fn mod_use_class() {
     ok("
         use foo::Bar;
         fn f() { Bar(); }
-        namespace foo { @pub class Bar }
+        mod foo { @pub class Bar }
     ");
 
     ok("
@@ -3387,7 +3387,7 @@ fn namespace_use_class() {
             Bar();
             Bar::baz();
         }
-        namespace foo {
+        mod foo {
             @pub class Bar {
                 @pub @static fn baz() {}
             }
@@ -3396,25 +3396,25 @@ fn namespace_use_class() {
 }
 
 #[test]
-fn namespace_use_trait() {
+fn mod_use_trait() {
     ok("
         use foo::Bar;
-        namespace foo { @pub trait Bar{} }
+        mod foo { @pub trait Bar{} }
     ");
 }
 
 #[test]
-fn namespace_use_std() {
+fn mod_use_std() {
     ok("
         use std::HashMap;
     ");
 }
 
 #[test]
-fn namespace_use_package() {
+fn mod_use_package() {
     ok("
         class Foo
-        namespace bar {
+        mod bar {
             use package::Foo;
             fn getfoo(): Foo { Foo() }
         }
@@ -3422,11 +3422,11 @@ fn namespace_use_package() {
 }
 
 #[test]
-fn namespace_use_super() {
+fn mod_use_super() {
     ok("
-        namespace baz {
+        mod baz {
             class Foo
-            namespace bar {
+            mod bar {
                 use super::Foo;
 
                 fn getfoo(): Foo { Foo() }
@@ -3438,20 +3438,20 @@ fn namespace_use_super() {
 }
 
 #[test]
-fn namespace_use_self() {
+fn mod_use_self() {
     ok("
         use self::bar::Foo;
         fn getfoo(): Foo { Foo() }
-        namespace bar { @pub class Foo }
+        mod bar { @pub class Foo }
     ");
 }
 
 #[test]
-fn namespace_use_errors() {
+fn mod_use_errors() {
     err(
         "
         use foo::bar::baz;
-        namespace foo { @pub namespace bar {} }
+        mod foo { @pub mod bar {} }
     ",
         pos(2, 9),
         SemError::UnknownIdentifierInNamespace("foo::bar".into(), "baz".into()),
@@ -3493,24 +3493,24 @@ fn namespace_use_errors() {
 }
 
 #[test]
-fn namespace_inside() {
+fn mod_inside() {
     ok("
-        namespace foo { fn f() { g() } fn g() {} }
+        mod foo { fn f() { g() } fn g() {} }
     ");
 
     ok("
-        namespace foo { class Foo fn g(x: Foo) {} }
+        mod foo { class Foo fn g(x: Foo) {} }
     ");
 
     ok("
         fn f(x: foo::Foo) {}
-        namespace foo { @pub class Foo }
+        mod foo { @pub class Foo }
     ");
 
     err(
         "
         fn f(x: foo::Foo) {}
-        namespace foo { class Foo }
+        mod foo { class Foo }
     ",
         pos(2, 17),
         SemError::NotAccessible("foo::Foo".into()),

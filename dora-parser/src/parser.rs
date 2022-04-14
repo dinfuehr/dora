@@ -175,7 +175,7 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Enum(Arc::new(xenum)))
             }
 
-            TokenKind::Namespace => {
+            TokenKind::Mod => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 let namespace = self.parse_namespace(&modifiers)?;
                 Ok(Elem::Namespace(Arc::new(namespace)))
@@ -275,7 +275,7 @@ impl<'a> Parser<'a> {
 
     fn parse_namespace(&mut self, modifiers: &Modifiers) -> Result<Namespace, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Namespace)?.position;
+        let pos = self.expect_token(TokenKind::Mod)?.position;
         let name = self.expect_identifier()?;
 
         let elements = if self.token.is(TokenKind::LBrace) {
@@ -1677,7 +1677,7 @@ impl<'a> Parser<'a> {
                 TokenKind::Add | TokenKind::Sub | TokenKind::Or | TokenKind::Caret => 5,
                 TokenKind::Mul
                 | TokenKind::Div
-                | TokenKind::Mod
+                | TokenKind::Modulo
                 | TokenKind::And
                 | TokenKind::LtLt
                 | TokenKind::GtGt
@@ -1839,7 +1839,7 @@ impl<'a> Parser<'a> {
             TokenKind::Sub => BinOp::Sub,
             TokenKind::Mul => BinOp::Mul,
             TokenKind::Div => BinOp::Div,
-            TokenKind::Mod => BinOp::Mod,
+            TokenKind::Modulo => BinOp::Mod,
             TokenKind::LtLt => BinOp::ShiftL,
             TokenKind::GtGt => BinOp::ArithShiftR,
             TokenKind::GtGtGt => BinOp::LogicalShiftR,
@@ -3182,7 +3182,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_basic_namespace() {
+    fn parse_type_basic_mod() {
         let (ty, interner) = parse_type("foo::bla");
         let basic = ty.to_basic().unwrap();
 
@@ -4035,8 +4035,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_namespace() {
-        let (prog, _) = parse("namespace foo { fn bar() {} fn baz() {} }");
+    fn parse_module() {
+        let (prog, _) = parse("mod foo { fn bar() {} fn baz() {} }");
         let namespace = prog.namespace0();
         let elements = namespace.elements.as_ref().unwrap();
         assert_eq!(elements.len(), 2);
@@ -4045,8 +4045,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_namespace_without_body() {
-        let (prog, _) = parse("namespace foo;");
+    fn parse_mod_without_body() {
+        let (prog, _) = parse("mod foo;");
         let namespace = prog.namespace0();
         assert!(namespace.elements.is_none());
     }

@@ -329,10 +329,10 @@ mod tests {
     }
 
     #[test]
-    fn impl_namespace() {
+    fn impl_mod() {
         err(
             "
-            namespace foo { trait MyTrait {} }
+            mod foo { trait MyTrait {} }
             class Foo
             impl foo::MyTrait for Foo {}",
             pos(4, 18),
@@ -341,7 +341,7 @@ mod tests {
 
         err(
             "
-            namespace foo { class Foo }
+            mod foo { class Foo }
             trait MyTrait {}
             impl MyTrait for foo::Foo {}",
             pos(4, 30),

@@ -344,8 +344,8 @@ mod tests {
         err(
             "
             use foo::bar::Foo;
-            namespace foo {
-                namespace bar {
+            mod foo {
+                mod bar {
                     class Foo
                 }
             }
@@ -360,8 +360,8 @@ mod tests {
         err(
             "
             use foo::bar::Foo;
-            namespace foo {
-                @pub namespace bar {
+            mod foo {
+                @pub mod bar {
                     class Foo
                 }
             }
@@ -376,7 +376,7 @@ mod tests {
         err(
             "
             use foo::bar;
-            namespace foo {
+            mod foo {
                 fn bar() {}
             }
         ",
@@ -390,7 +390,7 @@ mod tests {
         err(
             "
             use foo::bar;
-            namespace foo {
+            mod foo {
                 var bar: Int32 = 12;
             }
         ",
@@ -404,7 +404,7 @@ mod tests {
         err(
             "
             use foo::bar;
-            namespace foo {
+            mod foo {
                 const bar: Int32 = 12;
             }
         ",
@@ -418,7 +418,7 @@ mod tests {
         err(
             "
             use foo::Bar;
-            namespace foo {
+            mod foo {
                 enum Bar { A, B, C }
             }
         ",
@@ -432,7 +432,7 @@ mod tests {
         err(
             "
             use foo::Bar::A;
-            namespace foo {
+            mod foo {
                 enum Bar { A, B, C }
             }
         ",
@@ -446,7 +446,7 @@ mod tests {
         err(
             "
             use foo::Bar;
-            namespace foo {
+            mod foo {
                 trait Bar {}
             }
         ",
@@ -459,7 +459,7 @@ mod tests {
     fn use_struct() {
         ok("
             use foo::Bar;
-            namespace foo {
+            mod foo {
                 @pub struct Bar { f: Int32 }
             }
         ");
@@ -467,7 +467,7 @@ mod tests {
         err(
             "
             use foo::Bar;
-            namespace foo {
+            mod foo {
                 struct Bar { f: Int32 }
             }
         ",

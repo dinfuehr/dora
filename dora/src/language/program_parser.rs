@@ -615,19 +615,19 @@ mod tests {
     }
 
     #[test]
-    fn test_namespace() {
-        ok("namespace foo {} namespace bar {}");
-        ok("fn bar() {} namespace foo { fn bar() {} }");
+    fn test_mod() {
+        ok("mod foo {} mod bar {}");
+        ok("fn bar() {} mod foo { fn bar() {} }");
 
         err(
-            "namespace foo {} namespace foo {}",
-            pos(1, 18),
+            "mod foo {} mod foo {}",
+            pos(1, 12),
             SemError::ShadowNamespace("foo".into()),
         );
 
         err(
-            "namespace foo { fn bar() {} fn bar() {} }",
-            pos(1, 29),
+            "mod foo { fn bar() {} fn bar() {} }",
+            pos(1, 23),
             SemError::ShadowFunction("bar".into()),
         );
     }

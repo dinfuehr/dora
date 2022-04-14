@@ -485,11 +485,11 @@ mod tests {
     }
 
     #[test]
-    fn extension_namespace() {
+    fn extension_mod() {
         err(
             "
             impl foo::MyFoo { fn bar() {} }
-            namespace foo { class MyFoo }
+            mod foo { class MyFoo }
         ",
             pos(2, 18),
             SemError::NotAccessible("foo::MyFoo".into()),
@@ -497,7 +497,7 @@ mod tests {
 
         ok("
             impl foo::MyFoo { fn bar() {} }
-            namespace foo { @pub class MyFoo }
+            mod foo { @pub class MyFoo }
         ");
     }
 }
