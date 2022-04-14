@@ -8,7 +8,7 @@ use dora_parser::ast;
 
 pub fn check(sa: &SemAnalysis) {
     for xconst in sa.consts.iter() {
-        let (const_id, file_id, ast, namespace_id) = {
+        let (const_id, file_id, ast, module_id) = {
             let xconst = xconst.read();
             (
                 xconst.id(),
@@ -23,8 +23,8 @@ pub fn check(sa: &SemAnalysis) {
             const_id,
             file_id,
             ast: &ast,
-            namespace_id,
-            symtable: NestedSymTable::new(sa, namespace_id),
+            module_id,
+            symtable: NestedSymTable::new(sa, module_id),
         };
 
         clsck.check();
@@ -36,7 +36,7 @@ struct ConstCheck<'x> {
     const_id: ConstDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Const,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     symtable: NestedSymTable<'x>,
 }
 

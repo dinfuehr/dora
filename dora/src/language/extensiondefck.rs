@@ -16,7 +16,7 @@ use fixedbitset::FixedBitSet;
 
 pub fn check(sa: &SemAnalysis) {
     for extension in sa.extensions.iter() {
-        let (extension_id, file_id, namespace_id, ast) = {
+        let (extension_id, file_id, module_id, ast) = {
             let extension = extension.read();
 
             (
@@ -30,8 +30,8 @@ pub fn check(sa: &SemAnalysis) {
         let mut extck = ExtensionCheck {
             sa,
             extension_id,
-            sym: NestedSymTable::new(sa, namespace_id),
-            namespace_id,
+            sym: NestedSymTable::new(sa, module_id),
+            module_id,
             file_id,
             ast: &ast,
             extension_ty: SourceType::Error,
@@ -44,7 +44,7 @@ pub fn check(sa: &SemAnalysis) {
 struct ExtensionCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: SourceFileId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     sym: NestedSymTable<'x>,
     extension_id: ExtensionDefinitionId,
     extension_ty: SourceType,
@@ -138,7 +138,7 @@ impl<'x> ExtensionCheck<'x> {
 
         let fct = FctDefinition::new(
             self.file_id,
-            self.namespace_id,
+            self.module_id,
             f,
             FctParent::Extension(self.extension_id),
         );

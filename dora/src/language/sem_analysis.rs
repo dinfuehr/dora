@@ -231,27 +231,27 @@ impl SemAnalysis {
         &mut self,
         path: PathBuf,
         content: Arc<String>,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
     ) -> SourceFileId {
         let file_id = (self.source_files.len() as u32).into();
         self.source_files.push(SourceFile {
             id: file_id,
             path,
             content,
-            module_id: namespace_id,
+            module_id,
         });
         file_id
     }
 
-    pub fn module_table(&self, namespace_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
-        self.modules[namespace_id].read().table.clone()
+    pub fn module_table(&self, module_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
+        self.modules[module_id].read().table.clone()
     }
 
-    pub fn stdlib_namespace(&self) -> Arc<RwLock<SymTable>> {
+    pub fn stdlib_module(&self) -> Arc<RwLock<SymTable>> {
         self.modules[self.stdlib_module_id].read().table.clone()
     }
 
-    pub fn prelude_namespace(&self) -> Arc<RwLock<SymTable>> {
+    pub fn prelude_module(&self) -> Arc<RwLock<SymTable>> {
         self.modules[self.prelude_module_id].read().table.clone()
     }
 

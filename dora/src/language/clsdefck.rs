@@ -16,7 +16,7 @@ use dora_parser::lexer::position::Position;
 
 pub fn check(sa: &SemAnalysis) {
     for cls in sa.classes.iter() {
-        let (cls_id, file_id, ast, namespace_id) = {
+        let (cls_id, file_id, ast, module_id) = {
             let cls = cls.read();
             (cls.id(), cls.file_id, cls.ast.clone(), cls.module_id)
         };
@@ -26,8 +26,8 @@ pub fn check(sa: &SemAnalysis) {
             cls_id,
             file_id,
             ast: &ast,
-            namespace_id,
-            sym: NestedSymTable::new(sa, namespace_id),
+            module_id,
+            sym: NestedSymTable::new(sa, module_id),
         };
 
         clsck.check();
@@ -39,7 +39,7 @@ struct ClsDefCheck<'x> {
     cls_id: ClassDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Class,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     sym: NestedSymTable<'x>,
 }
 
@@ -100,7 +100,7 @@ impl<'x> ClsDefCheck<'x> {
     fn visit_ctor(&mut self, node: &Arc<ast::Function>) {
         let fct = FctDefinition::new(
             self.file_id,
-            self.namespace_id,
+            self.module_id,
             node,
             FctParent::Class(self.cls_id),
         );
@@ -115,7 +115,7 @@ impl<'x> ClsDefCheck<'x> {
     fn visit_method(&mut self, f: &Arc<ast::Function>) {
         let fct = FctDefinition::new(
             self.file_id,
-            self.namespace_id,
+            self.module_id,
             f,
             FctParent::Class(self.cls_id),
         );

@@ -11,7 +11,7 @@ use dora_parser::ast;
 
 pub fn check(sa: &SemAnalysis) {
     for xtrait in sa.traits.iter() {
-        let (trait_id, file_id, ast, namespace_id) = {
+        let (trait_id, file_id, ast, module_id) = {
             let xtrait = xtrait.read();
             (
                 xtrait.id(),
@@ -29,9 +29,9 @@ pub fn check(sa: &SemAnalysis) {
             trait_id,
             file_id,
             ast: &ast,
-            namespace_id,
+            module_id,
             xtrait: &mut *xtrait,
-            sym: NestedSymTable::new(sa, namespace_id),
+            sym: NestedSymTable::new(sa, module_id),
             vtable_index: 0,
         };
 
@@ -44,7 +44,7 @@ struct TraitCheck<'x> {
     file_id: SourceFileId,
     trait_id: TraitDefinitionId,
     ast: &'x ast::Trait,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     xtrait: &'x mut TraitDefinition,
     sym: NestedSymTable<'x>,
     vtable_index: u32,
@@ -79,7 +79,7 @@ impl<'x> TraitCheck<'x> {
     fn visit_method(&mut self, node: &Arc<ast::Function>) {
         let mut fct = FctDefinition::new(
             self.file_id,
-            self.namespace_id,
+            self.module_id,
             node,
             FctParent::Trait(self.trait_id),
         );

@@ -97,10 +97,10 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
         "Result",
     ];
 
-    let stdlib = sa.stdlib_namespace();
+    let stdlib = sa.stdlib_module();
     let stdlib = stdlib.read();
 
-    let prelude = sa.prelude_namespace();
+    let prelude = sa.prelude_module();
     let mut prelude = prelude.write();
 
     for sym in &symbols {
@@ -163,19 +163,19 @@ pub fn discover_known_methods(sa: &mut SemAnalysis) {
         find_method(sa, stdlib, "StringBuffer", "toString");
 }
 
-fn find_class(sa: &SemAnalysis, namespace_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
+fn find_class(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
     let iname = sa.interner.intern(name);
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     symtable.get_class(iname).expect("class not found")
 }
 
 fn internal_class(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     name: &str,
 ) -> ClassDefinitionId {
     let iname = sa.interner.intern(name);
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     let clsid = symtable.get_class(iname).expect("class not found");
 
     let cls = sa.classes.idx(clsid);
@@ -187,12 +187,12 @@ fn internal_class(
 
 fn internal_struct(
     sa: &mut SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     name: &str,
     ty: Option<SourceType>,
 ) -> StructDefinitionId {
     let iname = sa.interner.intern(name);
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     let struct_id = symtable.get_struct(iname).expect("struct not found");
 
     let xstruct = sa.structs.idx(struct_id);
@@ -207,12 +207,12 @@ fn internal_struct(
 
 fn internal_annotation(
     sa: &mut SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     name: &str,
     internal_annotation: Modifier,
 ) -> AnnotationDefinitionId {
     let iname = sa.interner.intern(name);
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     let annotation_id = symtable
         .get_annotation(iname)
         .expect("annotation not found");
@@ -226,21 +226,17 @@ fn internal_annotation(
 
 fn find_trait(
     sa: &mut SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     name: &str,
 ) -> TraitDefinitionId {
     let iname = sa.interner.intern(name);
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     symtable.get_trait(iname).expect("trait not found")
 }
 
-fn find_enum(
-    sa: &mut SemAnalysis,
-    namespace_id: ModuleDefinitionId,
-    name: &str,
-) -> EnumDefinitionId {
+fn find_enum(sa: &mut SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> EnumDefinitionId {
     let iname = sa.interner.intern(name);
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     symtable.get_enum(iname).expect("enum not found")
 }
 
@@ -936,11 +932,11 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
 fn intrinsic_ctor(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     class_name: &str,
     intrinsic: Intrinsic,
 ) {
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     let class_name_interned = sa.interner.intern(class_name);
     let cls_id = symtable
         .get_class(class_name_interned)
@@ -957,13 +953,13 @@ fn intrinsic_ctor(
 
 fn find_method(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     container_name: &str,
     name: &str,
 ) -> FctDefinitionId {
     let container_name = sa.interner.intern(container_name);
 
-    let cls_id = NestedSymTable::new(sa, namespace_id)
+    let cls_id = NestedSymTable::new(sa, module_id)
         .get_class(container_name)
         .expect("class not found");
 
@@ -985,13 +981,13 @@ fn find_method(
 
 fn find_static(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     container_name: &str,
     name: &str,
 ) -> FctDefinitionId {
     let container_name = sa.interner.intern(container_name);
 
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     let sym = symtable.get(container_name);
     let intern_name = sa.interner.intern(name);
 
@@ -1016,15 +1012,10 @@ fn find_static(
     panic!("cannot find static method `{}`", name)
 }
 
-fn native_fct(
-    sa: &mut SemAnalysis,
-    namespace_id: ModuleDefinitionId,
-    name: &str,
-    fctptr: *const u8,
-) {
+fn native_fct(sa: &mut SemAnalysis, module_id: ModuleDefinitionId, name: &str, fctptr: *const u8) {
     common_fct(
         sa,
-        namespace_id,
+        module_id,
         name,
         FctImplementation::Native(Address::from_ptr(fctptr)),
     );
@@ -1032,26 +1023,21 @@ fn native_fct(
 
 fn intrinsic_fct(
     sa: &mut SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     name: &str,
     intrinsic: Intrinsic,
 ) {
-    common_fct(
-        sa,
-        namespace_id,
-        name,
-        FctImplementation::Intrinsic(intrinsic),
-    );
+    common_fct(sa, module_id, name, FctImplementation::Intrinsic(intrinsic));
 }
 
 fn common_fct(
     sa: &mut SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     name: &str,
     kind: FctImplementation,
 ) {
     let name = sa.interner.intern(name);
-    let fctid = NestedSymTable::new(sa, namespace_id)
+    let fctid = NestedSymTable::new(sa, module_id)
         .get_fct(name)
         .expect("function not found");
 
@@ -1074,14 +1060,14 @@ enum FctImplementation {
 
 fn native_method(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
     fctptr: *const u8,
 ) {
     common_method(
         sa,
-        namespace_id,
+        module_id,
         container_name,
         method_name,
         false,
@@ -1091,14 +1077,14 @@ fn native_method(
 
 fn intrinsic_method(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
     intrinsic: Intrinsic,
 ) {
     common_method(
         sa,
-        namespace_id,
+        module_id,
         container_name,
         method_name,
         false,
@@ -1108,14 +1094,14 @@ fn intrinsic_method(
 
 fn native_static(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
     fctptr: *const u8,
 ) {
     common_method(
         sa,
-        namespace_id,
+        module_id,
         container_name,
         method_name,
         true,
@@ -1125,14 +1111,14 @@ fn native_static(
 
 fn intrinsic_static(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
     intrinsic: Intrinsic,
 ) {
     common_method(
         sa,
-        namespace_id,
+        module_id,
         container_name,
         method_name,
         true,
@@ -1142,7 +1128,7 @@ fn intrinsic_static(
 
 fn common_method(
     sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
     is_static: bool,
@@ -1150,7 +1136,7 @@ fn common_method(
 ) {
     let container_name_interned = sa.interner.intern(container_name);
 
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
     let sym = symtable.get(container_name_interned);
 
     match sym {

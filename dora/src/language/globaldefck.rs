@@ -10,7 +10,7 @@ use dora_parser::ast;
 
 pub fn check<'a>(sa: &SemAnalysis) {
     for global in sa.globals.iter() {
-        let (global_id, file_id, ast, namespace_id) = {
+        let (global_id, file_id, ast, module_id) = {
             let global = global.read();
             (
                 global.id(),
@@ -20,13 +20,13 @@ pub fn check<'a>(sa: &SemAnalysis) {
             )
         };
 
-        let symtable = NestedSymTable::new(sa, namespace_id);
+        let symtable = NestedSymTable::new(sa, module_id);
 
         let mut checker = GlobalDefCheck {
             sa,
             file_id,
             ast: &ast,
-            namespace_id,
+            module_id,
             global_id,
             symtable,
         };
@@ -38,7 +38,7 @@ pub fn check<'a>(sa: &SemAnalysis) {
 struct GlobalDefCheck<'a> {
     sa: &'a SemAnalysis,
     file_id: SourceFileId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     global_id: GlobalDefinitionId,
     ast: &'a ast::Global,
     symtable: NestedSymTable<'a>,
@@ -61,12 +61,8 @@ impl<'a> GlobalDefCheck<'a> {
         glob.ty = ty;
 
         if let Some(ref initializer) = self.ast.initializer {
-            let fct = FctDefinition::new(
-                self.file_id,
-                self.namespace_id,
-                initializer,
-                FctParent::None,
-            );
+            let fct =
+                FctDefinition::new(self.file_id, self.module_id, initializer, FctParent::None);
 
             let fct_id = self.sa.add_fct(fct);
             glob.initializer = Some(fct_id);

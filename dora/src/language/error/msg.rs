@@ -339,7 +339,7 @@ impl SemError {
             SemError::ReferenceTypeExpected(ref name) => {
                 format!("`{}` is not a reference type.", name)
             }
-            SemError::NoSuperModule => "no super namespace.".into(),
+            SemError::NoSuperModule => "no super module.".into(),
             SemError::NotAccessible(ref name) => format!("`{}` is not accessible.", name),
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
@@ -383,7 +383,7 @@ impl SemError {
                 format!("identifier expected but got {}.", tok)
             }
             SemError::ExpectedSomeIdentifier => "identifier expected.".into(),
-            SemError::ExpectedModule => "namespace expected.".into(),
+            SemError::ExpectedModule => "module expected.".into(),
             SemError::ExpectedPath => "path expected.".into(),
             SemError::LetPatternExpectedTuple(ref ty) => {
                 format!("tuple expected but got type {}.", ty)
@@ -509,9 +509,9 @@ impl SemError {
             SemError::UnknownStructField(ref struc, ref field) => {
                 format!("struct `{}` does not have field named `{}`.", struc, field)
             }
-            SemError::UnknownIdentifierInModule(ref namespace, ref element) => format!(
-                "namespace `{}` does not have field named `{}`.",
-                namespace, element
+            SemError::UnknownIdentifierInModule(ref module, ref element) => format!(
+                "module `{}` does not have field named `{}`.",
+                module, element
             ),
             SemError::StructFieldNotInitialized(ref struc, ref field) => {
                 format!("field `{}` in struct `{}` not initialized.", field, struc)

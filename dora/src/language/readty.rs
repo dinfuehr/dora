@@ -135,14 +135,14 @@ fn read_type_path(
     if names.len() > 1 {
         let first_name = names.first().cloned().unwrap();
         let last_name = names.last().cloned().unwrap();
-        let mut namespace_table = table_for_namespace(sa, file_id, basic, table.get(first_name))?;
+        let mut module_table = table_for_module(sa, file_id, basic, table.get(first_name))?;
 
         for &name in &names[1..names.len() - 1] {
-            let sym = namespace_table.read().get(name);
-            namespace_table = table_for_namespace(sa, file_id, basic, sym)?;
+            let sym = module_table.read().get(name);
+            module_table = table_for_module(sa, file_id, basic, sym)?;
         }
 
-        let sym = namespace_table.read().get(last_name);
+        let sym = module_table.read().get(last_name);
         Ok(sym)
     } else {
         let name = names.last().cloned().unwrap();
@@ -150,14 +150,14 @@ fn read_type_path(
     }
 }
 
-fn table_for_namespace(
+fn table_for_module(
     sa: &SemAnalysis,
     file_id: SourceFileId,
     basic: &TypeBasicType,
     sym: Option<Sym>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
-        Some(Sym::Module(namespace_id)) => Ok(sa.modules[namespace_id].read().table.clone()),
+        Some(Sym::Module(module_id)) => Ok(sa.modules[module_id].read().table.clone()),
 
         _ => {
             let msg = SemError::ExpectedModule;
@@ -601,7 +601,7 @@ mod tests {
     use crate::language::tests::*;
 
     #[test]
-    fn namespace_class() {
+    fn module_class() {
         ok("
             fn f(x: foo::Foo) {}
             mod foo { @pub class Foo }
