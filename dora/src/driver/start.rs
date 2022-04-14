@@ -40,6 +40,8 @@ pub fn start() -> i32 {
         return 1;
     }
 
+    let main_fct_id = find_main(&sa);
+
     if sa.diag.lock().has_errors() {
         sa.diag.lock().dump(&sa);
         let no_errors = sa.diag.lock().errors().len();
@@ -55,19 +57,13 @@ pub fn start() -> i32 {
 
     language::generate_bytecode(&sa);
 
-    let main = if sa.args.cmd_test {
-        None
-    } else {
-        find_main(&sa)
-    };
-
-    if !sa.args.cmd_test && main.is_none() {
-        println!("error: no `main` function found in the program");
-        return 1;
-    }
-
     // if --check given, stop after type/semantic check
     if sa.args.flag_check {
+        return 0;
+    }
+
+    if sa.args.command.is_build() {
+        build_executable(&sa, main_fct_id.expect("main missing"));
         return 0;
     }
 
@@ -83,7 +79,7 @@ pub fn start() -> i32 {
 
     init_global_addresses(&vm);
 
-    let code = if vm.args.cmd_test {
+    let exit_code = if vm.args.command.is_test() {
         let module_id = if vm.args.flag_test_boots {
             vm.boots_module_id
         } else {
@@ -92,7 +88,7 @@ pub fn start() -> i32 {
 
         run_tests(&vm, module_id)
     } else {
-        run_main(&vm, main.unwrap())
+        run_main(&vm, main_fct_id.expect("main missing"))
     };
 
     vm.threads.join_all();
@@ -102,7 +98,7 @@ pub fn start() -> i32 {
         vm.dump_gc_summary(duration);
     }
 
-    code
+    exit_code
 }
 
 fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
@@ -157,6 +153,10 @@ fn run_test(vm: &VM, fct: FctDefinitionId) -> bool {
     !testing.has_failed()
 }
 
+fn build_executable(_sa: &SemAnalysis, _main: FctDefinitionId) {
+    unimplemented!()
+}
+
 fn is_test_fct(vm: &VM, fct: &FctDefinition) -> bool {
     // tests need to be standalone functions, with no return type and a single parameter
     if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
@@ -203,6 +203,10 @@ fn run_main(vm: &VM, main: FctDefinitionId) -> i32 {
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
 fn find_main(sa: &SemAnalysis) -> Option<FctDefinitionId> {
+    if sa.args.command.is_test() {
+        return None;
+    }
+
     let name = sa.interner.intern("main");
     let fctid = if let Some(id) = sa.module_table(sa.program_module_id).read().get_fct(name) {
         id

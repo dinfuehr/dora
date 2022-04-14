@@ -108,7 +108,7 @@ pub struct Args {
     pub flag_test_filter: Option<String>,
     pub flag_clear_regs: bool,
 
-    pub cmd_test: bool,
+    pub command: Command,
     pub flag_test_boots: bool,
 }
 
@@ -214,7 +214,7 @@ impl Default for Args {
             flag_test_filter: None,
             flag_clear_regs: false,
 
-            cmd_test: false,
+            command: Command::Run,
             flag_test_boots: false,
         }
     }
@@ -243,6 +243,36 @@ pub enum AsmSyntax {
 }
 
 #[derive(Copy, Clone, Debug)]
+pub enum Command {
+    Run,
+    Test,
+    Build,
+}
+
+impl Command {
+    pub fn is_run(&self) -> bool {
+        match self {
+            Command::Run => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_test(&self) -> bool {
+        match self {
+            Command::Test => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_build(&self) -> bool {
+        match self {
+            Command::Build => true,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct MemSize(usize);
 
 impl Deref for MemSize {
@@ -262,7 +292,9 @@ pub fn parse_arguments() -> Result<Args, String> {
         let arg = &cli_arguments[idx];
 
         if arg == "test" && idx == 1 {
-            args.cmd_test = true;
+            args.command = Command::Test;
+        } else if arg == "build" && idx == 1 {
+            args.command = Command::Build;
         } else if arg == "--version" || arg == "-v" {
             args.flag_version = true;
         } else if arg == "--check" {
