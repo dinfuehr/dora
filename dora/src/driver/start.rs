@@ -1,4 +1,4 @@
-use crate::language::access::namespace_contains;
+use crate::language::access::module_contains;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
 use crate::vm::{init_global_addresses, set_vm};
@@ -113,7 +113,7 @@ fn run_tests(vm: &VM, namespace_id: ModuleDefinitionId) -> i32 {
         for fct in vm.fcts.iter() {
             let fct = fct.read();
 
-            if !namespace_contains(vm, namespace_id, fct.module_id)
+            if !module_contains(vm, namespace_id, fct.module_id)
                 || !is_test_fct(vm, &*fct)
                 || !test_filter_matches(vm, &*fct)
             {

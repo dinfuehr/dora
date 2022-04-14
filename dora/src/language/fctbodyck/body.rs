@@ -6,7 +6,7 @@ use std::{f32, f64};
 use crate::language::access::{
     class_accessible_from, class_field_accessible_from, const_accessible_from,
     enum_accessible_from, fct_accessible_from, global_accessible_from, method_accessible_from,
-    namespace_accessible_from, struct_accessible_from, struct_field_accessible_from,
+    module_accessible_from, struct_accessible_from, struct_field_accessible_from,
 };
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
@@ -2492,7 +2492,7 @@ impl<'a> TypeCheck<'a> {
         for &name in &names[1..] {
             match sym {
                 Some(Sym::Namespace(namespace_id)) => {
-                    if !namespace_accessible_from(self.sa, namespace_id, self.namespace_id) {
+                    if !module_accessible_from(self.sa, namespace_id, self.namespace_id) {
                         let namespace = &self.sa.modules[namespace_id].read();
                         let msg = SemError::NotAccessible(namespace.name(self.sa));
                         self.sa.diag.lock().report(self.file_id, path.pos, msg);

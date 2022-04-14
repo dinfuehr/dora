@@ -2,8 +2,7 @@ use parking_lot::RwLock;
 
 use crate::language::access::{
     class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
-    global_accessible_from, namespace_accessible_from, struct_accessible_from,
-    trait_accessible_from,
+    global_accessible_from, module_accessible_from, struct_accessible_from, trait_accessible_from,
 };
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
@@ -60,7 +59,7 @@ fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
 
         match sym {
             Some(Sym::Namespace(namespace_id)) => {
-                if !namespace_accessible_from(sa, namespace_id, use_def.module_id) {
+                if !module_accessible_from(sa, namespace_id, use_def.module_id) {
                     let namespace = &sa.modules[namespace_id].read();
                     let msg = SemError::NotAccessible(namespace.name(sa));
                     sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
@@ -102,7 +101,7 @@ fn read_path(
                     let namespace = &sa.modules[namespace_id].read();
                     let symtable = namespace.table.read();
 
-                    if !namespace_accessible_from(sa, namespace_id, use_def.module_id) {
+                    if !module_accessible_from(sa, namespace_id, use_def.module_id) {
                         let namespace = &sa.modules[namespace_id].read();
                         let msg = SemError::NotAccessible(namespace.name(sa));
                         sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
@@ -161,7 +160,7 @@ fn use_namespace(
         }
 
         Some(Sym::Namespace(namespace_id)) => {
-            if !namespace_accessible_from(sa, namespace_id, use_def.module_id) {
+            if !module_accessible_from(sa, namespace_id, use_def.module_id) {
                 let namespace = &sa.modules[namespace_id].read();
                 let msg = SemError::NotAccessible(namespace.name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);

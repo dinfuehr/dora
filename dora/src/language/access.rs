@@ -8,43 +8,43 @@ use crate::vm::{FieldId, SemAnalysis};
 pub fn global_accessible_from(
     sa: &SemAnalysis,
     global_id: GlobalDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let global = sa.globals.idx(global_id);
     let global = global.read();
 
-    accessible_from(sa, global.module_id, global.is_pub, namespace_id)
+    accessible_from(sa, global.module_id, global.is_pub, module_id)
 }
 
 pub fn class_accessible_from(
     sa: &SemAnalysis,
     cls_id: ClassDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
 
-    accessible_from(sa, cls.module_id, cls.is_pub, namespace_id)
+    accessible_from(sa, cls.module_id, cls.is_pub, module_id)
 }
 
 pub fn class_field_accessible_from(
     sa: &SemAnalysis,
     cls_id: ClassDefinitionId,
     field_id: FieldId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
 
     let field = &cls.fields[field_id];
 
-    accessible_from(sa, cls.module_id, cls.is_pub && field.is_pub, namespace_id)
+    accessible_from(sa, cls.module_id, cls.is_pub && field.is_pub, module_id)
 }
 
 pub fn method_accessible_from(
     sa: &SemAnalysis,
     fct_id: FctDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
@@ -66,46 +66,46 @@ pub fn method_accessible_from(
         FctParent::None => unreachable!(),
     };
 
-    accessible_from(sa, fct.module_id, element_pub, namespace_id)
+    accessible_from(sa, fct.module_id, element_pub, module_id)
 }
 
 pub fn fct_accessible_from(
     sa: &SemAnalysis,
     fct_id: FctDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
 
-    accessible_from(sa, fct.module_id, fct.is_pub, namespace_id)
+    accessible_from(sa, fct.module_id, fct.is_pub, module_id)
 }
 
 pub fn enum_accessible_from(
     sa: &SemAnalysis,
     enum_id: EnumDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let xenum = sa.enums[enum_id].read();
 
-    accessible_from(sa, xenum.module_id, xenum.is_pub, namespace_id)
+    accessible_from(sa, xenum.module_id, xenum.is_pub, module_id)
 }
 
 pub fn struct_accessible_from(
     sa: &SemAnalysis,
     struct_id: StructDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let xstruct = sa.structs.idx(struct_id);
     let xstruct = xstruct.read();
 
-    accessible_from(sa, xstruct.module_id, xstruct.is_pub, namespace_id)
+    accessible_from(sa, xstruct.module_id, xstruct.is_pub, module_id)
 }
 
 pub fn struct_field_accessible_from(
     sa: &SemAnalysis,
     struct_id: StructDefinitionId,
     field_id: StructDefinitionFieldId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let xstruct = sa.structs.idx(struct_id);
     let xstruct = xstruct.read();
@@ -116,11 +116,11 @@ pub fn struct_field_accessible_from(
         sa,
         xstruct.module_id,
         xstruct.is_pub && field.is_pub,
-        namespace_id,
+        module_id,
     )
 }
 
-pub fn namespace_accessible_from(
+pub fn module_accessible_from(
     sa: &SemAnalysis,
     target_id: ModuleDefinitionId,
     from_id: ModuleDefinitionId,
@@ -131,22 +131,22 @@ pub fn namespace_accessible_from(
 pub fn trait_accessible_from(
     sa: &SemAnalysis,
     trait_id: TraitDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let xtrait = sa.traits[trait_id].read();
 
-    accessible_from(sa, xtrait.module_id, xtrait.is_pub, namespace_id)
+    accessible_from(sa, xtrait.module_id, xtrait.is_pub, module_id)
 }
 
 pub fn const_accessible_from(
     vm: &SemAnalysis,
     const_id: ConstDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
 ) -> bool {
     let xconst = vm.consts.idx(const_id);
     let xconst = xconst.read();
 
-    accessible_from(vm, xconst.module_id, xconst.is_pub, namespace_id)
+    accessible_from(vm, xconst.module_id, xconst.is_pub, module_id)
 }
 
 fn accessible_from(
@@ -155,17 +155,17 @@ fn accessible_from(
     element_pub: bool,
     from_id: ModuleDefinitionId,
 ) -> bool {
-    // each namespace can access itself
+    // each module can access itself
     if target_id == from_id {
         return true;
     }
 
-    // namespaces can access all their parents
-    if namespace_contains(sa, target_id, from_id) {
+    // modules can access all their parents
+    if module_contains(sa, target_id, from_id) {
         return true;
     }
 
-    // find the common parent of both namespaces
+    // find the common parent of both modules
     let common_parent_id = common_parent(sa, target_id, from_id);
 
     let target = &sa.modules[target_id].read();
@@ -238,7 +238,7 @@ fn common_parent(
     None
 }
 
-pub fn namespace_contains(
+pub fn module_contains(
     sa: &SemAnalysis,
     parent_id: ModuleDefinitionId,
     child_id: ModuleDefinitionId,
@@ -247,6 +247,6 @@ pub fn namespace_contains(
         return true;
     }
 
-    let namespace = &sa.modules[child_id].read();
-    namespace.parents.contains(&parent_id)
+    let module = &sa.modules[child_id].read();
+    module.parents.contains(&parent_id)
 }
