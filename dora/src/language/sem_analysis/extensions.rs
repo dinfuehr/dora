@@ -52,7 +52,7 @@ pub struct ExtensionDefinition {
     pub id: Option<ExtensionDefinitionId>,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub ty: SourceType,
@@ -64,7 +64,7 @@ pub struct ExtensionDefinition {
 impl ExtensionDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         node: &Arc<ast::Impl>,
     ) -> ExtensionDefinition {
         let mut type_params = Vec::new();
@@ -77,7 +77,7 @@ impl ExtensionDefinition {
         ExtensionDefinition {
             id: None,
             file_id,
-            namespace_id,
+            module_id,
             ast: node.clone(),
             pos: node.pos,
             type_params,

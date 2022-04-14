@@ -10,7 +10,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches, impl_matches, namespace_path, Candidate, ExtensionDefinitionId,
+    extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
     ImplDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
     TypeParamId,
 };
@@ -61,7 +61,7 @@ impl Id for EnumDefinition {
 pub struct EnumDefinition {
     pub id: Option<EnumDefinitionId>,
     pub file_id: SourceFileId,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub ast: Arc<ast::Enum>,
     pub pos: Position,
     pub name: Name,
@@ -79,7 +79,7 @@ pub struct EnumDefinition {
 impl EnumDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         node: &Arc<ast::Enum>,
     ) -> EnumDefinition {
         let mut type_params = Vec::new();
@@ -93,7 +93,7 @@ impl EnumDefinition {
         EnumDefinition {
             id: None,
             file_id: file_id,
-            namespace_id: namespace_id,
+            module_id,
             ast: node.clone(),
             pos: node.pos,
             name: node.name,
@@ -118,7 +118,7 @@ impl EnumDefinition {
     }
 
     pub fn name(&self, vm: &VM) -> String {
-        namespace_path(vm, self.namespace_id, self.name)
+        module_path(vm, self.module_id, self.name)
     }
 
     pub fn name_with_params(&self, vm: &VM, type_list: &SourceTypeArray) -> String {

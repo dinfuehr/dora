@@ -9,7 +9,7 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    namespace_path, AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId,
+    module_path, AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId,
     ModuleDefinitionId, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
@@ -42,7 +42,7 @@ pub struct FctDefinition {
     pub ast: Arc<ast::Function>,
     pub pos: Position,
     pub name: Name,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub parent: FctParent,
     pub is_open: bool,
     pub is_override: bool,
@@ -76,7 +76,7 @@ pub struct FctDefinition {
 impl FctDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         ast: &Arc<ast::Function>,
         parent: FctParent,
     ) -> FctDefinition {
@@ -86,7 +86,7 @@ impl FctDefinition {
             pos: ast.pos,
             ast: ast.clone(),
             name: ast.name,
-            namespace_id,
+            module_id,
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,
@@ -171,7 +171,7 @@ impl FctDefinition {
     }
 
     pub fn name(&self, vm: &VM) -> String {
-        namespace_path(vm, self.namespace_id, self.name)
+        module_path(vm, self.module_id, self.name)
     }
 
     pub fn name_with_params(&self, vm: &VM) -> String {

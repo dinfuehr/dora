@@ -157,7 +157,7 @@ fn table_for_namespace(
     sym: Option<Sym>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
-        Some(Sym::Namespace(namespace_id)) => Ok(sa.namespaces[namespace_id].read().table.clone()),
+        Some(Sym::Namespace(namespace_id)) => Ok(sa.modules[namespace_id].read().table.clone()),
 
         _ => {
             let msg = SemError::ExpectedNamespace;

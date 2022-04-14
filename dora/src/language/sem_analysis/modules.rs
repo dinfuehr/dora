@@ -74,7 +74,7 @@ impl ModuleDefinition {
         file_id: SourceFileId,
         ast: &Arc<ast::Module>,
     ) -> ModuleDefinition {
-        let parent = &vm.namespaces[parent_id].read();
+        let parent = &vm.modules[parent_id].read();
         let mut parents = parent.parents.clone();
         parents.push(parent_id);
 
@@ -96,10 +96,10 @@ impl ModuleDefinition {
     pub fn name(&self, vm: &VM) -> String {
         let mut path = String::new();
 
-        for &namespace_id in &self.parents {
-            let namespace = &vm.namespaces[namespace_id].read();
+        for &module_id in &self.parents {
+            let module = &vm.modules[module_id].read();
 
-            if let Some(name) = namespace.name {
+            if let Some(name) = module.name {
                 if !path.is_empty() {
                     path.push_str("::");
                 }
@@ -120,19 +120,19 @@ impl ModuleDefinition {
     }
 }
 
-pub fn namespace_package(vm: &VM, namespace_id: ModuleDefinitionId) -> ModuleDefinitionId {
-    let namespace = &vm.namespaces[namespace_id].read();
+pub fn module_package(vm: &VM, module_id: ModuleDefinitionId) -> ModuleDefinitionId {
+    let module = &vm.modules[module_id].read();
 
-    if let Some(&global_id) = namespace.parents.first() {
+    if let Some(&global_id) = module.parents.first() {
         global_id
     } else {
-        namespace_id
+        module_id
     }
 }
 
-pub fn namespace_path(vm: &VM, namespace_id: ModuleDefinitionId, name: Name) -> String {
-    let namespace = &vm.namespaces[namespace_id].read();
-    let mut result = namespace.name(vm);
+pub fn module_path(vm: &VM, module_id: ModuleDefinitionId, name: Name) -> String {
+    let module = &vm.modules[module_id].read();
+    let mut result = module.name(vm);
 
     if !result.is_empty() {
         result.push_str("::");

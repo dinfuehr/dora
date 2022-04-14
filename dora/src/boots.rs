@@ -28,7 +28,7 @@ pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> C
     }
 
     let compile_name = vm.interner.intern("compile");
-    let compile_fct_id = NestedSymTable::new(vm, vm.boots_namespace_id)
+    let compile_fct_id = NestedSymTable::new(vm, vm.boots_module_id)
         .get_fct(compile_name)
         .expect("compile()-method missing");
     let compile_address = vm.ensure_compiled(compile_fct_id);
@@ -86,7 +86,7 @@ fn get_architecture() -> InstructionSet {
 
 pub fn get_encoded_bytecode_function_by_name(vm: &VM, name: &str) -> Ref<Obj> {
     let fct_name = vm.interner.intern(name);
-    let bc_fct_id = NestedSymTable::new(vm, vm.boots_namespace_id)
+    let bc_fct_id = NestedSymTable::new(vm, vm.boots_module_id)
         .get_fct(fct_name)
         .expect("method not found");
 

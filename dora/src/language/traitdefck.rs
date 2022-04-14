@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use crate::language;
 use crate::language::sem_analysis::{
-    FctDefinition, FctParent, ModuleDefinitionId, SourceFileId, TraitDefinition,
-    TraitDefinitionId,
+    FctDefinition, FctParent, ModuleDefinitionId, SourceFileId, TraitDefinition, TraitDefinitionId,
 };
 use crate::language::sym::NestedSymTable;
 use crate::vm::SemAnalysis;
@@ -18,7 +17,7 @@ pub fn check(sa: &SemAnalysis) {
                 xtrait.id(),
                 xtrait.file_id,
                 xtrait.ast.clone(),
-                xtrait.namespace_id,
+                xtrait.module_id,
             )
         };
 

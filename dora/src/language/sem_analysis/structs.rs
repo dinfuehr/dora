@@ -9,7 +9,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches, impl_matches, namespace_path, Candidate, ExtensionDefinitionId,
+    extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
     ImplDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
     TypeParamId,
 };
@@ -54,7 +54,7 @@ pub struct StructDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub type_params: Vec<TypeParam>,
     pub type_params2: TypeParamDefinition,
     pub is_pub: bool,
@@ -72,7 +72,7 @@ pub struct StructDefinition {
 impl StructDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         node: &Arc<ast::Struct>,
     ) -> StructDefinition {
         let mut type_params = Vec::new();
@@ -87,7 +87,7 @@ impl StructDefinition {
             id: None,
             file_id,
             ast: node.clone(),
-            namespace_id,
+            module_id,
             primitive_ty: None,
             is_pub: node.is_pub,
             pos: node.pos,
@@ -109,7 +109,7 @@ impl StructDefinition {
     }
 
     pub fn name(&self, vm: &VM) -> String {
-        namespace_path(vm, self.namespace_id, self.name)
+        module_path(vm, self.module_id, self.name)
     }
 
     pub fn name_with_params(&self, vm: &VM, type_params: &SourceTypeArray) -> String {

@@ -50,7 +50,7 @@ impl<'a> NestedSymTable<'a> {
         }
 
         {
-            let namespace = &self.sa.namespaces[self.namespace_id].read();
+            let namespace = &self.sa.modules[self.namespace_id].read();
 
             if let Some(sym) = namespace.table.read().get(name) {
                 return Some(sym.clone());
@@ -58,7 +58,7 @@ impl<'a> NestedSymTable<'a> {
         }
 
         {
-            let namespace = &self.sa.namespaces[self.sa.prelude_namespace_id].read();
+            let namespace = &self.sa.modules[self.sa.prelude_module_id].read();
 
             if let Some(sym) = namespace.table.read().get(name) {
                 return Some(sym.clone());

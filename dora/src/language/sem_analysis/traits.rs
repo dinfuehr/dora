@@ -9,8 +9,8 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    namespace_path, FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam,
-    TypeParamDefinition, TypeParamId,
+    module_path, FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
+    TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -51,7 +51,7 @@ impl Id for TraitDefinition {
 pub struct TraitDefinition {
     pub id: Option<TraitDefinitionId>,
     pub file_id: SourceFileId,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub is_pub: bool,
     pub ast: Arc<ast::Trait>,
     pub pos: Position,
@@ -67,14 +67,14 @@ pub struct TraitDefinition {
 impl TraitDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         node: &Arc<ast::Trait>,
     ) -> TraitDefinition {
         TraitDefinition {
             id: None,
             file_id,
             ast: node.clone(),
-            namespace_id,
+            module_id,
             is_pub: node.is_pub,
             pos: node.pos,
             name: node.name,
@@ -92,11 +92,11 @@ impl TraitDefinition {
     }
 
     pub fn name(&self, vm: &VM) -> String {
-        namespace_path(vm, self.namespace_id, self.name)
+        module_path(vm, self.module_id, self.name)
     }
 
     pub fn name_with_params(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
-        let name = namespace_path(vm, self.namespace_id, self.name);
+        let name = module_path(vm, self.module_id, self.name);
 
         if type_list.len() > 0 {
             let type_list = type_list

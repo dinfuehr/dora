@@ -27,13 +27,13 @@ pub fn check(sa: &SemAnalysis) {
             }
 
             let mut analysis = AnalysisData::new();
-            let symtable = NestedSymTable::new(sa, fct.namespace_id);
+            let symtable = NestedSymTable::new(sa, fct.module_id);
 
             let mut typeck = TypeCheck {
                 sa,
                 fct: &fct,
                 file_id: fct.file_id,
-                namespace_id: fct.namespace_id,
+                namespace_id: fct.module_id,
                 analysis: &mut analysis,
                 ast: &fct.ast,
                 symtable: symtable,

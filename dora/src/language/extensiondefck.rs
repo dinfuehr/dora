@@ -22,7 +22,7 @@ pub fn check(sa: &SemAnalysis) {
             (
                 extension.id(),
                 extension.file_id,
-                extension.namespace_id,
+                extension.module_id,
                 extension.ast.clone(),
             )
         };

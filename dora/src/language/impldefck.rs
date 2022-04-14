@@ -3,8 +3,7 @@ use std::sync::Arc;
 use crate::language::error::msg::SemError;
 use crate::language::extensiondefck::check_for_unconstrained_type_params;
 use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, FctParent, ImplDefinitionId, ModuleDefinitionId,
-    SourceFileId,
+    FctDefinition, FctDefinitionId, FctParent, ImplDefinitionId, ModuleDefinitionId, SourceFileId,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
@@ -21,7 +20,7 @@ pub fn check(sa: &SemAnalysis) {
             (
                 ximpl.id(),
                 ximpl.file_id,
-                ximpl.namespace_id,
+                ximpl.module_id,
                 ximpl.ast.clone(),
             )
         };

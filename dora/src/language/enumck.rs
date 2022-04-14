@@ -37,7 +37,7 @@ struct EnumCheck<'x> {
 
 impl<'x> EnumCheck<'x> {
     fn check(&mut self) {
-        let mut symtable = NestedSymTable::new(self.sa, self.xenum.read().namespace_id);
+        let mut symtable = NestedSymTable::new(self.sa, self.xenum.read().module_id);
 
         symtable.push_level();
 

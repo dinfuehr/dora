@@ -2310,7 +2310,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let sym = {
-                    let namespace = &self.sa.namespaces[namespace_id].read();
+                    let namespace = &self.sa.modules[namespace_id].read();
                     let table = namespace.table.read();
 
                     table.get(method_name)
@@ -2460,7 +2460,7 @@ impl<'a> TypeCheck<'a> {
 
             match sym {
                 Some(Sym::Namespace(namespace_id)) => {
-                    let namespace = &self.sa.namespaces[namespace_id].read();
+                    let namespace = &self.sa.modules[namespace_id].read();
                     let symtable = namespace.table.read();
                     let sym = symtable.get(element_name);
 
@@ -2493,12 +2493,12 @@ impl<'a> TypeCheck<'a> {
             match sym {
                 Some(Sym::Namespace(namespace_id)) => {
                     if !namespace_accessible_from(self.sa, namespace_id, self.namespace_id) {
-                        let namespace = &self.sa.namespaces[namespace_id].read();
+                        let namespace = &self.sa.modules[namespace_id].read();
                         let msg = SemError::NotAccessible(namespace.name(self.sa));
                         self.sa.diag.lock().report(self.file_id, path.pos, msg);
                     }
 
-                    let namespace = &self.sa.namespaces[namespace_id].read();
+                    let namespace = &self.sa.modules[namespace_id].read();
                     let symtable = namespace.table.read();
                     sym = symtable.get(name);
                 }
@@ -2557,7 +2557,7 @@ impl<'a> TypeCheck<'a> {
         namespace_id: ModuleDefinitionId,
         element_name: Name,
     ) -> SourceType {
-        let namespace = &self.sa.namespaces[namespace_id].read();
+        let namespace = &self.sa.modules[namespace_id].read();
         let table = namespace.table.read();
 
         let sym = table.get(element_name);

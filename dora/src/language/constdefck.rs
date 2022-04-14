@@ -14,7 +14,7 @@ pub fn check(sa: &SemAnalysis) {
                 xconst.id(),
                 xconst.file_id,
                 xconst.ast.clone(),
-                xconst.namespace_id,
+                xconst.module_id,
             )
         };
 

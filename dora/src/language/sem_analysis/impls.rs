@@ -47,7 +47,7 @@ pub struct ImplDefinition {
     pub id: Option<ImplDefinitionId>,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
     pub trait_id: Option<TraitDefinitionId>,
@@ -61,7 +61,7 @@ pub struct ImplDefinition {
 impl ImplDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         node: &Arc<ast::Impl>,
     ) -> ImplDefinition {
         let mut type_params = Vec::new();
@@ -75,7 +75,7 @@ impl ImplDefinition {
             id: None,
             file_id,
             ast: node.clone(),
-            namespace_id,
+            module_id,
             type_params,
             pos: node.pos,
             trait_id: None,

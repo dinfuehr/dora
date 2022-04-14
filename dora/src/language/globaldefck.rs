@@ -16,7 +16,7 @@ pub fn check<'a>(sa: &SemAnalysis) {
                 global.id(),
                 global.file_id,
                 global.ast.clone(),
-                global.namespace_id,
+                global.module_id,
             )
         };
 

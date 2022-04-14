@@ -52,7 +52,7 @@ pub struct AnnotationDefinition {
     pub file_id: SourceFileId,
     pub pos: Position,
     pub name: Name,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub ty: SourceType,
     pub internal_annotation: Option<Modifier>,
 
@@ -65,14 +65,14 @@ impl AnnotationDefinition {
         file_id: SourceFileId,
         pos: Position,
         name: Name,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
     ) -> AnnotationDefinition {
         AnnotationDefinition {
             id: None,
             file_id,
             pos,
             name,
-            namespace_id,
+            module_id,
             ty: SourceType::Error,
             internal_annotation: None,
             type_params: None,

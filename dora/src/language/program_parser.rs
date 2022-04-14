@@ -86,7 +86,7 @@ impl<'a> ProgramParser<'a> {
         use crate::driver::start::STDLIB;
 
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
-        let namespace_id = self.sa.stdlib_namespace_id;
+        let namespace_id = self.sa.stdlib_module_id;
 
         if let Some(stdlib) = stdlib_dir {
             self.add_files_in_directory(PathBuf::from(stdlib), namespace_id, None)?;
@@ -120,7 +120,7 @@ impl<'a> ProgramParser<'a> {
         let boots_dir = self.sa.args.flag_boots.clone();
 
         if let Some(boots) = boots_dir {
-            self.add_files_in_directory(PathBuf::from(boots), self.sa.boots_namespace_id, None)?;
+            self.add_files_in_directory(PathBuf::from(boots), self.sa.boots_module_id, None)?;
         }
 
         Ok(())
@@ -132,9 +132,9 @@ impl<'a> ProgramParser<'a> {
             let path = PathBuf::from(&arg_file);
 
             if path.is_file() {
-                self.add_file(PathBuf::from(path), self.sa.program_namespace_id, None)?;
+                self.add_file(PathBuf::from(path), self.sa.program_module_id, None)?;
             } else if path.is_dir() {
-                self.add_files_in_directory(path, self.sa.program_namespace_id, None)?;
+                self.add_files_in_directory(path, self.sa.program_module_id, None)?;
             } else {
                 println!("file or directory `{}` does not exist.", &arg_file);
                 return Err(1);
@@ -149,7 +149,7 @@ impl<'a> ProgramParser<'a> {
             self.add_file_from_string(
                 PathBuf::from("<<code>>"),
                 content.to_string(),
-                self.sa.program_namespace_id,
+                self.sa.program_module_id,
                 NamespaceLookup::Disallowed,
             );
         }
@@ -192,7 +192,7 @@ impl<'a> ProgramParser<'a> {
         id: ModuleDefinitionId,
         namespace_lookup: NamespaceLookup,
     ) -> Result<(), i32> {
-        let namespace = self.sa.namespaces[id].clone();
+        let namespace = self.sa.modules[id].clone();
         let namespace = namespace.read();
         let node = namespace.ast.clone().unwrap();
         let file_id = namespace.file_id.expect("missing file_id");
@@ -294,7 +294,7 @@ impl<'a> ProgramParser<'a> {
 
         {
             let file = self.sa.source_file(file_id);
-            namespace_id = file.namespace_id;
+            namespace_id = file.module_id;
             content = file.content.clone();
             path = file.path.clone();
         }
@@ -340,7 +340,7 @@ struct GlobalDef<'x> {
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
         let namespace = ModuleDefinition::new(self.sa, self.namespace_id, self.file_id, node);
-        let id = self.sa.namespaces.push(namespace);
+        let id = self.sa.modules.push(namespace);
         let sym = Sym::Namespace(id);
 
         if let Some(sym) = self.insert(node.name, sym) {

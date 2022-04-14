@@ -22,5 +22,5 @@ pub struct SourceFile {
     pub id: SourceFileId,
     pub path: PathBuf,
     pub content: Arc<String>,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
 }

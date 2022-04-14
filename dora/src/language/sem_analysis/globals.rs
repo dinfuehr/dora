@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    namespace_path, FctDefinitionId, ModuleDefinitionId, SourceFileId,
+    module_path, FctDefinitionId, ModuleDefinitionId, SourceFileId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
@@ -50,7 +50,7 @@ pub struct GlobalDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Global>,
     pub pos: Position,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub is_pub: bool,
     pub ty: SourceType,
     pub mutable: bool,
@@ -63,14 +63,14 @@ pub struct GlobalDefinition {
 impl GlobalDefinition {
     pub fn new(
         file_id: SourceFileId,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         node: &Arc<ast::Global>,
     ) -> GlobalDefinition {
         GlobalDefinition {
             id: None,
             file_id,
             ast: node.clone(),
-            namespace_id,
+            module_id,
             pos: node.pos,
             name: node.name,
             is_pub: node.is_pub,
@@ -91,7 +91,7 @@ impl GlobalDefinition {
     }
 
     pub fn name(&self, vm: &VM) -> String {
-        namespace_path(vm, self.namespace_id, self.name)
+        module_path(vm, self.module_id, self.name)
     }
 
     fn is_initialized(&self) -> bool {

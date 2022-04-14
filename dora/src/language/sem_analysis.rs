@@ -24,7 +24,7 @@ pub use self::extensions::{
 pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{find_trait_impl, impl_matches, ImplDefinition, ImplDefinitionId};
-pub use self::modules::{namespace_package, namespace_path, ModuleDefinition, ModuleDefinitionId};
+pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
     AnalysisData, CallType, ConvInfo, ForTypeInfo, IdentType, NodeMap, Var, VarId,
@@ -58,7 +58,7 @@ impl SemAnalysis {
     pub fn cls_by_name(&self, name: &'static str) -> ClassDefinitionId {
         let name = self.interner.intern(name);
 
-        NestedSymTable::new(self, self.program_namespace_id)
+        NestedSymTable::new(self, self.program_module_id)
             .get_class(name)
             .expect("class not found")
     }
@@ -66,7 +66,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn struct_by_name(&self, name: &'static str) -> StructDefinitionId {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_namespace_id)
+        NestedSymTable::new(self, self.program_module_id)
             .get_struct(name)
             .expect("class not found")
     }
@@ -74,7 +74,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn enum_by_name(&self, name: &'static str) -> EnumDefinitionId {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_namespace_id)
+        NestedSymTable::new(self, self.program_module_id)
             .get_enum(name)
             .expect("class not found")
     }
@@ -82,7 +82,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn const_by_name(&self, name: &'static str) -> ConstDefinitionId {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_namespace_id)
+        NestedSymTable::new(self, self.program_module_id)
             .get_const(name)
             .expect("class not found")
     }
@@ -97,7 +97,7 @@ impl SemAnalysis {
         let class_name = self.interner.intern(class_name);
         let function_name = self.interner.intern(function_name);
 
-        let cls_id = NestedSymTable::new(self, self.program_namespace_id)
+        let cls_id = NestedSymTable::new(self, self.program_module_id)
             .get_class(class_name)
             .expect("class not found");
         let cls = self.classes.idx(cls_id);
@@ -128,7 +128,7 @@ impl SemAnalysis {
         let struct_name = self.interner.intern(struct_name);
         let function_name = self.interner.intern(function_name);
 
-        let struct_id = NestedSymTable::new(self, self.program_namespace_id)
+        let struct_id = NestedSymTable::new(self, self.program_module_id)
             .get_struct(struct_name)
             .expect("struct not found");
         let xstruct = self.structs.idx(struct_id);
@@ -159,7 +159,7 @@ impl SemAnalysis {
         let class_name = self.interner.intern(class_name);
         let field_name = self.interner.intern(field_name);
 
-        let cls_id = NestedSymTable::new(self, self.program_namespace_id)
+        let cls_id = NestedSymTable::new(self, self.program_module_id)
             .get_class(class_name)
             .expect("class not found");
         let cls = self.classes.idx(cls_id);
@@ -172,13 +172,13 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn fct_by_name(&self, name: &str) -> Option<FctDefinitionId> {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_namespace_id).get_fct(name)
+        NestedSymTable::new(self, self.program_module_id).get_fct(name)
     }
 
     #[cfg(test)]
     pub fn ctor_by_name(&self, name: &str) -> FctDefinitionId {
         let name = self.interner.intern(name);
-        let cls_id = NestedSymTable::new(self, self.program_namespace_id)
+        let cls_id = NestedSymTable::new(self, self.program_module_id)
             .get_class(name)
             .expect("class not found");
         let cls = self.classes.idx(cls_id);
@@ -190,7 +190,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn trait_by_name(&self, name: &str) -> TraitDefinitionId {
         let name = self.interner.intern(name);
-        let trait_id = NestedSymTable::new(self, self.program_namespace_id)
+        let trait_id = NestedSymTable::new(self, self.program_module_id)
             .get_trait(name)
             .expect("class not found");
 
@@ -214,7 +214,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn global_by_name(&self, name: &str) -> GlobalDefinitionId {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_namespace_id)
+        NestedSymTable::new(self, self.program_module_id)
             .get_global(name)
             .expect("global not found")
     }
@@ -238,27 +238,21 @@ impl SemAnalysis {
             id: file_id,
             path,
             content,
-            namespace_id,
+            module_id: namespace_id,
         });
         file_id
     }
 
     pub fn namespace_table(&self, namespace_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
-        self.namespaces[namespace_id].read().table.clone()
+        self.modules[namespace_id].read().table.clone()
     }
 
     pub fn stdlib_namespace(&self) -> Arc<RwLock<SymTable>> {
-        self.namespaces[self.stdlib_namespace_id]
-            .read()
-            .table
-            .clone()
+        self.modules[self.stdlib_module_id].read().table.clone()
     }
 
     pub fn prelude_namespace(&self) -> Arc<RwLock<SymTable>> {
-        self.namespaces[self.prelude_namespace_id]
-            .read()
-            .table
-            .clone()
+        self.modules[self.prelude_module_id].read().table.clone()
     }
 
     pub fn cls(&self, cls_id: ClassDefinitionId) -> SourceType {

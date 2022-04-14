@@ -12,7 +12,7 @@ use crate::vm::SemAnalysis;
 use dora_parser::ast::Modifier;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
-    let stdlib = sa.stdlib_namespace_id;
+    let stdlib = sa.stdlib_module_id;
     sa.known.annotations.abstract_ =
         internal_annotation(sa, stdlib, "abstract", Modifier::Abstract);
     sa.known.annotations.final_ = internal_annotation(sa, stdlib, "final", Modifier::Final);
@@ -34,7 +34,7 @@ pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
 }
 
 pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
-    let stdlib = sa.stdlib_namespace_id;
+    let stdlib = sa.stdlib_module_id;
     sa.known.structs.bool = internal_struct(sa, stdlib, "Bool", Some(SourceType::Bool));
 
     sa.known.structs.uint8 = internal_struct(sa, stdlib, "UInt8", Some(SourceType::UInt8));
@@ -112,7 +112,7 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
     }
 
     let stdlib_name = sa.interner.intern("std");
-    prelude.insert(stdlib_name, Sym::Namespace(sa.stdlib_namespace_id));
+    prelude.insert(stdlib_name, Sym::Namespace(sa.stdlib_module_id));
 
     {
         // include None and Some from Option
@@ -156,18 +156,14 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
 }
 
 pub fn discover_known_methods(sa: &mut SemAnalysis) {
-    let stdlib = sa.stdlib_namespace_id;
+    let stdlib = sa.stdlib_module_id;
     sa.known.functions.string_buffer_empty = find_static(sa, stdlib, "StringBuffer", "empty");
     sa.known.functions.string_buffer_append = find_method(sa, stdlib, "StringBuffer", "append");
     sa.known.functions.string_buffer_to_string =
         find_method(sa, stdlib, "StringBuffer", "toString");
 }
 
-fn find_class(
-    sa: &SemAnalysis,
-    namespace_id: ModuleDefinitionId,
-    name: &str,
-) -> ClassDefinitionId {
+fn find_class(sa: &SemAnalysis, namespace_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
     let iname = sa.interner.intern(name);
     let symtable = NestedSymTable::new(sa, namespace_id);
     symtable.get_class(iname).expect("class not found")
@@ -249,7 +245,7 @@ fn find_enum(
 }
 
 pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
-    let stdlib = sa.stdlib_namespace_id;
+    let stdlib = sa.stdlib_module_id;
     native_fct(sa, stdlib, "fatalError", stdlib::fatal_error as *const u8);
     native_fct(sa, stdlib, "abort", stdlib::abort as *const u8);
     native_fct(sa, stdlib, "exit", stdlib::exit as *const u8);
@@ -280,7 +276,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     if sa.args.flag_boots.is_some() {
         native_fct(
             sa,
-            sa.boots_namespace_id,
+            sa.boots_module_id,
             "getEncodedBytecodeFunctionByName",
             stdlib::get_encoded_bytecode_function_by_name as *const u8,
         );

@@ -8,7 +8,7 @@ use crate::language::access::{
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    namespace_package, EnumDefinitionId, ModuleDefinitionId, UseDefinition,
+    module_package, EnumDefinitionId, ModuleDefinitionId, UseDefinition,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::vm::SemAnalysis;
@@ -23,13 +23,13 @@ pub fn check<'a>(sa: &SemAnalysis) {
 }
 
 fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
-    let table = sa.namespace_table(use_def.namespace_id);
+    let table = sa.namespace_table(use_def.module_id);
 
     let namespace_id = match use_def.ast.context {
-        UseContext::This => use_def.namespace_id,
-        UseContext::Package => namespace_package(sa, use_def.namespace_id),
+        UseContext::This => use_def.module_id,
+        UseContext::Package => module_package(sa, use_def.module_id),
         UseContext::Super => {
-            let namespace = &sa.namespaces[use_def.namespace_id].read();
+            let namespace = &sa.modules[use_def.module_id].read();
             if let Some(namespace_id) = namespace.parent_module_id {
                 namespace_id
             } else {
@@ -60,8 +60,8 @@ fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
 
         match sym {
             Some(Sym::Namespace(namespace_id)) => {
-                if !namespace_accessible_from(sa, namespace_id, use_def.namespace_id) {
-                    let namespace = &sa.namespaces[namespace_id].read();
+                if !namespace_accessible_from(sa, namespace_id, use_def.module_id) {
+                    let namespace = &sa.modules[namespace_id].read();
                     let msg = SemError::NotAccessible(namespace.name(sa));
                     sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                     return;
@@ -99,11 +99,11 @@ fn read_path(
         for &name in &path[1..] {
             match sym {
                 Some(Sym::Namespace(namespace_id)) => {
-                    let namespace = &sa.namespaces[namespace_id].read();
+                    let namespace = &sa.modules[namespace_id].read();
                     let symtable = namespace.table.read();
 
-                    if !namespace_accessible_from(sa, namespace_id, use_def.namespace_id) {
-                        let namespace = &sa.namespaces[namespace_id].read();
+                    if !namespace_accessible_from(sa, namespace_id, use_def.module_id) {
+                        let namespace = &sa.modules[namespace_id].read();
                         let msg = SemError::NotAccessible(namespace.name(sa));
                         sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                         return Err(());
@@ -142,12 +142,12 @@ fn use_namespace(
     element_name: Name,
     target_name: Name,
 ) {
-    let namespace = &sa.namespaces[namespace_id].read();
+    let namespace = &sa.modules[namespace_id].read();
     let sym = namespace.table.read().get(element_name);
 
     match sym {
         Some(Sym::Fct(fct_id)) => {
-            if !fct_accessible_from(sa, fct_id, use_def.namespace_id) {
+            if !fct_accessible_from(sa, fct_id, use_def.module_id) {
                 let fct = &sa.fcts.idx(fct_id);
                 let fct = fct.read();
                 let msg = SemError::NotAccessible(fct.name(sa));
@@ -161,8 +161,8 @@ fn use_namespace(
         }
 
         Some(Sym::Namespace(namespace_id)) => {
-            if !namespace_accessible_from(sa, namespace_id, use_def.namespace_id) {
-                let namespace = &sa.namespaces[namespace_id].read();
+            if !namespace_accessible_from(sa, namespace_id, use_def.module_id) {
+                let namespace = &sa.modules[namespace_id].read();
                 let msg = SemError::NotAccessible(namespace.name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
@@ -174,7 +174,7 @@ fn use_namespace(
         }
 
         Some(Sym::Global(global_id)) => {
-            if !global_accessible_from(sa, global_id, use_def.namespace_id) {
+            if !global_accessible_from(sa, global_id, use_def.module_id) {
                 let global = &sa.globals.idx(global_id);
                 let global = global.read();
                 let msg = SemError::NotAccessible(global.name(sa));
@@ -188,7 +188,7 @@ fn use_namespace(
         }
 
         Some(Sym::Const(const_id)) => {
-            if !const_accessible_from(sa, const_id, use_def.namespace_id) {
+            if !const_accessible_from(sa, const_id, use_def.module_id) {
                 let xconst = &sa.consts.idx(const_id);
                 let xconst = xconst.read();
                 let msg = SemError::NotAccessible(xconst.name(sa));
@@ -202,7 +202,7 @@ fn use_namespace(
         }
 
         Some(Sym::Class(cls_id)) => {
-            if !class_accessible_from(sa, cls_id, use_def.namespace_id) {
+            if !class_accessible_from(sa, cls_id, use_def.module_id) {
                 let cls = &sa.classes.idx(cls_id);
                 let cls = cls.read();
                 let msg = SemError::NotAccessible(cls.name(sa));
@@ -217,7 +217,7 @@ fn use_namespace(
         }
 
         Some(Sym::Enum(enum_id)) => {
-            if !enum_accessible_from(sa, enum_id, use_def.namespace_id) {
+            if !enum_accessible_from(sa, enum_id, use_def.module_id) {
                 let xenum = sa.enums[enum_id].read();
                 let msg = SemError::NotAccessible(xenum.name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
@@ -230,7 +230,7 @@ fn use_namespace(
         }
 
         Some(Sym::Struct(struct_id)) => {
-            if !struct_accessible_from(sa, struct_id, use_def.namespace_id) {
+            if !struct_accessible_from(sa, struct_id, use_def.module_id) {
                 let xstruct = sa.structs.idx(struct_id);
                 let xstruct = xstruct.read();
                 let msg = SemError::NotAccessible(xstruct.name(sa));
@@ -245,7 +245,7 @@ fn use_namespace(
         }
 
         Some(Sym::Trait(trait_id)) => {
-            if !trait_accessible_from(sa, trait_id, use_def.namespace_id) {
+            if !trait_accessible_from(sa, trait_id, use_def.module_id) {
                 let xtrait = sa.traits[trait_id].read();
                 let msg = SemError::NotAccessible(xtrait.name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
@@ -288,7 +288,7 @@ fn use_enum(
 ) {
     let xenum = sa.enums[enum_id].read();
 
-    if !enum_accessible_from(sa, enum_id, use_def.namespace_id) {
+    if !enum_accessible_from(sa, enum_id, use_def.module_id) {
         let msg = SemError::NotAccessible(xenum.name(sa));
         sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
     }

@@ -18,7 +18,7 @@ pub fn check(sa: &SemAnalysis) {
         check_abstract(sa, &*fct);
         check_static(sa, &*fct);
 
-        let mut sym_table = NestedSymTable::new(sa, fct.namespace_id);
+        let mut sym_table = NestedSymTable::new(sa, fct.module_id);
         sym_table.push_level();
 
         match fct.parent {

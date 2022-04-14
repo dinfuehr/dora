@@ -101,7 +101,7 @@ pub struct FullSemAnalysis {
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
-    pub namespaces: MutableVec<ModuleDefinition>, // stores all namespace definitions
+    pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub enums: MutableVec<EnumDefinition>,   // stores all enum source definitions
     pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
@@ -112,10 +112,10 @@ pub struct FullSemAnalysis {
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub parse_arg_file: bool,
-    pub prelude_namespace_id: ModuleDefinitionId,
-    pub stdlib_namespace_id: ModuleDefinitionId,
-    pub program_namespace_id: ModuleDefinitionId,
-    pub boots_namespace_id: ModuleDefinitionId,
+    pub prelude_module_id: ModuleDefinitionId,
+    pub stdlib_module_id: ModuleDefinitionId,
+    pub program_module_id: ModuleDefinitionId,
+    pub boots_module_id: ModuleDefinitionId,
 }
 
 impl FullSemAnalysis {
@@ -131,11 +131,11 @@ impl FullSemAnalysis {
         let stdlib_name = interner.intern("std");
         let boots_name = interner.intern("boots");
 
-        let mut namespaces = MutableVec::new();
-        let prelude_namespace_id = namespaces.push(ModuleDefinition::predefined(None));
-        let stdlib_namespace_id = namespaces.push(ModuleDefinition::predefined(Some(stdlib_name)));
-        let program_namespace_id = namespaces.push(ModuleDefinition::predefined(None));
-        let boots_namespace_id = namespaces.push(ModuleDefinition::predefined(Some(boots_name)));
+        let mut modules = MutableVec::new();
+        let prelude_module_id = modules.push(ModuleDefinition::predefined(None));
+        let stdlib_module_id = modules.push(ModuleDefinition::predefined(Some(stdlib_name)));
+        let program_module_id = modules.push(ModuleDefinition::predefined(None));
+        let boots_module_id = modules.push(ModuleDefinition::predefined(Some(boots_name)));
 
         let sa = Box::new(FullSemAnalysis {
             args,
@@ -149,7 +149,7 @@ impl FullSemAnalysis {
             extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
-            namespaces,
+            modules,
             enums: MutableVec::new(),
             enum_defs: GrowableVec::new(),
             traits: MutableVec::new(),
@@ -220,10 +220,10 @@ impl FullSemAnalysis {
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
             parse_arg_file: true,
-            prelude_namespace_id,
-            stdlib_namespace_id,
-            program_namespace_id,
-            boots_namespace_id,
+            prelude_module_id,
+            stdlib_module_id,
+            program_module_id,
+            boots_module_id,
         });
 
         sa
@@ -252,7 +252,7 @@ pub struct VM {
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
-    pub namespaces: MutableVec<ModuleDefinition>, // stores all namespace definitions
+    pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
@@ -273,10 +273,10 @@ pub struct VM {
     pub safepoint_stub: Mutex<Address>,
     pub threads: Threads,
     pub parse_arg_file: bool,
-    pub prelude_namespace_id: ModuleDefinitionId,
-    pub stdlib_namespace_id: ModuleDefinitionId,
-    pub program_namespace_id: ModuleDefinitionId,
-    pub boots_namespace_id: ModuleDefinitionId,
+    pub prelude_module_id: ModuleDefinitionId,
+    pub stdlib_module_id: ModuleDefinitionId,
+    pub program_module_id: ModuleDefinitionId,
+    pub boots_module_id: ModuleDefinitionId,
     pub wait_lists: WaitLists,
 }
 
@@ -294,11 +294,11 @@ impl VM {
         let stdlib_name = interner.intern("std");
         let boots_name = interner.intern("boots");
 
-        let mut namespaces = MutableVec::new();
-        let prelude_namespace_id = namespaces.push(ModuleDefinition::predefined(None));
-        let stdlib_namespace_id = namespaces.push(ModuleDefinition::predefined(Some(stdlib_name)));
-        let program_namespace_id = namespaces.push(ModuleDefinition::predefined(None));
-        let boots_namespace_id = namespaces.push(ModuleDefinition::predefined(Some(boots_name)));
+        let mut modules = MutableVec::new();
+        let prelude_module_id = modules.push(ModuleDefinition::predefined(None));
+        let stdlib_module_id = modules.push(ModuleDefinition::predefined(Some(stdlib_name)));
+        let program_module_id = modules.push(ModuleDefinition::predefined(None));
+        let boots_module_id = modules.push(ModuleDefinition::predefined(Some(boots_name)));
 
         let vm = Box::new(VM {
             args,
@@ -312,7 +312,7 @@ impl VM {
             extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
-            namespaces,
+            modules,
             enums: MutableVec::new(),
             enum_defs: GrowableVec::new(),
             traits: MutableVec::new(),
@@ -393,10 +393,10 @@ impl VM {
             safepoint_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
             parse_arg_file: true,
-            prelude_namespace_id,
-            stdlib_namespace_id,
-            program_namespace_id,
-            boots_namespace_id,
+            prelude_module_id,
+            stdlib_module_id,
+            program_module_id,
+            boots_module_id,
             wait_lists: WaitLists::new(),
         });
 
@@ -422,7 +422,7 @@ impl VM {
             extensions: sa.extensions,
             tuples: sa.tuples,
             annotations: sa.annotations,
-            namespaces: sa.namespaces,
+            modules: sa.modules,
             enums: sa.enums,
             enum_defs: sa.enum_defs,
             traits: sa.traits,
@@ -447,10 +447,10 @@ impl VM {
             safepoint_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
             parse_arg_file: sa.parse_arg_file,
-            prelude_namespace_id: sa.prelude_namespace_id,
-            stdlib_namespace_id: sa.stdlib_namespace_id,
-            program_namespace_id: sa.program_namespace_id,
-            boots_namespace_id: sa.boots_namespace_id,
+            prelude_module_id: sa.prelude_module_id,
+            stdlib_module_id: sa.stdlib_module_id,
+            program_module_id: sa.program_module_id,
+            boots_module_id: sa.boots_module_id,
             wait_lists: WaitLists::new(),
         });
 

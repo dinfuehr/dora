@@ -13,7 +13,7 @@ pub fn global_accessible_from(
     let global = sa.globals.idx(global_id);
     let global = global.read();
 
-    accessible_from(sa, global.namespace_id, global.is_pub, namespace_id)
+    accessible_from(sa, global.module_id, global.is_pub, namespace_id)
 }
 
 pub fn class_accessible_from(
@@ -24,7 +24,7 @@ pub fn class_accessible_from(
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
 
-    accessible_from(sa, cls.namespace_id, cls.is_pub, namespace_id)
+    accessible_from(sa, cls.module_id, cls.is_pub, namespace_id)
 }
 
 pub fn class_field_accessible_from(
@@ -38,12 +38,7 @@ pub fn class_field_accessible_from(
 
     let field = &cls.fields[field_id];
 
-    accessible_from(
-        sa,
-        cls.namespace_id,
-        cls.is_pub && field.is_pub,
-        namespace_id,
-    )
+    accessible_from(sa, cls.module_id, cls.is_pub && field.is_pub, namespace_id)
 }
 
 pub fn method_accessible_from(
@@ -71,7 +66,7 @@ pub fn method_accessible_from(
         FctParent::None => unreachable!(),
     };
 
-    accessible_from(sa, fct.namespace_id, element_pub, namespace_id)
+    accessible_from(sa, fct.module_id, element_pub, namespace_id)
 }
 
 pub fn fct_accessible_from(
@@ -82,7 +77,7 @@ pub fn fct_accessible_from(
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
 
-    accessible_from(sa, fct.namespace_id, fct.is_pub, namespace_id)
+    accessible_from(sa, fct.module_id, fct.is_pub, namespace_id)
 }
 
 pub fn enum_accessible_from(
@@ -92,7 +87,7 @@ pub fn enum_accessible_from(
 ) -> bool {
     let xenum = sa.enums[enum_id].read();
 
-    accessible_from(sa, xenum.namespace_id, xenum.is_pub, namespace_id)
+    accessible_from(sa, xenum.module_id, xenum.is_pub, namespace_id)
 }
 
 pub fn struct_accessible_from(
@@ -103,7 +98,7 @@ pub fn struct_accessible_from(
     let xstruct = sa.structs.idx(struct_id);
     let xstruct = xstruct.read();
 
-    accessible_from(sa, xstruct.namespace_id, xstruct.is_pub, namespace_id)
+    accessible_from(sa, xstruct.module_id, xstruct.is_pub, namespace_id)
 }
 
 pub fn struct_field_accessible_from(
@@ -119,7 +114,7 @@ pub fn struct_field_accessible_from(
 
     accessible_from(
         sa,
-        xstruct.namespace_id,
+        xstruct.module_id,
         xstruct.is_pub && field.is_pub,
         namespace_id,
     )
@@ -140,7 +135,7 @@ pub fn trait_accessible_from(
 ) -> bool {
     let xtrait = sa.traits[trait_id].read();
 
-    accessible_from(sa, xtrait.namespace_id, xtrait.is_pub, namespace_id)
+    accessible_from(sa, xtrait.module_id, xtrait.is_pub, namespace_id)
 }
 
 pub fn const_accessible_from(
@@ -151,7 +146,7 @@ pub fn const_accessible_from(
     let xconst = vm.consts.idx(const_id);
     let xconst = xconst.read();
 
-    accessible_from(vm, xconst.namespace_id, xconst.is_pub, namespace_id)
+    accessible_from(vm, xconst.module_id, xconst.is_pub, namespace_id)
 }
 
 fn accessible_from(
@@ -173,10 +168,10 @@ fn accessible_from(
     // find the common parent of both namespaces
     let common_parent_id = common_parent(sa, target_id, from_id);
 
-    let target = &sa.namespaces[target_id].read();
+    let target = &sa.modules[target_id].read();
 
     if let Some(common_parent_id) = common_parent_id {
-        let common_parent_depth = sa.namespaces[common_parent_id].read().depth;
+        let common_parent_depth = sa.modules[common_parent_id].read().depth;
 
         if common_parent_depth + 1 == target.depth {
             // siblings are accessible
@@ -184,7 +179,7 @@ fn accessible_from(
         } else {
             let start_depth = common_parent_depth + 2;
             for &ns_id in &target.parents[start_depth..] {
-                let ns = &sa.namespaces[ns_id].read();
+                let ns = &sa.modules[ns_id].read();
                 if !ns.is_pub {
                     return false;
                 }
@@ -196,7 +191,7 @@ fn accessible_from(
         // no common parent: means we try to access another package
         // the whole path needs to be public
         for &ns_id in &target.parents {
-            let ns = &sa.namespaces[ns_id].read();
+            let ns = &sa.modules[ns_id].read();
             if !ns.is_pub {
                 return false;
             }
@@ -215,8 +210,8 @@ fn common_parent(
         return Some(lhs_id);
     }
 
-    let lhs = &sa.namespaces[lhs_id].read();
-    let rhs = &sa.namespaces[rhs_id].read();
+    let lhs = &sa.modules[lhs_id].read();
+    let rhs = &sa.modules[rhs_id].read();
 
     if lhs.depth > rhs.depth {
         if lhs.parents[rhs.depth] == rhs_id {
@@ -252,6 +247,6 @@ pub fn namespace_contains(
         return true;
     }
 
-    let namespace = &sa.namespaces[child_id].read();
+    let namespace = &sa.modules[child_id].read();
     namespace.parents.contains(&parent_id)
 }

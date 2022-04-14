@@ -18,7 +18,7 @@ pub fn check(sa: &SemAnalysis) {
     for cls in sa.classes.iter() {
         let (cls_id, file_id, ast, namespace_id) = {
             let cls = cls.read();
-            (cls.id(), cls.file_id, cls.ast.clone(), cls.namespace_id)
+            (cls.id(), cls.file_id, cls.ast.clone(), cls.module_id)
         };
 
         let mut clsck = ClsDefCheck {

@@ -21,7 +21,7 @@ pub fn check(sa: &SemAnalysis) {
                 xstruct.id(),
                 xstruct.file_id,
                 xstruct.ast.clone(),
-                xstruct.namespace_id,
+                xstruct.module_id,
             )
         };
 

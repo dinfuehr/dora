@@ -8,7 +8,7 @@ use dora_parser::interner::Name;
 use dora_parser::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches, impl_matches, namespace_path, ExtensionDefinitionId, FctDefinitionId,
+    extension_matches, impl_matches, module_path, ExtensionDefinitionId, FctDefinitionId,
     ImplDefinitionId, ModuleDefinitionId, SourceFileId, TraitDefinitionId,
 };
 use crate::language::sym::SymTable;
@@ -68,7 +68,7 @@ pub struct ClassDefinition {
     pub id: Option<ClassDefinitionId>,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Class>,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub pos: Position,
     pub name: Name,
     pub primitive_type: Option<SourceType>,
@@ -104,7 +104,7 @@ impl ClassDefinition {
     pub fn new(
         file_id: SourceFileId,
         ast: &Arc<ast::Class>,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
     ) -> ClassDefinition {
         let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
             type_params
@@ -116,7 +116,7 @@ impl ClassDefinition {
             id: None,
             file_id,
             ast: ast.clone(),
-            namespace_id: namespace_id,
+            module_id,
             pos: ast.pos,
             name: ast.name,
             ty: None,
@@ -187,7 +187,7 @@ impl ClassDefinition {
     }
 
     pub fn name(&self, vm: &VM) -> String {
-        let mut name = namespace_path(vm, self.namespace_id, self.name);
+        let mut name = module_path(vm, self.module_id, self.name);
 
         if self.type_params.len() > 0 {
             let type_params = self
