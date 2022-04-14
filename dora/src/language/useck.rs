@@ -188,9 +188,9 @@ fn use_module(
 
         Some(Sym::Const(const_id)) => {
             if !const_accessible_from(sa, const_id, use_def.module_id) {
-                let xconst = &sa.consts.idx(const_id);
-                let xconst = xconst.read();
-                let msg = SemError::NotAccessible(xconst.name(sa));
+                let const_ = &sa.consts.idx(const_id);
+                let const_ = const_.read();
+                let msg = SemError::NotAccessible(const_.name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
@@ -217,8 +217,8 @@ fn use_module(
 
         Some(Sym::Enum(enum_id)) => {
             if !enum_accessible_from(sa, enum_id, use_def.module_id) {
-                let xenum = sa.enums[enum_id].read();
-                let msg = SemError::NotAccessible(xenum.name(sa));
+                let enum_ = sa.enums[enum_id].read();
+                let msg = SemError::NotAccessible(enum_.name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
@@ -245,8 +245,8 @@ fn use_module(
 
         Some(Sym::Trait(trait_id)) => {
             if !trait_accessible_from(sa, trait_id, use_def.module_id) {
-                let xtrait = sa.traits[trait_id].read();
-                let msg = SemError::NotAccessible(xtrait.name(sa));
+                let trait_ = sa.traits[trait_id].read();
+                let msg = SemError::NotAccessible(trait_.name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
@@ -285,14 +285,14 @@ fn use_enum(
     element_name: Name,
     target_name: Name,
 ) {
-    let xenum = sa.enums[enum_id].read();
+    let enum_ = sa.enums[enum_id].read();
 
     if !enum_accessible_from(sa, enum_id, use_def.module_id) {
-        let msg = SemError::NotAccessible(xenum.name(sa));
+        let msg = SemError::NotAccessible(enum_.name(sa));
         sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
     }
 
-    if let Some(&variant_id) = xenum.name_to_value.get(&element_name) {
+    if let Some(&variant_id) = enum_.name_to_value.get(&element_name) {
         let sym = Sym::EnumValue(enum_id, variant_id as usize);
         if let Some(sym) = table.write().insert(target_name, sym) {
             report_sym_shadow(

@@ -115,14 +115,14 @@ pub fn impl_matches(
     check_type_param_defs2: Option<&TypeParamDefinition>,
     impl_id: ImplDefinitionId,
 ) -> Option<SourceTypeArray> {
-    let ximpl = vm.impls[impl_id].read();
+    let impl_ = vm.impls[impl_id].read();
     extension_matches_ty(
         vm,
         check_ty,
         check_type_param_defs,
         check_type_param_defs2,
-        ximpl.ty.clone(),
-        &ximpl.type_params,
+        impl_.ty.clone(),
+        &impl_.type_params,
     )
 }
 
@@ -136,10 +136,10 @@ pub fn find_trait_impl(
     let impl_id = find_impl(vm, object_type, &[], trait_id)
         .expect("no impl found for generic trait method call");
 
-    let ximpl = vm.impls[impl_id].read();
-    assert_eq!(ximpl.trait_id(), trait_id);
+    let impl_ = vm.impls[impl_id].read();
+    assert_eq!(impl_.trait_id(), trait_id);
 
-    ximpl
+    impl_
         .impl_for
         .get(&fct_id)
         .cloned()

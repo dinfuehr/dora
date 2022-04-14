@@ -9,7 +9,7 @@ use dora_parser::lexer::token::IntSuffix;
 
 pub struct ConstCheck<'a> {
     pub sa: &'a SemAnalysis,
-    pub xconst: &'a ConstDefinition,
+    pub const_: &'a ConstDefinition,
     pub negative_expr_id: NodeId,
 }
 
@@ -19,11 +19,11 @@ impl<'a> ConstCheck<'a> {
             &Expr::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
             &Expr::LitInt(ref expr) => {
                 let (ty, val) =
-                    check_lit_int(self.sa, self.xconst.file_id, expr, false, SourceType::Any);
+                    check_lit_int(self.sa, self.const_.file_id, expr, false, SourceType::Any);
                 (ty, ConstValue::Int(val))
             }
             &Expr::LitFloat(ref expr) => {
-                let (ty, val) = check_lit_float(self.sa, self.xconst.file_id, expr, false);
+                let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
                 (ty, ConstValue::Float(val))
             }
             &Expr::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
@@ -37,12 +37,12 @@ impl<'a> ConstCheck<'a> {
                     self.sa
                         .diag
                         .lock()
-                        .report(self.xconst.file_id, expr.pos, msg);
+                        .report(self.const_.file_id, expr.pos, msg);
                 }
 
                 let (ty, val) = check_lit_int(
                     self.sa,
-                    self.xconst.file_id,
+                    self.const_.file_id,
                     expr.opnd.to_lit_int().unwrap(),
                     true,
                     SourceType::Any,
@@ -53,7 +53,7 @@ impl<'a> ConstCheck<'a> {
             &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {
                 let (ty, val) = check_lit_float(
                     self.sa,
-                    self.xconst.file_id,
+                    self.const_.file_id,
                     expr.opnd.to_lit_float().unwrap(),
                     true,
                 );
@@ -65,20 +65,20 @@ impl<'a> ConstCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.xconst.file_id, expr.pos(), msg);
+                    .report(self.const_.file_id, expr.pos(), msg);
                 return (SourceType::Error, ConstValue::None);
             }
         };
 
-        if !self.xconst.ty.allows(self.sa, ty.clone()) {
-            let name = self.sa.interner.str(self.xconst.name).to_string();
-            let const_ty = self.xconst.ty.name(self.sa);
+        if !self.const_.ty.allows(self.sa, ty.clone()) {
+            let name = self.sa.interner.str(self.const_.name).to_string();
+            let const_ty = self.const_.ty.name(self.sa);
             let ty = ty.name(self.sa);
             let msg = SemError::AssignType(name, const_ty, ty);
             self.sa
                 .diag
                 .lock()
-                .report(self.xconst.file_id, expr.pos(), msg);
+                .report(self.const_.file_id, expr.pos(), msg);
         }
 
         (ty, lit)

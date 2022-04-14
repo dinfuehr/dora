@@ -260,12 +260,12 @@ pub fn find_methods_in_struct(
             type_param_defs2,
             impl_id,
         ) {
-            let ximpl = sa.impls[impl_id].read();
+            let impl_ = sa.impls[impl_id].read();
 
             let table = if is_static {
-                &ximpl.static_names
+                &impl_.static_names
             } else {
-                &ximpl.instance_names
+                &impl_.instance_names
             };
 
             if let Some(&method_id) = table.get(&name) {

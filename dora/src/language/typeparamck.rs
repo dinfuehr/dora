@@ -20,13 +20,13 @@ pub fn check_enum(
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
-    let xenum = &sa.enums[enum_id];
-    let xenum = xenum.read();
+    let enum_ = &sa.enums[enum_id];
+    let enum_ = enum_.read();
 
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs: &fct.type_params,
-        callee_type_param_defs: &xenum.type_params,
+        callee_type_param_defs: &enum_.type_params,
         error,
     };
 
@@ -156,8 +156,8 @@ impl<'a> TypeParamCheck<'a> {
         ty: SourceType,
     ) {
         let name = ty.name_with_params(self.sa, self.caller_type_param_defs);
-        let xtrait = self.sa.traits[trait_id].read();
-        let trait_name = self.sa.interner.str(xtrait.name).to_string();
+        let trait_ = self.sa.traits[trait_id].read();
+        let trait_name = self.sa.interner.str(trait_.name).to_string();
         let msg = SemError::TypeNotImplementingTrait(name, trait_name);
         self.sa.diag.lock().report(file_id, pos, msg);
     }

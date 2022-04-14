@@ -85,9 +85,9 @@ pub fn enum_accessible_from(
     enum_id: EnumDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let xenum = sa.enums[enum_id].read();
+    let enum_ = sa.enums[enum_id].read();
 
-    accessible_from(sa, xenum.module_id, xenum.is_pub, module_id)
+    accessible_from(sa, enum_.module_id, enum_.is_pub, module_id)
 }
 
 pub fn struct_accessible_from(
@@ -133,9 +133,9 @@ pub fn trait_accessible_from(
     trait_id: TraitDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let xtrait = sa.traits[trait_id].read();
+    let trait_ = sa.traits[trait_id].read();
 
-    accessible_from(sa, xtrait.module_id, xtrait.is_pub, module_id)
+    accessible_from(sa, trait_.module_id, trait_.is_pub, module_id)
 }
 
 pub fn const_accessible_from(
@@ -143,10 +143,10 @@ pub fn const_accessible_from(
     const_id: ConstDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let xconst = vm.consts.idx(const_id);
-    let xconst = xconst.read();
+    let const_ = vm.consts.idx(const_id);
+    let const_ = const_.read();
 
-    accessible_from(vm, xconst.module_id, xconst.is_pub, module_id)
+    accessible_from(vm, const_.module_id, const_.is_pub, module_id)
 }
 
 fn accessible_from(

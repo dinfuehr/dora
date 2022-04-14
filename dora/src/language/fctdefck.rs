@@ -38,16 +38,16 @@ pub fn check(sa: &SemAnalysis) {
             }
 
             FctParent::Impl(impl_id) => {
-                let ximpl = sa.impls[impl_id].read();
+                let impl_ = sa.impls[impl_id].read();
 
-                for (type_param_id, param) in ximpl.type_params.iter().enumerate() {
+                for (type_param_id, param) in impl_.type_params.iter().enumerate() {
                     let sym = Sym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
                 }
 
                 if fct.has_self() {
-                    fct.param_types.push(ximpl.ty.clone());
+                    fct.param_types.push(impl_.ty.clone());
                 }
             }
 
@@ -66,9 +66,9 @@ pub fn check(sa: &SemAnalysis) {
             }
 
             FctParent::Trait(trait_id) => {
-                let xtrait = sa.traits[trait_id].read();
+                let trait_ = sa.traits[trait_id].read();
 
-                for (type_param_id, param) in xtrait.type_params.iter().enumerate() {
+                for (type_param_id, param) in trait_.type_params.iter().enumerate() {
                     let sym = Sym::TypeParam(TypeParamId(type_param_id));
                     sym_table.insert(param.name, sym);
                     fct.type_params.push(param.clone());
@@ -197,13 +197,13 @@ pub fn check(sa: &SemAnalysis) {
             }
 
             FctParent::Trait(traitid) => {
-                let xtrait = sa.traits[traitid].read();
-                check_against_methods(sa, &*fct, &xtrait.methods);
+                let trait_ = sa.traits[traitid].read();
+                check_against_methods(sa, &*fct, &trait_.methods);
             }
 
             FctParent::Impl(implid) => {
-                let ximpl = sa.impls[implid].read();
-                check_against_methods(sa, &*fct, &ximpl.methods);
+                let impl_ = sa.impls[implid].read();
+                check_against_methods(sa, &*fct, &impl_.methods);
             }
 
             _ => {}

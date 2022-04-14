@@ -49,19 +49,19 @@ pub fn check(sa: &SemAnalysis) {
         fct.write().analysis = Some(analysis);
     }
 
-    for xconst in sa.consts.iter() {
-        let mut xconst = xconst.write();
+    for const_ in sa.consts.iter() {
+        let mut const_ = const_.write();
 
         let (_, value) = {
             let mut constck = ConstCheck {
                 sa,
-                xconst: &*xconst,
+                const_: &*const_,
                 negative_expr_id: NodeId(0),
             };
 
-            constck.check_expr(&xconst.expr)
+            constck.check_expr(&const_.expr)
         };
 
-        xconst.value = value;
+        const_.value = value;
     }
 }

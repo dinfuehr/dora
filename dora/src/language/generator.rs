@@ -603,8 +603,8 @@ impl<'a> AstBytecodeGen<'a> {
                     // build toString() call
                     let name = self.sa.interner.intern("toString");
                     let trait_id = self.sa.known.traits.stringable;
-                    let xtrait = self.sa.traits[trait_id].read();
-                    let to_string_id = xtrait
+                    let trait_ = self.sa.traits[trait_id].read();
+                    let to_string_id = trait_
                         .find_method(self.sa, name, false)
                         .expect("Stringable::toString() not found");
 
@@ -631,8 +631,8 @@ impl<'a> AstBytecodeGen<'a> {
                         self.sa.known.traits.stringable,
                     )
                     .expect("impl of Stringable not found");
-                    let ximpl = self.sa.impls[stringable_impl_id].read();
-                    let to_string_id = ximpl
+                    let impl_ = self.sa.impls[stringable_impl_id].read();
+                    let to_string_id = impl_
                         .instance_names
                         .get(&name)
                         .cloned()
@@ -686,10 +686,10 @@ impl<'a> AstBytecodeGen<'a> {
         pos: Position,
         dest: DataDest,
     ) -> Register {
-        let xenum = &self.sa.enums[enum_id];
-        let xenum = xenum.read();
+        let enum_ = &self.sa.enums[enum_id];
+        let enum_ = enum_.read();
 
-        if xenum.simple_enumeration {
+        if enum_.simple_enumeration {
             let dest = self.ensure_register(dest, BytecodeType::Int32);
             self.gen.emit_const_int32(dest, variant_id as i32);
             dest
@@ -2607,16 +2607,16 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let xconst = self.sa.consts.idx(const_id);
-        let xconst = xconst.read();
-        let ty = xconst.ty.clone();
+        let const_ = self.sa.consts.idx(const_id);
+        let const_ = const_.read();
+        let ty = const_.ty.clone();
 
         let bytecode_ty = BytecodeType::from_ty(self.sa, ty.clone());
         let dest = self.ensure_register(dest, bytecode_ty);
 
         match ty {
             SourceType::Bool => {
-                if xconst.value.to_bool() {
+                if const_.value.to_bool() {
                     self.gen.emit_const_true(dest);
                 } else {
                     self.gen.emit_const_false(dest);
@@ -2624,29 +2624,29 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             SourceType::Char => {
-                self.gen.emit_const_char(dest, xconst.value.to_char());
+                self.gen.emit_const_char(dest, const_.value.to_char());
             }
 
             SourceType::UInt8 => {
-                self.gen.emit_const_uint8(dest, xconst.value.to_int() as u8);
+                self.gen.emit_const_uint8(dest, const_.value.to_int() as u8);
             }
 
             SourceType::Int32 => {
                 self.gen
-                    .emit_const_int32(dest, xconst.value.to_int() as i32);
+                    .emit_const_int32(dest, const_.value.to_int() as i32);
             }
 
             SourceType::Int64 => {
-                self.gen.emit_const_int64(dest, xconst.value.to_int());
+                self.gen.emit_const_int64(dest, const_.value.to_int());
             }
 
             SourceType::Float32 => {
                 self.gen
-                    .emit_const_float32(dest, xconst.value.to_float() as f32);
+                    .emit_const_float32(dest, const_.value.to_float() as f32);
             }
 
             SourceType::Float64 => {
-                self.gen.emit_const_float64(dest, xconst.value.to_float());
+                self.gen.emit_const_float64(dest, const_.value.to_float());
             }
 
             _ => unimplemented!(),

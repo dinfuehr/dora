@@ -154,10 +154,10 @@ pub fn find_methods_in_enum(
     is_static: bool,
 ) -> Vec<Candidate> {
     let enum_id = object_type.enum_id().unwrap();
-    let xenum = vm.enums.idx(enum_id);
-    let xenum = xenum.read();
+    let enum_ = vm.enums.idx(enum_id);
+    let enum_ = enum_.read();
 
-    for &extension_id in &xenum.extensions {
+    for &extension_id in &enum_.extensions {
         if let Some(bindings) = extension_matches(
             vm,
             object_type.clone(),
@@ -185,7 +185,7 @@ pub fn find_methods_in_enum(
 
     let mut candidates = Vec::new();
 
-    for &impl_id in &xenum.impls {
+    for &impl_id in &enum_.impls {
         if let Some(bindings) = impl_matches(
             vm,
             object_type.clone(),
@@ -193,12 +193,12 @@ pub fn find_methods_in_enum(
             type_param_defs2,
             impl_id,
         ) {
-            let ximpl = vm.impls[impl_id].read();
+            let impl_ = vm.impls[impl_id].read();
 
             let table = if is_static {
-                &ximpl.static_names
+                &impl_.static_names
             } else {
-                &ximpl.instance_names
+                &impl_.instance_names
             };
 
             if let Some(&method_id) = table.get(&name) {

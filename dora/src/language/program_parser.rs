@@ -352,10 +352,10 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        let xtrait = TraitDefinition::new(self.file_id, self.module_id, node);
-        let id = self.sa.traits.push(xtrait);
+        let trait_ = TraitDefinition::new(self.file_id, self.module_id, node);
+        let trait_id = self.sa.traits.push(trait_);
 
-        let sym = Sym::Trait(id);
+        let sym = Sym::Trait(trait_id);
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
@@ -378,8 +378,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         if node.trait_type.is_some() {
-            let ximpl = ImplDefinition::new(self.file_id, self.module_id, node);
-            self.sa.impls.push(ximpl);
+            let impl_ = ImplDefinition::new(self.file_id, self.module_id, node);
+            self.sa.impls.push(impl_);
         } else {
             let extension = ExtensionDefinition::new(self.file_id, self.module_id, node);
             self.sa.extensions.push(extension);
@@ -387,8 +387,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
-        let xconst = ConstDefinition::new(self.file_id, self.module_id, node);
-        let id = self.sa.consts.push(xconst);
+        let const_ = ConstDefinition::new(self.file_id, self.module_id, node);
+        let id = self.sa.consts.push(const_);
 
         let sym = Sym::Const(id);
         if let Some(sym) = self.insert(node.name, sym) {
@@ -440,8 +440,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        let xenum = EnumDefinition::new(self.file_id, self.module_id, node);
-        let id = self.sa.enums.push(xenum);
+        let enum_ = EnumDefinition::new(self.file_id, self.module_id, node);
+        let id = self.sa.enums.push(enum_);
 
         let sym = Sym::Enum(id);
         if let Some(sym) = self.insert(node.name, sym) {

@@ -10,19 +10,19 @@ use crate::vm::SemAnalysis;
 use dora_parser::ast;
 
 pub fn check(sa: &SemAnalysis) {
-    for xtrait in sa.traits.iter() {
+    for trait_ in sa.traits.iter() {
         let (trait_id, file_id, ast, module_id) = {
-            let xtrait = xtrait.read();
+            let trait_ = trait_.read();
             (
-                xtrait.id(),
-                xtrait.file_id,
-                xtrait.ast.clone(),
-                xtrait.module_id,
+                trait_.id(),
+                trait_.file_id,
+                trait_.ast.clone(),
+                trait_.module_id,
             )
         };
 
-        let xtrait = &sa.traits[trait_id];
-        let mut xtrait = xtrait.write();
+        let trait_ = &sa.traits[trait_id];
+        let mut trait_ = trait_.write();
 
         let mut clsck = TraitCheck {
             sa,
@@ -30,7 +30,7 @@ pub fn check(sa: &SemAnalysis) {
             file_id,
             ast: &ast,
             module_id,
-            xtrait: &mut *xtrait,
+            trait_: &mut *trait_,
             sym: NestedSymTable::new(sa, module_id),
             vtable_index: 0,
         };
@@ -45,7 +45,7 @@ struct TraitCheck<'x> {
     trait_id: TraitDefinitionId,
     ast: &'x ast::Trait,
     module_id: ModuleDefinitionId,
-    xtrait: &'x mut TraitDefinition,
+    trait_: &'x mut TraitDefinition,
     sym: NestedSymTable<'x>,
     vtable_index: u32,
 }
@@ -69,7 +69,7 @@ impl<'x> TraitCheck<'x> {
         language::check_type_params(
             self.sa,
             ast_type_params,
-            &mut self.xtrait.type_params,
+            &mut self.trait_.type_params,
             &mut self.sym,
             self.file_id,
             self.ast.pos,
@@ -89,12 +89,12 @@ impl<'x> TraitCheck<'x> {
 
         let fctid = self.sa.add_fct(fct);
 
-        self.xtrait.methods.push(fctid);
+        self.trait_.methods.push(fctid);
 
         let table = if node.is_static {
-            &mut self.xtrait.static_names
+            &mut self.trait_.static_names
         } else {
-            &mut self.xtrait.instance_names
+            &mut self.trait_.instance_names
         };
 
         if !table.contains_key(&node.name) {

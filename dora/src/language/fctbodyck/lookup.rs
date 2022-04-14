@@ -176,9 +176,9 @@ impl<'a> MethodLookup<'a> {
                 }
 
                 LookupKind::Trait(trait_id) => {
-                    let xtrait = &self.sa.traits[trait_id];
-                    let xtrait = xtrait.read();
-                    let type_name = self.sa.interner.str(xtrait.name).to_string();
+                    let trait_ = &self.sa.traits[trait_id];
+                    let trait_ = trait_.read();
+                    let type_name = self.sa.interner.str(trait_.name).to_string();
                     SemError::UnknownMethod(type_name, name, param_names)
                 }
 
@@ -321,10 +321,10 @@ impl<'a> MethodLookup<'a> {
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {
-        let xtrait = &self.sa.traits[trait_id];
-        let xtrait = xtrait.read();
+        let trait_ = &self.sa.traits[trait_id];
+        let trait_ = trait_.read();
 
-        xtrait.find_method(self.sa, name, is_static)
+        trait_.find_method(self.sa, name, is_static)
     }
 
     fn check_tps(&self, specified_tps: &[TypeParam], tps: &SourceTypeArray) -> bool {

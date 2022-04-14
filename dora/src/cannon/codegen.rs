@@ -1408,8 +1408,8 @@ impl<'a> CannonCodeGen<'a> {
             .iter()
             .all(|ty| !ty.contains_type_param(self.vm)));
 
-        let xenum = &self.vm.enums[enum_id];
-        let xenum = xenum.read();
+        let enum_ = &self.vm.enums[enum_id];
+        let enum_ = enum_.read();
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(edef_id);
@@ -1420,7 +1420,7 @@ impl<'a> CannonCodeGen<'a> {
             }
             EnumLayout::Ptr => {
                 assert_eq!(0, element);
-                let first_variant = xenum.variants.first().unwrap();
+                let first_variant = enum_.variants.first().unwrap();
                 let some_idx = if first_variant.types.is_empty() { 1 } else { 0 };
                 assert_eq!(variant_id, some_idx);
                 assert_eq!(BytecodeType::Ptr, self.specialize_register_type(dest));
@@ -1432,7 +1432,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = specialize_enum_class(self.vm, &*edef, &*xenum, variant_id);
+                let cls_def_id = specialize_enum_class(self.vm, &*edef, &*enum_, variant_id);
 
                 let cls = self.vm.class_defs.idx(cls_def_id);
 
@@ -1449,7 +1449,7 @@ impl<'a> CannonCodeGen<'a> {
                 let pos = self.bytecode.offset_position(self.current_offset.to_u32());
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
-                let field_id = edef.field_id(&*xenum, variant_id, element);
+                let field_id = edef.field_id(&*enum_, variant_id, element);
                 let field = &cls.fields[field_id as usize];
 
                 if field.ty.is_unit() {
@@ -1488,8 +1488,8 @@ impl<'a> CannonCodeGen<'a> {
             .iter()
             .all(|ty| !ty.contains_type_param(self.vm)));
 
-        let xenum = &self.vm.enums[enum_id];
-        let xenum = xenum.read();
+        let enum_ = &self.vm.enums[enum_id];
+        let enum_ = enum_.read();
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(edef_id);
@@ -1500,7 +1500,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int32);
             }
             EnumLayout::Ptr => {
-                let first_variant = xenum.variants.first().unwrap();
+                let first_variant = enum_.variants.first().unwrap();
                 let none_idx = if first_variant.types.is_empty() { 0 } else { 1 };
                 let some_idx = if none_idx == 0 { 1 } else { 0 };
 
@@ -2474,8 +2474,8 @@ impl<'a> CannonCodeGen<'a> {
             .iter()
             .all(|ty| !ty.contains_type_param(self.vm)));
 
-        let xenum = &self.vm.enums[enum_id];
-        let xenum = xenum.read();
+        let enum_ = &self.vm.enums[enum_id];
+        let enum_ = enum_.read();
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let edef = self.vm.enum_defs.idx(edef_id);
@@ -2490,7 +2490,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int32);
             }
             EnumLayout::Ptr => {
-                let variant = &xenum.variants[variant_id];
+                let variant = &enum_.variants[variant_id];
 
                 if variant.types.is_empty() {
                     assert_eq!(0, arguments.len());
@@ -2508,7 +2508,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = specialize_enum_class(self.vm, &*edef, &*xenum, variant_id);
+                let cls_def_id = specialize_enum_class(self.vm, &*edef, &*enum_, variant_id);
 
                 let cls = self.vm.class_defs.idx(cls_def_id);
 
@@ -4038,9 +4038,9 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.test_if_nil_bailout(pos, REG_TMP1, Trap::ILLEGAL);
 
-                let xenum = &self.vm.enums[enum_id];
-                let xenum = xenum.read();
-                let first_variant = xenum.variants.first().unwrap();
+                let enum_ = &self.vm.enums[enum_id];
+                let enum_ = enum_.read();
+                let first_variant = enum_.variants.first().unwrap();
 
                 let some_variant_id = if first_variant.types.is_empty() { 1 } else { 0 };
 
@@ -4055,7 +4055,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
 
                 let cdef_id =
-                    specialize_enum_class(self.vm, &*edef, &*xenum, some_variant_id as usize);
+                    specialize_enum_class(self.vm, &*edef, &*enum_, some_variant_id as usize);
 
                 let cls = self.vm.class_defs.idx(cdef_id);
 
@@ -4232,9 +4232,9 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.test_if_nil_bailout(pos, REG_TMP1, Trap::ILLEGAL);
 
-                let xenum = &self.vm.enums[enum_id];
-                let xenum = xenum.read();
-                let first_variant = xenum.variants.first().unwrap();
+                let enum_ = &self.vm.enums[enum_id];
+                let enum_ = enum_.read();
+                let first_variant = enum_.variants.first().unwrap();
 
                 let none_variant_id = if first_variant.types.is_empty() { 0 } else { 1 };
 
@@ -4791,10 +4791,10 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let xenum = &self.vm.enums[enum_id];
-            let xenum = xenum.read();
-            let xenum_name = xenum.name_with_params(self.vm, type_params);
-            let variant = &xenum.variants[variant_id];
+            let enum_ = &self.vm.enums[enum_id];
+            let enum_ = enum_.read();
+            let enum_name = enum_.name_with_params(self.vm, type_params);
+            let variant = &enum_.variants[variant_id];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
                 "LoadEnumElement {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
@@ -4802,7 +4802,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 src,
                 idx.to_usize(),
                 element,
-                xenum_name,
+                enum_name,
                 variant_name,
                 element,
             )
@@ -4816,15 +4816,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
                 _ => unreachable!(),
             };
-            let xenum = &self.vm.enums[enum_id];
-            let xenum = xenum.read();
-            let xenum_name = xenum.name_with_params(self.vm, type_params);
+            let enum_ = &self.vm.enums[enum_id];
+            let enum_ = enum_.read();
+            let enum_name = enum_.name_with_params(self.vm, type_params);
             format!(
                 "LoadEnumVariant {}, {}, ConstPoolIdx({}) # {}",
                 dest,
                 src,
                 idx.to_usize(),
-                xenum_name,
+                enum_name,
             )
         });
         self.emit_load_enum_variant(dest, src, idx);
@@ -5493,16 +5493,16 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let xenum = &self.vm.enums[enum_id];
-            let xenum = xenum.read();
-            let xenum_name = xenum.name_with_params(self.vm, type_params);
-            let variant = &xenum.variants[variant_id];
+            let enum_ = &self.vm.enums[enum_id];
+            let enum_ = enum_.read();
+            let enum_name = enum_.name_with_params(self.vm, type_params);
+            let variant = &enum_.variants[variant_id];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
                 "NewEnum {}, ConstPoolIdx({}) # {}::{}",
                 dest,
                 idx.to_usize(),
-                xenum_name,
+                enum_name,
                 variant_name,
             )
         });
@@ -5536,8 +5536,8 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let xtrait = self.vm.traits[trait_id].read();
-            let trait_name = xtrait.name_with_params(self.vm, type_params);
+            let trait_ = self.vm.traits[trait_id].read();
+            let trait_name = trait_.name_with_params(self.vm, type_params);
             let object_name = object_ty.name(self.vm);
             format!(
                 "NewTraitObject {}, ConstPoolIdx({}), {} # {} from object {}",

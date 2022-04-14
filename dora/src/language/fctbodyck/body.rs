@@ -591,8 +591,8 @@ impl<'a> TypeCheck<'a> {
         let expr_type_params = expr_type.type_params();
 
         let enum_variants = if let Some(expr_enum_id) = expr_enum_id {
-            let xenum = self.sa.enums[expr_enum_id].read();
-            xenum.variants.len()
+            let enum_ = self.sa.enums[expr_enum_id].read();
+            enum_.variants.len()
         } else {
             0
         };
@@ -638,8 +638,8 @@ impl<'a> TypeCheck<'a> {
                                     ),
                                 );
 
-                                let xenum = self.sa.enums[enum_id].read();
-                                let variant = &xenum.variants[variant_id];
+                                let enum_ = self.sa.enums[enum_id].read();
+                                let variant = &enum_.variants[variant_id];
 
                                 let given_params = if let Some(ref params) = ident.params {
                                     params.len()
@@ -813,16 +813,16 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Const(const_id)) => {
-                let xconst = self.sa.consts.idx(const_id);
-                let xconst = xconst.read();
+                let const_ = self.sa.consts.idx(const_id);
+                let const_ = const_.read();
 
-                self.analysis.set_ty(e.id, xconst.ty.clone());
+                self.analysis.set_ty(e.id, const_.ty.clone());
 
                 self.analysis
                     .map_idents
                     .insert(e.id, IdentType::Const(const_id));
 
-                xconst.ty.clone()
+                const_.ty.clone()
             }
 
             Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
@@ -1456,11 +1456,11 @@ impl<'a> TypeCheck<'a> {
         variant_id: usize,
         arg_types: &[SourceType],
     ) -> SourceType {
-        let xenum = self.sa.enums[enum_id].read();
-        let variant = &xenum.variants[variant_id as usize];
+        let enum_ = self.sa.enums[enum_id].read();
+        let variant = &enum_.variants[variant_id as usize];
 
         if !enum_accessible_from(self.sa, enum_id, self.module_id) {
-            let msg = SemError::NotAccessible(xenum.name(self.sa));
+            let msg = SemError::NotAccessible(enum_.name(self.sa));
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
@@ -1484,12 +1484,12 @@ impl<'a> TypeCheck<'a> {
         }
 
         if !self.check_expr_call_enum_args(enum_id, type_params.clone(), variant, arg_types) {
-            let enum_name = self.sa.interner.str(xenum.name).to_string();
+            let enum_name = self.sa.interner.str(enum_.name).to_string();
             let variant_name = self.sa.interner.str(variant.name).to_string();
             let variant_types = variant
                 .types
                 .iter()
-                .map(|a| a.name_enum(self.sa, &*xenum))
+                .map(|a| a.name_enum(self.sa, &*enum_))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
@@ -1499,7 +1499,7 @@ impl<'a> TypeCheck<'a> {
                 SemError::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         } else if variant.types.is_empty() {
-            let enum_name = self.sa.interner.str(xenum.name).to_string();
+            let enum_name = self.sa.interner.str(enum_.name).to_string();
             let variant_name = self.sa.interner.str(variant.name).to_string();
             let msg = SemError::EnumArgsNoParens(enum_name, variant_name);
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
@@ -1549,9 +1549,9 @@ impl<'a> TypeCheck<'a> {
         let type_param = self.fct.type_param(tp_id);
 
         for &trait_id in &type_param.trait_bounds {
-            let xtrait = self.sa.traits[trait_id].read();
+            let trait_ = self.sa.traits[trait_id].read();
 
-            if let Some(fct_id) = xtrait.find_method(self.sa, name, true) {
+            if let Some(fct_id) = trait_.find_method(self.sa, name, true) {
                 fcts.push((trait_id, fct_id));
             }
         }
@@ -2100,9 +2100,9 @@ impl<'a> TypeCheck<'a> {
         let mut found_fcts = Vec::new();
 
         for &trait_id in &tp.trait_bounds {
-            let xtrait = self.sa.traits[trait_id].read();
+            let trait_ = self.sa.traits[trait_id].read();
 
-            if let Some(fid) = xtrait.find_method_with_replace(self.sa, false, name, None, args) {
+            if let Some(fid) = trait_.find_method_with_replace(self.sa, false, name, None, args) {
                 found_fcts.push(fid);
             }
         }
@@ -2240,9 +2240,9 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Enum(enum_id)) => {
-                let xenum = self.sa.enums[enum_id].read();
+                let enum_ = self.sa.enums[enum_id].read();
 
-                if let Some(&variant_id) = xenum.name_to_value.get(&method_name) {
+                if let Some(&variant_id) = enum_.name_to_value.get(&method_name) {
                     if !container_type_params.is_empty() && !type_params.is_empty() {
                         let msg = SemError::NoTypeParamsExpected;
                         self.sa
@@ -2504,14 +2504,14 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 Some(Sym::Enum(enum_id)) => {
-                    let xenum = self.sa.enums[enum_id].read();
+                    let enum_ = self.sa.enums[enum_id].read();
 
                     if !enum_accessible_from(self.sa, enum_id, self.module_id) {
-                        let msg = SemError::NotAccessible(xenum.name(self.sa));
+                        let msg = SemError::NotAccessible(enum_.name(self.sa));
                         self.sa.diag.lock().report(self.file_id, path.pos, msg);
                     }
 
-                    if let Some(&variant_id) = xenum.name_to_value.get(&name) {
+                    if let Some(&variant_id) = enum_.name_to_value.get(&name) {
                         sym = Some(Sym::EnumValue(enum_id, variant_id as usize));
                     } else {
                         let name = self.sa.interner.str(name).to_string();
@@ -2584,22 +2584,22 @@ impl<'a> TypeCheck<'a> {
 
             Some(Sym::Const(const_id)) => {
                 if !const_accessible_from(self.sa, const_id, self.module_id) {
-                    let xconst = self.sa.consts.idx(const_id);
-                    let xconst = xconst.read();
-                    let msg = SemError::NotAccessible(xconst.name(self.sa));
+                    let const_ = self.sa.consts.idx(const_id);
+                    let const_ = const_.read();
+                    let msg = SemError::NotAccessible(const_.name(self.sa));
                     self.sa.diag.lock().report(self.file_id, e.pos, msg);
                 }
 
-                let xconst = self.sa.consts.idx(const_id);
-                let xconst = xconst.read();
+                let const_ = self.sa.consts.idx(const_id);
+                let const_ = const_.read();
 
-                self.analysis.set_ty(e.id, xconst.ty.clone());
+                self.analysis.set_ty(e.id, const_.ty.clone());
 
                 self.analysis
                     .map_idents
                     .insert(e.id, IdentType::Const(const_id));
 
-                xconst.ty.clone()
+                const_.ty.clone()
             }
 
             Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
@@ -2641,10 +2641,10 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         name: Name,
     ) -> SourceType {
-        let xenum = self.sa.enums[enum_id].read();
+        let enum_ = self.sa.enums[enum_id].read();
 
         if !enum_accessible_from(self.sa, enum_id, self.module_id) {
-            let msg = SemError::NotAccessible(xenum.name(self.sa));
+            let msg = SemError::NotAccessible(enum_.name(self.sa));
             self.sa.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
@@ -2656,16 +2656,16 @@ impl<'a> TypeCheck<'a> {
             ErrorReporting::Yes(self.file_id, expr_pos),
         );
 
-        if let Some(&value) = xenum.name_to_value.get(&name) {
-            let variant = &xenum.variants[value as usize];
+        if let Some(&value) = enum_.name_to_value.get(&name) {
+            let variant = &enum_.variants[value as usize];
 
             if !variant.types.is_empty() {
-                let enum_name = self.sa.interner.str(xenum.name).to_string();
+                let enum_name = self.sa.interner.str(enum_.name).to_string();
                 let variant_name = self.sa.interner.str(variant.name).to_string();
                 let variant_types = variant
                     .types
                     .iter()
-                    .map(|a| a.name_enum(self.sa, &*xenum))
+                    .map(|a| a.name_enum(self.sa, &*enum_))
                     .collect::<Vec<_>>();
                 let arg_types = Vec::new();
                 let msg = SemError::EnumArgsIncompatible(
@@ -2799,10 +2799,10 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         variant_id: usize,
     ) -> SourceType {
-        let xenum = self.sa.enums[enum_id].read();
+        let enum_ = self.sa.enums[enum_id].read();
 
         if !enum_accessible_from(self.sa, enum_id, self.module_id) {
-            let msg = SemError::NotAccessible(xenum.name(self.sa));
+            let msg = SemError::NotAccessible(enum_.name(self.sa));
             self.sa.diag.lock().report(self.file_id, expr_pos, msg);
         }
 
@@ -2820,10 +2820,10 @@ impl<'a> TypeCheck<'a> {
             ErrorReporting::Yes(self.file_id, expr_pos),
         );
 
-        let variant = &xenum.variants[variant_id];
+        let variant = &enum_.variants[variant_id];
 
         if !variant.types.is_empty() {
-            let enum_name = self.sa.interner.str(xenum.name).to_string();
+            let enum_name = self.sa.interner.str(enum_.name).to_string();
             let variant_name = self.sa.interner.str(variant.name).to_string();
             let variant_types = variant
                 .types
@@ -3601,8 +3601,8 @@ fn lookup_method(
 fn is_simple_enum(sa: &SemAnalysis, ty: SourceType) -> bool {
     match ty {
         SourceType::Enum(enum_id, _) => {
-            let xenum = sa.enums[enum_id].read();
-            xenum.simple_enumeration
+            let enum_ = sa.enums[enum_id].read();
+            enum_.simple_enumeration
         }
 
         _ => false,

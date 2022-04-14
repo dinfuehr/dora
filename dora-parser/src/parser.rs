@@ -136,14 +136,14 @@ impl<'a> Parser<'a> {
 
             TokenKind::Trait => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let xtrait = self.parse_trait(&modifiers)?;
-                Ok(Elem::Trait(Arc::new(xtrait)))
+                let trait_ = self.parse_trait(&modifiers)?;
+                Ok(Elem::Trait(Arc::new(trait_)))
             }
 
             TokenKind::Impl => {
                 self.ban_modifiers(&modifiers)?;
-                let ximpl = self.parse_impl()?;
-                Ok(Elem::Impl(Arc::new(ximpl)))
+                let impl_ = self.parse_impl()?;
+                Ok(Elem::Impl(Arc::new(impl_)))
             }
 
             TokenKind::Annotation => {
@@ -165,14 +165,14 @@ impl<'a> Parser<'a> {
 
             TokenKind::Const => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let xconst = self.parse_const(&modifiers)?;
-                Ok(Elem::Const(Arc::new(xconst)))
+                let const_ = self.parse_const(&modifiers)?;
+                Ok(Elem::Const(Arc::new(const_)))
             }
 
             TokenKind::Enum => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let xenum = self.parse_enum(&modifiers)?;
-                Ok(Elem::Enum(Arc::new(xenum)))
+                let enum_ = self.parse_enum(&modifiers)?;
+                Ok(Elem::Enum(Arc::new(enum_)))
             }
 
             TokenKind::Mod => {
@@ -3687,71 +3687,71 @@ mod tests {
     #[test]
     fn parse_empty_trait() {
         let (prog, interner) = parse("trait Foo { }");
-        let xtrait = prog.trait0();
+        let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(xtrait.name));
-        assert_eq!(0, xtrait.methods.len());
+        assert_eq!("Foo", *interner.str(trait_.name));
+        assert_eq!(0, trait_.methods.len());
     }
 
     #[test]
     fn parse_trait_with_function() {
         let (prog, interner) = parse("trait Foo { fn empty(); }");
-        let xtrait = prog.trait0();
+        let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(xtrait.name));
-        assert_eq!(1, xtrait.methods.len());
-        assert_eq!(false, xtrait.methods[0].is_static);
+        assert_eq!("Foo", *interner.str(trait_.name));
+        assert_eq!(1, trait_.methods.len());
+        assert_eq!(false, trait_.methods[0].is_static);
     }
 
     #[test]
     fn parse_trait_with_static_function() {
         let (prog, interner) = parse("trait Foo { @static fn empty(); }");
-        let xtrait = prog.trait0();
+        let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(xtrait.name));
-        assert_eq!(1, xtrait.methods.len());
-        assert_eq!(true, xtrait.methods[0].is_static);
+        assert_eq!("Foo", *interner.str(trait_.name));
+        assert_eq!(1, trait_.methods.len());
+        assert_eq!(true, trait_.methods[0].is_static);
     }
 
     #[test]
     fn parse_empty_impl() {
         let (prog, interner) = parse("impl Foo for A {}");
-        let ximpl = prog.impl0();
+        let impl_ = prog.impl0();
 
         assert_eq!(
             "Foo",
-            ximpl.trait_type.as_ref().unwrap().to_string(&interner)
+            impl_.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("A", ximpl.class_type.to_string(&interner));
-        assert_eq!(0, ximpl.methods.len());
+        assert_eq!("A", impl_.class_type.to_string(&interner));
+        assert_eq!(0, impl_.methods.len());
     }
 
     #[test]
     fn parse_impl_with_function() {
         let (prog, interner) = parse("impl Bar for B { fn foo(); }");
-        let ximpl = prog.impl0();
+        let impl_ = prog.impl0();
 
         assert_eq!(
             "Bar",
-            ximpl.trait_type.as_ref().unwrap().to_string(&interner)
+            impl_.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("B", ximpl.class_type.to_string(&interner));
-        assert_eq!(1, ximpl.methods.len());
-        assert_eq!(false, ximpl.methods[0].is_static);
+        assert_eq!("B", impl_.class_type.to_string(&interner));
+        assert_eq!(1, impl_.methods.len());
+        assert_eq!(false, impl_.methods[0].is_static);
     }
 
     #[test]
     fn parse_impl_with_static_function() {
         let (prog, interner) = parse("impl Bar for B { @static fn foo(); }");
-        let ximpl = prog.impl0();
+        let impl_ = prog.impl0();
 
         assert_eq!(
             "Bar",
-            ximpl.trait_type.as_ref().unwrap().to_string(&interner)
+            impl_.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("B", ximpl.class_type.to_string(&interner));
-        assert_eq!(1, ximpl.methods.len());
-        assert_eq!(true, ximpl.methods[0].is_static);
+        assert_eq!("B", impl_.class_type.to_string(&interner));
+        assert_eq!(1, impl_.methods.len());
+        assert_eq!(true, impl_.methods[0].is_static);
     }
 
     #[test]
@@ -3840,9 +3840,9 @@ mod tests {
     #[test]
     fn parse_const() {
         let (prog, interner) = parse("const x: int = 0;");
-        let xconst = prog.const0();
+        let const_ = prog.const0();
 
-        assert_eq!("x", *interner.str(xconst.name));
+        assert_eq!("x", *interner.str(const_.name));
     }
 
     #[test]
@@ -4015,17 +4015,17 @@ mod tests {
     #[test]
     fn parse_enum() {
         let (prog, _) = parse("enum Foo { A, B, C }");
-        let xenum = prog.enum0();
-        assert_eq!(xenum.variants.len(), 3);
+        let enum_ = prog.enum0();
+        assert_eq!(enum_.variants.len(), 3);
     }
 
     #[test]
     fn parse_enum_with_type_params() {
         let (prog, _) = parse("enum MyOption[T] { None, Some(T), }");
-        let xenum = prog.enum0();
-        assert_eq!(xenum.variants.len(), 2);
-        assert!(xenum.variants[0].types.is_none());
-        assert_eq!(xenum.variants[1].types.as_ref().unwrap().len(), 1);
+        let enum_ = prog.enum0();
+        assert_eq!(enum_.variants.len(), 2);
+        assert!(enum_.variants[0].types.is_none());
+        assert_eq!(enum_.variants[1].types.as_ref().unwrap().len(), 1);
     }
 
     #[test]

@@ -13,15 +13,15 @@ use crate::vm::SemAnalysis;
 use dora_parser::ast;
 
 pub fn check(sa: &SemAnalysis) {
-    for ximpl in sa.impls.iter() {
+    for impl_ in sa.impls.iter() {
         let (impl_id, file_id, module_id, ast) = {
-            let ximpl = ximpl.read();
+            let impl_ = impl_.read();
 
             (
-                ximpl.id(),
-                ximpl.file_id,
-                ximpl.module_id,
-                ximpl.ast.clone(),
+                impl_.id(),
+                impl_.file_id,
+                impl_.module_id,
+                impl_.ast.clone(),
             )
         };
 
@@ -57,7 +57,7 @@ impl<'x> ImplCheck<'x> {
             self.check_type_params(type_params);
         }
 
-        let mut ximpl = self.sa.impls[self.impl_id].write();
+        let mut impl_ = self.sa.impls[self.impl_id].write();
 
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
@@ -66,12 +66,12 @@ impl<'x> ImplCheck<'x> {
             &self.sym,
             self.file_id.into(),
             ast_trait_type,
-            TypeParamContext::Impl(&*ximpl),
+            TypeParamContext::Impl(&*impl_),
             AllowSelf::No,
         ) {
             match trait_ty {
                 SourceType::Trait(trait_id, _) => {
-                    ximpl.trait_id = Some(trait_id);
+                    impl_.trait_id = Some(trait_id);
                 }
 
                 _ => {
@@ -88,7 +88,7 @@ impl<'x> ImplCheck<'x> {
             &self.sym,
             self.file_id.into(),
             &self.ast.class_type,
-            TypeParamContext::Impl(&*ximpl),
+            TypeParamContext::Impl(&*impl_),
             AllowSelf::No,
         ) {
             if class_ty.is_cls()
@@ -96,12 +96,12 @@ impl<'x> ImplCheck<'x> {
                 || class_ty.is_enum()
                 || class_ty.is_primitive()
             {
-                ximpl.ty = class_ty.clone();
+                impl_.ty = class_ty.clone();
 
                 check_for_unconstrained_type_params(
                     self.sa,
                     class_ty.clone(),
-                    &ximpl.type_params,
+                    &impl_.type_params,
                     self.file_id,
                     self.ast.pos,
                 );
@@ -114,12 +114,12 @@ impl<'x> ImplCheck<'x> {
             }
         }
 
-        if ximpl.trait_id.is_some() && !ximpl.ty.is_error() {
-            match ximpl.ty {
+        if impl_.trait_id.is_some() && !impl_.ty.is_error() {
+            match impl_.ty {
                 SourceType::Enum(enum_id, _) => {
-                    let xenum = &self.sa.enums[enum_id];
-                    let mut xenum = xenum.write();
-                    xenum.impls.push(ximpl.id());
+                    let enum_ = &self.sa.enums[enum_id];
+                    let mut enum_ = enum_.write();
+                    enum_.impls.push(impl_.id());
                 }
 
                 SourceType::Bool
@@ -129,25 +129,25 @@ impl<'x> ImplCheck<'x> {
                 | SourceType::Int64
                 | SourceType::Float32
                 | SourceType::Float64 => {
-                    let struct_id = ximpl
+                    let struct_id = impl_
                         .ty
                         .primitive_struct_id(self.sa)
                         .expect("primitive expected");
                     let xstruct = self.sa.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
-                    xstruct.impls.push(ximpl.id());
+                    xstruct.impls.push(impl_.id());
                 }
 
                 SourceType::Struct(struct_id, _) => {
                     let xstruct = self.sa.structs.idx(struct_id);
                     let mut xstruct = xstruct.write();
-                    xstruct.impls.push(ximpl.id());
+                    xstruct.impls.push(impl_.id());
                 }
 
                 SourceType::Class(cls_id, _) => {
                     let cls = self.sa.classes.idx(cls_id);
                     let mut cls = cls.write();
-                    cls.impls.push(ximpl.id());
+                    cls.impls.push(impl_.id());
                 }
 
                 _ => unreachable!(),
@@ -158,12 +158,12 @@ impl<'x> ImplCheck<'x> {
 
         for method in &self.ast.methods {
             let method_id = self.visit_method(method);
-            ximpl.methods.push(method_id);
+            impl_.methods.push(method_id);
 
             let table = if method.is_static {
-                &mut ximpl.static_names
+                &mut impl_.static_names
             } else {
-                &mut ximpl.instance_names
+                &mut impl_.instance_names
             };
 
             if !table.contains_key(&method.name) {
@@ -173,13 +173,13 @@ impl<'x> ImplCheck<'x> {
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        let ximpl = &self.sa.impls[self.impl_id];
-        let mut ximpl = ximpl.write();
+        let impl_ = &self.sa.impls[self.impl_id];
+        let mut impl_ = impl_.write();
 
         language::check_type_params(
             self.sa,
             ast_type_params,
-            &mut ximpl.type_params,
+            &mut impl_.type_params,
             &mut self.sym,
             self.file_id,
             self.ast.pos,

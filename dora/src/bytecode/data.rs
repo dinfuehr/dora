@@ -173,9 +173,9 @@ impl BytecodeType {
             SourceType::Class(_, _) => BytecodeType::Ptr,
             SourceType::Trait(_, _) => BytecodeType::Ptr,
             SourceType::Enum(id, params) => {
-                let xenum = vm.enums[id].read();
+                let enum_ = vm.enums[id].read();
 
-                for variant in &xenum.variants {
+                for variant in &enum_.variants {
                     if !variant.types.is_empty() {
                         return BytecodeType::Enum(id, params);
                     }

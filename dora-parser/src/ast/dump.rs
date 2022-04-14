@@ -64,16 +64,16 @@ impl<'a> AstDumper<'a> {
 
     fn dump_elem(&mut self, el: &Elem) {
         match *el {
-            Elem::Function(ref fct) => self.dump_fct(fct),
-            Elem::Class(ref cls) => self.dump_class(cls),
-            Elem::Struct(ref struc) => self.dump_struct(struc),
-            Elem::Trait(ref xtrait) => self.dump_trait(xtrait),
-            Elem::Impl(ref ximpl) => self.dump_impl(ximpl),
-            Elem::Annotation(ref annotation) => self.dump_annotation(annotation),
-            Elem::Global(ref global) => self.dump_global(global),
-            Elem::Const(ref xconst) => self.dump_const(xconst),
-            Elem::Enum(ref xenum) => self.dump_enum(xenum),
-            Elem::Alias(ref alias) => self.dump_alias(alias),
+            Elem::Function(ref node) => self.dump_fct(node),
+            Elem::Class(ref node) => self.dump_class(node),
+            Elem::Struct(ref node) => self.dump_struct(node),
+            Elem::Trait(ref node) => self.dump_trait(node),
+            Elem::Impl(ref node) => self.dump_impl(node),
+            Elem::Annotation(ref node) => self.dump_annotation(node),
+            Elem::Global(ref node) => self.dump_global(node),
+            Elem::Const(ref node) => self.dump_const(node),
+            Elem::Enum(ref node) => self.dump_enum(node),
+            Elem::Alias(ref node) => self.dump_alias(node),
             Elem::Module(ref node) => self.dump_module(node),
             Elem::Use(ref node) => self.dump_use(node),
         }
@@ -99,18 +99,18 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_const(&mut self, xconst: &Const) {
+    fn dump_const(&mut self, const_: &Const) {
         dump!(
             self,
             "const {} @ {} {}",
-            self.str(xconst.name),
-            xconst.pos,
-            xconst.id
+            self.str(const_.name),
+            const_.pos,
+            const_.id
         );
 
         self.indent(|d| {
-            d.dump_type(&xconst.data_type);
-            d.dump_expr(&xconst.expr);
+            d.dump_type(&const_.data_type);
+            d.dump_expr(&const_.expr);
         });
     }
 
@@ -150,17 +150,17 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_enum(&mut self, xenum: &Enum) {
+    fn dump_enum(&mut self, enum_: &Enum) {
         dump!(
             self,
             "enum {} @ {} {}",
-            self.str(xenum.name),
-            xenum.pos,
-            xenum.id
+            self.str(enum_.name),
+            enum_.pos,
+            enum_.id
         );
 
         self.indent(|d| {
-            for value in &xenum.variants {
+            for value in &enum_.variants {
                 d.dump_enum_value(value);
             }
         });
@@ -178,18 +178,18 @@ impl<'a> AstDumper<'a> {
         }
     }
 
-    fn dump_impl(&mut self, ximpl: &Impl) {
-        dump!(self, "impl @ {} {}", ximpl.pos, ximpl.id);
+    fn dump_impl(&mut self, impl_: &Impl) {
+        dump!(self, "impl @ {} {}", impl_.pos, impl_.id);
 
         self.indent(|d| {
-            if let Some(trait_type) = ximpl.trait_type.as_ref() {
+            if let Some(trait_type) = impl_.trait_type.as_ref() {
                 d.dump_type(trait_type);
                 dump!(d, "for");
             }
 
-            d.dump_type(&ximpl.class_type);
+            d.dump_type(&impl_.class_type);
 
-            for mtd in &ximpl.methods {
+            for mtd in &impl_.methods {
                 d.dump_fct(mtd);
             }
         });

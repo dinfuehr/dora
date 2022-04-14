@@ -247,13 +247,13 @@ impl SemError {
             SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
             SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
             SemError::NoEnumValue => "enum needs at least one value.".into(),
-            SemError::EnumArgsIncompatible(ref xenum, ref name, ref def, ref expr) => {
+            SemError::EnumArgsIncompatible(ref enum_, ref name, ref def, ref expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
                 format!(
                     "enum `{}::{}({})` cannot be called as `{}({})`",
-                    xenum, name, def, name, expr
+                    enum_, name, def, name, expr
                 )
             }
             SemError::StructArgsIncompatible(ref xstruct, ref def, ref expr) => {
@@ -482,8 +482,8 @@ impl SemError {
             SemError::BoundExpected => "class or trait bound expected".into(),
             SemError::NoTypeParamsExpected => "no type params allowed".into(),
             SemError::DuplicateTraitBound => "duplicate trait bound".into(),
-            SemError::TypeNotImplementingTrait(ref name, ref xtrait) => {
-                format!("type `{}` does not implement trait `{}`.", name, xtrait)
+            SemError::TypeNotImplementingTrait(ref name, ref trait_) => {
+                format!("type `{}` does not implement trait `{}`.", name, trait_)
             }
             SemError::AbstractMethodWithImplementation => {
                 "abstract methods cannot be implemented.".into()

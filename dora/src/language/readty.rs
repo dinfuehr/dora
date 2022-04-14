@@ -92,8 +92,8 @@ fn read_type_basic(
 
         Sym::Trait(trait_id) => {
             if !trait_accessible_from(sa, trait_id, table.module_id()) {
-                let xtrait = sa.traits[trait_id].read();
-                let msg = SemError::NotAccessible(xtrait.name(sa));
+                let trait_ = sa.traits[trait_id].read();
+                let msg = SemError::NotAccessible(trait_.name(sa));
                 sa.diag.lock().report(file_id, basic.pos, msg);
             }
 
@@ -177,8 +177,8 @@ fn read_type_enum(
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
     if !enum_accessible_from(sa, enum_id, table.module_id()) {
-        let xenum = sa.enums[enum_id].read();
-        let msg = SemError::NotAccessible(xenum.name(sa));
+        let enum_ = sa.enums[enum_id].read();
+        let msg = SemError::NotAccessible(enum_.name(sa));
         sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
@@ -194,12 +194,12 @@ fn read_type_enum(
         }
     }
 
-    let xenum = &sa.enums[enum_id];
-    let xenum = xenum.read();
+    let enum_ = &sa.enums[enum_id];
+    let enum_ = enum_.read();
 
     if check_type_params(
         sa,
-        &xenum.type_params,
+        &enum_.type_params,
         &type_params,
         file_id,
         basic.pos,
@@ -311,10 +311,10 @@ where
         }
 
         TypeParamContext::Enum(enum_id) => {
-            let xenum = &sa.enums[enum_id];
-            let xenum = xenum.read();
+            let enum_ = &sa.enums[enum_id];
+            let enum_ = enum_.read();
 
-            callback(&xenum.type_params)
+            callback(&enum_.type_params)
         }
 
         TypeParamContext::Struct(struct_id) => {
@@ -324,7 +324,7 @@ where
             callback(&xstruct.type_params)
         }
 
-        TypeParamContext::Impl(ximpl) => callback(&ximpl.type_params),
+        TypeParamContext::Impl(impl_) => callback(&impl_.type_params),
 
         TypeParamContext::Extension(extension_id) => {
             let extension = &sa.extensions[extension_id];
@@ -334,10 +334,10 @@ where
         }
 
         TypeParamContext::Trait(trait_id) => {
-            let xtrait = &sa.traits[trait_id];
-            let xtrait = xtrait.read();
+            let trait_ = &sa.traits[trait_id];
+            let trait_ = trait_.read();
 
-            callback(&xtrait.type_params)
+            callback(&trait_.type_params)
         }
 
         TypeParamContext::Fct(fct) => callback(&fct.type_params),
@@ -371,13 +371,13 @@ fn check_bounds_for_type_param_id(
         }
 
         TypeParamContext::Enum(enum_id) => {
-            let xenum = &sa.enums[enum_id];
-            let xenum = xenum.read();
+            let enum_ = &sa.enums[enum_id];
+            let enum_ = enum_.read();
 
             check_bounds_for_type_param(
                 sa,
                 tp_definition,
-                xenum.type_param(tp_id),
+                enum_.type_param(tp_id),
                 success,
                 file_id,
                 pos,
@@ -400,10 +400,10 @@ fn check_bounds_for_type_param_id(
             )
         }
 
-        TypeParamContext::Impl(ximpl) => check_bounds_for_type_param(
+        TypeParamContext::Impl(impl_) => check_bounds_for_type_param(
             sa,
             tp_definition,
-            ximpl.type_param(tp_id),
+            impl_.type_param(tp_id),
             success,
             file_id,
             pos,
@@ -426,13 +426,13 @@ fn check_bounds_for_type_param_id(
         }
 
         TypeParamContext::Trait(trait_id) => {
-            let xtrait = &sa.traits[trait_id];
-            let xtrait = xtrait.read();
+            let trait_ = &sa.traits[trait_id];
+            let trait_ = trait_.read();
 
             check_bounds_for_type_param(
                 sa,
                 tp_definition,
-                xtrait.type_param(tp_id),
+                trait_.type_param(tp_id),
                 success,
                 file_id,
                 pos,

@@ -202,9 +202,9 @@ impl SemAnalysis {
         let trait_id = self.trait_by_name(trait_name);
         let method_name = self.interner.intern(method_name);
 
-        let xtrait = self.traits[trait_id].read();
+        let trait_ = self.traits[trait_id].read();
 
-        xtrait
+        trait_
             .instance_names
             .get(&method_name)
             .cloned()

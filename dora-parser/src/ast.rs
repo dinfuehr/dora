@@ -59,7 +59,7 @@ impl File {
     }
 
     #[cfg(test)]
-    pub fn trai(&self, index: usize) -> &Trait {
+    pub fn trait_(&self, index: usize) -> &Trait {
         self.elements[index].to_trait().unwrap()
     }
 
@@ -148,7 +148,7 @@ impl Elem {
 
     pub fn to_enum(&self) -> Option<&Enum> {
         match self {
-            &Elem::Enum(ref xenum) => Some(xenum),
+            &Elem::Enum(ref enum_) => Some(enum_),
             _ => None,
         }
     }
@@ -176,14 +176,14 @@ impl Elem {
 
     pub fn to_trait(&self) -> Option<&Trait> {
         match self {
-            &Elem::Trait(ref trai) => Some(trai),
+            &Elem::Trait(ref trait_) => Some(trait_),
             _ => None,
         }
     }
 
     pub fn to_impl(&self) -> Option<&Impl> {
         match self {
-            &Elem::Impl(ref ximpl) => Some(ximpl),
+            &Elem::Impl(ref impl_) => Some(impl_),
             _ => None,
         }
     }

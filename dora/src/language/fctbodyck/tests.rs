@@ -1001,51 +1001,51 @@ fn test_const_values() {
         |sa| {
             {
                 let id = sa.const_by_name("yes");
-                let xconst = sa.consts.idx(id);
-                let xconst = xconst.read();
-                assert_eq!(ConstValue::Bool(true), xconst.value);
+                let const_ = sa.consts.idx(id);
+                let const_ = const_.read();
+                assert_eq!(ConstValue::Bool(true), const_.value);
             }
 
             {
                 let id = sa.const_by_name("x");
-                let xconst = sa.consts.idx(id);
-                let xconst = xconst.read();
-                assert_eq!(ConstValue::Int(255), xconst.value);
+                let const_ = sa.consts.idx(id);
+                let const_ = const_.read();
+                assert_eq!(ConstValue::Int(255), const_.value);
             }
 
             {
                 let id = sa.const_by_name("a");
-                let xconst = sa.consts.idx(id);
-                let xconst = xconst.read();
-                assert_eq!(ConstValue::Int(100), xconst.value);
+                let const_ = sa.consts.idx(id);
+                let const_ = const_.read();
+                assert_eq!(ConstValue::Int(100), const_.value);
             }
 
             {
                 let id = sa.const_by_name("b");
-                let xconst = sa.consts.idx(id);
-                let xconst = xconst.read();
-                assert_eq!(ConstValue::Int(200), xconst.value);
+                let const_ = sa.consts.idx(id);
+                let const_ = const_.read();
+                assert_eq!(ConstValue::Int(200), const_.value);
             }
 
             {
                 let id = sa.const_by_name("c");
-                let xconst = sa.consts.idx(id);
-                let xconst = xconst.read();
-                assert_eq!(ConstValue::Char('A'), xconst.value);
+                let const_ = sa.consts.idx(id);
+                let const_ = const_.read();
+                assert_eq!(ConstValue::Char('A'), const_.value);
             }
 
             {
                 let id = sa.const_by_name("d");
-                let xconst = sa.consts.idx(id);
-                let xconst = xconst.read();
-                assert_eq!(ConstValue::Float(3.0), xconst.value);
+                let const_ = sa.consts.idx(id);
+                let const_ = const_.read();
+                assert_eq!(ConstValue::Float(3.0), const_.value);
             }
 
             {
                 let id = sa.const_by_name("e");
-                let xconst = sa.consts.idx(id);
-                let xconst = xconst.read();
-                assert_eq!(ConstValue::Float(6.0), xconst.value);
+                let const_ = sa.consts.idx(id);
+                let const_ = const_.read();
+                assert_eq!(ConstValue::Float(6.0), const_.value);
             }
         },
     );

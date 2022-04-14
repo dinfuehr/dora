@@ -73,8 +73,8 @@ impl<'x> ExtensionCheck<'x> {
 
             match extension_ty {
                 SourceType::Enum(enum_id, _) => {
-                    let mut xenum = self.sa.enums[enum_id].write();
-                    xenum.extensions.push(self.extension_id);
+                    let mut enum_ = self.sa.enums[enum_id].write();
+                    enum_.extensions.push(self.extension_id);
                 }
 
                 SourceType::Bool
@@ -201,9 +201,9 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_in_enum(&self, f: &ast::Function, enum_id: EnumDefinitionId) -> bool {
-        let xenum = self.sa.enums[enum_id].read();
+        let enum_ = self.sa.enums[enum_id].read();
 
-        for &extension_id in &xenum.extensions {
+        for &extension_id in &enum_.extensions {
             if !self.check_extension(f, extension_id) {
                 return false;
             }

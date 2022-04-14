@@ -252,16 +252,16 @@ impl ClassDefinition {
         is_static: bool,
     ) -> Option<FctDefinitionId> {
         for &impl_id in &self.impls {
-            let ximpl = vm.impls[impl_id].read();
+            let impl_ = vm.impls[impl_id].read();
 
-            if ximpl.trait_id != Some(trait_id) {
+            if impl_.trait_id != Some(trait_id) {
                 continue;
             }
 
             let table = if is_static {
-                &ximpl.static_names
+                &impl_.static_names
             } else {
-                &ximpl.instance_names
+                &impl_.instance_names
             };
 
             return table.get(&name).cloned();
@@ -456,12 +456,12 @@ pub fn find_methods_in_class(
                 type_param_defs2,
                 impl_id,
             ) {
-                let ximpl = vm.impls[impl_id].read();
+                let impl_ = vm.impls[impl_id].read();
 
                 let table = if is_static {
-                    &ximpl.static_names
+                    &impl_.static_names
                 } else {
-                    &ximpl.instance_names
+                    &impl_.instance_names
                 };
 
                 if let Some(&method_id) = table.get(&name) {

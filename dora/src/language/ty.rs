@@ -343,10 +343,10 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_enum(&self, vm: &VM, xenum: &EnumDefinition) -> String {
+    pub fn name_enum(&self, vm: &VM, enum_: &EnumDefinition) -> String {
         let writer = SourceTypePrinter {
             vm,
-            type_params: Some(&xenum.type_params),
+            type_params: Some(&enum_.type_params),
         };
 
         writer.name(self.clone())
@@ -445,9 +445,9 @@ impl SourceType {
             SourceType::Float64 => 8,
             SourceType::Enum(eid, params) => {
                 let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
-                let xenum = vm.enum_defs.idx(enum_def_id);
+                let enum_ = vm.enum_defs.idx(enum_def_id);
 
-                match xenum.layout {
+                match enum_.layout {
                     EnumLayout::Int => SourceType::Int32.size(vm),
                     EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.size(vm),
                 }
@@ -482,9 +482,9 @@ impl SourceType {
             SourceType::Any => panic!("no alignment for Any."),
             SourceType::Enum(eid, params) => {
                 let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
-                let xenum = vm.enum_defs.idx(enum_def_id);
+                let enum_ = vm.enum_defs.idx(enum_def_id);
 
-                match xenum.layout {
+                match enum_.layout {
                     EnumLayout::Int => SourceType::Int32.align(vm),
                     EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.align(vm),
                 }
@@ -649,14 +649,14 @@ pub fn implements_trait(
         | SourceType::Lambda(_) => false,
 
         SourceType::Enum(enum_id, _) => {
-            let xenum = sa.enums[enum_id].read();
+            let enum_ = sa.enums[enum_id].read();
             check_impls(
                 sa,
                 check_ty,
                 check_type_param_defs,
                 None,
                 trait_id,
-                &xenum.impls,
+                &enum_.impls,
             )
             .is_some()
         }
@@ -742,14 +742,14 @@ pub fn find_impl(
         | SourceType::Lambda(_) => None,
 
         SourceType::Enum(enum_id, _) => {
-            let xenum = vm.enums[enum_id].read();
+            let enum_ = vm.enums[enum_id].read();
             check_impls(
                 vm,
                 check_ty,
                 check_type_param_defs,
                 None,
                 trait_id,
-                &xenum.impls,
+                &enum_.impls,
             )
         }
 
@@ -819,10 +819,10 @@ pub fn check_impls(
     impls: &[ImplDefinitionId],
 ) -> Option<ImplDefinitionId> {
     for &impl_id in impls {
-        let ximpl = &sa.impls[impl_id];
-        let ximpl = ximpl.read();
+        let impl_ = &sa.impls[impl_id];
+        let impl_ = impl_.read();
 
-        if ximpl.trait_id != Some(trait_id) {
+        if impl_.trait_id != Some(trait_id) {
             continue;
         }
 
@@ -1079,8 +1079,8 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Trait(tid, params) => {
-                let xtrait = self.vm.traits[tid].read();
-                let name = self.vm.interner.str(xtrait.name).to_string();
+                let trait_ = self.vm.traits[tid].read();
+                let name = self.vm.interner.str(trait_.name).to_string();
 
                 if params.len() == 0 {
                     name
@@ -1095,8 +1095,8 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Enum(id, params) => {
-                let xenum = self.vm.enums[id].read();
-                let name = self.vm.interner.str(xenum.name).to_string();
+                let enum_ = self.vm.enums[id].read();
+                let name = self.vm.interner.str(enum_.name).to_string();
 
                 if params.len() == 0 {
                     name

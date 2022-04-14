@@ -7,14 +7,14 @@ use crate::vm::SemAnalysis;
 use dora_parser::ast;
 
 pub fn check(sa: &SemAnalysis) {
-    for xconst in sa.consts.iter() {
+    for const_ in sa.consts.iter() {
         let (const_id, file_id, ast, module_id) = {
-            let xconst = xconst.read();
+            let const_ = const_.read();
             (
-                xconst.id(),
-                xconst.file_id,
-                xconst.ast.clone(),
-                xconst.module_id,
+                const_.id(),
+                const_.file_id,
+                const_.ast.clone(),
+                const_.module_id,
             )
         };
 
@@ -52,9 +52,9 @@ impl<'x> ConstCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let xconst = self.sa.consts.idx(self.const_id);
-        let mut xconst = xconst.write();
-        xconst.ty = ty;
+        let const_ = self.sa.consts.idx(self.const_id);
+        let mut const_ = const_.write();
+        const_.ty = ty;
     }
 }
 

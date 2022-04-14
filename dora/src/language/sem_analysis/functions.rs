@@ -207,8 +207,8 @@ impl FctDefinition {
             }
 
             FctParent::Trait(trait_id) => {
-                let xtrait = vm.traits[trait_id].read();
-                repr.push_str(&vm.interner.str(xtrait.name));
+                let trait_ = vm.traits[trait_id].read();
+                repr.push_str(&vm.interner.str(trait_.name));
                 if self.is_static {
                     repr.push_str("::");
                 } else {
@@ -221,9 +221,9 @@ impl FctDefinition {
                 let extension = extension.read();
 
                 if let Some(enum_id) = extension.ty.enum_id() {
-                    let xenum = &vm.enums[enum_id];
-                    let xenum = xenum.read();
-                    repr.push_str(&vm.interner.str(xenum.name));
+                    let enum_ = &vm.enums[enum_id];
+                    let enum_ = enum_.read();
+                    repr.push_str(&vm.interner.str(enum_.name));
                 } else if let Some(cls_id) = extension.ty.cls_id() {
                     let cls = vm.classes.idx(cls_id);
                     let cls = cls.read();

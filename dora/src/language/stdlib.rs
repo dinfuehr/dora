@@ -121,10 +121,10 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
 
         match option_id {
             Some(Sym::Enum(enum_id)) => {
-                let xenum = &sa.enums[enum_id];
-                let xenum = xenum.read();
+                let enum_ = &sa.enums[enum_id];
+                let enum_ = enum_.read();
 
-                for variant in &xenum.variants {
+                for variant in &enum_.variants {
                     let old_sym = prelude.insert(variant.name, Sym::EnumValue(enum_id, variant.id));
                     assert!(old_sym.is_none());
                 }
@@ -141,10 +141,10 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
 
         match option_id {
             Some(Sym::Enum(enum_id)) => {
-                let xenum = &sa.enums[enum_id];
-                let xenum = xenum.read();
+                let enum_ = &sa.enums[enum_id];
+                let enum_ = enum_.read();
 
-                for variant in &xenum.variants {
+                for variant in &enum_.variants {
                     let old_sym = prelude.insert(variant.name, Sym::EnumValue(enum_id, variant.id));
                     assert!(old_sym.is_none());
                 }
@@ -1156,10 +1156,10 @@ fn common_method(
             );
         }
         Some(Sym::Enum(enum_id)) => {
-            let xenum = &sa.enums[enum_id].read();
+            let enum_ = &sa.enums[enum_id].read();
             internal_extension_method(
                 sa,
-                &xenum.extensions,
+                &enum_.extensions,
                 method_name,
                 is_static,
                 implementation,

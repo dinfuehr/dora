@@ -127,31 +127,31 @@ pub fn specialize_enum_id_params(
     enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
 ) -> EnumInstanceId {
-    let xenum = &vm.enums[enum_id];
-    let xenum = xenum.read();
-    specialize_enum(vm, &*xenum, type_params)
+    let enum_ = &vm.enums[enum_id];
+    let enum_ = enum_.read();
+    specialize_enum(vm, &*enum_, type_params)
 }
 
 pub fn specialize_enum(
     vm: &VM,
-    xenum: &EnumDefinition,
+    enum_: &EnumDefinition,
     type_params: SourceTypeArray,
 ) -> EnumInstanceId {
-    if let Some(&id) = xenum.specializations.read().get(&type_params) {
+    if let Some(&id) = enum_.specializations.read().get(&type_params) {
         return id;
     }
 
-    create_specialized_enum(vm, xenum, type_params)
+    create_specialized_enum(vm, enum_, type_params)
 }
 
 fn create_specialized_enum(
     vm: &VM,
-    xenum: &EnumDefinition,
+    enum_: &EnumDefinition,
     type_params: SourceTypeArray,
 ) -> EnumInstanceId {
-    let layout = if enum_is_simple_integer(xenum) {
+    let layout = if enum_is_simple_integer(enum_) {
         EnumLayout::Int
-    } else if enum_is_ptr(vm, xenum, &type_params) {
+    } else if enum_is_ptr(vm, enum_, &type_params) {
         EnumLayout::Ptr
     } else {
         EnumLayout::Tagged
@@ -160,7 +160,7 @@ fn create_specialized_enum(
     let mut enum_defs = vm.enum_defs.lock();
     let id: EnumInstanceId = enum_defs.len().into();
 
-    let mut specializations = xenum.specializations.write();
+    let mut specializations = enum_.specializations.write();
 
     if let Some(&id) = specializations.get(&type_params) {
         return id;
@@ -170,14 +170,14 @@ fn create_specialized_enum(
     assert!(old.is_none());
 
     let variants = if let EnumLayout::Tagged = layout {
-        vec![None; xenum.variants.len()]
+        vec![None; enum_.variants.len()]
     } else {
         Vec::new()
     };
 
     let enum_def = Arc::new(EnumInstance {
         id,
-        enum_id: xenum.id(),
+        enum_id: enum_.id(),
         type_params: type_params.clone(),
         layout,
         variants: RwLock::new(variants),
@@ -188,8 +188,8 @@ fn create_specialized_enum(
     id
 }
 
-fn enum_is_simple_integer(xenum: &EnumDefinition) -> bool {
-    for variant in &xenum.variants {
+fn enum_is_simple_integer(enum_: &EnumDefinition) -> bool {
+    for variant in &enum_.variants {
         if !variant.types.is_empty() {
             return false;
         }
@@ -198,13 +198,13 @@ fn enum_is_simple_integer(xenum: &EnumDefinition) -> bool {
     true
 }
 
-fn enum_is_ptr(vm: &VM, xenum: &EnumDefinition, type_params: &SourceTypeArray) -> bool {
-    if xenum.variants.len() != 2 {
+fn enum_is_ptr(vm: &VM, enum_: &EnumDefinition, type_params: &SourceTypeArray) -> bool {
+    if enum_.variants.len() != 2 {
         return false;
     }
 
-    let variant1 = xenum.variants.first().unwrap();
-    let variant2 = xenum.variants.last().unwrap();
+    let variant1 = enum_.variants.first().unwrap();
+    let variant2 = enum_.variants.last().unwrap();
 
     let (none_variant, some_variant) = if variant1.types.is_empty() {
         (variant1, variant2)
@@ -221,7 +221,7 @@ fn enum_is_ptr(vm: &VM, xenum: &EnumDefinition, type_params: &SourceTypeArray) -
 pub fn specialize_enum_class(
     vm: &VM,
     edef: &EnumInstance,
-    xenum: &EnumDefinition,
+    enum_: &EnumDefinition,
     variant_id: usize,
 ) -> ClassInstanceId {
     let mut variants = edef.variants.write();
@@ -231,7 +231,7 @@ pub fn specialize_enum_class(
         return cls_def_id;
     }
 
-    let enum_variant = &xenum.variants[variant_id];
+    let enum_variant = &enum_.variants[variant_id];
     let mut csize = Header::size() + 4;
     let mut fields = vec![FieldDef {
         offset: Header::size(),
@@ -655,20 +655,20 @@ pub fn specialize_trait_object(
     trait_type_params: &SourceTypeArray,
     object_type: SourceType,
 ) -> ClassInstanceId {
-    let xtrait = vm.traits[trait_id].read();
+    let trait_ = vm.traits[trait_id].read();
 
     let combined_type_params = trait_type_params.connect_single(object_type.clone());
 
-    if let Some(&id) = xtrait.vtables.read().get(&combined_type_params) {
+    if let Some(&id) = trait_.vtables.read().get(&combined_type_params) {
         return id;
     }
 
-    create_specialized_class_for_trait_object(vm, &*xtrait, combined_type_params, object_type)
+    create_specialized_class_for_trait_object(vm, &*trait_, combined_type_params, object_type)
 }
 
 fn create_specialized_class_for_trait_object(
     vm: &VM,
-    xtrait: &TraitDefinition,
+    trait_: &TraitDefinition,
     combined_type_params_id: SourceTypeArray,
     object_type: SourceType,
 ) -> ClassInstanceId {
@@ -698,7 +698,7 @@ fn create_specialized_class_for_trait_object(
     let size = InstanceSize::Fixed(csize);
 
     let stub = vm.compile_stub().to_usize();
-    let vtable_entries = vec![stub; xtrait.methods.len()];
+    let vtable_entries = vec![stub; trait_.methods.len()];
 
     let mut vtable = VTableBox::new(std::ptr::null(), csize as usize, 0, &vtable_entries);
     ensure_display(vm, &mut vtable, parent_id);
@@ -706,7 +706,7 @@ fn create_specialized_class_for_trait_object(
     let mut class_defs = vm.class_defs.lock();
     let id: ClassInstanceId = class_defs.len().into();
 
-    let mut vtables = xtrait.vtables.write();
+    let mut vtables = trait_.vtables.write();
 
     if let Some(&id) = vtables.get(&combined_type_params_id) {
         return id;

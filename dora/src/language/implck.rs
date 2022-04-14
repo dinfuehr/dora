@@ -7,24 +7,24 @@ use crate::vm::SemAnalysis;
 use dora_parser::lexer::position::Position;
 
 pub fn check(sa: &mut SemAnalysis) {
-    for ximpl in sa.impls.iter() {
+    for impl_ in sa.impls.iter() {
         let impl_for = {
-            let ximpl = ximpl.read();
-            let xtrait = sa.traits[ximpl.trait_id()].read();
+            let impl_ = impl_.read();
+            let trait_ = sa.traits[impl_.trait_id()].read();
 
-            let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
+            let all: HashSet<_> = trait_.methods.iter().cloned().collect();
             let mut defined = HashSet::new();
             let mut impl_for = HashMap::new();
 
-            for &method_id in &ximpl.methods {
+            for &method_id in &impl_.methods {
                 let method = sa.fcts.idx(method_id);
                 let method = method.read();
 
-                if let Some(fid) = xtrait.find_method_with_replace(
+                if let Some(fid) = trait_.find_method_with_replace(
                     sa,
                     method.is_static,
                     method.name,
-                    Some(ximpl.ty.clone()),
+                    Some(impl_.ty.clone()),
                     method.params_without_self(),
                 ) {
                     defined.insert(fid);
@@ -35,7 +35,7 @@ pub fn check(sa: &mut SemAnalysis) {
 
                     let return_type_valid = method.return_type
                         == if trait_method.return_type.is_self() {
-                            ximpl.ty.clone()
+                            impl_.ty.clone()
                         } else {
                             trait_method.return_type.clone()
                         };
@@ -46,7 +46,7 @@ pub fn check(sa: &mut SemAnalysis) {
                             trait_method.return_type.name_fct(sa, &*trait_method);
 
                         let msg = SemError::ReturnTypeMismatch(impl_return_type, trait_return_type);
-                        sa.diag.lock().report(ximpl.file_id, method.pos, msg);
+                        sa.diag.lock().report(impl_.file_id, method.pos, msg);
                     }
                 } else {
                     let args = method
@@ -55,7 +55,7 @@ pub fn check(sa: &mut SemAnalysis) {
                         .map(|a| a.name_fct(sa, &*method))
                         .collect::<Vec<String>>();
                     let mtd_name = sa.interner.str(method.name).to_string();
-                    let trait_name = sa.interner.str(xtrait.name).to_string();
+                    let trait_name = sa.interner.str(trait_.name).to_string();
 
                     let msg = if method.is_static {
                         SemError::StaticMethodNotInTrait(trait_name, mtd_name, args)
@@ -63,7 +63,7 @@ pub fn check(sa: &mut SemAnalysis) {
                         SemError::MethodNotInTrait(trait_name, mtd_name, args)
                     };
 
-                    report(sa, ximpl.file_id, method.pos, msg);
+                    report(sa, impl_.file_id, method.pos, msg);
                 }
             }
 
@@ -83,7 +83,7 @@ pub fn check(sa: &mut SemAnalysis) {
                     .map(|a| a.name_fct(sa, &*method))
                     .collect::<Vec<String>>();
                 let mtd_name = sa.interner.str(method.name).to_string();
-                let trait_name = sa.interner.str(xtrait.name).to_string();
+                let trait_name = sa.interner.str(trait_.name).to_string();
 
                 let msg = if method.is_static {
                     SemError::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
@@ -91,13 +91,13 @@ pub fn check(sa: &mut SemAnalysis) {
                     SemError::MethodMissingFromTrait(trait_name, mtd_name, args)
                 };
 
-                report(sa, ximpl.file_id, ximpl.pos, msg);
+                report(sa, impl_.file_id, impl_.pos, msg);
             }
 
             impl_for
         };
 
-        ximpl.write().impl_for = impl_for;
+        impl_.write().impl_for = impl_for;
     }
 }
 
