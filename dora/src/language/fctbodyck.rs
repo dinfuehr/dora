@@ -33,7 +33,7 @@ pub fn check(sa: &SemAnalysis) {
                 sa,
                 fct: &fct,
                 file_id: fct.file_id,
-                namespace_id: fct.module_id,
+                module_id: fct.module_id,
                 analysis: &mut analysis,
                 ast: &fct.ast,
                 symtable: symtable,

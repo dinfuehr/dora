@@ -15,7 +15,7 @@ use dora_parser::interner::Name;
 
 pub fn check(sa: &SemAnalysis) {
     for xstruct in sa.structs.iter() {
-        let (struct_id, file_id, ast, namespace_id) = {
+        let (struct_id, file_id, ast, module_id) = {
             let xstruct = xstruct.read();
             (
                 xstruct.id(),
@@ -30,8 +30,8 @@ pub fn check(sa: &SemAnalysis) {
             struct_id,
             file_id,
             ast: &ast,
-            namespace_id,
-            symtable: NestedSymTable::new(sa, namespace_id),
+            module_id,
+            symtable: NestedSymTable::new(sa, module_id),
             fields: HashSet::new(),
         };
 
@@ -44,7 +44,7 @@ struct StructCheck<'x> {
     struct_id: StructDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Struct,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     symtable: NestedSymTable<'x>,
     fields: HashSet<Name>,
 }

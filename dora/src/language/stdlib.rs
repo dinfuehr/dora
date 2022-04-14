@@ -112,7 +112,7 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
     }
 
     let stdlib_name = sa.interner.intern("std");
-    prelude.insert(stdlib_name, Sym::Namespace(sa.stdlib_module_id));
+    prelude.insert(stdlib_name, Sym::Module(sa.stdlib_module_id));
 
     {
         // include None and Some from Option

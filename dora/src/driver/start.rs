@@ -84,13 +84,13 @@ pub fn start() -> i32 {
     init_global_addresses(&vm);
 
     let code = if vm.args.cmd_test {
-        let namespace_id = if vm.args.flag_test_boots {
+        let module_id = if vm.args.flag_test_boots {
             vm.boots_module_id
         } else {
             vm.program_module_id
         };
 
-        run_tests(&vm, namespace_id)
+        run_tests(&vm, module_id)
     } else {
         run_main(&vm, main.unwrap())
     };
@@ -105,7 +105,7 @@ pub fn start() -> i32 {
     code
 }
 
-fn run_tests(vm: &VM, namespace_id: ModuleDefinitionId) -> i32 {
+fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
@@ -113,7 +113,7 @@ fn run_tests(vm: &VM, namespace_id: ModuleDefinitionId) -> i32 {
         for fct in vm.fcts.iter() {
             let fct = fct.read();
 
-            if !module_contains(vm, namespace_id, fct.module_id)
+            if !module_contains(vm, module_id, fct.module_id)
                 || !is_test_fct(vm, &*fct)
                 || !test_filter_matches(vm, &*fct)
             {
@@ -204,11 +204,7 @@ pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_st
 
 fn find_main(sa: &SemAnalysis) -> Option<FctDefinitionId> {
     let name = sa.interner.intern("main");
-    let fctid = if let Some(id) = sa
-        .namespace_table(sa.program_module_id)
-        .read()
-        .get_fct(name)
-    {
+    let fctid = if let Some(id) = sa.module_table(sa.program_module_id).read().get_fct(name) {
         id
     } else {
         return None;

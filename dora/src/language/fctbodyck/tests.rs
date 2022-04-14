@@ -3127,7 +3127,7 @@ fn mod_path_in_type() {
         fn f(): bar::Foo { 1I }
     ",
         pos(2, 17),
-        SemError::ExpectedNamespace,
+        SemError::ExpectedModule,
     );
 
     err(
@@ -3136,7 +3136,7 @@ fn mod_path_in_type() {
         fn f(): bar::Foo { 1I }
     ",
         pos(3, 17),
-        SemError::ExpectedNamespace,
+        SemError::ExpectedModule,
     );
 
     err(
@@ -3145,7 +3145,7 @@ fn mod_path_in_type() {
         mod foo {}
     ",
         pos(2, 17),
-        SemError::ExpectedNamespace,
+        SemError::ExpectedModule,
     );
 }
 
@@ -3434,7 +3434,7 @@ fn mod_use_super() {
         }
     ");
 
-    err("use super::Foo;", pos(1, 1), SemError::NoSuperNamespace);
+    err("use super::Foo;", pos(1, 1), SemError::NoSuperModule);
 }
 
 #[test]
@@ -3454,7 +3454,7 @@ fn mod_use_errors() {
         mod foo { @pub mod bar {} }
     ",
         pos(2, 9),
-        SemError::UnknownIdentifierInNamespace("foo::bar".into(), "baz".into()),
+        SemError::UnknownIdentifierInModule("foo::bar".into(), "baz".into()),
     );
 
     err(
@@ -3479,7 +3479,7 @@ fn mod_use_errors() {
         fn foo() {}
     ",
         pos(2, 9),
-        SemError::ExpectedNamespace,
+        SemError::ExpectedModule,
     );
 
     err(

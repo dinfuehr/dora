@@ -243,7 +243,7 @@ impl SemAnalysis {
         file_id
     }
 
-    pub fn namespace_table(&self, namespace_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
+    pub fn module_table(&self, namespace_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
         self.modules[namespace_id].read().table.clone()
     }
 

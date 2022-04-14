@@ -91,7 +91,7 @@ fn read_type_basic(
         Sym::Class(cls_id) => read_type_class(sa, table, file_id, basic, cls_id, ctxt, allow_self),
 
         Sym::Trait(trait_id) => {
-            if !trait_accessible_from(sa, trait_id, table.namespace_id()) {
+            if !trait_accessible_from(sa, trait_id, table.module_id()) {
                 let xtrait = sa.traits[trait_id].read();
                 let msg = SemError::NotAccessible(xtrait.name(sa));
                 sa.diag.lock().report(file_id, basic.pos, msg);
@@ -157,10 +157,10 @@ fn table_for_namespace(
     sym: Option<Sym>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
-        Some(Sym::Namespace(namespace_id)) => Ok(sa.modules[namespace_id].read().table.clone()),
+        Some(Sym::Module(namespace_id)) => Ok(sa.modules[namespace_id].read().table.clone()),
 
         _ => {
-            let msg = SemError::ExpectedNamespace;
+            let msg = SemError::ExpectedModule;
             sa.diag.lock().report(file_id, basic.pos, msg);
             Err(())
         }
@@ -176,7 +176,7 @@ fn read_type_enum(
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    if !enum_accessible_from(sa, enum_id, table.namespace_id()) {
+    if !enum_accessible_from(sa, enum_id, table.module_id()) {
         let xenum = sa.enums[enum_id].read();
         let msg = SemError::NotAccessible(xenum.name(sa));
         sa.diag.lock().report(file_id, basic.pos, msg);
@@ -221,7 +221,7 @@ fn read_type_struct(
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    if !struct_accessible_from(sa, struct_id, table.namespace_id()) {
+    if !struct_accessible_from(sa, struct_id, table.module_id()) {
         let xstruct = sa.structs.idx(struct_id);
         let xstruct = xstruct.read();
         let msg = SemError::NotAccessible(xstruct.name(sa));
@@ -502,7 +502,7 @@ fn read_type_class(
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    if !class_accessible_from(sa, cls_id, table.namespace_id()) {
+    if !class_accessible_from(sa, cls_id, table.module_id()) {
         let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
         let msg = SemError::NotAccessible(cls.name(sa));

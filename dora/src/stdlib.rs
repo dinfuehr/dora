@@ -136,11 +136,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
     let vm = get_vm();
     let name = vm.interner.intern(fct_name);
 
-    if let Some(fct_id) = vm
-        .namespace_table(vm.program_module_id)
-        .read()
-        .get_fct(name)
-    {
+    if let Some(fct_id) = vm.module_table(vm.program_module_id).read().get_fct(name) {
         {
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();

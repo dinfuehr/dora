@@ -38,7 +38,6 @@ pub enum SemError {
     ShadowConst(String),
     ShadowModule(String),
     ShadowEnum(String),
-    ShadowNamespace(String),
     ShadowEnumValue(String),
     InvalidLhsAssignment,
     NoEnumValue,
@@ -72,7 +71,7 @@ pub enum SemError {
     SuperUnavailable,
     SuperNeedsMethodCall,
     ReferenceTypeExpected(String),
-    NoSuperNamespace,
+    NoSuperModule,
     LetMissingInitialization,
     LetReassigned,
     UnderivableType(String),
@@ -99,7 +98,7 @@ pub enum SemError {
     ExpectedIdentifier(String),
     ExpectedStringable(String),
     ExpectedSomeIdentifier,
-    ExpectedNamespace,
+    ExpectedModule,
     ExpectedPath,
     LetPatternExpectedTuple(String),
     LetPatternShouldBeUnit,
@@ -143,7 +142,7 @@ pub enum SemError {
     GlobalInitializerNotSupported,
     TypeNotUsableInForIn(String),
     UnknownStructField(String, String),
-    UnknownIdentifierInNamespace(String, String),
+    UnknownIdentifierInModule(String, String),
     StructFieldNotInitialized(String, String),
     InvalidLeftSideOfSeparator,
     InvalidUseOfTypeParams,
@@ -243,10 +242,9 @@ impl SemError {
             SemError::ShadowGlobal(ref name) => {
                 format!("can not shadow global variable `{}`.", name)
             }
-            SemError::ShadowModule(ref name) => format!("can not shadow module `{}`.", name),
+            SemError::ShadowModule(ref name) => format!("can not shadow mod `{}`.", name),
             SemError::ShadowConst(ref name) => format!("can not shadow const `{}`.", name),
             SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
-            SemError::ShadowNamespace(ref name) => format!("can not shadow namespace `{}`.", name),
             SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
             SemError::NoEnumValue => "enum needs at least one value.".into(),
             SemError::EnumArgsIncompatible(ref xenum, ref name, ref def, ref expr) => {
@@ -341,7 +339,7 @@ impl SemError {
             SemError::ReferenceTypeExpected(ref name) => {
                 format!("`{}` is not a reference type.", name)
             }
-            SemError::NoSuperNamespace => "no super namespace.".into(),
+            SemError::NoSuperModule => "no super namespace.".into(),
             SemError::NotAccessible(ref name) => format!("`{}` is not accessible.", name),
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
@@ -385,7 +383,7 @@ impl SemError {
                 format!("identifier expected but got {}.", tok)
             }
             SemError::ExpectedSomeIdentifier => "identifier expected.".into(),
-            SemError::ExpectedNamespace => "namespace expected.".into(),
+            SemError::ExpectedModule => "namespace expected.".into(),
             SemError::ExpectedPath => "path expected.".into(),
             SemError::LetPatternExpectedTuple(ref ty) => {
                 format!("tuple expected but got type {}.", ty)
@@ -511,7 +509,7 @@ impl SemError {
             SemError::UnknownStructField(ref struc, ref field) => {
                 format!("struct `{}` does not have field named `{}`.", struc, field)
             }
-            SemError::UnknownIdentifierInNamespace(ref namespace, ref element) => format!(
+            SemError::UnknownIdentifierInModule(ref namespace, ref element) => format!(
                 "namespace `{}` does not have field named `{}`.",
                 namespace, element
             ),

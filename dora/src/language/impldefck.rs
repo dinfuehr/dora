@@ -14,7 +14,7 @@ use dora_parser::ast;
 
 pub fn check(sa: &SemAnalysis) {
     for ximpl in sa.impls.iter() {
-        let (impl_id, file_id, namespace_id, ast) = {
+        let (impl_id, file_id, module_id, ast) = {
             let ximpl = ximpl.read();
 
             (
@@ -29,8 +29,8 @@ pub fn check(sa: &SemAnalysis) {
             sa,
             impl_id,
             file_id,
-            namespace_id,
-            sym: NestedSymTable::new(sa, namespace_id),
+            module_id,
+            sym: NestedSymTable::new(sa, module_id),
             ast: &ast,
         };
 
@@ -42,7 +42,7 @@ struct ImplCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: SourceFileId,
     impl_id: ImplDefinitionId,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     sym: NestedSymTable<'x>,
     ast: &'x ast::Impl,
 }
@@ -196,7 +196,7 @@ impl<'x> ImplCheck<'x> {
 
         let parent = FctParent::Impl(self.impl_id);
 
-        let fct = FctDefinition::new(self.file_id.into(), self.namespace_id, method, parent);
+        let fct = FctDefinition::new(self.file_id.into(), self.module_id, method, parent);
         self.sa.add_fct(fct)
     }
 }

@@ -229,7 +229,7 @@ pub fn report_sym_shadow(
         Sym::Global(_) => SemError::ShadowGlobal(name),
         Sym::Const(_) => SemError::ShadowConst(name),
         Sym::Var(_) => SemError::ShadowParam(name),
-        Sym::Namespace(_) => SemError::ShadowNamespace(name),
+        Sym::Module(_) => SemError::ShadowModule(name),
         _ => unreachable!(),
     };
 

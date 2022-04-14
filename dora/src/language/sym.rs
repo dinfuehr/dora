@@ -12,21 +12,21 @@ use dora_parser::interner::Name;
 
 pub struct NestedSymTable<'a> {
     sa: &'a SemAnalysis,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     levels: Vec<SymTable>,
 }
 
 impl<'a> NestedSymTable<'a> {
-    pub fn new(sa: &'a SemAnalysis, namespace_id: ModuleDefinitionId) -> NestedSymTable {
+    pub fn new(sa: &'a SemAnalysis, module_id: ModuleDefinitionId) -> NestedSymTable {
         NestedSymTable {
             sa,
-            namespace_id,
+            module_id,
             levels: Vec::new(),
         }
     }
 
-    pub fn namespace_id(&self) -> ModuleDefinitionId {
-        self.namespace_id
+    pub fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
     }
 
     pub fn push_level(&mut self) {
@@ -50,17 +50,17 @@ impl<'a> NestedSymTable<'a> {
         }
 
         {
-            let namespace = &self.sa.modules[self.namespace_id].read();
+            let module = &self.sa.modules[self.module_id].read();
 
-            if let Some(sym) = namespace.table.read().get(name) {
+            if let Some(sym) = module.table.read().get(name) {
                 return Some(sym.clone());
             };
         }
 
         {
-            let namespace = &self.sa.modules[self.sa.prelude_module_id].read();
+            let module = &self.sa.modules[self.sa.prelude_module_id].read();
 
-            if let Some(sym) = namespace.table.read().get(name) {
+            if let Some(sym) = module.table.read().get(name) {
                 return Some(sym.clone());
             };
         }
@@ -172,7 +172,7 @@ pub enum Sym {
     Annotation(AnnotationDefinitionId),
     Global(GlobalDefinitionId),
     Const(ConstDefinitionId),
-    Namespace(ModuleDefinitionId),
+    Module(ModuleDefinitionId),
     EnumValue(EnumDefinitionId, usize),
 }
 

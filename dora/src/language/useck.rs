@@ -22,33 +22,33 @@ pub fn check<'a>(sa: &SemAnalysis) {
 }
 
 fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
-    let table = sa.namespace_table(use_def.module_id);
+    let table = sa.module_table(use_def.module_id);
 
-    let namespace_id = match use_def.ast.context {
+    let module_id = match use_def.ast.context {
         UseContext::This => use_def.module_id,
         UseContext::Package => module_package(sa, use_def.module_id),
         UseContext::Super => {
-            let namespace = &sa.modules[use_def.module_id].read();
-            if let Some(namespace_id) = namespace.parent_module_id {
-                namespace_id
+            let module = &sa.modules[use_def.module_id].read();
+            if let Some(module_id) = module.parent_module_id {
+                module_id
             } else {
                 sa.diag.lock().report(
                     use_def.file_id.into(),
                     use_def.ast.pos,
-                    SemError::NoSuperNamespace,
+                    SemError::NoSuperModule,
                 );
                 return;
             }
         }
     };
 
-    let symtable = NestedSymTable::new(sa, namespace_id);
+    let symtable = NestedSymTable::new(sa, module_id);
 
     let element_name = use_def.ast.element_name;
     let target_name = use_def.ast.target_name.unwrap_or(element_name);
 
     if use_def.ast.path.is_empty() {
-        use_namespace(sa, use_def, &table, namespace_id, element_name, target_name);
+        use_module(sa, use_def, &table, module_id, element_name, target_name);
     } else {
         let sym = match read_path(sa, use_def, &symtable) {
             Ok(sym) => sym,
@@ -58,15 +58,15 @@ fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
         };
 
         match sym {
-            Some(Sym::Namespace(namespace_id)) => {
-                if !module_accessible_from(sa, namespace_id, use_def.module_id) {
-                    let namespace = &sa.modules[namespace_id].read();
-                    let msg = SemError::NotAccessible(namespace.name(sa));
+            Some(Sym::Module(module_id)) => {
+                if !module_accessible_from(sa, module_id, use_def.module_id) {
+                    let module = &sa.modules[module_id].read();
+                    let msg = SemError::NotAccessible(module.name(sa));
                     sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                     return;
                 }
 
-                use_namespace(sa, use_def, &table, namespace_id, element_name, target_name)
+                use_module(sa, use_def, &table, module_id, element_name, target_name)
             }
 
             Some(Sym::Enum(enum_id)) => {
@@ -97,13 +97,13 @@ fn read_path(
 
         for &name in &path[1..] {
             match sym {
-                Some(Sym::Namespace(namespace_id)) => {
-                    let namespace = &sa.modules[namespace_id].read();
-                    let symtable = namespace.table.read();
+                Some(Sym::Module(module_id)) => {
+                    let module = &sa.modules[module_id].read();
+                    let symtable = module.table.read();
 
-                    if !module_accessible_from(sa, namespace_id, use_def.module_id) {
-                        let namespace = &sa.modules[namespace_id].read();
-                        let msg = SemError::NotAccessible(namespace.name(sa));
+                    if !module_accessible_from(sa, module_id, use_def.module_id) {
+                        let module = &sa.modules[module_id].read();
+                        let msg = SemError::NotAccessible(module.name(sa));
                         sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                         return Err(());
                     }
@@ -118,7 +118,7 @@ fn read_path(
                 }
 
                 _ => {
-                    let msg = SemError::ExpectedNamespace;
+                    let msg = SemError::ExpectedModule;
                     sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
                     return Err(());
                 }
@@ -133,16 +133,16 @@ fn read_path(
     }
 }
 
-fn use_namespace(
+fn use_module(
     sa: &SemAnalysis,
     use_def: &UseDefinition,
     table: &RwLock<SymTable>,
-    namespace_id: ModuleDefinitionId,
+    module_id: ModuleDefinitionId,
     element_name: Name,
     target_name: Name,
 ) {
-    let namespace = &sa.modules[namespace_id].read();
-    let sym = namespace.table.read().get(element_name);
+    let module = &sa.modules[module_id].read();
+    let sym = module.table.read().get(element_name);
 
     match sym {
         Some(Sym::Fct(fct_id)) => {
@@ -159,14 +159,14 @@ fn use_namespace(
             }
         }
 
-        Some(Sym::Namespace(namespace_id)) => {
-            if !module_accessible_from(sa, namespace_id, use_def.module_id) {
-                let namespace = &sa.modules[namespace_id].read();
-                let msg = SemError::NotAccessible(namespace.name(sa));
+        Some(Sym::Module(module_id)) => {
+            if !module_accessible_from(sa, module_id, use_def.module_id) {
+                let module = &sa.modules[module_id].read();
+                let msg = SemError::NotAccessible(module.name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 
-            let new_sym = Sym::Namespace(namespace_id);
+            let new_sym = Sym::Module(module_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
                 report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
             }
@@ -259,11 +259,11 @@ fn use_namespace(
 
         None => {
             let name = sa.interner.str(element_name).to_string();
-            let namespace_name = namespace.name(sa);
+            let module_name = module.name(sa);
             sa.diag.lock().report(
                 use_def.file_id.into(),
                 use_def.ast.pos,
-                SemError::UnknownIdentifierInNamespace(namespace_name, name),
+                SemError::UnknownIdentifierInModule(module_name, name),
             );
         }
 
@@ -339,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn use_namespace() {
+    fn use_module() {
         err(
             "
             use foo::bar::Foo;

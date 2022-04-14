@@ -25,7 +25,7 @@ pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
 }
 
 #[derive(Copy, Clone)]
-enum NamespaceLookup {
+enum FileLookup {
     Disallowed,
     Directory,
     Stdlib,
@@ -50,7 +50,7 @@ fn prepare_bundle(files: &[(&'static str, &'static str)]) -> PreparedBundle {
 
 struct ProgramParser<'a> {
     sa: &'a mut SemAnalysis,
-    files_to_parse: VecDeque<(SourceFileId, NamespaceLookup)>,
+    files_to_parse: VecDeque<(SourceFileId, FileLookup)>,
     stdlib: PreparedBundle,
 }
 
@@ -66,8 +66,8 @@ impl<'a> ProgramParser<'a> {
     fn parse_all(&mut self) -> Result<(), i32> {
         self.add_initial_files()?;
 
-        while let Some((file_id, namespace_lookup)) = self.files_to_parse.pop_front() {
-            self.parse_file(file_id, namespace_lookup)?;
+        while let Some((file_id, file_lookup)) = self.files_to_parse.pop_front() {
+            self.parse_file(file_id, file_lookup)?;
         }
 
         Ok(())
@@ -86,31 +86,31 @@ impl<'a> ProgramParser<'a> {
         use crate::driver::start::STDLIB;
 
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
-        let namespace_id = self.sa.stdlib_module_id;
+        let module_id = self.sa.stdlib_module_id;
 
         if let Some(stdlib) = stdlib_dir {
-            self.add_files_in_directory(PathBuf::from(stdlib), namespace_id, None)?;
+            self.add_files_in_directory(PathBuf::from(stdlib), module_id, None)?;
         } else {
             self.stdlib = prepare_bundle(STDLIB);
-            self.add_bundled_stdlib(namespace_id)?;
+            self.add_bundled_stdlib(module_id)?;
         }
 
         Ok(())
     }
 
-    fn add_bundled_stdlib(&mut self, namespace_id: ModuleDefinitionId) -> Result<(), i32> {
+    fn add_bundled_stdlib(&mut self, module_id: ModuleDefinitionId) -> Result<(), i32> {
         let path = PathBuf::from("stdlib");
-        self.add_bundled_directory(path, namespace_id)
+        self.add_bundled_directory(path, module_id)
     }
 
     fn add_bundled_directory(
         &mut self,
         path: PathBuf,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
     ) -> Result<(), i32> {
         let files = self.stdlib.remove(&path).expect("missing directory");
         for (path, content) in files {
-            self.add_file_from_string(path, content, namespace_id, NamespaceLookup::Stdlib);
+            self.add_file_from_string(path, content, module_id, FileLookup::Stdlib);
         }
 
         Ok(())
@@ -150,7 +150,7 @@ impl<'a> ProgramParser<'a> {
                 PathBuf::from("<<code>>"),
                 content.to_string(),
                 self.sa.program_module_id,
-                NamespaceLookup::Disallowed,
+                FileLookup::Disallowed,
             );
         }
 
@@ -161,60 +161,60 @@ impl<'a> ProgramParser<'a> {
         &mut self,
         file_id: SourceFileId,
         file_path: PathBuf,
-        namespace_id: ModuleDefinitionId,
-        namespace_lookup: NamespaceLookup,
+        module_id: ModuleDefinitionId,
+        file_lookup: FileLookup,
         ast: &ast::File,
     ) -> Result<(), i32> {
         let mut gdef = GlobalDef {
             sa: self.sa,
             file_id,
-            namespace_id,
-            unresolved_namespaces: Vec::new(),
+            module_id,
+            unresolved_modules: Vec::new(),
         };
 
         gdef.visit_file(ast);
 
-        if !gdef.unresolved_namespaces.is_empty() {
+        if !gdef.unresolved_modules.is_empty() {
             let mut directory = file_path;
             directory.pop();
 
-            for id in gdef.unresolved_namespaces {
-                self.add_namespace_files(directory.clone(), id, namespace_lookup)?;
+            for id in gdef.unresolved_modules {
+                self.add_module_files(directory.clone(), id, file_lookup)?;
             }
         }
 
         Ok(())
     }
 
-    fn add_namespace_files(
+    fn add_module_files(
         &mut self,
         directory: PathBuf,
         id: ModuleDefinitionId,
-        namespace_lookup: NamespaceLookup,
+        file_lookup: FileLookup,
     ) -> Result<(), i32> {
-        let namespace = self.sa.modules[id].clone();
-        let namespace = namespace.read();
-        let node = namespace.ast.clone().unwrap();
-        let file_id = namespace.file_id.expect("missing file_id");
+        let module = self.sa.modules[id].clone();
+        let module = module.read();
+        let node = module.ast.clone().unwrap();
+        let file_id = module.file_id.expect("missing file_id");
 
-        let mut namespace_directory = directory;
+        let mut module_directory = directory;
         let name = self.sa.interner.str(node.name).to_string();
-        namespace_directory.push(&name);
+        module_directory.push(&name);
 
-        match namespace_lookup {
-            NamespaceLookup::Directory => {
-                self.add_files_in_directory(namespace_directory, id, Some((file_id, node.pos)))
+        match file_lookup {
+            FileLookup::Directory => {
+                self.add_files_in_directory(module_directory, id, Some((file_id, node.pos)))
             }
 
-            NamespaceLookup::Disallowed => panic!("cannot include other files here."),
-            NamespaceLookup::Stdlib => self.add_bundled_directory(namespace_directory, id),
+            FileLookup::Disallowed => panic!("cannot include other files here."),
+            FileLookup::Stdlib => self.add_bundled_directory(module_directory, id),
         }
     }
 
     fn add_files_in_directory(
         &mut self,
         path: PathBuf,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         error_location: Option<(SourceFileId, Position)>,
     ) -> Result<(), i32> {
         if path.is_dir() {
@@ -222,7 +222,7 @@ impl<'a> ProgramParser<'a> {
                 let path = entry.unwrap().path();
 
                 if should_file_be_parsed(&path) {
-                    self.add_file(path.clone(), namespace_id, error_location)?;
+                    self.add_file(path.clone(), module_id, error_location)?;
                 }
             }
 
@@ -244,14 +244,14 @@ impl<'a> ProgramParser<'a> {
     fn add_file(
         &mut self,
         path: PathBuf,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         error_location: Option<(SourceFileId, Position)>,
     ) -> Result<(), i32> {
         let result = file_as_string(&path);
 
         match result {
             Ok(content) => {
-                self.add_file_from_string(path, content, namespace_id, NamespaceLookup::Directory);
+                self.add_file_from_string(path, content, module_id, FileLookup::Directory);
                 Ok(())
             }
 
@@ -274,27 +274,21 @@ impl<'a> ProgramParser<'a> {
         &mut self,
         path: PathBuf,
         content: String,
-        namespace_id: ModuleDefinitionId,
-        namespace_lookup: NamespaceLookup,
+        module_id: ModuleDefinitionId,
+        file_lookup: FileLookup,
     ) {
-        let file_id = self
-            .sa
-            .add_source_file(path, Arc::new(content), namespace_id);
-        self.files_to_parse.push_back((file_id, namespace_lookup));
+        let file_id = self.sa.add_source_file(path, Arc::new(content), module_id);
+        self.files_to_parse.push_back((file_id, file_lookup));
     }
 
-    fn parse_file(
-        &mut self,
-        file_id: SourceFileId,
-        namespace_lookup: NamespaceLookup,
-    ) -> Result<(), i32> {
-        let namespace_id;
+    fn parse_file(&mut self, file_id: SourceFileId, file_lookup: FileLookup) -> Result<(), i32> {
+        let module_id;
         let content;
         let path;
 
         {
             let file = self.sa.source_file(file_id);
-            namespace_id = file.module_id;
+            module_id = file.module_id;
             content = file.content.clone();
             path = file.path.clone();
         }
@@ -304,7 +298,7 @@ impl<'a> ProgramParser<'a> {
 
         match parser.parse() {
             Ok(ast) => {
-                self.scan_file(file_id, path, namespace_id, namespace_lookup, &ast)?;
+                self.scan_file(file_id, path, module_id, file_lookup, &ast)?;
                 Ok(())
             }
 
@@ -333,32 +327,32 @@ fn file_as_string(path: &PathBuf) -> Result<String, Error> {
 struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
     file_id: SourceFileId,
-    namespace_id: ModuleDefinitionId,
-    unresolved_namespaces: Vec<ModuleDefinitionId>,
+    module_id: ModuleDefinitionId,
+    unresolved_modules: Vec<ModuleDefinitionId>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
-        let namespace = ModuleDefinition::new(self.sa, self.namespace_id, self.file_id, node);
-        let id = self.sa.modules.push(namespace);
-        let sym = Sym::Namespace(id);
+        let module = ModuleDefinition::new(self.sa, self.module_id, self.file_id, node);
+        let id = self.sa.modules.push(module);
+        let sym = Sym::Module(id);
 
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
 
         if node.elements.is_none() {
-            self.unresolved_namespaces.push(id);
+            self.unresolved_modules.push(id);
         } else {
-            let saved_namespace_id = self.namespace_id;
-            self.namespace_id = id;
+            let saved_module_id = self.module_id;
+            self.module_id = id;
             visit::walk_module(self, node);
-            self.namespace_id = saved_namespace_id;
+            self.module_id = saved_module_id;
         }
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        let xtrait = TraitDefinition::new(self.file_id, self.namespace_id, node);
+        let xtrait = TraitDefinition::new(self.file_id, self.module_id, node);
         let id = self.sa.traits.push(xtrait);
 
         let sym = Sym::Trait(id);
@@ -368,12 +362,12 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_use(&mut self, node: &Arc<ast::Use>) {
-        let use_def = UseDefinition::new(self.file_id, self.namespace_id, node);
+        let use_def = UseDefinition::new(self.file_id, self.module_id, node);
         self.sa.uses.push(use_def);
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
-        let global = GlobalDefinition::new(self.file_id, self.namespace_id, node);
+        let global = GlobalDefinition::new(self.file_id, self.module_id, node);
         let id = self.sa.globals.push(global);
 
         let sym = Sym::Global(id);
@@ -384,16 +378,16 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         if node.trait_type.is_some() {
-            let ximpl = ImplDefinition::new(self.file_id, self.namespace_id, node);
+            let ximpl = ImplDefinition::new(self.file_id, self.module_id, node);
             self.sa.impls.push(ximpl);
         } else {
-            let extension = ExtensionDefinition::new(self.file_id, self.namespace_id, node);
+            let extension = ExtensionDefinition::new(self.file_id, self.module_id, node);
             self.sa.extensions.push(extension);
         }
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
-        let xconst = ConstDefinition::new(self.file_id, self.namespace_id, node);
+        let xconst = ConstDefinition::new(self.file_id, self.module_id, node);
         let id = self.sa.consts.push(xconst);
 
         let sym = Sym::Const(id);
@@ -403,7 +397,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
-        let cls = ClassDefinition::new(self.file_id, node, self.namespace_id);
+        let cls = ClassDefinition::new(self.file_id, node, self.module_id);
         let id = self.sa.classes.push(cls);
 
         let sym = Sym::Class(id);
@@ -414,7 +408,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
-        let xstruct = StructDefinition::new(self.file_id, self.namespace_id, node);
+        let xstruct = StructDefinition::new(self.file_id, self.module_id, node);
         let id = self.sa.structs.push(xstruct);
 
         let sym = Sym::Struct(id);
@@ -425,7 +419,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_annotation(&mut self, node: &Arc<ast::Annotation>) {
         let annotation =
-            AnnotationDefinition::new(self.file_id, node.pos, node.name, self.namespace_id);
+            AnnotationDefinition::new(self.file_id, node.pos, node.name, self.module_id);
         let id = self.sa.annotations.push(annotation);
 
         let sym = Sym::Annotation(id);
@@ -436,7 +430,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
-        let fct = FctDefinition::new(self.file_id, self.namespace_id, node, FctParent::None);
+        let fct = FctDefinition::new(self.file_id, self.module_id, node, FctParent::None);
         let fctid = self.sa.add_fct(fct);
         let sym = Sym::Fct(fctid);
 
@@ -446,7 +440,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        let xenum = EnumDefinition::new(self.file_id, self.namespace_id, node);
+        let xenum = EnumDefinition::new(self.file_id, self.module_id, node);
         let id = self.sa.enums.push(xenum);
 
         let sym = Sym::Enum(id);
@@ -458,7 +452,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
 impl<'x> GlobalDef<'x> {
     fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
-        let level = self.sa.namespace_table(self.namespace_id);
+        let level = self.sa.module_table(self.module_id);
         let mut level = level.write();
         level.insert(name, sym)
     }
@@ -622,7 +616,7 @@ mod tests {
         err(
             "mod foo {} mod foo {}",
             pos(1, 12),
-            SemError::ShadowNamespace("foo".into()),
+            SemError::ShadowModule("foo".into()),
         );
 
         err(

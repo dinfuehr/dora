@@ -36,7 +36,7 @@ pub struct TypeCheck<'a> {
     pub sa: &'a SemAnalysis,
     pub fct: &'a FctDefinition,
     pub file_id: SourceFileId,
-    pub namespace_id: ModuleDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a ast::Function,
     pub symtable: NestedSymTable<'a>,
@@ -1459,7 +1459,7 @@ impl<'a> TypeCheck<'a> {
         let xenum = self.sa.enums[enum_id].read();
         let variant = &xenum.variants[variant_id as usize];
 
-        if !enum_accessible_from(self.sa, enum_id, self.namespace_id) {
+        if !enum_accessible_from(self.sa, enum_id, self.module_id) {
             let msg = SemError::NotAccessible(xenum.name(self.sa));
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
@@ -1705,7 +1705,7 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        if !fct_accessible_from(self.sa, fct_id, self.namespace_id) {
+        if !fct_accessible_from(self.sa, fct_id, self.module_id) {
             let fct = self.sa.fcts.idx(fct_id);
             let fct = fct.read();
             let msg = SemError::NotAccessible(fct.name(self.sa));
@@ -1756,7 +1756,7 @@ impl<'a> TypeCheck<'a> {
             let call_type = Arc::new(CallType::Fct(fct_id, type_params));
             self.analysis.map_calls.insert(e.id, call_type.clone());
 
-            if !method_accessible_from(self.sa, fct_id, self.namespace_id) {
+            if !method_accessible_from(self.sa, fct_id, self.module_id) {
                 let fct = self.sa.fcts.idx(fct_id);
                 let fct = fct.read();
 
@@ -1820,7 +1820,7 @@ impl<'a> TypeCheck<'a> {
                 .insert_or_replace(e.id, Arc::new(call_type));
             self.analysis.set_ty(e.id, return_type.clone());
 
-            if !method_accessible_from(self.sa, fct_id, self.namespace_id) {
+            if !method_accessible_from(self.sa, fct_id, self.module_id) {
                 let fct = self.sa.fcts.idx(fct_id);
                 let fct = fct.read();
 
@@ -1869,7 +1869,7 @@ impl<'a> TypeCheck<'a> {
 
             let cls_id = object_type.cls_id().expect("class expected");
 
-            if !class_field_accessible_from(self.sa, cls_id, field_id, self.namespace_id) {
+            if !class_field_accessible_from(self.sa, cls_id, field_id, self.module_id) {
                 let cls = self.sa.classes.idx(cls_id);
                 let cls = cls.read();
                 let field = &cls.fields[field_id];
@@ -1894,7 +1894,7 @@ impl<'a> TypeCheck<'a> {
                 let field_type =
                     replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
 
-                if !struct_field_accessible_from(self.sa, struct_id, field_id, self.namespace_id) {
+                if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = SemError::NotAccessible(name);
                     self.sa.diag.lock().report(self.file_id, e.pos, msg);
@@ -1927,7 +1927,7 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        if !struct_accessible_from(self.sa, struct_id, self.namespace_id) {
+        if !struct_accessible_from(self.sa, struct_id, self.module_id) {
             let xstruct = self.sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
             let msg = SemError::NotAccessible(xstruct.name(self.sa));
@@ -2003,7 +2003,7 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        if !class_accessible_from(self.sa, cls_id, self.namespace_id) {
+        if !class_accessible_from(self.sa, cls_id, self.module_id) {
             let cls = self.sa.classes.idx(cls_id);
             let cls = cls.read();
             let msg = SemError::NotAccessible(cls.name(self.sa));
@@ -2300,7 +2300,7 @@ impl<'a> TypeCheck<'a> {
                 self.check_expr_call_generic_static_method(e, id, method_name, &arg_types)
             }
 
-            Some(Sym::Namespace(namespace_id)) => {
+            Some(Sym::Module(module_id)) => {
                 if !container_type_params.is_empty() {
                     let msg = SemError::NoTypeParamsExpected;
                     self.sa
@@ -2310,8 +2310,8 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let sym = {
-                    let namespace = &self.sa.modules[namespace_id].read();
-                    let table = namespace.table.read();
+                    let module = &self.sa.modules[module_id].read();
+                    let table = module.table.read();
 
                     table.get(method_name)
                 };
@@ -2429,8 +2429,8 @@ impl<'a> TypeCheck<'a> {
                 element_name,
             ),
 
-            Some(Sym::Namespace(namespace_id)) => {
-                self.check_expr_path_namespace(e, expected_ty, namespace_id, element_name)
+            Some(Sym::Module(module_id)) => {
+                self.check_expr_path_module(e, expected_ty, module_id, element_name)
             }
 
             _ => {
@@ -2459,16 +2459,16 @@ impl<'a> TypeCheck<'a> {
             };
 
             match sym {
-                Some(Sym::Namespace(namespace_id)) => {
-                    let namespace = &self.sa.modules[namespace_id].read();
-                    let symtable = namespace.table.read();
+                Some(Sym::Module(module_id)) => {
+                    let module = &self.sa.modules[module_id].read();
+                    let symtable = module.table.read();
                     let sym = symtable.get(element_name);
 
                     Ok(sym)
                 }
 
                 _ => {
-                    let msg = SemError::ExpectedNamespace;
+                    let msg = SemError::ExpectedModule;
                     self.sa.diag.lock().report(self.file_id, expr.pos(), msg);
                     Err(())
                 }
@@ -2491,22 +2491,22 @@ impl<'a> TypeCheck<'a> {
 
         for &name in &names[1..] {
             match sym {
-                Some(Sym::Namespace(namespace_id)) => {
-                    if !module_accessible_from(self.sa, namespace_id, self.namespace_id) {
-                        let namespace = &self.sa.modules[namespace_id].read();
-                        let msg = SemError::NotAccessible(namespace.name(self.sa));
+                Some(Sym::Module(module_id)) => {
+                    if !module_accessible_from(self.sa, module_id, self.module_id) {
+                        let module = &self.sa.modules[module_id].read();
+                        let msg = SemError::NotAccessible(module.name(self.sa));
                         self.sa.diag.lock().report(self.file_id, path.pos, msg);
                     }
 
-                    let namespace = &self.sa.modules[namespace_id].read();
-                    let symtable = namespace.table.read();
+                    let module = &self.sa.modules[module_id].read();
+                    let symtable = module.table.read();
                     sym = symtable.get(name);
                 }
 
                 Some(Sym::Enum(enum_id)) => {
                     let xenum = self.sa.enums[enum_id].read();
 
-                    if !enum_accessible_from(self.sa, enum_id, self.namespace_id) {
+                    if !enum_accessible_from(self.sa, enum_id, self.module_id) {
                         let msg = SemError::NotAccessible(xenum.name(self.sa));
                         self.sa.diag.lock().report(self.file_id, path.pos, msg);
                     }
@@ -2525,7 +2525,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 Some(_) => {
-                    let msg = SemError::ExpectedNamespace;
+                    let msg = SemError::ExpectedModule;
                     self.sa.diag.lock().report(self.file_id, path.pos, msg);
                     return Err(());
                 }
@@ -2550,21 +2550,21 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_path_namespace(
+    fn check_expr_path_module(
         &mut self,
         e: &ast::ExprPathType,
         expected_ty: SourceType,
-        namespace_id: ModuleDefinitionId,
+        module_id: ModuleDefinitionId,
         element_name: Name,
     ) -> SourceType {
-        let namespace = &self.sa.modules[namespace_id].read();
-        let table = namespace.table.read();
+        let module = &self.sa.modules[module_id].read();
+        let table = module.table.read();
 
         let sym = table.get(element_name);
 
         match sym {
             Some(Sym::Global(global_id)) => {
-                if !global_accessible_from(self.sa, global_id, self.namespace_id) {
+                if !global_accessible_from(self.sa, global_id, self.module_id) {
                     let global = &self.sa.globals.idx(global_id);
                     let global = global.read();
                     let msg = SemError::NotAccessible(global.name(self.sa));
@@ -2583,7 +2583,7 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Const(const_id)) => {
-                if !const_accessible_from(self.sa, const_id, self.namespace_id) {
+                if !const_accessible_from(self.sa, const_id, self.module_id) {
                     let xconst = self.sa.consts.idx(const_id);
                     let xconst = xconst.read();
                     let msg = SemError::NotAccessible(xconst.name(self.sa));
@@ -2612,12 +2612,12 @@ impl<'a> TypeCheck<'a> {
             ),
 
             None => {
-                let namespace = namespace.name(self.sa);
+                let module = module.name(self.sa);
                 let name = self.sa.interner.str(element_name).to_string();
                 self.sa.diag.lock().report(
                     self.fct.file_id,
                     e.pos,
-                    SemError::UnknownIdentifierInNamespace(namespace, name),
+                    SemError::UnknownIdentifierInModule(module, name),
                 );
                 SourceType::Error
             }
@@ -2643,7 +2643,7 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let xenum = self.sa.enums[enum_id].read();
 
-        if !enum_accessible_from(self.sa, enum_id, self.namespace_id) {
+        if !enum_accessible_from(self.sa, enum_id, self.module_id) {
             let msg = SemError::NotAccessible(xenum.name(self.sa));
             self.sa.diag.lock().report(self.file_id, expr_pos, msg);
         }
@@ -2801,7 +2801,7 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let xenum = self.sa.enums[enum_id].read();
 
-        if !enum_accessible_from(self.sa, enum_id, self.namespace_id) {
+        if !enum_accessible_from(self.sa, enum_id, self.module_id) {
             let msg = SemError::NotAccessible(xenum.name(self.sa));
             self.sa.diag.lock().report(self.file_id, expr_pos, msg);
         }
@@ -2886,7 +2886,7 @@ impl<'a> TypeCheck<'a> {
                 let struct_type_params = object_type.type_params();
                 let fty = replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
 
-                if !struct_field_accessible_from(self.sa, struct_id, field_id, self.namespace_id) {
+                if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = SemError::NotAccessible(name);
                     self.sa.diag.lock().report(self.file_id, e.pos, msg);
@@ -2912,7 +2912,7 @@ impl<'a> TypeCheck<'a> {
                 let class_type_params = cls_ty.type_params();
                 let fty = replace_type_param(self.sa, field.ty.clone(), &class_type_params, None);
 
-                if !class_field_accessible_from(self.sa, cls_id, field_id, self.namespace_id) {
+                if !class_field_accessible_from(self.sa, cls_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = SemError::NotAccessible(name);
                     self.sa.diag.lock().report(self.file_id, e.pos, msg);
