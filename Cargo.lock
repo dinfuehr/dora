@@ -123,6 +123,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dora-aot-runtime"
+version = "0.0.1"
+dependencies = [
+ "dora",
+]
+
+[[package]]
 name = "dora-asm"
 version = "0.0.1"
 dependencies = [

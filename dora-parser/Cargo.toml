@@ -6,7 +6,7 @@ description = "The Dora programming language"
 homepage = "https://github.com/dinfuehr/dora"
 repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 parking_lot = "0.9.*"
