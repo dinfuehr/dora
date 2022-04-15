@@ -2,8 +2,8 @@ use std::fmt;
 
 use crate::bytecode::read_opcode_and_width;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
+    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem::ptr_width;
@@ -668,6 +668,724 @@ impl BytecodeOpcode {
             _ => false,
         }
     }
+}
+
+pub enum BytecodeInstruction {
+    AddInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    AddInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    AddFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    AddFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    SubInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    SubInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    SubFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    SubFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    NegInt32 {
+        dest: Register,
+        src: Register,
+    },
+    NegInt64 {
+        dest: Register,
+        src: Register,
+    },
+    NegFloat32 {
+        dest: Register,
+        src: Register,
+    },
+    NegFloat64 {
+        dest: Register,
+        src: Register,
+    },
+
+    MulInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    MulInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    MulFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    MulFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    DivInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    DivInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    DivFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    DivFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    ModInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    ModInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    AndInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    AndInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    OrInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    OrInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    XorInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    XorInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    NotBool {
+        dest: Register,
+        src: Register,
+    },
+    NotInt32 {
+        dest: Register,
+        src: Register,
+    },
+    NotInt64 {
+        dest: Register,
+        src: Register,
+    },
+
+    ShlInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    ShrInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    SarInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    ShlInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    ShrInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    SarInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    RolInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    RorInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    RolInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    RorInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    ExtendUInt8ToChar {
+        dest: Register,
+        src: Register,
+    },
+    ExtendUInt8ToInt32 {
+        dest: Register,
+        src: Register,
+    },
+    ExtendUInt8ToInt64 {
+        dest: Register,
+        src: Register,
+    },
+    ExtendInt32ToInt64 {
+        dest: Register,
+        src: Register,
+    },
+    ExtendCharToInt64 {
+        dest: Register,
+        src: Register,
+    },
+    CastCharToInt32 {
+        dest: Register,
+        src: Register,
+    },
+    CastInt32ToUInt8 {
+        dest: Register,
+        src: Register,
+    },
+    CastInt32ToChar {
+        dest: Register,
+        src: Register,
+    },
+    CastInt64ToUInt8 {
+        dest: Register,
+        src: Register,
+    },
+    CastInt64ToChar {
+        dest: Register,
+        src: Register,
+    },
+    CastInt64ToInt32 {
+        dest: Register,
+        src: Register,
+    },
+
+    InstanceOf {
+        dest: Register,
+        src: Register,
+        cls_id: ConstPoolIdx,
+    },
+    CheckedCast {
+        src: Register,
+        cls_id: ConstPoolIdx,
+    },
+
+    Mov {
+        dest: Register,
+        src: Register,
+    },
+
+    LoadTupleElement {
+        dest: Register,
+        src: Register,
+        tuple_id: TupleId,
+        element: u32,
+    },
+    LoadEnumElement {
+        dest: Register,
+        src: Register,
+        idx: ConstPoolIdx,
+        element: u32,
+    },
+    LoadEnumVariant {
+        dest: Register,
+        src: Register,
+        idx: ConstPoolIdx,
+    },
+    LoadStructField {
+        dest: Register,
+        obj: Register,
+        field: ConstPoolIdx,
+    },
+
+    LoadField {
+        dest: Register,
+        obj: Register,
+        field: ConstPoolIdx,
+    },
+    StoreField {
+        src: Register,
+        obj: Register,
+        field: ConstPoolIdx,
+    },
+
+    LoadGlobal {
+        dest: Register,
+        glob: GlobalDefinitionId,
+    },
+    StoreGlobal {
+        src: Register,
+        glob: GlobalDefinitionId,
+    },
+
+    PushRegister {
+        src: Register,
+    },
+
+    ConstTrue {
+        dest: Register,
+    },
+    ConstFalse {
+        dest: Register,
+    },
+    ConstZeroUInt8 {
+        dest: Register,
+    },
+    ConstZeroChar {
+        dest: Register,
+    },
+    ConstZeroInt32 {
+        dest: Register,
+    },
+    ConstZeroInt64 {
+        dest: Register,
+    },
+    ConstZeroFloat32 {
+        dest: Register,
+    },
+    ConstZeroFloat64 {
+        dest: Register,
+    },
+    ConstUInt8 {
+        dest: Register,
+        value: u8,
+    },
+    ConstChar {
+        dest: Register,
+        idx: ConstPoolIdx,
+    },
+    ConstInt32 {
+        dest: Register,
+        idx: ConstPoolIdx,
+    },
+    ConstInt64 {
+        dest: Register,
+        idx: ConstPoolIdx,
+    },
+    ConstFloat32 {
+        dest: Register,
+        idx: ConstPoolIdx,
+    },
+    ConstFloat64 {
+        dest: Register,
+        idx: ConstPoolIdx,
+    },
+    ConstString {
+        dest: Register,
+        idx: ConstPoolIdx,
+    },
+
+    TestIdentity {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    TestEqBool {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestNeBool {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    TestEqUInt8 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestNeUInt8 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGtUInt8 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGeUInt8 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLtUInt8 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLeUInt8 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    TestEqChar {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestNeChar {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGtChar {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGeChar {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLtChar {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLeChar {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    TestEqEnum {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestNeEnum {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    TestEqInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestNeInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGtInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGeInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLtInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLeInt32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    TestEqInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestNeInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGtInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGeInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLtInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLeInt64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    TestEqFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestNeFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGtFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGeFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLtFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLeFloat32 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    TestEqFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestNeFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGtFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestGeFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLtFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+    TestLeFloat64 {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    Assert {
+        value: Register,
+    },
+
+    // Backward jump
+    JumpLoop {
+        offset: u32,
+    },
+    LoopStart,
+
+    // Forward jumps
+    Jump {
+        offset: u32,
+    },
+    JumpConst {
+        idx: ConstPoolIdx,
+    },
+    JumpIfFalse {
+        opnd: Register,
+        offset: u32,
+    },
+    JumpIfFalseConst {
+        opnd: Register,
+        idx: ConstPoolIdx,
+    },
+    JumpIfTrue {
+        opnd: Register,
+        offset: u32,
+    },
+    JumpIfTrueConst {
+        opnd: Register,
+        idx: ConstPoolIdx,
+    },
+
+    InvokeDirectVoid {
+        fct: ConstPoolIdx,
+    },
+    InvokeDirect {
+        dest: Register,
+        fct: ConstPoolIdx,
+    },
+
+    InvokeVirtualVoid {
+        fct: ConstPoolIdx,
+    },
+    InvokeVirtual {
+        dest: Register,
+        fct: ConstPoolIdx,
+    },
+
+    InvokeStaticVoid {
+        fct: ConstPoolIdx,
+    },
+    InvokeStatic {
+        dest: Register,
+        fct: ConstPoolIdx,
+    },
+
+    InvokeGenericStaticVoid {
+        fct: ConstPoolIdx,
+    },
+    InvokeGenericStatic {
+        dest: Register,
+        fct: ConstPoolIdx,
+    },
+
+    InvokeGenericDirectVoid {
+        fct: ConstPoolIdx,
+    },
+    InvokeGenericDirect {
+        dest: Register,
+        fct: ConstPoolIdx,
+    },
+
+    NewObject {
+        dest: Register,
+        cls: ConstPoolIdx,
+    },
+    NewArray {
+        dest: Register,
+        cls: ConstPoolIdx,
+        length: Register,
+    },
+    NewTuple {
+        dest: Register,
+        tuple: TupleId,
+    },
+    NewEnum {
+        dest: Register,
+        idx: ConstPoolIdx,
+    },
+    NewStruct {
+        dest: Register,
+        idx: ConstPoolIdx,
+    },
+    NewTraitObject {
+        dest: Register,
+        idx: ConstPoolIdx,
+        src: Register,
+    },
+
+    NilCheck {
+        obj: Register,
+    },
+
+    ArrayLength {
+        dest: Register,
+        arr: Register,
+    },
+    ArrayBoundCheck {
+        arr: Register,
+        idx: Register,
+    },
+
+    LoadArray {
+        dest: Register,
+        arr: Register,
+        idx: Register,
+    },
+    StoreArray {
+        src: Register,
+        arr: Register,
+        idx: Register,
+    },
+
+    RetVoid,
+    Ret {
+        opnd: Register,
+    },
 }
 
 #[derive(Copy, Clone, Debug)]

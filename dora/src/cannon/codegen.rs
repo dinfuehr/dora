@@ -4673,15 +4673,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_ror_int(dest, lhs, rhs);
     }
 
-    fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
+    fn visit_extend_uint8_to_char(&mut self, dest: Register, src: Register) {
         comment!(self, format!("ExtendByteToChar {}, {}", dest, src));
         self.emit_extend_byte(dest, src, MachineMode::Int32);
     }
-    fn visit_extend_byte_to_int32(&mut self, dest: Register, src: Register) {
+    fn visit_extend_uint8_to_int32(&mut self, dest: Register, src: Register) {
         comment!(self, format!("ExtendByteToInt32 {}, {}", dest, src));
         self.emit_extend_byte(dest, src, MachineMode::Int32);
     }
-    fn visit_extend_byte_to_int64(&mut self, dest: Register, src: Register) {
+    fn visit_extend_uint8_to_int64(&mut self, dest: Register, src: Register) {
         comment!(self, format!("ExtendByteToInt64 {}, {}", dest, src));
         self.emit_extend_byte(dest, src, MachineMode::Int64);
     }

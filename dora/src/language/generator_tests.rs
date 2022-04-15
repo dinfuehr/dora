@@ -4530,13 +4530,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::RorInt64(dest, lhs, rhs));
     }
 
-    fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
+    fn visit_extend_uint8_to_char(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::ExtendByteToChar(dest, src));
     }
-    fn visit_extend_byte_to_int32(&mut self, dest: Register, src: Register) {
+    fn visit_extend_uint8_to_int32(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::ExtendByteToInt32(dest, src));
     }
-    fn visit_extend_byte_to_int64(&mut self, dest: Register, src: Register) {
+    fn visit_extend_uint8_to_int64(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::ExtendByteToInt64(dest, src));
     }
     fn visit_extend_int32_to_int64(&mut self, dest: Register, src: Register) {
