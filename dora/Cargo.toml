@@ -37,6 +37,7 @@ winapi = { version = "*", features = ["memoryapi"] }
 
 [lib]
 name = "dora"
+crate-type = ["lib", "staticlib"]
 path = "src/lib.rs"
 
 [[bin]]

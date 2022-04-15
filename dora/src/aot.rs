@@ -19,6 +19,8 @@ fn write(sa: &SemAnalysis, fct: &FctDefinition) -> io::Result<()> {
     let mut file = File::create("program.s")?;
     writeln!(&mut file, "\t.text")?;
 
+    write_main(&mut file)?;
+
     let code_descriptor = cannon::compile(
         sa,
         &*fct,
@@ -29,6 +31,26 @@ fn write(sa: &SemAnalysis, fct: &FctDefinition) -> io::Result<()> {
 
     let code_descriptor = dora_entry_stub::generate(sa);
     write_fct(&mut file, "_dora_entry_stub", code_descriptor)?;
+
+    Ok(())
+}
+
+fn write_main(file: &mut File) -> io::Result<()> {
+    writeln!(file, "\t.globl _main")?;
+    writeln!(file, "\t.p2align 2")?;
+    writeln!(file, "_main:")?;
+    writeln!(file, "\t.cfi_startproc")?;
+    writeln!(file, "\tstp x29, x30, [sp, #-16]!")?;
+    writeln!(file, "\tmov x29, sp")?;
+    writeln!(file, "\tmov x29, sp")?;
+    writeln!(file, "\t.cfi_def_cfa w29, 16")?;
+    writeln!(file, "\t.cfi_offset w30, -8")?;
+    writeln!(file, "\t.cfi_offset w29, -16")?;
+    writeln!(file, "\tbl _run_aot_program")?;
+    writeln!(file, "\tmov w0, #0")?;
+    writeln!(file, "\tldp	x29, x30, [sp], #16")?;
+    writeln!(file, "\tret")?;
+    writeln!(file, "\t.cfi_endproc")?;
 
     Ok(())
 }

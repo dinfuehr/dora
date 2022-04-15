@@ -43,6 +43,7 @@ pub fn run() -> i32 {
 }
 
 #[cfg(not(test))]
-pub fn run_aot() -> i32 {
+#[no_mangle]
+pub fn run_aot_program() -> i32 {
     driver::aot::start()
 }
