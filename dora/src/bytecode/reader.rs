@@ -1,365 +1,378 @@
 use std::iter::Iterator;
 
 use crate::bytecode::{
-    BytecodeFunction, BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx,
-    OperandWidth, Register,
+    BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
 };
 use crate::language::sem_analysis::{GlobalDefinitionId, TupleId};
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
-    BytecodeReader::new(data, visitor).read();
+    BytecodeFullIteration::new(data, visitor).read();
 }
 
-struct BytecodeIterator<'a> {
+pub struct BytecodeReader<'a> {
     code: &'a [u8],
-    current: usize,
+    offset: usize,
+    width: OperandWidth,
 }
 
-impl<'a> BytecodeIterator<'a> {
-    fn new(code: &'a [u8]) -> BytecodeIterator<'a> {
-        BytecodeIterator { code, current: 0 }
+impl<'a> BytecodeReader<'a> {
+    pub fn new(code: &'a [u8]) -> BytecodeReader<'a> {
+        BytecodeReader {
+            code,
+            offset: 0,
+            width: OperandWidth::Normal,
+        }
+    }
+
+    pub fn read_opcode_at(code: &'a [u8], offset: usize) -> BytecodeOpcode {
+        let mut reader = BytecodeReader {
+            code,
+            offset,
+            width: OperandWidth::Normal,
+        };
+
+        reader.read_opcode()
     }
 
     fn offset(&self) -> usize {
-        self.current
+        self.offset
     }
 
-    fn read_instruction(
-        &mut self,
-        width: OperandWidth,
-        opcode: BytecodeOpcode,
-    ) -> BytecodeInstruction {
-        match opcode {
+    fn read_instruction(&mut self) -> (usize, OperandWidth, BytecodeOpcode, BytecodeInstruction) {
+        let start = self.offset();
+        let opcode = self.read_opcode();
+
+        let inst = match opcode {
             BytecodeOpcode::Wide => unreachable!(),
 
             BytecodeOpcode::AddInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::AddInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::AddInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::AddInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::AddFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::AddFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::AddFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::AddFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::SubInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::SubInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::SubInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::SubInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::SubFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::SubFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::SubFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::SubFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::NegInt32 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::NegInt32 { dest, src }
             }
             BytecodeOpcode::NegInt64 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::NegInt64 { dest, src }
             }
             BytecodeOpcode::NegFloat32 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::NegFloat32 { dest, src }
             }
             BytecodeOpcode::NegFloat64 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::NegFloat64 { dest, src }
             }
             BytecodeOpcode::MulInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::MulInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::MulInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::MulInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::MulFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::MulFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::MulFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::MulFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::DivInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::DivInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::DivInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::DivInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::DivFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::DivFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::DivFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::DivFloat64 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::ModInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::ModInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::ModInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::ModInt64 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::AndInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::AndInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::AndInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::AndInt64 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::OrInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::OrInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::OrInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::OrInt64 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::XorInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::XorInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::XorInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::XorInt64 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::NotBool => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::NotBool { dest, src }
             }
             BytecodeOpcode::NotInt32 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::NotInt32 { dest, src }
             }
             BytecodeOpcode::NotInt64 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::NotInt64 { dest, src }
             }
 
             BytecodeOpcode::ShlInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::ShlInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::ShrInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::ShrInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::SarInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::SarInt32 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::ShlInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::ShlInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::ShrInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::ShrInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::SarInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::SarInt64 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::RolInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::RolInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::RorInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::RorInt32 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::RolInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::RolInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::RorInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::RorInt64 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::ExtendUInt8ToChar => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::ExtendUInt8ToChar { dest, src }
             }
             BytecodeOpcode::ExtendUInt8ToInt32 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::ExtendUInt8ToInt32 { dest, src }
             }
             BytecodeOpcode::ExtendUInt8ToInt64 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::ExtendUInt8ToInt64 { dest, src }
             }
             BytecodeOpcode::ExtendInt32ToInt64 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::ExtendInt32ToInt64 { dest, src }
             }
             BytecodeOpcode::ExtendCharToInt64 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::ExtendCharToInt64 { dest, src }
             }
             BytecodeOpcode::CastCharToInt32 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::CastCharToInt32 { dest, src }
             }
             BytecodeOpcode::CastInt32ToUInt8 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::CastInt32ToUInt8 { dest, src }
             }
             BytecodeOpcode::CastInt32ToChar => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::CastInt32ToChar { dest, src }
             }
             BytecodeOpcode::CastInt64ToUInt8 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::CastInt64ToUInt8 { dest, src }
             }
             BytecodeOpcode::CastInt64ToChar => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::CastInt64ToChar { dest, src }
             }
             BytecodeOpcode::CastInt64ToInt32 => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::CastInt64ToInt32 { dest, src }
             }
 
             BytecodeOpcode::InstanceOf => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
-                let cls_id = self.read_const_pool_idx(2, width);
+                let dest = self.read_register();
+                let src = self.read_register();
+                let cls_id = self.read_const_pool_idx();
                 BytecodeInstruction::InstanceOf { dest, src, cls_id }
             }
             BytecodeOpcode::CheckedCast => {
-                let src = self.read_register(0, width);
-                let cls_id = self.read_const_pool_idx(1, width);
+                let src = self.read_register();
+                let cls_id = self.read_const_pool_idx();
                 BytecodeInstruction::CheckedCast { src, cls_id }
             }
 
             BytecodeOpcode::Mov => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
+                let dest = self.read_register();
+                let src = self.read_register();
                 BytecodeInstruction::Mov { dest, src }
             }
 
             BytecodeOpcode::LoadTupleElement => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
-                let tuple_id = self.read_tuple(2, width);
-                let element = self.read_index(3, width);
+                let dest = self.read_register();
+                let src = self.read_register();
+                let tuple_id = self.read_tuple();
+                let element = self.read_index();
                 BytecodeInstruction::LoadTupleElement {
                     dest,
                     src,
@@ -369,10 +382,10 @@ impl<'a> BytecodeIterator<'a> {
             }
 
             BytecodeOpcode::LoadEnumElement => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
-                let idx = self.read_const_pool_idx(2, width);
-                let element = self.read_index(3, width);
+                let dest = self.read_register();
+                let src = self.read_register();
+                let idx = self.read_const_pool_idx();
+                let element = self.read_index();
                 BytecodeInstruction::LoadEnumElement {
                     dest,
                     src,
@@ -382,605 +395,614 @@ impl<'a> BytecodeIterator<'a> {
             }
 
             BytecodeOpcode::LoadEnumVariant => {
-                let dest = self.read_register(0, width);
-                let src = self.read_register(1, width);
-                let idx = self.read_const_pool_idx(2, width);
+                let dest = self.read_register();
+                let src = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::LoadEnumVariant { dest, src, idx }
             }
 
             BytecodeOpcode::LoadStructField => {
-                let dest = self.read_register(0, width);
-                let obj = self.read_register(1, width);
-                let field = self.read_const_pool_idx(2, width);
+                let dest = self.read_register();
+                let obj = self.read_register();
+                let field = self.read_const_pool_idx();
                 BytecodeInstruction::LoadStructField { dest, obj, field }
             }
 
             BytecodeOpcode::LoadField => {
-                let dest = self.read_register(0, width);
-                let obj = self.read_register(1, width);
-                let field = self.read_const_pool_idx(2, width);
+                let dest = self.read_register();
+                let obj = self.read_register();
+                let field = self.read_const_pool_idx();
                 BytecodeInstruction::LoadField { dest, obj, field }
             }
 
             BytecodeOpcode::StoreField => {
-                let src = self.read_register(0, width);
-                let obj = self.read_register(1, width);
-                let field = self.read_const_pool_idx(2, width);
+                let src = self.read_register();
+                let obj = self.read_register();
+                let field = self.read_const_pool_idx();
                 BytecodeInstruction::StoreField { src, obj, field }
             }
 
             BytecodeOpcode::LoadGlobal => {
-                let dest = self.read_register(0, width);
-                let glob = self.read_global(1, width);
+                let dest = self.read_register();
+                let glob = self.read_global();
                 BytecodeInstruction::LoadGlobal { dest, glob }
             }
 
             BytecodeOpcode::StoreGlobal => {
-                let src = self.read_register(0, width);
-                let glob = self.read_global(1, width);
+                let src = self.read_register();
+                let glob = self.read_global();
                 BytecodeInstruction::StoreGlobal { src, glob }
             }
 
             BytecodeOpcode::PushRegister => {
-                let src = self.read_register(0, width);
+                let src = self.read_register();
                 BytecodeInstruction::PushRegister { src }
             }
 
             BytecodeOpcode::ConstTrue => {
-                let dest = self.read_register(0, width);
+                let dest = self.read_register();
                 BytecodeInstruction::ConstTrue { dest }
             }
             BytecodeOpcode::ConstFalse => {
-                let dest = self.read_register(0, width);
+                let dest = self.read_register();
                 BytecodeInstruction::ConstFalse { dest }
             }
             BytecodeOpcode::ConstZeroUInt8 => {
-                let dest = self.read_register(0, width);
+                let dest = self.read_register();
                 BytecodeInstruction::ConstZeroUInt8 { dest }
             }
             BytecodeOpcode::ConstZeroChar => {
-                let dest = self.read_register(0, width);
+                let dest = self.read_register();
                 BytecodeInstruction::ConstZeroChar { dest }
             }
             BytecodeOpcode::ConstZeroInt32 => {
-                let dest = self.read_register(0, width);
+                let dest = self.read_register();
                 BytecodeInstruction::ConstZeroInt32 { dest }
             }
             BytecodeOpcode::ConstZeroInt64 => {
-                let dest = self.read_register(0, width);
+                let dest = self.read_register();
                 BytecodeInstruction::ConstZeroInt64 { dest }
             }
             BytecodeOpcode::ConstZeroFloat32 => {
-                let dest = self.read_register(0, width);
+                let dest = self.read_register();
                 BytecodeInstruction::ConstZeroFloat32 { dest }
             }
             BytecodeOpcode::ConstZeroFloat64 => {
-                let dest = self.read_register(0, width);
+                let dest = self.read_register();
                 BytecodeInstruction::ConstZeroFloat64 { dest }
             }
             BytecodeOpcode::ConstChar => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::ConstChar { dest, idx }
             }
             BytecodeOpcode::ConstUInt8 => {
-                let dest = self.read_register(0, width);
-                let value = self.read_byte_argument(1, width) as u8;
+                let dest = self.read_register();
+                let value = self.read_byte() as u8;
                 BytecodeInstruction::ConstUInt8 { dest, value }
             }
             BytecodeOpcode::ConstInt32 => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::ConstInt32 { dest, idx }
             }
             BytecodeOpcode::ConstInt64 => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::ConstInt64 { dest, idx }
             }
             BytecodeOpcode::ConstFloat32 => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::ConstFloat32 { dest, idx }
             }
             BytecodeOpcode::ConstFloat64 => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::ConstFloat64 { dest, idx }
             }
             BytecodeOpcode::ConstString => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::ConstString { dest, idx }
             }
 
             BytecodeOpcode::TestIdentity => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestIdentity { dest, lhs, rhs }
             }
 
             BytecodeOpcode::TestEqBool => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestEqBool { dest, lhs, rhs }
             }
             BytecodeOpcode::TestNeBool => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestNeBool { dest, lhs, rhs }
             }
             BytecodeOpcode::TestEqUInt8 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestEqUInt8 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestNeUInt8 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestNeUInt8 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGtUInt8 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGtUInt8 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGeUInt8 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGeUInt8 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLtUInt8 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLtUInt8 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLeUInt8 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLeUInt8 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestEqChar => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestEqChar { dest, lhs, rhs }
             }
             BytecodeOpcode::TestNeChar => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestNeChar { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGtChar => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGtChar { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGeChar => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGeChar { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLtChar => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLtChar { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLeChar => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLeChar { dest, lhs, rhs }
             }
             BytecodeOpcode::TestEqEnum => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestEqEnum { dest, lhs, rhs }
             }
             BytecodeOpcode::TestNeEnum => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestNeEnum { dest, lhs, rhs }
             }
             BytecodeOpcode::TestEqInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestEqInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestNeInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestNeInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGtInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGtInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGeInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGeInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLtInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLtInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLeInt64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLeInt64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestEqInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestEqInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestNeInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestNeInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGtInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGtInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGeInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGeInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLtInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLtInt32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLeInt32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLeInt32 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::TestEqFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestEqFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestNeFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestNeFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGtFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGtFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGeFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGeFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLtFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLtFloat32 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLeFloat32 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLeFloat32 { dest, lhs, rhs }
             }
 
             BytecodeOpcode::TestEqFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestEqFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestNeFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestNeFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGtFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGtFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestGeFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestGeFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLtFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLtFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::TestLeFloat64 => {
-                let dest = self.read_register(0, width);
-                let lhs = self.read_register(1, width);
-                let rhs = self.read_register(2, width);
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
                 BytecodeInstruction::TestLeFloat64 { dest, lhs, rhs }
             }
             BytecodeOpcode::Assert => {
-                let value = self.read_register(0, width);
+                let value = self.read_register();
                 BytecodeInstruction::Assert { value }
             }
 
             BytecodeOpcode::JumpLoop => {
-                let offset = self.read_offset(0, width);
+                let offset = self.read_offset();
                 BytecodeInstruction::JumpLoop { offset }
             }
             BytecodeOpcode::LoopStart => BytecodeInstruction::LoopStart,
             BytecodeOpcode::JumpIfFalse => {
-                let opnd = self.read_register(0, width);
-                let offset = self.read_offset(1, width);
+                let opnd = self.read_register();
+                let offset = self.read_offset();
                 BytecodeInstruction::JumpIfFalse { opnd, offset }
             }
             BytecodeOpcode::JumpIfFalseConst => {
-                let opnd = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let opnd = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::JumpIfFalseConst { opnd, idx }
             }
             BytecodeOpcode::JumpIfTrue => {
-                let opnd = self.read_register(0, width);
-                let offset = self.read_offset(1, width);
+                let opnd = self.read_register();
+                let offset = self.read_offset();
                 BytecodeInstruction::JumpIfTrue { opnd, offset }
             }
             BytecodeOpcode::JumpIfTrueConst => {
-                let opnd = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let opnd = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::JumpIfTrueConst { opnd, idx }
             }
             BytecodeOpcode::Jump => {
-                let offset = self.read_offset(0, width);
+                let offset = self.read_offset();
                 BytecodeInstruction::Jump { offset }
             }
             BytecodeOpcode::JumpConst => {
-                let idx = self.read_const_pool_idx(0, width);
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::JumpConst { idx }
             }
 
             BytecodeOpcode::InvokeDirectVoid => {
-                let fct = self.read_const_pool_idx(0, width);
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeDirectVoid { fct }
             }
             BytecodeOpcode::InvokeDirect => {
-                let dest = self.read_register(0, width);
-                let fct = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeDirect { dest, fct }
             }
 
             BytecodeOpcode::InvokeVirtualVoid => {
-                let fct = self.read_const_pool_idx(0, width);
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeVirtualVoid { fct }
             }
             BytecodeOpcode::InvokeVirtual => {
-                let dest = self.read_register(0, width);
-                let fct = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeVirtual { dest, fct }
             }
 
             BytecodeOpcode::InvokeStaticVoid => {
-                let fct = self.read_const_pool_idx(0, width);
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeStaticVoid { fct }
             }
             BytecodeOpcode::InvokeStatic => {
-                let dest = self.read_register(0, width);
-                let fct = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeStatic { dest, fct }
             }
 
             BytecodeOpcode::InvokeGenericStaticVoid => {
-                let fct = self.read_const_pool_idx(0, width);
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeGenericStaticVoid { fct }
             }
             BytecodeOpcode::InvokeGenericStatic => {
-                let dest = self.read_register(0, width);
-                let fct = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeGenericStatic { dest, fct }
             }
 
             BytecodeOpcode::InvokeGenericDirectVoid => {
-                let fct = self.read_const_pool_idx(0, width);
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeGenericDirectVoid { fct }
             }
             BytecodeOpcode::InvokeGenericDirect => {
-                let dest = self.read_register(0, width);
-                let fct = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeGenericDirect { dest, fct }
             }
 
             BytecodeOpcode::NewObject => {
-                let dest = self.read_register(0, width);
-                let cls = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let cls = self.read_const_pool_idx();
                 BytecodeInstruction::NewObject { dest, cls }
             }
             BytecodeOpcode::NewArray => {
-                let dest = self.read_register(0, width);
-                let cls = self.read_const_pool_idx(1, width);
-                let length = self.read_register(2, width);
+                let dest = self.read_register();
+                let cls = self.read_const_pool_idx();
+                let length = self.read_register();
                 BytecodeInstruction::NewArray { dest, cls, length }
             }
             BytecodeOpcode::NewTuple => {
-                let dest = self.read_register(0, width);
-                let tuple = self.read_tuple(1, width);
+                let dest = self.read_register();
+                let tuple = self.read_tuple();
                 BytecodeInstruction::NewTuple { dest, tuple }
             }
             BytecodeOpcode::NewEnum => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::NewEnum { dest, idx }
             }
             BytecodeOpcode::NewStruct => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::NewStruct { dest, idx }
             }
             BytecodeOpcode::NewTraitObject => {
-                let dest = self.read_register(0, width);
-                let idx = self.read_const_pool_idx(1, width);
-                let src = self.read_register(2, width);
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
+                let src = self.read_register();
                 BytecodeInstruction::NewTraitObject { dest, idx, src }
             }
 
             BytecodeOpcode::NilCheck => {
-                let obj = self.read_register(0, width);
+                let obj = self.read_register();
                 BytecodeInstruction::NilCheck { obj }
             }
 
             BytecodeOpcode::ArrayLength => {
-                let dest = self.read_register(0, width);
-                let arr = self.read_register(1, width);
+                let dest = self.read_register();
+                let arr = self.read_register();
                 BytecodeInstruction::ArrayLength { dest, arr }
             }
             BytecodeOpcode::ArrayBoundCheck => {
-                let arr = self.read_register(0, width);
-                let idx = self.read_register(1, width);
+                let arr = self.read_register();
+                let idx = self.read_register();
                 BytecodeInstruction::ArrayBoundCheck { arr, idx }
             }
 
             BytecodeOpcode::LoadArray => {
-                let dest = self.read_register(0, width);
-                let arr = self.read_register(1, width);
-                let idx = self.read_register(2, width);
+                let dest = self.read_register();
+                let arr = self.read_register();
+                let idx = self.read_register();
                 BytecodeInstruction::LoadArray { dest, arr, idx }
             }
 
             BytecodeOpcode::StoreArray => {
-                let src = self.read_register(0, width);
-                let arr = self.read_register(1, width);
-                let idx = self.read_register(2, width);
+                let src = self.read_register();
+                let arr = self.read_register();
+                let idx = self.read_register();
                 BytecodeInstruction::StoreArray { src, arr, idx }
             }
 
             BytecodeOpcode::RetVoid => BytecodeInstruction::RetVoid,
             BytecodeOpcode::Ret => {
-                let opnd = self.read_register(0, width);
+                let opnd = self.read_register();
                 BytecodeInstruction::Ret { opnd }
             }
 
             _ => unreachable!(),
+        };
+
+        (start, self.width, opcode, inst)
+    }
+
+    fn read_register(&mut self) -> Register {
+        Register(self.read_index() as usize)
+    }
+
+    fn read_tuple(&mut self) -> TupleId {
+        self.read_index().into()
+    }
+
+    fn read_global(&mut self) -> GlobalDefinitionId {
+        self.read_index().into()
+    }
+
+    fn read_const_pool_idx(&mut self) -> ConstPoolIdx {
+        (self.read_index() as usize).into()
+    }
+
+    fn read_offset(&mut self) -> u32 {
+        self.read_index()
+    }
+
+    fn read_index(&mut self) -> u32 {
+        match self.width {
+            OperandWidth::Normal => self.read_byte() as u32,
+            OperandWidth::Wide => self.read_wide(),
         }
     }
 
-    fn read_register(&mut self, index: usize, width: OperandWidth) -> Register {
-        Register(self.read_index(index, width) as usize)
-    }
+    fn read_opcode(&mut self) -> BytecodeOpcode {
+        let mut opcode = self.read_byte();
 
-    fn read_tuple(&mut self, index: usize, width: OperandWidth) -> TupleId {
-        self.read_index(index, width).into()
-    }
-
-    fn read_global(&mut self, index: usize, width: OperandWidth) -> GlobalDefinitionId {
-        self.read_index(index, width).into()
-    }
-
-    fn read_const_pool_idx(&mut self, index: usize, width: OperandWidth) -> ConstPoolIdx {
-        (self.read_index(index, width) as usize).into()
-    }
-
-    fn read_offset(&mut self, index: usize, wide: OperandWidth) -> u32 {
-        self.read_index(index, wide)
-    }
-
-    fn read_index(&mut self, index: usize, width: OperandWidth) -> u32 {
-        let pos = self.current + offset_argument(index, width);
-        match width {
-            OperandWidth::Normal => self.read_byte_at(pos),
-            OperandWidth::Wide => self.read_wide_at(pos),
+        if opcode == BytecodeOpcode::Wide.to_u8() {
+            self.width = OperandWidth::Wide;
+            opcode = self.read_byte();
+        } else {
+            self.width = OperandWidth::Normal;
         }
+
+        BytecodeOpcode::from_u8(opcode).expect("illegal opcode")
     }
 
-    fn read_byte_argument(&mut self, index: usize, width: OperandWidth) -> u32 {
-        let pos = self.current + offset_argument(index, width);
-        self.read_byte_at(pos)
-    }
-
-    fn read_byte_at(&mut self, pos: usize) -> u32 {
-        self.code[pos] as u32
-    }
-
-    fn read_wide_at(&mut self, pos: usize) -> u32 {
-        let v1 = self.read_byte_at(pos);
-        let v2 = self.read_byte_at(pos + 1);
-        let v3 = self.read_byte_at(pos + 2);
-        let v4 = self.read_byte_at(pos + 3);
+    fn read_wide(&mut self) -> u32 {
+        let v1 = self.read_byte() as u32;
+        let v2 = self.read_byte() as u32;
+        let v3 = self.read_byte() as u32;
+        let v4 = self.read_byte() as u32;
 
         (v4 << 24) | (v3 << 16) | (v2 << 8) | v1
     }
+
+    fn read_byte(&mut self) -> u8 {
+        let value = self.code[self.offset];
+        self.offset += 1;
+        value
+    }
 }
 
-impl<'a> Iterator for BytecodeIterator<'a> {
+impl<'a> Iterator for BytecodeReader<'a> {
     type Item = BytecodeInstruction;
 
     fn next(&mut self) -> Option<BytecodeInstruction> {
-        if self.current < self.code.len() {
-            let (opcode, width) = read_opcode_and_width(self.code, self.current);
-            let inst = self.read_instruction(width, opcode);
-            self.current += opcode.size(width) as usize;
+        if self.offset < self.code.len() {
+            let (_start, _width, _opcode, inst) = self.read_instruction();
             Some(inst)
         } else {
-            assert_eq!(self.current, self.code.len());
+            assert_eq!(self.offset, self.code.len());
             None
         }
     }
 }
 
-struct BytecodeReader<'a, T: BytecodeVisitor> {
-    iterator: BytecodeIterator<'a>,
+struct BytecodeFullIteration<'a, T: BytecodeVisitor> {
+    iterator: BytecodeReader<'a>,
     current: usize,
     visitor: &'a mut T,
 }
 
-impl<'a, T> BytecodeReader<'a, T>
+impl<'a, T> BytecodeFullIteration<'a, T>
 where
     T: BytecodeVisitor,
 {
-    fn new(code: &'a [u8], visitor: &'a mut T) -> BytecodeReader<'a, T> {
-        BytecodeReader {
-            iterator: BytecodeIterator::new(code),
+    fn new(code: &'a [u8], visitor: &'a mut T) -> BytecodeFullIteration<'a, T> {
+        BytecodeFullIteration {
+            iterator: BytecodeReader::new(code),
             current: 0,
             visitor,
         }
@@ -2036,54 +2058,5 @@ pub trait BytecodeVisitor {
     }
     fn visit_ret(&mut self, _opnd: Register) {
         unimplemented!();
-    }
-}
-
-struct BytecodeRandomAccess<'a> {
-    fct: &'a BytecodeFunction,
-    instructions: Vec<usize>,
-}
-
-impl<'a> BytecodeRandomAccess<'a> {
-    pub fn new(_fct: &'a BytecodeFunction) -> BytecodeRandomAccess<'a> {
-        unimplemented!()
-    }
-}
-
-fn find_instruction_starts(fct: &BytecodeFunction) -> Vec<usize> {
-    let code = fct.code();
-    let mut pos = 0;
-    let mut intruction_start_offsets = Vec::new();
-
-    while pos < fct.code().len() {
-        intruction_start_offsets.push(pos);
-        let (opcode, width) = read_opcode_and_width(code, pos);
-        pos += opcode.size(width) as usize;
-    }
-
-    intruction_start_offsets
-}
-
-pub(super) fn read_opcode_and_width(data: &[u8], pos: usize) -> (BytecodeOpcode, OperandWidth) {
-    if data[pos] == BytecodeOpcode::Wide.to_int() {
-        (read_opcode(data[pos + 1]), OperandWidth::Wide)
-    } else {
-        (read_opcode(data[pos]), OperandWidth::Normal)
-    }
-}
-
-fn read_opcode(opcode: u8) -> BytecodeOpcode {
-    BytecodeOpcode::from_u8(opcode).expect("illegal opcode")
-}
-
-fn offset_argument(index: usize, width: OperandWidth) -> usize {
-    offset_arguments(width) + width.size() * index
-}
-
-fn offset_arguments(width: OperandWidth) -> usize {
-    if width.needs_bytecode() {
-        2
-    } else {
-        1
     }
 }

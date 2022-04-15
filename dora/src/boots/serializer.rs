@@ -48,7 +48,7 @@ fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &m
 }
 
 fn encode_architecture(architecture: InstructionSet, buffer: &mut ByteBuffer) {
-    buffer.emit_u8(architecture.to_int());
+    buffer.emit_u8(architecture.to_u8());
 }
 
 fn encode_bytecode_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
@@ -134,51 +134,51 @@ fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
     match ty {
         SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
         SourceType::Unit => {
-            buffer.emit_u8(SourceTypeOpcode::Unit.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Unit.to_u8());
         }
         SourceType::Bool => {
-            buffer.emit_u8(SourceTypeOpcode::Bool.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Bool.to_u8());
         }
         SourceType::Char => {
-            buffer.emit_u8(SourceTypeOpcode::Char.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Char.to_u8());
         }
         SourceType::UInt8 => {
-            buffer.emit_u8(SourceTypeOpcode::UInt8.to_int());
+            buffer.emit_u8(SourceTypeOpcode::UInt8.to_u8());
         }
         SourceType::Int32 => {
-            buffer.emit_u8(SourceTypeOpcode::Int32.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Int32.to_u8());
         }
         SourceType::Int64 => {
-            buffer.emit_u8(SourceTypeOpcode::Int64.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Int64.to_u8());
         }
         SourceType::Float32 => {
-            buffer.emit_u8(SourceTypeOpcode::Float32.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Float32.to_u8());
         }
         SourceType::Float64 => {
-            buffer.emit_u8(SourceTypeOpcode::Float64.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Float64.to_u8());
         }
         SourceType::Class(cls_id, source_type_array) => {
-            buffer.emit_u8(SourceTypeOpcode::Class.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Class.to_u8());
             buffer.emit_id(cls_id.to_usize());
             encode_source_type_array(vm, &source_type_array, buffer);
         }
         SourceType::Struct(struct_id, source_type_array) => {
-            buffer.emit_u8(SourceTypeOpcode::Struct.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Struct.to_u8());
             buffer.emit_id(struct_id.to_usize());
             encode_source_type_array(vm, &source_type_array, buffer);
         }
         SourceType::Trait(trait_id, source_type_array) => {
-            buffer.emit_u8(SourceTypeOpcode::Trait.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Trait.to_u8());
             buffer.emit_id(trait_id.to_usize());
             encode_source_type_array(vm, &source_type_array, buffer);
         }
         SourceType::Enum(enum_id, source_type_array) => {
-            buffer.emit_u8(SourceTypeOpcode::Enum.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Enum.to_u8());
             buffer.emit_id(enum_id.to_usize());
             encode_source_type_array(vm, &source_type_array, buffer);
         }
         SourceType::Tuple(tuple_id) => {
-            buffer.emit_u8(SourceTypeOpcode::Tuple.to_int());
+            buffer.emit_u8(SourceTypeOpcode::Tuple.to_u8());
             let subtypes = get_tuple_subtypes(vm, tuple_id);
             buffer.emit_u32(subtypes.len() as u32);
             for subty in subtypes.iter() {
@@ -186,7 +186,7 @@ fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
             }
         }
         SourceType::TypeParam(type_param_id) => {
-            buffer.emit_u8(SourceTypeOpcode::TypeParam.to_int());
+            buffer.emit_u8(SourceTypeOpcode::TypeParam.to_u8());
             buffer.emit_id(type_param_id.to_usize());
         }
         SourceType::Lambda(_) => unimplemented!(),
@@ -204,7 +204,7 @@ fn encode_constpool_array(vm: &VM, fct: &BytecodeFunction, buffer: &mut ByteBuff
 fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut ByteBuffer) {
     match const_entry {
         ConstPoolEntry::String(ref value) => {
-            buffer.emit_u8(ConstPoolOpcode::Float32.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Float32.to_u8());
             buffer.emit_u32(value.len() as u32);
 
             for byte in value.bytes() {
@@ -212,76 +212,76 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             }
         }
         &ConstPoolEntry::Float32(value) => {
-            buffer.emit_u8(ConstPoolOpcode::Float32.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Float32.to_u8());
             buffer.emit_u32(value.to_bits());
         }
         &ConstPoolEntry::Float64(value) => {
-            buffer.emit_u8(ConstPoolOpcode::Float32.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Float32.to_u8());
             buffer.emit_u64(value.to_bits());
         }
         &ConstPoolEntry::Int32(value) => {
-            buffer.emit_u8(ConstPoolOpcode::Int32.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Int32.to_u8());
             buffer.emit_u32(value as u32);
         }
         &ConstPoolEntry::Int64(value) => {
-            buffer.emit_u8(ConstPoolOpcode::Int64.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Int64.to_u8());
             buffer.emit_u64(value as u64);
         }
         &ConstPoolEntry::Char(value) => {
-            buffer.emit_u8(ConstPoolOpcode::Char.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Char.to_u8());
             buffer.emit_u32(value as u32);
         }
         &ConstPoolEntry::Fct(fct_id, ref source_type_array) => {
-            buffer.emit_u8(ConstPoolOpcode::Fct.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Fct.to_u8());
             buffer.emit_id(fct_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::Generic(tp_id, fct_id, ref source_type_array) => {
-            buffer.emit_u8(ConstPoolOpcode::Generic.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Generic.to_u8());
             buffer.emit_id(tp_id.to_usize());
             buffer.emit_id(fct_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::Class(cls_id, ref source_type_array) => {
-            buffer.emit_u8(ConstPoolOpcode::Class.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Class.to_u8());
             buffer.emit_id(cls_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::Field(cls_id, ref source_type_array, field_id) => {
-            buffer.emit_u8(ConstPoolOpcode::Field.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Field.to_u8());
             buffer.emit_id(cls_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
             buffer.emit_id(field_id.to_usize());
         }
         &ConstPoolEntry::FieldFixed(cls_def_id, field_id) => {
-            buffer.emit_u8(ConstPoolOpcode::FieldFixed.to_int());
+            buffer.emit_u8(ConstPoolOpcode::FieldFixed.to_u8());
             buffer.emit_id(cls_def_id.to_usize());
             buffer.emit_id(field_id.to_usize());
         }
         &ConstPoolEntry::Enum(enum_id, ref source_type_array) => {
-            buffer.emit_u8(ConstPoolOpcode::Enum.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Enum.to_u8());
             buffer.emit_id(enum_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::EnumVariant(enum_id, ref source_type_array, variant_id) => {
-            buffer.emit_u8(ConstPoolOpcode::EnumVariant.to_int());
+            buffer.emit_u8(ConstPoolOpcode::EnumVariant.to_u8());
             buffer.emit_id(enum_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
             buffer.emit_id(variant_id.try_into().unwrap());
         }
         &ConstPoolEntry::Struct(struct_id, ref source_type_array) => {
-            buffer.emit_u8(ConstPoolOpcode::Struct.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Struct.to_u8());
             buffer.emit_id(struct_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::StructField(struct_id, ref source_type_array, field_id) => {
-            buffer.emit_u8(ConstPoolOpcode::StructField.to_int());
+            buffer.emit_u8(ConstPoolOpcode::StructField.to_u8());
             buffer.emit_id(struct_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
             buffer.emit_id(field_id.to_usize());
         }
         &ConstPoolEntry::Trait(trait_id, ref source_type_array, ref source_type) => {
-            buffer.emit_u8(ConstPoolOpcode::Trait.to_int());
+            buffer.emit_u8(ConstPoolOpcode::Trait.to_u8());
             buffer.emit_id(trait_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
             encode_source_type(vm, source_type.clone(), buffer);

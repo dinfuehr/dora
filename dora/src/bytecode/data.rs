@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::bytecode::read_opcode_and_width;
+use crate::bytecode::BytecodeReader;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
@@ -1506,7 +1506,7 @@ impl BytecodeFunction {
     }
 
     pub fn read_opcode(&self, offset: BytecodeOffset) -> BytecodeOpcode {
-        read_opcode_and_width(&self.code, offset.to_usize()).0
+        BytecodeReader::read_opcode_at(&self.code, offset.to_usize())
     }
 }
 

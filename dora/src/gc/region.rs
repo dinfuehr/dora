@@ -217,7 +217,7 @@ struct AtomicRegionState {
 impl AtomicRegionState {
     fn new(state: RegionState) -> AtomicRegionState {
         AtomicRegionState {
-            value: AtomicUsize::new(state.to_int() as usize),
+            value: AtomicUsize::new(state.to_u8() as usize),
         }
     }
 
@@ -226,7 +226,7 @@ impl AtomicRegionState {
     }
 
     fn store(&self, state: RegionState) {
-        self.value.store(state.to_int() as usize, Ordering::SeqCst);
+        self.value.store(state.to_u8() as usize, Ordering::SeqCst);
     }
 }
 

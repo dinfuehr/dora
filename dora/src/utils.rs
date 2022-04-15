@@ -187,7 +187,7 @@ macro_rules! enumeration {
         pub struct $name(u8);
 
         impl $name {
-            pub fn to_int(self) -> u8 {
+            pub fn to_u8(self) -> u8 {
                 self.0
             }
         }
