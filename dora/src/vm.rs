@@ -4,9 +4,9 @@ use std::ptr;
 use std::sync::Arc;
 
 use crate::compiler;
-use crate::compiler::compile_stub;
-use crate::compiler::dora_stub;
-use crate::compiler::native_stub::{self, NativeFct, NativeFctKind, NativeStubs};
+use crate::compiler::dora_entry_stub;
+use crate::compiler::dora_exit_stubs::{self, NativeFct, NativeFctKind, NativeStubs};
+use crate::compiler::lazy_compile_stub;
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
@@ -513,7 +513,7 @@ impl VM {
         let mut dora_stub_address = self.dora_stub.lock();
 
         if dora_stub_address.is_null() {
-            *dora_stub_address = dora_stub::generate(self).instruction_start();
+            *dora_stub_address = dora_entry_stub::install(self).instruction_start();
         }
 
         *dora_stub_address
@@ -523,7 +523,7 @@ impl VM {
         let mut compile_stub_address = self.compile_stub.lock();
 
         if compile_stub_address.is_null() {
-            *compile_stub_address = compile_stub::generate(self).instruction_start();
+            *compile_stub_address = lazy_compile_stub::generate(self).instruction_start();
         }
 
         *compile_stub_address
@@ -539,7 +539,7 @@ impl VM {
                 return_type: SourceType::Unit,
                 desc: NativeFctKind::TrapStub,
             };
-            let code = native_stub::generate(self, ifct, false);
+            let code = dora_exit_stubs::generate(self, ifct, false);
             *trap_stub_address = code.instruction_start();
         }
 
@@ -556,7 +556,7 @@ impl VM {
                 return_type: SourceType::Unit,
                 desc: NativeFctKind::GuardCheckStub,
             };
-            let code = native_stub::generate(self, ifct, false);
+            let code = dora_exit_stubs::generate(self, ifct, false);
             *stack_overflow_stub_address = code.instruction_start();
         }
 
@@ -573,7 +573,7 @@ impl VM {
                 return_type: SourceType::Unit,
                 desc: NativeFctKind::SafepointStub,
             };
-            let code = native_stub::generate(self, ifct, false);
+            let code = dora_exit_stubs::generate(self, ifct, false);
             *safepoint_stub_address = code.instruction_start();
         }
 

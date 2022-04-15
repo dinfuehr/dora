@@ -217,6 +217,7 @@ trait Collector {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(C)]
 pub struct Address(usize);
 
 impl Address {

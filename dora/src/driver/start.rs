@@ -1,16 +1,14 @@
+use crate::aot;
+use crate::driver::cmd;
+use crate::language;
 use crate::language::access::module_contains;
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
-use crate::vm::{init_global_addresses, set_vm};
-use crate::vm::{SemAnalysis, VM};
-
-use crate::driver::cmd;
+use crate::language::sem_analysis::{FctDefinition, FctDefinitionId, ModuleDefinitionId};
 use crate::object;
 use crate::timer::Timer;
-
-use crate::language;
-use crate::language::sem_analysis::ModuleDefinitionId;
 use crate::vm::{execute_on_main, specialize_class_id};
+use crate::vm::{init_global_addresses, set_vm};
+use crate::vm::{SemAnalysis, VM};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();
@@ -63,7 +61,7 @@ pub fn start() -> i32 {
     }
 
     if sa.args.command.is_build() {
-        build_executable(&sa, main_fct_id.expect("main missing"));
+        aot::build(&sa, main_fct_id.expect("main missing"));
         return 0;
     }
 
@@ -151,10 +149,6 @@ fn run_test(vm: &VM, fct: FctDefinitionId) -> bool {
     vm.run_test(fct, testing);
 
     !testing.has_failed()
-}
-
-fn build_executable(_sa: &SemAnalysis, _main: FctDefinitionId) {
-    unimplemented!()
 }
 
 fn is_test_fct(vm: &VM, fct: &FctDefinition) -> bool {

@@ -1,6 +1,7 @@
 use crate::boots;
 use crate::cannon;
-use crate::compiler::{native_stub, NativeFct};
+use crate::cannon::CompilationFlags;
+use crate::compiler::{dora_exit_stubs, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
@@ -35,7 +36,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     };
 
     let code_descriptor = match bc {
-        CompilerName::Cannon => cannon::compile(vm, &fct, &type_params),
+        CompilerName::Cannon => cannon::compile(vm, &fct, &type_params, CompilationFlags::jit()),
         CompilerName::Boots => boots::compile(vm, &fct, &type_params),
     };
 
@@ -191,7 +192,7 @@ pub fn ensure_native_stub(
             false
         };
 
-        let code = native_stub::generate(vm, native_fct, dbg);
+        let code = dora_exit_stubs::generate(vm, native_fct, dbg);
 
         if let Some(fct_id) = fct_id {
             let fct = vm.fcts.idx(fct_id);

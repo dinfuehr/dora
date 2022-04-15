@@ -10,7 +10,7 @@ use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_native_stub, should_emit_asm, should_emit_debug, AllocationSize, AnyReg,
 };
-use crate::compiler::native_stub::{NativeFct, NativeFctKind};
+use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
     REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
@@ -33,6 +33,8 @@ use crate::vm::{
     specialize_tuple, specialize_type, specialize_type_list, EnumLayout, GcPoint, Trap, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
+
+use super::CompilationFlags;
 
 macro_rules! comment {
     (
@@ -78,6 +80,8 @@ pub struct CannonCodeGen<'a> {
     framesize: i32,
     register_start_offset: i32,
 
+    flags: CompilationFlags,
+
     slow_paths: Vec<(
         Label,
         Option<Register>,
@@ -95,6 +99,7 @@ impl<'a> CannonCodeGen<'a> {
         bytecode: &'a BytecodeFunction,
         liveness: BytecodeLiveness,
         type_params: &'a SourceTypeArray,
+        flags: CompilationFlags,
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
@@ -116,6 +121,7 @@ impl<'a> CannonCodeGen<'a> {
             liveness,
             framesize: 0,
             register_start_offset: 0,
+            flags,
             slow_paths: Vec::new(),
         }
     }

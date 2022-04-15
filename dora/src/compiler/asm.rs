@@ -3,7 +3,7 @@ use std::mem;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
-use crate::compiler::native_stub::{NativeFct, NativeFctKind};
+use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;

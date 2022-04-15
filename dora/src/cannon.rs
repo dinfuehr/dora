@@ -13,10 +13,48 @@ use crate::vm::VM;
 mod codegen;
 mod liveness;
 
+pub struct CompilationFlags {
+    mode: CompilationMode,
+}
+
+impl CompilationFlags {
+    pub fn jit() -> CompilationFlags {
+        CompilationFlags {
+            mode: CompilationMode::JustInTime,
+        }
+    }
+
+    pub fn aot() -> CompilationFlags {
+        CompilationFlags {
+            mode: CompilationMode::AheadOfTime,
+        }
+    }
+
+    pub fn is_jit(&self) -> bool {
+        match self.mode {
+            CompilationMode::JustInTime => true,
+            CompilationMode::AheadOfTime => false,
+        }
+    }
+
+    pub fn is_aot(&self) -> bool {
+        match self.mode {
+            CompilationMode::AheadOfTime => true,
+            CompilationMode::JustInTime => false,
+        }
+    }
+}
+
+pub enum CompilationMode {
+    AheadOfTime,
+    JustInTime,
+}
+
 pub(super) fn compile<'a>(
     vm: &'a VM,
     fct: &FctDefinition,
     type_params: &SourceTypeArray,
+    flags: CompilationFlags,
 ) -> CodeDescriptor {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
@@ -32,5 +70,5 @@ pub(super) fn compile<'a>(
 
     let liveness = BytecodeLiveness::analyze(bytecode_fct);
 
-    CannonCodeGen::new(vm, fct, bytecode_fct, liveness, type_params).generate()
+    CannonCodeGen::new(vm, fct, bytecode_fct, liveness, type_params, flags).generate()
 }
