@@ -41,3 +41,8 @@ mod vtable;
 pub fn run() -> i32 {
     driver::start()
 }
+
+#[cfg(not(test))]
+pub fn run_aot() -> i32 {
+    driver::aot::start()
+}
