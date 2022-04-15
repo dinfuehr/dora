@@ -962,6 +962,7 @@ impl<'a> Iterator for BytecodeIterator<'a> {
             self.current += opcode.size(width) as usize;
             Some(inst)
         } else {
+            assert_eq!(self.current, self.code.len());
             None
         }
     }
