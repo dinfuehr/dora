@@ -17,7 +17,7 @@ pub fn build(sa: &SemAnalysis, main_fct_id: FctDefinitionId) {
 
 fn write(sa: &SemAnalysis, fct: &FctDefinition) -> io::Result<()> {
     let mut file = File::create("program.s")?;
-    writeln!(&mut file, ".text")?;
+    writeln!(&mut file, "\t.text")?;
 
     let code_descriptor = cannon::compile(
         sa,
@@ -45,7 +45,11 @@ fn write_fct(file: &mut File, name: &str, code_descriptor: CodeDescriptor) -> io
 }
 
 fn write_binary_buffer(file: &mut File, buffer: &[u8]) -> io::Result<()> {
-    write!(file, "\t.byte {:x}", buffer.first().expect("empty buffer"))?;
+    write!(
+        file,
+        "\t.byte 0x{:x}",
+        buffer.first().expect("empty buffer")
+    )?;
 
     for &value in buffer.iter().skip(1) {
         write!(file, ", 0x{:x}", value)?;
