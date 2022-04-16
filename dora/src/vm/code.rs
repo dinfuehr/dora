@@ -66,14 +66,22 @@ pub fn install_code_stub(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKin
 }
 
 #[repr(C)]
-struct CodeHeader {
+pub struct ManagedCodeHeader {
     object_header: Header,
     length: usize,
     native_code_object: Address,
 }
 
+impl ManagedCodeHeader {
+    pub fn drop_native_code_object(&mut self) -> Arc<Code> {
+        let native_code = unsafe { Arc::from_raw(self.native_code_object.to_ptr::<Code>()) };
+        self.native_code_object = Address::null();
+        native_code
+    }
+}
+
 pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) -> Arc<Code> {
-    let object_header_size = std::mem::size_of::<CodeHeader>();
+    let object_header_size = std::mem::size_of::<ManagedCodeHeader>();
     debug_assert!(object_header_size % CODE_ALIGNMENT == 0);
     debug_assert!(code_descriptor.constpool.size() as usize % CODE_ALIGNMENT == 0);
     debug_assert!(code_descriptor.code.len() as usize % CODE_ALIGNMENT == 0);
@@ -104,7 +112,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     let vtable: &VTable = vtable.as_ref().expect("missing vtable");
 
     unsafe {
-        let code_header = object_start.to_mut_ptr::<CodeHeader>();
+        let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
         let code_header = &mut *code_header;
         code_header
             .object_header
@@ -136,7 +144,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     });
 
     unsafe {
-        let code_header = object_start.to_mut_ptr::<CodeHeader>();
+        let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
         let code_header = &mut *code_header;
         code_header.native_code_object =
             Address::from_ptr(Arc::into_raw(native_code_object.clone()));

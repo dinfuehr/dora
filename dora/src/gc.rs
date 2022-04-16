@@ -179,6 +179,10 @@ impl Gc {
 
         self.collector.verify_ref(vm, reference);
     }
+
+    pub fn drop_all_native_code_objects(&mut self) {
+        self.code_space.drop_all_native_code_objects();
+    }
 }
 
 trait Collector {

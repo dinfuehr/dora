@@ -34,8 +34,8 @@ use dora_parser::parser::NodeIdGenerator;
 pub use self::classes::{ClassInstance, ClassInstanceId, Field, FieldDef, FieldId};
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
-    GcPointTable, LazyCompilationData, LazyCompilationSite, PositionTable, RelocationTable,
-    CODE_ALIGNMENT,
+    GcPointTable, LazyCompilationData, LazyCompilationSite, ManagedCodeHeader, PositionTable,
+    RelocationTable, CODE_ALIGNMENT,
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
@@ -579,6 +579,12 @@ impl VM {
         }
 
         *safepoint_stub_address
+    }
+}
+
+impl Drop for VM {
+    fn drop(&mut self) {
+        self.gc.drop_all_native_code_objects();
     }
 }
 
