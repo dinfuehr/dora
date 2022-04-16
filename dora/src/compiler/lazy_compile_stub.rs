@@ -246,7 +246,7 @@ fn patch_virtual_call(
 
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
-    let cls_def = vtable.class_def();
+    let cls_def = vtable.class_instance();
 
     let fct_ptr = if let Some(cls_id) = cls_def.cls_id {
         let cls = vm.classes.idx(cls_id);

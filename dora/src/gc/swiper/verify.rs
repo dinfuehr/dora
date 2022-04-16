@@ -490,7 +490,7 @@ impl<'a> Verifier<'a> {
 
         if container_obj.is_non_null() {
             let object = container_obj.to_obj();
-            let cls = object.header().vtbl().class_def();
+            let cls = object.header().vtbl().class_instance();
             let size = object.size();
             println!("\tsource object of {} (size={})", cls.name(get_vm()), size);
         }
@@ -518,7 +518,7 @@ impl<'a> Verifier<'a> {
 
         let object = reference.to_obj();
         println!("\tsize {}", object.size());
-        let cls = object.header().vtbl().class_def();
+        let cls = object.header().vtbl().class_instance();
         println!("\tclass {}", cls.name(get_vm()));
 
         panic!("reference neither pointing into young nor old generation.");

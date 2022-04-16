@@ -457,7 +457,7 @@ fn create_specialized_class_regular(
         vtable: RwLock::new(None),
     });
 
-    vtable.initialize_class_def(Arc::as_ptr(&class_def));
+    vtable.initialize_class_instance(Arc::as_ptr(&class_def));
     *class_def.vtable.write() = Some(vtable);
 
     class_defs.push(class_def.clone());
@@ -582,7 +582,7 @@ fn create_specialized_class_array(
         vtable: RwLock::new(None),
     });
 
-    vtable.initialize_class_def(Arc::as_ptr(&class_def));
+    vtable.initialize_class_instance(Arc::as_ptr(&class_def));
     *class_def.vtable.write() = Some(vtable);
 
     class_defs.push(class_def.clone());
@@ -727,7 +727,7 @@ fn create_specialized_class_for_trait_object(
         vtable: RwLock::new(None),
     });
 
-    vtable.initialize_class_def(Arc::as_ptr(&class_def));
+    vtable.initialize_class_instance(Arc::as_ptr(&class_def));
     *class_def.vtable.write() = Some(vtable);
 
     class_defs.push(class_def.clone());

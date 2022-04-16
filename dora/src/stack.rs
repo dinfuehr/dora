@@ -249,7 +249,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
                     if fct.is_constructor {
                         let throw_object_cls_id = (&obj.header)
                             .vtbl()
-                            .class_def()
+                            .class_instance()
                             .cls_id
                             .expect("no corresponding class");
 
