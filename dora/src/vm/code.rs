@@ -11,11 +11,15 @@ use crate::language::sem_analysis::FctDefinitionId;
 use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
 use crate::mem;
+use crate::object::Header;
 use crate::os;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
+use crate::vtable::VTable;
 
 use dora_parser::Position;
+
+pub const CODE_ALIGNMENT: usize = 16;
 
 #[derive(Debug, Clone)]
 pub enum CodeKind {
@@ -61,13 +65,29 @@ pub fn install_code_stub(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKin
     code
 }
 
+#[repr(C)]
+struct CodeHeader {
+    object_header: Header,
+    length: usize,
+    native_code_object: Address,
+}
+
 pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) -> Arc<Code> {
-    let object_header_size = mem::ptr_width_usize() * 4;
+    let object_header_size = std::mem::size_of::<CodeHeader>();
+    debug_assert!(object_header_size % CODE_ALIGNMENT == 0);
+    debug_assert!(code_descriptor.constpool.size() as usize % CODE_ALIGNMENT == 0);
+    debug_assert!(code_descriptor.code.len() as usize % CODE_ALIGNMENT == 0);
+
     let object_size =
         object_header_size + code_descriptor.constpool.size() as usize + code_descriptor.code.len();
 
+    debug_assert!(object_size % CODE_ALIGNMENT == 0);
+
     let object_start = vm.gc.alloc_code(object_size);
     let object_end = object_start.offset(object_size);
+
+    let array_length =
+        (object_size - (Header::size() as usize) - mem::ptr_width_usize()) / mem::ptr_width_usize();
 
     let constpool_start = object_start.offset(object_header_size);
     let instruction_start = constpool_start.offset(code_descriptor.constpool.size() as usize);
@@ -77,6 +97,22 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     }
 
     os::jit_writable();
+
+    let clsid = vm.known.code_class_def;
+    let cls = vm.class_defs.idx(clsid);
+    let vtable = cls.vtable.read();
+    let vtable: &VTable = vtable.as_ref().expect("missing vtable");
+
+    unsafe {
+        let code_header = object_start.to_mut_ptr::<CodeHeader>();
+        let code_header = &mut *code_header;
+        code_header
+            .object_header
+            .set_vtblptr(Address::from_ptr(vtable as *const VTable));
+        code_header.object_header.clear_fwdptr();
+        code_header.length = array_length;
+        code_header.native_code_object = Address::null();
+    }
 
     code_descriptor.constpool.install(constpool_start.to_ptr());
 
@@ -88,11 +124,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         );
     }
 
-    os::jit_executable();
-
-    flush_icache(object_start.to_ptr(), object_size);
-
-    Arc::new(Code {
+    let native_code_object = Arc::new(Code {
         object_start,
         object_end,
         instruction_start,
@@ -101,7 +133,20 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         gcpoints: code_descriptor.gcpoints,
         comments: code_descriptor.comments,
         positions: code_descriptor.positions,
-    })
+    });
+
+    unsafe {
+        let code_header = object_start.to_mut_ptr::<CodeHeader>();
+        let code_header = &mut *code_header;
+        code_header.native_code_object =
+            Address::from_ptr(Arc::into_raw(native_code_object.clone()));
+    }
+
+    os::jit_executable();
+
+    flush_icache(object_start.to_ptr(), object_size);
+
+    native_code_object
 }
 
 pub struct Code {
@@ -339,6 +384,25 @@ impl LazyCompilationData {
 pub enum LazyCompilationSite {
     Direct(FctDefinitionId, i32, SourceTypeArray),
     Virtual(bool, FctDefinitionId, u32, SourceTypeArray),
+}
+
+#[derive(Debug)]
+pub struct RelocationTable {
+    entries: Vec<(u32, RelocationKind)>,
+}
+
+impl RelocationTable {
+    pub fn new() -> RelocationTable {
+        RelocationTable {
+            entries: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum RelocationKind {
+    CodeTarget,
+    Object,
 }
 
 pub struct CodeObjects {

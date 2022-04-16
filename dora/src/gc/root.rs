@@ -14,6 +14,7 @@ pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
 
     determine_rootset_from_stack(&mut rootset, vm, threads);
     determine_rootset_from_handles(&mut rootset, threads);
+    determine_rootset_from_code_space(&mut rootset, vm);
 
     determine_rootset_from_globals(&mut rootset, vm);
     determine_rootset_from_wait_list(&mut rootset, vm);
@@ -28,6 +29,18 @@ fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, threads: &[Arc<DoraTh
             rootset.push(slot);
         }
     }
+}
+
+fn determine_rootset_from_code_space(_rootset: &mut Vec<Slot>, vm: &VM) {
+    let allocated_region = vm.gc.code_space.allocated_region();
+    let mut current = allocated_region.start;
+
+    while current < allocated_region.end {
+        let object = current.to_obj();
+        current = current.offset(object.size())
+    }
+
+    assert_eq!(current, allocated_region.end);
 }
 
 fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {

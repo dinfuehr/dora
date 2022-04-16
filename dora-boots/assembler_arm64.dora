@@ -138,6 +138,9 @@ class AssemblerArm64: Assembler {
     }
 
     fn finalize(): Array[UInt8] {
+        while self.buffer.size() % 16 != 0 {
+            self.ret();
+        }
         self.buffer.toArray()
     }
 

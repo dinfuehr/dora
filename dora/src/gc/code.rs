@@ -3,10 +3,10 @@ use parking_lot::Mutex;
 use crate::gc::{Address, Region, K, M};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
+use crate::vm::CODE_ALIGNMENT;
 
 const TOTAL_SIZE: usize = 1 * M;
 const CHUNK_SIZE: usize = 8 * K;
-const CODE_ALIGNMENT: usize = 16;
 
 /// Non-contiguous space of memory. Used for permanent space
 /// and code space.
@@ -64,6 +64,12 @@ impl CodeSpace {
         let object_address = data.top;
         data.top = data.top.offset(aligned_size);
         object_address
+    }
+
+    pub fn allocated_region(&self) -> Region {
+        let start = self.total.start;
+        let end = self.mutex.lock().top;
+        Region::new(start, end)
     }
 }
 

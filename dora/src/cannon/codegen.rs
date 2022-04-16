@@ -4390,7 +4390,7 @@ impl<'a> CannonCodeGen<'a> {
     fn get_call_target(&mut self, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
         if self.fct.id() == fid {
             // we want to recursively invoke the function we are compiling right now
-            determine_call_target(self.vm, fid, type_params)
+            self.vm.compile_stub()
         } else {
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
@@ -4407,7 +4407,10 @@ impl<'a> CannonCodeGen<'a> {
                 ensure_native_stub(self.vm, Some(fid), internal_fct)
             } else {
                 debug_assert!(fct.has_body());
-                determine_call_target(self.vm, fid, type_params)
+                self.vm
+                    .compilation_database
+                    .is_compiled(self.vm, fid, type_params)
+                    .unwrap_or(self.vm.compile_stub())
             }
         }
     }
@@ -5609,12 +5612,6 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
     } else {
         REG_RESULT.into()
     }
-}
-
-fn determine_call_target(vm: &VM, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
-    vm.compilation_database
-        .is_compiled(vm, fid, type_params)
-        .unwrap_or(vm.compile_stub())
 }
 
 #[derive(Copy, Clone)]

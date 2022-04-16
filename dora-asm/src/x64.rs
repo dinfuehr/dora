@@ -99,9 +99,19 @@ impl AssemblerX64 {
         self.buffer.offset(lbl)
     }
 
-    pub fn finalize(mut self) -> Vec<u8> {
+    pub fn finalize(mut self, alignment: Option<usize>) -> Vec<u8> {
         self.resolve_jumps();
+        if let Some(alignment) = alignment {
+            self.align_to(alignment);
+        }
         self.buffer.code
+    }
+
+    fn align_to(&mut self, alignment: usize) {
+        while self.buffer.code.len() % alignment != 0 {
+            self.int3();
+        }
+        assert_eq!(self.buffer.code.len() % alignment, 0);
     }
 
     pub fn position(&self) -> usize {
@@ -1741,7 +1751,7 @@ mod tests {
             buf.$name();
             let expected = vec![$($expr,)*];
 
-            assert_eq!(expected, buf.finalize());
+            assert_eq!(expected, buf.finalize(None));
         }};
 
         (
@@ -1754,7 +1764,7 @@ mod tests {
             let mut buf = AssemblerX64::new();
             buf.$name($($param,)*);
             let expected = vec![$($expr,)*];
-            let data = buf.finalize();
+            let data = buf.finalize(None);
 
             if expected != data {
                 print!("exp: ");

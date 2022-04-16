@@ -72,7 +72,7 @@ pub(super) fn setup(vm: &mut VM) {
         }
 
         {
-            let code_class_def = &class_defs[free_array.to_usize()];
+            let code_class_def = &class_defs[code_class_id.to_usize()];
             let clsptr = Arc::as_ptr(code_class_def);
             let vtable = VTableBox::new(clsptr, 0, mem::ptr_width_usize(), &[]);
             *code_class_def.vtable.write() = Some(vtable);

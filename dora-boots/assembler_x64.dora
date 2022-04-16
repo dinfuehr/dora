@@ -1240,6 +1240,9 @@ class AssemblerX64: Assembler {
 
     fn finalize(): Array[UInt8] {
         self.resolveJumps();
+        while self.buffer.size() % 16 != 0 {
+            self.int3();
+        }
         self.buffer.toArray()
     }
 

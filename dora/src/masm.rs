@@ -11,7 +11,7 @@ use crate::mode::MachineMode;
 use crate::object::Header;
 use crate::vm::{
     CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, PositionTable,
-    Trap,
+    RelocationTable, Trap, CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
 use dora_parser::lexer::position::Position;
@@ -35,6 +35,7 @@ pub struct CodeDescriptor {
     pub gcpoints: GcPointTable,
     pub comments: CommentTable,
     pub positions: PositionTable,
+    pub relocations: RelocationTable,
 }
 
 impl CodeDescriptor {
@@ -46,6 +47,7 @@ impl CodeDescriptor {
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: PositionTable::new(),
+            relocations: RelocationTable::new(),
         }
     }
 }
@@ -72,6 +74,7 @@ pub struct MacroAssembler {
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: PositionTable,
+    relocations: RelocationTable,
     scratch_registers: ScratchRegisters,
 }
 
@@ -85,6 +88,7 @@ impl MacroAssembler {
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: PositionTable::new(),
+            relocations: RelocationTable::new(),
             scratch_registers: ScratchRegisters::new(),
         }
     }
@@ -94,9 +98,9 @@ impl MacroAssembler {
 
         // align data such that code starts at address that is
         // aligned to 16
-        self.constpool.align(16);
+        self.constpool.align(CODE_ALIGNMENT as i32);
 
-        let code = self.asm.finalize();
+        let code = self.asm.finalize(Some(CODE_ALIGNMENT));
 
         CodeDescriptor {
             constpool: self.constpool,
@@ -105,13 +109,14 @@ impl MacroAssembler {
             gcpoints: self.gcpoints,
             comments: self.comments,
             positions: self.positions,
+            relocations: self.relocations,
         }
     }
 
     pub fn data(mut self) -> Vec<u8> {
         self.finish();
 
-        self.asm.finalize()
+        self.asm.finalize(None)
     }
 
     fn finish(&mut self) {

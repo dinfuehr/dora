@@ -40,6 +40,13 @@ impl Header {
         }
     }
 
+    pub fn zero() -> Header {
+        Header {
+            vtable: AtomicUsize::new(0),
+            fwdptr: AtomicUsize::new(0),
+        }
+    }
+
     #[inline(always)]
     pub fn size() -> i32 {
         std::mem::size_of::<Header>() as i32
