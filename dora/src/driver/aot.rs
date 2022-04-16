@@ -17,7 +17,7 @@ pub fn start() -> i32 {
 
 extern "C" {
     fn dora_entry_stub(tld: Address, dora_fct: Address);
-    fn dora_main();
+    fn dora_uf_main();
 }
 
 fn execute_main(vm: &VM) {
@@ -33,7 +33,7 @@ fn execute_main(vm: &VM) {
 
     let tld = thread.tld_address();
     unsafe {
-        let main_ptr = Address::from_ptr(dora_main as *const ());
+        let main_ptr = Address::from_ptr(dora_uf_main as *const ());
         dora_entry_stub(tld, main_ptr);
     }
 

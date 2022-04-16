@@ -9,28 +9,29 @@ use crate::masm::CodeDescriptor;
 use crate::vm::SemAnalysis;
 
 pub fn build(sa: &SemAnalysis, main_fct_id: FctDefinitionId) {
-    let fct = sa.fcts.idx(main_fct_id);
-    let fct = fct.read();
+    let reachable_fcts = discover_reachable_functions(main_fct_id);
 
-    write(sa, &*fct).expect("write failed");
+    write_file(sa, &reachable_fcts).expect("write failed");
 }
 
-fn write(sa: &SemAnalysis, fct: &FctDefinition) -> io::Result<()> {
+fn write_file(
+    sa: &SemAnalysis,
+    reachable_fcts: &[(FctDefinitionId, SourceTypeArray)],
+) -> io::Result<()> {
     let mut file = File::create("program.s")?;
     writeln!(&mut file, "\t.text")?;
 
-    write_main(&mut file)?;
+    write_builtin_functions(sa, &mut file)?;
+    write_reachable_functions(sa, &mut file, reachable_fcts)?;
 
-    let code_descriptor = cannon::compile(
-        sa,
-        &*fct,
-        &SourceTypeArray::empty(),
-        CompilationFlags::aot(),
-    );
-    write_fct(&mut file, "_dora_main", code_descriptor)?;
+    Ok(())
+}
+
+fn write_builtin_functions(sa: &SemAnalysis, file: &mut File) -> io::Result<()> {
+    write_main(file)?;
 
     let code_descriptor = dora_entry_stub::generate(sa);
-    write_fct(&mut file, "_dora_entry_stub", code_descriptor)?;
+    write_fct(file, "_dora_entry_stub", code_descriptor)?;
 
     Ok(())
 }
@@ -53,6 +54,28 @@ fn write_main(file: &mut File) -> io::Result<()> {
     writeln!(file, "\t.cfi_endproc")?;
 
     Ok(())
+}
+
+fn write_reachable_functions(
+    sa: &SemAnalysis,
+    file: &mut File,
+    reachable_fcts: &[(FctDefinitionId, SourceTypeArray)],
+) -> io::Result<()> {
+    for (fct_id, type_params) in reachable_fcts {
+        let fct = sa.fcts.idx(*fct_id);
+        let fct = fct.read();
+        let symbol = fct_symbol(sa, &*fct);
+
+        let code_descriptor = cannon::compile(sa, &*fct, type_params, CompilationFlags::aot());
+        write_fct(file, &symbol, code_descriptor)?;
+    }
+
+    Ok(())
+}
+
+fn fct_symbol(sa: &SemAnalysis, fct: &FctDefinition) -> String {
+    let name = sa.interner.str(fct.name);
+    format!("_dora_uf_{}", name)
 }
 
 fn write_fct(file: &mut File, name: &str, code_descriptor: CodeDescriptor) -> io::Result<()> {
@@ -80,4 +103,10 @@ fn write_binary_buffer(file: &mut File, buffer: &[u8]) -> io::Result<()> {
     writeln!(file)?;
 
     Ok(())
+}
+
+fn discover_reachable_functions(
+    main_fct_id: FctDefinitionId,
+) -> Vec<(FctDefinitionId, SourceTypeArray)> {
+    vec![(main_fct_id, SourceTypeArray::empty())]
 }
