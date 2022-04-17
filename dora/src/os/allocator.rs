@@ -87,8 +87,16 @@ pub struct Reservation {
 }
 
 impl Reservation {
+    pub fn full_region(&self) -> Region {
+        self.unaligned_start.region_start(self.unaligned_size)
+    }
+
     pub fn region(&self) -> Region {
         self.start.region_start(self.size)
+    }
+
+    pub fn region_start(&self) -> Address {
+        self.start
     }
 
     pub fn unaligned_region(&self) -> Region {

@@ -53,7 +53,7 @@ pub struct Gc {
     supports_tlab: bool,
 
     code_space: CodeSpace,
-    perm_space: Space,
+    readonly_space: Space,
     epoch: AtomicUsize,
 
     finalizers: Mutex<Vec<(Address, Arc<DoraThread>)>>,
@@ -86,7 +86,7 @@ impl Gc {
             supports_tlab,
 
             code_space: CodeSpace::new(),
-            perm_space: Space::new(perm_config, "perm"),
+            readonly_space: Space::new(perm_config, "perm"),
             epoch: AtomicUsize::new(0),
 
             finalizers: Mutex::new(Vec::new()),
@@ -110,8 +110,8 @@ impl Gc {
         self.code_space.alloc(size)
     }
 
-    pub fn alloc_perm(&self, size: usize) -> Address {
-        self.perm_space.alloc(size)
+    pub fn alloc_readonly(&self, size: usize) -> Address {
+        self.readonly_space.alloc(size)
     }
 
     pub fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
@@ -384,6 +384,16 @@ impl Region {
         debug_assert!(start <= end);
 
         Region { start, end }
+    }
+
+    #[inline(always)]
+    pub fn start(&self) -> Address {
+        self.start
+    }
+
+    #[inline(always)]
+    pub fn end(&self) -> Address {
+        self.end
     }
 
     #[inline(always)]

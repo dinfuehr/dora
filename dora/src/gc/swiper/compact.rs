@@ -27,7 +27,7 @@ pub struct FullCollector<'a> {
     rootset: &'a [Slot],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
-    perm_space: &'a Space,
+    readonly_space: &'a Space,
 
     old_top: Address,
     old_limit: Address,
@@ -51,7 +51,7 @@ impl<'a> FullCollector<'a> {
         large_space: &'a LargeSpace,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
-        perm_space: &'a Space,
+        readonly_space: &'a Space,
         rootset: &'a [Slot],
         reason: GcReason,
         min_heap_size: usize,
@@ -69,7 +69,7 @@ impl<'a> FullCollector<'a> {
             rootset,
             card_table,
             crossing_map,
-            perm_space,
+            readonly_space,
 
             old_top: old_total.start,
             old_limit: old_total.end,
@@ -179,7 +179,7 @@ impl<'a> FullCollector<'a> {
     }
 
     fn mark_live(&mut self) {
-        marking::start(self.rootset, self.heap, self.perm_space.total());
+        marking::start(self.rootset, self.heap, self.readonly_space.total());
     }
 
     fn compute_forward(&mut self) {
@@ -227,7 +227,7 @@ impl<'a> FullCollector<'a> {
             forward_full(
                 current_address,
                 self.heap,
-                self.perm_space.total(),
+                self.readonly_space.total(),
                 self.large_space.total(),
             )
         });
@@ -317,7 +317,7 @@ impl<'a> FullCollector<'a> {
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {
-            debug_assert!(object_addr.is_null() || self.perm_space.contains(object_addr));
+            debug_assert!(object_addr.is_null() || self.readonly_space.contains(object_addr));
         }
     }
 

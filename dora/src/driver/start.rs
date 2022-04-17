@@ -6,8 +6,8 @@ use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId, ModuleDefinitionId};
 use crate::object;
 use crate::timer::Timer;
+use crate::vm::set_vm;
 use crate::vm::{execute_on_main, specialize_class_id};
-use crate::vm::{init_global_addresses, set_vm};
 use crate::vm::{SemAnalysis, VM};
 
 pub fn start() -> i32 {
@@ -74,8 +74,6 @@ pub fn start() -> i32 {
     set_vm(&vm);
 
     let mut timer = Timer::new(vm.args.flag_gc_stats);
-
-    init_global_addresses(&vm);
 
     let exit_code = if vm.args.command.is_test() {
         let module_id = if vm.args.flag_test_boots {

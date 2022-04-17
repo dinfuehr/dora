@@ -40,7 +40,7 @@ pub use self::code::{
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
-pub use self::globals::init_global_addresses;
+use self::globals::GlobalVariableMemory;
 pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
@@ -263,8 +263,9 @@ pub struct VM {
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
-    pub uses: Vec<UseDefinition>,          // stores all uses
-    pub gc: Gc,                            // garbage collector
+    pub global_variable_memory: Mutex<Option<GlobalVariableMemory>>,
+    pub uses: Vec<UseDefinition>, // stores all uses
+    pub gc: Gc,                   // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub compile_stub: Mutex<Address>,
@@ -319,6 +320,7 @@ impl VM {
             traits: MutableVec::new(),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
+            global_variable_memory: Mutex::new(None),
             uses: Vec::new(),
             interner,
             known: KnownElements {
@@ -429,6 +431,7 @@ impl VM {
             traits: sa.traits,
             impls: sa.impls,
             globals: sa.globals,
+            global_variable_memory: Mutex::new(None),
             uses: sa.uses,
             interner: sa.interner,
             known: sa.known,
@@ -464,6 +467,8 @@ impl VM {
         assert!(self.class_defs.len() == 0);
 
         stdlib_setup::setup(self);
+
+        globals::init_global_addresses(self);
     }
 
     pub fn gc_epoch(&self) -> usize {

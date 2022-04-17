@@ -77,7 +77,7 @@ pub struct Verifier<'a> {
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
     large: &'a LargeSpace,
-    perm_space: &'a Space,
+    readonly_space: &'a Space,
 
     refs_to_young_gen: usize,
     in_old: bool,
@@ -102,7 +102,7 @@ impl<'a> Verifier<'a> {
         crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
         large: &'a LargeSpace,
-        perm_space: &'a Space,
+        readonly_space: &'a Space,
         reserved_area: Region,
         phase: VerifierPhase,
         promotion_failed: bool,
@@ -117,7 +117,7 @@ impl<'a> Verifier<'a> {
             card_table,
             crossing_map,
             rootset,
-            perm_space,
+            readonly_space,
             large,
 
             refs_to_young_gen: 0,
@@ -458,7 +458,7 @@ impl<'a> Verifier<'a> {
         if self.old_protected.contains_slow(reference)
             || self.eden_active.contains(reference)
             || self.to_active.contains(reference)
-            || self.perm_space.contains(reference)
+            || self.readonly_space.contains(reference)
             || self.large.contains(reference)
             || (self.from_active.contains(reference) && self.promotion_failed)
         {
@@ -525,11 +525,11 @@ impl<'a> Verifier<'a> {
     }
 
     fn dump_spaces(&self) {
-        let perm_region = self.perm_space.used_region();
+        let perm_region = self.readonly_space.used_region();
 
         println!(
             "PRM: {}; active: {} (size 0x{:x})",
-            self.perm_space.total(),
+            self.readonly_space.total(),
             perm_region,
             perm_region.size(),
         );

@@ -142,7 +142,7 @@ impl SweepCollector {
         let mut collector = MarkSweep {
             vm,
             heap: Region::new(start, top),
-            perm_space: &vm.gc.perm_space,
+            readonly_space: &vm.gc.readonly_space,
 
             rootset,
             reason,
@@ -159,7 +159,7 @@ impl SweepCollector {
 struct MarkSweep<'a> {
     vm: &'a VM,
     heap: Region,
-    perm_space: &'a Space,
+    readonly_space: &'a Space,
 
     rootset: &'a [Slot],
     reason: GcReason,
@@ -189,7 +189,7 @@ impl<'a> MarkSweep<'a> {
     }
 
     fn mark(&mut self) {
-        marking::start(self.rootset, self.heap, self.perm_space.total());
+        marking::start(self.rootset, self.heap, self.readonly_space.total());
     }
 
     fn iterate_weak_refs(&mut self) {

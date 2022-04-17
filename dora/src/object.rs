@@ -692,7 +692,7 @@ fn str_alloc_heap(vm: &VM, len: usize) -> Ref<Str> {
 }
 
 fn str_alloc_perm(vm: &VM, len: usize) -> Ref<Str> {
-    str_alloc(vm, len, |vm, size| vm.gc.alloc_perm(size))
+    str_alloc(vm, len, |vm, size| vm.gc.alloc_readonly(size))
 }
 
 fn str_alloc<F>(vm: &VM, len: usize, alloc: F) -> Ref<Str>

@@ -134,7 +134,7 @@ impl MarkCompactCollector {
         let mut mark_compact = MarkCompact {
             vm,
             heap: self.heap,
-            perm_space: &vm.gc.perm_space,
+            readonly_space: &vm.gc.readonly_space,
 
             init_top: self.alloc.top(),
             top: self.heap.start,
@@ -152,7 +152,7 @@ impl MarkCompactCollector {
 struct MarkCompact<'a> {
     vm: &'a VM,
     heap: Region,
-    perm_space: &'a Space,
+    readonly_space: &'a Space,
     init_top: Address,
     top: Address,
 
@@ -169,7 +169,7 @@ impl<'a> MarkCompact<'a> {
     }
 
     fn mark_live(&mut self) {
-        marking::start(self.rootset, self.heap, self.perm_space.total());
+        marking::start(self.rootset, self.heap, self.readonly_space.total());
     }
 
     fn compute_forward(&mut self) {
@@ -227,7 +227,7 @@ impl<'a> MarkCompact<'a> {
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {
-            debug_assert!(object_addr.is_null() || self.perm_space.contains(object_addr));
+            debug_assert!(object_addr.is_null() || self.readonly_space.contains(object_addr));
         }
     }
 

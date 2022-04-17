@@ -31,7 +31,7 @@ pub struct ParallelFullCollector<'a> {
     rootset: &'a [Slot],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
-    perm_space: &'a Space,
+    readonly_space: &'a Space,
 
     old_total: Region,
 
@@ -57,7 +57,7 @@ impl<'a> ParallelFullCollector<'a> {
         large_space: &'a LargeSpace,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
-        perm_space: &'a Space,
+        readonly_space: &'a Space,
         rootset: &'a [Slot],
         reason: GcReason,
         number_workers: usize,
@@ -74,7 +74,7 @@ impl<'a> ParallelFullCollector<'a> {
             rootset,
             card_table,
             crossing_map,
-            perm_space,
+            readonly_space,
 
             old_total: old.total(),
 
@@ -229,7 +229,7 @@ impl<'a> ParallelFullCollector<'a> {
         pmarking::start(
             self.rootset,
             self.heap.clone(),
-            self.perm_space.total(),
+            self.readonly_space.total(),
             pool,
         );
     }
@@ -720,7 +720,7 @@ impl<'a> ParallelFullCollector<'a> {
             forward_full(
                 current_address,
                 self.heap,
-                self.perm_space.total(),
+                self.readonly_space.total(),
                 self.large_space.total(),
             )
         });
@@ -752,7 +752,7 @@ impl<'a> ParallelFullCollector<'a> {
             debug_assert!(self.old_total.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {
-            debug_assert!(object_addr.is_null() || self.perm_space.contains(object_addr));
+            debug_assert!(object_addr.is_null() || self.readonly_space.contains(object_addr));
         }
     }
 

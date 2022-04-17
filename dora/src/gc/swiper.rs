@@ -363,7 +363,7 @@ impl Swiper {
                 &self.large,
                 &self.card_table,
                 &self.crossing_map,
-                &vm.gc.perm_space,
+                &vm.gc.readonly_space,
                 rootset,
                 reason,
                 pool.thread_count() as usize,
@@ -385,7 +385,7 @@ impl Swiper {
                 &self.large,
                 &self.card_table,
                 &self.crossing_map,
-                &vm.gc.perm_space,
+                &vm.gc.readonly_space,
                 rootset,
                 reason,
                 self.min_heap_size,
@@ -425,7 +425,7 @@ impl Swiper {
                 println!("GC: Verify {}", name);
             }
 
-            let perm_space = &vm.gc.perm_space;
+            let readonly_space = &vm.gc.readonly_space;
 
             let mut verifier = Verifier::new(
                 &self.young,
@@ -434,7 +434,7 @@ impl Swiper {
                 &self.crossing_map,
                 rootset,
                 &self.large,
-                &*perm_space,
+                &*readonly_space,
                 self.reserved_area.clone(),
                 phase,
                 promotion_failed,
@@ -603,7 +603,7 @@ impl Collector for Swiper {
     fn verify_ref(&self, vm: &VM, reference: Address) {
         let found = self.young.eden_active().contains(reference)
             || self.young.to_active().contains(reference)
-            || vm.gc.perm_space.contains(reference)
+            || vm.gc.readonly_space.contains(reference)
             || self.large.contains(reference)
             || (self.old.total().contains(reference) && self.old.contains_slow(reference));
 
