@@ -64,6 +64,7 @@ mod known;
 mod specialize;
 mod stdlib_setup;
 mod tuples;
+mod ty;
 mod waitlists;
 
 static mut VM_GLOBAL: *const u8 = ptr::null();

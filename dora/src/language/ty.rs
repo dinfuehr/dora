@@ -8,10 +8,7 @@ use crate::language::sem_analysis::{
     EnumDefinitionId, FctDefinition, ImplDefinitionId, StructDefinitionId, TraitDefinitionId,
     TupleId, TypeParam, TypeParamDefinition, TypeParamId,
 };
-use crate::mem;
-use crate::mode::MachineMode;
-use crate::vm::{get_concrete_tuple, SemAnalysis, VM};
-use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout};
+use crate::vm::{SemAnalysis, VM};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
@@ -202,15 +199,15 @@ impl SourceType {
         }
     }
 
-    pub fn primitive_struct_id(&self, vm: &VM) -> Option<StructDefinitionId> {
+    pub fn primitive_struct_id(&self, sa: &SemAnalysis) -> Option<StructDefinitionId> {
         match self {
-            SourceType::Bool => Some(vm.known.structs.bool),
-            SourceType::UInt8 => Some(vm.known.structs.uint8),
-            SourceType::Char => Some(vm.known.structs.char),
-            SourceType::Int32 => Some(vm.known.structs.int32),
-            SourceType::Int64 => Some(vm.known.structs.int64),
-            SourceType::Float32 => Some(vm.known.structs.float32),
-            SourceType::Float64 => Some(vm.known.structs.float64),
+            SourceType::Bool => Some(sa.known.structs.bool),
+            SourceType::UInt8 => Some(sa.known.structs.uint8),
+            SourceType::Char => Some(sa.known.structs.char),
+            SourceType::Int32 => Some(sa.known.structs.int32),
+            SourceType::Int64 => Some(sa.known.structs.int64),
+            SourceType::Float32 => Some(sa.known.structs.float32),
+            SourceType::Float64 => Some(sa.known.structs.float64),
             _ => None,
         }
     }
@@ -257,20 +254,6 @@ impl SourceType {
         }
     }
 
-    pub fn contains_type_param(&self, vm: &VM) -> bool {
-        match self {
-            SourceType::TypeParam(_) => true,
-
-            SourceType::Class(_, params) | SourceType::Struct(_, params) => {
-                params.iter().any(|t| t.contains_type_param(vm))
-            }
-
-            SourceType::Lambda(_) => unimplemented!(),
-
-            _ => false,
-        }
-    }
-
     pub fn reference_type(&self) -> bool {
         match self {
             SourceType::Ptr => true,
@@ -293,7 +276,7 @@ impl SourceType {
         }
     }
 
-    pub fn subclass_from(&self, vm: &VM, ty: SourceType) -> bool {
+    pub fn subclass_from(&self, sa: &SemAnalysis, ty: SourceType) -> bool {
         if !self.is_cls() {
             return false;
         }
@@ -302,9 +285,9 @@ impl SourceType {
         }
 
         let cls_id = self.cls_id().unwrap();
-        let cls = vm.classes.idx(cls_id);
+        let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
-        cls.subclass_from(vm, ty.cls_id().unwrap())
+        cls.subclass_from(sa, ty.cls_id().unwrap())
     }
 
     pub fn name(&self, vm: &VM) -> String {
@@ -432,98 +415,6 @@ impl SourceType {
         }
     }
 
-    pub fn size(&self, vm: &VM) -> i32 {
-        match self {
-            SourceType::Error => panic!("no size for error."),
-            SourceType::Unit => 0,
-            SourceType::Bool => 1,
-            SourceType::UInt8 => 1,
-            SourceType::Char => 4,
-            SourceType::Int32 => 4,
-            SourceType::Int64 => 8,
-            SourceType::Float32 => 4,
-            SourceType::Float64 => 8,
-            SourceType::Enum(eid, params) => {
-                let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
-                let enum_ = vm.enum_instances.idx(enum_def_id);
-
-                match enum_.layout {
-                    EnumLayout::Int => SourceType::Int32.size(vm),
-                    EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.size(vm),
-                }
-            }
-            SourceType::This => panic!("no size for Self."),
-            SourceType::Any => panic!("no size for Any."),
-            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => mem::ptr_width(),
-            SourceType::Struct(sid, params) => {
-                let sid = specialize_struct_id_params(vm, *sid, params.clone());
-                let struc = vm.struct_instances.idx(sid);
-
-                struc.size
-            }
-            SourceType::Trait(_, _) => mem::ptr_width(),
-            SourceType::TypeParam(_) => panic!("no size for type variable."),
-            SourceType::Tuple(tuple_id) => get_concrete_tuple(vm, *tuple_id).size(),
-        }
-    }
-
-    pub fn align(&self, vm: &VM) -> i32 {
-        match self {
-            SourceType::Error => panic!("no alignment for error."),
-            SourceType::Unit => 0,
-            SourceType::Bool => 1,
-            SourceType::UInt8 => 1,
-            SourceType::Char => 4,
-            SourceType::Int32 => 4,
-            SourceType::Int64 => 8,
-            SourceType::Float32 => 4,
-            SourceType::Float64 => 8,
-            SourceType::This => panic!("no alignment for Self."),
-            SourceType::Any => panic!("no alignment for Any."),
-            SourceType::Enum(eid, params) => {
-                let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
-                let enum_ = vm.enum_instances.idx(enum_def_id);
-
-                match enum_.layout {
-                    EnumLayout::Int => SourceType::Int32.align(vm),
-                    EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.align(vm),
-                }
-            }
-            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => mem::ptr_width(),
-            SourceType::Struct(sid, params) => {
-                let sid = specialize_struct_id_params(vm, *sid, params.clone());
-                let struc = vm.struct_instances.idx(sid);
-
-                struc.align
-            }
-            SourceType::Trait(_, _) => mem::ptr_width(),
-            SourceType::TypeParam(_) => panic!("no alignment for type variable."),
-            SourceType::Tuple(tuple_id) => get_concrete_tuple(vm, *tuple_id).align(),
-        }
-    }
-
-    pub fn mode(&self) -> MachineMode {
-        match self {
-            SourceType::Error => panic!("no machine mode for error."),
-            SourceType::Unit => panic!("no machine mode for ()."),
-            SourceType::Bool => MachineMode::Int8,
-            SourceType::UInt8 => MachineMode::Int8,
-            SourceType::Char => MachineMode::Int32,
-            SourceType::Int32 => MachineMode::Int32,
-            SourceType::Int64 => MachineMode::Int64,
-            SourceType::Float32 => MachineMode::Float32,
-            SourceType::Float64 => MachineMode::Float64,
-            SourceType::Enum(_, _) => MachineMode::Int32,
-            SourceType::This => panic!("no machine mode for Self."),
-            SourceType::Any => panic!("no machine mode for Any."),
-            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => MachineMode::Ptr,
-            SourceType::Struct(_, _) => panic!("no machine mode for struct."),
-            SourceType::Trait(_, _) => MachineMode::Ptr,
-            SourceType::TypeParam(_) => panic!("no machine mode for type variable."),
-            SourceType::Tuple(_) => unimplemented!(),
-        }
-    }
-
     pub fn is_defined_type(&self, vm: &VM) -> bool {
         match self {
             SourceType::Error | SourceType::This | SourceType::Any | SourceType::Ptr => false,
@@ -619,21 +510,6 @@ impl SourceType {
             BytecodeType::Enum(enum_id, params) => SourceType::Enum(enum_id, params),
         }
     }
-}
-
-pub fn type_names(vm: &VM, types: &[SourceType]) -> String {
-    let mut result = String::new();
-    result.push('[');
-    let mut first = true;
-    for ty in types {
-        if !first {
-            result.push_str(", ");
-        }
-        result.push_str(&ty.name(vm));
-        first = false;
-    }
-    result.push(']');
-    result
 }
 
 pub fn implements_trait(
@@ -1159,27 +1035,6 @@ pub struct LambdaType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mem;
-
-    #[test]
-    fn mode_size() {
-        assert_eq!(1, MachineMode::Int8.size());
-        assert_eq!(4, MachineMode::Int32.size());
-        assert_eq!(mem::ptr_width(), MachineMode::Ptr.size());
-    }
-
-    #[test]
-    fn mode_for_types() {
-        assert_eq!(MachineMode::Int8, SourceType::Bool.mode());
-        assert_eq!(MachineMode::Int32, SourceType::Int32.mode());
-        assert_eq!(MachineMode::Ptr, SourceType::Ptr.mode());
-    }
-
-    #[test]
-    #[should_panic]
-    fn mode_for_unit() {
-        assert_eq!(MachineMode::Ptr, SourceType::Unit.mode());
-    }
 
     #[test]
     fn append_type_lists() {

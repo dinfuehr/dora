@@ -1410,9 +1410,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
@@ -1490,9 +1488,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
@@ -1785,9 +1781,7 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
         let sdef = self.vm.struct_instances.idx(sdef_id);
@@ -1811,9 +1805,7 @@ impl<'a> CannonCodeGen<'a> {
         let (class_def_id, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let type_params = specialize_type_list(self.vm, type_params, self.type_params);
-                debug_assert!(type_params
-                    .iter()
-                    .all(|ty| !ty.contains_type_param(self.vm)));
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
                 let class_def_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
 
@@ -1856,9 +1848,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_instances.idx(class_def_id);
@@ -2280,9 +2270,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
 
@@ -2476,9 +2464,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
@@ -2602,9 +2588,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
         let sdef = self.vm.struct_instances.idx(sdef_id);
@@ -2636,12 +2620,10 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let object_ty = specialize_type(self.vm, object_ty, self.type_params);
-        debug_assert!(!object_ty.contains_type_param(self.vm));
+        debug_assert!(object_ty.is_concrete_type(self.vm));
 
         let cls_def_id =
             specialize_trait_object(self.vm, trait_id, &type_params, object_ty.clone());
@@ -3003,9 +2985,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -3077,9 +3057,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -3170,9 +3148,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params
-            .iter()
-            .all(|ty| !ty.contains_type_param(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();

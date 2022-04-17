@@ -81,7 +81,7 @@ fn create_specialized_struct(
 
     for f in &xstruct.fields {
         let ty = specialize_type(vm, f.ty.clone(), &type_params);
-        debug_assert!(!ty.contains_type_param(vm));
+        debug_assert!(ty.is_concrete_type(vm));
 
         let field_size = ty.size(vm);
         let field_align = ty.align(vm);
@@ -399,7 +399,7 @@ fn create_specialized_class_regular(
 
     for f in &cls.fields {
         let ty = specialize_type(vm, f.ty.clone(), &type_params);
-        debug_assert!(!ty.contains_type_param(vm));
+        debug_assert!(ty.is_concrete_type(vm));
 
         let field_size = ty.size(vm);
         let field_align = ty.align(vm);
@@ -682,7 +682,7 @@ fn create_specialized_class_for_trait_object(
     csize = Header::size();
     parent_id = None;
 
-    debug_assert!(!object_type.contains_type_param(vm));
+    debug_assert!(object_type.is_concrete_type(vm));
 
     let field_size = object_type.size(vm);
     let field_align = object_type.align(vm);

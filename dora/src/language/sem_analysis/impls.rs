@@ -132,7 +132,7 @@ pub fn find_trait_impl(
     trait_id: TraitDefinitionId,
     object_type: SourceType,
 ) -> FctDefinitionId {
-    debug_assert!(!object_type.contains_type_param(vm));
+    debug_assert!(object_type.is_concrete_type(vm));
     let impl_id = find_impl(vm, object_type, &[], trait_id)
         .expect("no impl found for generic trait method call");
 
