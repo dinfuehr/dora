@@ -5,7 +5,7 @@ use std::ops::Deref;
 
 use crate::gc::M;
 
-use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_PERM_SPACE_LIMIT};
+use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_READONLY_SPACE_LIMIT};
 
 // Write the Docopt usage string.
 static USAGE: &'static str = "
@@ -99,7 +99,7 @@ pub struct Args {
     pub flag_min_heap_size: Option<MemSize>,
     pub flag_max_heap_size: Option<MemSize>,
     pub flag_code_size: Option<MemSize>,
-    pub flag_perm_size: Option<MemSize>,
+    pub flag_readonly_size: Option<MemSize>,
     pub flag_check: bool,
     pub flag_disable_tlab: bool,
     pub flag_disable_barrier: bool,
@@ -132,10 +132,10 @@ impl Args {
             .unwrap_or(DEFAULT_CODE_SPACE_LIMIT)
     }
 
-    pub fn perm_size(&self) -> usize {
-        self.flag_perm_size
+    pub fn readonly_size(&self) -> usize {
+        self.flag_readonly_size
             .map(|s| *s)
-            .unwrap_or(DEFAULT_PERM_SPACE_LIMIT)
+            .unwrap_or(DEFAULT_READONLY_SPACE_LIMIT)
     }
 
     pub fn gc_workers(&self) -> usize {
@@ -205,7 +205,7 @@ impl Default for Args {
             flag_min_heap_size: None,
             flag_max_heap_size: None,
             flag_code_size: None,
-            flag_perm_size: None,
+            flag_readonly_size: None,
             flag_check: false,
             flag_disable_tlab: false,
             flag_disable_barrier: false,
@@ -383,8 +383,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_max_heap_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--code-size=") {
             args.flag_code_size = Some(argument_mem_size(arg)?);
-        } else if arg.starts_with("--perm-size=") {
-            args.flag_perm_size = Some(argument_mem_size(arg)?);
+        } else if arg.starts_with("--readonly-size=") {
+            args.flag_readonly_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--stdlib=") {
             args.flag_stdlib = Some(argument_value(arg).to_string());
         } else if arg.starts_with("--boots=") {

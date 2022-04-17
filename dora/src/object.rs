@@ -652,7 +652,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     let ptr = vm.gc.alloc(vm, size, false);
 
     let clsid = vm.known.byte_array(vm);
-    let cls = vm.class_defs.idx(clsid);
+    let cls = vm.class_instances.idx(clsid);
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<UInt8Array> = ptr.into();
@@ -674,7 +674,7 @@ pub fn int_array_alloc_heap(vm: &VM, len: usize) -> Ref<Int32Array> {
     let ptr = vm.gc.alloc(vm, size, false);
 
     let clsid = vm.known.int_array(vm);
-    let cls = vm.class_defs.idx(clsid);
+    let cls = vm.class_instances.idx(clsid);
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<Int32Array> = ptr.into();
@@ -707,7 +707,7 @@ where
     let ptr = alloc(vm, size);
 
     let clsid = vm.known.str(vm);
-    let cls = vm.class_defs.idx(clsid);
+    let cls = vm.class_instances.idx(clsid);
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<Str> = ptr.into();
@@ -806,7 +806,7 @@ where
                    + len * std::mem::size_of::<T>(); // array content
 
         let ptr = vm.gc.alloc(vm, size, T::REF).to_usize();
-        let cls = vm.class_defs.idx(clsid);
+        let cls = vm.class_instances.idx(clsid);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let mut handle: Ref<Array<T>> = ptr.into();
@@ -845,7 +845,7 @@ pub type ObjArray = Array<Ref<Obj>>;
 pub type StrArray = Array<Ref<Str>>;
 
 pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
-    let cls_def = vm.class_defs.idx(clsid);
+    let cls_def = vm.class_instances.idx(clsid);
 
     let size = match cls_def.size {
         InstanceSize::Fixed(size) => size as usize,
@@ -865,7 +865,7 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
 }
 
 pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassInstanceId, fid: FieldId, value: Ref<Obj>) {
-    let cls_def = vm.class_defs.idx(cls_id);
+    let cls_def = vm.class_instances.idx(cls_id);
     let field = &cls_def.fields[fid.to_usize()];
     let slot = obj.address().offset(field.offset as usize);
     assert!(field.ty.reference_type());
@@ -876,7 +876,7 @@ pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassInstanceId, fid: FieldId, 
 }
 
 pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassInstanceId, fid: FieldId, value: i32) {
-    let cls_def = vm.class_defs.idx(cls_id);
+    let cls_def = vm.class_instances.idx(cls_id);
     let field = &cls_def.fields[fid.to_usize()];
     let slot = obj.address().offset(field.offset as usize);
     assert!(field.ty == SourceType::Int32);

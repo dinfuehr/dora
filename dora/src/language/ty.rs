@@ -445,7 +445,7 @@ impl SourceType {
             SourceType::Float64 => 8,
             SourceType::Enum(eid, params) => {
                 let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
-                let enum_ = vm.enum_defs.idx(enum_def_id);
+                let enum_ = vm.enum_instances.idx(enum_def_id);
 
                 match enum_.layout {
                     EnumLayout::Int => SourceType::Int32.size(vm),
@@ -457,7 +457,7 @@ impl SourceType {
             SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => mem::ptr_width(),
             SourceType::Struct(sid, params) => {
                 let sid = specialize_struct_id_params(vm, *sid, params.clone());
-                let struc = vm.struct_defs.idx(sid);
+                let struc = vm.struct_instances.idx(sid);
 
                 struc.size
             }
@@ -482,7 +482,7 @@ impl SourceType {
             SourceType::Any => panic!("no alignment for Any."),
             SourceType::Enum(eid, params) => {
                 let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
-                let enum_ = vm.enum_defs.idx(enum_def_id);
+                let enum_ = vm.enum_instances.idx(enum_def_id);
 
                 match enum_.layout {
                     EnumLayout::Int => SourceType::Int32.align(vm),
@@ -492,7 +492,7 @@ impl SourceType {
             SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => mem::ptr_width(),
             SourceType::Struct(sid, params) => {
                 let sid = specialize_struct_id_params(vm, *sid, params.clone());
-                let struc = vm.struct_defs.idx(sid);
+                let struc = vm.struct_instances.idx(sid);
 
                 struc.align
             }

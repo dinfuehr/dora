@@ -67,7 +67,7 @@ fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> ConcreteTuple {
             continue;
         } else if let SourceType::Enum(enum_id, type_params) = ty {
             let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
-            let edef = vm.enum_defs.idx(edef_id);
+            let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {
                 EnumLayout::Int => {

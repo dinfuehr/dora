@@ -16,16 +16,16 @@ pub struct KnownElements {
     pub enums: KnownEnums,
     pub structs: KnownStructs,
 
-    pub byte_array_def: Mutex<Option<ClassInstanceId>>,
-    pub int_array_def: Mutex<Option<ClassInstanceId>>,
-    pub str_class_def: Mutex<Option<ClassInstanceId>>,
-    pub obj_class_def: Mutex<Option<ClassInstanceId>>,
-    pub ste_class_def: Mutex<Option<ClassInstanceId>>,
-    pub ex_class_def: Mutex<Option<ClassInstanceId>>,
+    pub byte_array_class_instance: Mutex<Option<ClassInstanceId>>,
+    pub int_array_class_instance: Mutex<Option<ClassInstanceId>>,
+    pub str_class_instance: Mutex<Option<ClassInstanceId>>,
+    pub obj_class_instance: Mutex<Option<ClassInstanceId>>,
+    pub ste_class_instance: Mutex<Option<ClassInstanceId>>,
+    pub ex_class_instance: Mutex<Option<ClassInstanceId>>,
 
-    pub free_object_class_def: ClassInstanceId,
-    pub free_array_class_def: ClassInstanceId,
-    pub code_class_def: ClassInstanceId,
+    pub free_object_class_instance: ClassInstanceId,
+    pub free_array_class_instance: ClassInstanceId,
+    pub code_class_instance: ClassInstanceId,
 }
 
 #[derive(Debug)]
@@ -143,7 +143,7 @@ impl KnownElements {
     }
 
     pub fn byte_array(&self, vm: &VM) -> ClassInstanceId {
-        let mut byte_array_def = self.byte_array_def.lock();
+        let mut byte_array_def = self.byte_array_class_instance.lock();
 
         if let Some(cls_id) = *byte_array_def {
             cls_id
@@ -156,7 +156,7 @@ impl KnownElements {
     }
 
     pub fn int_array(&self, vm: &VM) -> ClassInstanceId {
-        let mut int_array_def = self.int_array_def.lock();
+        let mut int_array_def = self.int_array_class_instance.lock();
 
         if let Some(cls_id) = *int_array_def {
             cls_id
@@ -169,7 +169,7 @@ impl KnownElements {
     }
 
     pub fn str(&self, vm: &VM) -> ClassInstanceId {
-        let mut str_class_def = self.str_class_def.lock();
+        let mut str_class_def = self.str_class_instance.lock();
 
         if let Some(cls_id) = *str_class_def {
             cls_id
@@ -181,7 +181,7 @@ impl KnownElements {
     }
 
     pub fn obj(&self, vm: &VM) -> ClassInstanceId {
-        let mut obj_class_def = self.obj_class_def.lock();
+        let mut obj_class_def = self.obj_class_instance.lock();
 
         if let Some(cls_id) = *obj_class_def {
             cls_id
@@ -193,7 +193,7 @@ impl KnownElements {
     }
 
     pub fn stack_trace_element(&self, vm: &VM) -> ClassInstanceId {
-        let mut ste_class_def = self.ste_class_def.lock();
+        let mut ste_class_def = self.ste_class_instance.lock();
 
         if let Some(cls_id) = *ste_class_def {
             cls_id

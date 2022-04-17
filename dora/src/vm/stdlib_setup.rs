@@ -14,7 +14,7 @@ pub(super) fn setup(vm: &mut VM) {
     let code_class_id: ClassInstanceId;
 
     {
-        let mut class_defs = vm.class_defs.lock();
+        let mut class_defs = vm.class_instances.lock();
         let next = class_defs.len();
 
         free_object = next.into();
@@ -79,7 +79,7 @@ pub(super) fn setup(vm: &mut VM) {
         }
     }
 
-    vm.known.free_object_class_def = free_object;
-    vm.known.free_array_class_def = free_array;
-    vm.known.code_class_def = code_class_id;
+    vm.known.free_object_class_instance = free_object;
+    vm.known.free_array_class_instance = free_array;
+    vm.known.code_class_instance = code_class_id;
 }

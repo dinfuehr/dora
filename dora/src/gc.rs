@@ -42,7 +42,7 @@ pub const M: usize = K * K;
 
 const CHUNK_SIZE: usize = 8 * K;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 1 * M;
-pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * K;
+pub const DEFAULT_READONLY_SPACE_LIMIT: usize = 64 * K;
 
 // young/old gen are aligned to at least this size
 const GEN_ALIGNMENT_BITS: usize = 17;
@@ -61,10 +61,10 @@ pub struct Gc {
 
 impl Gc {
     pub fn new(args: &Args) -> Gc {
-        let perm_config = SpaceConfig {
+        let readonly_config = SpaceConfig {
             executable: false,
             chunk: CHUNK_SIZE,
-            limit: args.perm_size(),
+            limit: args.readonly_size(),
             align: 8,
         };
 
@@ -86,7 +86,7 @@ impl Gc {
             supports_tlab,
 
             code_space: CodeSpace::new(),
-            readonly_space: Space::new(perm_config, "perm"),
+            readonly_space: Space::new(readonly_config, "perm"),
             epoch: AtomicUsize::new(0),
 
             finalizers: Mutex::new(Vec::new()),
@@ -535,7 +535,7 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with object
         let cls_id = vm.known.obj(vm);
-        let cls = vm.class_defs.idx(cls_id);
+        let cls = vm.class_instances.idx(cls_id);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
 
@@ -545,7 +545,7 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
     } else {
         // fill with int array
         let cls_id = vm.known.int_array(vm);
-        let cls = vm.class_defs.idx(cls_id);
+        let cls = vm.class_instances.idx(cls_id);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
 
@@ -567,8 +567,8 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
         panic!("region is too small for FreeObject.");
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with FreeObject
-        let cls_id = vm.known.free_object_class_def;
-        let cls = vm.class_defs.idx(cls_id);
+        let cls_id = vm.known.free_object_class_instance;
+        let cls = vm.class_instances.idx(cls_id);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
 
@@ -578,8 +578,8 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
         }
     } else {
         // fill with FreeArray
-        let cls_id = vm.known.free_array_class_def;
-        let cls = vm.class_defs.idx(cls_id);
+        let cls_id = vm.known.free_array_class_instance;
+        let cls = vm.class_instances.idx(cls_id);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
 

@@ -96,16 +96,16 @@ pub struct FullSemAnalysis {
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
+    pub struct_instances: GrowableVec<StructInstance>, // stores all struct definitions
     pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
-    pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
+    pub class_instances: GrowableVec<ClassInstance>, // stores all class definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
     pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub enums: MutableVec<EnumDefinition>,   // stores all enum source definitions
-    pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
+    pub enum_instances: GrowableVec<EnumInstance>, // stores all enum definitions
     pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
     pub impls: MutableVec<ImplDefinition>,   // stores all impl definitions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
@@ -121,7 +121,7 @@ pub struct FullSemAnalysis {
 
 impl FullSemAnalysis {
     pub fn new(args: Args) -> Box<FullSemAnalysis> {
-        let empty_class_def_id: ClassInstanceId = 0.into();
+        let empty_class_instance_id: ClassInstanceId = 0.into();
         let empty_trait_id: TraitDefinitionId = 0.into();
         let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumDefinitionId = 0.into();
@@ -144,15 +144,15 @@ impl FullSemAnalysis {
             source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
-            struct_defs: GrowableVec::new(),
+            struct_instances: GrowableVec::new(),
             classes: MutableVec::new(),
-            class_defs: GrowableVec::new(),
+            class_instances: GrowableVec::new(),
             extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
             modules,
             enums: MutableVec::new(),
-            enum_defs: GrowableVec::new(),
+            enum_instances: GrowableVec::new(),
             traits: MutableVec::new(),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
@@ -204,16 +204,16 @@ impl FullSemAnalysis {
                     float64: empty_struct_id,
                 },
 
-                byte_array_def: Mutex::new(None),
-                int_array_def: Mutex::new(None),
-                str_class_def: Mutex::new(None),
-                obj_class_def: Mutex::new(None),
-                ste_class_def: Mutex::new(None),
-                ex_class_def: Mutex::new(None),
+                byte_array_class_instance: Mutex::new(None),
+                int_array_class_instance: Mutex::new(None),
+                str_class_instance: Mutex::new(None),
+                obj_class_instance: Mutex::new(None),
+                ste_class_instance: Mutex::new(None),
+                ex_class_instance: Mutex::new(None),
 
-                free_object_class_def: empty_class_def_id,
-                free_array_class_def: empty_class_def_id,
-                code_class_def: empty_class_def_id,
+                free_object_class_instance: empty_class_instance_id,
+                free_array_class_instance: empty_class_instance_id,
+                code_class_instance: empty_class_instance_id,
             },
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
@@ -247,9 +247,9 @@ pub struct VM {
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructInstance>, // stores all struct definitions
+    pub struct_instances: GrowableVec<StructInstance>, // stores all struct definitions
     pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
-    pub class_defs: GrowableVec<ClassInstance>, // stores all class definitions
+    pub class_instances: GrowableVec<ClassInstance>, // stores all class definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
@@ -258,7 +258,7 @@ pub struct VM {
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enums: MutableVec<EnumDefinition>, // store all enum source definitions
-    pub enum_defs: GrowableVec<EnumInstance>, // stores all enum definitions
+    pub enum_instances: GrowableVec<EnumInstance>, // stores all enum definitions
     pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
@@ -308,15 +308,15 @@ impl VM {
             source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
-            struct_defs: GrowableVec::new(),
+            struct_instances: GrowableVec::new(),
             classes: MutableVec::new(),
-            class_defs: GrowableVec::new(),
+            class_instances: GrowableVec::new(),
             extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
             modules,
             enums: MutableVec::new(),
-            enum_defs: GrowableVec::new(),
+            enum_instances: GrowableVec::new(),
             traits: MutableVec::new(),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
@@ -369,16 +369,16 @@ impl VM {
                     float64: empty_struct_id,
                 },
 
-                byte_array_def: Mutex::new(None),
-                int_array_def: Mutex::new(None),
-                str_class_def: Mutex::new(None),
-                obj_class_def: Mutex::new(None),
-                ste_class_def: Mutex::new(None),
-                ex_class_def: Mutex::new(None),
+                byte_array_class_instance: Mutex::new(None),
+                int_array_class_instance: Mutex::new(None),
+                str_class_instance: Mutex::new(None),
+                obj_class_instance: Mutex::new(None),
+                ste_class_instance: Mutex::new(None),
+                ex_class_instance: Mutex::new(None),
 
-                free_object_class_def: empty_class_def_id,
-                free_array_class_def: empty_class_def_id,
-                code_class_def: empty_class_def_id,
+                free_object_class_instance: empty_class_def_id,
+                free_array_class_instance: empty_class_def_id,
+                code_class_instance: empty_class_def_id,
             },
             gc,
             id_generator: NodeIdGenerator::new(),
@@ -419,15 +419,15 @@ impl VM {
             source_files: sa.source_files,
             consts: sa.consts,
             structs: sa.structs,
-            struct_defs: sa.struct_defs,
+            struct_instances: sa.struct_instances,
             classes: sa.classes,
-            class_defs: sa.class_defs,
+            class_instances: sa.class_instances,
             extensions: sa.extensions,
             tuples: sa.tuples,
             annotations: sa.annotations,
             modules: sa.modules,
             enums: sa.enums,
-            enum_defs: sa.enum_defs,
+            enum_instances: sa.enum_instances,
             traits: sa.traits,
             impls: sa.impls,
             globals: sa.globals,
@@ -464,7 +464,7 @@ impl VM {
     pub fn setup_execution(&mut self) {
         // ensure this data is only created during execution
         assert!(self.compilation_database.is_empty());
-        assert!(self.class_defs.len() == 0);
+        assert!(self.class_instances.len() == 0);
 
         stdlib_setup::setup(self);
 

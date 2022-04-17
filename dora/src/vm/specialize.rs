@@ -100,7 +100,7 @@ fn create_specialized_struct(
 
     size = mem::align_i32(size, align);
 
-    let mut struct_defs = vm.struct_defs.lock();
+    let mut struct_defs = vm.struct_instances.lock();
     let id: StructInstanceId = struct_defs.len().into();
 
     let mut specializations = xstruct.specializations.write();
@@ -157,7 +157,7 @@ fn create_specialized_enum(
         EnumLayout::Tagged
     };
 
-    let mut enum_defs = vm.enum_defs.lock();
+    let mut enum_defs = vm.enum_instances.lock();
     let id: EnumInstanceId = enum_defs.len().into();
 
     let mut specializations = enum_.specializations.write();
@@ -263,7 +263,7 @@ pub fn specialize_enum_class(
 
     let instance_size = mem::align_i32(csize, mem::ptr_width());
 
-    let mut class_defs = vm.class_defs.lock();
+    let mut class_defs = vm.class_instances.lock();
     let id: ClassInstanceId = class_defs.len().into();
 
     variants[variant_id] = Some(id);
@@ -298,7 +298,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Sourc
         }
     } else if let SourceType::Enum(enum_id, type_params) = ty.clone() {
         let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
-        let edef = vm.enum_defs.idx(edef_id);
+        let edef = vm.enum_instances.idx(edef_id);
 
         match edef.layout {
             EnumLayout::Int => {}
@@ -308,7 +308,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Sourc
         }
     } else if let SourceType::Struct(struct_id, type_params) = ty.clone() {
         let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
-        let sdef = vm.struct_defs.idx(sdef_id);
+        let sdef = vm.struct_instances.idx(sdef_id);
 
         for &ref_offset in &sdef.ref_fields {
             ref_fields.push(offset + ref_offset);
@@ -381,7 +381,7 @@ fn create_specialized_class_regular(
     if let Some(parent_class) = cls.parent_class.clone() {
         let parent_class = specialize_type(vm, parent_class, type_params);
         let id = specialize_class_ty(vm, parent_class);
-        let cls_def = vm.class_defs.idx(id);
+        let cls_def = vm.class_instances.idx(id);
 
         fields = Vec::new();
         ref_fields = cls_def.ref_fields.clone();
@@ -433,7 +433,7 @@ fn create_specialized_class_regular(
     );
     ensure_display(vm, &mut vtable, parent_id);
 
-    let mut class_defs = vm.class_defs.lock();
+    let mut class_defs = vm.class_instances.lock();
     let id: ClassInstanceId = class_defs.len().into();
 
     let mut specializations = cls.specializations.write();
@@ -506,7 +506,7 @@ fn create_specialized_class_array(
 
             SourceType::Struct(struct_id, type_params) => {
                 let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
-                let sdef = vm.struct_defs.idx(sdef_id);
+                let sdef = vm.struct_instances.idx(sdef_id);
 
                 if sdef.contains_references() {
                     for &offset in &sdef.ref_fields {
@@ -521,7 +521,7 @@ fn create_specialized_class_array(
 
             SourceType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
-                let edef = vm.enum_defs.idx(edef_id);
+                let edef = vm.enum_instances.idx(edef_id);
 
                 match edef.layout {
                     EnumLayout::Int => InstanceSize::PrimitiveArray(4),
@@ -558,7 +558,7 @@ fn create_specialized_class_array(
     );
     ensure_display(vm, &mut vtable, Some(parent_cls_def_id));
 
-    let mut class_defs = vm.class_defs.lock();
+    let mut class_defs = vm.class_instances.lock();
     let id: ClassInstanceId = class_defs.len().into();
 
     let mut specializations = cls.specializations.write();
@@ -599,7 +599,7 @@ pub fn ensure_display(
     assert!(vtable.subtype_display[0].is_null());
 
     if let Some(parent_id) = parent_id {
-        let parent = vm.class_defs.idx(parent_id);
+        let parent = vm.class_instances.idx(parent_id);
 
         let parent_vtable = parent.vtable.read();
         let parent_vtable = parent_vtable.as_ref().unwrap();
@@ -703,7 +703,7 @@ fn create_specialized_class_for_trait_object(
     let mut vtable = VTableBox::new(std::ptr::null(), csize as usize, 0, &vtable_entries);
     ensure_display(vm, &mut vtable, parent_id);
 
-    let mut class_defs = vm.class_defs.lock();
+    let mut class_defs = vm.class_instances.lock();
     let id: ClassInstanceId = class_defs.len().into();
 
     let mut vtables = trait_.vtables.write();

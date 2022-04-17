@@ -233,7 +233,7 @@ impl<'a> CannonCodeGen<'a> {
                     BytecodeType::Struct(struct_id, type_params) => {
                         let offset = self.register_offset(Register(idx));
                         let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-                        let sdef = self.vm.struct_defs.idx(sdef_id);
+                        let sdef = self.vm.struct_instances.idx(sdef_id);
 
                         for &ref_offset in &sdef.ref_fields {
                             self.references.push(offset + ref_offset);
@@ -242,7 +242,7 @@ impl<'a> CannonCodeGen<'a> {
 
                     BytecodeType::Enum(enum_id, type_params) => {
                         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                        let edef = self.vm.enum_defs.idx(enum_def_id);
+                        let edef = self.vm.enum_instances.idx(enum_def_id);
 
                         match edef.layout {
                             EnumLayout::Int => {
@@ -464,7 +464,7 @@ impl<'a> CannonCodeGen<'a> {
         type_params: SourceTypeArray,
     ) {
         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_defs.idx(enum_def_id);
+        let edef = self.vm.enum_instances.idx(enum_def_id);
 
         let mode = match edef.layout {
             EnumLayout::Int => MachineMode::Int32,
@@ -1237,7 +1237,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
-        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = self.vm.class_instances.idx(class_def_id);
 
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
@@ -1418,7 +1418,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = enum_.read();
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_defs.idx(edef_id);
+        let edef = self.vm.enum_instances.idx(edef_id);
 
         match edef.layout {
             EnumLayout::Int => {
@@ -1440,7 +1440,7 @@ impl<'a> CannonCodeGen<'a> {
             EnumLayout::Tagged => {
                 let cls_def_id = specialize_enum_class(self.vm, &*edef, &*enum_, variant_id);
 
-                let cls = self.vm.class_defs.idx(cls_def_id);
+                let cls = self.vm.class_instances.idx(cls_def_id);
 
                 self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.load_mem(
@@ -1498,7 +1498,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = enum_.read();
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_defs.idx(edef_id);
+        let edef = self.vm.enum_instances.idx(edef_id);
 
         match edef.layout {
             EnumLayout::Int => {
@@ -1554,7 +1554,7 @@ impl<'a> CannonCodeGen<'a> {
         src: RegOrOffset,
     ) {
         let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-        let sdef = self.vm.struct_defs.idx(sdef_id);
+        let sdef = self.vm.struct_instances.idx(sdef_id);
 
         for field in &sdef.fields {
             let src = src.offset(field.offset);
@@ -1579,7 +1579,7 @@ impl<'a> CannonCodeGen<'a> {
 
             SourceType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = self.vm.enum_instances.idx(edef_id);
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -1624,7 +1624,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = self.vm.enum_instances.idx(edef_id);
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -1686,7 +1686,7 @@ impl<'a> CannonCodeGen<'a> {
 
             SourceType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = self.vm.enum_instances.idx(edef_id);
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -1740,7 +1740,7 @@ impl<'a> CannonCodeGen<'a> {
 
             SourceType::Enum(enum_id, type_params) => {
                 let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(edef_id);
+                let edef = self.vm.enum_instances.idx(edef_id);
 
                 match edef.layout {
                     EnumLayout::Int => {}
@@ -1790,7 +1790,7 @@ impl<'a> CannonCodeGen<'a> {
             .all(|ty| !ty.contains_type_param(self.vm)));
 
         let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
-        let sdef = self.vm.struct_defs.idx(sdef_id);
+        let sdef = self.vm.struct_instances.idx(sdef_id);
 
         let field = &sdef.fields[field_id.to_usize()];
 
@@ -1823,7 +1823,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = self.vm.class_instances.idx(class_def_id);
 
         let field = &cls.fields[field_id.to_usize()];
 
@@ -1861,7 +1861,7 @@ impl<'a> CannonCodeGen<'a> {
             .all(|ty| !ty.contains_type_param(self.vm)));
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
-        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = self.vm.class_instances.idx(class_def_id);
 
         let field = &cls.fields[field_id.to_usize()];
 
@@ -1903,13 +1903,13 @@ impl<'a> CannonCodeGen<'a> {
                     );
 
                     let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-                    let sdef = self.vm.struct_defs.idx(sdef_id);
+                    let sdef = self.vm.struct_instances.idx(sdef_id);
                     needs_write_barrier = sdef.contains_references();
                 }
 
                 BytecodeType::Enum(enum_id, type_params) => {
                     let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let edef = self.vm.enum_defs.idx(edef_id);
+                    let edef = self.vm.enum_instances.idx(edef_id);
 
                     let mode = match edef.layout {
                         EnumLayout::Int => MachineMode::Int32,
@@ -2234,7 +2234,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 BytecodeType::Enum(enum_id, type_params) => {
                     let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let edef = self.vm.enum_defs.idx(enum_def_id);
+                    let edef = self.vm.enum_instances.idx(enum_def_id);
 
                     let mode = match edef.layout {
                         EnumLayout::Int => MachineMode::Int32,
@@ -2286,7 +2286,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
 
-        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = self.vm.class_instances.idx(class_def_id);
 
         let alloc_size = match cls.size {
             InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
@@ -2346,7 +2346,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
 
-        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = self.vm.class_instances.idx(class_def_id);
 
         self.emit_load_register(length, REG_TMP1.into());
 
@@ -2484,7 +2484,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = enum_.read();
 
         let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_defs.idx(edef_id);
+        let edef = self.vm.enum_instances.idx(edef_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -2516,7 +2516,7 @@ impl<'a> CannonCodeGen<'a> {
             EnumLayout::Tagged => {
                 let cls_def_id = specialize_enum_class(self.vm, &*edef, &*enum_, variant_id);
 
-                let cls = self.vm.class_defs.idx(cls_def_id);
+                let cls = self.vm.class_instances.idx(cls_def_id);
 
                 let alloc_size = match cls.size {
                     InstanceSize::Fixed(size) => size as usize,
@@ -2607,7 +2607,7 @@ impl<'a> CannonCodeGen<'a> {
             .all(|ty| !ty.contains_type_param(self.vm)));
 
         let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-        let sdef = self.vm.struct_defs.idx(sdef_id);
+        let sdef = self.vm.struct_instances.idx(sdef_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -2646,7 +2646,7 @@ impl<'a> CannonCodeGen<'a> {
         let cls_def_id =
             specialize_trait_object(self.vm, trait_id, &type_params, object_ty.clone());
 
-        let cls = self.vm.class_defs.idx(cls_def_id);
+        let cls = self.vm.class_instances.idx(cls_def_id);
 
         let alloc_size = match cls.size {
             InstanceSize::Fixed(size) => size as usize,
@@ -2807,7 +2807,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
-                let sdef = self.vm.struct_defs.idx(sdef_id);
+                let sdef = self.vm.struct_instances.idx(sdef_id);
 
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, sdef.size);
@@ -2830,7 +2830,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(enum_def_id);
+                let edef = self.vm.enum_instances.idx(enum_def_id);
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -2950,7 +2950,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
-                let sdef = self.vm.struct_defs.idx(sdef_id);
+                let sdef = self.vm.struct_instances.idx(sdef_id);
 
                 let element_size = sdef.size;
                 self.asm
@@ -2967,7 +2967,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_defs.idx(enum_def_id);
+                let edef = self.vm.enum_instances.idx(enum_def_id);
 
                 let mode = match edef.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -4025,7 +4025,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
-        let edef = self.vm.enum_defs.idx(enum_def_id);
+        let edef = self.vm.enum_instances.idx(enum_def_id);
 
         match edef.layout {
             EnumLayout::Int => unreachable!(),
@@ -4063,7 +4063,7 @@ impl<'a> CannonCodeGen<'a> {
                 let cdef_id =
                     specialize_enum_class(self.vm, &*edef, &*enum_, some_variant_id as usize);
 
-                let cls = self.vm.class_defs.idx(cdef_id);
+                let cls = self.vm.class_instances.idx(cdef_id);
 
                 let field = &cls.fields[1];
                 let dest_offset = self.register_offset(dest.expect("dest missing"));
@@ -4214,7 +4214,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_defs.idx(enum_def_id);
+        let edef = self.vm.enum_instances.idx(enum_def_id);
 
         match edef.layout {
             EnumLayout::Int => unreachable!(),
