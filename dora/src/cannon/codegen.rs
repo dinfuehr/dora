@@ -233,10 +233,11 @@ impl<'a> CannonCodeGen<'a> {
 
                     BytecodeType::Struct(struct_id, type_params) => {
                         let offset = self.register_offset(Register(idx));
-                        let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-                        let sdef = self.vm.struct_instances.idx(sdef_id);
+                        let struct_instance_id =
+                            specialize_struct_id_params(self.vm, struct_id, type_params);
+                        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
-                        for &ref_offset in &sdef.ref_fields {
+                        for &ref_offset in &struct_instance.ref_fields {
                             self.references.push(offset + ref_offset);
                         }
                     }
@@ -1238,10 +1239,10 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, type_params);
-        let cls = self.vm.class_instances.idx(class_def_id);
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, type_params);
+        let class_instance = self.vm.class_instances.idx(class_instance_id);
 
-        let vtable = cls.vtable.read();
+        let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let position = if instanceof {
             None
@@ -1545,10 +1546,10 @@ impl<'a> CannonCodeGen<'a> {
         dest: RegOrOffset,
         src: RegOrOffset,
     ) {
-        let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-        let sdef = self.vm.struct_instances.idx(sdef_id);
+        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
-        for field in &sdef.fields {
+        for field in &struct_instance.fields {
             let src = src.offset(field.offset);
             let dest = dest.offset(field.offset);
             self.copy_ty(field.ty.clone(), dest, src);
@@ -1779,10 +1780,11 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
-        let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
-        let sdef = self.vm.struct_instances.idx(sdef_id);
+        let struct_instance_id =
+            specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
-        let field = &sdef.fields[field_id.to_usize()];
+        let field = &struct_instance.fields[field_id.to_usize()];
 
         if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
             assert_eq!(
@@ -1798,20 +1800,22 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
-        let (class_def_id, field_id) = match self.bytecode.const_pool(field_idx) {
+        let (class_instance_id, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let type_params = specialize_type_list(self.vm, type_params, self.type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
-                let class_def_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
+                let class_instance_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
 
-                (class_def_id, *field_id)
+                (class_instance_id, *field_id)
             }
-            ConstPoolEntry::FieldFixed(class_def_id, field_id) => (*class_def_id, *field_id),
+            ConstPoolEntry::FieldFixed(class_instance_id, field_id) => {
+                (*class_instance_id, *field_id)
+            }
             _ => unreachable!(),
         };
 
-        let cls = self.vm.class_instances.idx(class_def_id);
+        let cls = self.vm.class_instances.idx(class_instance_id);
 
         let field = &cls.fields[field_id.to_usize()];
 
@@ -1846,8 +1850,8 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = specialize_type_list(self.vm, type_params, self.type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
-        let cls = self.vm.class_instances.idx(class_def_id);
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let cls = self.vm.class_instances.idx(class_instance_id);
 
         let field = &cls.fields[field_id.to_usize()];
 
@@ -1888,9 +1892,10 @@ impl<'a> CannonCodeGen<'a> {
                         RegOrOffset::Offset(src_offset),
                     );
 
-                    let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-                    let sdef = self.vm.struct_instances.idx(sdef_id);
-                    needs_write_barrier = sdef.contains_references();
+                    let struct_instance_id =
+                        specialize_struct_id_params(self.vm, struct_id, type_params);
+                    let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                    needs_write_barrier = struct_instance.contains_references();
                 }
 
                 BytecodeType::Enum(enum_id, type_params) => {
@@ -2269,15 +2274,14 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = specialize_type_list(self.vm, type_params, self.type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance = self.vm.class_instances.idx(class_instance_id);
 
-        let cls = self.vm.class_instances.idx(class_def_id);
-
-        let alloc_size = match cls.size {
+        let alloc_size = match class_instance.size {
             InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
             _ => unreachable!(
                 "class size type {:?} for new object not supported",
-                cls.size
+                class_instance.size
             ),
         };
 
@@ -2290,7 +2294,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
 
         // store classptr in object
-        let vtable = cls.vtable.read();
+        let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
         let pos = self.asm.pos() as i32;
@@ -2308,7 +2312,7 @@ impl<'a> CannonCodeGen<'a> {
             REG_TMP1.into(),
         );
 
-        match cls.size {
+        match class_instance.size {
             InstanceSize::Fixed(size) => {
                 self.asm.fill_zero(REG_RESULT, false, size as usize);
             }
@@ -2329,15 +2333,14 @@ impl<'a> CannonCodeGen<'a> {
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
 
-        let class_def_id = specialize_class_id_params(self.vm, cls_id, &type_params);
-
-        let cls = self.vm.class_instances.idx(class_def_id);
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         self.emit_load_register(length, REG_TMP1.into());
 
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
-        let alloc_size = match cls.size {
+        let alloc_size = match class_instance.size {
             InstanceSize::PrimitiveArray(size)
             | InstanceSize::TupleArray(size)
             | InstanceSize::StructArray(size) => {
@@ -2352,10 +2355,13 @@ impl<'a> CannonCodeGen<'a> {
                 AllocationSize::Dynamic(REG_TMP1)
             }
             InstanceSize::UnitArray => AllocationSize::Fixed(array_header_size),
-            _ => unreachable!("class size type {:?} for new array not supported", cls.size),
+            _ => unreachable!(
+                "class size type {:?} for new array not supported",
+                class_instance.size
+            ),
         };
 
-        let array_ref = match cls.size {
+        let array_ref = match class_instance.size {
             InstanceSize::ObjArray => true,
             _ => false,
         };
@@ -2369,7 +2375,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
 
         // store classptr in object
-        let vtable = cls.vtable.read();
+        let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
         let pos = self.asm.pos() as i32;
@@ -2395,7 +2401,7 @@ impl<'a> CannonCodeGen<'a> {
             REG_TMP1.into(),
         );
 
-        match cls.size {
+        match class_instance.size {
             InstanceSize::PrimitiveArray(size)
             | InstanceSize::TupleArray(size)
             | InstanceSize::StructArray(size) => {
@@ -2588,8 +2594,8 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
-        let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-        let sdef = self.vm.struct_instances.idx(sdef_id);
+        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -2598,7 +2604,7 @@ impl<'a> CannonCodeGen<'a> {
 
         for (field_idx, &arg) in arguments.iter().enumerate() {
             if let Some(ty) = self.specialize_register_type_unit(arg) {
-                let field = &sdef.fields[field_idx];
+                let field = &struct_instance.fields[field_idx];
                 comment!(self, format!("NewStruct: store register {} in struct", arg));
 
                 let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
@@ -2786,11 +2792,12 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
-                let sdef = self.vm.struct_instances.idx(sdef_id);
+                let struct_instance_id =
+                    specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                 self.asm
-                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, sdef.size);
+                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, struct_instance.size);
                 let src_offset = self.register_offset(src);
 
                 self.copy_struct(
@@ -2800,7 +2807,7 @@ impl<'a> CannonCodeGen<'a> {
                     RegOrOffset::Offset(src_offset),
                 );
 
-                let needs_write_barrier = sdef.contains_references();
+                let needs_write_barrier = struct_instance.contains_references();
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
                     let card_table_offset = self.vm.gc.card_table_offset();
@@ -2929,10 +2936,11 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let sdef_id = specialize_struct_id_params(self.vm, struct_id, type_params.clone());
-                let sdef = self.vm.struct_instances.idx(sdef_id);
+                let struct_instance_id =
+                    specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
-                let element_size = sdef.size;
+                let element_size = struct_instance.size;
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let dest_offset = self.register_offset(dest);
@@ -4034,14 +4042,14 @@ impl<'a> CannonCodeGen<'a> {
 
                 self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
 
-                let cdef_id = specialize_enum_class(
+                let class_instance_id = specialize_enum_class(
                     self.vm,
                     &*enum_instance,
                     &*enum_,
                     some_variant_id as usize,
                 );
 
-                let cls = self.vm.class_instances.idx(cdef_id);
+                let cls = self.vm.class_instances.idx(class_instance_id);
 
                 let field = &cls.fields[1];
                 let dest_offset = self.register_offset(dest.expect("dest missing"));
