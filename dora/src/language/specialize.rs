@@ -1,6 +1,5 @@
-use crate::language::sem_analysis::{ensure_tuple, get_tuple_subtypes};
+use crate::language::sem_analysis::{ensure_tuple, get_tuple_subtypes, SemAnalysis};
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::SemAnalysis;
 
 pub fn specialize_type(
     sa: &SemAnalysis,

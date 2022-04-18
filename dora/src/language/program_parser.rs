@@ -9,10 +9,10 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
     FctDefinition, FctParent, GlobalDefinition, ImplDefinition, ModuleDefinition,
-    ModuleDefinitionId, SourceFileId, StructDefinition, TraitDefinition, UseDefinition,
+    ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinition, TraitDefinition,
+    UseDefinition,
 };
 use crate::language::sym::Sym;
-use crate::vm::SemAnalysis;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;

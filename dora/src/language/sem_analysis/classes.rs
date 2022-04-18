@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use parking_lot::RwLock;
@@ -9,12 +10,12 @@ use dora_parser::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, ExtensionDefinitionId, FctDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SourceFileId, TraitDefinitionId,
+    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId,
 };
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, Id};
-use crate::vm::{replace_type_param, ClassInstanceId, Field, FieldId, VM};
+use crate::vm::{replace_type_param, ClassInstanceId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassDefinitionId(usize);
@@ -186,14 +187,14 @@ impl ClassDefinition {
         panic!("field not found!")
     }
 
-    pub fn name(&self, vm: &VM) -> String {
-        let mut name = module_path(vm, self.module_id, self.name);
+    pub fn name(&self, sa: &SemAnalysis) -> String {
+        let mut name = module_path(sa, self.module_id, self.name);
 
         if self.type_params.len() > 0 {
             let type_params = self
                 .type_params
                 .iter()
-                .map(|p| vm.interner.str(p.name).to_string())
+                .map(|p| sa.interner.str(p.name).to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
             name.push('[');
@@ -204,13 +205,13 @@ impl ClassDefinition {
         name
     }
 
-    pub fn name_with_params(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
-        let name = vm.interner.str(self.name);
+    pub fn name_with_params(&self, sa: &SemAnalysis, type_list: &SourceTypeArray) -> String {
+        let name = sa.interner.str(self.name);
 
         if type_list.len() > 0 {
             let type_list = type_list
                 .iter()
-                .map(|p| p.name(vm))
+                .map(|p| p.name(sa))
                 .collect::<Vec<_>>()
                 .join(", ");
 
@@ -220,15 +221,20 @@ impl ClassDefinition {
         }
     }
 
-    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctDefinitionId> {
+    pub fn find_method(
+        &self,
+        sa: &SemAnalysis,
+        name: Name,
+        is_static: bool,
+    ) -> Option<FctDefinitionId> {
         let mut classid = self.id();
 
         loop {
-            let cls = vm.classes.idx(classid);
+            let cls = sa.classes.idx(classid);
             let cls = cls.read();
 
             for &method in &cls.methods {
-                let method = vm.fcts.idx(method);
+                let method = sa.fcts.idx(method);
                 let method = method.read();
 
                 if method.name == name && method.is_static == is_static {
@@ -246,13 +252,13 @@ impl ClassDefinition {
 
     pub fn find_trait_method(
         &self,
-        vm: &VM,
+        sa: &SemAnalysis,
         trait_id: TraitDefinitionId,
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {
         for &impl_id in &self.impls {
-            let impl_ = vm.impls[impl_id].read();
+            let impl_ = sa.impls[impl_id].read();
 
             if impl_.trait_id != Some(trait_id) {
                 continue;
@@ -270,7 +276,7 @@ impl ClassDefinition {
         None
     }
 
-    pub fn subclass_from(&self, vm: &VM, super_id: ClassDefinitionId) -> bool {
+    pub fn subclass_from(&self, sa: &SemAnalysis, super_id: ClassDefinitionId) -> bool {
         let mut cls_id = self.id();
 
         loop {
@@ -278,7 +284,7 @@ impl ClassDefinition {
                 return true;
             }
 
-            let cls = vm.classes.idx(cls_id);
+            let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
 
             match cls.parent_class {
@@ -294,8 +300,46 @@ impl ClassDefinition {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct FieldId(usize);
+
+impl FieldId {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for FieldId {
+    fn from(data: usize) -> FieldId {
+        FieldId(data)
+    }
+}
+
+#[derive(Debug)]
+pub struct Field {
+    pub id: FieldId,
+    pub name: Name,
+    pub ty: SourceType,
+    pub mutable: bool,
+    pub is_pub: bool,
+}
+
+impl Index<FieldId> for Vec<Field> {
+    type Output = Field;
+
+    fn index(&self, index: FieldId) -> &Field {
+        &self[index.0]
+    }
+}
+
+impl IndexMut<FieldId> for Vec<Field> {
+    fn index_mut(&mut self, index: FieldId) -> &mut Field {
+        &mut self[index.0]
+    }
+}
+
 pub fn find_field_in_class(
-    vm: &VM,
+    sa: &SemAnalysis,
     mut class: SourceType,
     name: Name,
 ) -> Option<(SourceType, FieldId, SourceType)> {
@@ -305,7 +349,7 @@ pub fn find_field_in_class(
 
     loop {
         let cls_id = class.cls_id().expect("no class");
-        let cls = vm.classes.idx(cls_id);
+        let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
 
         let type_list = class.type_params();
@@ -315,14 +359,14 @@ pub fn find_field_in_class(
                 return Some((
                     class,
                     field.id,
-                    replace_type_param(vm, field.ty.clone(), &type_list, None),
+                    replace_type_param(sa, field.ty.clone(), &type_list, None),
                 ));
             }
         }
 
         if let Some(ref parent_class) = cls.parent_class {
             let type_list = parent_class.type_params();
-            class = replace_type_param(vm, parent_class.clone(), &type_list, None);
+            class = replace_type_param(sa, parent_class.clone(), &type_list, None);
         } else {
             return None;
         }
@@ -330,17 +374,17 @@ pub fn find_field_in_class(
 }
 
 pub fn find_method_in_class(
-    vm: &VM,
+    sa: &SemAnalysis,
     mut class: SourceType,
     name: Name,
 ) -> Option<(SourceType, FctDefinitionId)> {
     loop {
         let cls_id = class.cls_id().expect("no class");
-        let cls = vm.classes.idx(cls_id);
+        let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
 
         for &method in &cls.methods {
-            let method = vm.fcts.idx(method);
+            let method = sa.fcts.idx(method);
             let method = method.read();
 
             if method.name == name && method.is_static == false {
@@ -350,7 +394,7 @@ pub fn find_method_in_class(
 
         if let Some(ref parent_class) = cls.parent_class {
             let type_list = parent_class.type_params();
-            class = replace_type_param(vm, parent_class.clone(), &type_list, None);
+            class = replace_type_param(sa, parent_class.clone(), &type_list, None);
         } else {
             return None;
         }
@@ -364,7 +408,7 @@ pub struct Candidate {
 }
 
 pub fn find_methods_in_class(
-    vm: &VM,
+    sa: &SemAnalysis,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
     type_param_defs2: Option<&TypeParamDefinition>,
@@ -378,11 +422,11 @@ pub fn find_methods_in_class(
 
     loop {
         let cls_id = class_type.cls_id().expect("no class");
-        let cls = vm.classes.idx(cls_id);
+        let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
 
         for &method in &cls.methods {
-            let method = vm.fcts.idx(method);
+            let method = sa.fcts.idx(method);
             let method = method.read();
 
             if method.name == name && method.is_static == is_static {
@@ -402,7 +446,7 @@ pub fn find_methods_in_class(
 
         if let Some(ref parent_class) = cls.parent_class {
             let type_list = class_type.type_params();
-            class_type = replace_type_param(vm, parent_class.clone(), &type_list, None);
+            class_type = replace_type_param(sa, parent_class.clone(), &type_list, None);
         } else {
             break;
         }
@@ -411,18 +455,18 @@ pub fn find_methods_in_class(
     // Find extension methods
     {
         let cls_id = object_type.cls_id().expect("no class");
-        let cls = vm.classes.idx(cls_id);
+        let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
 
         for &extension_id in &cls.extensions {
             if let Some(bindings) = extension_matches(
-                vm,
+                sa,
                 object_type.clone(),
                 type_param_defs,
                 type_param_defs2,
                 extension_id,
             ) {
-                let extension = vm.extensions[extension_id].read();
+                let extension = sa.extensions[extension_id].read();
 
                 let table = if is_static {
                     &extension.static_names
@@ -445,18 +489,18 @@ pub fn find_methods_in_class(
 
     loop {
         let cls_id = class_type.cls_id().expect("no class");
-        let cls = vm.classes.idx(cls_id);
+        let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
 
         for &impl_id in &cls.impls {
             if let Some(bindings) = impl_matches(
-                vm,
+                sa,
                 class_type.clone(),
                 type_param_defs,
                 type_param_defs2,
                 impl_id,
             ) {
-                let impl_ = vm.impls[impl_id].read();
+                let impl_ = sa.impls[impl_id].read();
 
                 let table = if is_static {
                     &impl_.static_names
@@ -476,7 +520,7 @@ pub fn find_methods_in_class(
 
         if let Some(parent_class) = cls.parent_class.clone() {
             let type_list = class_type.type_params();
-            class_type = replace_type_param(vm, parent_class, &type_list, None);
+            class_type = replace_type_param(sa, parent_class, &type_list, None);
         } else {
             break;
         }

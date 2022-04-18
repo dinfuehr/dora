@@ -3,11 +3,10 @@ use std::sync::Arc;
 
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    module_path, FctDefinitionId, ModuleDefinitionId, SourceFileId,
+    module_path, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::VM;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -90,8 +89,8 @@ impl GlobalDefinition {
         self.initializer.is_some() && !self.is_initialized()
     }
 
-    pub fn name(&self, vm: &VM) -> String {
-        module_path(vm, self.module_id, self.name)
+    pub fn name(&self, sa: &SemAnalysis) -> String {
+        module_path(sa, self.module_id, self.name)
     }
 
     fn is_initialized(&self) -> bool {

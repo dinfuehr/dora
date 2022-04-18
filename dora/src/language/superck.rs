@@ -3,8 +3,9 @@ use std::collections::HashSet;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     find_method_in_class, ClassDefinition, ClassDefinitionId, FctDefinition, FctDefinitionId,
+    SemAnalysis,
 };
-use crate::vm::{replace_type_param, SemAnalysis};
+use crate::vm::replace_type_param;
 
 pub fn check(sa: &mut SemAnalysis) {
     cycle_detection(sa);
@@ -199,8 +200,8 @@ fn check_fct_modifier(
 #[cfg(test)]
 mod tests {
     use crate::language::error::msg::SemError;
+    use crate::language::sem_analysis::SemAnalysis;
     use crate::language::tests::{err, errors, ok, ok_with_test, pos};
-    use crate::vm::SemAnalysis;
     use dora_parser::interner::Name;
 
     #[test]

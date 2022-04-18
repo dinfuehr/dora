@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::bytecode::BytecodeReader;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
+    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -11,7 +11,7 @@ use crate::mode::MachineMode;
 use crate::utils::enumeration;
 use crate::vm::{
     get_concrete_tuple_bytecode_ty, specialize_enum_id_params, specialize_struct_id_params,
-    ClassInstanceId, EnumLayout, FieldId, VM,
+    ClassInstanceId, EnumLayout, VM,
 };
 use dora_parser::lexer::position::Position;
 

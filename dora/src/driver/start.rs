@@ -3,12 +3,14 @@ use crate::driver::cmd;
 use crate::language;
 use crate::language::access::module_contains;
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{FctDefinition, FctDefinitionId, ModuleDefinitionId};
+use crate::language::sem_analysis::{
+    FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
+};
 use crate::object;
 use crate::timer::Timer;
 use crate::vm::set_vm;
+use crate::vm::VM;
 use crate::vm::{execute_on_main, specialize_class_id};
-use crate::vm::{SemAnalysis, VM};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();

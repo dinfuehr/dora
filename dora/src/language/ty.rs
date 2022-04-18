@@ -5,9 +5,9 @@ use std::sync::Arc;
 use crate::bytecode::BytecodeType;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
-    FctDefinition, StructDefinitionId, TraitDefinitionId, TupleId, TypeParam, TypeParamId,
+    FctDefinition, SemAnalysis, StructDefinitionId, TraitDefinitionId, TupleId, TypeParam,
+    TypeParamId,
 };
-use crate::vm::{SemAnalysis, VM};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
@@ -289,52 +289,52 @@ impl SourceType {
         cls.subclass_from(sa, ty.cls_id().unwrap())
     }
 
-    pub fn name(&self, vm: &VM) -> String {
+    pub fn name(&self, sa: &SemAnalysis) -> String {
         let writer = SourceTypePrinter {
-            vm,
+            sa,
             type_params: None,
         };
 
         writer.name(self.clone())
     }
 
-    pub fn name_with_params(&self, vm: &VM, type_params: &[TypeParam]) -> String {
+    pub fn name_with_params(&self, sa: &SemAnalysis, type_params: &[TypeParam]) -> String {
         let writer = SourceTypePrinter {
-            vm,
+            sa,
             type_params: Some(type_params),
         };
 
         writer.name(self.clone())
     }
 
-    pub fn name_fct(&self, vm: &VM, fct: &FctDefinition) -> String {
+    pub fn name_fct(&self, sa: &SemAnalysis, fct: &FctDefinition) -> String {
         let writer = SourceTypePrinter {
-            vm,
+            sa,
             type_params: Some(&fct.type_params),
         };
 
         writer.name(self.clone())
     }
 
-    pub fn name_cls(&self, vm: &VM, cls: &ClassDefinition) -> String {
+    pub fn name_cls(&self, sa: &SemAnalysis, cls: &ClassDefinition) -> String {
         let writer = SourceTypePrinter {
-            vm,
+            sa,
             type_params: Some(&cls.type_params),
         };
 
         writer.name(self.clone())
     }
 
-    pub fn name_enum(&self, vm: &VM, enum_: &EnumDefinition) -> String {
+    pub fn name_enum(&self, sa: &SemAnalysis, enum_: &EnumDefinition) -> String {
         let writer = SourceTypePrinter {
-            vm,
+            sa,
             type_params: Some(&enum_.type_params),
         };
 
         writer.name(self.clone())
     }
 
-    pub fn allows(&self, vm: &VM, other: SourceType) -> bool {
+    pub fn allows(&self, sa: &SemAnalysis, other: SourceType) -> bool {
         match self {
             // allow all types for Error, there is already an error,
             // don't report too many messages for the same error
@@ -370,7 +370,7 @@ impl SourceType {
                 if *self_cls_id == other_cls_id {
                     self_list == &other_list
                 } else {
-                    other.subclass_from(vm, self.clone())
+                    other.subclass_from(sa, self.clone())
                 }
             }
             SourceType::Tuple(tuple_id) => match other {
@@ -379,8 +379,8 @@ impl SourceType {
                         return true;
                     }
 
-                    let subtypes = get_tuple_subtypes(vm, *tuple_id);
-                    let other_subtypes = get_tuple_subtypes(vm, other_tuple_id);
+                    let subtypes = get_tuple_subtypes(sa, *tuple_id);
+                    let other_subtypes = get_tuple_subtypes(sa, other_tuple_id);
 
                     if subtypes.len() != other_subtypes.len() {
                         return false;
@@ -392,7 +392,7 @@ impl SourceType {
                         let ty = subtypes[idx].clone();
                         let other_ty = other_subtypes[idx].clone();
 
-                        if !ty.allows(vm, other_ty) {
+                        if !ty.allows(sa, other_ty) {
                             return false;
                         }
                     }
@@ -414,7 +414,7 @@ impl SourceType {
         }
     }
 
-    pub fn is_defined_type(&self, vm: &VM) -> bool {
+    pub fn is_defined_type(&self, sa: &SemAnalysis) -> bool {
         match self {
             SourceType::Error | SourceType::This | SourceType::Any | SourceType::Ptr => false,
             SourceType::Unit
@@ -432,7 +432,7 @@ impl SourceType {
             | SourceType::Class(_, params)
             | SourceType::Struct(_, params) => {
                 for param in params.iter() {
-                    if !param.is_defined_type(vm) {
+                    if !param.is_defined_type(sa) {
                         return false;
                     }
                 }
@@ -440,10 +440,10 @@ impl SourceType {
                 true
             }
             SourceType::Tuple(tuple_id) => {
-                let subtypes = get_tuple_subtypes(vm, *tuple_id);
+                let subtypes = get_tuple_subtypes(sa, *tuple_id);
 
                 for ty in subtypes.iter() {
-                    if !ty.is_defined_type(vm) {
+                    if !ty.is_defined_type(sa) {
                         return false;
                     }
                 }
@@ -453,7 +453,7 @@ impl SourceType {
         }
     }
 
-    pub fn is_concrete_type(&self, vm: &VM) -> bool {
+    pub fn is_concrete_type(&self, sa: &SemAnalysis) -> bool {
         match self {
             SourceType::Error | SourceType::This | SourceType::Any => false,
             SourceType::Unit
@@ -470,7 +470,7 @@ impl SourceType {
             | SourceType::Struct(_, params)
             | SourceType::Trait(_, params) => {
                 for param in params.iter() {
-                    if !param.is_concrete_type(vm) {
+                    if !param.is_concrete_type(sa) {
                         return false;
                     }
                 }
@@ -479,9 +479,9 @@ impl SourceType {
             }
 
             SourceType::Tuple(tuple_id) => {
-                let subtypes = get_tuple_subtypes(vm, *tuple_id);
+                let subtypes = get_tuple_subtypes(sa, *tuple_id);
                 for subtype in subtypes.iter() {
-                    if !subtype.is_concrete_type(vm) {
+                    if !subtype.is_concrete_type(sa) {
                         return false;
                     }
                 }
@@ -585,7 +585,7 @@ impl SourceTypeArray {
         }
     }
 
-    pub fn name(&self, vm: &VM) -> String {
+    pub fn name(&self, sa: &SemAnalysis) -> String {
         let mut result = String::new();
         let mut first = true;
         result.push('[');
@@ -594,7 +594,7 @@ impl SourceTypeArray {
             if !first {
                 result.push_str(", ");
             }
-            result.push_str(&ty.name(vm));
+            result.push_str(&ty.name(sa));
             first = false;
         }
 
@@ -693,7 +693,7 @@ impl LambdaTypes {
 }
 
 struct SourceTypePrinter<'a> {
-    vm: &'a VM,
+    sa: &'a SemAnalysis,
     type_params: Option<&'a [TypeParam]>,
 }
 
@@ -713,9 +713,9 @@ impl<'a> SourceTypePrinter<'a> {
             SourceType::Ptr => panic!("type Ptr only for internal use."),
             SourceType::This => "Self".into(),
             SourceType::Class(id, params) => {
-                let cls = self.vm.classes.idx(id);
+                let cls = self.sa.classes.idx(id);
                 let cls = cls.read();
-                let base = self.vm.interner.str(cls.name);
+                let base = self.sa.interner.str(cls.name);
 
                 if params.len() == 0 {
                     base.to_string()
@@ -730,10 +730,10 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Struct(sid, params) => {
-                let struc = self.vm.structs.idx(sid);
+                let struc = self.sa.structs.idx(sid);
                 let struc = struc.read();
                 let name = struc.name;
-                let name = self.vm.interner.str(name).to_string();
+                let name = self.sa.interner.str(name).to_string();
 
                 if params.len() == 0 {
                     name
@@ -748,8 +748,8 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Trait(tid, params) => {
-                let trait_ = self.vm.traits[tid].read();
-                let name = self.vm.interner.str(trait_.name).to_string();
+                let trait_ = self.sa.traits[tid].read();
+                let name = self.sa.interner.str(trait_.name).to_string();
 
                 if params.len() == 0 {
                     name
@@ -764,8 +764,8 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Enum(id, params) => {
-                let enum_ = self.vm.enums[id].read();
-                let name = self.vm.interner.str(enum_.name).to_string();
+                let enum_ = self.sa.enums[id].read();
+                let name = self.sa.interner.str(enum_.name).to_string();
 
                 if params.len() == 0 {
                     name
@@ -782,7 +782,7 @@ impl<'a> SourceTypePrinter<'a> {
 
             SourceType::TypeParam(idx) => {
                 if let Some(type_params) = self.type_params {
-                    self.vm
+                    self.sa
                         .interner
                         .str(type_params[idx.to_usize()].name)
                         .to_string()
@@ -792,7 +792,7 @@ impl<'a> SourceTypePrinter<'a> {
             }
 
             SourceType::Lambda(id) => {
-                let lambda = self.vm.lambda_types.lock().get(id);
+                let lambda = self.sa.lambda_types.lock().get(id);
                 let params = lambda
                     .params
                     .iter()
@@ -805,7 +805,7 @@ impl<'a> SourceTypePrinter<'a> {
             }
 
             SourceType::Tuple(tuple_id) => {
-                let types = get_tuple_subtypes(self.vm, tuple_id);
+                let types = get_tuple_subtypes(self.sa, tuple_id);
 
                 let types = types
                     .iter()

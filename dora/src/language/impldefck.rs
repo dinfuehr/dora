@@ -3,12 +3,12 @@ use std::sync::Arc;
 use crate::language::error::msg::SemError;
 use crate::language::extensiondefck::check_for_unconstrained_type_params;
 use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, FctParent, ImplDefinitionId, ModuleDefinitionId, SourceFileId,
+    FctDefinition, FctDefinitionId, FctParent, ImplDefinitionId, ModuleDefinitionId, SemAnalysis,
+    SourceFileId,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::SemAnalysis;
 
 use dora_parser::ast;
 

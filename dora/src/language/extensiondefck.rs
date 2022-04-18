@@ -3,12 +3,11 @@ use std::sync::Arc;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctParent,
-    ModuleDefinitionId, SourceFileId, StructDefinitionId, TypeParam,
+    ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionId, TypeParam,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
-use crate::vm::SemAnalysis;
 
 use dora_parser::ast;
 use dora_parser::lexer::position::Position;

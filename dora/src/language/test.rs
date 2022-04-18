@@ -1,6 +1,6 @@
 use crate::driver::cmd::Args;
 use crate::language;
-use crate::vm::SemAnalysis;
+use crate::language::sem_analysis::SemAnalysis;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
 where

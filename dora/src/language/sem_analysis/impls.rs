@@ -10,12 +10,11 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SourceFileId, TraitDefinitionId,
-    TypeParam, TypeParamDefinition, TypeParamId,
+    extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
+    TraitDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::{SemAnalysis, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplDefinitionId(u32);
@@ -109,15 +108,15 @@ impl Index<ImplDefinitionId> for Vec<RwLock<ImplDefinition>> {
 }
 
 pub fn impl_matches(
-    vm: &VM,
+    sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
     check_type_param_defs2: Option<&TypeParamDefinition>,
     impl_id: ImplDefinitionId,
 ) -> Option<SourceTypeArray> {
-    let impl_ = vm.impls[impl_id].read();
+    let impl_ = sa.impls[impl_id].read();
     extension_matches_ty(
-        vm,
+        sa,
         check_ty,
         check_type_param_defs,
         check_type_param_defs2,
@@ -127,16 +126,16 @@ pub fn impl_matches(
 }
 
 pub fn find_trait_impl(
-    vm: &VM,
+    sa: &SemAnalysis,
     fct_id: FctDefinitionId,
     trait_id: TraitDefinitionId,
     object_type: SourceType,
 ) -> FctDefinitionId {
-    debug_assert!(object_type.is_concrete_type(vm));
-    let impl_id = find_impl(vm, object_type, &[], trait_id)
+    debug_assert!(object_type.is_concrete_type(sa));
+    let impl_id = find_impl(sa, object_type, &[], trait_id)
         .expect("no impl found for generic trait method call");
 
-    let impl_ = vm.impls[impl_id].read();
+    let impl_ = sa.impls[impl_id].read();
     assert_eq!(impl_.trait_id(), trait_id);
 
     impl_
@@ -240,7 +239,7 @@ pub fn implements_trait(
 }
 
 pub fn find_impl(
-    vm: &VM,
+    sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
     trait_id: TraitDefinitionId,
@@ -252,9 +251,9 @@ pub fn find_impl(
         | SourceType::Lambda(_) => None,
 
         SourceType::Enum(enum_id, _) => {
-            let enum_ = vm.enums[enum_id].read();
+            let enum_ = sa.enums[enum_id].read();
             check_impls(
-                vm,
+                sa,
                 check_ty,
                 check_type_param_defs,
                 None,
@@ -271,13 +270,13 @@ pub fn find_impl(
         | SourceType::Float32
         | SourceType::Float64 => {
             let struct_id = check_ty
-                .primitive_struct_id(vm)
+                .primitive_struct_id(sa)
                 .expect("primitive expected");
-            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
             check_impls(
-                vm,
+                sa,
                 check_ty,
                 check_type_param_defs,
                 None,
@@ -287,11 +286,11 @@ pub fn find_impl(
         }
 
         SourceType::Struct(struct_id, _) => {
-            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
             check_impls(
-                vm,
+                sa,
                 check_ty,
                 check_type_param_defs,
                 None,
@@ -302,11 +301,11 @@ pub fn find_impl(
 
         SourceType::Class(_, _) => {
             let cls_id = check_ty.cls_id().expect("class expected");
-            let cls = vm.classes.idx(cls_id);
+            let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
 
             check_impls(
-                vm,
+                sa,
                 check_ty.clone(),
                 check_type_param_defs,
                 None,

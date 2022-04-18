@@ -7,14 +7,12 @@ use parking_lot::RwLock;
 use crate::language::sym::NestedSymTable;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
-#[cfg(test)]
-use crate::vm::FieldId;
-use crate::vm::SemAnalysis;
+use crate::vm::VM;
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
     find_field_in_class, find_method_in_class, find_methods_in_class, Candidate, ClassDefinition,
-    ClassDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
+    ClassDefinitionId, Field, FieldId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumVariant};
@@ -54,6 +52,8 @@ mod structs;
 mod traits;
 mod tuples;
 mod uses;
+
+pub type SemAnalysis = VM;
 
 impl SemAnalysis {
     #[cfg(test)]

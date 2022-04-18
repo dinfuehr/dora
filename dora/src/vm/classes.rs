@@ -2,7 +2,6 @@ use parking_lot::RwLock;
 
 use std::convert::From;
 use std::iter::Iterator;
-use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use crate::language::sem_analysis::ClassDefinitionId;
@@ -11,7 +10,6 @@ use crate::size::InstanceSize;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vtable::VTableBox;
-use dora_parser::interner::Name;
 
 pub static DISPLAY_SIZE: usize = 6;
 
@@ -43,7 +41,7 @@ pub struct ClassInstance {
     pub trait_object: Option<SourceType>,
     pub type_params: SourceTypeArray,
     pub parent_id: Option<ClassInstanceId>,
-    pub fields: Vec<FieldDef>,
+    pub fields: Vec<FieldInstance>,
     pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
     pub vtable: RwLock<Option<VTableBox>>,
@@ -73,47 +71,8 @@ impl ClassInstance {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FieldId(usize);
-
-impl FieldId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for FieldId {
-    fn from(data: usize) -> FieldId {
-        FieldId(data)
-    }
-}
-
-#[derive(Debug)]
-pub struct Field {
-    pub id: FieldId,
-    pub name: Name,
-    pub ty: SourceType,
-    pub offset: i32,
-    pub mutable: bool,
-    pub is_pub: bool,
-}
-
-impl Index<FieldId> for Vec<Field> {
-    type Output = Field;
-
-    fn index(&self, index: FieldId) -> &Field {
-        &self[index.0]
-    }
-}
-
-impl IndexMut<FieldId> for Vec<Field> {
-    fn index_mut(&mut self, index: FieldId) -> &mut Field {
-        &mut self[index.0]
-    }
-}
-
 #[derive(Debug, Clone)]
-pub struct FieldDef {
+pub struct FieldInstance {
     pub offset: i32,
     pub ty: SourceType,
 }

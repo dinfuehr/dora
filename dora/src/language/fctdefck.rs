@@ -2,12 +2,11 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, FctParent, TypeParam, TypeParamId,
+    FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParam, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::SemAnalysis;
 
 pub fn check(sa: &SemAnalysis) {
     for fct in sa.fcts.iter() {

@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::sync::Arc;
 
+use crate::language::sem_analysis::SemAnalysis;
 use crate::language::ty::SourceType;
-use crate::vm::VM;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct TupleId(u32);
@@ -38,10 +37,10 @@ impl Tuples {
     }
 }
 
-pub fn ensure_tuple(vm: &VM, args: Vec<SourceType>) -> TupleId {
+pub fn ensure_tuple(sa: &SemAnalysis, args: Vec<SourceType>) -> TupleId {
     let args = Arc::new(args);
 
-    let mut tuples = vm.tuples.lock();
+    let mut tuples = sa.tuples.lock();
 
     if let Some(&tuple_id) = tuples.map.get(&args) {
         return tuple_id;
@@ -55,6 +54,6 @@ pub fn ensure_tuple(vm: &VM, args: Vec<SourceType>) -> TupleId {
     id
 }
 
-pub fn get_tuple_subtypes(vm: &VM, id: TupleId) -> Arc<Vec<SourceType>> {
-    vm.tuples.lock().get_subtypes(id)
+pub fn get_tuple_subtypes(sa: &SemAnalysis, id: TupleId) -> Arc<Vec<SourceType>> {
+    sa.tuples.lock().get_subtypes(id)
 }

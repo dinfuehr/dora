@@ -4,10 +4,9 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::language::sem_analysis::{module_path, ModuleDefinitionId, SourceFileId};
+use crate::language::sem_analysis::{module_path, ModuleDefinitionId, SemAnalysis, SourceFileId};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
-use crate::vm::VM;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstDefinitionId(usize);
@@ -72,8 +71,8 @@ impl ConstDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn name(&self, vm: &VM) -> String {
-        module_path(vm, self.module_id, self.name)
+    pub fn name(&self, sa: &SemAnalysis) -> String {
+        module_path(sa, self.module_id, self.name)
     }
 }
 

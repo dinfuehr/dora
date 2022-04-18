@@ -1,11 +1,10 @@
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    FctDefinition, FctParent, GlobalDefinitionId, ModuleDefinitionId, SourceFileId,
+    FctDefinition, FctParent, GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
-use crate::vm::SemAnalysis;
 use dora_parser::ast;
 
 pub fn check<'a>(sa: &SemAnalysis) {

@@ -31,7 +31,7 @@ use crate::utils::{GrowableVec, MutableVec};
 use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
-pub use self::classes::{ClassInstance, ClassInstanceId, Field, FieldDef, FieldId};
+pub use self::classes::{ClassInstance, ClassInstanceId, FieldInstance};
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
     GcPointTable, LazyCompilationData, LazyCompilationSite, ManagedCodeHeader, PositionTable,
@@ -231,8 +231,6 @@ impl FullSemAnalysis {
         VM::new_from_full_sa(sa)
     }
 }
-
-pub type SemAnalysis = VM;
 
 pub struct VM {
     pub args: Args,

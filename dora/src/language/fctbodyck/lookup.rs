@@ -2,12 +2,12 @@ use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::body::args_compatible_fct;
 use crate::language::sem_analysis::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_struct, ClassDefinitionId,
-    FctDefinition, FctDefinitionId, SourceFileId, TraitDefinitionId, TypeParam,
+    FctDefinition, FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam,
     TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
-use crate::vm::{replace_type_param, SemAnalysis};
+use crate::vm::replace_type_param;
 
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;

@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{SourceFileId, TypeParam, TypeParamId};
+use crate::language::sem_analysis::{SemAnalysis, SourceFileId, TypeParam, TypeParamId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
-use crate::vm::SemAnalysis;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -302,8 +301,8 @@ fn check_type_params(
 #[cfg(test)]
 pub mod tests {
     use crate::language::error::msg::SemError;
+    use crate::language::sem_analysis::SemAnalysis;
     use crate::language::test;
-    use crate::vm::SemAnalysis;
     use dora_parser::lexer::position::Position;
 
     pub fn ok(code: &'static str) {

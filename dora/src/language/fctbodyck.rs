@@ -1,8 +1,7 @@
 use crate::language::fctbodyck::body::TypeCheck;
 use crate::language::fctbodyck::constck::ConstCheck;
-use crate::language::sem_analysis::AnalysisData;
+use crate::language::sem_analysis::{AnalysisData, SemAnalysis};
 use crate::language::sym::NestedSymTable;
-use crate::vm::SemAnalysis;
 
 use dora_parser::ast::NodeId;
 

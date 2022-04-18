@@ -1,10 +1,10 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
+use crate::language::sem_analysis::SemAnalysis;
 use crate::language::sym::SymTable;
 use crate::language::SourceFileId;
 use crate::utils::Id;
-use crate::vm::VM;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -69,12 +69,12 @@ impl ModuleDefinition {
     }
 
     pub fn new(
-        vm: &mut VM,
+        sa: &mut SemAnalysis,
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Module>,
     ) -> ModuleDefinition {
-        let parent = &vm.modules[parent_id].read();
+        let parent = &sa.modules[parent_id].read();
         let mut parents = parent.parents.clone();
         parents.push(parent_id);
 
@@ -93,18 +93,18 @@ impl ModuleDefinition {
         }
     }
 
-    pub fn name(&self, vm: &VM) -> String {
+    pub fn name(&self, sa: &SemAnalysis) -> String {
         let mut path = String::new();
 
         for &module_id in &self.parents {
-            let module = &vm.modules[module_id].read();
+            let module = &sa.modules[module_id].read();
 
             if let Some(name) = module.name {
                 if !path.is_empty() {
                     path.push_str("::");
                 }
 
-                path.push_str(&vm.interner.str(name));
+                path.push_str(&sa.interner.str(name));
             }
         }
 
@@ -113,15 +113,15 @@ impl ModuleDefinition {
                 path.push_str("::");
             }
 
-            path.push_str(&vm.interner.str(name));
+            path.push_str(&sa.interner.str(name));
         }
 
         path
     }
 }
 
-pub fn module_package(vm: &VM, module_id: ModuleDefinitionId) -> ModuleDefinitionId {
-    let module = &vm.modules[module_id].read();
+pub fn module_package(sa: &SemAnalysis, module_id: ModuleDefinitionId) -> ModuleDefinitionId {
+    let module = &sa.modules[module_id].read();
 
     if let Some(&global_id) = module.parents.first() {
         global_id
@@ -130,14 +130,14 @@ pub fn module_package(vm: &VM, module_id: ModuleDefinitionId) -> ModuleDefinitio
     }
 }
 
-pub fn module_path(vm: &VM, module_id: ModuleDefinitionId, name: Name) -> String {
-    let module = &vm.modules[module_id].read();
-    let mut result = module.name(vm);
+pub fn module_path(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: Name) -> String {
+    let module = &sa.modules[module_id].read();
+    let mut result = module.name(sa);
 
     if !result.is_empty() {
         result.push_str("::");
     }
 
-    result.push_str(&vm.interner.str(name));
+    result.push_str(&sa.interner.str(name));
     result
 }

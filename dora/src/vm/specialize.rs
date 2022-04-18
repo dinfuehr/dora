@@ -13,7 +13,7 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
     get_concrete_tuple_ty, get_tuple_subtypes, ClassDefinition, ClassInstance, ClassInstanceId,
-    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef,
+    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
     StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
@@ -231,7 +231,7 @@ pub fn specialize_enum_class(
 
     let enum_variant = &enum_.variants[variant_idx];
     let mut csize = Header::size() + 4;
-    let mut fields = vec![FieldDef {
+    let mut fields = vec![FieldInstance {
         offset: Header::size(),
         ty: SourceType::Int32,
     }];
@@ -249,7 +249,7 @@ pub fn specialize_enum_class(
         let field_align = ty.align(vm);
 
         let offset = mem::align_i32(csize, field_align);
-        fields.push(FieldDef {
+        fields.push(FieldInstance {
             offset,
             ty: ty.clone(),
         });
@@ -403,7 +403,7 @@ fn create_specialized_class_regular(
         let field_align = ty.align(vm);
 
         let offset = mem::align_i32(csize, field_align);
-        fields.push(FieldDef {
+        fields.push(FieldInstance {
             offset,
             ty: ty.clone(),
         });
@@ -686,7 +686,7 @@ fn create_specialized_class_for_trait_object(
     let field_align = object_type.align(vm);
 
     let offset = mem::align_i32(csize, field_align);
-    fields.push(FieldDef {
+    fields.push(FieldInstance {
         offset,
         ty: object_type.clone(),
     });

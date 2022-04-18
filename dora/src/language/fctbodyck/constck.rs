@@ -1,8 +1,7 @@
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::body::{check_lit_float, check_lit_int};
-use crate::language::sem_analysis::{ConstDefinition, ConstValue};
+use crate::language::sem_analysis::{ConstDefinition, ConstValue, SemAnalysis};
 use crate::language::ty::SourceType;
-use crate::vm::SemAnalysis;
 
 use dora_parser::ast::*;
 use dora_parser::lexer::token::IntSuffix;

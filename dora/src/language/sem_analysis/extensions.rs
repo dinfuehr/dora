@@ -107,21 +107,21 @@ impl Index<ExtensionDefinitionId> for Vec<RwLock<ExtensionDefinition>> {
 
 mod matching {
     use crate::language::sem_analysis::{
-        get_tuple_subtypes, implements_trait, ExtensionDefinitionId, TypeParam, TypeParamDefinition,
+        get_tuple_subtypes, implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParam,
+        TypeParamDefinition,
     };
     use crate::language::ty::{SourceType, SourceTypeArray};
-    use crate::vm::VM;
 
     pub fn extension_matches(
-        vm: &VM,
+        sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         check_type_param_defs2: Option<&TypeParamDefinition>,
         extension_id: ExtensionDefinitionId,
     ) -> Option<SourceTypeArray> {
-        let extension = vm.extensions[extension_id].read();
+        let extension = sa.extensions[extension_id].read();
         extension_matches_ty(
-            vm,
+            sa,
             check_ty,
             check_type_param_defs,
             check_type_param_defs2,
@@ -131,7 +131,7 @@ mod matching {
     }
 
     pub fn extension_matches_ty(
-        vm: &VM,
+        sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         check_type_param_defs2: Option<&TypeParamDefinition>,
@@ -141,7 +141,7 @@ mod matching {
         let mut bindings = vec![None; ext_type_param_defs.len()];
 
         let result = matches(
-            vm,
+            sa,
             check_ty,
             check_type_param_defs,
             check_type_param_defs2,
@@ -161,7 +161,7 @@ mod matching {
     }
 
     fn matches(
-        vm: &VM,
+        sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         check_type_param_defs2: Option<&TypeParamDefinition>,
@@ -175,7 +175,7 @@ mod matching {
 
             if let Some(binding) = binding {
                 compare_concrete_types(
-                    vm,
+                    sa,
                     check_ty,
                     check_type_param_defs,
                     check_type_param_defs2,
@@ -187,7 +187,7 @@ mod matching {
             } else {
                 let result = if check_ty.is_type_param() {
                     compare_type_param_bounds(
-                        vm,
+                        sa,
                         check_ty.clone(),
                         check_type_param_defs,
                         check_type_param_defs2,
@@ -197,7 +197,7 @@ mod matching {
                     )
                 } else {
                     concrete_type_fulfills_bounds(
-                        vm,
+                        sa,
                         check_ty.clone(),
                         check_type_param_defs,
                         check_type_param_defs2,
@@ -216,7 +216,7 @@ mod matching {
                 false
             } else {
                 compare_concrete_types(
-                    vm,
+                    sa,
                     check_ty,
                     check_type_param_defs,
                     check_type_param_defs2,
@@ -230,7 +230,7 @@ mod matching {
     }
 
     fn compare_type_param_bounds(
-        _vm: &VM,
+        _vm: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         _check_type_param_defs2: Option<&TypeParamDefinition>,
@@ -254,7 +254,7 @@ mod matching {
     }
 
     fn concrete_type_fulfills_bounds(
-        vm: &VM,
+        sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         _check_type_param_defs2: Option<&TypeParamDefinition>,
@@ -266,7 +266,7 @@ mod matching {
         let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
 
         for &trait_id in &ext_tp_def.trait_bounds {
-            if !implements_trait(vm, check_ty.clone(), check_type_param_defs, trait_id) {
+            if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_id) {
                 return false;
             }
         }
@@ -275,7 +275,7 @@ mod matching {
     }
 
     fn compare_concrete_types(
-        vm: &VM,
+        sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         check_type_param_defs2: Option<&TypeParamDefinition>,
@@ -300,7 +300,7 @@ mod matching {
             }
 
             SourceType::Tuple(check_tuple_id) => {
-                let check_subtypes = get_tuple_subtypes(vm, check_tuple_id);
+                let check_subtypes = get_tuple_subtypes(sa, check_tuple_id);
 
                 let ext_tuple_id = if let Some(tuple_id) = ext_ty.tuple_id() {
                     tuple_id
@@ -308,7 +308,7 @@ mod matching {
                     return false;
                 };
 
-                let ext_subtypes = get_tuple_subtypes(vm, ext_tuple_id);
+                let ext_subtypes = get_tuple_subtypes(sa, ext_tuple_id);
 
                 if check_subtypes.len() != ext_subtypes.len() {
                     return false;
@@ -316,7 +316,7 @@ mod matching {
 
                 for (check_subty, ext_subty) in check_subtypes.iter().zip(ext_subtypes.iter()) {
                     if !matches(
-                        vm,
+                        sa,
                         check_subty.clone(),
                         check_type_param_defs,
                         None,
@@ -344,7 +344,7 @@ mod matching {
                 }
 
                 compare_type_params(
-                    vm,
+                    sa,
                     check_ty,
                     check_type_param_defs,
                     check_type_param_defs2,
@@ -367,7 +367,7 @@ mod matching {
                 }
 
                 compare_type_params(
-                    vm,
+                    sa,
                     check_ty,
                     check_type_param_defs,
                     check_type_param_defs2,
@@ -390,7 +390,7 @@ mod matching {
                 }
 
                 compare_type_params(
-                    vm,
+                    sa,
                     check_ty,
                     check_type_param_defs,
                     check_type_param_defs2,
@@ -408,7 +408,7 @@ mod matching {
     }
 
     fn compare_type_params(
-        vm: &VM,
+        sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         check_type_param_defs2: Option<&TypeParamDefinition>,
@@ -424,7 +424,7 @@ mod matching {
 
         for (check_tp, ext_tp) in check_tps.iter().zip(ext_tps.iter()) {
             if !matches(
-                vm,
+                sa,
                 check_tp,
                 check_type_param_defs,
                 check_type_param_defs2,

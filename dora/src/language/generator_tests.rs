@@ -7,12 +7,11 @@ use crate::bytecode::{
 };
 use crate::language::generator::generate_fct;
 use crate::language::sem_analysis::{
-    ensure_tuple, ClassDefinitionId, EnumDefinitionId, GlobalDefinitionId, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId, TypeParamId,
+    ensure_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{FieldId, SemAnalysis};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {

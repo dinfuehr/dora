@@ -9,12 +9,12 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    module_path, FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
-    TypeParamId,
+    module_path, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::{ClassInstanceId, VM};
+use crate::vm::ClassInstanceId;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitDefinitionId(u32);
@@ -91,17 +91,17 @@ impl TraitDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn name(&self, vm: &VM) -> String {
-        module_path(vm, self.module_id, self.name)
+    pub fn name(&self, sa: &SemAnalysis) -> String {
+        module_path(sa, self.module_id, self.name)
     }
 
-    pub fn name_with_params(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
-        let name = module_path(vm, self.module_id, self.name);
+    pub fn name_with_params(&self, sa: &SemAnalysis, type_list: &SourceTypeArray) -> String {
+        let name = module_path(sa, self.module_id, self.name);
 
         if type_list.len() > 0 {
             let type_list = type_list
                 .iter()
-                .map(|p| p.name(vm))
+                .map(|p| p.name(sa))
                 .collect::<Vec<_>>()
                 .join(", ");
 
@@ -111,9 +111,14 @@ impl TraitDefinition {
         }
     }
 
-    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctDefinitionId> {
+    pub fn find_method(
+        &self,
+        sa: &SemAnalysis,
+        name: Name,
+        is_static: bool,
+    ) -> Option<FctDefinitionId> {
         for &method in &self.methods {
-            let method = vm.fcts.idx(method);
+            let method = sa.fcts.idx(method);
             let method = method.read();
 
             if method.name == name && method.is_static == is_static {
@@ -126,14 +131,14 @@ impl TraitDefinition {
 
     pub fn find_method_with_replace(
         &self,
-        vm: &VM,
+        sa: &SemAnalysis,
         is_static: bool,
         name: Name,
         replace: Option<SourceType>,
         args: &[SourceType],
     ) -> Option<FctDefinitionId> {
         for &method in &self.methods {
-            let method = vm.fcts.idx(method);
+            let method = sa.fcts.idx(method);
             let method = method.read();
 
             if method.name == name

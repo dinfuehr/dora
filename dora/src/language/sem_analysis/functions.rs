@@ -10,11 +10,10 @@ use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     module_path, AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId,
-    ModuleDefinitionId, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
+    ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-use crate::vm::VM;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);
@@ -170,19 +169,19 @@ impl FctDefinition {
         }
     }
 
-    pub fn name(&self, vm: &VM) -> String {
-        module_path(vm, self.module_id, self.name)
+    pub fn name(&self, sa: &SemAnalysis) -> String {
+        module_path(sa, self.module_id, self.name)
     }
 
-    pub fn name_with_params(&self, vm: &VM) -> String {
+    pub fn name_with_params(&self, sa: &SemAnalysis) -> String {
         let mut repr = String::new();
 
         match self.parent {
             FctParent::Class(class_id) => {
-                let cls = vm.classes.idx(class_id);
+                let cls = sa.classes.idx(class_id);
                 let cls = cls.read();
                 let name = cls.name;
-                repr.push_str(&vm.interner.str(name));
+                repr.push_str(&sa.interner.str(name));
 
                 if cls.type_params.len() > 0 {
                     repr.push('[');
@@ -190,7 +189,7 @@ impl FctDefinition {
                     repr.push_str(
                         &cls.type_params
                             .iter()
-                            .map(|n| vm.interner.str(n.name).to_string())
+                            .map(|n| sa.interner.str(n.name).to_string())
                             .collect::<Vec<_>>()
                             .join(", "),
                     );
@@ -207,8 +206,8 @@ impl FctDefinition {
             }
 
             FctParent::Trait(trait_id) => {
-                let trait_ = vm.traits[trait_id].read();
-                repr.push_str(&vm.interner.str(trait_.name));
+                let trait_ = sa.traits[trait_id].read();
+                repr.push_str(&sa.interner.str(trait_.name));
                 if self.is_static {
                     repr.push_str("::");
                 } else {
@@ -217,28 +216,28 @@ impl FctDefinition {
             }
 
             FctParent::Extension(extension_id) => {
-                let extension = &vm.extensions[extension_id];
+                let extension = &sa.extensions[extension_id];
                 let extension = extension.read();
 
                 if let Some(enum_id) = extension.ty.enum_id() {
-                    let enum_ = &vm.enums[enum_id];
+                    let enum_ = &sa.enums[enum_id];
                     let enum_ = enum_.read();
-                    repr.push_str(&vm.interner.str(enum_.name));
+                    repr.push_str(&sa.interner.str(enum_.name));
                 } else if let Some(cls_id) = extension.ty.cls_id() {
-                    let cls = vm.classes.idx(cls_id);
+                    let cls = sa.classes.idx(cls_id);
                     let cls = cls.read();
                     let name = cls.name;
-                    repr.push_str(&vm.interner.str(name));
+                    repr.push_str(&sa.interner.str(name));
                 } else if let Some(struct_id) = extension.ty.struct_id() {
-                    let xstruct = vm.structs.idx(struct_id);
+                    let xstruct = sa.structs.idx(struct_id);
                     let xstruct = xstruct.read();
                     let name = xstruct.name;
-                    repr.push_str(&vm.interner.str(name));
-                } else if let Some(struct_id) = extension.ty.primitive_struct_id(vm) {
-                    let xstruct = vm.structs.idx(struct_id);
+                    repr.push_str(&sa.interner.str(name));
+                } else if let Some(struct_id) = extension.ty.primitive_struct_id(sa) {
+                    let xstruct = sa.structs.idx(struct_id);
                     let xstruct = xstruct.read();
                     let name = xstruct.name;
-                    repr.push_str(&vm.interner.str(name));
+                    repr.push_str(&sa.interner.str(name));
                 } else {
                     unreachable!()
                 }
@@ -254,7 +253,7 @@ impl FctDefinition {
         }
 
         if !self.is_constructor {
-            repr.push_str(&vm.interner.str(self.name));
+            repr.push_str(&sa.interner.str(self.name));
         }
 
         if !self.fct_type_params().is_empty() {
@@ -264,7 +263,7 @@ impl FctDefinition {
                 &self
                     .fct_type_params()
                     .iter()
-                    .map(|n| vm.interner.str(n.name).to_string())
+                    .map(|n| sa.interner.str(n.name).to_string())
                     .collect::<Vec<_>>()
                     .join(", "),
             );
@@ -278,7 +277,7 @@ impl FctDefinition {
                 repr.push_str(", ");
             }
 
-            let name = ty.name_fct(vm, self);
+            let name = ty.name_fct(sa, self);
             repr.push_str(&name);
         }
 
@@ -287,7 +286,7 @@ impl FctDefinition {
         if self.return_type != SourceType::Unit {
             repr.push_str(": ");
 
-            let name = self.return_type.name_fct(vm, self);
+            let name = self.return_type.name_fct(sa, self);
             repr.push_str(&name);
         }
 

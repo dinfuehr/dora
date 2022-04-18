@@ -5,10 +5,9 @@ use std::io::{self, Write};
 use crate::bytecode::{BytecodeInstruction, BytecodeReader, ConstPoolEntry};
 use crate::cannon::{self, CompilationFlags};
 use crate::compiler::dora_entry_stub;
-use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
+use crate::language::sem_analysis::{FctDefinition, FctDefinitionId, SemAnalysis};
 use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
-use crate::vm::SemAnalysis;
 
 pub fn build(sa: &SemAnalysis, main_fct_id: FctDefinitionId) {
     let reachable_fcts = discover_reachable_functions(sa, main_fct_id);

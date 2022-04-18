@@ -6,11 +6,11 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 
 use crate::language::sem_analysis::{
-    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
-    Intrinsic, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
+    GlobalDefinitionId, Intrinsic, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
+    TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::FieldId;
 
 #[derive(Debug)]
 pub struct AnalysisData {

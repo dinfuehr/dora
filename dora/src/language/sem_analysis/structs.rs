@@ -10,12 +10,11 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
-    TypeParamId,
+    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, Id};
-use crate::vm::{SemAnalysis, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructDefinitionId(u32);
@@ -108,17 +107,17 @@ impl StructDefinition {
         self.id.expect("missing id")
     }
 
-    pub fn name(&self, vm: &VM) -> String {
-        module_path(vm, self.module_id, self.name)
+    pub fn name(&self, sa: &SemAnalysis) -> String {
+        module_path(sa, self.module_id, self.name)
     }
 
-    pub fn name_with_params(&self, vm: &VM, type_params: &SourceTypeArray) -> String {
-        let mut name = self.name(vm);
+    pub fn name_with_params(&self, sa: &SemAnalysis, type_params: &SourceTypeArray) -> String {
+        let mut name = self.name(sa);
 
         if type_params.len() > 0 {
             let type_params = type_params
                 .iter()
-                .map(|p| p.name(vm))
+                .map(|p| p.name(sa))
                 .collect::<Vec<_>>()
                 .join(", ");
 

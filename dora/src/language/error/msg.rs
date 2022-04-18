@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-use crate::language::sem_analysis::SourceFileId;
-use crate::vm::SemAnalysis;
+use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
 use dora_parser::lexer::position::Position;
 
 #[derive(Clone, PartialEq, Eq, Debug)]

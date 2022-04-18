@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, FctDefinition, FctParent, ModuleDefinitionId, SourceFileId,
+    ClassDefinitionId, FctDefinition, FctParent, Field, FieldId, ModuleDefinitionId, SemAnalysis,
+    SourceFileId,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
-use crate::vm::{Field, FieldId, SemAnalysis};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -142,21 +142,20 @@ impl<'x> ClsDefCheck<'x> {
         let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
-        let fid: FieldId = cls.fields.len().into();
+        let id: FieldId = cls.fields.len().into();
 
         let field = Field {
-            id: fid,
+            id,
             name,
             ty,
-            offset: 0,
-            mutable: mutable,
+            mutable,
             is_pub,
         };
 
         self.check_if_symbol_exists(name, pos, &cls.table);
 
         cls.fields.push(field);
-        cls.table.insert(name, Sym::Field(fid));
+        cls.table.insert(name, Sym::Field(id));
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {

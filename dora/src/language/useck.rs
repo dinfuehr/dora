@@ -7,10 +7,9 @@ use crate::language::access::{
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    module_package, EnumDefinitionId, ModuleDefinitionId, UseDefinition,
+    module_package, EnumDefinitionId, ModuleDefinitionId, SemAnalysis, UseDefinition,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
-use crate::vm::SemAnalysis;
 
 use dora_parser::ast::UseContext;
 use dora_parser::interner::Name;

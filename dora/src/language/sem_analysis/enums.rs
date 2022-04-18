@@ -11,12 +11,12 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
-    TypeParamId,
+    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::{EnumInstanceId, VM};
+use crate::vm::EnumInstanceId;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumDefinitionId(u32);
@@ -117,17 +117,17 @@ impl EnumDefinition {
         &self.type_params[id.to_usize()]
     }
 
-    pub fn name(&self, vm: &VM) -> String {
-        module_path(vm, self.module_id, self.name)
+    pub fn name(&self, sa: &SemAnalysis) -> String {
+        module_path(sa, self.module_id, self.name)
     }
 
-    pub fn name_with_params(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
-        let name = vm.interner.str(self.name);
+    pub fn name_with_params(&self, sa: &SemAnalysis, type_list: &SourceTypeArray) -> String {
+        let name = sa.interner.str(self.name);
 
         if type_list.len() > 0 {
             let type_list = type_list
                 .iter()
-                .map(|p| p.name_enum(vm, self))
+                .map(|p| p.name_enum(sa, self))
                 .collect::<Vec<_>>()
                 .join(", ");
 
@@ -146,7 +146,7 @@ pub struct EnumVariant {
 }
 
 pub fn find_methods_in_enum(
-    vm: &VM,
+    sa: &SemAnalysis,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
     type_param_defs2: Option<&TypeParamDefinition>,
@@ -154,18 +154,18 @@ pub fn find_methods_in_enum(
     is_static: bool,
 ) -> Vec<Candidate> {
     let enum_id = object_type.enum_id().unwrap();
-    let enum_ = vm.enums.idx(enum_id);
+    let enum_ = sa.enums.idx(enum_id);
     let enum_ = enum_.read();
 
     for &extension_id in &enum_.extensions {
         if let Some(bindings) = extension_matches(
-            vm,
+            sa,
             object_type.clone(),
             type_param_defs,
             type_param_defs2,
             extension_id,
         ) {
-            let extension = vm.extensions[extension_id].read();
+            let extension = sa.extensions[extension_id].read();
 
             let table = if is_static {
                 &extension.static_names
@@ -187,13 +187,13 @@ pub fn find_methods_in_enum(
 
     for &impl_id in &enum_.impls {
         if let Some(bindings) = impl_matches(
-            vm,
+            sa,
             object_type.clone(),
             type_param_defs,
             type_param_defs2,
             impl_id,
         ) {
-            let impl_ = vm.impls[impl_id].read();
+            let impl_ = sa.impls[impl_id].read();
 
             let table = if is_static {
                 &impl_.static_names

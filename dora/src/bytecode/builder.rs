@@ -8,11 +8,11 @@ use crate::bytecode::{
 };
 use crate::driver::cmd::Args;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
+    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{ClassInstanceId, FieldId, VM};
+use crate::vm::{ClassInstanceId, VM};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,

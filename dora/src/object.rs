@@ -11,10 +11,11 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
 use crate::handle::{handle, Handle};
+use crate::language::sem_analysis::FieldId;
 use crate::language::ty::SourceType;
 use crate::mem;
 use crate::size::InstanceSize;
-use crate::vm::{ClassInstance, ClassInstanceId, FieldId, VM};
+use crate::vm::{ClassInstance, ClassInstanceId, VM};
 use crate::vtable::VTable;
 
 #[repr(C)]
