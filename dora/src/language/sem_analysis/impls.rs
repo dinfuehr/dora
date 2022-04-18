@@ -177,7 +177,7 @@ pub fn implements_trait(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64 => {
-            if sa.known.traits.zero == trait_id {
+            if sa.known.traits.zero() == trait_id {
                 return true;
             }
 

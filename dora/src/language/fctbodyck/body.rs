@@ -3160,7 +3160,7 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprTemplateType,
         _expected_ty: SourceType,
     ) -> SourceType {
-        let stringable_trait = self.sa.known.traits.stringable;
+        let stringable_trait = self.sa.known.traits.stringable();
 
         for (idx, part) in e.parts.iter().enumerate() {
             if idx % 2 != 0 {

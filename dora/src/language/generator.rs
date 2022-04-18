@@ -606,7 +606,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                     // build toString() call
                     let name = self.sa.interner.intern("toString");
-                    let trait_id = self.sa.known.traits.stringable;
+                    let trait_id = self.sa.known.traits.stringable();
                     let trait_ = self.sa.traits[trait_id].read();
                     let to_string_id = trait_
                         .find_method(self.sa, name, false)
@@ -632,7 +632,7 @@ impl<'a> AstBytecodeGen<'a> {
                         self.sa,
                         ty,
                         &self.fct.type_params,
-                        self.sa.known.traits.stringable,
+                        self.sa.known.traits.stringable(),
                     )
                     .expect("impl of Stringable not found");
                     let impl_ = self.sa.impls[stringable_impl_id].read();

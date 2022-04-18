@@ -123,11 +123,9 @@ pub struct FullSemAnalysis {
 impl FullSemAnalysis {
     pub fn new(args: Args) -> Box<FullSemAnalysis> {
         let empty_class_instance_id: ClassInstanceId = 0.into();
-        let empty_trait_id: TraitDefinitionId = 0.into();
         let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumDefinitionId = 0.into();
         let empty_struct_id: StructDefinitionId = 0.into();
-        let empty_annotation_id: AnnotationDefinitionId = 0.into();
 
         let interner = Interner::new();
         let stdlib_name = interner.intern("std");
@@ -166,11 +164,11 @@ impl FullSemAnalysis {
                 },
 
                 traits: KnownTraits {
-                    equals: empty_trait_id,
-                    comparable: empty_trait_id,
-                    stringable: empty_trait_id,
-                    iterator: empty_trait_id,
-                    zero: empty_trait_id,
+                    equals: None,
+                    comparable: None,
+                    stringable: None,
+                    iterator: None,
+                    zero: None,
                 },
 
                 enums: KnownEnums {
@@ -178,18 +176,16 @@ impl FullSemAnalysis {
                 },
 
                 annotations: KnownAnnotations {
-                    abstract_: empty_annotation_id,
-                    final_: empty_annotation_id,
-                    internal: empty_annotation_id,
-                    override_: empty_annotation_id,
-                    open: empty_annotation_id,
-                    pub_: empty_annotation_id,
-                    static_: empty_annotation_id,
-
-                    test: empty_annotation_id,
-
-                    cannon: empty_annotation_id,
-                    optimize_immediately: empty_annotation_id,
+                    abstract_: None,
+                    final_: None,
+                    internal: None,
+                    override_: None,
+                    open: None,
+                    pub_: None,
+                    test: None,
+                    cannon: None,
+                    optimize_immediately: None,
+                    static_: None,
                 },
 
                 structs: KnownStructs {
@@ -285,11 +281,9 @@ pub struct VM {
 impl VM {
     pub fn new(args: Args) -> Box<VM> {
         let empty_class_def_id: ClassInstanceId = 0.into();
-        let empty_trait_id: TraitDefinitionId = 0.into();
         let empty_fct_id: FctDefinitionId = 0.into();
         let empty_enum_id: EnumDefinitionId = 0.into();
         let empty_struct_id = 0.into();
-        let empty_annotation_id: AnnotationDefinitionId = 0.into();
         let gc = Gc::new(&args);
 
         let interner = Interner::new();
@@ -336,11 +330,11 @@ impl VM {
                 },
 
                 traits: KnownTraits {
-                    equals: empty_trait_id,
-                    comparable: empty_trait_id,
-                    stringable: empty_trait_id,
-                    iterator: empty_trait_id,
-                    zero: empty_trait_id,
+                    equals: None,
+                    comparable: None,
+                    stringable: None,
+                    iterator: None,
+                    zero: None,
                 },
 
                 enums: KnownEnums {
@@ -348,18 +342,16 @@ impl VM {
                 },
 
                 annotations: KnownAnnotations {
-                    abstract_: empty_annotation_id,
-                    final_: empty_annotation_id,
-                    internal: empty_annotation_id,
-                    override_: empty_annotation_id,
-                    open: empty_annotation_id,
-                    pub_: empty_annotation_id,
-                    static_: empty_annotation_id,
-
-                    test: empty_annotation_id,
-
-                    cannon: empty_annotation_id,
-                    optimize_immediately: empty_annotation_id,
+                    abstract_: None,
+                    final_: None,
+                    internal: None,
+                    override_: None,
+                    open: None,
+                    pub_: None,
+                    static_: None,
+                    test: None,
+                    cannon: None,
+                    optimize_immediately: None,
                 },
 
                 structs: KnownStructs {

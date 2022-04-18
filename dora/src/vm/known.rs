@@ -107,27 +107,89 @@ pub struct KnownStructs {
 
 #[derive(Debug)]
 pub struct KnownTraits {
-    pub equals: TraitDefinitionId,
-    pub comparable: TraitDefinitionId,
-    pub stringable: TraitDefinitionId,
-    pub iterator: TraitDefinitionId,
-    pub zero: TraitDefinitionId,
+    pub equals: Option<TraitDefinitionId>,
+    pub comparable: Option<TraitDefinitionId>,
+    pub stringable: Option<TraitDefinitionId>,
+    pub iterator: Option<TraitDefinitionId>,
+    pub zero: Option<TraitDefinitionId>,
+}
+
+impl KnownTraits {
+    pub fn equals(&self) -> TraitDefinitionId {
+        self.equals.expect("uninitialized")
+    }
+
+    pub fn comparable(&self) -> TraitDefinitionId {
+        self.comparable.expect("uninitialized")
+    }
+
+    pub fn stringable(&self) -> TraitDefinitionId {
+        self.stringable.expect("uninitialized")
+    }
+
+    pub fn iterator(&self) -> TraitDefinitionId {
+        self.iterator.expect("uninitialized")
+    }
+
+    pub fn zero(&self) -> TraitDefinitionId {
+        self.zero.expect("uninitialized")
+    }
 }
 
 #[derive(Debug)]
 pub struct KnownAnnotations {
-    pub abstract_: AnnotationDefinitionId,
-    pub final_: AnnotationDefinitionId,
-    pub internal: AnnotationDefinitionId,
-    pub override_: AnnotationDefinitionId,
-    pub open: AnnotationDefinitionId,
-    pub pub_: AnnotationDefinitionId,
-    pub static_: AnnotationDefinitionId,
+    pub abstract_: Option<AnnotationDefinitionId>,
+    pub final_: Option<AnnotationDefinitionId>,
+    pub internal: Option<AnnotationDefinitionId>,
+    pub override_: Option<AnnotationDefinitionId>,
+    pub open: Option<AnnotationDefinitionId>,
+    pub pub_: Option<AnnotationDefinitionId>,
+    pub static_: Option<AnnotationDefinitionId>,
+    pub test: Option<AnnotationDefinitionId>,
+    pub cannon: Option<AnnotationDefinitionId>,
+    pub optimize_immediately: Option<AnnotationDefinitionId>,
+}
 
-    pub test: AnnotationDefinitionId,
+impl KnownAnnotations {
+    pub fn abstract_(&self) -> AnnotationDefinitionId {
+        self.abstract_.expect("uninitialized")
+    }
 
-    pub cannon: AnnotationDefinitionId,
-    pub optimize_immediately: AnnotationDefinitionId,
+    pub fn final_(&self) -> AnnotationDefinitionId {
+        self.final_.expect("uninitialized")
+    }
+
+    pub fn internal(&self) -> AnnotationDefinitionId {
+        self.internal.expect("uninitialized")
+    }
+
+    pub fn override_(&self) -> AnnotationDefinitionId {
+        self.override_.expect("uninitialized")
+    }
+
+    pub fn open(&self) -> AnnotationDefinitionId {
+        self.open.expect("uninitialized")
+    }
+
+    pub fn pub_(&self) -> AnnotationDefinitionId {
+        self.pub_.expect("uninitialized")
+    }
+
+    pub fn static_(&self) -> AnnotationDefinitionId {
+        self.static_.expect("uninitialized")
+    }
+
+    pub fn test(&self) -> AnnotationDefinitionId {
+        self.test.expect("uninitialized")
+    }
+
+    pub fn cannon(&self) -> AnnotationDefinitionId {
+        self.cannon.expect("uninitialized")
+    }
+
+    pub fn optimize_immediately(&self) -> AnnotationDefinitionId {
+        self.optimize_immediately.expect("uninitialized")
+    }
 }
 
 #[derive(Debug)]

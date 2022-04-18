@@ -90,57 +90,69 @@ impl AnnotationDefinition {
     pub fn is_abstract(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa
             .annotations
-            .idx(sa.known.annotations.abstract_)
+            .idx(sa.known.annotations.abstract_())
             .read()
             .name;
         annotation_usages.contains(name)
     }
     pub fn is_final(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa.annotations.idx(sa.known.annotations.final_).read().name;
+        let name = sa
+            .annotations
+            .idx(sa.known.annotations.final_())
+            .read()
+            .name;
         annotation_usages.contains(name)
     }
     pub fn is_internal(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa
             .annotations
-            .idx(sa.known.annotations.internal)
+            .idx(sa.known.annotations.internal())
             .read()
             .name;
         annotation_usages.contains(name)
     }
     pub fn is_open(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa.annotations.idx(sa.known.annotations.open).read().name;
+        let name = sa.annotations.idx(sa.known.annotations.open()).read().name;
         annotation_usages.contains(name)
     }
     pub fn is_override(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa
             .annotations
-            .idx(sa.known.annotations.override_)
+            .idx(sa.known.annotations.override_())
             .read()
             .name;
         annotation_usages.contains(name)
     }
     pub fn is_pub(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa.annotations.idx(sa.known.annotations.pub_).read().name;
+        let name = sa.annotations.idx(sa.known.annotations.pub_()).read().name;
         annotation_usages.contains(name)
     }
     pub fn is_static(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa.annotations.idx(sa.known.annotations.static_).read().name;
+        let name = sa
+            .annotations
+            .idx(sa.known.annotations.static_())
+            .read()
+            .name;
         annotation_usages.contains(name)
     }
 
     pub fn is_test(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa.annotations.idx(sa.known.annotations.test).read().name;
+        let name = sa.annotations.idx(sa.known.annotations.test()).read().name;
         annotation_usages.contains(name)
     }
 
     pub fn is_cannon(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa.annotations.idx(sa.known.annotations.cannon).read().name;
+        let name = sa
+            .annotations
+            .idx(sa.known.annotations.cannon())
+            .read()
+            .name;
         annotation_usages.contains(name)
     }
     pub fn is_optimize_immediately(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa
             .annotations
-            .idx(sa.known.annotations.optimize_immediately)
+            .idx(sa.known.annotations.optimize_immediately())
             .read()
             .name;
         annotation_usages.contains(name)

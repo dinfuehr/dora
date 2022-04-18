@@ -13,24 +13,38 @@ use dora_parser::ast::Modifier;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
-    sa.known.annotations.abstract_ =
-        internal_annotation(sa, stdlib, "abstract", Modifier::Abstract);
-    sa.known.annotations.final_ = internal_annotation(sa, stdlib, "final", Modifier::Final);
-    sa.known.annotations.internal = internal_annotation(sa, stdlib, "internal", Modifier::Internal);
-    sa.known.annotations.open = internal_annotation(sa, stdlib, "open", Modifier::Open);
-    sa.known.annotations.override_ =
-        internal_annotation(sa, stdlib, "override", Modifier::Override);
-    sa.known.annotations.pub_ = internal_annotation(sa, stdlib, "pub", Modifier::Pub);
-    sa.known.annotations.static_ = internal_annotation(sa, stdlib, "static", Modifier::Static);
+    sa.known.annotations.abstract_ = Some(internal_annotation(
+        sa,
+        stdlib,
+        "abstract",
+        Modifier::Abstract,
+    ));
+    sa.known.annotations.final_ = Some(internal_annotation(sa, stdlib, "final", Modifier::Final));
+    sa.known.annotations.internal = Some(internal_annotation(
+        sa,
+        stdlib,
+        "internal",
+        Modifier::Internal,
+    ));
+    sa.known.annotations.open = Some(internal_annotation(sa, stdlib, "open", Modifier::Open));
+    sa.known.annotations.override_ = Some(internal_annotation(
+        sa,
+        stdlib,
+        "override",
+        Modifier::Override,
+    ));
+    sa.known.annotations.pub_ = Some(internal_annotation(sa, stdlib, "pub", Modifier::Pub));
+    sa.known.annotations.static_ =
+        Some(internal_annotation(sa, stdlib, "static", Modifier::Static));
 
-    sa.known.annotations.test = internal_annotation(sa, stdlib, "test", Modifier::Test);
+    sa.known.annotations.test = Some(internal_annotation(sa, stdlib, "test", Modifier::Test));
 
-    sa.known.annotations.optimize_immediately = internal_annotation(
+    sa.known.annotations.optimize_immediately = Some(internal_annotation(
         sa,
         stdlib,
         "optimizeImmediately",
         Modifier::OptimizeImmediately,
-    );
+    ));
 }
 
 pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
@@ -68,9 +82,9 @@ pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     sa.known.classes.stacktrace = Some(find_class(sa, stdlib, "Stacktrace"));
     sa.known.classes.stacktrace_element = Some(find_class(sa, stdlib, "StacktraceElement"));
 
-    sa.known.traits.stringable = find_trait(sa, stdlib, "Stringable");
-    sa.known.traits.zero = find_trait(sa, stdlib, "Zero");
-    sa.known.traits.iterator = find_trait(sa, stdlib, "Iterator");
+    sa.known.traits.stringable = Some(find_trait(sa, stdlib, "Stringable"));
+    sa.known.traits.zero = Some(find_trait(sa, stdlib, "Zero"));
+    sa.known.traits.iterator = Some(find_trait(sa, stdlib, "Iterator"));
 
     sa.known.enums.option = find_enum(sa, stdlib, "Option");
 }
