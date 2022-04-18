@@ -32,17 +32,22 @@ pub struct EnumInstance {
 }
 
 impl EnumInstance {
-    pub fn field_id(&self, enum_: &EnumDefinition, variant_id: usize, element: u32) -> u32 {
-        let variant = &enum_.variants[variant_id];
+    pub fn field_id(
+        &self,
+        enum_: &EnumDefinition,
+        variant_idx: usize,
+        element_idx: usize,
+    ) -> usize {
+        let variant = &enum_.variants[variant_idx];
         let mut units = 0;
 
-        for ty in &variant.types[0..element as usize] {
+        for ty in &variant.types[0..element_idx as usize] {
             if ty.is_unit() {
                 units += 1;
             }
         }
 
-        1 + element - units
+        1 + element_idx - units
     }
 }
 

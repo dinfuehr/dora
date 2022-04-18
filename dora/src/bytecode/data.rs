@@ -1544,7 +1544,7 @@ pub enum ConstPoolEntry {
     Generic(TypeParamId, FctDefinitionId, SourceTypeArray),
     Enum(EnumDefinitionId, SourceTypeArray),
     EnumVariant(EnumDefinitionId, SourceTypeArray, usize),
-    EnumElement(EnumDefinitionId, SourceTypeArray, usize, u32),
+    EnumElement(EnumDefinitionId, SourceTypeArray, usize, usize),
     Struct(StructDefinitionId, SourceTypeArray),
     StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
     Trait(TraitDefinitionId, SourceTypeArray, SourceType),

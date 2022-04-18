@@ -292,8 +292,8 @@ fn use_enum(
         sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
     }
 
-    if let Some(&variant_id) = enum_.name_to_value.get(&element_name) {
-        let sym = Sym::EnumValue(enum_id, variant_id as usize);
+    if let Some(&variant_idx) = enum_.name_to_value.get(&element_name) {
+        let sym = Sym::EnumValue(enum_id, variant_idx as usize);
         if let Some(sym) = table.write().insert(target_name, sym) {
             report_sym_shadow(
                 sa,

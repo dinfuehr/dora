@@ -621,25 +621,25 @@ impl<'a> TypeCheck<'a> {
                     let mut used_idents: HashSet<Name> = HashSet::new();
 
                     match sym {
-                        Ok(Sym::EnumValue(enum_id, variant_id)) => {
+                        Ok(Sym::EnumValue(enum_id, variant_idx)) => {
                             if Some(enum_id) == expr_enum_id {
-                                if used_variants.contains(variant_id) {
+                                if used_variants.contains(variant_idx) {
                                     let msg = SemError::MatchUnreachablePattern;
                                     self.sa.diag.lock().report(self.file_id, case.pos, msg);
                                 }
 
-                                used_variants.insert(variant_id);
+                                used_variants.insert(variant_idx);
                                 self.analysis.map_idents.insert(
                                     case.pattern.id,
                                     IdentType::EnumValue(
                                         enum_id,
                                         expr_type_params.clone(),
-                                        variant_id,
+                                        variant_idx,
                                     ),
                                 );
 
                                 let enum_ = self.sa.enums[enum_id].read();
-                                let variant = &enum_.variants[variant_id];
+                                let variant = &enum_.variants[variant_idx];
 
                                 let given_params = if let Some(ref params) = ident.params {
                                     params.len()
@@ -825,13 +825,13 @@ impl<'a> TypeCheck<'a> {
                 const_.ty.clone()
             }
 
-            Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
+            Some(Sym::EnumValue(enum_id, variant_idx)) => self.check_enum_value_without_args_id(
                 e.id,
                 e.pos,
                 expected_ty,
                 enum_id,
                 SourceTypeArray::empty(),
-                variant_id,
+                variant_idx,
             ),
 
             None => {
@@ -1423,12 +1423,12 @@ impl<'a> TypeCheck<'a> {
                 self.check_expr_call_struct(e, struct_id, type_params, &arg_types)
             }
 
-            Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_with_args(
+            Some(Sym::EnumValue(enum_id, variant_idx)) => self.check_enum_value_with_args(
                 e,
                 expected_ty,
                 enum_id,
                 type_params,
-                variant_id,
+                variant_idx,
                 &arg_types,
             ),
 
@@ -1453,11 +1453,11 @@ impl<'a> TypeCheck<'a> {
         expected_ty: SourceType,
         enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        variant_id: usize,
+        variant_idx: usize,
         arg_types: &[SourceType],
     ) -> SourceType {
         let enum_ = self.sa.enums[enum_id].read();
-        let variant = &enum_.variants[variant_id as usize];
+        let variant = &enum_.variants[variant_idx as usize];
 
         if !enum_accessible_from(self.sa, enum_id, self.module_id) {
             let msg = SemError::NotAccessible(enum_.name(self.sa));
@@ -1509,7 +1509,7 @@ impl<'a> TypeCheck<'a> {
 
         self.analysis
             .map_calls
-            .insert(e.id, Arc::new(CallType::Enum(ty.clone(), variant_id)));
+            .insert(e.id, Arc::new(CallType::Enum(ty.clone(), variant_idx)));
 
         self.analysis.set_ty(e.id, ty.clone());
         ty
@@ -2242,7 +2242,7 @@ impl<'a> TypeCheck<'a> {
             Some(Sym::Enum(enum_id)) => {
                 let enum_ = self.sa.enums[enum_id].read();
 
-                if let Some(&variant_id) = enum_.name_to_value.get(&method_name) {
+                if let Some(&variant_idx) = enum_.name_to_value.get(&method_name) {
                     if !container_type_params.is_empty() && !type_params.is_empty() {
                         let msg = SemError::NoTypeParamsExpected;
                         self.sa
@@ -2262,7 +2262,7 @@ impl<'a> TypeCheck<'a> {
                         expected_ty,
                         enum_id,
                         used_type_params,
-                        variant_id as usize,
+                        variant_idx as usize,
                         &arg_types,
                     )
                 } else {
@@ -2511,8 +2511,8 @@ impl<'a> TypeCheck<'a> {
                         self.sa.diag.lock().report(self.file_id, path.pos, msg);
                     }
 
-                    if let Some(&variant_id) = enum_.name_to_value.get(&name) {
-                        sym = Some(Sym::EnumValue(enum_id, variant_id as usize));
+                    if let Some(&variant_idx) = enum_.name_to_value.get(&name) {
+                        sym = Some(Sym::EnumValue(enum_id, variant_idx as usize));
                     } else {
                         let name = self.sa.interner.str(name).to_string();
                         self.sa.diag.lock().report(
@@ -2602,13 +2602,13 @@ impl<'a> TypeCheck<'a> {
                 const_.ty.clone()
             }
 
-            Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
+            Some(Sym::EnumValue(enum_id, variant_idx)) => self.check_enum_value_without_args_id(
                 e.id,
                 e.pos,
                 expected_ty,
                 enum_id,
                 SourceTypeArray::empty(),
-                variant_id,
+                variant_idx,
             ),
 
             None => {
@@ -2714,14 +2714,15 @@ impl<'a> TypeCheck<'a> {
             let sym = self.symtable.get(method_name);
 
             match sym {
-                Some(Sym::EnumValue(enum_id, variant_id)) => self.check_enum_value_without_args_id(
-                    e.id,
-                    e.pos,
-                    expected_ty,
-                    enum_id,
-                    type_params,
-                    variant_id,
-                ),
+                Some(Sym::EnumValue(enum_id, variant_idx)) => self
+                    .check_enum_value_without_args_id(
+                        e.id,
+                        e.pos,
+                        expected_ty,
+                        enum_id,
+                        type_params,
+                        variant_idx,
+                    ),
 
                 _ => {
                     self.sa
@@ -2797,7 +2798,7 @@ impl<'a> TypeCheck<'a> {
         expected_ty: SourceType,
         enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        variant_id: usize,
+        variant_idx: usize,
     ) -> SourceType {
         let enum_ = self.sa.enums[enum_id].read();
 
@@ -2820,7 +2821,7 @@ impl<'a> TypeCheck<'a> {
             ErrorReporting::Yes(self.file_id, expr_pos),
         );
 
-        let variant = &enum_.variants[variant_id];
+        let variant = &enum_.variants[variant_idx];
 
         if !variant.types.is_empty() {
             let enum_name = self.sa.interner.str(enum_.name).to_string();
@@ -2838,7 +2839,7 @@ impl<'a> TypeCheck<'a> {
 
         self.analysis.map_idents.insert(
             expr_id,
-            IdentType::EnumValue(enum_id, type_params.clone(), variant_id),
+            IdentType::EnumValue(enum_id, type_params.clone(), variant_idx),
         );
 
         if type_params_ok {

@@ -66,23 +66,23 @@ impl BytecodeBuilder {
         &mut self,
         id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        variant_id: usize,
+        variant_idx: usize,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_id))
+            .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_idx))
     }
 
     pub fn add_const_enum_element(
         &mut self,
         id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        variant_id: usize,
-        element_idx: u32,
+        variant_idx: usize,
+        element_idx: usize,
     ) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::EnumElement(
             id,
             type_params,
-            variant_id,
+            variant_idx,
             element_idx,
         ))
     }

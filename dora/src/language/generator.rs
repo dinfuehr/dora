@@ -564,8 +564,8 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
-            IdentType::EnumValue(enum_id, type_params, variant_id) => {
-                self.emit_new_enum(enum_id, type_params, variant_id, expr.pos, dest)
+            IdentType::EnumValue(enum_id, type_params, variant_idx) => {
+                self.emit_new_enum(enum_id, type_params, variant_idx, expr.pos, dest)
             }
 
             _ => unreachable!(),
@@ -671,8 +671,8 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
-            IdentType::EnumValue(enum_id, type_params, variant_id) => {
-                self.emit_new_enum(enum_id, type_params, variant_id, expr.pos, dest)
+            IdentType::EnumValue(enum_id, type_params, variant_idx) => {
+                self.emit_new_enum(enum_id, type_params, variant_idx, expr.pos, dest)
             }
 
             _ => unreachable!(),
@@ -683,7 +683,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        variant_id: usize,
+        variant_idx: usize,
         pos: Position,
         dest: DataDest,
     ) -> Register {
@@ -692,14 +692,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         if enum_.simple_enumeration {
             let dest = self.ensure_register(dest, BytecodeType::Int32);
-            self.gen.emit_const_int32(dest, variant_id as i32);
+            self.gen.emit_const_int32(dest, variant_idx as i32);
             dest
         } else {
             let bty = BytecodeType::Enum(enum_id, type_params.clone());
             let dest = self.ensure_register(dest, bty);
             let idx = self
                 .gen
-                .add_const_enum_variant(enum_id, type_params, variant_id);
+                .add_const_enum_variant(enum_id, type_params, variant_idx);
             self.gen.emit_new_enum(dest, idx, pos);
             dest
         }
@@ -784,12 +784,12 @@ impl<'a> AstBytecodeGen<'a> {
                 }
 
                 MatchPatternData::Ident(ref ident) => {
-                    let variant_id: i32 = {
+                    let variant_idx: i32 = {
                         let ident_type = self.src.map_idents.get(case.pattern.id).unwrap();
 
                         match ident_type {
-                            IdentType::EnumValue(_, _, variant_id) => {
-                                (*variant_id).try_into().unwrap()
+                            IdentType::EnumValue(_, _, variant_idx) => {
+                                (*variant_idx).try_into().unwrap()
                             }
                             _ => unreachable!(),
                         }
@@ -801,7 +801,7 @@ impl<'a> AstBytecodeGen<'a> {
                     if idx != node.cases.len() - 1 {
                         let tmp_reg = self.alloc_temp(BytecodeType::Int32);
                         let cmp_reg = self.alloc_temp(BytecodeType::Bool);
-                        self.gen.emit_const_int32(tmp_reg, variant_id);
+                        self.gen.emit_const_int32(tmp_reg, variant_idx);
                         self.gen.emit_test_eq_int32(cmp_reg, variant_reg, tmp_reg);
                         self.gen.emit_jump_if_false(cmp_reg, next_lbl);
                         self.free_temp(tmp_reg);
@@ -816,8 +816,8 @@ impl<'a> AstBytecodeGen<'a> {
                                 let idx = self.gen.add_const_enum_element(
                                     enum_id,
                                     enum_ty.type_params(),
-                                    variant_id as usize,
-                                    subtype_idx as u32,
+                                    variant_idx as usize,
+                                    subtype_idx,
                                 );
 
                                 let var_id = *self.src.map_vars.get(param.id).unwrap();
@@ -1058,8 +1058,8 @@ impl<'a> AstBytecodeGen<'a> {
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
 
         match *call_type {
-            CallType::Enum(ref enum_ty, variant_id) => {
-                return self.visit_expr_call_enum(expr, enum_ty.clone(), variant_id, dest);
+            CallType::Enum(ref enum_ty, variant_idx) => {
+                return self.visit_expr_call_enum(expr, enum_ty.clone(), variant_idx, dest);
             }
 
             CallType::Struct(struct_id, ref type_params) => {
@@ -1135,7 +1135,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         expr: &ExprCallType,
         enum_ty: SourceType,
-        variant_id: usize,
+        variant_idx: usize,
         dest: DataDest,
     ) -> Register {
         let mut arguments = Vec::new();
@@ -1159,7 +1159,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx = self
             .gen
-            .add_const_enum_variant(enum_id, type_params, variant_id);
+            .add_const_enum_variant(enum_id, type_params, variant_idx);
         let bytecode_ty = BytecodeType::from_ty(self.sa, enum_ty);
         let dest_reg = self.ensure_register(dest, bytecode_ty);
         self.gen.emit_new_enum(dest_reg, idx, expr.pos);
@@ -2587,8 +2587,8 @@ impl<'a> AstBytecodeGen<'a> {
             &IdentType::Var(varid) => self.visit_expr_ident_var(varid, dest),
             &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest),
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
-            &IdentType::EnumValue(enum_id, ref type_params, variant_id) => {
-                self.emit_new_enum(enum_id, type_params.clone(), variant_id, ident.pos, dest)
+            &IdentType::EnumValue(enum_id, ref type_params, variant_idx) => {
+                self.emit_new_enum(enum_id, type_params.clone(), variant_idx, ident.pos, dest)
             }
 
             &IdentType::Field(_, _) => unreachable!(),

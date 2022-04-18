@@ -85,10 +85,10 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                     enum_.name_with_params(vm, type_params)
                 )
             }
-            ConstPoolEntry::EnumVariant(cls_id, type_params, variant_id) => {
+            ConstPoolEntry::EnumVariant(cls_id, type_params, variant_idx) => {
                 let enum_ = &vm.enums[*cls_id];
                 let enum_ = enum_.read();
-                let variant = &enum_.variants[*variant_id];
+                let variant = &enum_.variants[*variant_idx];
                 let variant_name = vm.interner.str(variant.name);
                 println!(
                     "{}{} => EnumVariant {}::{}",
@@ -98,10 +98,10 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                     variant_name,
                 )
             }
-            ConstPoolEntry::EnumElement(cls_id, type_params, variant_id, element_idx) => {
+            ConstPoolEntry::EnumElement(cls_id, type_params, variant_idx, element_idx) => {
                 let enum_ = &vm.enums[*cls_id];
                 let enum_ = enum_.read();
-                let variant = &enum_.variants[*variant_id];
+                let variant = &enum_.variants[*variant_idx];
                 let variant_name = vm.interner.str(variant.name);
                 println!(
                     "{}{} => EnumVariantElement {}::{}::{}",
@@ -288,16 +288,16 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_enum_load(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        let (enum_id, type_params, variant_id, element_idx) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, element_idx) => {
-                (*enum_id, type_params, *variant_id, *element_idx)
+        let (enum_id, type_params, variant_idx, element_idx) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
+                (*enum_id, type_params, *variant_idx, *element_idx)
             }
             _ => unreachable!(),
         };
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
         let enum_name = enum_.name_with_params(self.vm, type_params);
-        let variant_name = self.vm.interner.str(enum_.variants[variant_id].name);
+        let variant_name = self.vm.interner.str(enum_.variants[variant_idx].name);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
@@ -576,16 +576,16 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_new_enum(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        let (enum_id, type_params, variant_id) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
-                (*enum_id, type_params, *variant_id)
+        let (enum_id, type_params, variant_idx) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
+                (*enum_id, type_params, *variant_idx)
             }
             _ => unreachable!(),
         };
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
         let enum_name = enum_.name_with_params(self.vm, type_params);
-        let variant_name = self.vm.interner.str(enum_.variants[variant_id].name);
+        let variant_name = self.vm.interner.str(enum_.variants[variant_idx].name);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}::{}",

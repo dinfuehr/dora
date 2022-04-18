@@ -4998,13 +4998,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::NewTuple(dest, tuple_id));
     }
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let (enum_id, type_params, variant_id) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
-                (*enum_id, type_params.clone(), *variant_id)
+        let (enum_id, type_params, variant_idx) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
+                (*enum_id, type_params.clone(), *variant_idx)
             }
             _ => unreachable!(),
         };
-        self.emit(Bytecode::NewEnum(dest, enum_id, type_params, variant_id));
+        self.emit(Bytecode::NewEnum(dest, enum_id, type_params, variant_idx));
     }
     fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
         let (struct_id, type_params) = match self.bc.const_pool(idx) {

@@ -242,10 +242,11 @@ impl<'a> CannonCodeGen<'a> {
                     }
 
                     BytecodeType::Enum(enum_id, type_params) => {
-                        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                        let edef = self.vm.enum_instances.idx(enum_def_id);
+                        let enum_instance_id =
+                            specialize_enum_id_params(self.vm, enum_id, type_params);
+                        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                        match edef.layout {
+                        match enum_instance.layout {
                             EnumLayout::Int => {
                                 // type does not contain reference
                             }
@@ -464,10 +465,10 @@ impl<'a> CannonCodeGen<'a> {
         enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
     ) {
-        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_instances.idx(enum_def_id);
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-        let mode = match edef.layout {
+        let mode = match enum_instance.layout {
             EnumLayout::Int => MachineMode::Int32,
             EnumLayout::Tagged | EnumLayout::Ptr => MachineMode::Ptr,
         };
@@ -1396,9 +1397,9 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        let (enum_id, type_params, variant_id, element_idx) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, element_idx) => {
-                (*enum_id, type_params.clone(), *variant_id, *element_idx)
+        let (enum_id, type_params, variant_idx, element_idx) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
+                (*enum_id, type_params.clone(), *variant_idx, *element_idx)
             }
             _ => unreachable!(),
         };
@@ -1409,10 +1410,10 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_instances.idx(edef_id);
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-        match edef.layout {
+        match enum_instance.layout {
             EnumLayout::Int => {
                 unreachable!();
             }
@@ -1420,7 +1421,7 @@ impl<'a> CannonCodeGen<'a> {
                 assert_eq!(0, element_idx);
                 let first_variant = enum_.variants.first().unwrap();
                 let some_idx = if first_variant.types.is_empty() { 1 } else { 0 };
-                assert_eq!(variant_id, some_idx);
+                assert_eq!(variant_idx, some_idx);
                 assert_eq!(BytecodeType::Ptr, self.specialize_register_type(dest));
 
                 self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
@@ -1430,7 +1431,8 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = specialize_enum_class(self.vm, &*edef, &*enum_, variant_id);
+                let cls_def_id =
+                    specialize_enum_class(self.vm, &*enum_instance, &*enum_, variant_idx);
 
                 let cls = self.vm.class_instances.idx(cls_def_id);
 
@@ -1442,13 +1444,13 @@ impl<'a> CannonCodeGen<'a> {
                 );
                 let lbl_bailout = self.asm.create_label();
                 self.asm
-                    .cmp_reg_imm(MachineMode::Int32, REG_RESULT, variant_id as i32);
+                    .cmp_reg_imm(MachineMode::Int32, REG_RESULT, variant_idx as i32);
                 self.asm.jump_if(CondCode::NotEqual, lbl_bailout);
                 let pos = self.bytecode.offset_position(self.current_offset.to_u32());
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
-                let field_id = edef.field_id(&*enum_, variant_id, element_idx);
-                let field = &cls.fields[field_id as usize];
+                let field_id = enum_instance.field_id(&*enum_, variant_idx, element_idx);
+                let field = &cls.fields[field_id];
 
                 if field.ty.is_unit() {
                     assert_eq!(self.specialize_register_type_unit(dest), None);
@@ -1487,10 +1489,10 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_instances.idx(edef_id);
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-        match edef.layout {
+        match enum_instance.layout {
             EnumLayout::Int => {
                 self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Int32);
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int32);
@@ -1568,10 +1570,10 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             SourceType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_instances.idx(edef_id);
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                let mode = match edef.layout {
+                let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
@@ -1613,10 +1615,10 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_instances.idx(edef_id);
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                let mode = match edef.layout {
+                let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
@@ -1675,10 +1677,10 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             SourceType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_instances.idx(edef_id);
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                let mode = match edef.layout {
+                let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
@@ -1729,10 +1731,10 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             SourceType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_instances.idx(edef_id);
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                match edef.layout {
+                match enum_instance.layout {
                     EnumLayout::Int => {}
                     EnumLayout::Ptr | EnumLayout::Tagged => {
                         self.asm.store_zero(MachineMode::Ptr, dest.mem());
@@ -1892,10 +1894,10 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::Enum(enum_id, type_params) => {
-                    let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let edef = self.vm.enum_instances.idx(edef_id);
+                    let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                    let mode = match edef.layout {
+                    let mode = match enum_instance.layout {
                         EnumLayout::Int => MachineMode::Int32,
                         EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                     };
@@ -2218,10 +2220,10 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::Enum(enum_id, type_params) => {
-                    let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let edef = self.vm.enum_instances.idx(enum_def_id);
+                    let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                    let mode = match edef.layout {
+                    let mode = match enum_instance.layout {
                         EnumLayout::Int => MachineMode::Int32,
                         EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                     };
@@ -2451,9 +2453,9 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let (enum_id, type_params, variant_id) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
-                (*enum_id, type_params.clone(), *variant_id)
+        let (enum_id, type_params, variant_idx) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
+                (*enum_id, type_params.clone(), *variant_idx)
             }
             _ => unreachable!(),
         };
@@ -2464,20 +2466,20 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let edef_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_instances.idx(edef_id);
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        match edef.layout {
+        match enum_instance.layout {
             EnumLayout::Int => {
                 assert_eq!(0, arguments.len());
                 self.asm
-                    .load_int_const(MachineMode::Int32, REG_RESULT, variant_id as i64);
+                    .load_int_const(MachineMode::Int32, REG_RESULT, variant_idx as i64);
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int32);
             }
             EnumLayout::Ptr => {
-                let variant = &enum_.variants[variant_id];
+                let variant = &enum_.variants[variant_idx];
 
                 if variant.types.is_empty() {
                     assert_eq!(0, arguments.len());
@@ -2495,7 +2497,8 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = specialize_enum_class(self.vm, &*edef, &*enum_, variant_id);
+                let cls_def_id =
+                    specialize_enum_class(self.vm, &*enum_instance, &*enum_, variant_idx);
 
                 let cls = self.vm.class_instances.idx(cls_def_id);
 
@@ -2548,17 +2551,17 @@ impl<'a> CannonCodeGen<'a> {
                 // This ensures gaps are all zero.
                 self.asm.fill_zero(REG_TMP1, false, alloc_size as usize);
 
-                // store variant_id
-                comment!(self, format!("NewEnum: store variant_id {}", variant_id));
+                // store variant_idx
+                comment!(self, format!("NewEnum: store variant_idx {}", variant_idx));
                 self.asm
-                    .load_int_const(MachineMode::Int32, REG_RESULT, variant_id as i64);
+                    .load_int_const(MachineMode::Int32, REG_RESULT, variant_idx as i64);
                 self.asm.store_mem(
                     MachineMode::Int32,
                     Mem::Base(REG_TMP1, Header::size()),
                     REG_RESULT.into(),
                 );
 
-                let mut field_idx = 1; // first field is variant_id
+                let mut field_idx = 1; // first field is variant_idx
 
                 for arg in arguments {
                     if let Some(ty) = self.specialize_register_type_unit(arg) {
@@ -2806,10 +2809,10 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_instances.idx(enum_def_id);
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                let mode = match edef.layout {
+                let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
@@ -2943,10 +2946,10 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let edef = self.vm.enum_instances.idx(enum_def_id);
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                let mode = match edef.layout {
+                let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
@@ -3995,10 +3998,10 @@ impl<'a> CannonCodeGen<'a> {
             unreachable!()
         };
 
-        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
-        let edef = self.vm.enum_instances.idx(enum_def_id);
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
+        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-        match edef.layout {
+        match enum_instance.layout {
             EnumLayout::Int => unreachable!(),
             EnumLayout::Ptr => {
                 self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
@@ -4031,8 +4034,12 @@ impl<'a> CannonCodeGen<'a> {
 
                 self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
 
-                let cdef_id =
-                    specialize_enum_class(self.vm, &*edef, &*enum_, some_variant_id as usize);
+                let cdef_id = specialize_enum_class(
+                    self.vm,
+                    &*enum_instance,
+                    &*enum_,
+                    some_variant_id as usize,
+                );
 
                 let cls = self.vm.class_instances.idx(cdef_id);
 
@@ -4184,10 +4191,10 @@ impl<'a> CannonCodeGen<'a> {
             unreachable!()
         };
 
-        let enum_def_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-        let edef = self.vm.enum_instances.idx(enum_def_id);
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-        match edef.layout {
+        match enum_instance.layout {
             EnumLayout::Int => unreachable!(),
             EnumLayout::Ptr => {
                 self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
@@ -4758,17 +4765,17 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (enum_id, type_params, variant_id, element_idx) =
+            let (enum_id, type_params, variant_idx, element_idx) =
                 match self.bytecode.const_pool(idx) {
-                    ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, element_idx) => {
-                        (*enum_id, type_params, *variant_id, *element_idx)
+                    ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
+                        (*enum_id, type_params, *variant_idx, *element_idx)
                     }
                     _ => unreachable!(),
                 };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
             let enum_name = enum_.name_with_params(self.vm, type_params);
-            let variant = &enum_.variants[variant_id];
+            let variant = &enum_.variants[variant_idx];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
                 "LoadEnumElement {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
@@ -5461,16 +5468,16 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (enum_id, type_params, variant_id) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
-                    (*enum_id, type_params, *variant_id)
+            let (enum_id, type_params, variant_idx) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
+                    (*enum_id, type_params, *variant_idx)
                 }
                 _ => unreachable!(),
             };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
             let enum_name = enum_.name_with_params(self.vm, type_params);
-            let variant = &enum_.variants[variant_id];
+            let variant = &enum_.variants[variant_idx];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
                 "NewEnum {}, ConstPoolIdx({}) # {}::{}",

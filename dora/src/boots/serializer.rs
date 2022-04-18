@@ -263,17 +263,17 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_id(enum_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
         }
-        &ConstPoolEntry::EnumVariant(enum_id, ref source_type_array, variant_id) => {
+        &ConstPoolEntry::EnumVariant(enum_id, ref source_type_array, variant_idx) => {
             buffer.emit_u8(ConstPoolOpcode::EnumVariant.to_u8());
             buffer.emit_id(enum_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
-            buffer.emit_id(variant_id.try_into().unwrap());
+            buffer.emit_id(variant_idx.try_into().unwrap());
         }
-        &ConstPoolEntry::EnumElement(enum_id, ref source_type_array, variant_id, element_idx) => {
+        &ConstPoolEntry::EnumElement(enum_id, ref source_type_array, variant_idx, element_idx) => {
             buffer.emit_u8(ConstPoolOpcode::EnumElement.to_u8());
             buffer.emit_id(enum_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
-            buffer.emit_id(variant_id.try_into().unwrap());
+            buffer.emit_id(variant_idx.try_into().unwrap());
             buffer.emit_id(element_idx as usize);
         }
         &ConstPoolEntry::Struct(struct_id, ref source_type_array) => {

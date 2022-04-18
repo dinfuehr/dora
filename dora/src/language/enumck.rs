@@ -45,7 +45,7 @@ impl<'x> EnumCheck<'x> {
             self.check_type_params(type_params, &mut symtable);
         }
 
-        let mut variant_id: usize = 0;
+        let mut variant_idx: usize = 0;
         let mut simple_enumeration = true;
 
         for value in &self.ast.variants {
@@ -70,8 +70,8 @@ impl<'x> EnumCheck<'x> {
                 simple_enumeration = false;
             }
 
-            self.enum_.write().variants[variant_id].types = types;
-            variant_id += 1;
+            self.enum_.write().variants[variant_idx].types = types;
+            variant_idx += 1;
         }
 
         self.enum_.write().simple_enumeration = simple_enumeration;

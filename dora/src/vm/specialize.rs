@@ -220,16 +220,16 @@ pub fn specialize_enum_class(
     vm: &VM,
     edef: &EnumInstance,
     enum_: &EnumDefinition,
-    variant_id: usize,
+    variant_idx: usize,
 ) -> ClassInstanceId {
     let mut variants = edef.variants.write();
-    let variant = variants[variant_id];
+    let variant = variants[variant_idx];
 
     if let Some(cls_def_id) = variant {
         return cls_def_id;
     }
 
-    let enum_variant = &enum_.variants[variant_id];
+    let enum_variant = &enum_.variants[variant_idx];
     let mut csize = Header::size() + 4;
     let mut fields = vec![FieldDef {
         offset: Header::size(),
@@ -264,7 +264,7 @@ pub fn specialize_enum_class(
     let mut class_defs = vm.class_instances.lock();
     let id: ClassInstanceId = class_defs.len().into();
 
-    variants[variant_id] = Some(id);
+    variants[variant_idx] = Some(id);
 
     let class_def = Arc::new(ClassInstance {
         id,
