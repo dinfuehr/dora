@@ -15,17 +15,17 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
-    test::parse(code, |vm| {
-        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
-        let fct = generate_fct(vm, fct_id);
+    test::parse(code, |sa| {
+        let fct_id = sa.fct_by_name("f").expect("no function `f`.");
+        let fct = generate_fct(sa, fct_id);
         build(&fct)
     })
 }
 
 fn position(code: &'static str) -> Vec<(u32, Position)> {
-    test::parse(code, |vm| {
-        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
-        let fct = generate_fct(vm, fct_id);
+    test::parse(code, |sa| {
+        let fct_id = sa.fct_by_name("f").expect("no function `f`.");
+        let fct = generate_fct(sa, fct_id);
         fct.positions().to_vec()
     })
 }
@@ -35,21 +35,21 @@ fn code_method(code: &'static str) -> Vec<Bytecode> {
 }
 
 fn code_method_with_class_name(code: &'static str, class_name: &'static str) -> Vec<Bytecode> {
-    test::parse(code, |vm| {
-        let fct_id = vm
+    test::parse(code, |sa| {
+        let fct_id = sa
             .cls_method_by_name(class_name, "f", false)
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
-        let fct = generate_fct(vm, fct_id);
+        let fct = generate_fct(sa, fct_id);
         build(&fct)
     })
 }
 
 fn code_method_with_struct_name(code: &'static str, struct_name: &'static str) -> Vec<Bytecode> {
-    test::parse(code, |vm| {
-        let fct_id = vm
+    test::parse(code, |sa| {
+        let fct_id = sa
             .struct_method_by_name(struct_name, "f", false)
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", struct_name));
-        let fct = generate_fct(vm, fct_id);
+        let fct = generate_fct(sa, fct_id);
         build(&fct)
     })
 }
@@ -58,12 +58,12 @@ fn gen<F>(code: &'static str, testfct: F)
 where
     F: FnOnce(&SemAnalysis, Vec<Bytecode>),
 {
-    test::parse(code, |vm| {
-        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
-        let fct = generate_fct(vm, fct_id);
+    test::parse(code, |sa| {
+        let fct_id = sa.fct_by_name("f").expect("no function `f`.");
+        let fct = generate_fct(sa, fct_id);
         let code = build(&fct);
 
-        testfct(vm, code);
+        testfct(sa, code);
     })
 }
 
@@ -71,12 +71,12 @@ fn gen_fct<F>(code: &'static str, testfct: F)
 where
     F: FnOnce(&SemAnalysis, Vec<Bytecode>, BytecodeFunction),
 {
-    test::parse(code, |vm| {
-        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
-        let fct = generate_fct(vm, fct_id);
+    test::parse(code, |sa| {
+        let fct_id = sa.fct_by_name("f").expect("no function `f`.");
+        let fct = generate_fct(sa, fct_id);
         let code = build(&fct);
 
-        testfct(vm, code, fct);
+        testfct(sa, code, fct);
     })
 }
 
@@ -114,8 +114,8 @@ fn gen_generic_direct_trait() {
 fn gen_load_field_uint8() {
     gen_fct(
         "class Foo(let bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }",
-        |vm, code, _fct| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
+        |sa, code, _fct| {
+            let (cls, field) = sa.field_by_name("Foo", "bar");
             let expected = vec![
                 LoadField(r(1), r(0), cls, SourceTypeArray::empty(), field),
                 Ret(r(1)),
@@ -136,8 +136,8 @@ fn gen_position_load_field_uint8() {
 fn gen_store_field_uint8() {
     gen_fct(
         "class Foo(var bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }",
-        |vm, code, fct| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
+        |sa, code, fct| {
+            let (cls, field) = sa.field_by_name("Foo", "bar");
             let expected = vec![StoreField(r(1), r(0), ConstPoolIdx(0)), RetVoid];
             assert_eq!(expected, code);
             assert_eq!(
@@ -299,8 +299,8 @@ fn gen_stmt_var_init() {
 fn gen_stmt_let_tuple() {
     gen_fct(
         "fn f(value: (Int32, Int32)): Int32 { let (x, y) = value; x+y }",
-        |vm, code, fct| {
-            let tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
+        |sa, code, fct| {
+            let tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
             let expected = vec![
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
                 LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
@@ -323,10 +323,10 @@ fn gen_stmt_let_tuple() {
 
     gen_fct(
         "fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (y, z)) = value; x+y+z }",
-        |vm, code, fct| {
-            let nested_tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
+        |sa, code, fct| {
+            let nested_tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
             let tuple_id = ensure_tuple(
-                vm,
+                sa,
                 vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
             );
             let expected = vec![
@@ -364,10 +364,10 @@ fn gen_stmt_let_tuple() {
 
     gen_fct(
         "fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (_, z)) = value; x+z }",
-        |vm, code, fct| {
-            let nested_tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
+        |sa, code, fct| {
+            let nested_tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
             let tuple_id = ensure_tuple(
-                vm,
+                sa,
                 vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
             );
             let expected = vec![
@@ -409,10 +409,10 @@ fn gen_stmt_let_unit() {
 
     gen_fct(
         "fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, z)) = value; x+y }",
-        |vm, code, fct| {
-            let nested_tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Unit]);
+        |sa, code, fct| {
+            let nested_tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
             let tuple_id = ensure_tuple(
-                vm,
+                sa,
                 vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
             );
             let expected = vec![
@@ -443,10 +443,10 @@ fn gen_stmt_let_unit() {
 
     gen_fct(
         "fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, ())) = value; x+y }",
-        |vm, code, fct| {
-            let nested_tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Unit]);
+        |sa, code, fct| {
+            let nested_tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
             let tuple_id = ensure_tuple(
-                vm,
+                sa,
                 vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
             );
             let expected = vec![
@@ -1074,8 +1074,8 @@ fn gen_expr_returnvoid() {
 fn gen_load_global() {
     gen(
         "var a: Int32 = 0I; fn f(): Int32 { return a; }",
-        |vm, code| {
-            let gid = vm.global_by_name("a");
+        |sa, code| {
+            let gid = sa.global_by_name("a");
             let expected = vec![LoadGlobal(r(0), gid), Ret(r(0))];
             assert_eq!(expected, code);
         },
@@ -1086,8 +1086,8 @@ fn gen_load_global() {
 fn gen_store_global() {
     gen(
         "var a: Bool = false; fn f(x: Bool) { a = x; }",
-        |vm, code| {
-            let gid = vm.global_by_name("a");
+        |sa, code| {
+            let gid = sa.global_by_name("a");
             let expected = vec![StoreGlobal(r(0), gid), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1108,8 +1108,8 @@ fn gen_fct_call_void_with_0_args() {
             fn f() { g(); }
             fn g() { }
             ",
-        |vm, code, fct| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+        |sa, code, fct| {
+            let fct_id = sa.fct_by_name("g").expect("g not found");
             let expected = vec![InvokeStaticVoid(ConstPoolIdx(0)), RetVoid];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1127,8 +1127,8 @@ fn gen_fct_call_int_with_0_args() {
             fn f(): Int32 { return g(); }
             fn g(): Int32 { return 1I; }
             ",
-        |vm, code, fct| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+        |sa, code, fct| {
+            let fct_id = sa.fct_by_name("g").expect("g not found");
             let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1146,8 +1146,8 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
             fn f() { g(); }
             fn g(): Int32 { return 1I; }
             ",
-        |vm, code, fct| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+        |sa, code, fct| {
+            let fct_id = sa.fct_by_name("g").expect("g not found");
             let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), RetVoid];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1165,8 +1165,8 @@ fn gen_fct_call_void_with_1_arg() {
             fn f() { g(1I); }
             fn g(a: Int32) { }
             ",
-        |vm, code, fct| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+        |sa, code, fct| {
+            let fct_id = sa.fct_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(0), 1),
                 PushRegister(r(0)),
@@ -1189,8 +1189,8 @@ fn gen_fct_call_void_with_3_args() {
             fn f() { g(1I, 2I, 3I); }
             fn g(a: Int32, b: Int32, c: Int32) { }
             ",
-        |vm, code, fct| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+        |sa, code, fct| {
+            let fct_id = sa.fct_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(0), 1),
                 ConstInt32(r(1), 2),
@@ -1217,8 +1217,8 @@ fn gen_fct_call_int_with_1_arg() {
             fn f(): Int32 { return g(1I); }
             fn g(a: Int32): Int32 { return a; }
             ",
-        |vm, code, fct| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+        |sa, code, fct| {
+            let fct_id = sa.fct_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(1)),
@@ -1241,8 +1241,8 @@ fn gen_fct_call_int_with_3_args() {
             fn f(): Int32 { return g(1I, 2I, 3I); }
             fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1I; }
             ",
-        |vm, code, fct| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+        |sa, code, fct| {
+            let fct_id = sa.fct_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
@@ -1271,8 +1271,8 @@ fn gen_method_call_void_check_correct_self() {
                 fn g() { }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1298,8 +1298,8 @@ fn gen_method_call_void_with_0_args() {
                 fn g() { }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1325,8 +1325,8 @@ fn gen_method_call_void_with_1_arg() {
                 fn g(a: Int32) { }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1354,8 +1354,8 @@ fn gen_method_call_void_with_3_args() {
                 fn g(a: Int32, b: Int32, c: Int32) { }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1387,8 +1387,8 @@ fn gen_method_call_bool_with_0_args() {
                 fn g(): Bool { return true; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1414,8 +1414,8 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
                 fn g(): Bool { return true; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1441,8 +1441,8 @@ fn gen_method_call_bool_with_1_arg() {
                 fn g(a: Bool): Bool { return true; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1470,8 +1470,8 @@ fn gen_method_call_bool_with_3_args() {
                 fn g(a: Bool, b: Bool, c: Bool): Bool { return true; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1503,8 +1503,8 @@ fn gen_method_call_byte_with_0_args() {
                 fn g(): UInt8 { return 1Y; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1530,8 +1530,8 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
                 fn g(): UInt8 { return 1Y; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1557,8 +1557,8 @@ fn gen_method_call_byte_with_1_arg() {
                 fn g(a: UInt8): UInt8 { return 1Y; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1586,8 +1586,8 @@ fn gen_method_call_byte_with_3_args() {
                 fn g(a: UInt8, b: UInt8, c: UInt8): UInt8 { return 1Y; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1619,8 +1619,8 @@ fn gen_method_call_char_with_0_args() {
                 fn g(): Char { return '1'; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1646,8 +1646,8 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
                 fn g(): Char { return '1'; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1673,8 +1673,8 @@ fn gen_method_call_char_with_1_arg() {
                 fn g(a: Char): Char { return '1'; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1702,8 +1702,8 @@ fn gen_method_call_char_with_3_args() {
                 fn g(a: Char, b: Char, c: Char): Char { return '1'; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1735,8 +1735,8 @@ fn gen_method_call_int_with_0_args() {
                 fn g(): Int32 { return 1; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1762,8 +1762,8 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
                 fn g(): Int32 { return 1; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1789,8 +1789,8 @@ fn gen_method_call_int_with_1_arg() {
                 fn g(a: Int32): Int32 { return 1I; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1818,8 +1818,8 @@ fn gen_method_call_int_with_3_args() {
                 fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1I; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1851,8 +1851,8 @@ fn gen_method_call_int64_with_0_args() {
                 fn g(): Int64 { return 1L; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1878,8 +1878,8 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
                 fn g(): Int64 { return 1L; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1905,8 +1905,8 @@ fn gen_method_call_int64_with_1_arg() {
                 fn g(a: Int64): Int64 { return 1L; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1934,8 +1934,8 @@ fn gen_method_call_int64_with_3_args() {
                 fn g(a: Int64, b: Int64, c: Int64): Int64 { return 1L; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1967,8 +1967,8 @@ fn gen_method_call_float32_with_0_args() {
                 fn g(): Float32 { return 1F; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -1994,8 +1994,8 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
                 fn g(): Float32 { return 1F; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2021,8 +2021,8 @@ fn gen_method_call_float32_with_1_arg() {
                 fn g(a: Float32): Float32 { return 1F; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2050,8 +2050,8 @@ fn gen_method_call_float32_with_3_args() {
                 fn g(a: Float32, b: Float32, c: Float32): Float32 { return 1F; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2083,8 +2083,8 @@ fn gen_method_call_float64_with_0_args() {
                 fn g(): Float64 { return 1D; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2110,8 +2110,8 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
                 fn g(): Float64 { return 1D; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2137,8 +2137,8 @@ fn gen_method_call_float64_with_1_arg() {
                 fn g(a: Float64): Float64 { return 1D; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2166,8 +2166,8 @@ fn gen_method_call_float64_with_3_args() {
                 fn g(a: Float64, b: Float64, c: Float64): Float64 { return 1D; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2199,8 +2199,8 @@ fn gen_method_call_ptr_with_0_args() {
                 fn g(): String { return \"1\"; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2226,8 +2226,8 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
                 fn g(): String { return \"1\"; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2253,8 +2253,8 @@ fn gen_method_call_ptr_with_1_arg() {
                 fn g(a: String): String { return \"1\"; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2282,8 +2282,8 @@ fn gen_method_call_ptr_with_3_args() {
                 fn g(a: String, b: String, c: String): String { return \"1\"; }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2318,8 +2318,8 @@ fn gen_virtual_method_call_void_check_correct_self() {
                 @override fn g() {}
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2348,8 +2348,8 @@ fn gen_virtual_method_call_void_with_0_args() {
                 @override fn g() {}
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2378,8 +2378,8 @@ fn gen_virtual_method_call_void_with_1_arg() {
                 @override fn g(a: Int32) {}
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2410,8 +2410,8 @@ fn gen_virtual_method_call_void_with_3_args() {
                 @override fn g(a: Int32, b: Int32, c: Int32) {}
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2446,8 +2446,8 @@ fn gen_virtual_method_call_int_with_0_args() {
                 @override fn g(): Int32 { 1I }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2476,8 +2476,8 @@ fn gen_virtual_method_call_int_with_1_arg() {
                 @override fn g(a: Int32): Int32 { 1I }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2508,8 +2508,8 @@ fn gen_virtual_method_call_int_with_3_args() {
                 @override fn g(a: Int32, b: Int32, c: Int32): Int32 { 1I }
             }
             ",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
@@ -2539,8 +2539,8 @@ fn gen_new_struct() {
         struct Foo { f1: Int32, f2: Bool }
         fn f(): Foo { Foo(10I, false) }
     ",
-        |vm, code, _fct| {
-            let struct_id = vm.struct_by_name("Foo");
+        |sa, code, _fct| {
+            let struct_id = sa.struct_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(0), 10),
                 ConstFalse(r(1)),
@@ -2558,8 +2558,8 @@ fn gen_new_struct() {
         struct Foo[T] { f1: T, f2: Bool }
         fn f[T](val: T): Foo[T] { Foo[T](val, false) }
     ",
-        |vm, code, _fct| {
-            let struct_id = vm.struct_by_name("Foo");
+        |sa, code, _fct| {
+            let struct_id = sa.struct_by_name("Foo");
             let expected = vec![
                 ConstFalse(r(1)),
                 PushRegister(r(0)),
@@ -2595,8 +2595,8 @@ fn gen_struct_field() {
         struct Foo { f1: Int32, f2: Bool }
         fn f(x: Foo): Int32 { x.f1 }
     ",
-        |vm, code, fct| {
-            let struct_id = vm.struct_by_name("Foo");
+        |sa, code, fct| {
+            let struct_id = sa.struct_by_name("Foo");
             let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2615,8 +2615,8 @@ fn gen_struct_field() {
         struct Foo[T] { f1: T, f2: Bool }
         fn f(x: Foo[Int32]): Int32 { x.f1 }
     ",
-        |vm, code, fct| {
-            let struct_id = vm.struct_by_name("Foo");
+        |sa, code, fct| {
+            let struct_id = sa.struct_by_name("Foo");
             let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2659,8 +2659,8 @@ fn gen_new_enum() {
         enum Foo { A(Int32), B }
         fn f(): Foo { Foo::A(10I) }
     ",
-        |vm, code, _fct| {
-            let enum_id = vm.enum_by_name("Foo");
+        |sa, code, _fct| {
+            let enum_id = sa.enum_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(0), 10),
                 PushRegister(r(0)),
@@ -2676,8 +2676,8 @@ fn gen_new_enum() {
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo[Int32]::A(10I) }
     ",
-        |vm, code, _fct| {
-            let enum_id = vm.enum_by_name("Foo");
+        |sa, code, _fct| {
+            let enum_id = sa.enum_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(0), 10),
                 PushRegister(r(0)),
@@ -2693,8 +2693,8 @@ fn gen_new_enum() {
         enum Foo { A(Int32), B }
         fn f(): Foo { Foo::B }
     ",
-        |vm, code, _fct| {
-            let enum_id = vm.enum_by_name("Foo");
+        |sa, code, _fct| {
+            let enum_id = sa.enum_by_name("Foo");
             let expected = vec![
                 NewEnum(r(0), enum_id, SourceTypeArray::empty(), 1),
                 Ret(r(0)),
@@ -2708,8 +2708,8 @@ fn gen_new_enum() {
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo[Int32]::B }
     ",
-        |vm, code, _fct| {
-            let enum_id = vm.enum_by_name("Foo");
+        |sa, code, _fct| {
+            let enum_id = sa.enum_by_name("Foo");
             let expected = vec![
                 NewEnum(r(0), enum_id, SourceTypeArray::single(SourceType::Int32), 1),
                 Ret(r(0)),
@@ -2723,8 +2723,8 @@ fn gen_new_enum() {
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo::B[Int32] }
     ",
-        |vm, code, _fct| {
-            let enum_id = vm.enum_by_name("Foo");
+        |sa, code, _fct| {
+            let enum_id = sa.enum_by_name("Foo");
             let expected = vec![
                 NewEnum(r(0), enum_id, SourceTypeArray::single(SourceType::Int32), 1),
                 Ret(r(0)),
@@ -2736,9 +2736,9 @@ fn gen_new_enum() {
 
 #[test]
 fn gen_new_object() {
-    gen_fct("fn f(): Object { return Object(); }", |vm, code, fct| {
-        let cls_id = vm.cls_by_name("Object");
-        let ctor_id = vm.ctor_by_name("Object");
+    gen_fct("fn f(): Object { return Object(); }", |sa, code, fct| {
+        let cls_id = sa.cls_by_name("Object");
+        let ctor_id = sa.ctor_by_name("Object");
         let expected = vec![
             NewObject(r(0), cls_id, SourceTypeArray::empty()),
             PushRegister(r(0)),
@@ -2761,9 +2761,9 @@ fn gen_new_object() {
 fn gen_new_object_assign_to_var() {
     gen_fct(
         "fn f(): Object { let obj = Object(); return obj; }",
-        |vm, code, fct| {
-            let cls_id = vm.cls_by_name("Object");
-            let ctor_id = vm.ctor_by_name("Object");
+        |sa, code, fct| {
+            let cls_id = sa.cls_by_name("Object");
+            let ctor_id = sa.ctor_by_name("Object");
             let expected = vec![
                 NewObject(r(1), cls_id, SourceTypeArray::empty()),
                 PushRegister(r(1)),
@@ -2791,8 +2791,8 @@ fn gen_position_new_object() {
 fn gen_new_array() {
     // gen_fct(
     //     "fn f(): Array[Int32] { return Array[Int32]::zero(1L); }",
-    //     |vm, code, _fct| {
-    //         let cls_id = vm.cls_by_name("Array");
+    //     |sa, code, _fct| {
+    //         let cls_id = sa.cls_by_name("Array");
     //         let expected = vec![
     //             ConstInt64(r(1), 1),
     //             NewArray(
@@ -2809,8 +2809,8 @@ fn gen_new_array() {
 
     gen_fct(
         "fn f(): Array[Int32] { Array[Int32](1I, 2I, 3I) }",
-        |vm, code, _fct| {
-            let cls_id = vm.cls_by_name("Array");
+        |sa, code, _fct| {
+            let cls_id = sa.cls_by_name("Array");
             let expected = vec![
                 ConstInt64(r(0), 3),
                 NewArray(
@@ -3112,9 +3112,9 @@ fn gen_new_object_with_multiple_args() {
             class Foo(a: Int32, b: Int32, c: Int32)
             fn f(): Foo { return Foo(1I, 2I, 3I); }
             ",
-        |vm, code, fct| {
-            let cls_id = vm.cls_by_name("Foo");
-            let ctor_id = vm.ctor_by_name("Foo");
+        |sa, code, fct| {
+            let cls_id = sa.cls_by_name("Foo");
+            let ctor_id = sa.ctor_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
@@ -3337,8 +3337,8 @@ fn gen_position_assert() {
 fn gen_reinterpret_float32_as_int32() {
     gen_fct(
         "fn f(a: Float32): Int32 { a.asInt32() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Float32", "asInt32", false)
                 .unwrap();
             let expected = vec![
@@ -3359,8 +3359,8 @@ fn gen_reinterpret_float32_as_int32() {
 fn gen_reinterpret_int32_as_float32() {
     gen_fct(
         "fn f(a: Int32): Float32 { a.asFloat32() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Int32", "asFloat32", false)
                 .unwrap();
             let expected = vec![
@@ -3381,8 +3381,8 @@ fn gen_reinterpret_int32_as_float32() {
 fn gen_reinterpret_float64_as_int64() {
     gen_fct(
         "fn f(a: Float64): Int64 { a.asInt64() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Float64", "asInt64", false)
                 .unwrap();
             let expected = vec![
@@ -3403,8 +3403,8 @@ fn gen_reinterpret_float64_as_int64() {
 fn gen_reinterpret_int64_as_float64() {
     gen_fct(
         "fn f(a: Int64): Float64 { a.asFloat64() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Int64", "asFloat64", false)
                 .unwrap();
             let expected = vec![
@@ -3453,8 +3453,8 @@ fn gen_cast_int64_to_int32() {
 fn gen_convert_int32_to_float32() {
     gen_fct(
         "fn f(a: Int32): Float32 { a.toFloat32() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Int32", "toFloat32", false)
                 .unwrap();
             let expected = vec![
@@ -3475,8 +3475,8 @@ fn gen_convert_int32_to_float32() {
 fn gen_convert_int32_to_float64() {
     gen_fct(
         "fn f(a: Int32): Float64 { a.toFloat64() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Int32", "toFloat64", false)
                 .unwrap();
             let expected = vec![
@@ -3497,8 +3497,8 @@ fn gen_convert_int32_to_float64() {
 fn gen_convert_int64_to_float32() {
     gen_fct(
         "fn f(a: Int64): Float32 { a.toFloat32() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Int64", "toFloat32", false)
                 .unwrap();
             let expected = vec![
@@ -3519,8 +3519,8 @@ fn gen_convert_int64_to_float32() {
 fn gen_convert_int64_to_float64() {
     gen_fct(
         "fn f(a: Int64): Float64 { a.toFloat64() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Int64", "toFloat64", false)
                 .unwrap();
             let expected = vec![
@@ -3541,8 +3541,8 @@ fn gen_convert_int64_to_float64() {
 fn gen_truncate_float32_to_int32() {
     gen_fct(
         "fn f(a: Float32): Int32 { a.toInt32() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Float32", "toInt32", false)
                 .unwrap();
             let expected = vec![
@@ -3563,8 +3563,8 @@ fn gen_truncate_float32_to_int32() {
 fn gen_truncate_float32_to_int64() {
     gen_fct(
         "fn f(a: Float32): Int64 { a.toInt64() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Float32", "toInt64", false)
                 .unwrap();
             let expected = vec![
@@ -3585,8 +3585,8 @@ fn gen_truncate_float32_to_int64() {
 fn gen_truncate_float64_to_int32() {
     gen_fct(
         "fn f(a: Float64): Int32 { a.toInt32() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Float64", "toInt32", false)
                 .unwrap();
             let expected = vec![
@@ -3607,8 +3607,8 @@ fn gen_truncate_float64_to_int32() {
 fn gen_truncate_float64_to_int64() {
     gen_fct(
         "fn f(a: Float64): Int64 { a.toInt64() }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Float64", "toInt64", false)
                 .unwrap();
             let expected = vec![
@@ -3629,8 +3629,8 @@ fn gen_truncate_float64_to_int64() {
 fn gen_instanceof() {
     gen_fct(
         "@open class A class B: A fn f(a: A): Bool { a is B }",
-        |vm, code, fct| {
-            let cls_id = vm.cls_by_name("B");
+        |sa, code, fct| {
+            let cls_id = sa.cls_by_name("B");
             let expected = vec![InstanceOf(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
             assert_eq!(
@@ -3645,8 +3645,8 @@ fn gen_instanceof() {
 fn gen_checked_cast() {
     gen_fct(
         "@open class A class B: A fn f(a: A): B { a as B }",
-        |vm, code, fct| {
-            let cls_id = vm.cls_by_name("B");
+        |sa, code, fct| {
+            let cls_id = sa.cls_by_name("B");
             let expected = vec![CheckedCast(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
             assert_eq!(
@@ -3663,8 +3663,8 @@ fn gen_checked_cast_effect() {
         "@open class A
         class B: A
         fn f(a: A): B { let b = a as B; b }",
-        |vm, code, fct| {
-            let cls_id = vm.cls_by_name("B");
+        |sa, code, fct| {
+            let cls_id = sa.cls_by_name("B");
             let expected = vec![
                 Mov(r(1), r(0)),
                 CheckedCast(r(1), ConstPoolIdx(0)),
@@ -3701,8 +3701,8 @@ fn gen_enum_mov_generic() {
 
 #[test]
 fn gen_unreachable() {
-    gen_fct("fn f(): Int32 { unreachable[Int32]() }", |vm, code, fct| {
-        let fct_id = vm
+    gen_fct("fn f(): Int32 { unreachable[Int32]() }", |sa, code, fct| {
+        let fct_id = sa
             .fct_by_name("unreachable")
             .expect("unreachable not found");
         let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
@@ -3775,8 +3775,8 @@ fn gen_array_set_method() {
 fn gen_string_concat() {
     gen_fct(
         "fn f(a: String, b: String): String { a + b }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("String", "plus", false)
                 .expect("String::plus not found");
             let expected = vec![
@@ -3798,8 +3798,8 @@ fn gen_string_concat() {
 fn gen_string_equals() {
     gen_fct(
         "fn f(a: String, b: String): Bool { a != b }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("String", "equals", false)
                 .expect("String::equals not found");
             let expected = vec![
@@ -3820,8 +3820,8 @@ fn gen_string_equals() {
 
 #[test]
 fn gen_bool_to_string() {
-    gen_fct("fn f(a: Bool): String { a.toString() }", |vm, code, fct| {
-        let fct_id = vm
+    gen_fct("fn f(a: Bool): String { a.toString() }", |sa, code, fct| {
+        let fct_id = sa
             .struct_method_by_name("Bool", "toString", false)
             .expect("Bool::toString not found");
         let expected = vec![
@@ -3841,8 +3841,8 @@ fn gen_bool_to_string() {
 fn gen_cmp_strings() {
     gen_fct(
         "fn f(a: String, b: String): Bool { a < b }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .cls_method_by_name("String", "compareTo", false)
                 .expect("String::compareTo not found");
             let expected = vec![
@@ -3921,8 +3921,8 @@ fn gen_cast_int64() {
 fn gen_compare_to_method() {
     gen_fct(
         "fn f(a: Int64, b: Int64): Int32 { a.compareTo(b) }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Int64", "compareTo", false)
                 .expect("Int64::compareTo not found");
             let expected = vec![
@@ -3941,8 +3941,8 @@ fn gen_compare_to_method() {
 
     gen_fct(
         "fn f(a: Int32, b: Int32): Int32 { a.compareTo(b) }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Int32", "compareTo", false)
                 .expect("Int32::compareTo not found");
             let expected = vec![
@@ -3961,8 +3961,8 @@ fn gen_compare_to_method() {
 
     gen_fct(
         "fn f(a: Float32, b: Float32): Int32 { a.compareTo(b) }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Float32", "compareTo", false)
                 .expect("Float32::compareTo not found");
             let expected = vec![
@@ -3981,8 +3981,8 @@ fn gen_compare_to_method() {
 
     gen_fct(
         "fn f(a: Float64, b: Float64): Int32 { a.compareTo(b) }",
-        |vm, code, fct| {
-            let fct_id = vm
+        |sa, code, fct| {
+            let fct_id = sa
                 .struct_method_by_name("Float64", "compareTo", false)
                 .expect("Float64::compareTo not found");
             let expected = vec![
@@ -4024,8 +4024,8 @@ fn gen_while_with_break() {
 fn gen_vec_load() {
     gen_fct(
         "fn f(x: Vec[Int32], idx: Int64): Int32 { x(idx) }",
-        |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Vec", "get", false).unwrap();
+        |sa, code, fct| {
+            let fct_id = sa.cls_method_by_name("Vec", "get", false).unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
@@ -4045,8 +4045,8 @@ fn gen_vec_load() {
 fn gen_vec_store() {
     gen_fct(
         "fn f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }",
-        |vm, code, fct| {
-            let fct_id = vm.cls_method_by_name("Vec", "set", false).unwrap();
+        |sa, code, fct| {
+            let fct_id = sa.cls_method_by_name("Vec", "set", false).unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
@@ -4100,8 +4100,8 @@ fn gen_int64_max_value() {
 
 #[test]
 fn gen_tuple_var() {
-    gen_fct("fn f() { let x = (1I, 2I); }", |vm, code, fct| {
-        let tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
+    gen_fct("fn f() { let x = (1I, 2I); }", |sa, code, fct| {
+        let tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
         let expected = vec![
             ConstInt32(r(1), 1),
             ConstInt32(r(2), 2),
@@ -4128,8 +4128,8 @@ fn gen_tuple_move() {
 
 #[test]
 fn gen_tuple_element() {
-    gen_fct("fn f(x: (Int32, Int32)): Int32 { x.0 }", |vm, code, fct| {
-        let tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
+    gen_fct("fn f(x: (Int32, Int32)): Int32 { x.0 }", |sa, code, fct| {
+        let tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
         let expected = vec![LoadTupleElement(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
         assert_eq!(expected, code);
 
@@ -4151,9 +4151,9 @@ fn gen_trait_object() {
         }
         fn f(x: Bar): Foo { x as Foo }
     ",
-        |vm, code| {
-            let trait_id = vm.trait_by_name("Foo");
-            let cls_id = vm.cls_by_name("Bar");
+        |sa, code| {
+            let trait_id = sa.trait_by_name("Foo");
+            let cls_id = sa.cls_by_name("Bar");
             let object_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
             let expected = vec![
                 NewTraitObject(r(1), trait_id, SourceTypeArray::empty(), object_ty, r(0)),
@@ -4171,7 +4171,7 @@ fn gen_trait_object_copy() {
         trait Foo { fn bar(): Int32; }
         fn f(x: Foo): Foo { let y = x; y }
     ",
-        |_vm, code| {
+        |_sa, code| {
             let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
             assert_eq!(expected, code);
         },
@@ -4185,8 +4185,8 @@ fn gen_trait_object_method_call() {
         trait Foo { fn bar(): Int32; }
         fn f(x: Foo): Int32 { x.bar() }
     ",
-        |vm, code, fct| {
-            let fct_id = vm.trait_method_by_name("Foo", "bar");
+        |sa, code, fct| {
+            let fct_id = sa.trait_method_by_name("Foo", "bar");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeVirtual(r(1), ConstPoolIdx(0)),

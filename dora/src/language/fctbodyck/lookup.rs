@@ -5,9 +5,9 @@ use crate::language::sem_analysis::{
     FctDefinition, FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam,
     TypeParamDefinition,
 };
+use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
-use crate::vm::replace_type_param;
 
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;

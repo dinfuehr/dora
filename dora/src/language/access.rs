@@ -138,14 +138,14 @@ pub fn trait_accessible_from(
 }
 
 pub fn const_accessible_from(
-    vm: &SemAnalysis,
+    sa: &SemAnalysis,
     const_id: ConstDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let const_ = vm.consts.idx(const_id);
+    let const_ = sa.consts.idx(const_id);
     let const_ = const_.read();
 
-    accessible_from(vm, const_.module_id, const_.is_pub, module_id)
+    accessible_from(sa, const_.module_id, const_.is_pub, module_id)
 }
 
 fn accessible_from(

@@ -230,7 +230,7 @@ mod matching {
     }
 
     fn compare_type_param_bounds(
-        _vm: &SemAnalysis,
+        _sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
         _check_type_param_defs2: Option<&TypeParamDefinition>,

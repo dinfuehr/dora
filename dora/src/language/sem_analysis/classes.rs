@@ -12,10 +12,11 @@ use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, ExtensionDefinitionId, FctDefinitionId,
     ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId,
 };
+use crate::language::specialize::replace_type_param;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, Id};
-use crate::vm::{replace_type_param, ClassInstanceId};
+use crate::vm::ClassInstanceId;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassDefinitionId(usize);

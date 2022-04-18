@@ -5,7 +5,7 @@ use crate::language::sem_analysis::{
     find_method_in_class, ClassDefinition, ClassDefinitionId, FctDefinition, FctDefinitionId,
     SemAnalysis,
 };
-use crate::vm::replace_type_param;
+use crate::language::specialize::replace_type_param;
 
 pub fn check(sa: &mut SemAnalysis) {
     cycle_detection(sa);
