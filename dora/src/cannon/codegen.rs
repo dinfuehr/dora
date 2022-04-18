@@ -1374,16 +1374,15 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_load_tuple_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        tuple_id: TupleId,
-        idx: u32,
-    ) {
+    fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        let (tuple_id, subtype_idx) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::TupleElement(tuple_id, subtype_idx) => (*tuple_id, *subtype_idx),
+            _ => unreachable!(),
+        };
+
         let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
         let tuple = get_concrete_tuple(self.vm, tuple_id);
-        let offset = tuple.offsets()[idx as usize];
+        let offset = tuple.offsets()[subtype_idx as usize];
 
         if let Some(dest_type) = self.specialize_register_type_unit(dest) {
             let src_offset = self.register_offset(src);
@@ -1396,16 +1395,10 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_load_enum_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        idx: ConstPoolIdx,
-        element: u32,
-    ) {
-        let (enum_id, type_params, variant_id) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
-                (*enum_id, type_params.clone(), *variant_id)
+    fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        let (enum_id, type_params, variant_id, element_idx) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, element_idx) => {
+                (*enum_id, type_params.clone(), *variant_id, *element_idx)
             }
             _ => unreachable!(),
         };
@@ -1424,7 +1417,7 @@ impl<'a> CannonCodeGen<'a> {
                 unreachable!();
             }
             EnumLayout::Ptr => {
-                assert_eq!(0, element);
+                assert_eq!(0, element_idx);
                 let first_variant = enum_.variants.first().unwrap();
                 let some_idx = if first_variant.types.is_empty() { 1 } else { 0 };
                 assert_eq!(variant_id, some_idx);
@@ -1454,7 +1447,7 @@ impl<'a> CannonCodeGen<'a> {
                 let pos = self.bytecode.offset_position(self.current_offset.to_u32());
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
-                let field_id = edef.field_id(&*enum_, variant_id, element);
+                let field_id = edef.field_id(&*enum_, variant_id, element_idx);
                 let field = &cls.fields[field_id as usize];
 
                 if field.ty.is_unit() {
@@ -1953,22 +1946,23 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalDefinitionId) {
-        let glob = self.vm.globals.idx(global_id);
-        let glob = glob.read();
+        let global_var = self.vm.globals.idx(global_id);
+        let global_var = global_var.read();
 
         assert_eq!(
             self.bytecode.register_type(dest),
-            BytecodeType::from_ty(self.vm, glob.ty.clone())
+            BytecodeType::from_ty(self.vm, global_var.ty.clone())
         );
 
-        if glob.needs_initialization() {
-            let fid = glob.initializer.unwrap();
+        if global_var.needs_initialization() {
+            let fid = global_var.initializer.unwrap();
             let ptr = self.get_call_target(fid, SourceTypeArray::empty());
             let gcpoint = self.create_gcpoint();
-            self.asm.ensure_global(&*glob, fid, ptr, glob.pos, gcpoint);
+            self.asm
+                .ensure_global(&*global_var, fid, ptr, global_var.pos, gcpoint);
         }
 
-        let disp = self.asm.add_addr(glob.address_value);
+        let disp = self.asm.add_addr(global_var.address_value);
         let pos = self.asm.pos() as i32;
         self.asm.load_constpool(REG_TMP1, disp + pos);
 
@@ -1980,15 +1974,15 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
-        let glob = self.vm.globals.idx(global_id);
-        let glob = glob.read();
+        let global_var = self.vm.globals.idx(global_id);
+        let global_var = global_var.read();
 
         assert_eq!(
             self.bytecode.register_type(src),
-            BytecodeType::from_ty(self.vm, glob.ty.clone())
+            BytecodeType::from_ty(self.vm, global_var.ty.clone())
         );
 
-        let disp = self.asm.add_addr(glob.address_value);
+        let disp = self.asm.add_addr(global_var.address_value);
         let pos = self.asm.pos() as i32;
 
         self.asm.load_constpool(REG_TMP1, disp + pos);
@@ -1999,8 +1993,8 @@ impl<'a> CannonCodeGen<'a> {
         let src = self.reg(src);
         self.copy_bytecode_ty(bytecode_type, dest, src);
 
-        if glob.needs_initialization() {
-            let disp = self.asm.add_addr(glob.address_init);
+        if global_var.needs_initialization() {
+            let disp = self.asm.add_addr(global_var.address_init);
             let pos = self.asm.pos() as i32;
             self.asm.load_constpool(REG_RESULT, disp + pos);
             self.asm.load_int_const(MachineMode::Int8, REG_TMP1, 1);
@@ -4741,14 +4735,13 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_mov_generic(dest, src);
     }
 
-    fn visit_load_tuple_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        tuple_id: TupleId,
-        idx: u32,
-    ) {
+    fn visit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
+            let (tuple_id, subtype_idx) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::TupleElement(tuple_id, subtype_idx) => (*tuple_id, *subtype_idx),
+                _ => unreachable!(),
+            };
+
             let tuple_ty = SourceType::Tuple(tuple_id);
             let tuple_ty_name = tuple_ty.name(self.vm);
             format!(
@@ -4757,26 +4750,21 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 src,
                 tuple_id.to_usize(),
                 tuple_ty_name,
-                idx
+                subtype_idx
             )
         });
-        self.emit_load_tuple_element(dest, src, tuple_id, idx);
+        self.emit_load_tuple_element(dest, src, idx);
     }
 
-    fn visit_load_enum_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        idx: ConstPoolIdx,
-        element: u32,
-    ) {
+    fn visit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (enum_id, type_params, variant_id) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
-                    (*enum_id, type_params, *variant_id)
-                }
-                _ => unreachable!(),
-            };
+            let (enum_id, type_params, variant_id, element_idx) =
+                match self.bytecode.const_pool(idx) {
+                    ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, element_idx) => {
+                        (*enum_id, type_params, *variant_id, *element_idx)
+                    }
+                    _ => unreachable!(),
+                };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
             let enum_name = enum_.name_with_params(self.vm, type_params);
@@ -4787,13 +4775,13 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 dest,
                 src,
                 idx.to_usize(),
-                element,
+                element_idx,
                 enum_name,
                 variant_name,
-                element,
+                element_idx,
             )
         });
-        self.emit_load_enum_element(dest, src, idx, element);
+        self.emit_load_enum_element(dest, src, idx);
     }
 
     fn visit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
@@ -4905,9 +4893,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_load_global(&mut self, dest: Register, glob_id: GlobalDefinitionId) {
         comment!(self, {
-            let glob = self.vm.globals.idx(glob_id);
-            let glob = glob.read();
-            let name = self.vm.interner.str(glob.name);
+            let global_var = self.vm.globals.idx(glob_id);
+            let global_var = global_var.read();
+            let name = self.vm.interner.str(global_var.name);
             format!(
                 "LoadGlobal {}, GlobalId({}) # {}",
                 dest,
@@ -4918,19 +4906,19 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_load_global(dest, glob_id);
     }
 
-    fn visit_store_global(&mut self, src: Register, glob_id: GlobalDefinitionId) {
+    fn visit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
         comment!(self, {
-            let glob = self.vm.globals.idx(glob_id);
-            let glob = glob.read();
-            let name = self.vm.interner.str(glob.name);
+            let global_var = self.vm.globals.idx(global_id);
+            let global_var = global_var.read();
+            let name = self.vm.interner.str(global_var.name);
             format!(
                 "StoreGlobal {}, GlobalId({}) # {}",
                 src,
-                glob_id.to_usize(),
+                global_id.to_usize(),
                 name
             )
         });
-        self.emit_store_global(src, glob_id);
+        self.emit_store_global(src, global_id);
     }
 
     fn visit_push_register(&mut self, src: Register) {

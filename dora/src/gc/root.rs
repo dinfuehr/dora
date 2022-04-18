@@ -44,16 +44,16 @@ fn determine_rootset_from_code_space(_rootset: &mut Vec<Slot>, vm: &VM) {
 }
 
 fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
-    for glob in vm.globals.iter() {
-        let glob = glob.read();
+    for global_var in vm.globals.iter() {
+        let global_var = global_var.read();
 
-        match glob.ty {
+        match global_var.ty {
             SourceType::Struct(struct_id, ref type_params) => {
                 let sdef_id = specialize_struct_id_params(vm, struct_id, type_params.clone());
                 let sdef = vm.struct_instances.idx(sdef_id);
 
                 for &offset in &sdef.ref_fields {
-                    let slot_address = glob.address_value.offset(offset as usize);
+                    let slot_address = global_var.address_value.offset(offset as usize);
                     let slot = Slot::at(slot_address);
                     rootset.push(slot);
                 }
@@ -66,7 +66,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                 match edef.layout {
                     EnumLayout::Int => {}
                     EnumLayout::Ptr | EnumLayout::Tagged => {
-                        let slot = Slot::at(glob.address_value);
+                        let slot = Slot::at(global_var.address_value);
                         rootset.push(slot);
                     }
                 }
@@ -76,7 +76,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                 let tuple = get_concrete_tuple(vm, tuple_id);
 
                 for &offset in tuple.references() {
-                    let slot_address = glob.address_value.offset(offset as usize);
+                    let slot_address = global_var.address_value.offset(offset as usize);
                     let slot = Slot::at(slot_address);
                     rootset.push(slot);
                 }
@@ -92,7 +92,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
             | SourceType::Float64 => {}
 
             SourceType::Class(_, _) | SourceType::Trait(_, _) => {
-                let slot = Slot::at(glob.address_value);
+                let slot = Slot::at(global_var.address_value);
                 rootset.push(slot);
             }
 

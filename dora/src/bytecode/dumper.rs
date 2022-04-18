@@ -98,6 +98,20 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                     variant_name,
                 )
             }
+            ConstPoolEntry::EnumElement(cls_id, type_params, variant_id, element_idx) => {
+                let enum_ = &vm.enums[*cls_id];
+                let enum_ = enum_.read();
+                let variant = &enum_.variants[*variant_id];
+                let variant_name = vm.interner.str(variant.name);
+                println!(
+                    "{}{} => EnumVariantElement {}::{}::{}",
+                    align,
+                    idx,
+                    enum_.name_with_params(vm, type_params),
+                    variant_name,
+                    element_idx,
+                )
+            }
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let cls = vm.classes.idx(*cls_id);
                 let cls = cls.read();
@@ -173,6 +187,9 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                     object_ty.name(vm),
                 )
             }
+            ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
+                println!("{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)
+            }
         }
     }
 
@@ -232,17 +249,21 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, {}, {}", r1, r2, tuple_id.to_usize()).expect("write! failed");
     }
 
-    fn emit_tuple_load(
-        &mut self,
-        name: &str,
-        r1: Register,
-        r2: Register,
-        tuple_id: TupleId,
-        idx: u32,
-    ) {
+    fn emit_tuple_load(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}, {}, {}", r1, r2, tuple_id.to_usize(), idx)
-            .expect("write! failed");
+        let (tuple_id, subtype_idx) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::TupleElement(tuple_id, subtype_idx) => (*tuple_id, *subtype_idx),
+            _ => unreachable!(),
+        };
+        writeln!(
+            self.w,
+            " {}, {}, {}, {}",
+            r1,
+            r2,
+            tuple_id.to_usize(),
+            subtype_idx
+        )
+        .expect("write! failed");
     }
 
     fn emit_reg2_enum(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
@@ -265,18 +286,11 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_enum_load(
-        &mut self,
-        name: &str,
-        r1: Register,
-        r2: Register,
-        idx: ConstPoolIdx,
-        element: u32,
-    ) {
+    fn emit_enum_load(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        let (enum_id, type_params, variant_id) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => {
-                (*enum_id, type_params, *variant_id)
+        let (enum_id, type_params, variant_id, element_idx) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, element_idx) => {
+                (*enum_id, type_params, *variant_id, *element_idx)
             }
             _ => unreachable!(),
         };
@@ -290,10 +304,10 @@ impl<'a> BytecodeDumper<'a> {
             r1,
             r2,
             idx.to_usize(),
-            element,
+            element_idx,
             enum_name,
             variant_name,
-            element
+            element_idx
         )
         .expect("write! failed");
     }
@@ -460,9 +474,9 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_global(&mut self, name: &str, r1: Register, gid: GlobalDefinitionId) {
         self.emit_start(name);
-        let glob = self.vm.globals.idx(gid);
-        let glob = glob.read();
-        let name = self.vm.interner.str(glob.name);
+        let global_var = self.vm.globals.idx(gid);
+        let global_var = global_var.read();
+        let name = self.vm.interner.str(global_var.name);
         writeln!(self.w, " {}, GlobalId({}) # {}", r1, gid.to_usize(), name)
             .expect("write! failed");
     }
@@ -794,24 +808,12 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("Mov", dest, src);
     }
 
-    fn visit_load_tuple_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        tuple_id: TupleId,
-        element: u32,
-    ) {
-        self.emit_tuple_load("LoadTupleElement", dest, src, tuple_id, element);
+    fn visit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_tuple_load("LoadTupleElement", dest, src, idx);
     }
 
-    fn visit_load_enum_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        idx: ConstPoolIdx,
-        element: u32,
-    ) {
-        self.emit_enum_load("LoadEnumElement", dest, src, idx, element);
+    fn visit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_enum_load("LoadEnumElement", dest, src, idx);
     }
 
     fn visit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
@@ -826,12 +828,12 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_field("StoreField", src, obj, field_idx);
     }
 
-    fn visit_load_global(&mut self, dest: Register, glob: GlobalDefinitionId) {
-        self.emit_global("LoadGlobal", dest, glob);
+    fn visit_load_global(&mut self, dest: Register, global_id: GlobalDefinitionId) {
+        self.emit_global("LoadGlobal", dest, global_id);
     }
 
-    fn visit_store_global(&mut self, src: Register, glob: GlobalDefinitionId) {
-        self.emit_global("StoreGlobal", src, glob);
+    fn visit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
+        self.emit_global("StoreGlobal", src, global_id);
     }
 
     fn visit_push_register(&mut self, src: Register) {

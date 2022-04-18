@@ -84,7 +84,7 @@ def output
         end
 
         f.puts
-        f.puts "fun bytecodeName(opcode: Int32): String {"
+        f.puts "fn bytecodeName(opcode: Int32): String {"
 
         for bytecode in bytecodes
             f.puts "  if opcode == BC_#{snake_case(bytecode)} { return #{bytecode.inspect}; }"
@@ -94,7 +94,7 @@ def output
         f.puts "}"
         f.puts
 
-        f.puts "fun bytecodeTypeName(code: Int32): String {"
+        f.puts "fn bytecodeTypeName(code: Int32): String {"
 
         for type in types
             f.puts "  if code == BC_TYPE_#{snake_case(type)} { return #{type.inspect}; }"

@@ -269,6 +269,13 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             encode_source_type_array(vm, source_type_array, buffer);
             buffer.emit_id(variant_id.try_into().unwrap());
         }
+        &ConstPoolEntry::EnumElement(enum_id, ref source_type_array, variant_id, element_idx) => {
+            buffer.emit_u8(ConstPoolOpcode::EnumElement.to_u8());
+            buffer.emit_id(enum_id.to_usize());
+            encode_source_type_array(vm, source_type_array, buffer);
+            buffer.emit_id(variant_id.try_into().unwrap());
+            buffer.emit_id(element_idx as usize);
+        }
         &ConstPoolEntry::Struct(struct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Struct.to_u8());
             buffer.emit_id(struct_id.to_usize());
@@ -285,6 +292,11 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_id(trait_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
             encode_source_type(vm, source_type.clone(), buffer);
+        }
+        &ConstPoolEntry::TupleElement(tuple_id, element_idx) => {
+            buffer.emit_u8(ConstPoolOpcode::TupleElement.to_u8());
+            buffer.emit_id(tuple_id.to_usize());
+            buffer.emit_id(element_idx as usize);
         }
     }
 }

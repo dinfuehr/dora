@@ -946,14 +946,12 @@ pub enum BytecodeInstruction {
     LoadTupleElement {
         dest: Register,
         src: Register,
-        tuple_id: TupleId,
-        element: u32,
+        idx: ConstPoolIdx,
     },
     LoadEnumElement {
         dest: Register,
         src: Register,
         idx: ConstPoolIdx,
-        element: u32,
     },
     LoadEnumVariant {
         dest: Register,
@@ -979,11 +977,11 @@ pub enum BytecodeInstruction {
 
     LoadGlobal {
         dest: Register,
-        glob: GlobalDefinitionId,
+        global_id: GlobalDefinitionId,
     },
     StoreGlobal {
         src: Register,
-        glob: GlobalDefinitionId,
+        global_id: GlobalDefinitionId,
     },
 
     PushRegister {
@@ -1521,12 +1519,14 @@ enumeration!(ConstPoolOpcode {
     Class,
     Enum,
     EnumVariant,
+    EnumElement,
     Struct,
     StructField,
     Trait,
     Field,
     FieldFixed,
-    Generic
+    Generic,
+    TupleElement
 });
 
 #[derive(Debug, PartialEq)]
@@ -1544,9 +1544,11 @@ pub enum ConstPoolEntry {
     Generic(TypeParamId, FctDefinitionId, SourceTypeArray),
     Enum(EnumDefinitionId, SourceTypeArray),
     EnumVariant(EnumDefinitionId, SourceTypeArray, usize),
+    EnumElement(EnumDefinitionId, SourceTypeArray, usize, u32),
     Struct(StructDefinitionId, SourceTypeArray),
     StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
     Trait(TraitDefinitionId, SourceTypeArray, SourceType),
+    TupleElement(TupleId, u32),
 }
 
 impl ConstPoolEntry {

@@ -298,57 +298,102 @@ fn gen_stmt_var_init() {
 
 #[test]
 fn gen_stmt_let_tuple() {
-    gen(
+    gen_fct(
         "fn f(value: (Int32, Int32)): Int32 { let (x, y) = value; x+y }",
-        |vm, code| {
+        |vm, code, fct| {
             let tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
             let expected = vec![
-                LoadTupleElement(r(1), r(0), tuple_id, 0),
-                LoadTupleElement(r(2), r(0), tuple_id, 1),
+                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
+                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
                 AddInt32(r(3), r(1), r(2)),
                 Ret(r(3)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::TupleElement(tuple_id, 0)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::TupleElement(tuple_id, 1)
+            );
         },
     );
 
-    gen(
+    gen_fct(
         "fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (y, z)) = value; x+y+z }",
-        |vm, code| {
+        |vm, code, fct| {
             let nested_tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
             let tuple_id = ensure_tuple(
                 vm,
                 vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
             );
             let expected = vec![
-                LoadTupleElement(r(1), r(0), tuple_id, 0),
-                LoadTupleElement(r(2), r(0), tuple_id, 1),
-                LoadTupleElement(r(3), r(2), nested_tuple_id, 0),
-                LoadTupleElement(r(4), r(2), nested_tuple_id, 1),
+                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
+                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
+                LoadTupleElement(r(4), r(2), ConstPoolIdx(3)),
                 AddInt32(r(6), r(1), r(3)),
                 AddInt32(r(5), r(6), r(4)),
                 Ret(r(5)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::TupleElement(tuple_id, 0)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::TupleElement(tuple_id, 1)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(2)),
+                &ConstPoolEntry::TupleElement(nested_tuple_id, 0)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(3)),
+                &ConstPoolEntry::TupleElement(nested_tuple_id, 1)
+            );
         },
     );
 
-    gen(
+    gen_fct(
         "fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (_, z)) = value; x+z }",
-        |vm, code| {
+        |vm, code, fct| {
             let nested_tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
             let tuple_id = ensure_tuple(
                 vm,
                 vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
             );
             let expected = vec![
-                LoadTupleElement(r(1), r(0), tuple_id, 0),
-                LoadTupleElement(r(2), r(0), tuple_id, 1),
-                LoadTupleElement(r(3), r(2), nested_tuple_id, 1),
+                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
+                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
                 AddInt32(r(4), r(1), r(3)),
                 Ret(r(4)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::TupleElement(tuple_id, 0)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::TupleElement(tuple_id, 1)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(2)),
+                &ConstPoolEntry::TupleElement(nested_tuple_id, 1)
+            );
         },
     );
 }
@@ -363,41 +408,71 @@ fn gen_stmt_let_unit() {
     let expected = vec![RetVoid];
     assert_eq!(expected, result);
 
-    gen(
+    gen_fct(
         "fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, z)) = value; x+y }",
-        |vm, code| {
+        |vm, code, fct| {
             let nested_tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Unit]);
             let tuple_id = ensure_tuple(
                 vm,
                 vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
             );
             let expected = vec![
-                LoadTupleElement(r(1), r(0), tuple_id, 0),
-                LoadTupleElement(r(2), r(0), tuple_id, 1),
-                LoadTupleElement(r(3), r(2), nested_tuple_id, 0),
+                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
+                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
                 AddInt32(r(4), r(1), r(3)),
                 Ret(r(4)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::TupleElement(tuple_id, 0)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::TupleElement(tuple_id, 1)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(2)),
+                &ConstPoolEntry::TupleElement(nested_tuple_id, 0)
+            );
         },
     );
 
-    gen(
+    gen_fct(
         "fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, ())) = value; x+y }",
-        |vm, code| {
+        |vm, code, fct| {
             let nested_tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Unit]);
             let tuple_id = ensure_tuple(
                 vm,
                 vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
             );
             let expected = vec![
-                LoadTupleElement(r(1), r(0), tuple_id, 0),
-                LoadTupleElement(r(2), r(0), tuple_id, 1),
-                LoadTupleElement(r(3), r(2), nested_tuple_id, 0),
+                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
+                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
                 AddInt32(r(4), r(1), r(3)),
                 Ret(r(4)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::TupleElement(tuple_id, 0)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::TupleElement(tuple_id, 1)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(2)),
+                &ConstPoolEntry::TupleElement(nested_tuple_id, 0)
+            );
         },
     );
 }
@@ -4049,10 +4124,15 @@ fn gen_tuple_move() {
 
 #[test]
 fn gen_tuple_element() {
-    gen("fn f(x: (Int32, Int32)): Int32 { x.0 }", |vm, code| {
+    gen_fct("fn f(x: (Int32, Int32)): Int32 { x.0 }", |vm, code, fct| {
         let tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
-        let expected = vec![LoadTupleElement(r(1), r(0), tuple_id, 0), Ret(r(1))];
+        let expected = vec![LoadTupleElement(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
         assert_eq!(expected, code);
+
+        assert_eq!(
+            fct.const_pool(ConstPoolIdx(0)),
+            &ConstPoolEntry::TupleElement(tuple_id, 0)
+        );
     });
 }
 
@@ -4202,7 +4282,7 @@ pub enum Bytecode {
 
     Mov(Register, Register),
 
-    LoadTupleElement(Register, Register, TupleId, u32),
+    LoadTupleElement(Register, Register, ConstPoolIdx),
     LoadStructField(Register, Register, ConstPoolIdx),
 
     LoadField(
@@ -4588,14 +4668,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::Mov(dest, src));
     }
 
-    fn visit_load_tuple_element(
-        &mut self,
-        src: Register,
-        dest: Register,
-        tuple_id: TupleId,
-        element: u32,
-    ) {
-        self.emit(Bytecode::LoadTupleElement(src, dest, tuple_id, element));
+    fn visit_load_tuple_element(&mut self, src: Register, dest: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::LoadTupleElement(src, dest, idx));
     }
 
     fn visit_load_struct_field(&mut self, dest: Register, obj: Register, idx: ConstPoolIdx) {
@@ -4622,12 +4696,12 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::StoreField(src, obj, field));
     }
 
-    fn visit_load_global(&mut self, dest: Register, glob: GlobalDefinitionId) {
-        self.emit(Bytecode::LoadGlobal(dest, glob));
+    fn visit_load_global(&mut self, dest: Register, global_id: GlobalDefinitionId) {
+        self.emit(Bytecode::LoadGlobal(dest, global_id));
     }
 
-    fn visit_store_global(&mut self, src: Register, glob: GlobalDefinitionId) {
-        self.emit(Bytecode::StoreGlobal(src, glob));
+    fn visit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
+        self.emit(Bytecode::StoreGlobal(src, global_id));
     }
 
     fn visit_push_register(&mut self, src: Register) {

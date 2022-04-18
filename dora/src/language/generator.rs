@@ -297,9 +297,9 @@ impl<'a> AstBytecodeGen<'a> {
                         let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.sa, ty);
                         let var_reg = self.alloc_var(bytecode_ty);
                         self.var_registers.insert(var_id, var_reg);
+                        let idx = self.gen.add_const_tuple_element(tuple_id, idx as u32);
 
-                        self.gen
-                            .emit_load_tuple_element(var_reg, tuple_reg, tuple_id, idx as u32);
+                        self.gen.emit_load_tuple_element(var_reg, tuple_reg, idx);
                     }
                 }
 
@@ -312,8 +312,8 @@ impl<'a> AstBytecodeGen<'a> {
 
                     if !ty.is_unit() {
                         let temp_reg = self.alloc_temp(BytecodeType::from_ty(self.sa, ty.clone()));
-                        self.gen
-                            .emit_load_tuple_element(temp_reg, tuple_reg, tuple_id, idx as u32);
+                        let idx = self.gen.add_const_tuple_element(tuple_id, idx as u32);
+                        self.gen.emit_load_tuple_element(temp_reg, tuple_reg, idx);
                         self.destruct_tuple_pattern(tuple, temp_reg, ty);
                         self.free_temp(temp_reg);
                     }
@@ -813,10 +813,11 @@ impl<'a> AstBytecodeGen<'a> {
                     if let Some(ref params) = ident.params {
                         for (subtype_idx, param) in params.iter().enumerate() {
                             if let Some(_) = param.name {
-                                let idx = self.gen.add_const_enum_variant(
+                                let idx = self.gen.add_const_enum_element(
                                     enum_id,
                                     enum_ty.type_params(),
                                     variant_id as usize,
+                                    subtype_idx as u32,
                                 );
 
                                 let var_id = *self.src.map_vars.get(param.id).unwrap();
@@ -829,13 +830,8 @@ impl<'a> AstBytecodeGen<'a> {
 
                                     self.var_registers.insert(var_id, var_reg);
 
-                                    self.gen.emit_load_enum_element(
-                                        var_reg,
-                                        expr_reg,
-                                        idx,
-                                        subtype_idx as u32,
-                                        param.pos,
-                                    );
+                                    self.gen
+                                        .emit_load_enum_element(var_reg, expr_reg, idx, param.pos);
                                 }
                             }
                         }
@@ -1037,7 +1033,8 @@ impl<'a> AstBytecodeGen<'a> {
 
         let ty: BytecodeType = BytecodeType::from_ty(self.sa, ty);
         let dest = self.ensure_register(dest, ty);
-        self.gen.emit_load_tuple_element(dest, tuple, tuple_id, idx);
+        let idx = self.gen.add_const_tuple_element(tuple_id, idx as u32);
+        self.gen.emit_load_tuple_element(dest, tuple, idx);
 
         self.free_if_temp(tuple);
 
@@ -2565,10 +2562,10 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_assign_global(&mut self, expr: &ExprBinType, gid: GlobalDefinitionId) {
-        let glob = self.sa.globals.idx(gid);
-        let glob = glob.read();
+        let global_var = self.sa.globals.idx(gid);
+        let global_var = global_var.read();
 
-        let dest = if glob.ty.is_unit() {
+        let dest = if global_var.ty.is_unit() {
             DataDest::Effect
         } else {
             DataDest::Alloc
@@ -2576,7 +2573,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let src = self.visit_expr(&expr.rhs, dest);
 
-        if !glob.ty.is_unit() {
+        if !global_var.ty.is_unit() {
             self.gen.emit_store_global(src, gid);
         }
 
@@ -2661,15 +2658,15 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let glob = self.sa.globals.idx(gid);
-        let glob = glob.read();
+        let global_var = self.sa.globals.idx(gid);
+        let global_var = global_var.read();
 
-        if glob.ty.is_unit() {
+        if global_var.ty.is_unit() {
             assert!(dest.is_alloc());
             return Register::invalid();
         }
 
-        let ty: BytecodeType = BytecodeType::from_ty(self.sa, glob.ty.clone());
+        let ty: BytecodeType = BytecodeType::from_ty(self.sa, global_var.ty.clone());
         let dest = self.ensure_register(dest, ty);
 
         self.gen.emit_load_global(dest, gid);

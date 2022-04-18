@@ -72,6 +72,21 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_id))
     }
 
+    pub fn add_const_enum_element(
+        &mut self,
+        id: EnumDefinitionId,
+        type_params: SourceTypeArray,
+        variant_id: usize,
+        element_idx: u32,
+    ) -> ConstPoolIdx {
+        self.writer.add_const(ConstPoolEntry::EnumElement(
+            id,
+            type_params,
+            variant_id,
+            element_idx,
+        ))
+    }
+
     pub fn add_const_struct(
         &mut self,
         id: StructDefinitionId,
@@ -150,6 +165,11 @@ impl BytecodeBuilder {
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Trait(id, type_params, object_ty))
+    }
+
+    pub fn add_const_tuple_element(&mut self, id: TupleId, subtype_idx: u32) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::TupleElement(id, subtype_idx))
     }
 
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
@@ -555,16 +575,9 @@ impl BytecodeBuilder {
         self.writer.emit_mov(dest, src);
     }
 
-    pub fn emit_load_tuple_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        tuple_id: TupleId,
-        element: u32,
-    ) {
+    pub fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         assert!(self.def(dest) && self.used(src));
-        self.writer
-            .emit_load_tuple_element(dest, src, tuple_id, element);
+        self.writer.emit_load_tuple_element(dest, src, idx);
     }
 
     pub fn emit_load_enum_element(
@@ -572,12 +585,11 @@ impl BytecodeBuilder {
         dest: Register,
         src: Register,
         idx: ConstPoolIdx,
-        element: u32,
         pos: Position,
     ) {
         assert!(self.def(dest) && self.used(src));
         self.writer.set_position(pos);
-        self.writer.emit_load_enum_element(dest, src, idx, element);
+        self.writer.emit_load_enum_element(dest, src, idx);
     }
 
     pub fn emit_load_enum_variant(

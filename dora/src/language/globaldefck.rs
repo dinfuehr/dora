@@ -56,16 +56,16 @@ impl<'a> GlobalDefCheck<'a> {
         )
         .unwrap_or(SourceType::Error);
 
-        let glob = self.sa.globals.idx(self.global_id);
-        let mut glob = glob.write();
-        glob.ty = ty;
+        let global_var = self.sa.globals.idx(self.global_id);
+        let mut global_var = global_var.write();
+        global_var.ty = ty;
 
         if let Some(ref initializer) = self.ast.initializer {
             let fct =
                 FctDefinition::new(self.file_id, self.module_id, initializer, FctParent::None);
 
             let fct_id = self.sa.add_fct(fct);
-            glob.initializer = Some(fct_id);
+            global_var.initializer = Some(fct_id);
         } else {
             let msg = SemError::LetMissingInitialization;
             self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);

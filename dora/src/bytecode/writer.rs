@@ -407,30 +407,12 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::Mov, dest, src);
     }
 
-    pub fn emit_load_tuple_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        tuple_id: TupleId,
-        element: u32,
-    ) {
-        self.emit_access_tuple(
-            BytecodeOpcode::LoadTupleElement,
-            dest,
-            src,
-            tuple_id,
-            element,
-        );
+    pub fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_access_tuple(BytecodeOpcode::LoadTupleElement, dest, src, idx);
     }
 
-    pub fn emit_load_enum_element(
-        &mut self,
-        dest: Register,
-        src: Register,
-        idx: ConstPoolIdx,
-        element: u32,
-    ) {
-        self.emit_access_enum(BytecodeOpcode::LoadEnumElement, dest, src, idx, element);
+    pub fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_access_enum(BytecodeOpcode::LoadEnumElement, dest, src, idx);
     }
 
     pub fn emit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
@@ -930,14 +912,12 @@ impl BytecodeWriter {
         inst: BytecodeOpcode,
         r1: Register,
         r2: Register,
-        tuple_id: TupleId,
-        element: u32,
+        idx: ConstPoolIdx,
     ) {
         let values = [
             r1.to_usize() as u32,
             r2.to_usize() as u32,
-            tuple_id.to_usize() as u32,
-            element,
+            idx.to_usize() as u32,
         ];
         self.emit_values(inst, &values);
     }
@@ -948,13 +928,11 @@ impl BytecodeWriter {
         r1: Register,
         r2: Register,
         idx: ConstPoolIdx,
-        element: u32,
     ) {
         let values = [
             r1.to_usize() as u32,
             r2.to_usize() as u32,
             idx.to_usize() as u32,
-            element,
         ];
         self.emit_values(inst, &values);
     }

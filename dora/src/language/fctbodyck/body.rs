@@ -801,8 +801,8 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Global(globalid)) => {
-                let glob = self.sa.globals.idx(globalid);
-                let ty = glob.read().ty.clone();
+                let global_var = self.sa.globals.idx(globalid);
+                let ty = global_var.read().ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
 
                 self.analysis
@@ -893,10 +893,10 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Global(global_id)) => {
-                let glob = self.sa.globals.idx(global_id);
-                let glob = glob.read();
+                let global_var = self.sa.globals.idx(global_id);
+                let global_var = global_var.read();
 
-                if !e.initializer && !glob.mutable {
+                if !e.initializer && !global_var.mutable {
                     self.sa
                         .diag
                         .lock()
@@ -906,7 +906,7 @@ impl<'a> TypeCheck<'a> {
                 self.analysis
                     .map_idents
                     .insert(e.lhs.id(), IdentType::Global(global_id));
-                glob.ty.clone()
+                global_var.ty.clone()
             }
 
             None => {
@@ -2571,8 +2571,8 @@ impl<'a> TypeCheck<'a> {
                     self.sa.diag.lock().report(self.file_id, e.pos, msg);
                 }
 
-                let glob = self.sa.globals.idx(global_id);
-                let ty = glob.read().ty.clone();
+                let global_var = self.sa.globals.idx(global_id);
+                let ty = global_var.read().ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
 
                 self.analysis

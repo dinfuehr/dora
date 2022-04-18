@@ -371,27 +371,15 @@ impl<'a> BytecodeReader<'a> {
             BytecodeOpcode::LoadTupleElement => {
                 let dest = self.read_register();
                 let src = self.read_register();
-                let tuple_id = self.read_tuple();
-                let element = self.read_index();
-                BytecodeInstruction::LoadTupleElement {
-                    dest,
-                    src,
-                    tuple_id,
-                    element,
-                }
+                let idx = self.read_const_pool_idx();
+                BytecodeInstruction::LoadTupleElement { dest, src, idx }
             }
 
             BytecodeOpcode::LoadEnumElement => {
                 let dest = self.read_register();
                 let src = self.read_register();
                 let idx = self.read_const_pool_idx();
-                let element = self.read_index();
-                BytecodeInstruction::LoadEnumElement {
-                    dest,
-                    src,
-                    idx,
-                    element,
-                }
+                BytecodeInstruction::LoadEnumElement { dest, src, idx }
             }
 
             BytecodeOpcode::LoadEnumVariant => {
@@ -424,14 +412,14 @@ impl<'a> BytecodeReader<'a> {
 
             BytecodeOpcode::LoadGlobal => {
                 let dest = self.read_register();
-                let glob = self.read_global();
-                BytecodeInstruction::LoadGlobal { dest, glob }
+                let global_id = self.read_global();
+                BytecodeInstruction::LoadGlobal { dest, global_id }
             }
 
             BytecodeOpcode::StoreGlobal => {
                 let src = self.read_register();
-                let glob = self.read_global();
-                BytecodeInstruction::StoreGlobal { src, glob }
+                let global_id = self.read_global();
+                BytecodeInstruction::StoreGlobal { src, global_id }
             }
 
             BytecodeOpcode::PushRegister => {
@@ -1198,24 +1186,12 @@ where
                 self.visitor.visit_mov(dest, src);
             }
 
-            BytecodeInstruction::LoadTupleElement {
-                dest,
-                src,
-                tuple_id,
-                element,
-            } => {
-                self.visitor
-                    .visit_load_tuple_element(dest, src, tuple_id, element);
+            BytecodeInstruction::LoadTupleElement { dest, src, idx } => {
+                self.visitor.visit_load_tuple_element(dest, src, idx);
             }
 
-            BytecodeInstruction::LoadEnumElement {
-                dest,
-                src,
-                idx,
-                element,
-            } => {
-                self.visitor
-                    .visit_load_enum_element(dest, src, idx, element);
+            BytecodeInstruction::LoadEnumElement { dest, src, idx } => {
+                self.visitor.visit_load_enum_element(dest, src, idx);
             }
 
             BytecodeInstruction::LoadEnumVariant { dest, src, idx } => {
@@ -1234,12 +1210,12 @@ where
                 self.visitor.visit_store_field(src, obj, field);
             }
 
-            BytecodeInstruction::LoadGlobal { dest, glob } => {
-                self.visitor.visit_load_global(dest, glob);
+            BytecodeInstruction::LoadGlobal { dest, global_id } => {
+                self.visitor.visit_load_global(dest, global_id);
             }
 
-            BytecodeInstruction::StoreGlobal { src, glob } => {
-                self.visitor.visit_store_global(src, glob);
+            BytecodeInstruction::StoreGlobal { src, global_id } => {
+                self.visitor.visit_store_global(src, global_id);
             }
 
             BytecodeInstruction::PushRegister { src } => {
@@ -1729,23 +1705,11 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_tuple_element(
-        &mut self,
-        _dest: Register,
-        _src: Register,
-        _tuple_id: TupleId,
-        _element: u32,
-    ) {
+    fn visit_load_tuple_element(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 
-    fn visit_load_enum_element(
-        &mut self,
-        _dest: Register,
-        _src: Register,
-        _idx: ConstPoolIdx,
-        _element: u32,
-    ) {
+    fn visit_load_enum_element(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 
@@ -1765,11 +1729,11 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_global(&mut self, _dest: Register, _glob: GlobalDefinitionId) {
+    fn visit_load_global(&mut self, _dest: Register, _global_id: GlobalDefinitionId) {
         unimplemented!();
     }
 
-    fn visit_store_global(&mut self, _src: Register, _glob: GlobalDefinitionId) {
+    fn visit_store_global(&mut self, _src: Register, _global_id: GlobalDefinitionId) {
         unimplemented!();
     }
 

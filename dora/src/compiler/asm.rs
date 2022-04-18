@@ -815,7 +815,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn ensure_global(
         &mut self,
-        glob: &GlobalDefinition,
+        global_var: &GlobalDefinition,
         fid: FctDefinitionId,
         ptr: Address,
         position: Position,
@@ -824,7 +824,7 @@ impl<'a> BaselineAssembler<'a> {
         let lbl_global = self.masm.create_label();
         let lbl_return = self.masm.create_label();
 
-        let disp = self.masm.add_addr(glob.address_init);
+        let disp = self.masm.add_addr(global_var.address_init);
         let pos = self.masm.pos() as i32;
         self.masm.load_constpool(REG_RESULT, disp + pos);
         self.masm.load_mem(

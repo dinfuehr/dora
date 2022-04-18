@@ -8,14 +8,14 @@ pub fn init_global_addresses(vm: &VM) {
     let mut size = 0;
     let mut offsets = Vec::with_capacity(vm.globals.len());
 
-    for glob in vm.globals.iter() {
-        let glob = glob.read();
+    for global_var in vm.globals.iter() {
+        let global_var = global_var.read();
 
         let initialized_offset = size;
         size += SourceType::Bool.size(vm) as usize;
 
-        let ty_size = glob.ty.size(vm) as usize;
-        let ty_align = glob.ty.align(vm) as usize;
+        let ty_size = global_var.ty.size(vm) as usize;
+        let ty_align = global_var.ty.align(vm) as usize;
 
         let value_offset = mem::align_usize(size, ty_align);
         offsets.push((initialized_offset, value_offset));
@@ -29,12 +29,12 @@ pub fn init_global_addresses(vm: &VM) {
     let size = mem::page_align(size);
     let start = os::commit(size, false);
 
-    for (ind, glob) in vm.globals.iter().enumerate() {
-        let mut glob = glob.write();
+    for (ind, global_var) in vm.globals.iter().enumerate() {
+        let mut global_var = global_var.write();
         let (initialized_offset, value_offset) = offsets[ind];
 
-        glob.address_init = start.offset(initialized_offset);
-        glob.address_value = start.offset(value_offset);
+        global_var.address_init = start.offset(initialized_offset);
+        global_var.address_value = start.offset(value_offset);
     }
 
     let mut global_variable_memory = vm.global_variable_memory.lock();
