@@ -4761,15 +4761,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
 
-            let tuple_ty = SourceType::Tuple(tuple_id);
-            let tuple_ty_name = tuple_ty.name(self.vm);
+            let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
             format!(
-                "LoadTupleElement {}, {}, Tuple({})={}.{}",
+                "LoadTupleElement {}, {}, ConstPoolIdx({}) # {}.{} TupleId({})",
                 dest,
                 src,
+                idx.to_usize(),
+                tuple_name,
+                subtype_idx,
                 tuple_id.to_usize(),
-                tuple_ty_name,
-                subtype_idx
             )
         });
         self.emit_load_tuple_element(dest, src, idx);
@@ -5473,10 +5473,11 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
             format!(
-                "NewTuple {}, TupleId({}) # {}",
+                "NewTuple {}, ConstPoolIdx({}) # {} TupleId({})",
                 dest,
+                idx.to_usize(),
+                tuple_name,
                 tuple_id.to_usize(),
-                tuple_name
             )
         });
         self.emit_new_tuple(dest, idx);
