@@ -16,7 +16,6 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::EnumInstanceId;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumDefinitionId(u32);
@@ -72,7 +71,6 @@ pub struct EnumDefinition {
     pub name_to_value: HashMap<Name, u32>,
     pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
-    pub specializations: RwLock<HashMap<SourceTypeArray, EnumInstanceId>>,
     pub simple_enumeration: bool,
 }
 
@@ -104,7 +102,6 @@ impl EnumDefinition {
             name_to_value: HashMap::new(),
             impls: Vec::new(),
             extensions: Vec::new(),
-            specializations: RwLock::new(HashMap::new()),
             simple_enumeration: false,
         }
     }

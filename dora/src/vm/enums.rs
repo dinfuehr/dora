@@ -59,6 +59,6 @@ pub enum EnumLayout {
 }
 
 #[derive(Debug)]
-pub struct EnumDefVariant {
+pub struct EnumInstanceVariant {
     pub types: Vec<SourceType>,
 }

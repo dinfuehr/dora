@@ -135,7 +135,11 @@ pub fn specialize_enum(
     enum_: &EnumDefinition,
     type_params: SourceTypeArray,
 ) -> EnumInstanceId {
-    if let Some(&id) = enum_.specializations.read().get(&type_params) {
+    if let Some(&id) = vm
+        .enum_specializations
+        .read()
+        .get(&(enum_.id(), type_params.clone()))
+    {
         return id;
     }
 
@@ -158,13 +162,13 @@ fn create_specialized_enum(
     let mut enum_defs = vm.enum_instances.lock();
     let id: EnumInstanceId = enum_defs.len().into();
 
-    let mut specializations = enum_.specializations.write();
+    let mut specializations = vm.enum_specializations.write();
 
-    if let Some(&id) = specializations.get(&type_params) {
+    if let Some(&id) = specializations.get(&(enum_.id(), type_params.clone())) {
         return id;
     }
 
-    let old = specializations.insert(type_params.clone(), id);
+    let old = specializations.insert((enum_.id(), type_params.clone()), id);
     assert!(old.is_none());
 
     let variants = if let EnumLayout::Tagged = layout {
@@ -345,7 +349,11 @@ pub fn specialize_class(
     cls: &ClassDefinition,
     type_params: &SourceTypeArray,
 ) -> ClassInstanceId {
-    if let Some(&id) = cls.specializations.read().get(&type_params) {
+    if let Some(&id) = vm
+        .class_specializations
+        .read()
+        .get(&(cls.id(), type_params.clone()))
+    {
         return id;
     }
 
@@ -434,13 +442,13 @@ fn create_specialized_class_regular(
     let mut class_defs = vm.class_instances.lock();
     let id: ClassInstanceId = class_defs.len().into();
 
-    let mut specializations = cls.specializations.write();
+    let mut specializations = vm.class_specializations.write();
 
-    if let Some(&id) = specializations.get(type_params) {
+    if let Some(&id) = specializations.get(&(cls.id(), type_params.clone())) {
         return id;
     }
 
-    let old = specializations.insert(type_params.clone(), id);
+    let old = specializations.insert((cls.id(), type_params.clone()), id);
     assert!(old.is_none());
 
     let class_def = Arc::new(ClassInstance {
@@ -559,13 +567,13 @@ fn create_specialized_class_array(
     let mut class_defs = vm.class_instances.lock();
     let id: ClassInstanceId = class_defs.len().into();
 
-    let mut specializations = cls.specializations.write();
+    let mut specializations = vm.class_specializations.write();
 
-    if let Some(&id) = specializations.get(type_params) {
+    if let Some(&id) = specializations.get(&(cls.id(), type_params.clone())) {
         return id;
     }
 
-    let old = specializations.insert(type_params.clone(), id);
+    let old = specializations.insert((cls.id(), type_params.clone()), id);
     assert!(old.is_none());
 
     let class_def = Arc::new(ClassInstance {
@@ -657,7 +665,11 @@ pub fn specialize_trait_object(
 
     let combined_type_params = trait_type_params.connect_single(object_type.clone());
 
-    if let Some(&id) = trait_.vtables.read().get(&combined_type_params) {
+    if let Some(&id) = vm
+        .trait_vtables
+        .read()
+        .get(&(trait_id, combined_type_params.clone()))
+    {
         return id;
     }
 
@@ -701,16 +713,16 @@ fn create_specialized_class_for_trait_object(
     let mut vtable = VTableBox::new(std::ptr::null(), csize as usize, 0, &vtable_entries);
     ensure_display(vm, &mut vtable, parent_id);
 
-    let mut class_defs = vm.class_instances.lock();
-    let id: ClassInstanceId = class_defs.len().into();
+    let mut class_instances = vm.class_instances.lock();
+    let id: ClassInstanceId = class_instances.len().into();
 
-    let mut vtables = trait_.vtables.write();
+    let mut vtables = vm.trait_vtables.write();
 
-    if let Some(&id) = vtables.get(&combined_type_params_id) {
+    if let Some(&id) = vtables.get(&(trait_.id(), combined_type_params_id.clone())) {
         return id;
     }
 
-    let old = vtables.insert(combined_type_params_id, id);
+    let old = vtables.insert((trait_.id(), combined_type_params_id), id);
     assert!(old.is_none());
 
     let class_def = Arc::new(ClassInstance {
@@ -728,7 +740,7 @@ fn create_specialized_class_for_trait_object(
     vtable.initialize_class_instance(Arc::as_ptr(&class_def));
     *class_def.vtable.write() = Some(vtable);
 
-    class_defs.push(class_def.clone());
+    class_instances.push(class_def.clone());
 
     id
 }

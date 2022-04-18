@@ -14,7 +14,6 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::ClassInstanceId;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitDefinitionId(u32);
@@ -61,7 +60,6 @@ pub struct TraitDefinition {
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
     pub static_names: HashMap<Name, FctDefinitionId>,
-    pub vtables: RwLock<HashMap<SourceTypeArray, ClassInstanceId>>,
 }
 
 impl TraitDefinition {
@@ -83,7 +81,6 @@ impl TraitDefinition {
             methods: Vec::new(),
             instance_names: HashMap::new(),
             static_names: HashMap::new(),
-            vtables: RwLock::new(HashMap::new()),
         }
     }
 

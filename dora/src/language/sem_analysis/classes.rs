@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
@@ -16,7 +16,6 @@ use crate::language::specialize::replace_type_param;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, Id};
-use crate::vm::ClassInstanceId;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassDefinitionId(usize);
@@ -95,8 +94,6 @@ pub struct ClassDefinition {
     pub type_params: Vec<TypeParam>,
     pub type_params2: TypeParamDefinition,
 
-    pub specializations: RwLock<HashMap<SourceTypeArray, ClassInstanceId>>,
-
     // true if this class is the generic Array class
     pub is_array: bool,
     pub is_str: bool,
@@ -141,7 +138,6 @@ impl ClassDefinition {
 
             type_params,
             type_params2: TypeParamDefinition::new(),
-            specializations: RwLock::new(HashMap::new()),
 
             is_array: false,
             is_str: false,

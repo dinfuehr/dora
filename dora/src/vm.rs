@@ -1,4 +1,5 @@
 use parking_lot::{Mutex, RwLock};
+use std::collections::HashMap;
 use std::mem;
 use std::ptr;
 use std::sync::Arc;
@@ -12,10 +13,10 @@ use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
     get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
-    ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
-    FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
-    SourceFile, StructDefinition, StructDefinitionId, StructInstance, TraitDefinition,
-    TraitDefinitionId, Tuples, UseDefinition,
+    ClassDefinitionId, ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
+    FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition,
+    ModuleDefinitionId, SourceFile, StructDefinition, StructDefinitionId, StructInstance,
+    TraitDefinition, TraitDefinitionId, Tuples, UseDefinition,
 };
 use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -244,17 +245,21 @@ pub struct VM {
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub struct_instances: GrowableVec<StructInstance>, // stores all struct definitions
     pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
+    pub class_specializations:
+        RwLock<HashMap<(ClassDefinitionId, SourceTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVec<ClassInstance>, // stores all class definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
-    pub tuples: Mutex<Tuples>,               // stores all tuple definitions
+    pub tuples: Mutex<Tuples>,                       // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
-    pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
+    pub modules: MutableVec<ModuleDefinition>,       // stores all module definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>,    // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enums: MutableVec<EnumDefinition>, // store all enum source definitions
+    pub enum_specializations: RwLock<HashMap<(EnumDefinitionId, SourceTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVec<EnumInstance>, // stores all enum definitions
-    pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
+    pub traits: MutableVec<TraitDefinition>,       // stores all trait definitions
+    pub trait_vtables: RwLock<HashMap<(TraitDefinitionId, SourceTypeArray), ClassInstanceId>>,
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
@@ -305,14 +310,17 @@ impl VM {
             structs: MutableVec::new(),
             struct_instances: GrowableVec::new(),
             classes: MutableVec::new(),
+            class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVec::new(),
             extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
             modules,
             enums: MutableVec::new(),
+            enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVec::new(),
             traits: MutableVec::new(),
+            trait_vtables: RwLock::new(HashMap::new()),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
             global_variable_memory: Mutex::new(None),
@@ -416,14 +424,17 @@ impl VM {
             structs: sa.structs,
             struct_instances: GrowableVec::new(),
             classes: sa.classes,
+            class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVec::new(),
             extensions: sa.extensions,
             tuples: sa.tuples,
             annotations: sa.annotations,
             modules: sa.modules,
             enums: sa.enums,
+            enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVec::new(),
             traits: sa.traits,
+            trait_vtables: RwLock::new(HashMap::new()),
             impls: sa.impls,
             globals: sa.globals,
             global_variable_memory: Mutex::new(None),
