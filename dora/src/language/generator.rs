@@ -8,11 +8,12 @@ use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
 };
 use crate::language::sem_analysis::{
-    get_tuple_subtypes, AnalysisData, CallType, ConstDefinitionId, EnumDefinitionId, FctDefinition,
-    FctDefinitionId, GlobalDefinitionId, IdentType, Intrinsic, StructDefinitionId, TupleId, VarId,
+    find_impl, get_tuple_subtypes, AnalysisData, CallType, ConstDefinitionId, EnumDefinitionId,
+    FctDefinition, FctDefinitionId, GlobalDefinitionId, IdentType, Intrinsic, StructDefinitionId,
+    TupleId, VarId,
 };
 use crate::language::specialize::specialize_type;
-use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::{expr_always_returns, expr_block_always_returns};
 use crate::vm::SemAnalysis;
 

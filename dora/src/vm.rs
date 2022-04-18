@@ -97,16 +97,13 @@ pub struct FullSemAnalysis {
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
-    pub struct_instances: GrowableVec<StructInstance>, // stores all struct definitions
     pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
-    pub class_instances: GrowableVec<ClassInstance>, // stores all class definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
     pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub enums: MutableVec<EnumDefinition>,   // stores all enum source definitions
-    pub enum_instances: GrowableVec<EnumInstance>, // stores all enum definitions
     pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
     pub impls: MutableVec<ImplDefinition>,   // stores all impl definitions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
@@ -145,15 +142,12 @@ impl FullSemAnalysis {
             source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
-            struct_instances: GrowableVec::new(),
             classes: MutableVec::new(),
-            class_instances: GrowableVec::new(),
             extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
             modules,
             enums: MutableVec::new(),
-            enum_instances: GrowableVec::new(),
             traits: MutableVec::new(),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
@@ -420,15 +414,15 @@ impl VM {
             source_files: sa.source_files,
             consts: sa.consts,
             structs: sa.structs,
-            struct_instances: sa.struct_instances,
+            struct_instances: GrowableVec::new(),
             classes: sa.classes,
-            class_instances: sa.class_instances,
+            class_instances: GrowableVec::new(),
             extensions: sa.extensions,
             tuples: sa.tuples,
             annotations: sa.annotations,
             modules: sa.modules,
             enums: sa.enums,
-            enum_instances: sa.enum_instances,
+            enum_instances: GrowableVec::new(),
             traits: sa.traits,
             impls: sa.impls,
             globals: sa.globals,
@@ -466,6 +460,8 @@ impl VM {
         // ensure this data is only created during execution
         assert!(self.compilation_database.is_empty());
         assert!(self.class_instances.len() == 0);
+        assert!(self.enum_instances.len() == 0);
+        assert!(self.struct_instances.len() == 0);
 
         stdlib_setup::setup(self);
 

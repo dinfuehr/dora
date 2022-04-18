@@ -23,7 +23,9 @@ pub use self::extensions::{
 };
 pub use self::functions::{FctDefinition, FctDefinitionId, FctParent, Intrinsic};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
-pub use self::impls::{find_trait_impl, impl_matches, ImplDefinition, ImplDefinitionId};
+pub use self::impls::{
+    find_impl, find_trait_impl, impl_matches, implements_trait, ImplDefinition, ImplDefinitionId,
+};
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{

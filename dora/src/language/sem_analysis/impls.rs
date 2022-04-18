@@ -13,9 +13,9 @@ use crate::language::sem_analysis::{
     extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SourceFileId, TraitDefinitionId,
     TypeParam, TypeParamDefinition, TypeParamId,
 };
-use crate::language::ty::{find_impl, SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
-use crate::vm::VM;
+use crate::vm::{SemAnalysis, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplDefinitionId(u32);
@@ -144,4 +144,210 @@ pub fn find_trait_impl(
         .get(&fct_id)
         .cloned()
         .expect("no impl method found for generic trait call")
+}
+
+pub fn implements_trait(
+    sa: &SemAnalysis,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    trait_id: TraitDefinitionId,
+) -> bool {
+    match check_ty {
+        SourceType::Tuple(_)
+        | SourceType::Unit
+        | SourceType::Trait(_, _)
+        | SourceType::Lambda(_) => false,
+
+        SourceType::Enum(enum_id, _) => {
+            let enum_ = sa.enums[enum_id].read();
+            check_impls(
+                sa,
+                check_ty,
+                check_type_param_defs,
+                None,
+                trait_id,
+                &enum_.impls,
+            )
+            .is_some()
+        }
+
+        SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64 => {
+            if sa.known.traits.zero == trait_id {
+                return true;
+            }
+
+            let struct_id = check_ty
+                .primitive_struct_id(sa)
+                .expect("primitive expected");
+            let xstruct = sa.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_impls(
+                sa,
+                check_ty,
+                check_type_param_defs,
+                None,
+                trait_id,
+                &xstruct.impls,
+            )
+            .is_some()
+        }
+
+        SourceType::Struct(struct_id, _) => {
+            let xstruct = sa.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_impls(
+                sa,
+                check_ty,
+                check_type_param_defs,
+                None,
+                trait_id,
+                &xstruct.impls,
+            )
+            .is_some()
+        }
+
+        SourceType::Class(_, _) => {
+            let cls_id = check_ty.cls_id().expect("class expected");
+            let cls = sa.classes.idx(cls_id);
+            let cls = cls.read();
+
+            check_impls(
+                sa,
+                check_ty.clone(),
+                check_type_param_defs,
+                None,
+                trait_id,
+                &cls.impls,
+            )
+            .is_some()
+        }
+
+        SourceType::TypeParam(tp_id) => {
+            let tp = &check_type_param_defs[tp_id.to_usize()];
+            tp.trait_bounds.contains(&trait_id)
+        }
+
+        SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
+    }
+}
+
+pub fn find_impl(
+    vm: &VM,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    trait_id: TraitDefinitionId,
+) -> Option<ImplDefinitionId> {
+    match check_ty {
+        SourceType::Tuple(_)
+        | SourceType::Unit
+        | SourceType::Trait(_, _)
+        | SourceType::Lambda(_) => None,
+
+        SourceType::Enum(enum_id, _) => {
+            let enum_ = vm.enums[enum_id].read();
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                None,
+                trait_id,
+                &enum_.impls,
+            )
+        }
+
+        SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64 => {
+            let struct_id = check_ty
+                .primitive_struct_id(vm)
+                .expect("primitive expected");
+            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                None,
+                trait_id,
+                &xstruct.impls,
+            )
+        }
+
+        SourceType::Struct(struct_id, _) => {
+            let xstruct = vm.structs.idx(struct_id);
+            let xstruct = xstruct.read();
+
+            check_impls(
+                vm,
+                check_ty,
+                check_type_param_defs,
+                None,
+                trait_id,
+                &xstruct.impls,
+            )
+        }
+
+        SourceType::Class(_, _) => {
+            let cls_id = check_ty.cls_id().expect("class expected");
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            check_impls(
+                vm,
+                check_ty.clone(),
+                check_type_param_defs,
+                None,
+                trait_id,
+                &cls.impls,
+            )
+        }
+
+        SourceType::TypeParam(_) => unreachable!(),
+        SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
+    }
+}
+
+pub fn check_impls(
+    sa: &SemAnalysis,
+    check_ty: SourceType,
+    check_type_param_defs: &[TypeParam],
+    check_type_param_defs2: Option<&TypeParamDefinition>,
+    trait_id: TraitDefinitionId,
+    impls: &[ImplDefinitionId],
+) -> Option<ImplDefinitionId> {
+    for &impl_id in impls {
+        let impl_ = &sa.impls[impl_id];
+        let impl_ = impl_.read();
+
+        if impl_.trait_id != Some(trait_id) {
+            continue;
+        }
+
+        if impl_matches(
+            sa,
+            check_ty.clone(),
+            check_type_param_defs,
+            check_type_param_defs2,
+            impl_id,
+        )
+        .is_some()
+        {
+            return Some(impl_id);
+        }
+    }
+
+    None
 }
