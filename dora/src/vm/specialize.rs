@@ -12,13 +12,11 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    get_tuple_subtypes, ClassDefinition, ClassInstance, ClassInstanceId, EnumDefinition,
-    EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef, StructDefinition,
-    StructDefinitionId, StructInstance, TraitDefinition, VM,
+    get_concrete_tuple_ty, get_tuple_subtypes, ClassDefinition, ClassInstance, ClassInstanceId,
+    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldDef,
+    StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
-
-use super::get_concrete_tuple;
 
 pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
     replace_type_param(vm, ty, type_params, None)
@@ -290,8 +288,8 @@ pub fn specialize_enum_class(
 }
 
 pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
-    if let Some(tuple_id) = ty.tuple_id() {
-        let tuple = get_concrete_tuple(vm, tuple_id);
+    if ty.is_tuple() {
+        let tuple = get_concrete_tuple_ty(vm, &ty);
 
         for &ref_offset in tuple.references() {
             ref_fields.push(offset + ref_offset);
@@ -490,8 +488,8 @@ fn create_specialized_class_array(
             SourceType::Ptr | SourceType::Class(_, _) | SourceType::Trait(_, _) => {
                 InstanceSize::ObjArray
             }
-            SourceType::Tuple(tuple_id) => {
-                let tuple = get_concrete_tuple(vm, tuple_id);
+            SourceType::Tuple(_) => {
+                let tuple = get_concrete_tuple_ty(vm, &element_ty);
 
                 if tuple.contains_references() {
                     for &offset in tuple.references() {

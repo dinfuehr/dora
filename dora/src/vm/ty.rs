@@ -1,7 +1,7 @@
 use crate::language::ty::SourceType;
 use crate::mem;
 use crate::mode::MachineMode;
-use crate::vm::{get_concrete_tuple, VM};
+use crate::vm::{get_concrete_tuple_ty, VM};
 use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout};
 
 impl SourceType {
@@ -36,7 +36,7 @@ impl SourceType {
             }
             SourceType::Trait(_, _) => mem::ptr_width(),
             SourceType::TypeParam(_) => panic!("no size for type variable."),
-            SourceType::Tuple(tuple_id) => get_concrete_tuple(vm, *tuple_id).size(),
+            SourceType::Tuple(_) => get_concrete_tuple_ty(vm, self).size(),
         }
     }
 
@@ -71,7 +71,7 @@ impl SourceType {
             }
             SourceType::Trait(_, _) => mem::ptr_width(),
             SourceType::TypeParam(_) => panic!("no alignment for type variable."),
-            SourceType::Tuple(tuple_id) => get_concrete_tuple(vm, *tuple_id).align(),
+            SourceType::Tuple(_) => get_concrete_tuple_ty(vm, self).align(),
         }
     }
 

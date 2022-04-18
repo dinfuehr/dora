@@ -51,7 +51,9 @@ pub use self::specialize::{
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
     specialize_type_list,
 };
-pub use self::tuples::{get_concrete_tuple, ConcreteTuple};
+pub use self::tuples::{
+    get_concrete_tuple, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, ConcreteTuple,
+};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;

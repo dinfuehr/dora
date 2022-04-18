@@ -28,9 +28,10 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
-    get_concrete_tuple, specialize_class_id_params, specialize_enum_class,
-    specialize_enum_id_params, specialize_struct_id_params, specialize_trait_object,
-    specialize_tuple, specialize_type, specialize_type_list, EnumLayout, GcPoint, Trap, VM,
+    get_concrete_tuple, get_concrete_tuple_bytecode_ty, specialize_class_id_params,
+    specialize_enum_class, specialize_enum_id_params, specialize_struct_id_params,
+    specialize_trait_object, specialize_tuple, specialize_type, specialize_type_list, EnumLayout,
+    GcPoint, Trap, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -222,9 +223,9 @@ impl<'a> CannonCodeGen<'a> {
                         self.references.push(offset);
                     }
 
-                    BytecodeType::Tuple(tuple_id) => {
+                    BytecodeType::Tuple(_) => {
                         let offset = self.register_offset(Register(idx));
-                        let tuple = get_concrete_tuple(self.vm, tuple_id);
+                        let tuple = get_concrete_tuple_bytecode_ty(self.vm, &ty);
                         for &ref_offset in tuple.references() {
                             self.references.push(offset + ref_offset);
                         }
@@ -1879,8 +1880,8 @@ impl<'a> CannonCodeGen<'a> {
                         RegOrOffset::Offset(src_offset),
                     );
 
-                    needs_write_barrier =
-                        get_concrete_tuple(self.vm, tuple_id).contains_references()
+                    needs_write_barrier = get_concrete_tuple_bytecode_ty(self.vm, &bytecode_type)
+                        .contains_references()
                 }
 
                 BytecodeType::Struct(struct_id, type_params) => {
@@ -2767,7 +2768,7 @@ impl<'a> CannonCodeGen<'a> {
 
         match src_type {
             BytecodeType::Tuple(tuple_id) => {
-                let tuple = get_concrete_tuple(self.vm, tuple_id);
+                let tuple = get_concrete_tuple_bytecode_ty(self.vm, &src_type);
                 let element_size = tuple.size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
@@ -2918,7 +2919,7 @@ impl<'a> CannonCodeGen<'a> {
 
         match dest_type {
             BytecodeType::Tuple(tuple_id) => {
-                let element_size = get_concrete_tuple(self.vm, tuple_id).size();
+                let element_size = get_concrete_tuple_bytecode_ty(self.vm, &dest_type).size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let dest_offset = self.register_offset(dest);
@@ -4111,7 +4112,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(arguments[0], REG_RESULT.into());
                 self.emit_load_register(arguments[1], REG_TMP1.into());
 
-                let tuple_size = get_concrete_tuple(self.vm, tuple_id).size();
+                let tuple_size = get_concrete_tuple_bytecode_ty(self.vm, &bytecode_type).size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, tuple_size);
                 self.zero_refs_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));

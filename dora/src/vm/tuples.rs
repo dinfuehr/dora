@@ -1,5 +1,6 @@
 use std::cmp::max;
 
+use crate::bytecode::BytecodeType;
 use crate::language::sem_analysis::{get_tuple_subtypes, TupleId};
 use crate::language::ty::SourceType;
 use crate::mem;
@@ -110,4 +111,22 @@ fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> ConcreteTuple {
 pub fn get_concrete_tuple(vm: &VM, id: TupleId) -> ConcreteTuple {
     let subtypes = get_tuple_subtypes(vm, id);
     determine_tuple_size(vm, &*subtypes)
+}
+
+pub fn get_concrete_tuple_ty(vm: &VM, ty: &SourceType) -> ConcreteTuple {
+    let tuple_id = match ty {
+        SourceType::Tuple(tuple_id) => *tuple_id,
+        _ => unreachable!(),
+    };
+
+    get_concrete_tuple(vm, tuple_id)
+}
+
+pub fn get_concrete_tuple_bytecode_ty(vm: &VM, ty: &BytecodeType) -> ConcreteTuple {
+    let tuple_id = match ty {
+        BytecodeType::Tuple(tuple_id) => *tuple_id,
+        _ => unreachable!(),
+    };
+
+    get_concrete_tuple(vm, tuple_id)
 }
