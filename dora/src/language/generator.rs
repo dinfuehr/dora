@@ -1768,7 +1768,8 @@ impl<'a> AstBytecodeGen<'a> {
             self.gen.emit_push_register(value);
         }
 
-        self.gen.emit_new_tuple(result, tuple_id, e.pos);
+        let idx = self.gen.add_const_tuple(tuple_id);
+        self.gen.emit_new_tuple(result, idx, e.pos);
 
         for arg_reg in values {
             self.free_if_temp(arg_reg);

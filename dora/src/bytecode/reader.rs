@@ -846,8 +846,8 @@ impl<'a> BytecodeReader<'a> {
             }
             BytecodeOpcode::NewTuple => {
                 let dest = self.read_register();
-                let tuple = self.read_tuple();
-                BytecodeInstruction::NewTuple { dest, tuple }
+                let idx = self.read_const_pool_idx();
+                BytecodeInstruction::NewTuple { dest, idx }
             }
             BytecodeOpcode::NewEnum => {
                 let dest = self.read_register();
@@ -1464,8 +1464,8 @@ where
             BytecodeInstruction::NewArray { dest, cls, length } => {
                 self.visitor.visit_new_array(dest, cls, length);
             }
-            BytecodeInstruction::NewTuple { dest, tuple } => {
-                self.visitor.visit_new_tuple(dest, tuple);
+            BytecodeInstruction::NewTuple { dest, idx } => {
+                self.visitor.visit_new_tuple(dest, idx);
             }
             BytecodeInstruction::NewEnum { dest, idx } => {
                 self.visitor.visit_new_enum(dest, idx);
@@ -1985,7 +1985,7 @@ pub trait BytecodeVisitor {
     fn visit_new_array(&mut self, _dest: Register, _cls: ConstPoolIdx, _length: Register) {
         unimplemented!();
     }
-    fn visit_new_tuple(&mut self, _dest: Register, _tuple: TupleId) {
+    fn visit_new_tuple(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_new_enum(&mut self, _dest: Register, _idx: ConstPoolIdx) {

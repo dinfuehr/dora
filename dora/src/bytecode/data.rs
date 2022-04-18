@@ -1340,7 +1340,7 @@ pub enum BytecodeInstruction {
     },
     NewTuple {
         dest: Register,
-        tuple: TupleId,
+        idx: ConstPoolIdx,
     },
     NewEnum {
         dest: Register,
@@ -1526,7 +1526,8 @@ enumeration!(ConstPoolOpcode {
     Field,
     FieldFixed,
     Generic,
-    TupleElement
+    TupleElement,
+    Tuple
 });
 
 #[derive(Debug, PartialEq)]
@@ -1549,6 +1550,7 @@ pub enum ConstPoolEntry {
     StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
     Trait(TraitDefinitionId, SourceTypeArray, SourceType),
     TupleElement(TupleId, usize),
+    Tuple(TupleId),
 }
 
 impl ConstPoolEntry {

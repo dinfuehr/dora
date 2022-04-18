@@ -2437,7 +2437,11 @@ impl<'a> CannonCodeGen<'a> {
             .fill_zero_dynamic(array_data_start, array_data_limit);
     }
 
-    fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+    fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let tuple_id = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Tuple(tuple_id) => *tuple_id,
+            _ => unreachable!(),
+        };
         let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
         let subtypes = get_tuple_subtypes(self.vm, tuple_id);
         let tuple = get_concrete_tuple(self.vm, tuple_id);
@@ -5461,8 +5465,12 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         });
         self.emit_new_array(dest, idx, length);
     }
-    fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+    fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
+            let tuple_id = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Tuple(tuple_id) => *tuple_id,
+                _ => unreachable!(),
+            };
             let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
             format!(
                 "NewTuple {}, TupleId({}) # {}",
@@ -5471,7 +5479,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 tuple_name
             )
         });
-        self.emit_new_tuple(dest, tuple_id);
+        self.emit_new_tuple(dest, idx);
     }
 
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {

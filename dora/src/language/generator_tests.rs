@@ -8,7 +8,7 @@ use crate::bytecode::{
 use crate::language::generator::generate_fct;
 use crate::language::sem_analysis::{
     ensure_tuple, ClassDefinitionId, EnumDefinitionId, GlobalDefinitionId, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
+    StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -4101,17 +4101,22 @@ fn gen_int64_max_value() {
 
 #[test]
 fn gen_tuple_var() {
-    gen("fn f() { let x = (1I, 2I); }", |vm, code| {
+    gen_fct("fn f() { let x = (1I, 2I); }", |vm, code, fct| {
         let tuple_id = ensure_tuple(vm, vec![SourceType::Int32, SourceType::Int32]);
         let expected = vec![
             ConstInt32(r(1), 1),
             ConstInt32(r(2), 2),
             PushRegister(r(1)),
             PushRegister(r(2)),
-            NewTuple(r(0), tuple_id),
+            NewTuple(r(0), ConstPoolIdx(2)),
             RetVoid,
         ];
         assert_eq!(expected, code);
+
+        assert_eq!(
+            fct.const_pool(ConstPoolIdx(2)),
+            &ConstPoolEntry::Tuple(tuple_id)
+        );
     });
 }
 
@@ -4390,7 +4395,7 @@ pub enum Bytecode {
 
     NewObject(Register, ClassDefinitionId, SourceTypeArray),
     NewArray(Register, ClassDefinitionId, SourceTypeArray, Register),
-    NewTuple(Register, TupleId),
+    NewTuple(Register, ConstPoolIdx),
     NewEnum(Register, EnumDefinitionId, SourceTypeArray, usize),
     NewStruct(Register, StructDefinitionId, SourceTypeArray),
     NewTraitObject(
@@ -4994,8 +4999,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         };
         self.emit(Bytecode::NewArray(dest, cls_id, type_params, length));
     }
-    fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
-        self.emit(Bytecode::NewTuple(dest, tuple_id));
+    fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::NewTuple(dest, idx));
     }
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
         let (enum_id, type_params, variant_idx) = match self.bc.const_pool(idx) {

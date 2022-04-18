@@ -653,8 +653,8 @@ impl BytecodeWriter {
     pub fn emit_new_array(&mut self, dest: Register, cls_id: ConstPoolIdx, length: Register) {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
     }
-    pub fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
-        let values = [dest.to_usize() as u32, tuple_id.to_usize() as u32];
+    pub fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let values = [dest.to_usize() as u32, idx.to_usize() as u32];
         self.emit_values(BytecodeOpcode::NewTuple, &values);
     }
     pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {

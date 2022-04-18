@@ -172,6 +172,10 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::TupleElement(id, subtype_idx))
     }
 
+    pub fn add_const_tuple(&mut self, id: TupleId) -> ConstPoolIdx {
+        self.writer.add_const(ConstPoolEntry::Tuple(id))
+    }
+
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);
@@ -910,10 +914,10 @@ impl BytecodeBuilder {
         self.writer.set_position(pos);
         self.writer.emit_new_array(dest, cls_idx, length);
     }
-    pub fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId, pos: Position) {
+    pub fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
-        self.writer.emit_new_tuple(dest, tuple_id);
+        self.writer.emit_new_tuple(dest, idx);
     }
     pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));

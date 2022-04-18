@@ -190,6 +190,16 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
                 println!("{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)
             }
+            ConstPoolEntry::Tuple(tuple_id) => {
+                let tuple_name = SourceType::Tuple(*tuple_id).name(vm);
+                println!(
+                    "{}{} => Tuple {} # {}",
+                    align,
+                    idx,
+                    tuple_id.to_usize(),
+                    tuple_name
+                )
+            }
         }
     }
 
@@ -561,8 +571,12 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_new_tuple(&mut self, name: &str, r1: Register, tuple_id: TupleId) {
+    fn emit_new_tuple(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
+        let tuple_id = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Tuple(tuple_id) => *tuple_id,
+            _ => unreachable!(),
+        };
         let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
         writeln!(
             self.w,
@@ -1121,8 +1135,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         self.emit_new_array("NewArray", dest, idx, length);
     }
-    fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
-        self.emit_new_tuple("NewTuple", dest, tuple_id);
+    fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new_tuple("NewTuple", dest, idx);
     }
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_enum("NewEnum", dest, idx);
