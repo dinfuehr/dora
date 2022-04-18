@@ -167,7 +167,7 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::Trait(id, type_params, object_ty))
     }
 
-    pub fn add_const_tuple_element(&mut self, id: TupleId, subtype_idx: u32) -> ConstPoolIdx {
+    pub fn add_const_tuple_element(&mut self, id: TupleId, subtype_idx: usize) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::TupleElement(id, subtype_idx))
     }

@@ -274,7 +274,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_id(enum_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
             buffer.emit_id(variant_idx.try_into().unwrap());
-            buffer.emit_id(element_idx as usize);
+            buffer.emit_id(element_idx);
         }
         &ConstPoolEntry::Struct(struct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Struct.to_u8());

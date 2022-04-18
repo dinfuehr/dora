@@ -1548,7 +1548,7 @@ pub enum ConstPoolEntry {
     Struct(StructDefinitionId, SourceTypeArray),
     StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
     Trait(TraitDefinitionId, SourceTypeArray, SourceType),
-    TupleElement(TupleId, u32),
+    TupleElement(TupleId, usize),
 }
 
 impl ConstPoolEntry {

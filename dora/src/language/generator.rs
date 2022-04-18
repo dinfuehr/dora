@@ -297,7 +297,7 @@ impl<'a> AstBytecodeGen<'a> {
                         let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.sa, ty);
                         let var_reg = self.alloc_var(bytecode_ty);
                         self.var_registers.insert(var_id, var_reg);
-                        let idx = self.gen.add_const_tuple_element(tuple_id, idx as u32);
+                        let idx = self.gen.add_const_tuple_element(tuple_id, idx);
 
                         self.gen.emit_load_tuple_element(var_reg, tuple_reg, idx);
                     }
@@ -312,7 +312,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                     if !ty.is_unit() {
                         let temp_reg = self.alloc_temp(BytecodeType::from_ty(self.sa, ty.clone()));
-                        let idx = self.gen.add_const_tuple_element(tuple_id, idx as u32);
+                        let idx = self.gen.add_const_tuple_element(tuple_id, idx);
                         self.gen.emit_load_tuple_element(temp_reg, tuple_reg, idx);
                         self.destruct_tuple_pattern(tuple, temp_reg, ty);
                         self.free_temp(temp_reg);
@@ -1021,9 +1021,15 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let tuple = self.visit_expr(&expr.lhs, DataDest::Alloc);
-        let idx = expr.rhs.to_lit_int().unwrap().value as u32;
+        let idx: usize = expr
+            .rhs
+            .to_lit_int()
+            .unwrap()
+            .value
+            .try_into()
+            .expect("too large");
 
-        let ty = get_tuple_subtypes(self.sa, tuple_id)[idx as usize].clone();
+        let ty = get_tuple_subtypes(self.sa, tuple_id)[idx].clone();
 
         if ty.is_unit() {
             assert!(dest.is_unit());
@@ -1033,7 +1039,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let ty: BytecodeType = BytecodeType::from_ty(self.sa, ty);
         let dest = self.ensure_register(dest, ty);
-        let idx = self.gen.add_const_tuple_element(tuple_id, idx as u32);
+        let idx = self.gen.add_const_tuple_element(tuple_id, idx);
         self.gen.emit_load_tuple_element(dest, tuple, idx);
 
         self.free_if_temp(tuple);
