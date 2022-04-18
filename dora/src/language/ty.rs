@@ -465,11 +465,11 @@ impl SourceType {
             | SourceType::Int64
             | SourceType::Float32
             | SourceType::Float64
-            | SourceType::Ptr
-            | SourceType::Trait(_, _) => true,
+            | SourceType::Ptr => true,
             SourceType::Class(_, params)
             | SourceType::Enum(_, params)
-            | SourceType::Struct(_, params) => {
+            | SourceType::Struct(_, params)
+            | SourceType::Trait(_, params) => {
                 for param in params.iter() {
                     if !param.is_concrete_type(vm) {
                         return false;
