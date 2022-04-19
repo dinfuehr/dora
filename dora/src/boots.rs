@@ -42,7 +42,7 @@ pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> C
 
     let tld_address = current_thread().tld_address();
 
-    let dora_stub_address = vm.dora_stub();
+    let dora_stub_address = vm.stubs.dora_entry_stub();
     let compile_fct_ptr: extern "C" fn(Address, Address, Address) -> Ref<UInt8Array> =
         unsafe { mem::transmute(dora_stub_address) };
 

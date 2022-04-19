@@ -5,10 +5,15 @@ use crate::language::ty::SourceTypeArray;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
-use crate::vm::{ClassInstance, ClassInstanceId, VM};
+use crate::vm::{setup_stubs, ClassInstance, ClassInstanceId, VM};
 use crate::vtable::VTableBox;
 
 pub(super) fn setup(vm: &mut VM) {
+    create_special_classes(vm);
+    setup_stubs(vm);
+}
+
+fn create_special_classes(vm: &mut VM) {
     let free_object: ClassInstanceId;
     let free_array: ClassInstanceId;
     let code_class_id: ClassInstanceId;

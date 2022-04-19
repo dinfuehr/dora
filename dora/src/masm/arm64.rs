@@ -1658,7 +1658,7 @@ impl MacroAssembler {
     pub fn trap(&mut self, trap: Trap, pos: Position) {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
-        self.raw_call(vm.trap_stub());
+        self.raw_call(vm.stubs.trap_stub());
         self.emit_position(pos);
     }
 

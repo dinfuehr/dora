@@ -423,7 +423,7 @@ fn create_specialized_class_regular(
 
     let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
 
-    let stub = vm.compile_stub().to_usize();
+    let stub = vm.stubs.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
     let (instance_size, element_size) = match size {
@@ -541,7 +541,7 @@ fn create_specialized_class_array(
         InstanceSize::Str
     };
 
-    let stub = vm.compile_stub().to_usize();
+    let stub = vm.stubs.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
     let (instance_size, element_size) = match size {
@@ -707,7 +707,7 @@ fn create_specialized_class_for_trait_object(
     csize = mem::align_i32(csize, mem::ptr_width());
     let size = InstanceSize::Fixed(csize);
 
-    let stub = vm.compile_stub().to_usize();
+    let stub = vm.stubs.compile_stub().to_usize();
     let vtable_entries = vec![stub; trait_.methods.len()];
 
     let mut vtable = VTableBox::new(std::ptr::null(), csize as usize, 0, &vtable_entries);

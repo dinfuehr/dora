@@ -127,7 +127,7 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_program_files(&mut self) -> Result<(), i32> {
-        if self.sa.parse_arg_file && !self.sa.args.arg_file.is_empty() {
+        if !self.sa.args.arg_file.is_empty() {
             let arg_file = self.sa.args.arg_file.clone();
             let path = PathBuf::from(&arg_file);
 

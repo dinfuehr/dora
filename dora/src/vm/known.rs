@@ -29,6 +29,28 @@ pub struct KnownElements {
 }
 
 impl KnownElements {
+    pub fn new() -> KnownElements {
+        KnownElements {
+            classes: KnownClasses::new(),
+            functions: KnownFunctions::new(),
+            traits: KnownTraits::new(),
+            enums: KnownEnums::new(),
+            annotations: KnownAnnotations::new(),
+            structs: KnownStructs::new(),
+
+            byte_array_class_instance: Mutex::new(None),
+            int_array_class_instance: Mutex::new(None),
+            str_class_instance: Mutex::new(None),
+            obj_class_instance: Mutex::new(None),
+            ste_class_instance: Mutex::new(None),
+            ex_class_instance: Mutex::new(None),
+
+            free_object_class_instance: None,
+            free_array_class_instance: None,
+            code_class_instance: None,
+        }
+    }
+
     pub fn free_object_class_instance(&self) -> ClassInstanceId {
         self.free_object_class_instance.expect("uninitialized")
     }
@@ -48,6 +70,10 @@ pub struct KnownEnums {
 }
 
 impl KnownEnums {
+    pub fn new() -> KnownEnums {
+        KnownEnums { option: None }
+    }
+
     pub fn option(&self) -> EnumDefinitionId {
         self.option.expect("uninitialized")
     }
@@ -126,6 +152,18 @@ pub struct KnownStructs {
 }
 
 impl KnownStructs {
+    pub fn new() -> KnownStructs {
+        KnownStructs {
+            bool: None,
+            uint8: None,
+            char: None,
+            int32: None,
+            int64: None,
+            float32: None,
+            float64: None,
+        }
+    }
+
     pub fn bool(&self) -> StructDefinitionId {
         self.bool.expect("uninitialized")
     }
@@ -165,6 +203,16 @@ pub struct KnownTraits {
 }
 
 impl KnownTraits {
+    pub fn new() -> KnownTraits {
+        KnownTraits {
+            equals: None,
+            comparable: None,
+            stringable: None,
+            iterator: None,
+            zero: None,
+        }
+    }
+
     pub fn equals(&self) -> TraitDefinitionId {
         self.equals.expect("uninitialized")
     }
@@ -201,6 +249,21 @@ pub struct KnownAnnotations {
 }
 
 impl KnownAnnotations {
+    pub fn new() -> KnownAnnotations {
+        KnownAnnotations {
+            abstract_: None,
+            final_: None,
+            internal: None,
+            override_: None,
+            open: None,
+            pub_: None,
+            static_: None,
+            test: None,
+            cannon: None,
+            optimize_immediately: None,
+        }
+    }
+
     pub fn abstract_(&self) -> AnnotationDefinitionId {
         self.abstract_.expect("uninitialized")
     }
@@ -250,6 +313,14 @@ pub struct KnownFunctions {
 }
 
 impl KnownFunctions {
+    pub fn new() -> KnownFunctions {
+        KnownFunctions {
+            string_buffer_empty: None,
+            string_buffer_append: None,
+            string_buffer_to_string: None,
+        }
+    }
+
     pub fn string_buffer_empty(&self) -> FctDefinitionId {
         self.string_buffer_empty.expect("uninitialized")
     }

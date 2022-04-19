@@ -386,7 +386,7 @@ fn thread_main(thread: &DoraThread, location: Address) {
     };
 
     // execute the thread object's run-method
-    let dora_stub_address = vm.dora_stub();
+    let dora_stub_address = vm.stubs.dora_entry_stub();
     let fct: extern "C" fn(Address, Address, Ref<Obj>) =
         unsafe { mem::transmute(dora_stub_address) };
     fct(tld, fct_ptr, handle.direct());

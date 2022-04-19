@@ -5,9 +5,7 @@ use std::ptr;
 use std::sync::Arc;
 
 use crate::compiler;
-use crate::compiler::dora_entry_stub;
-use crate::compiler::dora_exit_stubs::{self, NativeFct, NativeFctKind, NativeStubs};
-use crate::compiler::lazy_compile_stub;
+use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
@@ -18,11 +16,9 @@ use crate::language::sem_analysis::{
     ModuleDefinitionId, SourceFile, StructDefinition, StructDefinitionId, StructInstance,
     TraitDefinition, TraitDefinitionId, Tuples, UseDefinition,
 };
-use crate::language::ty::{LambdaTypes, SourceType, SourceTypeArray};
+use crate::language::ty::{LambdaTypes, SourceTypeArray};
 use crate::object::{Ref, Testing};
-use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
-use crate::stdlib;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
     STACK_SIZE,
@@ -52,6 +48,7 @@ pub use self::specialize::{
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
     specialize_type_list,
 };
+pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{
     get_concrete_tuple, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, ConcreteTuple,
 };
@@ -63,9 +60,10 @@ mod code_map;
 mod compilation;
 mod enums;
 mod globals;
+mod initialize;
 mod known;
 mod specialize;
-mod stdlib_setup;
+mod stubs;
 mod tuples;
 mod ty;
 mod waitlists;
@@ -113,7 +111,6 @@ pub struct FullSemAnalysis {
     pub uses: Vec<UseDefinition>,            // stores all uses
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
-    pub parse_arg_file: bool,
     pub prelude_module_id: ModuleDefinitionId,
     pub stdlib_module_id: ModuleDefinitionId,
     pub program_module_id: ModuleDefinitionId,
@@ -149,65 +146,12 @@ impl FullSemAnalysis {
             globals: MutableVec::new(),
             uses: Vec::new(),
             interner,
-            known: KnownElements {
-                classes: KnownClasses::new(),
-
-                functions: KnownFunctions {
-                    string_buffer_empty: None,
-                    string_buffer_append: None,
-                    string_buffer_to_string: None,
-                },
-
-                traits: KnownTraits {
-                    equals: None,
-                    comparable: None,
-                    stringable: None,
-                    iterator: None,
-                    zero: None,
-                },
-
-                enums: KnownEnums { option: None },
-
-                annotations: KnownAnnotations {
-                    abstract_: None,
-                    final_: None,
-                    internal: None,
-                    override_: None,
-                    open: None,
-                    pub_: None,
-                    test: None,
-                    cannon: None,
-                    optimize_immediately: None,
-                    static_: None,
-                },
-
-                structs: KnownStructs {
-                    bool: None,
-                    uint8: None,
-                    char: None,
-                    int32: None,
-                    int64: None,
-                    float32: None,
-                    float64: None,
-                },
-
-                byte_array_class_instance: Mutex::new(None),
-                int_array_class_instance: Mutex::new(None),
-                str_class_instance: Mutex::new(None),
-                obj_class_instance: Mutex::new(None),
-                ste_class_instance: Mutex::new(None),
-                ex_class_instance: Mutex::new(None),
-
-                free_object_class_instance: None,
-                free_array_class_instance: None,
-                code_class_instance: None,
-            },
+            known: KnownElements::new(),
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
-            parse_arg_file: true,
             prelude_module_id,
             stdlib_module_id,
             program_module_id,
@@ -257,13 +201,8 @@ pub struct VM {
     pub gc: Gc,                   // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lambda_types: Mutex<LambdaTypes>,
-    pub compile_stub: Mutex<Address>,
-    pub dora_stub: Mutex<Address>,
-    pub trap_stub: Mutex<Address>,
-    pub stack_overflow_stub: Mutex<Address>,
-    pub safepoint_stub: Mutex<Address>,
+    pub stubs: Stubs,
     pub threads: Threads,
-    pub parse_arg_file: bool,
     pub prelude_module_id: ModuleDefinitionId,
     pub stdlib_module_id: ModuleDefinitionId,
     pub program_module_id: ModuleDefinitionId,
@@ -309,59 +248,7 @@ impl VM {
             global_variable_memory: Mutex::new(None),
             uses: Vec::new(),
             interner,
-            known: KnownElements {
-                classes: KnownClasses::new(),
-
-                functions: KnownFunctions {
-                    string_buffer_empty: None,
-                    string_buffer_append: None,
-                    string_buffer_to_string: None,
-                },
-
-                traits: KnownTraits {
-                    equals: None,
-                    comparable: None,
-                    stringable: None,
-                    iterator: None,
-                    zero: None,
-                },
-
-                enums: KnownEnums { option: None },
-
-                annotations: KnownAnnotations {
-                    abstract_: None,
-                    final_: None,
-                    internal: None,
-                    override_: None,
-                    open: None,
-                    pub_: None,
-                    static_: None,
-                    test: None,
-                    cannon: None,
-                    optimize_immediately: None,
-                },
-
-                structs: KnownStructs {
-                    bool: None,
-                    uint8: None,
-                    char: None,
-                    int32: None,
-                    int64: None,
-                    float32: None,
-                    float64: None,
-                },
-
-                byte_array_class_instance: Mutex::new(None),
-                int_array_class_instance: Mutex::new(None),
-                str_class_instance: Mutex::new(None),
-                obj_class_instance: Mutex::new(None),
-                ste_class_instance: Mutex::new(None),
-                ex_class_instance: Mutex::new(None),
-
-                free_object_class_instance: None,
-                free_array_class_instance: None,
-                code_class_instance: None,
-            },
+            known: KnownElements::new(),
             gc,
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
@@ -371,13 +258,8 @@ impl VM {
             code_map: CodeMap::new(),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
-            compile_stub: Mutex::new(Address::null()),
-            dora_stub: Mutex::new(Address::null()),
-            trap_stub: Mutex::new(Address::null()),
-            stack_overflow_stub: Mutex::new(Address::null()),
-            safepoint_stub: Mutex::new(Address::null()),
+            stubs: Stubs::new(),
             threads: Threads::new(),
-            parse_arg_file: true,
             prelude_module_id,
             stdlib_module_id,
             program_module_id,
@@ -429,13 +311,8 @@ impl VM {
             code_map: CodeMap::new(),
             lambda_types: sa.lambda_types,
             native_stubs: sa.native_stubs,
-            compile_stub: Mutex::new(Address::null()),
-            dora_stub: Mutex::new(Address::null()),
-            trap_stub: Mutex::new(Address::null()),
-            stack_overflow_stub: Mutex::new(Address::null()),
-            safepoint_stub: Mutex::new(Address::null()),
+            stubs: Stubs::new(),
             threads: Threads::new(),
-            parse_arg_file: sa.parse_arg_file,
             prelude_module_id: sa.prelude_module_id,
             stdlib_module_id: sa.stdlib_module_id,
             program_module_id: sa.program_module_id,
@@ -453,7 +330,7 @@ impl VM {
         assert!(self.enum_instances.len() == 0);
         assert!(self.struct_instances.len() == 0);
 
-        stdlib_setup::setup(self);
+        initialize::setup(self);
 
         globals::init_global_addresses(self);
     }
@@ -465,7 +342,7 @@ impl VM {
     pub fn run(&self, fct_id: FctDefinitionId) -> i32 {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
-        let dora_stub_address = self.dora_stub();
+        let dora_stub_address = self.stubs.dora_entry_stub();
         let fct: extern "C" fn(Address, Address) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr)
@@ -474,7 +351,7 @@ impl VM {
     pub fn run_test(&self, fct_id: FctDefinitionId, testing: Ref<Testing>) {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
-        let dora_stub_address = self.dora_stub();
+        let dora_stub_address = self.stubs.dora_entry_stub();
         let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr, testing);
@@ -500,77 +377,6 @@ impl VM {
         self.code_map.insert(code_start, code_end, code_id);
 
         code_id
-    }
-
-    pub fn dora_stub(&self) -> Address {
-        let mut dora_stub_address = self.dora_stub.lock();
-
-        if dora_stub_address.is_null() {
-            *dora_stub_address = dora_entry_stub::install(self).instruction_start();
-        }
-
-        *dora_stub_address
-    }
-
-    pub fn compile_stub(&self) -> Address {
-        let mut compile_stub_address = self.compile_stub.lock();
-
-        if compile_stub_address.is_null() {
-            *compile_stub_address = lazy_compile_stub::generate(self).instruction_start();
-        }
-
-        *compile_stub_address
-    }
-
-    pub fn trap_stub(&self) -> Address {
-        let mut trap_stub_address = self.trap_stub.lock();
-
-        if trap_stub_address.is_null() {
-            let ifct = NativeFct {
-                fctptr: Address::from_ptr(stdlib::trap as *const u8),
-                args: &[SourceType::Int32],
-                return_type: SourceType::Unit,
-                desc: NativeFctKind::TrapStub,
-            };
-            let code = dora_exit_stubs::generate(self, ifct, false);
-            *trap_stub_address = code.instruction_start();
-        }
-
-        *trap_stub_address
-    }
-
-    pub fn stack_overflow_stub(&self) -> Address {
-        let mut stack_overflow_stub_address = self.stack_overflow_stub.lock();
-
-        if stack_overflow_stub_address.is_null() {
-            let ifct = NativeFct {
-                fctptr: Address::from_ptr(safepoint::stack_overflow as *const u8),
-                args: &[],
-                return_type: SourceType::Unit,
-                desc: NativeFctKind::GuardCheckStub,
-            };
-            let code = dora_exit_stubs::generate(self, ifct, false);
-            *stack_overflow_stub_address = code.instruction_start();
-        }
-
-        *stack_overflow_stub_address
-    }
-
-    pub fn safepoint_stub(&self) -> Address {
-        let mut safepoint_stub_address = self.safepoint_stub.lock();
-
-        if safepoint_stub_address.is_null() {
-            let ifct = NativeFct {
-                fctptr: Address::from_ptr(safepoint::safepoint_slow as *const u8),
-                args: &[],
-                return_type: SourceType::Unit,
-                desc: NativeFctKind::SafepointStub,
-            };
-            let code = dora_exit_stubs::generate(self, ifct, false);
-            *safepoint_stub_address = code.instruction_start();
-        }
-
-        *safepoint_stub_address
     }
 }
 
