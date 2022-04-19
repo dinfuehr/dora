@@ -49,15 +49,40 @@ pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
 
 pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
-    sa.known.structs.bool = internal_struct(sa, stdlib, "Bool", Some(SourceType::Bool));
+    sa.known.structs.bool = Some(internal_struct(sa, stdlib, "Bool", Some(SourceType::Bool)));
 
-    sa.known.structs.uint8 = internal_struct(sa, stdlib, "UInt8", Some(SourceType::UInt8));
-    sa.known.structs.char = internal_struct(sa, stdlib, "Char", Some(SourceType::Char));
-    sa.known.structs.int32 = internal_struct(sa, stdlib, "Int32", Some(SourceType::Int32));
-    sa.known.structs.int64 = internal_struct(sa, stdlib, "Int64", Some(SourceType::Int64));
+    sa.known.structs.uint8 = Some(internal_struct(
+        sa,
+        stdlib,
+        "UInt8",
+        Some(SourceType::UInt8),
+    ));
+    sa.known.structs.char = Some(internal_struct(sa, stdlib, "Char", Some(SourceType::Char)));
+    sa.known.structs.int32 = Some(internal_struct(
+        sa,
+        stdlib,
+        "Int32",
+        Some(SourceType::Int32),
+    ));
+    sa.known.structs.int64 = Some(internal_struct(
+        sa,
+        stdlib,
+        "Int64",
+        Some(SourceType::Int64),
+    ));
 
-    sa.known.structs.float32 = internal_struct(sa, stdlib, "Float32", Some(SourceType::Float32));
-    sa.known.structs.float64 = internal_struct(sa, stdlib, "Float64", Some(SourceType::Float64));
+    sa.known.structs.float32 = Some(internal_struct(
+        sa,
+        stdlib,
+        "Float32",
+        Some(SourceType::Float32),
+    ));
+    sa.known.structs.float64 = Some(internal_struct(
+        sa,
+        stdlib,
+        "Float64",
+        Some(SourceType::Float64),
+    ));
 
     sa.known.classes.object = Some(find_class(sa, stdlib, "Object"));
     sa.known.classes.string = Some(internal_class(sa, stdlib, "String"));
@@ -86,7 +111,7 @@ pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     sa.known.traits.zero = Some(find_trait(sa, stdlib, "Zero"));
     sa.known.traits.iterator = Some(find_trait(sa, stdlib, "Iterator"));
 
-    sa.known.enums.option = find_enum(sa, stdlib, "Option");
+    sa.known.enums.option = Some(find_enum(sa, stdlib, "Option"));
 }
 
 pub fn fill_prelude(sa: &mut SemAnalysis) {
@@ -171,10 +196,11 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
 
 pub fn discover_known_methods(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
-    sa.known.functions.string_buffer_empty = find_static(sa, stdlib, "StringBuffer", "empty");
-    sa.known.functions.string_buffer_append = find_method(sa, stdlib, "StringBuffer", "append");
+    sa.known.functions.string_buffer_empty = Some(find_static(sa, stdlib, "StringBuffer", "empty"));
+    sa.known.functions.string_buffer_append =
+        Some(find_method(sa, stdlib, "StringBuffer", "append"));
     sa.known.functions.string_buffer_to_string =
-        find_method(sa, stdlib, "StringBuffer", "toString");
+        Some(find_method(sa, stdlib, "StringBuffer", "toString"));
 }
 
 fn find_class(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {

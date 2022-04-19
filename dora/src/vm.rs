@@ -122,11 +122,6 @@ pub struct FullSemAnalysis {
 
 impl FullSemAnalysis {
     pub fn new(args: Args) -> Box<FullSemAnalysis> {
-        let empty_class_instance_id: ClassInstanceId = 0.into();
-        let empty_fct_id: FctDefinitionId = 0.into();
-        let empty_enum_id: EnumDefinitionId = 0.into();
-        let empty_struct_id: StructDefinitionId = 0.into();
-
         let interner = Interner::new();
         let stdlib_name = interner.intern("std");
         let boots_name = interner.intern("boots");
@@ -158,9 +153,9 @@ impl FullSemAnalysis {
                 classes: KnownClasses::new(),
 
                 functions: KnownFunctions {
-                    string_buffer_empty: empty_fct_id,
-                    string_buffer_append: empty_fct_id,
-                    string_buffer_to_string: empty_fct_id,
+                    string_buffer_empty: None,
+                    string_buffer_append: None,
+                    string_buffer_to_string: None,
                 },
 
                 traits: KnownTraits {
@@ -171,9 +166,7 @@ impl FullSemAnalysis {
                     zero: None,
                 },
 
-                enums: KnownEnums {
-                    option: empty_enum_id,
-                },
+                enums: KnownEnums { option: None },
 
                 annotations: KnownAnnotations {
                     abstract_: None,
@@ -189,13 +182,13 @@ impl FullSemAnalysis {
                 },
 
                 structs: KnownStructs {
-                    bool: empty_struct_id,
-                    uint8: empty_struct_id,
-                    char: empty_struct_id,
-                    int32: empty_struct_id,
-                    int64: empty_struct_id,
-                    float32: empty_struct_id,
-                    float64: empty_struct_id,
+                    bool: None,
+                    uint8: None,
+                    char: None,
+                    int32: None,
+                    int64: None,
+                    float32: None,
+                    float64: None,
                 },
 
                 byte_array_class_instance: Mutex::new(None),
@@ -205,9 +198,9 @@ impl FullSemAnalysis {
                 ste_class_instance: Mutex::new(None),
                 ex_class_instance: Mutex::new(None),
 
-                free_object_class_instance: empty_class_instance_id,
-                free_array_class_instance: empty_class_instance_id,
-                code_class_instance: empty_class_instance_id,
+                free_object_class_instance: None,
+                free_array_class_instance: None,
+                code_class_instance: None,
             },
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
@@ -280,10 +273,6 @@ pub struct VM {
 
 impl VM {
     pub fn new(args: Args) -> Box<VM> {
-        let empty_class_def_id: ClassInstanceId = 0.into();
-        let empty_fct_id: FctDefinitionId = 0.into();
-        let empty_enum_id: EnumDefinitionId = 0.into();
-        let empty_struct_id = 0.into();
         let gc = Gc::new(&args);
 
         let interner = Interner::new();
@@ -324,9 +313,9 @@ impl VM {
                 classes: KnownClasses::new(),
 
                 functions: KnownFunctions {
-                    string_buffer_empty: empty_fct_id,
-                    string_buffer_append: empty_fct_id,
-                    string_buffer_to_string: empty_fct_id,
+                    string_buffer_empty: None,
+                    string_buffer_append: None,
+                    string_buffer_to_string: None,
                 },
 
                 traits: KnownTraits {
@@ -337,9 +326,7 @@ impl VM {
                     zero: None,
                 },
 
-                enums: KnownEnums {
-                    option: empty_enum_id,
-                },
+                enums: KnownEnums { option: None },
 
                 annotations: KnownAnnotations {
                     abstract_: None,
@@ -355,13 +342,13 @@ impl VM {
                 },
 
                 structs: KnownStructs {
-                    bool: empty_struct_id,
-                    uint8: empty_struct_id,
-                    char: empty_struct_id,
-                    int32: empty_struct_id,
-                    int64: empty_struct_id,
-                    float32: empty_struct_id,
-                    float64: empty_struct_id,
+                    bool: None,
+                    uint8: None,
+                    char: None,
+                    int32: None,
+                    int64: None,
+                    float32: None,
+                    float64: None,
                 },
 
                 byte_array_class_instance: Mutex::new(None),
@@ -371,9 +358,9 @@ impl VM {
                 ste_class_instance: Mutex::new(None),
                 ex_class_instance: Mutex::new(None),
 
-                free_object_class_instance: empty_class_def_id,
-                free_array_class_instance: empty_class_def_id,
-                code_class_instance: empty_class_def_id,
+                free_object_class_instance: None,
+                free_array_class_instance: None,
+                code_class_instance: None,
             },
             gc,
             id_generator: NodeIdGenerator::new(),

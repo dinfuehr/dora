@@ -23,14 +23,34 @@ pub struct KnownElements {
     pub ste_class_instance: Mutex<Option<ClassInstanceId>>,
     pub ex_class_instance: Mutex<Option<ClassInstanceId>>,
 
-    pub free_object_class_instance: ClassInstanceId,
-    pub free_array_class_instance: ClassInstanceId,
-    pub code_class_instance: ClassInstanceId,
+    pub free_object_class_instance: Option<ClassInstanceId>,
+    pub free_array_class_instance: Option<ClassInstanceId>,
+    pub code_class_instance: Option<ClassInstanceId>,
+}
+
+impl KnownElements {
+    pub fn free_object_class_instance(&self) -> ClassInstanceId {
+        self.free_object_class_instance.expect("uninitialized")
+    }
+
+    pub fn free_array_class_instance(&self) -> ClassInstanceId {
+        self.free_array_class_instance.expect("uninitialized")
+    }
+
+    pub fn code_class_instance(&self) -> ClassInstanceId {
+        self.code_class_instance.expect("uninitialized")
+    }
 }
 
 #[derive(Debug)]
 pub struct KnownEnums {
-    pub option: EnumDefinitionId,
+    pub option: Option<EnumDefinitionId>,
+}
+
+impl KnownEnums {
+    pub fn option(&self) -> EnumDefinitionId {
+        self.option.expect("uninitialized")
+    }
 }
 
 #[derive(Debug)]
@@ -96,13 +116,43 @@ impl KnownClasses {
 
 #[derive(Debug)]
 pub struct KnownStructs {
-    pub bool: StructDefinitionId,
-    pub uint8: StructDefinitionId,
-    pub char: StructDefinitionId,
-    pub int32: StructDefinitionId,
-    pub int64: StructDefinitionId,
-    pub float32: StructDefinitionId,
-    pub float64: StructDefinitionId,
+    pub bool: Option<StructDefinitionId>,
+    pub uint8: Option<StructDefinitionId>,
+    pub char: Option<StructDefinitionId>,
+    pub int32: Option<StructDefinitionId>,
+    pub int64: Option<StructDefinitionId>,
+    pub float32: Option<StructDefinitionId>,
+    pub float64: Option<StructDefinitionId>,
+}
+
+impl KnownStructs {
+    pub fn bool(&self) -> StructDefinitionId {
+        self.bool.expect("uninitialized")
+    }
+
+    pub fn uint8(&self) -> StructDefinitionId {
+        self.uint8.expect("uninitialized")
+    }
+
+    pub fn char(&self) -> StructDefinitionId {
+        self.char.expect("uninitialized")
+    }
+
+    pub fn int32(&self) -> StructDefinitionId {
+        self.int32.expect("uninitialized")
+    }
+
+    pub fn int64(&self) -> StructDefinitionId {
+        self.int64.expect("uninitialized")
+    }
+
+    pub fn float32(&self) -> StructDefinitionId {
+        self.float32.expect("uninitialized")
+    }
+
+    pub fn float64(&self) -> StructDefinitionId {
+        self.float64.expect("uninitialized")
+    }
 }
 
 #[derive(Debug)]
@@ -194,9 +244,23 @@ impl KnownAnnotations {
 
 #[derive(Debug)]
 pub struct KnownFunctions {
-    pub string_buffer_empty: FctDefinitionId,
-    pub string_buffer_append: FctDefinitionId,
-    pub string_buffer_to_string: FctDefinitionId,
+    pub string_buffer_empty: Option<FctDefinitionId>,
+    pub string_buffer_append: Option<FctDefinitionId>,
+    pub string_buffer_to_string: Option<FctDefinitionId>,
+}
+
+impl KnownFunctions {
+    pub fn string_buffer_empty(&self) -> FctDefinitionId {
+        self.string_buffer_empty.expect("uninitialized")
+    }
+
+    pub fn string_buffer_append(&self) -> FctDefinitionId {
+        self.string_buffer_append.expect("uninitialized")
+    }
+
+    pub fn string_buffer_to_string(&self) -> FctDefinitionId {
+        self.string_buffer_to_string.expect("uninitialized")
+    }
 }
 
 impl KnownElements {

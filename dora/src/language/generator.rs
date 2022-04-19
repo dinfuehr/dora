@@ -579,7 +579,7 @@ impl<'a> AstBytecodeGen<'a> {
         let buffer_register = self.ensure_register(dest, BytecodeType::Ptr);
 
         // build StringBuffer::empty() call
-        let fct_id = self.sa.known.functions.string_buffer_empty;
+        let fct_id = self.sa.known.functions.string_buffer_empty();
         let fct_idx = self.builder.add_const_fct(fct_id);
         self.builder
             .emit_invoke_static(buffer_register, fct_idx, expr.pos);
@@ -651,7 +651,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             // build StringBuffer::append() call
-            let fct_id = self.sa.known.functions.string_buffer_append;
+            let fct_id = self.sa.known.functions.string_buffer_append();
             let fct_idx = self.builder.add_const_fct(fct_id);
             self.builder.emit_push_register(buffer_register);
             self.builder.emit_push_register(part_register);
@@ -661,7 +661,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_temp(part_register);
 
         // build StringBuffer::toString() call
-        let fct_id = self.sa.known.functions.string_buffer_to_string;
+        let fct_id = self.sa.known.functions.string_buffer_to_string();
         let fct_idx = self.builder.add_const_fct(fct_id);
         self.builder.emit_push_register(buffer_register);
         self.builder

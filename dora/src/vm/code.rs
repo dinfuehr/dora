@@ -106,7 +106,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
 
     os::jit_writable();
 
-    let clsid = vm.known.code_class_instance;
+    let clsid = vm.known.code_class_instance();
     let cls = vm.class_instances.idx(clsid);
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().expect("missing vtable");

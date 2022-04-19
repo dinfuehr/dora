@@ -79,7 +79,7 @@ pub(super) fn setup(vm: &mut VM) {
         }
     }
 
-    vm.known.free_object_class_instance = free_object;
-    vm.known.free_array_class_instance = free_array;
-    vm.known.code_class_instance = code_class_id;
+    vm.known.free_object_class_instance = Some(free_object);
+    vm.known.free_array_class_instance = Some(free_array);
+    vm.known.code_class_instance = Some(code_class_id);
 }

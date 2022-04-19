@@ -200,13 +200,13 @@ impl SourceType {
 
     pub fn primitive_struct_id(&self, sa: &SemAnalysis) -> Option<StructDefinitionId> {
         match self {
-            SourceType::Bool => Some(sa.known.structs.bool),
-            SourceType::UInt8 => Some(sa.known.structs.uint8),
-            SourceType::Char => Some(sa.known.structs.char),
-            SourceType::Int32 => Some(sa.known.structs.int32),
-            SourceType::Int64 => Some(sa.known.structs.int64),
-            SourceType::Float32 => Some(sa.known.structs.float32),
-            SourceType::Float64 => Some(sa.known.structs.float64),
+            SourceType::Bool => Some(sa.known.structs.bool()),
+            SourceType::UInt8 => Some(sa.known.structs.uint8()),
+            SourceType::Char => Some(sa.known.structs.char()),
+            SourceType::Int32 => Some(sa.known.structs.int32()),
+            SourceType::Int64 => Some(sa.known.structs.int64()),
+            SourceType::Float32 => Some(sa.known.structs.float32()),
+            SourceType::Float64 => Some(sa.known.structs.float64()),
             _ => None,
         }
     }
