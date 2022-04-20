@@ -1,7 +1,5 @@
 use parking_lot::RwLock;
 use std::cmp::max;
-use std::ptr;
-use std::sync::Arc;
 
 use crate::language::sem_analysis::{ensure_tuple, ClassDefinitionId, TraitDefinitionId, TupleId};
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -9,12 +7,12 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    get_concrete_tuple_ty, get_tuple_subtypes, ClassDefinition, ClassInstance, ClassInstanceId,
-    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
-    StructDefinition, StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
-    TraitDefinition, VM,
+    create_class_instance_with_vtable, get_concrete_tuple_ty, get_tuple_subtypes, ClassDefinition,
+    ClassInstance, ClassInstanceId, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId,
+    EnumLayout, FieldInstance, StructDefinition, StructDefinitionId, StructInstance,
+    StructInstanceField, StructInstanceId, TraitDefinition, VM,
 };
-use crate::vtable::{VTableBox, DISPLAY_SIZE};
+use crate::vtable::{ensure_display, VTableBox};
 
 pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
     replace_type_param(vm, ty, type_params, None)
@@ -100,24 +98,21 @@ fn create_specialized_struct(
 
     size = mem::align_i32(size, align);
 
-    let mut struct_defs = vm.struct_instances.lock();
-    let id: StructInstanceId = struct_defs.len().into();
-
     let mut specializations = vm.struct_specializations.write();
 
     if let Some(&id) = specializations.get(&(struct_.id(), type_params.clone())) {
         return id;
     }
 
-    let old = specializations.insert((struct_.id(), type_params.clone()), id);
-    assert!(old.is_none());
-
-    struct_defs.push(Arc::new(StructInstance {
+    let id = vm.struct_instances.push(StructInstance {
         size,
         align,
         fields,
         ref_fields,
-    }));
+    });
+
+    let old = specializations.insert((struct_.id(), type_params.clone()), id);
+    assert!(old.is_none());
 
     id
 }
@@ -161,17 +156,11 @@ fn create_specialized_enum(
         EnumLayout::Tagged
     };
 
-    let mut enum_defs = vm.enum_instances.lock();
-    let id: EnumInstanceId = enum_defs.len().into();
-
     let mut specializations = vm.enum_specializations.write();
 
     if let Some(&id) = specializations.get(&(enum_.id(), type_params.clone())) {
         return id;
     }
-
-    let old = specializations.insert((enum_.id(), type_params.clone()), id);
-    assert!(old.is_none());
 
     let variants = if let EnumLayout::Tagged = layout {
         vec![None; enum_.variants.len()]
@@ -179,15 +168,15 @@ fn create_specialized_enum(
         Vec::new()
     };
 
-    let enum_def = Arc::new(EnumInstance {
-        id,
+    let id = vm.enum_instances.push(EnumInstance {
         enum_id: enum_.id(),
         type_params: type_params.clone(),
         layout,
         variants: RwLock::new(variants),
     });
 
-    enum_defs.push(enum_def);
+    let old = specializations.insert((enum_.id(), type_params.clone()), id);
+    assert!(old.is_none());
 
     id
 }
@@ -267,30 +256,27 @@ pub fn specialize_enum_class(
 
     let instance_size = mem::align_i32(csize, mem::ptr_width());
 
-    let mut class_defs = vm.class_instances.lock();
-    let id: ClassInstanceId = class_defs.len().into();
+    let class_instance_id = create_class_instance_with_vtable(
+        vm,
+        ClassInstance {
+            id: None,
+            cls_id: None,
+            trait_object: None,
+            type_params: SourceTypeArray::empty(),
+            parent_id: None,
+            size: InstanceSize::Fixed(instance_size),
+            fields,
+            ref_fields,
+            vtable: RwLock::new(None),
+        },
+        instance_size as usize,
+        0,
+        Vec::new(),
+    );
 
-    variants[variant_idx] = Some(id);
+    variants[variant_idx] = Some(class_instance_id);
 
-    let class_def = Arc::new(ClassInstance {
-        id,
-        cls_id: None,
-        trait_object: None,
-        type_params: SourceTypeArray::empty(),
-        parent_id: None,
-        size: InstanceSize::Fixed(instance_size),
-        fields,
-        ref_fields,
-        vtable: RwLock::new(None),
-    });
-
-    class_defs.push(class_def.clone());
-
-    let clsptr = &*class_def as *const ClassInstance as *mut ClassInstance;
-    let vtable = VTableBox::new(clsptr, instance_size as usize, 0, &[]);
-    *class_def.vtable.write() = Some(vtable);
-
-    id
+    class_instance_id
 }
 
 pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
@@ -441,36 +427,34 @@ fn create_specialized_class_regular(
     );
     ensure_display(vm, &mut vtable, parent_id);
 
-    let mut class_defs = vm.class_instances.lock();
-    let id: ClassInstanceId = class_defs.len().into();
-
     let mut specializations = vm.class_specializations.write();
 
     if let Some(&id) = specializations.get(&(cls.id(), type_params.clone())) {
         return id;
     }
 
-    let old = specializations.insert((cls.id(), type_params.clone()), id);
+    let class_instance_id = create_class_instance_with_vtable(
+        vm,
+        ClassInstance {
+            id: None,
+            cls_id: Some(cls.id()),
+            trait_object: None,
+            type_params: type_params.clone(),
+            parent_id,
+            size,
+            fields,
+            ref_fields,
+            vtable: RwLock::new(None),
+        },
+        instance_size,
+        element_size,
+        vtable_entries,
+    );
+
+    let old = specializations.insert((cls.id(), type_params.clone()), class_instance_id);
     assert!(old.is_none());
 
-    let class_def = Arc::new(ClassInstance {
-        id,
-        cls_id: Some(cls.id()),
-        trait_object: None,
-        type_params: type_params.clone(),
-        parent_id,
-        size,
-        fields,
-        ref_fields,
-        vtable: RwLock::new(None),
-    });
-
-    vtable.initialize_class_instance(Arc::as_ptr(&class_def));
-    *class_def.vtable.write() = Some(vtable);
-
-    class_defs.push(class_def.clone());
-
-    id
+    class_instance_id
 }
 
 fn create_specialized_class_array(
@@ -558,103 +542,34 @@ fn create_specialized_class_array(
         InstanceSize::CodeObject => (0, 1),
     };
 
-    let mut vtable = VTableBox::new(
-        std::ptr::null(),
-        instance_size,
-        element_size,
-        &vtable_entries,
-    );
-    ensure_display(vm, &mut vtable, Some(parent_cls_def_id));
-
-    let mut class_defs = vm.class_instances.lock();
-    let id: ClassInstanceId = class_defs.len().into();
-
     let mut specializations = vm.class_specializations.write();
 
     if let Some(&id) = specializations.get(&(cls.id(), type_params.clone())) {
         return id;
     }
 
-    let old = specializations.insert((cls.id(), type_params.clone()), id);
+    let class_instance_id = create_class_instance_with_vtable(
+        vm,
+        ClassInstance {
+            id: None,
+            cls_id: Some(cls.id()),
+            trait_object: None,
+            type_params: type_params.clone(),
+            parent_id: Some(parent_cls_def_id),
+            size,
+            fields,
+            ref_fields,
+            vtable: RwLock::new(None),
+        },
+        instance_size,
+        element_size,
+        vtable_entries,
+    );
+
+    let old = specializations.insert((cls.id(), type_params.clone()), class_instance_id);
     assert!(old.is_none());
 
-    let class_def = Arc::new(ClassInstance {
-        id,
-        cls_id: Some(cls.id()),
-        trait_object: None,
-        type_params: type_params.clone(),
-        parent_id: Some(parent_cls_def_id),
-        size,
-        fields,
-        ref_fields,
-        vtable: RwLock::new(None),
-    });
-
-    vtable.initialize_class_instance(Arc::as_ptr(&class_def));
-    *class_def.vtable.write() = Some(vtable);
-
-    class_defs.push(class_def.clone());
-
-    id
-}
-
-pub fn ensure_display(
-    vm: &VM,
-    vtable: &mut VTableBox,
-    parent_id: Option<ClassInstanceId>,
-) -> usize {
-    // if subtype_display[0] is set, vtable was already initialized
-    assert!(vtable.subtype_display[0].is_null());
-
-    if let Some(parent_id) = parent_id {
-        let parent = vm.class_instances.idx(parent_id);
-
-        let parent_vtable = parent.vtable.read();
-        let parent_vtable = parent_vtable.as_ref().unwrap();
-        assert!(!parent_vtable.subtype_display[0].is_null());
-
-        let depth = 1 + parent_vtable.subtype_depth;
-
-        let depth_fixed;
-
-        if depth >= DISPLAY_SIZE {
-            depth_fixed = DISPLAY_SIZE;
-
-            vtable.allocate_overflow(depth as usize - DISPLAY_SIZE + 1);
-
-            unsafe {
-                if depth > DISPLAY_SIZE {
-                    ptr::copy_nonoverlapping(
-                        parent_vtable.subtype_overflow,
-                        vtable.subtype_overflow as *mut _,
-                        depth as usize - DISPLAY_SIZE,
-                    );
-                }
-
-                let ptr = vtable
-                    .subtype_overflow
-                    .offset(depth as isize - DISPLAY_SIZE as isize)
-                    as *mut _;
-
-                *ptr = &**vtable as *const _;
-            }
-        } else {
-            depth_fixed = depth;
-
-            vtable.subtype_display[depth] = &**vtable as *const _;
-        }
-
-        vtable.subtype_depth = depth;
-        vtable.subtype_display[0..depth_fixed]
-            .clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
-
-        depth
-    } else {
-        vtable.subtype_depth = 0;
-        vtable.subtype_display[0] = &**vtable as *const _;
-
-        0
-    }
+    class_instance_id
 }
 
 pub fn specialize_trait_object(
@@ -687,12 +602,10 @@ fn create_specialized_class_for_trait_object(
     let mut csize;
     let mut fields;
     let mut ref_fields;
-    let parent_id;
 
     fields = Vec::with_capacity(1);
     ref_fields = Vec::new();
     csize = Header::size();
-    parent_id = None;
 
     debug_assert!(object_type.is_concrete_type(vm));
 
@@ -712,39 +625,34 @@ fn create_specialized_class_for_trait_object(
     let stub = vm.stubs.compile_stub().to_usize();
     let vtable_entries = vec![stub; trait_.methods.len()];
 
-    let mut vtable = VTableBox::new(std::ptr::null(), csize as usize, 0, &vtable_entries);
-    ensure_display(vm, &mut vtable, parent_id);
-
-    let mut class_instances = vm.class_instances.lock();
-    let id: ClassInstanceId = class_instances.len().into();
-
     let mut vtables = vm.trait_vtables.write();
 
     if let Some(&id) = vtables.get(&(trait_.id(), combined_type_params_id.clone())) {
         return id;
     }
 
-    let old = vtables.insert((trait_.id(), combined_type_params_id), id);
+    let class_instance_id = create_class_instance_with_vtable(
+        vm,
+        ClassInstance {
+            id: None,
+            cls_id: None,
+            trait_object: Some(object_type),
+            type_params: SourceTypeArray::empty(),
+            parent_id: None,
+            size,
+            fields,
+            ref_fields,
+            vtable: RwLock::new(None),
+        },
+        csize as usize,
+        0,
+        vtable_entries,
+    );
+
+    let old = vtables.insert((trait_.id(), combined_type_params_id), class_instance_id);
     assert!(old.is_none());
 
-    let class_def = Arc::new(ClassInstance {
-        id,
-        cls_id: None,
-        trait_object: Some(object_type),
-        type_params: SourceTypeArray::empty(),
-        parent_id: None,
-        size,
-        fields,
-        ref_fields,
-        vtable: RwLock::new(None),
-    });
-
-    vtable.initialize_class_instance(Arc::as_ptr(&class_def));
-    *class_def.vtable.write() = Some(vtable);
-
-    class_instances.push(class_def.clone());
-
-    id
+    class_instance_id
 }
 
 pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArray) -> TupleId {

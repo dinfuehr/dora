@@ -1,21 +1,21 @@
-use std::sync::Arc;
-
 use crate::language::ty::SourceType;
-use crate::utils::GrowableVec;
+use crate::utils::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructInstanceId(usize);
 
-impl From<usize> for StructInstanceId {
-    fn from(data: usize) -> StructInstanceId {
-        StructInstanceId(data)
-    }
-}
+impl Id for StructInstance {
+    type IdType = StructInstanceId;
 
-impl GrowableVec<StructInstance> {
-    pub fn idx(&self, index: StructInstanceId) -> Arc<StructInstance> {
-        self.idx_usize(index.0)
+    fn id_to_usize(id: StructInstanceId) -> usize {
+        id.0 as usize
     }
+
+    fn usize_to_id(value: usize) -> StructInstanceId {
+        StructInstanceId(value.try_into().unwrap())
+    }
+
+    fn store_id(_value: &mut StructInstance, _id: StructInstanceId) {}
 }
 
 pub struct StructInstance {

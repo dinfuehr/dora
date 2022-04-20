@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
 
 use crate::size::InstanceSize;
-use crate::vm::ClassInstance;
+use crate::vm::{ClassInstance, ClassInstanceId, VM};
 
 pub const DISPLAY_SIZE: usize = 6;
 
@@ -194,5 +194,64 @@ impl Drop for VTable {
             let elems = self.subtype_depth as usize - DISPLAY_SIZE + 1;
             self.deallocate_overflow(elems);
         }
+    }
+}
+
+pub fn ensure_display(
+    vm: &VM,
+    vtable: &mut VTableBox,
+    parent_id: Option<ClassInstanceId>,
+) -> usize {
+    // if subtype_display[0] is set, vtable was already initialized
+    assert!(vtable.subtype_display[0].is_null());
+
+    if let Some(parent_id) = parent_id {
+        let parent = vm.class_instances.idx(parent_id);
+
+        let parent_vtable = parent.vtable.read();
+        let parent_vtable = parent_vtable.as_ref().unwrap();
+        assert!(!parent_vtable.subtype_display[0].is_null());
+
+        let depth = 1 + parent_vtable.subtype_depth;
+
+        let depth_fixed;
+
+        if depth >= DISPLAY_SIZE {
+            depth_fixed = DISPLAY_SIZE;
+
+            vtable.allocate_overflow(depth as usize - DISPLAY_SIZE + 1);
+
+            unsafe {
+                if depth > DISPLAY_SIZE {
+                    ptr::copy_nonoverlapping(
+                        parent_vtable.subtype_overflow,
+                        vtable.subtype_overflow as *mut _,
+                        depth as usize - DISPLAY_SIZE,
+                    );
+                }
+
+                let ptr = vtable
+                    .subtype_overflow
+                    .offset(depth as isize - DISPLAY_SIZE as isize)
+                    as *mut _;
+
+                *ptr = &**vtable as *const _;
+            }
+        } else {
+            depth_fixed = depth;
+
+            vtable.subtype_display[depth] = &**vtable as *const _;
+        }
+
+        vtable.subtype_depth = depth;
+        vtable.subtype_display[0..depth_fixed]
+            .clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
+
+        depth
+    } else {
+        vtable.subtype_depth = 0;
+        vtable.subtype_display[0] = &**vtable as *const _;
+
+        0
     }
 }

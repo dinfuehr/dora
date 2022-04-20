@@ -257,8 +257,13 @@ fn patch_virtual_call(
     } else {
         let object_ty = cls_def.trait_object.clone().expect("trait object expected");
         let all_type_params = type_params.connect_single(object_ty.clone());
-        let thunk_fct_id =
-            ensure_thunk(vm, cls_def.id, trait_fct_id, type_params.clone(), object_ty);
+        let thunk_fct_id = ensure_thunk(
+            vm,
+            cls_def.id(),
+            trait_fct_id,
+            type_params.clone(),
+            object_ty,
+        );
 
         compiler::generate(vm, thunk_fct_id, &all_type_params)
     };

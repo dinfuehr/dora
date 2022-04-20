@@ -1,30 +1,29 @@
 use parking_lot::RwLock;
 
-use std::sync::Arc;
-
 use crate::language::sem_analysis::{EnumDefinition, EnumDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::GrowableVec;
+use crate::utils::Id;
 use crate::vm::ClassInstanceId;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumInstanceId(u32);
 
-impl From<usize> for EnumInstanceId {
-    fn from(data: usize) -> EnumInstanceId {
-        EnumInstanceId(data as u32)
-    }
-}
+impl Id for EnumInstance {
+    type IdType = EnumInstanceId;
 
-impl GrowableVec<EnumInstance> {
-    pub fn idx(&self, index: EnumInstanceId) -> Arc<EnumInstance> {
-        self.idx_usize(index.0 as usize)
+    fn id_to_usize(id: EnumInstanceId) -> usize {
+        id.0 as usize
     }
+
+    fn usize_to_id(value: usize) -> EnumInstanceId {
+        EnumInstanceId(value.try_into().unwrap())
+    }
+
+    fn store_id(_value: &mut EnumInstance, _id: EnumInstanceId) {}
 }
 
 #[derive(Debug)]
 pub struct EnumInstance {
-    pub id: EnumInstanceId,
     pub enum_id: EnumDefinitionId,
     pub type_params: SourceTypeArray,
     pub layout: EnumLayout,

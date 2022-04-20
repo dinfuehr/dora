@@ -23,12 +23,15 @@ use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
     STACK_SIZE,
 };
+use crate::utils::GrowableVecNonIter;
 use crate::utils::{GrowableVec, MutableVec};
 
 use dora_parser::interner::*;
 use dora_parser::parser::NodeIdGenerator;
 
-pub use self::classes::{ClassInstance, ClassInstanceId, FieldInstance};
+pub use self::classes::{
+    create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance,
+};
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
     GcPointTable, LazyCompilationData, LazyCompilationSite, ManagedCodeHeader, PositionTable,
@@ -43,10 +46,9 @@ pub use self::known::{
     KnownTraits,
 };
 pub use self::specialize::{
-    add_ref_fields, ensure_display, replace_type_param, specialize_class_id,
-    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
-    specialize_type_list,
+    add_ref_fields, replace_type_param, specialize_class_id, specialize_class_id_params,
+    specialize_enum_class, specialize_enum_id_params, specialize_struct_id_params,
+    specialize_trait_object, specialize_tuple, specialize_type, specialize_type_list,
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
@@ -180,22 +182,22 @@ pub struct VM {
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub struct_specializations:
         RwLock<HashMap<(StructDefinitionId, SourceTypeArray), StructInstanceId>>,
-    pub struct_instances: GrowableVec<StructInstance>, // stores all struct definitions
-    pub classes: MutableVec<ClassDefinition>,          // stores all class source definitions
+    pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
+    pub classes: MutableVec<ClassDefinition>,                 // stores all class source definitions
     pub class_specializations:
         RwLock<HashMap<(ClassDefinitionId, SourceTypeArray), ClassInstanceId>>,
-    pub class_instances: GrowableVec<ClassInstance>, // stores all class definitions
-    pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
-    pub tuples: Mutex<Tuples>,                       // stores all tuple definitions
+    pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
+    pub extensions: MutableVec<ExtensionDefinition>,        // stores all extension definitions
+    pub tuples: Mutex<Tuples>,                              // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
-    pub modules: MutableVec<ModuleDefinition>,       // stores all module definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>,    // stores all function source definitions
+    pub modules: MutableVec<ModuleDefinition>,         // stores all module definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>,      // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enums: MutableVec<EnumDefinition>, // store all enum source definitions
     pub enum_specializations: RwLock<HashMap<(EnumDefinitionId, SourceTypeArray), EnumInstanceId>>,
-    pub enum_instances: GrowableVec<EnumInstance>, // stores all enum definitions
-    pub traits: MutableVec<TraitDefinition>,       // stores all trait definitions
+    pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
+    pub traits: MutableVec<TraitDefinition>,              // stores all trait definitions
     pub trait_vtables: RwLock<HashMap<(TraitDefinitionId, SourceTypeArray), ClassInstanceId>>,
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
@@ -235,17 +237,17 @@ impl VM {
             consts: MutableVec::new(),
             structs: MutableVec::new(),
             struct_specializations: RwLock::new(HashMap::new()),
-            struct_instances: GrowableVec::new(),
+            struct_instances: GrowableVecNonIter::new(),
             classes: MutableVec::new(),
             class_specializations: RwLock::new(HashMap::new()),
-            class_instances: GrowableVec::new(),
+            class_instances: GrowableVecNonIter::new(),
             extensions: MutableVec::new(),
             tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
             modules,
             enums: MutableVec::new(),
             enum_specializations: RwLock::new(HashMap::new()),
-            enum_instances: GrowableVec::new(),
+            enum_instances: GrowableVecNonIter::new(),
             traits: MutableVec::new(),
             trait_vtables: RwLock::new(HashMap::new()),
             impls: MutableVec::new(),
@@ -289,17 +291,17 @@ impl VM {
             consts: sa.consts,
             structs: sa.structs,
             struct_specializations: RwLock::new(HashMap::new()),
-            struct_instances: GrowableVec::new(),
+            struct_instances: GrowableVecNonIter::new(),
             classes: sa.classes,
             class_specializations: RwLock::new(HashMap::new()),
-            class_instances: GrowableVec::new(),
+            class_instances: GrowableVecNonIter::new(),
             extensions: sa.extensions,
             tuples: sa.tuples,
             annotations: sa.annotations,
             modules: sa.modules,
             enums: sa.enums,
             enum_specializations: RwLock::new(HashMap::new()),
-            enum_instances: GrowableVec::new(),
+            enum_instances: GrowableVecNonIter::new(),
             traits: sa.traits,
             trait_vtables: RwLock::new(HashMap::new()),
             impls: sa.impls,
@@ -332,9 +334,6 @@ impl VM {
     pub fn setup_execution(&mut self) {
         // ensure this data is only created during execution
         assert!(self.compilation_database.is_empty());
-        assert!(self.class_instances.len() == 0);
-        assert!(self.enum_instances.len() == 0);
-        assert!(self.struct_instances.len() == 0);
 
         initialize::setup(self);
 

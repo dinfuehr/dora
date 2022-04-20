@@ -7,9 +7,9 @@ use std::sync::Arc;
 use crate::language::sem_analysis::ClassDefinitionId;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
-use crate::utils::GrowableVec;
+use crate::utils::{GrowableVec, Id};
 use crate::vm::VM;
-use crate::vtable::VTableBox;
+use crate::vtable::{ensure_display, VTableBox};
 
 pub static DISPLAY_SIZE: usize = 6;
 
@@ -34,9 +34,25 @@ impl GrowableVec<ClassInstance> {
     }
 }
 
+impl Id for ClassInstance {
+    type IdType = ClassInstanceId;
+
+    fn id_to_usize(id: ClassInstanceId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> ClassInstanceId {
+        ClassInstanceId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut ClassInstance, id: ClassInstanceId) {
+        value.id = Some(id);
+    }
+}
+
 #[derive(Debug)]
 pub struct ClassInstance {
-    pub id: ClassInstanceId,
+    pub id: Option<ClassInstanceId>,
     pub cls_id: Option<ClassDefinitionId>,
     pub trait_object: Option<SourceType>,
     pub type_params: SourceTypeArray,
@@ -48,6 +64,10 @@ pub struct ClassInstance {
 }
 
 impl ClassInstance {
+    pub fn id(&self) -> ClassInstanceId {
+        self.id.expect("missing id")
+    }
+
     pub fn name(&self, vm: &VM) -> String {
         if let Some(cls_id) = self.cls_id {
             let cls = vm.classes.idx(cls_id);
@@ -75,4 +95,28 @@ impl ClassInstance {
 pub struct FieldInstance {
     pub offset: i32,
     pub ty: SourceType,
+}
+
+pub fn create_class_instance_with_vtable(
+    vm: &VM,
+    class_instance: ClassInstance,
+    instance_size: usize,
+    element_size: usize,
+    vtable_entries: Vec<usize>,
+) -> ClassInstanceId {
+    let class_instance_id = vm.class_instances.push(class_instance);
+    let class_instance = vm.class_instances.idx(class_instance_id);
+    let class_instance_ptr = &*class_instance as *const ClassInstance as *mut ClassInstance;
+
+    let mut vtable = VTableBox::new(
+        class_instance_ptr,
+        instance_size,
+        element_size,
+        &vtable_entries,
+    );
+    ensure_display(vm, &mut vtable, class_instance.parent_id);
+
+    *class_instance.vtable.write() = Some(vtable);
+
+    class_instance_id
 }
