@@ -2,8 +2,6 @@ use std::collections::hash_map::HashMap;
 use std::convert::TryInto;
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -14,7 +12,7 @@ use crate::language::sem_analysis::{
     TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::{GrowableVec, Id};
+use crate::utils::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructDefinitionId(u32);
@@ -57,7 +55,6 @@ pub struct StructDefinition {
     pub name: Name,
     pub fields: Vec<StructDefinitionField>,
     pub field_names: HashMap<Name, StructDefinitionFieldId>,
-    pub specializations: RwLock<HashMap<SourceTypeArray, StructInstanceId>>,
     pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
 }
@@ -91,7 +88,6 @@ impl StructDefinition {
             type_params2: TypeParamDefinition::new(),
             fields: Vec::new(),
             field_names: HashMap::new(),
-            specializations: RwLock::new(HashMap::new()),
             impls: Vec::new(),
             extensions: Vec::new(),
         }
@@ -162,40 +158,6 @@ pub struct StructDefinitionField {
     pub name: Name,
     pub ty: SourceType,
     pub is_pub: bool,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct StructInstanceId(usize);
-
-impl From<usize> for StructInstanceId {
-    fn from(data: usize) -> StructInstanceId {
-        StructInstanceId(data)
-    }
-}
-
-impl GrowableVec<StructInstance> {
-    pub fn idx(&self, index: StructInstanceId) -> Arc<StructInstance> {
-        self.idx_usize(index.0)
-    }
-}
-
-pub struct StructInstance {
-    pub fields: Vec<StructInstanceField>,
-    pub size: i32,
-    pub align: i32,
-    pub ref_fields: Vec<i32>,
-}
-
-impl StructInstance {
-    pub fn contains_references(&self) -> bool {
-        !self.ref_fields.is_empty()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StructInstanceField {
-    pub offset: i32,
-    pub ty: SourceType,
 }
 
 pub fn find_methods_in_struct(

@@ -13,8 +13,8 @@ use crate::language::sem_analysis::{
     get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
     ClassDefinitionId, ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
     FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition,
-    ModuleDefinitionId, SourceFile, StructDefinition, StructDefinitionId, StructInstance,
-    TraitDefinition, TraitDefinitionId, Tuples, UseDefinition,
+    ModuleDefinitionId, SourceFile, StructDefinition, StructDefinitionId, TraitDefinition,
+    TraitDefinitionId, Tuples, UseDefinition,
 };
 use crate::language::ty::{LambdaTypes, SourceTypeArray};
 use crate::object::{Ref, Testing};
@@ -48,6 +48,7 @@ pub use self::specialize::{
     specialize_struct_id_params, specialize_trait_object, specialize_tuple, specialize_type,
     specialize_type_list,
 };
+pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{
     get_concrete_tuple, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, ConcreteTuple,
@@ -63,6 +64,7 @@ mod globals;
 mod initialize;
 mod known;
 mod specialize;
+mod structs;
 mod stubs;
 mod tuples;
 mod ty;
@@ -176,8 +178,10 @@ pub struct VM {
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
+    pub struct_specializations:
+        RwLock<HashMap<(StructDefinitionId, SourceTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVec<StructInstance>, // stores all struct definitions
-    pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
+    pub classes: MutableVec<ClassDefinition>,          // stores all class source definitions
     pub class_specializations:
         RwLock<HashMap<(ClassDefinitionId, SourceTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVec<ClassInstance>, // stores all class definitions
@@ -230,6 +234,7 @@ impl VM {
             source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),
+            struct_specializations: RwLock::new(HashMap::new()),
             struct_instances: GrowableVec::new(),
             classes: MutableVec::new(),
             class_specializations: RwLock::new(HashMap::new()),
@@ -283,6 +288,7 @@ impl VM {
             source_files: sa.source_files,
             consts: sa.consts,
             structs: sa.structs,
+            struct_specializations: RwLock::new(HashMap::new()),
             struct_instances: GrowableVec::new(),
             classes: sa.classes,
             class_specializations: RwLock::new(HashMap::new()),

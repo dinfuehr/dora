@@ -3,10 +3,7 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{
-    ensure_tuple, ClassDefinitionId, StructInstanceField, StructInstanceId, TraitDefinitionId,
-    TupleId,
-};
+use crate::language::sem_analysis::{ensure_tuple, ClassDefinitionId, TraitDefinitionId, TupleId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
@@ -14,7 +11,8 @@ use crate::size::InstanceSize;
 use crate::vm::{
     get_concrete_tuple_ty, get_tuple_subtypes, ClassDefinition, ClassInstance, ClassInstanceId,
     EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
-    StructDefinition, StructDefinitionId, StructInstance, TraitDefinition, VM,
+    StructDefinition, StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
+    TraitDefinition, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -55,29 +53,33 @@ pub fn specialize_struct_id_params(
 
 pub fn specialize_struct(
     vm: &VM,
-    struc: &StructDefinition,
+    struct_: &StructDefinition,
     type_params: SourceTypeArray,
 ) -> StructInstanceId {
-    if let Some(&id) = struc.specializations.read().get(&type_params) {
+    if let Some(&id) = vm
+        .struct_specializations
+        .read()
+        .get(&(struct_.id(), type_params.clone()))
+    {
         return id;
     }
 
-    create_specialized_struct(vm, struc, type_params)
+    create_specialized_struct(vm, struct_, type_params)
 }
 
 fn create_specialized_struct(
     vm: &VM,
-    xstruct: &StructDefinition,
+    struct_: &StructDefinition,
     type_params: SourceTypeArray,
 ) -> StructInstanceId {
-    assert!(xstruct.primitive_ty.is_none());
+    assert!(struct_.primitive_ty.is_none());
 
     let mut size = 0;
     let mut align = 0;
-    let mut fields = Vec::with_capacity(xstruct.fields.len());
+    let mut fields = Vec::with_capacity(struct_.fields.len());
     let mut ref_fields = Vec::new();
 
-    for f in &xstruct.fields {
+    for f in &struct_.fields {
         let ty = specialize_type(vm, f.ty.clone(), &type_params);
         debug_assert!(ty.is_concrete_type(vm));
 
@@ -101,13 +103,13 @@ fn create_specialized_struct(
     let mut struct_defs = vm.struct_instances.lock();
     let id: StructInstanceId = struct_defs.len().into();
 
-    let mut specializations = xstruct.specializations.write();
+    let mut specializations = vm.struct_specializations.write();
 
-    if let Some(&id) = specializations.get(&type_params) {
+    if let Some(&id) = specializations.get(&(struct_.id(), type_params.clone())) {
         return id;
     }
 
-    let old = specializations.insert(type_params.clone(), id);
+    let old = specializations.insert((struct_.id(), type_params.clone()), id);
     assert!(old.is_none());
 
     struct_defs.push(Arc::new(StructInstance {

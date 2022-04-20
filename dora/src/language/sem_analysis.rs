@@ -31,7 +31,7 @@ pub use self::src::{
 };
 pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
-    StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
+    StructDefinitionId,
 };
 pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::{ensure_tuple, get_tuple_subtypes, TupleId, Tuples};
