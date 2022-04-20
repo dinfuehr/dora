@@ -235,7 +235,7 @@ impl SemAnalysis {
         content: Arc<String>,
         module_id: ModuleDefinitionId,
     ) -> SourceFileId {
-        let file_id = (self.source_files.len() as u32).into();
+        let file_id = SourceFileId(self.source_files.len());
         self.source_files.push(SourceFile {
             id: file_id,
             path,

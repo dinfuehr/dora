@@ -37,12 +37,6 @@ impl GlobalDefinitionId {
     }
 }
 
-impl From<u32> for GlobalDefinitionId {
-    fn from(data: u32) -> GlobalDefinitionId {
-        GlobalDefinitionId(data)
-    }
-}
-
 #[derive(Debug)]
 pub struct GlobalDefinition {
     pub id: Option<GlobalDefinitionId>,

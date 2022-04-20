@@ -2,8 +2,6 @@ use std::collections::HashSet;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Position;
@@ -15,7 +13,7 @@ use crate::language::sem_analysis::{
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::{GrowableVec, Id};
+use crate::utils::Id;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassDefinitionId(usize);
@@ -27,24 +25,6 @@ impl ClassDefinitionId {
 
     pub fn to_usize(self) -> usize {
         self.0
-    }
-}
-
-impl From<ClassDefinitionId> for usize {
-    fn from(data: ClassDefinitionId) -> usize {
-        data.0
-    }
-}
-
-impl From<usize> for ClassDefinitionId {
-    fn from(data: usize) -> ClassDefinitionId {
-        ClassDefinitionId(data)
-    }
-}
-
-impl GrowableVec<RwLock<ClassDefinition>> {
-    pub fn idx(&self, index: ClassDefinitionId) -> Arc<RwLock<ClassDefinition>> {
-        self.idx_usize(index.0)
     }
 }
 

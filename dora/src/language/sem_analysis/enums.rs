@@ -1,9 +1,6 @@
 use std::collections::hash_map::HashMap;
 use std::convert::TryInto;
-use std::ops::Index;
 use std::sync::Arc;
-
-use parking_lot::RwLock;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -23,20 +20,6 @@ pub struct EnumDefinitionId(u32);
 impl EnumDefinitionId {
     pub fn to_usize(self) -> usize {
         self.0 as usize
-    }
-}
-
-impl From<usize> for EnumDefinitionId {
-    fn from(data: usize) -> EnumDefinitionId {
-        EnumDefinitionId(data.try_into().unwrap())
-    }
-}
-
-impl Index<EnumDefinitionId> for Vec<RwLock<EnumDefinition>> {
-    type Output = RwLock<EnumDefinition>;
-
-    fn index(&self, index: EnumDefinitionId) -> &RwLock<EnumDefinition> {
-        &self[index.0 as usize]
     }
 }
 

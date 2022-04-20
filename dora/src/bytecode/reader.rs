@@ -3,7 +3,8 @@ use std::iter::Iterator;
 use crate::bytecode::{
     BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
 };
-use crate::language::sem_analysis::{GlobalDefinitionId, TupleId};
+use crate::language::sem_analysis::{GlobalDefinition, GlobalDefinitionId};
+use crate::utils::Id;
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeFullIteration::new(data, visitor).read();
@@ -912,12 +913,8 @@ impl<'a> BytecodeReader<'a> {
         Register(self.read_index() as usize)
     }
 
-    fn read_tuple(&mut self) -> TupleId {
-        self.read_index().into()
-    }
-
     fn read_global(&mut self) -> GlobalDefinitionId {
-        self.read_index().into()
+        GlobalDefinition::usize_to_id(self.read_index() as usize)
     }
 
     fn read_const_pool_idx(&mut self) -> ConstPoolIdx {

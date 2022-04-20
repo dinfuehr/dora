@@ -7,12 +7,6 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct TupleId(u32);
 
-impl From<u32> for TupleId {
-    fn from(value: u32) -> TupleId {
-        TupleId(value)
-    }
-}
-
 impl TupleId {
     pub fn to_usize(self) -> usize {
         self.0 as usize

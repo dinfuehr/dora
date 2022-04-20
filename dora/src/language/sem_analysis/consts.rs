@@ -11,12 +11,6 @@ use crate::utils::Id;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstDefinitionId(usize);
 
-impl From<usize> for ConstDefinitionId {
-    fn from(data: usize) -> ConstDefinitionId {
-        ConstDefinitionId(data)
-    }
-}
-
 impl Id for ConstDefinition {
     type IdType = ConstDefinitionId;
 

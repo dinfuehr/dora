@@ -17,18 +17,6 @@ impl AnnotationDefinitionId {
     }
 }
 
-impl From<AnnotationDefinitionId> for usize {
-    fn from(data: AnnotationDefinitionId) -> usize {
-        data.0
-    }
-}
-
-impl From<usize> for AnnotationDefinitionId {
-    fn from(data: usize) -> AnnotationDefinitionId {
-        AnnotationDefinitionId(data)
-    }
-}
-
 impl Id for AnnotationDefinition {
     type IdType = AnnotationDefinitionId;
 

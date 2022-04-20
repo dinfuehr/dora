@@ -18,12 +18,6 @@ impl ModuleDefinitionId {
     }
 }
 
-impl From<usize> for ModuleDefinitionId {
-    fn from(data: usize) -> ModuleDefinitionId {
-        ModuleDefinitionId(data)
-    }
-}
-
 impl Id for ModuleDefinition {
     type IdType = ModuleDefinitionId;
 

@@ -19,12 +19,6 @@ use dora_parser::lexer::position::Position;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ExtensionDefinitionId(u32);
 
-impl From<usize> for ExtensionDefinitionId {
-    fn from(data: usize) -> ExtensionDefinitionId {
-        ExtensionDefinitionId(data as u32)
-    }
-}
-
 impl ExtensionDefinitionId {
     pub fn to_usize(self) -> usize {
         self.0 as usize

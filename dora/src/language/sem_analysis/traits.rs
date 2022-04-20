@@ -24,12 +24,6 @@ impl TraitDefinitionId {
     }
 }
 
-impl From<u32> for TraitDefinitionId {
-    fn from(data: u32) -> TraitDefinitionId {
-        TraitDefinitionId(data)
-    }
-}
-
 impl Id for TraitDefinition {
     type IdType = TraitDefinitionId;
 

@@ -19,12 +19,6 @@ use crate::utils::Id;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplDefinitionId(u32);
 
-impl From<u32> for ImplDefinitionId {
-    fn from(data: u32) -> ImplDefinitionId {
-        ImplDefinitionId(data)
-    }
-}
-
 impl Id for ImplDefinition {
     type IdType = ImplDefinitionId;
 

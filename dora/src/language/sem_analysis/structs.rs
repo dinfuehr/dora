@@ -25,12 +25,6 @@ impl StructDefinitionId {
     }
 }
 
-impl From<u32> for StructDefinitionId {
-    fn from(data: u32) -> StructDefinitionId {
-        StructDefinitionId(data)
-    }
-}
-
 impl Id for StructDefinition {
     type IdType = StructDefinitionId;
 
