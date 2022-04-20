@@ -914,7 +914,7 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
-        self.masm.raw_call(self.vm.stubs.stack_overflow_stub());
+        self.masm.raw_call(self.vm.stubs.stack_overflow());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(pos);
         self.masm.jump(lbl_return);
@@ -929,7 +929,7 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path safepoint".into());
-        self.masm.raw_call(self.vm.stubs.safepoint_stub());
+        self.masm.raw_call(self.vm.stubs.safepoint());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(pos);
         self.masm.jump(lbl_return);
@@ -962,7 +962,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.emit_comment("slow path assert".into());
         self.masm
             .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT.int() as i64);
-        self.masm.raw_call(self.vm.stubs.trap_stub());
+        self.masm.raw_call(self.vm.stubs.trap());
         self.masm.emit_gcpoint(GcPoint::new());
         self.masm.emit_position(pos);
     }

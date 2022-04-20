@@ -100,19 +100,29 @@ pub struct FieldInstance {
 pub fn create_class_instance_with_vtable(
     vm: &VM,
     class_instance: ClassInstance,
-    instance_size: usize,
-    element_size: usize,
-    vtable_entries: Vec<usize>,
+    vtable_entries: usize,
 ) -> ClassInstanceId {
+    let size = class_instance.size;
+
     let class_instance_id = vm.class_instances.push(class_instance);
     let class_instance = vm.class_instances.idx(class_instance_id);
     let class_instance_ptr = &*class_instance as *const ClassInstance as *mut ClassInstance;
+
+    let instance_size = size.instance_size().unwrap_or(0) as usize;
+    let element_size = size.element_size().unwrap_or(-1) as usize;
+
+    let vtable_mtdptrs = if vtable_entries > 0 {
+        let compilation_stub = vm.stubs.lazy_compilation().to_usize();
+        vec![compilation_stub; vtable_entries]
+    } else {
+        Vec::new()
+    };
 
     let mut vtable = VTableBox::new(
         class_instance_ptr,
         instance_size,
         element_size,
-        &vtable_entries,
+        &vtable_mtdptrs,
     );
     ensure_display(vm, &mut vtable, class_instance.parent_id);
 

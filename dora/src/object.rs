@@ -54,6 +54,11 @@ impl Header {
     }
 
     #[inline(always)]
+    pub fn array_size() -> i32 {
+        Header::size() + mem::ptr_width()
+    }
+
+    #[inline(always)]
     pub fn vtbl(&self) -> &mut VTable {
         unsafe { &mut *self.vtblptr().to_mut_ptr::<VTable>() }
     }

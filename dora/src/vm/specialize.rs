@@ -12,7 +12,6 @@ use crate::vm::{
     EnumLayout, FieldInstance, StructDefinition, StructDefinitionId, StructInstance,
     StructInstanceField, StructInstanceId, TraitDefinition, VM,
 };
-use crate::vtable::{ensure_display, VTableBox};
 
 pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
     replace_type_param(vm, ty, type_params, None)
@@ -269,9 +268,7 @@ pub fn specialize_enum_class(
             ref_fields,
             vtable: RwLock::new(None),
         },
-        instance_size as usize,
         0,
-        Vec::new(),
     );
 
     variants[variant_idx] = Some(class_instance_id);
@@ -411,22 +408,6 @@ fn create_specialized_class_regular(
 
     let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
 
-    let stub = vm.stubs.compile_stub().to_usize();
-    let vtable_entries = vec![stub; cls.virtual_fcts.len()];
-
-    let (instance_size, element_size) = match size {
-        InstanceSize::Fixed(instance_size) => (instance_size as usize, 0),
-        _ => unreachable!(),
-    };
-
-    let mut vtable = VTableBox::new(
-        std::ptr::null(),
-        instance_size,
-        element_size,
-        &vtable_entries,
-    );
-    ensure_display(vm, &mut vtable, parent_id);
-
     let mut specializations = vm.class_specializations.write();
 
     if let Some(&id) = specializations.get(&(cls.id(), type_params.clone())) {
@@ -446,9 +427,7 @@ fn create_specialized_class_regular(
             ref_fields,
             vtable: RwLock::new(None),
         },
-        instance_size,
-        element_size,
-        vtable_entries,
+        cls.virtual_fcts.len(),
     );
 
     let old = specializations.insert((cls.id(), type_params.clone()), class_instance_id);
@@ -527,21 +506,6 @@ fn create_specialized_class_array(
         InstanceSize::Str
     };
 
-    let stub = vm.stubs.compile_stub().to_usize();
-    let vtable_entries = vec![stub; cls.virtual_fcts.len()];
-
-    let (instance_size, element_size) = match size {
-        InstanceSize::Fixed(_) => unreachable!(),
-        InstanceSize::PrimitiveArray(element_size) => (0, element_size as usize),
-        InstanceSize::ObjArray => (0, mem::ptr_width_usize()),
-        InstanceSize::UnitArray => (Header::size() as usize + mem::ptr_width_usize(), 0),
-        InstanceSize::FreeArray => (0, mem::ptr_width_usize()),
-        InstanceSize::Str => (0, 1),
-        InstanceSize::TupleArray(element_size) => (0, element_size as usize),
-        InstanceSize::StructArray(element_size) => (0, element_size as usize),
-        InstanceSize::CodeObject => (0, 1),
-    };
-
     let mut specializations = vm.class_specializations.write();
 
     if let Some(&id) = specializations.get(&(cls.id(), type_params.clone())) {
@@ -561,9 +525,7 @@ fn create_specialized_class_array(
             ref_fields,
             vtable: RwLock::new(None),
         },
-        instance_size,
-        element_size,
-        vtable_entries,
+        cls.virtual_fcts.len(),
     );
 
     let old = specializations.insert((cls.id(), type_params.clone()), class_instance_id);
@@ -622,9 +584,6 @@ fn create_specialized_class_for_trait_object(
     csize = mem::align_i32(csize, mem::ptr_width());
     let size = InstanceSize::Fixed(csize);
 
-    let stub = vm.stubs.compile_stub().to_usize();
-    let vtable_entries = vec![stub; trait_.methods.len()];
-
     let mut vtables = vm.trait_vtables.write();
 
     if let Some(&id) = vtables.get(&(trait_.id(), combined_type_params_id.clone())) {
@@ -644,9 +603,7 @@ fn create_specialized_class_for_trait_object(
             ref_fields,
             vtable: RwLock::new(None),
         },
-        csize as usize,
-        0,
-        vtable_entries,
+        trait_.methods.len(),
     );
 
     let old = vtables.insert((trait_.id(), combined_type_params_id), class_instance_id);

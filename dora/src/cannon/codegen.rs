@@ -4380,7 +4380,7 @@ impl<'a> CannonCodeGen<'a> {
     fn get_call_target(&mut self, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
         if self.fct.id() == fid {
             // we want to recursively invoke the function we are compiling right now
-            self.vm.stubs.compile_stub()
+            self.vm.stubs.lazy_compilation()
         } else {
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
@@ -4400,7 +4400,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.vm
                     .compilation_database
                     .is_compiled(self.vm, fid, type_params)
-                    .unwrap_or(self.vm.stubs.compile_stub())
+                    .unwrap_or(self.vm.stubs.lazy_compilation())
             }
         }
     }

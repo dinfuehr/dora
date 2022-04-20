@@ -8,47 +8,47 @@ use crate::stdlib;
 use crate::vm::VM;
 
 pub struct Stubs {
-    compile_stub: Option<Address>,
-    dora_entry_stub: Option<Address>,
-    trap_stub: Option<Address>,
-    stack_overflow_stub: Option<Address>,
-    safepoint_stub: Option<Address>,
+    compile: Option<Address>,
+    dora_entry: Option<Address>,
+    trap: Option<Address>,
+    stack_overflow: Option<Address>,
+    safepoint: Option<Address>,
 }
 
 impl Stubs {
     pub fn new() -> Stubs {
         Stubs {
-            compile_stub: None,
-            dora_entry_stub: None,
-            trap_stub: None,
-            stack_overflow_stub: None,
-            safepoint_stub: None,
+            compile: None,
+            dora_entry: None,
+            trap: None,
+            stack_overflow: None,
+            safepoint: None,
         }
     }
 
-    pub fn compile_stub(&self) -> Address {
-        self.compile_stub.expect("uninitialized field")
+    pub fn lazy_compilation(&self) -> Address {
+        self.compile.expect("uninitialized field")
     }
 
-    pub fn dora_entry_stub(&self) -> Address {
-        self.dora_entry_stub.expect("uninitialized field")
+    pub fn dora_entry(&self) -> Address {
+        self.dora_entry.expect("uninitialized field")
     }
 
-    pub fn trap_stub(&self) -> Address {
-        self.trap_stub.expect("uninitialized field")
+    pub fn trap(&self) -> Address {
+        self.trap.expect("uninitialized field")
     }
 
-    pub fn stack_overflow_stub(&self) -> Address {
-        self.stack_overflow_stub.expect("uninitialized field")
+    pub fn stack_overflow(&self) -> Address {
+        self.stack_overflow.expect("uninitialized field")
     }
 
-    pub fn safepoint_stub(&self) -> Address {
-        self.safepoint_stub.expect("uninitialized field")
+    pub fn safepoint(&self) -> Address {
+        self.safepoint.expect("uninitialized field")
     }
 }
 
 pub fn setup_stubs(vm: &mut VM) {
-    vm.stubs.dora_entry_stub = Some(dora_entry_stub::install(vm).instruction_start());
+    vm.stubs.dora_entry = Some(dora_entry_stub::install(vm).instruction_start());
 
     let ifct = NativeFct {
         fctptr: Address::from_ptr(stdlib::trap as *const u8),
@@ -57,9 +57,9 @@ pub fn setup_stubs(vm: &mut VM) {
         desc: NativeFctKind::TrapStub,
     };
     let code = dora_exit_stubs::generate(vm, ifct, false);
-    vm.stubs.trap_stub = Some(code.instruction_start());
+    vm.stubs.trap = Some(code.instruction_start());
 
-    vm.stubs.compile_stub = Some(lazy_compile_stub::generate(vm).instruction_start());
+    vm.stubs.compile = Some(lazy_compile_stub::generate(vm).instruction_start());
 
     let ifct = NativeFct {
         fctptr: Address::from_ptr(safepoint::stack_overflow as *const u8),
@@ -68,7 +68,7 @@ pub fn setup_stubs(vm: &mut VM) {
         desc: NativeFctKind::GuardCheckStub,
     };
     let code = dora_exit_stubs::generate(vm, ifct, false);
-    vm.stubs.stack_overflow_stub = Some(code.instruction_start());
+    vm.stubs.stack_overflow = Some(code.instruction_start());
 
     let ifct = NativeFct {
         fctptr: Address::from_ptr(safepoint::safepoint_slow as *const u8),
@@ -77,5 +77,5 @@ pub fn setup_stubs(vm: &mut VM) {
         desc: NativeFctKind::SafepointStub,
     };
     let code = dora_exit_stubs::generate(vm, ifct, false);
-    vm.stubs.safepoint_stub = Some(code.instruction_start());
+    vm.stubs.safepoint = Some(code.instruction_start());
 }

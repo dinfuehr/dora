@@ -347,7 +347,7 @@ impl VM {
     pub fn run(&self, fct_id: FctDefinitionId) -> i32 {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
-        let dora_stub_address = self.stubs.dora_entry_stub();
+        let dora_stub_address = self.stubs.dora_entry();
         let fct: extern "C" fn(Address, Address) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr)
@@ -356,7 +356,7 @@ impl VM {
     pub fn run_test(&self, fct_id: FctDefinitionId, testing: Ref<Testing>) {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
-        let dora_stub_address = self.stubs.dora_entry_stub();
+        let dora_stub_address = self.stubs.dora_entry();
         let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr, testing);
