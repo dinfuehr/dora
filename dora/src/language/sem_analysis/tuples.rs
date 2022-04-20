@@ -31,15 +31,11 @@ impl Tuples {
 }
 
 pub fn create_tuple(sa: &SemAnalysis, args: Vec<SourceType>) -> SourceType {
-    SourceType::Tuple(ensure_tuple(sa, args))
-}
-
-pub fn ensure_tuple(sa: &SemAnalysis, args: Vec<SourceType>) -> TupleId {
     let mut tuples = sa.tuples.lock();
     let source_type_array = SourceTypeArray::with(args);
 
     if let Some(&tuple_id) = tuples.map.get(&source_type_array) {
-        return tuple_id;
+        return SourceType::Tuple(tuple_id);
     }
 
     tuples.all.push(source_type_array.clone());
@@ -47,7 +43,7 @@ pub fn ensure_tuple(sa: &SemAnalysis, args: Vec<SourceType>) -> TupleId {
     let id = TupleId((tuples.all.len() - 1).try_into().unwrap());
     tuples.map.insert(source_type_array, id);
 
-    id
+    SourceType::Tuple(id)
 }
 
 pub fn get_tuple_subtypes(sa: &SemAnalysis, id: TupleId) -> SourceTypeArray {

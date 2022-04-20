@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::language::generator::generate_fct;
 use crate::language::sem_analysis::{
-    ensure_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
+    create_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::test;
@@ -300,7 +300,7 @@ fn gen_stmt_let_tuple() {
     gen_fct(
         "fn f(value: (Int32, Int32)): Int32 { let (x, y) = value; x+y }",
         |sa, code, fct| {
-            let tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
+            let tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
             let expected = vec![
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
                 LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
@@ -311,12 +311,12 @@ fn gen_stmt_let_tuple() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_id, 0)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_id, 1)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 1)
             );
         },
     );
@@ -324,10 +324,13 @@ fn gen_stmt_let_tuple() {
     gen_fct(
         "fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (y, z)) = value; x+y+z }",
         |sa, code, fct| {
-            let nested_tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
-            let tuple_id = ensure_tuple(
+            let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
+            let tuple_ty = create_tuple(
                 sa,
-                vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
+                vec![
+                    SourceType::Int32,
+                    SourceType::Tuple(nested_tuple_ty.tuple_id().unwrap()),
+                ],
             );
             let expected = vec![
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
@@ -342,22 +345,22 @@ fn gen_stmt_let_tuple() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_id, 0)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_id, 1)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 1)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(nested_tuple_id, 0)
+                &ConstPoolEntry::TupleElement(nested_tuple_ty.tuple_id().unwrap(), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(3)),
-                &ConstPoolEntry::TupleElement(nested_tuple_id, 1)
+                &ConstPoolEntry::TupleElement(nested_tuple_ty.tuple_id().unwrap(), 1)
             );
         },
     );
@@ -365,10 +368,13 @@ fn gen_stmt_let_tuple() {
     gen_fct(
         "fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (_, z)) = value; x+z }",
         |sa, code, fct| {
-            let nested_tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
-            let tuple_id = ensure_tuple(
+            let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
+            let tuple_ty = create_tuple(
                 sa,
-                vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
+                vec![
+                    SourceType::Int32,
+                    SourceType::Tuple(nested_tuple_ty.tuple_id().unwrap()),
+                ],
             );
             let expected = vec![
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
@@ -381,17 +387,17 @@ fn gen_stmt_let_tuple() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_id, 0)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_id, 1)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 1)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(nested_tuple_id, 1)
+                &ConstPoolEntry::TupleElement(nested_tuple_ty.tuple_id().unwrap(), 1)
             );
         },
     );
@@ -410,10 +416,13 @@ fn gen_stmt_let_unit() {
     gen_fct(
         "fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, z)) = value; x+y }",
         |sa, code, fct| {
-            let nested_tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
-            let tuple_id = ensure_tuple(
+            let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
+            let tuple_ty = create_tuple(
                 sa,
-                vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
+                vec![
+                    SourceType::Int32,
+                    SourceType::Tuple(nested_tuple_ty.tuple_id().unwrap()),
+                ],
             );
             let expected = vec![
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
@@ -426,17 +435,17 @@ fn gen_stmt_let_unit() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_id, 0)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_id, 1)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 1)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(nested_tuple_id, 0)
+                &ConstPoolEntry::TupleElement(nested_tuple_ty.tuple_id().unwrap(), 0)
             );
         },
     );
@@ -444,10 +453,13 @@ fn gen_stmt_let_unit() {
     gen_fct(
         "fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, ())) = value; x+y }",
         |sa, code, fct| {
-            let nested_tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
-            let tuple_id = ensure_tuple(
+            let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
+            let tuple_ty = create_tuple(
                 sa,
-                vec![SourceType::Int32, SourceType::Tuple(nested_tuple_id)],
+                vec![
+                    SourceType::Int32,
+                    SourceType::Tuple(nested_tuple_ty.tuple_id().unwrap()),
+                ],
             );
             let expected = vec![
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
@@ -460,17 +472,17 @@ fn gen_stmt_let_unit() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_id, 0)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_id, 1)
+                &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 1)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(nested_tuple_id, 0)
+                &ConstPoolEntry::TupleElement(nested_tuple_ty.tuple_id().unwrap(), 0)
             );
         },
     );
@@ -4102,7 +4114,7 @@ fn gen_int64_max_value() {
 fn gen_tuple_var() {
     gen_fct("fn f() { let x = (1I, 2I); }", |sa, code, fct| {
         let subtypes = vec![SourceType::Int32, SourceType::Int32];
-        let tuple_id = ensure_tuple(sa, subtypes.clone());
+        let tuple_ty = create_tuple(sa, subtypes.clone());
         let expected = vec![
             ConstInt32(r(1), 1),
             ConstInt32(r(2), 2),
@@ -4115,7 +4127,10 @@ fn gen_tuple_var() {
 
         assert_eq!(
             fct.const_pool(ConstPoolIdx(2)),
-            &ConstPoolEntry::Tuple(tuple_id, SourceTypeArray::with(subtypes))
+            &ConstPoolEntry::Tuple(
+                tuple_ty.tuple_id().unwrap(),
+                SourceTypeArray::with(subtypes)
+            )
         );
     });
 }
@@ -4130,13 +4145,13 @@ fn gen_tuple_move() {
 #[test]
 fn gen_tuple_element() {
     gen_fct("fn f(x: (Int32, Int32)): Int32 { x.0 }", |sa, code, fct| {
-        let tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
+        let tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
         let expected = vec![LoadTupleElement(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
         assert_eq!(expected, code);
 
         assert_eq!(
             fct.const_pool(ConstPoolIdx(0)),
-            &ConstPoolEntry::TupleElement(tuple_id, 0)
+            &ConstPoolEntry::TupleElement(tuple_ty.tuple_id().unwrap(), 0)
         );
     });
 }

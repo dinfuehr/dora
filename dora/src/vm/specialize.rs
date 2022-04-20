@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 use std::cmp::max;
 
 use crate::language::sem_analysis::{
-    ensure_tuple, get_tuple_subtypes, ClassDefinitionId, TraitDefinitionId, TupleId,
+    create_tuple, get_tuple_subtypes, ClassDefinitionId, TraitDefinitionId, TupleId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
@@ -622,7 +622,7 @@ pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArra
         .map(|t| specialize_type(vm, t.clone(), type_params))
         .collect::<Vec<_>>();
 
-    ensure_tuple(vm, new_subtypes)
+    create_tuple(vm, new_subtypes).tuple_id().unwrap()
 }
 
 pub fn replace_type_param(
@@ -690,8 +690,7 @@ pub fn replace_type_param(
                 .map(|t| replace_type_param(vm, t.clone(), type_params, self_ty.clone()))
                 .collect::<Vec<_>>();
 
-            let tuple_id = ensure_tuple(vm, new_subtypes);
-            SourceType::Tuple(tuple_id)
+            create_tuple(vm, new_subtypes)
         }
 
         SourceType::Unit

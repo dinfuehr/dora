@@ -6,7 +6,7 @@ use crate::language::access::{
 };
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    ensure_tuple, implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
+    create_tuple, implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
     FctDefinition, ImplDefinition, SemAnalysis, SourceFileId, StructDefinitionId,
     TraitDefinitionId, TypeParam, TypeParamId,
 };
@@ -560,8 +560,7 @@ fn read_type_tuple(
             }
         }
 
-        let tuple_id = ensure_tuple(sa, subtypes);
-        Some(SourceType::Tuple(tuple_id))
+        Some(create_tuple(sa, subtypes))
     }
 }
 
