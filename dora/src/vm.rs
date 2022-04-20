@@ -196,7 +196,7 @@ pub struct VM {
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
-    pub global_variable_memory: Mutex<Option<GlobalVariableMemory>>,
+    pub global_variable_memory: Option<GlobalVariableMemory>,
     pub uses: Vec<UseDefinition>, // stores all uses
     pub gc: Gc,                   // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
@@ -245,7 +245,7 @@ impl VM {
             trait_vtables: RwLock::new(HashMap::new()),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
-            global_variable_memory: Mutex::new(None),
+            global_variable_memory: None,
             uses: Vec::new(),
             interner,
             known: KnownElements::new(),
@@ -298,7 +298,7 @@ impl VM {
             trait_vtables: RwLock::new(HashMap::new()),
             impls: sa.impls,
             globals: sa.globals,
-            global_variable_memory: Mutex::new(None),
+            global_variable_memory: None,
             uses: sa.uses,
             interner: sa.interner,
             known: sa.known,

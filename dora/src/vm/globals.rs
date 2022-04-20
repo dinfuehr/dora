@@ -4,7 +4,7 @@ use crate::mem;
 use crate::os;
 use crate::vm::VM;
 
-pub fn init_global_addresses(vm: &VM) {
+pub fn init_global_addresses(vm: &mut VM) {
     let mut size = 0;
     let mut offsets = Vec::with_capacity(vm.globals.len());
 
@@ -37,8 +37,7 @@ pub fn init_global_addresses(vm: &VM) {
         global_var.address_value = start.offset(value_offset);
     }
 
-    let mut global_variable_memory = vm.global_variable_memory.lock();
-    *global_variable_memory = Some(GlobalVariableMemory {
+    vm.global_variable_memory = Some(GlobalVariableMemory {
         region: start.region_start(size),
     });
 }
