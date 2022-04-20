@@ -190,7 +190,7 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
                 println!("{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)
             }
-            ConstPoolEntry::Tuple(tuple_id) => {
+            ConstPoolEntry::Tuple(tuple_id, _) => {
                 let tuple_name = SourceType::Tuple(*tuple_id).name(vm);
                 println!(
                     "{}{} => Tuple {} # {}",
@@ -574,7 +574,7 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_new_tuple(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let tuple_id = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Tuple(tuple_id) => *tuple_id,
+            ConstPoolEntry::Tuple(tuple_id, _) => *tuple_id,
             _ => unreachable!(),
         };
         let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);

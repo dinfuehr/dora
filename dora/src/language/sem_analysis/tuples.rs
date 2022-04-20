@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use crate::language::sem_analysis::SemAnalysis;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -26,14 +25,13 @@ impl Tuples {
         }
     }
 
-    fn get_subtypes(&self, id: TupleId) -> Arc<Vec<SourceType>> {
-        let source_type_array = self.all[id.0 as usize].clone();
-
-        match source_type_array {
-            SourceTypeArray::Empty => Arc::new(Vec::new()),
-            SourceTypeArray::List(data) => data,
-        }
+    fn get_subtypes_array(&self, id: TupleId) -> SourceTypeArray {
+        self.all[id.0 as usize].clone()
     }
+}
+
+pub fn create_tuple(sa: &SemAnalysis, args: Vec<SourceType>) -> SourceType {
+    SourceType::Tuple(ensure_tuple(sa, args))
 }
 
 pub fn ensure_tuple(sa: &SemAnalysis, args: Vec<SourceType>) -> TupleId {
@@ -52,6 +50,6 @@ pub fn ensure_tuple(sa: &SemAnalysis, args: Vec<SourceType>) -> TupleId {
     id
 }
 
-pub fn get_tuple_subtypes(sa: &SemAnalysis, id: TupleId) -> Arc<Vec<SourceType>> {
-    sa.tuples.lock().get_subtypes(id)
+pub fn get_tuple_subtypes(sa: &SemAnalysis, id: TupleId) -> SourceTypeArray {
+    sa.tuples.lock().get_subtypes_array(id)
 }

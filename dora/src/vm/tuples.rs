@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use crate::bytecode::BytecodeType;
 use crate::language::sem_analysis::{get_tuple_subtypes, TupleId};
-use crate::language::ty::SourceType;
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::vm::{specialize_enum_id_params, EnumLayout, VM};
 
@@ -36,13 +36,13 @@ impl ConcreteTuple {
     }
 }
 
-fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> ConcreteTuple {
+fn determine_tuple_size(vm: &VM, subtypes: SourceTypeArray) -> ConcreteTuple {
     let mut size = 0;
     let mut offsets = Vec::new();
     let mut references = Vec::new();
     let mut align = 0;
 
-    for ty in subtypes {
+    for ty in subtypes.iter() {
         assert!(ty.is_concrete_type(vm));
 
         let element_size;
@@ -67,7 +67,7 @@ fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> ConcreteTuple {
 
             continue;
         } else if let SourceType::Enum(enum_id, type_params) = ty {
-            let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
+            let edef_id = specialize_enum_id_params(vm, enum_id, type_params.clone());
             let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {
@@ -110,7 +110,7 @@ fn determine_tuple_size(vm: &VM, subtypes: &[SourceType]) -> ConcreteTuple {
 
 pub fn get_concrete_tuple(vm: &VM, id: TupleId) -> ConcreteTuple {
     let subtypes = get_tuple_subtypes(vm, id);
-    determine_tuple_size(vm, &*subtypes)
+    determine_tuple_size(vm, subtypes)
 }
 
 pub fn get_concrete_tuple_ty(vm: &VM, ty: &SourceType) -> ConcreteTuple {

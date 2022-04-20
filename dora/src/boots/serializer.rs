@@ -298,7 +298,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_id(tuple_id.to_usize());
             buffer.emit_id(element_idx as usize);
         }
-        &ConstPoolEntry::Tuple(tuple_id) => {
+        &ConstPoolEntry::Tuple(tuple_id, _) => {
             buffer.emit_u8(ConstPoolOpcode::Tuple.to_u8());
             buffer.emit_id(tuple_id.to_usize());
         }

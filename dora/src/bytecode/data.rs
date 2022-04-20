@@ -1550,7 +1550,7 @@ pub enum ConstPoolEntry {
     StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
     Trait(TraitDefinitionId, SourceTypeArray, SourceType),
     TupleElement(TupleId, usize),
-    Tuple(TupleId),
+    Tuple(TupleId, SourceTypeArray),
 }
 
 impl ConstPoolEntry {

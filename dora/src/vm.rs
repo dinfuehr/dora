@@ -10,11 +10,11 @@ use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
-    get_tuple_subtypes, AnnotationDefinition, AnnotationDefinitionId, ClassDefinition,
-    ClassDefinitionId, ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
-    FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition,
-    ModuleDefinitionId, SourceFile, StructDefinition, StructDefinitionId, TraitDefinition,
-    TraitDefinitionId, Tuples, UseDefinition,
+    AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
+    ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
+    FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
+    SourceFile, StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId, Tuples,
+    UseDefinition,
 };
 use crate::language::ty::{LambdaTypes, SourceTypeArray};
 use crate::object::{Ref, Testing};

@@ -4101,7 +4101,8 @@ fn gen_int64_max_value() {
 #[test]
 fn gen_tuple_var() {
     gen_fct("fn f() { let x = (1I, 2I); }", |sa, code, fct| {
-        let tuple_id = ensure_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
+        let subtypes = vec![SourceType::Int32, SourceType::Int32];
+        let tuple_id = ensure_tuple(sa, subtypes.clone());
         let expected = vec![
             ConstInt32(r(1), 1),
             ConstInt32(r(2), 2),
@@ -4114,7 +4115,7 @@ fn gen_tuple_var() {
 
         assert_eq!(
             fct.const_pool(ConstPoolIdx(2)),
-            &ConstPoolEntry::Tuple(tuple_id)
+            &ConstPoolEntry::Tuple(tuple_id, SourceTypeArray::with(subtypes))
         );
     });
 }

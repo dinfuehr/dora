@@ -2439,7 +2439,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         let tuple_id = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Tuple(tuple_id) => *tuple_id,
+            ConstPoolEntry::Tuple(tuple_id, _) => *tuple_id,
             _ => unreachable!(),
         };
         let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
@@ -5468,7 +5468,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let tuple_id = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Tuple(tuple_id) => *tuple_id,
+                ConstPoolEntry::Tuple(tuple_id, _) => *tuple_id,
                 _ => unreachable!(),
             };
             let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);

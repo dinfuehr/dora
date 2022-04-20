@@ -1,16 +1,18 @@
 use parking_lot::RwLock;
 use std::cmp::max;
 
-use crate::language::sem_analysis::{ensure_tuple, ClassDefinitionId, TraitDefinitionId, TupleId};
+use crate::language::sem_analysis::{
+    ensure_tuple, get_tuple_subtypes, ClassDefinitionId, TraitDefinitionId, TupleId,
+};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_ty, get_tuple_subtypes, ClassDefinition,
-    ClassInstance, ClassInstanceId, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId,
-    EnumLayout, FieldInstance, StructDefinition, StructDefinitionId, StructInstance,
-    StructInstanceField, StructInstanceId, TraitDefinition, VM,
+    create_class_instance_with_vtable, get_concrete_tuple_ty, ClassDefinition, ClassInstance,
+    ClassInstanceId, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout,
+    FieldInstance, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
+    StructInstanceId, TraitDefinition, VM,
 };
 
 pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {

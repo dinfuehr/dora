@@ -534,6 +534,10 @@ impl SourceTypeArray {
         }
     }
 
+    pub fn new(types: Arc<Vec<SourceType>>) -> SourceTypeArray {
+        SourceTypeArray::List(types)
+    }
+
     pub fn connect(&self, other: &SourceTypeArray) -> SourceTypeArray {
         if self.is_empty() {
             return other.clone();

@@ -11,7 +11,7 @@ use crate::language::access::{
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::sem_analysis::{
-    ensure_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
+    create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, get_tuple_subtypes, implements_trait, AnalysisData, CallType,
     ClassDefinitionId, ConvInfo, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId,
@@ -552,9 +552,7 @@ impl<'a> TypeCheck<'a> {
             subtypes.push(subtype);
         }
 
-        let tuple_id = ensure_tuple(self.sa, subtypes);
-
-        let ty = SourceType::Tuple(tuple_id);
+        let ty = create_tuple(self.sa, subtypes);
         self.analysis.set_ty(tuple.id, ty.clone());
 
         ty

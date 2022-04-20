@@ -172,8 +172,8 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::TupleElement(id, subtype_idx))
     }
 
-    pub fn add_const_tuple(&mut self, id: TupleId) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Tuple(id))
+    pub fn add_const_tuple(&mut self, id: TupleId, subtypes: SourceTypeArray) -> ConstPoolIdx {
+        self.writer.add_const(ConstPoolEntry::Tuple(id, subtypes))
     }
 
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
