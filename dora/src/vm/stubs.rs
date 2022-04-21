@@ -1,6 +1,6 @@
 use crate::compiler::dora_entry_stub;
 use crate::compiler::dora_exit_stubs::{self, NativeFct, NativeFctKind};
-use crate::compiler::lazy_compile_stub;
+use crate::compiler::lazy_compilation_stub;
 use crate::gc::Address;
 use crate::language::ty::SourceType;
 use crate::safepoint;
@@ -59,7 +59,7 @@ pub fn setup_stubs(vm: &mut VM) {
     let code = dora_exit_stubs::generate(vm, ifct, false);
     vm.stubs.trap = Some(code.instruction_start());
 
-    vm.stubs.compile = Some(lazy_compile_stub::generate(vm).instruction_start());
+    vm.stubs.compile = Some(lazy_compilation_stub::generate(vm).instruction_start());
 
     let ifct = NativeFct {
         fctptr: Address::from_ptr(safepoint::stack_overflow as *const u8),

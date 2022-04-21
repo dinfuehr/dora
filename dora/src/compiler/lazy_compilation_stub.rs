@@ -246,20 +246,23 @@ fn patch_virtual_call(
 
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
-    let cls_def = vtable.class_instance();
+    let class_instance = vtable.class_instance();
 
-    let fct_ptr = if let Some(cls_id) = cls_def.cls_id {
+    let fct_ptr = if let Some(cls_id) = class_instance.cls_id {
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
         let fct_id = cls.virtual_fcts[vtable_index as usize];
         compiler::generate(vm, fct_id, type_params)
     } else {
-        let object_ty = cls_def.trait_object.clone().expect("trait object expected");
+        let object_ty = class_instance
+            .trait_object
+            .clone()
+            .expect("trait object expected");
         let all_type_params = type_params.connect_single(object_ty.clone());
         let thunk_fct_id = ensure_thunk(
             vm,
-            cls_def.id(),
+            class_instance.id(),
             trait_fct_id,
             type_params.clone(),
             object_ty,
