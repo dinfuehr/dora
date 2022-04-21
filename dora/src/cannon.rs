@@ -3,7 +3,7 @@ use self::codegen::CannonCodeGen;
 use crate::boots;
 use crate::bytecode;
 use crate::cannon::liveness::BytecodeLiveness;
-use crate::compiler::codegen::should_emit_bytecode;
+use crate::compiler::codegen::{should_emit_asm, should_emit_bytecode, should_emit_debug};
 use crate::handle::handle_scope;
 use crate::language::sem_analysis::FctDefinition;
 use crate::language::ty::SourceTypeArray;
@@ -70,5 +70,25 @@ pub(super) fn compile<'a>(
 
     let liveness = BytecodeLiveness::analyze(bytecode_fct);
 
-    CannonCodeGen::new(vm, fct, bytecode_fct, liveness, type_params, flags).generate()
+    let emit_debug = should_emit_debug(vm, fct);
+    let emit_asm = should_emit_asm(vm, fct);
+
+    let params = fct.params_with_self();
+    let params = SourceTypeArray::with(params.to_vec());
+    let return_type = fct.return_type.clone();
+
+    CannonCodeGen::new(
+        vm,
+        params,
+        fct.is_variadic,
+        return_type,
+        fct.pos,
+        emit_debug,
+        emit_asm,
+        bytecode_fct,
+        liveness,
+        type_params,
+        flags,
+    )
+    .generate()
 }

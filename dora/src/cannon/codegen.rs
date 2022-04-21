@@ -7,9 +7,7 @@ use crate::bytecode::{
 };
 use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::asm::BaselineAssembler;
-use crate::compiler::codegen::{
-    ensure_native_stub, should_emit_asm, should_emit_debug, AllocationSize, AnyReg,
-};
+use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
 use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
@@ -17,8 +15,8 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    find_trait_impl, get_tuple_subtypes, EnumDefinitionId, FctDefinition, FctDefinitionId,
-    GlobalDefinitionId, Intrinsic, StructDefinitionId, TupleId,
+    find_trait_impl, get_tuple_subtypes, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
+    Intrinsic, StructDefinitionId, TupleId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
@@ -42,7 +40,7 @@ macro_rules! comment {
         $cannon:expr,
         $out:expr
     ) => {{
-        if $cannon.should_emit_asm {
+        if $cannon.emit_asm {
             $cannon.asm.emit_comment($out);
         }
     }};
@@ -55,13 +53,18 @@ struct ForwardJump {
 
 pub struct CannonCodeGen<'a> {
     vm: &'a VM,
-    fct: &'a FctDefinition,
     asm: BaselineAssembler<'a>,
     bytecode: &'a BytecodeFunction,
+
+    pos: Position,
+    params: SourceTypeArray,
+    has_variadic_parameter: bool,
+    return_type: SourceType,
+    emit_debug: bool,
+    emit_asm: bool,
+
     temporary_stack: Vec<BytecodeType>,
     temporary_stack_size: i32,
-
-    should_emit_asm: bool,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -96,7 +99,12 @@ pub struct CannonCodeGen<'a> {
 impl<'a> CannonCodeGen<'a> {
     pub(super) fn new(
         vm: &'a VM,
-        fct: &'a FctDefinition,
+        params: SourceTypeArray,
+        has_variadic_parameter: bool,
+        return_type: SourceType,
+        pos: Position,
+        emit_debug: bool,
+        emit_asm: bool,
         bytecode: &'a BytecodeFunction,
         liveness: BytecodeLiveness,
         type_params: &'a SourceTypeArray,
@@ -104,12 +112,16 @@ impl<'a> CannonCodeGen<'a> {
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
-            fct,
+            params,
+            has_variadic_parameter,
+            return_type,
+            pos,
+            emit_debug,
             asm: BaselineAssembler::new(vm),
             bytecode,
             temporary_stack: Vec::new(),
             temporary_stack_size: 0,
-            should_emit_asm: should_emit_asm(vm, fct),
+            emit_asm,
             lbl_break: None,
             lbl_continue: None,
             type_params,
@@ -128,7 +140,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     pub fn generate(mut self) -> CodeDescriptor {
-        if should_emit_debug(self.vm, self.fct) {
+        if self.emit_debug {
             self.asm.debug();
         }
 
@@ -153,7 +165,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_safepoint(&mut self) {
         let gcpoint = self.create_gcpoint();
-        self.asm.safepoint(self.fct.ast.pos, gcpoint);
+        self.asm.safepoint(self.pos, gcpoint);
     }
 
     fn emit_slow_paths(&mut self) {
@@ -277,7 +289,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn has_result_address(&self) -> bool {
-        let return_type = self.specialize_type(self.fct.return_type.clone());
+        let return_type = self.specialize_type(self.return_type.clone());
         result_passed_as_argument(return_type)
     }
 
@@ -295,7 +307,7 @@ impl<'a> CannonCodeGen<'a> {
             reg_idx += 1;
         }
 
-        let params = self.fct.params_with_self();
+        let params = self.params.clone();
 
         for (idx, param_ty) in params.iter().enumerate() {
             let param_ty = self.specialize_type(param_ty.clone());
@@ -303,7 +315,7 @@ impl<'a> CannonCodeGen<'a> {
 
             let dest = Register(idx);
 
-            let param_ty = if idx == params.len() - 1 && self.fct.is_variadic {
+            let param_ty = if idx == self.params.len() - 1 && self.has_variadic_parameter {
                 assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
                 SourceType::Ptr
             } else if param_ty.is_unit() {
@@ -536,7 +548,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_stack_guard(&mut self) {
         let gcpoint = self.create_gcpoint();
-        self.asm.stack_guard(self.fct.ast.pos, gcpoint);
+        self.asm.stack_guard(self.pos, gcpoint);
     }
 
     fn emit_epilog(&mut self) {
@@ -3270,8 +3282,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let trait_id = fct.trait_id();
 
-        assert!(self.fct.type_param(id).trait_bounds.contains(&trait_id));
-
         let ty = self.type_params[id.to_usize()].clone();
         let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_id, ty);
 
@@ -4378,30 +4388,25 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn get_call_target(&mut self, fid: FctDefinitionId, type_params: SourceTypeArray) -> Address {
-        if self.fct.id() == fid {
-            // we want to recursively invoke the function we are compiling right now
-            self.vm.stubs.lazy_compilation()
+        let fct = self.vm.fcts.idx(fid);
+        let fct = fct.read();
+
+        if let Some(native_pointer) = fct.native_pointer {
+            assert!(type_params.is_empty());
+            let internal_fct = NativeFct {
+                fctptr: native_pointer,
+                args: fct.params_with_self(),
+                return_type: fct.return_type.clone(),
+                desc: NativeFctKind::NativeStub(fid),
+            };
+
+            ensure_native_stub(self.vm, Some(fid), internal_fct)
         } else {
-            let fct = self.vm.fcts.idx(fid);
-            let fct = fct.read();
-
-            if let Some(native_pointer) = fct.native_pointer {
-                assert!(type_params.is_empty());
-                let internal_fct = NativeFct {
-                    fctptr: native_pointer,
-                    args: fct.params_with_self(),
-                    return_type: fct.return_type.clone(),
-                    desc: NativeFctKind::NativeStub(fid),
-                };
-
-                ensure_native_stub(self.vm, Some(fid), internal_fct)
-            } else {
-                debug_assert!(fct.has_body());
-                self.vm
-                    .compilation_database
-                    .is_compiled(self.vm, fid, type_params)
-                    .unwrap_or(self.vm.stubs.lazy_compilation())
-            }
+            debug_assert!(fct.has_body());
+            self.vm
+                .compilation_database
+                .is_compiled(self.vm, fid, type_params)
+                .unwrap_or(self.vm.stubs.lazy_compilation())
         }
     }
 
