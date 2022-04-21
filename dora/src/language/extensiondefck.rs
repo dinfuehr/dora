@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    get_tuple_subtypes, EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctParent,
+    get_tuple_subtypes, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
     ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionId, TypeParam,
 };
 use crate::language::sym::NestedSymTable;
@@ -120,36 +118,38 @@ impl<'x> ExtensionCheck<'x> {
             extension.ty = extension_ty;
         }
 
-        for method in &self.ast.methods {
-            self.visit_method(method);
+        let methods = self
+            .sa
+            .extensions
+            .idx(self.extension_id)
+            .read()
+            .methods
+            .clone();
+
+        for method_id in methods {
+            self.visit_method(method_id);
         }
 
         self.sym.pop_level();
     }
 
-    fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        if f.block.is_none() && !f.internal {
+    fn visit_method(&mut self, fct_id: FctDefinitionId) {
+        let fct = self.sa.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        if fct.ast.block.is_none() && !fct.internal {
             self.sa
                 .diag
                 .lock()
-                .report(self.file_id.into(), f.pos, SemError::MissingFctBody);
+                .report(self.file_id.into(), fct.pos, SemError::MissingFctBody);
         }
-
-        let fct = FctDefinition::new(
-            self.file_id,
-            self.module_id,
-            f,
-            FctParent::Extension(self.extension_id),
-        );
-
-        let fct_id = self.sa.add_fct(fct);
 
         if self.extension_ty.is_error() {
             return;
         }
 
         let success = match self.extension_ty {
-            SourceType::Enum(enum_id, _) => self.check_in_enum(&f, enum_id),
+            SourceType::Enum(enum_id, _) => self.check_in_enum(&fct.ast, enum_id),
             SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -161,27 +161,27 @@ impl<'x> ExtensionCheck<'x> {
                     .extension_ty
                     .primitive_struct_id(self.sa)
                     .expect("primitive expected");
-                self.check_in_struct(&f, struct_id)
+                self.check_in_struct(&fct.ast, struct_id)
             }
-            SourceType::Struct(struct_id, _) => self.check_in_struct(&f, struct_id),
-            _ => self.check_in_class(&f),
+            SourceType::Struct(struct_id, _) => self.check_in_struct(&fct.ast, struct_id),
+            _ => self.check_in_class(&fct.ast),
         };
 
         if !success {
             return;
         }
 
-        let mut extension = self.sa.extensions[self.extension_id].write();
-        extension.methods.push(fct_id);
+        let extension = self.sa.extensions.idx(self.extension_id);
+        let mut extension = extension.write();
 
-        let table = if f.is_static {
+        let table = if fct.is_static {
             &mut extension.static_names
         } else {
             &mut extension.instance_names
         };
 
-        if !table.contains_key(&f.name) {
-            table.insert(f.name, fct_id);
+        if !table.contains_key(&fct.name) {
+            table.insert(fct.name, fct_id);
         }
     }
 

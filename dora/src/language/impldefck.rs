@@ -1,16 +1,15 @@
-use std::sync::Arc;
-
 use crate::language::error::msg::SemError;
 use crate::language::extensiondefck::check_for_unconstrained_type_params;
 use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, FctParent, ImplDefinitionId, ModuleDefinitionId, SemAnalysis,
-    SourceFileId,
+    FctDefinitionId, ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
+
+use super::sem_analysis::ImplDefinition;
 
 pub fn check(sa: &SemAnalysis) {
     for impl_ in sa.impls.iter() {
@@ -156,19 +155,10 @@ impl<'x> ImplCheck<'x> {
 
         self.sym.pop_level();
 
-        for method in &self.ast.methods {
-            let method_id = self.visit_method(method);
-            impl_.methods.push(method_id);
+        let methods = impl_.methods.clone();
 
-            let table = if method.is_static {
-                &mut impl_.static_names
-            } else {
-                &mut impl_.instance_names
-            };
-
-            if !table.contains_key(&method.name) {
-                table.insert(method.name, method_id);
-            }
+        for method_id in methods {
+            self.visit_method(&mut *impl_, method_id);
         }
     }
 
@@ -186,18 +176,26 @@ impl<'x> ImplCheck<'x> {
         );
     }
 
-    fn visit_method(&mut self, method: &Arc<ast::Function>) -> FctDefinitionId {
-        if method.block.is_none() && !method.internal {
+    fn visit_method(&mut self, impl_: &mut ImplDefinition, fct_id: FctDefinitionId) {
+        let method = self.sa.fcts.idx(fct_id);
+        let method = method.read();
+
+        if method.ast.block.is_none() && !method.internal {
             self.sa
                 .diag
                 .lock()
                 .report(self.file_id.into(), method.pos, SemError::MissingFctBody);
         }
 
-        let parent = FctParent::Impl(self.impl_id);
+        let table = if method.is_static {
+            &mut impl_.static_names
+        } else {
+            &mut impl_.instance_names
+        };
 
-        let fct = FctDefinition::new(self.file_id.into(), self.module_id, method, parent);
-        self.sa.add_fct(fct)
+        if !table.contains_key(&method.name) {
+            table.insert(method.name, fct_id);
+        }
     }
 }
 

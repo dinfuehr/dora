@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, FctDefinition, FctParent, Field, FieldId, ModuleDefinitionId, SemAnalysis,
+    ClassDefinitionId, FctDefinitionId, Field, FieldId, ModuleDefinitionId, SemAnalysis,
     SourceFileId,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
@@ -59,12 +57,10 @@ impl<'x> ClsDefCheck<'x> {
             self.visit_field(field);
         }
 
-        if let Some(ctor) = &self.ast.constructor {
-            self.visit_ctor(ctor);
-        }
+        let methods = self.sa.classes.idx(self.cls_id).read().methods.clone();
 
-        for method in &self.ast.methods {
-            self.visit_method(method);
+        for method_id in methods {
+            self.visit_method(method_id);
         }
 
         if let Some(ref parent_class) = self.ast.parent_class {
@@ -97,38 +93,15 @@ impl<'x> ClsDefCheck<'x> {
         }
     }
 
-    fn visit_ctor(&mut self, node: &Arc<ast::Function>) {
-        let fct = FctDefinition::new(
-            self.file_id,
-            self.module_id,
-            node,
-            FctParent::Class(self.cls_id),
-        );
-
-        let fctid = self.sa.add_fct(fct);
-
-        let cls = self.sa.classes.idx(self.cls_id);
-        let mut cls = cls.write();
-        cls.constructor = Some(fctid);
-    }
-
-    fn visit_method(&mut self, f: &Arc<ast::Function>) {
-        let fct = FctDefinition::new(
-            self.file_id,
-            self.module_id,
-            f,
-            FctParent::Class(self.cls_id),
-        );
-
-        let fctid = self.sa.add_fct(fct);
+    fn visit_method(&mut self, fct_id: FctDefinitionId) {
+        let fct = self.sa.fcts.idx(fct_id);
+        let fct = fct.read();
 
         let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
-        self.check_if_symbol_exists(f.name, f.pos, &cls.table);
-        cls.table.insert(f.name, Sym::Fct(fctid));
-
-        cls.methods.push(fctid);
+        self.check_if_symbol_exists(fct.name, fct.pos, &cls.table);
+        cls.table.insert(fct.name, Sym::Fct(fct_id));
     }
 
     fn add_field(

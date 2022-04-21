@@ -7,10 +7,10 @@ use std::sync::Arc;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
-    FctDefinition, FctParent, GlobalDefinition, ImplDefinition, ModuleDefinition,
-    ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinition, TraitDefinition,
-    UseDefinition,
+    AnnotationDefinition, ClassDefinition, ClassDefinitionId, ConstDefinition, EnumDefinition,
+    ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition,
+    GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
+    SemAnalysis, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, UseDefinition,
 };
 use crate::language::sym::Sym;
 use dora_parser::ast::visit::Visitor;
@@ -355,6 +355,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let trait_ = TraitDefinition::new(self.file_id, self.module_id, node);
         let trait_id = self.sa.traits.push(trait_);
 
+        find_methods_in_trait(self.sa, trait_id, node);
+
         let sym = Sym::Trait(trait_id);
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
@@ -368,9 +370,11 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
         let global = GlobalDefinition::new(self.file_id, self.module_id, node);
-        let id = self.sa.globals.push(global);
+        let global_id = self.sa.globals.push(global);
 
-        let sym = Sym::Global(id);
+        find_methods_in_global(self.sa, global_id, node);
+
+        let sym = Sym::Global(global_id);
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
@@ -379,10 +383,14 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         if node.trait_type.is_some() {
             let impl_ = ImplDefinition::new(self.file_id, self.module_id, node);
-            self.sa.impls.push(impl_);
+            let impl_id = self.sa.impls.push(impl_);
+
+            find_methods_in_impl(self.sa, impl_id, node);
         } else {
             let extension = ExtensionDefinition::new(self.file_id, self.module_id, node);
-            self.sa.extensions.push(extension);
+            let extension_id = self.sa.extensions.push(extension);
+
+            find_methods_in_extension(self.sa, extension_id, node);
         }
     }
 
@@ -397,10 +405,12 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
-        let cls = ClassDefinition::new(self.file_id, node, self.module_id);
-        let id = self.sa.classes.push(cls);
+        let class = ClassDefinition::new(self.file_id, node, self.module_id);
+        let class_id = self.sa.classes.push(class);
 
-        let sym = Sym::Class(id);
+        find_methods_in_class(self.sa, class_id, node);
+
+        let sym = Sym::Class(class_id);
 
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
@@ -447,6 +457,119 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
+    }
+}
+
+fn find_methods_in_trait(
+    sa: &mut SemAnalysis,
+    trait_id: TraitDefinitionId,
+    node: &Arc<ast::Trait>,
+) {
+    let trait_ = sa.traits.idx(trait_id);
+    let mut trait_ = trait_.write();
+
+    for method_node in &node.methods {
+        let fct = FctDefinition::new(
+            trait_.file_id,
+            trait_.module_id,
+            method_node,
+            FctParent::Trait(trait_id),
+        );
+
+        let fct_id = sa.add_fct(fct);
+        trait_.methods.push(fct_id);
+    }
+}
+
+fn find_methods_in_impl(sa: &mut SemAnalysis, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
+    let impl_ = sa.impls.idx(impl_id);
+    let mut impl_ = impl_.write();
+
+    for method_node in &node.methods {
+        let fct = FctDefinition::new(
+            impl_.file_id,
+            impl_.module_id,
+            method_node,
+            FctParent::Impl(impl_id),
+        );
+
+        let fct_id = sa.add_fct(fct);
+        impl_.methods.push(fct_id);
+    }
+}
+
+fn find_methods_in_extension(
+    sa: &mut SemAnalysis,
+    extension_id: ExtensionDefinitionId,
+    node: &Arc<ast::Impl>,
+) {
+    let extension = sa.extensions.idx(extension_id);
+    let mut extension = extension.write();
+
+    for method_node in &node.methods {
+        let fct = FctDefinition::new(
+            extension.file_id,
+            extension.module_id,
+            method_node,
+            FctParent::Extension(extension_id),
+        );
+
+        let fct_id = sa.add_fct(fct);
+        extension.methods.push(fct_id);
+    }
+}
+
+fn find_methods_in_class(
+    sa: &mut SemAnalysis,
+    class_id: ClassDefinitionId,
+    node: &Arc<ast::Class>,
+) {
+    let class = sa.classes.idx(class_id);
+    let mut class = class.write();
+
+    if let Some(ref ctor_node) = node.constructor {
+        let fct = FctDefinition::new(
+            class.file_id,
+            class.module_id,
+            ctor_node,
+            FctParent::Class(class_id),
+        );
+
+        let ctor_id = sa.add_fct(fct);
+        class.constructor = Some(ctor_id);
+    }
+
+    for method_node in &node.methods {
+        let fct = FctDefinition::new(
+            class.file_id,
+            class.module_id,
+            method_node,
+            FctParent::Class(class_id),
+        );
+
+        let fct_id = sa.add_fct(fct);
+        class.methods.push(fct_id);
+    }
+}
+
+fn find_methods_in_global(
+    sa: &mut SemAnalysis,
+    global_id: GlobalDefinitionId,
+    node: &Arc<ast::Global>,
+) {
+    if let Some(ref initializer) = node.initializer {
+        let global = sa.globals.idx(global_id);
+        let mut global = global.write();
+
+        let fct = FctDefinition::new(
+            global.file_id,
+            global.module_id,
+            initializer,
+            FctParent::None,
+        );
+
+        let fct_id = sa.add_fct(fct);
+        global.initializer = Some(fct_id);
     }
 }
 

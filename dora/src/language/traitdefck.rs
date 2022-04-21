@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use crate::language;
 use crate::language::sem_analysis::{
-    FctDefinition, FctParent, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinition,
+    FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinition,
     TraitDefinitionId,
 };
 use crate::language::sym::NestedSymTable;
@@ -60,8 +58,10 @@ impl<'x> TraitCheck<'x> {
 
         self.sym.pop_level();
 
-        for method in &self.ast.methods {
-            self.visit_method(method);
+        let methods = self.trait_.methods.clone();
+
+        for method_id in methods {
+            self.visit_method(method_id);
         }
     }
 
@@ -76,29 +76,21 @@ impl<'x> TraitCheck<'x> {
         );
     }
 
-    fn visit_method(&mut self, node: &Arc<ast::Function>) {
-        let mut fct = FctDefinition::new(
-            self.file_id,
-            self.module_id,
-            node,
-            FctParent::Trait(self.trait_id),
-        );
+    fn visit_method(&mut self, fct_id: FctDefinitionId) {
+        let fct = self.sa.fcts.idx(fct_id);
+        let mut fct = fct.write();
 
         fct.vtable_index = Some(self.vtable_index);
         self.vtable_index += 1;
 
-        let fctid = self.sa.add_fct(fct);
-
-        self.trait_.methods.push(fctid);
-
-        let table = if node.is_static {
+        let table = if fct.is_static {
             &mut self.trait_.static_names
         } else {
             &mut self.trait_.instance_names
         };
 
-        if !table.contains_key(&node.name) {
-            table.insert(node.name, fctid);
+        if !table.contains_key(&fct.name) {
+            table.insert(fct.name, fct_id);
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    FctDefinition, FctParent, GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
+    GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
@@ -59,13 +59,7 @@ impl<'a> GlobalDefCheck<'a> {
         let mut global_var = global_var.write();
         global_var.ty = ty;
 
-        if let Some(ref initializer) = self.ast.initializer {
-            let fct =
-                FctDefinition::new(self.file_id, self.module_id, initializer, FctParent::None);
-
-            let fct_id = self.sa.add_fct(fct);
-            global_var.initializer = Some(fct_id);
-        } else {
+        if global_var.initializer.is_none() {
             let msg = SemError::LetMissingInitialization;
             self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);
         }
