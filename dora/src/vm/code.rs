@@ -13,7 +13,6 @@ use crate::masm::CodeDescriptor;
 use crate::mem;
 use crate::object::Header;
 use crate::os;
-use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vtable::VTable;
 
@@ -50,12 +49,6 @@ impl CodeId {
 impl From<usize> for CodeId {
     fn from(data: usize) -> CodeId {
         CodeId(data)
-    }
-}
-
-impl GrowableVec<Code> {
-    pub fn idx(&self, index: CodeId) -> Arc<Code> {
-        self.idx_usize(index.0)
     }
 }
 

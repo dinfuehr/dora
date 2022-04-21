@@ -76,13 +76,15 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     // find all trait implementations for classes
     impldefck::check(sa);
 
-    // checks class/struct/trait definitions/bodies
+    // checks class/struct/trait/enum definitions
     clsdefck::check(sa);
     structdefck::check(sa);
     traitdefck::check(sa);
+    enumck::check(sa);
+    return_on_error!(sa);
+
     globaldefck::check(sa);
     constdefck::check(sa);
-    enumck::check(sa);
     extensiondefck::check(sa);
     return_on_error!(sa);
 

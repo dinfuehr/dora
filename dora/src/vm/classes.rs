@@ -1,13 +1,11 @@
 use parking_lot::RwLock;
 
-use std::convert::From;
 use std::iter::Iterator;
-use std::sync::Arc;
 
 use crate::language::sem_analysis::ClassDefinitionId;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
-use crate::utils::{GrowableVec, Id};
+use crate::utils::Id;
 use crate::vm::VM;
 use crate::vtable::{ensure_display, VTableBox};
 
@@ -19,18 +17,6 @@ pub struct ClassInstanceId(usize);
 impl ClassInstanceId {
     pub fn to_usize(self) -> usize {
         self.0
-    }
-}
-
-impl From<usize> for ClassInstanceId {
-    fn from(data: usize) -> ClassInstanceId {
-        ClassInstanceId(data)
-    }
-}
-
-impl GrowableVec<ClassInstance> {
-    pub fn idx(&self, index: ClassInstanceId) -> Arc<ClassInstance> {
-        self.idx_usize(index.0)
     }
 }
 
