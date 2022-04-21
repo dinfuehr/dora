@@ -4,6 +4,7 @@ use std::io::{self, Write};
 
 use crate::bytecode::{BytecodeInstruction, BytecodeReader, ConstPoolEntry};
 use crate::cannon::{self, CompilationFlags};
+use crate::compiler::codegen::CompilationData;
 use crate::compiler::dora_entry_stub;
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId, SemAnalysis};
 use crate::language::ty::SourceTypeArray;
@@ -67,7 +68,18 @@ fn write_reachable_functions(
         let fct = fct.read();
         let symbol = fct_symbol(sa, &*fct);
 
-        let code_descriptor = cannon::compile(sa, &*fct, type_params, CompilationFlags::aot());
+        let compilation_data = CompilationData {
+            bytecode_fct: fct.bytecode.as_ref().expect("bytecode missing"),
+            type_params,
+            params: SourceTypeArray::with(fct.params_with_self().to_vec()),
+            return_type: fct.return_type.clone(),
+            has_variadic_parameter: fct.is_variadic,
+            pos: fct.pos,
+            emit_debug: false,
+            emit_code_comments: false,
+        };
+
+        let code_descriptor = cannon::compile(sa, compilation_data, CompilationFlags::aot());
         write_fct(file, &symbol, code_descriptor)?;
     }
 

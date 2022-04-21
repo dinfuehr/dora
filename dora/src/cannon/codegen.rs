@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::asm::BaselineAssembler;
-use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
+use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg, CompilationData};
 use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
@@ -40,7 +40,7 @@ macro_rules! comment {
         $cannon:expr,
         $out:expr
     ) => {{
-        if $cannon.emit_asm {
+        if $cannon.emit_code_comments {
             $cannon.asm.emit_comment($out);
         }
     }};
@@ -61,7 +61,7 @@ pub struct CannonCodeGen<'a> {
     has_variadic_parameter: bool,
     return_type: SourceType,
     emit_debug: bool,
-    emit_asm: bool,
+    emit_code_comments: bool,
 
     temporary_stack: Vec<BytecodeType>,
     temporary_stack_size: i32,
@@ -99,32 +99,25 @@ pub struct CannonCodeGen<'a> {
 impl<'a> CannonCodeGen<'a> {
     pub(super) fn new(
         vm: &'a VM,
-        params: SourceTypeArray,
-        has_variadic_parameter: bool,
-        return_type: SourceType,
-        pos: Position,
-        emit_debug: bool,
-        emit_asm: bool,
-        bytecode: &'a BytecodeFunction,
+        compilation_data: CompilationData<'a>,
         liveness: BytecodeLiveness,
-        type_params: &'a SourceTypeArray,
         flags: CompilationFlags,
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
-            params,
-            has_variadic_parameter,
-            return_type,
-            pos,
-            emit_debug,
+            params: compilation_data.params,
+            has_variadic_parameter: compilation_data.has_variadic_parameter,
+            return_type: compilation_data.return_type,
+            pos: compilation_data.pos,
+            emit_debug: compilation_data.emit_debug,
             asm: BaselineAssembler::new(vm),
-            bytecode,
+            bytecode: compilation_data.bytecode_fct,
             temporary_stack: Vec::new(),
             temporary_stack_size: 0,
-            emit_asm,
+            emit_code_comments: compilation_data.emit_code_comments,
             lbl_break: None,
             lbl_continue: None,
-            type_params,
+            type_params: compilation_data.type_params,
             offset_to_address: HashMap::new(),
             offset_to_label: HashMap::new(),
             current_offset: BytecodeOffset(0),

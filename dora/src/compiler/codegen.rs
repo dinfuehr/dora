@@ -1,13 +1,15 @@
+use dora_parser::Position;
+
 use crate::boots;
-use crate::cannon;
-use crate::cannon::CompilationFlags;
+use crate::bytecode::{self, BytecodeFunction};
+use crate::cannon::{self, CompilationFlags};
 use crate::compiler::{dora_exit_stubs, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
-use crate::language::ty::SourceTypeArray;
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mode::MachineMode;
 use crate::os;
 use crate::vm::{install_code, CodeKind, VM};
@@ -35,8 +37,37 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         CompilerName::Cannon
     };
 
+    let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
+
+    if should_emit_bytecode(vm, fct) {
+        bytecode::dump(vm, Some(fct), bytecode_fct);
+    }
+
+    let emit_debug = should_emit_debug(vm, fct);
+    let emit_asm = should_emit_asm(vm, fct);
+
     let code_descriptor = match bc {
-        CompilerName::Cannon => cannon::compile(vm, &fct, &type_params, CompilationFlags::jit()),
+        CompilerName::Cannon => {
+            let pos = fct.pos;
+            let params = fct.params_with_self();
+            let params = SourceTypeArray::with(params.to_vec());
+            let return_type = fct.return_type.clone();
+            let has_variadic_parameter = fct.is_variadic;
+
+            let compilation_data = CompilationData {
+                bytecode_fct,
+                params,
+                has_variadic_parameter,
+                return_type,
+                type_params,
+                pos,
+
+                emit_debug,
+                emit_code_comments: emit_asm,
+            };
+
+            cannon::compile(vm, compilation_data, CompilationFlags::jit())
+        }
         CompilerName::Boots => boots::compile(vm, &fct, &type_params),
     };
 
@@ -55,7 +86,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         os::perf::register_with_perf(&code, vm, fct.ast.name);
     }
 
-    if should_emit_asm(vm, &*fct) {
+    if emit_asm {
         disassembler::disassemble(
             vm,
             &*fct,
@@ -211,4 +242,16 @@ pub fn ensure_native_stub(
         native_stubs.insert_fct(ptr, code.instruction_start());
         code.instruction_start()
     }
+}
+
+pub struct CompilationData<'a> {
+    pub bytecode_fct: &'a BytecodeFunction,
+    pub params: SourceTypeArray,
+    pub has_variadic_parameter: bool,
+    pub return_type: SourceType,
+    pub type_params: &'a SourceTypeArray,
+    pub pos: Position,
+
+    pub emit_debug: bool,
+    pub emit_code_comments: bool,
 }
