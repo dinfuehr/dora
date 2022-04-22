@@ -38,7 +38,7 @@ struct ClsDefCheck<'x> {
     file_id: SourceFileId,
     ast: &'x ast::Class,
     module_id: ModuleDefinitionId,
-    sym: NestedSymTable<'x>,
+    sym: NestedSymTable,
 }
 
 impl<'x> ClsDefCheck<'x> {

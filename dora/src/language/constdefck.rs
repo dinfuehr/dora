@@ -38,7 +38,7 @@ struct ConstCheck<'x> {
     file_id: SourceFileId,
     ast: &'x ast::Const,
     module_id: ModuleDefinitionId,
-    symtable: NestedSymTable<'x>,
+    symtable: NestedSymTable,
 }
 
 impl<'x> ConstCheck<'x> {

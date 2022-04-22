@@ -44,7 +44,7 @@ struct TraitCheck<'x> {
     ast: &'x ast::Trait,
     module_id: ModuleDefinitionId,
     trait_: &'x mut TraitDefinition,
-    sym: NestedSymTable<'x>,
+    sym: NestedSymTable,
     vtable_index: u32,
 }
 

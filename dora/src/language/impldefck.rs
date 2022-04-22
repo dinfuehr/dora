@@ -42,7 +42,7 @@ struct ImplCheck<'x> {
     file_id: SourceFileId,
     impl_id: ImplDefinitionId,
     module_id: ModuleDefinitionId,
-    sym: NestedSymTable<'x>,
+    sym: NestedSymTable,
     ast: &'x ast::Impl,
 }
 

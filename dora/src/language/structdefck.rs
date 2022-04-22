@@ -44,7 +44,7 @@ struct StructCheck<'x> {
     file_id: SourceFileId,
     ast: &'x ast::Struct,
     module_id: ModuleDefinitionId,
-    symtable: NestedSymTable<'x>,
+    symtable: NestedSymTable,
     fields: HashSet<Name>,
 }
 

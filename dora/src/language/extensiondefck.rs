@@ -42,7 +42,7 @@ struct ExtensionCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: SourceFileId,
     module_id: ModuleDefinitionId,
-    sym: NestedSymTable<'x>,
+    sym: NestedSymTable,
     extension_id: ExtensionDefinitionId,
     extension_ty: SourceType,
     ast: &'x ast::Impl,

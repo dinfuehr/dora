@@ -40,7 +40,7 @@ struct GlobalDefCheck<'a> {
     module_id: ModuleDefinitionId,
     global_id: GlobalDefinitionId,
     ast: &'a ast::Global,
-    symtable: NestedSymTable<'a>,
+    symtable: NestedSymTable,
 }
 
 impl<'a> GlobalDefCheck<'a> {

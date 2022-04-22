@@ -1,4 +1,7 @@
+use parking_lot::RwLock;
+
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use self::Sym::*;
 
@@ -9,17 +12,22 @@ use crate::language::sem_analysis::{
 };
 use dora_parser::interner::Name;
 
-pub struct NestedSymTable<'a> {
-    sa: &'a SemAnalysis,
+pub struct NestedSymTable {
     module_id: ModuleDefinitionId,
+    outer: Arc<RwLock<SymTable>>,
+    prelude: Arc<RwLock<SymTable>>,
     levels: Vec<SymTable>,
 }
 
-impl<'a> NestedSymTable<'a> {
-    pub fn new(sa: &'a SemAnalysis, module_id: ModuleDefinitionId) -> NestedSymTable {
+impl NestedSymTable {
+    pub fn new(sa: &SemAnalysis, module_id: ModuleDefinitionId) -> NestedSymTable {
+        let outer = sa.modules[module_id].read().table.clone();
+        let prelude = sa.modules[sa.prelude_module_id].read().table.clone();
+
         NestedSymTable {
-            sa,
             module_id,
+            outer,
+            prelude,
             levels: Vec::new(),
         }
     }
@@ -48,20 +56,12 @@ impl<'a> NestedSymTable<'a> {
             }
         }
 
-        {
-            let module = &self.sa.modules[self.module_id].read();
-
-            if let Some(sym) = module.table.read().get(name) {
-                return Some(sym.clone());
-            };
+        if let Some(sym) = self.outer.read().get(name) {
+            return Some(sym.clone());
         }
 
-        {
-            let module = &self.sa.modules[self.sa.prelude_module_id].read();
-
-            if let Some(sym) = module.table.read().get(name) {
-                return Some(sym.clone());
-            };
+        if let Some(sym) = self.prelude.read().get(name) {
+            return Some(sym.clone());
         }
 
         None

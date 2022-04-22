@@ -38,7 +38,7 @@ pub struct TypeCheck<'a> {
     pub module_id: ModuleDefinitionId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a ast::Function,
-    pub symtable: NestedSymTable<'a>,
+    pub symtable: NestedSymTable,
     pub in_loop: bool,
     pub self_ty: Option<SourceType>,
 }
