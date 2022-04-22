@@ -45,8 +45,6 @@ fn testSsaGenRetInt64Const() {
 ");
 }
 
-fn bcSsaGenRetInt64Const(): Int64 = 4711L;
-
 @Test
 fn testSsaGenIdInt() {
     let fct = getBytecodeFunctionByName("bcSsaGenIdInt");
