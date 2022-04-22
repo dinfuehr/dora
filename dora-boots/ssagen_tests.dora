@@ -1,6 +1,10 @@
 @Test
 fn testSsaGenRetVoid() {
-    let fct = getBytecodeFunctionByName("bcSsaGenRetVoid");
+    let writer = BytecodeBuilder();
+    writer.emitRetVoid();
+    let fct = writer.generate();
+
+    bytecodeDump(fct);
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -9,13 +13,15 @@ fn testSsaGenRetVoid() {
 ");
 }
 
-fn bcSsaGenRetVoid() {}
-
 @Test
 fn testSsaGenRetIntConst() {
-    let fct = getBytecodeFunctionByName("bcSsaGenRetIntConst");
-    let graph = createGraph(fct);
+    let writer = BytecodeBuilder();
+    let r0 = writer.addRegister(BytecodeType::Int32);
+    writer.emitConstInt32(r0, 4711I);
+    writer.emitRet(r0);
+    let fct = writer.generate();
 
+    let graph = createGraph(fct);
     assertGraph(graph, "
 @0:
   %0: Const.Int32(#4711) [%1]
@@ -23,13 +29,15 @@ fn testSsaGenRetIntConst() {
 ");
 }
 
-fn bcSsaGenRetIntConst(): Int32 = 4711I;
-
 @Test
 fn testSsaGenRetInt64Const() {
-    let fct = getBytecodeFunctionByName("bcSsaGenRetInt64Const");
-    let graph = createGraph(fct);
+    let writer = BytecodeBuilder();
+    let r0 = writer.addRegister(BytecodeType::Int64);
+    writer.emitConstInt64(r0, 4711);
+    writer.emitRet(r0);
+    let fct = writer.generate();
 
+    let graph = createGraph(fct);
     assertGraph(graph, "
 @0:
   %0: Const.Int64(#4711) [%1]

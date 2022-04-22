@@ -1,4 +1,4 @@
-class BytecodeWriter {
+class BytecodeBuilder {
     let code: Vec[UInt8] = Vec();
     let constPool: Vec[ConstPoolEntry] = Vec();
     let registers: Vec[BytecodeType] = Vec();

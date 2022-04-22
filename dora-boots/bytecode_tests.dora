@@ -8,7 +8,7 @@ class TestRetVoidVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeRetVoid() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitRetVoid();
     let fct = writer.generate();
     let visitor = TestRetVoidVisitor();
@@ -29,7 +29,7 @@ class TestRetIntVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeRetInt() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitRet(BytecodeRegister(17I));
     let fct = writer.generate();
     let visitor = TestRetIntVisitor();
@@ -51,7 +51,7 @@ class TestRetWideVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeRetWide() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitRet(BytecodeRegister(256I));
     let fct = writer.generate();
     let visitor = TestRetWideVisitor();
@@ -75,7 +75,7 @@ class TestMovVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeMov() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitMov(BytecodeRegister(0I), BytecodeRegister(1I));
     let fct = writer.generate();
     let visitor = TestMovVisitor();
@@ -99,7 +99,7 @@ class TestMovWideVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeMovWide() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitMov(BytecodeRegister(256I), BytecodeRegister(255I));
     let fct = writer.generate();
     let visitor = TestMovWideVisitor();
@@ -124,7 +124,7 @@ class TestConstByteVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeConstByte() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitConstByte(BytecodeRegister(255I), 255Y);
     let fct = writer.generate();
     let visitor = TestConstByteVisitor();
@@ -148,7 +148,7 @@ class TestConstByteWideVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeConstByteWide() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitConstByte(BytecodeRegister(256I), 255Y);
     let fct = writer.generate();
     let visitor = TestConstByteWideVisitor();
@@ -173,7 +173,7 @@ class TestConstStringVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeConstString() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitConstString(BytecodeRegister(7I), "foo");
     let fct = writer.generate();
     let visitor = TestConstStringVisitor();
@@ -198,7 +198,7 @@ class TestSubFloat32Visitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeSubFloat32() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     writer.emitSubFloat32(BytecodeRegister(2I), BytecodeRegister(9I), BytecodeRegister(255I));
     let fct = writer.generate();
     let visitor = TestSubFloat32Visitor();
@@ -222,7 +222,7 @@ class TestJumpBackVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeJumpBack() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     let lbl = writer.defineLabel();
     writer.emitJumpLoop(lbl);
     let fct = writer.generate();
@@ -249,7 +249,7 @@ class TestJumpBackWideVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeJumpBackWide() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     let lbl = writer.defineLabel();
     var i = 0I;
     while i < 256I {
@@ -280,7 +280,7 @@ class TestJumpVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeJump() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     let lbl = writer.createLabel();
     writer.emitJump(lbl);
     writer.bindLabel(lbl);
@@ -308,7 +308,7 @@ class TestJumpFarVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeJumpFar() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     let lbl = writer.createLabel();
     writer.emitJump(lbl);
     var i = 0I;
@@ -339,7 +339,7 @@ class TestCondJumpVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeCondJump() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     let lbl = writer.createLabel();
     writer.emitJumpIfTrue(BytecodeRegister(9I), lbl);
     writer.bindLabel(lbl);
@@ -369,7 +369,7 @@ class TestCondJumpFarVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeCondJumpFar() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     let lbl = writer.createLabel();
     writer.emitJumpIfFalse(BytecodeRegister(9I), lbl);
     var i = 0I;
@@ -402,7 +402,7 @@ class TestCondJumpWideVisitor: BytecodeVisitor {
 
 @Test
 fn testBytecodeCondJumpWide() {
-    let writer = BytecodeWriter();
+    let writer = BytecodeBuilder();
     let lbl = writer.createLabel();
     writer.emitJumpIfTrue(BytecodeRegister(256I), lbl);
     writer.bindLabel(lbl);
