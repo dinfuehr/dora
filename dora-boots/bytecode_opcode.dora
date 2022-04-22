@@ -185,6 +185,7 @@ const CONSTPOOL_OPCODE_FIELD: Int32 = 14I;
 const CONSTPOOL_OPCODE_FIELD_FIXED: Int32 = 15I;
 const CONSTPOOL_OPCODE_GENERIC: Int32 = 16I;
 const CONSTPOOL_OPCODE_TUPLE_ELEMENT: Int32 = 17I;
+const CONSTPOOL_OPCODE_TUPLE: Int32 = 18I;
 
 fn bytecodeName(opcode: Int32): String {
   if opcode == BC_WIDE { return "Wide"; }
