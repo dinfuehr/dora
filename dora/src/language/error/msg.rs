@@ -138,6 +138,7 @@ pub enum SemError {
     NewAbstractClass,
     MissingAbstractOverride(String, String),
     ModifierNotAllowedForStaticMethod(String),
+    InvalidTestAnnotationUsage,
     GlobalInitializerNotSupported,
     TypeNotUsableInForIn(String),
     UnknownStructField(String, String),
@@ -498,6 +499,7 @@ impl SemError {
             SemError::ModifierNotAllowedForStaticMethod(ref modifier) => {
                 format!("modifier `{}` not allowed for static method.", modifier)
             }
+            SemError::InvalidTestAnnotationUsage => "invalid usage of @Test annotation.".into(),
             SemError::GlobalInitializerNotSupported => {
                 "global variables do no support initial assignment for now.".into()
             }

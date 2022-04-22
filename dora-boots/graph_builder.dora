@@ -58,7 +58,8 @@ class GraphBuilder {
     }
 }
 
-@test fn testEmptyGraph(_x: Testing) {
+@Test
+fn testEmptyGraph() {
     let builder = GraphBuilder();
     let block = builder.addBlock();
     let value = builder.createInt32Const(12I);

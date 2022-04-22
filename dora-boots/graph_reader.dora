@@ -175,13 +175,15 @@ mod tests {
     use super::Token;
     use super::Lexer;
 
-    @test fn readSingleIdentifier(_x: std::Testing) {
+    @Test
+    fn readSingleIdentifier() {
         let lexer = Lexer("foo");
         assertIdent(lexer, "foo");
         assertEnd(lexer);
     }
 
-    @test fn readMultipleIdentifiers(_x: std::Testing) {
+    @Test
+    fn readMultipleIdentifiers() {
         let lexer = Lexer("foo bar baz");
         assertIdent(lexer, "foo");
         assertIdent(lexer, "bar");
@@ -189,7 +191,8 @@ mod tests {
         assertEnd(lexer);
     }
 
-    @test fn readMultipleLines(_x: std::Testing) {
+    @Test
+    fn readMultipleLines() {
         let lexer = Lexer("foo\nbar\nbaz");
         assertIdent(lexer, "foo");
         assertNewline(lexer);
@@ -199,7 +202,8 @@ mod tests {
         assertEnd(lexer);
     }
 
-    @test fn readOperators(_x: std::Testing) {
+    @Test
+    fn readOperators() {
         let lexer = Lexer(":=@%");
         assertColon(lexer);
         assertEq(lexer);
@@ -208,7 +212,8 @@ mod tests {
         assertEnd(lexer);
     }
 
-    @test fn readNumbers(_x: std::Testing) {
+    @Test
+    fn readNumbers() {
         let lexer = Lexer("11212 17");
         assertNumber(lexer, 11212L);
         assertNumber(lexer, 17L);

@@ -78,14 +78,16 @@ class Label {
     }
 }
 
-@test fn testAssemblerBufferEmitByte(_x: Testing) {
+@Test
+fn testAssemblerBufferEmitByte() {
     let buffer = AssemblerBuffer();
     buffer.emitByte(0x01Y);
     buffer.emitByte(0x02Y);
     assert(buffer.size() == 2L);
 }
 
-@test fn testAssemblerBufferEmitInt(_x: Testing) {
+@Test
+fn testAssemblerBufferEmitInt() {
     let asm = AssemblerBuffer();
     asm.emitInt32(0x11223344I);
     let buffer = asm.toArray();

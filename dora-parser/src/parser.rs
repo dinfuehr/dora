@@ -859,7 +859,7 @@ impl<'a> Parser<'a> {
                 "internal" => Modifier::Internal,
                 "pub" => Modifier::Pub,
                 "static" => Modifier::Static,
-                "test" => Modifier::Test,
+                "Test" => Modifier::Test,
                 "optimizeImmediately" => Modifier::OptimizeImmediately,
                 annotation => {
                     return Err(ParseErrorAndPos::new(

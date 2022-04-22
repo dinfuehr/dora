@@ -87,7 +87,6 @@ pub struct KnownClasses {
     pub array: Option<ClassDefinitionId>,
     pub string: Option<ClassDefinitionId>,
     pub string_buffer: Option<ClassDefinitionId>,
-    pub testing: Option<ClassDefinitionId>,
     pub stacktrace: Option<ClassDefinitionId>,
     pub stacktrace_element: Option<ClassDefinitionId>,
 }
@@ -101,7 +100,6 @@ impl KnownClasses {
             array: None,
             string: None,
             string_buffer: None,
-            testing: None,
             stacktrace: None,
             stacktrace_element: None,
         }
@@ -125,10 +123,6 @@ impl KnownClasses {
 
     pub fn string_buffer(&self) -> ClassDefinitionId {
         self.string_buffer.expect("uninitialized")
-    }
-
-    pub fn testing(&self) -> ClassDefinitionId {
-        self.testing.expect("uninitialized")
     }
 
     pub fn stacktrace(&self) -> ClassDefinitionId {

@@ -6,11 +6,10 @@ use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
 };
-use crate::object;
 use crate::timer::Timer;
+use crate::vm::execute_on_main;
 use crate::vm::set_vm;
 use crate::vm::VM;
-use crate::vm::{execute_on_main, specialize_class_id};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();
@@ -108,7 +107,7 @@ fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
             let fct = fct.read();
 
             if !module_contains(vm, module_id, fct.module_id)
-                || !is_test_fct(vm, &*fct)
+                || !is_test_fct(&*fct)
                 || !test_filter_matches(vm, &*fct)
             {
                 continue;
@@ -118,12 +117,9 @@ fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
 
             print!("test {} ... ", vm.interner.str(fct.name));
 
-            if run_test(vm, fct.id()) {
-                passed += 1;
-                println!("ok");
-            } else {
-                println!("failed");
-            }
+            run_test(vm, fct.id());
+            passed += 1;
+            println!("ok");
         }
     });
 
@@ -142,28 +138,12 @@ fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
     }
 }
 
-fn run_test(vm: &VM, fct: FctDefinitionId) -> bool {
-    let testing_class = vm.known.classes.testing();
-    let testing_class = specialize_class_id(vm, testing_class);
-    let testing = object::alloc(vm, testing_class).cast();
-    vm.run_test(fct, testing);
-
-    !testing.has_failed()
+fn run_test(vm: &VM, fct: FctDefinitionId) {
+    vm.run_test(fct);
 }
 
-fn is_test_fct(vm: &VM, fct: &FctDefinition) -> bool {
-    // tests need to be standalone functions, with no return type and a single parameter
-    if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
-        return false;
-    }
-
-    // parameter needs to be of type Testing
-    let testing_cls = vm.cls(vm.known.classes.testing());
-    if fct.param_types[0] != testing_cls {
-        return false;
-    }
-
-    // the function needs to be marked with the @test annotation
+fn is_test_fct(fct: &FctDefinition) -> bool {
+    // the function needs to be marked with the @Test annotation
     fct.is_test
 }
 

@@ -7,7 +7,6 @@ use std::HashMap;
 use std::range;
 use std::Stringable;
 use std::StringBuffer;
-use std::Testing;
 use std::VecIter;
 
 class CompilationJob(let compilation_info: CompilationInfo) {

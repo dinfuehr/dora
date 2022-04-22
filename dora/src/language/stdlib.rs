@@ -37,7 +37,7 @@ pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
     sa.known.annotations.static_ =
         Some(internal_annotation(sa, stdlib, "static", Modifier::Static));
 
-    sa.known.annotations.test = Some(internal_annotation(sa, stdlib, "test", Modifier::Test));
+    sa.known.annotations.test = Some(internal_annotation(sa, stdlib, "Test", Modifier::Test));
 
     sa.known.annotations.optimize_immediately = Some(internal_annotation(
         sa,
@@ -101,8 +101,6 @@ pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     let cls = sa.classes.idx(sa.known.classes.array());
     let mut cls = cls.write();
     cls.is_array = true;
-
-    sa.known.classes.testing = Some(find_class(sa, stdlib, "Testing"));
 
     sa.known.classes.stacktrace = Some(find_class(sa, stdlib, "Stacktrace"));
     sa.known.classes.stacktrace_element = Some(find_class(sa, stdlib, "StacktraceElement"));

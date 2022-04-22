@@ -17,7 +17,6 @@ use crate::language::sem_analysis::{
     UseDefinition,
 };
 use crate::language::ty::{LambdaTypes, SourceTypeArray};
-use crate::object::{Ref, Testing};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
@@ -353,13 +352,13 @@ impl VM {
         fct(tld, ptr)
     }
 
-    pub fn run_test(&self, fct_id: FctDefinitionId, testing: Ref<Testing>) {
+    pub fn run_test(&self, fct_id: FctDefinitionId) {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.stubs.dora_entry();
-        let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =
+        let fct: extern "C" fn(Address, Address) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
-        fct(tld, ptr, testing);
+        fct(tld, ptr);
     }
 
     pub fn ensure_compiled(&self, fct_id: FctDefinitionId) -> Address {

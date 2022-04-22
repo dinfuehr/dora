@@ -223,7 +223,8 @@ mod clsx {
     }
 }
 
-@test fn testAsmRet(_x: Testing) {
+@Test
+fn testAsmRet() {
     let asm = AssemblerArm64();
     asm.ret();
     asm.retReg(R0);

@@ -1,4 +1,5 @@
-@test fn simpleGraph(_x: Testing) {
+@Test
+fn simpleGraph() {
     let graph = Graph();
 
     let block = Block();
@@ -9,7 +10,8 @@
     block.appendInst(inst);
 }
 
-@test fn addIntConsts(_x: Testing) {
+@Test
+fn addIntConsts() {
     let graph = Graph();
 
     let block = Block();

@@ -16,6 +16,7 @@ pub fn check(sa: &SemAnalysis) {
         // check modifiers for function
         check_abstract(sa, &*fct);
         check_static(sa, &*fct);
+        check_test(sa, &*fct);
 
         let mut sym_table = NestedSymTable::new(sa, fct.module_id);
         sym_table.push_level();
@@ -248,6 +249,29 @@ fn check_static(sa: &SemAnalysis, fct: &FctDefinition) {
         };
 
         let msg = SemError::ModifierNotAllowedForStaticMethod(modifier.into());
+        sa.diag.lock().report(fct.file_id, fct.pos, msg);
+    }
+}
+
+fn check_test(sa: &SemAnalysis, fct: &FctDefinition) {
+    if !fct.is_test {
+        return;
+    }
+
+    if !fct.parent.is_none()
+        || !fct.type_params.is_empty()
+        || !fct.param_types.is_empty()
+        || (!fct.return_type.is_unit() && !fct.return_type.is_error())
+    {
+        println!(
+            "parent.is_none()={} type_params.is_empty()={} param_types.is_empty()={} return_type.is_unit()={} return_type={:?}",
+            fct.parent.is_none(),
+            fct.type_params.is_empty(),
+            fct.param_types.is_empty(),
+            fct.return_type.is_unit(),
+            fct.return_type
+        );
+        let msg = SemError::InvalidTestAnnotationUsage;
         sa.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 }

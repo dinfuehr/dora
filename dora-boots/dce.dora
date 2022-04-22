@@ -21,7 +21,8 @@ fn performDce(graph: Graph) {
 }
 
 
-@test fn testRemoveUnusedConstant(_x: Testing) {
+@Test
+fn testRemoveUnusedConstant() {
     let builder = GraphBuilder();
     let block = builder.addBlock();
     let value = builder.createInt32Const(12I);
@@ -34,7 +35,8 @@ fn performDce(graph: Graph) {
 ");
 }
 
-@test fn testRemoveUnusedAdd(_x: Testing) {
+@Test
+fn testRemoveUnusedAdd() {
     let builder = GraphBuilder();
     let block = builder.addBlock();
     let lhs = builder.createInt32Const(12I);
