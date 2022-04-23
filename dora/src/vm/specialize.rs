@@ -680,7 +680,7 @@ pub fn replace_type_param(
 
         SourceType::This => self_ty.expect("no type for Self given"),
 
-        SourceType::Lambda(_) => unimplemented!(),
+        SourceType::Lambda(_, _) => unimplemented!(),
 
         SourceType::Tuple(tuple_id) => {
             let subtypes = get_tuple_subtypes(vm, tuple_id);

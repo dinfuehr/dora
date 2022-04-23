@@ -327,7 +327,7 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
                 discover_type_params(sa, subtype.clone(), used_type_params);
             }
         }
-        SourceType::Lambda(_) => unimplemented!(),
+        SourceType::Lambda(_, _) => unimplemented!(),
         SourceType::TypeParam(tp_id) => {
             used_type_params.insert(tp_id.to_usize());
         }

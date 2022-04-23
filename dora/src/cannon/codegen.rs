@@ -385,7 +385,7 @@ impl<'a> CannonCodeGen<'a> {
                 | SourceType::Error
                 | SourceType::Any
                 | SourceType::This
-                | SourceType::Lambda(_)
+                | SourceType::Lambda(_, _)
                 | SourceType::Unit => unreachable!(),
             }
         }
@@ -1610,7 +1610,7 @@ impl<'a> CannonCodeGen<'a> {
             | SourceType::Error
             | SourceType::Any
             | SourceType::This
-            | SourceType::Lambda(_) => unreachable!(),
+            | SourceType::Lambda(_, _) => unreachable!(),
         }
     }
 
@@ -1713,7 +1713,7 @@ impl<'a> CannonCodeGen<'a> {
             | SourceType::Any
             | SourceType::This
             | SourceType::Struct(_, _)
-            | SourceType::Lambda(_) => unreachable!(),
+            | SourceType::Lambda(_, _) => unreachable!(),
         }
     }
 
@@ -1765,7 +1765,7 @@ impl<'a> CannonCodeGen<'a> {
             | SourceType::Any
             | SourceType::This
             | SourceType::Struct(_, _)
-            | SourceType::Lambda(_) => unreachable!(),
+            | SourceType::Lambda(_, _) => unreachable!(),
         }
     }
 

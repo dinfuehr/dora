@@ -1660,19 +1660,17 @@ impl<'a> TypeCheck<'a> {
         expr_type: SourceType,
         arg_types: &[SourceType],
     ) -> SourceType {
-        let lambda_id = expr_type.lambda_id().unwrap();
-        let lambda_type = self.sa.lambda_types.lock().get(lambda_id);
+        let (params, return_type) = expr_type.to_lambda().expect("lambda expected");
 
         if !args_compatible(
             self.sa,
-            &lambda_type.params,
+            params.types(),
             false,
             arg_types,
             &SourceTypeArray::empty(),
             None,
         ) {
-            let fct_params = lambda_type
-                .params
+            let fct_params = params
                 .iter()
                 .map(|a| a.name_fct(self.sa, self.fct))
                 .collect::<Vec<_>>();
@@ -1684,7 +1682,6 @@ impl<'a> TypeCheck<'a> {
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let return_type = lambda_type.ret.clone();
         let call_type = CallType::Lambda;
 
         self.analysis
@@ -3010,8 +3007,7 @@ impl<'a> TypeCheck<'a> {
             .map(|p| self.read_type(&p.data_type))
             .collect::<Vec<_>>();
 
-        let ty = self.sa.lambda_types.lock().insert(params, ret);
-        let ty = SourceType::Lambda(ty);
+        let ty = SourceType::Lambda(SourceTypeArray::with(params), Box::new(ret));
 
         self.analysis.set_ty(e.id, ty.clone());
 
@@ -3425,7 +3421,7 @@ fn arg_allows(
             _ => false,
         },
 
-        SourceType::Lambda(_) => {
+        SourceType::Lambda(_, _) => {
             // for now expect the exact same params and return types
             // possible improvement: allow super classes for params,
             //                             sub class for return type

@@ -16,7 +16,7 @@ use crate::language::sem_analysis::{
     SourceFile, StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId, Tuples,
     UseDefinition,
 };
-use crate::language::ty::{LambdaTypes, SourceTypeArray};
+use crate::language::ty::SourceTypeArray;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
@@ -113,7 +113,6 @@ pub struct FullSemAnalysis {
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
     pub uses: Vec<UseDefinition>,            // stores all uses
     pub native_stubs: Mutex<NativeStubs>,
-    pub lambda_types: Mutex<LambdaTypes>,
     pub prelude_module_id: ModuleDefinitionId,
     pub stdlib_module_id: ModuleDefinitionId,
     pub program_module_id: ModuleDefinitionId,
@@ -153,7 +152,6 @@ impl FullSemAnalysis {
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
-            lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
             prelude_module_id,
             stdlib_module_id,
@@ -205,7 +203,6 @@ pub struct VM {
     pub uses: Vec<UseDefinition>, // stores all uses
     pub gc: Gc,                   // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
-    pub lambda_types: Mutex<LambdaTypes>,
     pub stubs: Stubs,
     pub threads: Threads,
     pub prelude_module_id: ModuleDefinitionId,
@@ -262,7 +259,6 @@ impl VM {
             compilation_database: CompilationDatabase::new(),
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
-            lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
             stubs: Stubs::new(),
             threads: Threads::new(),
@@ -316,7 +312,6 @@ impl VM {
             compilation_database: CompilationDatabase::new(),
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
-            lambda_types: sa.lambda_types,
             native_stubs: sa.native_stubs,
             stubs: Stubs::new(),
             threads: Threads::new(),

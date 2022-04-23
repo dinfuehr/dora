@@ -100,7 +100,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
             | SourceType::Error
             | SourceType::Any
             | SourceType::This
-            | SourceType::Lambda(_)
+            | SourceType::Lambda(_, _)
             | SourceType::Ptr => unreachable!(),
         }
     }

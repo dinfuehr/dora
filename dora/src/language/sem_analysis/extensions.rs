@@ -289,7 +289,7 @@ mod matching {
             | SourceType::Float64
             | SourceType::TypeParam(_) => check_ty == ext_ty,
 
-            SourceType::Lambda(_) | SourceType::Trait(_, _) => {
+            SourceType::Lambda(_, _) | SourceType::Trait(_, _) => {
                 unimplemented!()
             }
 

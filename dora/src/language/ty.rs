@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
@@ -51,7 +50,7 @@ pub enum SourceType {
     TypeParam(TypeParamId),
 
     // some lambda
-    Lambda(LambdaId),
+    Lambda(SourceTypeArray, Box<SourceType>),
 
     // some enum
     Enum(EnumDefinitionId, SourceTypeArray),
@@ -179,15 +178,8 @@ impl SourceType {
 
     pub fn is_lambda(&self) -> bool {
         match self {
-            &SourceType::Lambda(_) => true,
+            &SourceType::Lambda(_, _) => true,
             _ => false,
-        }
-    }
-
-    pub fn lambda_id(&self) -> Option<LambdaId> {
-        match self {
-            &SourceType::Lambda(lambda_id) => Some(lambda_id),
-            _ => None,
         }
     }
 
@@ -334,6 +326,15 @@ impl SourceType {
         writer.name(self.clone())
     }
 
+    pub fn to_lambda(&self) -> Option<(SourceTypeArray, SourceType)> {
+        match self {
+            SourceType::Lambda(params, return_type) => {
+                Some((params.clone(), return_type.as_ref().to_owned()))
+            }
+            _ => None,
+        }
+    }
+
     pub fn allows(&self, sa: &SemAnalysis, other: SourceType) -> bool {
         match self {
             // allow all types for Error, there is already an error,
@@ -405,7 +406,7 @@ impl SourceType {
 
             SourceType::TypeParam(_) => *self == other,
 
-            SourceType::Lambda(_) => {
+            SourceType::Lambda(_, _) => {
                 // for now expect the exact same params and return types
                 // possible improvement: allow super classes for params,
                 //                             sub class for return type
@@ -426,7 +427,7 @@ impl SourceType {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Trait(_, _)
-            | SourceType::Lambda(_)
+            | SourceType::Lambda(_, _)
             | SourceType::TypeParam(_) => true,
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
@@ -488,7 +489,7 @@ impl SourceType {
 
                 true
             }
-            SourceType::Lambda(_) => unimplemented!(),
+            SourceType::Lambda(_, _) => unimplemented!(),
             SourceType::TypeParam(_) => false,
         }
     }
@@ -645,57 +646,6 @@ impl<'a> Iterator for SourceTypeArrayIter<'a> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct LambdaId(usize);
-
-impl From<usize> for LambdaId {
-    fn from(val: usize) -> LambdaId {
-        LambdaId(val)
-    }
-}
-
-pub struct LambdaTypes {
-    types: HashMap<Arc<LambdaType>, LambdaId>,
-    values: Vec<Arc<LambdaType>>,
-    next_lambda_id: usize,
-}
-
-impl LambdaTypes {
-    pub fn new() -> LambdaTypes {
-        LambdaTypes {
-            types: HashMap::new(),
-            values: Vec::new(),
-            next_lambda_id: 0,
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.values.len()
-    }
-
-    pub fn insert(&mut self, params: Vec<SourceType>, ret: SourceType) -> LambdaId {
-        let ty = LambdaType { params, ret };
-
-        if let Some(&val) = self.types.get(&ty) {
-            return val;
-        }
-
-        let id = LambdaId(self.next_lambda_id);
-        let ty = Arc::new(ty);
-        self.types.insert(ty.clone(), id);
-
-        self.values.push(ty);
-
-        self.next_lambda_id += 1;
-
-        id
-    }
-
-    pub fn get(&self, id: LambdaId) -> Arc<LambdaType> {
-        self.values[id.0].clone()
-    }
-}
-
 struct SourceTypePrinter<'a> {
     sa: &'a SemAnalysis,
     type_params: Option<&'a [TypeParam]>,
@@ -795,15 +745,13 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
 
-            SourceType::Lambda(id) => {
-                let lambda = self.sa.lambda_types.lock().get(id);
-                let params = lambda
-                    .params
+            SourceType::Lambda(params, return_type) => {
+                let params = params
                     .iter()
                     .map(|ty| self.name(ty.clone()))
                     .collect::<Vec<_>>()
                     .join(", ");
-                let ret = self.name(lambda.ret.clone());
+                let ret = self.name(*return_type);
 
                 format!("({}) -> {}", params, ret)
             }
@@ -821,12 +769,6 @@ impl<'a> SourceTypePrinter<'a> {
             }
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct LambdaType {
-    pub params: Vec<SourceType>,
-    pub ret: SourceType,
 }
 
 #[cfg(test)]

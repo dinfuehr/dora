@@ -27,7 +27,9 @@ impl SourceType {
             }
             SourceType::This => panic!("no size for Self."),
             SourceType::Any => panic!("no size for Any."),
-            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => mem::ptr_width(),
+            SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
+                mem::ptr_width()
+            }
             SourceType::Struct(sid, params) => {
                 let sid = specialize_struct_id_params(vm, *sid, params.clone());
                 let struc = vm.struct_instances.idx(sid);
@@ -62,7 +64,9 @@ impl SourceType {
                     EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.align(vm),
                 }
             }
-            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => mem::ptr_width(),
+            SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
+                mem::ptr_width()
+            }
             SourceType::Struct(sid, params) => {
                 let sid = specialize_struct_id_params(vm, *sid, params.clone());
                 let struc = vm.struct_instances.idx(sid);
@@ -89,7 +93,9 @@ impl SourceType {
             SourceType::Enum(_, _) => MachineMode::Int32,
             SourceType::This => panic!("no machine mode for Self."),
             SourceType::Any => panic!("no machine mode for Any."),
-            SourceType::Class(_, _) | SourceType::Lambda(_) | SourceType::Ptr => MachineMode::Ptr,
+            SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
+                MachineMode::Ptr
+            }
             SourceType::Struct(_, _) => panic!("no machine mode for struct."),
             SourceType::Trait(_, _) => MachineMode::Ptr,
             SourceType::TypeParam(_) => panic!("no machine mode for type variable."),

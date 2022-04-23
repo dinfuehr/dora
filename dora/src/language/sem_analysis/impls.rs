@@ -149,7 +149,7 @@ pub fn implements_trait(
         SourceType::Tuple(_)
         | SourceType::Unit
         | SourceType::Trait(_, _)
-        | SourceType::Lambda(_) => false,
+        | SourceType::Lambda(_, _) => false,
 
         SourceType::Enum(enum_id, _) => {
             let enum_ = sa.enums[enum_id].read();
@@ -242,7 +242,7 @@ pub fn find_impl(
         SourceType::Tuple(_)
         | SourceType::Unit
         | SourceType::Trait(_, _)
-        | SourceType::Lambda(_) => None,
+        | SourceType::Lambda(_, _) => None,
 
         SourceType::Enum(enum_id, _) => {
             let enum_ = sa.enums[enum_id].read();

@@ -588,8 +588,7 @@ fn read_type_lambda(
         return None;
     };
 
-    let ty = sa.lambda_types.lock().insert(params, ret);
-    let ty = SourceType::Lambda(ty);
+    let ty = SourceType::Lambda(SourceTypeArray::with(params), Box::new(ret));
 
     Some(ty)
 }
