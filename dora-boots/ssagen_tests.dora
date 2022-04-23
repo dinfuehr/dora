@@ -47,7 +47,13 @@ fn testSsaGenRetInt64Const() {
 
 @Test
 fn testSsaGenIdInt() {
-    let fct = getBytecodeFunctionByName("bcSsaGenIdInt");
+    let writer = BytecodeBuilder();
+    let r0 = writer.addRegister(BytecodeType::Int32);
+    writer.setArguments(1I);
+    writer.emitRet(r0);
+    let fct = writer.generate();
+    bytecodeDump(fct);
+
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -57,11 +63,17 @@ fn testSsaGenIdInt() {
 ");
 }
 
-fn bcSsaGenIdInt(x: Int32): Int32 = x;
-
 @Test
 fn testSsaGenAddIntArguments() {
-    let fct = getBytecodeFunctionByName("bcSsaGenAddIntArguments");
+    let writer = BytecodeBuilder();
+    let r0 = writer.addRegister(BytecodeType::Int32);
+    let r1 = writer.addRegister(BytecodeType::Int32);
+    let r2 = writer.addRegister(BytecodeType::Int32);
+    writer.setArguments(2I);
+    writer.emitAddInt32(r2, r0, r1);
+    writer.emitRet(r2);
+    let fct = writer.generate();
+
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -73,11 +85,17 @@ fn testSsaGenAddIntArguments() {
 ");
 }
 
-fn bcSsaGenAddIntArguments(a: Int32, b: Int32): Int32 = a + b;
-
 @Test
 fn testSsaGenAddFloat32Arguments() {
-    let fct = getBytecodeFunctionByName("bcSsaGenAddFloat32Arguments");
+    let writer = BytecodeBuilder();
+    let r0 = writer.addRegister(BytecodeType::Float32);
+    let r1 = writer.addRegister(BytecodeType::Float32);
+    let r2 = writer.addRegister(BytecodeType::Float32);
+    writer.setArguments(2I);
+    writer.emitAddFloat32(r2, r0, r1);
+    writer.emitRet(r2);
+    let fct = writer.generate();
+
     let graph = createGraph(fct);
 
     assertGraph(graph, "
