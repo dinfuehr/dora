@@ -270,6 +270,14 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
 
     @override fn visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { self.emitNew("NewObject", dest, cls); }
     
+    @override fn visitNilCheck(obj: BytecodeRegister) { self.emitReg1("NilCheck", obj); }
+
+    @override fn visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) { self.emitReg2("ArrayLength", dest, arr); }
+    @override fn visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) { self.emitReg2("ArrayBoundCheck", arr, idx); }
+
+    @override fn visitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitReg3("LoadArray", dest, arr, idx); }
+    @override fn visitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitReg3("StoreArray", src, arr, idx); }
+
     @override fn visitRetVoid() { self.emitInst("RetVoid"); }
     @override fn visitRet(opnd: BytecodeRegister) { self.emitReg1("Ret", opnd); }
 }
