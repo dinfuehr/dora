@@ -4,7 +4,6 @@ fn testSsaGenRetVoid() {
     b.emitRetVoid();
     let fct = b.generate();
 
-    bytecodeDump(fct);
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -52,7 +51,6 @@ fn testSsaGenIdInt() {
     b.setArguments(1I);
     b.emitRet(r0);
     let fct = b.generate();
-    bytecodeDump(fct);
 
     let graph = createGraph(fct);
 
@@ -395,7 +393,6 @@ fn testSsaGenDivInt32() {
     b.emitDivInt32(r(2), r(0), r(1));
     b.emitRet(r(2));
     let fct = b.generate();
-    bytecodeDump(fct);
 
     let graph = createGraph(fct);
 
