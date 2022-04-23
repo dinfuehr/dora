@@ -8,9 +8,9 @@ use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
 };
 use crate::language::sem_analysis::{
-    find_impl, get_tuple_subtypes, AnalysisData, CallType, ConstDefinitionId, EnumDefinitionId,
-    FctDefinition, FctDefinitionId, GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis,
-    StructDefinitionId, TupleId, VarId,
+    find_impl, AnalysisData, CallType, ConstDefinitionId, EnumDefinitionId, FctDefinition,
+    FctDefinitionId, GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis, StructDefinitionId,
+    VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -285,7 +285,7 @@ impl<'a> AstBytecodeGen<'a> {
         tuple_reg: Register,
         tuple_ty: SourceType,
     ) {
-        let tuple_id = tuple_ty.tuple_id().expect("type should be tuple");
+        let tuple_subtypes = tuple_ty.tuple_subtypes();
 
         for (idx, part) in tuple.parts.iter().enumerate() {
             match &**part {
@@ -297,7 +297,7 @@ impl<'a> AstBytecodeGen<'a> {
                         let bytecode_ty: BytecodeType = BytecodeType::from_ty(self.sa, ty);
                         let var_reg = self.alloc_var(bytecode_ty);
                         self.var_registers.insert(var_id, var_reg);
-                        let idx = self.builder.add_const_tuple_element(tuple_id, idx);
+                        let idx = self.builder.add_const_tuple_element(tuple_ty.clone(), idx);
 
                         self.builder
                             .emit_load_tuple_element(var_reg, tuple_reg, idx);
@@ -309,11 +309,11 @@ impl<'a> AstBytecodeGen<'a> {
                 }
 
                 LetPattern::Tuple(ref tuple) => {
-                    let ty = get_tuple_subtypes(self.sa, tuple_id)[idx].clone();
+                    let ty = tuple_subtypes[idx].clone();
 
                     if !ty.is_unit() {
                         let temp_reg = self.alloc_temp(BytecodeType::from_ty(self.sa, ty.clone()));
-                        let idx = self.builder.add_const_tuple_element(tuple_id, idx);
+                        let idx = self.builder.add_const_tuple_element(tuple_ty.clone(), idx);
                         self.builder
                             .emit_load_tuple_element(temp_reg, tuple_reg, idx);
                         self.destruct_tuple_pattern(tuple, temp_reg, ty);
@@ -927,8 +927,8 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_dot(&mut self, expr: &ExprDotType, dest: DataDest) -> Register {
         let object_ty = self.ty(expr.lhs.id());
 
-        if let Some(tuple_id) = object_ty.tuple_id() {
-            return self.visit_expr_dot_tuple(expr, tuple_id, dest);
+        if object_ty.is_tuple() {
+            return self.visit_expr_dot_tuple(expr, object_ty, dest);
         }
 
         if let Some(struct_id) = object_ty.struct_id() {
@@ -1023,7 +1023,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_dot_tuple(
         &mut self,
         expr: &ExprDotType,
-        tuple_id: TupleId,
+        tuple_ty: SourceType,
         dest: DataDest,
     ) -> Register {
         let tuple = self.visit_expr(&expr.lhs, DataDest::Alloc);
@@ -1035,7 +1035,8 @@ impl<'a> AstBytecodeGen<'a> {
             .try_into()
             .expect("too large");
 
-        let ty = get_tuple_subtypes(self.sa, tuple_id)[idx].clone();
+        let subtypes = tuple_ty.tuple_subtypes();
+        let ty = subtypes[idx].clone();
 
         if ty.is_unit() {
             assert!(dest.is_unit());
@@ -1045,7 +1046,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let ty: BytecodeType = BytecodeType::from_ty(self.sa, ty);
         let dest = self.ensure_register(dest, ty);
-        let idx = self.builder.add_const_tuple_element(tuple_id, idx);
+        let idx = self.builder.add_const_tuple_element(tuple_ty, idx);
         self.builder.emit_load_tuple_element(dest, tuple, idx);
 
         self.free_if_temp(tuple);
@@ -1756,9 +1757,8 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let ty = self.ty(e.id);
-        let tuple_id = ty.tuple_id().unwrap();
 
-        let result_ty: BytecodeType = BytecodeType::Tuple(tuple_id);
+        let result_ty: BytecodeType = BytecodeType::from_ty(self.sa, ty.clone());
         let result = self.ensure_register(dest, result_ty);
 
         let mut values = Vec::with_capacity(e.values.len());
@@ -1776,8 +1776,8 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(value);
         }
 
-        let subtypes = get_tuple_subtypes(self.sa, tuple_id);
-        let idx = self.builder.add_const_tuple(tuple_id, subtypes);
+        let subtypes = ty.tuple_subtypes();
+        let idx = self.builder.add_const_tuple(subtypes);
         self.builder.emit_new_tuple(result, idx, e.pos);
 
         for arg_reg in values {

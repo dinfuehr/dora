@@ -3,7 +3,7 @@ use std::fmt;
 use crate::bytecode::BytecodeReader;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem::ptr_width;
@@ -54,7 +54,7 @@ pub enum BytecodeType {
     Float32,
     Float64,
     Ptr,
-    Tuple(TupleId),
+    Tuple(SourceTypeArray),
     TypeParam(u32),
     Enum(EnumDefinitionId, SourceTypeArray),
     Struct(StructDefinitionId, SourceTypeArray),
@@ -154,13 +154,6 @@ impl BytecodeType {
         }
     }
 
-    pub fn tuple_id(&self) -> Option<TupleId> {
-        match *self {
-            BytecodeType::Tuple(tuple_id) => Some(tuple_id),
-            _ => None,
-        }
-    }
-
     pub fn from_ty(vm: &VM, ty: SourceType) -> BytecodeType {
         match ty {
             SourceType::Bool => BytecodeType::Bool,
@@ -184,9 +177,16 @@ impl BytecodeType {
                 BytecodeType::Int32
             }
             SourceType::Struct(id, params) => BytecodeType::Struct(id, params),
-            SourceType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
+            SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
             SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
+        }
+    }
+
+    pub fn tuple_subtypes(&self) -> SourceTypeArray {
+        match self {
+            BytecodeType::Tuple(subtypes) => subtypes.clone(),
+            _ => unreachable!(),
         }
     }
 }
@@ -1549,8 +1549,8 @@ pub enum ConstPoolEntry {
     Struct(StructDefinitionId, SourceTypeArray),
     StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
     Trait(TraitDefinitionId, SourceTypeArray, SourceType),
-    TupleElement(TupleId, usize),
-    Tuple(TupleId, SourceTypeArray),
+    TupleElement(SourceType, usize),
+    Tuple(SourceTypeArray),
 }
 
 impl ConstPoolEntry {

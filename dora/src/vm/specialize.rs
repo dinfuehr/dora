@@ -1,9 +1,8 @@
 use parking_lot::RwLock;
 use std::cmp::max;
 
-use crate::language::sem_analysis::{
-    create_tuple, get_tuple_subtypes, ClassDefinitionId, TraitDefinitionId, TupleId,
-};
+use crate::bytecode::BytecodeType;
+use crate::language::sem_analysis::{create_tuple, ClassDefinitionId, TraitDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
@@ -614,15 +613,37 @@ fn create_specialized_class_for_trait_object(
     class_instance_id
 }
 
-pub fn specialize_tuple(vm: &VM, tuple_id: TupleId, type_params: &SourceTypeArray) -> TupleId {
-    let subtypes = get_tuple_subtypes(vm, tuple_id);
+pub fn specialize_tuple_ty(
+    vm: &VM,
+    tuple_ty: SourceType,
+    type_params: &SourceTypeArray,
+) -> SourceType {
+    let subtypes = tuple_ty.tuple_subtypes();
+    let new_subtypes = specialize_tuple_array(vm, subtypes, type_params);
+    SourceType::Tuple(new_subtypes)
+}
 
-    let new_subtypes = subtypes
+pub fn specialize_tuple_bty(
+    vm: &VM,
+    tuple_ty: BytecodeType,
+    type_params: &SourceTypeArray,
+) -> BytecodeType {
+    let subtypes = tuple_ty.tuple_subtypes();
+    let new_subtypes = specialize_tuple_array(vm, subtypes, type_params);
+    BytecodeType::Tuple(new_subtypes)
+}
+
+pub fn specialize_tuple_array(
+    vm: &VM,
+    tuple_subtypes: SourceTypeArray,
+    type_params: &SourceTypeArray,
+) -> SourceTypeArray {
+    let new_subtypes = tuple_subtypes
         .iter()
         .map(|t| specialize_type(vm, t.clone(), type_params))
         .collect::<Vec<_>>();
 
-    create_tuple(vm, new_subtypes).tuple_id().unwrap()
+    SourceTypeArray::with(new_subtypes)
 }
 
 pub fn replace_type_param(
@@ -682,9 +703,7 @@ pub fn replace_type_param(
 
         SourceType::Lambda(_, _) => unimplemented!(),
 
-        SourceType::Tuple(tuple_id) => {
-            let subtypes = get_tuple_subtypes(vm, tuple_id);
-
+        SourceType::Tuple(subtypes) => {
             let new_subtypes = subtypes
                 .iter()
                 .map(|t| replace_type_param(vm, t.clone(), type_params, self_ty.clone()))

@@ -9,7 +9,7 @@ use crate::bytecode::{
 use crate::driver::cmd::Args;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TupleId, TypeParamId,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{ClassInstanceId, VM};
@@ -167,13 +167,17 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::Trait(id, type_params, object_ty))
     }
 
-    pub fn add_const_tuple_element(&mut self, id: TupleId, subtype_idx: usize) -> ConstPoolIdx {
+    pub fn add_const_tuple_element(
+        &mut self,
+        tuple_ty: SourceType,
+        subtype_idx: usize,
+    ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::TupleElement(id, subtype_idx))
+            .add_const(ConstPoolEntry::TupleElement(tuple_ty, subtype_idx))
     }
 
-    pub fn add_const_tuple(&mut self, id: TupleId, subtypes: SourceTypeArray) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Tuple(id, subtypes))
+    pub fn add_const_tuple(&mut self, subtypes: SourceTypeArray) -> ConstPoolIdx {
+        self.writer.add_const(ConstPoolEntry::Tuple(subtypes))
     }
 
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {

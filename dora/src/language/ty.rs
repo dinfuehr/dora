@@ -3,9 +3,8 @@ use std::sync::Arc;
 
 use crate::bytecode::BytecodeType;
 use crate::language::sem_analysis::{
-    get_tuple_subtypes, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
-    FctDefinition, SemAnalysis, StructDefinitionId, TraitDefinitionId, TupleId, TypeParam,
-    TypeParamId,
+    ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, FctDefinition,
+    SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -41,7 +40,7 @@ pub enum SourceType {
     Struct(StructDefinitionId, SourceTypeArray),
 
     // some tuple
-    Tuple(TupleId),
+    Tuple(SourceTypeArray),
 
     // some trait object
     Trait(TraitDefinitionId, SourceTypeArray),
@@ -221,13 +220,6 @@ impl SourceType {
         }
     }
 
-    pub fn tuple_id(&self) -> Option<TupleId> {
-        match self {
-            SourceType::Tuple(tuple_id) => Some(*tuple_id),
-            _ => None,
-        }
-    }
-
     pub fn type_param_id(&self) -> Option<TypeParamId> {
         match self {
             SourceType::TypeParam(id) => Some(*id),
@@ -335,6 +327,13 @@ impl SourceType {
         }
     }
 
+    pub fn tuple_subtypes(&self) -> SourceTypeArray {
+        match self {
+            SourceType::Tuple(subtypes) => subtypes.clone(),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn allows(&self, sa: &SemAnalysis, other: SourceType) -> bool {
         match self {
             // allow all types for Error, there is already an error,
@@ -374,15 +373,8 @@ impl SourceType {
                     other.subclass_from(sa, self.clone())
                 }
             }
-            SourceType::Tuple(tuple_id) => match other {
-                SourceType::Tuple(other_tuple_id) => {
-                    if *tuple_id == other_tuple_id {
-                        return true;
-                    }
-
-                    let subtypes = get_tuple_subtypes(sa, *tuple_id);
-                    let other_subtypes = get_tuple_subtypes(sa, other_tuple_id);
-
+            SourceType::Tuple(subtypes) => match other {
+                SourceType::Tuple(other_subtypes) => {
                     if subtypes.len() != other_subtypes.len() {
                         return false;
                     }
@@ -440,9 +432,7 @@ impl SourceType {
 
                 true
             }
-            SourceType::Tuple(tuple_id) => {
-                let subtypes = get_tuple_subtypes(sa, *tuple_id);
-
+            SourceType::Tuple(subtypes) => {
                 for ty in subtypes.iter() {
                     if !ty.is_defined_type(sa) {
                         return false;
@@ -479,8 +469,7 @@ impl SourceType {
                 true
             }
 
-            SourceType::Tuple(tuple_id) => {
-                let subtypes = get_tuple_subtypes(sa, *tuple_id);
+            SourceType::Tuple(subtypes) => {
                 for subtype in subtypes.iter() {
                     if !subtype.is_concrete_type(sa) {
                         return false;
@@ -506,7 +495,7 @@ impl SourceType {
             BytecodeType::UInt8 => SourceType::UInt8,
             BytecodeType::TypeParam(id) => SourceType::TypeParam(TypeParamId(id as usize)),
             BytecodeType::Struct(struct_id, params) => SourceType::Struct(struct_id, params),
-            BytecodeType::Tuple(tuple_id) => SourceType::Tuple(tuple_id),
+            BytecodeType::Tuple(subtypes) => SourceType::Tuple(subtypes),
             BytecodeType::Enum(enum_id, params) => SourceType::Enum(enum_id, params),
         }
     }
@@ -604,6 +593,24 @@ impl SourceTypeArray {
         }
 
         result.push(']');
+
+        result
+    }
+
+    pub fn tuple_name(&self, sa: &SemAnalysis) -> String {
+        let mut result = String::new();
+        let mut first = true;
+        result.push('(');
+
+        for ty in self.iter() {
+            if !first {
+                result.push_str(", ");
+            }
+            result.push_str(&ty.name(sa));
+            first = false;
+        }
+
+        result.push(')');
 
         result
     }
@@ -756,10 +763,8 @@ impl<'a> SourceTypePrinter<'a> {
                 format!("({}) -> {}", params, ret)
             }
 
-            SourceType::Tuple(tuple_id) => {
-                let types = get_tuple_subtypes(self.sa, tuple_id);
-
-                let types = types
+            SourceType::Tuple(subtypes) => {
+                let types = subtypes
                     .iter()
                     .map(|ty| self.name(ty.clone()))
                     .collect::<Vec<_>>()

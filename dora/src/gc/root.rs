@@ -5,7 +5,7 @@ use crate::language::ty::SourceType;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::{
-    get_concrete_tuple, specialize_enum_id_params, specialize_struct_id_params, CodeKind,
+    get_concrete_tuple_ty, specialize_enum_id_params, specialize_struct_id_params, CodeKind,
     EnumLayout, VM,
 };
 
@@ -72,8 +72,8 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                 }
             }
 
-            SourceType::Tuple(tuple_id) => {
-                let tuple = get_concrete_tuple(vm, tuple_id);
+            SourceType::Tuple(_) => {
+                let tuple = get_concrete_tuple_ty(vm, &global_var.ty);
 
                 for &offset in tuple.references() {
                     let slot_address = global_var.address_value.offset(offset as usize);

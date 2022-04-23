@@ -13,7 +13,7 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
     FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
-    SourceFile, StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId, Tuples,
+    SourceFile, StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId,
     UseDefinition,
 };
 use crate::language::ty::SourceTypeArray;
@@ -47,12 +47,13 @@ pub use self::known::{
 pub use self::specialize::{
     add_ref_fields, replace_type_param, specialize_class_id, specialize_class_id_params,
     specialize_enum_class, specialize_enum_id_params, specialize_struct_id_params,
-    specialize_trait_object, specialize_tuple, specialize_type, specialize_type_list,
+    specialize_trait_object, specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty,
+    specialize_type, specialize_type_list,
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{
-    get_concrete_tuple, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, ConcreteTuple,
+    get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, ConcreteTuple,
 };
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
@@ -103,7 +104,6 @@ pub struct FullSemAnalysis {
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
-    pub tuples: Mutex<Tuples>,               // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
     pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
@@ -139,7 +139,6 @@ impl FullSemAnalysis {
             structs: MutableVec::new(),
             classes: MutableVec::new(),
             extensions: MutableVec::new(),
-            tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
             modules,
             enums: MutableVec::new(),
@@ -185,7 +184,6 @@ pub struct VM {
         RwLock<HashMap<(ClassDefinitionId, SourceTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
     pub extensions: MutableVec<ExtensionDefinition>,        // stores all extension definitions
-    pub tuples: Mutex<Tuples>,                              // stores all tuple definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
     pub modules: MutableVec<ModuleDefinition>,         // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>,      // stores all function source definitions
@@ -238,7 +236,6 @@ impl VM {
             class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVecNonIter::new(),
             extensions: MutableVec::new(),
-            tuples: Mutex::new(Tuples::new()),
             annotations: MutableVec::new(),
             modules,
             enums: MutableVec::new(),
@@ -291,7 +288,6 @@ impl VM {
             class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVecNonIter::new(),
             extensions: sa.extensions,
-            tuples: sa.tuples,
             annotations: sa.annotations,
             modules: sa.modules,
             enums: sa.enums,

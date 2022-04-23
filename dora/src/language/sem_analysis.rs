@@ -34,7 +34,7 @@ pub use self::structs::{
     StructDefinitionId,
 };
 pub use self::traits::{TraitDefinition, TraitDefinitionId};
-pub use self::tuples::{create_tuple, get_tuple_subtypes, TupleId, Tuples};
+pub use self::tuples::create_tuple;
 pub use self::uses::UseDefinition;
 
 mod annotations;

@@ -1,4 +1,4 @@
-use crate::language::sem_analysis::{create_tuple, get_tuple_subtypes, SemAnalysis};
+use crate::language::sem_analysis::{create_tuple, SemAnalysis};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
 pub fn specialize_type(
@@ -87,9 +87,7 @@ pub fn replace_type_param(
 
         SourceType::Lambda(_, _) => unimplemented!(),
 
-        SourceType::Tuple(tuple_id) => {
-            let subtypes = get_tuple_subtypes(sa, tuple_id);
-
+        SourceType::Tuple(subtypes) => {
             let new_subtypes = subtypes
                 .iter()
                 .map(|t| replace_type_param(sa, t.clone(), type_params, self_ty.clone()))

@@ -1,7 +1,7 @@
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    get_tuple_subtypes, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
-    ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionId, TypeParam,
+    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
+    SourceFileId, StructDefinitionId, TypeParam,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
@@ -320,9 +320,7 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
                 discover_type_params(sa, param, used_type_params);
             }
         }
-        SourceType::Tuple(tuple_id) => {
-            let subtypes = get_tuple_subtypes(sa, tuple_id);
-
+        SourceType::Tuple(subtypes) => {
             for subtype in subtypes.iter() {
                 discover_type_params(sa, subtype.clone(), used_type_params);
             }

@@ -6,7 +6,6 @@ use crate::bytecode::{
     BytecodeFunction, ConstPoolEntry, ConstPoolOpcode, InstructionSet, SourceTypeOpcode,
 };
 use crate::bytecode::{BytecodeType, BytecodeTypeKind};
-use crate::language::sem_analysis::get_tuple_subtypes;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::object::{byte_array_from_buffer, Obj, Ref};
 use crate::vm::VM;
@@ -97,13 +96,9 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
         BytecodeType::Ptr => {
             buffer.emit_u8(BytecodeTypeKind::Ptr as u8);
         }
-        BytecodeType::Tuple(tuple_id) => {
+        BytecodeType::Tuple(subtypes) => {
             buffer.emit_u8(BytecodeTypeKind::Tuple as u8);
-            let subtypes = get_tuple_subtypes(vm, *tuple_id);
-            buffer.emit_u32(subtypes.len() as u32);
-            for subty in subtypes.iter() {
-                encode_source_type(vm, subty.clone(), buffer);
-            }
+            encode_source_type_array(vm, subtypes, buffer);
         }
         BytecodeType::TypeParam(type_param_id) => {
             buffer.emit_u8(BytecodeTypeKind::TypeParam as u8);
@@ -177,9 +172,8 @@ fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
             buffer.emit_id(enum_id.to_usize());
             encode_source_type_array(vm, &source_type_array, buffer);
         }
-        SourceType::Tuple(tuple_id) => {
+        SourceType::Tuple(subtypes) => {
             buffer.emit_u8(SourceTypeOpcode::Tuple.to_u8());
-            let subtypes = get_tuple_subtypes(vm, tuple_id);
             buffer.emit_u32(subtypes.len() as u32);
             for subty in subtypes.iter() {
                 encode_source_type(vm, subty.clone(), buffer);
@@ -293,14 +287,14 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             encode_source_type_array(vm, source_type_array, buffer);
             encode_source_type(vm, source_type.clone(), buffer);
         }
-        &ConstPoolEntry::TupleElement(tuple_id, element_idx) => {
+        &ConstPoolEntry::TupleElement(ref tuple_ty, element_idx) => {
             buffer.emit_u8(ConstPoolOpcode::TupleElement.to_u8());
-            buffer.emit_id(tuple_id.to_usize());
+            encode_source_type_array(vm, &tuple_ty.tuple_subtypes(), buffer);
             buffer.emit_id(element_idx as usize);
         }
-        &ConstPoolEntry::Tuple(tuple_id, _) => {
+        &ConstPoolEntry::Tuple(ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Tuple.to_u8());
-            buffer.emit_id(tuple_id.to_usize());
+            encode_source_type_array(vm, &source_type_array, buffer);
         }
     }
 }

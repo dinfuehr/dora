@@ -4,7 +4,7 @@ use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
     Register,
 };
-use crate::language::sem_analysis::{GlobalDefinitionId, TupleId};
+use crate::language::sem_analysis::GlobalDefinitionId;
 
 use dora_parser::lexer::position::Position;
 
@@ -801,21 +801,6 @@ impl BytecodeWriter {
             r1.to_usize() as u32,
             r2.to_usize() as u32,
             idx.to_usize() as u32,
-        ];
-        self.emit_values(inst, &values);
-    }
-
-    fn emit_reg2_tuple(
-        &mut self,
-        inst: BytecodeOpcode,
-        r1: Register,
-        r2: Register,
-        tuple_id: TupleId,
-    ) {
-        let values = [
-            r1.to_usize() as u32,
-            r2.to_usize() as u32,
-            tuple_id.to_usize() as u32,
         ];
         self.emit_values(inst, &values);
     }

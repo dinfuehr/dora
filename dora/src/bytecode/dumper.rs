@@ -3,8 +3,7 @@ use std::io;
 use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::language::sem_analysis::{FctDefinition, GlobalDefinitionId, TupleId};
-use crate::language::ty::SourceType;
+use crate::language::sem_analysis::{FctDefinition, GlobalDefinitionId};
 use crate::vm::VM;
 
 pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
@@ -190,15 +189,9 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
                 println!("{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)
             }
-            ConstPoolEntry::Tuple(tuple_id, _) => {
-                let tuple_name = SourceType::Tuple(*tuple_id).name(vm);
-                println!(
-                    "{}{} => Tuple {} # {}",
-                    align,
-                    idx,
-                    tuple_id.to_usize(),
-                    tuple_name
-                )
+            ConstPoolEntry::Tuple(ref source_type_array) => {
+                let tuple_name = source_type_array.tuple_name(vm);
+                println!("{}{} => Tuple {}", align, idx, tuple_name)
             }
         }
     }
@@ -254,15 +247,10 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, {}", r1, r2).expect("write! failed");
     }
 
-    fn emit_reg2_tuple(&mut self, name: &str, r1: Register, r2: Register, tuple_id: TupleId) {
-        self.emit_start(name);
-        writeln!(self.w, " {}, {}, {}", r1, r2, tuple_id.to_usize()).expect("write! failed");
-    }
-
     fn emit_tuple_load(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        let (tuple_id, subtype_idx) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::TupleElement(tuple_id, subtype_idx) => (*tuple_id, *subtype_idx),
+        let (tuple_ty, subtype_idx) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty, *subtype_idx),
             _ => unreachable!(),
         };
         writeln!(
@@ -270,7 +258,7 @@ impl<'a> BytecodeDumper<'a> {
             " {}, {}, {}, {}",
             r1,
             r2,
-            tuple_id.to_usize(),
+            tuple_ty.name(self.vm),
             subtype_idx
         )
         .expect("write! failed");
@@ -573,19 +561,12 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_new_tuple(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        let tuple_id = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Tuple(tuple_id, _) => *tuple_id,
+        let source_type_array = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Tuple(ref source_type_array) => source_type_array.clone(),
             _ => unreachable!(),
         };
-        let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
-        writeln!(
-            self.w,
-            " {}, TupleId({}) # {}",
-            r1,
-            tuple_id.to_usize(),
-            tuple_name
-        )
-        .expect("write! failed");
+        let tuple_name = source_type_array.tuple_name(self.vm);
+        writeln!(self.w, " {}, {}", r1, tuple_name).expect("write! failed");
     }
 
     fn emit_new_enum(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {

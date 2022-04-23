@@ -101,8 +101,7 @@ impl Index<ExtensionDefinitionId> for Vec<RwLock<ExtensionDefinition>> {
 
 mod matching {
     use crate::language::sem_analysis::{
-        get_tuple_subtypes, implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParam,
-        TypeParamDefinition,
+        implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParam, TypeParamDefinition,
     };
     use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -293,16 +292,12 @@ mod matching {
                 unimplemented!()
             }
 
-            SourceType::Tuple(check_tuple_id) => {
-                let check_subtypes = get_tuple_subtypes(sa, check_tuple_id);
-
-                let ext_tuple_id = if let Some(tuple_id) = ext_ty.tuple_id() {
-                    tuple_id
-                } else {
+            SourceType::Tuple(check_subtypes) => {
+                if !ext_ty.is_tuple() {
                     return false;
-                };
+                }
 
-                let ext_subtypes = get_tuple_subtypes(sa, ext_tuple_id);
+                let ext_subtypes = ext_ty.tuple_subtypes();
 
                 if check_subtypes.len() != ext_subtypes.len() {
                     return false;

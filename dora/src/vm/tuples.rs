@@ -1,7 +1,6 @@
 use std::cmp::max;
 
 use crate::bytecode::BytecodeType;
-use crate::language::sem_analysis::{get_tuple_subtypes, TupleId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::vm::{specialize_enum_id_params, EnumLayout, VM};
@@ -49,8 +48,8 @@ fn determine_tuple_size(vm: &VM, subtypes: SourceTypeArray) -> ConcreteTuple {
         let element_align;
         let element_ty;
 
-        if let Some(tuple_id) = ty.tuple_id() {
-            let concrete = get_concrete_tuple(vm, tuple_id);
+        if ty.is_tuple() {
+            let concrete = get_concrete_tuple_ty(vm, &ty);
 
             element_size = concrete.size;
             element_align = concrete.align;
@@ -108,25 +107,16 @@ fn determine_tuple_size(vm: &VM, subtypes: SourceTypeArray) -> ConcreteTuple {
     }
 }
 
-pub fn get_concrete_tuple(vm: &VM, id: TupleId) -> ConcreteTuple {
-    let subtypes = get_tuple_subtypes(vm, id);
+pub fn get_concrete_tuple_array(vm: &VM, subtypes: SourceTypeArray) -> ConcreteTuple {
     determine_tuple_size(vm, subtypes)
 }
 
 pub fn get_concrete_tuple_ty(vm: &VM, ty: &SourceType) -> ConcreteTuple {
-    let tuple_id = match ty {
-        SourceType::Tuple(tuple_id) => *tuple_id,
-        _ => unreachable!(),
-    };
-
-    get_concrete_tuple(vm, tuple_id)
+    let subtypes = ty.tuple_subtypes();
+    get_concrete_tuple_array(vm, subtypes)
 }
 
 pub fn get_concrete_tuple_bytecode_ty(vm: &VM, ty: &BytecodeType) -> ConcreteTuple {
-    let tuple_id = match ty {
-        BytecodeType::Tuple(tuple_id) => *tuple_id,
-        _ => unreachable!(),
-    };
-
-    get_concrete_tuple(vm, tuple_id)
+    let subtypes = ty.tuple_subtypes();
+    get_concrete_tuple_array(vm, subtypes)
 }

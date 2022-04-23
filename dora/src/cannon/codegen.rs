@@ -15,8 +15,8 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    find_trait_impl, get_tuple_subtypes, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId,
-    Intrinsic, StructDefinitionId, TupleId,
+    find_trait_impl, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId, Intrinsic,
+    StructDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
@@ -26,9 +26,10 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
-    get_concrete_tuple, get_concrete_tuple_bytecode_ty, specialize_class_id_params,
-    specialize_enum_class, specialize_enum_id_params, specialize_struct_id_params,
-    specialize_trait_object, specialize_tuple, specialize_type, specialize_type_list, EnumLayout,
+    get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty,
+    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
+    specialize_struct_id_params, specialize_trait_object, specialize_tuple_array,
+    specialize_tuple_bty, specialize_tuple_ty, specialize_type, specialize_type_list, EnumLayout,
     GcPoint, Trap, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
@@ -322,13 +323,13 @@ impl<'a> CannonCodeGen<'a> {
             };
 
             match param_ty {
-                SourceType::Tuple(tuple_id) => {
+                SourceType::Tuple(subtypes) => {
                     self.store_params_on_stack_tuple(
                         &mut reg_idx,
                         &mut freg_idx,
                         &mut sp_offset,
                         dest,
-                        tuple_id,
+                        subtypes,
                     );
                 }
 
@@ -397,7 +398,7 @@ impl<'a> CannonCodeGen<'a> {
         _freg_idx: &mut usize,
         sp_offset: &mut i32,
         dest: Register,
-        tuple_id: TupleId,
+        subtypes: SourceTypeArray,
     ) {
         let dest_offset = self.register_offset(dest);
 
@@ -408,7 +409,7 @@ impl<'a> CannonCodeGen<'a> {
                 REG_PARAMS[*reg_idx].into(),
             );
             self.copy_tuple(
-                tuple_id,
+                subtypes,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Reg(REG_TMP1),
             );
@@ -417,7 +418,7 @@ impl<'a> CannonCodeGen<'a> {
             self.asm
                 .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
             self.copy_tuple(
-                tuple_id,
+                subtypes,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Reg(REG_TMP1),
             );
@@ -1382,13 +1383,13 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        let (tuple_id, subtype_idx) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::TupleElement(tuple_id, subtype_idx) => (*tuple_id, *subtype_idx),
+        let (tuple_ty, subtype_idx) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty.clone(), *subtype_idx),
             _ => unreachable!(),
         };
 
-        let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
-        let tuple = get_concrete_tuple(self.vm, tuple_id);
+        let tuple_ty = specialize_tuple_ty(self.vm, tuple_ty, self.type_params);
+        let tuple = get_concrete_tuple_ty(self.vm, &tuple_ty);
         let offset = tuple.offsets()[subtype_idx as usize];
 
         if let Some(dest_type) = self.specialize_register_type_unit(dest) {
@@ -1466,10 +1467,10 @@ impl<'a> CannonCodeGen<'a> {
                 let bty = BytecodeType::from_ty(self.vm, field.ty.clone());
                 assert_eq!(bty, self.specialize_register_type(dest));
 
-                if let BytecodeType::Tuple(tuple_id) = bty {
+                if let BytecodeType::Tuple(subtypes) = bty {
                     let dest_offset = self.register_offset(dest);
                     self.copy_tuple(
-                        tuple_id,
+                        subtypes,
                         RegOrOffset::Offset(dest_offset),
                         RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
                     )
@@ -1533,9 +1534,8 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn copy_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset, src: RegOrOffset) {
-        let subtypes = get_tuple_subtypes(self.vm, tuple_id);
-        let tuple = get_concrete_tuple(self.vm, tuple_id);
+    fn copy_tuple(&mut self, subtypes: SourceTypeArray, dest: RegOrOffset, src: RegOrOffset) {
+        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
 
         for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             let src = src.offset(subtype_offset);
@@ -1563,8 +1563,8 @@ impl<'a> CannonCodeGen<'a> {
 
     fn copy_ty(&mut self, ty: SourceType, dest: RegOrOffset, src: RegOrOffset) {
         match ty {
-            SourceType::Tuple(tuple_id) => {
-                self.copy_tuple(tuple_id, dest, src);
+            SourceType::Tuple(subtypes) => {
+                self.copy_tuple(subtypes, dest, src);
             }
 
             SourceType::Unit => {
@@ -1616,8 +1616,8 @@ impl<'a> CannonCodeGen<'a> {
 
     fn copy_bytecode_ty(&mut self, ty: BytecodeType, dest: RegOrOffset, src: RegOrOffset) {
         match ty {
-            BytecodeType::Tuple(tuple_id) => {
-                self.copy_tuple(tuple_id, dest, src);
+            BytecodeType::Tuple(subtypes) => {
+                self.copy_tuple(subtypes, dest, src);
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
@@ -1663,9 +1663,9 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn zero_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset) {
-        let subtypes = get_tuple_subtypes(self.vm, tuple_id);
-        let tuple = get_concrete_tuple(self.vm, tuple_id);
+    fn zero_tuple(&mut self, tuple_ty: SourceType, dest: RegOrOffset) {
+        let subtypes = tuple_ty.tuple_subtypes();
+        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
 
         for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
@@ -1674,8 +1674,8 @@ impl<'a> CannonCodeGen<'a> {
 
     fn zero_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
         match ty {
-            SourceType::Tuple(tuple_id) => {
-                self.zero_tuple(tuple_id, dest);
+            SourceType::Tuple(_) => {
+                self.zero_tuple(ty, dest);
             }
 
             SourceType::Unit => {
@@ -1717,9 +1717,8 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn zero_refs_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset) {
-        let subtypes = get_tuple_subtypes(self.vm, tuple_id);
-        let tuple = get_concrete_tuple(self.vm, tuple_id);
+    fn zero_refs_tuple(&mut self, subtypes: SourceTypeArray, dest: RegOrOffset) {
+        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
 
         for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             self.zero_refs_ty(subtype.clone(), dest.offset(subtype_offset));
@@ -1728,8 +1727,8 @@ impl<'a> CannonCodeGen<'a> {
 
     fn zero_refs_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
         match ty {
-            SourceType::Tuple(tuple_id) => {
-                self.zero_tuple(tuple_id, dest);
+            SourceType::Tuple(_) => {
+                self.zero_tuple(ty, dest);
             }
 
             SourceType::Unit => {
@@ -1875,11 +1874,11 @@ impl<'a> CannonCodeGen<'a> {
 
             let needs_write_barrier;
 
-            match bytecode_type {
-                BytecodeType::Tuple(tuple_id) => {
+            match &bytecode_type {
+                BytecodeType::Tuple(subtypes) => {
                     let src_offset = self.register_offset(src);
                     self.copy_tuple(
-                        tuple_id,
+                        subtypes.clone(),
                         RegOrOffset::RegWithOffset(obj_reg, field.offset),
                         RegOrOffset::Offset(src_offset),
                     );
@@ -1891,20 +1890,21 @@ impl<'a> CannonCodeGen<'a> {
                 BytecodeType::Struct(struct_id, type_params) => {
                     let src_offset = self.register_offset(src);
                     self.copy_struct(
-                        struct_id,
+                        *struct_id,
                         type_params.clone(),
                         RegOrOffset::RegWithOffset(obj_reg, field.offset),
                         RegOrOffset::Offset(src_offset),
                     );
 
                     let struct_instance_id =
-                        specialize_struct_id_params(self.vm, struct_id, type_params);
+                        specialize_struct_id_params(self.vm, *struct_id, type_params.clone());
                     let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
                     needs_write_barrier = struct_instance.contains_references();
                 }
 
                 BytecodeType::Enum(enum_id, type_params) => {
-                    let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let enum_instance_id =
+                        specialize_enum_id_params(self.vm, *enum_id, type_params.clone());
                     let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                     let mode = match enum_instance.layout {
@@ -2196,7 +2196,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_return_generic(&mut self, src: Register) {
         if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
             match bytecode_type {
-                BytecodeType::Tuple(tuple_id) => {
+                BytecodeType::Tuple(subtypes) => {
                     let src_offset = self.register_offset(src);
 
                     self.asm.load_mem(
@@ -2206,7 +2206,7 @@ impl<'a> CannonCodeGen<'a> {
                     );
 
                     self.copy_tuple(
-                        tuple_id,
+                        subtypes,
                         RegOrOffset::Reg(REG_TMP1),
                         RegOrOffset::Offset(src_offset),
                     );
@@ -2443,13 +2443,12 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let tuple_id = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Tuple(tuple_id, _) => *tuple_id,
+        let source_type_array = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Tuple(ref source_type_array) => source_type_array.clone(),
             _ => unreachable!(),
         };
-        let tuple_id = specialize_tuple(self.vm, tuple_id, self.type_params);
-        let subtypes = get_tuple_subtypes(self.vm, tuple_id);
-        let tuple = get_concrete_tuple(self.vm, tuple_id);
+        let subtypes = specialize_tuple_array(self.vm, source_type_array, self.type_params);
+        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
         let dest_offset = self.register_offset(dest);
         let mut arg_idx = 0;
         let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
@@ -2779,7 +2778,7 @@ impl<'a> CannonCodeGen<'a> {
         let src_type = src_type.unwrap();
 
         match src_type {
-            BytecodeType::Tuple(tuple_id) => {
+            BytecodeType::Tuple(ref subtypes) => {
                 let tuple = get_concrete_tuple_bytecode_ty(self.vm, &src_type);
                 let element_size = tuple.size();
                 self.asm
@@ -2787,7 +2786,7 @@ impl<'a> CannonCodeGen<'a> {
                 let src_offset = self.register_offset(src);
 
                 self.copy_tuple(
-                    tuple_id,
+                    subtypes.clone(),
                     RegOrOffset::Reg(REG_TMP1),
                     RegOrOffset::Offset(src_offset),
                 );
@@ -2931,14 +2930,14 @@ impl<'a> CannonCodeGen<'a> {
         let dest_type = dest_type.unwrap();
 
         match dest_type {
-            BytecodeType::Tuple(tuple_id) => {
+            BytecodeType::Tuple(ref subtypes) => {
                 let element_size = get_concrete_tuple_bytecode_ty(self.vm, &dest_type).size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let dest_offset = self.register_offset(dest);
 
                 self.copy_tuple(
-                    tuple_id,
+                    subtypes.clone(),
                     RegOrOffset::Offset(dest_offset),
                     RegOrOffset::Reg(REG_TMP1),
                 );
@@ -4104,7 +4103,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let bytecode_type: BytecodeType = BytecodeType::from_ty(self.vm, ty);
 
-        match bytecode_type {
+        match &bytecode_type {
             BytecodeType::Bool
             | BytecodeType::Char
             | BytecodeType::UInt8
@@ -4123,15 +4122,16 @@ impl<'a> CannonCodeGen<'a> {
                     .store_zero(MachineMode::Ptr, Mem::Base(REG_TMP1, 0));
             }
 
-            BytecodeType::Tuple(tuple_id) => {
-                let tuple_id = specialize_tuple(self.vm, tuple_id, &type_params);
+            BytecodeType::Tuple(_) => {
+                let tuple_ty = specialize_tuple_bty(self.vm, bytecode_type.clone(), &type_params);
                 self.emit_load_register(arguments[0], REG_RESULT.into());
                 self.emit_load_register(arguments[1], REG_TMP1.into());
 
                 let tuple_size = get_concrete_tuple_bytecode_ty(self.vm, &bytecode_type).size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, tuple_size);
-                self.zero_refs_tuple(tuple_id, RegOrOffset::Reg(REG_TMP1));
+                let subtypes = tuple_ty.tuple_subtypes();
+                self.zero_refs_tuple(subtypes, RegOrOffset::Reg(REG_TMP1));
             }
 
             BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
@@ -4442,11 +4442,10 @@ impl<'a> CannonCodeGen<'a> {
                     Some(BytecodeType::from_ty(self.vm, ty))
                 }
             }
-            BytecodeType::Tuple(tuple_id) => Some(BytecodeType::Tuple(specialize_tuple(
-                self.vm,
-                tuple_id,
-                self.type_params,
-            ))),
+            BytecodeType::Tuple(_) => {
+                let ty = specialize_tuple_bty(self.vm, ty, self.type_params);
+                Some(ty)
+            }
 
             BytecodeType::Enum(enum_id, type_params) => Some(BytecodeType::Enum(
                 enum_id,
@@ -4754,20 +4753,21 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (tuple_id, subtype_idx) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::TupleElement(tuple_id, subtype_idx) => (*tuple_id, *subtype_idx),
+            let (tuple_ty, subtype_idx) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                    (tuple_ty.clone(), *subtype_idx)
+                }
                 _ => unreachable!(),
             };
 
-            let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
+            let tuple_name = tuple_ty.name(self.vm);
             format!(
-                "LoadTupleElement {}, {}, ConstPoolIdx({}) # {}.{} TupleId({})",
+                "LoadTupleElement {}, {}, ConstPoolIdx({}) # {}.{}",
                 dest,
                 src,
                 idx.to_usize(),
                 tuple_name,
                 subtype_idx,
-                tuple_id.to_usize(),
             )
         });
         self.emit_load_tuple_element(dest, src, idx);
@@ -5465,17 +5465,16 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     }
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let tuple_id = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Tuple(tuple_id, _) => *tuple_id,
+            let subtypes = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Tuple(ref subtypes) => subtypes.clone(),
                 _ => unreachable!(),
             };
-            let tuple_name = SourceType::Tuple(tuple_id).name(self.vm);
+            let tuple_name = subtypes.tuple_name(self.vm);
             format!(
-                "NewTuple {}, ConstPoolIdx({}) # {} TupleId({})",
+                "NewTuple {}, ConstPoolIdx({}) # {}",
                 dest,
                 idx.to_usize(),
                 tuple_name,
-                tuple_id.to_usize(),
             )
         });
         self.emit_new_tuple(dest, idx);

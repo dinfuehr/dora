@@ -12,10 +12,10 @@ use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::sem_analysis::{
     create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
-    find_methods_in_struct, get_tuple_subtypes, implements_trait, AnalysisData, CallType,
-    ClassDefinitionId, ConvInfo, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
-    FctParent, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId,
-    StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
+    find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinitionId, ConvInfo,
+    EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent, ForTypeInfo,
+    IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinition,
+    StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -303,8 +303,7 @@ impl<'a> TypeCheck<'a> {
                     return;
                 }
 
-                let tuple_id = ty.tuple_id().expect("type should be tuple");
-                let subtypes = get_tuple_subtypes(self.sa, tuple_id);
+                let subtypes = ty.tuple_subtypes();
 
                 if subtypes.len() != tuple.parts.len() {
                     let ty_name = ty.name_fct(self.sa, self.fct);
@@ -2948,14 +2947,9 @@ impl<'a> TypeCheck<'a> {
             }
         };
 
-        let tuple_id = match object_type {
-            SourceType::Tuple(tuple_id) => tuple_id,
-            _ => unreachable!(),
-        };
+        let subtypes = object_type.tuple_subtypes();
 
-        let tuple = get_tuple_subtypes(self.sa, tuple_id);
-
-        if index >= tuple.len() as u64 {
+        if index >= subtypes.len() as u64 {
             let msg = SemError::IllegalTupleIndex(index, object_type.name_fct(self.sa, self.fct));
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
 
@@ -2963,7 +2957,7 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         }
 
-        let ty = tuple[usize::try_from(index).unwrap()].clone();
+        let ty = subtypes[usize::try_from(index).unwrap()].clone();
         self.analysis.set_ty(e.id, ty.clone());
 
         ty
@@ -3391,15 +3385,8 @@ fn arg_allows(
             true
         }
 
-        SourceType::Tuple(tuple_id) => match arg {
-            SourceType::Tuple(other_tuple_id) => {
-                if tuple_id == other_tuple_id {
-                    return true;
-                }
-
-                let subtypes = get_tuple_subtypes(sa, tuple_id);
-                let other_subtypes = get_tuple_subtypes(sa, other_tuple_id);
-
+        SourceType::Tuple(subtypes) => match arg {
+            SourceType::Tuple(other_subtypes) => {
                 if subtypes.len() != other_subtypes.len() {
                     return false;
                 }
