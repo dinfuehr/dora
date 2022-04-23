@@ -1,12 +1,11 @@
 use parking_lot::Mutex;
 
-use crate::gc::{Address, Region, K, M};
+use crate::gc::{Address, Region, K};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
 use crate::vm::{ManagedCodeHeader, CODE_ALIGNMENT};
 
-const TOTAL_SIZE: usize = 2 * M;
-const CHUNK_SIZE: usize = 8 * K;
+const CHUNK_SIZE: usize = 128 * K;
 
 /// Non-contiguous space of memory. Used for permanent space
 /// and code space.
