@@ -22,10 +22,10 @@ struct AllocData {
 }
 
 impl CodeSpace {
-    pub fn new() -> CodeSpace {
-        let reservation = os::reserve_align(TOTAL_SIZE, 0, true);
+    pub fn new(limit: usize) -> CodeSpace {
+        let reservation = os::reserve_align(limit, 0, true);
         let space_start = reservation.start;
-        let space_end = space_start.offset(TOTAL_SIZE);
+        let space_end = space_start.offset(limit);
 
         let alloc_data = AllocData {
             top: space_start,

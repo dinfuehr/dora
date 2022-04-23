@@ -81,11 +81,13 @@ impl Gc {
 
         let supports_tlab = !args.flag_disable_tlab && collector.supports_tlab();
 
+        let code_size = args.code_size();
+
         Gc {
             collector,
             supports_tlab,
 
-            code_space: CodeSpace::new(),
+            code_space: CodeSpace::new(code_size),
             readonly_space: Space::new(readonly_config, "perm"),
             epoch: AtomicUsize::new(0),
 
