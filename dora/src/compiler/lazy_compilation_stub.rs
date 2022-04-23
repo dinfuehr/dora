@@ -361,7 +361,7 @@ fn generate_bytecode_for_thunk(
     _callee_id: FctDefinitionId,
     object_ty: SourceType,
 ) -> BytecodeFunction {
-    let mut gen = BytecodeBuilder::new(&vm.args);
+    let mut gen = BytecodeBuilder::new();
     gen.push_scope();
     gen.alloc_var(BytecodeType::Ptr);
 

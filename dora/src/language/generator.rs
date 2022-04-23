@@ -41,7 +41,7 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
         fct,
         src,
 
-        builder: BytecodeBuilder::new(&sa.args),
+        builder: BytecodeBuilder::new(),
         loops: Vec::new(),
         var_registers: HashMap::new(),
     };

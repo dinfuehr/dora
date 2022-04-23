@@ -6,7 +6,6 @@ use crate::bytecode::{
     dump, BytecodeFunction, BytecodeType, BytecodeWriter, ConstPoolEntry, ConstPoolIdx, Label,
     Register,
 };
-use crate::driver::cmd::Args;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
@@ -17,15 +16,13 @@ use crate::vm::{ClassInstanceId, VM};
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
     registers: Registers,
-    clear_regs: bool,
 }
 
 impl BytecodeBuilder {
-    pub fn new(args: &Args) -> BytecodeBuilder {
+    pub fn new() -> BytecodeBuilder {
         BytecodeBuilder {
             writer: BytecodeWriter::new(),
             registers: Registers::new(),
-            clear_regs: args.flag_clear_regs,
         }
     }
 

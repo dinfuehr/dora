@@ -106,7 +106,6 @@ pub struct Args {
     pub flag_stdlib: Option<String>,
     pub flag_boots: Option<String>,
     pub flag_test_filter: Option<String>,
-    pub flag_clear_regs: bool,
 
     pub command: Command,
     pub flag_test_boots: bool,
@@ -212,7 +211,6 @@ impl Default for Args {
             flag_stdlib: None,
             flag_boots: None,
             flag_test_filter: None,
-            flag_clear_regs: false,
 
             command: Command::Run,
             flag_test_boots: false,
@@ -371,8 +369,6 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_compiler = Some(value);
         } else if arg.starts_with("--test-filter=") {
             args.flag_test_filter = Some(argument_value(arg).into());
-        } else if arg.starts_with("--clear-regs") {
-            args.flag_clear_regs = true;
         } else if arg == "--disable-tlab" {
             args.flag_disable_tlab = true;
         } else if arg == "--disable-barrier" {
