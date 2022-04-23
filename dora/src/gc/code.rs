@@ -5,7 +5,7 @@ use crate::mem;
 use crate::os::{self, MemoryPermission};
 use crate::vm::{ManagedCodeHeader, CODE_ALIGNMENT};
 
-const TOTAL_SIZE: usize = 1 * M;
+const TOTAL_SIZE: usize = 2 * M;
 const CHUNK_SIZE: usize = 8 * K;
 
 /// Non-contiguous space of memory. Used for permanent space
