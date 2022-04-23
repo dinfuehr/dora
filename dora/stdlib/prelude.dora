@@ -14,8 +14,6 @@
 @pub @internal fn forceCollect();
 @pub @internal fn forceMinorCollect();
 
-@pub @internal fn call(fct: String);
-
 @pub @internal fn timestamp(): Int64;
 @pub @internal fn spawn(path: String, arguments: String...);
 

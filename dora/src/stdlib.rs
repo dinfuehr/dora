@@ -129,33 +129,6 @@ pub extern "C" fn sleep(seconds: i32) {
     thread::sleep(Duration::from_secs(seconds as u64));
 }
 
-pub extern "C" fn call(fct: Handle<Str>) {
-    let fct_name = fct.to_cstring();
-    let fct_name = fct_name.to_str().unwrap();
-
-    let vm = get_vm();
-    let name = vm.interner.intern(fct_name);
-
-    if let Some(fct_id) = vm.module_table(vm.program_module_id).read().get_fct(name) {
-        {
-            let fct = vm.fcts.idx(fct_id);
-            let fct = fct.read();
-
-            if !fct.param_types.is_empty() {
-                writeln!(&mut io::stderr(), "fct `{}` takes arguments.", fct_name)
-                    .expect("could not print to stderr");
-                std::process::exit(1);
-            }
-        }
-
-        vm.run(fct_id);
-    } else {
-        writeln!(&mut io::stderr(), "fct `{}` not found.", fct_name)
-            .expect("could not print to stderr");
-        std::process::exit(1);
-    }
-}
-
 pub extern "C" fn get_encoded_bytecode_function_by_name(name: Handle<Str>) -> Ref<Obj> {
     let fct_name = name.to_cstring();
     let fct_name = fct_name.to_str().unwrap();

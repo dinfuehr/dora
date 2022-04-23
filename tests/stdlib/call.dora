@@ -1,9 +1,0 @@
-//= stdout "Hello World!\n"
-
-fn main() {
-    std::call("foo");
-}
-
-fn foo() {
-    println("Hello World!");
-}

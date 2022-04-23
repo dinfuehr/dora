@@ -316,8 +316,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         );
     }
 
-    native_fct(sa, stdlib, "call", stdlib::call as *const u8);
-
     intrinsic_fct(sa, stdlib, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
 
     native_method(
