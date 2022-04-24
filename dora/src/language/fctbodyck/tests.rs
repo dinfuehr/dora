@@ -454,9 +454,9 @@ fn type_function_params() {
 
 #[test]
 fn type_array() {
-    ok("fn f(a: Array[Int32]): Int32 { return a(1L); }");
+    ok("fn f(a: Array[Int32]): Int32 { return a(1i64); }");
     err(
-        "fn f(a: Array[Int32]): String { return a(1L); }",
+        "fn f(a: Array[Int32]): String { return a(1i64); }",
         pos(1, 33),
         SemError::ReturnType("String".into(), "Int32".into()),
     );
@@ -465,13 +465,13 @@ fn type_array() {
 #[test]
 fn type_array_assign() {
     err(
-        "fn f(a: Array[Int32]): Int32 { return a(3L) = 4i32; }",
+        "fn f(a: Array[Int32]): Int32 { return a(3) = 4i32; }",
         pos(1, 32),
         SemError::ReturnType("Int32".into(), "()".into()),
     );
     err(
-        "fn f(a: Array[Int32]) { a(3L) = \"b\"; }",
-        pos(1, 31),
+        "fn f(a: Array[Int32]) { a(3) = \"b\"; }",
+        pos(1, 30),
         SemError::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
@@ -484,7 +484,7 @@ fn type_array_assign() {
 fn type_array_field() {
     ok("
         class Foo(let x: Array[Int32])
-        fn f(a: Foo): Int32 { return a.x(1L); }
+        fn f(a: Foo): Int32 { return a.x(1i64); }
     ");
 }
 
@@ -652,11 +652,11 @@ fn super_as_normal_expression() {
 
 #[test]
 fn lit_int64() {
-    ok("fn f(): Int64 { return 1L; }");
+    ok("fn f(): Int64 { return 1i64; }");
     ok("fn f(): Int32 { return 1i32; }");
 
     let ret = SemError::ReturnType("Int32".into(), "Int64".into());
-    err("fn f(): Int32 { return 1L; }", pos(1, 17), ret);
+    err("fn f(): Int32 { return 1i64; }", pos(1, 17), ret);
 
     ok("fn f(): Int64 { return 1; }");
 }
@@ -819,17 +819,17 @@ fn test_literal_bin_int_overflow() {
 #[test]
 fn test_literal_int64_overflow() {
     err(
-        "fn f() { let x = 9223372036854775808L; }",
+        "fn f() { let x = 9223372036854775808i64; }",
         pos(1, 18),
         SemError::NumberOverflow("Int64".into()),
     );
-    ok("fn f() { let x = 9223372036854775807L; }");
+    ok("fn f() { let x = 9223372036854775807i64; }");
     err(
-        "fn f() { let x = -9223372036854775809L; }",
+        "fn f() { let x = -9223372036854775809i64; }",
         pos(1, 19),
         SemError::NumberOverflow("Int64".into()),
     );
-    ok("fn f() { let x = -9223372036854775808L; }");
+    ok("fn f() { let x = -9223372036854775808i64; }");
 }
 
 #[test]
@@ -994,7 +994,7 @@ fn test_const_values() {
         "  const yes: Bool = true;
                         const x: UInt8 = 255u8;
                         const a: Int32 = 100i32;
-                        const b: Int64 = 200L;
+                        const b: Int64 = 200i64;
                         const c: Char = 'A';
                         const d: Float32 = 3.0F;
                         const e: Float64 = 6.0;",
@@ -1419,19 +1419,19 @@ fn test_new_call_method_generic_error_multiple() {
 
 #[test]
 fn test_array_syntax_get() {
-    ok("fn f(t: Array[Int32]): Int32 { return t(0L); }");
+    ok("fn f(t: Array[Int32]): Int32 { return t(0); }");
 }
 
 #[test]
 fn test_array_syntax_set() {
-    ok("fn f(t: Array[Int32]){ t(0L) = 10i32; }");
+    ok("fn f(t: Array[Int32]){ t(0) = 10i32; }");
 }
 
 #[test]
 fn test_array_syntax_set_wrong_value() {
     err(
-        "fn f(t: Array[Int32]){ t(0L) = true; }",
-        pos(1, 30),
+        "fn f(t: Array[Int32]){ t(0) = true; }",
+        pos(1, 29),
         SemError::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
@@ -1668,7 +1668,7 @@ fn test_struct_field() {
 fn test_struct_field_array() {
     ok("
         struct Foo(f1: Array[Int32])
-        fn f(x: Foo): Int32 { x.f1(0L) }
+        fn f(x: Foo): Int32 { x.f1(0) }
     ");
 }
 
@@ -2325,13 +2325,13 @@ fn test_type_make_iterator_not_implementing_iterator() {
 
 #[test]
 fn zero_trait_ok() {
-    ok("fn f() { Array[Int32]::zero(12L); }");
+    ok("fn f() { Array[Int32]::zero(12i64); }");
 }
 
 #[test]
 fn zero_trait_err() {
     err(
-        "fn f() { Array[String]::zero(12L); }",
+        "fn f() { Array[String]::zero(12i64); }",
         pos(1, 29),
         SemError::UnknownStaticMethod("Array[String]".into(), "zero".into(), vec!["Int64".into()]),
     );
@@ -3028,7 +3028,7 @@ fn mod_class_field() {
 
     err(
         "
-        fn f(x: foo::Foo) { let a = x.bar(10L); }
+        fn f(x: foo::Foo) { let a = x.bar(10i64); }
         mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
     ",
         pos(2, 42),
@@ -3037,7 +3037,7 @@ fn mod_class_field() {
 
     err(
         "
-        fn f(x: foo::Foo) { x.bar(10L) = 10i32; }
+        fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
     ",
         pos(2, 30),
@@ -3096,13 +3096,13 @@ fn mod_struct_field() {
     );
 
     ok("
-        fn f(x: foo::Foo) { let a = x.bar(10L); }
+        fn f(x: foo::Foo) { let a = x.bar(10i64); }
         mod foo { @pub struct Foo(@pub bar: Array[Int32]) }
     ");
 
     err(
         "
-        fn f(x: foo::Foo) { let a = x.bar(10L); }
+        fn f(x: foo::Foo) { let a = x.bar(10i64); }
         mod foo { @pub struct Foo(bar: Array[Int32]) }
     ",
         pos(2, 42),
@@ -3111,7 +3111,7 @@ fn mod_struct_field() {
 
     err(
         "
-        fn f(x: foo::Foo) { x.bar(10L) = 10i32; }
+        fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { @pub struct Foo(bar: Array[Int32]) }
     ",
         pos(2, 30),
@@ -3530,9 +3530,9 @@ fn mod_inside() {
 fn different_fct_call_kinds() {
     ok("fn f() { g(); } fn g() {}");
     ok("fn f() { g[Int32](); } fn g[T]() {}");
-    ok("fn f(g: Array[Int32]) { g(0L); }");
+    ok("fn f(g: Array[Int32]) { g(0); }");
     err(
-        "fn f(g: Array[Int32]) { g[Float32](0L); }",
+        "fn f(g: Array[Int32]) { g[Float32](0); }",
         pos(1, 26),
         SemError::NoTypeParamsExpected,
     );

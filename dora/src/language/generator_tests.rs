@@ -574,7 +574,7 @@ fn gen_expr_lit_uint8() {
 
 #[test]
 fn gen_expr_lit_int64() {
-    let result = code("fn f(): Int64 { return 1L; }");
+    let result = code("fn f(): Int64 { return 1i64; }");
     let expected = vec![ConstInt64(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -638,7 +638,7 @@ fn gen_expr_lit_int_zero() {
 
 #[test]
 fn gen_expr_lit_int64_zero() {
-    let result = code("fn f(): Int64 { return 0L; }");
+    let result = code("fn f(): Int64 { return 0i64; }");
     let expected = vec![ConstZeroInt64(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -1836,7 +1836,7 @@ fn gen_method_call_int64_with_0_args() {
         "
             fn f(foo: Foo): Int64 { return foo.g(); }
             class Foo {
-                fn g(): Int64 { return 1L; }
+                fn g(): Int64 { return 1i64; }
             }
             ",
         |sa, code, fct| {
@@ -1863,7 +1863,7 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo {
-                fn g(): Int64 { return 1L; }
+                fn g(): Int64 { return 1i64; }
             }
             ",
         |sa, code, fct| {
@@ -1888,9 +1888,9 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
 fn gen_method_call_int64_with_1_arg() {
     gen_fct(
         "
-            fn f(foo: Foo): Int64 { return foo.g(1L); }
+            fn f(foo: Foo): Int64 { return foo.g(1i64); }
             class Foo {
-                fn g(a: Int64): Int64 { return 1L; }
+                fn g(a: Int64): Int64 { return 1i64; }
             }
             ",
         |sa, code, fct| {
@@ -1917,9 +1917,9 @@ fn gen_method_call_int64_with_1_arg() {
 fn gen_method_call_int64_with_3_args() {
     gen_fct(
         "
-            fn f(foo: Foo): Int64 { return foo.g(1L, 2L, 3L); }
+            fn f(foo: Foo): Int64 { return foo.g(1i64, 2i64, 3i64); }
             class Foo {
-                fn g(a: Int64, b: Int64, c: Int64): Int64 { return 1L; }
+                fn g(a: Int64, b: Int64, c: Int64): Int64 { return 1i64; }
             }
             ",
         |sa, code, fct| {
@@ -2778,7 +2778,7 @@ fn gen_position_new_object() {
 #[test]
 fn gen_new_array() {
     // gen_fct(
-    //     "fn f(): Array[Int32] { return Array[Int32]::zero(1L); }",
+    //     "fn f(): Array[Int32] { return Array[Int32]::zero(1i64); }",
     //     |sa, code, _fct| {
     //         let cls_id = sa.cls_by_name("Array");
     //         let expected = vec![
@@ -2853,7 +2853,7 @@ fn gen_position_array_length_effect() {
 
 #[test]
 fn gen_load_array_uint8() {
-    let result = code("fn f(a: Array[UInt8]): UInt8 { return a(0L); }");
+    let result = code("fn f(a: Array[UInt8]): UInt8 { return a(0); }");
     let expected = vec![ConstZeroInt64(r(2)), LoadArray(r(1), r(0), r(2)), Ret(r(1))];
     assert_eq!(expected, result);
 }
@@ -2909,56 +2909,56 @@ fn gen_load_array_ptr() {
 
 #[test]
 fn gen_position_load_array_bool() {
-    let result = position("fn f(a: Array[Bool]): Bool { return a(0L); }");
+    let result = position("fn f(a: Array[Bool]): Bool { return a(0); }");
     let expected = vec![(2, p(1, 38))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_char() {
-    let result = position("fn f(a: Array[Char]): Char { return a(0L); }");
+    let result = position("fn f(a: Array[Char]): Char { return a(0); }");
     let expected = vec![(2, p(1, 38))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_int32() {
-    let result = position("fn f(a: Array[Int32]): Int32 { return a(0L); }");
+    let result = position("fn f(a: Array[Int32]): Int32 { return a(0); }");
     let expected = vec![(2, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_int64() {
-    let result = position("fn f(a: Array[Int64]): Int64 { return a(0L); }");
+    let result = position("fn f(a: Array[Int64]): Int64 { return a(0); }");
     let expected = vec![(2, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_float32() {
-    let result = position("fn f(a: Array[Float32]): Float32 { return a(0L); }");
+    let result = position("fn f(a: Array[Float32]): Float32 { return a(0); }");
     let expected = vec![(2, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_float64() {
-    let result = position("fn f(a: Array[Float64]): Float64 { return a(0L); }");
+    let result = position("fn f(a: Array[Float64]): Float64 { return a(0); }");
     let expected = vec![(2, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_ptr() {
-    let result = position("fn f(a: Array[Object]): Object { return a(0L); }");
+    let result = position("fn f(a: Array[Object]): Object { return a(0); }");
     let expected = vec![(2, p(1, 42))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_store_array_uint8() {
-    let result = code("fn f(a: Array[UInt8], b: UInt8) { a(0L) = b; }");
+    let result = code("fn f(a: Array[UInt8], b: UInt8) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
         StoreArray(r(1), r(0), r(2)),
@@ -2969,7 +2969,7 @@ fn gen_store_array_uint8() {
 
 #[test]
 fn gen_store_array_bool() {
-    let result = code("fn f(a: Array[Bool], b: Bool) { a(0L) = b; }");
+    let result = code("fn f(a: Array[Bool], b: Bool) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
         StoreArray(r(1), r(0), r(2)),
@@ -2980,7 +2980,7 @@ fn gen_store_array_bool() {
 
 #[test]
 fn gen_store_array_char() {
-    let result = code("fn f(a: Array[Char], b: Char) { a(0L) = b; }");
+    let result = code("fn f(a: Array[Char], b: Char) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
         StoreArray(r(1), r(0), r(2)),
@@ -2991,7 +2991,7 @@ fn gen_store_array_char() {
 
 #[test]
 fn gen_store_array_int32() {
-    let result = code("fn f(a: Array[Int32], b: Int32) { a(0L) = b; }");
+    let result = code("fn f(a: Array[Int32], b: Int32) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
         StoreArray(r(1), r(0), r(2)),
@@ -3002,7 +3002,7 @@ fn gen_store_array_int32() {
 
 #[test]
 fn gen_store_array_int64() {
-    let result = code("fn f(a: Array[Int64], b: Int64) { a(0L) = b; }");
+    let result = code("fn f(a: Array[Int64], b: Int64) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
         StoreArray(r(1), r(0), r(2)),
@@ -3013,7 +3013,7 @@ fn gen_store_array_int64() {
 
 #[test]
 fn gen_store_array_float32() {
-    let result = code("fn f(a: Array[Float32], b: Float32) { a(0L) = b; }");
+    let result = code("fn f(a: Array[Float32], b: Float32) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
         StoreArray(r(1), r(0), r(2)),
@@ -3024,7 +3024,7 @@ fn gen_store_array_float32() {
 
 #[test]
 fn gen_store_array_float64() {
-    let result = code("fn f(a: Array[Float64], b: Float64) { a(0L) = b; }");
+    let result = code("fn f(a: Array[Float64], b: Float64) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
         StoreArray(r(1), r(0), r(2)),
@@ -3035,7 +3035,7 @@ fn gen_store_array_float64() {
 
 #[test]
 fn gen_store_array_ptr() {
-    let result = code("fn f(a: Array[Object], b: Object) { a(0L) = b; }");
+    let result = code("fn f(a: Array[Object], b: Object) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt64(Register(2)),
         StoreArray(r(1), r(0), r(2)),
@@ -3046,50 +3046,50 @@ fn gen_store_array_ptr() {
 
 #[test]
 fn gen_position_store_array_bool() {
-    let result = position("fn f(a: Array[Bool], b: Bool) { a(0L) = b; }");
-    let expected = vec![(2, p(1, 39))];
+    let result = position("fn f(a: Array[Bool], b: Bool) { a(0) = b; }");
+    let expected = vec![(2, p(1, 38))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_char() {
-    let result = position("fn f(a: Array[Char], b: Char) { a(0L) = b; }");
-    let expected = vec![(2, p(1, 39))];
+    let result = position("fn f(a: Array[Char], b: Char) { a(0) = b; }");
+    let expected = vec![(2, p(1, 38))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_int32() {
-    let result = position("fn f(a: Array[Int32], b: Int32) { a(0L) = b; }");
-    let expected = vec![(2, p(1, 41))];
+    let result = position("fn f(a: Array[Int32], b: Int32) { a(0) = b; }");
+    let expected = vec![(2, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_int64() {
-    let result = position("fn f(a: Array[Int64], b: Int64) { a(0L) = b; }");
-    let expected = vec![(2, p(1, 41))];
+    let result = position("fn f(a: Array[Int64], b: Int64) { a(0) = b; }");
+    let expected = vec![(2, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_float32() {
-    let result = position("fn f(a: Array[Float32], b: Float32) { a(0L) = b; }");
-    let expected = vec![(2, p(1, 45))];
+    let result = position("fn f(a: Array[Float32], b: Float32) { a(0) = b; }");
+    let expected = vec![(2, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_float64() {
-    let result = position("fn f(a: Array[Float64], b: Float64) { a(0L) = b; }");
-    let expected = vec![(2, p(1, 45))];
+    let result = position("fn f(a: Array[Float64], b: Float64) { a(0) = b; }");
+    let expected = vec![(2, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_ptr() {
-    let result = position("fn f(a: Array[Object], b: Object) { a(0L) = b; }");
-    let expected = vec![(2, p(1, 43))];
+    let result = position("fn f(a: Array[Object], b: Object) { a(0) = b; }");
+    let expected = vec![(2, p(1, 42))];
     assert_eq!(expected, result);
 }
 
@@ -4074,14 +4074,14 @@ fn gen_int_max_value() {
 
 #[test]
 fn gen_int64_min_value() {
-    let result = code("fn f(): Int64 { -9223372036854775808L }");
+    let result = code("fn f(): Int64 { -9223372036854775808i64 }");
     let expected = vec![ConstInt64(r(0), -9223372036854775808), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_int64_max_value() {
-    let result = code("fn f(): Int64 { 9223372036854775807L }");
+    let result = code("fn f(): Int64 { 9223372036854775807i64 }");
     let expected = vec![ConstInt64(r(0), 9223372036854775807), Ret(r(0))];
     assert_eq!(expected, result);
 }
