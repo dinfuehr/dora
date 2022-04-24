@@ -72,6 +72,6 @@ mod tests {
             SemError::UnknownIdentifier("Foo".into()),
         );
 
-        ok("const x: Int32 = 0I;");
+        ok("const x: Int32 = 0i32;");
     }
 }

@@ -430,7 +430,7 @@ mod tests {
             impl[T] MyFoo[T] {
                 fn test(x: T) {}
             }
-            fn test(x: MyFoo[Int32]) { x.test(1I); }
+            fn test(x: MyFoo[Int32]) { x.test(1i32); }
         ");
     }
 

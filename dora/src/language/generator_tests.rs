@@ -157,7 +157,7 @@ fn gen_position_store_field_uint8() {
 
 #[test]
 fn gen_add_int() {
-    let result = code("fn f(): Int32 { return 1I + 2I; }");
+    let result = code("fn f(): Int32 { return 1i32 + 2i32; }");
     let expected = vec![
         ConstInt32(r(1), 1),
         ConstInt32(r(2), 2),
@@ -290,7 +290,7 @@ fn gen_mul_float64() {
 
 #[test]
 fn gen_stmt_var_init() {
-    let result = code("fn f() { let x = 1I; }");
+    let result = code("fn f() { let x = 1i32; }");
     let expected = vec![ConstInt32(r(0), 1), RetVoid];
     assert_eq!(expected, result);
 }
@@ -567,7 +567,7 @@ fn gen_expr_lit_int() {
 
 #[test]
 fn gen_expr_lit_uint8() {
-    let result = code("fn f(): UInt8 { return 1Y; }");
+    let result = code("fn f(): UInt8 { return 1u8; }");
     let expected = vec![ConstUInt8(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -624,7 +624,7 @@ fn gen_expr_lit_string_multiple() {
 
 #[test]
 fn gen_expr_lit_byte_zero() {
-    let result = code("fn f(): UInt8 { return 0Y; }");
+    let result = code("fn f(): UInt8 { return 0u8; }");
     let expected = vec![ConstZeroUInt8(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -1018,14 +1018,14 @@ fn gen_expr_test_greaterthanequal_float64() {
 
 #[test]
 fn gen_expr_ident() {
-    let result = code("fn f(): Int32 { let x = 1I; return x; }");
+    let result = code("fn f(): Int32 { let x = 1i32; return x; }");
     let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_assign() {
-    let result = code("fn f() { var x = 1I; x = 2I; }");
+    let result = code("fn f() { var x = 1i32; x = 2i32; }");
     let expected = vec![ConstInt32(r(0), 1), ConstInt32(r(0), 2), RetVoid];
     assert_eq!(expected, result);
 }
@@ -1046,7 +1046,7 @@ fn gen_expr_self_assign() {
 
 #[test]
 fn gen_expr_return() {
-    let result = code("fn f(): Int32 { return 1I; }");
+    let result = code("fn f(): Int32 { return 1i32; }");
     let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -1061,7 +1061,7 @@ fn gen_expr_returnvoid() {
 #[test]
 fn gen_load_global() {
     gen(
-        "var a: Int32 = 0I; fn f(): Int32 { return a; }",
+        "var a: Int32 = 0i32; fn f(): Int32 { return a; }",
         |sa, code| {
             let gid = sa.global_by_name("a");
             let expected = vec![LoadGlobal(r(0), gid), Ret(r(0))];
@@ -1084,7 +1084,7 @@ fn gen_store_global() {
 
 #[test]
 fn gen_side_effect() {
-    let result = code("fn f(a: Int32) { 1; 2; 3I * a; \"foo\"; 1.0F; 1.0D; a; }");
+    let result = code("fn f(a: Int32) { 1; 2; 3i32 * a; \"foo\"; 1.0F; 1.0D; a; }");
     let expected = vec![RetVoid];
     assert_eq!(expected, result);
 }
@@ -1113,7 +1113,7 @@ fn gen_fct_call_int_with_0_args() {
     gen_fct(
         "
             fn f(): Int32 { return g(); }
-            fn g(): Int32 { return 1I; }
+            fn g(): Int32 { return 1i32; }
             ",
         |sa, code, fct| {
             let fct_id = sa.fct_by_name("g").expect("g not found");
@@ -1132,7 +1132,7 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f() { g(); }
-            fn g(): Int32 { return 1I; }
+            fn g(): Int32 { return 1i32; }
             ",
         |sa, code, fct| {
             let fct_id = sa.fct_by_name("g").expect("g not found");
@@ -1150,7 +1150,7 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
 fn gen_fct_call_void_with_1_arg() {
     gen_fct(
         "
-            fn f() { g(1I); }
+            fn f() { g(1i32); }
             fn g(a: Int32) { }
             ",
         |sa, code, fct| {
@@ -1174,7 +1174,7 @@ fn gen_fct_call_void_with_1_arg() {
 fn gen_fct_call_void_with_3_args() {
     gen_fct(
         "
-            fn f() { g(1I, 2I, 3I); }
+            fn f() { g(1i32, 2i32, 3i32); }
             fn g(a: Int32, b: Int32, c: Int32) { }
             ",
         |sa, code, fct| {
@@ -1202,7 +1202,7 @@ fn gen_fct_call_void_with_3_args() {
 fn gen_fct_call_int_with_1_arg() {
     gen_fct(
         "
-            fn f(): Int32 { return g(1I); }
+            fn f(): Int32 { return g(1i32); }
             fn g(a: Int32): Int32 { return a; }
             ",
         |sa, code, fct| {
@@ -1226,8 +1226,8 @@ fn gen_fct_call_int_with_1_arg() {
 fn gen_fct_call_int_with_3_args() {
     gen_fct(
         "
-            fn f(): Int32 { return g(1I, 2I, 3I); }
-            fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1I; }
+            fn f(): Int32 { return g(1i32, 2i32, 3i32); }
+            fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1i32; }
             ",
         |sa, code, fct| {
             let fct_id = sa.fct_by_name("g").expect("g not found");
@@ -1308,7 +1308,7 @@ fn gen_method_call_void_with_0_args() {
 fn gen_method_call_void_with_1_arg() {
     gen_fct(
         "
-            fn f(foo: Foo) { foo.g(1I); }
+            fn f(foo: Foo) { foo.g(1i32); }
             class Foo {
                 fn g(a: Int32) { }
             }
@@ -1337,7 +1337,7 @@ fn gen_method_call_void_with_1_arg() {
 fn gen_method_call_void_with_3_args() {
     gen_fct(
         "
-            fn f(foo: Foo) { foo.g(1I, 2I, 3I); }
+            fn f(foo: Foo) { foo.g(1i32, 2i32, 3i32); }
             class Foo {
                 fn g(a: Int32, b: Int32, c: Int32) { }
             }
@@ -1488,7 +1488,7 @@ fn gen_method_call_byte_with_0_args() {
         "
             fn f(foo: Foo): UInt8 { return foo.g(); }
             class Foo {
-                fn g(): UInt8 { return 1Y; }
+                fn g(): UInt8 { return 1u8; }
             }
             ",
         |sa, code, fct| {
@@ -1515,7 +1515,7 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo {
-                fn g(): UInt8 { return 1Y; }
+                fn g(): UInt8 { return 1u8; }
             }
             ",
         |sa, code, fct| {
@@ -1540,9 +1540,9 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
 fn gen_method_call_byte_with_1_arg() {
     gen_fct(
         "
-            fn f(foo: Foo): UInt8 { return foo.g(1Y); }
+            fn f(foo: Foo): UInt8 { return foo.g(1u8); }
             class Foo {
-                fn g(a: UInt8): UInt8 { return 1Y; }
+                fn g(a: UInt8): UInt8 { return 1u8; }
             }
             ",
         |sa, code, fct| {
@@ -1569,9 +1569,9 @@ fn gen_method_call_byte_with_1_arg() {
 fn gen_method_call_byte_with_3_args() {
     gen_fct(
         "
-            fn f(foo: Foo): UInt8 { return foo.g(1Y, 2Y, 3Y); }
+            fn f(foo: Foo): UInt8 { return foo.g(1u8, 2u8, 3u8); }
             class Foo {
-                fn g(a: UInt8, b: UInt8, c: UInt8): UInt8 { return 1Y; }
+                fn g(a: UInt8, b: UInt8, c: UInt8): UInt8 { return 1u8; }
             }
             ",
         |sa, code, fct| {
@@ -1772,9 +1772,9 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
 fn gen_method_call_int_with_1_arg() {
     gen_fct(
         "
-            fn f(foo: Foo): Int32 { return foo.g(1I); }
+            fn f(foo: Foo): Int32 { return foo.g(1i32); }
             class Foo {
-                fn g(a: Int32): Int32 { return 1I; }
+                fn g(a: Int32): Int32 { return 1i32; }
             }
             ",
         |sa, code, fct| {
@@ -1801,9 +1801,9 @@ fn gen_method_call_int_with_1_arg() {
 fn gen_method_call_int_with_3_args() {
     gen_fct(
         "
-            fn f(foo: Foo): Int32 { return foo.g(1I, 2I, 3I); }
+            fn f(foo: Foo): Int32 { return foo.g(1i32, 2i32, 3i32); }
             class Foo {
-                fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1I; }
+                fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1i32; }
             }
             ",
         |sa, code, fct| {
@@ -2358,7 +2358,7 @@ fn gen_virtual_method_call_void_with_0_args() {
 fn gen_virtual_method_call_void_with_1_arg() {
     gen_fct(
         "
-            fn f(foo: Foo) { foo.g(1I); }
+            fn f(foo: Foo) { foo.g(1i32); }
             @open @abstract class Bar {
                 @open @abstract fn g(a: Int32);
             }
@@ -2390,7 +2390,7 @@ fn gen_virtual_method_call_void_with_1_arg() {
 fn gen_virtual_method_call_void_with_3_args() {
     gen_fct(
         "
-            fn f(foo: Foo) { foo.g(1I, 2I, 3I); }
+            fn f(foo: Foo) { foo.g(1i32, 2i32, 3i32); }
             @open @abstract class Bar {
                 @open @abstract fn g(a: Int32, b: Int32, c: Int32);
             }
@@ -2431,7 +2431,7 @@ fn gen_virtual_method_call_int_with_0_args() {
                 @open @abstract fn g(): Int32;
             }
             class Foo: Bar {
-                @override fn g(): Int32 { 1I }
+                @override fn g(): Int32 { 1i32 }
             }
             ",
         |sa, code, fct| {
@@ -2456,12 +2456,12 @@ fn gen_virtual_method_call_int_with_0_args() {
 fn gen_virtual_method_call_int_with_1_arg() {
     gen_fct(
         "
-            fn f(foo: Foo) { foo.g(1I); }
+            fn f(foo: Foo) { foo.g(1i32); }
             @open @abstract class Bar {
                 @open @abstract fn g(a: Int32): Int32;
             }
             class Foo: Bar {
-                @override fn g(a: Int32): Int32 { 1I }
+                @override fn g(a: Int32): Int32 { 1i32 }
             }
             ",
         |sa, code, fct| {
@@ -2488,12 +2488,12 @@ fn gen_virtual_method_call_int_with_1_arg() {
 fn gen_virtual_method_call_int_with_3_args() {
     gen_fct(
         "
-            fn f(foo: Foo) { foo.g(1I, 2I, 3I); }
+            fn f(foo: Foo) { foo.g(1i32, 2i32, 3i32); }
             @open @abstract class Bar {
                 @open @abstract fn g(a: Int32, b: Int32, c: Int32): Int32;
             }
             class Foo: Bar {
-                @override fn g(a: Int32, b: Int32, c: Int32): Int32 { 1I }
+                @override fn g(a: Int32, b: Int32, c: Int32): Int32 { 1i32 }
             }
             ",
         |sa, code, fct| {
@@ -2525,7 +2525,7 @@ fn gen_new_struct() {
     gen_fct(
         "
         struct Foo { f1: Int32, f2: Bool }
-        fn f(): Foo { Foo(10I, false) }
+        fn f(): Foo { Foo(10i32, false) }
     ",
         |sa, code, _fct| {
             let struct_id = sa.struct_by_name("Foo");
@@ -2645,7 +2645,7 @@ fn gen_new_enum() {
     gen_fct(
         "
         enum Foo { A(Int32), B }
-        fn f(): Foo { Foo::A(10I) }
+        fn f(): Foo { Foo::A(10i32) }
     ",
         |sa, code, _fct| {
             let enum_id = sa.enum_by_name("Foo");
@@ -2662,7 +2662,7 @@ fn gen_new_enum() {
     gen_fct(
         "
         enum Foo[T] { A(T), B }
-        fn f(): Foo[Int32] { Foo[Int32]::A(10I) }
+        fn f(): Foo[Int32] { Foo[Int32]::A(10i32) }
     ",
         |sa, code, _fct| {
             let enum_id = sa.enum_by_name("Foo");
@@ -2796,7 +2796,7 @@ fn gen_new_array() {
     // );
 
     gen_fct(
-        "fn f(): Array[Int32] { Array[Int32](1I, 2I, 3I) }",
+        "fn f(): Array[Int32] { Array[Int32](1i32, 2i32, 3i32) }",
         |sa, code, _fct| {
             let cls_id = sa.cls_by_name("Array");
             let expected = vec![
@@ -3098,7 +3098,7 @@ fn gen_new_object_with_multiple_args() {
     gen_fct(
         "
             class Foo(a: Int32, b: Int32, c: Int32)
-            fn f(): Foo { return Foo(1I, 2I, 3I); }
+            fn f(): Foo { return Foo(1i32, 2i32, 3i32); }
             ",
         |sa, code, fct| {
             let cls_id = sa.cls_by_name("Foo");
@@ -3133,7 +3133,7 @@ fn gen_position_new_object_with_multiple_args() {
     let result = position(
         "
             class Foo(a: Int32, b: Int32, c: Int32)
-            fn f(): Foo { return Foo(1I, 2I, 3I); }",
+            fn f(): Foo { return Foo(1i32, 2i32, 3i32); }",
     );
     let expected = vec![(9, p(3, 37))];
     assert_eq!(expected, result);
@@ -3990,7 +3990,7 @@ fn gen_compare_to_method() {
 
 #[test]
 fn gen_const_int() {
-    let result = code("const X: Int32 = 1I; fn f(): Int32 { X }");
+    let result = code("const X: Int32 = 1i32; fn f(): Int32 { X }");
     let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -4060,14 +4060,14 @@ fn gen_byte_to_char() {
 
 #[test]
 fn gen_int_min_value() {
-    let result = code("fn f(): Int32 { -2147483648I }");
+    let result = code("fn f(): Int32 { -2147483648i32 }");
     let expected = vec![ConstInt32(r(0), -2147483648), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_int_max_value() {
-    let result = code("fn f(): Int32 { 2147483647I }");
+    let result = code("fn f(): Int32 { 2147483647i32 }");
     let expected = vec![ConstInt32(r(0), 2147483647), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -4088,7 +4088,7 @@ fn gen_int64_max_value() {
 
 #[test]
 fn gen_tuple_var() {
-    gen_fct("fn f() { let x = (1I, 2I); }", |_, code, fct| {
+    gen_fct("fn f() { let x = (1i32, 2i32); }", |_, code, fct| {
         let subtypes = vec![SourceType::Int32, SourceType::Int32];
         let expected = vec![
             ConstInt32(r(1), 1),
@@ -4135,7 +4135,7 @@ fn gen_trait_object() {
         trait Foo { fn bar(): Int32; }
         class Bar
         impl Foo for Bar {
-            fn bar(): Int32 { 1I }
+            fn bar(): Int32 { 1i32 }
         }
         fn f(x: Bar): Foo { x as Foo }
     ",

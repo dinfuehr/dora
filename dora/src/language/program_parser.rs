@@ -702,20 +702,20 @@ mod tests {
 
     #[test]
     fn test_const() {
-        ok("const foo: Int32 = 0I;");
+        ok("const foo: Int32 = 0i32;");
         err(
-            "const foo: Int32 = 0I; fn foo() {}",
-            pos(1, 24),
+            "const foo: Int32 = 0i32; fn foo() {}",
+            pos(1, 26),
             SemError::ShadowConst("foo".into()),
         );
         err(
-            "const foo: Int32 = 0I; class foo {}",
-            pos(1, 24),
+            "const foo: Int32 = 0i32; class foo {}",
+            pos(1, 26),
             SemError::ShadowConst("foo".into()),
         );
         err(
-            "const foo: Int32 = 0I; struct foo {}",
-            pos(1, 24),
+            "const foo: Int32 = 0i32; struct foo {}",
+            pos(1, 26),
             SemError::ShadowConst("foo".into()),
         );
     }

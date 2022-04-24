@@ -3424,16 +3424,7 @@ pub fn check_lit_int(
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, i64) {
-    let suffix_type = determine_suffix_type_int(sa, file, e);
-
-    let expected_type = match expected_type {
-        SourceType::UInt8 => SourceType::UInt8,
-        SourceType::Int32 => SourceType::Int32,
-        SourceType::Int64 => SourceType::Int64,
-        _ => SourceType::Int64,
-    };
-
-    let ty = suffix_type.unwrap_or(expected_type);
+    let ty = determine_type_literal_int(sa, file, e, expected_type);
 
     let ty_name = ty.name(sa);
     let value = e.value;
@@ -3502,6 +3493,24 @@ fn determine_suffix_type_int(
         IntSuffix::Int64 => Some(SourceType::Int64),
         IntSuffix::None => None,
     }
+}
+
+pub fn determine_type_literal_int(
+    sa: &SemAnalysis,
+    file: SourceFileId,
+    e: &ast::ExprLitIntType,
+    expected_type: SourceType,
+) -> SourceType {
+    let suffix_type = determine_suffix_type_int(sa, file, e);
+
+    let default_type = match expected_type {
+        SourceType::UInt8 => SourceType::UInt8,
+        SourceType::Int32 => SourceType::Int32,
+        SourceType::Int64 => SourceType::Int64,
+        _ => SourceType::Int64,
+    };
+
+    suffix_type.unwrap_or(default_type)
 }
 
 pub fn check_lit_float(

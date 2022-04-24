@@ -1,10 +1,11 @@
 use crate::language::error::msg::SemError;
-use crate::language::fctbodyck::body::{check_lit_float, check_lit_int};
+use crate::language::fctbodyck::body::{
+    check_lit_float, check_lit_int, determine_type_literal_int,
+};
 use crate::language::sem_analysis::{ConstDefinition, ConstValue, SemAnalysis};
 use crate::language::ty::SourceType;
 
 use dora_parser::ast::*;
-use dora_parser::lexer::token::IntSuffix;
 
 pub struct ConstCheck<'a> {
     pub sa: &'a SemAnalysis,
@@ -29,8 +30,14 @@ impl<'a> ConstCheck<'a> {
 
             &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
+                let ty = determine_type_literal_int(
+                    self.sa,
+                    self.const_.file_id,
+                    lit_int,
+                    self.const_.ty.clone(),
+                );
 
-                if lit_int.int_suffix == IntSuffix::UInt8 {
+                if ty == SourceType::UInt8 {
                     let ty = SourceType::UInt8.name(self.sa);
                     let msg = SemError::UnOpType(expr.op.as_str().into(), ty);
                     self.sa

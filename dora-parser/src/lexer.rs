@@ -681,30 +681,40 @@ mod tests {
         );
         assert_end(&mut reader, 2, 8);
 
-        let mut reader = Lexer::from_str("12Y 300Y 1_000 1__1");
+        let mut reader = Lexer::from_str("12u8 300u8 1_000 1__1");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("12".into(), IntBase::Dec, IntSuffix::UInt8, None),
+            TokenKind::LitInt(
+                "12".into(),
+                IntBase::Dec,
+                IntSuffix::None,
+                Some("u8".into()),
+            ),
             1,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("300".into(), IntBase::Dec, IntSuffix::UInt8, None),
+            TokenKind::LitInt(
+                "300".into(),
+                IntBase::Dec,
+                IntSuffix::None,
+                Some("u8".into()),
+            ),
             1,
-            5,
+            6,
         );
         assert_tok(
             &mut reader,
             TokenKind::LitInt("1_000".into(), IntBase::Dec, IntSuffix::None, None),
             1,
-            10,
+            12,
         );
         assert_tok(
             &mut reader,
             TokenKind::LitInt("1__1".into(), IntBase::Dec, IntSuffix::None, None),
             1,
-            16,
+            18,
         );
     }
 

@@ -314,12 +314,12 @@ mod tests {
             SemError::ShadowParam("a".into()),
         );
         err(
-            "class Foo(a: Int32) fn f(x: Foo) { x.a = 1I; }",
+            "class Foo(a: Int32) fn f(x: Foo) { x.a = 1i32; }",
             pos(1, 37),
             SemError::UnknownField("a".into(), "Foo".into()),
         );
 
-        ok("class Foo(a: Int32) fn foo(): Foo { return Foo(1I); } ");
+        ok("class Foo(a: Int32) fn foo(): Foo { return Foo(1i32); } ");
     }
 
     #[test]
