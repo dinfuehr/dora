@@ -413,17 +413,14 @@ impl Lexer {
                 self.read_char();
                 TokenKind::LitInt(value, base, IntSuffix::Int64, None)
             }
-
             Some('Y') => {
                 self.read_char();
                 TokenKind::LitInt(value, base, IntSuffix::UInt8, None)
             }
-
             Some('I') => {
                 self.read_char();
                 TokenKind::LitInt(value, base, IntSuffix::Int32, None)
             }
-
             Some('D') if base == IntBase::Dec => {
                 self.read_char();
                 TokenKind::LitFloat(value, FloatSuffix::Float64, None)
@@ -907,7 +904,7 @@ mod tests {
 
     #[test]
     fn test_hex_numbers() {
-        let mut reader = Lexer::from_str("0x1 0x2L 0xABCDEF 0xB1L");
+        let mut reader = Lexer::from_str("0x1 0x2i64 0xABCDEF 0xB1i64");
 
         assert_tok(
             &mut reader,
@@ -917,7 +914,12 @@ mod tests {
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("2".into(), IntBase::Hex, IntSuffix::Int64, None),
+            TokenKind::LitInt(
+                "2".into(),
+                IntBase::Hex,
+                IntSuffix::None,
+                Some("i64".into()),
+            ),
             1,
             5,
         );
@@ -925,13 +927,18 @@ mod tests {
             &mut reader,
             TokenKind::LitInt("ABCDEF".into(), IntBase::Hex, IntSuffix::None, None),
             1,
-            10,
+            12,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("B1".into(), IntBase::Hex, IntSuffix::Int64, None),
+            TokenKind::LitInt(
+                "B1".into(),
+                IntBase::Hex,
+                IntSuffix::None,
+                Some("i64".into()),
+            ),
             1,
-            19,
+            21,
         );
     }
 

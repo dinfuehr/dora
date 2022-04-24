@@ -3,7 +3,7 @@
 impl Int64 {
   @pub @internal fn toUInt8(): UInt8;
   @pub fn toChar(): Option[Char] {
-    if self >= 0i64 && self <= 0x10FFFFL && (self < 0xD800i64 || self > 0xDFFFL) {
+    if self >= 0i64 && self <= 0x10FFFFi64 && (self < 0xD800i64 || self > 0xDFFFi64) {
       Option[Char]::Some(self.toCharUnchecked())
     } else {
       Option[Char]::None

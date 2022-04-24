@@ -190,7 +190,7 @@
     let array = Array[UInt8]::zero(16i64);
     var at = array.size();
     while data != 0i64 {
-      let digit = (data & 0xFL).toInt32();
+      let digit = (data & 0xFi64).toInt32();
 
       if digit < 10i32 {
         array(at - 1i64) = ('0'.toInt32() + digit).toUInt8();

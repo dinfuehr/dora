@@ -2,7 +2,7 @@ fn main() {
     assert(0xFFI == 255i32);
     assert(0x10i32 == 16i32);
 
-    assert(0xFFL == 255i64);
+    assert(0xFFi64 == 255i64);
     assert(0x10i64 == 16i64);
 
     assert(0xFFu8 == 255u8);
