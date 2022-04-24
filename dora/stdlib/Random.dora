@@ -1,6 +1,6 @@
 const RANDOM_MULTIPLIER: Int64 = 25214903917i64;
 const RANDOM_INCREMENT: Int64 = 11i64;
-const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
+const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFi64;
 
 @pub class Random(var seed: Int64) {
   self.seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
@@ -34,7 +34,7 @@ const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
   }
 
   @pub fn nextInt31(): Int32 {
-    return self.nextInt32() & 0x7F_FF_FF_FFI;
+    return self.nextInt32() & 0x7F_FF_FF_FFi32;
   }
 
   @pub fn nextInt64(): Int64 {

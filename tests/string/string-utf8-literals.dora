@@ -17,8 +17,8 @@ fn main() {
     assert(val.codePoints().size() == 2i64);
     let it = val.codePoints();
 
-    assert(it.next().toInt32() == 0xFCI);
-    assert(it.next().toInt32() == 0xDFI);
+    assert(it.next().toInt32() == 0xFCi32);
+    assert(it.next().toInt32() == 0xDFi32);
     assert(it.hasNext() == false);
 
     let it = val.codePoints();

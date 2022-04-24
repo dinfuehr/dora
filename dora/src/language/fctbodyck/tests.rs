@@ -799,21 +799,21 @@ fn test_literal_int_overflow() {
 #[test]
 fn test_literal_hex_int_overflow() {
     err(
-        "fn f() { let x = 0x1_FF_FF_FF_FFI; }",
+        "fn f() { let x = 0x1_FF_FF_FF_FFi32; }",
         pos(1, 18),
         SemError::NumberOverflow("Int32".into()),
     );
-    ok("fn f() { let x: Int32 = 0xFF_FF_FF_FFI; }");
+    ok("fn f() { let x: Int32 = 0xFF_FF_FF_FFi32; }");
 }
 
 #[test]
 fn test_literal_bin_int_overflow() {
     err(
-        "fn f() { let x = 0b1_11111111_11111111_11111111_11111111I; }",
+        "fn f() { let x = 0b1_11111111_11111111_11111111_11111111i32; }",
         pos(1, 18),
         SemError::NumberOverflow("Int32".into()),
     );
-    ok("fn f() { let x: Int32 = 0b11111111_11111111_11111111_11111111I; }");
+    ok("fn f() { let x: Int32 = 0b11111111_11111111_11111111_11111111i32; }");
 }
 
 #[test]

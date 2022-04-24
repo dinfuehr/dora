@@ -62,7 +62,7 @@ fn test_3bytes() {
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0x20ACI.toChar().getOrPanic());
+    assert(it.next() == 0x20ACi32.toChar().getOrPanic());
     assert(it.hasNext() == false);
 }
 

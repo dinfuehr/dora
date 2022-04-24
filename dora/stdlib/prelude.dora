@@ -40,22 +40,22 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
       return false;
 
     } else if by & 0xE0i32 == 0xC0i32 {
-      codePoint = by & 0x1FI;
+      codePoint = by & 0x1Fi32;
       nextUInt8s = 1;
       min = 0x80;
-      max = 0x7FFI;
+      max = 0x7FFi32;
 
     } else if by & 0xF0i32 == 0xE0i32 {
-      codePoint = by & 0xFI;
+      codePoint = by & 0xFi32;
       nextUInt8s = 2i32;
       min = 0x800i32;
-      max = 0xFFFFI;
+      max = 0xFFFFi32;
 
     } else if by & 0xF8i32 == 0xF0i32 {
       codePoint = by & 0x7i32;
       nextUInt8s = 3;
       min = 0x10000;
-      max = 0x10FFFFI;
+      max = 0x10FFFFi32;
     }
 
     while nextUInt8s > 0i32 {
@@ -72,7 +72,7 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
         return false;
       }
 
-      codePoint = (codePoint << 6i32) | (by & 0x3FI);
+      codePoint = (codePoint << 6i32) | (by & 0x3Fi32);
     }
 
     if codePoint < min || codePoint > max {

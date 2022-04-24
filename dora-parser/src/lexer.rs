@@ -409,18 +409,6 @@ impl Lexer {
         }
 
         let kind = match self.curr() {
-            Some('L') => {
-                self.read_char();
-                TokenKind::LitInt(value, base, IntSuffix::Int64, None)
-            }
-            Some('Y') => {
-                self.read_char();
-                TokenKind::LitInt(value, base, IntSuffix::UInt8, None)
-            }
-            Some('I') => {
-                self.read_char();
-                TokenKind::LitInt(value, base, IntSuffix::Int32, None)
-            }
             Some('D') if base == IntBase::Dec => {
                 self.read_char();
                 TokenKind::LitFloat(value, FloatSuffix::Float64, None)

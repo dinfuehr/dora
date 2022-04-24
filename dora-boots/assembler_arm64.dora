@@ -195,7 +195,7 @@ mod clsx {
         assert(fitsUnsigned(op, 1i32));
         assert(fitsSigned(imm26, 26i32));
 
-        0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFI)
+        0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
     }
 
     @pub fn uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
