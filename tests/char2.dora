@@ -1,21 +1,21 @@
 fn main() {
     let x = Array[Char]::empty();
-    assert(x.size() == 0L);
+    assert(x.size() == 0i64);
 
-    let x = Array[Char]::fill(10L, '\0');
-    assert(x(0L) == '\0');
-    assert(x(9L) == '\0');
+    let x = Array[Char]::fill(10i64, '\0');
+    assert(x(0i64) == '\0');
+    assert(x(9i64) == '\0');
 
-    x(0L) = 'a';
-    x(1L) = 'b';
-    x(2L) = 'c';
-    x(3L) = 'd';
-    x(9L) = 'z';
+    x(0i64) = 'a';
+    x(1i64) = 'b';
+    x(2i64) = 'c';
+    x(3i64) = 'd';
+    x(9i64) = 'z';
 
-    println(x(3L).toString());
+    println(x(3i64).toString());
 
-    assert(x(3L) == 'd');
-    assert(x(4L) == '\0');
-    assert(x(8L) == '\0');
-    assert(x(9L) == 'z');
+    assert(x(3i64) == 'd');
+    assert(x(4i64) == '\0');
+    assert(x(8i64) == '\0');
+    assert(x(9i64) == 'z');
 }

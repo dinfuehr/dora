@@ -1,11 +1,11 @@
 fn main() {
-    let x = A(10I);
+    let x = A(10i32);
     let y = x;
 
     std::forceCollect();
 
     assert(x === y);
-    assert(x.a == 10I);
+    assert(x.a == 10i32);
 
 }
 

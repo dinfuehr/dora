@@ -1,20 +1,20 @@
 fn main() {
   let b = B();
-  assert(b.printBase() == 2I);
-  assert(b.printSpecial() == 1I);
+  assert(b.printBase() == 2i32);
+  assert(b.printSpecial() == 1i32);
 
   let c = C();
-  assert(c.printBase() == 2I);
-  assert(c.printSpecial() == 1I);
+  assert(c.printBase() == 2i32);
+  assert(c.printSpecial() == 1i32);
 }
 
 @open @abstract class A {
   @abstract fn printSpecial(): Int32;
-  fn printBase(): Int32 = 2I;
+  fn printBase(): Int32 = 2i32;
 }
 
 @open class B: A {
-  @override fn printSpecial(): Int32 = 1I;
+  @override fn printSpecial(): Int32 = 1i32;
 }
 
 class C: B {}

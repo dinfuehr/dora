@@ -1,33 +1,33 @@
 fn main() {
-  let x = Array[Int32]::fill(2L, 100I);
-  int32_array_set(x, 1L, 200I);
-  assert(x(0L) == 100I);
-  assert(x(1L) == 200I);
+  let x = Array[Int32]::fill(2i64, 100i32);
+  int32_array_set(x, 1i64, 200i32);
+  assert(x(0i64) == 100i32);
+  assert(x(1i64) == 200i32);
 
-  let x = Array[Int64]::fill(2L, 200L);
-  int64_array_set(x, 1L, 100L);
-  assert(x(0L) == 200L);
-  assert(x(1L) == 100L);
+  let x = Array[Int64]::fill(2i64, 200i64);
+  int64_array_set(x, 1i64, 100i64);
+  assert(x(0i64) == 200i64);
+  assert(x(1i64) == 100i64);
 
-  let x = Array[Float32]::fill(2L, 1.0F);
-  float_array_set(x, 1L, 2.0F);
-  assert(x(0L) == 1.0F);
-  assert(x(1L) == 2.0F);
+  let x = Array[Float32]::fill(2i64, 1.0F);
+  float_array_set(x, 1i64, 2.0F);
+  assert(x(0i64) == 1.0F);
+  assert(x(1i64) == 2.0F);
 
-  let x = Array[Float64]::fill(2L, 2.0);
-  double_array_set(x, 1L, 1.0);
-  assert(x(0L) == 2.0);
-  assert(x(1L) == 1.0);
+  let x = Array[Float64]::fill(2i64, 2.0);
+  double_array_set(x, 1i64, 1.0);
+  assert(x(0i64) == 2.0);
+  assert(x(1i64) == 1.0);
 
-  let x = Array[String]::fill(2L, "hello");
-  str_array_set(x, 1L, "abc");
-  assert(x(0L) == "hello");
-  assert(x(1L) == "abc");
+  let x = Array[String]::fill(2i64, "hello");
+  str_array_set(x, 1i64, "abc");
+  assert(x(0i64) == "hello");
+  assert(x(1i64) == "abc");
 
-  let x = Array[Foo]::fill(2L, Foo(1I));
-  foo_array_set(x, 1L, Foo(2I));
-  assert(x(0L).y == 1I);
-  assert(x(1L).y == 2I);
+  let x = Array[Foo]::fill(2i64, Foo(1i32));
+  foo_array_set(x, 1i64, Foo(2i32));
+  assert(x(0i64).y == 1i32);
+  assert(x(1i64).y == 2i32);
 }
 
 fn int32_array_set(x: Array[Int32], idx: Int64, val: Int32) {

@@ -1,5 +1,5 @@
 //= error code 2
 
 fn main(): Int32 {
-  return 2I;
+  return 2i32;
 }

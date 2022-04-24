@@ -1,11 +1,11 @@
 fn main() {
-  let ok1 = Result[Int32, String]::Ok(23I);
-  let ok2 = Result[Int32, String]::Ok(42I);
+  let ok1 = Result[Int32, String]::Ok(23i32);
+  let ok2 = Result[Int32, String]::Ok(42i32);
   let er1 = Result[Int32, String]::Err("err1");
   let er2 = Result[Int32, String]::Err("err2");
 
-  assert(ok1.or(ok2).contains(23I));
-  assert(ok1.or(er1).contains(23I));
-  assert(er1.or(ok2).contains(42I));
+  assert(ok1.or(ok2).contains(23i32));
+  assert(ok1.or(er1).contains(23i32));
+  assert(er1.or(ok2).contains(42i32));
   assert(er1.or(er2).getErrOrPanic() == "err2");
 }

@@ -1,6 +1,6 @@
 @pub class StringBuffer() {
   var buf: Array[UInt8] = Array[UInt8]::empty();
-  var len: Int64 = 0L;
+  var len: Int64 = 0i64;
 
   @pub fn size(): Int64 {
     return self.len;
@@ -19,11 +19,11 @@
 
     let newcap = self.newCapacity(elements);
     let newbuf = Array[UInt8]::zero(newcap);
-    var i = 0L;
+    var i = 0i64;
 
     while i < self.buf.size() {
       newbuf.set(i, self.buf.get(i));
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     self.buf = newbuf;
@@ -32,16 +32,16 @@
   @pub fn newCapacity(reserve: Int64): Int64 {
     var len = self.len;
 
-    if len == 0L {
-      len = 4L;
+    if len == 0i64 {
+      len = 4i64;
     }
 
-    let c1 = (len + reserve + 7L) & !7L;
-    let c2 = len * 2L;
+    let c1 = (len + reserve + 7i64) & !7i64;
+    let c2 = len * 2i64;
 
     if c1 > c2 {
       c1
-    } else if c2 - c1 > 32L {
+    } else if c2 - c1 > 32i64 {
       c1
     } else {
       c2
@@ -58,11 +58,11 @@
 
   @pub fn append(value: String): StringBuffer {
     self.reserve(value.size());
-    var i = 0L;
+    var i = 0i64;
 
     while i < value.size() {
       self.buf.set(self.len + i, value.getByte(i));
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     self.len = self.len + value.size();
@@ -73,7 +73,7 @@
     self.appendChar('\n')
   }
 
-  @pub fn toString(): String = String::fromBytesPart(self.buf, 0L, self.size()).getOrPanic();
+  @pub fn toString(): String = String::fromBytesPart(self.buf, 0i64, self.size()).getOrPanic();
 
   @pub @static fn empty(): StringBuffer = StringBuffer();
 }

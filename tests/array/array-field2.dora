@@ -1,8 +1,8 @@
 class Foo {
-    let array: Array[Int32] = Array[Int32](1I, 2I, 3I);
+    let array: Array[Int32] = Array[Int32](1i32, 2i32, 3i32);
 }
 
 fn main() {
     let foo = Foo();
-    assert(foo.array(0L) == 1I);
+    assert(foo.array(0i64) == 1i32);
 }

@@ -3,23 +3,23 @@
 class Foo(let x: Int32)
 
 fn main() {
-    let default = Foo(17I);
-    let x = Array[Foo]::fill(64L, default);
+    let default = Foo(17i32);
+    let x = Array[Foo]::fill(64i64, default);
     std::forceMinorCollect();
-    assert(x(0L) === default);
-    assert(x(63L) === default);
+    assert(x(0i64) === default);
+    assert(x(63i64) === default);
 
-    x(0L) = Foo(1I);
+    x(0i64) = Foo(1i32);
     std::forceMinorCollect();
-    assert(x(0L).x == 1I);
-    assert(x(63L) === default);
+    assert(x(0i64).x == 1i32);
+    assert(x(63i64) === default);
 
-    x(63L) = Foo(2I);
+    x(63i64) = Foo(2i32);
     std::forceMinorCollect();
-    assert(x(0L).x == 1I);
-    assert(x(63L).x == 2I);
+    assert(x(0i64).x == 1i32);
+    assert(x(63i64).x == 2i32);
 
     std::forceMinorCollect();
-    assert(x(0L).x == 1I);
-    assert(x(63L).x == 2I);
+    assert(x(0i64).x == 1i32);
+    assert(x(63i64).x == 2i32);
 }

@@ -7,7 +7,7 @@ impl Default for Bool {
 }
 
 impl Default for UInt8 {
-  @static fn default(): UInt8 = 0Y;
+  @static fn default(): UInt8 = 0u8;
 }
 
 impl Default for Char {
@@ -19,7 +19,7 @@ impl Default for Int32 {
 }
 
 impl Default for Int64 {
-  @static fn default(): Int64 = 0L;
+  @static fn default(): Int64 = 0i64;
 }
 
 impl Default for Float32 {

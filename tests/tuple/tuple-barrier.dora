@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 class TupleClass {
-    var value: (Foo, Int64) = (Foo(0I), 0L);
+    var value: (Foo, Int64) = (Foo(0i32), 0i64);
 }
 
 class Foo(let value: Int32)
@@ -9,8 +9,8 @@ class Foo(let value: Int32)
 fn main() {
     let tpl = TupleClass();
     std::forceCollect();
-    tpl.value = (Foo(4711I), 4712L);
+    tpl.value = (Foo(4711i32), 4712i64);
     std::forceMinorCollect();
-    assert(tpl.value.0.value == 4711I);
-    assert(tpl.value.1 == 4712L);
+    assert(tpl.value.0.value == 4711i32);
+    assert(tpl.value.1 == 4712i64);
 }

@@ -1,17 +1,17 @@
 fn main() {
-    assert(2.0F.compareTo(4.0F) == -1I);
-    assert(4.0F.compareTo(2.0F) == 1I);
-    assert(4.0F.compareTo(4.0F) == 0I);
+    assert(2.0F.compareTo(4.0F) == -1i32);
+    assert(4.0F.compareTo(2.0F) == 1i32);
+    assert(4.0F.compareTo(4.0F) == 0i32);
 
-    assert(2.0F.compareTo(-4.0F) == 1I);
-    assert((-4.0F).compareTo(-2.0F) == -1I);
-    assert((-4.0F).compareTo(-4.0F) == 0I);
+    assert(2.0F.compareTo(-4.0F) == 1i32);
+    assert((-4.0F).compareTo(-2.0F) == -1i32);
+    assert((-4.0F).compareTo(-4.0F) == 0i32);
 
-    assert(2.0.compareTo(4.0) == -1I);
-    assert(4.0.compareTo(2.0) == 1I);
-    assert(4.0.compareTo(4.0) == 0I);
+    assert(2.0.compareTo(4.0) == -1i32);
+    assert(4.0.compareTo(2.0) == 1i32);
+    assert(4.0.compareTo(4.0) == 0i32);
 
-    assert(2.0.compareTo(-4.0) == 1I);
-    assert((-4.0).compareTo(-2.0) == -1I);
-    assert((-4.0).compareTo(-4.0) == 0I);
+    assert(2.0.compareTo(-4.0) == 1i32);
+    assert((-4.0).compareTo(-2.0) == -1i32);
+    assert((-4.0).compareTo(-4.0) == 0i32);
 }

@@ -2,66 +2,66 @@ use std::fatalError;
 use std::timestamp;
 
 fn main() {
-    if std::argc() != 3I {
+    if std::argc() != 3i32 {
         println("usage: splay <seed> <tree-size> <iterations>");
-        std::exit(1I);
+        std::exit(1i32);
     }
 
-    rnd = std::Random(std::argv(0I).toInt64().getOrPanic());
-    splayTreeSize = std::argv(1I).toInt32().getOrPanic();
-    let iterations = std::argv(2I).toInt32().getOrPanic();
+    rnd = std::Random(std::argv(0i32).toInt64().getOrPanic());
+    splayTreeSize = std::argv(1i32).toInt32().getOrPanic();
+    let iterations = std::argv(2i32).toInt32().getOrPanic();
 
     let bench = Benchmark();
     bench.setup();
 
-    var i = 0I;
+    var i = 0i32;
     while i < iterations {
         bench.run();
-        i = i + 1I;
+        i = i + 1i32;
     }
 
     bench.tearDown();
 }
 
-var rnd: std::Random = std::Random(0L);
+var rnd: std::Random = std::Random(0i64);
 
-var splayTreeSize: Int32 = 0I;
-const splayTreeModifications: Int32 = 1000I;
-const splayTreePayloadDepth: Int32 = 5I;
+var splayTreeSize: Int32 = 0i32;
+const splayTreeModifications: Int32 = 1000i32;
+const splayTreePayloadDepth: Int32 = 5i32;
 
 class Benchmark {
     var splayTree: SplayTree = SplayTree();
-    var splaySamples: Int32 = 0I;
-    var splaySampleTimeStart: Int64 = 0L;
-    var splaySumOfSquaredPauses: Int64 = 0L;
+    var splaySamples: Int32 = 0i32;
+    var splaySampleTimeStart: Int64 = 0i64;
+    var splaySumOfSquaredPauses: Int64 = 0i64;
 
     fn setup() {
-        var i = 0I;
+        var i = 0i32;
         self.splaySampleTimeStart = timestamp();
 
         while i < splayTreeSize {
             self.insertNewNode();
 
-            if (i+1I) % 20I == 19I {
+            if (i+1i32) % 20i32 == 19i32 {
                 // self.updateStats(timestamp());
             }
 
-            i = i + 1I;
+            i = i + 1i32;
         }
     }
 
     fn updateStats(time: Int64) {
         let pause = time - self.splaySampleTimeStart;
         self.splaySampleTimeStart = time;
-        self.splaySamples = self.splaySamples + 1I;
+        self.splaySamples = self.splaySamples + 1i32;
         self.splaySumOfSquaredPauses = self.splaySumOfSquaredPauses + pause * pause;
     }
 
     fn tearDown() {
         let keys = self.splayTree.exportKeys();
 
-        self.splaySamples = 0I;
-        self.splaySumOfSquaredPauses = 0L;
+        self.splaySamples = 0i32;
+        self.splaySumOfSquaredPauses = 0i64;
 
         var length = keys.size();
 
@@ -69,19 +69,19 @@ class Benchmark {
             fatalError("Splay tree has wrong sie");
         }
 
-        var i = 0L;
+        var i = 0i64;
 
-        while i < length - 1L {
-            if keys(i) >= keys(i+1L) {
+        while i < length - 1i64 {
+            if keys(i) >= keys(i+1i64) {
                 fatalError("Splay tree not sorted");
             }
 
-            i = i + 1L;
+            i = i + 1i64;
         }
     }
 
     fn run() {
-        var i = 0I;
+        var i = 0i32;
 
         while i < splayTreeModifications {
             let key = self.insertNewNode();
@@ -93,14 +93,14 @@ class Benchmark {
                 self.splayTree.remove(greatest.getOrPanic().key);
             }
 
-            i = i + 1I;
+            i = i + 1i32;
         }
 
         // self.updateStats(timestamp());
     }
 
     fn insertNewNode(): Int32 {
-        var key: Int32 = 0I;
+        var key: Int32 = 0i32;
 
         while true {
             key = self.generateKey();
@@ -129,13 +129,13 @@ class Benchmark {
 }
 
 fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
-    if depth == 0I {
-        let arr = Array[Int32]::zero(10L);
-        var i = 0I;
+    if depth == 0i32 {
+        let arr = Array[Int32]::zero(10i64);
+        var i = 0i32;
 
-        while i < 10I {
+        while i < 10i32 {
             arr(i.toInt64()) = i;
-            i = i + 1I;
+            i = i + 1i32;
         }
 
         let text = "String for key " + tag + " in leaf node";
@@ -144,8 +144,8 @@ fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
         return PayloadNode(
             Option[Array[Int32]]::None,
             "",
-            Option[PayloadNode]::Some(generatePayloadTree(depth-1I, tag)),
-            Option[PayloadNode]::Some(generatePayloadTree(depth-1I, tag)),
+            Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)),
+            Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)),
         );
     }
 }
@@ -274,7 +274,7 @@ class SplayTree {
             return;
         }
 
-        var dummy = SplayNode(0I, Option[PayloadNode]::None);
+        var dummy = SplayNode(0i32, Option[PayloadNode]::None);
         var left = dummy;
         var right = dummy;
 

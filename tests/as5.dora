@@ -1,11 +1,11 @@
 fn main() {
-    assert(test(B(10I)));
-    assert(!test(B(0I)));
+    assert(test(B(10i32)));
+    assert(!test(B(0i32)));
 }
 
 fn test(a: A): Bool {
     let a = a as B;
-    return a.x != 0I;
+    return a.x != 0i32;
 }
 
 @open class A

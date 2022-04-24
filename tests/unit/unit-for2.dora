@@ -1,7 +1,7 @@
 fn main() {
-    var sum = 0L;
+    var sum = 0i64;
     for x in Vec[()]((), (), (), ()) {
-        sum = sum + 1L;
+        sum = sum + 1i64;
     }
-    assert(sum == 4L);
+    assert(sum == 4i64);
 }

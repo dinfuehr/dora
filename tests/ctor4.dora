@@ -1,11 +1,11 @@
 fn main() {
-    let x = X(10I);
+    let x = X(10i32);
 
-    assert(x.x == 1I);
-    assert(x.y == 10I);
+    assert(x.x == 1i32);
+    assert(x.y == 10i32);
 }
 
 class X(py: Int32) {
-    var x : Int32 = 1I;
+    var x : Int32 = 1i32;
     var y : Int32 = py;
 }

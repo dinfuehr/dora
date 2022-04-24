@@ -22,45 +22,45 @@
 @pub mod collections;
 
 fn isValidUtf8(data: Array[UInt8]): Bool {
-  var i = 0L;
+  var i = 0i64;
 
   while i < data.size() {
     let by = data(i).toInt32();
-    var codePoint = 0I;
-    var nextUInt8s = 0I;
-    var min = 0I;
-    var max = 0I;
+    var codePoint = 0i32;
+    var nextUInt8s = 0i32;
+    var min = 0i32;
+    var max = 0i32;
 
-    if by & 0x80I == 0I {
+    if by & 0x80i32 == 0i32 {
       nextUInt8s = 0;
-      i = i + 1L;
+      i = i + 1i64;
       continue;
 
-    } else if by & 0xC0I == 0x80I {
+    } else if by & 0xC0i32 == 0x80i32 {
       return false;
 
-    } else if by & 0xE0I == 0xC0I {
+    } else if by & 0xE0i32 == 0xC0i32 {
       codePoint = by & 0x1FI;
       nextUInt8s = 1;
       min = 0x80;
       max = 0x7FFI;
 
-    } else if by & 0xF0I == 0xE0I {
+    } else if by & 0xF0i32 == 0xE0i32 {
       codePoint = by & 0xFI;
-      nextUInt8s = 2I;
-      min = 0x800I;
+      nextUInt8s = 2i32;
+      min = 0x800i32;
       max = 0xFFFFI;
 
-    } else if by & 0xF8I == 0xF0I {
-      codePoint = by & 0x7I;
+    } else if by & 0xF8i32 == 0xF0i32 {
+      codePoint = by & 0x7i32;
       nextUInt8s = 3;
       min = 0x10000;
       max = 0x10FFFFI;
     }
 
-    while nextUInt8s > 0I {
-      nextUInt8s = nextUInt8s - 1I;
-      i = i + 1L;
+    while nextUInt8s > 0i32 {
+      nextUInt8s = nextUInt8s - 1i32;
+      i = i + 1i64;
 
       if i >= data.size() {
         return false;
@@ -68,18 +68,18 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
 
       let by = data(i).toInt32();
 
-      if by & 0xC0I != 0x80I {
+      if by & 0xC0i32 != 0x80i32 {
         return false;
       }
 
-      codePoint = (codePoint << 6I) | (by & 0x3FI);
+      codePoint = (codePoint << 6i32) | (by & 0x3FI);
     }
 
     if codePoint < min || codePoint > max {
       return false;
     }
 
-    i = i + 1L;
+    i = i + 1i64;
   }
 
   return true;

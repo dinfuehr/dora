@@ -1,13 +1,13 @@
 fn main() {
-    assert(slowLength(Array[Int32]()) == 0L);
-    assert(slowLength(Array[Int32](1I)) == 1L);
-    assert(slowLength(Array[Int32](1I, 2I)) == 2L);
+    assert(slowLength(Array[Int32]()) == 0i64);
+    assert(slowLength(Array[Int32](1i32)) == 1i64);
+    assert(slowLength(Array[Int32](1i32, 2i32)) == 2i64);
 }
 
 fn slowLength(x: Array[Int32]): Int64 {
-    var entries = 0L;
+    var entries = 0i64;
     for val in x {
-        entries = entries + 1L;
+        entries = entries + 1i64;
     }
     entries
 }

@@ -1,7 +1,7 @@
 //= stdout "1"
 
 fn main() {
-    let a = A[Int32](1I);
+    let a = A[Int32](1i32);
     print(a.x.toString());
 }
 

@@ -2,9 +2,9 @@
 //= stderr "division by 0\n2: divide(Int32): Int32: 9\n1: main(): 5\n"
 
 fn main() {
-    divide(0I);
+    divide(0i32);
 }
 
 fn divide(x: Int32): Int32 {
-    4711I / x
+    4711i32 / x
 }

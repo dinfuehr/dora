@@ -1,5 +1,5 @@
 fn main() {
-    let y = (1I, ());
-    assert(y.0 == 1I);
+    let y = (1i32, ());
+    assert(y.0 == 1i32);
     let z = y.1;
 }

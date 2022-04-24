@@ -1,8 +1,8 @@
 fn main() {
-    assert(number_args(1I, 2I) == 2L);
-    assert(number_args(7I) == 1L);
-    assert(number_args() == 0L);
-    assert(number_args(1I, 2I, 3I, 4I, 5I) == 5L);
+    assert(number_args(1i32, 2i32) == 2i64);
+    assert(number_args(7i32) == 1i64);
+    assert(number_args() == 0i64);
+    assert(number_args(1i32, 2i32, 3i32, 4i32, 5i32) == 5i64);
 }
 
 fn number_args(x: Int32...): Int64 {

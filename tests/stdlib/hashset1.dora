@@ -1,23 +1,23 @@
 fn main() {
     let set = std::HashSet[Int32]();
-    set.insert(1I);
-    set.insert(10000I);
-    set.insert(7I);
+    set.insert(1i32);
+    set.insert(10000i32);
+    set.insert(7i32);
 
-    assert(set.size() == 3L);
+    assert(set.size() == 3i64);
     assert(set.isEmpty().not());
 
-    assert(set.contains(1I));
-    assert(set.contains(10000I));
-    assert(set.contains(7I));
-    assert(!set.contains(2I));
+    assert(set.contains(1i32));
+    assert(set.contains(10000i32));
+    assert(set.contains(7i32));
+    assert(!set.contains(2i32));
 
-    set.remove(10000I);
+    set.remove(10000i32);
 
-    assert(set.size() == 2L);
+    assert(set.size() == 2i64);
     assert(set.isEmpty().not());
 
-    assert(set.contains(1I));
-    assert(!set.contains(10000I));
-    assert(set.contains(7I));
+    assert(set.contains(1i32));
+    assert(!set.contains(10000i32));
+    assert(set.contains(7i32));
 }

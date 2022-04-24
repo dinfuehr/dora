@@ -1,13 +1,13 @@
 fn main() {
-    let array = Array[String]::new(10L);
-    assert(array(0L) == "");
-    assert(array(0L) == array(9L));
+    let array = Array[String]::new(10i64);
+    assert(array(0i64) == "");
+    assert(array(0i64) == array(9i64));
 
-    let array = Array[Float64]::new(10L);
-    assert(array(0L) == 0.0);
-    assert(array(9L) == 0.0);
+    let array = Array[Float64]::new(10i64);
+    assert(array(0i64) == 0.0);
+    assert(array(9i64) == 0.0);
 
-    let array = Array[Float32]::new(10L);
-    assert(array(0L) == 0.0F);
-    assert(array(9L) == 0.0F);
+    let array = Array[Float32]::new(10i64);
+    assert(array(0i64) == 0.0F);
+    assert(array(9i64) == 0.0F);
 }

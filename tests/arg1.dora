@@ -3,7 +3,7 @@
 fn main() {
   let val = std::argc().toString();
   println(val);
-  println(std::argv(0I));
-  println(std::argv(1I));
-  println(std::argv(2I));
+  println(std::argv(0i32));
+  println(std::argv(1i32));
+  println(std::argv(2i32));
 }

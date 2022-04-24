@@ -1,7 +1,7 @@
 fn main() {
-    let x = SomeTest[Int32](1I);
-    assert(+x == 1I);
-    assert(-x == 1I);
+    let x = SomeTest[Int32](1i32);
+    assert(+x == 1i32);
+    assert(-x == 1i32);
 }
 
 class SomeTest[T](let x: T) {

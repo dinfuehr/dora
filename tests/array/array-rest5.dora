@@ -1,17 +1,17 @@
 fn main() {
-    assert(sum_args((1I, 2I), (3I, 4I)) == 10I);
-    assert(sum_args() == 0I);
-    assert(sum_args((0I, 1I)) == 1I);
+    assert(sum_args((1i32, 2i32), (3i32, 4i32)) == 10i32);
+    assert(sum_args() == 0i32);
+    assert(sum_args((0i32, 1i32)) == 1i32);
 }
 
 fn sum_args(x: (Int32, Int32)...): Int32 {
-    var result = 0I;
-    var idx = 0L;
+    var result = 0i32;
+    var idx = 0i64;
 
     while idx < x.size() {
         let elem = x(idx);
         result = result + elem.0 + elem.1;
-        idx = idx + 1L;
+        idx = idx + 1i64;
     }
 
     result

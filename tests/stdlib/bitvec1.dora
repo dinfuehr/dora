@@ -1,48 +1,48 @@
 fn main() {
     let set = std::BitVec();
-    set.insert(0L);
-    set.insert(63L);
-    assert(set.contains(0L));
-    assert(set.contains(63L));
+    set.insert(0i64);
+    set.insert(63i64);
+    assert(set.contains(0i64));
+    assert(set.contains(63i64));
 
-    var i = 1I;
-    while i < 63I {
+    var i = 1i32;
+    while i < 63i32 {
         assert(!set.contains(i.toInt64()));
-        i = i + 1I;
+        i = i + 1i32;
     }
 
-    assert(set.capacity() == 64L);
-    assert(!set.contains(64L));
-    assert(!set.contains(128L));
+    assert(set.capacity() == 64i64);
+    assert(!set.contains(64i64));
+    assert(!set.contains(128i64));
 
-    set.insert(0L);
-    set.insert(1L);
-    set.insert(31L);
-    set.insert(32L);
-    set.insert(63L);
+    set.insert(0i64);
+    set.insert(1i64);
+    set.insert(31i64);
+    set.insert(32i64);
+    set.insert(63i64);
 
-    assert(set.contains(0L));
-    assert(set.contains(1L));
-    assert(!set.contains(2L));
-    assert(!set.contains(30L));
-    assert(set.contains(31L));
-    assert(set.contains(32L));
-    assert(!set.contains(33L));
-    assert(!set.contains(62L));
-    assert(set.contains(63L));
+    assert(set.contains(0i64));
+    assert(set.contains(1i64));
+    assert(!set.contains(2i64));
+    assert(!set.contains(30i64));
+    assert(set.contains(31i64));
+    assert(set.contains(32i64));
+    assert(!set.contains(33i64));
+    assert(!set.contains(62i64));
+    assert(set.contains(63i64));
 
-    set.remove(0L);
-    set.remove(63L);
+    set.remove(0i64);
+    set.remove(63i64);
 
-    assert(!set.contains(0L));
-    assert(set.contains(1L));
-    assert(set.contains(31L));
-    assert(set.contains(32L));
-    assert(!set.contains(63L));
-    assert(!set.contains(64L));
-    assert(!set.contains(128L));
-    assert(set.capacity() == 64L);
+    assert(!set.contains(0i64));
+    assert(set.contains(1i64));
+    assert(set.contains(31i64));
+    assert(set.contains(32i64));
+    assert(!set.contains(63i64));
+    assert(!set.contains(64i64));
+    assert(!set.contains(128i64));
+    assert(set.capacity() == 64i64);
 
-    set.insert(64L);
-    assert(set.capacity() == 96L);
+    set.insert(64i64);
+    assert(set.capacity() == 96i64);
 }

@@ -1,8 +1,8 @@
 fn main() {
-    let set = std::HashSet[Int32](1I, 10_000I, 7I);
-    assert(set.size() == 3L);
-    assert(set.contains(1I));
-    assert(set.contains(10_000I));
-    assert(set.contains(7I));
-    assert(!set.contains(0I));
+    let set = std::HashSet[Int32](1i32, 10_000i32, 7i32);
+    assert(set.size() == 3i64);
+    assert(set.contains(1i32));
+    assert(set.contains(10_000i32));
+    assert(set.contains(7i32));
+    assert(!set.contains(0i32));
 }

@@ -9,12 +9,12 @@ class MyThread(): std::Thread {
 }
 
 fn main() {
-    var i = 0I;
+    var i = 0i32;
 
-    while i < 4I {
+    while i < 4i32 {
         let thread = MyThread();
         thread.start();
-        i = i + 1I;
+        i = i + 1i32;
     }
 
     allocator();
@@ -22,18 +22,18 @@ fn main() {
 }
 
 fn allocator() {
-    var i = 1I;
-    var list = Foo(0I, None[Foo]);
+    var i = 1i32;
+    var list = Foo(0i32, None[Foo]);
 
-    while i < 10_000I {
+    while i < 10_000i32 {
         list = Foo(i, Some[Foo](list));
-        i = i + 1I;
+        i = i + 1i32;
     }
 
-    i = 10_000I;
+    i = 10_000i32;
 
-    while i > 1I {
-        i = i - 1I;
+    while i > 1i32 {
+        i = i - 1i32;
         assert(list.key == i);
         list = list.prev.getOrPanic();
     }

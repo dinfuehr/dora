@@ -1,28 +1,28 @@
 fn main() {    
-    assert(!eq(20Y, 5Y));
-    assert(eq(5Y, 5Y));
-    assert(!eq(5Y, 20Y));
+    assert(!eq(20u8, 5u8));
+    assert(eq(5u8, 5u8));
+    assert(!eq(5u8, 20u8));
 
-    assert(ne(20Y, 5Y));
-    assert(!ne(5Y, 5Y));
-    assert(ne(5Y, 20Y));
+    assert(ne(20u8, 5u8));
+    assert(!ne(5u8, 5u8));
+    assert(ne(5u8, 20u8));
 
 
-    assert(!lt(20Y, 5Y));
-    assert(!lt(5Y, 5Y));
-    assert(lt(5Y, 20Y));
+    assert(!lt(20u8, 5u8));
+    assert(!lt(5u8, 5u8));
+    assert(lt(5u8, 20u8));
 
-    assert(!le(20Y, 5Y));
-    assert(le(5Y, 5Y));
-    assert(le(5Y, 20Y));
+    assert(!le(20u8, 5u8));
+    assert(le(5u8, 5u8));
+    assert(le(5u8, 20u8));
 
-    assert(ge(20Y, 5Y));
-    assert(ge(5Y, 5Y));
-    assert(!ge(5Y, 20Y));
+    assert(ge(20u8, 5u8));
+    assert(ge(5u8, 5u8));
+    assert(!ge(5u8, 20u8));
 
-    assert(gt(20Y, 5Y));
-    assert(!gt(5Y, 5Y));
-    assert(!gt(5Y, 20Y));
+    assert(gt(20u8, 5u8));
+    assert(!gt(5u8, 5u8));
+    assert(!gt(5u8, 20u8));
 }
 
 fn eq(x: UInt8, y: UInt8): Bool {

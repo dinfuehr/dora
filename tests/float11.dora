@@ -1,13 +1,13 @@
 fn main() {
     let x = 1.1F;
-    assert(1I == x.toInt32());
+    assert(1i32 == x.toInt32());
 
     let y = 213.4F;
-    assert(213L == y.toInt64());
+    assert(213i64 == y.toInt64());
 
     let x = 1.1D;
-    assert(1I == x.toInt32());
+    assert(1i32 == x.toInt32());
 
     let y = 213.4D;
-    assert(213L == y.toInt64());
+    assert(213i64 == y.toInt64());
 }

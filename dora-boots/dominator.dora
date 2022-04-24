@@ -31,7 +31,7 @@ fn findBackEdges(graph: Graph): BitSet {
             visiting.remove(block.id.toInt64());
             visited.insert(block.id.toInt64());
         } else {
-            successorsVisited(block.id.toInt64()) = successorIndex + 1L;
+            successorsVisited(block.id.toInt64()) = successorIndex + 1i64;
             let successorEdge = block.successors(successorIndex);
             let successor = successorEdge.target;
 
@@ -105,7 +105,7 @@ fn computePostOrder(graph: Graph) {
             worklist.pop();
             postOrder.push(block);
         } else {
-            successorsVisited(block.id.toInt64()) = successorIndex + 1L;
+            successorsVisited(block.id.toInt64()) = successorIndex + 1i64;
             let successor = block.successors(successorIndex).target;
 
             if visited.contains(successor.id.toInt64()) {

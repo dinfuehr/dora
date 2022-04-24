@@ -1,6 +1,6 @@
 //= error array
 
 fn main() {
-    let x = Array[(Int32, Int64)]::fill(7L, (0I, 0L));
-    x(10L) = (12I, 4711L);
+    let x = Array[(Int32, Int64)]::fill(7i64, (0i32, 0i64));
+    x(10i64) = (12i32, 4711i64);
 }

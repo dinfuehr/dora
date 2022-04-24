@@ -1,6 +1,6 @@
 class MyThread: std::Thread {
     @override fn run() {
-        std::sleep(1I);
+        std::sleep(1i32);
         std::forceCollect();
     }
 }

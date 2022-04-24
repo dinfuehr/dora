@@ -1,7 +1,7 @@
 fn main() {
-    let value = std::AtomicInt64(10L);
-    assert(value.compareExchange(12L, 20L) == 10L);
-    assert(value.get() == 10L);
-    assert(value.compareExchange(10L, 15L) == 10L);
-    assert(value.get() == 15L);
+    let value = std::AtomicInt64(10i64);
+    assert(value.compareExchange(12i64, 20i64) == 10i64);
+    assert(value.get() == 10i64);
+    assert(value.compareExchange(10i64, 15i64) == 10i64);
+    assert(value.get() == 15i64);
 }

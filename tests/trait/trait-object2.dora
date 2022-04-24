@@ -13,13 +13,13 @@ impl Foo for Bar {
 }
 
 fn main() {
-    assert(invoke(baz(17I)) == 17I);
-    assert(invoke(baz(0I)) == 0I);
-    assert(invoke(baz(101I)) == 101I);
+    assert(invoke(baz(17i32)) == 17i32);
+    assert(invoke(baz(0i32)) == 0i32);
+    assert(invoke(baz(101i32)) == 101i32);
 
-    assert(invoke(bar(17I)) == 17I);
-    assert(invoke(bar(0I)) == 0I);
-    assert(invoke(bar(101I)) == 101I);
+    assert(invoke(bar(17i32)) == 17i32);
+    assert(invoke(bar(0i32)) == 0i32);
+    assert(invoke(bar(101i32)) == 101i32);
 }
 
 fn baz(value: Int32): Foo = Baz(value) as Foo;

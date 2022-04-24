@@ -1,48 +1,48 @@
 fn main() {
-    assert(not(20I) == -21I);
+    assert(not(20i32) == -21i32);
 
-    assert(add(20I, 7I) == 27I);
-    assert(sub(20I, 7I) == 13I);
-    assert(mul(20I, 7I) == 140I);
-    assert(div(20I, 7I) == 2I);
+    assert(add(20i32, 7i32) == 27i32);
+    assert(sub(20i32, 7i32) == 13i32);
+    assert(mul(20i32, 7i32) == 140i32);
+    assert(div(20i32, 7i32) == 2i32);
     
-    assert(modulo(20I, 7I) == 6I);
+    assert(modulo(20i32, 7i32) == 6i32);
 
-    assert(neg(20I) == -20I);
-    assert(neg(-5I) == 5I);
+    assert(neg(20i32) == -20i32);
+    assert(neg(-5i32) == 5i32);
 
-    assert(or(20I, 5I) == 21I);
-    assert(xor(20I, 5I) == 17I);
-    assert(and(20I, 5I) == 4I);
+    assert(or(20i32, 5i32) == 21i32);
+    assert(xor(20i32, 5i32) == 17i32);
+    assert(and(20i32, 5i32) == 4i32);
 
-    assert(shl(20I, 2I) == 80I);
-    assert(shr(20I, 2I) == 5I);
-    assert(sar(20I, 2I) == 5I);
+    assert(shl(20i32, 2i32) == 80i32);
+    assert(shr(20i32, 2i32) == 5i32);
+    assert(sar(20i32, 2i32) == 5i32);
 
-    assert(!eq(20I, 5I));
-    assert(eq(5I, 5I));
-    assert(!eq(5I, 20I));
+    assert(!eq(20i32, 5i32));
+    assert(eq(5i32, 5i32));
+    assert(!eq(5i32, 20i32));
 
-    assert(ne(20I, 5I));
-    assert(!ne(5I, 5I));
-    assert(ne(5I, 20I));
+    assert(ne(20i32, 5i32));
+    assert(!ne(5i32, 5i32));
+    assert(ne(5i32, 20i32));
 
 
-    assert(!lt(20I, 5I));
-    assert(!lt(5I, 5I));
-    assert(lt(5I, 20I));
+    assert(!lt(20i32, 5i32));
+    assert(!lt(5i32, 5i32));
+    assert(lt(5i32, 20i32));
 
-    assert(!le(20I, 5I));
-    assert(le(5I, 5I));
-    assert(le(5I, 20I));
+    assert(!le(20i32, 5i32));
+    assert(le(5i32, 5i32));
+    assert(le(5i32, 20i32));
 
-    assert(ge(20I, 5I));
-    assert(ge(5I, 5I));
-    assert(!ge(5I, 20I));
+    assert(ge(20i32, 5i32));
+    assert(ge(5i32, 5i32));
+    assert(!ge(5i32, 20i32));
 
-    assert(gt(20I, 5I));
-    assert(!gt(5I, 5I));
-    assert(!gt(5I, 20I));
+    assert(gt(20i32, 5i32));
+    assert(!gt(5i32, 5i32));
+    assert(!gt(5i32, 20i32));
 }
 
 fn not(x: Int32): Int32 = !x;

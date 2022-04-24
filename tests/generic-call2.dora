@@ -14,10 +14,10 @@ impl Foo for X {
     fn bar(): Int32 {
         println("world");
 
-        return 4I;
+        return 4i32;
     }
 }
 
 fn main() {
-    assert(4I == foo[X](X()));
+    assert(4i32 == foo[X](X()));
 }

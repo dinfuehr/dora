@@ -1,6 +1,6 @@
 fn main() {
-  let array = Array[Int32]::fill(5L, 1I);
-  array(0L) = 2I;
-  assert(array(0L) == 2I);
-  assert(array(1L) == 1I);
+  let array = Array[Int32]::fill(5i64, 1i32);
+  array(0i64) = 2i32;
+  assert(array(0i64) == 2i32);
+  assert(array(1i64) == 1i32);
 }

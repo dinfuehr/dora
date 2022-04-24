@@ -1,29 +1,29 @@
 fn main() {
     let buffer = write('$');
-    assert(buffer(0L) == 0x24Y);
-    assert(buffer(1L) == 0Y);
+    assert(buffer(0i64) == 0x24u8);
+    assert(buffer(1i64) == 0u8);
 
     let buffer = write('¢');
-    assert(buffer(0L) == 0xC2Y);
-    assert(buffer(1L) == 0xA2Y);
-    assert(buffer(2L) == 0Y);
+    assert(buffer(0i64) == 0xC2u8);
+    assert(buffer(1i64) == 0xA2u8);
+    assert(buffer(2i64) == 0u8);
 
     let buffer = write('€');
-    assert(buffer(0L) == 0xE2Y);
-    assert(buffer(1L) == 0x82Y);
-    assert(buffer(2L) == 0xACY);
-    assert(buffer(3L) == 0Y);
+    assert(buffer(0i64) == 0xE2u8);
+    assert(buffer(1i64) == 0x82u8);
+    assert(buffer(2i64) == 0xACu8);
+    assert(buffer(3i64) == 0u8);
 
     let buffer = write('𐍈');
-    assert(buffer(0L) == 0xF0Y);
-    assert(buffer(1L) == 0x90Y);
-    assert(buffer(2L) == 0x8DY);
-    assert(buffer(3L) == 0x88Y);
-    assert(buffer(4L) == 0Y);
+    assert(buffer(0i64) == 0xF0u8);
+    assert(buffer(1i64) == 0x90u8);
+    assert(buffer(2i64) == 0x8Du8);
+    assert(buffer(3i64) == 0x88u8);
+    assert(buffer(4i64) == 0u8);
 }
 
 fn write(ch: Char): Array[UInt8] {
-    let buffer = Array[UInt8]::zero(5L);
-    ch.encodeUtf8(buffer, 0L);
+    let buffer = Array[UInt8]::zero(5i64);
+    ch.encodeUtf8(buffer, 0i64);
     return buffer;
 }

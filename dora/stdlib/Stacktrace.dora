@@ -16,13 +16,13 @@
     }
 
     let backtraceLength = self.backtrace.getOrPanic().size();
-    var i = 0L;
-    let len = backtraceLength / 2L;
+    var i = 0i64;
+    let len = backtraceLength / 2i64;
     let elements = Array[StacktraceElement]::unsafeNew(len);
 
     while i < len {
       elements.set(i, self.getStacktraceElement(i));
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     self.elements = Some[Array[StacktraceElement]](elements);
@@ -31,11 +31,11 @@
 
   @pub fn printStacktrace() {
     let x = self.getStacktrace();
-    var i = 0L;
+    var i = 0i64;
 
     while i < x.size() {
       println(i.toString() + ": " + x.get(i).toString());
-      i = i + 1L;
+      i = i + 1i64;
     }
   }
 

@@ -1,71 +1,71 @@
 fn main() {
-    let x = 1L.unaryPlus();
-    assert(x == +1L);
+    let x = 1i64.unaryPlus();
+    assert(x == +1i64);
 
-    let x = 1L.unaryMinus();
-    assert(x == -1L);
+    let x = 1i64.unaryMinus();
+    assert(x == -1i64);
 
-    let x = 1L.plus(2L);
-    assert(x == 3L);
+    let x = 1i64.plus(2i64);
+    assert(x == 3i64);
 
-    let x = 1L + 2L;
-    assert(x == 3L);
+    let x = 1i64 + 2i64;
+    assert(x == 3i64);
 
-    let x = 5L.minus(2L);
-    assert(x == 3L);
+    let x = 5i64.minus(2i64);
+    assert(x == 3i64);
 
-    let x = 5L - 2L;
-    assert(x == 3L);
+    let x = 5i64 - 2i64;
+    assert(x == 3i64);
 
-    let x = 3L.times(4L);
-    assert(x == 12L);
+    let x = 3i64.times(4i64);
+    assert(x == 12i64);
 
-    let x = 3L * 4L;
-    assert(x == 12L);
+    let x = 3i64 * 4i64;
+    assert(x == 12i64);
 
-    let x = 9L.div(8L);
-    assert(x == 1L);
+    let x = 9i64.div(8i64);
+    assert(x == 1i64);
 
-    let x = 9L / 8L;
-    assert(x == 1L);
+    let x = 9i64 / 8i64;
+    assert(x == 1i64);
 
-    let x = 10L.modulo(8L);
-    assert(x == 2L);
+    let x = 10i64.modulo(8i64);
+    assert(x == 2i64);
 
-    let x = 10L % 8L;
-    assert(x == 2L);
+    let x = 10i64 % 8i64;
+    assert(x == 2i64);
 
-    let x = 1L.bitwiseOr(2L);
-    assert(x == 3L);
+    let x = 1i64.bitwiseOr(2i64);
+    assert(x == 3i64);
 
-    let x = 1L | 2L;
-    assert(x == 3L);
+    let x = 1i64 | 2i64;
+    assert(x == 3i64);
 
-    let x = 5L.bitwiseAnd(6L);
-    assert(x == 4L);
+    let x = 5i64.bitwiseAnd(6i64);
+    assert(x == 4i64);
 
-    let x = 5L & 6L;
-    assert(x == 4L);
+    let x = 5i64 & 6i64;
+    assert(x == 4i64);
 
-    let x = 1L.bitwiseXor(3L);
-    assert(x == 2L);
+    let x = 1i64.bitwiseXor(3i64);
+    assert(x == 2i64);
 
-    let x = 1L ^ 3L;
-    assert(x == 2L);
+    let x = 1i64 ^ 3i64;
+    assert(x == 2i64);
 
-    let x = 1L.not();
-    assert(x == -2L);
+    let x = 1i64.not();
+    assert(x == -2i64);
 
-    let x = !1L;
-    assert(x == -2L);
+    let x = !1i64;
+    assert(x == -2i64);
 
-    let x = 3L;
-    assert(x.toInt32() == 3I);
+    let x = 3i64;
+    assert(x.toInt32() == 3i32);
 
-    assert(2L != 3L);
-    assert(5L == 5L);
-    assert(2L > 1L);
-    assert(2L >= 1L);
-    assert(3L < 4L);
-    assert(3L <= 4L);
+    assert(2i64 != 3i64);
+    assert(5i64 == 5i64);
+    assert(2i64 > 1i64);
+    assert(2i64 >= 1i64);
+    assert(3i64 < 4i64);
+    assert(3i64 <= 4i64);
 }

@@ -1,25 +1,25 @@
 fn main() {
-    assert(2L.compareTo(4L) == -1I);
-    assert(4L.compareTo(2L) == 1I);
-    assert(4L.compareTo(4L) == 0I);
+    assert(2i64.compareTo(4i64) == -1i32);
+    assert(4i64.compareTo(2i64) == 1i32);
+    assert(4i64.compareTo(4i64) == 0i32);
 
-    assert((-2L).compareTo(-4L) == 1I);
-    assert((-4L).compareTo(-2L) == -1I);
-    assert((-4L).compareTo(-4L) == 0I);
+    assert((-2i64).compareTo(-4i64) == 1i32);
+    assert((-4i64).compareTo(-2i64) == -1i32);
+    assert((-4i64).compareTo(-4i64) == 0i32);
 
-    assert(2.compareTo(4) == -1I);
-    assert(4.compareTo(2) == 1I);
-    assert(4.compareTo(4) == 0I);
+    assert(2.compareTo(4) == -1i32);
+    assert(4.compareTo(2) == 1i32);
+    assert(4.compareTo(4) == 0i32);
 
-    assert((-2).compareTo(-4) == 1I);
-    assert((-4).compareTo(-2) == -1I);
-    assert((-4).compareTo(-4) == 0I);
+    assert((-2).compareTo(-4) == 1i32);
+    assert((-4).compareTo(-2) == -1i32);
+    assert((-4).compareTo(-4) == 0i32);
 
-    assert(2Y.compareTo(4Y) == -1I);
-    assert(4Y.compareTo(2Y) == 1I);
-    assert(4Y.compareTo(4Y) == 0I);
+    assert(2u8.compareTo(4u8) == -1i32);
+    assert(4u8.compareTo(2u8) == 1i32);
+    assert(4u8.compareTo(4u8) == 0i32);
 
-    assert('a'.compareTo('z') == -1I);
-    assert('z'.compareTo('a') == 1I);
-    assert('x'.compareTo('x') == 0I);
+    assert('a'.compareTo('z') == -1i32);
+    assert('z'.compareTo('a') == 1i32);
+    assert('x'.compareTo('x') == 0i32);
 }

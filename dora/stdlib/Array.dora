@@ -3,36 +3,36 @@
   @pub @internal fn get(idx: Int64): T;
   @pub @internal fn set(idx: Int64, val: T);
 
-  @pub fn isEmpty(): Bool = self.size() == 0L;
+  @pub fn isEmpty(): Bool = self.size() == 0i64;
 
   @pub fn enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T](self)
   }
 
   @pub @static fn empty(): Array[T] {
-    Array[T]::unsafeNew(0L)
+    Array[T]::unsafeNew(0i64)
   }
 
   @static @internal fn unsafeNew(size: Int64): Array[T];
 
   @pub @static fn fill(len: Int64, value: T): Array[T] {
     let array = Array[T]::unsafeNew(len);
-    var i = 0L;
+    var i = 0i64;
 
     while i < len {
       array(i) = value;
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     return array;
   }
 
   @pub @static fn copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
-    var i = 0L;
+    var i = 0i64;
 
     while i < len {
       dest.set(destPos+i, src.get(srcPos+i));
-      i = i + 1L;
+      i = i + 1i64;
     }
   }
 }
@@ -40,12 +40,12 @@
 impl[T: Default] Array[T] {
   @pub @static fn new(len: Int64): Array[T] {
     let array = Array[T]::unsafeNew(len);
-    var i = 0L;
+    var i = 0i64;
     let value = T::default();
 
     while i < len {
       array.set(i, value);
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     return array;
@@ -59,7 +59,7 @@ impl[T: Zero] Array[T] {
 }
 
 @pub class ArrayEnumerator[T](let array: Array[T]) {
-  var idx: Int64 = 0L;
+  var idx: Int64 = 0i64;
 
   @pub fn hasNext(): Bool {
     self.idx < self.array.size()
@@ -67,7 +67,7 @@ impl[T: Zero] Array[T] {
 
   @pub fn next(): (Int64, T) {
     let current_idx = self.idx;
-    self.idx = self.idx + 1L;
+    self.idx = self.idx + 1i64;
     (current_idx, self.array(current_idx))
   }
 }
@@ -76,16 +76,16 @@ impl[T: Sortable] Array[T] {
   // a stable in-place sort, currently implemented by insertion sort
   @pub @static
   fn sortStable(array: Array[T]) {
-    var i = 1L;
+    var i = 1i64;
     while i < array.size() {
       var temp: T = array.get(i);
       var j = i;
-      while j > 0L && array(j - 1L).sortsAfter(temp) {
-        array(j) = array(j - 1L);
-        j = j - 1L;
+      while j > 0i64 && array(j - 1i64).sortsAfter(temp) {
+        array(j) = array(j - 1i64);
+        j = j - 1i64;
       }
       array(j) = temp;
-      i = i + 1L;
+      i = i + 1i64;
     }
   }
 }
@@ -95,25 +95,25 @@ impl[T: Equals] Array[T] {
     if self.size() != other.size() {
       return false;
     }
-    var i = 0L;
+    var i = 0i64;
     while i < self.size() {
       if self(i).equals(other(i)).not() {
         return false;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
     return true;
   }
 
   @pub fn contains(value: T): Bool {
-    var i = 0L;
+    var i = 0i64;
 
     while i < self.size() {
       let x = self.get(i);
       if x.equals(value) {
         return true;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     return false;
@@ -125,17 +125,17 @@ impl[T: Equals] Array[T] {
     if aSize < len || bSize < len {
       fatalError("len ${len} exceeds size of array");
     }
-    if aSize < 0L || bSize < 0L {
+    if aSize < 0i64 || bSize < 0i64 {
       return false;
     }
 
-    var i = 0L;
+    var i = 0i64;
 
     while i < len {
       if a(aPos+i).equals(b(bPos+i)).not() {
         return false;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     return true;
@@ -144,13 +144,13 @@ impl[T: Equals] Array[T] {
 
 impl[T: Identity] Array[T] {
   @pub fn has(value: T): Bool {
-    var i = 0L;
+    var i = 0i64;
 
     while i < self.size() {
       if self.get(i).identicalTo(value) {
         return true;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     return false;
@@ -162,12 +162,12 @@ impl[T: Stringable] Array[T] {
     let sb = StringBuffer();
     sb.append("Array(");
     let size = self.size();
-    if size != 0L {
-      var i = 0L;
-      while i < size - 1L {
+    if size != 0i64 {
+      var i = 0i64;
+      while i < size - 1i64 {
         sb.append(self.get(i).toString());
         sb.append(", ");
-        i = i + 1L;
+        i = i + 1i64;
       }
       sb.append(self.get(i).toString());
     }

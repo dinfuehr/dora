@@ -6,6 +6,6 @@ fn main() {
 
   assert(ok1.has(ok));
   assert(ok1.has("ok").not());
-  assert(er1.has(23I).not());
+  assert(er1.has(23i32).not());
   assert(nan.has(0.0/0.0));
 }

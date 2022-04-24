@@ -5,15 +5,15 @@ fn main() {
 }
 
 fn int32() {
-  let x = Array[Int32](2I, 3I, 0I, 4I);
+  let x = Array[Int32](2i32, 3i32, 0i32, 4i32);
   Array[Int32]::sortStable(x);
-  assert(x == Array[Int32](0I, 2I, 3I, 4I));
+  assert(x == Array[Int32](0i32, 2i32, 3i32, 4i32));
 }
 
 fn int64() {
-  let x = Array[Int64](5L, 1L, 4L, 2L, 8L);
+  let x = Array[Int64](5i64, 1i64, 4i64, 2i64, 8i64);
   Array[Int64]::sortStable(x);
-  assert(x == Array[Int64](1L, 2L, 4L, 5L, 8L));
+  assert(x == Array[Int64](1i64, 2i64, 4i64, 5i64, 8i64));
 }
 
 fn float64() {
@@ -32,12 +32,12 @@ fn float64() {
 
   let x = Array[Float64](pOne, pInf, nInf, pNaN, nNaN, nZero, pZero, nOne);
   Array[Float64]::sortStable(x);
-  assert(x(0L) === nNaN);
-  assert(x(1L) === nInf);
-  assert(x(2L) === nOne);
-  assert(x(3L) === nZero);
-  assert(x(4L) === pZero);
-  assert(x(5L) === pOne);
-  assert(x(6L) === pInf);
-  assert(x(7L) === pNaN);
+  assert(x(0i64) === nNaN);
+  assert(x(1i64) === nInf);
+  assert(x(2i64) === nOne);
+  assert(x(3i64) === nZero);
+  assert(x(4i64) === pZero);
+  assert(x(5i64) === pOne);
+  assert(x(6i64) === pInf);
+  assert(x(7i64) === pNaN);
 }

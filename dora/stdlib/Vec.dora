@@ -3,7 +3,7 @@
   var len: Int64 = values.size();
 
   @pub fn get(idx: Int64): T {
-    if idx < 0L || idx >= self.len {
+    if idx < 0i64 || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
 
@@ -11,7 +11,7 @@
   }
 
   @pub fn set(idx: Int64, val: T) {
-    if idx < 0L || idx >= self.len {
+    if idx < 0i64 || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
 
@@ -19,14 +19,14 @@
   }
 
   @pub fn reserve(newcap: Int64) {
-    assert(newcap >= 0L);
+    assert(newcap >= 0i64);
 
     if self.capacity() >= newcap {
       return;
     }
 
     let newarray = Array[T]::unsafeNew(newcap);
-    Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
+    Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
     self.array = newarray;
   }
 
@@ -37,12 +37,12 @@
       let newCapacity = self.newCapacity(currentCapacity);
 
       let newArray = Array[T]::unsafeNew(newCapacity);
-      Array[T]::copy(self.array, 0L, newArray, 0L, self.len);
+      Array[T]::copy(self.array, 0i64, newArray, 0i64, self.len);
       self.array = newArray;
     }
 
     self.array.set(self.len, val);
-    self.len = self.len + 1L;
+    self.len = self.len + 1i64;
   }
 
   @pub fn insertAt(idx: Int64, val: T) {
@@ -58,42 +58,42 @@
       self.array
     };
 
-    if idx != 0L && self.array !== targetArray {
-      Array[T]::copy(self.array, 0L, targetArray, 0L, idx);
+    if idx != 0i64 && self.array !== targetArray {
+      Array[T]::copy(self.array, 0i64, targetArray, 0i64, idx);
     }
 
     // not Array::copy as source and target could be aliased
-    var i = self.len - 1L;
+    var i = self.len - 1i64;
     while idx <= i {
-      targetArray.set(i + 1L, self.array.get(i));
-      i = i - 1L;
+      targetArray.set(i + 1i64, self.array.get(i));
+      i = i - 1i64;
     }
 
     targetArray.set(idx, val);
     self.array = targetArray;
-    self.len = self.len + 1L;
+    self.len = self.len + 1i64;
   }
 
   fn newCapacity(currentCapacity: Int64): Int64 {
-    if currentCapacity == 0L {
-      4L
+    if currentCapacity == 0i64 {
+      4i64
     } else {
-      currentCapacity * 2L
+      currentCapacity * 2i64
     }
   }
 
   @pub fn toArray(): Array[T] {
     let newarray = Array[T]::unsafeNew(self.len);
-    Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
+    Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
     newarray
   }
 
   @pub fn pop(): T {
-    if self.len == 0L {
+    if self.len == 0i64 {
       fatalError("no element left to pop");
     }
 
-    let newlength = self.len - 1L;
+    let newlength = self.len - 1i64;
     let temp = self.array(newlength);
 
     // set popped element to nil so that GC can collect object
@@ -106,11 +106,11 @@
 
   @pub fn trimToLen() {
     if self.len != self.capacity() {
-      if self.len == 0L {
+      if self.len == 0i64 {
         self.array = Array[T]::empty();
       } else {
         let newarray = Array[T]::unsafeNew(self.len);
-        Array[T]::copy(self.array, 0L, newarray, 0L, self.len);
+        Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
         self.array = newarray;
       }
     }
@@ -118,25 +118,25 @@
 
   @pub fn removeItem(value: T) {
     let len = self.len;
-    var destIdx = 0L;
-    var srcIdx = 0L;
+    var destIdx = 0i64;
+    var srcIdx = 0i64;
 
     while srcIdx < len {
       let current = self.array(srcIdx);
 
       if current !== value {
         self.array(destIdx) = current;
-        destIdx = destIdx + 1L;
+        destIdx = destIdx + 1i64;
       }
 
-      srcIdx = srcIdx + 1L;
+      srcIdx = srcIdx + 1i64;
     }
 
     self.len = destIdx;
 
     while destIdx < srcIdx {
       unsafeKillRefs[T](self.array, destIdx);
-      destIdx = destIdx + 1L;
+      destIdx = destIdx + 1i64;
     }
   }
 
@@ -146,9 +146,9 @@
     let temp = self.get(ind);
     let len = self.len;
 
-    while ind < len - 1L {
-      self.set(ind, self.get(ind+1L));
-      ind = ind + 1L;
+    while ind < len - 1i64 {
+      self.set(ind, self.get(ind+1i64));
+      ind = ind + 1i64;
     }
 
     unsafeKillRefs[T](self.array, ind);
@@ -162,7 +162,7 @@
   }
 
   @pub fn isEmpty(): Bool {
-    self.len == 0L
+    self.len == 0i64
   }
 
   @pub fn capacity(): Int64 {
@@ -170,23 +170,23 @@
   }
 
   @pub fn first(): Option[T] {
-    if self.len == 0L {
+    if self.len == 0i64 {
       Option[T]::None
     } else {
-      Option[T]::Some(self.array(0L))
+      Option[T]::Some(self.array(0i64))
     }
   }
 
   @pub fn last(): Option[T] {
-    if self.len == 0L {
+    if self.len == 0i64 {
       Option[T]::None
     } else {
-      Option[T]::Some(self.array(self.len - 1L))
+      Option[T]::Some(self.array(self.len - 1i64))
     }
   }
 
   @pub fn clear() {
-    self.len = 0L;
+    self.len = 0i64;
     self.array = Array[T]::empty();
   }
 
@@ -204,7 +204,7 @@
 }
 
 @pub class VecEnumerator[T](let data: Vec[T]) {
-  var idx: Int64 = 0L;
+  var idx: Int64 = 0i64;
 
   @pub fn hasNext(): Bool {
     self.idx < self.data.size()
@@ -212,13 +212,13 @@
 
   @pub fn next(): (Int64, T) {
     let current_idx = self.idx;
-    self.idx = self.idx + 1L;
+    self.idx = self.idx + 1i64;
     (current_idx, self.data(current_idx))
   }
 }
 
 @pub class VecIter[T](let data: Vec[T]) {
-  var idx: Int64 = 0L;
+  var idx: Int64 = 0i64;
 
   @pub fn hasNext(): Bool {
     self.idx < self.data.size()
@@ -226,21 +226,21 @@
 
   @pub fn next(): T {
     let result = self.data(self.idx);
-    self.idx = self.idx + 1L;
+    self.idx = self.idx + 1i64;
     result
   }
 }
 
 @pub class ReverseVecIter[T](let data: Vec[T]) {
-  var idx: Int64 = data.size() - 1L;
+  var idx: Int64 = data.size() - 1i64;
 
   @pub fn hasNext(): Bool {
-    self.idx != -1L
+    self.idx != -1i64
   }
 
   @pub fn next(): T {
     let result = self.data(self.idx);
-    self.idx = self.idx - 1L;
+    self.idx = self.idx - 1i64;
     result
   }
 }
@@ -250,38 +250,38 @@ impl[T: Equals] Vec[T] {
     if self.size() != other.size() {
       return false;
     }
-    var i = 0L;
+    var i = 0i64;
     while i < self.size() {
       if self(i).equals(other(i)).not() {
         return false;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
     return true;
   }
 
   @pub fn contains(value: T): Bool {
-    var i = 0L;
+    var i = 0i64;
 
     while i < self.size() {
       let x = self.get(i);
       if x.equals(value) {
         return true;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     return false;
   }
 
   @pub fn removeEquals(elem: T) {
-    var i = 0L;
+    var i = 0i64;
 
     while i < self.size() {
       if self(i).equals(elem) {
         self.removeAt(i);
       } else {
-        i = i + 1L;
+        i = i + 1i64;
       }
     }
   }
@@ -289,13 +289,13 @@ impl[T: Equals] Vec[T] {
 
 impl[T: Identity] Vec[T] {
   @pub fn has(value: T): Bool {
-    var i = 0L;
+    var i = 0i64;
 
     while i < self.size() {
       if self.get(i).identicalTo(value) {
         return true;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     return false;
@@ -307,12 +307,12 @@ impl[T: Stringable] Vec[T] {
     let sb = StringBuffer();
     sb.append("Vec(");
     let size = self.len;
-    if size != 0L {
-      var i = 0L;
-      while i < size - 1L {
+    if size != 0i64 {
+      var i = 0i64;
+      while i < size - 1i64 {
         sb.append(self.array(i).toString());
         sb.append(", ");
-        i = i + 1L;
+        i = i + 1i64;
       }
       sb.append(self.array(i).toString());
     }

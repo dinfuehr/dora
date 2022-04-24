@@ -1,17 +1,17 @@
 fn main() {
-  let a = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 3I);
-  let b = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 4I);
-  let c = Array[Int32](1I, 2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I);
-  let d = Array[Int32](2I, 3I, 3I, 4I, 5I, 4I, 5I, 4I, 3I, 4I);
+  let a = Array[Int32](1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 3i32);
+  let b = Array[Int32](1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 4i32);
+  let c = Array[Int32](1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32);
+  let d = Array[Int32](2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 4i32);
   let e = Array[Int32]();
 
-  assert(Array[Int32]::compare(a, 0L, a, 0L, 11L));
-  assert(Array[Int32]::compare(a, 0L, b, 0L, 11L).not());
-  assert(Array[Int32]::compare(a, 0L, b, 0L, 10L));
-  assert(Array[Int32]::compare(a, 1L, b, 1L, 9L));
-  assert(Array[Int32]::compare(a, 1L, b, 1L, 10L).not());
-  assert(Array[Int32]::compare(a, 0L, c, 0L, 10L));
-  assert(Array[Int32]::compare(a, 1L, d, 0L, 9L));
-  assert(Array[Int32]::compare(e, 0L, e, 0L, 0L));
-  assert(Array[Int32]::compare(a, 3L, e, 0L, 0L));
+  assert(Array[Int32]::compare(a, 0i64, a, 0i64, 11i64));
+  assert(Array[Int32]::compare(a, 0i64, b, 0i64, 11i64).not());
+  assert(Array[Int32]::compare(a, 0i64, b, 0i64, 10i64));
+  assert(Array[Int32]::compare(a, 1i64, b, 1i64, 9i64));
+  assert(Array[Int32]::compare(a, 1i64, b, 1i64, 10i64).not());
+  assert(Array[Int32]::compare(a, 0i64, c, 0i64, 10i64));
+  assert(Array[Int32]::compare(a, 1i64, d, 0i64, 9i64));
+  assert(Array[Int32]::compare(e, 0i64, e, 0i64, 0i64));
+  assert(Array[Int32]::compare(a, 3i64, e, 0i64, 0i64));
 }

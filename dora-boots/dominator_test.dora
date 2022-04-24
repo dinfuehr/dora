@@ -6,7 +6,7 @@ fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 
     for (idx, expectedDominatorId) in idoms.enumerate() {
         // Block 0 is entry block and idoms doesn't contain that block so skip it.
-        let block = graph.getBlockWithId(idx.toInt32() + 1I);
+        let block = graph.getBlockWithId(idx.toInt32() + 1i32);
 
         let dominator = block.getDominator();
 
@@ -42,14 +42,14 @@ fn testDominatorEmptyBlocks() {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 0I, 1I);
+    assertDominatedBlocks(fct, 0i32, 1i32);
 }
 
 @Test
 fn testDominatorSimple() {
     let writer = BytecodeBuilder();
     let arg0 = writer.addRegister(BytecodeType::Bool);
-    writer.setArguments(1I);
+    writer.setArguments(1i32);
     let elseBlock = writer.createLabel();
     writer.emitJumpIfFalse(arg0, elseBlock);
     let returnBlock = writer.createLabel();
@@ -60,7 +60,7 @@ fn testDominatorSimple() {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 0I, 0I, 0I);
+    assertDominatedBlocks(fct, 0i32, 0i32, 0i32);
 }
 
 @Test
@@ -69,18 +69,18 @@ fn testDominatorIfReturnInBothBranches() {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
-    let condBlock = graph.getBlockWithId(0I);
-    let thenBlock = graph.getBlockWithId(1I);
-    let elseBlock = graph.getBlockWithId(2I);
+    let condBlock = graph.getBlockWithId(0i32);
+    let thenBlock = graph.getBlockWithId(1i32);
+    let elseBlock = graph.getBlockWithId(2i32);
 
     assert(condBlock.getDominator().isNone());
-    assert(condBlock.getDominatedBlocks().size() == 2L);
+    assert(condBlock.getDominatedBlocks().size() == 2i64);
 
     assert(thenBlock.getDominator().getOrPanic() === condBlock);
-    assert(thenBlock.getDominatedBlocks().size() == 0L);
+    assert(thenBlock.getDominatedBlocks().size() == 0i64);
 
     assert(elseBlock.getDominator().getOrPanic() === condBlock);
-    assert(elseBlock.getDominatedBlocks().size() == 0L);
+    assert(elseBlock.getDominatedBlocks().size() == 0i64);
 }
 
 @Test
@@ -89,19 +89,19 @@ fn testDominatorWhileCountDown() {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
-    let varBlock = graph.getBlockWithId(0I);
-    let whileHeader = graph.getBlockWithId(1I);
-    let whileBody = graph.getBlockWithId(3I);
-    let returnBlock = graph.getBlockWithId(2I);
+    let varBlock = graph.getBlockWithId(0i32);
+    let whileHeader = graph.getBlockWithId(1i32);
+    let whileBody = graph.getBlockWithId(3i32);
+    let returnBlock = graph.getBlockWithId(2i32);
 
     assert(varBlock.getDominator().isNone());
 
     assert(whileHeader.getDominator().getOrPanic() === varBlock);
-    assert(whileHeader.getDominatedBlocks().size() == 2L);
+    assert(whileHeader.getDominatedBlocks().size() == 2i64);
 
     assert(whileBody.getDominator().getOrPanic() === whileHeader);
-    assert(whileBody.getDominatedBlocks().size() == 0L);
+    assert(whileBody.getDominatedBlocks().size() == 0i64);
 
     assert(returnBlock.getDominator().getOrPanic() === whileHeader);
-    assert(returnBlock.getDominatedBlocks().size() == 0L);
+    assert(returnBlock.getDominatedBlocks().size() == 0i64);
 }

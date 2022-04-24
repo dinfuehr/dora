@@ -13,6 +13,6 @@ impl Foo for A {
 }
 
 fn main() {
-    let a = A(1I);
+    let a = A(1i32);
     a.bla();
 }

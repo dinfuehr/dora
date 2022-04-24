@@ -62,7 +62,7 @@ class GraphBuilder {
 fn testEmptyGraph() {
     let builder = GraphBuilder();
     let block = builder.addBlock();
-    let value = builder.createInt32Const(12I);
+    let value = builder.createInt32Const(12i32);
     builder.createReturn(value, Type::Int32);
 
     assertGraph(builder.build(), "

@@ -3,93 +3,93 @@ use std::HashMap;
 
 fn main() {
     let map = HashMap[Int32, String]();
-    map.insert(1I, "a");
-    map.insert(10000I, "b");
-    map.insert(7I, "c");
+    map.insert(1i32, "a");
+    map.insert(10000i32, "b");
+    map.insert(7i32, "c");
 
     check_iterator1(map);
 
-    assert(map.get(1I).getOrPanic() == "a");
-    assert(map.get(10000I).getOrPanic() == "b");
-    assert(map.get(7I).getOrPanic() == "c");
-    assert(map.get(2I).isNone());
-    assert(map.size() == 3L);
+    assert(map.get(1i32).getOrPanic() == "a");
+    assert(map.get(10000i32).getOrPanic() == "b");
+    assert(map.get(7i32).getOrPanic() == "c");
+    assert(map.get(2i32).isNone());
+    assert(map.size() == 3i64);
     assert(map.isEmpty().not());
 
-    assert(map.contains(1I));
-    assert(map.contains(10000I));
-    assert(map.contains(7I));
-    assert(!map.contains(2I));
+    assert(map.contains(1i32));
+    assert(map.contains(10000i32));
+    assert(map.contains(7i32));
+    assert(!map.contains(2i32));
 
-    map.remove(10000I);
+    map.remove(10000i32);
 
-    assert(map.get(1I).getOrPanic() == "a");
-    assert(map.get(10000I).isNone());
-    assert(map.get(7I).getOrPanic() == "c");
-    assert(map.get(2I).isNone());
-    assert(map.size() == 2L);
+    assert(map.get(1i32).getOrPanic() == "a");
+    assert(map.get(10000i32).isNone());
+    assert(map.get(7i32).getOrPanic() == "c");
+    assert(map.get(2i32).isNone());
+    assert(map.size() == 2i64);
     assert(map.isEmpty().not());
 
-    assert(map.contains(1I));
-    assert(!map.contains(10000I));
-    assert(map.contains(7I));
+    assert(map.contains(1i32));
+    assert(!map.contains(10000i32));
+    assert(map.contains(7i32));
 
     check_iterator2(map);
 }
 
 fn check_iterator1(map: HashMap[Int32, String]) {
     let it = map.makeIterator();
-    let set = BitSet(3L);
+    let set = BitSet(3i64);
 
     while it.hasNext() {
         let key_and_value = it.next();
         let key = key_and_value.0;
         let value = key_and_value.1;
 
-        if key == 1I {
+        if key == 1i32 {
             assert(value == "a");
-            assert(!set.contains(0L));
-            set.insert(0L);
-        } else if key == 10000I {
+            assert(!set.contains(0i64));
+            set.insert(0i64);
+        } else if key == 10000i32 {
             assert(value == "b");
-            assert(!set.contains(1L));
-            set.insert(1L);
-        } else if key == 7I {
+            assert(!set.contains(1i64));
+            set.insert(1i64);
+        } else if key == 7i32 {
             assert(value == "c");
-            assert(!set.contains(2L));
-            set.insert(2L);
+            assert(!set.contains(2i64));
+            set.insert(2i64);
         } else {
             unreachable[()]();
         }
     }
 
-    assert(set.contains(0L));
-    assert(set.contains(1L));
-    assert(set.contains(2L));
+    assert(set.contains(0i64));
+    assert(set.contains(1i64));
+    assert(set.contains(2i64));
 }
 
 fn check_iterator2(map: HashMap[Int32, String]) {
     let it = map.makeIterator();
-    let set = BitSet(3L);
+    let set = BitSet(3i64);
 
     while it.hasNext() {
         let key_and_value = it.next();
         let key = key_and_value.0;
         let value = key_and_value.1;
 
-        if key == 1I {
+        if key == 1i32 {
             assert(value == "a");
-            assert(!set.contains(0L));
-            set.insert(0L);
-        } else if key == 7I {
+            assert(!set.contains(0i64));
+            set.insert(0i64);
+        } else if key == 7i32 {
             assert(value == "c");
-            assert(!set.contains(1L));
-            set.insert(1L);
+            assert(!set.contains(1i64));
+            set.insert(1i64);
         } else {
             unreachable[()]();
         }
     }
 
-    assert(set.contains(0L));
-    assert(set.contains(1L));
+    assert(set.contains(0i64));
+    assert(set.contains(1i64));
 }

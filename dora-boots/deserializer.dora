@@ -25,11 +25,11 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
     let size = reader.readInt32().toInt64();
     let data = Array[BytecodeType]::fill(size, BytecodeType::UInt8);
 
-    var i = 0L;
+    var i = 0i64;
 
     while i < size {
         data(i) = decodeBytecodeType(reader);
-        i = i + 1L;
+        i = i + 1i64;
     }
 
     data
@@ -73,12 +73,12 @@ fn decodeBytecodeType(reader: ByteReader): BytecodeType {
 fn decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
     let size = reader.readInt32().toInt64();
 
-    let data = Array[ConstPoolEntry]::fill(size, ConstPoolEntry::Int32(0I));
-    var i = 0L;
+    let data = Array[ConstPoolEntry]::fill(size, ConstPoolEntry::Int32(0i32));
+    var i = 0i64;
 
     while i < size {
         data(i) = decodeConstPoolEntry(reader);
-        i = i + 1L;
+        i = i + 1i64;
     }
 
     data
@@ -129,11 +129,11 @@ fn decodeSourceTypeArray(reader: ByteReader): Array[SourceType] {
     let size = reader.readInt32().toInt64();
     let data = Array[SourceType]::fill(size, SourceType::Unit);
 
-    var i = 0L;
+    var i = 0i64;
 
     while i < size {
         data(i) = decodeSourceType(reader);
-        i = i + 1L;
+        i = i + 1i64;
     }
 
     data
@@ -183,7 +183,7 @@ fn decodeSourceType(reader: ByteReader): SourceType {
 }
 
 class ByteReader(let array: Array[UInt8]) {
-    var idx: Int64 = 0L;
+    var idx: Int64 = 0i64;
 
     fn moreBytes(): Bool {
         self.idx < self.array.size()
@@ -191,7 +191,7 @@ class ByteReader(let array: Array[UInt8]) {
 
     fn readUInt8(): UInt8 {
         let value = self.array(self.idx);
-        self.idx = self.idx + 1L;
+        self.idx = self.idx + 1i64;
         value
     }
 
@@ -201,7 +201,7 @@ class ByteReader(let array: Array[UInt8]) {
         let by3 = self.readUInt8().toInt32();
         let by4 = self.readUInt8().toInt32();
 
-        (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
+        (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
     }
 
     fn readId(): Int32 {
@@ -218,18 +218,18 @@ class ByteReader(let array: Array[UInt8]) {
         let by7 = self.readUInt8().toInt64();
         let by8 = self.readUInt8().toInt64();
 
-        (by8 << 56I) | (by7 << 48I) | (by6 << 40I) | (by5 << 32I) | (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
+        (by8 << 56i32) | (by7 << 48i32) | (by6 << 40i32) | (by5 << 32i32) | (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
     }
 
     fn readByteArray(): Array[UInt8] {
         let len = self.readInt32().toInt64();
         let data = Array[UInt8]::zero(len);
 
-        var idx = 0L;
+        var idx = 0i64;
 
         while idx < len {
             data(idx) = self.readUInt8();
-            idx = idx + 1L;
+            idx = idx + 1i64;
         }
 
         data

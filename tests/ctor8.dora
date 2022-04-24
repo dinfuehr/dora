@@ -1,24 +1,24 @@
 fn main() {
-  let x = X::one(1I);
+  let x = X::one(1i32);
 
-  assert(x.a == 1I);
-  assert(x.b == 0I);
-  assert(x.c == 0I);
+  assert(x.a == 1i32);
+  assert(x.b == 0i32);
+  assert(x.c == 0i32);
 
-  let x = X::two(1I, 2I);
+  let x = X::two(1i32, 2i32);
 
-  assert(x.a == 1I);
-  assert(x.b == 2I);
-  assert(x.c == 0I);
+  assert(x.a == 1i32);
+  assert(x.b == 2i32);
+  assert(x.c == 0i32);
 
-  let x = X(1I, 2I, 3I);
+  let x = X(1i32, 2i32, 3i32);
 
-  assert(x.a == 1I);
-  assert(x.b == 2I);
-  assert(x.c == 3I);
+  assert(x.a == 1i32);
+  assert(x.b == 2i32);
+  assert(x.c == 3i32);
 }
 
 class X(let a: Int32, let b: Int32, let c: Int32) {
-  @static fn one(a: Int32): X = X(a, 0I, 0I);
-  @static fn two(a: Int32, b: Int32): X = X(a, b, 0I);
+  @static fn one(a: Int32): X = X(a, 0i32, 0i32);
+  @static fn two(a: Int32, b: Int32): X = X(a, b, 0i32);
 }

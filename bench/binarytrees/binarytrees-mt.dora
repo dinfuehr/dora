@@ -1,36 +1,36 @@
-const MIN_DEPTH: Int32 = 4I;
-const DEFAULT_DEPTH: Int32 = 6I;
-const DEFAULT_THREADS: Int32 = 4I;
+const MIN_DEPTH: Int32 = 4i32;
+const DEFAULT_DEPTH: Int32 = 6i32;
+const DEFAULT_THREADS: Int32 = 4i32;
 
 fn main() {
-    let maxDepth = if std::argc() > 0I {
-        std::argv(0I).toInt32().getOrPanic()
+    let maxDepth = if std::argc() > 0i32 {
+        std::argv(0i32).toInt32().getOrPanic()
     } else {
         DEFAULT_DEPTH
     };
 
-    let number_threads = if std::argc() > 1I {
-        std::argv(1I).toInt32().getOrPanic()
+    let number_threads = if std::argc() > 1i32 {
+        std::argv(1i32).toInt32().getOrPanic()
     } else {
         DEFAULT_THREADS
     };
 
-    let stretchDepth = maxDepth + 1I;
+    let stretchDepth = maxDepth + 1i32;
     println("stretch tree of depth " + stretchDepth.toString() +
             "\t check: " + checkTree(createTree(stretchDepth)).toString());
 
     let longLastingNode = createTree(maxDepth);
 
-    var i = 0I;
+    var i = 0i32;
     let threads = Vec[TreeThread]();
     let nextDepth = std::AtomicInt32(MIN_DEPTH);
-    let results = Array[String]::fill((maxDepth - MIN_DEPTH).toInt64() / 2L + 1L, "");
+    let results = Array[String]::fill((maxDepth - MIN_DEPTH).toInt64() / 2i64 + 1i64, "");
 
     while i < number_threads {
         let thread = TreeThread(nextDepth, maxDepth, results);
         thread.start();
         threads.push(thread);
-        i = i + 1I;
+        i = i + 1i32;
     }
 
     for thread in threads {
@@ -48,22 +48,22 @@ fn main() {
 class TreeThread(let nextDepth: std::AtomicInt32, let maxDepth: Int32, let results: Array[String]): std::Thread {
     @override fn run() {
         while true {
-            let depth = self.nextDepth.fetchAdd(2I);
+            let depth = self.nextDepth.fetchAdd(2i32);
             if depth > self.maxDepth { return; }
             let result = loops(self.maxDepth, depth);
-            self.results((depth - MIN_DEPTH).toInt64() / 2L) = result;
+            self.results((depth - MIN_DEPTH).toInt64() / 2i64) = result;
         }
     }
 }
 
 fn loops(maxDepth: Int32, depth: Int32): String {
-    let iterations = 16I << (maxDepth - depth);
-    var check = 0I;
-    var item = 0I;
+    let iterations = 16i32 << (maxDepth - depth);
+    var check = 0i32;
+    var item = 0i32;
 
     while item < iterations {
         check = check + checkTree(createTree(depth));
-        item = item + 1I;
+        item = item + 1i32;
     }
 
     iterations.toString() + "\t trees of depth " +
@@ -72,10 +72,10 @@ fn loops(maxDepth: Int32, depth: Int32): String {
 
 fn createTree(depth: Int32): TreeNode {
     var depth = depth;
-    let node = TreeNode(0I, Option[TreeNode]::None, Option[TreeNode]::None);
+    let node = TreeNode(0i32, Option[TreeNode]::None, Option[TreeNode]::None);
 
-    if depth > 0I {
-        depth = depth - 1I;
+    if depth > 0i32 {
+        depth = depth - 1i32;
         node.left = Option[TreeNode]::Some(createTree(depth));
         node.right = Option[TreeNode]::Some(createTree(depth));
     }
@@ -85,11 +85,11 @@ fn createTree(depth: Int32): TreeNode {
 
 fn checkTree(node: TreeNode): Int32 {
   if node.left.isNone() {
-    return 1I;
+    return 1i32;
   }
 
   return checkTree(node.left.getOrPanic()) +
-         checkTree(node.right.getOrPanic()) + 1I;
+         checkTree(node.right.getOrPanic()) + 1i32;
 }
 
 class TreeNode(let item: Int32, var left: Option[TreeNode], var right: Option[TreeNode])

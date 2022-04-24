@@ -12,5 +12,5 @@ fn main() {
 
 fn foo(): Int32 {
     println("foo");
-    17I
+    17i32
 }

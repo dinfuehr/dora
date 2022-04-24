@@ -1,8 +1,8 @@
 fn main() {
   let c = C();
 
-  assert(c.foo(1I) == 3I);
-  assert(c.foo(2I) == 5I);
+  assert(c.foo(1i32) == 3i32);
+  assert(c.foo(2i32) == 5i32);
 }
 
 @open class A {
@@ -13,12 +13,12 @@ fn main() {
 
 @open class B: A {
   @open @override fn foo(a: Int32): Int32 {
-    return super.foo(a) * 2I;
+    return super.foo(a) * 2i32;
   }
 }
 
 class C: B {
   @override fn foo(a: Int32): Int32 {
-    return super.foo(a) + 1I;
+    return super.foo(a) + 1i32;
   }
 }

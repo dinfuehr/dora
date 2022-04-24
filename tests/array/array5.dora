@@ -1,12 +1,12 @@
 fn main() {
-  assert(1I == A()("hello"));
+  assert(1i32 == A()("hello"));
 
   assert(B()(true));
   assert(!B()(false));
 }
 
 class A {
-  fn get(index: String): Int32 = 1I;
+  fn get(index: String): Int32 = 1i32;
 }
 
 class B {

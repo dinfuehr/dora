@@ -1,48 +1,48 @@
 fn main() {
-    assert(not(20L) == -21L);
+    assert(not(20i64) == -21i64);
 
-    assert(add(20L, 7L) == 27L);
-    assert(sub(20L, 7L) == 13L);
-    assert(mul(20L, 7L) == 140L);
-    assert(div(20L, 7L) == 2L);
+    assert(add(20i64, 7i64) == 27i64);
+    assert(sub(20i64, 7i64) == 13i64);
+    assert(mul(20i64, 7i64) == 140i64);
+    assert(div(20i64, 7i64) == 2i64);
     
-    assert(modulo(20L, 7L) == 6L);
+    assert(modulo(20i64, 7i64) == 6i64);
 
-    assert(neg(20L) == -20L);
-    assert(neg(-5L) == 5L);
+    assert(neg(20i64) == -20i64);
+    assert(neg(-5i64) == 5i64);
 
-    assert(or(20L, 5L) == 21L);
-    assert(xor(20L, 5L) == 17L);
-    assert(and(20L, 5L) == 4L);
+    assert(or(20i64, 5i64) == 21i64);
+    assert(xor(20i64, 5i64) == 17i64);
+    assert(and(20i64, 5i64) == 4i64);
 
-    assert(shl(20L, 2I) == 80L);
-    assert(shr(20L, 2I) == 5L);
-    assert(sar(20L, 2I) == 5L);
+    assert(shl(20i64, 2i32) == 80i64);
+    assert(shr(20i64, 2i32) == 5i64);
+    assert(sar(20i64, 2i32) == 5i64);
 
-    assert(!eq(20L, 5L));
-    assert(eq(5L, 5L));
-    assert(!eq(5L, 20L));
+    assert(!eq(20i64, 5i64));
+    assert(eq(5i64, 5i64));
+    assert(!eq(5i64, 20i64));
 
-    assert(ne(20L, 5L));
-    assert(!ne(5L, 5L));
-    assert(ne(5L, 20L));
+    assert(ne(20i64, 5i64));
+    assert(!ne(5i64, 5i64));
+    assert(ne(5i64, 20i64));
 
 
-    assert(!lt(20L, 5L));
-    assert(!lt(5L, 5L));
-    assert(lt(5L, 20L));
+    assert(!lt(20i64, 5i64));
+    assert(!lt(5i64, 5i64));
+    assert(lt(5i64, 20i64));
 
-    assert(!le(20L, 5L));
-    assert(le(5L, 5L));
-    assert(le(5L, 20L));
+    assert(!le(20i64, 5i64));
+    assert(le(5i64, 5i64));
+    assert(le(5i64, 20i64));
 
-    assert(ge(20L, 5L));
-    assert(ge(5L, 5L));
-    assert(!ge(5L, 20L));
+    assert(ge(20i64, 5i64));
+    assert(ge(5i64, 5i64));
+    assert(!ge(5i64, 20i64));
 
-    assert(gt(20L, 5L));
-    assert(!gt(5L, 5L));
-    assert(!gt(5L, 20L));
+    assert(gt(20i64, 5i64));
+    assert(!gt(5i64, 5i64));
+    assert(!gt(5i64, 20i64));
 }
 
 fn not(x: Int64): Int64 {

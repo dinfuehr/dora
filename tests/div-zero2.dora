@@ -2,7 +2,7 @@
 //= stderr "division by 0\n2: divide(Int64): Int64: 8\n1: main(): 5\n"
 
 fn main() {
-    divide(0L);
+    divide(0i64);
 }
 
-fn divide(x: Int64): Int64 = 4711L / x;
+fn divide(x: Int64): Int64 = 4711i64 / x;

@@ -17,6 +17,6 @@ impl UInt8 {
   @pub @static fn bits(): Int32 = 8;
   @pub @static fn bytes(): Int32 = 1;
 
-  @pub @static fn maxValue(): UInt8 = 255Y;
-  @pub @static fn minValue(): UInt8 = 0Y;
+  @pub @static fn maxValue(): UInt8 = 255u8;
+  @pub @static fn minValue(): UInt8 = 0u8;
 }

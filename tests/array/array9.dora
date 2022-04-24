@@ -3,5 +3,5 @@
 
 fn main() {
   let array = Array[Int32]::empty();
-  array(-1L) = 10I;
+  array(-1i64) = 10i32;
 }

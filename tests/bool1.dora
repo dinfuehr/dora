@@ -1,6 +1,6 @@
 fn main() {
-  assert(true.toInt32() == 1I);
-  assert(false.toInt32() == 0I);
+  assert(true.toInt32() == 1i32);
+  assert(false.toInt32() == 0i32);
   assert(true.not() == false);
   assert(false.not() == true);
 }

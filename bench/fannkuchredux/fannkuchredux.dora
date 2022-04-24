@@ -1,59 +1,59 @@
 fn main() {
-  var n = 7I;
-  if std::argc() > 0I { n = std::argv(0I).toInt32().getOrPanic(); }
+  var n = 7i32;
+  if std::argc() > 0i32 { n = std::argv(0i32).toInt32().getOrPanic(); }
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
 
 fn fannkuch(n: Int32): Int32 {
-  let perm = Array[Int32]::fill(n.toInt64(), 0I);
-  let perm1 = Array[Int32]::fill(n.toInt64(), 0I);
-  let count = Array[Int32]::fill(n.toInt64(), 0I);
-  var maxFlipsCount = 0I;
-  var permCount = 0I;
-  var checksum = 0I;
+  let perm = Array[Int32]::fill(n.toInt64(), 0i32);
+  let perm1 = Array[Int32]::fill(n.toInt64(), 0i32);
+  let count = Array[Int32]::fill(n.toInt64(), 0i32);
+  var maxFlipsCount = 0i32;
+  var permCount = 0i32;
+  var checksum = 0i32;
 
-  var i = 0I;
+  var i = 0i32;
   while i < n {
     perm1(i.toInt64()) = i;
-    i = i + 1I;
+    i = i + 1i32;
   }
 
   var r = n;
 
   while true {
-    while r != 1I {
-      count((r-1I).toInt64()) = r;
-      r = r - 1I;
+    while r != 1i32 {
+      count((r-1i32).toInt64()) = r;
+      r = r - 1i32;
     }
 
-    var i = 0I;
+    var i = 0i32;
     while i < n {
       perm(i.toInt64()) = perm1(i.toInt64());
-      i = i + 1I;
+      i = i + 1i32;
     }
 
-    var flipsCount = 0I;
-    var k = perm(0L);
+    var flipsCount = 0i32;
+    var k = perm(0i64);
 
-    while k != 0I {
-      let k2 = (k+1I) / 2I;
+    while k != 0i32 {
+      let k2 = (k+1i32) / 2i32;
 
-      var i = 0I;
+      var i = 0i32;
       while i < k2 {
         let temp = perm(i.toInt64());
         perm(i.toInt64()) = perm((k-i).toInt64());
         perm((k-i).toInt64()) = temp;
 
-        i = i + 1I;
+        i = i + 1i32;
       }
 
-      flipsCount = flipsCount + 1I;
-      k = perm(0L);
+      flipsCount = flipsCount + 1i32;
+      k = perm(0i64);
     }
 
     maxFlipsCount = Int32::max(maxFlipsCount, flipsCount);
 
-    if permCount % 2I == 0I {
+    if permCount % 2i32 == 0i32 {
       checksum = checksum + flipsCount;
     } else {
       checksum = checksum - flipsCount;
@@ -65,26 +65,26 @@ fn fannkuch(n: Int32): Int32 {
         return maxFlipsCount;
       }
 
-      let perm0 = perm1(0L);
-      var i = 0I;
+      let perm0 = perm1(0i64);
+      var i = 0i32;
 
       while i < r {
-        let j = i + 1I;
+        let j = i + 1i32;
         perm1(i.toInt64()) = perm1(j.toInt64());
         i = j;
       }
 
       perm1(r.toInt64()) = perm0;
 
-      count(r.toInt64()) = count(r.toInt64()) - 1I;
+      count(r.toInt64()) = count(r.toInt64()) - 1i32;
 
-      if count(r.toInt64()) > 0I { break; }
+      if count(r.toInt64()) > 0i32 { break; }
 
-      r = r + 1I;
+      r = r + 1i32;
     }
 
-    permCount = permCount + 1I;
+    permCount = permCount + 1i32;
   }
 
-  return -1I;
+  return -1i32;
 }

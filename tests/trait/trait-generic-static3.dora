@@ -20,13 +20,13 @@ fn g[T: X](): String {
 class Bar(let x: Int32)
 
 impl X for Bar {
-    @static fn foo(): Bar = Bar(1I);
+    @static fn foo(): Bar = Bar(1i32);
     @static fn makeString(value: Bar): String = "BAR${value.x}";
 }
 
 class Baz(let x: Int32)
 
 impl X for Baz {
-    @static fn foo(): Baz = Baz(2I);
+    @static fn foo(): Baz = Baz(2i32);
     @static fn makeString(value: Baz): String = "BAZ${value.x}";
 }

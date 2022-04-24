@@ -1,5 +1,5 @@
 @pub @open @abstract class Thread {
-  var native_ptr: Int64 = 0L;
+  var native_ptr: Int64 = 0i64;
 
   @pub @internal fn start();
   @pub @internal fn join();

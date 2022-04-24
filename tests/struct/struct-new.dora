@@ -1,7 +1,7 @@
 struct Foo(f1: Int32, f2: Bool)
 
 fn f(): Foo {
-    Foo(10I, false)
+    Foo(10i32, false)
 }
 
 fn main() {

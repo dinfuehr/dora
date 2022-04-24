@@ -1,7 +1,7 @@
 fn main() {
-  let ok = Result[Int32, String]::Ok(23I);
+  let ok = Result[Int32, String]::Ok(23i32);
   let er = Result[Int32, String]::Err("err");
 
-  assert(ok.getOrDefault() == 23I);
-  assert(er.getOrDefault() == 0I);
+  assert(ok.getOrDefault() == 23i32);
+  assert(er.getOrDefault() == 0i32);
 }

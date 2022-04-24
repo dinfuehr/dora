@@ -1,17 +1,17 @@
-var a: A = A(42I);
+var a: A = A(42i32);
 
 fn main() {
     std::forceCollect();
-    assert(a.val == 42I);
+    assert(a.val == 42i32);
     std::forceCollect();
-    assert(a.val == 42I);
-    a = A(10I);
+    assert(a.val == 42i32);
+    a = A(10i32);
     std::forceCollect();
-    assert(a.val == 10I);
+    assert(a.val == 10i32);
 }
 
 fn create(): A {
-    return A(10I);
+    return A(10i32);
 }
 
 class A(let val: Int32)

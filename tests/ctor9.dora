@@ -1,8 +1,8 @@
 fn main() {
-  let x = X(2I, 4I);
+  let x = X(2i32, 4i32);
 
-  assert(x.a == 4I);
-  assert(x.b == 2I);
+  assert(x.a == 4i32);
+  assert(x.b == 2i32);
 }
 
 @open class Y(let a: Int32) {}

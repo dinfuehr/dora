@@ -1,14 +1,14 @@
 class Foo {
-    let array: Array[Int32] = Array[Int32](1I, 2I, 3I);
+    let array: Array[Int32] = Array[Int32](1i32, 2i32, 3i32);
 }
 
 fn main() {
     let foo = Foo();
-    assert((foo.array)(0L) == 1I);
-    assert((foo.array)(1L) == 2I);
-    assert((foo.array)(2L) == 3I);
-    foo.array(0L) = 100I;
-    assert((foo.array)(0L) == 100I);
-    assert((foo.array)(1L) == 2I);
-    assert((foo.array)(2L) == 3I);
+    assert((foo.array)(0i64) == 1i32);
+    assert((foo.array)(1i64) == 2i32);
+    assert((foo.array)(2i64) == 3i32);
+    foo.array(0i64) = 100i32;
+    assert((foo.array)(0i64) == 100i32);
+    assert((foo.array)(1i64) == 2i32);
+    assert((foo.array)(2i64) == 3i32);
 }

@@ -2,6 +2,6 @@
 //= stderr "array index out of bounds\n1: main(): 6\n"
 
 fn main() {
-  let array = Array[Int32]::zero(0L);
-  array(0L) = 10I;
+  let array = Array[Int32]::zero(0i64);
+  array(0i64) = 10i32;
 }

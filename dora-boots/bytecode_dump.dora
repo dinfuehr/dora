@@ -2,17 +2,17 @@ fn bytecodeDump(bc: BytecodeFunction) {
     let dumper = BytecodeDumper(bc);
     readBytecode(bc.code, dumper);
 
-    var i = 0L;
+    var i = 0i64;
 
     for entry in bc.const_pool {
         println("@${i} = ${entry.toString()}");
-        i = i + 1L;
+        i = i + 1i64;
     }
 
-    i = 0L;
+    i = 0i64;
     for ty in bc.registers {
         println("r${i} = ${ty}");
-        i = i + 1L;
+        i = i + 1i64;
     }
 }
 

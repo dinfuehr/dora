@@ -3,11 +3,11 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fn main() {
-    let value = Foo::A(112I, "abc", 17.5F);
+    let value = Foo::A(112i32, "abc", 17.5F);
     std::forceCollect();
     match value {
         Foo::A(a, b, c) => {
-            assert(a == 112I);
+            assert(a == 112i32);
             assert(b == "abc");
             assert(c == 17.5F);
         },

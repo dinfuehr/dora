@@ -9,7 +9,7 @@ impl Foo {
 fn f(a: Foo, b: Foo): Foo = a + b;
 
 fn main() {
-    assert(f(Foo(11I), Foo(17I)).value == 28I);
-    assert(f(Foo(-12I), Foo(12I)).value == 0I);
-    assert(f(Foo(3I), Foo(7I)).value == 10I);
+    assert(f(Foo(11i32), Foo(17i32)).value == 28i32);
+    assert(f(Foo(-12i32), Foo(12i32)).value == 0i32);
+    assert(f(Foo(3i32), Foo(7i32)).value == 10i32);
 }

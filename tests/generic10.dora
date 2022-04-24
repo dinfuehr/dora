@@ -1,15 +1,15 @@
 fn main() {
-    let bar = Bar[Int32](11I);
-    assert(bar.x.fst == 11I);
-    assert(bar.x.snd == 10I);
+    let bar = Bar[Int32](11i32);
+    assert(bar.x.fst == 11i32);
+    assert(bar.x.snd == 10i32);
 
     let bar = Bar[String]("hello");
     assert(bar.x.fst == "hello");
-    assert(bar.x.snd == 10I);
+    assert(bar.x.snd == 10i32);
 }
 
 class Bar[T](val: T) {
-    let x: Pair[T, Int32] = Pair[T, Int32](val, 10I);
+    let x: Pair[T, Int32] = Pair[T, Int32](val, 10i32);
 }
 
 class Pair[A, B](let fst: A, let snd: B)

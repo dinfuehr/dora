@@ -1,9 +1,9 @@
 fn main() {
     assert(returnBool() == true);
     assert(returnChar() == '5');
-    assert(returnByte() == 5Y);
-    assert(returnInt32() == 5I);
-    assert(returnInt64() == 5L);
+    assert(returnByte() == 5u8);
+    assert(returnInt32() == 5i32);
+    assert(returnInt64() == 5i64);
     assert(returnFloat32() == 5F);
     assert(returnFloat64() == 5D);
     assert(returnString() == "5");
@@ -18,15 +18,15 @@ fn returnChar(): Char {
 }
 
 fn returnByte(): UInt8 {
-    return 5Y;
+    return 5u8;
 }
 
 fn returnInt32(): Int32 {
-    return 5I;
+    return 5i32;
 }
 
 fn returnInt64(): Int64 {
-    return 5L;
+    return 5i64;
 }
 
 fn returnFloat32(): Float32 {

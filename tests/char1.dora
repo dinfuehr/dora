@@ -11,6 +11,6 @@ fn main() {
     assert(ch != ch2);
     assert(ch < ch2);
 
-    assert(ch.toInt32() == 97I);
-    assert(ch.toInt64() == 97L);
+    assert(ch.toInt32() == 97i32);
+    assert(ch.toInt64() == 97i64);
 }

@@ -14,15 +14,15 @@ impl Float64 {
     var ix = self.asInt64();
     var iy = rhs.asInt64();
 
-    let sx = ix.shiftRightSigned(63I).shiftRight(1I);
-    let sy = iy.shiftRightSigned(63I).shiftRight(1I);
+    let sx = ix.shiftRightSigned(63i32).shiftRight(1i32);
+    let sy = iy.shiftRightSigned(63i32).shiftRight(1i32);
 
     ix = ix.bitwiseXor(sx);
     iy = iy.bitwiseXor(sy);
 
-    if ix < iy { return -1I; }
-    if ix == iy { return 0I; }
-    return 1I;
+    if ix < iy { return -1i32; }
+    if ix == iy { return 0i32; }
+    return 1i32;
   }
 
   @pub @internal fn plus(rhs: Float64): Float64;
@@ -45,9 +45,9 @@ impl Float64 {
   @pub fn hash(): Int32 = self.asInt64().toInt32();
 
   // should be lets, not funs
-  @pub @static fn bits(): Int32 = 64I;
-  @pub @static fn bytes(): Int32 = 8I;
-  @pub @static fn infinityPositive(): Float64 = 0x7ff0000000000000L.asFloat64();
-  @pub @static fn infinityNegative(): Float64 = 0xfff0000000000000L.asFloat64();
-  @pub @static fn notANumber(): Float64 = 0x7ff8000000000000L.asFloat64();
+  @pub @static fn bits(): Int32 = 64i32;
+  @pub @static fn bytes(): Int32 = 8i32;
+  @pub @static fn infinityPositive(): Float64 = 0x7ff0000000000000i64.asFloat64();
+  @pub @static fn infinityNegative(): Float64 = 0xfff0000000000000i64.asFloat64();
+  @pub @static fn notANumber(): Float64 = 0x7ff8000000000000i64.asFloat64();
 }

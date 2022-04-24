@@ -2,8 +2,8 @@
 
 fn main() {
     f();
-    // assert(g() == 17I);
+    // assert(g() == 17i32);
 }
 
 @optimizeImmediately fn f() {}
-@optimizeImmediately fn g(): Int32 { 17I }
+@optimizeImmediately fn g(): Int32 { 17i32 }

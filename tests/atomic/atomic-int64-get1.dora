@@ -1,6 +1,6 @@
 fn main() {
-    let value = std::AtomicInt64(10L);
-    assert(value.get() == 10L);
-    value.set(20L);
-    assert(value.get() == 20L);
+    let value = std::AtomicInt64(10i64);
+    assert(value.get() == 10i64);
+    value.set(20i64);
+    assert(value.get() == 20i64);
 }

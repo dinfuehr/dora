@@ -4,14 +4,14 @@ class A[X] {
 }
 
 fn t1(a: A[Int32]): String {
-    return a.t1[String](1I, "bla");
+    return a.t1[String](1i32, "bla");
 }
 
 fn t2(a: A[Int32]): Int32 {
-    return a.t2[String](1I, "bla");
+    return a.t2[String](1i32, "bla");
 }
 
 fn main() {
     assert("bla" == t1(A[Int32]()));
-    assert(1I == t2(A[Int32]()));
+    assert(1i32 == t2(A[Int32]()));
 }

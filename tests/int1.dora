@@ -1,68 +1,68 @@
 fn main() {
-    let x = 1I.unaryPlus();
-    assert(x == +1I);
+    let x = 1i32.unaryPlus();
+    assert(x == +1i32);
 
-    let x = 1I.unaryMinus();
-    assert(x == -1I);
+    let x = 1i32.unaryMinus();
+    assert(x == -1i32);
 
-    let x = 1I.plus(2I);
-    assert(x == 3I);
+    let x = 1i32.plus(2i32);
+    assert(x == 3i32);
 
-    let x = 1I + 2I;
-    assert(x == 3I);
+    let x = 1i32 + 2i32;
+    assert(x == 3i32);
 
-    let x = 5I.minus(2I);
-    assert(x == 3I);
+    let x = 5i32.minus(2i32);
+    assert(x == 3i32);
 
-    let x = 5I - 2I;
-    assert(x == 3I);
+    let x = 5i32 - 2i32;
+    assert(x == 3i32);
 
-    let x = 3I.times(4I);
-    assert(x == 12I);
+    let x = 3i32.times(4i32);
+    assert(x == 12i32);
 
-    let x = 3I * 4I;
-    assert(x == 12I);
+    let x = 3i32 * 4i32;
+    assert(x == 12i32);
 
-    let x = 9I.div(8I);
-    assert(x == 1I);
+    let x = 9i32.div(8i32);
+    assert(x == 1i32);
 
-    let x = 9I / 8I;
-    assert(x == 1I);
+    let x = 9i32 / 8i32;
+    assert(x == 1i32);
 
-    let x = 10I.modulo(8I);
-    assert(x == 2I);
+    let x = 10i32.modulo(8i32);
+    assert(x == 2i32);
 
-    let x = 10I % 8I;
-    assert(x == 2I);
+    let x = 10i32 % 8i32;
+    assert(x == 2i32);
 
-    let x = 1I.bitwiseOr(2I);
-    assert(x == 3I);
+    let x = 1i32.bitwiseOr(2i32);
+    assert(x == 3i32);
 
-    let x = 1I | 2I;
-    assert(x == 3I);
+    let x = 1i32 | 2i32;
+    assert(x == 3i32);
 
-    let x = 5I.bitwiseAnd(6I);
-    assert(x == 4I);
+    let x = 5i32.bitwiseAnd(6i32);
+    assert(x == 4i32);
 
-    let x = 5I & 6I;
-    assert(x == 4I);
+    let x = 5i32 & 6i32;
+    assert(x == 4i32);
 
-    let x = 1I.bitwiseXor(3I);
-    assert(x == 2I);
+    let x = 1i32.bitwiseXor(3i32);
+    assert(x == 2i32);
 
-    let x = 1I ^ 3I;
-    assert(x == 2I);
+    let x = 1i32 ^ 3i32;
+    assert(x == 2i32);
 
-    let x = 1I.not();
-    assert(x == -2I);
+    let x = 1i32.not();
+    assert(x == -2i32);
 
-    let x = !1I;
-    assert(x == -2I);
+    let x = !1i32;
+    assert(x == -2i32);
 
-    assert(2I != 3I);
-    assert(5I == 5I);
-    assert(2I > 1I);
-    assert(2I >= 1I);
-    assert(3I < 4I);
-    assert(3I <= 4I);
+    assert(2i32 != 3i32);
+    assert(5i32 == 5i32);
+    assert(2i32 > 1i32);
+    assert(2i32 >= 1i32);
+    assert(3i32 < 4i32);
+    assert(3i32 <= 4i32);
 }

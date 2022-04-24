@@ -1,21 +1,21 @@
 //= vm-args "--gc=swiper --max-heap-size=32M --gc-verify"
 
-const SIZE: Int64 = 100L;
-const STEP: Int64 = 5L;
-const REMOVED: Int64 = 20L;
+const SIZE: Int64 = 100i64;
+const STEP: Int64 = 5i64;
+const REMOVED: Int64 = 20i64;
 
 fn main() {
     var x = Vec[Array[Int32]]();
-    var i = 0L;
+    var i = 0i64;
 
     while i < SIZE {
-        x.push(Array[Int32]::fill(32L * 1024L, 0I));
-        i = i + 1L;
+        x.push(Array[Int32]::fill(32i64 * 1024i64, 0i32));
+        i = i + 1i64;
     }
 
     std::forceCollect();
 
-    i = 0L;
+    i = 0i64;
     var empty = Array[Int32]::empty();
 
     while i < SIZE {
@@ -25,15 +25,15 @@ fn main() {
 
     std::forceCollect();
 
-    i = 0L;
-    var empties = 0L;
+    i = 0i64;
+    var empties = 0i64;
 
     while i < SIZE {
         if x(i) === empty {
-            empties = empties + 1L;
+            empties = empties + 1i64;
         }
 
-        i = i + 1L;
+        i = i + 1i64;
     }
 
     assert(empties == REMOVED);

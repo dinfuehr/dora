@@ -1,11 +1,11 @@
 fn main() {
-  let a = A(10I);
+  let a = A(10i32);
 
-  assert(a.x == 10I);
-  assert(a.y == 20I);
+  assert(a.x == 10i32);
+  assert(a.y == 20i32);
 }
 
-class A(x1: Int32): B(x1*2I) {
+class A(x1: Int32): B(x1*2i32) {
   let x: Int32 = x1;
 }
 

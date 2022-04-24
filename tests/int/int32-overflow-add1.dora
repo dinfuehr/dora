@@ -1,5 +1,5 @@
 //= error overflow
 
 fn main() {
-    let x = Int32::maxValue() + 1I;
+    let x = Int32::maxValue() + 1i32;
 }

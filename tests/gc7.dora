@@ -6,6 +6,6 @@ fn main() {
 
 fn foo() {
   let x = "abc";
-  assert(x.size() == 3L);
+  assert(x.size() == 3i64);
   println(x);
 }

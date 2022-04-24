@@ -18,7 +18,7 @@
 
   @pub fn isEmpty(): Bool = self.value.isEmpty();
 
-  @pub fn codePoints(): CodepointIterator = CodepointIterator(self.value, 0L);
+  @pub fn codePoints(): CodepointIterator = CodepointIterator(self.value, 0i64);
 
   @pub fn toUpperCase(): Text {
     unimplemented();

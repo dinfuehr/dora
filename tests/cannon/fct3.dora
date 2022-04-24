@@ -1,10 +1,10 @@
 fn main() {
   let foo = Foo();
   assert(foo.foo_bool() == true);
-  assert(foo.foo_byte() == 3Y);
+  assert(foo.foo_byte() == 3u8);
   assert(foo.foo_char() == '3');
-  assert(foo.foo_int32() == 3I);
-  assert(foo.foo_int64() == 3L);
+  assert(foo.foo_int32() == 3i32);
+  assert(foo.foo_int64() == 3i64);
   assert(foo.foo_float() == 3F);
   assert(foo.foo_double() == 3D);
   assert(foo.foo_string() == "3");
@@ -24,7 +24,7 @@ class Foo {
   }
   
   fn bar_byte(): UInt8 {
-    return 3Y;
+    return 3u8;
   }
 
   fn foo_char(): Char {
@@ -40,7 +40,7 @@ class Foo {
   }
 
   fn bar_int32(): Int32 {
-    return 3I;
+    return 3i32;
   }
 
   fn foo_int64(): Int64 {
@@ -48,7 +48,7 @@ class Foo {
   }
 
   fn bar_int64(): Int64 {
-    return 3L;
+    return 3i64;
   }
 
   fn foo_float(): Float32 {

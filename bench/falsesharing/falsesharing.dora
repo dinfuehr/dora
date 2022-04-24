@@ -5,44 +5,44 @@ fn main() {
 
     let threads = argv(0).toInt64().getOrPanic();
     let iterations = argv(1).toInt32().getOrPanic();
-    let objects = construct(8096L);
+    let objects = construct(8096i64);
     forceCollect();
 
-    var i = 0L;
+    var i = 0i64;
 
     while i < threads {
         let thread = MyThread(i, threads, iterations, objects);
         thread.start();
-        i = i + 1L;
+        i = i + 1i64;
     }
 }
 
 fn construct(size: Int64): Array[Foo] {
     let objects: Array[Foo] = Array::fill[Foo](size, Foo(nil, nil));
 
-    var i = 0L;
+    var i = 0i64;
 
     while i < objects.size() {
         objects(i) = Foo(nil, nil);
-        i = i + 1L;
+        i = i + 1i64;
     }
 
-    i = 0L;
+    i = 0i64;
 
     while i < objects.size() {
-        if i == 0L {
-             objects(0L).left = objects(size-1L);
+        if i == 0i64 {
+             objects(0i64).left = objects(size-1i64);
 	} else {
-	     objects(i).left = objects(i-1L);
+	     objects(i).left = objects(i-1i64);
 	}
 
-	if i == size-1L {
-              objects(i).right = objects(0L);
+	if i == size-1i64 {
+              objects(i).right = objects(0i64);
 	} else {
-              objects(i).right = objects(i+1L);
+              objects(i).right = objects(i+1i64);
 	}
 
-	i = i + 1L;
+	i = i + 1i64;
     }
 
     return objects;
@@ -52,7 +52,7 @@ class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let 
   @override fn run() {
 	let size = self.objects.size();
 	let objects_per_thread = size / self.threads;
-	assert(size % self.threads == 0L);
+	assert(size % self.threads == 0i64);
 	let start_idx = self.thread_idx  * objects_per_thread;
 	let end_idx = start_idx + objects_per_thread;
 
@@ -67,7 +67,7 @@ class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let 
 	    let tmp = o.left;
 	    o.left = o.right;
 	    o.right = tmp;
-	    idx = idx+1L;
+	    idx = idx+1i64;
 	    i = i+1;
 	}
   }

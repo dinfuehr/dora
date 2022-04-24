@@ -1,13 +1,13 @@
 fn main() {
-    let foo = Foo(123I);
+    let foo = Foo(123i32);
 
-    assert(foo.a == 123I);
-    assert(foo.b == 123I);
+    assert(foo.a == 123i32);
+    assert(foo.b == 123i32);
 
-    let bar = Bar(124I);
+    let bar = Bar(124i32);
 
-    assert(bar.a == 124I);
-    assert(bar.b == 124I);
+    assert(bar.a == 124i32);
+    assert(bar.b == 124i32);
 }
 
 class Foo(let b: Int32) {

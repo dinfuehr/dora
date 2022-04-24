@@ -4,10 +4,10 @@ struct Foo(f1: Int32, f2: Bar)
 class Bar(let value: Int32)
 
 fn main() {
-    let x = Array[Foo]::fill(10L, Foo(0I, Bar(0I)));
-    x(0L) = Foo(1I, Bar(1I));
-    x(4L) = Foo(2I, Bar(2I));
+    let x = Array[Foo]::fill(10i64, Foo(0i32, Bar(0i32)));
+    x(0i64) = Foo(1i32, Bar(1i32));
+    x(4i64) = Foo(2i32, Bar(2i32));
     std::forceCollect();
-    assert(x(0L).f1 == x(0L).f2.value);
-    assert(x(4L).f1 == x(4L).f2.value);
+    assert(x(0i64).f1 == x(0i64).f2.value);
+    assert(x(4i64).f1 == x(4i64).f2.value);
 }

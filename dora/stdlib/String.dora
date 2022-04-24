@@ -1,6 +1,6 @@
 @pub @internal class String {
   @pub fn equals(rhs: String): Bool {
-    var i = 0L;
+    var i = 0i64;
 
     if self.size() != rhs.size() {
         return false;
@@ -13,7 +13,7 @@
             return false;
         }
 
-        i = i + 1L;
+        i = i + 1i64;
     }
 
     return true;
@@ -75,14 +75,14 @@
 
   @pub @internal fn clone(): String;
 
-  @pub fn isEmpty(): Bool = self.size() == 0L;
+  @pub fn isEmpty(): Bool = self.size() == 0i64;
 
   @pub fn contains(val: String): Bool = self.indexOfFirst(val).isSome();
 
   @pub fn indexOfFirst(val: String): Option[Int64] {
     let m = val.size();
-    if m == 0L {
-      return Some(0L);
+    if m == 0i64 {
+      return Some(0i64);
     }
 
     let n = self.size();
@@ -90,24 +90,24 @@
       return None;
     }
 
-    var j = 0L;
-    var k = 0L;
-    var ell = 0L;
+    var j = 0i64;
+    var k = 0i64;
+    var ell = 0i64;
 
-    if val.getByte(0L) == val.getByte(1L) {
-       k = 2L;
-       ell = 1L;
+    if val.getByte(0i64) == val.getByte(1i64) {
+       k = 2i64;
+       ell = 1i64;
     } else {
-       k = 1L;
-       ell = 2L;
+       k = 1i64;
+       ell = 2i64;
     }
 
-    j = 0L;
+    j = 0i64;
     while j <= n - m {
-      if val.getByte(1L) != self.getByte(j + 1L) {
+      if val.getByte(1i64) != self.getByte(j + 1i64) {
         j = j + k;
       } else {
-        if String::compare(val, 2L, self, j + 2L, m - 2L) && val.getByte(0L) == self.getByte(j) {
+        if String::compare(val, 2i64, self, j + 2i64, m - 2i64) && val.getByte(0i64) == self.getByte(j) {
           return Option[Int64]::Some(j);
         }
         j = j + ell;
@@ -117,13 +117,13 @@
   }
 
   @static fn compare(a: String, aPos: Int64, b: String, bPos: Int64, len: Int64): Bool {
-    var i = 0L;
+    var i = 0i64;
 
     while i < len {
       if a.getByte(aPos+i) != b.getByte(bPos+i) {
         return false;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
 
     return true;
@@ -134,12 +134,12 @@
     if valLen > self.size() {
       return false;
     }
-    var i = 0L;
+    var i = 0i64;
     while i < valLen {
       if self.getByte(i) !== val.getByte(i) {
         return false;
       }
-      i = i + 1L;
+      i = i + 1i64;
     }
     return true;
   }
@@ -150,57 +150,57 @@
     if valLen > slfLen {
       return false;
     }
-    var iSlf = 0L;
+    var iSlf = 0i64;
     var iVal = slfLen - valLen;
     while iSlf < valLen {
       if self.getByte(iSlf + iVal) !== val.getByte(iSlf) {
         return false;
       }
-      iSlf = iSlf + 1L;
+      iSlf = iSlf + 1i64;
     }
     return true;
   }
 
-  @pub fn codePoints(): CodepointIterator = CodepointIterator(self, 0L);
+  @pub fn codePoints(): CodepointIterator = CodepointIterator(self, 0i64);
 
   @pub @static @internal fn fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] ;
 
   @pub @static fn fromBytes(val: Array[UInt8]): Option[String] {
-    String::fromBytesPart(val, 0L, val.size())
+    String::fromBytesPart(val, 0i64, val.size())
   }
 
   @pub @static @internal fn fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
 
   @pub @static fn binary(data: Int64): String {
     var data = data;
-    if data == 0L { return "0"; }
-    let array = Array[UInt8]::zero(64L);
+    if data == 0i64 { return "0"; }
+    let array = Array[UInt8]::zero(64i64);
     var at = array.size();
-    while data != 0L {
-      array(at - 1L) = ('0'.toInt64() + (data & 1L)).toUInt8();
-      data = data.shiftRight(1I);
-      at = at - 1L;
+    while data != 0i64 {
+      array(at - 1i64) = ('0'.toInt64() + (data & 1i64)).toUInt8();
+      data = data.shiftRight(1i32);
+      at = at - 1i64;
     }
-    return String::fromBytesPart(array, at, array.size() - at + 1L).getOrPanic();
+    return String::fromBytesPart(array, at, array.size() - at + 1i64).getOrPanic();
   }
 
   @pub @static fn hex(data: Int64): String {
     var data = data;
-    if data == 0L { return "0"; }
-    let array = Array[UInt8]::zero(16L);
+    if data == 0i64 { return "0"; }
+    let array = Array[UInt8]::zero(16i64);
     var at = array.size();
-    while data != 0L {
+    while data != 0i64 {
       let digit = (data & 0xFL).toInt32();
 
-      if digit < 10I {
-        array(at - 1L) = ('0'.toInt32() + digit).toUInt8();
+      if digit < 10i32 {
+        array(at - 1i64) = ('0'.toInt32() + digit).toUInt8();
       } else {
-        array(at - 1L) = ('A'.toInt32() + digit - 10I).toUInt8();
+        array(at - 1i64) = ('A'.toInt32() + digit - 10i32).toUInt8();
       }
 
-      data = data.shiftRight(4I);
-      at = at - 1L;
+      data = data.shiftRight(4i32);
+      at = at - 1i64;
     }
-    return String::fromBytesPart(array, at, array.size() - at + 1L).getOrPanic();
+    return String::fromBytesPart(array, at, array.size() - at + 1i64).getOrPanic();
   }
 }

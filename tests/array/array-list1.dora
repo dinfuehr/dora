@@ -1,7 +1,7 @@
 fn main() {
-    let x = Array[Int32](1I, 2I, 3I);
-    assert(x.size() == 3L);
-    assert(x(2L) == 3I);
-    assert(x(1L) == 2I);
-    assert(x(0L) == 1I);
+    let x = Array[Int32](1i32, 2i32, 3i32);
+    assert(x.size() == 3i64);
+    assert(x(2i64) == 3i32);
+    assert(x(1i64) == 2i32);
+    assert(x(0i64) == 1i32);
 }

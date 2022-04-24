@@ -28,16 +28,16 @@ fn float64() {
 
 fn int32() {
   assert(Int32::minValue().abs() == Int32::minValue());
-  assert((-1I).abs() == 1I);
-  assert(0I.abs() == 0I);
-  assert(1I.abs() == 1I);
+  assert((-1i32).abs() == 1i32);
+  assert(0i32.abs() == 0i32);
+  assert(1i32.abs() == 1i32);
   assert(Int32::maxValue().abs() == Int32::maxValue());
 }
 
 fn int64() {
   assert(Int64::minValue().abs() == Int64::minValue());
-  assert((-1L).abs() == 1L);
-  assert(0L.abs() == 0L);
-  assert(1L.abs() == 1L);
+  assert((-1i64).abs() == 1i64);
+  assert(0i64.abs() == 0i64);
+  assert(1i64.abs() == 1i64);
   assert(Int64::maxValue().abs() == Int64::maxValue());
 }

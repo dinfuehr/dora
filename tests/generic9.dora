@@ -1,5 +1,5 @@
 fn main() {
-    let a = A[Int32](0I);
+    let a = A[Int32](0i32);
     consume(a.x);
 
     let b = A[String]("");
@@ -7,13 +7,13 @@ fn main() {
 }
 
 class A[T](default: T) {
-    var x: Array[T] = Array[T]::fill(10L, default);
+    var x: Array[T] = Array[T]::fill(10i64, default);
 }
 
 fn consume(x: Array[Int32]) {
-    assert(x(9L) == 0I);
+    assert(x(9i64) == 0i32);
 }
 
 fn consume2(x: Array[String]) {
-    assert(x.size() == 10L);
+    assert(x.size() == 10i64);
 }

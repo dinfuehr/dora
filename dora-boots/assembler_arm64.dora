@@ -1,38 +1,38 @@
-let R0: Register = Register(0I);
-let R1: Register = Register(1I);
-let R2: Register = Register(2I);
-let R3: Register = Register(3I);
-let R4: Register = Register(4I);
-let R5: Register = Register(5I);
-let R6: Register = Register(6I);
-let R7: Register = Register(7I);
-let R8: Register = Register(8I);
-let R9: Register = Register(9I);
-let R10: Register = Register(10I);
-let R11: Register = Register(11I);
-let R12: Register = Register(12I);
-let R13: Register = Register(13I);
-let R14: Register = Register(14I);
-let R15: Register = Register(15I);
+let R0: Register = Register(0i32);
+let R1: Register = Register(1i32);
+let R2: Register = Register(2i32);
+let R3: Register = Register(3i32);
+let R4: Register = Register(4i32);
+let R5: Register = Register(5i32);
+let R6: Register = Register(6i32);
+let R7: Register = Register(7i32);
+let R8: Register = Register(8i32);
+let R9: Register = Register(9i32);
+let R10: Register = Register(10i32);
+let R11: Register = Register(11i32);
+let R12: Register = Register(12i32);
+let R13: Register = Register(13i32);
+let R14: Register = Register(14i32);
+let R15: Register = Register(15i32);
 
-let R16: Register = Register(16I);
-let R17: Register = Register(17I);
-let R18: Register = Register(18I);
-let R19: Register = Register(19I);
-let R20: Register = Register(20I);
-let R21: Register = Register(21I);
-let R22: Register = Register(22I);
-let R23: Register = Register(23I);
-let R24: Register = Register(24I);
-let R25: Register = Register(25I);
-let R26: Register = Register(26I);
-let R27: Register = Register(27I);
-let R28: Register = Register(28I);
-let R29: Register = Register(29I);
-let R30: Register = Register(30I);
+let R16: Register = Register(16i32);
+let R17: Register = Register(17i32);
+let R18: Register = Register(18i32);
+let R19: Register = Register(19i32);
+let R20: Register = Register(20i32);
+let R21: Register = Register(21i32);
+let R22: Register = Register(22i32);
+let R23: Register = Register(23i32);
+let R24: Register = Register(24i32);
+let R25: Register = Register(25i32);
+let R26: Register = Register(26i32);
+let R27: Register = Register(27i32);
+let R28: Register = Register(28i32);
+let R29: Register = Register(29i32);
+let R30: Register = Register(30i32);
 
-let REG_ZERO: Register = Register(32I);
-let REG_SP: Register = Register(33I);
+let REG_ZERO: Register = Register(32i32);
+let REG_SP: Register = Register(33i32);
 
 let REG_FP: Register = R29;
 let REG_LR: Register = R30;
@@ -45,39 +45,39 @@ impl NeonRegister {
     }
 }
 
-let F0: NeonRegister = NeonRegister(0I);
-let F1: NeonRegister = NeonRegister(1I);
-let F2: NeonRegister = NeonRegister(2I);
-let F3: NeonRegister = NeonRegister(3I);
-let F4: NeonRegister = NeonRegister(4I);
-let F5: NeonRegister = NeonRegister(5I);
-let F6: NeonRegister = NeonRegister(6I);
-let F7: NeonRegister = NeonRegister(7I);
-let F8: NeonRegister = NeonRegister(8I);
-let F9: NeonRegister = NeonRegister(9I);
-let F10: NeonRegister = NeonRegister(10I);
-let F11: NeonRegister = NeonRegister(11I);
-let F12: NeonRegister = NeonRegister(12I);
-let F13: NeonRegister = NeonRegister(13I);
-let F14: NeonRegister = NeonRegister(14I);
-let F15: NeonRegister = NeonRegister(15I);
+let F0: NeonRegister = NeonRegister(0i32);
+let F1: NeonRegister = NeonRegister(1i32);
+let F2: NeonRegister = NeonRegister(2i32);
+let F3: NeonRegister = NeonRegister(3i32);
+let F4: NeonRegister = NeonRegister(4i32);
+let F5: NeonRegister = NeonRegister(5i32);
+let F6: NeonRegister = NeonRegister(6i32);
+let F7: NeonRegister = NeonRegister(7i32);
+let F8: NeonRegister = NeonRegister(8i32);
+let F9: NeonRegister = NeonRegister(9i32);
+let F10: NeonRegister = NeonRegister(10i32);
+let F11: NeonRegister = NeonRegister(11i32);
+let F12: NeonRegister = NeonRegister(12i32);
+let F13: NeonRegister = NeonRegister(13i32);
+let F14: NeonRegister = NeonRegister(14i32);
+let F15: NeonRegister = NeonRegister(15i32);
 
-let F16: NeonRegister = NeonRegister(16I);
-let F17: NeonRegister = NeonRegister(17I);
-let F18: NeonRegister = NeonRegister(18I);
-let F19: NeonRegister = NeonRegister(19I);
-let F20: NeonRegister = NeonRegister(20I);
-let F21: NeonRegister = NeonRegister(21I);
-let F22: NeonRegister = NeonRegister(22I);
-let F23: NeonRegister = NeonRegister(23I);
-let F24: NeonRegister = NeonRegister(24I);
-let F25: NeonRegister = NeonRegister(25I);
-let F26: NeonRegister = NeonRegister(26I);
-let F27: NeonRegister = NeonRegister(27I);
-let F28: NeonRegister = NeonRegister(28I);
-let F29: NeonRegister = NeonRegister(29I);
-let F30: NeonRegister = NeonRegister(30I);
-let F31: NeonRegister = NeonRegister(31I);
+let F16: NeonRegister = NeonRegister(16i32);
+let F17: NeonRegister = NeonRegister(17i32);
+let F18: NeonRegister = NeonRegister(18i32);
+let F19: NeonRegister = NeonRegister(19i32);
+let F20: NeonRegister = NeonRegister(20i32);
+let F21: NeonRegister = NeonRegister(21i32);
+let F22: NeonRegister = NeonRegister(22i32);
+let F23: NeonRegister = NeonRegister(23i32);
+let F24: NeonRegister = NeonRegister(24i32);
+let F25: NeonRegister = NeonRegister(25i32);
+let F26: NeonRegister = NeonRegister(26i32);
+let F27: NeonRegister = NeonRegister(27i32);
+let F28: NeonRegister = NeonRegister(28i32);
+let F29: NeonRegister = NeonRegister(29i32);
+let F30: NeonRegister = NeonRegister(30i32);
+let F31: NeonRegister = NeonRegister(31i32);
 
 class ForwardJump(let offset: Int32, let label: Label, let kind: JumpKind)
 
@@ -110,12 +110,12 @@ class AssemblerArm64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
     fn ret() {
-        let inst = clsx::uncondBranchReg(0b0010I, 0b11111I, 0I, REG_LR, 0I);
+        let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
         self.buffer.emitInt32(inst);
     }
 
     fn retReg(rn: Register) {
-        let inst = clsx::uncondBranchReg(0b0010I, 0b11111I, 0I, rn, 0I);
+        let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
@@ -128,12 +128,12 @@ class AssemblerArm64: Assembler {
     }
 
     fn blr(rn: Register) {
-        let inst = clsx::uncondBranchReg(0b0001I, 0b11111I, 0I, rn, 0I);
+        let inst = clsx::uncondBranchReg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
     fn br(rn: Register) {
-        let inst = clsx::uncondBranchReg(0b0000I, 0b11111I, 0I, rn, 0I);
+        let inst = clsx::uncondBranchReg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
@@ -151,7 +151,7 @@ class AssemblerArm64: Assembler {
 
 impl Register {
     fn isGpr(): Bool {
-        self.value <= 30I
+        self.value <= 30i32
     }
 
     fn isGprOrZero(): Bool {
@@ -173,7 +173,7 @@ impl Register {
         if self.isGpr() {
             self.value
         } else {
-            31I
+            31i32
         }
     }
 
@@ -183,7 +183,7 @@ impl Register {
         if self.isGpr() {
             self.value
         } else {
-            31I
+            31i32
         }
     }
 }
@@ -192,34 +192,34 @@ mod clsx {
     use super::Register;
 
     @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
-        assert(fitsUnsigned(op, 1I));
-        assert(fitsSigned(imm26, 26I));
+        assert(fitsUnsigned(op, 1i32));
+        assert(fitsSigned(imm26, 26i32));
 
-        0b101I << 26I | op << 31I | (imm26 & 0x3FFFFFFI)
+        0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFI)
     }
 
     @pub fn uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
-        assert(fitsUnsigned(opc, 4I));
-        assert(fitsUnsigned(op2, 5I));
-        assert(fitsUnsigned(op3, 6I));
+        assert(fitsUnsigned(opc, 4i32));
+        assert(fitsUnsigned(op2, 5i32));
+        assert(fitsUnsigned(op3, 6i32));
         assert(rn.isGpr());
-        assert(fitsUnsigned(op4, 5I));
+        assert(fitsUnsigned(op4, 5i32));
 
-        0b1101011I << 25I | opc << 21I | op2 << 16I | op3 << 10I | rn.encoding() << 5I | op4
+        0b1101011i32 << 25i32 | opc << 21i32 | op2 << 16i32 | op3 << 10i32 | rn.encoding() << 5i32 | op4
     }
 
     fn fitsBit(value: Int32): Bool {
-        value >= 0I && value < 2I
+        value >= 0i32 && value < 2i32
     }
 
     fn fitsSigned(value: Int32, bits: Int32): Bool {
-        assert(bits > 0I && bits < 32I);
-        -(1I << (bits - 1I)) <= value && value < (1I << (bits - 1I))
+        assert(bits > 0i32 && bits < 32i32);
+        -(1i32 << (bits - 1i32)) <= value && value < (1i32 << (bits - 1i32))
     }
 
     fn fitsUnsigned(value: Int32, bits: Int32): Bool {
-        assert(bits > 0I && bits < 32I);
-        value >= 0I && value < (1I << bits)
+        assert(bits > 0i32 && bits < 32i32);
+        value >= 0i32 && value < (1i32 << bits)
     }
 }
 
@@ -231,8 +231,8 @@ fn testAsmRet() {
     asm.retReg(R10);
     let buffer = asm.finalizeTesting();
 
-    assertAsm32(buffer, 0xd65f03c0I);
-    assertAsm32(buffer, 0xd65f0000I);
-    assertAsm32(buffer, 0xd65f0140I);
+    assertAsm32(buffer, 0xd65f03c0i32);
+    assertAsm32(buffer, 0xd65f0000i32);
+    assertAsm32(buffer, 0xd65f0140i32);
     assertAsmEnd(buffer);
 }

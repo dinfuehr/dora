@@ -1,7 +1,7 @@
 fn main() {
     let val = "abc";
-    assert(val.size() == 3L);
-    assert(val.codePoints().size() == 3L);
+    assert(val.size() == 3i64);
+    assert(val.codePoints().size() == 3i64);
     let it = val.codePoints();
 
     assert(it.next() == 'a');
@@ -13,8 +13,8 @@ fn main() {
     assert(it.hasNext() == false);
 
     let val = "üß";
-    assert(val.size() == 4L);
-    assert(val.codePoints().size() == 2L);
+    assert(val.size() == 4i64);
+    assert(val.codePoints().size() == 2i64);
     let it = val.codePoints();
 
     assert(it.next().toInt32() == 0xFCI);

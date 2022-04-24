@@ -1,6 +1,6 @@
 fn main() {
-  let a = 1I;
-  let b = 2I;
+  let a = 1i32;
+  let b = 2i32;
   let c = true;
   let d = false;
 

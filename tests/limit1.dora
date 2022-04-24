@@ -1,7 +1,7 @@
 fn main() {
-    assert(-2147483648I == Int32::minValue());
-    assert(2147483647I == Int32::maxValue());
+    assert(-2147483648i32 == Int32::minValue());
+    assert(2147483647i32 == Int32::maxValue());
 
-    assert(-9223372036854775808L == Int64::minValue());
-    assert(9223372036854775807L == Int64::maxValue());
+    assert(-9223372036854775808i64 == Int64::minValue());
+    assert(9223372036854775807i64 == Int64::maxValue());
 }

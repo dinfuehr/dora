@@ -1,13 +1,13 @@
 fn main() {
-    assert(abi_1(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 1I);
-    assert(abi_2(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 2I);
-    assert(abi_3(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 3I);
-    assert(abi_4(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 4I);
-    assert(abi_5(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 5I);
-    assert(abi_6(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 6I);
-    assert(abi_7(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 7I);
-    assert(abi_8(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 8I);
-    assert(abi_9(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 9I);
+    assert(abi_1(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 1i32);
+    assert(abi_2(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 2i32);
+    assert(abi_3(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 3i32);
+    assert(abi_4(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 4i32);
+    assert(abi_5(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 5i32);
+    assert(abi_6(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 6i32);
+    assert(abi_7(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 7i32);
+    assert(abi_8(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 8i32);
+    assert(abi_9(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 9i32);
 }
 
 fn abi_1(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = x;

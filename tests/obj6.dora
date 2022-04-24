@@ -1,12 +1,12 @@
 fn main() {
-  let f = Foo(12I);
+  let f = Foo(12i32);
   var a1 = f.a1();
   let a2 = f.a2();
   assert(a1 == a2);
 
-  f.setA(101I);
+  f.setA(101i32);
   a1 = f.a1();
-  assert(101I == a1);
+  assert(101i32 == a1);
 }
 
 class Foo(var a: Int32) {

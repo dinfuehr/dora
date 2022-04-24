@@ -1,7 +1,7 @@
 fn main() {
-    let x = (1I, 2I, (3I, 4I));
-    assert(x.0 == 1I);
-    assert(x.1 == 2I);
-    assert((x.2).0 == 3I);
-    assert((x.2).1 == 4I);
+    let x = (1i32, 2i32, (3i32, 4i32));
+    assert(x.0 == 1i32);
+    assert(x.1 == 2i32);
+    assert((x.2).0 == 3i32);
+    assert((x.2).1 == 4i32);
 }

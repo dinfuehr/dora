@@ -1,7 +1,7 @@
 fn main() {
-    let x = 97I.toChar().getOrPanic();
+    let x = 97i32.toChar().getOrPanic();
     assert(x == 'a');
 
-    let y = 65L.toChar().getOrPanic();
+    let y = 65i64.toChar().getOrPanic();
     assert(y == 'A');
 }

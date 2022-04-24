@@ -1,13 +1,13 @@
 fn main() {
   let x = X::empty();
 
-  assert(x.x == 2I);
+  assert(x.x == 2i32);
 }
 
 class X(something: Int32) {
   let x: Int32 = something;
 
   @static fn empty(): X {
-    X(2I)
+    X(2i32)
   }
 }

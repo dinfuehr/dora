@@ -1,23 +1,23 @@
 fn main() {
-  let a = 1I;
-  let b = 2I;
+  let a = 1i32;
+  let b = 2i32;
 
   // a + h() --> 4
   // b * i() --> 10
-  // g(4, 10I) --> 36
+  // g(4, 10i32) --> 36
   // j() --> 7
-  // f(36, 7I) --> 288
+  // f(36, 7i32) --> 288
 
-  assert(f(g(a + h(), b * i()), j()) == 288I);
+  assert(f(g(a + h(), b * i()), j()) == 288i32);
 }
 
-fn h(): Int32 { return 3I; }
-fn i(): Int32 { return 5I; }
-fn j(): Int32 { return 7I; }
+fn h(): Int32 { return 3i32; }
+fn i(): Int32 { return 5i32; }
+fn j(): Int32 { return 7i32; }
 
 fn f(x: Int32, y: Int32): Int32 {
-  return x * (y+1I);
+  return x * (y+1i32);
 }
 fn g(x: Int32, y: Int32): Int32 {
-  return x * (y-1I);
+  return x * (y-1i32);
 }

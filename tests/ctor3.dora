@@ -1,5 +1,5 @@
 fn main() {
-    let x1 = X(1I, 3I);
+    let x1 = X(1i32, 3i32);
     let x2 = X::empty();
 
     assert(x1.ma == x2.mb);
@@ -11,6 +11,6 @@ class X(a: Int32, b: Int32) {
     var mb: Int32 = b;
 
     @static fn empty(): X {
-        X(3I, 1I)
+        X(3i32, 1i32)
     }
 }

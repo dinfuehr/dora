@@ -111,14 +111,14 @@ fn assertGraph(graph: Graph, output: String) {
         println("got: \"${graphOutput}\"");
         println("expected: \"${output}\"");
 
-        for idx in range(0I, graphOutput.size().toInt32()) {
+        for idx in range(0i32, graphOutput.size().toInt32()) {
             let value = graphOutput.getByte(idx.toInt64());
             print("${value.toInt32().toStringHex()} ");
         }
 
         println("");
 
-        for idx in range(0I, output.size().toInt32()) {
+        for idx in range(0i32, output.size().toInt32()) {
             let value = output.getByte(idx.toInt64());
             print("${value.toInt32().toStringHex()} ");
         }
@@ -150,11 +150,11 @@ fn compareStrings(lhs: String, rhs: String): Bool {
             continue;
         }
 
-        if lhsChar == 0xDY.toChar() && lhsIterator.hasNext() && lhsIterator.peek() == 0xAY.toChar() {
+        if lhsChar == 0xDu8.toChar() && lhsIterator.hasNext() && lhsIterator.peek() == 0xAu8.toChar() {
             lhsChar = lhsIterator.next();
         }
 
-        if rhsChar == 0xDY.toChar() && rhsIterator.hasNext() && rhsIterator.peek() == 0xAY.toChar() {
+        if rhsChar == 0xDu8.toChar() && rhsIterator.hasNext() && rhsIterator.peek() == 0xAu8.toChar() {
             rhsChar = rhsIterator.next();
         }
 

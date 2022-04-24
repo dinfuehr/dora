@@ -1,20 +1,20 @@
 fn main() {
-    let x = std::range(0I, 5I).makeIterator();
+    let x = std::range(0i32, 5i32).makeIterator();
 
     assert(x.hasNext());
-    assert(x.next() == 0I);
+    assert(x.next() == 0i32);
 
     assert(x.hasNext());
-    assert(x.next() == 1I);
+    assert(x.next() == 1i32);
 
     assert(x.hasNext());
-    assert(x.next() == 2I);
+    assert(x.next() == 2i32);
 
     assert(x.hasNext());
-    assert(x.next() == 3I);
+    assert(x.next() == 3i32);
 
     assert(x.hasNext());
-    assert(x.next() == 4I);
+    assert(x.next() == 4i32);
 
     assert(!x.hasNext());
 }

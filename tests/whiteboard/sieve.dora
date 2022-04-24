@@ -1,23 +1,23 @@
 //= stdout file
 
 fn main() {
-    let primes = sieve(100L);
-    var i = 0L;
+    let primes = sieve(100i64);
+    var i = 0i64;
 
     while i < primes.size() {
         println(primes(i).toString());
-        i = i + 1L;
+        i = i + 1i64;
     }
 }
 
 fn sieve(limit: Int64): Vec[Int64] {
     let primes = Vec[Int64]();
 
-    if limit >= 2L {
-        let numbers = Array[Bool]::fill(limit+1L, true);
+    if limit >= 2i64 {
+        let numbers = Array[Bool]::fill(limit+1i64, true);
         let sqrtLimit = limit.toFloat64().sqrt().toInt64();
 
-        var factor = 2L;
+        var factor = 2i64;
 
         while factor <= sqrtLimit {
             if numbers(factor) {
@@ -29,17 +29,17 @@ fn sieve(limit: Int64): Vec[Int64] {
                 }
             }
 
-            factor = factor + 1L;
+            factor = factor + 1i64;
         }
 
-        var i = 0L;
+        var i = 0i64;
 
         while i <= limit {
-            if i >= 2L && numbers(i) {
+            if i >= 2i64 && numbers(i) {
                 primes.push(i);
             }
 
-            i = i + 1L;
+            i = i + 1i64;
         }
     }
 

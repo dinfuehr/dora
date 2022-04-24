@@ -1,7 +1,7 @@
 fn main() {
-    assert('a'.lenUtf8() == 1I);
-    assert('ü'.lenUtf8() == 2I);
-    assert('ß'.lenUtf8() == 2I);
-    assert('€'.lenUtf8() == 3I);
-    assert('𐍈'.lenUtf8() == 4I);
+    assert('a'.lenUtf8() == 1i32);
+    assert('ü'.lenUtf8() == 2i32);
+    assert('ß'.lenUtf8() == 2i32);
+    assert('€'.lenUtf8() == 3i32);
+    assert('𐍈'.lenUtf8() == 4i32);
 }

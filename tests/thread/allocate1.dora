@@ -9,12 +9,12 @@ class MyThread(): std::Thread {
 }
 
 fn main() {
-    var i = 0I;
+    var i = 0i32;
 
-    while i < 4I {
+    while i < 4i32 {
         let thread = MyThread();
         thread.start();
-        i = i + 1I;
+        i = i + 1i32;
     }
 
     allocator();
@@ -22,11 +22,11 @@ fn main() {
 }
 
 fn allocator() {
-    var i = 0I;
+    var i = 0i32;
 
-    while i < 10_000I {
+    while i < 10_000i32 {
         Foo();
-        i = i + 1I;
+        i = i + 1i32;
     }
 }
 

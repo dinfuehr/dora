@@ -5,16 +5,16 @@ class MyThread: std::Thread {
 }
 
 fn main() {
-    var i = 0I;
+    var i = 0i32;
 
-    while i < 10_000I {
+    while i < 10_000i32 {
         let thread = MyThread();
         thread.start();
 
-        if i % 1_000I == 0I {
+        if i % 1_000i32 == 0i32 {
             std::forceMinorCollect();
         }
 
-        i = i + 1I;
+        i = i + 1i32;
     }
 }

@@ -1,5 +1,5 @@
 fn main() {
-  assert(0L == len(Array[Int32]::empty()));
+  assert(0i64 == len(Array[Int32]::empty()));
 }
 
 fn len(a: Array[Int32]): Int64 = a.size();

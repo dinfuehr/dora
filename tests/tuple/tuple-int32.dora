@@ -1,26 +1,26 @@
 fn main() {
-    assert(tpl1() == 1I);
-    assert(tpl2() == 2I);
-    assert(tpl3() == 3I);
-    assert(tplsum() == 6I);
+    assert(tpl1() == 1i32);
+    assert(tpl2() == 2i32);
+    assert(tpl3() == 3i32);
+    assert(tplsum() == 6i32);
 }
 
 fn tpl1(): Int32 {
-    let x = (1I, 2I, 3I);
+    let x = (1i32, 2i32, 3i32);
     x.0
 }
 
 fn tpl2(): Int32 {
-    let x = (1I, 2I, 3I);
+    let x = (1i32, 2i32, 3i32);
     x.1
 }
 
 fn tpl3(): Int32 {
-    let x = (1I, 2I, 3I);
+    let x = (1i32, 2i32, 3i32);
     x.2
 }
 
 fn tplsum(): Int32 {
-    let x = (1I, 2I, 3I);
+    let x = (1i32, 2i32, 3i32);
     x.0 + x.1 + x.2
 }

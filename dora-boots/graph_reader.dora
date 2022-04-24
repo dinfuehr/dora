@@ -11,7 +11,7 @@ class GraphReader(let content: String) {
 }
 
 class Lexer(let content: String) {
-    var idx: Int64 = 0L;
+    var idx: Int64 = 0i64;
 
     fn look(): Option[Char] {
         if self.idx == self.content.size() {
@@ -25,7 +25,7 @@ class Lexer(let content: String) {
         if self.idx == self.content.size() {
             std::fatalError("already at end of file");
         } else {
-            self.idx = self.idx + 1L;
+            self.idx = self.idx + 1i64;
         }
     }
 
@@ -215,8 +215,8 @@ mod tests {
     @Test
     fn readNumbers() {
         let lexer = Lexer("11212 17");
-        assertNumber(lexer, 11212L);
-        assertNumber(lexer, 17L);
+        assertNumber(lexer, 11212i64);
+        assertNumber(lexer, 17i64);
         assertEnd(lexer);
     }
 

@@ -1,8 +1,8 @@
 class Foo {
-    let vec: Vec[Int32] = Vec[Int32](1I, 2I, 3I);
+    let vec: Vec[Int32] = Vec[Int32](1i32, 2i32, 3i32);
 }
 
 fn main() {
     let foo = Foo();
-    assert(foo.vec(0L) == 1I);
+    assert(foo.vec(0i64) == 1i32);
 }

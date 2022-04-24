@@ -12,4 +12,4 @@ fn main() {
     };
 }
 
-fn createFoo(): Foo = Foo(1I);
+fn createFoo(): Foo = Foo(1i32);

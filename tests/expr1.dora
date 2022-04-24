@@ -1,18 +1,18 @@
 fn main() {
-    assert((1I + 3I) == 4I);
-    assert((-1I + 3I) == 2I);
-    assert((0I + 2I) == 2I);
-    assert((2I + 0I) == 2I);
+    assert((1i32 + 3i32) == 4i32);
+    assert((-1i32 + 3i32) == 2i32);
+    assert((0i32 + 2i32) == 2i32);
+    assert((2i32 + 0i32) == 2i32);
 
-    let x = -5I + 4I;
-    assert(-1I == x);
+    let x = -5i32 + 4i32;
+    assert(-1i32 == x);
 
-    assert(+1I != -1I);
-    assert(+2I == 2I);
+    assert(+1i32 != -1i32);
+    assert(+2i32 == 2i32);
 
-    assert(!(-1I) == 0I);
-    assert(!(-2I) == 1I);
-    assert(-1I == !0I);
+    assert(!(-1i32) == 0i32);
+    assert(!(-2i32) == 1i32);
+    assert(-1i32 == !0i32);
 
     assert(true);
     assert(!false);
@@ -23,19 +23,19 @@ fn main() {
     let x = false;
     assert(!x);
 
-    assert(10I == 1I+(2I+(3I+4I)));
-    assert(-1I == 1I-2I);
-    assert(3I == 2I-(3I-4I));
-    assert(-2I == 1I-(2I-(3I-4I)));
-    assert(42I == 7I*(1I+(2I+3I)));
+    assert(10i32 == 1i32+(2i32+(3i32+4i32)));
+    assert(-1i32 == 1i32-2i32);
+    assert(3i32 == 2i32-(3i32-4i32));
+    assert(-2i32 == 1i32-(2i32-(3i32-4i32)));
+    assert(42i32 == 7i32*(1i32+(2i32+3i32)));
 
-    assert(3I == 1I|2I);
-    assert(1I == 1I&3I);
-    assert(1I == 3I^2I);
+    assert(3i32 == 1i32|2i32);
+    assert(1i32 == 1i32&3i32);
+    assert(1i32 == 3i32^2i32);
 
-    assert(6I == 2I*3I);
-    assert(2I == 8I/3I);
-    assert(0I == 9I%3I);
+    assert(6i32 == 2i32*3i32);
+    assert(2i32 == 8i32/3i32);
+    assert(0i32 == 9i32%3i32);
 
     assert(true == (true || true));
     assert(true == (true || false));

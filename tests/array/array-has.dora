@@ -1,13 +1,13 @@
 fn main() {
-    let x = Array[Bool]::fill(3L, true);
+    let x = Array[Bool]::fill(3i64, true);
     assert(x.has(true));
 
-    let x = Array[Int32]::fill(3L, 3I);
-    assert(x.has(3I));
+    let x = Array[Int32]::fill(3i64, 3i32);
+    assert(x.has(3i32));
 
-    let x = Array[Int64]::fill(3L, 3L);
-    assert(x.has(3L));
+    let x = Array[Int64]::fill(3i64, 3i64);
+    assert(x.has(3i64));
 
-    let x = Array[Float64]::fill(3L, 0.0/0.0);
+    let x = Array[Float64]::fill(3i64, 0.0/0.0);
     assert(x.has(0.0/0.0));
 }

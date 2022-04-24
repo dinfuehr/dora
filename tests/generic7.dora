@@ -1,5 +1,5 @@
 fn main() {
-    assert(1I == foo[Int32](1I));
+    assert(1i32 == foo[Int32](1i32));
     assert(3F == foo[Float32](3F));
     assert("hel" + "lo" == foo[String]("hello"));
 }

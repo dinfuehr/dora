@@ -10,6 +10,6 @@ class B: A {
   }
 
   fn bar(): Int32 {
-    return 1I;
+    return 1i32;
   }
 }

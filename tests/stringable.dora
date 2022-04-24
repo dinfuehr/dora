@@ -2,8 +2,8 @@ fn main() {
   str[Bool](true);
   str[Bool](false);
   str[UInt8](1.toUInt8());
-  str[Int32](1I);
-  str[Int64](1L);
+  str[Int32](1i32);
+  str[Int64](1i64);
   str[Float32](1F);
   str[Float64](1D);
 }

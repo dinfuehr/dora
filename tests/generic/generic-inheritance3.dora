@@ -1,16 +1,16 @@
 fn main() {
-    assert(Bar[String]().value == 10I);
-    assert(Bar[Float32]().value == 10I);
+    assert(Bar[String]().value == 10i32);
+    assert(Bar[Float32]().value == 10i32);
 
     let x = Baz[Float32]();
-    assert(x.test() == 10I);
+    assert(x.test() == 10i32);
     x.assignMe();
-    assert(x.test() == 20I);
+    assert(x.test() == 20i32);
 }
 
 @open @abstract class Foo[A](var value: A)
-@open class Bar[A]: Foo[Int32](10I)
+@open class Bar[A]: Foo[Int32](10i32)
 class Baz[A]: Bar[A] {
     fn test(): Int32 = self.value;
-    fn assignMe() { self.value = 20I; }
+    fn assignMe() { self.value = 20i32; }
 }

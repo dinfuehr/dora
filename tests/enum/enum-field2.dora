@@ -8,7 +8,7 @@ fn main() {
     std::forceCollect();
     match object.foo {
         Foo::A(a, b, c) => {
-            assert(a == 112I);
+            assert(a == 112i32);
             assert(b == "abc");
             assert(c == 17.5F);
         },
@@ -17,5 +17,5 @@ fn main() {
 }
 
 fn createObject(): Bar {
-    Bar(Foo::A(112I, "abc", 17.5F))
+    Bar(Foo::A(112i32, "abc", 17.5F))
 }

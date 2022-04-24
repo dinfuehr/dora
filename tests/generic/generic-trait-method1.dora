@@ -1,8 +1,8 @@
 //= vm-args --gc=copy --gc-stress --gc-verify
 
 fn main() {
-    assert(17I * 17I == bar[SomeClass](SomeClass(17I)));
-    assert(42I * 42I == bar[OtherClass](OtherClass(42I)));
+    assert(17i32 * 17i32 == bar[SomeClass](SomeClass(17i32)));
+    assert(42i32 * 42i32 == bar[OtherClass](OtherClass(42i32)));
 }
 
 fn bar[T: Foo](obj: T): Int32 {

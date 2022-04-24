@@ -1,27 +1,27 @@
 fn main() {
-  let x = Array[Int32]::fill(5L, 100I);
-  assert(x(0L) == 100I);
-  assert(int32_array_get(x, 4L) == 100I);
+  let x = Array[Int32]::fill(5i64, 100i32);
+  assert(x(0i64) == 100i32);
+  assert(int32_array_get(x, 4i64) == 100i32);
 
-  let x = Array[Int64]::fill(7L, 200L);
-  assert(x(6L) == 200L);
-  assert(int64_array_get(x, 0L) == 200L);
+  let x = Array[Int64]::fill(7i64, 200i64);
+  assert(x(6i64) == 200i64);
+  assert(int64_array_get(x, 0i64) == 200i64);
 
-  let x = Array[Float32]::fill(6L, 1.0F);
-  assert(x(0L) == 1.0F);
-  assert(float_array_get(x, 5L) == 1.0F);
+  let x = Array[Float32]::fill(6i64, 1.0F);
+  assert(x(0i64) == 1.0F);
+  assert(float_array_get(x, 5i64) == 1.0F);
 
-  let x = Array[Float64]::fill(4L, 2.0);
-  assert(x(0L) == 2.0);
-  assert(double_array_get(x, 3L) == 2.0);
+  let x = Array[Float64]::fill(4i64, 2.0);
+  assert(x(0i64) == 2.0);
+  assert(double_array_get(x, 3i64) == 2.0);
 
-  let x = Array[String]::fill(3L, "hello");
-  assert(x(0L) == "hello");
-  assert(str_array_get(x, 2L) == "hello");
+  let x = Array[String]::fill(3i64, "hello");
+  assert(x(0i64) == "hello");
+  assert(str_array_get(x, 2i64) == "hello");
 
-  let x = Array[Foo]::fill(1L, Foo(1I));
-  assert(x(0L).y == 1I);
-  assert(foo_array_get(x, 0L).y == 1I);
+  let x = Array[Foo]::fill(1i64, Foo(1i32));
+  assert(x(0i64).y == 1i32);
+  assert(foo_array_get(x, 0i64).y == 1i32);
 }
 
 fn int32_array_get(x: Array[Int32], idx: Int64): Int32 {

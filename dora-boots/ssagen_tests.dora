@@ -16,7 +16,7 @@ fn testSsaGenRetVoid() {
 fn testSsaGenRetIntConst() {
     let b = BytecodeBuilder();
     let r0 = b.addRegister(BytecodeType::Int32);
-    b.emitConstInt32(r0, 4711I);
+    b.emitConstInt32(r0, 4711i32);
     b.emitRet(r0);
     let fct = b.generate();
 
@@ -48,7 +48,7 @@ fn testSsaGenRetInt64Const() {
 fn testSsaGenIdInt() {
     let b = BytecodeBuilder();
     let r0 = b.addRegister(BytecodeType::Int32);
-    b.setArguments(1I);
+    b.setArguments(1i32);
     b.emitRet(r0);
     let fct = b.generate();
 
@@ -65,7 +65,7 @@ fn testSsaGenIdInt() {
 fn testSsaGenAddIntArguments() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Int32, 3);
-    b.setArguments(2I);
+    b.setArguments(2i32);
     b.emitAddInt32(r(2), r(0), r(1));
     b.emitRet(r(2));
     let fct = b.generate();
@@ -85,7 +85,7 @@ fn testSsaGenAddIntArguments() {
 fn testSsaGenAddFloat32Arguments() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Float32, 3);
-    b.setArguments(2I);
+    b.setArguments(2i32);
     b.emitAddFloat32(r(2), r(0), r(1));
     b.emitRet(r(2));
     let fct = b.generate();
@@ -107,11 +107,11 @@ fn bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 = a + b;
 fn testSsaGenMultipleAssignments() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Int32, 5);
-    b.setArguments(1I);
-    b.emitConstInt32(r(1), 42I);
+    b.setArguments(1i32);
+    b.emitConstInt32(r(1), 42i32);
     b.emitMov(r(2), r(1));
     b.emitAddInt32(r(3), r(1), r(2));
-    b.emitConstInt32(r(4), 23I);
+    b.emitConstInt32(r(4), 23i32);
     b.emitAddInt32(r(1), r(3), r(4));
     b.emitAddInt32(r(3), r(1), r(0));
     b.emitAddInt32(r(4), r(1), r(3));
@@ -137,7 +137,7 @@ fn testSsaGenMultipleAssignments() {
 fn testSsaGenSubIntArguments() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Int32, 3);
-    b.setArguments(2I);
+    b.setArguments(2i32);
     b.emitSubInt32(r(2), r(0), r(1));
     b.emitRet(r(2));
     let fct = b.generate();
@@ -157,7 +157,7 @@ fn testSsaGenSubIntArguments() {
 fn testSsaGenNegIntArgument() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Int32, 2);
-    b.setArguments(1I);
+    b.setArguments(1i32);
     b.emitNegInt32(r(1), r(0));
     b.emitRet(r(1));
     let fct = b.generate();
@@ -176,7 +176,7 @@ fn testSsaGenNegIntArgument() {
 fn testSsaGenMulIntArguments() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Int32, 3);
-    b.setArguments(2I);
+    b.setArguments(2i32);
     b.emitMulInt32(r(2), r(0), r(1));
     b.emitRet(r(2));
     let fct = b.generate();
@@ -199,10 +199,10 @@ fn testSsaGenSimpleIf() {
     let b = BytecodeBuilder();
     b.addRegisters(BytecodeType::Bool, BytecodeType::Int32);
     let end = b.createLabel();
-    b.setArguments(1I);
-    b.emitConstInt32(r(1), 1I);
+    b.setArguments(1i32);
+    b.emitConstInt32(r(1), 1i32);
     b.emitJumpIfFalse(r(0), end);
-    b.emitConstInt32(r(1), 10I);
+    b.emitConstInt32(r(1), 10i32);
     b.bindLabel(end);
     b.emitRet(r(1));
     let fct = b.generate();
@@ -267,9 +267,9 @@ fn testSsaGenIfWithConditionalAssignment() {
 }
 
 fn bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
-    var x = 1I;
-    var y = 27I;
-    if a { x = 4I; }
+    var x = 1i32;
+    var y = 27i32;
+    if a { x = 4i32; }
     x + y
 }
 
@@ -298,7 +298,7 @@ fn testSsaGenWhileCountDown() {
 
 fn bcSsaGenWhileCountDown(x: Int32): Int32 {
     var x = x;
-    while x > 0I { x = x - 1I; }
+    while x > 0i32 { x = x - 1i32; }
     x
 }
 
@@ -330,9 +330,9 @@ fn testSsaGenWhileCountDownWithSum() {
 
 fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
     var x = x;
-    var sum = 0I;
-    while x > 0I {
-        x = x - 1I;
+    var sum = 0i32;
+    while x > 0i32 {
+        x = x - 1i32;
         sum = sum + x;
     }
     sum
@@ -361,7 +361,7 @@ fn bcSsaGenLoadArrayElementInt32(x: Array[Int32], idx: Int64): Int32 {
 @Test
 fn testSsaGenStoreArrayElementInt32() {
     let b = BytecodeBuilder();
-    b.setArguments(3I);
+    b.setArguments(3i32);
     b.addRegisters(BytecodeType::Ptr, BytecodeType::Int64, BytecodeType::Int32);
     b.emitStoreArray(r(2), r(0), r(1));
     b.emitRetVoid();
@@ -389,7 +389,7 @@ fn bcSsaGenStoreArrayElementInt32(x: Array[Int32], idx: Int64, value: Int32) {
 fn testSsaGenDivInt32() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Int32, 3);
-    b.setArguments(2I);
+    b.setArguments(2i32);
     b.emitDivInt32(r(2), r(0), r(1));
     b.emitRet(r(2));
     let fct = b.generate();
@@ -410,7 +410,7 @@ fn testSsaGenDivInt32() {
 fn testSsaGenDivInt64() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Int64, 3);
-    b.setArguments(2I);
+    b.setArguments(2i32);
     b.emitDivInt64(r(2), r(0), r(1));
     b.emitRet(r(2));
     let fct = b.generate();

@@ -1,17 +1,17 @@
 fn main() {
     assert(loadBool(FooBool(true)) == true);
-    assert(loadByte(FooByte(1Y)) == 1Y);
+    assert(loadByte(FooByte(1u8)) == 1u8);
     assert(loadChar(FooChar('1')) == '1');
-    assert(loadInt32(FooInt32(23I)) == 23I);
-    assert(loadInt64(FooInt64(1L)) == 1L);
+    assert(loadInt32(FooInt32(23i32)) == 23i32);
+    assert(loadInt64(FooInt64(1i64)) == 1i64);
     assert(loadFloat32(FooFloat32(1F)) == 1F);
     assert(loadFloat64(FooFloat64(1D)) == 1D);
     assert(loadString(FooString("1")) == "1");
 
-    let ptr = FooInt32(1I);
+    let ptr = FooInt32(1i32);
     let fooPtr = FooPtr(ptr);
     assert(loadPtr(fooPtr) === ptr);
-    assert(loadPtr(fooPtr).y == 1I);
+    assert(loadPtr(fooPtr).y == 1i32);
 }
 
 fn loadBool(x: FooBool): Bool = x.y;

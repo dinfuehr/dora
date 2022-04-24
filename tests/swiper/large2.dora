@@ -6,14 +6,14 @@ fn main() {
     let filler = Foo();
 
     {
-        let x = Array[Foo]::fill(16L * 1024L, filler);
+        let x = Array[Foo]::fill(16i64 * 1024i64, filler);
         std::forceCollect();
     }
 
     std::forceCollect();
 
     {
-        let y = Array[Foo]::fill(16L * 1024L, filler);
+        let y = Array[Foo]::fill(16i64 * 1024i64, filler);
         std::forceCollect();
     }
 

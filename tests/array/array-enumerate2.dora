@@ -7,13 +7,13 @@ fn iterateManually() {
     let it = Array[String]("a", "b", "c").enumerate();
     assert(it.hasNext());
     let (idx, value) = it.next();
-    assert(idx == 0L && value == "a");
+    assert(idx == 0i64 && value == "a");
     assert(it.hasNext());
     let (idx, value) = it.next();
-    assert(idx == 1L && value == "b");
+    assert(idx == 1i64 && value == "b");
     assert(it.hasNext());
     let (idx, value) = it.next();
-    assert(idx == 2L && value == "c");
+    assert(idx == 2i64 && value == "c");
     assert(!it.hasNext());
 }
 
@@ -21,9 +21,9 @@ fn iterateWithForIn() {
     for idx_and_value in Array[String]("a", "b", "c").enumerate() {
         let (idx, value) = idx_and_value;
 
-        if idx == 0L { assert(value == "a"); }
-        else if idx == 1L { assert(value == "b"); }
-        else if idx == 2L { assert(value == "c"); }
+        if idx == 0i64 { assert(value == "a"); }
+        else if idx == 1i64 { assert(value == "b"); }
+        else if idx == 2i64 { assert(value == "c"); }
         else {
             unreachable[()]();
         }

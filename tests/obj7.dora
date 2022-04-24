@@ -1,7 +1,7 @@
 fn main() {
-  let f1 = Foo1(1I);
-  let f2 = Foo2(1I, 2I);
-  assert(f2.a == 1I);
+  let f1 = Foo1(1i32);
+  let f2 = Foo2(1i32, 2i32);
+  assert(f2.a == 1i32);
 }
 
 class Foo1(a: Int32)

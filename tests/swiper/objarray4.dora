@@ -1,14 +1,14 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fn main() {
-    let filler = Foo(101I);
-    let a = Array[Foo]::fill(60L, filler);
-    let b = Array[Foo]::fill(60L, filler);
+    let filler = Foo(101i32);
+    let a = Array[Foo]::fill(60i64, filler);
+    let b = Array[Foo]::fill(60i64, filler);
     std::forceMinorCollect();
     std::forceMinorCollect();
-    b(5L) = Foo(1I);
+    b(5i64) = Foo(1i32);
     std::forceMinorCollect();
-    assert(b(5L).a == 1I);
+    assert(b(5i64).a == 1i32);
 }
 
 class Foo(let a: Int32)

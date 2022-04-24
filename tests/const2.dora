@@ -1,12 +1,12 @@
-const i: Int32 = -1I;
-const l: Int64 = -2L;
+const i: Int32 = -1i32;
+const l: Int64 = -2i64;
 const no: Bool = false;
 const f: Float32 = -3.0F;
 const d: Float64 = -4.0;
 
 fn main() {
-    assert(i == -1I);
-    assert(l == -2L);
+    assert(i == -1i32);
+    assert(l == -2i64);
     assert(no == false);
     assert(f == -3.0F);
     assert(d == -4.0);

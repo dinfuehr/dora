@@ -8,5 +8,5 @@ class A[T] {
 }
 
 fn consume(x: Array[Int32]) {
-    assert(x.size() == 0L);
+    assert(x.size() == 0i64);
 }

@@ -1,14 +1,14 @@
 fn main() {
-  let array = createArray(5L);
+  let array = createArray(5i64);
 
-  assert(array.size() == 5L);
-  assert(getLength(array) == 5L);
+  assert(array.size() == 5i64);
+  assert(getLength(array) == 5i64);
   
-  setArray(array, 2L, 50I);
-  assert(array(2L) == 50I);
+  setArray(array, 2i64, 50i32);
+  assert(array(2i64) == 50i32);
 
-  array(3L) = 40I;
-  assert(getArray(array, 3L) == 40I);
+  array(3i64) = 40i32;
+  assert(getArray(array, 3i64) == 40i32);
 }
 
 fn createArray(a: Int64): Array[Int32] { return Array[Int32]::zero(a); }

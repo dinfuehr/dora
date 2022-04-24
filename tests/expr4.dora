@@ -2,5 +2,5 @@ fn main() {
   f(g());
 }
 
-fn f(a: Int32) { assert(a == 1I); }
-fn g(): Int32 { return 1I; }
+fn f(a: Int32) { assert(a == 1i32); }
+fn g(): Int32 { return 1i32; }

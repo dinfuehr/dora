@@ -1,8 +1,8 @@
 fn main() {
-  let f = Foo(1I, 2I);
+  let f = Foo(1i32, 2i32);
 
-  assert(1I == f.a);
-  assert(2I == f.b);
+  assert(1i32 == f.a);
+  assert(2i32 == f.b);
 }
 
 class Foo(let a: Int32, x: Int32) {

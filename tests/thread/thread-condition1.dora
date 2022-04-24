@@ -2,9 +2,9 @@
 
 use std::collections::Queue;
 
-const THREADS: Int32 = 10I;
-const ITERATIONS: Int32 = 10_000I;
-const QUEUE_SIZE: Int64 = 20L;
+const THREADS: Int32 = 10i32;
+const ITERATIONS: Int32 = 10_000i32;
+const QUEUE_SIZE: Int64 = 20i64;
 
 class SharedQueue[T](let capacity: Int64) {
     let mtx: std::Mutex = std::Mutex();
@@ -27,7 +27,7 @@ class SharedQueue[T](let capacity: Int64) {
     fn dequeue(): T {
         self.mtx.lock();
 
-        while self.queue.size() == 0L {
+        while self.queue.size() == 0i64 {
             self.conditionNonEmpty.wait(self.mtx);
         }
 
@@ -39,27 +39,27 @@ class SharedQueue[T](let capacity: Int64) {
 }
 
 class Producer(let queue: SharedQueue[Int32]): std::Thread {
-    var sum: Int32 = 0I;
+    var sum: Int32 = 0i32;
 
     @override fn run() {
-        var i = 0I;
+        var i = 0i32;
 
         while i < ITERATIONS {
             self.queue.enqueue(i);
             self.sum = self.sum + i;
-            i = i + 1I;
+            i = i + 1i32;
         }
     }
 }
 
 class Consumer(let queue: SharedQueue[Int32]): std::Thread {
-    var sum: Int32 = 0I;
+    var sum: Int32 = 0i32;
 
     @override fn run() {
         while true {
             let value = self.queue.dequeue();
 
-            if value == -1I {
+            if value == -1i32 {
                 break;
             }
 
@@ -69,7 +69,7 @@ class Consumer(let queue: SharedQueue[Int32]): std::Thread {
 }
 
 fn main() {
-    var i = 0I;
+    var i = 0i32;
     let queue = SharedQueue[Int32](QUEUE_SIZE);
     let producers = Vec[Producer]();
 
@@ -77,20 +77,20 @@ fn main() {
         let producer = Producer(queue);
         producer.start();
         producers.push(producer);
-        i = i + 1I;
+        i = i + 1i32;
     }
 
     let consumer = Consumer(queue);
     consumer.start();
 
-    var producerSum = 0I;
+    var producerSum = 0i32;
 
     for producer in producers {
         producer.join();
         producerSum = producerSum + producer.sum;
     }
 
-    queue.enqueue(-1I);
+    queue.enqueue(-1i32);
     consumer.join();
 
     assert(consumer.sum == producerSum);

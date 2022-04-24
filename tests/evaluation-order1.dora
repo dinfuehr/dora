@@ -11,5 +11,5 @@ fn main() {
 
 fn someInt(): Int32 {
   println("someInt");
-  return 1I;
+  return 1i32;
 }

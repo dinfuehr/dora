@@ -1,9 +1,9 @@
 fn main() {
   assert(foo_bool() == false);
-  assert(foo_byte() == 6Y);
+  assert(foo_byte() == 6u8);
   assert(foo_char() == '6');
-  assert(foo_int32() == 6I);
-  assert(foo_long() == 6L);
+  assert(foo_int32() == 6i32);
+  assert(foo_long() == 6i64);
   assert(foo_float() == 6F);
   assert(foo_double() == 6D);
   assert(foo_string() == "33");
@@ -19,12 +19,12 @@ fn bar_bool(a: Bool): Bool {
 }
 
 fn foo_byte(): UInt8 {
-  return bar_byte(3Y);
+  return bar_byte(3u8);
 }
 
 fn bar_byte(a: UInt8): UInt8 {
-  assert(a == 3Y);
-  return (3I+a.toInt32()).toUInt8();
+  assert(a == 3u8);
+  return (3i32+a.toInt32()).toUInt8();
 }
 
 fn foo_char(): Char {
@@ -33,25 +33,25 @@ fn foo_char(): Char {
 
 fn bar_char(a: Char): Char {
   assert(a == '3');
-  return (3I+a.toInt32()).toChar().getOrPanic();
+  return (3i32+a.toInt32()).toChar().getOrPanic();
 }
 
 fn foo_int32(): Int32 {
-  return bar_int32(3I);
+  return bar_int32(3i32);
 }
 
 fn bar_int32(a: Int32): Int32 {
-  assert(a == 3I);
-  return 3I+a;
+  assert(a == 3i32);
+  return 3i32+a;
 }
 
 fn foo_long(): Int64 {
-  return bar_long(3L);
+  return bar_long(3i64);
 }
 
 fn bar_long(a: Int64): Int64 {
-  assert(a == 3L);
-  return 3L+a;
+  assert(a == 3i64);
+  return 3i64+a;
 }
 
 fn foo_float(): Float32 {

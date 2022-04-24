@@ -1,7 +1,7 @@
 fn main() {
-    var counter = 0I;
-    for i in std::range(0I, 0I) {
-        counter = counter + 1I;
+    var counter = 0i32;
+    for i in std::range(0i32, 0i32) {
+        counter = counter + 1i32;
     }
-    assert(counter == 0I);
+    assert(counter == 0i32);
 }

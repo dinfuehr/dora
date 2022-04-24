@@ -1,11 +1,11 @@
 fn main() {
-    assert(rotateLeft(-12I, 1I) == -23I);
-    assert(rotateLeft(-12I, 32I) == -12I);
-    assert(rotateLeft(-12I, -1I) == 2147483642I);
+    assert(rotateLeft(-12i32, 1i32) == -23i32);
+    assert(rotateLeft(-12i32, 32i32) == -12i32);
+    assert(rotateLeft(-12i32, -1i32) == 2147483642i32);
 
-    assert(rotateRight(-12I, 1I) == 2147483642I);
-    assert(rotateRight(-12I, 32I) == -12I);
-    assert(rotateRight(-12I, -1I) == -23I);
+    assert(rotateRight(-12i32, 1i32) == 2147483642i32);
+    assert(rotateRight(-12i32, 32i32) == -12i32);
+    assert(rotateRight(-12i32, -1i32) == -23i32);
 }
 
 fn rotateLeft(x: Int32, y: Int32): Int32 = x.rotateLeft(y);

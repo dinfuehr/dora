@@ -4,12 +4,12 @@ class Foo
 
 fn main() {
     let filler = Foo();
-    let x = Array[Foo]::fill(16L * 1024L, filler);
-    let y = Array[Foo]::fill(16L * 1024L, filler);
-    let z = Array[Foo]::fill(16L * 1024L, filler);
+    let x = Array[Foo]::fill(16i64 * 1024i64, filler);
+    let y = Array[Foo]::fill(16i64 * 1024i64, filler);
+    let z = Array[Foo]::fill(16i64 * 1024i64, filler);
     std::forceCollect();
-    assert(x(0L) === filler);
-    x(0L) = Foo();
+    assert(x(0i64) === filler);
+    x(0i64) = Foo();
     std::forceCollect();
-    assert(x(0L) !== filler);
+    assert(x(0i64) !== filler);
 }

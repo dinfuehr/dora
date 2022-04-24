@@ -1,23 +1,23 @@
 //= vm-args "--gc=copy"
 
 fn main() {
-    assert(f(true) == 1I);
-    assert(f(false) == 2I);
+    assert(f(true) == 1i32);
+    assert(f(false) == 2i32);
 
-    assert(g(true) == 1I);
-    assert(g(false) == 2I);
+    assert(g(true) == 1i32);
+    assert(g(false) == 2i32);
 
-    assert(h(true, 7I) == "t7end");
-    assert(h(false, 12I) == "f12end");
+    assert(h(true, 7i32) == "t7end");
+    assert(h(false, 12i32) == "f12end");
 
     assert(i(true) == "1");
     assert(i(false) == "not one");
 }
 
-fn f(x: Bool): Int32 = if x { 1I } else { 2I };
+fn f(x: Bool): Int32 = if x { 1i32 } else { 2i32 };
 
 fn g(x: Bool): Int32 {
-    let ret = if x { 1I } else { 2I };
+    let ret = if x { 1i32 } else { 2i32 };
 
     ret
 }
@@ -27,6 +27,6 @@ fn h(x: Bool, y: Int32): String {
 }
 
 fn i(x: Bool): String {
-  let i = if x { 1I } else { return "not one"; };
+  let i = if x { 1i32 } else { return "not one"; };
   i.toString()
 }

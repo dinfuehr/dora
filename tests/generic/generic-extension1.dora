@@ -1,16 +1,16 @@
 class Foo[T]
 
 impl Foo[Int32] {
-    fn foo(): Int32 = 1I;
+    fn foo(): Int32 = 1i32;
 }
 
 impl Foo[Int64] {
-    fn foo(): Int32 = 2I;
+    fn foo(): Int32 = 2i32;
 }
 
 fn main() {
-    assert(f1(Foo[Int32]()) == 1I);
-    assert(f2(Foo[Int64]()) == 2I);
+    assert(f1(Foo[Int32]()) == 1i32);
+    assert(f2(Foo[Int64]()) == 2i32);
 }
 
 fn f1(x: Foo[Int32]): Int32 {

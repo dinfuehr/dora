@@ -1,8 +1,8 @@
 //= error assert
 fn main() {
-  var x = Foo(12I);
+  var x = Foo(12i32);
   x.test();
-  x.test2(1I);
+  x.test2(1i32);
 }
 
 class Foo(let i: Int32) {
@@ -11,6 +11,6 @@ class Foo(let i: Int32) {
   }
 
   fn test2(i: Int32) {
-    assert(i == 2I);
+    assert(i == 2i32);
   }
 }

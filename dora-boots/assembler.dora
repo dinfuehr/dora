@@ -1,6 +1,6 @@
 class AssemblerBuffer {
     let buffer: Vec[UInt8] = Vec();
-    var pos: Int64 = 0L;
+    var pos: Int64 = 0i64;
 
     fn position(): Int64 {
         self.pos
@@ -16,14 +16,14 @@ class AssemblerBuffer {
 
     fn emitInt32(value: Int32) {
         self.emitByte((value & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 8I) & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 16I) & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 24I) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 8i32) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 16i32) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 24i32) & 0xFFI).toUInt8());
     }
 
     fn emitInt64(value: Int64) {
         self.emitInt32(value.toInt32());
-        self.emitInt32((value >>> 32I).toInt32());
+        self.emitInt32((value >>> 32i32).toInt32());
     }
 
     fn patchUInt8(offset: Int64, value: UInt8) {
@@ -32,9 +32,9 @@ class AssemblerBuffer {
 
     fn patchInt32(offset: Int64, value: Int32) {
         self.buffer(offset) = (value & 0xFFI).toUInt8();
-        self.buffer(offset + 1L) = ((value >>> 8I) & 0xFFI).toUInt8();
-        self.buffer(offset + 2L) = ((value >>> 16I) & 0xFFI).toUInt8();
-        self.buffer(offset + 3L) = ((value >>> 24I) & 0xFFI).toUInt8();
+        self.buffer(offset + 1i64) = ((value >>> 8i32) & 0xFFI).toUInt8();
+        self.buffer(offset + 2i64) = ((value >>> 16i32) & 0xFFI).toUInt8();
+        self.buffer(offset + 3i64) = ((value >>> 24i32) & 0xFFI).toUInt8();
     }
 
     fn size(): Int64 {
@@ -66,36 +66,36 @@ class AssemblerBuffer {
 }
 
 class Label {
-    var offset: Int64 = -1L;
+    var offset: Int64 = -1i64;
 
     fn bindTo(pos: Int64) {
-        assert(pos >= 0L && self.offset < 0L);
+        assert(pos >= 0i64 && self.offset < 0i64);
         self.offset = pos;
     }
 
     fn isBound(): Bool {
-        self.offset >= 0L
+        self.offset >= 0i64
     }
 }
 
 @Test
 fn testAssemblerBufferEmitByte() {
     let buffer = AssemblerBuffer();
-    buffer.emitByte(0x01Y);
-    buffer.emitByte(0x02Y);
-    assert(buffer.size() == 2L);
+    buffer.emitByte(0x01u8);
+    buffer.emitByte(0x02u8);
+    assert(buffer.size() == 2i64);
 }
 
 @Test
 fn testAssemblerBufferEmitInt() {
     let asm = AssemblerBuffer();
-    asm.emitInt32(0x11223344I);
+    asm.emitInt32(0x11223344i32);
     let buffer = asm.toArray();
-    assert(buffer(0L) == 0x44Y);
-    assert(buffer(1L) == 0x33Y);
-    assert(buffer(2L) == 0x22Y);
-    assert(buffer(3L) == 0x11Y);
-    assert(buffer.size() == 4L);
+    assert(buffer(0i64) == 0x44u8);
+    assert(buffer(1i64) == 0x33u8);
+    assert(buffer(2i64) == 0x22u8);
+    assert(buffer(3i64) == 0x11u8);
+    assert(buffer.size() == 4i64);
 }
 
 @open @abstract class SlowPath {
@@ -111,13 +111,13 @@ class Register(let value: Int32) {
 }
 
 class MachineCode(let bytes: Array[UInt8]) {
-    var start: Int64 = 0L;
+    var start: Int64 = 0i64;
 
     fn getInt32(idx: Int64): Int32 {
         self.bytes(idx).toInt32() |
-            self.bytes(idx+1L).toInt32() << 8I |
-            self.bytes(idx+2L).toInt32() << 16I |
-            self.bytes(idx+3L).toInt32() << 24I
+            self.bytes(idx+1i64).toInt32() << 8i32 |
+            self.bytes(idx+2i64).toInt32() << 16i32 |
+            self.bytes(idx+3i64).toInt32() << 24i32
     }
 }
 
@@ -130,25 +130,25 @@ fn assertAsm(code: MachineCode, bytes: UInt8...) {
         if exp != got {
             println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
 
-            var i = 0L;
+            var i = 0i64;
             print("buffer:   ");
 
             while i < bytes.size() {
-                if i > 0L { print(", "); }
+                if i > 0i64 { print(", "); }
                 let value = bytes(i);
                 print("${value.toStringHex()}");
-                i = i + 1L;
+                i = i + 1i64;
             }
 
-            i = 0L;
+            i = 0i64;
             println("");
             print("expected: ");
 
             while i < bytes.size() {
-                if i > 0L { print(", "); }
+                if i > 0i64 { print(", "); }
                 let value = code.bytes(code.start + i);
                 print("${value.toStringHex()}");
-                i = i + 1L;
+                i = i + 1i64;
             }
             println("");
         }
@@ -160,49 +160,49 @@ fn assertAsm(code: MachineCode, bytes: UInt8...) {
 }
 
 fn assertAsm32(code: MachineCode, values: Int32...) {
-    assert(code.start % 4L == 0L);
-    assert(code.bytes.size() % 4L == 0L);
+    assert(code.start % 4i64 == 0i64);
+    assert(code.bytes.size() % 4i64 == 0i64);
 
-    assert(code.start + values.size() * 4L <= code.bytes.size());
+    assert(code.start + values.size() * 4i64 <= code.bytes.size());
 
-    var idx = 0L;
+    var idx = 0i64;
 
     while idx < values.size() {
         let exp = values(idx);
-        let got = code.getInt32(code.start + idx * 4L);
+        let got = code.getInt32(code.start + idx * 4i64);
 
         if exp != got {
             println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
 
-            var i = 0L;
+            var i = 0i64;
             print("buffer:   ");
 
             for (idx, value) in values.enumerate() {
-                if i > 0L { print(", "); }
+                if i > 0i64 { print(", "); }
                 let value = values(i);
                 print("${value.toStringHex()}");
-                i = i + 1L;
+                i = i + 1i64;
             }
 
-            i = 0L;
+            i = 0i64;
             println("");
             print("expected: ");
 
             while i < values.size() {
-                if i > 0L { print(", "); }
-                let value = code.getInt32(code.start + i * 4L);
+                if i > 0i64 { print(", "); }
+                let value = code.getInt32(code.start + i * 4i64);
                 print("${value.toStringHex()}");
-                i = i + 1L;
+                i = i + 1i64;
             }
             println("");
         }
 
         assert(exp == got);
 
-        idx = idx + 1L;
+        idx = idx + 1i64;
     }
 
-    code.start = code.start + values.size() * 4L;
+    code.start = code.start + values.size() * 4i64;
 }
 
 fn assertAsmEnd(code: MachineCode) {

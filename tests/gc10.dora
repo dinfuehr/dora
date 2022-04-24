@@ -1,11 +1,11 @@
 //= stdout "10\n10\n"
 
 fn main() {
-    let a = A(10I);
+    let a = A(10i32);
     let x = a.test();
     println(a.a.toString());
     println(x.toString());
-    assert(x == 10I);
+    assert(x == 10i32);
 }
 
 class A(let a: Int32) {

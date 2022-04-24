@@ -3,8 +3,8 @@ use std::argv;
 use std::exit;
 
 @open @abstract class Node {
-    var birthday: Int32 = 0I;
-    var value: Int32 = 0I;
+    var birthday: Int32 = 0i32;
+    var value: Int32 = 0i32;
     var left: Option[Node] = Option[Node]::None;
     var right: Option[Node] = Option[Node]::None;
 
@@ -127,87 +127,87 @@ use std::exit;
 
     @static fn trunc(date: Int32, tree: Node, depth: Int32) {
         if tree.left.isSome() {
-            if depth == 0I {
+            if depth == 0i32 {
                 /*if tree.left !== nil {
                     println("truncate left");
                 }*/
                 tree.left = Option[Node]::None;
             } else {
-                Node::trunc(date, tree.left.getOrPanic(), depth-1I);
+                Node::trunc(date, tree.left.getOrPanic(), depth-1i32);
             }
         }
 
         if tree.right.isSome() {
-            if depth == 0I {
+            if depth == 0i32 {
                 /*if tree.right !== nil {
                     println("truncate right");
                 }*/
                 tree.right = Option[Node]::None;
             } else {
-                Node::trunc(date, tree.right.getOrPanic(), depth-1I);
+                Node::trunc(date, tree.right.getOrPanic(), depth-1i32);
             }
         }
     }
 
     @static fn countNodes(node: Option[Node]): Int32 {
         if node.isNone() {
-            return 0I;
+            return 0i32;
         }
         let node = node.getOrPanic();
-        return 1I + Node::countNodes(node.left) + Node::countNodes(node.right);
+        return 1i32 + Node::countNodes(node.left) + Node::countNodes(node.right);
     }
 }
 
 class NodeA: Node {}
-class NodeB: Node { let x1: Int64 = 0L; }
-class NodeC: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
+class NodeB: Node { let x1: Int64 = 0i64; }
+class NodeC: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; }
 class NodeD: Node { let x1: Float64 = 0.0; let x2: Float64 = 0.0; let x3: Float64 = 0.0; }
 
 class Node40: Node {}
-class Node48: Node { let x1: Int64 = 0L; }
-class Node56: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
-class Node64: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; }
-class Node72: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; }
-class Node80: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; let x5: Int64 = 0L; }
+class Node48: Node { let x1: Int64 = 0i64; }
+class Node56: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; }
+class Node64: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; let x3: Int64 = 0i64; }
+class Node72: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; let x3: Int64 = 0i64; let x4: Int64 = 0i64; }
+class Node80: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; let x3: Int64 = 0i64; let x4: Int64 = 0i64; let x5: Int64 = 0i64; }
 
 fn main() {
-    if argc() < 4I {
+    if argc() < 4i32 {
         println("usage: splunc <seed> <max-size> <iterations> <trunc-depth> [<iterations> <trunc-depth>]");
-        exit(1I);
+        exit(1i32);
     }
 
-    let rnd = std::Random(argv(0I).toInt64().getOrPanic());
-    let max_size = argv(1I).toInt32().getOrPanic();
-    var date = 0I;
+    let rnd = std::Random(argv(0i32).toInt64().getOrPanic());
+    let max_size = argv(1i32).toInt32().getOrPanic();
+    var date = 0i32;
 
     var tree: Node = NodeA();
     tree.birthday = date;
-    date = date + 1I;
+    date = date + 1i32;
     tree.value = rnd.nextInt32WithBound(max_size);
 
-    var j = 2I;
+    var j = 2i32;
 
-    while j + 2I <= argc() {
+    while j + 2i32 <= argc() {
         let n = argv(j).toInt32().getOrPanic();
         let depth = argv(j).toInt32().getOrPanic();
 
-        var i = 0I;
+        var i = 0i32;
         while i < n {
-            let value = rnd.nextInt32WithBound(4I);
+            let value = rnd.nextInt32WithBound(4i32);
 
-            let node = if value == 0I {
+            let node = if value == 0i32 {
                 NodeA() as Node
-            } else if value == 1I {
+            } else if value == 1i32 {
                 NodeB() as Node
-            } else if value == 2I {
+            } else if value == 2i32 {
                 NodeC() as Node
             } else {
-                assert(value == 3I);
+                assert(value == 3i32);
                 NodeD() as Node
             };
 
             node.birthday = date;
-            date = date + 1I;
+            date = date + 1i32;
             node.value = rnd.nextInt32WithBound(max_size);
 
             tree = Node::insert(Option[Node]::Some(tree), node);
@@ -215,9 +215,9 @@ fn main() {
 
             // println("nodes in tree: " + Node::countNodes(tree).toString());
 
-            i = i + 1I;
+            i = i + 1i32;
         }
 
-        j = j + 2I;
+        j = j + 2i32;
     }
 }

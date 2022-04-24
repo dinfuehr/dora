@@ -3,18 +3,18 @@
 fn main() {
     let x = build_vec();
     std::forceCollect();
-    assert(x.size() == 3L);
+    assert(x.size() == 3i64);
     pop_vec(x, "ghi");
     std::forceCollect();
     pop_vec(x, "def");
     std::forceCollect();
     pop_vec(x, "abc");
     std::forceCollect();
-    assert(x.size() == 0L);
+    assert(x.size() == 0i64);
 }
 
 fn build_vec(): Vec[(Int32, String)] {
-    Vec[(Int32, String)]((1I, "a" + "b" + "c"), (2I, "d" + "e" + "f"), (3I, "g" + "h" + "i"))
+    Vec[(Int32, String)]((1i32, "a" + "b" + "c"), (2i32, "d" + "e" + "f"), (3i32, "g" + "h" + "i"))
 }
 
 fn pop_vec(vec: Vec[(Int32, String)], expected: String) {

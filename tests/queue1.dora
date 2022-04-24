@@ -2,15 +2,15 @@ use std::collections::Queue;
 
 fn main() {
     let q = Queue[Int32]();
-    assert(q.size() == 0L);
+    assert(q.size() == 0i64);
     assert(q.isEmpty());
-    q.enqueue(1I);
-    assert(q.size() == 1L);
+    q.enqueue(1i32);
+    assert(q.size() == 1i64);
     assert(!q.isEmpty());
-    q.enqueue(2I);
-    assert(q.size() == 2L);
-    assert(q.dequeue() == 1I);
-    assert(q.dequeue() == 2I);
-    assert(q.size() == 0L);
+    q.enqueue(2i32);
+    assert(q.size() == 2i64);
+    assert(q.dequeue() == 1i32);
+    assert(q.dequeue() == 2i32);
+    assert(q.size() == 0i64);
     assert(q.isEmpty());
 }

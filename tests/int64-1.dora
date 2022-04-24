@@ -1,5 +1,5 @@
 fn main() {
-    let x = 1I.toInt64();
+    let x = 1i32.toInt64();
     let y = id(x);
 
     assert(x == y);

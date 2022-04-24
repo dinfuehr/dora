@@ -4,7 +4,7 @@ var x: Int32 = foo();
 
 fn main() {
     println("before");
-    x = 19I;
+    x = 19i32;
     println("x = ${x}");
     println("middle");
     println("x = ${x}");
@@ -14,5 +14,5 @@ fn main() {
 
 fn foo(): Int32 {
     println("foo");
-    17I
+    17i32
 }

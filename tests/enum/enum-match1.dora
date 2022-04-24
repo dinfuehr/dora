@@ -1,13 +1,13 @@
 enum Foo { A, B }
 
 fn main() {
-    assert(value(Foo::A) == 1I);
-    assert(value(Foo::B) == 2I);
+    assert(value(Foo::A) == 1i32);
+    assert(value(Foo::B) == 2i32);
 }
 
 fn value(foo: Foo): Int32 {
     match foo {
-        Foo::A => 1I,
-        Foo::B => 2I
+        Foo::A => 1i32,
+        Foo::B => 2i32
     }
 }

@@ -1,38 +1,38 @@
 fn main() {
-    let x = 1L.shiftLeft(1I);
-    assert(x == 2L);
+    let x = 1i64.shiftLeft(1i32);
+    assert(x == 2i64);
 
-    let x = 1L << 1I;
-    assert(x == 2L);
+    let x = 1i64 << 1i32;
+    assert(x == 2i64);
 
-    let x = 6L.shiftRightSigned(1I);
-    assert(x == 3L);
+    let x = 6i64.shiftRightSigned(1i32);
+    assert(x == 3i64);
 
-    let x = 6L >> 1I;
-    assert(x == 3L);
+    let x = 6i64 >> 1i32;
+    assert(x == 3i64);
 
-    let x = 12L.shiftRight(2I);
-    assert(x == 3L);
+    let x = 12i64.shiftRight(2i32);
+    assert(x == 3i64);
 
-    let x = 12L >> 2I;
-    assert(x == 3L);
+    let x = 12i64 >> 2i32;
+    assert(x == 3i64);
 
-    let x = (-12L).rotateLeft(1I);
-    assert(x == -23L);
+    let x = (-12i64).rotateLeft(1i32);
+    assert(x == -23i64);
 
-    let x = (-12L).rotateRight(1I);
-    assert(x == 9223372036854775802L);
+    let x = (-12i64).rotateRight(1i32);
+    assert(x == 9223372036854775802i64);
 
     // rotate arg is masked to 6 bits:
-    let x = (-12L).rotateLeft(64I);
-    assert(x == -12L);
+    let x = (-12i64).rotateLeft(64i32);
+    assert(x == -12i64);
 
-    let x = (-12L).rotateRight(64I);
-    assert(x == -12L);
+    let x = (-12i64).rotateRight(64i32);
+    assert(x == -12i64);
 
-    let x = (-12L).rotateLeft(-1I);
-    assert(x == 9223372036854775802L);
+    let x = (-12i64).rotateLeft(-1i32);
+    assert(x == 9223372036854775802i64);
 
-    let x = (-12L).rotateRight(-1I);
-    assert(x == -23L);
+    let x = (-12i64).rotateRight(-1i32);
+    assert(x == -23i64);
 }

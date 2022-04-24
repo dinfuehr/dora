@@ -5,8 +5,8 @@ class X(a: Int32, b: Int32) {
 }
 
 fn main() {
-    let x = X(2I, 4I);
+    let x = X(2i32, 4i32);
 
-    assert(x.ma == 2I);
-    assert(x.mb == 4I);
+    assert(x.ma == 2i32);
+    assert(x.mb == 4i32);
 }

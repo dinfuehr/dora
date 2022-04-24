@@ -4,11 +4,11 @@ class Graph {
     var blocks: Vec[Option[Block]] = Vec();
     var postOrder: Vec[Block] = Vec();
 
-    var nextBlockIdValue: Int32 = 0I;
-    var nextInstIdValue: Int32 = 0I;
+    var nextBlockIdValue: Int32 = 0i32;
+    var nextInstIdValue: Int32 = 0i32;
 
     fn addBlock(block: Block) {
-        assert(block.graph.isNone() && block.id == -1I);
+        assert(block.graph.isNone() && block.id == -1i32);
 
         block.graph = Some(self);
         block.id = self.nextBlockId().value;
@@ -29,14 +29,14 @@ class Graph {
 
     fn nextInstId(): Int32 {
         let id = self.nextInstIdValue;
-        self.nextInstIdValue = id + 1I;
+        self.nextInstIdValue = id + 1i32;
 
         id
     }
 
     fn nextBlockId(): BlockId {
         let id = self.nextBlockIdValue;
-        self.nextBlockIdValue = id + 1I;
+        self.nextBlockIdValue = id + 1i32;
 
         BlockId(id)
     }
@@ -76,7 +76,7 @@ class Graph {
 }
 
 class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
-    var idx: Int64 = 0L;
+    var idx: Int64 = 0i64;
 
     fn hasNext(): Bool {
         self.findNextBlock();
@@ -86,7 +86,7 @@ class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
 
     fn next(): Block {
         let block = self.blocks(self.idx).getOrPanic();
-        self.idx = self.idx + 1L;
+        self.idx = self.idx + 1i64;
         block
     }
 
@@ -98,13 +98,13 @@ class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
                 break;
             }
 
-            self.idx = self.idx + 1L;
+            self.idx = self.idx + 1i64;
         }
     }
 }
 
 class PostOrderIterator(let postOrder: Array[Block]) {
-    var idx: Int64 = 0L;
+    var idx: Int64 = 0i64;
 
     fn hasNext(): Bool {
         self.idx < self.postOrder.size()
@@ -112,21 +112,21 @@ class PostOrderIterator(let postOrder: Array[Block]) {
 
     fn next(): Block {
         let block = self.postOrder(self.idx);
-        self.idx = self.idx + 1L;
+        self.idx = self.idx + 1i64;
         block
     }
 }
 
 class ReversePostOrderIterator(let postOrder: Array[Block]) {
-    var idx: Int64 = self.postOrder.size() - 1L;
+    var idx: Int64 = self.postOrder.size() - 1i64;
 
     fn hasNext(): Bool {
-        self.idx != -1L
+        self.idx != -1i64
     }
 
     fn next(): Block {
         let block = self.postOrder(self.idx);
-        self.idx = self.idx - 1L;
+        self.idx = self.idx - 1i64;
         block
     }
 }
@@ -134,7 +134,7 @@ class ReversePostOrderIterator(let postOrder: Array[Block]) {
 struct BlockId(value: Int32)
 
 class Block() {
-    var id: Int32 = -1I;
+    var id: Int32 = -1i32;
 
     var phis: InstLinkedList = InstLinkedList();
     var instructions: InstLinkedList = InstLinkedList();
@@ -149,7 +149,7 @@ class Block() {
 
     var loopData: Option[LoopData] = None;
 
-    var postOrderIdx: Int32 = -1I;
+    var postOrderIdx: Int32 = -1i32;
 
     fn getDominator(): Option[Block] = self.dominator;
 
@@ -189,7 +189,7 @@ class Block() {
     }
 
     fn appendPhi(phi: PhiInst): PhiInst {
-        assert(phi.block.isNone() && phi.id == -1I);
+        assert(phi.block.isNone() && phi.id == -1i32);
 
         phi.block = Some(self);
         phi.id = self.graph.getOrPanic().nextInstId();
@@ -201,7 +201,7 @@ class Block() {
     }
 
     fn appendInst(inst: Inst): Inst {
-        assert(inst.block.isNone() && inst.id == -1I);
+        assert(inst.block.isNone() && inst.id == -1i32);
 
         inst.block = Some(self);
         inst.id = self.graph.getOrPanic().nextInstId();
@@ -309,7 +309,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
 }
 
 @abstract @open class Inst {
-    var id: Int32 = -1I;
+    var id: Int32 = -1i32;
     var block: Option[Block] = None;
 
     var previous: Option[Inst] = None;

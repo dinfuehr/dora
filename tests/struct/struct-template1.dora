@@ -6,9 +6,9 @@ fn main() {
     assert(result.first == "test");
     assert(result.second);
 
-    let result = tpl[Bar](Bar(9I));
+    let result = tpl[Bar](Bar(9i32));
     std::forceCollect();
-    assert(result.first.value == 9I);
+    assert(result.first.value == 9i32);
     assert(result.second);
 }
 

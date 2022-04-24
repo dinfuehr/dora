@@ -10,10 +10,10 @@ annotation flurbs[S, T](x: Int, y: Double)
 
 class Boo(): Bar {
   @override
-  fn foo(): Int32 = 1I;
+  fn foo(): Int32 = 1i32;
 
   @static @pub
-  fn goo(): Int32 = 1I;
+  fn goo(): Int32 = 1i32;
 }
 
 fn main() {}

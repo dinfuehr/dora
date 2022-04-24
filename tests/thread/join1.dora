@@ -2,7 +2,7 @@
 
 class MyThread: std::Thread {
     @override fn run() {
-        std::sleep(2I);
+        std::sleep(2i32);
         println("one");
     }
 }

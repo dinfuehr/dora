@@ -15,7 +15,7 @@ impl std::Stringable for Bar {
 }
 
 impl X for Bar {
-    @static fn foo(): Bar = Bar(1I);
+    @static fn foo(): Bar = Bar(1i32);
 }
 
 class Baz(let x: Int32)
@@ -25,5 +25,5 @@ impl std::Stringable for Baz {
 }
 
 impl X for Baz {
-    @static fn foo(): Baz = Baz(2I);
+    @static fn foo(): Baz = Baz(2i32);
 }

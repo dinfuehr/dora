@@ -1,11 +1,11 @@
 fn main() {
   assert(Array[Int32]() == Array[Int32]());
   assert(Array[Int32]().equals(Array[Int32]()));
-  assert(Array[Int32](1I) == Array[Int32](1I));
-  assert(Array[Int32](1I).equals(Array[Int32](1I)));
-  assert(Array[Int32](1I, 2I, 3I) == Array[Int32](1I, 2I, 3I));
-  assert(Array[Int32](1I, 2I, 3I).equals(Array[Int32](1I, 2I, 3I)));
+  assert(Array[Int32](1i32) == Array[Int32](1i32));
+  assert(Array[Int32](1i32).equals(Array[Int32](1i32)));
+  assert(Array[Int32](1i32, 2i32, 3i32) == Array[Int32](1i32, 2i32, 3i32));
+  assert(Array[Int32](1i32, 2i32, 3i32).equals(Array[Int32](1i32, 2i32, 3i32)));
 
-  assert(Array[Int32](1I, 2I, 3I) != Array[Int32](2I, 3I, 4I));
-  assert(Array[Int32](1I, 2I, 3I) != Array[Int32](1I, 2I, 3I, 4I));
+  assert(Array[Int32](1i32, 2i32, 3i32) != Array[Int32](2i32, 3i32, 4i32));
+  assert(Array[Int32](1i32, 2i32, 3i32) != Array[Int32](1i32, 2i32, 3i32, 4i32));
 }

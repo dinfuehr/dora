@@ -1,16 +1,16 @@
 fn main() {
-    let ba = Array[Int64]::zero(0L);
-    assert(ba.size() == 0L);
+    let ba = Array[Int64]::zero(0i64);
+    assert(ba.size() == 0i64);
 
-    let ba = Array[Int64]::fill(10L, 2L);
-    assert(ba.size() == 10L);
+    let ba = Array[Int64]::fill(10i64, 2i64);
+    assert(ba.size() == 10i64);
 
-    ba(0L) = 10L;
-    ba(1L) = 11L;
-    ba(2L) = 12L;
+    ba(0i64) = 10i64;
+    ba(1i64) = 11i64;
+    ba(2i64) = 12i64;
 
-    assert(10L == ba(0L));
-    assert(11L == ba(1L));
-    assert(12L == ba(2L));
-    assert(2L == ba(9L));
+    assert(10i64 == ba(0i64));
+    assert(11i64 == ba(1i64));
+    assert(12i64 == ba(2i64));
+    assert(2i64 == ba(9i64));
 }

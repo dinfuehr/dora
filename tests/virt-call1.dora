@@ -3,7 +3,7 @@
 }
 
 class Bar: Foo {
-    @override fn test(): Int32 = 17I;
+    @override fn test(): Int32 = 17i32;
 }
 
 fn test(foo: Foo): Int32 {
@@ -11,5 +11,5 @@ fn test(foo: Foo): Int32 {
 }
 
 fn main() {
-    assert(test(Bar()) == 17I);
+    assert(test(Bar()) == 17i32);
 }

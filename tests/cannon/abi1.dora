@@ -1,6 +1,6 @@
 fn main() {
-    assert(testInt32(3I) == 3I);
-    assert(testInt32(122I) == 122I);
+    assert(testInt32(3i32) == 3i32);
+    assert(testInt32(122i32) == 122i32);
 
     assert(testFloat32(3F) == 3F);
     assert(testFloat32(122F) == 122F);

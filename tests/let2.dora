@@ -1,7 +1,7 @@
 //= error at 9:12
 
 fn main() {
-  let x = X(1I);
+  let x = X(1i32);
 }
 
 class X(let a: Int32) {

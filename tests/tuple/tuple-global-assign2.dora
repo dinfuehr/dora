@@ -1,15 +1,15 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-var x: (Foo, Foo) = (Foo(0I), Foo(0I));
+var x: (Foo, Foo) = (Foo(0i32), Foo(0i32));
 
 fn main() {
     std::forceCollect();
-    x = (Foo(17I), Foo(42I));
-    assert(x.0.value == 17I);
-    assert(x.1.value == 42I);
+    x = (Foo(17i32), Foo(42i32));
+    assert(x.0.value == 17i32);
+    assert(x.1.value == 42i32);
     std::forceCollect();
-    assert(x.0.value == 17I);
-    assert(x.1.value == 42I);
+    assert(x.0.value == 17i32);
+    assert(x.1.value == 42i32);
 }
 
 class Foo(let value: Int32)

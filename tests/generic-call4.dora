@@ -15,10 +15,10 @@ class X
 impl Foo for X {
     fn bar(): Int32 {
         println("world");
-        return 2I;
+        return 2i32;
     }
 }
 
 fn main() {
-    assert(2I == A[X](X()).bar());
+    assert(2i32 == A[X](X()).bar());
 }

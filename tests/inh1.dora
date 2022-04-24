@@ -1,8 +1,8 @@
 fn main() {
-  let a = A(10I);
-  assert(a.x == 10I);
-  assert(a.y == 20I);
+  let a = A(10i32);
+  assert(a.x == 10i32);
+  assert(a.y == 20i32);
 }
 
-class A(let x: Int32): B(x*2I)
+class A(let x: Int32): B(x*2i32)
 @open class B(let y: Int32)

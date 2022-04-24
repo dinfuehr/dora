@@ -1,14 +1,14 @@
 fn main() {
     SOLAR_MASS = 4.0 * PI * PI;
-    let n = std::argv(0I).toInt32().getOrPanic();
+    let n = std::argv(0i32).toInt32().getOrPanic();
     let bodies = NBodySystem();
 
-    var i = 0I;
+    var i = 0i32;
     println(bodies.energy().toString());
 
     while i < n {
         bodies.advance(0.01);
-        i = i + 1I;
+        i = i + 1i32;
     }
 
     println(bodies.energy().toString());
@@ -36,12 +36,12 @@ class NBodySystem {
             pz = pz + body.vz * body.mass;
         }
 
-        self.bodies(0L).offsetMomentum(px, py, pz);
+        self.bodies(0i64).offsetMomentum(px, py, pz);
     }
 
     fn advance(dt: Float64) {
         for (i, iBody) in self.bodies.enumerate() {
-            var j = i + 1L;
+            var j = i + 1i64;
 
             while j < self.bodies.size() {
                 let jBody = self.bodies(j);
@@ -62,7 +62,7 @@ class NBodySystem {
                 jBody.vy = jBody.vy + dy * iBody.mass * mag;
                 jBody.vz = jBody.vz + dz * iBody.mass * mag;
 
-                j = j + 1L;
+                j = j + 1i64;
             }
         }
 
@@ -86,7 +86,7 @@ class NBodySystem {
                 + iBody.vy * iBody.vy
                 + iBody.vz * iBody.vz );
 
-        var j = i+1L;
+        var j = i+1i64;
 
         while j < self.bodies.size() {
             let jBody = self.bodies(j);
@@ -98,7 +98,7 @@ class NBodySystem {
             distance = (dx*dx + dy*dy + dz*dz).sqrt();
             e = e - (iBody.mass * jBody.mass) / distance;
 
-            j = j + 1L;
+            j = j + 1i64;
         }
       }
 

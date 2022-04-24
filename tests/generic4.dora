@@ -1,7 +1,7 @@
 //= stdout "hello1"
 
 fn main() {
-  let a = A[String](foo(1I));
+  let a = A[String](foo(1i32));
   std::forceCollect();
   print(a.getx());
 }

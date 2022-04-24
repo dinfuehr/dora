@@ -10,25 +10,25 @@ fn main() {
     let fooPtr = FooPtr();
 
     storeBool(fooBool, true);
-    storeByte(fooByte, 1Y);
+    storeByte(fooByte, 1u8);
     storeChar(fooChar, '1');
-    storeInt32(fooInt32, 23I);
-    storeInt64(fooInt64, 1L);
+    storeInt32(fooInt32, 23i32);
+    storeInt64(fooInt64, 1i64);
     storeFloat32(fooFloat32, 1F);
     storeFloat64(fooFloat64, 1D);
     storeString(fooString, "1");
     storePtr(fooPtr, fooInt32);
 
     assert(fooBool.y == true);
-    assert(fooByte.y == 1Y);
+    assert(fooByte.y == 1u8);
     assert(fooChar.y == '1');
-    assert(fooInt32.y == 23I);
-    assert(fooInt64.y == 1L);
+    assert(fooInt32.y == 23i32);
+    assert(fooInt64.y == 1i64);
     assert(fooFloat32.y == 1F);
     assert(fooFloat64.y == 1D);
     assert(fooString.y == "1");
     assert(fooPtr.y === fooInt32);
-    assert(fooPtr.y.y == 23I)
+    assert(fooPtr.y.y == 23i32)
 }
 
 fn storeBool(x: FooBool, z: Bool) {
@@ -71,16 +71,16 @@ class FooBool() {
     var y: Bool = false;
 }
 class FooByte() {
-    var y: UInt8 = 0Y;
+    var y: UInt8 = 0u8;
 }
 class FooChar() {
     var y: Char = '\0';
 }
 class FooInt32() {
-    var y: Int32 = 0I;
+    var y: Int32 = 0i32;
 }
 class FooInt64() {
-    var y: Int64 = 0L;
+    var y: Int64 = 0i64;
 }
 class FooFloat32() {
     var y: Float32 = 0.0F;

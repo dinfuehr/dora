@@ -1,16 +1,16 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fn main() {
-  var x = foo(1I, foo(2I, foo(3I, None[Foo])));
+  var x = foo(1i32, foo(2i32, foo(3i32, None[Foo])));
   std::forceMinorCollect();
-  x.getOrPanic().next.getOrPanic().next.getOrPanic().next = foo(4I, None[Foo]);
-  x = foo(100I, x);
+  x.getOrPanic().next.getOrPanic().next.getOrPanic().next = foo(4i32, None[Foo]);
+  x = foo(100i32, x);
   std::forceMinorCollect();
-  assert(x.getOrPanic().a == 100I);
-  assert(x.getOrPanic().next.getOrPanic().a == 1I);
-  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().a == 2I);
-  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().a == 3I);
-  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().a == 4I);
+  assert(x.getOrPanic().a == 100i32);
+  assert(x.getOrPanic().next.getOrPanic().a == 1i32);
+  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().a == 2i32);
+  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().a == 3i32);
+  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().a == 4i32);
   assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.isNone());
 }
 

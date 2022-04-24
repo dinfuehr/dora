@@ -1,8 +1,8 @@
 //= stdout "0124"
 
 fn main() {
-    for i in std::range(0I, 5I) {
-        if i == 3I { continue; }
+    for i in std::range(0i32, 5i32) {
+        if i == 3i32 { continue; }
         print(i.toString());
     }
 }

@@ -15,9 +15,9 @@ fn main() {
         Bar::C(myclass) => myclass,
         Bar::D => unreachable[MyClass](),
     };
-    assert(myclass.value == 17I);
+    assert(myclass.value == 17i32);
 }
 
 fn foo(): Foo {
-    Foo::A(Bar::C(MyClass(17I)))
+    Foo::A(Bar::C(MyClass(17i32)))
 }

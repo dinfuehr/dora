@@ -3,10 +3,10 @@ fn main() {
     buf.appendChar('a');
     buf.appendChar('b');
     buf.appendChar('c');
-    assert(buf.size() == 3L);
+    assert(buf.size() == 3i64);
     assert(buf.toString() == "abc");
 
     buf.append("foo123");
-    assert(buf.size() == 9L);
+    assert(buf.size() == 9i64);
     assert(buf.toString() == "abcfoo123");
 }

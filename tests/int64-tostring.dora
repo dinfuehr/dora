@@ -5,22 +5,22 @@ fn main() {
   let x = Int64::maxValue().toStringBinary();
   assert(x == "111111111111111111111111111111111111111111111111111111111111111");
 
-  let x = 0L.toStringBinary();
+  let x = 0i64.toStringBinary();
   assert(x == "0");
 
-  let x = 12L.toStringBinary();
+  let x = 12i64.toStringBinary();
   assert(x == "1100");
 
-  let x = 67L.toStringBinary();
+  let x = 67i64.toStringBinary();
   assert(x == "1000011");
 
-  let x = 129L.toStringBinary();
+  let x = 129i64.toStringBinary();
   assert(x == "10000001");
 
-  let x = (-1L).toStringBinary();
+  let x = (-1i64).toStringBinary();
   assert(x == "1111111111111111111111111111111111111111111111111111111111111111");
 
-  let x = (-129L).toStringBinary();
+  let x = (-129i64).toStringBinary();
   assert(x == "1111111111111111111111111111111111111111111111111111111101111111");
 
 
@@ -30,21 +30,21 @@ fn main() {
   let x = Int64::maxValue().toStringHex();
   assert(x == "7FFFFFFFFFFFFFFF");
 
-  let x = 0L.toStringHex();
+  let x = 0i64.toStringHex();
   assert(x == "0");
 
-  let x = 12L.toStringHex();
+  let x = 12i64.toStringHex();
   assert(x == "C");
 
-  let x = 67L.toStringHex();
+  let x = 67i64.toStringHex();
   assert(x == "43");
 
-  let x = 129L.toStringHex();
+  let x = 129i64.toStringHex();
   assert(x == "81");
 
-  let x = (-1L).toStringHex();
+  let x = (-1i64).toStringHex();
   assert(x == "FFFFFFFFFFFFFFFF");
 
-  let x = (-129L).toStringHex();
+  let x = (-129i64).toStringHex();
   assert(x == "FFFFFFFFFFFFFF7F");
 }

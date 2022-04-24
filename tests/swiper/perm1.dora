@@ -3,5 +3,5 @@
 fn main() {
   let x = "perm";
   std::forceMinorCollect();
-  assert(x.size() == 4L);
+  assert(x.size() == 4i64);
 }

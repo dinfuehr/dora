@@ -3,5 +3,5 @@ fn main(): Int32 {
 }
 
 fn myzero(): Int32 {
-  return 0I;
+  return 0i32;
 }

@@ -3,10 +3,10 @@
 class Foo (let value: Int32)
 
 fn main() {
-    let x = Array[(Int32, Foo)]::fill(7L, (0I, Foo(100I)));
-    x(0L) = (1I, Foo(1I));
-    x(4L) = (4I, Foo(4I));
+    let x = Array[(Int32, Foo)]::fill(7i64, (0i32, Foo(100i32)));
+    x(0i64) = (1i32, Foo(1i32));
+    x(4i64) = (4i32, Foo(4i32));
     std::forceCollect();
-    assert(x(0L).0 == x(0L).1.value);
-    assert(x(4L).0 == x(4L).1.value);
+    assert(x(0i64).0 == x(0i64).1.value);
+    assert(x(4i64).0 == x(4i64).1.value);
 }

@@ -1,21 +1,21 @@
 @pub class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
-    var inserted_and_deleted: BitSet = BitSet(0L);
+    var inserted_and_deleted: BitSet = BitSet(0i64);
     var keys: Array[K] = Array[K]::empty();
     var values: Array[V] = Array[V]::empty();
-    var entries: Int64 = 0L;
-    var cap: Int64 = 0L;
+    var entries: Int64 = 0i64;
+    var cap: Int64 = 0i64;
     for entry in entries {
         self.insert(entry.0, entry.1);
     }
 
     @pub fn insert(key: K, value: V): Option[V] {
-        self.ensureCapacity(1L);
+        self.ensureCapacity(1i64);
         assert(self.entries < self.cap);
 
         var hash = key.hash();
-        var idx = hash.toInt64() & (self.cap - 1L);
+        var idx = hash.toInt64() & (self.cap - 1i64);
         var insert_idx = None[Int64];
 
         while true {
@@ -38,17 +38,17 @@
             } else {
                 let insert_idx = insert_idx.unwrapOr(idx);
 
-                self.inserted_and_deleted.insert(2L * insert_idx);
-                self.inserted_and_deleted.remove(2L * insert_idx + 1L);
+                self.inserted_and_deleted.insert(2i64 * insert_idx);
+                self.inserted_and_deleted.remove(2i64 * insert_idx + 1i64);
 
                 self.keys.set(insert_idx, key);
                 self.values.set(insert_idx, value);
 
-                self.entries = self.entries + 1L;
+                self.entries = self.entries + 1i64;
                 return None[V];
             }
 
-            idx = (idx + 1L) & (self.cap - 1L);
+            idx = (idx + 1i64) & (self.cap - 1i64);
         }
 
         unreachable[Option[V]]()
@@ -57,12 +57,12 @@
     @pub fn contains(key: K): Bool {
         assert(self.entries <= self.cap);
 
-        if self.entries == 0L {
+        if self.entries == 0i64 {
             return false;
         }
 
         var hash = key.hash();
-        var idx = hash.toInt64() & (self.cap - 1L);
+        var idx = hash.toInt64() & (self.cap - 1i64);
 
         while true {
             if self.isLive(idx) {
@@ -77,7 +77,7 @@
                 break;
             }
 
-            idx = (idx + 1L) & (self.cap - 1L);
+            idx = (idx + 1i64) & (self.cap - 1i64);
         }
 
         false
@@ -86,12 +86,12 @@
     @pub fn get(key: K): Option[V] {
         assert(self.entries <= self.cap);
 
-        if self.entries == 0L {
+        if self.entries == 0i64 {
             return Option[V]::None;
         }
 
         var hash = key.hash();
-        var idx = hash.toInt64() & (self.cap - 1L);
+        var idx = hash.toInt64() & (self.cap - 1i64);
 
         while true {
             if self.isLive(idx) {
@@ -106,7 +106,7 @@
                 break;
             }
 
-            idx = (idx + 1L) & (self.cap - 1L);
+            idx = (idx + 1i64) & (self.cap - 1i64);
         }
 
         Option[V]::None
@@ -116,7 +116,7 @@
         self.shrink();
 
         var hash = key.hash();
-        var idx = hash.toInt64() & (self.cap - 1L);
+        var idx = hash.toInt64() & (self.cap - 1i64);
 
         while true {
             if self.isLive(idx) {
@@ -124,12 +124,12 @@
 
                 if current_key.hash() == hash && current_key.equals(key) {
                     let value = self.values.get(idx);
-                    self.inserted_and_deleted.insert(2L * idx + 1L);
+                    self.inserted_and_deleted.insert(2i64 * idx + 1i64);
 
                     unsafeKillRefs[K](self.keys, idx);
                     unsafeKillRefs[V](self.values, idx);
 
-                    self.entries = self.entries - 1L;
+                    self.entries = self.entries - 1i64;
                     return Option[V]::Some(value);
                 }
             } else if self.isDeleted(idx) {
@@ -138,7 +138,7 @@
                 break;
             }
 
-            idx = (idx + 1L) & (self.cap - 1L);
+            idx = (idx + 1i64) & (self.cap - 1i64);
         }
 
         Option[V]::None
@@ -146,16 +146,16 @@
 
     fn ensureCapacity(elements_to_add: Int64) {
         if self.entries + elements_to_add < self.cap {
-            if self.entries <= (self.cap - (self.cap / 4L)) {
+            if self.entries <= (self.cap - (self.cap / 4i64)) {
                 return;
             }
         }
 
-        var new_capacity = 4L;
+        var new_capacity = 4i64;
         let old_capacity = self.cap;
 
-        if old_capacity > 0L {
-            new_capacity = old_capacity * 2L;
+        if old_capacity > 0i64 {
+            new_capacity = old_capacity * 2i64;
         }
 
         assert(self.entries + elements_to_add < new_capacity);
@@ -164,13 +164,13 @@
     }
 
     fn shrink() {
-        if self.entries > (self.cap / 4L) {
+        if self.entries > (self.cap / 4i64) {
             return;
         }
 
-        let new_capacity = self.cap / 2L;
+        let new_capacity = self.cap / 2i64;
 
-        if new_capacity < 4L {
+        if new_capacity < 4i64 {
             return;
         }
 
@@ -183,13 +183,13 @@
         let old_capacity = self.cap;
 
         let new_map = HashMap[K, V]();
-        new_map.inserted_and_deleted = BitSet(2L * new_capacity);
+        new_map.inserted_and_deleted = BitSet(2i64 * new_capacity);
         new_map.keys = Array[K]::unsafeNew(new_capacity);
         new_map.values = Array[V]::unsafeNew(new_capacity);
-        new_map.entries = 0L;
+        new_map.entries = 0i64;
         new_map.cap = new_capacity;
 
-        var idx = 0L;
+        var idx = 0i64;
 
         while idx < old_capacity {
             if self.isLive(idx) {
@@ -199,7 +199,7 @@
                 new_map.insert(key, value);
             }
 
-            idx = idx + 1L;
+            idx = idx + 1i64;
         }
 
         self.inserted_and_deleted = new_map.inserted_and_deleted;
@@ -210,12 +210,12 @@
     }
 
     fn isLive(idx: Int64): Bool {
-        return self.inserted_and_deleted.contains(2L * idx) &&
-               !self.inserted_and_deleted.contains(2L * idx + 1L);
+        return self.inserted_and_deleted.contains(2i64 * idx) &&
+               !self.inserted_and_deleted.contains(2i64 * idx + 1i64);
     }
 
     fn isDeleted(idx: Int64): Bool {
-        self.inserted_and_deleted.contains(2L * idx + 1L)
+        self.inserted_and_deleted.contains(2i64 * idx + 1i64)
     }
 
     @pub fn size(): Int64 {
@@ -223,7 +223,7 @@
     }
 
     @pub fn isEmpty(): Bool {
-        return self.entries == 0L;
+        return self.entries == 0i64;
     }
 
     @pub fn capacity(): Int64 {
@@ -236,7 +236,7 @@
 }
 
 @pub class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
-    var idx: Int64 = 0L;
+    var idx: Int64 = 0i64;
 
     @pub fn hasNext(): Bool {
         while self.idx < self.map.capacity() {
@@ -244,7 +244,7 @@
                 return true;
             }
 
-            self.idx = self.idx + 1L;
+            self.idx = self.idx + 1i64;
         }
 
         false
@@ -254,7 +254,7 @@
         assert(self.map.isLive(self.idx));
         let key = self.map.keys.get(self.idx);
         let value = self.map.values.get(self.idx);
-        self.idx = self.idx + 1L;
+        self.idx = self.idx + 1i64;
         (key, value)
     }
 }

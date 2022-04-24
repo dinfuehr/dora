@@ -1,8 +1,8 @@
 fn main() {
   let ok = Result[String, Int32]::Ok("ok");
-  let er = Result[String, Int32]::Err(23I);
+  let er = Result[String, Int32]::Err(23i32);
 
   // thread 'main' panicked at 'no impl found for generic trait method call', dora/src/vm/impls.rs:86:10
-  // assert(ok.getErrOrZero() == 23I);
-  // assert(er.getErrOrZero() == 0I);
+  // assert(ok.getErrOrZero() == 23i32);
+  // assert(er.getErrOrZero() == 0i32);
 }

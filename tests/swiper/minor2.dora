@@ -2,23 +2,23 @@
 
 fn main() {
     var x = Foo(Option[Foo]::None);
-    var i = 0I;
+    var i = 0i32;
 
-    while i < 100I {
+    while i < 100i32 {
         x = Foo(Option[Foo]::Some(x));
         Foo(Option[Foo]::Some(x));
-        i = i + 1I;
+        i = i + 1i32;
     }
 
     std::forceMinorCollect();
     assert(x.next.getOrPanic().next.isSome());
 
-    i = 0I;
+    i = 0i32;
 
-    while i < 100I {
+    while i < 100i32 {
         x = Foo(Option[Foo]::Some(x));
         Foo(Option[Foo]::Some(x));
-        i = i + 1I;
+        i = i + 1i32;
     }
 
     std::forceMinorCollect();

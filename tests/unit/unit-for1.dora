@@ -1,7 +1,7 @@
 fn main() {
-    var sum = 0L;
-    for x in Array[()]::fill(100L, ()) {
-        sum = sum + 1L;
+    var sum = 0i64;
+    for x in Array[()]::fill(100i64, ()) {
+        sum = sum + 1i64;
     }
-    assert(sum == 100L);
+    assert(sum == 100i64);
 }

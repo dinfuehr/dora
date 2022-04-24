@@ -2,54 +2,54 @@ fn main() {
     let set = std::HashSet[Int32]();
     assert(set.isEmpty());
 
-    var i = 0I;
+    var i = 0i32;
 
-    while i < 1000I {
+    while i < 1000i32 {
         set.insert(i);
-        i = i + 1I;
+        i = i + 1i32;
     }
 
-    assert(set.size() == 1000L);
+    assert(set.size() == 1000i64);
     assert(set.isEmpty().not());
-    assert(set.capacity() == 2048L);
-    assert(!set.contains(-1I));
-    assert(!set.contains(1000I));
+    assert(set.capacity() == 2048i64);
+    assert(!set.contains(-1i32));
+    assert(!set.contains(1000i32));
 
-    i = 0I;
+    i = 0i32;
 
-    while i < 1000I {
+    while i < 1000i32 {
         assert(set.contains(i));
-        i = i + 1I;
+        i = i + 1i32;
     }
 
-    i = 900I;
+    i = 900i32;
 
-    while i < 1000I {
+    while i < 1000i32 {
         set.remove(i);
         assert(!set.contains(i));
-        i = i + 1I;
+        i = i + 1i32;
     }
 
-    assert(set.size() == 900L);
+    assert(set.size() == 900i64);
     assert(set.isEmpty().not());
-    assert(set.capacity() == 2048L);
+    assert(set.capacity() == 2048i64);
 
-    i = 0I;
+    i = 0i32;
 
-    while i < 900I {
+    while i < 900i32 {
         assert(set.contains(i));
-        i = i + 1I;
+        i = i + 1i32;
     }
 
-    i = 300I;
+    i = 300i32;
 
-    while i < 900I {
+    while i < 900i32 {
         set.remove(i);
         assert(!set.contains(i));
-        i = i + 1I;
+        i = i + 1i32;
     }
 
-    assert(set.size() == 300L);
+    assert(set.size() == 300i64);
     assert(set.isEmpty().not());
-    assert(set.capacity() == 1024L);
+    assert(set.capacity() == 1024i64);
 }

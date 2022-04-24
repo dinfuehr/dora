@@ -4,35 +4,35 @@
     @pub fn next(): Char {
         var ch = self.value.getByte(self.start);
 
-        if ch <= 0x7FY {
-            self.start = self.start + 1L;
+        if ch <= 0x7Fu8 {
+            self.start = self.start + 1i64;
             return ch.toInt32().toCharUnchecked();
         }
 
-        if ch <= 0xBFY {
+        if ch <= 0xBFu8 {
             fatalError("unexpected continuation byte");
         }
 
-        if ch <= 0xDFY {
-            let cp = (ch.toInt32() & 0x1FI) << 6I | (self.value.getByte(self.start + 1L).toInt32() & 0x3FI);
-            self.start = self.start + 2L;
+        if ch <= 0xDFu8 {
+            let cp = (ch.toInt32() & 0x1FI) << 6i32 | (self.value.getByte(self.start + 1i64).toInt32() & 0x3FI);
+            self.start = self.start + 2i64;
             return cp.toCharUnchecked();
         }
 
-        if ch <= 0xEFY {
-            let cp = (ch.toInt32() & 0xFI) << 12I |
-                 (self.value.getByte(self.start + 1L).toInt32() & 0x3FI) << 6I |
-                 (self.value.getByte(self.start + 2L).toInt32() & 0x3FI);
-            self.start = self.start + 3L;
+        if ch <= 0xEFu8 {
+            let cp = (ch.toInt32() & 0xFI) << 12i32 |
+                 (self.value.getByte(self.start + 1i64).toInt32() & 0x3FI) << 6i32 |
+                 (self.value.getByte(self.start + 2i64).toInt32() & 0x3FI);
+            self.start = self.start + 3i64;
             return cp.toCharUnchecked();
         }
 
-        if ch <= 0xF7Y {
-            let cp = (ch.toInt32() & 0x03I) << 18I |
-                 (self.value.getByte(self.start + 1L).toInt32() & 0x3FI) << 12I |
-                 (self.value.getByte(self.start + 2L).toInt32() & 0x3FI) << 6I |
-                 (self.value.getByte(self.start + 3L).toInt32() & 0x3FI);
-            self.start = self.start + 4L;
+        if ch <= 0xF7u8 {
+            let cp = (ch.toInt32() & 0x03i32) << 18i32 |
+                 (self.value.getByte(self.start + 1i64).toInt32() & 0x3FI) << 12i32 |
+                 (self.value.getByte(self.start + 2i64).toInt32() & 0x3FI) << 6i32 |
+                 (self.value.getByte(self.start + 3i64).toInt32() & 0x3FI);
+            self.start = self.start + 4i64;
             return cp.toCharUnchecked();
         }
 
@@ -43,31 +43,31 @@
     @pub fn peek(): Char {
         var ch = self.value.getByte(self.start);
 
-        if ch <= 0x7FY {
+        if ch <= 0x7Fu8 {
             return ch.toInt32().toCharUnchecked();
         }
 
-        if ch <= 0xBFY {
+        if ch <= 0xBFu8 {
             fatalError("unexpected continuation byte");
         }
 
-        if ch <= 0xDFY {
-            let cp = (ch.toInt32() & 0x1FI) << 6I | (self.value.getByte(self.start + 1L).toInt32() & 0x3FI);
+        if ch <= 0xDFu8 {
+            let cp = (ch.toInt32() & 0x1FI) << 6i32 | (self.value.getByte(self.start + 1i64).toInt32() & 0x3FI);
             return cp.toCharUnchecked();
         }
 
-        if ch <= 0xEFY {
-            let cp = (ch.toInt32() & 0xFI) << 12I |
-                 (self.value.getByte(self.start + 1L).toInt32() & 0x3FI) << 6I |
-                 (self.value.getByte(self.start + 2L).toInt32() & 0x3FI);
+        if ch <= 0xEFu8 {
+            let cp = (ch.toInt32() & 0xFI) << 12i32 |
+                 (self.value.getByte(self.start + 1i64).toInt32() & 0x3FI) << 6i32 |
+                 (self.value.getByte(self.start + 2i64).toInt32() & 0x3FI);
             return cp.toCharUnchecked();
         }
 
-        if ch <= 0xF7Y {
-            let cp = (ch.toInt32() & 0x03I) << 18I |
-                 (self.value.getByte(self.start + 1L).toInt32() & 0x3FI) << 12I |
-                 (self.value.getByte(self.start + 2L).toInt32() & 0x3FI) << 6I |
-                 (self.value.getByte(self.start + 3L).toInt32() & 0x3FI);
+        if ch <= 0xF7u8 {
+            let cp = (ch.toInt32() & 0x03i32) << 18i32 |
+                 (self.value.getByte(self.start + 1i64).toInt32() & 0x3FI) << 12i32 |
+                 (self.value.getByte(self.start + 2i64).toInt32() & 0x3FI) << 6i32 |
+                 (self.value.getByte(self.start + 3i64).toInt32() & 0x3FI);
             return cp.toCharUnchecked();
         }
 
@@ -76,10 +76,10 @@
     }
 
     @pub fn size(): Int64 {
-        var i = 0L;
+        var i = 0i64;
 
         while self.hasNext() {
-            i = i + 1L;
+            i = i + 1i64;
             self.next();
         }
 

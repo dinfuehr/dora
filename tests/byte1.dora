@@ -1,16 +1,16 @@
 fn main() {
-    let x = 257I.toUInt8();
-    assert(x == 1I.toUInt8());
+    let x = 257i32.toUInt8();
+    assert(x == 1i32.toUInt8());
 
-    let x = (-1I).toUInt8();
-    assert(x == 255I.toUInt8());
+    let x = (-1i32).toUInt8();
+    assert(x == 255i32.toUInt8());
 
-    let x = 129Y.toInt32();
-    assert(x == 129I);
+    let x = 129u8.toInt32();
+    assert(x == 129i32);
 
-    let x = 129Y.toInt64();
-    assert(x == 129L);
+    let x = 129u8.toInt64();
+    assert(x == 129i64);
 
-    let x = 65Y.toChar();
+    let x = 65u8.toChar();
     assert(x == 'A');
 }

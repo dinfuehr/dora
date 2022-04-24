@@ -3,9 +3,9 @@ fn main() {
     assert(moveBool(false) == false);
 
     assert(moveChar('5') == '5');
-    assert(moveByte(5Y) == 5Y);
-    assert(moveInt32(5I) == 5I);
-    assert(moveInt64(5L) == 5L);
+    assert(moveByte(5u8) == 5u8);
+    assert(moveInt32(5i32) == 5i32);
+    assert(moveInt64(5i64) == 5i64);
     assert(moveFloat32(5F) == 5F);
     assert(moveFloat64(5D) == 5D);
     assert(moveString("5") == "5");

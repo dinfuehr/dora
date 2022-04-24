@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 class TupleClass {
-    var value: Pair = Pair(Foo(0I), 0L);
+    var value: Pair = Pair(Foo(0i32), 0i64);
 }
 
 struct Pair(first: Foo, second: Int64)
@@ -10,10 +10,10 @@ class Foo(let value: Int32)
 fn main() {
     let tpl = TupleClass();
     std::forceCollect();
-    assert(tpl.value.first.value == 0I);
-    assert(tpl.value.second == 0L);
-    tpl.value = Pair(Foo(4711I), 4712L);
+    assert(tpl.value.first.value == 0i32);
+    assert(tpl.value.second == 0i64);
+    tpl.value = Pair(Foo(4711i32), 4712i64);
     std::forceCollect();
-    assert(tpl.value.first.value == 4711I);
-    assert(tpl.value.second == 4712L);
+    assert(tpl.value.first.value == 4711i32);
+    assert(tpl.value.second == 4712i64);
 }

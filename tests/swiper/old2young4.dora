@@ -1,18 +1,18 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fn main() {
-  let x = Foo(1I, Option[Foo]::None);
+  let x = Foo(1i32, Option[Foo]::None);
   std::forceMinorCollect();
-  x.next = Option[Foo]::Some(Foo(2I, Option[Foo]::None));
+  x.next = Option[Foo]::Some(Foo(2i32, Option[Foo]::None));
   // Promote x to old generation. Make sure that
   // promoted objects with references to young generations
   // are updated too.
   std::forceMinorCollect();
-  assert(x.next.getOrPanic().a == 2I);
-  // Promote Foo(2I, Option[Foo]::None) into old generation and set
+  assert(x.next.getOrPanic().a == 2i32);
+  // Promote Foo(2i32, Option[Foo]::None) into old generation and set
   // card to clean again.
   std::forceMinorCollect();
-  assert(x.next.getOrPanic().a == 2I);
+  assert(x.next.getOrPanic().a == 2i32);
 }
 
 class Foo(let a: Int32, var next: Option[Foo])

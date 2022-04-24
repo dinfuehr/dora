@@ -10,8 +10,8 @@ impl MyClass[Foo] {
 }
 
 fn f() {
-    MyClass[Foo](1I).do[Int32](MyClass[Int32](101I));
-    MyClass[Foo](2I).do[Float32](MyClass[Float32](102I));
+    MyClass[Foo](1i32).do[Int32](MyClass[Int32](101i32));
+    MyClass[Foo](2i32).do[Float32](MyClass[Float32](102i32));
 }
 
 fn main() {

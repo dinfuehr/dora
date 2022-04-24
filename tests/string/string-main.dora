@@ -10,10 +10,10 @@ fn main() {
 }
 
 fn test_multiple_ascii_chars() {
-    let bytes = Array[UInt8]::zero(3L);
-    bytes(0L) = 'a'.toInt32().toUInt8();
-    bytes(1L) = 'b'.toInt32().toUInt8();
-    bytes(2L) = 'c'.toInt32().toUInt8();
+    let bytes = Array[UInt8]::zero(3i64);
+    bytes(0i64) = 'a'.toInt32().toUInt8();
+    bytes(1i64) = 'b'.toInt32().toUInt8();
+    bytes(2i64) = 'c'.toInt32().toUInt8();
 
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
@@ -28,8 +28,8 @@ fn test_multiple_ascii_chars() {
 }
 
 fn test_1byte() {
-    let bytes = Array[UInt8]::zero(1L);
-    bytes(0L) = 0x24Y;
+    let bytes = Array[UInt8]::zero(1i64);
+    bytes(0i64) = 0x24u8;
 
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
@@ -40,9 +40,9 @@ fn test_1byte() {
 }
 
 fn test_2bytes() {
-    let bytes = Array[UInt8]::zero(2L);
-    bytes(0L) = 0xC2Y;
-    bytes(1L) = 0xA2Y;
+    let bytes = Array[UInt8]::zero(2i64);
+    bytes(0i64) = 0xC2u8;
+    bytes(1i64) = 0xA2u8;
 
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
@@ -53,10 +53,10 @@ fn test_2bytes() {
 }
 
 fn test_3bytes() {
-    let bytes = Array[UInt8]::zero(3L);
-    bytes(0L) = 0xE2Y;
-    bytes(1L) = 0x82Y;
-    bytes(2L) = 0xACY;
+    let bytes = Array[UInt8]::zero(3i64);
+    bytes(0i64) = 0xE2u8;
+    bytes(1i64) = 0x82u8;
+    bytes(2i64) = 0xACu8;
 
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
@@ -67,11 +67,11 @@ fn test_3bytes() {
 }
 
 fn test_4bytes() {
-    let bytes = Array[UInt8]::zero(4L);
-    bytes(0L) = 0xF0Y;
-    bytes(1L) = 0x90Y;
-    bytes(2L) = 0x8DY;
-    bytes(3L) = 0x88Y;
+    let bytes = Array[UInt8]::zero(4i64);
+    bytes(0i64) = 0xF0u8;
+    bytes(1i64) = 0x90u8;
+    bytes(2i64) = 0x8Du8;
+    bytes(3i64) = 0x88u8;
 
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
@@ -82,8 +82,8 @@ fn test_4bytes() {
 }
 
 fn test_invalid() {
-    let bytes = Array[UInt8]::zero(1L);
-    bytes(0L) = 0x80Y;
+    let bytes = Array[UInt8]::zero(1i64);
+    bytes(0i64) = 0x80u8;
 
     let fail = String::fromBytes(bytes);
     assert(fail.isNone());

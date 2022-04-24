@@ -1,17 +1,17 @@
 fn main() {
     let x = tpl1();
-    assert(x.0 == 1I);
+    assert(x.0 == 1i32);
     let x = tpl1WithoutReturn();
-    assert(x.0 == 1I);
-    assert(sumtpl2() == 3I);
+    assert(x.0 == 1i32);
+    assert(sumtpl2() == 3i32);
 }
 
 fn tpl1(): (Int32) {
-    return (1I,);
+    return (1i32,);
 }
 
 fn tpl1WithoutReturn(): (Int32) {
-    (1I,)
+    (1i32,)
 }
 
 fn sumtpl2(): Int32 {
@@ -20,5 +20,5 @@ fn sumtpl2(): Int32 {
 }
 
 fn tpl2(): (Int32, Int32) {
-    return (1I, 2I);
+    return (1i32, 2i32);
 }

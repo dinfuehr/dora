@@ -13,34 +13,34 @@ impl Char {
   @pub fn encodeUtf8(bytes: Array[UInt8], offset: Int64) {
     let val = self.toInt32();
 
-    if val < 0x80I {
+    if val < 0x80i32 {
       bytes.set(offset, val.toUInt8());
-    } else if val < 0x800I {
-      bytes.set(offset, (0xC0I | ((val >> 6I) & 0x1FI)).toUInt8());
-      bytes.set(offset+1L, (0x80I | (val & 0x3FI)).toUInt8());
-    } else if val < 0x10000I {
-      bytes.set(offset, (0xE0I | ((val >> 12I) & 0x0FI)).toUInt8());
-      bytes.set(offset+1L, (0x80I | ((val >> 6I) & 0x3FI)).toUInt8());
-      bytes.set(offset+2L, (0x80I | (val & 0x3FI)).toUInt8());
+    } else if val < 0x800i32 {
+      bytes.set(offset, (0xC0i32 | ((val >> 6i32) & 0x1FI)).toUInt8());
+      bytes.set(offset+1i64, (0x80i32 | (val & 0x3FI)).toUInt8());
+    } else if val < 0x10000i32 {
+      bytes.set(offset, (0xE0i32 | ((val >> 12i32) & 0x0FI)).toUInt8());
+      bytes.set(offset+1i64, (0x80i32 | ((val >> 6i32) & 0x3FI)).toUInt8());
+      bytes.set(offset+2i64, (0x80i32 | (val & 0x3FI)).toUInt8());
     } else {
-      bytes.set(offset, (0xF0I | ((val >> 18I) & 0x07I)).toUInt8());
-      bytes.set(offset+1L, (0x80I | ((val >> 12I) & 0x3FI)).toUInt8());
-      bytes.set(offset+2L, (0x80I | ((val >> 6I) & 0x3FI)).toUInt8());
-      bytes.set(offset+3L, (0x80I | (val & 0x3FI)).toUInt8());
+      bytes.set(offset, (0xF0i32 | ((val >> 18i32) & 0x07i32)).toUInt8());
+      bytes.set(offset+1i64, (0x80i32 | ((val >> 12i32) & 0x3FI)).toUInt8());
+      bytes.set(offset+2i64, (0x80i32 | ((val >> 6i32) & 0x3FI)).toUInt8());
+      bytes.set(offset+3i64, (0x80i32 | (val & 0x3FI)).toUInt8());
     }
   }
 
   @pub fn lenUtf8(): Int32 {
     let val = self.toInt32();
 
-    if val < 0x80I {
-      return 1I;
-    } else if val < 0x800I {
-      return 2I;
-    } else if val < 0x10000I {
-      return 3I;
+    if val < 0x80i32 {
+      return 1i32;
+    } else if val < 0x800i32 {
+      return 2i32;
+    } else if val < 0x10000i32 {
+      return 3i32;
     } else {
-      return 4I;
+      return 4i32;
     }
   }
 }
