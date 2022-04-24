@@ -1864,8 +1864,8 @@ impl<'a> Parser<'a> {
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
-            TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
-            TokenKind::LitFloat(_, _) => self.parse_lit_float(),
+            TokenKind::LitInt(_, _, _, _) => self.parse_lit_int(),
+            TokenKind::LitFloat(_, _, _) => self.parse_lit_float(),
             TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
             TokenKind::Identifier(_) => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
@@ -1976,8 +1976,10 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token()?;
         let pos = tok.position;
 
-        let (value, base, suffix) = match tok.kind {
-            TokenKind::LitInt(value, base, suffix) => (value, base, suffix),
+        let (value, base, int_suffix, suffix) = match tok.kind {
+            TokenKind::LitInt(value, base, suffix, string_suffix) => {
+                (value, base, suffix, string_suffix)
+            }
             _ => unreachable!(),
         };
 
@@ -1986,7 +1988,15 @@ impl<'a> Parser<'a> {
 
         match parsed {
             Ok(num) => {
-                let expr = Expr::create_lit_int(self.generate_id(), pos, span, num, base, suffix);
+                let expr = Expr::create_lit_int(
+                    self.generate_id(),
+                    pos,
+                    span,
+                    num,
+                    base,
+                    int_suffix,
+                    suffix,
+                );
                 Ok(Box::new(expr))
             }
             _ => Err(ParseErrorAndPos::new(pos, ParseError::NumberOverflow)),
@@ -1999,7 +2009,7 @@ impl<'a> Parser<'a> {
         let pos = tok.position;
 
         let (value, suffix) = match tok.kind {
-            TokenKind::LitFloat(value, suffix) => (value, suffix),
+            TokenKind::LitFloat(value, suffix, _) => (value, suffix),
             _ => unreachable!(),
         };
 

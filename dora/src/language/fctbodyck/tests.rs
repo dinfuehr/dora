@@ -2680,6 +2680,15 @@ fn literal_without_suffix_long() {
 }
 
 #[test]
+fn literal_with_unknown_suffix() {
+    err(
+        "fn f(): Int64 { 1unknown }",
+        pos(1, 17),
+        SemError::InvalidIntSuffix("unknown".into()),
+    );
+}
+
+#[test]
 fn variadic_parameter() {
     ok("
         fn f(x: Int32...): Int64 {

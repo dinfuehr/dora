@@ -3424,17 +3424,16 @@ pub fn check_lit_int(
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, i64) {
-    let ty = match e.suffix {
-        IntSuffix::UInt8 => SourceType::UInt8,
-        IntSuffix::Int32 => SourceType::Int32,
-        IntSuffix::Int64 => SourceType::Int64,
-        IntSuffix::None => match expected_type {
-            SourceType::UInt8 => SourceType::UInt8,
-            SourceType::Int32 => SourceType::Int32,
-            SourceType::Int64 => SourceType::Int64,
-            _ => SourceType::Int64,
-        },
+    let suffix_type = determine_suffix_type_int(sa, file, e);
+
+    let expected_type = match expected_type {
+        SourceType::UInt8 => SourceType::UInt8,
+        SourceType::Int32 => SourceType::Int32,
+        SourceType::Int64 => SourceType::Int64,
+        _ => SourceType::Int64,
     };
+
+    let ty = suffix_type.unwrap_or(expected_type);
 
     let ty_name = ty.name(sa);
     let value = e.value;
@@ -3476,6 +3475,33 @@ pub fn check_lit_int(
     };
 
     (ty, value)
+}
+
+fn determine_suffix_type_int(
+    sa: &SemAnalysis,
+    file: SourceFileId,
+    e: &ast::ExprLitIntType,
+) -> Option<SourceType> {
+    if let Some(ref suffix) = e.suffix {
+        return match suffix.as_str() {
+            "u8" => Some(SourceType::UInt8),
+            "i32" => Some(SourceType::Int32),
+            "i64" => Some(SourceType::Int64),
+            _ => {
+                sa.diag
+                    .lock()
+                    .report(file, e.pos, SemError::InvalidIntSuffix(suffix.into()));
+                None
+            }
+        };
+    }
+
+    match e.int_suffix {
+        IntSuffix::UInt8 => Some(SourceType::UInt8),
+        IntSuffix::Int32 => Some(SourceType::Int32),
+        IntSuffix::Int64 => Some(SourceType::Int64),
+        IntSuffix::None => None,
+    }
 }
 
 pub fn check_lit_float(

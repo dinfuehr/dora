@@ -30,7 +30,7 @@ impl<'a> ConstCheck<'a> {
             &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
 
-                if lit_int.suffix == IntSuffix::UInt8 {
+                if lit_int.int_suffix == IntSuffix::UInt8 {
                     let ty = SourceType::UInt8.name(self.sa);
                     let msg = SemError::UnOpType(expr.op.as_str().into(), ty);
                     self.sa

@@ -88,6 +88,7 @@ pub enum SemError {
     UnclosedChar,
     UnclosedString,
     NumberOverflow(String),
+    InvalidIntSuffix(String),
     ExpectedClass(String),
     ExpectedFactor(String),
     ExpectedToken(String, String),
@@ -375,6 +376,7 @@ impl SemError {
                 format!("expected {} but got {}.", exp, got)
             }
             SemError::NumberOverflow(ref ty) => format!("number does not fit into type {}.", ty),
+            SemError::InvalidIntSuffix(ref suffix) => format!("invalid suffix `{}`.", suffix),
             SemError::ExpectedClass(ref cls) => format!("expected class name but got {}.", cls),
             SemError::ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
             SemError::ExpectedTrait => format!("expected trait."),
