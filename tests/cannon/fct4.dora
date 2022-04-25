@@ -5,8 +5,8 @@ fn main() {
   assert(foo.foo_char() == '6');
   assert(foo.foo_int32() == 6i32);
   assert(foo.foo_int64() == 6i64);
-  assert(foo.foo_float() == 6F);
-  assert(foo.foo_double() == 6D);
+  assert(foo.foo_float() == 6f32);
+  assert(foo.foo_double() == 6f64);
   assert(foo.foo_string() == "33");
 }
 
@@ -56,21 +56,21 @@ class Foo {
   }
 
   fn foo_float(): Float32 {
-    return self.bar_float(3F);
+    return self.bar_float(3f32);
   }
 
   fn bar_float(a: Float32): Float32 {
-    assert(a == 3F);
-    return 3F+a;
+    assert(a == 3f32);
+    return 3f32+a;
   }
 
   fn foo_double(): Float64 {
-    return self.bar_double(3D);
+    return self.bar_double(3f64);
   }
 
   fn bar_double(a: Float64): Float64 {
-    assert(a == 3D);
-    return 3D+a;
+    assert(a == 3f64);
+    return 3f64+a;
   }
 
   fn foo_string(): String {

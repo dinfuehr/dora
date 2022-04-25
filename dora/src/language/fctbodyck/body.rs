@@ -1089,10 +1089,10 @@ impl<'a> TypeCheck<'a> {
         descriptor
     }
 
-    fn check_expr_un(&mut self, e: &ast::ExprUnType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_un(&mut self, e: &ast::ExprUnType, expected_ty: SourceType) -> SourceType {
         if e.op == ast::UnOp::Neg && e.opnd.is_lit_int() {
             let expr_type =
-                self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, SourceType::Any);
+                self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, expected_ty);
             self.analysis.set_ty(e.id, expr_type.clone());
             return expr_type;
         }
@@ -3424,7 +3424,7 @@ pub fn check_lit_int(
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, i64) {
-    let ty = determine_type_literal_int(sa, file, e, expected_type);
+    let ty = determine_type_literal_int(e, expected_type);
 
     let ty_name = ty.name(sa);
     let value = e.value;
@@ -3442,6 +3442,14 @@ pub fn check_lit_int(
                 .lock()
                 .report(file, e.pos, SemError::NumberOverflow(ty_name.into()));
         }
+
+        let value = if negate {
+            (value as i64).wrapping_neg()
+        } else {
+            value as i64
+        };
+
+        (ty, value)
     } else {
         assert!(!negate);
 
@@ -3457,37 +3465,13 @@ pub fn check_lit_int(
                 .lock()
                 .report(file, e.pos, SemError::NumberOverflow(ty_name.into()));
         }
+
+        (ty, value as i64)
     }
-
-    let value = if negate {
-        (value as i64).wrapping_neg()
-    } else {
-        value as i64
-    };
-
-    (ty, value)
 }
 
-fn determine_suffix_type_int(
-    sa: &SemAnalysis,
-    file: SourceFileId,
-    e: &ast::ExprLitIntType,
-) -> Option<SourceType> {
-    if let Some(ref suffix) = e.suffix {
-        return match suffix.as_str() {
-            "u8" => Some(SourceType::UInt8),
-            "i32" => Some(SourceType::Int32),
-            "i64" => Some(SourceType::Int64),
-            _ => {
-                sa.diag
-                    .lock()
-                    .report(file, e.pos, SemError::InvalidIntSuffix(suffix.into()));
-                None
-            }
-        };
-    }
-
-    match e.int_suffix {
+fn determine_suffix_type_int_literal(e: &ast::ExprLitIntType) -> Option<SourceType> {
+    match e.suffix {
         IntSuffix::UInt8 => Some(SourceType::UInt8),
         IntSuffix::Int32 => Some(SourceType::Int32),
         IntSuffix::Int64 => Some(SourceType::Int64),
@@ -3496,12 +3480,10 @@ fn determine_suffix_type_int(
 }
 
 pub fn determine_type_literal_int(
-    sa: &SemAnalysis,
-    file: SourceFileId,
     e: &ast::ExprLitIntType,
     expected_type: SourceType,
 ) -> SourceType {
-    let suffix_type = determine_suffix_type_int(sa, file, e);
+    let suffix_type = determine_suffix_type_int_literal(e);
 
     let default_type = match expected_type {
         SourceType::UInt8 => SourceType::UInt8,

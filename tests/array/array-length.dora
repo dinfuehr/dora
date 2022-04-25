@@ -19,7 +19,7 @@ fn main() {
   assert(x.size() == 0i64);
   assert(float_array_len(x) == 0i64);
 
-  let x = Array[Float32]::fill(6i64, 1.0F);
+  let x = Array[Float32]::fill(6i64, 1.0f32);
   assert(x.size() == 6i64);
   assert(float_array_len(x) == 6i64);
 

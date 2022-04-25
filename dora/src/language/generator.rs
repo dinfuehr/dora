@@ -1661,6 +1661,20 @@ impl<'a> AstBytecodeGen<'a> {
             SourceType::UInt8 => BytecodeType::UInt8,
             SourceType::Int32 => BytecodeType::Int32,
             SourceType::Int64 => BytecodeType::Int64,
+            SourceType::Float32 => {
+                let dest = self.ensure_register(dest, BytecodeType::Float32);
+                let value = lit.value as f32;
+                let value = if neg { -value } else { value };
+                self.builder.emit_const_float32(dest, value);
+                return dest;
+            }
+            SourceType::Float64 => {
+                let dest = self.ensure_register(dest, BytecodeType::Float64);
+                let value = lit.value as f64;
+                let value = if neg { -value } else { value };
+                self.builder.emit_const_float64(dest, value);
+                return dest;
+            }
             _ => unreachable!(),
         };
 

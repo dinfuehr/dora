@@ -1381,8 +1381,7 @@ impl Expr {
         span: Span,
         value: u64,
         base: IntBase,
-        int_suffix: IntSuffix,
-        suffix: Option<String>,
+        suffix: IntSuffix,
     ) -> Expr {
         Expr::LitInt(ExprLitIntType {
             id,
@@ -1391,7 +1390,6 @@ impl Expr {
 
             value,
             base,
-            int_suffix,
             suffix,
         })
     }
@@ -2049,8 +2047,7 @@ pub struct ExprLitIntType {
 
     pub value: u64,
     pub base: IntBase,
-    pub int_suffix: IntSuffix,
-    pub suffix: Option<String>,
+    pub suffix: IntSuffix,
 }
 
 #[derive(Clone, Debug)]

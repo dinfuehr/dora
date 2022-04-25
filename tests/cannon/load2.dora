@@ -3,7 +3,7 @@ var glob_char: Char = 'x';
 var glob_byte: UInt8 = 0u8;
 var glob_int: Int32 = 0i32;
 var glob_long: Int64 = 0i64;
-var glob_float: Float32 = 0.0F;
+var glob_float: Float32 = 0.0f32;
 var glob_double: Float64 = 0.0;
 var glob_string: String = "";
 var glob_obj: Foo = Foo();
@@ -16,8 +16,8 @@ fn main() {
     assert(loadGlobalByte() == 5u8);
     assert(loadGlobalInt32() == 5i32);
     assert(loadGlobalInt64() == 5i64);
-    assert(loadGlobalFloat32() == 5F);
-    assert(loadGlobalFloat64() == 5D);
+    assert(loadGlobalFloat32() == 5f32);
+    assert(loadGlobalFloat64() == 5f64);
     assert(loadGlobalString() == "5");
 
     assert(loadGlobalPtr() === glob_obj);
@@ -29,8 +29,8 @@ fn init_globs() {
     glob_byte = 5u8;
     glob_int = 5i32;
     glob_long = 5i64;
-    glob_float = 5F;
-    glob_double = 5D;
+    glob_float = 5f32;
+    glob_double = 5f64;
     glob_string = "5";
     glob_obj = Foo();  
 }

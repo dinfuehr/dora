@@ -1,13 +1,13 @@
 fn main() {
-    assert(abi_1(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 1F);
-    assert(abi_2(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 2F);
-    assert(abi_3(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 3F);
-    assert(abi_4(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 4F);
-    assert(abi_5(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 5F);
-    assert(abi_6(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 6F);
-    assert(abi_7(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 7F);
-    assert(abi_8(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 8F);
-    assert(abi_9(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 9F);
+    assert(abi_1(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 1f32);
+    assert(abi_2(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 2f32);
+    assert(abi_3(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 3f32);
+    assert(abi_4(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 4f32);
+    assert(abi_5(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 5f32);
+    assert(abi_6(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 6f32);
+    assert(abi_7(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 7f32);
+    assert(abi_8(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 8f32);
+    assert(abi_9(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32) == 9f32);
 }
 
 fn abi_1(x: Float32, y: Float32, z: Float32, a: Float32, b: Float32, c: Float32, i: Float32, j: Float32, k: Float32): Float32 = x;

@@ -169,7 +169,7 @@ fn gen_add_int() {
 
 #[test]
 fn gen_add_float32() {
-    let result = code("fn f(): Float32 { return 1F + 2F; }");
+    let result = code("fn f(): Float32 { return 1f32 + 2f32; }");
     let expected = vec![
         ConstFloat32(r(1), 1_f32),
         ConstFloat32(r(2), 2_f32),
@@ -581,14 +581,14 @@ fn gen_expr_lit_int64() {
 
 #[test]
 fn gen_expr_lit_float32() {
-    let result = code("fn f(): Float32 { return 1F; }");
+    let result = code("fn f(): Float32 { return 1f32; }");
     let expected = vec![ConstFloat32(r(0), 1_f32), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_float64() {
-    let result = code("fn f(): Float64 { return 1D; }");
+    let result = code("fn f(): Float64 { return 1f64; }");
     let expected = vec![ConstFloat64(r(0), 1_f64), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -645,14 +645,14 @@ fn gen_expr_lit_int64_zero() {
 
 #[test]
 fn gen_expr_lit_float32_zero() {
-    let result = code("fn f(): Float32 { return 0F; }");
+    let result = code("fn f(): Float32 { return 0f32; }");
     let expected = vec![ConstZeroFloat32(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_float64_zero() {
-    let result = code("fn f(): Float64 { return 0D; }");
+    let result = code("fn f(): Float64 { return 0f64; }");
     let expected = vec![ConstZeroFloat64(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
@@ -1084,7 +1084,7 @@ fn gen_store_global() {
 
 #[test]
 fn gen_side_effect() {
-    let result = code("fn f(a: Int32) { 1; 2; 3i32 * a; \"foo\"; 1.0F; 1.0D; a; }");
+    let result = code("fn f(a: Int32) { 1; 2; 3i32 * a; \"foo\"; 1.0f32; 1.0f64; a; }");
     let expected = vec![RetVoid];
     assert_eq!(expected, result);
 }
@@ -1952,7 +1952,7 @@ fn gen_method_call_float32_with_0_args() {
         "
             fn f(foo: Foo): Float32 { return foo.g(); }
             class Foo {
-                fn g(): Float32 { return 1F; }
+                fn g(): Float32 { return 1f32; }
             }
             ",
         |sa, code, fct| {
@@ -1979,7 +1979,7 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo {
-                fn g(): Float32 { return 1F; }
+                fn g(): Float32 { return 1f32; }
             }
             ",
         |sa, code, fct| {
@@ -2004,9 +2004,9 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
 fn gen_method_call_float32_with_1_arg() {
     gen_fct(
         "
-            fn f(foo: Foo): Float32 { return foo.g(1F); }
+            fn f(foo: Foo): Float32 { return foo.g(1f32); }
             class Foo {
-                fn g(a: Float32): Float32 { return 1F; }
+                fn g(a: Float32): Float32 { return 1f32; }
             }
             ",
         |sa, code, fct| {
@@ -2033,9 +2033,9 @@ fn gen_method_call_float32_with_1_arg() {
 fn gen_method_call_float32_with_3_args() {
     gen_fct(
         "
-            fn f(foo: Foo): Float32 { return foo.g(1F, 2F, 3F); }
+            fn f(foo: Foo): Float32 { return foo.g(1f32, 2f32, 3f32); }
             class Foo {
-                fn g(a: Float32, b: Float32, c: Float32): Float32 { return 1F; }
+                fn g(a: Float32, b: Float32, c: Float32): Float32 { return 1f32; }
             }
             ",
         |sa, code, fct| {
@@ -2068,7 +2068,7 @@ fn gen_method_call_float64_with_0_args() {
         "
             fn f(foo: Foo): Float64 { return foo.g(); }
             class Foo {
-                fn g(): Float64 { return 1D; }
+                fn g(): Float64 { return 1f64; }
             }
             ",
         |sa, code, fct| {
@@ -2095,7 +2095,7 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo {
-                fn g(): Float64 { return 1D; }
+                fn g(): Float64 { return 1f64; }
             }
             ",
         |sa, code, fct| {
@@ -2120,9 +2120,9 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
 fn gen_method_call_float64_with_1_arg() {
     gen_fct(
         "
-            fn f(foo: Foo): Float64 { return foo.g(1D); }
+            fn f(foo: Foo): Float64 { return foo.g(1f64); }
             class Foo {
-                fn g(a: Float64): Float64 { return 1D; }
+                fn g(a: Float64): Float64 { return 1f64; }
             }
             ",
         |sa, code, fct| {
@@ -2149,9 +2149,9 @@ fn gen_method_call_float64_with_1_arg() {
 fn gen_method_call_float64_with_3_args() {
     gen_fct(
         "
-            fn f(foo: Foo): Float64 { return foo.g(1D, 2D, 3D); }
+            fn f(foo: Foo): Float64 { return foo.g(1f64, 2f64, 3f64); }
             class Foo {
-                fn g(a: Float64, b: Float64, c: Float64): Float64 { return 1D; }
+                fn g(a: Float64, b: Float64, c: Float64): Float64 { return 1f64; }
             }
             ",
         |sa, code, fct| {

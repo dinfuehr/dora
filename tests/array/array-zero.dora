@@ -20,8 +20,8 @@ fn main() {
     assert(array(9i64) == 0i64);
 
     let array = Array[Float32]::zero(10i64);
-    assert(array(0i64) == 0.0F);
-    assert(array(9i64) == 0.0F);
+    assert(array(0i64) == 0.0f32);
+    assert(array(9i64) == 0.0f32);
 
     let array = Array[Float64]::zero(10i64);
     assert(array(0i64) == 0.0);

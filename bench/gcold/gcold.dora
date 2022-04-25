@@ -309,7 +309,7 @@ fn main() {
     }
 
     let end = std::timestamp();
-    let secs = (end - start).toFloat32() / 1000.0F / 1000.0F / 1000.0F;
+    let secs = (end - start).toFloat32() / 1000.0f32 / 1000.0f32 / 1000.0f32;
 
     checkTrees();
 

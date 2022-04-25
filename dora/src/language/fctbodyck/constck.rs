@@ -18,9 +18,10 @@ impl<'a> ConstCheck<'a> {
         let (ty, lit) = match expr {
             &Expr::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
             &Expr::LitInt(ref expr) => {
-                let (ty, val) =
+                let (ty, value) =
                     check_lit_int(self.sa, self.const_.file_id, expr, false, SourceType::Any);
-                (ty, ConstValue::Int(val))
+
+                (ty, ConstValue::Int(value))
             }
             &Expr::LitFloat(ref expr) => {
                 let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
@@ -30,12 +31,7 @@ impl<'a> ConstCheck<'a> {
 
             &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
-                let ty = determine_type_literal_int(
-                    self.sa,
-                    self.const_.file_id,
-                    lit_int,
-                    self.const_.ty.clone(),
-                );
+                let ty = determine_type_literal_int(lit_int, self.const_.ty.clone());
 
                 if ty == SourceType::UInt8 {
                     let ty = SourceType::UInt8.name(self.sa);
@@ -46,14 +42,15 @@ impl<'a> ConstCheck<'a> {
                         .report(self.const_.file_id, expr.pos, msg);
                 }
 
-                let (ty, val) = check_lit_int(
+                let (ty, value) = check_lit_int(
                     self.sa,
                     self.const_.file_id,
                     expr.opnd.to_lit_int().unwrap(),
                     true,
                     SourceType::Any,
                 );
-                (ty, ConstValue::Int(val))
+
+                (ty, ConstValue::Int(value))
             }
 
             &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {

@@ -16,5 +16,5 @@ fn main() {
 }
 
 fn createFoo(): Foo {
-    Foo::A(112i32, "abc", 17.5F)
+    Foo::A(112i32, "abc", 17.5f32)
 }

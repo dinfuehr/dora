@@ -4,8 +4,8 @@ fn main() {
   assert(0.0 === 0.0);
   assert(0.0.identicalTo(0.0));
 
-  assert(0.0F == 0.0F);
-  assert(0.0F.equals(0.0F));
-  assert(0.0F === 0.0F);
-  assert(0.0F.identicalTo(0.0F));
+  assert(0.0f32 == 0.0f32);
+  assert(0.0f32.equals(0.0f32));
+  assert(0.0f32 === 0.0f32);
+  assert(0.0f32.identicalTo(0.0f32));
 }

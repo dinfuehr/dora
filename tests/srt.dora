@@ -60,14 +60,14 @@ fn float64() {
 }
 
 fn float32() {
-  assert(0.0F.sortsAs(0.0F) == 0i32);
-  assert((-0.0F).sortsAs(-0.0F) == 0i32);
-  assert(1.0F.sortsAs(1.0F) == 0i32);
-  assert(0.0F.sortsAs(1.0F) == -1i32);
-  assert(1.0F.sortsAs(0.0F) == 1i32);
-  assert((-0.0F).sortsAs(0.0F) == -1i32);
-  assert(0.0F.sortsAs(-0.0F) == 1i32);
-  assert((0.0F/0.0F).sortsAs(0.0F/0.0F) == 0i32);
+  assert(0.0f32.sortsAs(0.0f32) == 0i32);
+  assert((-0.0f32).sortsAs(-0.0f32) == 0i32);
+  assert(1.0f32.sortsAs(1.0f32) == 0i32);
+  assert(0.0f32.sortsAs(1.0f32) == -1i32);
+  assert(1.0f32.sortsAs(0.0f32) == 1i32);
+  assert((-0.0f32).sortsAs(0.0f32) == -1i32);
+  assert(0.0f32.sortsAs(-0.0f32) == 1i32);
+  assert((0.0f32/0.0f32).sortsAs(0.0f32/0.0f32) == 0i32);
 
   assert(0.0.sortsAs(0.0) == 0i32);
   assert((-0.0).sortsAs(-0.0) == 0i32);
@@ -99,17 +99,17 @@ fn float32() {
   assert(infPositive.sortsAs(nanSignaPositive) == -1i32);
   assert(nanSignaPositive.sortsAs(nanQuietPositive) == -1i32);
 
-  assert(nanQuietNegative.sortsAs(-1.0F) == -1i32);
-  assert(nanSignaNegative.sortsAs(-1.0F) == -1i32);
-  assert(infNegative.sortsAs(-1.0F) == -1i32);
-  assert(infPositive.sortsAs(-1.0F) == 1i32);
-  assert(nanSignaPositive.sortsAs(-1.0F) == 1i32);
+  assert(nanQuietNegative.sortsAs(-1.0f32) == -1i32);
+  assert(nanSignaNegative.sortsAs(-1.0f32) == -1i32);
+  assert(infNegative.sortsAs(-1.0f32) == -1i32);
+  assert(infPositive.sortsAs(-1.0f32) == 1i32);
+  assert(nanSignaPositive.sortsAs(-1.0f32) == 1i32);
 
-  assert(nanQuietNegative.sortsAs(1.0F) == -1i32);
-  assert(nanSignaNegative.sortsAs(1.0F) == -1i32);
-  assert(infNegative.sortsAs(1.0F) == -1i32);
-  assert(infPositive.sortsAs(1.0F) == 1i32);
-  assert(nanSignaPositive.sortsAs(1.0F) == 1i32);
+  assert(nanQuietNegative.sortsAs(1.0f32) == -1i32);
+  assert(nanSignaNegative.sortsAs(1.0f32) == -1i32);
+  assert(infNegative.sortsAs(1.0f32) == -1i32);
+  assert(infPositive.sortsAs(1.0f32) == 1i32);
+  assert(nanSignaPositive.sortsAs(1.0f32) == 1i32);
 
   // -qNaN  -sNaN  +sNaN  +qNaN
   assert(nanQuietNegative.sortsSame(nanQuietNegative));

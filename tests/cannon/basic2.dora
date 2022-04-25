@@ -6,8 +6,8 @@ fn main() {
     assert(moveByte(5u8) == 5u8);
     assert(moveInt32(5i32) == 5i32);
     assert(moveInt64(5i64) == 5i64);
-    assert(moveFloat32(5F) == 5F);
-    assert(moveFloat64(5D) == 5D);
+    assert(moveFloat32(5f32) == 5f32);
+    assert(moveFloat64(5f64) == 5f64);
     assert(moveString("5") == "5");
 }
 

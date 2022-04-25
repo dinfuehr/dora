@@ -1,6 +1,6 @@
 fn main() {
     assert(1i32 == identity[Int32](1i32));
-    assert(42.5F == identity[Float32](42.5F));
+    assert(42.5f32 == identity[Float32](42.5f32));
     assert("abc" == identity[String]("abc"));
     assert(!identity[Bool](false));
     identity[()](());

@@ -1,15 +1,15 @@
 fn main() {
     let x = SomeTest();
-    assert(+x == 1.0F);
-    assert(-x == 2.0F);
+    assert(+x == 1.0f32);
+    assert(-x == 2.0f32);
 }
 
 class SomeTest {
     fn unaryPlus(): Float32 {
-        return 1.0F;
+        return 1.0f32;
     }
 
     fn unaryMinus(): Float32 {
-        return 2.0F;
+        return 2.0f32;
     }
 }

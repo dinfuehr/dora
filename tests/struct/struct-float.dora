@@ -1,27 +1,27 @@
 fn main() {
-    assert(tpl1() == 1.0F);
-    assert(tpl2() == 2.0F);
-    assert(tpl3() == 3.0F);
-    assert(tplsum() == 6.0F);
+    assert(tpl1() == 1.0f32);
+    assert(tpl2() == 2.0f32);
+    assert(tpl3() == 3.0f32);
+    assert(tplsum() == 6.0f32);
 }
 
 fn tpl1(): Float32 {
-    let x = Floats(1.0F, 2.0F, 3.0F);
+    let x = Floats(1.0f32, 2.0f32, 3.0f32);
     x.f1
 }
 
 fn tpl2(): Float32 {
-    let x = Floats(1.0F, 2.0F, 3.0F);
+    let x = Floats(1.0f32, 2.0f32, 3.0f32);
     x.f2
 }
 
 fn tpl3(): Float32 {
-    let x = Floats(1.0F, 2.0F, 3.0F);
+    let x = Floats(1.0f32, 2.0f32, 3.0f32);
     x.f3
 }
 
 fn tplsum(): Float32 {
-    let x = Floats(1.0F, 2.0F, 3.0F);
+    let x = Floats(1.0f32, 2.0f32, 3.0f32);
     x.f1 + x.f2 + x.f3
 }
 

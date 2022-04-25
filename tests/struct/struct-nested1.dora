@@ -11,7 +11,7 @@ enum MyEnum {
 
 fn main() {
     let foo = Foo(
-        AnotherStruct(3.5F, MyClass(10i32)),
+        AnotherStruct(3.5f32, MyClass(10i32)),
         MyClass(11i32),
         MyEnum::B(MyClass(12i32))
     );

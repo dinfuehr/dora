@@ -3,7 +3,7 @@ fn main() {
     assert("-127.5".toFloat64().getOrPanic() == -127.5);
     assert("0".toFloat64().getOrPanic() == 0.0);
 
-    assert("5".toFloat32().getOrPanic() == 5.0F);
-    assert("-127.5".toFloat32().getOrPanic() == -127.5F);
-    assert("0".toFloat32().getOrPanic() == 0.0F);
+    assert("5".toFloat32().getOrPanic() == 5.0f32);
+    assert("-127.5".toFloat32().getOrPanic() == -127.5f32);
+    assert("0".toFloat32().getOrPanic() == 0.0f32);
 }

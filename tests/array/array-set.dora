@@ -9,10 +9,10 @@ fn main() {
   assert(x(0i64) == 200i64);
   assert(x(1i64) == 100i64);
 
-  let x = Array[Float32]::fill(2i64, 1.0F);
-  float_array_set(x, 1i64, 2.0F);
-  assert(x(0i64) == 1.0F);
-  assert(x(1i64) == 2.0F);
+  let x = Array[Float32]::fill(2i64, 1.0f32);
+  float_array_set(x, 1i64, 2.0f32);
+  assert(x(0i64) == 1.0f32);
+  assert(x(1i64) == 2.0f32);
 
   let x = Array[Float64]::fill(2i64, 2.0);
   double_array_set(x, 1i64, 1.0);

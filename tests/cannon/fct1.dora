@@ -4,8 +4,8 @@ fn main() {
   assert(foo_char() == '3');
   assert(foo_int32() == 3i32);
   assert(foo_int64() == 3i64);
-  assert(foo_float() == 3F);
-  assert(foo_double() == 3D);
+  assert(foo_float() == 3f32);
+  assert(foo_double() == 3f64);
   assert(foo_string() == "3");
 }
 
@@ -54,7 +54,7 @@ fn foo_float(): Float32 {
 }
 
 fn bar_float(): Float32 {
-  return 3F;
+  return 3f32;
 }
 
 fn foo_double(): Float64 {
@@ -62,7 +62,7 @@ fn foo_double(): Float64 {
 }
 
 fn bar_double(): Float64 {
-  return 3D;
+  return 3f64;
 }
 
 fn foo_string(): String {

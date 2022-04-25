@@ -2,8 +2,8 @@ fn main() {
     assert(testInt32(3i32) == 3i32);
     assert(testInt32(122i32) == 122i32);
 
-    assert(testFloat32(3F) == 3F);
-    assert(testFloat32(122F) == 122F);
+    assert(testFloat32(3f32) == 3f32);
+    assert(testFloat32(122f32) == 122f32);
 
     let foo = Foo();
     assert(testPtr(foo) === foo);

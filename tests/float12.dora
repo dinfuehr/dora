@@ -1,7 +1,7 @@
 fn main() {
-    let x = 1.75F;
-    assert(1.75D == x.toFloat64());
+    let x = 1.75f32;
+    assert(1.75f64 == x.toFloat64());
 
-    let x = 2.5D;
-    assert(2.5F == x.toFloat32());
+    let x = 2.5f64;
+    assert(2.5f32 == x.toFloat32());
 }

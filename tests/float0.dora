@@ -1,34 +1,34 @@
 fn main() {
-  let x = 1.0F.unaryPlus();
-  assert(x == +1.0F);
+  let x = 1.0f32.unaryPlus();
+  assert(x == +1.0f32);
 
-  let x = 1.0F.unaryMinus();
-  assert(x == -1.0F);
+  let x = 1.0f32.unaryMinus();
+  assert(x == -1.0f32);
 
-  let x = 1.0F.plus(2.0F);
-  assert(x == 3.0F);
+  let x = 1.0f32.plus(2.0f32);
+  assert(x == 3.0f32);
 
-  let x = 1.0F + 2.0F;
-  assert(x == 3.0F);
+  let x = 1.0f32 + 2.0f32;
+  assert(x == 3.0f32);
 
-  let x = 5.0F.minus(2.0F);
-  assert(x == 3.0F);
+  let x = 5.0f32.minus(2.0f32);
+  assert(x == 3.0f32);
 
-  let x = 5.0F - 2.0F;
-  assert(x == 3.0F);
+  let x = 5.0f32 - 2.0f32;
+  assert(x == 3.0f32);
 
-  let x = 3.0F.times(4.0F);
-  assert(x == 12.0F);
+  let x = 3.0f32.times(4.0f32);
+  assert(x == 12.0f32);
 
-  let x = 3.0F * 4.0F;
-  assert(x == 12.0F);
+  let x = 3.0f32 * 4.0f32;
+  assert(x == 12.0f32);
 
-  let x = 9.0F.div(8.0F);
-  assert(x == 1.125F);
+  let x = 9.0f32.div(8.0f32);
+  assert(x == 1.125f32);
 
-  let x = 9.0F / 8.0F;
-  assert(x == 1.125F);
+  let x = 9.0f32 / 8.0f32;
+  assert(x == 1.125f32);
 
-  let x = (-12.0F).asInt32().toStringBinary();
+  let x = (-12.0f32).asInt32().toStringBinary();
   assert(x == "11000001010000000000000000000000");
 }

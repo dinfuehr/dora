@@ -1,21 +1,21 @@
 fn main() {
-    let a = 1F + 2F;
-    let b = 2F - 1F;
-    let c = 2F * 3F;
-    let d = 4F / 2F;
+    let a = 1f32 + 2f32;
+    let b = 2f32 - 1f32;
+    let c = 2f32 * 3f32;
+    let d = 4f32 / 2f32;
 
-    assert(a == 3F);
-    assert(b == 1F);
-    assert(c == 6F);
-    assert(d == 2F);
+    assert(a == 3f32);
+    assert(b == 1f32);
+    assert(c == 6f32);
+    assert(d == 2f32);
 
-    let a = 1D + 2D;
-    let b = 2D - 1D;
-    let c = 2D * 3D;
-    let d = 4D / 2D;
+    let a = 1f64 + 2f64;
+    let b = 2f64 - 1f64;
+    let c = 2f64 * 3f64;
+    let d = 4f64 / 2f64;
 
-    assert(a == 3D);
-    assert(b == 1D);
-    assert(c == 6D);
-    assert(d == 2D);
+    assert(a == 3f64);
+    assert(b == 1f64);
+    assert(c == 6f64);
+    assert(d == 2f64);
 }

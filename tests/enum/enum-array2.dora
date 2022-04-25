@@ -19,7 +19,7 @@ fn main() {
         Foo::A(a, b, c) => {
             assert(a == 112i32);
             assert(b == "abc");
-            assert(c == 17.5F);
+            assert(c == 17.5f32);
         },
         Foo::B => unreachable[()](),
     }
@@ -30,5 +30,5 @@ fn createArray(): Array[Foo] {
 }
 
 fn updateArray(object: Array[Foo]) {
-    object(0i64) = Foo::A(112i32, "abc", 17.5F);
+    object(0i64) = Foo::A(112i32, "abc", 17.5f32);
 }

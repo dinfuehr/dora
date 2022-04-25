@@ -433,7 +433,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         self.writeVariable(dest, self.current(), inst);
     }
     @override fn visitConstZeroFloat32(dest: BytecodeRegister) {
-        let inst = Float32Const(0.0F);
+        let inst = Float32Const(0.0f32);
         self.current().appendInst(inst);
         self.writeVariable(dest, self.current(), inst);
     }

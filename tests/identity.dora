@@ -14,12 +14,12 @@ fn main() {
     assert(l1 === l1);
     assert(l1 !== l2);
 
-    let f1 = 1.0F;
-    let f2 = 2.0F;
+    let f1 = 1.0f32;
+    let f2 = 2.0f32;
     assert(f1 === f1);
     assert(f1 !== f2);
-    assert(0.0F !== -0.0F);
-    assert(0.0F/0.0F === 0.0F/0.0F);
+    assert(0.0f32 !== -0.0f32);
+    assert(0.0f32/0.0f32 === 0.0f32/0.0f32);
 
     let d1 = 1.0;
     let d2 = 2.0;

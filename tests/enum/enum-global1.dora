@@ -10,14 +10,14 @@ fn main() {
         Foo::B => (),
     }
 
-    foo_value = Foo::A(112i32, "abc", 17.5F);
+    foo_value = Foo::A(112i32, "abc", 17.5f32);
     std::forceCollect();
 
     match foo_value {
         Foo::A(a, b, c) => {
             assert(a == 112i32);
             assert(b == "abc");
-            assert(c == 17.5F);
+            assert(c == 17.5f32);
         },
 
         Foo::B => unreachable[()](),

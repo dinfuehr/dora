@@ -4,8 +4,8 @@ fn main() {
     assert(loadChar(FooChar('1')) == '1');
     assert(loadInt32(FooInt32(23i32)) == 23i32);
     assert(loadInt64(FooInt64(1i64)) == 1i64);
-    assert(loadFloat32(FooFloat32(1F)) == 1F);
-    assert(loadFloat64(FooFloat64(1D)) == 1D);
+    assert(loadFloat32(FooFloat32(1f32)) == 1f32);
+    assert(loadFloat64(FooFloat64(1f64)) == 1f64);
     assert(loadString(FooString("1")) == "1");
 
     let ptr = FooInt32(1i32);

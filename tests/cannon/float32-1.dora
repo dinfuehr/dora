@@ -1,40 +1,40 @@
 fn main() {
-    assert(test_with_epsilon(add(20F, 5F, 2F), 27F));
-    assert(test_with_epsilon(sub(20F, 5F, 2F), 13F));
-    assert(test_with_epsilon(mul(20F, 5F, 2F), 200F));
-    assert(test_with_epsilon(div(20F, 5F, 2F), 2F));
+    assert(test_with_epsilon(add(20f32, 5f32, 2f32), 27f32));
+    assert(test_with_epsilon(sub(20f32, 5f32, 2f32), 13f32));
+    assert(test_with_epsilon(mul(20f32, 5f32, 2f32), 200f32));
+    assert(test_with_epsilon(div(20f32, 5f32, 2f32), 2f32));
 
-    assert(neg(20F) == -20F);
-    assert(neg(-5F) == 5F);
+    assert(neg(20f32) == -20f32);
+    assert(neg(-5f32) == 5f32);
 
-    assert(!eq(20F, 5F));
-    assert(eq(5F, 5F));
-    assert(!eq(5F, 20F));
+    assert(!eq(20f32, 5f32));
+    assert(eq(5f32, 5f32));
+    assert(!eq(5f32, 20f32));
 
-    assert(ne(20F, 5F));
-    assert(!ne(5F, 5F));
-    assert(ne(5F, 20F));
+    assert(ne(20f32, 5f32));
+    assert(!ne(5f32, 5f32));
+    assert(ne(5f32, 20f32));
 
 
-    assert(!lt(20F, 5F));
-    assert(!lt(5F, 5F));
-    assert(lt(5F, 20F));
+    assert(!lt(20f32, 5f32));
+    assert(!lt(5f32, 5f32));
+    assert(lt(5f32, 20f32));
 
-    assert(!le(20F, 5F));
-    assert(le(5F, 5F));
-    assert(le(5F, 20F));
+    assert(!le(20f32, 5f32));
+    assert(le(5f32, 5f32));
+    assert(le(5f32, 20f32));
 
-    assert(ge(20F, 5F));
-    assert(ge(5F, 5F));
-    assert(!ge(5F, 20F));
+    assert(ge(20f32, 5f32));
+    assert(ge(5f32, 5f32));
+    assert(!ge(5f32, 20f32));
 
-    assert(gt(20F, 5F));
-    assert(!gt(5F, 5F));
-    assert(!gt(5F, 20F));
+    assert(gt(20f32, 5f32));
+    assert(!gt(5f32, 5f32));
+    assert(!gt(5f32, 20f32));
 }
 
 fn test_with_epsilon(expected: Float32, value: Float32): Bool {
-    let epsilon = 0.01F;
+    let epsilon = 0.01f32;
     return value >= (expected-epsilon) && value <= (expected+epsilon);
 }
 

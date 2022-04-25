@@ -23,7 +23,7 @@ impl Default for Int64 {
 }
 
 impl Default for Float32 {
-  @static fn default(): Float32 = 0.0F;
+  @static fn default(): Float32 = 0.0f32;
 }
 
 impl Default for Float64 {

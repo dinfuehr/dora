@@ -223,7 +223,7 @@ mod tests {
         ok("
             enum Foo { A(Int32), B(Float32), C}
             fn give_me_a(): Foo { Foo::A(1i32) }
-            fn give_me_b(): Foo { Foo::B(2.0F) }
+            fn give_me_b(): Foo { Foo::B(2.0f32) }
             fn give_me_c(): Foo { Foo::C }
 
         ");
@@ -234,7 +234,7 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fn give_me_a(): Foo { Foo::A(2.0F) }
+            fn give_me_a(): Foo { Foo::A(2.0f32) }
 
         ",
             pos(3, 41),
@@ -270,7 +270,7 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fn give_me_c(): Foo { Foo::C(12.0F) }
+            fn give_me_c(): Foo { Foo::C(12.0f32) }
 
         ",
             pos(3, 41),

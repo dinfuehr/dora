@@ -2,7 +2,7 @@ const i: Int32 = 1i32;
 const l: Int64 = 2i64;
 const yes: Bool = true;
 const zero: UInt8 = 0u8;
-const f: Float32 = 3.0F;
+const f: Float32 = 3.0f32;
 const d: Float64 = 4.0;
 
 fn main() {
@@ -10,6 +10,6 @@ fn main() {
     assert(l == 2i64);
     assert(yes == true);
     assert(zero == 0u8);
-    assert(f == 3.0F);
+    assert(f == 3.0f32);
     assert(d == 4.0);
 }

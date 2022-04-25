@@ -1,9 +1,9 @@
 fn main() {
-    let x = 1F;
+    let x = 1f32;
     assert(-x < x);
     assert(x > -x);
 
-    let x = 1D;
+    let x = 1f64;
     assert(-x < x);
     assert(x > -x);
 }

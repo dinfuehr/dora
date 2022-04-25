@@ -2,41 +2,41 @@ fn main() {
   let x = Float32::infinityNegative().roundToZero();
   assert(x == Float32::infinityNegative());
 
-  let x = (-2.5F).roundToZero();
-  assert(x == -2.0F);
+  let x = (-2.5f32).roundToZero();
+  assert(x == -2.0f32);
 
-  let x = (-1.5F).roundToZero();
-  assert(x == -1.0F);
+  let x = (-1.5f32).roundToZero();
+  assert(x == -1.0f32);
 
-  let x = (-2.5F).roundToZero();
-  assert(x == -2.0F);
+  let x = (-2.5f32).roundToZero();
+  assert(x == -2.0f32);
 
-  let x = (-1.5F).roundToZero();
-  assert(x == -1.0F);
+  let x = (-1.5f32).roundToZero();
+  assert(x == -1.0f32);
 
-  let x = (-1.23F).roundToZero();
-  assert(x == -1.0F);
+  let x = (-1.23f32).roundToZero();
+  assert(x == -1.0f32);
 
-  let x = (-1.0F).roundToZero();
-  assert(x == -1.0F);
+  let x = (-1.0f32).roundToZero();
+  assert(x == -1.0f32);
 
-  let x = (-0.0F).roundToZero();
-  assert(x == -0.0F);
+  let x = (-0.0f32).roundToZero();
+  assert(x == -0.0f32);
 
-  let x = 0.0F.roundToZero();
-  assert(x == 0.0F);
+  let x = 0.0f32.roundToZero();
+  assert(x == 0.0f32);
 
-  let x = 1.0F.roundToZero();
-  assert(x == 1.0F);
+  let x = 1.0f32.roundToZero();
+  assert(x == 1.0f32);
 
-  let x = 1.23F.roundToZero();
-  assert(x == 1.0F);
+  let x = 1.23f32.roundToZero();
+  assert(x == 1.0f32);
 
-  let x = 1.5F.roundToZero();
-  assert(x == 1.0F);
+  let x = 1.5f32.roundToZero();
+  assert(x == 1.0f32);
 
-  let x = 2.5F.roundToZero();
-  assert(x == 2.0F);
+  let x = 2.5f32.roundToZero();
+  assert(x == 2.0f32);
 
   let x = Float32::infinityPositive().roundToZero();
   assert(x == Float32::infinityPositive());

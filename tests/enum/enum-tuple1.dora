@@ -16,5 +16,5 @@ fn main() {
 }
 
 fn createTuple(): (Foo, Float32) {
-    (Foo::A(112i32, "abc", 17.5F), 2.5F)
+    (Foo::A(112i32, "abc", 17.5f32), 2.5f32)
 }

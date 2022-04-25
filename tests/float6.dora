@@ -1,15 +1,15 @@
 fn main() {
     let x = fone();
-    assert(1F == x);
+    assert(1f32 == x);
 
     let y = done();
-    assert(y == 1D);
+    assert(y == 1f64);
 }
 
 fn fone(): Float32 {
-    return 1F;
+    return 1f32;
 }
 
 fn done(): Float64 {
-    return 1D;
+    return 1f64;
 }

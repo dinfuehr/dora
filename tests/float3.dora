@@ -1,7 +1,7 @@
 fn main() {
-    let x = 1F;
-    let y = 2F;
-    let z = 0F / 0F;
+    let x = 1f32;
+    let y = 2f32;
+    let z = 0f32 / 0f32;
 
     assert(x == x);
     assert(x != y);

@@ -835,17 +835,17 @@ fn test_literal_int64_overflow() {
 #[test]
 fn test_literal_float_overflow() {
     err(
-        "fn f() { let x = -340282350000000000000000000000000000000F; }",
+        "fn f() { let x = -340282350000000000000000000000000000000f32; }",
         pos(1, 19),
         SemError::NumberOverflow("Float32".into()),
     );
-    ok("fn f() { let x = -340282340000000000000000000000000000000F; }");
+    ok("fn f() { let x = -340282340000000000000000000000000000000f32; }");
     err(
-        "fn f() { let x = 340282350000000000000000000000000000001F; }",
+        "fn f() { let x = 340282350000000000000000000000000000001f32; }",
         pos(1, 18),
         SemError::NumberOverflow("Float32".into()),
     );
-    ok("fn f() { let x = 340282340000000000000000000000000000000F; }");
+    ok("fn f() { let x = 340282340000000000000000000000000000000f32; }");
 }
 
 #[test]
@@ -996,7 +996,7 @@ fn test_const_values() {
                         const a: Int32 = 100i32;
                         const b: Int64 = 200i64;
                         const c: Char = 'A';
-                        const d: Float32 = 3.0F;
+                        const d: Float32 = 3.0f32;
                         const e: Float64 = 6.0;",
         |sa| {
             {
@@ -2099,7 +2099,7 @@ fn test_block_value() {
 #[test]
 fn test_if_expression() {
     ok("fn f(): Int32 { if true { 1i32 } else { 2i32 } }");
-    ok("fn f(): Float32 { if true { 1.0F } else { 2.0F } }");
+    ok("fn f(): Float32 { if true { 1.0f32 } else { 2.0f32 } }");
     ok("fn f(): Float64 { if true { 1.0 } else { 2.0 } }");
 
     ok("fn f(): Int32 { 4i32 * if true { 1i32 } else { 2i32 } }");
@@ -2680,15 +2680,6 @@ fn literal_without_suffix_long() {
 }
 
 #[test]
-fn literal_with_unknown_suffix() {
-    err(
-        "fn f(): Int64 { 1unknown }",
-        pos(1, 17),
-        SemError::InvalidIntSuffix("unknown".into()),
-    );
-}
-
-#[test]
 fn variadic_parameter() {
     ok("
         fn f(x: Int32...): Int64 {
@@ -2755,7 +2746,7 @@ fn for_with_array() {
     }");
 
     ok("fn f(x: Array[Float32]): Float32 {
-        var result = 0.0F;
+        var result = 0.0f32;
         for i in x {
             result = result + i;
         }
@@ -2782,7 +2773,7 @@ fn for_with_vec() {
     }");
 
     ok("fn f(x: Vec[Float32]): Float32 {
-        var result = 0.0F;
+        var result = 0.0f32;
         for i in x.makeReverseIterator() {
             result = result + i;
         }
@@ -2790,7 +2781,7 @@ fn for_with_vec() {
     }");
 
     ok("fn f(x: Vec[Float32]): Float32 {
-        var result = 0.0F;
+        var result = 0.0f32;
         for i in x {
             result = result + i;
         }

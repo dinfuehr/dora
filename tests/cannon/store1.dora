@@ -14,8 +14,8 @@ fn main() {
     storeChar(fooChar, '1');
     storeInt32(fooInt32, 23i32);
     storeInt64(fooInt64, 1i64);
-    storeFloat32(fooFloat32, 1F);
-    storeFloat64(fooFloat64, 1D);
+    storeFloat32(fooFloat32, 1f32);
+    storeFloat64(fooFloat64, 1f64);
     storeString(fooString, "1");
     storePtr(fooPtr, fooInt32);
 
@@ -24,8 +24,8 @@ fn main() {
     assert(fooChar.y == '1');
     assert(fooInt32.y == 23i32);
     assert(fooInt64.y == 1i64);
-    assert(fooFloat32.y == 1F);
-    assert(fooFloat64.y == 1D);
+    assert(fooFloat32.y == 1f32);
+    assert(fooFloat64.y == 1f64);
     assert(fooString.y == "1");
     assert(fooPtr.y === fooInt32);
     assert(fooPtr.y.y == 23i32)
@@ -83,7 +83,7 @@ class FooInt64() {
     var y: Int64 = 0i64;
 }
 class FooFloat32() {
-    var y: Float32 = 0.0F;
+    var y: Float32 = 0.0f32;
 }
 class FooFloat64() {
     var y: Float64 = 0.0;

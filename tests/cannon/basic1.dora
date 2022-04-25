@@ -4,8 +4,8 @@ fn main() {
     assert(returnByte() == 5u8);
     assert(returnInt32() == 5i32);
     assert(returnInt64() == 5i64);
-    assert(returnFloat32() == 5F);
-    assert(returnFloat64() == 5D);
+    assert(returnFloat32() == 5f32);
+    assert(returnFloat64() == 5f64);
     assert(returnString() == "5");
 }
 
@@ -30,11 +30,11 @@ fn returnInt64(): Int64 {
 }
 
 fn returnFloat32(): Float32 {
-    return 5F;
+    return 5f32;
 }
 
 fn returnFloat64(): Float64 {
-    return 5D;
+    return 5f64;
 }
 
 fn returnString(): String {
