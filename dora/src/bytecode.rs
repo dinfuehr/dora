@@ -2,6 +2,7 @@ pub mod builder;
 pub mod data;
 pub mod dumper;
 pub mod reader;
+pub mod ty;
 pub mod writer;
 
 #[cfg(test)]
@@ -11,4 +12,5 @@ pub use builder::*;
 pub use data::*;
 pub use dumper::dump;
 pub use reader::*;
+pub use ty::BytecodeType;
 pub use writer::*;

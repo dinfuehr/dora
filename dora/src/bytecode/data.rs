@@ -1,18 +1,13 @@
 use std::fmt;
 
-use crate::bytecode::BytecodeReader;
+use crate::bytecode::{BytecodeReader, BytecodeType};
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::mem::ptr_width;
-use crate::mode::MachineMode;
 use crate::utils::enumeration;
-use crate::vm::{
-    get_concrete_tuple_bytecode_ty, specialize_enum_id_params, specialize_struct_id_params,
-    ClassInstanceId, EnumLayout, VM,
-};
+use crate::vm::ClassInstanceId;
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -43,157 +38,6 @@ pub enum BytecodeTypeKind {
     Struct,
     TypeParam,
     Class,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum BytecodeType {
-    Bool,
-    UInt8,
-    Char,
-    Int32,
-    Int64,
-    Float32,
-    Float64,
-    Ptr,
-    Tuple(SourceTypeArray),
-    TypeParam(u32),
-    Enum(EnumDefinitionId, SourceTypeArray),
-    Struct(StructDefinitionId, SourceTypeArray),
-    Class(ClassDefinitionId, SourceTypeArray),
-}
-
-impl BytecodeType {
-    pub fn size(&self, vm: &VM) -> i32 {
-        match self {
-            BytecodeType::Bool => 1,
-            BytecodeType::UInt8 => 1,
-            BytecodeType::Char => 4,
-            BytecodeType::Int32 => 4,
-            BytecodeType::Int64 => 8,
-            BytecodeType::Float32 => 4,
-            BytecodeType::Float64 => 8,
-            BytecodeType::Ptr => ptr_width(),
-            BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, self).size(),
-            BytecodeType::TypeParam(_) => unreachable!(),
-            BytecodeType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
-                let edef = vm.enum_instances.idx(edef_id);
-
-                match edef.layout {
-                    EnumLayout::Int => 4,
-                    EnumLayout::Ptr | EnumLayout::Tagged => ptr_width(),
-                }
-            }
-            BytecodeType::Struct(struct_id, type_params) => {
-                let sdef_id = specialize_struct_id_params(vm, *struct_id, type_params.clone());
-                let sdef = vm.struct_instances.idx(sdef_id);
-
-                sdef.size
-            }
-            BytecodeType::Class(_, _) => unreachable!(),
-        }
-    }
-
-    pub fn kind(&self) -> BytecodeTypeKind {
-        match self {
-            BytecodeType::Bool => BytecodeTypeKind::Bool,
-            BytecodeType::UInt8 => BytecodeTypeKind::UInt8,
-            BytecodeType::Char => BytecodeTypeKind::Char,
-            BytecodeType::Int32 => BytecodeTypeKind::Int32,
-            BytecodeType::Int64 => BytecodeTypeKind::Int64,
-            BytecodeType::Float32 => BytecodeTypeKind::Float32,
-            BytecodeType::Float64 => BytecodeTypeKind::Float64,
-            BytecodeType::Ptr => BytecodeTypeKind::Ptr,
-            BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
-            BytecodeType::TypeParam(_) => BytecodeTypeKind::TypeParam,
-            BytecodeType::Enum(_, _) => BytecodeTypeKind::Enum,
-            BytecodeType::Struct(_, _) => BytecodeTypeKind::Struct,
-            BytecodeType::Class(_, _) => BytecodeTypeKind::Class,
-        }
-    }
-
-    pub fn mode(&self, vm: &VM) -> MachineMode {
-        match self {
-            BytecodeType::Bool => MachineMode::Int8,
-            BytecodeType::UInt8 => MachineMode::Int8,
-            BytecodeType::Char => MachineMode::Int32,
-            BytecodeType::Int32 => MachineMode::Int32,
-            BytecodeType::Int64 => MachineMode::Int64,
-            BytecodeType::Float32 => MachineMode::Float32,
-            BytecodeType::Float64 => MachineMode::Float64,
-            BytecodeType::Ptr => MachineMode::Ptr,
-            BytecodeType::Tuple(_) => unreachable!(),
-            BytecodeType::TypeParam(_) => unreachable!(),
-            BytecodeType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(vm, *enum_id, type_params.clone());
-                let edef = vm.enum_instances.idx(edef_id);
-
-                match edef.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                }
-            }
-            BytecodeType::Struct(_struct_id, _type_params) => unreachable!(),
-            BytecodeType::Class(_class_id, _type_params) => unreachable!(),
-        }
-    }
-
-    pub fn is_any_float(&self) -> bool {
-        match self {
-            BytecodeType::Float32 | BytecodeType::Float64 => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_ptr(&self) -> bool {
-        match self {
-            BytecodeType::Ptr => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_type_param(&self) -> bool {
-        match self {
-            BytecodeType::TypeParam(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn from_ty(vm: &VM, ty: SourceType) -> BytecodeType {
-        match ty {
-            SourceType::Bool => BytecodeType::Bool,
-            SourceType::UInt8 => BytecodeType::UInt8,
-            SourceType::Char => BytecodeType::Char,
-            SourceType::Int32 => BytecodeType::Int32,
-            SourceType::Int64 => BytecodeType::Int64,
-            SourceType::Float32 => BytecodeType::Float32,
-            SourceType::Float64 => BytecodeType::Float64,
-            SourceType::Class(_, _) => BytecodeType::Ptr,
-            SourceType::Trait(_, _) => BytecodeType::Ptr,
-            SourceType::Enum(id, params) => {
-                let enum_ = vm.enums[id].read();
-
-                for variant in &enum_.variants {
-                    if !variant.types.is_empty() {
-                        return BytecodeType::Enum(id, params);
-                    }
-                }
-
-                BytecodeType::Int32
-            }
-            SourceType::Struct(id, params) => BytecodeType::Struct(id, params),
-            SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
-            SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
-            _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
-        }
-    }
-
-    pub fn tuple_subtypes(&self) -> SourceTypeArray {
-        match self {
-            BytecodeType::Tuple(subtypes) => subtypes.clone(),
-            _ => unreachable!(),
-        }
-    }
 }
 
 // Keep in sync with dora-boots/bytecode.dora
