@@ -497,6 +497,7 @@ impl SourceType {
             BytecodeType::Struct(struct_id, params) => SourceType::Struct(struct_id, params),
             BytecodeType::Tuple(subtypes) => SourceType::Tuple(subtypes),
             BytecodeType::Enum(enum_id, params) => SourceType::Enum(enum_id, params),
+            BytecodeType::Class(class_id, type_params) => SourceType::Class(class_id, type_params),
         }
     }
 }

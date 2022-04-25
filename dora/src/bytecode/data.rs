@@ -42,6 +42,7 @@ pub enum BytecodeTypeKind {
     Enum,
     Struct,
     TypeParam,
+    Class,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -58,6 +59,7 @@ pub enum BytecodeType {
     TypeParam(u32),
     Enum(EnumDefinitionId, SourceTypeArray),
     Struct(StructDefinitionId, SourceTypeArray),
+    Class(ClassDefinitionId, SourceTypeArray),
 }
 
 impl BytecodeType {
@@ -88,6 +90,7 @@ impl BytecodeType {
 
                 sdef.size
             }
+            BytecodeType::Class(_, _) => unreachable!(),
         }
     }
 
@@ -105,6 +108,7 @@ impl BytecodeType {
             BytecodeType::TypeParam(_) => BytecodeTypeKind::TypeParam,
             BytecodeType::Enum(_, _) => BytecodeTypeKind::Enum,
             BytecodeType::Struct(_, _) => BytecodeTypeKind::Struct,
+            BytecodeType::Class(_, _) => BytecodeTypeKind::Class,
         }
     }
 
@@ -130,6 +134,7 @@ impl BytecodeType {
                 }
             }
             BytecodeType::Struct(_struct_id, _type_params) => unreachable!(),
+            BytecodeType::Class(_class_id, _type_params) => unreachable!(),
         }
     }
 

@@ -263,7 +263,7 @@ impl<'a> CannonCodeGen<'a> {
                             }
                         }
                     }
-                    BytecodeType::TypeParam(_) => unreachable!(),
+                    BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
                     BytecodeType::UInt8
                     | BytecodeType::Int32
                     | BytecodeType::Bool
@@ -1660,6 +1660,8 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.load_mem(mode, reg, src.mem());
                 self.asm.store_mem(mode, dest.mem(), reg);
             }
+
+            BytecodeType::Class(_, _) => unreachable!(),
         }
     }
 
@@ -1919,7 +1921,7 @@ impl<'a> CannonCodeGen<'a> {
                     needs_write_barrier = mode == MachineMode::Ptr;
                 }
 
-                BytecodeType::TypeParam(_) => unreachable!(),
+                BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
                 BytecodeType::UInt8
                 | BytecodeType::Bool
                 | BytecodeType::Char
@@ -2241,7 +2243,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.emit_load_register_as(src, REG_RESULT.into(), mode);
                 }
 
-                BytecodeType::TypeParam(_) => unreachable!(),
+                BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
 
                 BytecodeType::UInt8
                 | BytecodeType::Int32
@@ -2855,7 +2857,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
             }
 
-            BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
             BytecodeType::UInt8
             | BytecodeType::Int32
             | BytecodeType::Bool
@@ -2975,7 +2977,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register_as(REG_RESULT.into(), dest, mode);
             }
 
-            BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
             BytecodeType::UInt8
             | BytecodeType::Int32
             | BytecodeType::Bool
@@ -4138,7 +4140,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Enum(_, _) => unimplemented!(),
 
-            BytecodeType::TypeParam(_) => unreachable!(),
+            BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
         }
     }
 
@@ -4176,7 +4178,8 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Tuple(_)
             | BytecodeType::Enum(_, _)
             | BytecodeType::TypeParam(_)
-            | BytecodeType::Struct(_, _) => unreachable!(),
+            | BytecodeType::Struct(_, _)
+            | BytecodeType::Class(_, _) => unreachable!(),
 
             BytecodeType::Ptr => {
                 self.emit_load_register(arguments[0], REG_RESULT.into());
@@ -4343,7 +4346,7 @@ impl<'a> CannonCodeGen<'a> {
                         }
                     }
 
-                    BytecodeType::TypeParam(_) => unreachable!(),
+                    BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
                 }
             }
         }
