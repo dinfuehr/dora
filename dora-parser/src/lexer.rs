@@ -9,13 +9,6 @@ pub mod position;
 pub mod reader;
 pub mod token;
 
-#[derive(Debug)]
-pub struct File {
-    pub name: String,
-    pub content: String,
-    pub line_ends: Vec<u32>,
-}
-
 pub struct Lexer {
     reader: Reader,
     keywords: HashMap<&'static str, TokenKind>,
