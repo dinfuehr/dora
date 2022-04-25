@@ -3669,9 +3669,17 @@ fn gen_checked_cast_effect() {
 
 #[test]
 fn gen_enum_value() {
-    let result = code("enum MyEnum { A, B } fn f(): MyEnum { MyEnum::A }");
-    let expected = vec![ConstInt32(r(0), 0), Ret(r(0))];
-    assert_eq!(expected, result);
+    gen_fct(
+        "enum MyEnum { A, B } fn f(): MyEnum { MyEnum::A }",
+        |sa, code, _fct| {
+            let enum_id = sa.enum_by_name("MyEnum");
+            let expected = vec![
+                NewEnum(r(0), enum_id, SourceTypeArray::empty(), 0),
+                Ret(r(0)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
 }
 
 #[test]

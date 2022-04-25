@@ -20,7 +20,7 @@ pub mod error;
 mod extensiondefck;
 mod fctbodyck;
 mod fctdefck;
-mod generator;
+pub mod generator;
 #[cfg(test)]
 mod generator_tests;
 mod globaldefck;

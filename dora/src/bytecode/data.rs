@@ -38,6 +38,7 @@ pub enum BytecodeTypeKind {
     Struct,
     TypeParam,
     Class,
+    Trait,
 }
 
 // Keep in sync with dora-boots/bytecode.dora

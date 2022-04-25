@@ -498,6 +498,7 @@ impl SourceType {
             BytecodeType::Tuple(subtypes) => SourceType::Tuple(subtypes),
             BytecodeType::Enum(enum_id, params) => SourceType::Enum(enum_id, params),
             BytecodeType::Class(class_id, type_params) => SourceType::Class(class_id, type_params),
+            BytecodeType::Trait(trait_id, type_params) => SourceType::Trait(trait_id, type_params),
         }
     }
 }
