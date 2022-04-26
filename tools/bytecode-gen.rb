@@ -63,7 +63,7 @@ def output
         opcode = 0
 
         for bytecode in bytecodes
-            f.puts "const BC_#{snake_case(bytecode)}: Int32 = #{opcode}I;"
+            f.puts "const BC_#{snake_case(bytecode)}: Int32 = #{opcode};"
             opcode += 1
         end
 
@@ -71,7 +71,7 @@ def output
         type_code = 0
 
         for type in types
-            f.puts "const BC_TYPE_#{snake_case(type)}: Int32 = #{type_code}I;"
+            f.puts "const BC_TYPE_#{snake_case(type)}: Int32 = #{type_code};"
             type_code += 1
         end
 
@@ -79,7 +79,7 @@ def output
         code = 0
 
         for opcode in constpool_opcodes
-            f.puts "const CONSTPOOL_OPCODE_#{snake_case(opcode)}: Int32 = #{code}I;"
+            f.puts "const CONSTPOOL_OPCODE_#{snake_case(opcode)}: Int32 = #{code};"
             code += 1
         end
 
@@ -107,7 +107,7 @@ def output
         code = 0
 
         for opcode in instruction_sets
-            f.puts "const INSTRUCTION_SET_#{snake_case(opcode)}: Int32 = #{code}I;"
+            f.puts "const INSTRUCTION_SET_#{snake_case(opcode)}: Int32 = #{code};"
             code += 1
         end
 
@@ -115,7 +115,7 @@ def output
         code = 0
 
         for opcode in source_type_opcodes
-            f.puts "const SOURCE_TYPE_OPCODE_#{snake_case(opcode)}: Int32 = #{code}I;"
+            f.puts "const SOURCE_TYPE_OPCODE_#{snake_case(opcode)}: Int32 = #{code};"
             code += 1
         end
     end

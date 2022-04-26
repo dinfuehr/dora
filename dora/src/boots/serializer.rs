@@ -72,6 +72,9 @@ fn encode_type_params(vm: &VM, type_params: &SourceTypeArray, buffer: &mut ByteB
 
 fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
     match ty {
+        BytecodeType::Unit => {
+            buffer.emit_u8(BytecodeTypeKind::Unit as u8);
+        }
         BytecodeType::Bool => {
             buffer.emit_u8(BytecodeTypeKind::Bool as u8);
         }

@@ -15,11 +15,13 @@ pub struct ConstCheck<'a> {
 
 impl<'a> ConstCheck<'a> {
     pub fn check_expr(&mut self, expr: &Expr) -> (SourceType, ConstValue) {
+        let expected_type = self.const_.ty.clone();
+
         let (ty, lit) = match expr {
             &Expr::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
             &Expr::LitInt(ref expr) => {
                 let (ty, value) =
-                    check_lit_int(self.sa, self.const_.file_id, expr, false, SourceType::Any);
+                    check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);
 
                 (ty, ConstValue::Int(value))
             }
@@ -31,7 +33,7 @@ impl<'a> ConstCheck<'a> {
 
             &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
-                let ty = determine_type_literal_int(lit_int, self.const_.ty.clone());
+                let ty = determine_type_literal_int(lit_int, expected_type.clone());
 
                 if ty == SourceType::UInt8 {
                     let ty = SourceType::UInt8.name(self.sa);
@@ -47,7 +49,7 @@ impl<'a> ConstCheck<'a> {
                     self.const_.file_id,
                     expr.opnd.to_lit_int().unwrap(),
                     true,
-                    SourceType::Any,
+                    expected_type,
                 );
 
                 (ty, ConstValue::Int(value))

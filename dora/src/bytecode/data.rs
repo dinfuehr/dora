@@ -25,6 +25,7 @@ impl BytecodeOffset {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BytecodeTypeKind {
+    Unit,
     Bool,
     UInt8,
     Char,

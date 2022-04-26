@@ -8,6 +8,7 @@ use crate::language::ty::SourceTypeArray;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BytecodeType {
+    Unit,
     Bool,
     UInt8,
     Char,
@@ -27,6 +28,7 @@ pub enum BytecodeType {
 impl BytecodeType {
     pub fn kind(&self) -> BytecodeTypeKind {
         match self {
+            BytecodeType::Unit => BytecodeTypeKind::Unit,
             BytecodeType::Bool => BytecodeTypeKind::Bool,
             BytecodeType::UInt8 => BytecodeTypeKind::UInt8,
             BytecodeType::Char => BytecodeTypeKind::Char,

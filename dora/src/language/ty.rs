@@ -1,7 +1,6 @@
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::bytecode::BytecodeType;
 use crate::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, FctDefinition,
     SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamId,
@@ -480,25 +479,6 @@ impl SourceType {
             }
             SourceType::Lambda(_, _) => unimplemented!(),
             SourceType::TypeParam(_) => false,
-        }
-    }
-
-    pub fn from_bytecode(ty: BytecodeType) -> SourceType {
-        match ty {
-            BytecodeType::Bool => SourceType::Bool,
-            BytecodeType::Char => SourceType::Char,
-            BytecodeType::Float32 => SourceType::Float32,
-            BytecodeType::Float64 => SourceType::Float64,
-            BytecodeType::Int32 => SourceType::Int32,
-            BytecodeType::Int64 => SourceType::Int64,
-            BytecodeType::Ptr => SourceType::Ptr,
-            BytecodeType::UInt8 => SourceType::UInt8,
-            BytecodeType::TypeParam(id) => SourceType::TypeParam(TypeParamId(id as usize)),
-            BytecodeType::Struct(struct_id, params) => SourceType::Struct(struct_id, params),
-            BytecodeType::Tuple(subtypes) => SourceType::Tuple(subtypes),
-            BytecodeType::Enum(enum_id, params) => SourceType::Enum(enum_id, params),
-            BytecodeType::Class(class_id, type_params) => SourceType::Class(class_id, type_params),
-            BytecodeType::Trait(trait_id, type_params) => SourceType::Trait(trait_id, type_params),
         }
     }
 }
