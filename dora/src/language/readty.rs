@@ -13,7 +13,7 @@ use crate::language::sem_analysis::{
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
-use dora_parser::ast::{Type, TypeBasicType, TypeLambdaType, TypeTupleType};
+use dora_parser::ast::{self, TypeBasicType, TypeLambdaType, TypeTupleType};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone)]
@@ -34,16 +34,130 @@ pub enum AllowSelf {
     No,
 }
 
+pub fn read_type_unchecked(
+    sa: &SemAnalysis,
+    table: &NestedSymTable,
+    file_id: SourceFileId,
+    t: &ast::Type,
+) -> SourceType {
+    match *t {
+        ast::Type::This(_) => SourceType::This,
+        ast::Type::Basic(ref node) => read_type_basic_unchecked(sa, table, file_id, node),
+        ast::Type::Tuple(ref node) => read_type_tuple_unchecked(sa, table, file_id, node),
+        ast::Type::Lambda(ref node) => read_type_lambda_unchecked(sa, table, file_id, node),
+    }
+}
+
+fn read_type_basic_unchecked(
+    sa: &SemAnalysis,
+    table: &NestedSymTable,
+    file_id: SourceFileId,
+    node: &TypeBasicType,
+) -> SourceType {
+    let sym = read_type_path(sa, table, file_id, node);
+
+    if sym.is_err() {
+        return SourceType::Error;
+    }
+
+    let sym = sym.unwrap();
+
+    if sym.is_none() {}
+
+    let mut type_params = Vec::new();
+
+    for param in &node.params {
+        let ty = read_type_unchecked(sa, table, file_id, param);
+        type_params.push(ty);
+    }
+
+    let type_params = SourceTypeArray::with(type_params);
+
+    match sym {
+        Some(Sym::Class(class_id)) => SourceType::Class(class_id, type_params),
+        Some(Sym::Trait(trait_id)) => SourceType::Trait(trait_id, type_params),
+        Some(Sym::Struct(struct_id)) => SourceType::Struct(struct_id, type_params),
+        Some(Sym::Enum(enum_id)) => SourceType::Enum(enum_id, type_params),
+        Some(Sym::TypeParam(type_param_id)) => {
+            if node.params.len() > 0 {
+                let msg = SemError::NoTypeParamsExpected;
+                sa.diag.lock().report(file_id, node.pos, msg);
+            }
+
+            SourceType::TypeParam(type_param_id)
+        }
+
+        Some(_) => {
+            let name = sa
+                .interner
+                .str(node.path.names.last().cloned().unwrap())
+                .to_string();
+            let msg = SemError::UnknownType(name);
+            sa.diag.lock().report(file_id, node.pos, msg);
+            SourceType::Error
+        }
+        None => {
+            let name = sa
+                .interner
+                .str(node.path.names.last().cloned().unwrap())
+                .to_string();
+            let msg = SemError::UnknownIdentifier(name);
+            sa.diag.lock().report(file_id, node.pos, msg);
+            SourceType::Error
+        }
+    }
+}
+
+fn read_type_lambda_unchecked(
+    sa: &SemAnalysis,
+    table: &NestedSymTable,
+    file_id: SourceFileId,
+    node: &TypeLambdaType,
+) -> SourceType {
+    let mut params = vec![];
+
+    for param in &node.params {
+        let ty = read_type_unchecked(sa, table, file_id, param);
+        params.push(ty);
+    }
+
+    let params = SourceTypeArray::with(params);
+    let return_type = read_type_unchecked(sa, table, file_id, &node.ret);
+
+    SourceType::Lambda(params, Box::new(return_type))
+}
+
+fn read_type_tuple_unchecked(
+    sa: &SemAnalysis,
+    table: &NestedSymTable,
+    file_id: SourceFileId,
+    node: &TypeTupleType,
+) -> SourceType {
+    if node.subtypes.is_empty() {
+        return SourceType::Unit;
+    }
+
+    let mut subtypes = Vec::new();
+
+    for subtype in &node.subtypes {
+        let ty = read_type_unchecked(sa, table, file_id, subtype);
+        subtypes.push(ty);
+    }
+
+    let subtypes = SourceTypeArray::with(subtypes);
+    SourceType::Tuple(subtypes)
+}
+
 pub fn read_type(
     sa: &SemAnalysis,
     table: &NestedSymTable,
     file_id: SourceFileId,
-    t: &Type,
+    t: &ast::Type,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
     match *t {
-        Type::This(ref node) => match allow_self {
+        ast::Type::This(ref node) => match allow_self {
             AllowSelf::Yes => Some(SourceType::This),
             AllowSelf::No => {
                 sa.diag
@@ -53,9 +167,11 @@ pub fn read_type(
                 None
             }
         },
-        Type::Basic(ref basic) => read_type_basic(sa, table, file_id, basic, ctxt, allow_self),
-        Type::Tuple(ref tuple) => read_type_tuple(sa, table, file_id, tuple, ctxt, allow_self),
-        Type::Lambda(ref lambda) => read_type_lambda(sa, table, file_id, lambda, ctxt, allow_self),
+        ast::Type::Basic(ref basic) => read_type_basic(sa, table, file_id, basic, ctxt, allow_self),
+        ast::Type::Tuple(ref tuple) => read_type_tuple(sa, table, file_id, tuple, ctxt, allow_self),
+        ast::Type::Lambda(ref lambda) => {
+            read_type_lambda(sa, table, file_id, lambda, ctxt, allow_self)
+        }
     }
 }
 

@@ -9,7 +9,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub use program_parser::should_file_be_parsed;
-pub use readty::{read_type, AllowSelf, TypeParamContext};
+pub use readty::{read_type, read_type_unchecked, AllowSelf, TypeParamContext};
 
 mod abstractck;
 pub(crate) mod access;
