@@ -443,6 +443,16 @@ impl<'a> BytecodeDumper<'a> {
 
                 (cname, fname)
             }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let struct_ = self.vm.structs.idx(*struct_id);
+                let struct_ = struct_.read();
+                let struct_name = struct_.name_with_params(self.vm, type_params);
+
+                let field = &struct_.fields[field_id.to_usize()];
+                let fname = self.vm.interner.str(field.name).to_string();
+
+                (struct_name, fname)
+            }
             ConstPoolEntry::FieldFixed(cls_def_id, field_id) => {
                 let cls = self.vm.class_instances.idx(*cls_def_id);
                 let cname = cls
@@ -535,6 +545,29 @@ impl<'a> BytecodeDumper<'a> {
             r1,
             idx.to_usize(),
             cname
+        )
+        .expect("write! failed");
+    }
+
+    fn emit_new_trait_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx, r2: Register) {
+        self.emit_start(name);
+        let (trait_id, type_params, actual_ty) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Trait(trait_id, type_params, ty) => {
+                (*trait_id, type_params.clone(), ty.clone())
+            }
+            _ => unreachable!(),
+        };
+        let trait_ = self.vm.traits.idx(trait_id);
+        let trait_ = trait_.read();
+        let trait_name = trait_.name_with_params(self.vm, &type_params);
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}), {} # {} wrapping {}",
+            r1,
+            idx.to_usize(),
+            r2,
+            trait_name,
+            actual_ty.name(self.vm),
         )
         .expect("write! failed");
     }
@@ -817,6 +850,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         self.emit_field("LoadField", dest, obj, field_idx);
+    }
+
+    fn visit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        self.emit_field("LoadStructField", dest, obj, field_idx);
     }
 
     fn visit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -1112,6 +1149,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_object("NewObject", dest, idx);
+    }
+    fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
+        self.emit_new_trait_object("NewTraitObject", dest, idx, src);
     }
     fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         self.emit_new_array("NewArray", dest, idx, length);

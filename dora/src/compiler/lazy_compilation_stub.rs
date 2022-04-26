@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::mem::size_of;
 use std::sync::Arc;
 
-use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, BytecodeType, Register};
+use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, Register};
 use crate::compiler;
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::cpu::{
@@ -256,17 +256,17 @@ fn patch_virtual_call(
         let fct_id = cls.virtual_fcts[vtable_index as usize];
         compiler::generate(vm, fct_id, type_params)
     } else {
-        let object_ty = class_instance
+        let actual_ty = class_instance
             .trait_object
             .clone()
             .expect("trait object expected");
-        let all_type_params = type_params.connect_single(object_ty.clone());
+        let all_type_params = type_params.connect_single(actual_ty.clone());
         let thunk_fct_id = ensure_thunk(
             vm,
             class_instance.id(),
             trait_fct_id,
             type_params.clone(),
-            object_ty,
+            actual_ty,
         );
 
         compiler::generate(vm, thunk_fct_id, &all_type_params)
@@ -303,12 +303,13 @@ fn ensure_thunk(
     cls_def_id: ClassInstanceId,
     fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
-    object_ty: SourceType,
+    actual_ty: SourceType,
 ) -> FctDefinitionId {
     let fct = vm.fcts.idx(fct_id);
     let fct = fct.read();
 
     let trait_id = fct.parent.trait_id().expect("expected trait");
+    let trait_object_ty = SourceType::Trait(trait_id, type_params);
 
     let thunk_id = fct.thunk_id.write();
 
@@ -316,7 +317,7 @@ fn ensure_thunk(
         return thunk_id;
     }
 
-    let callee_id = find_trait_impl(vm, fct_id, trait_id, object_ty.clone());
+    let callee_id = find_trait_impl(vm, fct_id, trait_id, actual_ty.clone());
 
     let mut thunk_fct = FctDefinition::new(fct.file_id, fct.module_id, &fct.ast, FctParent::None);
     thunk_fct.type_params = fct.type_params.clone();
@@ -330,13 +331,14 @@ fn ensure_thunk(
         vm,
         cls_def_id,
         &*fct,
+        trait_object_ty.clone(),
         &mut thunk_fct,
         callee_id,
-        object_ty,
+        actual_ty,
     ));
     thunk_fct.analysis = Some(AnalysisData::new());
 
-    let mut param_types: Vec<SourceType> = vec![SourceType::Trait(trait_id, type_params)];
+    let mut param_types: Vec<SourceType> = vec![trait_object_ty];
     param_types.extend_from_slice(fct.params_without_self());
     thunk_fct.param_types = param_types;
     thunk_fct.return_type = fct.return_type.clone();
@@ -358,13 +360,14 @@ fn generate_bytecode_for_thunk(
     vm: &VM,
     cls_def_id: ClassInstanceId,
     trait_fct: &FctDefinition,
+    trait_object_ty: SourceType,
     thunk_fct: &mut FctDefinition,
     _callee_id: FctDefinitionId,
-    object_ty: SourceType,
+    actual_ty: SourceType,
 ) -> BytecodeFunction {
     let mut gen = BytecodeBuilder::new();
     gen.push_scope();
-    gen.alloc_var(BytecodeType::Ptr);
+    gen.alloc_var(bty_from_ty(trait_object_ty));
 
     for param_ty in trait_fct.params_without_self() {
         if !param_ty.is_unit() {
@@ -375,8 +378,8 @@ fn generate_bytecode_for_thunk(
 
     gen.set_arguments(trait_fct.params_with_self().len() as u32);
 
-    if !object_ty.is_unit() {
-        let ty = bty_from_ty(object_ty.clone());
+    if !actual_ty.is_unit() {
+        let ty = bty_from_ty(actual_ty.clone());
         let new_self_reg = gen.alloc_var(ty);
         let field_idx = gen.add_const_field_fixed(cls_def_id, 0.into());
         gen.emit_load_field(new_self_reg, Register(0), field_idx, trait_fct.pos);

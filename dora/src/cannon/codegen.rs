@@ -225,7 +225,7 @@ impl<'a> CannonCodeGen<'a> {
         for (idx, ty) in self.bytecode.registers().iter().enumerate() {
             if let Some(ty) = self.specialize_bytecode_type_unit(ty.clone()) {
                 match ty {
-                    BytecodeType::Ptr => {
+                    BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
                         let offset = self.register_offset(Register(idx));
                         self.references.push(offset);
                     }
@@ -264,9 +264,7 @@ impl<'a> CannonCodeGen<'a> {
                             }
                         }
                     }
-                    BytecodeType::TypeParam(_)
-                    | BytecodeType::Class(_, _)
-                    | BytecodeType::Trait(_, _) => unreachable!(),
+                    BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
                     BytecodeType::UInt8
                     | BytecodeType::Int32
                     | BytecodeType::Bool
@@ -1804,7 +1802,10 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
+        assert!(
+            self.bytecode.register_type(obj).is_ptr()
+                || self.bytecode.register_type(obj).is_trait()
+        );
 
         let (class_instance_id, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
@@ -1825,7 +1826,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let field = &cls.fields[field_id.to_usize()];
 
-        assert!(self.bytecode.register_type(obj).is_ptr());
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
 
@@ -3030,7 +3030,7 @@ impl<'a> CannonCodeGen<'a> {
         let self_register = arguments[0];
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
-        assert!(bytecode_type_self.is_ptr());
+        assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait());
 
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
@@ -4338,7 +4338,8 @@ impl<'a> CannonCodeGen<'a> {
                     | BytecodeType::Int32
                     | BytecodeType::Int64
                     | BytecodeType::Ptr
-                    | BytecodeType::Enum(_, _) => {
+                    | BytecodeType::Enum(_, _)
+                    | BytecodeType::Trait(_, _) => {
                         let mode = mode(self.vm, bytecode_type);
 
                         if reg_idx < REG_PARAMS.len() {
@@ -4353,9 +4354,7 @@ impl<'a> CannonCodeGen<'a> {
                         }
                     }
 
-                    BytecodeType::TypeParam(_)
-                    | BytecodeType::Class(_, _)
-                    | BytecodeType::Trait(_, _) => unreachable!(),
+                    BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) => unreachable!(),
                 }
             }
         }
@@ -5652,7 +5651,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
         BytecodeType::Int64 => MachineMode::Int64,
         BytecodeType::Float32 => MachineMode::Float32,
         BytecodeType::Float64 => MachineMode::Float64,
-        BytecodeType::Ptr => MachineMode::Ptr,
+        BytecodeType::Ptr | BytecodeType::Trait(_, _) => MachineMode::Ptr,
         BytecodeType::Tuple(_) => unreachable!(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
@@ -5664,7 +5663,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
                 EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
             }
         }
-        BytecodeType::Struct(_, _) | BytecodeType::Class(_, _) | BytecodeType::Trait(_, _) => {
+        BytecodeType::Struct(_, _) | BytecodeType::Class(_, _) => {
             unreachable!()
         }
     }
@@ -5679,7 +5678,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Int64 => 8,
         BytecodeType::Float32 => 4,
         BytecodeType::Float64 => 8,
-        BytecodeType::Ptr => mem::ptr_width(),
+        BytecodeType::Ptr | BytecodeType::Trait(_, _) => mem::ptr_width(),
         BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, &ty).size(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
@@ -5697,6 +5696,6 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
 
             sdef.size
         }
-        BytecodeType::Class(_, _) | BytecodeType::Trait(_, _) => unreachable!(),
+        BytecodeType::Class(_, _) => unreachable!(),
     }
 }

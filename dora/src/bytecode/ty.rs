@@ -58,6 +58,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn is_trait(&self) -> bool {
+        match self {
+            BytecodeType::Trait(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_type_param(&self) -> bool {
         match self {
             BytecodeType::TypeParam(_) => true,
