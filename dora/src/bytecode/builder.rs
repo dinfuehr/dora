@@ -16,6 +16,8 @@ use crate::vm::{ClassInstanceId, VM};
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
     registers: Registers,
+    params: Option<Vec<BytecodeType>>,
+    return_type: Option<Option<BytecodeType>>,
 }
 
 impl BytecodeBuilder {
@@ -23,6 +25,8 @@ impl BytecodeBuilder {
         BytecodeBuilder {
             writer: BytecodeWriter::new(),
             registers: Registers::new(),
+            params: None,
+            return_type: None,
         }
     }
 
@@ -40,6 +44,15 @@ impl BytecodeBuilder {
 
     pub fn set_arguments(&mut self, arguments: u32) {
         self.writer.set_arguments(arguments)
+    }
+
+    pub fn set_params(&mut self, params: Vec<BytecodeType>) {
+        self.writer.set_arguments(params.len() as u32);
+        self.writer.set_params(params);
+    }
+
+    pub fn set_return_type(&mut self, return_type: Option<BytecodeType>) {
+        self.writer.set_return_type(return_type);
     }
 
     pub fn add_const(&mut self, entry: ConstPoolEntry) -> ConstPoolIdx {
@@ -1009,10 +1022,12 @@ impl BytecodeBuilder {
     }
 
     pub fn alloc_var(&mut self, ty: BytecodeType) -> Register {
+        assert!(!ty.is_class());
         self.registers.alloc_var(ty)
     }
 
     pub fn alloc_temp(&mut self, ty: BytecodeType) -> Register {
+        assert!(!ty.is_class());
         self.registers.alloc_temp(ty)
     }
 

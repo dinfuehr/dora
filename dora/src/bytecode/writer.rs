@@ -24,6 +24,9 @@ pub struct BytecodeWriter {
 
     positions: Vec<(u32, Position)>,
     position: Option<Position>,
+
+    params: Vec<BytecodeType>,
+    return_type: Option<BytecodeType>,
 }
 
 impl BytecodeWriter {
@@ -41,6 +44,9 @@ impl BytecodeWriter {
 
             positions: Vec::new(),
             position: None,
+
+            params: Vec::new(),
+            return_type: None,
         }
     }
 
@@ -77,6 +83,14 @@ impl BytecodeWriter {
 
     pub fn set_arguments(&mut self, arguments: u32) {
         self.arguments = arguments;
+    }
+
+    pub fn set_params(&mut self, params: Vec<BytecodeType>) {
+        self.params = params;
+    }
+
+    pub fn set_return_type(&mut self, return_type: Option<BytecodeType>) {
+        self.return_type = return_type;
     }
 
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -702,6 +716,8 @@ impl BytecodeWriter {
             self.registers,
             self.arguments,
             self.positions,
+            Vec::new(),
+            None,
         )
     }
 
@@ -716,6 +732,8 @@ impl BytecodeWriter {
             registers,
             self.arguments,
             self.positions,
+            Vec::new(),
+            None,
         )
     }
 

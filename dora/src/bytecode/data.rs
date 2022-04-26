@@ -1295,6 +1295,8 @@ pub struct BytecodeFunction {
     const_pool: Vec<ConstPoolEntry>,
     arguments: u32,
     positions: Vec<(u32, Position)>,
+    params: Vec<BytecodeType>,
+    return_type: Option<BytecodeType>,
 }
 
 impl BytecodeFunction {
@@ -1304,6 +1306,8 @@ impl BytecodeFunction {
         registers: Vec<BytecodeType>,
         arguments: u32,
         positions: Vec<(u32, Position)>,
+        params: Vec<BytecodeType>,
+        return_type: Option<BytecodeType>,
     ) -> BytecodeFunction {
         BytecodeFunction {
             code,
@@ -1311,6 +1315,8 @@ impl BytecodeFunction {
             registers,
             arguments,
             positions,
+            params,
+            return_type,
         }
     }
     pub fn code(&self) -> &[u8] {

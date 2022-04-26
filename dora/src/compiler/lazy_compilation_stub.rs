@@ -9,7 +9,7 @@ use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
-use crate::language::generator::bty_from_ty;
+use crate::language::generator::register_bty_from_ty;
 use crate::language::sem_analysis::{
     find_trait_impl, AnalysisData, FctDefinition, FctDefinitionId, FctParent, TypeParam,
     TypeParamId,
@@ -367,11 +367,11 @@ fn generate_bytecode_for_thunk(
 ) -> BytecodeFunction {
     let mut gen = BytecodeBuilder::new();
     gen.push_scope();
-    gen.alloc_var(bty_from_ty(trait_object_ty));
+    gen.alloc_var(register_bty_from_ty(trait_object_ty));
 
     for param_ty in trait_fct.params_without_self() {
         if !param_ty.is_unit() {
-            let ty = bty_from_ty(param_ty.clone());
+            let ty = register_bty_from_ty(param_ty.clone());
             gen.alloc_var(ty);
         }
     }
@@ -379,7 +379,7 @@ fn generate_bytecode_for_thunk(
     gen.set_arguments(trait_fct.params_with_self().len() as u32);
 
     if !actual_ty.is_unit() {
-        let ty = bty_from_ty(actual_ty.clone());
+        let ty = register_bty_from_ty(actual_ty.clone());
         let new_self_reg = gen.alloc_var(ty);
         let field_idx = gen.add_const_field_fixed(cls_def_id, 0.into());
         gen.emit_load_field(new_self_reg, Register(0), field_idx, trait_fct.pos);
@@ -395,7 +395,7 @@ fn generate_bytecode_for_thunk(
         gen.add_const_generic(type_param_id, trait_fct.id(), SourceTypeArray::empty());
 
     if !trait_fct.return_type.is_unit() {
-        let ty = bty_from_ty(trait_fct.return_type.clone());
+        let ty = register_bty_from_ty(trait_fct.return_type.clone());
         let result_reg = gen.alloc_var(ty);
         gen.emit_invoke_generic_direct(result_reg, target_fct_idx, trait_fct.pos);
         gen.emit_ret(result_reg);
