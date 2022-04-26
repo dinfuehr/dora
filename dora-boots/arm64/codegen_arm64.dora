@@ -1,7 +1,7 @@
-class CodeGen(let info: CompilationInfo) {
+@pub class CodeGenArm64(let info: CompilationInfo) {
     let asm: AssemblerArm64 = AssemblerArm64();
 
-    fn generate(): Array[UInt8] {
+    @pub fn generate(): Array[UInt8] {
       assert(self.info.arch == Architecture::Arm64);
       self.asm.ret();
       self.asm.finalize()

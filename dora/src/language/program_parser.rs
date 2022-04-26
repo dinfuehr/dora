@@ -586,19 +586,7 @@ pub fn should_file_be_parsed(path: &Path) -> bool {
         return false;
     }
 
-    let name = path.to_string_lossy();
-
-    if !name.ends_with(".dora") {
-        return false;
-    }
-
-    if name.ends_with("_x64.dora") {
-        cfg!(target_arch = "x86_64")
-    } else if name.ends_with("_arm64.dora") {
-        cfg!(target_arch = "aarch64")
-    } else {
-        true
-    }
+    path.to_string_lossy().ends_with(".dora")
 }
 
 #[cfg(test)]

@@ -44,7 +44,7 @@ enum JumpDistance {
     Far,
 }
 
-class AssemblerX64: Assembler {
+class AssemblerX64 {
     let buffer: AssemblerBuffer = AssemblerBuffer();
     let jumps: Vec[(Int64, Label, JumpDistance)] = Vec();
 

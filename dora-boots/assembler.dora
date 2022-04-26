@@ -98,12 +98,6 @@ fn testAssemblerBufferEmitInt() {
     assert(buffer.size() == 4i64);
 }
 
-@open @abstract class SlowPath {
-    @abstract fn emit(asm: Assembler);
-}
-
-@open @abstract class Assembler
-
 class Register(let value: Int32) {
     fn equals(rhs: Register): Bool {
         self.value == rhs.value

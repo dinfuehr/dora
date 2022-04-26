@@ -3,7 +3,11 @@ fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let ci = decodeCompilationInfo(reader);
     assert(!reader.moreBytes());
     // bytecodeDump(info.bc);
-    CodeGen(ci).generate()
+
+    match ci.arch {
+        Architecture::X64 => x64::CodeGenX64(ci).generate(),
+        Architecture::Arm64 => arm64::CodeGenArm64(ci).generate(),
+    }
 }
 
 @internal fn getEncodedBytecodeFunctionByName(fct: String): Array[UInt8];

@@ -106,7 +106,7 @@ enum CondCode {
     LE, // signed less than or equal
 }
 
-class AssemblerArm64: Assembler {
+class AssemblerArm64 {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
     fn ret() {

@@ -1,4 +1,4 @@
-class CodeGen(let info: CompilationInfo) {
+@pub class CodeGenX64(let info: CompilationInfo) {
     let asm: AssemblerX64 = AssemblerX64();
 
     fn prolog() {
@@ -12,7 +12,7 @@ class CodeGen(let info: CompilationInfo) {
         self.asm.retq();
     }
 
-    fn generate(): Array[UInt8] {
+    @pub fn generate(): Array[UInt8] {
         assert(self.info.arch == Architecture::X64);
         self.prolog();
         self.epilog();
