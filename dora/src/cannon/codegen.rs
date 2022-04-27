@@ -1642,7 +1642,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::TypeParam(_) | BytecodeType::Unit => unreachable!(),
 
-            BytecodeType::Ptr => {
+            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
                 let mode = MachineMode::Ptr;
                 let reg = REG_RESULT;
                 self.asm.load_mem(mode, reg.into(), src.mem());
@@ -1664,7 +1664,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.store_mem(mode, dest.mem(), reg);
             }
 
-            BytecodeType::Class(_, _) | BytecodeType::Trait(_, _) => unreachable!(),
+            BytecodeType::Class(_, _) => unreachable!(),
         }
     }
 
@@ -1917,10 +1917,9 @@ impl<'a> CannonCodeGen<'a> {
                     needs_write_barrier = mode == MachineMode::Ptr;
                 }
 
-                BytecodeType::TypeParam(_)
-                | BytecodeType::Class(_, _)
-                | BytecodeType::Trait(_, _)
-                | BytecodeType::Unit => unreachable!(),
+                BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Unit => {
+                    unreachable!()
+                }
                 BytecodeType::UInt8
                 | BytecodeType::Bool
                 | BytecodeType::Char
@@ -1938,7 +1937,7 @@ impl<'a> CannonCodeGen<'a> {
                     needs_write_barrier = false;
                 }
 
-                BytecodeType::Ptr => {
+                BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
                     let value = REG_RESULT;
                     let mode = MachineMode::Ptr;
 

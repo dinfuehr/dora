@@ -1,0 +1,39 @@
+//= ignore
+
+trait Foo { fn test(): Int64; }
+
+class Baz
+
+impl Foo for Baz {
+    fn test(): Int64 {
+        4711
+    }
+}
+
+class FooBar
+
+impl Foo for FooBar {
+    fn test(): Int64 {
+        42
+    }
+}
+
+struct SomeData {
+    foo: Foo,
+}
+
+class SomeClass(var foo: Foo)
+
+fn main() {
+    let data = SomeData(Baz() as Foo);
+    let foo = data.foo;
+    assert(foo.test() == 4711);
+
+    let data = SomeClass(Baz() as Foo);
+    let foo = data.foo;
+    assert(foo.test() == 4711);
+
+    data.foo = FooBar() as Foo;
+    let foo = data.foo;
+    assert(foo.test() == 42);
+}
