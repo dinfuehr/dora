@@ -1,6 +1,0 @@
-class Isect {
-    var t: Float64;
-    var enter: Int;
-    var prim: Primitive;
-    var surf: Surface;
-}

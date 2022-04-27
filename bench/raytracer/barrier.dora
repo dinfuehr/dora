@@ -1,8 +1,0 @@
-class Barrier {
-    init(n: number) {
-        self.numThreads = n;
-    }
-
-    @abstract fn doBarrier(myid: Int);
-    var numThreads: Int;
-}

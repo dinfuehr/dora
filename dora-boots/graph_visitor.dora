@@ -1,4 +1,0 @@
-@abstract @open class GraphVisitor(var graph: Graph) {
-    @open fn visitInst(inst: Inst) {}
-    @open fn visitBlock(block: Block) {}
-}
