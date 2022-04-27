@@ -6,7 +6,7 @@ fn simpleGraph() {
     graph.addBlock(block);
     graph.setEntryBlock(block);
 
-    let inst = ReturnVoidInst();
+    let inst = createReturnVoidInst();
     block.appendInst(inst);
 }
 
@@ -18,16 +18,16 @@ fn addIntConsts() {
     graph.addBlock(block);
     graph.setEntryBlock(block);
 
-    let const1 = Int32Const(1i32);
+    let const1 = createInt32Const(1i32);
     block.appendInst(const1);
 
-    let const2 = Int32Const(2i32);
+    let const2 = createInt32Const(2i32);
     block.appendInst(const2);
 
-    let inst = BinaryInst(Op::Add, BinOp::Add, Type::int32(), const1, const2);
+    let inst = createBinaryInst(Op::Add, Type::int32(), const1, const2);
     block.appendInst(inst);
 
-    let inst = ReturnVoidInst();
+    let inst = createReturnVoidInst();
     block.appendInst(inst);
 
     assert(const1.hasUses());

@@ -5,7 +5,7 @@ fn deadCodeElimination(graph: Graph) {
 fn removeDeadInstructions(graph: Graph) {
     for block in graph.postOrderIterator() {
         for inst in block.reverseInstructionsIterator() {
-            if inst.isDeadAndRemovable() {
+            if !inst.hasUses() && !inst.hasSideEffects() {
                 inst.remove();
             }
         }

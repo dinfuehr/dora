@@ -188,7 +188,7 @@ class Block() {
         edge
     }
 
-    fn appendPhi(phi: PhiInst): PhiInst {
+    fn appendPhi(phi: Inst): Inst {
         assert(phi.block.isNone() && phi.id == -1i32);
 
         phi.block = Some(self);
@@ -259,7 +259,7 @@ class Block() {
         self.instructions.lastInst()
     }
 
-    fn removePhi(inst: PhiInst) {
+    fn removePhi(inst: Inst) {
         unimplemented();
     }
 }
@@ -320,7 +320,6 @@ enum Op {
     LoadGlobal,
     StoreGlobal,
 
-    Test,
     Undef,
 
     BoundsCheck,
@@ -355,13 +354,63 @@ enum Op {
     ArrayGet,
     ArraySet,
     ArrayLength,
+
+    FieldGet,
+    FieldSet,
+    Arg,
 }
 
-@abstract @open class Inst {
+fn opName(op: Op): String {
+    match op {
+        Op::NullConst => "Const.Null",
+        Op::Int32Const => "Const.Int32",
+        Op::Int64Const => "Const.Int64",
+        Op::Float32Const => "Const.Float32",
+        Op::Float64Const => "Const.Float64",
+        Op::LoadGlobal => "LoadGlobal",
+        Op::StoreGlobal => "StoreGlobal",
+        Op::Undef => "Undef",
+        Op::BoundsCheck => "BoundsCheck",
+        Op::Goto => "Goto",
+        Op::If => "If",
+        Op::Return => "Return",
+        Op::Neg => "Neg",
+        Op::Not => "Not",
+        Op::Add => "Add",
+        Op::Sub => "Sub",
+        Op::Mul => "Mul",
+        Op::Div => "Div",
+        Op::Mod => "Mod",
+        Op::And => "And",
+        Op::Or => "Or",
+        Op::Xor => "Xor",
+        Op::Shl => "Shl",
+        Op::Shr => "Shr",
+        Op::Sar => "Sar",
+        Op::Equal => "Equal",
+        Op::NotEqual => "NotEqual",
+        Op::Greater => "Greater",
+        Op::GreaterOrEqual => "GreaterOrEqual",
+        Op::Less => "Less",
+        Op::LessOrEqual => "LessOrEqual",
+        Op::Phi => "Phi",
+        Op::DivZeroCheck => "DivZeroCheck",
+        Op::ArrayGet => "ArrayGet",
+        Op::ArraySet => "ArraySet",
+        Op::ArrayLength => "ArrayLength",
+        Op::FieldGet => "FieldGet",
+        Op::FieldSet => "FieldSet",
+        Op::Arg => "Arg",
+    }
+}
+
+class Inst {
     var id: Int32 = -1i32;
     var block: Option[Block] = None;
 
     var op: Option[Op] = None;
+
+    var aux: Int64 = 0;
 
     var previous: Option[Inst] = None;
     var next: Option[Inst] = None;
@@ -372,6 +421,12 @@ enum Op {
     var useListTail: Option[Input] = None;
 
     var inputs: Vec[Input] = Vec();
+    var block1: Option[Block] = None;
+    var block2: Option[Block] = None;
+
+    fn isPhi(): Bool {
+        self.op.getOrPanic() == Op::Phi
+    }
 
     fn getType(): Type {
         return self.ty;
@@ -412,7 +467,7 @@ enum Op {
         self.removeAsUser();
         let block = self.block.getOrPanic();
 
-        if self is PhiInst {
+        if self.isPhi() {
             block.phis.removeInst(self);
         } else {
             block.instructions.removeInst(self);
@@ -498,13 +553,85 @@ enum Op {
         }
     }
 
-    fn isDeadAndRemovable(): Bool {
-        self.isRemovable() && !self.hasUses()
+    fn isTerminator(): Bool {
+        match self.op.getOrPanic() {
+            Op::Goto => true,
+            Op::If => true,
+            Op::Return => true,
+            _ => false,
+        }
     }
 
-    @open @abstract fn dumpName(): String;
-    @open @abstract fn isTerminator(): Bool;
-    @open @abstract fn isRemovable(): Bool;
+    fn auxAsInt32(): Int32 {
+        let op = self.op.getOrPanic();
+
+        assert(
+            op == Op::Int32Const ||
+            op == Op::LoadGlobal ||
+            op == Op::StoreGlobal ||
+            op == Op::Arg
+        );
+        self.aux.toInt32()
+    }
+
+    fn auxAsInt64(): Int64 {
+        assert(self.op.getOrPanic() == Op::Int64Const);
+        self.aux
+    }
+
+    fn auxAsFloat32(): Float32 {
+        assert(self.op.getOrPanic() == Op::Float32Const);
+        self.aux.toInt32().asFloat32()
+    }
+
+    fn auxAsFloat64(): Float64 {
+        assert(self.op.getOrPanic() == Op::Float64Const);
+        self.aux.asFloat64()
+    }
+
+    fn hasSideEffects(): Bool {
+        match self.op.getOrPanic() {
+            Op::NullConst => false,
+            Op::Int32Const => false,
+            Op::Int64Const => false,
+            Op::Float32Const => false,
+            Op::Float64Const => false,
+            Op::LoadGlobal => true,
+            Op::StoreGlobal => true,
+            Op::Undef => false,
+            Op::BoundsCheck => true,
+            Op::Goto => true,
+            Op::If => true,
+            Op::Return => true,
+            Op::Neg => false,
+            Op::Not => false,
+            Op::Add => false,
+            Op::Sub => false,
+            Op::Mul => false,
+            Op::Div => false,
+            Op::Mod => false,
+            Op::And => false,
+            Op::Or => false,
+            Op::Xor => false,
+            Op::Shl => false,
+            Op::Shr => false,
+            Op::Sar => false,
+            Op::Equal => false,
+            Op::NotEqual => false,
+            Op::Greater => false,
+            Op::GreaterOrEqual => false,
+            Op::Less => false,
+            Op::LessOrEqual => false,
+            Op::Phi => true,
+            Op::DivZeroCheck => true,
+            Op::ArrayGet => false,
+            Op::ArraySet => true,
+            Op::ArrayLength => false,
+            Op::FieldGet => false,
+            Op::FieldSet => true,
+            Op::Arg => false,
+        }
+    }
 }
 
 class UseIterator(inst: Inst) {
@@ -542,306 +669,191 @@ fn removeUse(input: Input) {
     input.nextUse = None;
 }
 
-@abstract @open class Const: Inst
-
-class NullConst(let value: UInt8): Const {
-    self.op = Some(Op::NullConst);
-
-    @override fn dumpName(): String { "Const.Null" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createNullConst(value: UInt8): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::NullConst);
+    inst
 }
 
-class Int32Const(let value: Int32): Const {
-    self.op = Some(Op::Int32Const);
-
-    @override fn dumpName(): String { "Const.Int32(#${self.value})" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createInt32Const(value: Int32): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Int32Const);
+    inst.aux = value.toInt64();
+    inst
 }
 
-class Int64Const(let value: Int64): Const {
-    self.op = Some(Op::Int64Const);
-
-    @override fn dumpName(): String { "Const.Int64(#${self.value})" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createInt64Const(value: Int64): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Int64Const);
+    inst.aux = value;
+    inst
 }
 
-class Float32Const(let value: Float32): Const {
-    self.op = Some(Op::Float32Const);
-
-    @override fn dumpName(): String { "Const.Float32(#${self.value})" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createFloat32Const(value: Float32): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Float32Const);
+    inst.aux = value.asInt32().toInt64();
+    inst
 }
 
-class Float64Const(let value: Float64): Const {
-    self.op = Some(Op::Float64Const);
-
-    @override fn dumpName(): String { "Const.Float64(#${self.value})" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createFloat64Const(value: Float64): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Float64Const);
+    inst.aux = value.asInt64();
+    inst
 }
 
-class LoadGlobalInst(ty: Type, let global: GlobalId): Inst {
-    self.op = Some(Op::LoadGlobal);
-    self.ty = ty;
-
-    @override fn dumpName(): String { "LoadGlobal.${self.ty}(${self.global.value})" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createLoadGlobalInst(ty: Type, global: GlobalId): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::LoadGlobal);
+    inst.ty = ty;
+    inst.aux = global.value.toInt64();
+    inst
 }
 
-class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst): Inst {
-    self.op = Some(Op::StoreGlobal);
-    
-    self.addInput(value);
-    self.ty = ty;
-
-    @override fn dumpName(): String { "StoreGlobal.${self.ty}(${self.global.value})" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { false }
+fn createStoreGlobalInst(ty: Type, global: GlobalId, value: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::StoreGlobal);
+    inst.aux = global.value.toInt64();
+    inst.addInput(value);
+    inst.ty = ty;
+    inst
 }
 
 
-class UnaryInst(opcode: Op, let unary_op: UnOp, ty: Type, let opnd: Inst): Inst {
-    self.op = Some(opcode);
-
-    self.addInput(opnd);
-    self.ty = ty;
-
-    @override fn dumpName(): String { "${unOpName(self.unary_op)}.${self.ty}" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createUnaryInst(op: Op, ty: Type, opnd: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(op);
+    inst.addInput(opnd);
+    inst.ty = ty;
+    inst
 }
 
-class BinaryInst(opcode: Op, let binary_op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
-    self.op = Some(opcode);
-
-    self.addInput(lhs);
-    self.addInput(rhs);
-    self.ty = ty;
-
-    @override fn dumpName(): String { "${binOpName(self.binary_op)}.${self.ty}" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createBinaryInst(op: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(op);
+    inst.addInput(lhs);
+    inst.addInput(rhs);
+    inst.ty = ty;
+    inst
 }
 
-class TestInst(opcode: Op, let test_op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
-    self.op = Some(opcode);
-
-    self.addInput(lhs);
-    self.addInput(rhs);
-    self.ty = ty;
-
-    @override fn dumpName(): String { "${self.test_op.name()}.${self.ty}" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createTestInst(opcode: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(opcode);
+    inst.addInput(lhs);
+    inst.addInput(rhs);
+    inst.ty = ty;
+    inst
 }
 
-class UndefInst: Inst {
-    self.op = Some(Op::Undef);
-
-    @override fn dumpName(): String { "Undef" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createUndefInst(): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Undef);
+    inst
 }
 
-class PhiInst: Inst {
-    self.op = Some(Op::Phi);
-
-    @override fn dumpName(): String { "Phi" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createPhiInst(): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Phi);
+    inst
 }
 
-class BoundsCheck(let index: Inst, let length: Inst): Inst {
-    self.op = Some(Op::BoundsCheck);
-
-    self.addInput(index);
-    self.addInput(length);
-
-    @override fn dumpName(): String { "BoundsCheck" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { false }
+fn createBoundsCheck(index: Inst, length: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::BoundsCheck);
+    inst.addInput(index);
+    inst.addInput(length);
+    inst
 }
 
-class DivZeroCheck(let value: Inst): Inst {
-    self.op = Some(Op::DivZeroCheck);
-
-    self.addInput(value);
-
-    @override fn dumpName(): String { "DivZeroCheck" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { false }
+fn createDivZeroCheck(value: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::DivZeroCheck);
+    inst.addInput(value);
+    inst
 }
 
-class ArrayGet(let array: Inst, let index: Inst, ty: Type): Inst {
-    self.op = Some(Op::ArrayGet);
-    self.ty = ty;
-
-    self.addInput(array);
-    self.addInput(index);
-
-    @override fn dumpName(): String { "ArrayGet.${self.ty}" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createArrayGet(array: Inst, index: Inst, ty: Type): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::ArrayGet);
+    inst.ty = ty;
+    inst.addInput(array);
+    inst.addInput(index);
+    inst
 }
 
-class ArraySet(let array: Inst, let index: Inst, let value: Inst): Inst {
-    self.op = Some(Op::ArraySet);
-
-    self.addInput(array);
-    self.addInput(index);
-    self.addInput(value);
-
-    @override fn dumpName(): String { "ArraySet" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { false }
+fn createArraySet(array: Inst, index: Inst, value: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::ArraySet);
+    inst.addInput(array);
+    inst.addInput(index);
+    inst.addInput(value);
+    inst
 }
 
-class ArrayLength(let array: Inst): Inst {
-    self.op = Some(Op::ArrayLength);
-
-    self.addInput(array);
-
-    @override fn dumpName(): String { "ArrayLength" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createArrayLength(array: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::ArrayLength);
+    inst.addInput(array);
+    inst
 }
 
 class FieldInfo(let offset: Int32, let volatile: Bool)
 
-class FieldGet(let obj: Inst, let field: FieldInfo, ty: Type): Inst {
-    self.ty = ty;
-
-    self.addInput(obj);
-
-    @override fn dumpName(): String { "FieldGet.${self.ty}" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createFieldGet(obj: Inst, field: FieldInfo, ty: Type): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::FieldGet);
+    inst.ty = ty;
+    inst.addInput(obj);
+    inst
 }
 
-class FieldSet(let obj: Inst, let field: FieldInfo, let value: Inst): Inst {
-    self.addInput(obj);
-    self.addInput(value);
-
-    @override fn dumpName(): String { "FieldSet" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { false }
+fn createFieldSet(obj: Inst, field: FieldInfo, value: Inst): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::FieldSet);
+    inst.addInput(obj);
+    inst.addInput(value);
+    inst
 }
 
-class ArgInst(let index: Int32, ty: Type): Inst {
-    self.ty = ty;
-
-    @override fn dumpName(): String { "Arg.${self.ty}(${self.index})" }
-    @override fn isTerminator(): Bool { false }
-    @override fn isRemovable(): Bool { true }
+fn createArgInst(index: Int32, ty: Type): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Arg);
+    inst.ty = ty;
+    inst.aux = index.toInt64();
+    inst
 }
 
-class ReturnInst(let value: Inst, ty: Type): Inst {
-    self.ty = ty;
-    self.addInput(value);
-
-    @override fn dumpName(): String { "Ret.${self.ty}" }
-    @override fn isTerminator(): Bool { true }
-    @override fn isRemovable(): Bool { false }
+fn createReturnInst(value: Inst, ty: Type): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Return);
+    inst.ty = ty;
+    inst.addInput(value);
+    inst
 }
 
-class ReturnVoidInst: Inst {
-    @override fn dumpName(): String { "Ret.Void" }
-    @override fn isTerminator(): Bool { true }
-    @override fn isRemovable(): Bool { false }
+fn createReturnVoidInst(): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Return);
+    inst.ty = Type::Unit;
+    inst
 }
 
-class IfInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {
-    self.addInput(cond);
-
-    @override fn dumpName(): String { "If(@${self.true_block.id}, @${self.false_block.id})" }
-    @override fn isTerminator(): Bool { true }
-    @override fn isRemovable(): Bool { false }
+fn createIfInst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::If);
+    inst.block1 = Some(thenBlock);
+    inst.block2 = Some(elseBlock);
+    inst.addInput(cond);
+    inst
 }
 
-class GotoInst(let block: Block): Inst {
-    @override fn dumpName(): String { "Goto(@${self.block.id})" }
-    @override fn isTerminator(): Bool { true }
-    @override fn isRemovable(): Bool { false }
-}
-
-enum BinOp {
-    Add, Sub, Mul, Div, Mod, And, Or, Xor, Shl, Shr, Sar
-}
-
-fn binOpName(op: BinOp): String {
-    if op == BinOp::Add {
-        "Add"
-    } else if op == BinOp::Sub {
-        "Sub"
-    } else if op == BinOp::Mul {
-        "Mul"
-    } else if op == BinOp::Div {
-        "Div"
-    } else if op == BinOp::Mod {
-        "Mod"
-    } else if op == BinOp::And {
-        "And"
-    } else if op == BinOp::Or {
-        "Or"
-    } else if op == BinOp::Xor {
-        "Xor"
-    } else if op == BinOp::Shl {
-        "Shl"
-    } else if op == BinOp::Shr {
-        "Shr"
-    } else if op == BinOp::Sar {
-        "Sar"
-    } else {
-        unreachable[String]()
-    }
-}
-
-enum TestOp {
-    Equal,
-    NotEqual,
-    Greater,
-    GreaterOrEqual,
-    Less,
-    LessOrEqual
-}
-
-impl TestOp {
-    fn name(): String {
-        if self == TestOp::Equal {
-            "Equal"
-        } else if self == TestOp::NotEqual {
-            "NotEqual"
-        } else if self == TestOp::Greater {
-            "Greater"
-        } else if self == TestOp::GreaterOrEqual {
-            "GreaterOrEqual"
-        } else if self == TestOp::Less {
-            "Less"
-        } else if self == TestOp::LessOrEqual {
-            "LessOrEqual"
-        } else {
-            unreachable[String]()
-        }
-    }
-}
-
-enum UnOp {
-    Neg, FNeg, Not,
-}
-
-fn unOpName(op: UnOp): String {
-    if op == UnOp::Neg {
-        "Neg"
-    } else if op == UnOp::Not {
-        "Not"
-    } else {
-        unreachable[String]()
-    }
+fn createGotoInst(block: Block): Inst {
+    let inst = Inst();
+    inst.op = Some(Op::Goto);
+    inst.block1 = Some(block);
+    inst
 }
 
 class InstLinkedList {
@@ -915,10 +927,10 @@ class PhiInstIterator(block: Block) {
         self.current.isSome()
     }
 
-    fn next(): PhiInst {
+    fn next(): Inst {
         let inst = self.current.getOrPanic();
         self.current = inst.next;
-        inst as PhiInst
+        inst
     }
 }
 

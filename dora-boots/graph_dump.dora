@@ -62,7 +62,7 @@ class GraphDumper(let graph: Graph) {
     }
 
     fn dumpInst(inst: Inst) {
-        self.buffer.append("  %${inst.id}: ${inst.dumpName()}");
+        self.buffer.append("  %${inst.id}: ${dumpInstName(inst)}");
 
         if !inst.inputs.isEmpty() {
             var first = true;
@@ -101,6 +101,70 @@ class GraphDumper(let graph: Graph) {
         }
 
         self.buffer.appendNewline();
+    }
+}
+
+fn dumpInstName(inst: Inst): String {
+    let op = inst.op.getOrPanic();
+    match op {
+        Op::NullConst => "Const.Null",
+        Op::Int32Const => "Const.Int32(#${inst.auxAsInt32()})",
+        Op::Int64Const => "Const.Int64(#${inst.auxAsInt64()})",
+        Op::Float32Const => "Const.Float32(#${inst.auxAsFloat32()})",
+        Op::Float64Const => "Const.Float64(#${inst.auxAsFloat64()})",
+
+        Op::LoadGlobal => "LoadGlobal.${inst.ty}(${inst.auxAsInt32()})",
+        Op::StoreGlobal => "StoreGlobal.${inst.ty}(${inst.auxAsInt32()})",
+
+        Op::Undef => "Undef",
+
+        Op::BoundsCheck => "BoundsCheck",
+        Op::Goto => {
+            "Goto(@${inst.block1.getOrPanic().id})"
+        },
+        Op::If => {
+            "If(@${inst.block1.getOrPanic().id}, @${inst.block2.getOrPanic().id})"
+        },
+        Op::Return => {
+            if inst.ty.isUnit() {
+                "Ret.Void"
+            } else {
+                "Ret.${inst.ty}"
+            }
+        },
+
+        Op::Neg => "Neg.${inst.ty}",
+        Op::Not => "Not.${inst.ty}",
+
+        Op::Add => "Add.${inst.ty}",
+        Op::Sub => "Sub.${inst.ty}",
+        Op::Mul => "Mul.${inst.ty}",
+        Op::Div => "Div.${inst.ty}",
+        Op::Mod => "Mod.${inst.ty}",
+        Op::And => "And.${inst.ty}",
+        Op::Or => "Or.${inst.ty}",
+        Op::Xor => "Xor.${inst.ty}",
+        Op::Shl => "Shl.${inst.ty}",
+        Op::Shr => "Shr.${inst.ty}",
+        Op::Sar => "Sar.${inst.ty}",
+
+        Op::Equal => "Equal.${inst.ty}",
+        Op::NotEqual => "NotEqual.${inst.ty}",
+        Op::Greater => "Greater.${inst.ty}",
+        Op::GreaterOrEqual => "GreaterOrEqual.${inst.ty}",
+        Op::Less => "Less.${inst.ty}",
+        Op::LessOrEqual => "LessOrEqual.${inst.ty}",
+
+        Op::Phi => "Phi",
+        Op::DivZeroCheck => "DivZeroCheck",
+
+        Op::ArrayGet => "ArrayGet.${inst.ty}",
+        Op::ArraySet => "ArraySet",
+        Op::ArrayLength => "ArrayLength",
+
+        Op::FieldGet => "FieldGet.${inst.ty}",
+        Op::FieldSet => "FieldSet",
+        Op::Arg => "Arg.${inst.ty}(${inst.auxAsInt32()})",
     }
 }
 

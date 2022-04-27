@@ -17,32 +17,33 @@ class GraphBuilder {
     }
 
     fn createInt32Const(value: Int32): Inst {
-        let inst = Int32Const(value);
+        let inst = createInt32Const(value);
         self.appendInst(inst)
     }
 
     fn createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
-        let inst = BinaryInst(Op::Add, BinOp::Add, ty, lhs, rhs);
+        let inst = createBinaryInst(Op::Add, ty, lhs, rhs);
         self.appendInst(inst)
     }
 
     fn createReturn(inst: Inst, ty: Type): Inst {
-        let inst = ReturnInst(inst, ty);
+        let inst = createReturnInst(inst, ty);
         self.appendInst(inst)
     }
 
     fn createReturnVoid(): Inst {
-        let inst = ReturnVoidInst();
+        let inst = createReturnVoidInst();
         self.appendInst(inst)
     }
 
     fn createGoto(block: Block): Inst {
-        let inst = GotoInst(block);
+        let inst = createGotoInst(block);
         self.appendInst(inst)
     }
 
     fn appendInst(inst: Inst): Inst {
-        self.insertion.getOrPanic().appendInst(inst);
+        let block = self.insertion.getOrPanic();
+        block.appendInst(inst);
 
         if inst.isTerminator() {
             self.insertion = None;
