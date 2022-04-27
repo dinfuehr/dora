@@ -236,152 +236,152 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     @override fn visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Add, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::Add, BinOp::Add, Type::int32());
     }
     @override fn visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Add, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::Add, BinOp::Add, Type::int64());
     }
     @override fn visitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Add, Type::float32());
+        self.emitBin(dest, lhs, rhs, Op::Add, BinOp::Add, Type::float32());
     }
     @override fn visitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Add, Type::float64());
+        self.emitBin(dest, lhs, rhs, Op::Add, BinOp::Add, Type::float64());
     }
 
-    fn emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: BinOp, ty: Type) {
+    fn emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, opcode: Op, op: BinOp, ty: Type) {
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
-        let destInst = BinaryInst(op, ty, lhsInst, rhsInst);
+        let destInst = BinaryInst(opcode, op, ty, lhsInst, rhsInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
 
     @override fn visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::Sub, BinOp::Sub, Type::int32());
     }
     @override fn visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::Sub, BinOp::Sub, Type::int64());
     }
     @override fn visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::float32());
+        self.emitBin(dest, lhs, rhs, Op::Sub, BinOp::Sub, Type::float32());
     }
     @override fn visitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::float64());
+        self.emitBin(dest, lhs, rhs, Op::Sub, BinOp::Sub, Type::float64());
     }
 
     @override fn visitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitUn(dest, src, UnOp::Neg, Type::int32());
+        self.emitUn(dest, src, Op::Neg, UnOp::Neg, Type::int32());
     }
     @override fn visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitUn(dest, src, UnOp::Neg, Type::int64());
+        self.emitUn(dest, src, Op::Neg, UnOp::Neg, Type::int64());
     }
     @override fn visitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitUn(dest, src, UnOp::Neg, Type::float32());
+        self.emitUn(dest, src, Op::Neg, UnOp::Neg, Type::float32());
     }
     @override fn visitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitUn(dest, src, UnOp::Neg, Type::float64());
+        self.emitUn(dest, src, Op::Neg, UnOp::Neg, Type::float64());
     }
 
-    fn emitUn(dest: BytecodeRegister, src: BytecodeRegister, op: UnOp, ty: Type) {
+    fn emitUn(dest: BytecodeRegister, src: BytecodeRegister, opcode: Op, op: UnOp, ty: Type) {
         let srcInst = self.readVariable(src, self.current());
-        let destInst = UnaryInst(op, ty, srcInst);
+        let destInst = UnaryInst(opcode, op, ty, srcInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
 
     @override fn visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::Mul, BinOp::Mul, Type::int32());
     }
     @override fn visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::Mul, BinOp::Mul, Type::int64());
     }
     @override fn visitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::float32());
+        self.emitBin(dest, lhs, rhs, Op::Mul, BinOp::Mul, Type::float32());
     }
     @override fn visitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::float64());
+        self.emitBin(dest, lhs, rhs, Op::Mul, BinOp::Mul, Type::float64());
     }
 
     @override fn visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitDivMod(dest, lhs, rhs, BinOp::Div, Type::int32());
+        self.emitDivMod(dest, lhs, rhs, Op::Div, BinOp::Div, Type::int32());
     }
     @override fn visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitDivMod(dest, lhs, rhs, BinOp::Div, Type::int64());
+        self.emitDivMod(dest, lhs, rhs, Op::Div, BinOp::Div, Type::int64());
     }
 
-    fn emitDivMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: BinOp, ty: Type) {
+    fn emitDivMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, opcode: Op, op: BinOp, ty: Type) {
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
         let divZeroCheck = DivZeroCheck(rhsInst);
         self.current().appendInst(divZeroCheck);
-        let destInst = BinaryInst(op, ty, lhsInst, rhsInst);
+        let destInst = BinaryInst(opcode, op, ty, lhsInst, rhsInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
 
     @override fn visitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Div, Type::float32());
+        self.emitBin(dest, lhs, rhs, Op::Div, BinOp::Div, Type::float32());
     }
     @override fn visitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Div, Type::float64());
+        self.emitBin(dest, lhs, rhs, Op::Div, BinOp::Div, Type::float64());
     }
 
     @override fn visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitDivMod(dest, lhs, rhs, BinOp::Mod, Type::int32());
+        self.emitDivMod(dest, lhs, rhs, Op::Mod, BinOp::Mod, Type::int32());
     }
     @override fn visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitDivMod(dest, lhs, rhs, BinOp::Mod, Type::int64());
+        self.emitDivMod(dest, lhs, rhs, Op::Mod, BinOp::Mod, Type::int64());
     }
 
     @override fn visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::And, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::And, BinOp::And, Type::int32());
     }
     @override fn visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::And, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::And, BinOp::And, Type::int64());
     }
 
     @override fn visitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Or, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::And, BinOp::Or, Type::int32());
     }
     @override fn visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Or, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::And, BinOp::Or, Type::int64());
     }
 
     @override fn visitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Xor, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::Xor, BinOp::Xor, Type::int32());
     }
     @override fn visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Xor, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::Xor, BinOp::Xor, Type::int64());
     }
 
     @override fn visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitUn(dest, src, UnOp::Not, Type::bool());
+        self.emitUn(dest, src, Op::Not, UnOp::Not, Type::bool());
     }
     @override fn visitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitUn(dest, src, UnOp::Not, Type::int32());
+        self.emitUn(dest, src, Op::Not, UnOp::Not, Type::int32());
     }
     @override fn visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitUn(dest, src, UnOp::Not, Type::int64());
+        self.emitUn(dest, src, Op::Not, UnOp::Not, Type::int64());
     }
 
     @override fn visitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Shl, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::Shl, BinOp::Shl, Type::int32());
     }
     @override fn visitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Shr, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::Shl, BinOp::Shr, Type::int32());
     }
     @override fn visitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Sar, Type::int32());
+        self.emitBin(dest, lhs, rhs, Op::Shl, BinOp::Sar, Type::int32());
     }
 
     @override fn visitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Shl, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::Shl, BinOp::Shl, Type::int64());
     }
     @override fn visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Shr, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::Shl, BinOp::Shr, Type::int64());
     }
     @override fn visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitBin(dest, lhs, rhs, BinOp::Sar, Type::int64());
+        self.emitBin(dest, lhs, rhs, Op::Shl, BinOp::Sar, Type::int64());
     }
 
     @override fn visitMov(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -471,29 +471,29 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     @override fn visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
     @override fn visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, TestOp::Equal, Type::ptr());
+        self.emitTest(dest, lhs, rhs, Op::Equal, TestOp::Equal, Type::ptr());
     }
     @override fn visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, TestOp::NotEqual, Type::ptr());
+        self.emitTest(dest, lhs, rhs, Op::NotEqual, TestOp::NotEqual, Type::ptr());
     }
 
     @override fn visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, TestOp::Equal, Type::int32());
+        self.emitTest(dest, lhs, rhs, Op::Equal, TestOp::Equal, Type::int32());
     }
     @override fn visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, TestOp::NotEqual, Type::int32());
+        self.emitTest(dest, lhs, rhs, Op::NotEqual, TestOp::NotEqual, Type::int32());
     }
     @override fn visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, TestOp::Greater, Type::int32());
+        self.emitTest(dest, lhs, rhs, Op::Greater, TestOp::Greater, Type::int32());
     }
     @override fn visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, TestOp::GreaterOrEqual, Type::int32());
+        self.emitTest(dest, lhs, rhs, Op::GreaterOrEqual, TestOp::GreaterOrEqual, Type::int32());
     }
     @override fn visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, TestOp::Less, Type::int32());
+        self.emitTest(dest, lhs, rhs, Op::Less, TestOp::Less, Type::int32());
     }
     @override fn visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, TestOp::LessOrEqual, Type::int32());
+        self.emitTest(dest, lhs, rhs, Op::LessOrEqual, TestOp::LessOrEqual, Type::int32());
     }
 
     @override fn visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -517,10 +517,10 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     @override fn visitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fn visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    fn emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: TestOp, ty: Type) {
+    fn emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, opcode: Op, op: TestOp, ty: Type) {
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
-        let destInst = TestInst(op, ty, lhsInst, rhsInst);
+        let destInst = TestInst(opcode, op, ty, lhsInst, rhsInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }

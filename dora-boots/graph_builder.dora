@@ -22,7 +22,7 @@ class GraphBuilder {
     }
 
     fn createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
-        let inst = BinaryInst(BinOp::Add, ty, lhs, rhs);
+        let inst = BinaryInst(Op::Add, BinOp::Add, ty, lhs, rhs);
         self.appendInst(inst)
     }
 

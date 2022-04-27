@@ -308,9 +308,60 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     var nextUse: Option[Input] = None;
 }
 
+enum Op {
+    NullConst,
+    
+    Int32Const,
+    Int64Const,
+
+    Float32Const,
+    Float64Const,
+
+    LoadGlobal,
+    StoreGlobal,
+
+    Test,
+    Undef,
+
+    BoundsCheck,
+    Goto,
+    If,
+    Return,
+
+    Neg,
+    Not,
+
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod, 
+    And,
+    Or,
+    Xor,
+    Shl,
+    Shr,
+    Sar,
+
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterOrEqual,
+    Less,
+    LessOrEqual,
+
+    Phi,
+    DivZeroCheck,
+    ArrayGet,
+    ArraySet,
+    ArrayLength,
+}
+
 @abstract @open class Inst {
     var id: Int32 = -1i32;
     var block: Option[Block] = None;
+
+    var op: Option[Op] = None;
 
     var previous: Option[Inst] = None;
     var next: Option[Inst] = None;
@@ -494,36 +545,47 @@ fn removeUse(input: Input) {
 @abstract @open class Const: Inst
 
 class NullConst(let value: UInt8): Const {
+    self.op = Some(Op::NullConst);
+
     @override fn dumpName(): String { "Const.Null" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
 class Int32Const(let value: Int32): Const {
+    self.op = Some(Op::Int32Const);
+
     @override fn dumpName(): String { "Const.Int32(#${self.value})" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
 class Int64Const(let value: Int64): Const {
+    self.op = Some(Op::Int64Const);
+
     @override fn dumpName(): String { "Const.Int64(#${self.value})" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
 class Float32Const(let value: Float32): Const {
+    self.op = Some(Op::Float32Const);
+
     @override fn dumpName(): String { "Const.Float32(#${self.value})" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
 class Float64Const(let value: Float64): Const {
+    self.op = Some(Op::Float64Const);
+
     @override fn dumpName(): String { "Const.Float64(#${self.value})" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
 class LoadGlobalInst(ty: Type, let global: GlobalId): Inst {
+    self.op = Some(Op::LoadGlobal);
     self.ty = ty;
 
     @override fn dumpName(): String { "LoadGlobal.${self.ty}(${self.global.value})" }
@@ -532,6 +594,8 @@ class LoadGlobalInst(ty: Type, let global: GlobalId): Inst {
 }
 
 class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst): Inst {
+    self.op = Some(Op::StoreGlobal);
+    
     self.addInput(value);
     self.ty = ty;
 
@@ -541,48 +605,60 @@ class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst): Inst {
 }
 
 
-class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst): Inst {
+class UnaryInst(opcode: Op, let unary_op: UnOp, ty: Type, let opnd: Inst): Inst {
+    self.op = Some(opcode);
+
     self.addInput(opnd);
     self.ty = ty;
 
-    @override fn dumpName(): String { "${unOpName(self.op)}.${self.ty}" }
+    @override fn dumpName(): String { "${unOpName(self.unary_op)}.${self.ty}" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+class BinaryInst(opcode: Op, let binary_op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+    self.op = Some(opcode);
+
     self.addInput(lhs);
     self.addInput(rhs);
     self.ty = ty;
 
-    @override fn dumpName(): String { "${binOpName(self.op)}.${self.ty}" }
+    @override fn dumpName(): String { "${binOpName(self.binary_op)}.${self.ty}" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
-class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+class TestInst(opcode: Op, let test_op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+    self.op = Some(opcode);
+
     self.addInput(lhs);
     self.addInput(rhs);
     self.ty = ty;
 
-    @override fn dumpName(): String { "${self.op.name()}.${self.ty}" }
+    @override fn dumpName(): String { "${self.test_op.name()}.${self.ty}" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
 class UndefInst: Inst {
+    self.op = Some(Op::Undef);
+
     @override fn dumpName(): String { "Undef" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
 class PhiInst: Inst {
+    self.op = Some(Op::Phi);
+
     @override fn dumpName(): String { "Phi" }
     @override fn isTerminator(): Bool { false }
     @override fn isRemovable(): Bool { true }
 }
 
 class BoundsCheck(let index: Inst, let length: Inst): Inst {
+    self.op = Some(Op::BoundsCheck);
+
     self.addInput(index);
     self.addInput(length);
 
@@ -592,6 +668,8 @@ class BoundsCheck(let index: Inst, let length: Inst): Inst {
 }
 
 class DivZeroCheck(let value: Inst): Inst {
+    self.op = Some(Op::DivZeroCheck);
+
     self.addInput(value);
 
     @override fn dumpName(): String { "DivZeroCheck" }
@@ -600,6 +678,7 @@ class DivZeroCheck(let value: Inst): Inst {
 }
 
 class ArrayGet(let array: Inst, let index: Inst, ty: Type): Inst {
+    self.op = Some(Op::ArrayGet);
     self.ty = ty;
 
     self.addInput(array);
@@ -611,6 +690,8 @@ class ArrayGet(let array: Inst, let index: Inst, ty: Type): Inst {
 }
 
 class ArraySet(let array: Inst, let index: Inst, let value: Inst): Inst {
+    self.op = Some(Op::ArraySet);
+
     self.addInput(array);
     self.addInput(index);
     self.addInput(value);
@@ -621,6 +702,8 @@ class ArraySet(let array: Inst, let index: Inst, let value: Inst): Inst {
 }
 
 class ArrayLength(let array: Inst): Inst {
+    self.op = Some(Op::ArrayLength);
+
     self.addInput(array);
 
     @override fn dumpName(): String { "ArrayLength" }
