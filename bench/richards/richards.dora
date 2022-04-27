@@ -74,27 +74,27 @@ class Scheduler() {
     var currentId: Option[Int32] = None;
 
     fn addIdleTask(id: Int32, priority: Int32, queue: Option[Packet], count: Int32) {
-        self.addRunningTask(id, priority, queue, IdleTask(self, 1i32, count) as TaskInterface);
+        self.addRunningTask(id, priority, queue, IdleTask(self, 1i32, count) as Task);
     }
 
     fn addWorkerTask(id: Int32, priority: Int32, queue: Option[Packet]) {
-        self.addTask(id, priority, queue, WorkerTask(self, ID_HANDLER_A, 0i32) as TaskInterface);
+        self.addTask(id, priority, queue, WorkerTask(self, ID_HANDLER_A, 0i32) as Task);
     }
 
     fn addHandlerTask(id: Int32, priority: Int32, queue: Option[Packet]) {
-        self.addTask(id, priority, queue, HandlerTask(self) as TaskInterface);
+        self.addTask(id, priority, queue, HandlerTask(self) as Task);
     }
 
     fn addDeviceTask(id: Int32, priority: Int32, queue: Option[Packet]) {
-        self.addTask(id, priority, queue, DeviceTask(self) as TaskInterface);
+        self.addTask(id, priority, queue, DeviceTask(self) as Task);
     }
 
-    fn addRunningTask(id: Int32, priority: Int32, queue: Option[Packet], task: TaskInterface) {
+    fn addRunningTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
         self.addTask(id, priority, queue, task);
         self.currentTcb.getOrPanic().setRunning();
     }
 
-    fn addTask(id: Int32, priority: Int32, queue: Option[Packet], task: TaskInterface) {
+    fn addTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
         self.currentTcb = Some(TaskControlBlock::new(self.list, id, priority, queue, task));
         self.list = self.currentTcb;
         self.blocks.set(id.toInt64(), self.currentTcb);
@@ -160,7 +160,7 @@ const STATE_HELD: Int32 = 4i32;
 var STATE_SUSPENDED_RUNNABLE: Int32 = STATE_SUSPENDED | STATE_RUNNABLE;
 var STATE_NOT_HELD: Int32 = STATE_HELD.not();
 
-class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let priority: Int32, var queue: Option[Packet], let task: TaskInterface, var state: Int32) {
+class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let priority: Int32, var queue: Option[Packet], let task: Task, var state: Int32) {
     fn setRunning() { self.state = STATE_RUNNING; }
     fn markAsNotHeld() { self.state = self.state & STATE_NOT_HELD; }
     fn markAsHeld() { self.state = self.state | STATE_HELD; }
@@ -195,7 +195,7 @@ class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let pr
         return task;
     }
 
-    @static fn new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: TaskInterface): TaskControlBlock {
+    @static fn new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
         if queue.isNone() {
             return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
         } else {
@@ -210,14 +210,14 @@ impl std::Stringable for TaskControlBlock {
     }
 }
 
-trait TaskInterface {
+trait Task {
     fn run(packet: Option[Packet]): Option[TaskControlBlock];
     fn toString(): String;
 }
 
 class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32)
 
-impl TaskInterface for IdleTask {
+impl Task for IdleTask {
     fn run(packet: Option[Packet]): Option[TaskControlBlock] {
         self.count = self.count - 1i32;
         if self.count == 0i32 {
@@ -241,7 +241,7 @@ class DeviceTask(let scheduler: Scheduler) {
     var seed: Option[Packet] = Option[Packet]::None;
 }
 
-impl TaskInterface for DeviceTask {
+impl Task for DeviceTask {
     fn run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isNone() {
             if self.seed.isNone() {
@@ -263,7 +263,7 @@ impl TaskInterface for DeviceTask {
 
 class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32)
 
-impl TaskInterface for WorkerTask {
+impl Task for WorkerTask {
     fn run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isNone() {
             return self.scheduler.suspendCurrent();
@@ -298,7 +298,7 @@ class HandlerTask(let scheduler: Scheduler) {
     var v2: Option[Packet] = Option[Packet]::None;
 }
 
-impl TaskInterface for HandlerTask {
+impl Task for HandlerTask {
     fn run(packet: Option[Packet]): Option[TaskControlBlock] {
         if packet.isSome() {
             let p = packet.getOrPanic();

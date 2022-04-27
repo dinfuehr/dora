@@ -2,11 +2,11 @@ use std::argc;
 use std::argv;
 use std::exit;
 
-@open @abstract class Node {
-    var birthday: Int32 = 0i32;
-    var value: Int32 = 0i32;
-    var left: Option[Node] = Option[Node]::None;
-    var right: Option[Node] = Option[Node]::None;
+class Node(let payload: Option[Array[Int32]]) {
+    var birthday: Int32 = 0;
+    var value: Int32 = 0;
+    var left: Option[Node] = None;
+    var right: Option[Node] = None;
 
     fn printAge(date: Int32) {
         println((date - self.birthday).toString());
@@ -158,18 +158,6 @@ use std::exit;
     }
 }
 
-class NodeA: Node {}
-class NodeB: Node { let x1: Int64 = 0i64; }
-class NodeC: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; }
-class NodeD: Node { let x1: Float64 = 0.0; let x2: Float64 = 0.0; let x3: Float64 = 0.0; }
-
-class Node40: Node {}
-class Node48: Node { let x1: Int64 = 0i64; }
-class Node56: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; }
-class Node64: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; let x3: Int64 = 0i64; }
-class Node72: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; let x3: Int64 = 0i64; let x4: Int64 = 0i64; }
-class Node80: Node { let x1: Int64 = 0i64; let x2: Int64 = 0i64; let x3: Int64 = 0i64; let x4: Int64 = 0i64; let x5: Int64 = 0i64; }
-
 fn main() {
     if argc() < 4i32 {
         println("usage: splunc <seed> <max-size> <iterations> <trunc-depth> [<iterations> <trunc-depth>]");
@@ -180,7 +168,7 @@ fn main() {
     let max_size = argv(1i32).toInt32().getOrPanic();
     var date = 0i32;
 
-    var tree: Node = NodeA();
+    var tree: Node = Node(Option[Array[Int32]]::None);
     tree.birthday = date;
     date = date + 1i32;
     tree.value = rnd.nextInt32WithBound(max_size);
@@ -196,14 +184,14 @@ fn main() {
             let value = rnd.nextInt32WithBound(4i32);
 
             let node = if value == 0i32 {
-                NodeA() as Node
+                Node(Option[Array[Int32]]::None)
             } else if value == 1i32 {
-                NodeB() as Node
+                Node(Option[Array[Int32]]::Some(Array[Int32]::zero(1)))
             } else if value == 2i32 {
-                NodeC() as Node
+                Node(Option[Array[Int32]]::Some(Array[Int32]::zero(2)))
             } else {
                 assert(value == 3i32);
-                NodeD() as Node
+                Node(Option[Array[Int32]]::Some(Array[Int32]::zero(3)))
             };
 
             node.birthday = date;
