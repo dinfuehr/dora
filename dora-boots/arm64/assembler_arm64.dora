@@ -189,7 +189,7 @@ impl Register {
 }
 
 mod clsx {
-    use super::Register;
+    use package::Register;
 
     @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1i32));
