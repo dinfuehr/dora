@@ -791,12 +791,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("RorInt64", dest, lhs, rhs);
     }
 
-    fn visit_extend_int32_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ExtendInt32ToInt64", dest, src);
-    }
-    fn visit_extend_char_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ExtendCharToInt64", dest, src);
-    }
     fn visit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
         self.emit_reg2("CastCharToInt32", dest, src);
     }

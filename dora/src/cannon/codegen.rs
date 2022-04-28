@@ -3816,6 +3816,24 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_extend_uint8(dest_reg, src_reg, MachineMode::Int64);
             }
 
+            Intrinsic::Int32ToInt64 => {
+                assert_eq!(arguments.len(), 1);
+
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+
+                self.emit_int_to_int64(dest_reg, src_reg);
+            }
+
+            Intrinsic::CharToInt64 => {
+                assert_eq!(arguments.len(), 1);
+
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+
+                self.emit_shrink(dest_reg, MachineMode::Int64, src_reg, MachineMode::Int32);
+            }
+
             _ => unreachable!(),
         }
     }
@@ -4707,14 +4725,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_ror_int(dest, lhs, rhs);
     }
 
-    fn visit_extend_int32_to_int64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ExtendInt32ToInt64 {}, {}", dest, src));
-        self.emit_int_to_int64(dest, src);
-    }
-    fn visit_extend_char_to_int64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ExtendCharToInt64 {}, {}", dest, src));
-        self.emit_shrink(dest, MachineMode::Int64, src, MachineMode::Int32);
-    }
     fn visit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
         comment!(self, format!("CastCharToInt32 {}, {}", dest, src));
         self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);

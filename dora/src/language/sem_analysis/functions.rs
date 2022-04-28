@@ -626,7 +626,9 @@ impl Intrinsic {
             | Intrinsic::AtomicInt64FetchAdd
             | Intrinsic::ByteToChar
             | Intrinsic::ByteToInt32
-            | Intrinsic::ByteToInt64 => true,
+            | Intrinsic::ByteToInt64
+            | Intrinsic::Int32ToInt64
+            | Intrinsic::CharToInt64 => true,
             _ => false,
         }
     }

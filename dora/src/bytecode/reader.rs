@@ -295,16 +295,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::RorInt64 { dest, lhs, rhs }
             }
 
-            BytecodeOpcode::ExtendInt32ToInt64 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::ExtendInt32ToInt64 { dest, src }
-            }
-            BytecodeOpcode::ExtendCharToInt64 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::ExtendCharToInt64 { dest, src }
-            }
             BytecodeOpcode::CastCharToInt32 => {
                 let dest = self.read_register();
                 let src = self.read_register();
@@ -1123,12 +1113,6 @@ where
                 self.visitor.visit_rol_int32(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::ExtendInt32ToInt64 { dest, src } => {
-                self.visitor.visit_extend_int32_to_int64(dest, src);
-            }
-            BytecodeInstruction::ExtendCharToInt64 { dest, src } => {
-                self.visitor.visit_extend_char_to_int64(dest, src);
-            }
             BytecodeInstruction::CastCharToInt32 { dest, src } => {
                 self.visitor.visit_cast_char_to_int32(dest, src);
             }
@@ -1619,12 +1603,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_extend_int32_to_int64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_extend_char_to_int64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
     fn visit_cast_char_to_int32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }

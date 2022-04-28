@@ -207,14 +207,6 @@ class BytecodeBuilder {
         self.emitReg3(BC_ROR_INT64, dest, lhs, rhs);
     }
 
-    fn emitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_EXTEND_INT32_TO_INT64, dest, src);
-    }
-
-    fn emitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_EXTEND_CHAR_TO_INT64, dest, src);
-    }
-
     fn emitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_CHAR_TO_INT32, dest, src);
     }

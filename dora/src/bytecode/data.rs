@@ -101,8 +101,6 @@ enumeration!(BytecodeOpcode {
     RolInt64,
     RorInt64,
 
-    ExtendInt32ToInt64,
-    ExtendCharToInt64,
     CastCharToInt32,
     CastInt32ToUInt8,
     CastInt32ToChar,
@@ -342,8 +340,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NotBool
             | BytecodeOpcode::NotInt32
             | BytecodeOpcode::NotInt64
-            | BytecodeOpcode::ExtendInt32ToInt64
-            | BytecodeOpcode::ExtendCharToInt64
             | BytecodeOpcode::CastCharToInt32
             | BytecodeOpcode::CastInt32ToUInt8
             | BytecodeOpcode::CastInt32ToChar
@@ -728,14 +724,6 @@ pub enum BytecodeInstruction {
         rhs: Register,
     },
 
-    ExtendInt32ToInt64 {
-        dest: Register,
-        src: Register,
-    },
-    ExtendCharToInt64 {
-        dest: Register,
-        src: Register,
-    },
     CastCharToInt32 {
         dest: Register,
         src: Register,

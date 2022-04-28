@@ -3426,7 +3426,11 @@ fn gen_float64_is_nan() {
 #[test]
 fn gen_extend_int_to_int64() {
     let result = code("fn f(a: Int32): Int64 { a.toInt64() }");
-    let expected = vec![ExtendInt32ToInt64(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -3880,7 +3884,11 @@ fn gen_extend_uint8() {
 #[test]
 fn gen_extend_int() {
     let result = code("fn f(x: Int32): Int64 { x.toInt64() }");
-    let expected = vec![ExtendInt32ToInt64(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -3891,7 +3899,11 @@ fn gen_cast_char() {
     assert_eq!(expected, result);
 
     let result = code("fn f(x: Char): Int64 { x.toInt64() }");
-    let expected = vec![ExtendCharToInt64(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -4622,12 +4634,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::RorInt64(dest, lhs, rhs));
     }
 
-    fn visit_extend_int32_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ExtendInt32ToInt64(dest, src));
-    }
-    fn visit_extend_char_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ExtendCharToInt64(dest, src));
-    }
     fn visit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::CastCharToInt32(dest, src));
     }

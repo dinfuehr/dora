@@ -59,9 +59,6 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fn visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fn visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-
     @open fn visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fn visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fn visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
@@ -239,9 +236,6 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fn visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fn visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
 
     @override fn visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fn visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
@@ -667,16 +661,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitRorInt64(dest, lhs, rhs);
-
-        } else if opcode == BC_EXTEND_INT32_TO_INT64 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitExtendInt32ToInt64(dest, src);
-
-        } else if opcode == BC_EXTEND_CHAR_TO_INT64 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitExtendCharToInt64(dest, src);
 
         } else if opcode == BC_CAST_CHAR_TO_INT32 {
             let dest = self.readRegister(wide);
