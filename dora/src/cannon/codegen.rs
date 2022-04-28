@@ -2241,10 +2241,9 @@ impl<'a> CannonCodeGen<'a> {
                     self.emit_load_register_as(src, REG_RESULT.into(), mode);
                 }
 
-                BytecodeType::TypeParam(_)
-                | BytecodeType::Class(_, _)
-                | BytecodeType::Trait(_, _)
-                | BytecodeType::Unit => unreachable!(),
+                BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Unit => {
+                    unreachable!()
+                }
 
                 BytecodeType::UInt8
                 | BytecodeType::Int32
@@ -2257,7 +2256,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.emit_load_register(src, reg.into());
                 }
 
-                BytecodeType::Ptr => {
+                BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
                     let reg = REG_RESULT;
                     self.emit_load_register(src, reg.into());
                     self.asm

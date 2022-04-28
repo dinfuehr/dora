@@ -715,12 +715,13 @@ impl<'a> AstBytecodeGen<'a> {
         let object_type = self.ty(expr.object.id());
         let check_type = self.ty(expr.data_type.id());
 
-        if let SourceType::Trait(trait_id, ref _type_params) = check_type {
+        if let SourceType::Trait(trait_id, ref type_params) = check_type {
             let object = self.visit_expr(&expr.object, DataDest::Alloc);
             let idx = self
                 .builder
                 .add_const_trait(trait_id, check_type.type_params(), object_type);
-            let dest = self.ensure_register(dest, BytecodeType::Ptr);
+            let ty = BytecodeType::Trait(trait_id, type_params.clone());
+            let dest = self.ensure_register(dest, ty);
             self.builder
                 .emit_new_trait_object(dest, idx, object, expr.pos);
             self.free_if_temp(object);

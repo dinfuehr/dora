@@ -1,5 +1,3 @@
-//= ignore
-
 trait Foo { fn test(): Int64; }
 
 class Baz
