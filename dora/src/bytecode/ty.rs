@@ -67,6 +67,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn is_enum(&self) -> bool {
+        match self {
+            BytecodeType::Enum(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_trait(&self) -> bool {
         match self {
             BytecodeType::Trait(_, _) => true,

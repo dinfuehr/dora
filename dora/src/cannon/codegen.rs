@@ -2070,8 +2070,20 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(rhs)
         );
+
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Bool);
-        let bytecode_type = self.specialize_register_type(lhs);
+        let bytecode_type = self.bytecode.register_type(lhs);
+
+        assert!(
+            bytecode_type == BytecodeType::Float32
+                || bytecode_type == BytecodeType::Float64
+                || bytecode_type == BytecodeType::Int32
+                || bytecode_type == BytecodeType::Int64
+                || bytecode_type == BytecodeType::Char
+                || bytecode_type == BytecodeType::UInt8
+                || bytecode_type == BytecodeType::Bool
+                || bytecode_type.is_enum()
+        );
 
         if bytecode_type.is_any_float() {
             self.emit_load_register(lhs, FREG_RESULT.into());
