@@ -3861,11 +3861,19 @@ fn gen_cmp_strings() {
 #[test]
 fn gen_extend_uint8() {
     let result = code("fn f(x: UInt8): Int32 { x.toInt32() }");
-    let expected = vec![ExtendByteToInt32(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 
     let result = code("fn f(x: UInt8): Int64 { x.toInt64() }");
-    let expected = vec![ExtendByteToInt64(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -4062,7 +4070,11 @@ fn gen_vec_store() {
 #[test]
 fn gen_byte_to_char() {
     let result = code("fn f(x: UInt8): Char { x.toChar() }");
-    let expected = vec![ExtendByteToChar(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -4610,15 +4622,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::RorInt64(dest, lhs, rhs));
     }
 
-    fn visit_extend_uint8_to_char(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ExtendByteToChar(dest, src));
-    }
-    fn visit_extend_uint8_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ExtendByteToInt32(dest, src));
-    }
-    fn visit_extend_uint8_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::ExtendByteToInt64(dest, src));
-    }
     fn visit_extend_int32_to_int64(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::ExtendInt32ToInt64(dest, src));
     }

@@ -207,18 +207,6 @@ class BytecodeBuilder {
         self.emitReg3(BC_ROR_INT64, dest, lhs, rhs);
     }
 
-    fn emitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_EXTEND_UINT8_TO_CHAR, dest, src);
-    }
-
-    fn emitExtendByteToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_EXTEND_UINT8_TO_INT32, dest, src);
-    }
-
-    fn emitExtendByteToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_EXTEND_UINT8_TO_INT64, dest, src);
-    }
-
     fn emitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_INT32_TO_INT64, dest, src);
     }

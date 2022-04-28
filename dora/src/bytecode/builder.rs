@@ -509,18 +509,6 @@ impl BytecodeBuilder {
         self.writer.emit_ror_int64(dest, lhs, rhs);
     }
 
-    pub fn emit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_extend_byte_to_char(dest, src);
-    }
-    pub fn emit_extend_byte_to_int32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_extend_byte_to_int32(dest, src);
-    }
-    pub fn emit_extend_byte_to_int64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_extend_byte_to_int64(dest, src);
-    }
     pub fn emit_extend_char_to_int64(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
         self.writer.emit_extend_char_to_int64(dest, src);

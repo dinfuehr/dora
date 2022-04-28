@@ -160,9 +160,6 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RolInt64", dest, lhs, rhs); }
     @override fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RorInt64", dest, lhs, rhs); }
 
-    @override fn visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendUInt8ToChar", dest, src); }
-    @override fn visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendUInt8ToInt32", dest, src); }
-    @override fn visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendUInt8ToInt64", dest, src); }
     @override fn visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendInt32ToInt64", dest, src); }
     @override fn visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendCharToInt64", dest, src); }
 

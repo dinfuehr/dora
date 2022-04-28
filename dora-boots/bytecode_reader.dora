@@ -59,9 +59,6 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fn visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fn visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fn visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fn visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fn visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
@@ -243,9 +240,6 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fn visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fn visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fn visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fn visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fn visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
 
@@ -673,21 +667,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitRorInt64(dest, lhs, rhs);
-
-        } else if opcode == BC_EXTEND_UINT8_TO_CHAR {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitExtendUInt8ToChar(dest, src);
-
-        } else if opcode == BC_EXTEND_UINT8_TO_INT32 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitExtendUInt8ToInt32(dest, src);
-
-        } else if opcode == BC_EXTEND_UINT8_TO_INT64 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitExtendUInt8ToInt64(dest, src);
 
         } else if opcode == BC_EXTEND_INT32_TO_INT64 {
             let dest = self.readRegister(wide);

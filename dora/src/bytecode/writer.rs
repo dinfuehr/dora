@@ -358,15 +358,6 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::RorInt64, dest, lhs, rhs);
     }
 
-    pub fn emit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ExtendUInt8ToChar, dest, src);
-    }
-    pub fn emit_extend_byte_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ExtendUInt8ToInt32, dest, src);
-    }
-    pub fn emit_extend_byte_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ExtendUInt8ToInt64, dest, src);
-    }
     pub fn emit_extend_char_to_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::ExtendCharToInt64, dest, src);
     }

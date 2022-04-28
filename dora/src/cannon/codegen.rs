@@ -1151,7 +1151,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(dest_register.into(), dest);
     }
 
-    fn emit_extend_byte(&mut self, dest: Register, src: Register, _mode: MachineMode) {
+    fn emit_extend_uint8(&mut self, dest: Register, src: Register, _mode: MachineMode) {
         assert_eq!(self.bytecode.register_type(src), BytecodeType::UInt8);
 
         self.emit_load_register(src, REG_RESULT.into());
@@ -3798,6 +3798,24 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(REG_RESULT.into(), dest_reg);
             }
 
+            Intrinsic::ByteToChar | Intrinsic::ByteToInt32 => {
+                assert_eq!(arguments.len(), 1);
+
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+
+                self.emit_extend_uint8(dest_reg, src_reg, MachineMode::Int32);
+            }
+
+            Intrinsic::ByteToInt64 => {
+                assert_eq!(arguments.len(), 1);
+
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+
+                self.emit_extend_uint8(dest_reg, src_reg, MachineMode::Int64);
+            }
+
             _ => unreachable!(),
         }
     }
@@ -4689,18 +4707,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_ror_int(dest, lhs, rhs);
     }
 
-    fn visit_extend_uint8_to_char(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ExtendByteToChar {}, {}", dest, src));
-        self.emit_extend_byte(dest, src, MachineMode::Int32);
-    }
-    fn visit_extend_uint8_to_int32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ExtendByteToInt32 {}, {}", dest, src));
-        self.emit_extend_byte(dest, src, MachineMode::Int32);
-    }
-    fn visit_extend_uint8_to_int64(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("ExtendByteToInt64 {}, {}", dest, src));
-        self.emit_extend_byte(dest, src, MachineMode::Int64);
-    }
     fn visit_extend_int32_to_int64(&mut self, dest: Register, src: Register) {
         comment!(self, format!("ExtendInt32ToInt64 {}, {}", dest, src));
         self.emit_int_to_int64(dest, src);

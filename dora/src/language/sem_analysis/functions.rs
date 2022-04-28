@@ -623,7 +623,10 @@ impl Intrinsic {
             | Intrinsic::AtomicInt64Set
             | Intrinsic::AtomicInt64Exchange
             | Intrinsic::AtomicInt64CompareExchange
-            | Intrinsic::AtomicInt64FetchAdd => true,
+            | Intrinsic::AtomicInt64FetchAdd
+            | Intrinsic::ByteToChar
+            | Intrinsic::ByteToInt32
+            | Intrinsic::ByteToInt64 => true,
             _ => false,
         }
     }
