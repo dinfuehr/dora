@@ -628,7 +628,17 @@ impl Intrinsic {
             | Intrinsic::ByteToInt32
             | Intrinsic::ByteToInt64
             | Intrinsic::Int32ToInt64
-            | Intrinsic::CharToInt64 => true,
+            | Intrinsic::CharToInt64
+            | Intrinsic::Int64ToByte
+            | Intrinsic::Int64ToChar
+            | Intrinsic::Int64ToInt32
+            | Intrinsic::CharToInt32
+            | Intrinsic::Int32ToByte
+            | Intrinsic::Int32ToChar
+            | Intrinsic::Int32RotateLeft
+            | Intrinsic::Int32RotateRight
+            | Intrinsic::Int64RotateLeft
+            | Intrinsic::Int64RotateRight => true,
             _ => false,
         }
     }

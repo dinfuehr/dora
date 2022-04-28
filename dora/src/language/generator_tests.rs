@@ -484,7 +484,7 @@ fn gen_stmt_if() {
         JumpIfFalse(r(0), 3),
         ConstInt32(r(1), 1),
         Ret(r(1)),
-        ConstZeroInt32(r(1)),
+        ConstInt32(r(1), 0),
         Ret(r(1)),
     ];
     assert_eq!(expected, result);
@@ -625,35 +625,35 @@ fn gen_expr_lit_string_multiple() {
 #[test]
 fn gen_expr_lit_byte_zero() {
     let result = code("fn f(): UInt8 { return 0u8; }");
-    let expected = vec![ConstZeroUInt8(r(0)), Ret(r(0))];
+    let expected = vec![ConstUInt8(r(0), 0), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_int_zero() {
     let result = code("fn f(): Int32 { return 0; }");
-    let expected = vec![ConstZeroInt32(r(0)), Ret(r(0))];
+    let expected = vec![ConstInt32(r(0), 0), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_int64_zero() {
     let result = code("fn f(): Int64 { return 0i64; }");
-    let expected = vec![ConstZeroInt64(r(0)), Ret(r(0))];
+    let expected = vec![ConstInt64(r(0), 0), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_float32_zero() {
     let result = code("fn f(): Float32 { return 0f32; }");
-    let expected = vec![ConstZeroFloat32(r(0)), Ret(r(0))];
+    let expected = vec![ConstFloat32(r(0), 0.0), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_float64_zero() {
     let result = code("fn f(): Float64 { return 0f64; }");
-    let expected = vec![ConstZeroFloat64(r(0)), Ret(r(0))];
+    let expected = vec![ConstFloat64(r(0), 0.0), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -759,114 +759,100 @@ fn gen_expr_bit_ashiftr() {
 }
 
 #[test]
-fn gen_expr_bit_rol() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a.rotateLeft(b); }");
-    let expected = vec![RolInt32(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_expr_bit_ror() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a.rotateRight(b); }");
-    let expected = vec![RorInt32(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_expr_test_equal_bool() {
     let result = code("fn f(a: Bool, b: Bool): Bool { return a == b; }");
-    let expected = vec![TestEqBool(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_bool() {
     let result = code("fn f(a: Bool, b: Bool): Bool { return a != b; }");
-    let expected = vec![TestNeBool(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_uint8() {
     let result = code("fn f(a: UInt8, b: UInt8): Bool { return a == b; }");
-    let expected = vec![TestEqUInt8(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_uint8() {
     let result = code("fn f(a: UInt8, b: UInt8): Bool { return a != b; }");
-    let expected = vec![TestNeUInt8(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_uint8() {
     let result = code("fn f(a: UInt8, b: UInt8): Bool { return a < b; }");
-    let expected = vec![TestLtUInt8(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_uint8() {
     let result = code("fn f(a: UInt8, b: UInt8): Bool { return a <= b; }");
-    let expected = vec![TestLeUInt8(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_uint8() {
     let result = code("fn f(a: UInt8, b: UInt8): Bool { return a > b; }");
-    let expected = vec![TestGtUInt8(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_uint8() {
     let result = code("fn f(a: UInt8, b: UInt8): Bool { return a >= b; }");
-    let expected = vec![TestGeUInt8(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_char() {
     let result = code("fn f(a: Char, b: Char): Bool { return a == b; }");
-    let expected = vec![TestEqChar(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_char() {
     let result = code("fn f(a: Char, b: Char): Bool { return a != b; }");
-    let expected = vec![TestNeChar(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_char() {
     let result = code("fn f(a: Char, b: Char): Bool { return a < b; }");
-    let expected = vec![TestLtChar(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_char() {
     let result = code("fn f(a: Char, b: Char): Bool { return a <= b; }");
-    let expected = vec![TestLeChar(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_char() {
     let result = code("fn f(a: Char, b: Char): Bool { return a > b; }");
-    let expected = vec![TestGtChar(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_char() {
     let result = code("fn f(a: Char, b: Char): Bool { return a >= b; }");
-    let expected = vec![TestGeChar(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -876,7 +862,7 @@ fn gen_expr_test_equal_enum() {
         "fn f(a: Foo, b: Foo): Bool { return a == b; }
          enum Foo { A, B }",
     );
-    let expected = vec![TestEqEnum(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -886,133 +872,133 @@ fn gen_expr_test_notequal_enum() {
         "fn f(a: Foo, b: Foo): Bool { return a != b; }
          enum Foo { A, B }",
     );
-    let expected = vec![TestNeEnum(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_int() {
     let result = code("fn f(a: Int32, b: Int32): Bool { return a == b; }");
-    let expected = vec![TestEqInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_int() {
     let result = code("fn f(a: Int32, b: Int32): Bool { return a != b; }");
-    let expected = vec![TestNeInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_int() {
     let result = code("fn f(a: Int32, b: Int32): Bool { return a < b; }");
-    let expected = vec![TestLtInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_int() {
     let result = code("fn f(a: Int32, b: Int32): Bool { return a <= b; }");
-    let expected = vec![TestLeInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_int() {
     let result = code("fn f(a: Int32, b: Int32): Bool { return a > b; }");
-    let expected = vec![TestGtInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_int() {
     let result = code("fn f(a: Int32, b: Int32): Bool { return a >= b; }");
-    let expected = vec![TestGeInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_float32() {
     let result = code("fn f(a: Float32, b: Float32): Bool { return a == b; }");
-    let expected = vec![TestEqFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_float32() {
     let result = code("fn f(a: Float32, b: Float32): Bool { return a != b; }");
-    let expected = vec![TestNeFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_float32() {
     let result = code("fn f(a: Float32, b: Float32): Bool { return a < b; }");
-    let expected = vec![TestLtFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_float32() {
     let result = code("fn f(a: Float32, b: Float32): Bool { return a <= b; }");
-    let expected = vec![TestLeFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_float32() {
     let result = code("fn f(a: Float32, b: Float32): Bool { return a > b; }");
-    let expected = vec![TestGtFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_float32() {
     let result = code("fn f(a: Float32, b: Float32): Bool { return a >= b; }");
-    let expected = vec![TestGeFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_float64() {
     let result = code("fn f(a: Float64, b: Float64): Bool { return a == b; }");
-    let expected = vec![TestEqFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_float64() {
     let result = code("fn f(a: Float64, b: Float64): Bool { return a != b; }");
-    let expected = vec![TestNeFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_float64() {
     let result = code("fn f(a: Float64, b: Float64): Bool { return a < b; }");
-    let expected = vec![TestLtFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_float64() {
     let result = code("fn f(a: Float64, b: Float64): Bool { return a <= b; }");
-    let expected = vec![TestLeFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_float64() {
     let result = code("fn f(a: Float64, b: Float64): Bool { return a > b; }");
-    let expected = vec![TestGtFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_float64() {
     let result = code("fn f(a: Float64, b: Float64): Bool { return a >= b; }");
-    let expected = vec![TestGeFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -2854,7 +2840,7 @@ fn gen_position_array_length_effect() {
 #[test]
 fn gen_load_array_uint8() {
     let result = code("fn f(a: Array[UInt8]): UInt8 { return a(0); }");
-    let expected = vec![ConstZeroInt64(r(2)), LoadArray(r(1), r(0), r(2)), Ret(r(1))];
+    let expected = vec![ConstInt64(r(2), 0), LoadArray(r(1), r(0), r(2)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -2910,49 +2896,49 @@ fn gen_load_array_ptr() {
 #[test]
 fn gen_position_load_array_bool() {
     let result = position("fn f(a: Array[Bool]): Bool { return a(0); }");
-    let expected = vec![(2, p(1, 38))];
+    let expected = vec![(3, p(1, 38))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_char() {
     let result = position("fn f(a: Array[Char]): Char { return a(0); }");
-    let expected = vec![(2, p(1, 38))];
+    let expected = vec![(3, p(1, 38))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_int32() {
     let result = position("fn f(a: Array[Int32]): Int32 { return a(0); }");
-    let expected = vec![(2, p(1, 40))];
+    let expected = vec![(3, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_int64() {
     let result = position("fn f(a: Array[Int64]): Int64 { return a(0); }");
-    let expected = vec![(2, p(1, 40))];
+    let expected = vec![(3, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_float32() {
     let result = position("fn f(a: Array[Float32]): Float32 { return a(0); }");
-    let expected = vec![(2, p(1, 44))];
+    let expected = vec![(3, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_float64() {
     let result = position("fn f(a: Array[Float64]): Float64 { return a(0); }");
-    let expected = vec![(2, p(1, 44))];
+    let expected = vec![(3, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_ptr() {
     let result = position("fn f(a: Array[Object]): Object { return a(0); }");
-    let expected = vec![(2, p(1, 42))];
+    let expected = vec![(3, p(1, 42))];
     assert_eq!(expected, result);
 }
 
@@ -2960,7 +2946,7 @@ fn gen_position_load_array_ptr() {
 fn gen_store_array_uint8() {
     let result = code("fn f(a: Array[UInt8], b: UInt8) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt64(Register(2)),
+        ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2971,7 +2957,7 @@ fn gen_store_array_uint8() {
 fn gen_store_array_bool() {
     let result = code("fn f(a: Array[Bool], b: Bool) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt64(Register(2)),
+        ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2982,7 +2968,7 @@ fn gen_store_array_bool() {
 fn gen_store_array_char() {
     let result = code("fn f(a: Array[Char], b: Char) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt64(Register(2)),
+        ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2993,7 +2979,7 @@ fn gen_store_array_char() {
 fn gen_store_array_int32() {
     let result = code("fn f(a: Array[Int32], b: Int32) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt64(Register(2)),
+        ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -3004,7 +2990,7 @@ fn gen_store_array_int32() {
 fn gen_store_array_int64() {
     let result = code("fn f(a: Array[Int64], b: Int64) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt64(Register(2)),
+        ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -3015,7 +3001,7 @@ fn gen_store_array_int64() {
 fn gen_store_array_float32() {
     let result = code("fn f(a: Array[Float32], b: Float32) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt64(Register(2)),
+        ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -3026,7 +3012,7 @@ fn gen_store_array_float32() {
 fn gen_store_array_float64() {
     let result = code("fn f(a: Array[Float64], b: Float64) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt64(Register(2)),
+        ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -3037,7 +3023,7 @@ fn gen_store_array_float64() {
 fn gen_store_array_ptr() {
     let result = code("fn f(a: Array[Object], b: Object) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt64(Register(2)),
+        ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -3047,49 +3033,49 @@ fn gen_store_array_ptr() {
 #[test]
 fn gen_position_store_array_bool() {
     let result = position("fn f(a: Array[Bool], b: Bool) { a(0) = b; }");
-    let expected = vec![(2, p(1, 38))];
+    let expected = vec![(3, p(1, 38))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_char() {
     let result = position("fn f(a: Array[Char], b: Char) { a(0) = b; }");
-    let expected = vec![(2, p(1, 38))];
+    let expected = vec![(3, p(1, 38))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_int32() {
     let result = position("fn f(a: Array[Int32], b: Int32) { a(0) = b; }");
-    let expected = vec![(2, p(1, 40))];
+    let expected = vec![(3, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_int64() {
     let result = position("fn f(a: Array[Int64], b: Int64) { a(0) = b; }");
-    let expected = vec![(2, p(1, 40))];
+    let expected = vec![(3, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_float32() {
     let result = position("fn f(a: Array[Float32], b: Float32) { a(0) = b; }");
-    let expected = vec![(2, p(1, 44))];
+    let expected = vec![(3, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_float64() {
     let result = position("fn f(a: Array[Float64], b: Float64) { a(0) = b; }");
-    let expected = vec![(2, p(1, 44))];
+    let expected = vec![(3, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_ptr() {
     let result = position("fn f(a: Array[Object], b: Object) { a(0) = b; }");
-    let expected = vec![(2, p(1, 42))];
+    let expected = vec![(3, p(1, 42))];
     assert_eq!(expected, result);
 }
 
@@ -3308,20 +3294,6 @@ fn gen_self_assign_for_string() {
 }
 
 #[test]
-fn gen_assert() {
-    let result = code("fn f() { assert(true); }");
-    let expected = vec![ConstTrue(r(0)), Assert(r(0)), RetVoid];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_assert() {
-    let result = position("fn f() { assert(true); }");
-    let expected = vec![(2, p(1, 16))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_reinterpret_float32_as_int32() {
     gen_fct(
         "fn f(a: Float32): Int32 { a.asInt32() }",
@@ -3412,14 +3384,14 @@ fn gen_reinterpret_int64_as_float64() {
 #[test]
 fn gen_float32_is_nan() {
     let result = code("fn f(a: Float32): Bool { a.isNan() }");
-    let expected = vec![TestNeFloat32(r(1), r(0), r(0)), Ret(r(1))];
+    let expected = vec![TestNe(r(1), r(0), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_float64_is_nan() {
     let result = code("fn f(a: Float64): Bool { a.isNan() }");
-    let expected = vec![TestNeFloat64(r(1), r(0), r(0)), Ret(r(1))];
+    let expected = vec![TestNe(r(1), r(0), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3437,7 +3409,11 @@ fn gen_extend_int_to_int64() {
 #[test]
 fn gen_cast_int64_to_int32() {
     let result = code("fn f(a: Int64): Int32 { a.toInt32() }");
-    let expected = vec![CastInt64ToInt32(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -3850,7 +3826,7 @@ fn gen_cmp_strings() {
                 PushRegister(r(1)),
                 InvokeDirect(r(3), ConstPoolIdx(0)),
                 ConstInt32(r(4), 0),
-                TestLtInt32(r(2), r(3), r(4)),
+                TestLt(r(2), r(3), r(4)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
@@ -3895,7 +3871,11 @@ fn gen_extend_int() {
 #[test]
 fn gen_cast_char() {
     let result = code("fn f(x: Char): Int32 { x.toInt32() }");
-    let expected = vec![CastCharToInt32(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 
     let result = code("fn f(x: Char): Int64 { x.toInt64() }");
@@ -3910,26 +3890,46 @@ fn gen_cast_char() {
 #[test]
 fn gen_cast_int() {
     let result = code("fn f(x: Int32): UInt8 { x.toUInt8() }");
-    let expected = vec![CastInt32ToUInt8(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 
     let result = code("fn f(x: Int32): Char { x.toCharUnchecked() }");
-    let expected = vec![CastInt32ToChar(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_cast_int64() {
     let result = code("fn f(x: Int64): UInt8 { x.toUInt8() }");
-    let expected = vec![CastInt64ToUInt8(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 
     let result = code("fn f(x: Int64): Char { x.toCharUnchecked() }");
-    let expected = vec![CastInt64ToChar(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 
     let result = code("fn f(x: Int64): Int32 { x.toInt32() }");
-    let expected = vec![CastInt64ToInt32(r(1), r(0)), Ret(r(1))];
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -4278,29 +4278,6 @@ pub enum Bytecode {
     ShrInt64(Register, Register, Register),
     SarInt64(Register, Register, Register),
 
-    RolInt32(Register, Register, Register),
-    RorInt32(Register, Register, Register),
-
-    RolInt64(Register, Register, Register),
-    RorInt64(Register, Register, Register),
-
-    ExtendByteToChar(Register, Register),
-    ExtendByteToInt32(Register, Register),
-    ExtendByteToInt64(Register, Register),
-    ExtendInt32ToInt64(Register, Register),
-    ExtendCharToInt64(Register, Register),
-    CastCharToInt32(Register, Register),
-    CastInt32ToUInt8(Register, Register),
-    CastInt32ToChar(Register, Register),
-    CastInt64ToUInt8(Register, Register),
-    CastInt64ToChar(Register, Register),
-    CastInt64ToInt32(Register, Register),
-
-    TruncateFloat32ToInt32(Register, Register),
-    TruncateFloat32ToInt64(Register, Register),
-    TruncateFloat64ToInt32(Register, Register),
-    TruncateFloat64ToInt64(Register, Register),
-
     InstanceOf(Register, Register, ConstPoolIdx),
     CheckedCast(Register, ConstPoolIdx),
 
@@ -4325,12 +4302,6 @@ pub enum Bytecode {
 
     ConstTrue(Register),
     ConstFalse(Register),
-    ConstZeroUInt8(Register),
-    ConstZeroChar(Register),
-    ConstZeroInt32(Register),
-    ConstZeroInt64(Register),
-    ConstZeroFloat32(Register),
-    ConstZeroFloat64(Register),
     ConstUInt8(Register, u8),
     ConstChar(Register, char),
     ConstInt32(Register, i32),
@@ -4340,56 +4311,12 @@ pub enum Bytecode {
     ConstString(Register, String),
 
     TestIdentity(Register, Register, Register),
-
-    TestEqBool(Register, Register, Register),
-    TestNeBool(Register, Register, Register),
-
-    TestEqUInt8(Register, Register, Register),
-    TestNeUInt8(Register, Register, Register),
-    TestGtUInt8(Register, Register, Register),
-    TestGeUInt8(Register, Register, Register),
-    TestLtUInt8(Register, Register, Register),
-    TestLeUInt8(Register, Register, Register),
-
-    TestEqChar(Register, Register, Register),
-    TestNeChar(Register, Register, Register),
-    TestGtChar(Register, Register, Register),
-    TestGeChar(Register, Register, Register),
-    TestLtChar(Register, Register, Register),
-    TestLeChar(Register, Register, Register),
-
-    TestEqEnum(Register, Register, Register),
-    TestNeEnum(Register, Register, Register),
-
-    TestEqInt32(Register, Register, Register),
-    TestNeInt32(Register, Register, Register),
-    TestGtInt32(Register, Register, Register),
-    TestGeInt32(Register, Register, Register),
-    TestLtInt32(Register, Register, Register),
-    TestLeInt32(Register, Register, Register),
-
-    TestEqInt64(Register, Register, Register),
-    TestNeInt64(Register, Register, Register),
-    TestGtInt64(Register, Register, Register),
-    TestGeInt64(Register, Register, Register),
-    TestLtInt64(Register, Register, Register),
-    TestLeInt64(Register, Register, Register),
-
-    TestEqFloat32(Register, Register, Register),
-    TestNeFloat32(Register, Register, Register),
-    TestGtFloat32(Register, Register, Register),
-    TestGeFloat32(Register, Register, Register),
-    TestLtFloat32(Register, Register, Register),
-    TestLeFloat32(Register, Register, Register),
-
-    TestEqFloat64(Register, Register, Register),
-    TestNeFloat64(Register, Register, Register),
-    TestGtFloat64(Register, Register, Register),
-    TestGeFloat64(Register, Register, Register),
-    TestLtFloat64(Register, Register, Register),
-    TestLeFloat64(Register, Register, Register),
-
-    Assert(Register),
+    TestEq(Register, Register, Register),
+    TestNe(Register, Register, Register),
+    TestGt(Register, Register, Register),
+    TestGe(Register, Register, Register),
+    TestLt(Register, Register, Register),
+    TestLe(Register, Register, Register),
 
     LoopStart,
     JumpLoop(usize),
@@ -4621,51 +4548,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::SarInt64(dest, lhs, rhs));
     }
 
-    fn visit_rol_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::RolInt32(dest, lhs, rhs));
-    }
-    fn visit_ror_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::RorInt32(dest, lhs, rhs));
-    }
-    fn visit_rol_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::RolInt64(dest, lhs, rhs));
-    }
-    fn visit_ror_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::RorInt64(dest, lhs, rhs));
-    }
-
-    fn visit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::CastCharToInt32(dest, src));
-    }
-    fn visit_cast_int32_to_uint8(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::CastInt32ToUInt8(dest, src));
-    }
-    fn visit_cast_int32_to_char(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::CastInt32ToChar(dest, src));
-    }
-    fn visit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::CastInt64ToUInt8(dest, src));
-    }
-    fn visit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::CastInt64ToChar(dest, src));
-    }
-    fn visit_cast_int64_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::CastInt64ToInt32(dest, src));
-    }
-
-    fn visit_truncate_float32_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::TruncateFloat32ToInt32(dest, src));
-    }
-    fn visit_truncate_float32_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::TruncateFloat32ToInt64(dest, src));
-    }
-    fn visit_truncate_float64_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::TruncateFloat64ToInt32(dest, src));
-    }
-    fn visit_truncate_float64_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::TruncateFloat64ToInt64(dest, src));
-    }
-
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
         self.emit(Bytecode::InstanceOf(dest, src, cls_idx));
     }
@@ -4723,24 +4605,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_const_false(&mut self, dest: Register) {
         self.emit(Bytecode::ConstFalse(dest));
     }
-    fn visit_const_zero_uint8(&mut self, dest: Register) {
-        self.emit(Bytecode::ConstZeroUInt8(dest));
-    }
-    fn visit_const_zero_char(&mut self, dest: Register) {
-        self.emit(Bytecode::ConstZeroChar(dest));
-    }
-    fn visit_const_zero_int32(&mut self, dest: Register) {
-        self.emit(Bytecode::ConstZeroInt32(dest));
-    }
-    fn visit_const_zero_int64(&mut self, dest: Register) {
-        self.emit(Bytecode::ConstZeroInt64(dest));
-    }
-    fn visit_const_zero_float32(&mut self, dest: Register) {
-        self.emit(Bytecode::ConstZeroFloat32(dest));
-    }
-    fn visit_const_zero_float64(&mut self, dest: Register) {
-        self.emit(Bytecode::ConstZeroFloat64(dest));
-    }
     fn visit_const_char(&mut self, dest: Register, idx: ConstPoolIdx) {
         let value = self.bc.const_pool(idx).to_char().expect("char expected");
         self.emit(Bytecode::ConstChar(dest, value));
@@ -4785,137 +4649,23 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestIdentity(dest, lhs, rhs));
     }
-
-    fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqBool(dest, lhs, rhs));
+    fn visit_test_eq(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEq(dest, lhs, rhs));
     }
-    fn visit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeBool(dest, lhs, rhs));
+    fn visit_test_ne(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNe(dest, lhs, rhs));
     }
-
-    fn visit_test_eq_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqUInt8(dest, lhs, rhs));
+    fn visit_test_gt(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGt(dest, lhs, rhs));
     }
-    fn visit_test_ne_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeUInt8(dest, lhs, rhs));
+    fn visit_test_ge(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGe(dest, lhs, rhs));
     }
-    fn visit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGtUInt8(dest, lhs, rhs));
+    fn visit_test_lt(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLt(dest, lhs, rhs));
     }
-    fn visit_test_ge_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGeUInt8(dest, lhs, rhs));
-    }
-    fn visit_test_lt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLtUInt8(dest, lhs, rhs));
-    }
-    fn visit_test_le_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLeUInt8(dest, lhs, rhs));
-    }
-
-    fn visit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqChar(dest, lhs, rhs));
-    }
-    fn visit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeChar(dest, lhs, rhs));
-    }
-    fn visit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGtChar(dest, lhs, rhs));
-    }
-    fn visit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGeChar(dest, lhs, rhs));
-    }
-    fn visit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLtChar(dest, lhs, rhs));
-    }
-    fn visit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLeChar(dest, lhs, rhs));
-    }
-
-    fn visit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqEnum(dest, lhs, rhs));
-    }
-    fn visit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeEnum(dest, lhs, rhs));
-    }
-
-    fn visit_test_eq_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqInt32(dest, lhs, rhs));
-    }
-    fn visit_test_ne_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeInt32(dest, lhs, rhs));
-    }
-    fn visit_test_gt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGtInt32(dest, lhs, rhs));
-    }
-    fn visit_test_ge_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGeInt32(dest, lhs, rhs));
-    }
-    fn visit_test_lt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLtInt32(dest, lhs, rhs));
-    }
-    fn visit_test_le_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLeInt32(dest, lhs, rhs));
-    }
-
-    fn visit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqInt64(dest, lhs, rhs));
-    }
-    fn visit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeInt64(dest, lhs, rhs));
-    }
-    fn visit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGtInt64(dest, lhs, rhs));
-    }
-    fn visit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGeInt64(dest, lhs, rhs));
-    }
-    fn visit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLtInt64(dest, lhs, rhs));
-    }
-    fn visit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLeInt64(dest, lhs, rhs));
-    }
-
-    fn visit_test_eq_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqFloat32(dest, lhs, rhs));
-    }
-    fn visit_test_ne_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeFloat32(dest, lhs, rhs));
-    }
-    fn visit_test_gt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGtFloat32(dest, lhs, rhs));
-    }
-    fn visit_test_ge_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGeFloat32(dest, lhs, rhs));
-    }
-    fn visit_test_lt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLtFloat32(dest, lhs, rhs));
-    }
-    fn visit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLeFloat32(dest, lhs, rhs));
-    }
-
-    fn visit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqFloat64(dest, lhs, rhs));
-    }
-    fn visit_test_ne_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeFloat64(dest, lhs, rhs));
-    }
-    fn visit_test_gt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGtFloat64(dest, lhs, rhs));
-    }
-    fn visit_test_ge_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGeFloat64(dest, lhs, rhs));
-    }
-    fn visit_test_lt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLtFloat64(dest, lhs, rhs));
-    }
-    fn visit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLeFloat64(dest, lhs, rhs));
-    }
-
-    fn visit_assert(&mut self, value: Register) {
-        self.emit(Bytecode::Assert(value));
+    fn visit_test_le(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLe(dest, lhs, rhs));
     }
 
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {

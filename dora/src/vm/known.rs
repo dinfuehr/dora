@@ -304,6 +304,7 @@ pub struct KnownFunctions {
     pub string_buffer_empty: Option<FctDefinitionId>,
     pub string_buffer_append: Option<FctDefinitionId>,
     pub string_buffer_to_string: Option<FctDefinitionId>,
+    pub assert: Option<FctDefinitionId>,
 }
 
 impl KnownFunctions {
@@ -312,6 +313,7 @@ impl KnownFunctions {
             string_buffer_empty: None,
             string_buffer_append: None,
             string_buffer_to_string: None,
+            assert: None,
         }
     }
 
@@ -325,6 +327,10 @@ impl KnownFunctions {
 
     pub fn string_buffer_to_string(&self) -> FctDefinitionId {
         self.string_buffer_to_string.expect("uninitialized")
+    }
+
+    pub fn assert(&self) -> FctDefinitionId {
+        self.assert.expect("uninitialized")
     }
 }
 

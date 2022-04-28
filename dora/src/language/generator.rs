@@ -173,8 +173,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // if idx >= length then goto end
         let tmp_reg = self.alloc_temp(BytecodeType::Bool);
-        self.builder
-            .emit_test_lt_int64(tmp_reg, index_reg, length_reg);
+        self.builder.emit_test_lt(tmp_reg, index_reg, length_reg);
         self.builder.emit_jump_if_false(tmp_reg, lbl_end);
         self.free_temp(tmp_reg);
 
@@ -810,8 +809,7 @@ impl<'a> AstBytecodeGen<'a> {
                         let tmp_reg = self.alloc_temp(BytecodeType::Int32);
                         let cmp_reg = self.alloc_temp(BytecodeType::Bool);
                         self.builder.emit_const_int32(tmp_reg, variant_idx);
-                        self.builder
-                            .emit_test_eq_int32(cmp_reg, variant_reg, tmp_reg);
+                        self.builder.emit_test_eq(cmp_reg, variant_reg, tmp_reg);
                         self.builder.emit_jump_if_false(cmp_reg, next_lbl);
                         self.free_temp(tmp_reg);
                         self.free_temp(cmp_reg);
@@ -1060,7 +1058,10 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_assert(&mut self, expr: &ExprCallType, dest: DataDest) {
         assert!(dest.is_unit());
         let assert_reg = self.visit_expr(&*expr.args[0], DataDest::Alloc);
-        self.builder.emit_assert(assert_reg, expr.pos);
+        self.builder.emit_push_register(assert_reg);
+        let fid = self.sa.known.functions.assert();
+        let idx = self.builder.add_const_fct(fid);
+        self.builder.emit_invoke_static_void(idx, expr.pos);
         self.free_if_temp(assert_reg);
     }
 
@@ -1678,26 +1679,17 @@ impl<'a> AstBytecodeGen<'a> {
 
         let dest = self.ensure_register(dest, ty.clone());
 
-        if lit.value == 0 {
-            match ty {
-                BytecodeType::UInt8 => self.builder.emit_const_zero_uint8(dest),
-                BytecodeType::Int32 => self.builder.emit_const_zero_int32(dest),
-                BytecodeType::Int64 => self.builder.emit_const_zero_int64(dest),
-                _ => unreachable!(),
-            }
+        let value = if neg {
+            (lit.value as i64).wrapping_neg()
         } else {
-            let value = if neg {
-                (lit.value as i64).wrapping_neg()
-            } else {
-                lit.value as i64
-            };
+            lit.value as i64
+        };
 
-            match ty {
-                BytecodeType::UInt8 => self.builder.emit_const_uint8(dest, value as u8),
-                BytecodeType::Int32 => self.builder.emit_const_int32(dest, value as i32),
-                BytecodeType::Int64 => self.builder.emit_const_int64(dest, value),
-                _ => unreachable!(),
-            }
+        match ty {
+            BytecodeType::UInt8 => self.builder.emit_const_uint8(dest, value as u8),
+            BytecodeType::Int32 => self.builder.emit_const_int32(dest, value as i32),
+            BytecodeType::Int64 => self.builder.emit_const_int64(dest, value),
+            _ => unreachable!(),
         }
 
         dest
@@ -1718,18 +1710,10 @@ impl<'a> AstBytecodeGen<'a> {
 
         let dest = self.ensure_register(dest, ty.clone());
 
-        if lit.value == 0_f64 {
-            match ty {
-                BytecodeType::Float32 => self.builder.emit_const_zero_float32(dest),
-                BytecodeType::Float64 => self.builder.emit_const_zero_float64(dest),
-                _ => unreachable!(),
-            }
-        } else {
-            match ty {
-                BytecodeType::Float32 => self.builder.emit_const_float32(dest, lit.value as f32),
-                BytecodeType::Float64 => self.builder.emit_const_float64(dest, lit.value),
-                _ => unreachable!(),
-            }
+        match ty {
+            BytecodeType::Float32 => self.builder.emit_const_float32(dest, lit.value as f32),
+            BytecodeType::Float64 => self.builder.emit_const_float64(dest, lit.value),
+            _ => unreachable!(),
         }
 
         dest
@@ -1907,10 +1891,10 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder.emit_const_int32(zero, 0);
 
                 match op {
-                    CmpOp::Lt => self.builder.emit_test_lt_int32(dest, result, zero),
-                    CmpOp::Le => self.builder.emit_test_le_int32(dest, result, zero),
-                    CmpOp::Gt => self.builder.emit_test_gt_int32(dest, result, zero),
-                    CmpOp::Ge => self.builder.emit_test_ge_int32(dest, result, zero),
+                    CmpOp::Lt => self.builder.emit_test_lt(dest, result, zero),
+                    CmpOp::Le => self.builder.emit_test_le(dest, result, zero),
+                    CmpOp::Gt => self.builder.emit_test_gt(dest, result, zero),
+                    CmpOp::Ge => self.builder.emit_test_ge(dest, result, zero),
                     CmpOp::Eq | CmpOp::Ne | CmpOp::Is | CmpOp::IsNot => unreachable!(),
                 }
 
@@ -2163,15 +2147,9 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::BoolNot => self.builder.emit_not_bool(dest, src),
             Intrinsic::Int32Not => self.builder.emit_not_int32(dest, src),
             Intrinsic::Int64Not => self.builder.emit_not_int64(dest, src),
-            Intrinsic::CharToInt32 => self.builder.emit_cast_char_to_int32(dest, src),
-            Intrinsic::Int32ToByte => self.builder.emit_cast_int32_to_uint8(dest, src),
-            Intrinsic::Int32ToChar => self.builder.emit_cast_int32_to_char(dest, src),
             Intrinsic::Int32ToInt32 => self.builder.emit_mov(dest, src),
-            Intrinsic::Int64ToByte => self.builder.emit_cast_int64_to_uint8(dest, src),
-            Intrinsic::Int64ToChar => self.builder.emit_cast_int64_to_char(dest, src),
-            Intrinsic::Int64ToInt32 => self.builder.emit_cast_int64_to_int32(dest, src),
-            Intrinsic::Float32IsNan => self.builder.emit_test_ne_float32(dest, src, src),
-            Intrinsic::Float64IsNan => self.builder.emit_test_ne_float64(dest, src, src),
+            Intrinsic::Float32IsNan => self.builder.emit_test_ne(dest, src, src),
+            Intrinsic::Float64IsNan => self.builder.emit_test_ne(dest, src, src),
             _ => {
                 panic!("unimplemented intrinsic {:?}", intrinsic);
             }
@@ -2269,36 +2247,20 @@ impl<'a> AstBytecodeGen<'a> {
 
         match intrinsic {
             Intrinsic::BoolEq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => {
-                    self.builder.emit_test_eq_bool(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ne)) => {
-                    self.builder.emit_test_ne_bool(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.builder.emit_test_ne(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::ByteEq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => {
-                    self.builder.emit_test_eq_uint8(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ne)) => {
-                    self.builder.emit_test_ne_uint8(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.builder.emit_test_ne(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::ByteCmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => {
-                    self.builder.emit_test_lt_uint8(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Le)) => {
-                    self.builder.emit_test_le_uint8(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Gt)) => {
-                    self.builder.emit_test_gt_uint8(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ge)) => {
-                    self.builder.emit_test_ge_uint8(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.builder.emit_test_lt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.builder.emit_test_le(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.builder.emit_test_gt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.builder.emit_test_ge(dest, lhs_reg, rhs_reg),
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
@@ -2311,27 +2273,15 @@ impl<'a> AstBytecodeGen<'a> {
                 _ => unreachable!(),
             },
             Intrinsic::CharEq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => {
-                    self.builder.emit_test_eq_char(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ne)) => {
-                    self.builder.emit_test_ne_char(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.builder.emit_test_ne(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::CharCmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => {
-                    self.builder.emit_test_lt_char(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Le)) => {
-                    self.builder.emit_test_le_char(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Gt)) => {
-                    self.builder.emit_test_gt_char(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ge)) => {
-                    self.builder.emit_test_ge_char(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.builder.emit_test_lt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.builder.emit_test_le(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.builder.emit_test_gt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.builder.emit_test_ge(dest, lhs_reg, rhs_reg),
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
@@ -2343,31 +2293,19 @@ impl<'a> AstBytecodeGen<'a> {
                 }
                 _ => unreachable!(),
             },
-            Intrinsic::EnumEq => self.builder.emit_test_eq_enum(dest, lhs_reg, rhs_reg),
-            Intrinsic::EnumNe => self.builder.emit_test_ne_enum(dest, lhs_reg, rhs_reg),
+            Intrinsic::EnumEq => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+            Intrinsic::EnumNe => self.builder.emit_test_ne(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32Eq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => {
-                    self.builder.emit_test_eq_int32(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ne)) => {
-                    self.builder.emit_test_ne_int32(dest, lhs_reg, rhs_reg)
-                }
-                None => self.builder.emit_test_eq_int32(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.builder.emit_test_ne(dest, lhs_reg, rhs_reg),
+                None => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::Int32Cmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => {
-                    self.builder.emit_test_lt_int32(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Le)) => {
-                    self.builder.emit_test_le_int32(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Gt)) => {
-                    self.builder.emit_test_gt_int32(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ge)) => {
-                    self.builder.emit_test_ge_int32(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.builder.emit_test_lt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.builder.emit_test_le(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.builder.emit_test_gt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.builder.emit_test_ge(dest, lhs_reg, rhs_reg),
                 Some(_) => unreachable!(),
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
@@ -2380,28 +2318,16 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             },
             Intrinsic::Int64Eq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => {
-                    self.builder.emit_test_eq_int64(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ne)) => {
-                    self.builder.emit_test_ne_int64(dest, lhs_reg, rhs_reg)
-                }
-                None => self.builder.emit_test_eq_int64(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.builder.emit_test_ne(dest, lhs_reg, rhs_reg),
+                None => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::Int64Cmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => {
-                    self.builder.emit_test_lt_int64(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Le)) => {
-                    self.builder.emit_test_le_int64(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Gt)) => {
-                    self.builder.emit_test_gt_int64(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ge)) => {
-                    self.builder.emit_test_ge_int64(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.builder.emit_test_lt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.builder.emit_test_le(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.builder.emit_test_gt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.builder.emit_test_ge(dest, lhs_reg, rhs_reg),
                 Some(_) => unreachable!(),
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
@@ -2414,28 +2340,16 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             },
             Intrinsic::Float32Eq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => {
-                    self.builder.emit_test_eq_float32(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ne)) => {
-                    self.builder.emit_test_ne_float32(dest, lhs_reg, rhs_reg)
-                }
-                None => self.builder.emit_test_eq_float32(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.builder.emit_test_ne(dest, lhs_reg, rhs_reg),
+                None => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::Float32Cmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => {
-                    self.builder.emit_test_lt_float32(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Le)) => {
-                    self.builder.emit_test_le_float32(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Gt)) => {
-                    self.builder.emit_test_gt_float32(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ge)) => {
-                    self.builder.emit_test_ge_float32(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.builder.emit_test_lt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.builder.emit_test_le(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.builder.emit_test_gt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.builder.emit_test_ge(dest, lhs_reg, rhs_reg),
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
@@ -2448,28 +2362,16 @@ impl<'a> AstBytecodeGen<'a> {
                 _ => unreachable!(),
             },
             Intrinsic::Float64Eq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => {
-                    self.builder.emit_test_eq_float64(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ne)) => {
-                    self.builder.emit_test_ne_float64(dest, lhs_reg, rhs_reg)
-                }
-                None => self.builder.emit_test_eq_float64(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.builder.emit_test_ne(dest, lhs_reg, rhs_reg),
+                None => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::Float64Cmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => {
-                    self.builder.emit_test_lt_float64(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Le)) => {
-                    self.builder.emit_test_le_float64(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Gt)) => {
-                    self.builder.emit_test_gt_float64(dest, lhs_reg, rhs_reg)
-                }
-                Some(BinOp::Cmp(CmpOp::Ge)) => {
-                    self.builder.emit_test_ge_float64(dest, lhs_reg, rhs_reg)
-                }
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.builder.emit_test_lt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.builder.emit_test_le(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.builder.emit_test_gt(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.builder.emit_test_ge(dest, lhs_reg, rhs_reg),
                 None => {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
@@ -2493,8 +2395,6 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::Int32Shl => self.builder.emit_shl_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32Shr => self.builder.emit_shr_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32Sar => self.builder.emit_sar_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32RotateLeft => self.builder.emit_rol_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32RotateRight => self.builder.emit_ror_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Add => self.builder.emit_add_int64(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int64Sub => self.builder.emit_sub_int64(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int64Mul => self.builder.emit_mul_int64(dest, lhs_reg, rhs_reg, pos),
@@ -2506,8 +2406,6 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::Int64Shl => self.builder.emit_shl_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Shr => self.builder.emit_shr_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Sar => self.builder.emit_sar_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64RotateLeft => self.builder.emit_rol_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64RotateRight => self.builder.emit_ror_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Float32Add => self.builder.emit_add_float32(dest, lhs_reg, rhs_reg),
             Intrinsic::Float32Sub => self.builder.emit_sub_float32(dest, lhs_reg, rhs_reg),
             Intrinsic::Float32Mul => self.builder.emit_mul_float32(dest, lhs_reg, rhs_reg),

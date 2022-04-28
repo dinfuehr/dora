@@ -287,7 +287,8 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     native_fct(sa, stdlib, "print", stdlib::print as *const u8);
     native_fct(sa, stdlib, "println", stdlib::println as *const u8);
-    intrinsic_fct(sa, stdlib, "assert", Intrinsic::Assert);
+    let fid = intrinsic_fct(sa, stdlib, "assert", Intrinsic::Assert);
+    sa.known.functions.assert = Some(fid);
     intrinsic_fct(sa, stdlib, "debug", Intrinsic::Debug);
     native_fct(sa, stdlib, "argc", stdlib::argc as *const u8);
     native_fct(sa, stdlib, "argv", stdlib::argv as *const u8);
@@ -1062,8 +1063,8 @@ fn intrinsic_fct(
     module_id: ModuleDefinitionId,
     name: &str,
     intrinsic: Intrinsic,
-) {
-    common_fct(sa, module_id, name, FctImplementation::Intrinsic(intrinsic));
+) -> FctDefinitionId {
+    common_fct(sa, module_id, name, FctImplementation::Intrinsic(intrinsic))
 }
 
 fn common_fct(
@@ -1071,7 +1072,7 @@ fn common_fct(
     module_id: ModuleDefinitionId,
     name: &str,
     kind: FctImplementation,
-) {
+) -> FctDefinitionId {
     let name = sa.interner.intern(name);
     let fctid = NestedSymTable::new(sa, module_id)
         .get_fct(name)
@@ -1087,6 +1088,7 @@ fn common_fct(
         }
     }
     fct.internal_resolved = true;
+    fctid
 }
 
 enum FctImplementation {

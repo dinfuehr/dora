@@ -54,18 +54,6 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fn visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fn visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fn visitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fn visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fn visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fn visitCastInt64ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fn visitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fn visitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-
     @open fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
     @open fn visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
 
@@ -81,12 +69,6 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @open fn visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
     @open fn visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
-    @open fn visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }
-    @open fn visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
-    @open fn visitConstZeroInt32(dest: BytecodeRegister) { unimplemented(); }
-    @open fn visitConstZeroInt64(dest: BytecodeRegister) { unimplemented(); }
-    @open fn visitConstZeroFloat32(dest: BytecodeRegister) { unimplemented(); }
-    @open fn visitConstZeroFloat64(dest: BytecodeRegister) { unimplemented(); }
     @open fn visitConstUInt8(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
     @open fn visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @open fn visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
@@ -95,58 +77,13 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fn visitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @open fn visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @open fn visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitTestEqUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fn visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    @open fn visitAssert(value: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestIdentity(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestEq(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestNe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestGe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fn visitTestLe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
     @open fn visitLoopStart() { unimplemented(); }
     @open fn visitJumpLoop(offset: Int32) { unimplemented(); }
@@ -232,18 +169,6 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fn visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fn visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fn visitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fn visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fn visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fn visitCastInt64ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fn visitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fn visitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
-
     @override fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {}
     @override fn visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {}
 
@@ -259,12 +184,6 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @override fn visitConstTrue(dest: BytecodeRegister) {}
     @override fn visitConstFalse(dest: BytecodeRegister) {}
-    @override fn visitConstZeroUInt8(dest: BytecodeRegister) {}
-    @override fn visitConstZeroChar(dest: BytecodeRegister) {}
-    @override fn visitConstZeroInt32(dest: BytecodeRegister) {}
-    @override fn visitConstZeroInt64(dest: BytecodeRegister) {}
-    @override fn visitConstZeroFloat32(dest: BytecodeRegister) {}
-    @override fn visitConstZeroFloat64(dest: BytecodeRegister) {}
     @override fn visitConstUInt8(dest: BytecodeRegister, value: UInt8) {}
     @override fn visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {}
     @override fn visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {}
@@ -273,58 +192,13 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fn visitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) {}
     @override fn visitConstString(dest: BytecodeRegister, idx: ConstPoolId) {}
 
-    @override fn visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitTestEqUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLtUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLeUInt8(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fn visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fn visitAssert(value: BytecodeRegister) {}
+    @override fn visitTestIdentity(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestEq(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestNe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestGe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fn visitTestLe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
     @override fn visitLoopStart() {}
     @override fn visitJumpLoop(offset: Int32) {}
@@ -631,67 +505,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitSarInt64(dest, lhs, rhs);
 
-        } else if opcode == BC_ROL_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitRolInt32(dest, lhs, rhs);
-        } else if opcode == BC_ROR_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitRorInt32(dest, lhs, rhs);
-        } else if opcode == BC_ROL_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitRolInt32(dest, lhs, rhs);
-        } else if opcode == BC_ROR_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitRorInt32(dest, lhs, rhs);
-        } else if opcode == BC_ROL_INT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitRolInt64(dest, lhs, rhs);
-        } else if opcode == BC_ROR_INT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitRorInt64(dest, lhs, rhs);
-
-        } else if opcode == BC_CAST_CHAR_TO_INT32 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitCastCharToInt32(dest, src);
-
-        } else if opcode == BC_CAST_INT32_TO_UINT8 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitCastInt32ToUInt8(dest, src);
-
-        } else if opcode == BC_CAST_INT32_TO_CHAR {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitCastInt32ToChar(dest, src);
-
-        } else if opcode == BC_CAST_INT64_TO_UINT8 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitCastInt64ToChar(dest, src);
-
-        } else if opcode == BC_CAST_INT64_TO_CHAR {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitCastInt64ToChar(dest, src);
-
-        } else if opcode == BC_CAST_INT64_TO_INT32 {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            self.visitor.visitCastInt64ToInt32(dest, src);
-
         } else if opcode == BC_INSTANCE_OF {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
@@ -756,24 +569,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_CONST_FALSE {
             let dest = self.readRegister(wide);
             self.visitor.visitConstFalse(dest);
-        } else if opcode == BC_CONST_ZERO_UINT8 {
-            let dest = self.readRegister(wide);
-            self.visitor.visitConstZeroUInt8(dest);
-        } else if opcode == BC_CONST_ZERO_CHAR {
-            let dest = self.readRegister(wide);
-            self.visitor.visitConstZeroChar(dest);
-        } else if opcode == BC_CONST_ZERO_INT32 {
-            let dest = self.readRegister(wide);
-            self.visitor.visitConstZeroInt32(dest);
-        } else if opcode == BC_CONST_ZERO_INT64 {
-            let dest = self.readRegister(wide);
-            self.visitor.visitConstZeroInt64(dest);
-        } else if opcode == BC_CONST_ZERO_FLOAT32{
-            let dest = self.readRegister(wide);
-            self.visitor.visitConstZeroFloat32(dest);
-        } else if opcode == BC_CONST_ZERO_FLOAT64 {
-            let dest = self.readRegister(wide);
-            self.visitor.visitConstZeroFloat64(dest);
         } else if opcode == BC_CONST_UINT8 {
             let dest = self.readRegister(wide);
             let value = self.readByte().toUInt8();
@@ -803,217 +598,36 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let idx = self.readConstPoolId(wide);
             self.visitor.visitConstString(dest, idx);
 
-        } else if opcode == BC_TEST_EQ_BOOL {
+        } else if opcode == BC_TEST_EQ {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqBool(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_BOOL {
+            self.visitor.visitTestEq(dest, lhs, rhs);
+        } else if opcode == BC_TEST_NE {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeBool(dest, lhs, rhs);
-
-        } else if opcode == BC_TEST_EQ_UINT8 {
+            self.visitor.visitTestNe(dest, lhs, rhs);
+        } else if opcode == BC_TEST_GT {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqUInt8(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_UINT8 {
+            self.visitor.visitTestGt(dest, lhs, rhs);
+        } else if opcode == BC_TEST_GE {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeUInt8(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_UINT8 {
+            self.visitor.visitTestGe(dest, lhs, rhs);
+        } else if opcode == BC_TEST_LT {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestGtUInt8(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_UINT8 {
+            self.visitor.visitTestLt(dest, lhs, rhs);
+        } else if opcode == BC_TEST_LE {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestGeUInt8(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_UINT8 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLtUInt8(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_UINT8 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLeUInt8(dest, lhs, rhs);
-
-        } else if opcode == BC_TEST_EQ_CHAR {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqChar(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_CHAR {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeChar(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_CHAR {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGtChar(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_CHAR {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGeChar(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_CHAR {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLtChar(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_CHAR {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLeChar(dest, lhs, rhs);
-
-        } else if opcode == BC_TEST_EQ_ENUM {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqEnum(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_ENUM {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeEnum(dest, lhs, rhs);
-
-        } else if opcode == BC_TEST_EQ_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqInt32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeInt32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGtInt32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGeInt32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLtInt32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_INT32 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLeInt32(dest, lhs, rhs);
-
-        } else if opcode == BC_TEST_EQ_INT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqInt64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_INT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeInt64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_INT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGtInt64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_INT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGeInt64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_INT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLtInt64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_INT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLeInt64(dest, lhs, rhs);
-
-        } else if opcode == BC_TEST_EQ_FLOAT32{
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqFloat32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_FLOAT32{
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeFloat32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_FLOAT32{
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGtFloat32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_FLOAT32{
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGeFloat32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_FLOAT32{
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLtFloat32(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_FLOAT32{
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLeFloat32(dest, lhs, rhs);
-
-        } else if opcode == BC_TEST_EQ_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqFloat64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeFloat64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGtFloat64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestGeFloat64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLtFloat64(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let lhs = self.readRegister(wide);
-            let rhs = self.readRegister(wide);
-            self.visitor.visitTestLeFloat64(dest, lhs, rhs);
-
-        } else if opcode == BC_ASSERT {
-            let value = self.readRegister(wide);
-            self.visitor.visitAssert(value);
+            self.visitor.visitTestLe(dest, lhs, rhs);
 
         } else if opcode == BC_LOOP_START {
             self.visitor.visitLoopStart();

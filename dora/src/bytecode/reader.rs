@@ -269,63 +269,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::SarInt64 { dest, lhs, rhs }
             }
 
-            BytecodeOpcode::RolInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::RolInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::RorInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::RorInt32 { dest, lhs, rhs }
-            }
-
-            BytecodeOpcode::RolInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::RolInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::RorInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::RorInt64 { dest, lhs, rhs }
-            }
-
-            BytecodeOpcode::CastCharToInt32 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::CastCharToInt32 { dest, src }
-            }
-            BytecodeOpcode::CastInt32ToUInt8 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::CastInt32ToUInt8 { dest, src }
-            }
-            BytecodeOpcode::CastInt32ToChar => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::CastInt32ToChar { dest, src }
-            }
-            BytecodeOpcode::CastInt64ToUInt8 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::CastInt64ToUInt8 { dest, src }
-            }
-            BytecodeOpcode::CastInt64ToChar => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::CastInt64ToChar { dest, src }
-            }
-            BytecodeOpcode::CastInt64ToInt32 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::CastInt64ToInt32 { dest, src }
-            }
-
             BytecodeOpcode::InstanceOf => {
                 let dest = self.read_register();
                 let src = self.read_register();
@@ -411,30 +354,6 @@ impl<'a> BytecodeReader<'a> {
                 let dest = self.read_register();
                 BytecodeInstruction::ConstFalse { dest }
             }
-            BytecodeOpcode::ConstZeroUInt8 => {
-                let dest = self.read_register();
-                BytecodeInstruction::ConstZeroUInt8 { dest }
-            }
-            BytecodeOpcode::ConstZeroChar => {
-                let dest = self.read_register();
-                BytecodeInstruction::ConstZeroChar { dest }
-            }
-            BytecodeOpcode::ConstZeroInt32 => {
-                let dest = self.read_register();
-                BytecodeInstruction::ConstZeroInt32 { dest }
-            }
-            BytecodeOpcode::ConstZeroInt64 => {
-                let dest = self.read_register();
-                BytecodeInstruction::ConstZeroInt64 { dest }
-            }
-            BytecodeOpcode::ConstZeroFloat32 => {
-                let dest = self.read_register();
-                BytecodeInstruction::ConstZeroFloat32 { dest }
-            }
-            BytecodeOpcode::ConstZeroFloat64 => {
-                let dest = self.read_register();
-                BytecodeInstruction::ConstZeroFloat64 { dest }
-            }
             BytecodeOpcode::ConstChar => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_idx();
@@ -477,252 +396,41 @@ impl<'a> BytecodeReader<'a> {
                 let rhs = self.read_register();
                 BytecodeInstruction::TestIdentity { dest, lhs, rhs }
             }
-
-            BytecodeOpcode::TestEqBool => {
+            BytecodeOpcode::TestEq => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::TestEqBool { dest, lhs, rhs }
+                BytecodeInstruction::TestEq { dest, lhs, rhs }
             }
-            BytecodeOpcode::TestNeBool => {
+            BytecodeOpcode::TestNe => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::TestNeBool { dest, lhs, rhs }
+                BytecodeInstruction::TestNe { dest, lhs, rhs }
             }
-            BytecodeOpcode::TestEqUInt8 => {
+            BytecodeOpcode::TestGt => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::TestEqUInt8 { dest, lhs, rhs }
+                BytecodeInstruction::TestGt { dest, lhs, rhs }
             }
-            BytecodeOpcode::TestNeUInt8 => {
+            BytecodeOpcode::TestGe => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::TestNeUInt8 { dest, lhs, rhs }
+                BytecodeInstruction::TestGe { dest, lhs, rhs }
             }
-            BytecodeOpcode::TestGtUInt8 => {
+            BytecodeOpcode::TestLt => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::TestGtUInt8 { dest, lhs, rhs }
+                BytecodeInstruction::TestLt { dest, lhs, rhs }
             }
-            BytecodeOpcode::TestGeUInt8 => {
+            BytecodeOpcode::TestLe => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::TestGeUInt8 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLtUInt8 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLtUInt8 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLeUInt8 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLeUInt8 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestEqChar => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestEqChar { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestNeChar => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestNeChar { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGtChar => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGtChar { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGeChar => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGeChar { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLtChar => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLtChar { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLeChar => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLeChar { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestEqEnum => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestEqEnum { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestNeEnum => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestNeEnum { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestEqInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestEqInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestNeInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestNeInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGtInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGtInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGeInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGeInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLtInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLtInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLeInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLeInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestEqInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestEqInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestNeInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestNeInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGtInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGtInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGeInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGeInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLtInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLtInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLeInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLeInt32 { dest, lhs, rhs }
-            }
-
-            BytecodeOpcode::TestEqFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestEqFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestNeFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestNeFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGtFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGtFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGeFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGeFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLtFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLtFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLeFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLeFloat32 { dest, lhs, rhs }
-            }
-
-            BytecodeOpcode::TestEqFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestEqFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestNeFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestNeFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGtFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGtFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestGeFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestGeFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLtFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLtFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::TestLeFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::TestLeFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::Assert => {
-                let value = self.read_register();
-                BytecodeInstruction::Assert { value }
+                BytecodeInstruction::TestLe { dest, lhs, rhs }
             }
 
             BytecodeOpcode::JumpLoop => {
@@ -1099,39 +807,6 @@ where
                 self.visitor.visit_sar_int64(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::RorInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_ror_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::RorInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_ror_int32(dest, lhs, rhs);
-            }
-
-            BytecodeInstruction::RolInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_rol_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::RolInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_rol_int32(dest, lhs, rhs);
-            }
-
-            BytecodeInstruction::CastCharToInt32 { dest, src } => {
-                self.visitor.visit_cast_char_to_int32(dest, src);
-            }
-            BytecodeInstruction::CastInt32ToUInt8 { dest, src } => {
-                self.visitor.visit_cast_int32_to_uint8(dest, src);
-            }
-            BytecodeInstruction::CastInt32ToChar { dest, src } => {
-                self.visitor.visit_cast_int32_to_char(dest, src);
-            }
-            BytecodeInstruction::CastInt64ToUInt8 { dest, src } => {
-                self.visitor.visit_cast_int64_to_uint8(dest, src);
-            }
-            BytecodeInstruction::CastInt64ToChar { dest, src } => {
-                self.visitor.visit_cast_int64_to_char(dest, src);
-            }
-            BytecodeInstruction::CastInt64ToInt32 { dest, src } => {
-                self.visitor.visit_cast_int64_to_int32(dest, src);
-            }
-
             BytecodeInstruction::InstanceOf { dest, src, cls_id } => {
                 self.visitor.visit_instance_of(dest, src, cls_id);
             }
@@ -1185,24 +860,6 @@ where
             BytecodeInstruction::ConstFalse { dest } => {
                 self.visitor.visit_const_false(dest);
             }
-            BytecodeInstruction::ConstZeroUInt8 { dest } => {
-                self.visitor.visit_const_zero_uint8(dest);
-            }
-            BytecodeInstruction::ConstZeroChar { dest } => {
-                self.visitor.visit_const_zero_char(dest);
-            }
-            BytecodeInstruction::ConstZeroInt32 { dest } => {
-                self.visitor.visit_const_zero_int32(dest);
-            }
-            BytecodeInstruction::ConstZeroInt64 { dest } => {
-                self.visitor.visit_const_zero_int64(dest);
-            }
-            BytecodeInstruction::ConstZeroFloat32 { dest } => {
-                self.visitor.visit_const_zero_float32(dest);
-            }
-            BytecodeInstruction::ConstZeroFloat64 { dest } => {
-                self.visitor.visit_const_zero_float64(dest);
-            }
             BytecodeInstruction::ConstChar { dest, idx } => {
                 self.visitor.visit_const_char(dest, idx);
             }
@@ -1228,131 +885,23 @@ where
             BytecodeInstruction::TestIdentity { dest, lhs, rhs } => {
                 self.visitor.visit_test_identity(dest, lhs, rhs);
             }
-
-            BytecodeInstruction::TestEqBool { dest, lhs, rhs } => {
-                self.visitor.visit_test_eq_bool(dest, lhs, rhs);
+            BytecodeInstruction::TestEq { dest, lhs, rhs } => {
+                self.visitor.visit_test_eq(dest, lhs, rhs);
             }
-            BytecodeInstruction::TestNeBool { dest, lhs, rhs } => {
-                self.visitor.visit_test_ne_bool(dest, lhs, rhs);
+            BytecodeInstruction::TestNe { dest, lhs, rhs } => {
+                self.visitor.visit_test_ne(dest, lhs, rhs);
             }
-            BytecodeInstruction::TestEqUInt8 { dest, lhs, rhs } => {
-                self.visitor.visit_test_eq_uint8(dest, lhs, rhs);
+            BytecodeInstruction::TestGt { dest, lhs, rhs } => {
+                self.visitor.visit_test_gt(dest, lhs, rhs);
             }
-            BytecodeInstruction::TestNeUInt8 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ne_uint8(dest, lhs, rhs);
+            BytecodeInstruction::TestGe { dest, lhs, rhs } => {
+                self.visitor.visit_test_ge(dest, lhs, rhs);
             }
-            BytecodeInstruction::TestGtUInt8 { dest, lhs, rhs } => {
-                self.visitor.visit_test_gt_uint8(dest, lhs, rhs);
+            BytecodeInstruction::TestLt { dest, lhs, rhs } => {
+                self.visitor.visit_test_lt(dest, lhs, rhs);
             }
-            BytecodeInstruction::TestGeUInt8 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ge_uint8(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLtUInt8 { dest, lhs, rhs } => {
-                self.visitor.visit_test_lt_uint8(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLeUInt8 { dest, lhs, rhs } => {
-                self.visitor.visit_test_le_uint8(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestEqChar { dest, lhs, rhs } => {
-                self.visitor.visit_test_eq_char(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestNeChar { dest, lhs, rhs } => {
-                self.visitor.visit_test_ne_char(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGtChar { dest, lhs, rhs } => {
-                self.visitor.visit_test_gt_char(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGeChar { dest, lhs, rhs } => {
-                self.visitor.visit_test_ge_char(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLtChar { dest, lhs, rhs } => {
-                self.visitor.visit_test_lt_char(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLeChar { dest, lhs, rhs } => {
-                self.visitor.visit_test_le_char(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestEqEnum { dest, lhs, rhs } => {
-                self.visitor.visit_test_eq_enum(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestNeEnum { dest, lhs, rhs } => {
-                self.visitor.visit_test_ne_enum(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestEqInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_eq_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestNeInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ne_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGtInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_gt_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGeInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ge_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLtInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_lt_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLeInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_le_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestEqInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_eq_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestNeInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ne_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGtInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_gt_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGeInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ge_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLtInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_lt_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLeInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_le_int32(dest, lhs, rhs);
-            }
-
-            BytecodeInstruction::TestEqFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_eq_float32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestNeFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ne_float32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGtFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_gt_float32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGeFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ge_float32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLtFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_lt_float32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLeFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_test_le_float32(dest, lhs, rhs);
-            }
-
-            BytecodeInstruction::TestEqFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_eq_float64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestNeFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ne_float64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGtFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_gt_float64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestGeFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_ge_float64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLtFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_lt_float64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::TestLeFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_test_le_float64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::Assert { value } => {
-                self.visitor.visit_assert(value);
+            BytecodeInstruction::TestLe { dest, lhs, rhs } => {
+                self.visitor.visit_test_le(dest, lhs, rhs);
             }
 
             BytecodeInstruction::JumpLoop { offset } => {
@@ -1732,132 +1281,22 @@ pub trait BytecodeVisitor {
     fn visit_test_identity(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-
-    fn visit_test_eq_bool(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_eq(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ne_bool(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_ne(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_eq_uint8(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_gt(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ne_uint8(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_ge(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_gt_uint8(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_lt(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ge_uint8(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_lt_uint8(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_le_uint8(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_eq_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ne_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_gt_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ge_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_lt_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_le_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_eq_enum(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ne_enum(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_test_eq_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ne_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_gt_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ge_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_lt_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_le_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_test_eq_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ne_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_gt_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ge_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_lt_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_le_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_test_eq_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ne_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_gt_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ge_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_lt_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_le_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_test_eq_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ne_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_gt_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_ge_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_lt_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_test_le_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_assert(&mut self, _value: Register) {
+    fn visit_test_le(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 

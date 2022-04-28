@@ -2071,17 +2071,31 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(rhs)
         );
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Bool);
+        let bytecode_type = self.specialize_register_type(lhs);
 
-        self.emit_load_register(lhs, REG_RESULT.into());
-        self.emit_load_register(rhs, REG_TMP1.into());
+        if bytecode_type.is_any_float() {
+            self.emit_load_register(lhs, FREG_RESULT.into());
+            self.emit_load_register(rhs, FREG_TMP1.into());
 
-        let bytecode_type = self.bytecode.register_type(lhs);
+            self.asm.float_cmp(
+                mode(self.vm, bytecode_type),
+                REG_RESULT,
+                FREG_RESULT,
+                FREG_TMP1,
+                op,
+            );
 
-        self.asm
-            .cmp_reg(mode(self.vm, bytecode_type), REG_RESULT, REG_TMP1);
-        self.asm.set(REG_RESULT, op);
+            self.emit_store_register(REG_RESULT.into(), dest);
+        } else {
+            self.emit_load_register(lhs, REG_RESULT.into());
+            self.emit_load_register(rhs, REG_TMP1.into());
 
-        self.emit_store_register(REG_RESULT.into(), dest);
+            self.asm
+                .cmp_reg(mode(self.vm, bytecode_type), REG_RESULT, REG_TMP1);
+            self.asm.set(REG_RESULT, op);
+
+            self.emit_store_register(REG_RESULT.into(), dest);
+        }
     }
 
     fn emit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -2123,29 +2137,6 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             self.emit_const_bool(dest, true);
         }
-    }
-
-    fn emit_test_float(&mut self, dest: Register, lhs: Register, rhs: Register, op: CondCode) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Bool);
-
-        self.emit_load_register(lhs, FREG_RESULT.into());
-        self.emit_load_register(rhs, FREG_TMP1.into());
-
-        let bytecode_type = self.bytecode.register_type(lhs);
-
-        self.asm.float_cmp(
-            mode(self.vm, bytecode_type),
-            REG_RESULT,
-            FREG_RESULT,
-            FREG_TMP1,
-            op,
-        );
-
-        self.emit_store_register(REG_RESULT.into(), dest);
     }
 
     fn emit_jump_if(&mut self, src: Register, target: BytecodeOffset, op: bool) {
@@ -3833,7 +3824,71 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_shrink(dest_reg, MachineMode::Int64, src_reg, MachineMode::Int32);
             }
 
-            _ => unreachable!(),
+            Intrinsic::Assert => {
+                assert_eq!(arguments.len(), 1);
+                self.emit_load_register(arguments[0], REG_RESULT.into());
+                self.asm.assert(REG_RESULT, pos);
+            }
+
+            Intrinsic::Int64ToInt32 => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_int64_to_int(dest_reg, src_reg);
+            }
+
+            Intrinsic::Int64ToChar => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_shrink(dest_reg, MachineMode::Int32, src_reg, MachineMode::Int64);
+            }
+
+            Intrinsic::Int64ToByte => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_shrink(dest_reg, MachineMode::Int8, src_reg, MachineMode::Int64);
+            }
+
+            Intrinsic::Int32ToChar => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_shrink(dest_reg, MachineMode::Int32, src_reg, MachineMode::Int32);
+            }
+
+            Intrinsic::Int32ToByte => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_shrink(dest_reg, MachineMode::Int8, src_reg, MachineMode::Int32);
+            }
+
+            Intrinsic::CharToInt32 => {
+                assert_eq!(arguments.len(), 1);
+                let dest_reg = dest.expect("missing dest");
+                let src_reg = arguments[0];
+                self.emit_shrink(dest_reg, MachineMode::Int32, src_reg, MachineMode::Int32);
+            }
+
+            Intrinsic::Int32RotateLeft | Intrinsic::Int64RotateLeft => {
+                assert_eq!(arguments.len(), 2);
+                let dest_reg = dest.expect("missing dest");
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_rol_int(dest_reg, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32RotateRight | Intrinsic::Int64RotateRight => {
+                assert_eq!(arguments.len(), 2);
+                let dest_reg = dest.expect("missing dest");
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_ror_int(dest_reg, lhs_reg, rhs_reg);
+            }
+
+            _ => panic!("unimplemented intrinsic {:?}", intrinsic),
         }
     }
 
@@ -4706,49 +4761,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_sar_int(dest, lhs, rhs);
     }
 
-    fn visit_rol_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("RolInt32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_rol_int(dest, lhs, rhs);
-    }
-    fn visit_ror_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("RorInt32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_ror_int(dest, lhs, rhs);
-    }
-
-    fn visit_rol_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("RolInt64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_rol_int(dest, lhs, rhs);
-    }
-    fn visit_ror_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("RorInt64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_ror_int(dest, lhs, rhs);
-    }
-
-    fn visit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("CastCharToInt32 {}, {}", dest, src));
-        self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
-    }
-    fn visit_cast_int32_to_uint8(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("CastInt32ToUInt8 {}, {}", dest, src));
-        self.emit_shrink(dest, MachineMode::Int8, src, MachineMode::Int32);
-    }
-    fn visit_cast_int32_to_char(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("CastInt32ToChar {}, {}", dest, src));
-        self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
-    }
-    fn visit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("CastInt64ToUInt8 {}, {}", dest, src));
-        self.emit_shrink(dest, MachineMode::Int8, src, MachineMode::Int64);
-    }
-    fn visit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("CastInt64ToChar {}, {}", dest, src));
-        self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int64);
-    }
-    fn visit_cast_int64_to_int32(&mut self, dest: Register, src: Register) {
-        comment!(self, format!("CastInt64ToInt32 {}, {}", dest, src));
-        self.emit_int64_to_int(dest, src);
-    }
-
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
         comment!(self, {
             let (cls_id, type_params) = match self.bytecode.const_pool(cls_idx) {
@@ -5123,182 +5135,29 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, format!("TestIdentity {}, {}, {}", dest, lhs, rhs));
         self.emit_test_identity(dest, lhs, rhs);
     }
-
-    fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqBool {}, {}, {}", dest, lhs, rhs));
+    fn visit_test_eq(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEq {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
-    fn visit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeBool {}, {}, {}", dest, lhs, rhs));
+    fn visit_test_ne(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNe {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
-
-    fn visit_test_eq_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqUInt8 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
-    }
-    fn visit_test_ne_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeUInt8 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
-    }
-    fn visit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGtUInt8 {}, {}, {}", dest, lhs, rhs));
+    fn visit_test_gt(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGt {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
     }
-    fn visit_test_ge_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGeUInt8 {}, {}, {}", dest, lhs, rhs));
+    fn visit_test_ge(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGe {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
     }
-    fn visit_test_lt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLtUInt8 {}, {}, {}", dest, lhs, rhs));
+    fn visit_test_lt(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLt {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
     }
-    fn visit_test_le_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLeUInt8 {}, {}, {}", dest, lhs, rhs));
+    fn visit_test_le(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLe {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
-    }
-
-    fn visit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqChar {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
-    }
-    fn visit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeChar {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
-    }
-    fn visit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGtChar {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
-    }
-    fn visit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGeChar {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
-    }
-    fn visit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLtChar {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
-    }
-    fn visit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLeChar {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
-    }
-
-    fn visit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqEnum {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
-    }
-    fn visit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeEnum {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
-    }
-
-    fn visit_test_eq_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqInt32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
-    }
-    fn visit_test_ne_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeInt32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
-    }
-    fn visit_test_gt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGtInt32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
-    }
-    fn visit_test_ge_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGeInt32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
-    }
-    fn visit_test_lt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLtInt32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
-    }
-    fn visit_test_le_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLeInt32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
-    }
-
-    fn visit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqInt64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
-    }
-    fn visit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeInt64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
-    }
-    fn visit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGtInt64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
-    }
-    fn visit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGeInt64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
-    }
-    fn visit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLtInt64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
-    }
-    fn visit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLeInt64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
-    }
-
-    fn visit_test_eq_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqFloat32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::Equal);
-    }
-    fn visit_test_ne_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeFloat32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::NotEqual);
-    }
-    fn visit_test_gt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGtFloat32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::Greater);
-    }
-    fn visit_test_ge_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGeFloat32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::GreaterEq);
-    }
-    fn visit_test_lt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLtFloat32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::Less);
-    }
-    fn visit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLeFloat32 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
-    }
-
-    fn visit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestEqFloat64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::Equal);
-    }
-    fn visit_test_ne_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestNeFloat64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::NotEqual);
-    }
-    fn visit_test_gt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGtFloat64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::Greater);
-    }
-    fn visit_test_ge_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestGeFloat64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::GreaterEq);
-    }
-    fn visit_test_lt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLtFloat64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::Less);
-    }
-    fn visit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("TestLeFloat64 {}, {}, {}", dest, lhs, rhs));
-        self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
-    }
-
-    fn visit_assert(&mut self, value: Register) {
-        comment!(self, format!("Assert {}", value));
-        assert_eq!(self.bytecode.register_type(value), BytecodeType::Bool);
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
-        self.emit_load_register(value, REG_RESULT.into());
-
-        self.asm.assert(REG_RESULT, position);
     }
 
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {

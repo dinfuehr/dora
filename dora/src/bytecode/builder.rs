@@ -333,31 +333,6 @@ impl BytecodeBuilder {
         self.writer.emit_const_string(dest, value);
     }
 
-    pub fn emit_const_zero_uint8(&mut self, dest: Register) {
-        assert!(self.def(dest));
-        self.writer.emit_const_zero_uint8(dest);
-    }
-
-    pub fn emit_const_zero_int32(&mut self, dest: Register) {
-        assert!(self.def(dest));
-        self.writer.emit_const_zero_int32(dest);
-    }
-
-    pub fn emit_const_zero_int64(&mut self, dest: Register) {
-        assert!(self.def(dest));
-        self.writer.emit_const_zero_int64(dest);
-    }
-
-    pub fn emit_const_zero_float32(&mut self, dest: Register) {
-        assert!(self.def(dest));
-        self.writer.emit_const_zero_float32(dest);
-    }
-
-    pub fn emit_const_zero_float64(&mut self, dest: Register) {
-        assert!(self.def(dest));
-        self.writer.emit_const_zero_float64(dest);
-    }
-
     pub fn emit_const_true(&mut self, dest: Register) {
         assert!(self.def(dest));
         self.writer.emit_const_true(dest);
@@ -489,51 +464,6 @@ impl BytecodeBuilder {
         self.writer.emit_sar_int64(dest, lhs, rhs);
     }
 
-    pub fn emit_rol_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_rol_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_rol_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_rol_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_ror_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_ror_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_ror_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_ror_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_cast_char_to_int32(dest, src);
-    }
-    pub fn emit_cast_int32_to_uint8(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_cast_int32_to_uint8(dest, src);
-    }
-    pub fn emit_cast_int32_to_char(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_cast_int32_to_char(dest, src);
-    }
-    pub fn emit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_cast_int64_to_uint8(dest, src);
-    }
-    pub fn emit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_cast_int64_to_char(dest, src);
-    }
-    pub fn emit_cast_int64_to_int32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_cast_int64_to_int32(dest, src);
-    }
-
     pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
         assert!(self.def(dest) && self.used(src));
         self.writer.emit_instance_of(dest, src, cls_idx);
@@ -615,210 +545,34 @@ impl BytecodeBuilder {
         self.writer.emit_test_identity(dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_test_eq(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_bool(dest, lhs, rhs);
+        self.writer.emit_test_eq(dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_test_ne(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_uint8(dest, lhs, rhs);
+        self.writer.emit_test_ne(dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_test_gt(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_char(dest, lhs, rhs);
+        self.writer.emit_test_gt(dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_test_ge(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_enum(dest, lhs, rhs);
+        self.writer.emit_test_ge(dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_test_lt(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_int32(dest, lhs, rhs);
+        self.writer.emit_test_lt(dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_test_le(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_eq_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_eq_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_bool(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_uint8(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_char(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_enum(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ne_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ne_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_gt_uint8(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_gt_char(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_gt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_gt_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_gt_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_gt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_gt_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_gt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_gt_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ge_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ge_uint8(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ge_char(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ge_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ge_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ge_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ge_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ge_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_ge_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_ge_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_lt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_lt_uint8(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_lt_char(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_lt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_lt_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_lt_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_lt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_lt_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_lt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_lt_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_le_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_le_uint8(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_le_char(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_le_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_le_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_le_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_le_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_test_le_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_assert(&mut self, value: Register, pos: Position) {
-        assert!(self.used(value));
-        self.writer.set_position(pos);
-        self.writer.emit_assert(value);
+        self.writer.emit_test_le(dest, lhs, rhs);
     }
 
     pub fn emit_load_global(&mut self, dest: Register, gid: GlobalDefinitionId) {

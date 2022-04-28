@@ -420,28 +420,6 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
     @override fn visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
     @override fn visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
-    @override fn visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }
-    @override fn visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
-    @override fn visitConstZeroInt32(dest: BytecodeRegister) {
-        let inst = createInt32Const(0i32);
-        self.current().appendInst(inst);
-        self.writeVariable(dest, self.current(), inst);
-    }
-    @override fn visitConstZeroInt64(dest: BytecodeRegister) {
-        let inst = createInt64Const(0);
-        self.current().appendInst(inst);
-        self.writeVariable(dest, self.current(), inst);
-    }
-    @override fn visitConstZeroFloat32(dest: BytecodeRegister) {
-        let inst = createFloat32Const(0.0f32);
-        self.current().appendInst(inst);
-        self.writeVariable(dest, self.current(), inst);
-    }
-    @override fn visitConstZeroFloat64(dest: BytecodeRegister) {
-        let inst = createFloat64Const(0.0);
-        self.current().appendInst(inst);
-        self.writeVariable(dest, self.current(), inst);
-    }
     @override fn visitConstUInt8(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
     @override fn visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fn visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {
@@ -470,54 +448,36 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
     @override fn visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @override fn visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, Op::Equal, Type::ptr());
+    @override fn visitTestEq(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, Op::Equal);
     }
-    @override fn visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, Op::NotEqual, Type::ptr());
+    @override fn visitTestNe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, Op::NotEqual);
     }
-
-    @override fn visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, Op::Equal, Type::int32());
+    @override fn visitTestGt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, Op::Greater);
     }
-    @override fn visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, Op::NotEqual, Type::int32());
+    @override fn visitTestGe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, Op::GreaterOrEqual);
     }
-    @override fn visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, Op::Greater, Type::int32());
+    @override fn visitTestLt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, Op::Less);
     }
-    @override fn visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, Op::GreaterOrEqual, Type::int32());
-    }
-    @override fn visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, Op::Less, Type::int32());
-    }
-    @override fn visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitTest(dest, lhs, rhs, Op::LessOrEqual, Type::int32());
+    @override fn visitTestLe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, Op::LessOrEqual);
     }
 
-    @override fn visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    fn emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
+        let registerType = self.bc.registers(lhs.value.toInt64());
 
-    @override fn visitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+        let ty = match registerType {
+            BytecodeType::Int32 => Type::int32(),
+            BytecodeType::Int64 => Type::int64(),
+            BytecodeType::Float32 => Type::float32(),
+            BytecodeType::Float64 => Type::float64(),
+            _ => unreachable[Type](),
+        };
 
-    @override fn visitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fn visitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-
-    fn emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op, ty: Type) {
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
         let destInst = createTestInst(op, ty, lhsInst, rhsInst);

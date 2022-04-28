@@ -191,46 +191,6 @@ class BytecodeBuilder {
         self.emitReg3(BC_SAR_INT64, dest, lhs, rhs);
     }
 
-    fn emitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ROL_INT32, dest, lhs, rhs);
-    }
-
-    fn emitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ROR_INT32, dest, lhs, rhs);
-    }
-
-    fn emitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ROL_INT64, dest, lhs, rhs);
-    }
-
-    fn emitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ROR_INT64, dest, lhs, rhs);
-    }
-
-    fn emitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CAST_CHAR_TO_INT32, dest, src);
-    }
-
-    fn emitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CAST_INT32_TO_UINT8, dest, src);
-    }
-
-    fn emitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CAST_INT32_TO_CHAR, dest, src);
-    }
-
-    fn emitCastInt64toUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CAST_INT64_TO_UINT8, dest, src);
-    }
-
-    fn emitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CAST_INT64_TO_CHAR, dest, src);
-    }
-
-    fn emitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CAST_INT64_TO_INT32, dest, src);
-    }
-
     fn emitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {
         self.emitReg2AndCls(BC_INSTANCE_OF, dest, src, cls);
     }
@@ -271,30 +231,6 @@ class BytecodeBuilder {
         self.emitReg1(BC_CONST_FALSE, dest);
     }
 
-    fn emitConstZeroByte(dest: BytecodeRegister) {
-        self.emitReg1(BC_CONST_ZERO_UINT8, dest);
-    }
-
-    fn emitConstZeroChar(dest: BytecodeRegister) {
-        self.emitReg1(BC_CONST_ZERO_CHAR, dest);
-    }
-
-    fn emitConstZeroInt32(dest: BytecodeRegister) {
-        self.emitReg1(BC_CONST_ZERO_INT32, dest);
-    }
-
-    fn emitConstZeroInt64(dest: BytecodeRegister) {
-        self.emitReg1(BC_CONST_ZERO_INT64, dest);
-    }
-
-    fn emitConstZeroFloat32(dest: BytecodeRegister) {
-        self.emitReg1(BC_CONST_ZERO_FLOAT32, dest);
-    }
-
-    fn emitConstZeroFloat64(dest: BytecodeRegister) {
-        self.emitReg1(BC_CONST_ZERO_FLOAT64, dest);
-    }
-
     fn emitConstByte(dest: BytecodeRegister, value: UInt8) {
         self.emitReg1AndByte(BC_CONST_UINT8, dest, value);
     }
@@ -329,168 +265,28 @@ class BytecodeBuilder {
         self.emitReg1AndIdx(BC_CONST_STRING, dest, idx);
     }
 
-    fn emitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_BOOL, dest, lhs, rhs);
+    fn emitTestEq(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_EQ, dest, lhs, rhs);
     }
 
-    fn emitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_BOOL, dest, lhs, rhs);
+    fn emitTestNe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_NE, dest, lhs, rhs);
     }
 
-    fn emitTestEqByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_UINT8, dest, lhs, rhs);
+    fn emitTestGt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GT, dest, lhs, rhs);
     }
 
-    fn emitTestNeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_UINT8, dest, lhs, rhs);
+    fn emitTestGe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GE, dest, lhs, rhs);
     }
 
-    fn emitTestGtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GT_UINT8, dest, lhs, rhs);
+    fn emitTestLt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LT, dest, lhs, rhs);
     }
 
-    fn emitTestGeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GE_UINT8, dest, lhs, rhs);
-    }
-
-    fn emitTestLtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LT_UINT8, dest, lhs, rhs);
-    }
-
-    fn emitTestLeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LE_UINT8, dest, lhs, rhs);
-    }
-
-    fn emitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_CHAR, dest, lhs, rhs);
-    }
-
-    fn emitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_CHAR, dest, lhs, rhs);
-    }
-
-    fn emitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GT_CHAR, dest, lhs, rhs);
-    }
-
-    fn emitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GE_CHAR, dest, lhs, rhs);
-    }
-
-    fn emitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LT_CHAR, dest, lhs, rhs);
-    }
-
-    fn emitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LE_CHAR, dest, lhs, rhs);
-    }
-
-    fn emitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_ENUM, dest, lhs, rhs);
-    }
-
-    fn emitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_ENUM, dest, lhs, rhs);
-    }
-
-    fn emitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_INT32, dest, lhs, rhs);
-    }
-
-    fn emitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_INT32, dest, lhs, rhs);
-    }
-
-    fn emitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GT_INT32, dest, lhs, rhs);
-    }
-
-    fn emitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GE_INT32, dest, lhs, rhs);
-    }
-
-    fn emitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LT_INT32, dest, lhs, rhs);
-    }
-
-    fn emitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LE_INT32, dest, lhs, rhs);
-    }
-
-    fn emitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_INT64, dest, lhs, rhs);
-    }
-
-    fn emitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_INT64, dest, lhs, rhs);
-    }
-
-    fn emitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GT_INT64, dest, lhs, rhs);
-    }
-
-    fn emitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GE_INT64, dest, lhs, rhs);
-    }
-
-    fn emitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LT_INT64, dest, lhs, rhs);
-    }
-
-    fn emitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LE_INT64, dest, lhs, rhs);
-    }
-
-    fn emitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_FLOAT32, dest, lhs, rhs);
-    }
-
-    fn emitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_FLOAT32, dest, lhs, rhs);
-    }
-
-    fn emitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GT_FLOAT32, dest, lhs, rhs);
-    }
-
-    fn emitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GE_FLOAT32, dest, lhs, rhs);
-    }
-
-    fn emitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LT_FLOAT32, dest, lhs, rhs);
-    }
-
-    fn emitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LE_FLOAT32, dest, lhs, rhs);
-    }
-
-    fn emitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_FLOAT64, dest, lhs, rhs);
-    }
-
-    fn emitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_FLOAT64, dest, lhs, rhs);
-    }
-
-    fn emitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GT_FLOAT64, dest, lhs, rhs);
-    }
-
-    fn emitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GE_FLOAT64, dest, lhs, rhs);
-    }
-
-    fn emitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LT_FLOAT64, dest, lhs, rhs);
-    }
-
-    fn emitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LE_FLOAT64, dest, lhs, rhs);
-    }
-
-    fn emitAssert(value: BytecodeRegister) {
-        self.emitReg1(BC_ASSERT, value);
+    fn emitTestLe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LE, dest, lhs, rhs);
     }
 
     fn emitJumpLoop(lbl: BytecodeLabel) {

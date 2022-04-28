@@ -95,19 +95,6 @@ enumeration!(BytecodeOpcode {
     ShrInt64,
     SarInt64,
 
-    RolInt32,
-    RorInt32,
-
-    RolInt64,
-    RorInt64,
-
-    CastCharToInt32,
-    CastInt32ToUInt8,
-    CastInt32ToChar,
-    CastInt64ToUInt8,
-    CastInt64ToChar,
-    CastInt64ToInt32,
-
     InstanceOf,
     CheckedCast,
 
@@ -128,12 +115,6 @@ enumeration!(BytecodeOpcode {
 
     ConstTrue,
     ConstFalse,
-    ConstZeroUInt8,
-    ConstZeroChar,
-    ConstZeroInt32,
-    ConstZeroInt64,
-    ConstZeroFloat32,
-    ConstZeroFloat64,
     ConstUInt8,
     ConstChar,
     ConstInt32,
@@ -143,56 +124,12 @@ enumeration!(BytecodeOpcode {
     ConstString,
 
     TestIdentity,
-
-    TestEqBool,
-    TestNeBool,
-
-    TestEqUInt8,
-    TestNeUInt8,
-    TestGtUInt8,
-    TestGeUInt8,
-    TestLtUInt8,
-    TestLeUInt8,
-
-    TestEqChar,
-    TestNeChar,
-    TestGtChar,
-    TestGeChar,
-    TestLtChar,
-    TestLeChar,
-
-    TestEqEnum,
-    TestNeEnum,
-
-    TestEqInt32,
-    TestNeInt32,
-    TestGtInt32,
-    TestGeInt32,
-    TestLtInt32,
-    TestLeInt32,
-
-    TestEqInt64,
-    TestNeInt64,
-    TestGtInt64,
-    TestGeInt64,
-    TestLtInt64,
-    TestLeInt64,
-
-    TestEqFloat32,
-    TestNeFloat32,
-    TestGtFloat32,
-    TestGeFloat32,
-    TestLtFloat32,
-    TestLeFloat32,
-
-    TestEqFloat64,
-    TestNeFloat64,
-    TestGtFloat64,
-    TestGeFloat64,
-    TestLtFloat64,
-    TestLeFloat64,
-
-    Assert,
+    TestEq,
+    TestNe,
+    TestGt,
+    TestGe,
+    TestLt,
+    TestLe,
 
     // Backward jump
     JumpLoop,
@@ -315,13 +252,6 @@ impl BytecodeOpcode {
             BytecodeOpcode::PushRegister
             | BytecodeOpcode::ConstTrue
             | BytecodeOpcode::ConstFalse
-            | BytecodeOpcode::ConstZeroUInt8
-            | BytecodeOpcode::ConstZeroChar
-            | BytecodeOpcode::ConstZeroInt32
-            | BytecodeOpcode::ConstZeroInt64
-            | BytecodeOpcode::ConstZeroFloat32
-            | BytecodeOpcode::ConstZeroFloat64
-            | BytecodeOpcode::Assert
             | BytecodeOpcode::Ret
             | BytecodeOpcode::NilCheck
             | BytecodeOpcode::InvokeGenericDirectVoid
@@ -340,12 +270,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NotBool
             | BytecodeOpcode::NotInt32
             | BytecodeOpcode::NotInt64
-            | BytecodeOpcode::CastCharToInt32
-            | BytecodeOpcode::CastInt32ToUInt8
-            | BytecodeOpcode::CastInt32ToChar
-            | BytecodeOpcode::CastInt64ToUInt8
-            | BytecodeOpcode::CastInt64ToChar
-            | BytecodeOpcode::CastInt64ToInt32
             | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::Mov
             | BytecodeOpcode::LoadGlobal
@@ -402,56 +326,17 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ShlInt64
             | BytecodeOpcode::ShrInt64
             | BytecodeOpcode::SarInt64
-            | BytecodeOpcode::RolInt32
-            | BytecodeOpcode::RorInt32
-            | BytecodeOpcode::RolInt64
-            | BytecodeOpcode::RorInt64
             | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadStructField
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField
-            | BytecodeOpcode::TestIdentity
-            | BytecodeOpcode::TestEqBool
-            | BytecodeOpcode::TestNeBool
-            | BytecodeOpcode::TestEqUInt8
-            | BytecodeOpcode::TestNeUInt8
-            | BytecodeOpcode::TestGtUInt8
-            | BytecodeOpcode::TestGeUInt8
-            | BytecodeOpcode::TestLtUInt8
-            | BytecodeOpcode::TestLeUInt8
-            | BytecodeOpcode::TestEqChar
-            | BytecodeOpcode::TestNeChar
-            | BytecodeOpcode::TestGtChar
-            | BytecodeOpcode::TestGeChar
-            | BytecodeOpcode::TestLtChar
-            | BytecodeOpcode::TestLeChar
-            | BytecodeOpcode::TestEqEnum
-            | BytecodeOpcode::TestNeEnum
-            | BytecodeOpcode::TestEqInt32
-            | BytecodeOpcode::TestNeInt32
-            | BytecodeOpcode::TestGtInt32
-            | BytecodeOpcode::TestGeInt32
-            | BytecodeOpcode::TestLtInt32
-            | BytecodeOpcode::TestLeInt32
-            | BytecodeOpcode::TestEqInt64
-            | BytecodeOpcode::TestNeInt64
-            | BytecodeOpcode::TestGtInt64
-            | BytecodeOpcode::TestGeInt64
-            | BytecodeOpcode::TestLtInt64
-            | BytecodeOpcode::TestLeInt64
-            | BytecodeOpcode::TestEqFloat32
-            | BytecodeOpcode::TestNeFloat32
-            | BytecodeOpcode::TestGtFloat32
-            | BytecodeOpcode::TestGeFloat32
-            | BytecodeOpcode::TestLtFloat32
-            | BytecodeOpcode::TestLeFloat32
-            | BytecodeOpcode::TestEqFloat64
-            | BytecodeOpcode::TestNeFloat64
-            | BytecodeOpcode::TestGtFloat64
-            | BytecodeOpcode::TestGeFloat64
-            | BytecodeOpcode::TestLtFloat64
-            | BytecodeOpcode::TestLeFloat64
+            | BytecodeOpcode::TestEq
+            | BytecodeOpcode::TestNe
+            | BytecodeOpcode::TestGt
+            | BytecodeOpcode::TestGe
+            | BytecodeOpcode::TestLt
+            | BytecodeOpcode::TestLe
             | BytecodeOpcode::LoadArray
             | BytecodeOpcode::StoreArray
             | BytecodeOpcode::NewArray
@@ -499,7 +384,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArray
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
-            | BytecodeOpcode::Assert
             | BytecodeOpcode::AddInt32
             | BytecodeOpcode::AddInt64
             | BytecodeOpcode::SubInt32
@@ -702,53 +586,6 @@ pub enum BytecodeInstruction {
         rhs: Register,
     },
 
-    RolInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    RorInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    RolInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    RorInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    CastCharToInt32 {
-        dest: Register,
-        src: Register,
-    },
-    CastInt32ToUInt8 {
-        dest: Register,
-        src: Register,
-    },
-    CastInt32ToChar {
-        dest: Register,
-        src: Register,
-    },
-    CastInt64ToUInt8 {
-        dest: Register,
-        src: Register,
-    },
-    CastInt64ToChar {
-        dest: Register,
-        src: Register,
-    },
-    CastInt64ToInt32 {
-        dest: Register,
-        src: Register,
-    },
-
     InstanceOf {
         dest: Register,
         src: Register,
@@ -815,24 +652,6 @@ pub enum BytecodeInstruction {
     ConstFalse {
         dest: Register,
     },
-    ConstZeroUInt8 {
-        dest: Register,
-    },
-    ConstZeroChar {
-        dest: Register,
-    },
-    ConstZeroInt32 {
-        dest: Register,
-    },
-    ConstZeroInt64 {
-        dest: Register,
-    },
-    ConstZeroFloat32 {
-        dest: Register,
-    },
-    ConstZeroFloat64 {
-        dest: Register,
-    },
     ConstUInt8 {
         dest: Register,
         value: u8,
@@ -868,216 +687,35 @@ pub enum BytecodeInstruction {
         rhs: Register,
     },
 
-    TestEqBool {
+    TestEq {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
-    TestNeBool {
+    TestNe {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
-
-    TestEqUInt8 {
+    TestGt {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
-    TestNeUInt8 {
+    TestGe {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
-    TestGtUInt8 {
+    TestLt {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
-    TestGeUInt8 {
+    TestLe {
         dest: Register,
         lhs: Register,
         rhs: Register,
-    },
-    TestLtUInt8 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLeUInt8 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    TestEqChar {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestNeChar {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGtChar {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGeChar {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLtChar {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLeChar {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    TestEqEnum {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestNeEnum {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    TestEqInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestNeInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGtInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGeInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLtInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLeInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    TestEqInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestNeInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGtInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGeInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLtInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLeInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    TestEqFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestNeFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGtFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGeFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLtFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLeFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    TestEqFloat64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestNeFloat64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGtFloat64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestGeFloat64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLtFloat64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    TestLeFloat64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    Assert {
-        value: Register,
     },
 
     // Backward jump

@@ -936,140 +936,23 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         writeln!(self.w, " {}, @{} # \"{}\"", dest, idx.to_usize(), value).expect("write! failed");
     }
 
-    fn visit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestIdentity", dest, lhs, rhs);
+    fn visit_test_eq(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestEq", dest, lhs, rhs);
     }
-
-    fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqBool", dest, lhs, rhs);
+    fn visit_test_ne(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestNe", dest, lhs, rhs);
     }
-    fn visit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeBool", dest, lhs, rhs);
+    fn visit_test_gt(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGt", dest, lhs, rhs);
     }
-
-    fn visit_test_eq_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqUInt8", dest, lhs, rhs);
+    fn visit_test_ge(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGe", dest, lhs, rhs);
     }
-    fn visit_test_ne_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeUInt8", dest, lhs, rhs);
+    fn visit_test_lt(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLt", dest, lhs, rhs);
     }
-    fn visit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtUInt8", dest, lhs, rhs);
-    }
-    fn visit_test_ge_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeUInt8", dest, lhs, rhs);
-    }
-    fn visit_test_lt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtUInt8", dest, lhs, rhs);
-    }
-    fn visit_test_le_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeUInt8", dest, lhs, rhs);
-    }
-
-    fn visit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqChar", dest, lhs, rhs);
-    }
-    fn visit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeChar", dest, lhs, rhs);
-    }
-    fn visit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtChar", dest, lhs, rhs);
-    }
-    fn visit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeChar", dest, lhs, rhs);
-    }
-    fn visit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtChar", dest, lhs, rhs);
-    }
-    fn visit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeChar", dest, lhs, rhs);
-    }
-
-    fn visit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqEnum", dest, lhs, rhs);
-    }
-    fn visit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeEnum", dest, lhs, rhs);
-    }
-
-    fn visit_test_eq_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqInt32", dest, lhs, rhs);
-    }
-    fn visit_test_ne_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeInt32", dest, lhs, rhs);
-    }
-    fn visit_test_gt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtInt32", dest, lhs, rhs);
-    }
-    fn visit_test_ge_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeInt32", dest, lhs, rhs);
-    }
-    fn visit_test_lt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtInt32", dest, lhs, rhs);
-    }
-    fn visit_test_le_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeInt32", dest, lhs, rhs);
-    }
-
-    fn visit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqInt64", dest, lhs, rhs);
-    }
-    fn visit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeInt64", dest, lhs, rhs);
-    }
-    fn visit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtInt64", dest, lhs, rhs);
-    }
-    fn visit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeInt64", dest, lhs, rhs);
-    }
-    fn visit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtInt64", dest, lhs, rhs);
-    }
-    fn visit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeInt64", dest, lhs, rhs);
-    }
-
-    fn visit_test_eq_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqFloat32", dest, lhs, rhs);
-    }
-    fn visit_test_ne_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeFloat32", dest, lhs, rhs);
-    }
-    fn visit_test_gt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtFloat32", dest, lhs, rhs);
-    }
-    fn visit_test_ge_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeFloat32", dest, lhs, rhs);
-    }
-    fn visit_test_lt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtFloat32", dest, lhs, rhs);
-    }
-    fn visit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeFloat32", dest, lhs, rhs);
-    }
-
-    fn visit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqFloat64", dest, lhs, rhs);
-    }
-    fn visit_test_ne_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeFloat64", dest, lhs, rhs);
-    }
-    fn visit_test_gt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtFloat64", dest, lhs, rhs);
-    }
-    fn visit_test_ge_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeFloat64", dest, lhs, rhs);
-    }
-    fn visit_test_lt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtFloat64", dest, lhs, rhs);
-    }
-    fn visit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeFloat64", dest, lhs, rhs);
-    }
-
-    fn visit_assert(&mut self, value: Register) {
-        self.emit_reg1("Assert", value);
+    fn visit_test_le(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLe", dest, lhs, rhs);
     }
 
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
