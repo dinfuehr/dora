@@ -19,50 +19,41 @@ impl NativeStacktrace {
         self.elems.len()
     }
 
-    pub fn push_entry(&mut self, fct_id: CodeId, lineno: i32) {
+    pub fn push_entry(&mut self, fct_id: CodeId, lineno: u32) {
         self.elems.push(StackElem { fct_id, lineno });
     }
 
-    pub fn dump(&self, vm: &VM) {
+    pub fn dump(&self, vm: &VM, w: &mut (impl std::io::Write + ?Sized)) -> std::io::Result<()> {
         let frames = self.elems.len();
         for (ind, elem) in self.elems.iter().enumerate() {
             let code = vm.code_objects.get(elem.fct_id);
             let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
-            let name = fct.name_with_params(vm);
-            print!("{}: {}: ", frames - ind, name);
-
-            if elem.lineno == 0 {
-                println!("?");
+            let name = fct.name(vm);
+            let file = &vm.source_file(fct.file_id).path;
+            let lineno = if elem.lineno == 0 {
+                fct.pos.line
             } else {
-                println!("{}", elem.lineno);
-            }
+                elem.lineno
+            };
+            writeln!(
+                w,
+                "{}: {} ({}:{})",
+                frames - ind,
+                name,
+                file.display(),
+                lineno
+            )?;
         }
-    }
 
-    pub fn dump_err(&self, vm: &VM) {
-        let frames = self.elems.len();
-        for (ind, elem) in self.elems.iter().enumerate() {
-            let code = vm.code_objects.get(elem.fct_id);
-            let fct_id = code.fct_id();
-            let fct = vm.fcts.idx(fct_id);
-            let fct = fct.read();
-            let name = fct.name_with_params(vm);
-            eprint!("{}: {}: ", frames - ind, name);
-
-            if elem.lineno == 0 {
-                eprintln!("?");
-            } else {
-                eprintln!("{}", elem.lineno);
-            }
-        }
+        Ok(())
     }
 }
 
 struct StackElem {
     fct_id: CodeId,
-    lineno: i32,
+    lineno: u32,
 }
 
 #[repr(C)]
@@ -148,7 +139,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
                     .position_for_offset(offset as u32)
                     .expect("position not found for program point");
 
-                stacktrace.push_entry(code_id, position.line as i32);
+                stacktrace.push_entry(code_id, position.line);
 
                 true
             }
@@ -157,7 +148,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
                 let fct = vm.fcts.idx(fct_id);
                 let fct = fct.read();
 
-                stacktrace.push_entry(code_id, fct.ast.pos.line as i32);
+                stacktrace.push_entry(code_id, fct.ast.pos.line);
 
                 true
             }
@@ -287,7 +278,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     let mut i = 0;
 
     for elem in stacktrace.elems.iter().skip(skip) {
-        array.set_at(i, elem.lineno);
+        array.set_at(i, elem.lineno as i32);
         array.set_at(i + 1, elem.fct_id.idx() as i32);
         i += 2;
     }

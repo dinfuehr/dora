@@ -86,7 +86,9 @@ pub extern "C" fn fatal_error(msg: Handle<Str>) {
 
     let vm = get_vm();
     let stacktrace = stacktrace_from_last_dtn(vm);
-    stacktrace.dump_err(vm);
+    let stderr = std::io::stderr();
+    let mut stderr = stderr.lock();
+    stacktrace.dump(vm, &mut stderr).expect("output broken");
 
     std::process::exit(1);
 }
@@ -106,7 +108,9 @@ pub extern "C" fn unreachable() {
     eprintln!("unreachable code executed.");
 
     let stacktrace = stacktrace_from_last_dtn(vm);
-    stacktrace.dump_err(vm);
+    let stderr = std::io::stderr();
+    let mut stderr = stderr.lock();
+    stacktrace.dump(vm, &mut stderr).expect("output broken");
 
     std::process::exit(1);
 }
@@ -284,7 +288,9 @@ pub extern "C" fn trap(trap_id: u32) {
 
     eprintln!("{}", msg);
     let stacktrace = stacktrace_from_last_dtn(vm);
-    stacktrace.dump_err(vm);
+    let stderr = std::io::stderr();
+    let mut stderr = stderr.lock();
+    stacktrace.dump(vm, &mut stderr).expect("output broken");
     unsafe {
         libc::_exit(100 + trap_id as i32);
     }
