@@ -351,33 +351,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         if let Some((for_type_info, ret_type)) =
-            self.type_supports_old_iterator_protocol(object_type.clone())
-        {
-            self.symtable.push_level();
-            // set variable type to return type of next
-            self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
-            // store fct ids for code generation
-            self.analysis.map_fors.insert(stmt.id, for_type_info);
-            self.check_loop_body(&stmt.block);
-            self.symtable.pop_level();
-            return;
-        }
-
-        if let Some((for_type_info, ret_type)) =
             self.type_supports_iterator_protocol(object_type.clone())
-        {
-            self.symtable.push_level();
-            // set variable type to return type of next
-            self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
-            // store fct ids for code generation
-            self.analysis.map_fors.insert(stmt.id, for_type_info);
-            self.check_loop_body(&stmt.block);
-            self.symtable.pop_level();
-            return;
-        }
-
-        if let Some((for_type_info, ret_type)) =
-            self.type_supports_old_iterator_protocol(object_type.clone())
         {
             self.symtable.push_level();
             // set variable type to return type of next
@@ -397,22 +371,6 @@ impl<'a> TypeCheck<'a> {
             {
                 self.symtable.push_level();
 
-                // set variable type to return type of next
-                self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
-
-                // store fct ids for code generation
-                for_type_info.make_iterator = Some(make_iterator);
-                self.analysis.map_fors.insert(stmt.id, for_type_info);
-
-                self.check_loop_body(&stmt.block);
-                self.symtable.pop_level();
-                return;
-            }
-
-            if let Some((mut for_type_info, ret_type)) =
-                self.type_supports_old_iterator_protocol(iterator_type)
-            {
-                self.symtable.push_level();
                 // set variable type to return type of next
                 self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
 
@@ -470,55 +428,6 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn type_supports_old_iterator_protocol(
-        &mut self,
-        object_type: SourceType,
-    ) -> Option<(ForTypeInfo, SourceType)> {
-        let has_next_name = self.sa.interner.intern("hasNext");
-
-        let mut has_next = MethodLookup::new(self.sa, self.fct)
-            .no_error_reporting()
-            .method(object_type.clone())
-            .name(has_next_name)
-            .type_param_defs(&self.fct.type_params)
-            .args(&[]);
-
-        if !has_next.find() {
-            return None;
-        }
-        if !has_next.found_ret().unwrap().is_bool() {
-            return None;
-        }
-
-        let next_name = self.sa.interner.intern("next");
-
-        let mut next = MethodLookup::new(self.sa, self.fct)
-            .no_error_reporting()
-            .method(object_type.clone())
-            .name(next_name)
-            .type_param_defs(&self.fct.type_params)
-            .args(&[]);
-
-        if !next.find() {
-            return None;
-        }
-
-        let next_type = next.found_ret().unwrap();
-
-        Some((
-            ForTypeInfo {
-                make_iterator: None,
-                has_next: Some(has_next.found_fct_id().expect("fct_id missing")),
-                next: Some(next.found_fct_id().expect("fct_id missing")),
-                new_next: None,
-                iterator_type: object_type,
-                next_type: next_type.clone(),
-                value_type: next_type.clone(),
-            },
-            next_type,
-        ))
-    }
-
     fn type_supports_iterator_protocol(
         &mut self,
         object_type: SourceType,
@@ -536,9 +445,9 @@ impl<'a> TypeCheck<'a> {
             return None;
         }
 
-        let return_type = next.found_ret().unwrap();
+        let next_result_type = next.found_ret().unwrap();
 
-        let next_type = if let SourceType::Enum(enum_id, type_params) = return_type.clone() {
+        let value_type = if let SourceType::Enum(enum_id, type_params) = next_result_type.clone() {
             if enum_id == self.sa.known.enums.option() {
                 assert_eq!(type_params.len(), 1);
                 type_params[0].clone()
@@ -552,14 +461,12 @@ impl<'a> TypeCheck<'a> {
         Some((
             ForTypeInfo {
                 make_iterator: None,
-                has_next: None,
-                next: None,
-                new_next: Some(next.found_fct_id().expect("fct_id missing")),
+                next: next.found_fct_id().expect("fct_id missing"),
                 iterator_type: object_type,
-                next_type: return_type,
-                value_type: next_type.clone(),
+                next_type: next_result_type,
+                value_type: value_type.clone(),
             },
-            next_type,
+            value_type,
         ))
     }
 

@@ -1236,8 +1236,7 @@ fn test_for_supports_make_iterator() {
         "class Foo { fn makeIterator(): FooIter { return FooIter(); } }
             class FooIter
             impl std::Iterator for FooIter {
-                fn hasNext(): Bool { return false; }
-                fn next(): Int32 { return 0; }
+                fn next(): Option[Int32] { Some[Int32](0i32) }
             }
             fn f(): Int32 { for i in Foo() { return i; } return 0i32; }",
     );

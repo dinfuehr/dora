@@ -1,4 +1,3 @@
 @pub trait Iterator {
-  fn hasNext(): Bool;
-  fn next(): Int32; // this should be made generic
+  fn next(): Option[Int32]; // this should be made generic
 }

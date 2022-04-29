@@ -11,13 +11,13 @@ class Int32RangeIter(let range: Int32Range) {
 }
 
 impl Iterator for Int32RangeIter {
-  fn hasNext(): Bool {
-    return self.value < self.range.upper;
-  }
-
-  fn next(): Int32 {
-    let cur = self.value;
-    self.value = cur + 1i32;
-    return cur;
+  fn next(): Option[Int32] {
+    if self.value < self.range.upper {
+      let cur = self.value;
+      self.value = cur + 1i32;
+      Some[Int32](cur)
+    } else {
+      None[Int32]
+    }
   }
 }

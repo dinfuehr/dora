@@ -188,9 +188,7 @@ impl IdentType {
 #[derive(Debug, Clone)]
 pub struct ForTypeInfo {
     pub make_iterator: Option<FctDefinitionId>,
-    pub next: Option<FctDefinitionId>,
-    pub new_next: Option<FctDefinitionId>,
-    pub has_next: Option<FctDefinitionId>,
+    pub next: FctDefinitionId,
     pub iterator_type: SourceType,
     pub next_type: SourceType,
     pub value_type: SourceType,

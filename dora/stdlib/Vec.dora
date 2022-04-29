@@ -162,7 +162,7 @@
   }
 
   @pub fn isEmpty(): Bool {
-    self.len == 0i64
+    self.len == 0
   }
 
   @pub fn capacity(): Int64 {
@@ -170,15 +170,15 @@
   }
 
   @pub fn first(): Option[T] {
-    if self.len == 0i64 {
+    if self.len == 0 {
       Option[T]::None
     } else {
-      Option[T]::Some(self.array(0i64))
+      Option[T]::Some(self.array(0))
     }
   }
 
   @pub fn last(): Option[T] {
-    if self.len == 0i64 {
+    if self.len == 0 {
       Option[T]::None
     } else {
       Option[T]::Some(self.array(self.len - 1i64))
@@ -186,7 +186,7 @@
   }
 
   @pub fn clear() {
-    self.len = 0i64;
+    self.len = 0;
     self.array = Array[T]::empty();
   }
 
@@ -204,7 +204,7 @@
 }
 
 @pub class VecEnumerator[T](let data: Vec[T]) {
-  var idx: Int64 = 0i64;
+  var idx: Int64 = 0;
 
   @pub fn next(): Option[(Int64, T)] {
     if self.idx < self.data.size() {
@@ -218,30 +218,30 @@
 }
 
 @pub class VecIter[T](let data: Vec[T]) {
-  var idx: Int64 = 0i64;
+  var idx: Int64 = 0;
 
-  @pub fn hasNext(): Bool {
-    self.idx < self.data.size()
-  }
-
-  @pub fn next(): T {
-    let result = self.data(self.idx);
-    self.idx = self.idx + 1i64;
-    result
+  @pub fn next(): Option[T] {
+    if self.idx < self.data.size() {
+      let result = self.data(self.idx);
+      self.idx = self.idx + 1i64;
+      Some[T](result)
+    } else {
+      None[T]
+    }
   }
 }
 
 @pub class ReverseVecIter[T](let data: Vec[T]) {
-  var idx: Int64 = data.size() - 1i64;
+  var idx: Int64 = data.size() - 1;
 
-  @pub fn hasNext(): Bool {
-    self.idx != -1i64
-  }
-
-  @pub fn next(): T {
-    let result = self.data(self.idx);
-    self.idx = self.idx - 1i64;
-    result
+  @pub fn next(): Option[T] {
+    if self.idx != -1 {
+      let result = self.data(self.idx);
+      self.idx = self.idx - 1i64;
+      Some[T](result)
+    } else {
+      None[T]
+    }
   }
 }
 
