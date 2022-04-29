@@ -450,11 +450,15 @@ class BytecodeIterator(let data: Array[UInt8]) {
     var pos: Int64 = 0;
     var length: Int64 = data.size();
 
-    fn readInstruction(): Option[InstructionData] {
-        if self.pos == self.length {
-            return None;
+    fn next(): Option[InstructionData] {
+        if self.pos < self.length {
+            Some[InstructionData](self.readInstruction())
+        } else {
+            None[InstructionData]
         }
+    }
 
+    fn readInstruction(): InstructionData {
         let start = self.pos;
         let (wide, opcode) = self.readOpcode();
 
@@ -744,7 +748,7 @@ class BytecodeIterator(let data: Array[UInt8]) {
         };
 
         let size = self.pos - start;
-        Some(InstructionData(start, opcode, size, inst))
+        InstructionData(start, opcode, size, inst)
     }
 
     fn readRegister(wide: Bool): BytecodeRegister {

@@ -59,16 +59,16 @@ impl[T: Zero] Array[T] {
 }
 
 @pub class ArrayEnumerator[T](let array: Array[T]) {
-  var idx: Int64 = 0i64;
+  var idx: Int64 = 0;
 
-  @pub fn hasNext(): Bool {
-    self.idx < self.array.size()
-  }
-
-  @pub fn next(): (Int64, T) {
-    let current_idx = self.idx;
-    self.idx = self.idx + 1i64;
-    (current_idx, self.array(current_idx))
+  @pub fn next(): Option[(Int64, T)] {
+    if self.idx < self.array.size() {
+      let current_idx = self.idx;
+      self.idx = self.idx + 1i64;
+      Some[(Int64, T)]((current_idx, self.array(current_idx)))
+    } else {
+      None[(Int64, T)]
+    }
   }
 }
 

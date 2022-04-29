@@ -908,15 +908,18 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         stdlib::condition_wakeup_all as *const u8,
     );
 
-    intrinsic_method(sa, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
-    intrinsic_method(sa, stdlib, "Option", "isSome", Intrinsic::OptionIsSome);
-    intrinsic_method(
+    let fct_id = intrinsic_method(sa, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
+    sa.known.functions.option_is_none = Some(fct_id);
+    let fct_id = intrinsic_method(sa, stdlib, "Option", "isSome", Intrinsic::OptionIsSome);
+    sa.known.functions.option_is_some = Some(fct_id);
+    let fct_id = intrinsic_method(
         sa,
         stdlib,
         "Option",
         "getOrPanic",
         Intrinsic::OptionGetOrPanic,
     );
+    sa.known.functions.option_unwrap = Some(fct_id);
 
     intrinsic_method(sa, stdlib, "AtomicInt32", "get", Intrinsic::AtomicInt32Get);
     intrinsic_method(sa, stdlib, "AtomicInt32", "set", Intrinsic::AtomicInt32Set);
@@ -1119,7 +1122,7 @@ fn intrinsic_method(
     container_name: &str,
     method_name: &str,
     intrinsic: Intrinsic,
-) {
+) -> FctDefinitionId {
     common_method(
         sa,
         module_id,
@@ -1127,7 +1130,7 @@ fn intrinsic_method(
         method_name,
         false,
         FctImplementation::Intrinsic(intrinsic),
-    );
+    )
 }
 
 fn native_static(
@@ -1171,7 +1174,7 @@ fn common_method(
     method_name: &str,
     is_static: bool,
     implementation: FctImplementation,
-) {
+) -> FctDefinitionId {
     let container_name_interned = sa.interner.intern(container_name);
 
     let symtable = NestedSymTable::new(sa, module_id);
@@ -1179,7 +1182,7 @@ fn common_method(
 
     match sym {
         Some(Sym::Class(cls_id)) => {
-            internal_class_method(sa, cls_id, method_name, is_static, implementation);
+            internal_class_method(sa, cls_id, method_name, is_static, implementation)
         }
 
         Some(Sym::Struct(struct_id)) => {
@@ -1191,7 +1194,7 @@ fn common_method(
                 method_name,
                 is_static,
                 implementation,
-            );
+            )
         }
         Some(Sym::Enum(enum_id)) => {
             let enum_ = &sa.enums[enum_id].read();
@@ -1201,7 +1204,7 @@ fn common_method(
                 method_name,
                 is_static,
                 implementation,
-            );
+            )
         }
 
         _ => panic!("unexpected type"),
@@ -1214,7 +1217,7 @@ fn internal_class_method(
     name: &str,
     is_static: bool,
     kind: FctImplementation,
-) {
+) -> FctDefinitionId {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
     let name_interned = sa.interner.intern(name);
@@ -1231,11 +1234,11 @@ fn internal_class_method(
                 }
             }
             mtd.internal_resolved = true;
-            return;
+            return mid;
         }
     }
 
-    internal_extension_method(sa, &cls.extensions, name, is_static, kind);
+    internal_extension_method(sa, &cls.extensions, name, is_static, kind)
 }
 
 fn internal_extension_method(
@@ -1244,7 +1247,7 @@ fn internal_extension_method(
     name_as_string: &str,
     is_static: bool,
     kind: FctImplementation,
-) {
+) -> FctDefinitionId {
     let name = sa.interner.intern(name_as_string);
 
     for &extension_id in extensions {
@@ -1267,7 +1270,7 @@ fn internal_extension_method(
                 }
             }
             fct.internal_resolved = true;
-            return;
+            return method_id;
         }
     }
 

@@ -238,23 +238,18 @@
 @pub class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
     var idx: Int64 = 0i64;
 
-    @pub fn hasNext(): Bool {
+    @pub fn next(): Option[(K, V)] {
         while self.idx < self.map.capacity() {
             if self.map.isLive(self.idx) {
-                return true;
+                let key = self.map.keys.get(self.idx);
+                let value = self.map.values.get(self.idx);
+                self.idx = self.idx + 1i64;
+                return Some[(K, V)]((key, value));
             }
 
             self.idx = self.idx + 1i64;
         }
 
-        false
-    }
-
-    @pub fn next(): (K, V) {
-        assert(self.map.isLive(self.idx));
-        let key = self.map.keys.get(self.idx);
-        let value = self.map.values.get(self.idx);
-        self.idx = self.idx + 1i64;
-        (key, value)
+        None[(K, V)]
     }
 }

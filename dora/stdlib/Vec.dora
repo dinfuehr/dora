@@ -206,14 +206,14 @@
 @pub class VecEnumerator[T](let data: Vec[T]) {
   var idx: Int64 = 0i64;
 
-  @pub fn hasNext(): Bool {
-    self.idx < self.data.size()
-  }
-
-  @pub fn next(): (Int64, T) {
-    let current_idx = self.idx;
-    self.idx = self.idx + 1i64;
-    (current_idx, self.data(current_idx))
+  @pub fn next(): Option[(Int64, T)] {
+    if self.idx < self.data.size() {
+      let current_idx = self.idx;
+      self.idx = self.idx + 1i64;
+      Some[(Int64, T)]((current_idx, self.data(current_idx)))
+    } else {
+      None[(Int64, T)]
+    }
   }
 }
 

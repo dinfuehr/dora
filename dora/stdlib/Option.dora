@@ -31,7 +31,7 @@ impl[T] Option[T] {
     }
   }
 
-  fn unwrapNone() {
+  @pub fn unwrapNone() {
     match self {
       Some(_) => {
         fatalError("cannot unwrap Some.");

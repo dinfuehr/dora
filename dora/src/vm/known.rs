@@ -305,6 +305,9 @@ pub struct KnownFunctions {
     pub string_buffer_append: Option<FctDefinitionId>,
     pub string_buffer_to_string: Option<FctDefinitionId>,
     pub assert: Option<FctDefinitionId>,
+    pub option_is_some: Option<FctDefinitionId>,
+    pub option_is_none: Option<FctDefinitionId>,
+    pub option_unwrap: Option<FctDefinitionId>,
 }
 
 impl KnownFunctions {
@@ -314,6 +317,9 @@ impl KnownFunctions {
             string_buffer_append: None,
             string_buffer_to_string: None,
             assert: None,
+            option_is_none: None,
+            option_is_some: None,
+            option_unwrap: None,
         }
     }
 
@@ -331,6 +337,18 @@ impl KnownFunctions {
 
     pub fn assert(&self) -> FctDefinitionId {
         self.assert.expect("uninitialized")
+    }
+
+    pub fn option_is_some(&self) -> FctDefinitionId {
+        self.option_is_some.expect("uninitialized")
+    }
+
+    pub fn option_is_none(&self) -> FctDefinitionId {
+        self.option_is_none.expect("uninitialized")
+    }
+
+    pub fn option_unwrap(&self) -> FctDefinitionId {
+        self.option_unwrap.expect("uninitialized")
     }
 }
 

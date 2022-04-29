@@ -5,16 +5,13 @@ fn main() {
 
 fn iterateManually() {
     let it = Array[String]("a", "b", "c").enumerate();
-    assert(it.hasNext());
-    let (idx, value) = it.next();
+    let (idx, value) = it.next().getOrPanic();
     assert(idx == 0i64 && value == "a");
-    assert(it.hasNext());
-    let (idx, value) = it.next();
+    let (idx, value) = it.next().getOrPanic();
     assert(idx == 1i64 && value == "b");
-    assert(it.hasNext());
-    let (idx, value) = it.next();
+    let (idx, value) = it.next().getOrPanic();
     assert(idx == 2i64 && value == "c");
-    assert(!it.hasNext());
+    it.next().unwrapNone();
 }
 
 fn iterateWithForIn() {

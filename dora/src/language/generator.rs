@@ -369,34 +369,87 @@ impl<'a> AstBytecodeGen<'a> {
 
         let lbl_end = self.builder.create_label();
 
-        // Emit: <cond> = <iterator>.hasNext() & jump to lbl_end if false
-        let cond_reg = self.alloc_temp(BytecodeType::Bool);
-        let fct_idx = self
-            .builder
-            .add_const_fct_types(for_type_info.has_next, iterator_type_params.clone());
-        self.builder
-            .emit_invoke_direct(cond_reg, fct_idx, stmt.expr.pos());
-        self.builder.emit_jump_if_false(cond_reg, lbl_end);
-        self.free_temp(cond_reg);
+        if let Some(next_fct_id) = for_type_info.new_next {
+            let value_ty = for_type_info.value_type.clone();
+            let option_type_params = SourceTypeArray::single(value_ty.clone());
 
-        // Emit: <var> = <iterator>.next()
-        let next_ty = for_type_info.next_type.clone();
-        let fct_idx = self
-            .builder
-            .add_const_fct_types(for_type_info.next, iterator_type_params.clone());
-        if next_ty.is_unit() {
+            // Emit: <next-temp> = <iterator>.next()
+            let next_result_ty = register_bty_from_ty(for_type_info.next_type.clone());
+            let next_result_reg = self.alloc_temp(next_result_ty);
+
+            let fct_idx = self
+                .builder
+                .add_const_fct_types(next_fct_id, iterator_type_params);
+
             self.builder.emit_push_register(iterator_reg);
+            self.emit_invoke_direct(
+                for_type_info.next_type.clone(),
+                next_result_reg,
+                fct_idx,
+                stmt.expr.pos(),
+            );
+
+            // Emit: if <next-result>.isNone() then goto lbl_end
+            let cond_reg = self.alloc_temp(BytecodeType::Bool);
+            let fct_idx = self.builder.add_const_fct_types(
+                self.sa.known.functions.option_is_none(),
+                option_type_params.clone(),
+            );
+            self.builder.emit_push_register(next_result_reg);
             self.builder
-                .emit_invoke_direct_void(fct_idx, stmt.expr.pos());
-        } else {
-            let next_bytecode_ty: BytecodeType = register_bty_from_ty(next_ty.clone());
-            let next_reg = self.alloc_var(next_bytecode_ty);
+                .emit_invoke_direct(cond_reg, fct_idx, stmt.expr.pos());
+            self.builder.emit_jump_if_true(cond_reg, lbl_end);
+            self.free_temp(cond_reg);
 
-            self.builder.emit_push_register(iterator_reg);
-            self.emit_invoke_direct(next_ty.clone(), next_reg, fct_idx, stmt.expr.pos());
+            // Emit: <value-reg> = <next-result>.unwrap()
+            let value_ty = register_bty_from_ty(value_ty);
+            let value_reg = self.alloc_var(value_ty);
+            let fct_idx = self
+                .builder
+                .add_const_fct_types(self.sa.known.functions.option_unwrap(), option_type_params);
+            self.builder.emit_push_register(next_result_reg);
+            self.builder
+                .emit_invoke_direct(value_reg, fct_idx, stmt.expr.pos());
+            self.free_temp(next_result_reg);
 
             self.visit_stmt_for_pattern_setup(&stmt.pattern);
-            self.visit_stmt_for_pattern_assign_iterator(&stmt.pattern, next_reg, next_ty);
+            self.visit_stmt_for_pattern_assign_iterator(
+                &stmt.pattern,
+                value_reg,
+                for_type_info.value_type,
+            );
+        } else {
+            // Emit: <cond> = <iterator>.hasNext() & jump to lbl_end if false
+            let cond_reg = self.alloc_temp(BytecodeType::Bool);
+            let fct_idx = self.builder.add_const_fct_types(
+                for_type_info.has_next.expect("missing"),
+                iterator_type_params.clone(),
+            );
+            self.builder
+                .emit_invoke_direct(cond_reg, fct_idx, stmt.expr.pos());
+            self.builder.emit_jump_if_false(cond_reg, lbl_end);
+            self.free_temp(cond_reg);
+
+            // Emit: <var> = <iterator>.next()
+            let next_ty = for_type_info.next_type.clone();
+            let fct_idx = self.builder.add_const_fct_types(
+                for_type_info.next.expect("missing"),
+                iterator_type_params.clone(),
+            );
+            if next_ty.is_unit() {
+                self.builder.emit_push_register(iterator_reg);
+                self.builder
+                    .emit_invoke_direct_void(fct_idx, stmt.expr.pos());
+            } else {
+                let next_bytecode_ty: BytecodeType = register_bty_from_ty(next_ty.clone());
+                let next_reg = self.alloc_var(next_bytecode_ty);
+
+                self.builder.emit_push_register(iterator_reg);
+                self.emit_invoke_direct(next_ty.clone(), next_reg, fct_idx, stmt.expr.pos());
+
+                self.visit_stmt_for_pattern_setup(&stmt.pattern);
+                self.visit_stmt_for_pattern_assign_iterator(&stmt.pattern, next_reg, next_ty);
+            }
         }
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));

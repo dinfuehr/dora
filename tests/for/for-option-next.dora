@@ -1,0 +1,24 @@
+class SomeIterator(let start: Int64, let end: Int64) {
+    var current: Int64 = start;
+
+    fn next(): Option[Int64] {
+        if self.current < self.end {
+            let result = self.current;
+            self.current = self.current + 1;
+            Some[Int64](result)
+        } else {
+            None[Int64]
+        }
+    } 
+}
+
+fn main() {
+    var sum = 0;
+    let iterator = SomeIterator(0, 10);
+
+    for value in iterator {
+        sum = sum + value;
+    }
+
+    assert(sum == 45)
+}

@@ -60,6 +60,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn is_unit(&self) -> bool {
+        match self {
+            BytecodeType::Unit => true,
+            _ => false,
+        }
+    }
+
     pub fn is_class(&self) -> bool {
         match self {
             BytecodeType::Class(_, _) => true,
