@@ -337,19 +337,6 @@ impl<'a> TypeCheck<'a> {
             return;
         }
 
-        if let Some(cls_id) = object_type.cls_id() {
-            if cls_id == self.sa.known.classes.array() {
-                let type_list = object_type.type_params();
-                let var_ty = type_list[0].clone();
-
-                self.symtable.push_level();
-                self.check_stmt_let_pattern(&stmt.pattern, var_ty, false);
-                self.check_loop_body(&stmt.block);
-                self.symtable.pop_level();
-                return;
-            }
-        }
-
         if let Some((for_type_info, ret_type)) =
             self.type_supports_iterator_protocol(object_type.clone())
         {

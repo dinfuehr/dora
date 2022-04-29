@@ -141,64 +141,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_stmt_for(&mut self, stmt: &StmtForType) {
-        if self.src.map_fors.get(stmt.id).is_some() {
-            self.visit_stmt_for_iterator(stmt);
-        } else {
-            self.visit_stmt_for_array(stmt);
-        }
-    }
-
-    fn visit_stmt_for_array(&mut self, stmt: &StmtForType) {
-        self.push_scope();
-
-        let array_reg = self.alloc_var(BytecodeType::Ptr);
-        let index_reg = self.alloc_var(BytecodeType::Int64);
-        let length_reg = self.alloc_var(BytecodeType::Int64);
-
-        self.visit_stmt_for_pattern_setup(&stmt.pattern);
-
-        // evaluate and store array
-        self.visit_expr(&stmt.expr, DataDest::Reg(array_reg));
-
-        // calculate array length
-        self.builder
-            .emit_array_length(length_reg, array_reg, stmt.expr.pos());
-
-        // initialized index to 0
-        self.builder.emit_const_int64(index_reg, 0);
-
-        let lbl_cond = self.builder.define_label();
-        self.builder.emit_loop_start();
-        let lbl_end = self.builder.create_label();
-
-        // if idx >= length then goto end
-        let tmp_reg = self.alloc_temp(BytecodeType::Bool);
-        self.builder.emit_test_lt(tmp_reg, index_reg, length_reg);
-        self.builder.emit_jump_if_false(tmp_reg, lbl_end);
-        self.free_temp(tmp_reg);
-
-        // type of expression: Array[Something]
-        let ty = self.ty(stmt.expr.id());
-        // get type of element: Something for Array[Something]
-        let ty = ty.type_params().types().first().cloned().unwrap();
-        self.visit_stmt_for_pattern_assign_array(&stmt.pattern, array_reg, index_reg, ty);
-
-        self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
-        self.visit_stmt(&stmt.block);
-        self.loops.pop().unwrap();
-
-        // increment index
-        let tmp_reg = self.alloc_temp(BytecodeType::Int64);
-        self.builder.emit_const_int64(tmp_reg, 1);
-        self.builder
-            .emit_add(index_reg, index_reg, tmp_reg, stmt.pos);
-        self.free_temp(tmp_reg);
-
-        // jump to loop header
-        self.builder.emit_jump_loop(lbl_cond);
-        self.builder.bind_label(lbl_end);
-
-        self.pop_scope();
+        self.visit_stmt_for_iterator(stmt);
     }
 
     fn visit_stmt_for_pattern_setup(&mut self, pattern: &LetPattern) {

@@ -5,6 +5,10 @@
 
   @pub fn isEmpty(): Bool = self.size() == 0i64;
 
+  @pub fn makeIterator(): ArrayIter[T] {
+    ArrayIter[T](self)
+  }
+
   @pub fn enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T](self)
   }
@@ -55,6 +59,20 @@ impl[T: Default] Array[T] {
 impl[T: Zero] Array[T] {
   @pub @static fn zero(len: Int64): Array[T] {
     Array[T]::unsafeNew(len)
+  }
+}
+
+@pub class ArrayIter[T](let array: Array[T]) {
+  var idx: Int64 = 0;
+
+  @pub fn next(): Option[T] {
+    if self.idx < self.array.size() {
+      let current = self.array(self.idx);
+      self.idx = self.idx + 1;
+      Some[T](current)
+    } else {
+      None[T]
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 //= error
-//= stderr "fatal error: len 2 exceeds size of array\n3: std::fatalError (stdlib/prelude.dora:1)\n2: std::compare (stdlib/Array.dora:126)\n1: main (tests/array/array-compare-panic3.dora:8)\n"
+//= stderr "fatal error: len 2 exceeds size of array\n3: std::fatalError (stdlib/prelude.dora:1)\n2: std::compare (stdlib/Array.dora:144)\n1: main (tests/array/array-compare-panic3.dora:8)\n"
 
 fn main() {
   let a = Array[Int32](1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 3i32);

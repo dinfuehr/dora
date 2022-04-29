@@ -76,18 +76,18 @@ class Graph {
 }
 
 class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
-    var idx: Int64 = 0i64;
+    var idx: Int64 = 0;
 
-    fn hasNext(): Bool {
+    fn next(): Option[Block] {
         self.findNextBlock();
 
-        self.idx < self.blocks.size()
-    }
-
-    fn next(): Block {
-        let block = self.blocks(self.idx).getOrPanic();
-        self.idx = self.idx + 1i64;
-        block
+        if self.idx < self.blocks.size() {
+            let block = self.blocks(self.idx).getOrPanic();
+            self.idx = self.idx + 1i64;
+            Some[Block](block)
+        } else {
+            None[Block]
+        }
     }
 
     fn findNextBlock() {
@@ -106,28 +106,28 @@ class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
 class PostOrderIterator(let postOrder: Array[Block]) {
     var idx: Int64 = 0i64;
 
-    fn hasNext(): Bool {
-        self.idx < self.postOrder.size()
-    }
-
-    fn next(): Block {
-        let block = self.postOrder(self.idx);
-        self.idx = self.idx + 1i64;
-        block
+    fn next(): Option[Block] {
+        if self.idx < self.postOrder.size() {
+            let block = self.postOrder(self.idx);
+            self.idx = self.idx + 1i64;
+            Some[Block](block)
+        } else {
+            None[Block]
+        }
     }
 }
 
 class ReversePostOrderIterator(let postOrder: Array[Block]) {
     var idx: Int64 = self.postOrder.size() - 1i64;
 
-    fn hasNext(): Bool {
-        self.idx != -1i64
-    }
-
-    fn next(): Block {
-        let block = self.postOrder(self.idx);
-        self.idx = self.idx - 1i64;
-        block
+    fn next(): Option[Block] {
+        if self.idx != -1 {
+            let block = self.postOrder(self.idx);
+            self.idx = self.idx - 1i64;
+            Some[Block](block)
+        } else {
+            None[Block]
+        }
     }
 }
 
@@ -637,14 +637,14 @@ class Inst {
 class UseIterator(inst: Inst) {
     var current: Option[Input] = inst.useListHead;
 
-    fn hasNext(): Bool {
-        self.current.isSome()
-    }
-
-    fn next(): Input {
-        let input = self.current.getOrPanic();
-        self.current = input.nextUse;
-        input
+    fn next(): Option[Input] {
+        if self.current.isSome() {
+            let input = self.current.getOrPanic();
+            self.current = input.nextUse;
+            Some[Input](input)
+        } else {
+            None[Input]
+        }
     }
 }
 
@@ -909,42 +909,42 @@ class InstLinkedList {
 class InstIterator(block: Block) {
     var current: Option[Inst] = block.instructions.first;
 
-    fn hasNext(): Bool {
-        self.current.isSome()
-    }
-
-    fn next(): Inst {
-        let inst = self.current.getOrPanic();
-        self.current = inst.next;
-        inst
+    fn next(): Option[Inst] {
+        if self.current.isSome() {
+            let inst = self.current.getOrPanic();
+            self.current = inst.next;
+            Some[Inst](inst)
+        } else {
+            None[Inst]
+        }
     }
 }
 
 class PhiInstIterator(block: Block) {
     var current: Option[Inst] = block.phis.first;
 
-    fn hasNext(): Bool {
-        self.current.isSome()
-    }
-
-    fn next(): Inst {
-        let inst = self.current.getOrPanic();
-        self.current = inst.next;
-        inst
+    fn next(): Option[Inst] {
+        if self.current.isSome() {
+            let inst = self.current.getOrPanic();
+            self.current = inst.next;
+            Some[Inst](inst)
+        } else {
+            None[Inst]
+        }
     }
 }
 
 class BackwardInstIterator(block: Block) {
     var current: Option[Inst] = block.instructions.last;
 
-    fn hasNext(): Bool {
-        self.current.isSome()
-    }
-
-    fn next(): Inst {
-        let inst = self.current.getOrPanic();
-        self.current = inst.previous;
-        inst
+    fn next(): Option[Inst] {
+        if self.current.isSome() {
+            let inst = self.current.getOrPanic();
+            self.current = inst.previous;
+            Some[Inst](inst)
+        } else {
+            None[Inst]
+        }
     }
 }
 
