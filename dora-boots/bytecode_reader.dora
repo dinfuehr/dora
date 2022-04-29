@@ -20,13 +20,13 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fn visitShr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fn visitSar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
-    @open fn visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
+    @open fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitCheckedCast(src: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
     @open fn visitMov(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
     @open fn visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fn visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
@@ -61,17 +61,17 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fn visitJump(offset: Int32) { unimplemented(); }
     @open fn visitJumpConst(idx: ConstPoolId) { unimplemented(); }
 
-    @open fn visitInvokeDirectVoid(fct: FctId) { unimplemented(); }
-    @open fn visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fn visitInvokeDirectVoid(idx: ConstPoolId) { unimplemented(); }
+    @open fn visitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @open fn visitInvokeVirtualVoid(fct: FctId) { unimplemented(); }
-    @open fn visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fn visitInvokeVirtualVoid(idx: ConstPoolId) { unimplemented(); }
+    @open fn visitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @open fn visitInvokeStaticVoid(fct: FctId) { unimplemented(); }
-    @open fn visitInvokeStatic(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fn visitInvokeStaticVoid(idx: ConstPoolId) { unimplemented(); }
+    @open fn visitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @open fn visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
-    @open fn visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) { unimplemented(); }
+    @open fn visitNewObject(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fn visitNewArray(dest: BytecodeRegister, idx: ConstPoolId, length: BytecodeRegister) { unimplemented(); }
     
     @open fn visitNilCheck(obj: BytecodeRegister) { unimplemented(); }
 
@@ -100,13 +100,13 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fn visitShr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fn visitSar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {}
-    @override fn visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {}
+    @override fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitCheckedCast(src: BytecodeRegister, idx: ConstPoolId) {}
 
     @override fn visitMov(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {}
 
     @override fn visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {}
     @override fn visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {}
@@ -141,17 +141,17 @@ fn readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fn visitJump(offset: Int32) {}
     @override fn visitJumpConst(idx: ConstPoolId) {}
 
-    @override fn visitInvokeDirectVoid(fct: FctId) {}
-    @override fn visitInvokeDirect(dest: BytecodeRegister, fct: FctId) {}
+    @override fn visitInvokeDirectVoid(idx: ConstPoolId) {}
+    @override fn visitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) {}
 
-    @override fn visitInvokeVirtualVoid(fct: FctId) {}
-    @override fn visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) {}
+    @override fn visitInvokeVirtualVoid(idx: ConstPoolId) {}
+    @override fn visitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId) {}
 
-    @override fn visitInvokeStaticVoid(fct: FctId) {}
-    @override fn visitInvokeStatic(dest: BytecodeRegister, fct: FctId) {}
+    @override fn visitInvokeStaticVoid(idx: ConstPoolId) {}
+    @override fn visitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) {}
 
-    @override fn visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
-    @override fn visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) {}
+    @override fn visitNewObject(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fn visitNewArray(dest: BytecodeRegister, idx: ConstPoolId, length: BytecodeRegister) {}
 
     @override fn visitNilCheck(obj: BytecodeRegister) {}
 
@@ -259,13 +259,13 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_INSTANCE_OF {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            self.visitor.visitInstanceOf(dest, src, cls);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitInstanceOf(dest, src, idx);
 
         } else if opcode == BC_CHECKED_CAST {
             let src = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            self.visitor.visitCheckedCast(src, cls);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitCheckedCast(src, idx);
 
         } else if opcode == BC_MOV {
             let dest = self.readRegister(wide);
@@ -275,15 +275,13 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_LOAD_FIELD {
             let dest = self.readRegister(wide);
             let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitLoadField(dest, obj, cls, field);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitLoadField(dest, obj, idx);
         } else if opcode == BC_STORE_FIELD {
             let src = self.readRegister(wide);
             let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitStoreField(src, obj, cls, field);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitStoreField(src, obj, idx);
 
         } else if opcode == BC_LOAD_GLOBAL {
             let dest = self.readRegister(wide);
@@ -395,38 +393,38 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             self.visitor.visitJumpConst(idx);
 
         } else if opcode == BC_INVOKE_DIRECT_VOID {
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectVoid(fct);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitInvokeDirectVoid(idx);
         } else if opcode == BC_INVOKE_DIRECT {
             let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirect(dest, fct);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitInvokeDirect(dest, idx);
 
         } else if opcode == BC_INVOKE_VIRTUAL_VOID {
-            let fct = self.readFctId(wide);
+            let fct = self.readConstPoolId(wide);
             self.visitor.visitInvokeVirtualVoid(fct);
         } else if opcode == BC_INVOKE_VIRTUAL {
             let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
+            let fct = self.readConstPoolId(wide);
             self.visitor.visitInvokeVirtual(dest, fct);
 
         } else if opcode == BC_INVOKE_STATIC_VOID {
-            let fct = self.readFctId(wide);
+            let fct = self.readConstPoolId(wide);
             self.visitor.visitInvokeStaticVoid(fct);
         } else if opcode == BC_INVOKE_STATIC {
             let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
+            let fct = self.readConstPoolId(wide);
             self.visitor.visitInvokeStatic(dest, fct);
 
         } else if opcode == BC_NEW_OBJECT {
             let dest = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            self.visitor.visitNewObject(dest, cls);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitNewObject(dest, idx);
         } else if opcode == BC_NEW_ARRAY {
             let dest = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
+            let idx = self.readConstPoolId(wide);
             let length = self.readRegister(wide);
-            self.visitor.visitNewArray(dest, cls, length);
+            self.visitor.visitNewArray(dest, idx, length);
 
         } else if opcode == BC_NIL_CHECK {
             let obj = self.readRegister(wide);
@@ -490,20 +488,8 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fn readClassDefId(wide: Bool): ClassDefId {
-        ClassDefId(self.readIndex(wide))
-    }
-
     fn readGlobalId(wide: Bool): GlobalId {
         GlobalId(self.readIndex(wide))
-    }
-
-    fn readFieldId(wide: Bool): FieldId {
-        FieldId(self.readIndex(wide))
-    }
-
-    fn readFctId(wide: Bool): FctId {
-        FctId(self.readIndex(wide))
     }
 
     fn readConstPoolId(wide: Bool): ConstPoolId {
@@ -538,4 +524,364 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
 
         (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
     }
+}
+
+class BytecodeReader2(let data: Array[UInt8]) {
+    var pos: Int64 = 0;
+    var length: Int64 = data.size();
+
+    fn readInstruction(wide: Bool): Option[InstructionData] {
+        if self.pos == self.length {
+            return None;
+        }
+
+        let start = self.pos;
+        let (wide, opcode) = self.readOpcode();
+
+        let inst = if opcode == BC_WIDE {
+            fatalError("unexpected WIDE");
+            unreachable[BytecodeInstruction]()
+
+        } else if opcode == BC_ADD {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Add(dest, lhs, rhs)
+
+        } else if opcode == BC_SUB {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Sub(dest, lhs, rhs)
+
+        } else if opcode == BC_NEG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            BytecodeInstruction::Neg(dest, src)
+
+        } else if opcode == BC_MUL {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Mul(dest, lhs, rhs)
+
+        } else if opcode == BC_DIV {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Div(dest, lhs, rhs)
+
+        } else if opcode == BC_MOD {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Mod(dest, lhs, rhs)
+
+        } else if opcode == BC_AND {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::And(dest, lhs, rhs)
+
+        } else if opcode == BC_OR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Or(dest, lhs, rhs)
+
+        } else if opcode == BC_XOR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Xor(dest, lhs, rhs)
+
+        } else if opcode == BC_NOT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            BytecodeInstruction::Not(dest, src)
+
+        } else if opcode == BC_SHL {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Shl(dest, lhs, rhs)
+
+        } else if opcode == BC_SHR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Shr(dest, lhs, rhs)
+
+        } else if opcode == BC_SAR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::Sar(dest, lhs, rhs)
+
+        } else if opcode == BC_INSTANCE_OF {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::InstanceOf(dest, src, idx)
+
+        } else if opcode == BC_CHECKED_CAST {
+            let src = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::CheckedCast(src, idx)
+
+        } else if opcode == BC_MOV {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            BytecodeInstruction::Mov(dest, src)
+
+        } else if opcode == BC_LOAD_FIELD {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::LoadField(dest, obj, idx)
+        } else if opcode == BC_STORE_FIELD {
+            let src = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::StoreField(src, obj, idx)
+
+        } else if opcode == BC_LOAD_GLOBAL {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            BytecodeInstruction::LoadGlobal(dest, glob)
+        } else if opcode == BC_STORE_GLOBAL {
+            let src = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            BytecodeInstruction::StoreGlobal(src, glob)
+
+        } else if opcode == BC_PUSH_REGISTER {
+            let src = self.readRegister(wide);
+            BytecodeInstruction::PushRegister(src)
+
+        } else if opcode == BC_CONST_TRUE {
+            let dest = self.readRegister(wide);
+            BytecodeInstruction::ConstTrue(dest)
+        } else if opcode == BC_CONST_FALSE {
+            let dest = self.readRegister(wide);
+            BytecodeInstruction::ConstFalse(dest)
+        } else if opcode == BC_CONST_UINT8 {
+            let dest = self.readRegister(wide);
+            let value = self.readByte().toUInt8();
+            BytecodeInstruction::ConstUInt8(dest, value)
+        } else if opcode == BC_CONST_CHAR {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::ConstChar(dest, idx)
+        } else if opcode == BC_CONST_INT32 {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::ConstInt32(dest, idx)
+        } else if opcode == BC_CONST_INT64 {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::ConstInt64(dest, idx)
+        } else if opcode == BC_CONST_FLOAT32{
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::ConstFloat32(dest, idx)
+        } else if opcode == BC_CONST_FLOAT64 {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::ConstFloat64(dest, idx)
+        } else if opcode == BC_CONST_STRING {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::ConstString(dest, idx)
+
+        } else if opcode == BC_TEST_EQ {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::TestEq(dest, lhs, rhs)
+        } else if opcode == BC_TEST_NE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::TestNe(dest, lhs, rhs)
+        } else if opcode == BC_TEST_GT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::TestGt(dest, lhs, rhs)
+        } else if opcode == BC_TEST_GE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::TestGe(dest, lhs, rhs)
+        } else if opcode == BC_TEST_LT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::TestLt(dest, lhs, rhs)
+        } else if opcode == BC_TEST_LE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            BytecodeInstruction::TestLe(dest, lhs, rhs)
+
+        } else if opcode == BC_LOOP_START {
+            BytecodeInstruction::LoopStart
+
+        } else if opcode == BC_JUMP_LOOP {
+            let offset = self.readOffset(wide);
+            BytecodeInstruction::JumpLoop(offset)
+
+        } else if opcode == BC_JUMP_IF_FALSE {
+            let opnd = self.readRegister(wide);
+            let offset = self.readOffset(wide);
+            BytecodeInstruction::JumpIfFalse(opnd, offset)
+        } else if opcode == BC_JUMP_IF_FALSE_CONST {
+            let opnd = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::JumpIfFalseConst(opnd, idx)
+        } else if opcode == BC_JUMP_IF_TRUE {
+            let opnd = self.readRegister(wide);
+            let offset = self.readOffset(wide);
+            BytecodeInstruction::JumpIfTrue(opnd, offset)
+        } else if opcode == BC_JUMP_IF_TRUE_CONST {
+            let opnd = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::JumpIfTrueConst(opnd, idx)
+        } else if opcode == BC_JUMP {
+            let offset = self.readOffset(wide);
+            BytecodeInstruction::Jump(offset)
+        } else if opcode == BC_JUMP_CONST {
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::JumpConst(idx)
+
+        } else if opcode == BC_INVOKE_DIRECT_VOID {
+            let fct = self.readConstPoolId(wide);
+            BytecodeInstruction::InvokeDirectVoid(fct)
+        } else if opcode == BC_INVOKE_DIRECT {
+            let dest = self.readRegister(wide);
+            let fct = self.readConstPoolId(wide);
+            BytecodeInstruction::InvokeDirect(dest, fct)
+
+        } else if opcode == BC_INVOKE_VIRTUAL_VOID {
+            let fct = self.readConstPoolId(wide);
+            BytecodeInstruction::InvokeVirtualVoid(fct)
+        } else if opcode == BC_INVOKE_VIRTUAL {
+            let dest = self.readRegister(wide);
+            let fct = self.readConstPoolId(wide);
+            BytecodeInstruction::InvokeVirtual(dest, fct)
+
+        } else if opcode == BC_INVOKE_STATIC_VOID {
+            let fct = self.readConstPoolId(wide);
+            BytecodeInstruction::InvokeStaticVoid(fct)
+        } else if opcode == BC_INVOKE_STATIC {
+            let dest = self.readRegister(wide);
+            let fct = self.readConstPoolId(wide);
+            BytecodeInstruction::InvokeStatic(dest, fct)
+
+        } else if opcode == BC_NEW_OBJECT {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::NewObject(dest, idx)
+        } else if opcode == BC_NEW_ARRAY {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            let length = self.readRegister(wide);
+            BytecodeInstruction::NewArray(dest, idx, length)
+
+        } else if opcode == BC_NIL_CHECK {
+            let obj = self.readRegister(wide);
+            BytecodeInstruction::NilCheck(obj)
+        } else if opcode == BC_ARRAY_BOUND_CHECK {
+            let arr = self.readRegister(wide);
+            let idx = self.readRegister(wide);
+            BytecodeInstruction::ArrayBoundCheck(arr, idx)
+        } else if opcode == BC_ARRAY_LENGTH {
+            let dest = self.readRegister(wide);
+            let arr = self.readRegister(wide);
+            BytecodeInstruction::ArrayLength(dest, arr)
+
+        } else if opcode == BC_LOAD_ARRAY {
+            let dest = self.readRegister(wide);
+            let arr = self.readRegister(wide);
+            let idx = self.readRegister(wide);
+            BytecodeInstruction::LoadArray(dest, arr, idx)
+
+        } else if opcode == BC_STORE_ARRAY {
+            let src = self.readRegister(wide);
+            let arr = self.readRegister(wide);
+            let idx = self.readRegister(wide);
+            BytecodeInstruction::StoreArray(src, arr, idx)
+
+        } else if opcode == BC_RET_VOID {
+            BytecodeInstruction::RetVoid
+        } else if opcode == BC_RET {
+            let opnd = self.readRegister(wide);
+            BytecodeInstruction::Ret(opnd)
+
+        } else {
+            fatalError("unkown opcode ${opcode} ${bytecodeName(opcode)}");
+            unreachable[BytecodeInstruction]()
+        };
+
+        let size = self.pos - start;
+        Some(InstructionData(start, opcode, size, inst))
+    }
+
+    fn readRegister(wide: Bool): BytecodeRegister {
+        BytecodeRegister(self.readIndex(wide))
+    }
+
+    fn readOpcode(): (Bool, Int32) {
+        let opcode = self.readByte();
+
+        if opcode == BC_WIDE {
+            let opcode = self.readByte();
+            (true, opcode)
+        } else {
+            (false, opcode)
+        }
+    }
+
+    fn readGlobalId(wide: Bool): GlobalId {
+        GlobalId(self.readIndex(wide))
+    }
+
+    fn readConstPoolId(wide: Bool): ConstPoolId {
+        ConstPoolId(self.readIndex(wide))
+    }
+
+    fn readOffset(wide: Bool): Int32 {
+        self.readIndex(wide)
+    }
+
+    fn readIndex(wide: Bool): Int32 {
+        if wide {
+            self.readInt32()
+        } else {
+            self.readByte()
+        }
+    }
+
+    fn readByte(): Int32 {
+        let value = self.data(self.pos);
+        self.pos = self.pos + 1;
+
+        value.toInt32()
+    }
+
+    fn readInt32(): Int32 {
+        let by1 = self.readByte();
+        let by2 = self.readByte();
+        let by3 = self.readByte();
+        let by4 = self.readByte();
+
+        (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
+    }
+}
+
+struct InstructionData {
+    start: Int64,
+    opcode: Int32,
+    size: Int64,
+    inst: BytecodeInstruction,
 }

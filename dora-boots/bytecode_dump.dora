@@ -34,9 +34,9 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
         println(" ${r1}, ${r2}");
     }
 
-    fn emitReg2AndCls(name: String, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassDefId) {
+    fn emitReg2AndIdx(name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
         self.emitStart(name);
-        println(" ${r1}, ${r2}, ${cls.value}");
+        println(" ${r1}, ${r2}, @${idx.value}");
     }
 
     fn emitReg1(name: String, r1: BytecodeRegister) {
@@ -44,14 +44,9 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
         println(" ${r1}")
     }
 
-    fn emitReg1AndCls(name: String, r1: BytecodeRegister, cls: ClassDefId) {
-        self.emitStart(name);
-        println(" ${r1}, ${cls.value}")
-    }
-
     fn emitReg1AndIdx(name: String, r1: BytecodeRegister, idx: ConstPoolId) {
         self.emitStart(name);
-        println(" ${r1}, @${idx.value}");
+        println(" ${r1}, @${idx.value}")
     }
 
     fn emitIdx(name: String, idx: ConstPoolId) {
@@ -120,13 +115,13 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fn visitShr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Shr", dest, lhs, rhs); }
     @override fn visitSar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Sar", dest, lhs, rhs); }
 
-    @override fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { self.emitReg2AndCls("InstanceOf", dest, src, cls); }
-    @override fn visitCheckedCast(dest: BytecodeRegister, cls: ClassDefId) { self.emitReg1AndCls("CheckedCast", dest, cls); }
+    @override fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) { self.emitReg2AndIdx("InstanceOf", dest, src, idx); }
+    @override fn visitCheckedCast(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("CheckedCast", dest, idx); }
 
     @override fn visitMov(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("Mov", dest, src); }
 
-    @override fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadField", dest, obj, cls, field); }
-    @override fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreField", src, obj, cls, field); }
+    @override fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) { self.emitReg2AndIdx("LoadField", dest, obj, idx); }
+    @override fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) { self.emitReg2AndIdx("StoreField", src, obj, idx); }
 
     @override fn visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobal", dest, glob); }
     @override fn visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobal", src, glob); }
@@ -160,16 +155,16 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fn visitJump(offset: Int32) { self.emitInt("Jump", offset); }
     @override fn visitJumpConst(idx: ConstPoolId) { self.emitIdx("JumpConst", idx); }
 
-    @override fn visitInvokeDirectVoid(fct: FctId) { self.emitFctVoid("InvokeDirectVoid", fct); }
-    @override fn visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirect", dest, fct); }
+    @override fn visitInvokeDirectVoid(idx: ConstPoolId) { self.emitIdx("InvokeDirectVoid", idx); }
+    @override fn visitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("InvokeDirect", dest, idx); }
 
-    @override fn visitInvokeVirtualVoid(fct: FctId) { self.emitFctVoid("InvokeVirtualVoid", fct); }
-    @override fn visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtual", dest, fct); }
+    @override fn visitInvokeVirtualVoid(idx: ConstPoolId) { self.emitIdx("InvokeVirtualVoid", idx); }
+    @override fn visitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("InvokeVirtual", dest, idx); }
 
-    @override fn visitInvokeStaticVoid(fct: FctId) { self.emitFctVoid("InvokeStaticVoid", fct); }
-    @override fn visitInvokeStatic(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStatic", dest, fct); }
+    @override fn visitInvokeStaticVoid(idx: ConstPoolId) { self.emitIdx("InvokeStaticVoid", idx); }
+    @override fn visitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("InvokeStatic", dest, idx); }
 
-    @override fn visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { self.emitNew("NewObject", dest, cls); }
+    @override fn visitNewObject(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("NewObject", dest, idx); }
     
     @override fn visitNilCheck(obj: BytecodeRegister) { self.emitReg1("NilCheck", obj); }
 

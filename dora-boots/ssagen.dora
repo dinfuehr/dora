@@ -349,8 +349,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         self.writeVariable(dest, self.current(), srcInst);
     }
 
-    @override fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @override fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @override fn visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @override fn visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
     @override fn visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
         self.emitLoadGlobal(dest, glob, Type::bool());
@@ -496,17 +496,17 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         self.markBlockTerminated();
     }
 
-    @override fn visitInvokeDirectVoid(fct: FctId) { unimplemented(); }
-    @override fn visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @override fn visitInvokeDirectVoid(idx: ConstPoolId) { unimplemented(); }
+    @override fn visitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @override fn visitInvokeVirtualVoid(fct: FctId) { unimplemented(); }
-    @override fn visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @override fn visitInvokeVirtualVoid(idx: ConstPoolId) { unimplemented(); }
+    @override fn visitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @override fn visitInvokeStaticVoid(fct: FctId) { unimplemented(); }
-    @override fn visitInvokeStatic(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @override fn visitInvokeStaticVoid(idx: ConstPoolId) { unimplemented(); }
+    @override fn visitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @override fn visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
-    @override fn visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) { unimplemented(); }
+    @override fn visitNewObject(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @override fn visitNewArray(dest: BytecodeRegister, idx: ConstPoolId, length: BytecodeRegister) { unimplemented(); }
 
     @override fn visitNilCheck(obj: BytecodeRegister) { unimplemented(); }
 
