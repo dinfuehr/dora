@@ -7,8 +7,7 @@ use crate::bytecode::{
 };
 use crate::language::generator::generate_fct;
 use crate::language::sem_analysis::{
-    create_tuple, ClassDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    create_tuple, GlobalDefinitionId, SemAnalysis, StructDefinitionFieldId, TypeParamId,
 };
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -114,13 +113,15 @@ fn gen_generic_direct_trait() {
 fn gen_load_field_uint8() {
     gen_fct(
         "class Foo(let bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let (cls, field) = sa.field_by_name("Foo", "bar");
-            let expected = vec![
-                LoadField(r(1), r(0), cls, SourceTypeArray::empty(), field),
-                Ret(r(1)),
-            ];
+            let expected = vec![LoadField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Field(cls, SourceTypeArray::empty(), field)
+            );
         },
     );
 }
@@ -2509,17 +2510,22 @@ fn gen_new_struct() {
         struct Foo { f1: Int32, f2: Bool }
         fn f(): Foo { Foo(10i32, false) }
     ",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let struct_id = sa.struct_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(0), 10),
                 ConstFalse(r(1)),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                NewStruct(r(2), struct_id, SourceTypeArray::empty()),
+                NewStruct(r(2), ConstPoolIdx(1)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
+            );
         },
     );
 
@@ -2528,20 +2534,24 @@ fn gen_new_struct() {
         struct Foo[T] { f1: T, f2: Bool }
         fn f[T](val: T): Foo[T] { Foo[T](val, false) }
     ",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let struct_id = sa.struct_by_name("Foo");
             let expected = vec![
                 ConstFalse(r(1)),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                NewStruct(
-                    r(2),
-                    struct_id,
-                    SourceTypeArray::single(SourceType::TypeParam(TypeParamId(0))),
-                ),
+                NewStruct(r(2), ConstPoolIdx(0)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Struct(
+                    struct_id,
+                    SourceTypeArray::single(SourceType::TypeParam(TypeParamId(0)))
+                )
+            );
         },
     );
 }
@@ -2629,15 +2639,20 @@ fn gen_new_enum() {
         enum Foo { A(Int32), B }
         fn f(): Foo { Foo::A(10i32) }
     ",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let enum_id = sa.enum_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(0), 10),
                 PushRegister(r(0)),
-                NewEnum(r(1), enum_id, SourceTypeArray::empty(), 0),
+                NewEnum(r(1), ConstPoolIdx(1)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::EnumVariant(enum_id, SourceTypeArray::empty(), 0)
+            );
         },
     );
 
@@ -2646,15 +2661,24 @@ fn gen_new_enum() {
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo[Int32]::A(10i32) }
     ",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let enum_id = sa.enum_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(0), 10),
                 PushRegister(r(0)),
-                NewEnum(r(1), enum_id, SourceTypeArray::single(SourceType::Int32), 0),
+                NewEnum(r(1), ConstPoolIdx(1)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::EnumVariant(
+                    enum_id,
+                    SourceTypeArray::single(SourceType::Int32),
+                    0
+                )
+            );
         },
     );
 
@@ -2663,13 +2687,15 @@ fn gen_new_enum() {
         enum Foo { A(Int32), B }
         fn f(): Foo { Foo::B }
     ",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let enum_id = sa.enum_by_name("Foo");
-            let expected = vec![
-                NewEnum(r(0), enum_id, SourceTypeArray::empty(), 1),
-                Ret(r(0)),
-            ];
+            let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::EnumVariant(enum_id, SourceTypeArray::empty(), 1)
+            );
         },
     );
 
@@ -2678,13 +2704,19 @@ fn gen_new_enum() {
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo[Int32]::B }
     ",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let enum_id = sa.enum_by_name("Foo");
-            let expected = vec![
-                NewEnum(r(0), enum_id, SourceTypeArray::single(SourceType::Int32), 1),
-                Ret(r(0)),
-            ];
+            let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::EnumVariant(
+                    enum_id,
+                    SourceTypeArray::single(SourceType::Int32),
+                    1
+                )
+            );
         },
     );
 
@@ -2693,13 +2725,19 @@ fn gen_new_enum() {
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo::B[Int32] }
     ",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let enum_id = sa.enum_by_name("Foo");
-            let expected = vec![
-                NewEnum(r(0), enum_id, SourceTypeArray::single(SourceType::Int32), 1),
-                Ret(r(0)),
-            ];
+            let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::EnumVariant(
+                    enum_id,
+                    SourceTypeArray::single(SourceType::Int32),
+                    1
+                )
+            );
         },
     );
 }
@@ -2710,19 +2748,19 @@ fn gen_new_object() {
         let cls_id = sa.cls_by_name("Object");
         let ctor_id = sa.ctor_by_name("Object");
         let expected = vec![
-            NewObject(r(0), cls_id, SourceTypeArray::empty()),
+            NewObject(r(0), ConstPoolIdx(1)),
             PushRegister(r(0)),
             InvokeDirectVoid(ConstPoolIdx(0)),
             Ret(r(0)),
         ];
         assert_eq!(expected, code);
         assert_eq!(
-            fct.const_pool(ConstPoolIdx(1)),
-            &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
-        );
-        assert_eq!(
             fct.const_pool(ConstPoolIdx(0)),
             &ConstPoolEntry::Fct(ctor_id, SourceTypeArray::empty())
+        );
+        assert_eq!(
+            fct.const_pool(ConstPoolIdx(1)),
+            &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
         );
     });
 }
@@ -2735,7 +2773,7 @@ fn gen_new_object_assign_to_var() {
             let cls_id = sa.cls_by_name("Object");
             let ctor_id = sa.ctor_by_name("Object");
             let expected = vec![
-                NewObject(r(1), cls_id, SourceTypeArray::empty()),
+                NewObject(r(1), ConstPoolIdx(1)),
                 PushRegister(r(1)),
                 InvokeDirectVoid(ConstPoolIdx(0)),
                 Mov(r(0), r(1)),
@@ -2745,6 +2783,10 @@ fn gen_new_object_assign_to_var() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(ctor_id, SourceTypeArray::empty())
+            );
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
             );
         },
     );
@@ -2759,36 +2801,13 @@ fn gen_position_new_object() {
 
 #[test]
 fn gen_new_array() {
-    // gen_fct(
-    //     "fn f(): Array[Int32] { return Array[Int32]::zero(1i64); }",
-    //     |sa, code, _fct| {
-    //         let cls_id = sa.cls_by_name("Array");
-    //         let expected = vec![
-    //             ConstInt64(r(1), 1),
-    //             NewArray(
-    //                 r(0),
-    //                 cls_id,
-    //                 SourceTypeArray::single(SourceType::Int32),
-    //                 r(1),
-    //             ),
-    //             Ret(r(0)),
-    //         ];
-    //         assert_eq!(expected, code);
-    //     },
-    // );
-
     gen_fct(
         "fn f(): Array[Int32] { Array[Int32](1i32, 2i32, 3i32) }",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let cls_id = sa.cls_by_name("Array");
             let expected = vec![
                 ConstInt64(r(0), 3),
-                NewArray(
-                    r(1),
-                    cls_id,
-                    SourceTypeArray::single(SourceType::Int32),
-                    r(0),
-                ),
+                NewArray(r(1), ConstPoolIdx(0), r(0)),
                 ConstInt32(r(3), 1),
                 ConstInt64(r(2), 0),
                 StoreArray(r(3), r(1), r(2)),
@@ -2801,6 +2820,11 @@ fn gen_new_array() {
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Class(cls_id, SourceTypeArray::single(SourceType::Int32))
+            );
         },
     );
 }
@@ -3089,7 +3113,7 @@ fn gen_new_object_with_multiple_args() {
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
                 ConstInt32(r(3), 3),
-                NewObject(r(0), cls_id, SourceTypeArray::empty()),
+                NewObject(r(0), ConstPoolIdx(4)),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
@@ -3647,13 +3671,15 @@ fn gen_checked_cast_effect() {
 fn gen_enum_value() {
     gen_fct(
         "enum MyEnum { A, B } fn f(): MyEnum { MyEnum::A }",
-        |sa, code, _fct| {
+        |sa, code, fct| {
             let enum_id = sa.enum_by_name("MyEnum");
-            let expected = vec![
-                NewEnum(r(0), enum_id, SourceTypeArray::empty(), 0),
-                Ret(r(0)),
-            ];
+            let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::EnumVariant(enum_id, SourceTypeArray::empty(), 0)
+            )
         },
     );
 }
@@ -4158,7 +4184,7 @@ fn gen_tuple_element() {
 
 #[test]
 fn gen_trait_object() {
-    gen(
+    gen_fct(
         "
         trait Foo { fn bar(): Int32; }
         class Bar
@@ -4167,15 +4193,17 @@ fn gen_trait_object() {
         }
         fn f(x: Bar): Foo { x as Foo }
     ",
-        |sa, code| {
+        |sa, code, fct| {
             let trait_id = sa.trait_by_name("Foo");
             let cls_id = sa.cls_by_name("Bar");
             let object_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
-            let expected = vec![
-                NewTraitObject(r(1), trait_id, SourceTypeArray::empty(), object_ty, r(0)),
-                Ret(r(1)),
-            ];
+            let expected = vec![NewTraitObject(r(1), ConstPoolIdx(0), r(0)), Ret(r(1))];
             assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Trait(trait_id, SourceTypeArray::empty(), object_ty)
+            );
         },
     );
 }
@@ -4250,13 +4278,7 @@ pub enum Bytecode {
     LoadTupleElement(Register, Register, ConstPoolIdx),
     LoadStructField(Register, Register, ConstPoolIdx),
 
-    LoadField(
-        Register,
-        Register,
-        ClassDefinitionId,
-        SourceTypeArray,
-        FieldId,
-    ),
+    LoadField(Register, Register, ConstPoolIdx),
     StoreField(Register, Register, ConstPoolIdx),
 
     LoadGlobal(Register, GlobalDefinitionId),
@@ -4303,18 +4325,12 @@ pub enum Bytecode {
     InvokeGenericDirectVoid(ConstPoolIdx),
     InvokeGenericDirect(Register, ConstPoolIdx),
 
-    NewObject(Register, ClassDefinitionId, SourceTypeArray),
-    NewArray(Register, ClassDefinitionId, SourceTypeArray, Register),
+    NewObject(Register, ConstPoolIdx),
+    NewArray(Register, ConstPoolIdx, Register),
     NewTuple(Register, ConstPoolIdx),
-    NewEnum(Register, EnumDefinitionId, SourceTypeArray, usize),
-    NewStruct(Register, StructDefinitionId, SourceTypeArray),
-    NewTraitObject(
-        Register,
-        TraitDefinitionId,
-        SourceTypeArray,
-        SourceType,
-        Register,
-    ),
+    NewEnum(Register, ConstPoolIdx),
+    NewStruct(Register, ConstPoolIdx),
+    NewTraitObject(Register, ConstPoolIdx, Register),
 
     NilCheck(Register),
 
@@ -4459,19 +4475,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, idx: ConstPoolIdx) {
-        let (cls_id, type_params, field_id) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                (*cls_id, type_params.clone(), *field_id)
-            }
-            _ => unreachable!(),
-        };
-        self.emit(Bytecode::LoadField(
-            dest,
-            obj,
-            cls_id,
-            type_params,
-            field_id,
-        ));
+        self.emit(Bytecode::LoadField(dest, obj, idx));
     }
 
     fn visit_store_field(&mut self, src: Register, obj: Register, field: ConstPoolIdx) {
@@ -4631,52 +4635,22 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let (cls_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        self.emit(Bytecode::NewObject(dest, cls_id, type_params));
+        self.emit(Bytecode::NewObject(dest, idx));
     }
     fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
-        let (cls_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        self.emit(Bytecode::NewArray(dest, cls_id, type_params, length));
+        self.emit(Bytecode::NewArray(dest, idx, length));
     }
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::NewTuple(dest, idx));
     }
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let (enum_id, type_params, variant_idx) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
-                (*enum_id, type_params.clone(), *variant_idx)
-            }
-            _ => unreachable!(),
-        };
-        self.emit(Bytecode::NewEnum(dest, enum_id, type_params, variant_idx));
+        self.emit(Bytecode::NewEnum(dest, idx));
     }
     fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let (struct_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        self.emit(Bytecode::NewStruct(dest, struct_id, type_params));
+        self.emit(Bytecode::NewStruct(dest, idx));
     }
     fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
-        let (trait_id, type_params, object_ty) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
-                (*trait_id, type_params.clone(), object_ty.clone())
-            }
-            _ => unreachable!(),
-        };
-        self.emit(Bytecode::NewTraitObject(
-            dest,
-            trait_id,
-            type_params,
-            object_ty,
-            src,
-        ));
+        self.emit(Bytecode::NewTraitObject(dest, idx, src));
     }
 
     fn visit_nil_check(&mut self, obj: Register) {
