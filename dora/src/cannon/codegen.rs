@@ -1414,18 +1414,12 @@ impl<'a> CannonCodeGen<'a> {
                 let bty = register_bty_from_ty(field.ty.clone());
                 assert_eq!(bty, self.specialize_register_type(dest));
 
-                if let BytecodeType::Tuple(subtypes) = bty {
-                    let dest_offset = self.register_offset(dest);
-                    self.copy_tuple(
-                        subtypes,
-                        RegOrOffset::Offset(dest_offset),
-                        RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
-                    )
-                } else {
-                    let reg = result_reg(self.vm, bty.clone());
-                    self.asm
-                        .load_mem(mode(self.vm, bty), reg, Mem::Base(REG_TMP1, field.offset));
-                    self.emit_store_register(reg, dest);
+                if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
+                    assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+                    let dest = self.register_offset(dest);
+                    let dest = RegOrOffset::Offset(dest);
+                    let src = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+                    self.copy_bytecode_ty(bytecode_type, dest, src);
                 }
             }
         }
