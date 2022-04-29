@@ -5406,7 +5406,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
             }
         }
         BytecodeType::Struct(_, _) | BytecodeType::Class(_, _) | BytecodeType::Unit => {
-            unreachable!()
+            panic!("unexpected type {:?}", ty)
         }
     }
 }

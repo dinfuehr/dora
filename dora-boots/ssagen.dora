@@ -165,7 +165,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     @override fn visitInstruction(offset: Int32) {
         self.offset = offset;
 
-        let block = self.blockMap.blockAt(offset);
+        let block = self.blockMap.blockAt(offset.toInt64());
 
         if block.isSome() {
             if self.currentBlock.isSome() {
@@ -446,7 +446,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     @override fn visitJumpLoop(offset: Int32) {
-        let targetBlock = self.blockMap.blockAt(self.offset - offset).getOrPanic();
+        let targetBlock = self.blockMap.blockAt((self.offset - offset).toInt64()).getOrPanic();
         let gotoInst = createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.markBlockTerminated();
@@ -475,7 +475,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     fn emitJump(offset: Int32) {
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
+        let targetBlock = self.blockMap.blockAt((self.offset + offset).toInt64()).getOrPanic();
         let gotoInst = createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.markBlockTerminated();
@@ -483,8 +483,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
     fn emitConditionalJump(opnd: BytecodeRegister, offset: Int32, value: Bool) {
         let opndInst = self.readVariable(opnd, self.current());
-        let targetBlock = self.blockMap.blockAt(self.offset + offset).getOrPanic();
-        let fallthroughBlock = self.blockMap.nextBlockAt(self.offset+1i32).getOrPanic();
+        let targetBlock = self.blockMap.blockAt((self.offset + offset).toInt64()).getOrPanic();
+        let fallthroughBlock = self.blockMap.nextBlockAt((self.offset+1i32).toInt64()).getOrPanic();
 
         let cond = if value {
             createIfInst(opndInst, targetBlock, fallthroughBlock)

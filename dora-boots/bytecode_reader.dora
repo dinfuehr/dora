@@ -526,11 +526,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
     }
 }
 
-class BytecodeReader2(let data: Array[UInt8]) {
+class BytecodeIterator(let data: Array[UInt8]) {
     var pos: Int64 = 0;
     var length: Int64 = data.size();
 
-    fn readInstruction(wide: Bool): Option[InstructionData] {
+    fn readInstruction(): Option[InstructionData] {
         if self.pos == self.length {
             return None;
         }
