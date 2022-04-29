@@ -46,54 +46,19 @@ pub enum BytecodeTypeKind {
 enumeration!(BytecodeOpcode {
     Wide,
 
-    AddInt32,
-    AddInt64,
-    AddFloat32,
-    AddFloat64,
-
-    SubInt32,
-    SubInt64,
-    SubFloat32,
-    SubFloat64,
-
-    NegInt32,
-    NegInt64,
-    NegFloat32,
-    NegFloat64,
-
-    MulInt32,
-    MulInt64,
-    MulFloat32,
-    MulFloat64,
-
-    DivInt32,
-    DivInt64,
-    DivFloat32,
-    DivFloat64,
-
-    ModInt32,
-    ModInt64,
-
-    AndInt32,
-    AndInt64,
-
-    OrInt32,
-    OrInt64,
-
-    XorInt32,
-    XorInt64,
-
-    NotBool,
-    NotInt32,
-    NotInt64,
-
-    ShlInt32,
-    ShrInt32,
-    SarInt32,
-
-    ShlInt64,
-    ShrInt64,
-    SarInt64,
+    Add,
+    Sub,
+    Neg,
+    Mul,
+    Div,
+    Mod,
+    And,
+    Or,
+    Xor,
+    Not,
+    Shl,
+    Shr,
+    Sar,
 
     InstanceOf,
     CheckedCast,
@@ -263,13 +228,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::Jump
             | BytecodeOpcode::JumpLoop => opcode_size(width) + 1 * operand_size(width),
 
-            BytecodeOpcode::NegInt32
-            | BytecodeOpcode::NegInt64
-            | BytecodeOpcode::NegFloat32
-            | BytecodeOpcode::NegFloat64
-            | BytecodeOpcode::NotBool
-            | BytecodeOpcode::NotInt32
-            | BytecodeOpcode::NotInt64
+            BytecodeOpcode::Neg
+            | BytecodeOpcode::Not
             | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::Mov
             | BytecodeOpcode::LoadGlobal
@@ -296,36 +256,17 @@ impl BytecodeOpcode {
             | BytecodeOpcode::JumpIfFalseConst
             | BytecodeOpcode::JumpIfFalse => opcode_size(width) + 2 * operand_size(width),
 
-            BytecodeOpcode::AddInt32
-            | BytecodeOpcode::AddInt64
-            | BytecodeOpcode::AddFloat32
-            | BytecodeOpcode::AddFloat64
-            | BytecodeOpcode::SubInt32
-            | BytecodeOpcode::SubInt64
-            | BytecodeOpcode::SubFloat32
-            | BytecodeOpcode::SubFloat64
-            | BytecodeOpcode::MulInt32
-            | BytecodeOpcode::MulInt64
-            | BytecodeOpcode::MulFloat32
-            | BytecodeOpcode::MulFloat64
-            | BytecodeOpcode::DivInt32
-            | BytecodeOpcode::DivInt64
-            | BytecodeOpcode::DivFloat32
-            | BytecodeOpcode::DivFloat64
-            | BytecodeOpcode::ModInt32
-            | BytecodeOpcode::ModInt64
-            | BytecodeOpcode::AndInt32
-            | BytecodeOpcode::AndInt64
-            | BytecodeOpcode::OrInt32
-            | BytecodeOpcode::OrInt64
-            | BytecodeOpcode::XorInt32
-            | BytecodeOpcode::XorInt64
-            | BytecodeOpcode::ShlInt32
-            | BytecodeOpcode::ShrInt32
-            | BytecodeOpcode::SarInt32
-            | BytecodeOpcode::ShlInt64
-            | BytecodeOpcode::ShrInt64
-            | BytecodeOpcode::SarInt64
+            BytecodeOpcode::Add
+            | BytecodeOpcode::Sub
+            | BytecodeOpcode::Mul
+            | BytecodeOpcode::Div
+            | BytecodeOpcode::Mod
+            | BytecodeOpcode::And
+            | BytecodeOpcode::Or
+            | BytecodeOpcode::Xor
+            | BytecodeOpcode::Shl
+            | BytecodeOpcode::Shr
+            | BytecodeOpcode::Sar
             | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadStructField
@@ -354,10 +295,8 @@ impl BytecodeOpcode {
 
     pub fn needs_position(&self) -> bool {
         match *self {
-            BytecodeOpcode::DivInt32
-            | BytecodeOpcode::DivInt64
-            | BytecodeOpcode::ModInt32
-            | BytecodeOpcode::ModInt64
+            BytecodeOpcode::Div
+            | BytecodeOpcode::Mod
             | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField
@@ -384,203 +323,83 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArray
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
-            | BytecodeOpcode::AddInt32
-            | BytecodeOpcode::AddInt64
-            | BytecodeOpcode::SubInt32
-            | BytecodeOpcode::SubInt64
-            | BytecodeOpcode::MulInt32
-            | BytecodeOpcode::MulInt64 => true,
+            | BytecodeOpcode::Add
+            | BytecodeOpcode::Sub
+            | BytecodeOpcode::Mul => true,
             _ => false,
         }
     }
 }
 
 pub enum BytecodeInstruction {
-    AddInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    AddInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    AddFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    AddFloat64 {
+    Add {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
 
-    SubInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    SubInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    SubFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    SubFloat64 {
+    Sub {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
 
-    NegInt32 {
-        dest: Register,
-        src: Register,
-    },
-    NegInt64 {
-        dest: Register,
-        src: Register,
-    },
-    NegFloat32 {
-        dest: Register,
-        src: Register,
-    },
-    NegFloat64 {
+    Neg {
         dest: Register,
         src: Register,
     },
 
-    MulInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    MulInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    MulFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    MulFloat64 {
+    Mul {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
 
-    DivInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    DivInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    DivFloat32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    DivFloat64 {
+    Div {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
 
-    ModInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    ModInt64 {
+    Mod {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
 
-    AndInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    AndInt64 {
+    And {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
 
-    OrInt32 {
+    Or {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
-    OrInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    XorInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    XorInt64 {
+    Xor {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
 
-    NotBool {
-        dest: Register,
-        src: Register,
-    },
-    NotInt32 {
-        dest: Register,
-        src: Register,
-    },
-    NotInt64 {
+    Not {
         dest: Register,
         src: Register,
     },
 
-    ShlInt32 {
+    Shl {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
-    ShrInt32 {
+    Shr {
         dest: Register,
         lhs: Register,
         rhs: Register,
     },
-    SarInt32 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-
-    ShlInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    ShrInt64 {
-        dest: Register,
-        lhs: Register,
-        rhs: Register,
-    },
-    SarInt64 {
+    Sar {
         dest: Register,
         lhs: Register,
         rhs: Register,

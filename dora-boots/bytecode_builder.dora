@@ -43,152 +43,56 @@ class BytecodeBuilder {
         self.arguments = arguments;
     }
 
-    fn emitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ADD_INT32, dest, lhs, rhs);
+    fn emitAdd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_ADD, dest, lhs, rhs);
     }
 
-    fn emitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ADD_INT64, dest, lhs, rhs);
+    fn emitSub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_SUB, dest, lhs, rhs);
     }
 
-    fn emitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ADD_FLOAT32, dest, lhs, rhs);
+    fn emitNeg(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_NEG, dest, src);
     }
 
-    fn emitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ADD_FLOAT64, dest, lhs, rhs);
+    fn emitMul(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_MUL, dest, lhs, rhs);
     }
 
-    fn emitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SUB_INT32, dest, lhs, rhs);
+    fn emitDiv(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_DIV, dest, lhs, rhs);
     }
 
-    fn emitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SUB_INT64, dest, lhs, rhs);
+    fn emitMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_MOD, dest, lhs, rhs);
     }
 
-    fn emitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SUB_FLOAT32, dest, lhs, rhs);
+    fn emitAnd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_AND, dest, lhs, rhs);
     }
 
-    fn emitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SUB_FLOAT64, dest, lhs, rhs);
+    fn emitOr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_OR, dest, lhs, rhs);
     }
 
-    fn emitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NEG_INT32, dest, src);
+    fn emitXor(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_XOR, dest, lhs, rhs);
     }
 
-    fn emitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NEG_INT64, dest, src);
+    fn emitNot(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_NOT, dest, src);
     }
 
-    fn emitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NEG_FLOAT32, dest, src);
+    fn emitShl(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_SHL, dest, lhs, rhs);
     }
 
-    fn emitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NEG_FLOAT64, dest, src);
+    fn emitShr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_SHR, dest, lhs, rhs);
     }
 
-    fn emitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_MUL_INT32, dest, lhs, rhs);
-    }
-
-    fn emitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_MUL_INT64, dest, lhs, rhs);
-    }
-
-    fn emitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_MUL_FLOAT32, dest, lhs, rhs);
-    }
-
-    fn emitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_MUL_FLOAT64, dest, lhs, rhs);
-    }
-
-    fn emitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_DIV_INT32, dest, lhs, rhs);
-    }
-
-    fn emitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_DIV_INT64, dest, lhs, rhs);
-    }
-
-    fn emitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_DIV_FLOAT32, dest, lhs, rhs);
-    }
-
-    fn emitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_DIV_FLOAT64, dest, lhs, rhs);
-    }
-
-    fn emitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_MOD_INT32, dest, lhs, rhs);
-    }
-
-    fn emitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_MOD_INT64, dest, lhs, rhs);
-    }
-
-    fn emitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_AND_INT32, dest, lhs, rhs);
-    }
-
-    fn emitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_AND_INT64, dest, lhs, rhs);
-    }
-
-    fn emitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_OR_INT32, dest, lhs, rhs);
-    }
-
-    fn emitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_OR_INT64, dest, lhs, rhs);
-    }
-
-    fn emitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_XOR_INT32, dest, lhs, rhs);
-    }
-
-    fn emitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_XOR_INT64, dest, lhs, rhs);
-    }
-
-    fn emitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NOT_BOOL, dest, src);
-    }
-
-    fn emitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NOT_INT32, dest, src);
-    }
-
-    fn emitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NOT_INT64, dest, src);
-    }
-
-    fn emitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SHL_INT32, dest, lhs, rhs);
-    }
-
-    fn emitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SHR_INT32, dest, lhs, rhs);
-    }
-
-    fn emitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SAR_INT32, dest, lhs, rhs);
-    }
-
-    fn emitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SHL_INT64, dest, lhs, rhs);
-    }
-
-    fn emitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SHR_INT64, dest, lhs, rhs);
-    }
-
-    fn emitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SAR_INT64, dest, lhs, rhs);
+    fn emitSar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_SAR, dest, lhs, rhs);
     }
 
     fn emitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {

@@ -46,227 +46,87 @@ impl<'a> BytecodeReader<'a> {
         let inst = match opcode {
             BytecodeOpcode::Wide => unreachable!(),
 
-            BytecodeOpcode::AddInt32 => {
+            BytecodeOpcode::Add => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::AddInt32 { dest, lhs, rhs }
+                BytecodeInstruction::Add { dest, lhs, rhs }
             }
-            BytecodeOpcode::AddInt64 => {
+            BytecodeOpcode::Sub => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::AddInt64 { dest, lhs, rhs }
+                BytecodeInstruction::Sub { dest, lhs, rhs }
             }
-            BytecodeOpcode::AddFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::AddFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::AddFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::AddFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::SubInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::SubInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::SubInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::SubInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::SubFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::SubFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::SubFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::SubFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::NegInt32 => {
+            BytecodeOpcode::Neg => {
                 let dest = self.read_register();
                 let src = self.read_register();
-                BytecodeInstruction::NegInt32 { dest, src }
+                BytecodeInstruction::Neg { dest, src }
             }
-            BytecodeOpcode::NegInt64 => {
+            BytecodeOpcode::Mul => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Mul { dest, lhs, rhs }
+            }
+            BytecodeOpcode::Div => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Div { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::Mod => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Mod { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::And => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::And { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::Or => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Or { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::Xor => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Xor { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::Not => {
                 let dest = self.read_register();
                 let src = self.read_register();
-                BytecodeInstruction::NegInt64 { dest, src }
-            }
-            BytecodeOpcode::NegFloat32 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::NegFloat32 { dest, src }
-            }
-            BytecodeOpcode::NegFloat64 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::NegFloat64 { dest, src }
-            }
-            BytecodeOpcode::MulInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::MulInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::MulInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::MulInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::MulFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::MulFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::MulFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::MulFloat64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::DivInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::DivInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::DivInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::DivInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::DivFloat32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::DivFloat32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::DivFloat64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::DivFloat64 { dest, lhs, rhs }
+                BytecodeInstruction::Not { dest, src }
             }
 
-            BytecodeOpcode::ModInt32 => {
+            BytecodeOpcode::Shl => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::ModInt32 { dest, lhs, rhs }
+                BytecodeInstruction::Shl { dest, lhs, rhs }
             }
-            BytecodeOpcode::ModInt64 => {
+            BytecodeOpcode::Shr => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::ModInt64 { dest, lhs, rhs }
+                BytecodeInstruction::Shr { dest, lhs, rhs }
             }
-
-            BytecodeOpcode::AndInt32 => {
+            BytecodeOpcode::Sar => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::AndInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::AndInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::AndInt64 { dest, lhs, rhs }
-            }
-
-            BytecodeOpcode::OrInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::OrInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::OrInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::OrInt64 { dest, lhs, rhs }
-            }
-
-            BytecodeOpcode::XorInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::XorInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::XorInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::XorInt64 { dest, lhs, rhs }
-            }
-
-            BytecodeOpcode::NotBool => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::NotBool { dest, src }
-            }
-            BytecodeOpcode::NotInt32 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::NotInt32 { dest, src }
-            }
-            BytecodeOpcode::NotInt64 => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::NotInt64 { dest, src }
-            }
-
-            BytecodeOpcode::ShlInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::ShlInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::ShrInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::ShrInt32 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::SarInt32 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::SarInt32 { dest, lhs, rhs }
-            }
-
-            BytecodeOpcode::ShlInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::ShlInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::ShrInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::ShrInt64 { dest, lhs, rhs }
-            }
-            BytecodeOpcode::SarInt64 => {
-                let dest = self.read_register();
-                let lhs = self.read_register();
-                let rhs = self.read_register();
-                BytecodeInstruction::SarInt64 { dest, lhs, rhs }
+                BytecodeInstruction::Sar { dest, lhs, rhs }
             }
 
             BytecodeOpcode::InstanceOf => {
@@ -688,123 +548,50 @@ where
 
     fn dispatch_instruction(&mut self, inst: BytecodeInstruction) {
         match inst {
-            BytecodeInstruction::AddInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_add_int32(dest, lhs, rhs);
+            BytecodeInstruction::Add { dest, lhs, rhs } => {
+                self.visitor.visit_add(dest, lhs, rhs);
             }
-            BytecodeInstruction::AddInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_add_int64(dest, lhs, rhs);
+            BytecodeInstruction::Sub { dest, lhs, rhs } => {
+                self.visitor.visit_sub(dest, lhs, rhs);
             }
-            BytecodeInstruction::AddFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_add_float32(dest, lhs, rhs);
+            BytecodeInstruction::Neg { dest, src } => {
+                self.visitor.visit_neg(dest, src);
             }
-            BytecodeInstruction::AddFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_add_float64(dest, lhs, rhs);
+            BytecodeInstruction::Mul { dest, lhs, rhs } => {
+                self.visitor.visit_mul(dest, lhs, rhs);
             }
-            BytecodeInstruction::SubInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_sub_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::SubInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_sub_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::SubFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_sub_float32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::SubFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_sub_float64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::NegInt32 { dest, src } => {
-                self.visitor.visit_neg_int32(dest, src);
-            }
-            BytecodeInstruction::NegInt64 { dest, src } => {
-                self.visitor.visit_neg_int64(dest, src);
-            }
-            BytecodeInstruction::NegFloat32 { dest, src } => {
-                self.visitor.visit_neg_float32(dest, src);
-            }
-            BytecodeInstruction::NegFloat64 { dest, src } => {
-                self.visitor.visit_neg_float64(dest, src);
-            }
-            BytecodeInstruction::MulInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_mul_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::MulInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_mul_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::MulFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_mul_float32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::MulFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_mul_float64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::DivInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_div_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::DivInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_div_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::DivFloat32 { dest, lhs, rhs } => {
-                self.visitor.visit_div_float32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::DivFloat64 { dest, lhs, rhs } => {
-                self.visitor.visit_div_float64(dest, lhs, rhs);
+            BytecodeInstruction::Div { dest, lhs, rhs } => {
+                self.visitor.visit_div(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::ModInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_mod_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::ModInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_mod_int64(dest, lhs, rhs);
+            BytecodeInstruction::Mod { dest, lhs, rhs } => {
+                self.visitor.visit_mod(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::AndInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_and_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::AndInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_and_int64(dest, lhs, rhs);
+            BytecodeInstruction::And { dest, lhs, rhs } => {
+                self.visitor.visit_and(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::OrInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_or_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::OrInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_or_int64(dest, lhs, rhs);
+            BytecodeInstruction::Or { dest, lhs, rhs } => {
+                self.visitor.visit_or(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::XorInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_xor_int32(dest, lhs, rhs);
-            }
-            BytecodeInstruction::XorInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_xor_int64(dest, lhs, rhs);
+            BytecodeInstruction::Xor { dest, lhs, rhs } => {
+                self.visitor.visit_xor(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::NotBool { dest, src } => {
-                self.visitor.visit_not_bool(dest, src);
-            }
-            BytecodeInstruction::NotInt32 { dest, src } => {
-                self.visitor.visit_not_int32(dest, src);
-            }
-            BytecodeInstruction::NotInt64 { dest, src } => {
-                self.visitor.visit_not_int64(dest, src);
+            BytecodeInstruction::Not { dest, src } => {
+                self.visitor.visit_not(dest, src);
             }
 
-            BytecodeInstruction::ShlInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_shl_int32(dest, lhs, rhs);
+            BytecodeInstruction::Shl { dest, lhs, rhs } => {
+                self.visitor.visit_shl(dest, lhs, rhs);
             }
-            BytecodeInstruction::ShrInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_shr_int32(dest, lhs, rhs);
+            BytecodeInstruction::Shr { dest, lhs, rhs } => {
+                self.visitor.visit_shr(dest, lhs, rhs);
             }
-            BytecodeInstruction::SarInt32 { dest, lhs, rhs } => {
-                self.visitor.visit_sar_int32(dest, lhs, rhs);
-            }
-
-            BytecodeInstruction::ShlInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_shl_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::ShrInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_shr_int64(dest, lhs, rhs);
-            }
-            BytecodeInstruction::SarInt64 { dest, lhs, rhs } => {
-                self.visitor.visit_sar_int64(dest, lhs, rhs);
+            BytecodeInstruction::Sar { dest, lhs, rhs } => {
+                self.visitor.visit_sar(dest, lhs, rhs);
             }
 
             BytecodeInstruction::InstanceOf { dest, src, cls_id } => {
@@ -1015,172 +802,53 @@ where
 pub trait BytecodeVisitor {
     fn visit_instruction(&mut self, _offset: BytecodeOffset) {}
 
-    fn visit_add_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_add_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_add_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_add_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_add(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_sub_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_sub_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_sub_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_sub_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_sub(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_neg_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_neg_int64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_neg_float32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_neg_float64(&mut self, _dest: Register, _src: Register) {
+    fn visit_neg(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 
-    fn visit_mul_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_mul_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_mul_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_mul_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_mul(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_div_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_div_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_div_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_div_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_div(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_mod_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_mod_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_mod(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_and_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_and_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_and(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_or_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_or_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_or(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_xor_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_xor_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_xor(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_not_bool(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_not_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_not_int64(&mut self, _dest: Register, _src: Register) {
+    fn visit_not(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 
-    fn visit_shl_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_shl(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_shr_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_shr(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_sar_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_shl_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_shr_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_sar_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_rol_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_ror_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_rol_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-    fn visit_ror_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_cast_char_to_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_cast_int32_to_uint8(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_cast_int32_to_char(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_cast_int64_to_uint8(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_cast_int64_to_char(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_cast_int64_to_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-
-    fn visit_truncate_float32_to_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_truncate_float32_to_int64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_truncate_float64_to_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_truncate_float64_to_int64(&mut self, _dest: Register, _src: Register) {
+    fn visit_sar(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 

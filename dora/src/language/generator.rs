@@ -191,7 +191,7 @@ impl<'a> AstBytecodeGen<'a> {
         let tmp_reg = self.alloc_temp(BytecodeType::Int64);
         self.builder.emit_const_int64(tmp_reg, 1);
         self.builder
-            .emit_add_int64(index_reg, index_reg, tmp_reg, stmt.pos);
+            .emit_add(index_reg, index_reg, tmp_reg, stmt.pos);
         self.free_temp(tmp_reg);
 
         // jump to loop header
@@ -1882,7 +1882,7 @@ impl<'a> AstBytecodeGen<'a> {
             BinOp::Cmp(CmpOp::Eq) => assert_eq!(result, dest),
             BinOp::Cmp(CmpOp::Ne) => {
                 assert_eq!(result, dest);
-                self.builder.emit_not_bool(dest, dest);
+                self.builder.emit_not(dest, dest);
             }
 
             BinOp::Cmp(op) => {
@@ -1997,7 +1997,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_test_identity(dest, lhs_reg, rhs_reg);
 
         if expr.op == BinOp::Cmp(CmpOp::IsNot) {
-            self.builder.emit_not_bool(dest, dest);
+            self.builder.emit_not(dest, dest);
         }
 
         self.free_if_temp(lhs_reg);
@@ -2140,13 +2140,13 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::ArrayLen | Intrinsic::StrLen => {
                 self.builder.emit_array_length(dest, src, pos);
             }
-            Intrinsic::Int32Neg => self.builder.emit_neg_int32(dest, src),
-            Intrinsic::Int64Neg => self.builder.emit_neg_int64(dest, src),
-            Intrinsic::Float32Neg => self.builder.emit_neg_float32(dest, src),
-            Intrinsic::Float64Neg => self.builder.emit_neg_float64(dest, src),
-            Intrinsic::BoolNot => self.builder.emit_not_bool(dest, src),
-            Intrinsic::Int32Not => self.builder.emit_not_int32(dest, src),
-            Intrinsic::Int64Not => self.builder.emit_not_int64(dest, src),
+            Intrinsic::Int32Neg
+            | Intrinsic::Int64Neg
+            | Intrinsic::Float32Neg
+            | Intrinsic::Float64Neg => self.builder.emit_neg(dest, src),
+            Intrinsic::BoolNot | Intrinsic::Int32Not | Intrinsic::Int64Not => {
+                self.builder.emit_not(dest, src)
+            }
             Intrinsic::Int32ToInt32 => self.builder.emit_mov(dest, src),
             Intrinsic::Float32IsNan => self.builder.emit_test_ne(dest, src, src),
             Intrinsic::Float64IsNan => self.builder.emit_test_ne(dest, src, src),
@@ -2384,36 +2384,40 @@ impl<'a> AstBytecodeGen<'a> {
 
                 _ => unreachable!(),
             },
-            Intrinsic::Int32Add => self.builder.emit_add_int32(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int32Sub => self.builder.emit_sub_int32(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int32Mul => self.builder.emit_mul_int32(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int32Div => self.builder.emit_div_int32(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int32Mod => self.builder.emit_mod_int32(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int32Or => self.builder.emit_or_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32And => self.builder.emit_and_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Xor => self.builder.emit_xor_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Shl => self.builder.emit_shl_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Shr => self.builder.emit_shr_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Sar => self.builder.emit_sar_int32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Add => self.builder.emit_add_int64(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int64Sub => self.builder.emit_sub_int64(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int64Mul => self.builder.emit_mul_int64(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int64Div => self.builder.emit_div_int64(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int64Mod => self.builder.emit_mod_int64(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int64Or => self.builder.emit_or_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64And => self.builder.emit_and_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Xor => self.builder.emit_xor_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Shl => self.builder.emit_shl_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Shr => self.builder.emit_shr_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Sar => self.builder.emit_sar_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Float32Add => self.builder.emit_add_float32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Float32Sub => self.builder.emit_sub_float32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Float32Mul => self.builder.emit_mul_float32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Float32Div => self.builder.emit_div_float32(dest, lhs_reg, rhs_reg),
-            Intrinsic::Float64Add => self.builder.emit_add_float64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Float64Sub => self.builder.emit_sub_float64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Float64Mul => self.builder.emit_mul_float64(dest, lhs_reg, rhs_reg),
-            Intrinsic::Float64Div => self.builder.emit_div_float64(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int32Add => self.builder.emit_add(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int32Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int32Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int32Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int32Mod => self.builder.emit_mod(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int32Or => self.builder.emit_or(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int32And => self.builder.emit_and(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int32Xor => self.builder.emit_xor(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int32Shl => self.builder.emit_shl(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int32Shr => self.builder.emit_shr(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int32Sar => self.builder.emit_sar(dest, lhs_reg, rhs_reg),
+
+            Intrinsic::Int64Add => self.builder.emit_add(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int64Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int64Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int64Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int64Mod => self.builder.emit_mod(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int64Or => self.builder.emit_or(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64And => self.builder.emit_and(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Xor => self.builder.emit_xor(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Shl => self.builder.emit_shl(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Shr => self.builder.emit_shr(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Sar => self.builder.emit_sar(dest, lhs_reg, rhs_reg),
+
+            Intrinsic::Float32Add => self.builder.emit_add(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Float32Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Float32Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Float32Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, pos),
+
+            Intrinsic::Float64Add => self.builder.emit_add(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Float64Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Float64Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Float64Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, pos),
+
             _ => unimplemented!(),
         }
 

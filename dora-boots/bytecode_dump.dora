@@ -106,54 +106,19 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
 
     @override fn visitInstruction(offset: Int32) { self.pos = offset; }
 
-    @override fn visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("AddInt32", dest, lhs, rhs); }
-    @override fn visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("AddInt64", dest, lhs, rhs); }
-    @override fn visitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("AddFloat32", dest, lhs, rhs); }
-    @override fn visitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("AddFloat64", dest, lhs, rhs); }
-
-    @override fn visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("SubInt32", dest, lhs, rhs); }
-    @override fn visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("SubInt64", dest, lhs, rhs); }
-    @override fn visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("SubFloat32", dest, lhs, rhs); }
-    @override fn visitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("SubFloat64", dest, lhs, rhs); }
-
-    @override fn visitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("NegInt32", dest, src); }
-    @override fn visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("NegInt64", dest, src); }
-    @override fn visitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("NegFloat32", dest, src); }
-    @override fn visitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("NegFloat64", dest, src); }
-
-    @override fn visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("MulInt32", dest, lhs, rhs); }
-    @override fn visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("MulInt64", dest, lhs, rhs); }
-    @override fn visitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("MulFloat32", dest, lhs, rhs); }
-    @override fn visitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("MulFloat64", dest, lhs, rhs); }
-
-    @override fn visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("DivInt32", dest, lhs, rhs); }
-    @override fn visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("DivInt64", dest, lhs, rhs); }
-    @override fn visitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("DivFloat32", dest, lhs, rhs); }
-    @override fn visitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("DivFloat64", dest, lhs, rhs); }
-
-    @override fn visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("ModInt32", dest, lhs, rhs); }
-    @override fn visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("ModInt64", dest, lhs, rhs); }
-
-    @override fn visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("AndInt32", dest, lhs, rhs); }
-    @override fn visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("AndInt64", dest, lhs, rhs); }
-
-    @override fn visitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("OrInt32", dest, lhs, rhs); }
-    @override fn visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("OrInt64", dest, lhs, rhs); }
-
-    @override fn visitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("XorInt32", dest, lhs, rhs); }
-    @override fn visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("XorInt64", dest, lhs, rhs); }
-
-    @override fn visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("NotBool", dest, src); }
-    @override fn visitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("NotInt32", dest, src); }
-    @override fn visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("NotInt64", dest, src); }
-
-    @override fn visitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("ShlInt32", dest, lhs, rhs); }
-    @override fn visitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("ShrInt32", dest, lhs, rhs); }
-    @override fn visitSarInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("SarInt32", dest, lhs, rhs); }
-
-    @override fn visitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("ShlInt64", dest, lhs, rhs); }
-    @override fn visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("ShrInt64", dest, lhs, rhs); }
-    @override fn visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("SarInt64", dest, lhs, rhs); }
+    @override fn visitAdd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Add", dest, lhs, rhs); }
+    @override fn visitSub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Sub", dest, lhs, rhs); }
+    @override fn visitNeg(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("Neg", dest, src); }
+    @override fn visitMul(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Mul", dest, lhs, rhs); }
+    @override fn visitDiv(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Div", dest, lhs, rhs); }
+    @override fn visitMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Mod", dest, lhs, rhs); }
+    @override fn visitAnd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("And", dest, lhs, rhs); }
+    @override fn visitOr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Or", dest, lhs, rhs); }
+    @override fn visitXor(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Xor", dest, lhs, rhs); }
+    @override fn visitNot(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("Not", dest, src); }
+    @override fn visitShl(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Shl", dest, lhs, rhs); }
+    @override fn visitShr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Shr", dest, lhs, rhs); }
+    @override fn visitSar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("Sar", dest, lhs, rhs); }
 
     @override fn visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { self.emitReg2AndCls("InstanceOf", dest, src, cls); }
     @override fn visitCheckedCast(dest: BytecodeRegister, cls: ClassDefId) { self.emitReg1AndCls("CheckedCast", dest, cls); }

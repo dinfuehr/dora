@@ -183,28 +183,6 @@ fn test_const_string() {
 }
 
 #[test]
-fn test_sub_float() {
-    struct TestVisitor {
-        found: bool,
-    }
-    impl BytecodeVisitor for TestVisitor {
-        fn visit_sub_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-            assert_eq!(Register(2), dest);
-            assert_eq!(Register(9), lhs);
-            assert_eq!(Register(255), rhs);
-            self.found = true;
-        }
-    }
-    let mut writer = BytecodeWriter::new();
-    writer.emit_sub_float32(Register(2), Register(9), Register(255));
-    let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::SubFloat32.to_u8(), 2, 9, 255]);
-    let mut visitor = TestVisitor { found: false };
-    read(fct.code(), &mut visitor);
-    assert!(visitor.found);
-}
-
-#[test]
 fn test_jump_back() {
     struct TestVisitor {
         found: bool,

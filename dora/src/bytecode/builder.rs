@@ -190,78 +190,31 @@ impl BytecodeBuilder {
         self.writer.add_const(ConstPoolEntry::Tuple(subtypes))
     }
 
-    pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);
-        self.writer.emit_add_int32(dest, lhs, rhs);
+        self.writer.emit_add(dest, lhs, rhs);
     }
 
-    pub fn emit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_and(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_and(dest, lhs, rhs);
+    }
+
+    pub fn emit_or(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_or(dest, lhs, rhs);
+    }
+
+    pub fn emit_xor(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_xor(dest, lhs, rhs);
+    }
+
+    pub fn emit_div(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);
-        self.writer.emit_add_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_add_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_add_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_add_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_and_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_and_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_and_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_or_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_or_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_or_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_or_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_xor_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_xor_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_xor_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_xor_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
-        self.writer.emit_div_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
-        self.writer.emit_div_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_div_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_div_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_div_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_div_float64(dest, lhs, rhs);
+        self.writer.emit_div(dest, lhs, rhs);
     }
 
     pub fn emit_load_struct_field(
@@ -343,19 +296,9 @@ impl BytecodeBuilder {
         self.writer.emit_const_false(dest);
     }
 
-    pub fn emit_not_bool(&mut self, dest: Register, src: Register) {
+    pub fn emit_not(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
-        self.writer.emit_not_bool(dest, src);
-    }
-
-    pub fn emit_not_int32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_not_int32(dest, src);
-    }
-
-    pub fn emit_not_int64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_not_int64(dest, src);
+        self.writer.emit_not(dest, src);
     }
 
     pub fn emit_jump_if_false(&mut self, opnd: Register, lbl: Label) {
@@ -380,88 +323,36 @@ impl BytecodeBuilder {
         self.writer.emit_jump(lbl);
     }
 
-    pub fn emit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_mod(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);
-        self.writer.emit_mod_int32(dest, lhs, rhs);
+        self.writer.emit_mod(dest, lhs, rhs);
     }
 
-    pub fn emit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);
-        self.writer.emit_mod_int64(dest, lhs, rhs);
+        self.writer.emit_mul(dest, lhs, rhs);
     }
 
-    pub fn emit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
-        self.writer.emit_mul_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
-        self.writer.emit_mul_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_mul_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_mul_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_mul_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_mul_float64(dest, lhs, rhs);
-    }
-
-    pub fn emit_neg_int32(&mut self, dest: Register, src: Register) {
+    pub fn emit_neg(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
-        self.writer.emit_neg_int32(dest, src);
+        self.writer.emit_neg(dest, src);
     }
 
-    pub fn emit_neg_int64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_neg_int64(dest, src);
-    }
-
-    pub fn emit_neg_float32(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_neg_float32(dest, src);
-    }
-
-    pub fn emit_neg_float64(&mut self, dest: Register, src: Register) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_neg_float64(dest, src);
-    }
-
-    pub fn emit_shl_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_shl(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_shl_int32(dest, lhs, rhs);
+        self.writer.emit_shl(dest, lhs, rhs);
     }
 
-    pub fn emit_shl_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_shr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_shl_int64(dest, lhs, rhs);
+        self.writer.emit_shr(dest, lhs, rhs);
     }
 
-    pub fn emit_shr_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_sar(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_shr_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_shr_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_shr_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_sar_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_sar_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_sar_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_sar_int64(dest, lhs, rhs);
+        self.writer.emit_sar(dest, lhs, rhs);
     }
 
     pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
@@ -475,26 +366,10 @@ impl BytecodeBuilder {
         self.writer.emit_checked_cast(src, cls_idx);
     }
 
-    pub fn emit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);
-        self.writer.emit_sub_int32(dest, lhs, rhs);
-    }
-
-    pub fn emit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
-        self.writer.emit_sub_int64(dest, lhs, rhs);
-    }
-
-    pub fn emit_sub_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_sub_float32(dest, lhs, rhs);
-    }
-
-    pub fn emit_sub_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.emit_sub_float64(dest, lhs, rhs);
+        self.writer.emit_sub(dest, lhs, rhs);
     }
 
     pub fn emit_mov(&mut self, dest: Register, src: Register) {

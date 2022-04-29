@@ -188,7 +188,7 @@ fn testBytecodeConstString() {
 class TestSubFloat32Visitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fn visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fn visitSub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         assert(dest == BytecodeRegister(2i32));
         assert(lhs == BytecodeRegister(9i32));
         assert(rhs == BytecodeRegister(255i32));
@@ -199,10 +199,10 @@ class TestSubFloat32Visitor: BytecodeVisitor {
 @Test
 fn testBytecodeSubFloat32() {
     let writer = BytecodeBuilder();
-    writer.emitSubFloat32(BytecodeRegister(2i32), BytecodeRegister(9i32), BytecodeRegister(255i32));
+    writer.emitSub(BytecodeRegister(2i32), BytecodeRegister(9i32), BytecodeRegister(255i32));
     let fct = writer.generate();
     let visitor = TestSubFloat32Visitor();
-    assert(fct.codeAt(0i32) == BC_SUB_FLOAT32);
+    assert(fct.codeAt(0i32) == BC_SUB);
     assert(fct.codeAt(1i32) == 2i32);
     assert(fct.codeAt(2i32) == 9i32);
     assert(fct.codeAt(3i32) == 255i32);

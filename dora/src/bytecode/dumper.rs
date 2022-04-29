@@ -654,160 +654,54 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.pos = offset;
     }
 
-    fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AddInt32", dest, lhs, rhs);
-    }
-    fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AddInt64", dest, lhs, rhs);
-    }
-    fn visit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AddFloat32", dest, lhs, rhs);
-    }
-    fn visit_add_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AddFloat64", dest, lhs, rhs);
+    fn visit_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Add", dest, lhs, rhs);
     }
 
-    fn visit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SubInt32", dest, lhs, rhs);
-    }
-    fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SubInt64", dest, lhs, rhs);
-    }
-    fn visit_sub_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SubFloat32", dest, lhs, rhs);
-    }
-    fn visit_sub_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SubFloat64", dest, lhs, rhs);
+    fn visit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Sub", dest, lhs, rhs);
     }
 
-    fn visit_neg_int32(&mut self, dest: Register, src: Register) {
+    fn visit_neg(&mut self, dest: Register, src: Register) {
         self.emit_reg2("NegInt32", dest, src);
     }
-    fn visit_neg_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NegInt64", dest, src);
-    }
-    fn visit_neg_float32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NegFloat32", dest, src);
-    }
-    fn visit_neg_float64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NegFloat64", dest, src);
+
+    fn visit_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Mul", dest, lhs, rhs);
     }
 
-    fn visit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("MulInt32", dest, lhs, rhs);
-    }
-    fn visit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("MulInt64", dest, lhs, rhs);
-    }
-    fn visit_mul_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("MulFloat32", dest, lhs, rhs);
-    }
-    fn visit_mul_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("MulFloat64", dest, lhs, rhs);
+    fn visit_div(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Div", dest, lhs, rhs);
     }
 
-    fn visit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("DivInt32", dest, lhs, rhs);
-    }
-    fn visit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("DivInt64", dest, lhs, rhs);
-    }
-    fn visit_div_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("DivFloat32", dest, lhs, rhs);
-    }
-    fn visit_div_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("DivFloat64", dest, lhs, rhs);
+    fn visit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Mod", dest, lhs, rhs);
     }
 
-    fn visit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("ModInt32", dest, lhs, rhs);
-    }
-    fn visit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("ModInt64", dest, lhs, rhs);
+    fn visit_and(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("And", dest, lhs, rhs);
     }
 
-    fn visit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AndInt32", dest, lhs, rhs);
-    }
-    fn visit_and_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AndInt64", dest, lhs, rhs);
+    fn visit_or(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Or", dest, lhs, rhs);
     }
 
-    fn visit_or_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("OrInt32", dest, lhs, rhs);
-    }
-    fn visit_or_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("OrInt64", dest, lhs, rhs);
+    fn visit_xor(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Xor", dest, lhs, rhs);
     }
 
-    fn visit_xor_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("XorInt32", dest, lhs, rhs);
-    }
-    fn visit_xor_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("XorInt64", dest, lhs, rhs);
+    fn visit_not(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("Not", dest, src);
     }
 
-    fn visit_not_bool(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NotBool", dest, src);
+    fn visit_shl(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Shl", dest, lhs, rhs);
     }
-    fn visit_not_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NotInt32", dest, src);
+    fn visit_shr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Shr", dest, lhs, rhs);
     }
-    fn visit_not_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NotInt64", dest, src);
-    }
-
-    fn visit_shl_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("ShlInt32", dest, lhs, rhs);
-    }
-    fn visit_shr_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("ShrInt32", dest, lhs, rhs);
-    }
-    fn visit_sar_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SarInt32", dest, lhs, rhs);
-    }
-
-    fn visit_shl_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("ShlInt64", dest, lhs, rhs);
-    }
-    fn visit_shr_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("ShrInt64", dest, lhs, rhs);
-    }
-    fn visit_sar_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SarInt64", dest, lhs, rhs);
-    }
-
-    fn visit_rol_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("RolInt32", dest, lhs, rhs);
-    }
-    fn visit_ror_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("RorInt32", dest, lhs, rhs);
-    }
-
-    fn visit_rol_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("RolInt64", dest, lhs, rhs);
-    }
-    fn visit_ror_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("RorInt64", dest, lhs, rhs);
-    }
-
-    fn visit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastCharToInt32", dest, src);
-    }
-    fn visit_cast_int32_to_uint8(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastInt32ToUInt8", dest, src);
-    }
-    fn visit_cast_int32_to_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastInt32ToChar", dest, src);
-    }
-    fn visit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastInt64ToUInt8", dest, src);
-    }
-    fn visit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastInt64ToChar", dest, src);
-    }
-    fn visit_cast_int64_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastInt64ToInt32", dest, src);
+    fn visit_sar(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Sar", dest, lhs, rhs);
     }
 
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ConstPoolIdx) {

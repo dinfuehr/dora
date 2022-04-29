@@ -161,7 +161,7 @@ fn gen_add_int() {
     let expected = vec![
         ConstInt32(r(1), 1),
         ConstInt32(r(2), 2),
-        AddInt32(r(0), r(1), r(2)),
+        Add(r(0), r(1), r(2)),
         Ret(r(0)),
     ];
     assert_eq!(expected, result);
@@ -173,7 +173,7 @@ fn gen_add_float32() {
     let expected = vec![
         ConstFloat32(r(1), 1_f32),
         ConstFloat32(r(2), 2_f32),
-        AddFloat32(r(0), r(1), r(2)),
+        Add(r(0), r(1), r(2)),
         Ret(r(0)),
     ];
     assert_eq!(expected, result);
@@ -182,7 +182,7 @@ fn gen_add_float32() {
 #[test]
 fn gen_add_float64() {
     let result = code("fn f(a: Float64, b: Float64): Float64 { return a + b; }");
-    let expected = vec![AddFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Add(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -210,39 +210,35 @@ fn gen_ptr_is() {
 #[test]
 fn gen_ptr_is_not() {
     let result = code("fn f(a: Object, b: Object): Bool { return a !== b; }");
-    let expected = vec![
-        TestIdentity(r(2), r(0), r(1)),
-        NotBool(r(2), r(2)),
-        Ret(r(2)),
-    ];
+    let expected = vec![TestIdentity(r(2), r(0), r(1)), Not(r(2), r(2)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_sub_int() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a - b; }");
-    let expected = vec![SubInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Sub(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_sub_float32() {
     let result = code("fn f(a: Float32, b: Float32): Float32 { return a - b; }");
-    let expected = vec![SubFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Sub(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_sub_float64() {
     let result = code("fn f(a: Float64, b: Float64): Float64 { return a - b; }");
-    let expected = vec![SubFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Sub(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_div_int() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a / b; }");
-    let expected = vec![DivInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Div(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -256,35 +252,35 @@ fn gen_position_div_int() {
 #[test]
 fn gen_div_float32() {
     let result = code("fn f(a: Float32, b: Float32): Float32 { return a / b; }");
-    let expected = vec![DivFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Div(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_div_float64() {
     let result = code("fn f(a: Float64, b: Float64): Float64 { return a / b; }");
-    let expected = vec![DivFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Div(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_mul_int() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a * b; }");
-    let expected = vec![MulInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Mul(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_mul_float32() {
     let result = code("fn f(a: Float32, b: Float32): Float32 { return a * b; }");
-    let expected = vec![MulFloat32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Mul(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_mul_float64() {
     let result = code("fn f(a: Float64, b: Float64): Float64 { return a * b; }");
-    let expected = vec![MulFloat64(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Mul(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -304,7 +300,7 @@ fn gen_stmt_let_tuple() {
             let expected = vec![
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
                 LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
-                AddInt32(r(3), r(1), r(2)),
+                Add(r(3), r(1), r(2)),
                 Ret(r(3)),
             ];
             assert_eq!(expected, code);
@@ -331,8 +327,8 @@ fn gen_stmt_let_tuple() {
                 LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
                 LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
                 LoadTupleElement(r(4), r(2), ConstPoolIdx(3)),
-                AddInt32(r(6), r(1), r(3)),
-                AddInt32(r(5), r(6), r(4)),
+                Add(r(6), r(1), r(3)),
+                Add(r(5), r(6), r(4)),
                 Ret(r(5)),
             ];
             assert_eq!(expected, code);
@@ -368,7 +364,7 @@ fn gen_stmt_let_tuple() {
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
                 LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
                 LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
-                AddInt32(r(4), r(1), r(3)),
+                Add(r(4), r(1), r(3)),
                 Ret(r(4)),
             ];
             assert_eq!(expected, code);
@@ -410,7 +406,7 @@ fn gen_stmt_let_unit() {
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
                 LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
                 LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
-                AddInt32(r(4), r(1), r(3)),
+                Add(r(4), r(1), r(3)),
                 Ret(r(4)),
             ];
             assert_eq!(expected, code);
@@ -441,7 +437,7 @@ fn gen_stmt_let_unit() {
                 LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
                 LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
                 LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
-                AddInt32(r(4), r(1), r(3)),
+                Add(r(4), r(1), r(3)),
                 Ret(r(4)),
             ];
             assert_eq!(expected, code);
@@ -691,21 +687,21 @@ fn gen_expr_plus() {
 #[test]
 fn gen_expr_neg() {
     let result = code("fn f(a: Int32): Int32 { return -a; }");
-    let expected = vec![NegInt32(r(1), r(0)), Ret(r(1))];
+    let expected = vec![Neg(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_not() {
     let result = code("fn f(a: Bool): Bool { return !a; }");
-    let expected = vec![NotBool(r(1), r(0)), Ret(r(1))];
+    let expected = vec![Not(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_mod() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a % b; }");
-    let expected = vec![ModInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Mod(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -719,42 +715,42 @@ fn gen_position_mod_int32() {
 #[test]
 fn gen_expr_bit_or() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a | b; }");
-    let expected = vec![OrInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Or(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_and() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a & b; }");
-    let expected = vec![AndInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![And(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_xor() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a ^ b; }");
-    let expected = vec![XorInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Xor(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_shiftl() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a << b; }");
-    let expected = vec![ShlInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Shl(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_shiftr() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a >>> b; }");
-    let expected = vec![ShrInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Shr(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_ashiftr() {
     let result = code("fn f(a: Int32, b: Int32): Int32 { return a >> b; }");
-    let expected = vec![SarInt32(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![Sar(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3782,7 +3778,7 @@ fn gen_string_equals() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 InvokeDirect(r(2), ConstPoolIdx(0)),
-                NotBool(r(2), r(2)),
+                Not(r(2), r(2)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
@@ -4232,51 +4228,19 @@ fn r(val: usize) -> Register {
 
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {
-    AddInt32(Register, Register, Register),
-    AddInt64(Register, Register, Register),
-    AddFloat32(Register, Register, Register),
-    AddFloat64(Register, Register, Register),
-
-    SubInt32(Register, Register, Register),
-    SubInt64(Register, Register, Register),
-    SubFloat32(Register, Register, Register),
-    SubFloat64(Register, Register, Register),
-
-    NegInt32(Register, Register),
-    NegInt64(Register, Register),
-    NegFloat32(Register, Register),
-    NegFloat64(Register, Register),
-
-    MulInt32(Register, Register, Register),
-    MulInt64(Register, Register, Register),
-    MulFloat32(Register, Register, Register),
-    MulFloat64(Register, Register, Register),
-
-    DivInt32(Register, Register, Register),
-    DivInt64(Register, Register, Register),
-    DivFloat32(Register, Register, Register),
-    DivFloat64(Register, Register, Register),
-
-    ModInt32(Register, Register, Register),
-    ModInt64(Register, Register, Register),
-
-    AndInt32(Register, Register, Register),
-    AndInt64(Register, Register, Register),
-    OrInt32(Register, Register, Register),
-    OrInt64(Register, Register, Register),
-    XorInt32(Register, Register, Register),
-    XorInt64(Register, Register, Register),
-    NotBool(Register, Register),
-    NotInt32(Register, Register),
-    NotInt64(Register, Register),
-
-    ShlInt32(Register, Register, Register),
-    ShrInt32(Register, Register, Register),
-    SarInt32(Register, Register, Register),
-
-    ShlInt64(Register, Register, Register),
-    ShrInt64(Register, Register, Register),
-    SarInt64(Register, Register, Register),
+    Add(Register, Register, Register),
+    Sub(Register, Register, Register),
+    Neg(Register, Register),
+    Mul(Register, Register, Register),
+    Div(Register, Register, Register),
+    Mod(Register, Register, Register),
+    And(Register, Register, Register),
+    Or(Register, Register, Register),
+    Xor(Register, Register, Register),
+    Not(Register, Register),
+    Shl(Register, Register, Register),
+    Shr(Register, Register, Register),
+    Sar(Register, Register, Register),
 
     InstanceOf(Register, Register, ConstPoolIdx),
     CheckedCast(Register, ConstPoolIdx),
@@ -4425,127 +4389,54 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.pc = offset;
     }
 
-    fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::AddInt32(dest, lhs, rhs));
-    }
-    fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::AddInt64(dest, lhs, rhs));
-    }
-    fn visit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::AddFloat32(dest, lhs, rhs));
-    }
-    fn visit_add_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::AddFloat64(dest, lhs, rhs));
+    fn visit_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Add(dest, lhs, rhs));
     }
 
-    fn visit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::SubInt32(dest, lhs, rhs));
-    }
-    fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::SubInt64(dest, lhs, rhs));
-    }
-    fn visit_sub_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::SubFloat32(dest, lhs, rhs));
-    }
-    fn visit_sub_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::SubFloat64(dest, lhs, rhs));
+    fn visit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Sub(dest, lhs, rhs));
     }
 
-    fn visit_neg_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::NegInt32(dest, src));
-    }
-    fn visit_neg_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::NegInt64(dest, src));
-    }
-    fn visit_neg_float32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::NegFloat32(dest, src));
-    }
-    fn visit_neg_float64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::NegFloat64(dest, src));
+    fn visit_neg(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::Neg(dest, src));
     }
 
-    fn visit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::MulInt32(dest, lhs, rhs));
-    }
-    fn visit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::MulInt64(dest, lhs, rhs));
-    }
-    fn visit_mul_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::MulFloat32(dest, lhs, rhs));
-    }
-    fn visit_mul_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::MulFloat64(dest, lhs, rhs));
+    fn visit_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Mul(dest, lhs, rhs));
     }
 
-    fn visit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::DivInt32(dest, lhs, rhs));
-    }
-    fn visit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::DivInt64(dest, lhs, rhs));
-    }
-    fn visit_div_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::DivFloat32(dest, lhs, rhs));
-    }
-    fn visit_div_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::DivFloat64(dest, lhs, rhs));
+    fn visit_div(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Div(dest, lhs, rhs));
     }
 
-    fn visit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::ModInt32(dest, lhs, rhs));
-    }
-    fn visit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::ModInt64(dest, lhs, rhs));
+    fn visit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Mod(dest, lhs, rhs));
     }
 
-    fn visit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::AndInt32(dest, lhs, rhs));
-    }
-    fn visit_and_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::AndInt64(dest, lhs, rhs));
+    fn visit_and(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::And(dest, lhs, rhs));
     }
 
-    fn visit_or_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::OrInt32(dest, lhs, rhs));
-    }
-    fn visit_or_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::OrInt64(dest, lhs, rhs));
+    fn visit_or(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Or(dest, lhs, rhs));
     }
 
-    fn visit_xor_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::XorInt32(dest, lhs, rhs));
-    }
-    fn visit_xor_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::XorInt64(dest, lhs, rhs));
+    fn visit_xor(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Xor(dest, lhs, rhs));
     }
 
-    fn visit_not_bool(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::NotBool(dest, src));
-    }
-    fn visit_not_int32(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::NotInt32(dest, src));
-    }
-    fn visit_not_int64(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::NotInt64(dest, src));
+    fn visit_not(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::Not(dest, src));
     }
 
-    fn visit_shl_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::ShlInt32(dest, lhs, rhs));
+    fn visit_shl(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Shl(dest, lhs, rhs));
     }
-    fn visit_shr_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::ShrInt32(dest, lhs, rhs));
+    fn visit_shr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Shr(dest, lhs, rhs));
     }
-    fn visit_sar_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::SarInt32(dest, lhs, rhs));
-    }
-
-    fn visit_shl_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::ShlInt64(dest, lhs, rhs));
-    }
-    fn visit_shr_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::ShrInt64(dest, lhs, rhs));
-    }
-    fn visit_sar_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::SarInt64(dest, lhs, rhs));
+    fn visit_sar(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::Sar(dest, lhs, rhs));
     }
 
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
