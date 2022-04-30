@@ -4,26 +4,26 @@ fn main() {
     assert(val.codePoints().size() == 3i64);
     let it = val.codePoints();
 
-    assert(it.next() == 'a');
+    assert(it.next().getOrPanic() == 'a');
     assert(it.toString() == "bc");
-    assert(it.next() == 'b');
+    assert(it.next().getOrPanic() == 'b');
     assert(it.toString() == "c");
-    assert(it.next() == 'c');
+    assert(it.next().getOrPanic() == 'c');
     assert(it.toString() == "");
-    assert(it.hasNext() == false);
+    it.next().unwrapNone();
 
     let val = "üß";
     assert(val.size() == 4i64);
     assert(val.codePoints().size() == 2i64);
     let it = val.codePoints();
 
-    assert(it.next().toInt32() == 0xFCi32);
-    assert(it.next().toInt32() == 0xDFi32);
-    assert(it.hasNext() == false);
+    assert(it.next().getOrPanic().toInt32() == 0xFCi32);
+    assert(it.next().getOrPanic().toInt32() == 0xDFi32);
+    it.next().unwrapNone();
 
     let it = val.codePoints();
 
-    assert(it.next() == 'ü');
-    assert(it.next() == 'ß');
-    assert(it.hasNext() == false);
+    assert(it.next().getOrPanic() == 'ü');
+    assert(it.next().getOrPanic() == 'ß');
+    it.next().unwrapNone();
 }

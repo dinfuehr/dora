@@ -18,13 +18,10 @@ fn test_multiple_ascii_chars() {
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
-    assert(it.hasNext() == true);
-    assert(it.next() == 'a');
-    assert(it.hasNext() == true);
-    assert(it.next() == 'b');
-    assert(it.hasNext() == true);
-    assert(it.next() == 'c');
-    assert(it.hasNext() == false);
+    assert(it.next().getOrPanic() == 'a');
+    assert(it.next().getOrPanic() == 'b');
+    assert(it.next().getOrPanic() == 'c');
+    it.next().unwrapNone();
 }
 
 fn test_1byte() {
@@ -34,9 +31,8 @@ fn test_1byte() {
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
-    assert(it.hasNext() == true);
-    assert(it.next() == 0x24.toChar().getOrPanic());
-    assert(it.hasNext() == false);
+    assert(it.next().getOrPanic() == 0x24.toChar().getOrPanic());
+    it.next().unwrapNone();
 }
 
 fn test_2bytes() {
@@ -47,9 +43,8 @@ fn test_2bytes() {
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
-    assert(it.hasNext() == true);
-    assert(it.next() == 0xA2.toChar().getOrPanic());
-    assert(it.hasNext() == false);
+    assert(it.next().getOrPanic() == 0xA2.toChar().getOrPanic());
+    it.next().unwrapNone();
 }
 
 fn test_3bytes() {
@@ -61,9 +56,8 @@ fn test_3bytes() {
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
-    assert(it.hasNext() == true);
-    assert(it.next() == 0x20ACi32.toChar().getOrPanic());
-    assert(it.hasNext() == false);
+    assert(it.next().getOrPanic() == 0x20ACi32.toChar().getOrPanic());
+    it.next().unwrapNone();
 }
 
 fn test_4bytes() {
@@ -76,9 +70,8 @@ fn test_4bytes() {
     let val = String::fromBytes(bytes).getOrPanic();
     let it = val.codePoints();
 
-    assert(it.hasNext() == true);
-    assert(it.next() == 0x10348.toChar().getOrPanic());
-    assert(it.hasNext() == false);
+    assert(it.next().getOrPanic() == 0x10348.toChar().getOrPanic());
+    it.next().unwrapNone()
 }
 
 fn test_invalid() {

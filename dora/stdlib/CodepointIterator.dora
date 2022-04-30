@@ -1,7 +1,13 @@
 @pub class CodepointIterator(let value: String, var start: Int64) {
-    @pub fn hasNext(): Bool = self.start < self.value.size();
+    @pub fn next(): Option[Char] {
+        if self.start < self.value.size() {
+            Some[Char](self.readChar())
+        } else {
+            None[Char]
+        }
+    }
 
-    @pub fn next(): Char {
+    fn readChar(): Char {
         var ch = self.value.getByte(self.start);
 
         if ch <= 0x7Fu8 {
@@ -37,7 +43,7 @@
         }
 
         fatalError("invalid utf8: " + ch.toInt32().toString());
-        return '\0';
+        unreachable[Char]()
     }
 
     @pub fn peek(): Char {
@@ -76,11 +82,10 @@
     }
 
     @pub fn size(): Int64 {
-        var i = 0i64;
+        var i = 0;
 
-        while self.hasNext() {
-            i = i + 1i64;
-            self.next();
+        while self.next().isSome() {
+            i = i + 1;
         }
 
         return i;

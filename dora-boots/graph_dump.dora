@@ -185,51 +185,65 @@ fn assertGraph(graph: Graph, output: String) {
 }
 
 fn compareStrings(lhs: String, rhs: String): Bool {
-    var lhsIterator = lhs.codePoints();
-    var rhsIterator = rhs.codePoints();
+    var lhs = Output(lhs);
+    var rhs = Output(rhs);
 
-    skipWhite(lhsIterator);
-    skipWhite(rhsIterator);
+    skipWhite(lhs);
+    skipWhite(rhs);
 
     while true {
-        if !lhsIterator.hasNext() && !rhsIterator.hasNext() {
+        if lhs.end() && rhs.end() {
             return true;
-        } else if !lhsIterator.hasNext() || !rhsIterator.hasNext() {
+        } else if lhs.end() || rhs.end() {
             return false;
         }
 
-        var lhsChar = lhsIterator.next();
-        var rhsChar = rhsIterator.next();
-
-        if lhsChar == rhsChar {
+        if lhs.current == rhs.current {
+            lhs.advance();
+            rhs.advance();
             continue;
         }
 
-        if lhsChar == 0xDu8.toChar() && lhsIterator.hasNext() && lhsIterator.peek() == 0xAu8.toChar() {
-            lhsChar = lhsIterator.next();
+        if lhs.current == 0xDu8.toChar() && lhs.next == 0xAu8.toChar() {
+            lhs.advance();
         }
 
-        if rhsChar == 0xDu8.toChar() && rhsIterator.hasNext() && rhsIterator.peek() == 0xAu8.toChar() {
-            rhsChar = rhsIterator.next();
+        if rhs.current == 0xDu8.toChar() && rhs.next == 0xAu8.toChar() {
+            rhs.advance();
         }
 
-        if lhsChar != rhsChar {
+        if lhs.current != rhs.current {
             return false;
         }
+
+        lhs.advance();
+        rhs.advance();
     }
 
     false
 }
 
-fn skipWhite(it: CodepointIterator) {
-    while it.hasNext() {
-        let ch = it.peek();
+class Output(text: String) {
+    let iterator: CodepointIterator = CodepointIterator(text, 0);
+    var current: Char = '\0';
+    var next: Char = '\0';
 
-        if isWhite(ch) {
-            it.next();
-        } else {
-            break;
-        }
+    self.advance();
+    self.advance();
+
+    fn advance() {
+        self.current = self.next;
+        self.next = self.iterator.next().unwrapOr('\0');
+    }
+
+    fn end(): Bool {
+        self.current == '\0'
+    }
+}
+
+fn skipWhite(it: Output) {
+    while isWhite(it.current) {
+        it.advance();
     }
 }
 
