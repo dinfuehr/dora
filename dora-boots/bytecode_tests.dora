@@ -1,29 +1,15 @@
-class TestRetVoidVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitRetVoid() {
-        self.found = true;
-    }
-}
-
 @Test
 fn testBytecodeRetVoid() {
     let writer = BytecodeBuilder();
     writer.emitRetVoid();
     let fct = writer.generate();
-    let visitor = TestRetVoidVisitor();
-    assert(fct.codeAt(0i32) == BC_RET_VOID);
-    assert(fct.code.size() == 1i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 1);
 
-class TestRetIntVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitRet(opnd: BytecodeRegister) {
-        assert(opnd == BytecodeRegister(17i32));
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::RetVoid => {},
+        _ => unreachable[()]()
     }
 }
 
@@ -32,20 +18,15 @@ fn testBytecodeRetInt() {
     let writer = BytecodeBuilder();
     writer.emitRet(BytecodeRegister(17i32));
     let fct = writer.generate();
-    let visitor = TestRetIntVisitor();
-    assert(fct.codeAt(0i32) == BC_RET);
-    assert(fct.codeAt(1i32) == 17i32);
-    assert(fct.code.size() == 2i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 2);
 
-class TestRetWideVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitRet(opnd: BytecodeRegister) {
-        assert(opnd == BytecodeRegister(256i32));
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::Ret(opnd) => {
+            assert(opnd.value == 17i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -54,22 +35,15 @@ fn testBytecodeRetWide() {
     let writer = BytecodeBuilder();
     writer.emitRet(BytecodeRegister(256i32));
     let fct = writer.generate();
-    let visitor = TestRetWideVisitor();
-    assert(fct.codeAt(0i32) == BC_WIDE);
-    assert(fct.codeAt(1i32) == BC_RET);
-    assert(fct.codeInt32At(2i32) == 256i32);
-    assert(fct.code.size() == 6i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 6);
 
-class TestMovVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitMov(dest: BytecodeRegister, src: BytecodeRegister) {
-        assert(dest == BytecodeRegister(0i32));
-        assert(src == BytecodeRegister(1i32));
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::Ret(opnd) => {
+            assert(opnd.value == 256i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -78,22 +52,15 @@ fn testBytecodeMov() {
     let writer = BytecodeBuilder();
     writer.emitMov(BytecodeRegister(0i32), BytecodeRegister(1i32));
     let fct = writer.generate();
-    let visitor = TestMovVisitor();
-    assert(fct.codeAt(0i32) == BC_MOV);
-    assert(fct.codeAt(1i32) == 0i32);
-    assert(fct.codeAt(2i32) == 1i32);
-    assert(fct.code.size() == 3i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 3);
 
-class TestMovWideVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitMov(dest: BytecodeRegister, src: BytecodeRegister) {
-        assert(dest == BytecodeRegister(256i32));
-        assert(src == BytecodeRegister(255i32));
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::Mov(dest, src) => {
+            assert(dest.value == 0i32 && src.value == 1i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -102,23 +69,15 @@ fn testBytecodeMovWide() {
     let writer = BytecodeBuilder();
     writer.emitMov(BytecodeRegister(256i32), BytecodeRegister(255i32));
     let fct = writer.generate();
-    let visitor = TestMovWideVisitor();
-    assert(fct.codeAt(0i32) == BC_WIDE);
-    assert(fct.codeAt(1i32) == BC_MOV);
-    assert(fct.codeInt32At(2i32) == 256i32);
-    assert(fct.codeInt32At(6i32) == 255i32);
-    assert(fct.code.size() == 10i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 10);
 
-class TestConstByteVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitConstUInt8(dest: BytecodeRegister, value: UInt8) {
-        assert(dest == BytecodeRegister(255i32));
-        assert(value == 255u8);
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::Mov(dest, src) => {
+            assert(dest.value == 256i32 && src.value == 255i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -127,22 +86,15 @@ fn testBytecodeConstByte() {
     let writer = BytecodeBuilder();
     writer.emitConstByte(BytecodeRegister(255i32), 255u8);
     let fct = writer.generate();
-    let visitor = TestConstByteVisitor();
-    assert(fct.codeAt(0i32) == BC_CONST_UINT8);
-    assert(fct.codeAt(1i32) == 255i32);
-    assert(fct.codeAt(2i32) == 255i32);
-    assert(fct.code.size() == 3i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 3);
 
-class TestConstByteWideVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitConstUInt8(dest: BytecodeRegister, value: UInt8) {
-        assert(dest == BytecodeRegister(256i32));
-        assert(value == 255u8);
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::ConstUInt8(dest, value) => {
+            assert(dest.value == 255i32 && value == 255u8);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -151,48 +103,32 @@ fn testBytecodeConstByteWide() {
     let writer = BytecodeBuilder();
     writer.emitConstByte(BytecodeRegister(256i32), 255u8);
     let fct = writer.generate();
-    let visitor = TestConstByteWideVisitor();
-    assert(fct.codeAt(0i32) == BC_WIDE);
-    assert(fct.codeAt(1i32) == BC_CONST_UINT8);
-    assert(fct.codeInt32At(2i32) == 256i32);
-    assert(fct.codeAt(6i32) == 255i32);
-    assert(fct.code.size() == 7i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 7);
 
-class TestConstStringVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitConstString(dest: BytecodeRegister, idx: ConstPoolId) {
-        assert(dest == BytecodeRegister(7i32));
-        assert(idx == ConstPoolId(0i32));
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::ConstUInt8(dest, value) => {
+            assert(dest.value == 256i32 && value == 255u8);
+        },
+        _ => unreachable[()]()
     }
 }
 
 @Test
 fn testBytecodeConstString() {
     let writer = BytecodeBuilder();
-    writer.emitConstString(BytecodeRegister(7i32), "foo");
+    writer.emitConstString(BytecodeRegister(7i32), ConstPoolId(0i32));
     let fct = writer.generate();
-    let visitor = TestConstStringVisitor();
-    assert(fct.codeAt(0i32) == BC_CONST_STRING);
-    assert(fct.codeAt(1i32) == 7i32);
-    assert(fct.codeAt(2i32) == 0i32);
-    assert(fct.code.size() == 3i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 3);
 
-class TestSubFloat32Visitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitSub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        assert(dest == BytecodeRegister(2i32));
-        assert(lhs == BytecodeRegister(9i32));
-        assert(rhs == BytecodeRegister(255i32));
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::ConstString(dest, idx) => {
+            assert(dest.value == 7i32 && idx.value == 0i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -201,22 +137,15 @@ fn testBytecodeSubFloat32() {
     let writer = BytecodeBuilder();
     writer.emitSub(BytecodeRegister(2i32), BytecodeRegister(9i32), BytecodeRegister(255i32));
     let fct = writer.generate();
-    let visitor = TestSubFloat32Visitor();
-    assert(fct.codeAt(0i32) == BC_SUB);
-    assert(fct.codeAt(1i32) == 2i32);
-    assert(fct.codeAt(2i32) == 9i32);
-    assert(fct.codeAt(3i32) == 255i32);
-    assert(fct.code.size() == 4i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 4);
 
-class TestJumpBackVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitJumpLoop(offset: Int32) {
-        assert(offset == 0i32);
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::Sub(dest, lhs, rhs) => {
+            assert(dest.value == 2i32 && lhs.value == 9i32 && rhs.value == 255i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -226,24 +155,15 @@ fn testBytecodeJumpBack() {
     let lbl = writer.defineLabel();
     writer.emitJumpLoop(lbl);
     let fct = writer.generate();
-    let visitor = TestJumpBackVisitor();
-    assert(fct.codeAt(0i32) == BC_JUMP_LOOP);
-    assert(fct.codeAt(1i32) == 0i32);
-    assert(fct.code.size() == 2i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 2);
 
-class TestJumpBackWideVisitor: BytecodeVisitor {
-    var found: Int32 = 0i32;
-
-    @override fn visitJumpLoop(offset: Int32) {
-        assert(offset == 256i32);
-        self.found = self.found + 1i32;
-    }
-
-    @override fn visitRetVoid() {
-        self.found = self.found + 1i32;
+    match instructions(0).inst {
+        BytecodeInstruction::JumpLoop(distance) => {
+            assert(distance == 0i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -258,23 +178,15 @@ fn testBytecodeJumpBackWide() {
     }
     writer.emitJumpLoop(lbl);
     let fct = writer.generate();
-    let visitor = TestJumpBackWideVisitor();
-    assert(fct.codeAt(0i32) == BC_RET_VOID);
-    assert(fct.codeAt(255i32) == BC_RET_VOID);
-    assert(fct.codeAt(256i32) == BC_WIDE);
-    assert(fct.codeAt(257i32) == BC_JUMP_LOOP);
-    assert(fct.codeInt32At(258i32) == 256i32);
-    assert(fct.code.size() == 262i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found == 257i32);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 257);
+    assert(instructions(256).size == 6);
 
-class TestJumpVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitJump(offset: Int32) {
-        assert(offset == 2i32);
-        self.found = true;
+    match instructions(256).inst {
+        BytecodeInstruction::JumpLoop(distance) => {
+            assert(distance == 256i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -285,24 +197,15 @@ fn testBytecodeJump() {
     writer.emitJump(lbl);
     writer.bindLabel(lbl);
     let fct = writer.generate();
-    let visitor = TestJumpVisitor();
-    assert(fct.codeAt(0i32) == BC_JUMP);
-    assert(fct.codeAt(1i32) == 2i32);
-    assert(fct.code.size() == 2i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 2);
 
-class TestJumpFarVisitor: BytecodeVisitor {
-    var found: Int32 = 0i32;
-
-    @override fn visitJumpConst(idx: ConstPoolId) {
-        assert(idx == ConstPoolId(0i32));
-        self.found = self.found + 1i32;
-    }
-
-    @override fn visitRetVoid() {
-        self.found = self.found + 1i32;
+    match instructions(0).inst {
+        BytecodeInstruction::Jump(distance) => {
+            assert(distance == 2i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -318,22 +221,15 @@ fn testBytecodeJumpFar() {
     }
     writer.bindLabel(lbl);
     let fct = writer.generate();
-    let visitor = TestJumpFarVisitor();
-    assert(fct.codeAt(0i32) == BC_JUMP_CONST);
-    assert(fct.codeAt(1i32) == 0i32);
-    assert(fct.code.size() == 258i64);
-    assert(fct.constPool(ConstPoolId(0i32)).toInt32().getOrPanic() == 258i32);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found == 257i32);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 257);
+    assert(instructions(0).size == 2);
 
-class TestCondJumpVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
-        assert(opnd == BytecodeRegister(9i32));
-        assert(offset == 3i32);
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::JumpConst(idx) => {
+            assert(idx == ConstPoolId(0i32));
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -344,26 +240,15 @@ fn testBytecodeCondJump() {
     writer.emitJumpIfTrue(BytecodeRegister(9i32), lbl);
     writer.bindLabel(lbl);
     let fct = writer.generate();
-    let visitor = TestCondJumpVisitor();
-    assert(fct.codeAt(0i32) == BC_JUMP_IF_TRUE);
-    assert(fct.codeAt(1i32) == 9i32);
-    assert(fct.codeAt(2i32) == 3i32);
-    assert(fct.code.size() == 3i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 3);
 
-class TestCondJumpFarVisitor: BytecodeVisitor {
-    var found: Int32 = 0i32;
-
-    @override fn visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        assert(opnd == BytecodeRegister(9i32));
-        assert(idx == ConstPoolId(0i32));
-        self.found = self.found + 1i32;
-    }
-
-    @override fn visitRetVoid() {
-        self.found = self.found + 1i32;
+    match instructions(0).inst {
+        BytecodeInstruction::JumpIfTrue(opnd, distance) => {
+            assert(opnd == BytecodeRegister(9i32) && distance == 3i32);
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -379,24 +264,15 @@ fn testBytecodeCondJumpFar() {
     }
     writer.bindLabel(lbl);
     let fct = writer.generate();
-    let visitor = TestCondJumpFarVisitor();
-    assert(fct.codeAt(0i32) == BC_JUMP_IF_FALSE_CONST);
-    assert(fct.codeAt(1i32) == 9i32);
-    assert(fct.codeAt(2i32) == 0i32);
-    assert(fct.codeAt(3i32) == BC_RET_VOID);
-    assert(fct.code.size() == 259i64);
-    assert(fct.constPool(ConstPoolId(0i32)).toInt32().getOrPanic() == 259i32);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found == 257i32);
-}
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 257);
+    assert(instructions(0).size == 3);
 
-class TestCondJumpWideVisitor: BytecodeVisitor {
-    var found: Bool = false;
-
-    @override fn visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
-        assert(opnd == BytecodeRegister(256i32));
-        assert(offset == 10i32);
-        self.found = true;
+    match instructions(0).inst {
+        BytecodeInstruction::JumpIfFalseConst(opnd, idx) => {
+            assert(opnd == BytecodeRegister(9i32) && idx == ConstPoolId(0i32));
+        },
+        _ => unreachable[()]()
     }
 }
 
@@ -407,12 +283,14 @@ fn testBytecodeCondJumpWide() {
     writer.emitJumpIfTrue(BytecodeRegister(256i32), lbl);
     writer.bindLabel(lbl);
     let fct = writer.generate();
-    let visitor = TestCondJumpWideVisitor();
-    assert(fct.codeAt(0i32) == BC_WIDE);
-    assert(fct.codeAt(1i32) == BC_JUMP_IF_TRUE);
-    assert(fct.codeInt32At(2i32) == 256i32);
-    assert(fct.codeInt32At(6i32) == 10i32);
-    assert(fct.code.size() == 10i64);
-    readBytecode(fct.code, visitor);
-    assert(visitor.found);
+    let instructions = decodeBytecode(fct.code);
+    assert(instructions.size() == 1);
+    assert(instructions(0).size == 10);
+
+    match instructions(0).inst {
+        BytecodeInstruction::JumpIfTrue(opnd, distance) => {
+            assert(opnd == BytecodeRegister(256i32) && distance == 10i32);
+        },
+        _ => unreachable[()]()
+    }
 }

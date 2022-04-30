@@ -142,6 +142,7 @@ fn dumpInstName(inst: Inst): String {
         Op::Shl => "Shl.${inst.ty}",
         Op::Shr => "Shr.${inst.ty}",
         Op::Sar => "Sar.${inst.ty}",
+        Op::TestIdentity => "TestIdentity.${inst.ty}",
         Op::Equal => "Equal.${inst.ty}",
         Op::NotEqual => "NotEqual.${inst.ty}",
         Op::Greater => "Greater.${inst.ty}",

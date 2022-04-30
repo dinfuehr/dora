@@ -139,33 +139,27 @@ class BytecodeBuilder {
         self.emitReg1AndByte(BC_CONST_UINT8, dest, value);
     }
 
-    fn emitConstChar(dest: BytecodeRegister, value: Char) {
-        let idx = self.addConst(ConstPoolEntry::Char(value));
+    fn emitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(BC_CONST_CHAR, dest, idx);
     }
 
-    fn emitConstInt32(dest: BytecodeRegister, value: Int32) {
-        let idx = self.addConst(ConstPoolEntry::Int32(value));
+    fn emitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(BC_CONST_INT32, dest, idx);
     }
 
-    fn emitConstInt64(dest: BytecodeRegister, value: Int64) {
-        let idx = self.addConst(ConstPoolEntry::Int64(value));
+    fn emitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(BC_CONST_INT64, dest, idx);
     }
 
-    fn emitConstFloat32(dest: BytecodeRegister, value: Float32) {
-        let idx = self.addConst(ConstPoolEntry::Float32(value));
+    fn emitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(BC_CONST_FLOAT32, dest, idx);
     }
 
-    fn emitConstFloat64(dest: BytecodeRegister, value: Float64) {
-        let idx = self.addConst(ConstPoolEntry::Float64(value));
+    fn emitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(BC_CONST_FLOAT64, dest, idx);
     }
 
-    fn emitConstString(dest: BytecodeRegister, value: String) {
-        let idx = self.addConst(ConstPoolEntry::String(value));
+    fn emitConstString(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(BC_CONST_STRING, dest, idx);
     }
 

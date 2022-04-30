@@ -342,6 +342,7 @@ enum Op {
     Shr,
     Sar,
 
+    TestIdentity,
     Equal,
     NotEqual,
     Greater,
@@ -387,6 +388,7 @@ fn opName(op: Op): String {
         Op::Shl => "Shl",
         Op::Shr => "Shr",
         Op::Sar => "Sar",
+        Op::TestIdentity => "TestIdentity",
         Op::Equal => "Equal",
         Op::NotEqual => "NotEqual",
         Op::Greater => "Greater",
@@ -616,6 +618,7 @@ class Inst {
             Op::Shl => false,
             Op::Shr => false,
             Op::Sar => false,
+            Op::TestIdentity => false,
             Op::Equal => false,
             Op::NotEqual => false,
             Op::Greater => false,

@@ -1,9 +1,9 @@
 fn bytecodeDump(bc: BytecodeFunction) {
     let dumper = BytecodeDumper(bc);
 
-    for instData in BytecodeIterator(bc.code) {
-        dumper.pos = instData.start.toInt32();
-        dumper.dumpInstruction(instData.inst);
+    for instInfo in BytecodeIterator(bc.code) {
+        dumper.pos = instInfo.start.toInt32();
+        dumper.dumpInstruction(instInfo.inst);
     }
 
     var i = 0i64;
@@ -243,11 +243,11 @@ class BytecodeDumper(let bc: BytecodeFunction) {
             BytecodeInstruction::ArrayBoundCheck(dest, src) => {
                 self.emitReg2("ArrayBoundCheck", dest, src);
             },
-            BytecodeInstruction::LoadArray(dest, lhs, rhs) => {
-                self.emitReg3("LoadArray", dest, lhs, rhs);
+            BytecodeInstruction::LoadArray(dest, arr, index) => {
+                self.emitReg3("LoadArray", dest, arr, index);
             },
-            BytecodeInstruction::StoreArray(dest, lhs, rhs) => {
-                self.emitReg3("StoreArray", dest, lhs, rhs);
+            BytecodeInstruction::StoreArray(src, arr, index) => {
+                self.emitReg3("StoreArray", src, arr, index);
             },
             BytecodeInstruction::RetVoid => {
                 self.emitInst("RetVoid");

@@ -16,7 +16,8 @@ fn testSsaGenRetVoid() {
 fn testSsaGenRetIntConst() {
     let b = BytecodeBuilder();
     let r0 = b.addRegister(BytecodeType::Int32);
-    b.emitConstInt32(r0, 4711i32);
+    let idx = b.addConst(ConstPoolEntry::Int32(4711i32));
+    b.emitConstInt32(r0, idx);
     b.emitRet(r0);
     let fct = b.generate();
 
@@ -32,7 +33,8 @@ fn testSsaGenRetIntConst() {
 fn testSsaGenRetInt64Const() {
     let b = BytecodeBuilder();
     let r0 = b.addRegister(BytecodeType::Int64);
-    b.emitConstInt64(r0, 4711);
+    let idx = b.addConst(ConstPoolEntry::Int64(4711));
+    b.emitConstInt64(r0, idx);
     b.emitRet(r0);
     let fct = b.generate();
 
@@ -108,10 +110,12 @@ fn testSsaGenMultipleAssignments() {
     let b = BytecodeBuilder();
     b.addNRegisters(BytecodeType::Int32, 5);
     b.setArguments(1i32);
-    b.emitConstInt32(r(1), 42i32);
+    let idx = b.addConst(ConstPoolEntry::Int32(42i32));
+    b.emitConstInt32(r(1), idx);
     b.emitMov(r(2), r(1));
     b.emitAdd(r(3), r(1), r(2));
-    b.emitConstInt32(r(4), 23i32);
+    let idx = b.addConst(ConstPoolEntry::Int32(23i32));
+    b.emitConstInt32(r(4), idx);
     b.emitAdd(r(1), r(3), r(4));
     b.emitAdd(r(3), r(1), r(0));
     b.emitAdd(r(4), r(1), r(3));
@@ -200,9 +204,11 @@ fn testSsaGenSimpleIf() {
     b.addRegisters(BytecodeType::Bool, BytecodeType::Int32);
     let end = b.createLabel();
     b.setArguments(1i32);
-    b.emitConstInt32(r(1), 1i32);
+    let idx = b.addConst(ConstPoolEntry::Int32(1i32));
+    b.emitConstInt32(r(1), idx);
     b.emitJumpIfFalse(r(0), end);
-    b.emitConstInt32(r(1), 10i32);
+    let idx = b.addConst(ConstPoolEntry::Int32(10i32));
+    b.emitConstInt32(r(1), idx);
     b.bindLabel(end);
     b.emitRet(r(1));
     let fct = b.generate();

@@ -40,10 +40,10 @@ class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Bloc
     var blockTerminated: Bool = false;
 
     fn run() {
-        for instData in BytecodeIterator(self.bc.code) {
-            self.offset = instData.start;
+        for instInfo in BytecodeIterator(self.bc.code) {
+            self.offset = instInfo.start;
             self.instructionStart();
-            self.processInstruction(instData.start, instData.size, instData.inst);
+            self.processInstruction(instInfo.start, instInfo.size, instInfo.inst);
         }
     }
 
@@ -127,14 +127,14 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         let entryBlock = self.ensureBlock(0).getOrPanic();
         self.graph.setEntryBlock(entryBlock);
 
-        for instData in BytecodeIterator(self.bc.code) {
-            let start = instData.start;
+        for instInfo in BytecodeIterator(self.bc.code) {
+            let start = instInfo.start;
 
             if self.blockStarts.contains(start) {
                 self.ensureBlock(start);
             }
 
-            self.processInstruction(start, instData.size, instData.inst);
+            self.processInstruction(start, instInfo.size, instInfo.inst);
         }
     }
 
