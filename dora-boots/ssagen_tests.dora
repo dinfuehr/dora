@@ -226,7 +226,6 @@ fn testSsaGenSimpleIf() {
 @Test
 fn testSsaGenIfReturnInBothBranches() {
     let fct = getBytecodeFunctionByName("bcSsaGenIfReturnInBothBranches");
-    bytecodeDump(fct);
     let graph = createGraph(fct);
 
     assertGraph(graph, "
