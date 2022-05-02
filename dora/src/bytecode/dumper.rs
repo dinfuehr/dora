@@ -9,7 +9,7 @@ use crate::vm::VM;
 pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
-        println!("{}", fct.name_with_params(vm));
+        println!("{}", fct.name(vm));
     }
     let mut visitor = BytecodeDumper {
         bc,
@@ -141,11 +141,11 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                         "{}{} => Fct {} with [{}]",
                         align,
                         idx,
-                        fct.name_with_params(vm),
+                        fct.name(vm),
                         type_params
                     );
                 } else {
-                    println!("{}{} => Fct {}", align, idx, fct.name_with_params(vm));
+                    println!("{}{} => Fct {}", align, idx, fct.name(vm));
                 }
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
@@ -163,7 +163,7 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                         align,
                         idx,
                         id.to_usize(),
-                        fct.name_with_params(vm),
+                        fct.name(vm),
                         type_params
                     );
                 } else {
@@ -172,7 +172,7 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                         align,
                         idx,
                         id.to_usize(),
-                        fct.name_with_params(vm)
+                        fct.name(vm)
                     );
                 }
             }
@@ -509,25 +509,16 @@ impl<'a> BytecodeDumper<'a> {
     }
 
     fn get_fct_name(&mut self, idx: ConstPoolIdx) -> String {
-        let (fct_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            ConstPoolEntry::Generic(_, fct_id, type_params) => (fct_id, type_params),
+        let fct_id = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Fct(fct_id, _) => fct_id,
+            ConstPoolEntry::Generic(_, fct_id, _) => fct_id,
             _ => unreachable!(),
         };
 
         let fct = self.vm.fcts.idx(*fct_id);
         let fct = fct.read();
 
-        if type_params.len() > 0 {
-            let type_params = type_params
-                .iter()
-                .map(|n| n.name(self.vm))
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!("{} with [{}]", fct.name_with_params(self.vm), type_params)
-        } else {
-            format!("{}", fct.name_with_params(self.vm))
-        }
+        fct.name(self.vm)
     }
 
     fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {

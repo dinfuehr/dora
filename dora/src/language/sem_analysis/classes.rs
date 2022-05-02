@@ -165,21 +165,7 @@ impl ClassDefinition {
     }
 
     pub fn name(&self, sa: &SemAnalysis) -> String {
-        let mut name = module_path(sa, self.module_id, self.name);
-
-        if self.type_params.len() > 0 {
-            let type_params = self
-                .type_params
-                .iter()
-                .map(|p| sa.interner.str(p.name).to_string())
-                .collect::<Vec<_>>()
-                .join(", ");
-            name.push('[');
-            name.push_str(&type_params);
-            name.push(']');
-        }
-
-        name
+        module_path(sa, self.module_id, self.name)
     }
 
     pub fn name_with_params(&self, sa: &SemAnalysis, type_list: &SourceTypeArray) -> String {

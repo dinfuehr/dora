@@ -33,9 +33,8 @@
     let x = self.getStacktrace();
     var i = 0i64;
 
-    while i < x.size() {
-      println(i.toString() + ": " + x.get(i).toString());
-      i = i + 1i64;
+    for frame in self.getStacktrace() {
+      println(frame.toString());
     }
   }
 

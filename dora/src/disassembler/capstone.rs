@@ -49,7 +49,7 @@ pub fn disassemble(
         .disasm_all(buf, start_addr)
         .expect("could not disassemble code");
 
-    let name = fct.name_with_params(vm);
+    let name = fct.name(vm);
 
     let type_params = if !type_params.is_empty() {
         let mut ty_names = Vec::new();

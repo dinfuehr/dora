@@ -655,15 +655,15 @@ impl<'a> SourceTypePrinter<'a> {
             SourceType::Bool => "Bool".into(),
             SourceType::Ptr => panic!("type Ptr only for internal use."),
             SourceType::This => "Self".into(),
-            SourceType::Class(id, params) => {
+            SourceType::Class(id, type_params) => {
                 let cls = self.sa.classes.idx(id);
                 let cls = cls.read();
                 let base = self.sa.interner.str(cls.name);
 
-                if params.len() == 0 {
+                if type_params.len() == 0 {
                     base.to_string()
                 } else {
-                    let params = params
+                    let params = type_params
                         .iter()
                         .map(|ty| self.name(ty))
                         .collect::<Vec<_>>()
@@ -672,16 +672,16 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", base, params)
                 }
             }
-            SourceType::Struct(sid, params) => {
+            SourceType::Struct(sid, type_params) => {
                 let struc = self.sa.structs.idx(sid);
                 let struc = struc.read();
                 let name = struc.name;
                 let name = self.sa.interner.str(name).to_string();
 
-                if params.len() == 0 {
+                if type_params.len() == 0 {
                     name
                 } else {
-                    let params = params
+                    let params = type_params
                         .iter()
                         .map(|ty| self.name(ty))
                         .collect::<Vec<_>>()
@@ -690,14 +690,14 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Trait(tid, params) => {
+            SourceType::Trait(tid, type_params) => {
                 let trait_ = self.sa.traits[tid].read();
                 let name = self.sa.interner.str(trait_.name).to_string();
 
-                if params.len() == 0 {
+                if type_params.len() == 0 {
                     name
                 } else {
-                    let params = params
+                    let params = type_params
                         .iter()
                         .map(|ty| self.name(ty))
                         .collect::<Vec<_>>()
@@ -706,14 +706,14 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Enum(id, params) => {
+            SourceType::Enum(id, type_params) => {
                 let enum_ = self.sa.enums[id].read();
                 let name = self.sa.interner.str(enum_.name).to_string();
 
-                if params.len() == 0 {
+                if type_params.len() == 0 {
                     name
                 } else {
-                    let params = params
+                    let params = type_params
                         .iter()
                         .map(|ty| self.name(ty))
                         .collect::<Vec<_>>()

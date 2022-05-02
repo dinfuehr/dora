@@ -9,11 +9,13 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    module_path, AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId,
-    ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
+    AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
+    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
+
+use super::module_path;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);
@@ -134,6 +136,13 @@ impl FctDefinition {
         (self.is_open || self.is_override) && !self.is_final
     }
 
+    pub fn has_parent(&self) -> bool {
+        match self.parent {
+            FctParent::None => false,
+            _ => true,
+        }
+    }
+
     pub fn in_class(&self) -> bool {
         match self.parent {
             FctParent::Class(_) => true,
@@ -170,126 +179,49 @@ impl FctDefinition {
     }
 
     pub fn name(&self, sa: &SemAnalysis) -> String {
-        module_path(sa, self.module_id, self.name)
-    }
-
-    pub fn name_with_params(&self, sa: &SemAnalysis) -> String {
-        let mut repr = String::new();
-
-        match self.parent {
+        let mut repr = match self.parent {
             FctParent::Class(class_id) => {
                 let cls = sa.classes.idx(class_id);
                 let cls = cls.read();
-                let name = cls.name;
-                repr.push_str(&sa.interner.str(name));
-
-                if cls.type_params.len() > 0 {
-                    repr.push('[');
-
-                    repr.push_str(
-                        &cls.type_params
-                            .iter()
-                            .map(|n| sa.interner.str(n.name).to_string())
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                    );
-                    repr.push(']');
-                }
+                let name = cls.name(sa);
 
                 if self.is_constructor {
                     // do nothing
-                } else if self.is_static {
-                    repr.push_str("::");
-                } else {
-                    repr.push_str("#");
+                    return name;
                 }
+
+                name
             }
 
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.traits[trait_id].read();
-                repr.push_str(&sa.interner.str(trait_.name));
-                if self.is_static {
-                    repr.push_str("::");
-                } else {
-                    repr.push_str("#");
-                }
+                trait_.name(sa)
             }
 
             FctParent::Extension(extension_id) => {
                 let extension = &sa.extensions[extension_id];
                 let extension = extension.read();
-
-                if let Some(enum_id) = extension.ty.enum_id() {
-                    let enum_ = &sa.enums[enum_id];
-                    let enum_ = enum_.read();
-                    repr.push_str(&sa.interner.str(enum_.name));
-                } else if let Some(cls_id) = extension.ty.cls_id() {
-                    let cls = sa.classes.idx(cls_id);
-                    let cls = cls.read();
-                    let name = cls.name;
-                    repr.push_str(&sa.interner.str(name));
-                } else if let Some(struct_id) = extension.ty.struct_id() {
-                    let xstruct = sa.structs.idx(struct_id);
-                    let xstruct = xstruct.read();
-                    let name = xstruct.name;
-                    repr.push_str(&sa.interner.str(name));
-                } else if let Some(struct_id) = extension.ty.primitive_struct_id(sa) {
-                    let xstruct = sa.structs.idx(struct_id);
-                    let xstruct = xstruct.read();
-                    let name = xstruct.name;
-                    repr.push_str(&sa.interner.str(name));
-                } else {
-                    unreachable!()
-                }
-
-                if self.is_static {
-                    repr.push_str("::");
-                } else {
-                    repr.push_str("#");
-                }
+                path_for_type(sa, extension.ty.clone())
             }
 
-            _ => {}
-        }
-
-        if !self.is_constructor {
-            repr.push_str(&sa.interner.str(self.name));
-        }
-
-        if !self.fct_type_params().is_empty() {
-            repr.push('[');
-
-            repr.push_str(
-                &self
-                    .fct_type_params()
-                    .iter()
-                    .map(|n| sa.interner.str(n.name).to_string())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            );
-            repr.push(']');
-        }
-
-        repr.push_str("(");
-
-        for (ind, ty) in self.params_without_self().iter().enumerate() {
-            if ind > 0 {
-                repr.push_str(", ");
+            FctParent::Impl(impl_id) => {
+                let impl_ = &sa.impls[impl_id];
+                let impl_ = impl_.read();
+                path_for_type(sa, impl_.ty.clone())
             }
 
-            let name = ty.name_fct(sa, self);
-            repr.push_str(&name);
+            FctParent::None => {
+                return module_path(sa, self.module_id, self.name);
+            }
+        };
+
+        if !self.has_parent() || self.is_static {
+            repr.push_str("::");
+        } else {
+            repr.push_str("#");
         }
 
-        repr.push_str(")");
-
-        if self.return_type != SourceType::Unit {
-            repr.push_str(": ");
-
-            let name = self.return_type.name_fct(sa, self);
-            repr.push_str(&name);
-        }
-
+        repr.push_str(&sa.interner.str(self.name));
         repr
     }
 
@@ -330,6 +262,30 @@ impl FctDefinition {
         } else {
             &self.param_types
         }
+    }
+}
+
+fn path_for_type(sa: &SemAnalysis, ty: SourceType) -> String {
+    if let Some(enum_id) = ty.enum_id() {
+        let enum_ = &sa.enums[enum_id];
+        let enum_ = enum_.read();
+        enum_.name(sa)
+    } else if let Some(cls_id) = ty.cls_id() {
+        let cls = sa.classes.idx(cls_id);
+        let cls = cls.read();
+        cls.name(sa)
+    } else if let Some(struct_id) = ty.struct_id() {
+        let xstruct = sa.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+        xstruct.name(sa)
+    } else if let Some(struct_id) = ty.primitive_struct_id(sa) {
+        let xstruct = sa.structs.idx(struct_id);
+        let xstruct = xstruct.read();
+        xstruct.name(sa)
+    } else if ty.is_tuple_or_unit() {
+        unimplemented!()
+    } else {
+        unreachable!()
     }
 }
 

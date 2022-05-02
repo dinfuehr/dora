@@ -1,5 +1,5 @@
 //= error code 1
-//= stderr "fatal error: locales different\n3: std::fatalError (stdlib/prelude.dora:1)\n2: std::plus (stdlib/Text.dora:5)\n1: main (tests/text/text-different-locales.dora:13)\n"
+//= stderr "fatal error: locales different\n    std::fatalError (stdlib/prelude.dora:1)\n    std::Text#plus (stdlib/Text.dora:5)\n    main (tests/text/text-different-locales.dora:13)\n"
 
 use std::Locale;
 use std::Text;

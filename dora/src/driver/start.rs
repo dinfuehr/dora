@@ -153,7 +153,7 @@ fn test_filter_matches(vm: &VM, fct: &FctDefinition) -> bool {
     }
 
     let filter = vm.args.flag_test_filter.as_ref().unwrap();
-    let name = fct.name_with_params(vm);
+    let name = fct.name(vm);
 
     name.contains(filter)
 }

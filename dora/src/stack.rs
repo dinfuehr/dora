@@ -24,27 +24,19 @@ impl NativeStacktrace {
     }
 
     pub fn dump(&self, vm: &VM, w: &mut (impl std::io::Write + ?Sized)) -> std::io::Result<()> {
-        let frames = self.elems.len();
-        for (ind, elem) in self.elems.iter().enumerate() {
+        for elem in &self.elems {
             let code = vm.code_objects.get(elem.fct_id);
             let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
-            let name = fct.name(vm);
+            let fct_name = fct.name(vm);
             let file = &vm.source_file(fct.file_id).path;
             let lineno = if elem.lineno == 0 {
                 fct.pos.line
             } else {
                 elem.lineno
             };
-            writeln!(
-                w,
-                "{}: {} ({}:{})",
-                frames - ind,
-                name,
-                file.display(),
-                lineno
-            )?;
+            writeln!(w, "    {} ({}:{})", fct_name, file.display(), lineno)?;
         }
 
         Ok(())
@@ -197,7 +189,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     let code = vm.code_objects.get(code_id);
     let fct = vm.fcts.idx(code.fct_id());
     let fct = fct.read();
-    let name = fct.name_with_params(vm);
+    let name = fct.name(vm);
     ste.name = Str::from_buffer(vm, name.as_bytes());
 
     ste.direct()

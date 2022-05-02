@@ -1,5 +1,5 @@
 //= error cast
-//= stderr "cast failed\n2: asl7 (tests/as4.dora:10)\n1: main (tests/as4.dora:6)\n"
+//= stderr "cast failed\n    asl7 (tests/as4.dora:10)\n    main (tests/as4.dora:6)\n"
 
 fn main() {
   let l1 = L1();

@@ -3053,7 +3053,7 @@ fn mod_class_method() {
         mod foo { @pub class Foo { fn bar() {} } }
     ",
         pos(2, 34),
-        SemError::NotAccessible("foo::bar".into()),
+        SemError::NotAccessible("foo::Foo#bar".into()),
     );
 }
 
@@ -3070,7 +3070,7 @@ fn mod_class_static_method() {
         mod foo { @pub class Foo { @static fn bar() {} } }
     ",
         pos(2, 31),
-        SemError::NotAccessible("foo::bar".into()),
+        SemError::NotAccessible("foo::Foo::bar".into()),
     );
 }
 
