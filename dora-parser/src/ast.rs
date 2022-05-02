@@ -489,7 +489,7 @@ pub struct Impl {
 
     pub type_params: Option<Vec<TypeParam>>,
     pub trait_type: Option<Type>,
-    pub class_type: Type,
+    pub extended_type: Type,
     pub methods: Vec<Arc<Function>>,
 }
 

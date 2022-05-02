@@ -154,7 +154,7 @@ impl<'a> TypeParamCheck<'a> {
         trait_id: TraitDefinitionId,
         ty: SourceType,
     ) {
-        let name = ty.name_with_params(self.sa, self.caller_type_param_defs);
+        let name = ty.name_with_type_params(self.sa, self.caller_type_param_defs);
         let trait_ = self.sa.traits[trait_id].read();
         let trait_name = self.sa.interner.str(trait_.name).to_string();
         let msg = SemError::TypeNotImplementingTrait(name, trait_name);

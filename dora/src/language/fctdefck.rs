@@ -46,7 +46,7 @@ pub fn check(sa: &SemAnalysis) {
                 }
 
                 if fct.has_self() {
-                    fct.param_types.push(impl_.ty.clone());
+                    fct.param_types.push(impl_.extended_ty.clone());
                 }
             }
 

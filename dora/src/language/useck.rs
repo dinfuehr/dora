@@ -148,7 +148,7 @@ fn use_module(
             if !fct_accessible_from(sa, fct_id, use_def.module_id) {
                 let fct = &sa.fcts.idx(fct_id);
                 let fct = fct.read();
-                let msg = SemError::NotAccessible(fct.name(sa));
+                let msg = SemError::NotAccessible(fct.display_name(sa));
                 sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
             }
 

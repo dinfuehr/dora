@@ -43,8 +43,8 @@ pub struct ImplDefinition {
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
     pub type_params: Vec<TypeParam>,
-    pub trait_id: Option<TraitDefinitionId>,
-    pub ty: SourceType,
+    pub trait_ty: SourceType,
+    pub extended_ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
     pub static_names: HashMap<Name, FctDefinitionId>,
@@ -71,8 +71,8 @@ impl ImplDefinition {
             module_id,
             type_params,
             pos: node.pos,
-            trait_id: None,
-            ty: SourceType::Error,
+            trait_ty: SourceType::Error,
+            extended_ty: SourceType::Error,
             methods: Vec::new(),
             instance_names: HashMap::new(),
             static_names: HashMap::new(),
@@ -85,7 +85,7 @@ impl ImplDefinition {
     }
 
     pub fn trait_id(&self) -> TraitDefinitionId {
-        self.trait_id.expect("trait_id not initialized yet.")
+        self.trait_ty.trait_id().expect("trait expected")
     }
 
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
@@ -114,7 +114,7 @@ pub fn impl_matches(
         check_ty,
         check_type_param_defs,
         check_type_param_defs2,
-        impl_.ty.clone(),
+        impl_.extended_ty.clone(),
         &impl_.type_params,
     )
 }
@@ -325,7 +325,7 @@ pub fn check_impls(
         let impl_ = &sa.impls[impl_id];
         let impl_ = impl_.read();
 
-        if impl_.trait_id != Some(trait_id) {
+        if impl_.trait_id() != trait_id {
             continue;
         }
 

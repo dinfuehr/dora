@@ -213,32 +213,6 @@ impl ClassDefinition {
         }
     }
 
-    pub fn find_trait_method(
-        &self,
-        sa: &SemAnalysis,
-        trait_id: TraitDefinitionId,
-        name: Name,
-        is_static: bool,
-    ) -> Option<FctDefinitionId> {
-        for &impl_id in &self.impls {
-            let impl_ = sa.impls[impl_id].read();
-
-            if impl_.trait_id != Some(trait_id) {
-                continue;
-            }
-
-            let table = if is_static {
-                &impl_.static_names
-            } else {
-                &impl_.instance_names
-            };
-
-            return table.get(&name).cloned();
-        }
-
-        None
-    }
-
     pub fn subclass_from(&self, sa: &SemAnalysis, super_id: ClassDefinitionId) -> bool {
         let mut cls_id = self.id();
 

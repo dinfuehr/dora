@@ -207,18 +207,7 @@ fn read_type_basic(
         Sym::Class(cls_id) => read_type_class(sa, table, file_id, basic, cls_id, ctxt, allow_self),
 
         Sym::Trait(trait_id) => {
-            if !trait_accessible_from(sa, trait_id, table.module_id()) {
-                let trait_ = sa.traits[trait_id].read();
-                let msg = SemError::NotAccessible(trait_.name(sa));
-                sa.diag.lock().report(file_id, basic.pos, msg);
-            }
-
-            if basic.params.len() > 0 {
-                let msg = SemError::NoTypeParamsExpected;
-                sa.diag.lock().report(file_id, basic.pos, msg);
-            }
-
-            Some(SourceType::Trait(trait_id, SourceTypeArray::empty()))
+            read_type_trait(sa, table, file_id, basic, trait_id, ctxt, allow_self)
         }
 
         Sym::Struct(struct_id) => {
@@ -380,6 +369,52 @@ fn read_type_struct(
     }
 }
 
+fn read_type_trait(
+    sa: &SemAnalysis,
+    table: &NestedSymTable,
+    file_id: SourceFileId,
+    basic: &TypeBasicType,
+    trait_id: TraitDefinitionId,
+    ctxt: TypeParamContext,
+    allow_self: AllowSelf,
+) -> Option<SourceType> {
+    if !trait_accessible_from(sa, trait_id, table.module_id()) {
+        let trait_ = sa.traits[trait_id].read();
+        let msg = SemError::NotAccessible(trait_.name(sa));
+        sa.diag.lock().report(file_id, basic.pos, msg);
+    }
+
+    let mut type_params = Vec::new();
+
+    for param in &basic.params {
+        let param = read_type(sa, table, file_id, param, ctxt, allow_self);
+
+        if let Some(param) = param {
+            type_params.push(param);
+        } else {
+            return None;
+        }
+    }
+
+    let trait_ = sa.traits[trait_id].read();
+
+    if check_type_params(
+        sa,
+        &trait_.type_params,
+        &type_params,
+        file_id,
+        basic.pos,
+        ctxt,
+    ) {
+        Some(SourceType::Trait(
+            trait_id,
+            SourceTypeArray::with(type_params),
+        ))
+    } else {
+        None
+    }
+}
+
 fn check_type_params(
     sa: &SemAnalysis,
     tp_definitions: &[TypeParam],
@@ -401,7 +436,7 @@ fn check_type_params(
             for &trait_bound in &tp_definition.trait_bounds {
                 if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, trait_bound) {
                     let bound = sa.traits[trait_bound].read();
-                    let name = tp_ty.name_with_params(sa, check_type_param_defs);
+                    let name = tp_ty.name_with_type_params(sa, check_type_param_defs);
                     let trait_name = sa.interner.str(bound.name).to_string();
                     let msg = SemError::TypeNotImplementingTrait(name, trait_name);
                     sa.diag.lock().report(file_id, pos, msg);

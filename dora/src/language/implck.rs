@@ -23,7 +23,7 @@ pub fn check(sa: &mut SemAnalysis) {
                     sa,
                     method.is_static,
                     method.name,
-                    Some(impl_.ty.clone()),
+                    Some(impl_.extended_ty.clone()),
                     method.params_without_self(),
                 ) {
                     defined.insert(fid);
@@ -34,7 +34,7 @@ pub fn check(sa: &mut SemAnalysis) {
 
                     let return_type_valid = method.return_type
                         == if trait_method.return_type.is_self() {
-                            impl_.ty.clone()
+                            impl_.extended_ty.clone()
                         } else {
                             trait_method.return_type.clone()
                         };

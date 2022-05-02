@@ -178,7 +178,7 @@ impl FctDefinition {
         }
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn display_name(&self, sa: &SemAnalysis) -> String {
         let mut repr = match self.parent {
             FctParent::Class(class_id) => {
                 let cls = sa.classes.idx(class_id);
@@ -207,7 +207,7 @@ impl FctDefinition {
             FctParent::Impl(impl_id) => {
                 let impl_ = &sa.impls[impl_id];
                 let impl_ = impl_.read();
-                path_for_type(sa, impl_.ty.clone())
+                path_for_type(sa, impl_.extended_ty.clone())
             }
 
             FctParent::None => {

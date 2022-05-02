@@ -389,7 +389,7 @@ impl<'a> Parser<'a> {
             span,
             type_params,
             trait_type,
-            class_type,
+            extended_type: class_type,
             methods,
         })
     }
@@ -3722,7 +3722,7 @@ mod tests {
             "Foo",
             impl_.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("A", impl_.class_type.to_string(&interner));
+        assert_eq!("A", impl_.extended_type.to_string(&interner));
         assert_eq!(0, impl_.methods.len());
     }
 
@@ -3735,7 +3735,7 @@ mod tests {
             "Bar",
             impl_.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("B", impl_.class_type.to_string(&interner));
+        assert_eq!("B", impl_.extended_type.to_string(&interner));
         assert_eq!(1, impl_.methods.len());
         assert_eq!(false, impl_.methods[0].is_static);
     }
@@ -3749,7 +3749,7 @@ mod tests {
             "Bar",
             impl_.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("B", impl_.class_type.to_string(&interner));
+        assert_eq!("B", impl_.extended_type.to_string(&interner));
         assert_eq!(1, impl_.methods.len());
         assert_eq!(true, impl_.methods[0].is_static);
     }

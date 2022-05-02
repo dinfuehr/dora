@@ -69,8 +69,8 @@ impl<'x> ImplCheck<'x> {
             AllowSelf::No,
         ) {
             match trait_ty {
-                SourceType::Trait(trait_id, _) => {
-                    impl_.trait_id = Some(trait_id);
+                SourceType::Trait(trait_id, type_params) => {
+                    impl_.trait_ty = SourceType::Trait(trait_id, type_params);
                 }
 
                 _ => {
@@ -86,7 +86,7 @@ impl<'x> ImplCheck<'x> {
             self.sa,
             &self.sym,
             self.file_id.into(),
-            &self.ast.class_type,
+            &self.ast.extended_type,
             TypeParamContext::Impl(&*impl_),
             AllowSelf::No,
         ) {
@@ -95,7 +95,7 @@ impl<'x> ImplCheck<'x> {
                 || class_ty.is_enum()
                 || class_ty.is_primitive()
             {
-                impl_.ty = class_ty.clone();
+                impl_.extended_ty = class_ty.clone();
 
                 check_for_unconstrained_type_params(
                     self.sa,
@@ -107,14 +107,14 @@ impl<'x> ImplCheck<'x> {
             } else {
                 self.sa.diag.lock().report(
                     self.file_id,
-                    self.ast.class_type.pos(),
+                    self.ast.extended_type.pos(),
                     SemError::ClassEnumStructExpected,
                 );
             }
         }
 
-        if impl_.trait_id.is_some() && !impl_.ty.is_error() {
-            match impl_.ty {
+        if impl_.trait_ty.is_trait() && !impl_.extended_ty.is_error() {
+            match impl_.extended_ty {
                 SourceType::Enum(enum_id, _) => {
                     let enum_ = &self.sa.enums[enum_id];
                     let mut enum_ = enum_.write();
@@ -129,7 +129,7 @@ impl<'x> ImplCheck<'x> {
                 | SourceType::Float32
                 | SourceType::Float64 => {
                     let struct_id = impl_
-                        .ty
+                        .extended_ty
                         .primitive_struct_id(self.sa)
                         .expect("primitive expected");
                     let xstruct = self.sa.structs.idx(struct_id);
@@ -344,5 +344,19 @@ mod tests {
             pos(4, 30),
             SemError::NotAccessible("foo::Foo".into()),
         );
+    }
+
+    #[test]
+    #[ignore]
+    fn impl_trait_with_type_params() {
+        ok("
+            trait MyEquals[T] { fn equals(val: T): Bool; }
+            class Foo(x: Int64)
+            impl MyEquals[Foo] for Foo {
+                fn equals(val: Foo): Bool {
+                    self.x == val.x
+                }
+            }
+        ")
     }
 }

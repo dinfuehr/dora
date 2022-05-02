@@ -1684,7 +1684,7 @@ impl<'a> TypeCheck<'a> {
         if !fct_accessible_from(self.sa, fct_id, self.module_id) {
             let fct = self.sa.fcts.idx(fct_id);
             let fct = fct.read();
-            let msg = SemError::NotAccessible(fct.name(self.sa));
+            let msg = SemError::NotAccessible(fct.display_name(self.sa));
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
@@ -1736,7 +1736,7 @@ impl<'a> TypeCheck<'a> {
                 let fct = self.sa.fcts.idx(fct_id);
                 let fct = fct.read();
 
-                let name = fct.name(self.sa);
+                let name = fct.display_name(self.sa);
                 let msg = SemError::NotAccessible(name);
                 self.sa.diag.lock().report(self.file_id, e.pos, msg);
             }
@@ -1800,7 +1800,7 @@ impl<'a> TypeCheck<'a> {
                 let fct = self.sa.fcts.idx(fct_id);
                 let fct = fct.read();
 
-                let name = fct.name(self.sa);
+                let name = fct.display_name(self.sa);
                 let msg = SemError::NotAccessible(name);
                 self.sa.diag.lock().report(self.file_id, e.pos, msg);
             }

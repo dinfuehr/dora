@@ -7,6 +7,8 @@ use crate::language::sym::NestedSymTable;
 
 use dora_parser::ast;
 
+use super::ty::{SourceType, SourceTypeArray};
+
 pub fn check(sa: &SemAnalysis) {
     for trait_ in sa.traits.iter() {
         let (trait_id, file_id, ast, module_id) = {
@@ -66,7 +68,7 @@ impl<'x> TraitCheck<'x> {
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        language::check_type_params(
+        let type_params = language::check_type_params(
             self.sa,
             ast_type_params,
             &mut self.trait_.type_params,
@@ -74,6 +76,8 @@ impl<'x> TraitCheck<'x> {
             self.file_id,
             self.ast.pos,
         );
+
+        self.trait_.ty = SourceType::Trait(self.trait_id, SourceTypeArray::with(type_params));
     }
 
     fn visit_method(&mut self, fct_id: FctDefinitionId) {

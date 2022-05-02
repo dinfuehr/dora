@@ -62,7 +62,7 @@ impl<'x> ExtensionCheck<'x> {
             self.sa,
             &self.sym,
             self.file_id.into(),
-            &self.ast.class_type,
+            &self.ast.extended_type,
             TypeParamContext::Extension(self.extension_id),
             AllowSelf::No,
         ) {

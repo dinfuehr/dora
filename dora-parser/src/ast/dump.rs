@@ -187,7 +187,7 @@ impl<'a> AstDumper<'a> {
                 dump!(d, "for");
             }
 
-            d.dump_type(&impl_.class_type);
+            d.dump_type(&impl_.extended_type);
 
             for mtd in &impl_.methods {
                 d.dump_fct(mtd);

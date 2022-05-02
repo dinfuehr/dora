@@ -9,7 +9,7 @@ use crate::vm::VM;
 pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
-        println!("{}", fct.name(vm));
+        println!("{}", fct.display_name(vm));
     }
     let mut visitor = BytecodeDumper {
         bc,
@@ -141,11 +141,11 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                         "{}{} => Fct {} with [{}]",
                         align,
                         idx,
-                        fct.name(vm),
+                        fct.display_name(vm),
                         type_params
                     );
                 } else {
-                    println!("{}{} => Fct {}", align, idx, fct.name(vm));
+                    println!("{}{} => Fct {}", align, idx, fct.display_name(vm));
                 }
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
@@ -163,7 +163,7 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                         align,
                         idx,
                         id.to_usize(),
-                        fct.name(vm),
+                        fct.display_name(vm),
                         type_params
                     );
                 } else {
@@ -172,7 +172,7 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                         align,
                         idx,
                         id.to_usize(),
-                        fct.name(vm)
+                        fct.display_name(vm)
                     );
                 }
             }
@@ -518,7 +518,7 @@ impl<'a> BytecodeDumper<'a> {
         let fct = self.vm.fcts.idx(*fct_id);
         let fct = fct.read();
 
-        fct.name(self.vm)
+        fct.display_name(self.vm)
     }
 
     fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {

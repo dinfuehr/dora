@@ -140,7 +140,7 @@ pub fn fct_pattern_match(vm: &VM, fct: &FctDefinition, pattern: &str) -> bool {
         return true;
     }
 
-    let fct_name = fct.name(vm);
+    let fct_name = fct.display_name(vm);
 
     for part in pattern.split(',') {
         if fct_name.contains(part) {

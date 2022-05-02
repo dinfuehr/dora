@@ -281,7 +281,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_with_params(&self, sa: &SemAnalysis, type_params: &[TypeParam]) -> String {
+    pub fn name_with_type_params(&self, sa: &SemAnalysis, type_params: &[TypeParam]) -> String {
         let writer = SourceTypePrinter {
             sa,
             type_params: Some(type_params),
@@ -315,6 +315,13 @@ impl SourceType {
         };
 
         writer.name(self.clone())
+    }
+
+    pub fn trait_id(&self) -> Option<TraitDefinitionId> {
+        match self {
+            SourceType::Trait(trait_id, _) => Some(*trait_id),
+            _ => None,
+        }
     }
 
     pub fn to_lambda(&self) -> Option<(SourceTypeArray, SourceType)> {
