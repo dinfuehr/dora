@@ -25,7 +25,7 @@
 
 const UNLOCKED: Int32 = 0i32;
 const LOCKED: Int32 = 1i32;
-const SLEEPING: Int32 = 2i32;
+const LOCKED_CONTENDED: Int32 = 2i32;
 
 @pub class Mutex {
     let data: AtomicInt32 = AtomicInt32(0i32);
@@ -43,20 +43,20 @@ const SLEEPING: Int32 = 2i32;
         var lockSuccess = false;
 
         while !lockSuccess {
-            assert(previous == LOCKED || previous == SLEEPING);
+            assert(previous == LOCKED || previous == LOCKED_CONTENDED);
 
-            if self.transitionToSleepingState(previous) {
-                self.wait(SLEEPING);
+            if self.transitionToLockedContended(previous) {
+                self.wait(LOCKED_CONTENDED);
             }
 
-            previous = self.data.compareExchange(UNLOCKED, SLEEPING);
+            previous = self.data.compareExchange(UNLOCKED, LOCKED_CONTENDED);
             lockSuccess = previous == UNLOCKED;
         }
     }
 
-    fn transitionToSleepingState(previous: Int32): Bool {
-        if previous == SLEEPING { return true; }
-        self.data.compareExchange(LOCKED, SLEEPING) != UNLOCKED
+    fn transitionToLockedContended(previous: Int32): Bool {
+        if previous == LOCKED_CONTENDED { return true; }
+        self.data.compareExchange(LOCKED, LOCKED_CONTENDED) != UNLOCKED
     }
 
     @pub fn unlock() {
@@ -68,7 +68,7 @@ const SLEEPING: Int32 = 2i32;
     }
 
     fn unlockSlow(previous: Int32) {
-        assert(previous == SLEEPING);
+        assert(previous == LOCKED_CONTENDED);
         self.notify();
     }
 
