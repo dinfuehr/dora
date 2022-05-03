@@ -1,38 +1,45 @@
-let RAX: Register = Register(0i32);
-let RCX: Register = Register(1i32);
-let RDX: Register = Register(2i32);
-let RBX: Register = Register(3i32);
-let RSP: Register = Register(4i32);
-let RBP: Register = Register(5i32);
-let RSI: Register = Register(6i32);
-let RDI: Register = Register(7i32);
+use package::assembler::AssemblerBuffer;
+use package::assembler::Label;
+use package::assembler::MachineCode;
+use package::assembler::Register;
+use package::assembler::assertAsm;
+use package::assembler::assertAsmEnd;
 
-let R8: Register = Register(8i32);
-let R9: Register = Register(9i32);
-let R10: Register = Register(10i32);
-let R11: Register = Register(11i32);
-let R12: Register = Register(12i32);
-let R13: Register = Register(13i32);
-let R14: Register = Register(14i32);
-let R15: Register = Register(15i32);
+@pub let RAX: Register = Register(0i32);
+@pub let RCX: Register = Register(1i32);
+@pub let RDX: Register = Register(2i32);
+@pub let RBX: Register = Register(3i32);
+@pub let RSP: Register = Register(4i32);
+@pub let RBP: Register = Register(5i32);
+@pub let RSI: Register = Register(6i32);
+@pub let RDI: Register = Register(7i32);
 
-let XMM0: XmmRegister = XmmRegister(0i32);
-let XMM1: XmmRegister = XmmRegister(1i32);
-let XMM2: XmmRegister = XmmRegister(2i32);
-let XMM3: XmmRegister = XmmRegister(3i32);
-let XMM4: XmmRegister = XmmRegister(4i32);
-let XMM5: XmmRegister = XmmRegister(5i32);
-let XMM6: XmmRegister = XmmRegister(6i32);
-let XMM7: XmmRegister = XmmRegister(7i32);
+@pub let R8: Register = Register(8i32);
+@pub let R9: Register = Register(9i32);
+@pub let R10: Register = Register(10i32);
+@pub let R11: Register = Register(11i32);
+@pub let R12: Register = Register(12i32);
+@pub let R13: Register = Register(13i32);
+@pub let R14: Register = Register(14i32);
+@pub let R15: Register = Register(15i32);
 
-let XMM8: XmmRegister = XmmRegister(8i32);
-let XMM9: XmmRegister = XmmRegister(9i32);
-let XMM10: XmmRegister = XmmRegister(10i32);
-let XMM11: XmmRegister = XmmRegister(11i32);
-let XMM12: XmmRegister = XmmRegister(12i32);
-let XMM13: XmmRegister = XmmRegister(13i32);
-let XMM14: XmmRegister = XmmRegister(14i32);
-let XMM15: XmmRegister = XmmRegister(15i32);
+@pub let XMM0: XmmRegister = XmmRegister(0i32);
+@pub let XMM1: XmmRegister = XmmRegister(1i32);
+@pub let XMM2: XmmRegister = XmmRegister(2i32);
+@pub let XMM3: XmmRegister = XmmRegister(3i32);
+@pub let XMM4: XmmRegister = XmmRegister(4i32);
+@pub let XMM5: XmmRegister = XmmRegister(5i32);
+@pub let XMM6: XmmRegister = XmmRegister(6i32);
+@pub let XMM7: XmmRegister = XmmRegister(7i32);
+
+@pub let XMM8: XmmRegister = XmmRegister(8i32);
+@pub let XMM9: XmmRegister = XmmRegister(9i32);
+@pub let XMM10: XmmRegister = XmmRegister(10i32);
+@pub let XMM11: XmmRegister = XmmRegister(11i32);
+@pub let XMM12: XmmRegister = XmmRegister(12i32);
+@pub let XMM13: XmmRegister = XmmRegister(13i32);
+@pub let XMM14: XmmRegister = XmmRegister(14i32);
+@pub let XMM15: XmmRegister = XmmRegister(15i32);
 
 class XmmRegister(let value: Int32) {
     fn lowBits(): Int32 = self.value & 0b111i32;
@@ -44,7 +51,7 @@ enum JumpDistance {
     Far,
 }
 
-class AssemblerX64 {
+@pub class AssemblerX64 {
     let buffer: AssemblerBuffer = AssemblerBuffer();
     let jumps: Vec[(Int64, Label, JumpDistance)] = Vec();
 
@@ -545,7 +552,7 @@ class AssemblerX64 {
         }
     }
 
-    fn movqrr(dest: Register, src: Register) {
+    @pub fn movqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x89u8);
         self.emitModRmReg(src, dest);
@@ -719,7 +726,7 @@ class AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
-    fn pushqr(reg: Register) {
+    @pub fn pushqr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x50i32 + reg.lowBits()).toUInt8());
     }
@@ -740,7 +747,7 @@ class AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn popqr(reg: Register) {
+    @pub fn popqr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x58i32 + reg.lowBits()).toUInt8());
     }
@@ -753,7 +760,7 @@ class AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn retq() {
+    @pub fn retq() {
         self.emitByte(0xC3u8);
     }
 
@@ -1238,7 +1245,7 @@ class AssemblerX64 {
         self.buffer.size()
     }
 
-    fn finalize(): Array[UInt8] {
+    @pub fn finalize(): Array[UInt8] {
         self.resolveJumps();
         while self.buffer.size() % 16 != 0 {
             self.int3();
@@ -1246,7 +1253,7 @@ class AssemblerX64 {
         self.buffer.toArray()
     }
 
-    fn finalizeTesting(): MachineCode {
+    @pub fn finalizeTesting(): MachineCode {
         self.resolveJumps();
         MachineCode(self.buffer.toArray())
     }
@@ -3602,7 +3609,7 @@ fn testAsmJmpBackwardNear() {
 fn testAsmJmpBackwardStillNear() {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
-    for x in range(0i32, 126i32) {
+    for x in std::range(0i32, 126i32) {
         asm.nop();
     }
     asm.jmp(lbl);
@@ -3618,7 +3625,7 @@ fn testAsmJmpBackwardStillNear() {
 fn testAsmJmpBackwardAlreadyFar() {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
-    for x in range(0i32, 127i32) {
+    for x in std::range(0i32, 127i32) {
         asm.nop();
     }
     asm.jmp(lbl);
@@ -3709,7 +3716,7 @@ fn testAsmJccBackwardNear() {
 fn testAsmJccBackwardStillNear() {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
-    for x in range(0i32, 126i32) {
+    for x in std::range(0i32, 126i32) {
         asm.nop();
     }
     asm.jcc(Condition::Overflow, lbl);
@@ -3725,7 +3732,7 @@ fn testAsmJccBackwardStillNear() {
 fn testAsmJccBackwardAlreadyFar() {
     let asm = AssemblerX64();
     let lbl = asm.createAndBindLabel();
-    for x in range(0i32, 127i32) {
+    for x in std::range(0i32, 127i32) {
         asm.nop();
     }
     asm.jcc(Condition::Overflow, lbl);

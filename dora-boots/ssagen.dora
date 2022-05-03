@@ -1,4 +1,42 @@
-fn createGraph(bc: BytecodeFunction): Graph {
+use std::HashMap;
+use std::BitSet;
+
+use package::graph::Graph;
+use package::graph::Block;
+use package::graph::Inst;
+use package::graph::Op;
+use package::graph::createInt32Const;
+use package::graph::createInt64Const;
+use package::graph::createFloat32Const;
+use package::graph::createFloat64Const;
+use package::graph::createIfInst;
+use package::graph::createArrayLength;
+use package::graph::createBoundsCheck;
+use package::graph::createArrayGet;
+use package::graph::createArraySet;
+use package::graph::createReturnInst;
+use package::graph::createReturnVoidInst;
+use package::graph::createGotoInst;
+use package::graph::createTestInst;
+use package::graph::createStoreGlobalInst;
+use package::graph::createLoadGlobalInst;
+use package::graph::createBinaryInst;
+use package::graph::createDivZeroCheck;
+use package::graph::createUnaryInst;
+use package::graph::createUndefInst;
+use package::graph::createPhiInst;
+use package::graph::createArgInst;
+use package::graph::ty::Type;
+use package::ssagen_block::BlockMap;
+use package::ssagen_block::createBlocksWithEdgesFromBytecode;
+use package::bytecode::data::BytecodeFunction;
+use package::bytecode::data::BytecodeRegister;
+use package::bytecode::data::BytecodeType;
+use package::bytecode::data::GlobalId;
+use package::bytecode::instruction::BytecodeInstruction;
+use package::bytecode::reader::BytecodeIterator;
+
+@pub fn createGraph(bc: BytecodeFunction): Graph {
     let graph = Graph();
 
     // Create basic blocks and edges between them
@@ -47,7 +85,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
 
         let data = Vec[HashMap[Block, Inst]]();
 
-        for i in range(0i32, self.bc.registers.size().toInt32()) {
+        for i in std::range(0i32, self.bc.registers.size().toInt32()) {
             data.push(HashMap[Block, Inst]());
         }
 
@@ -80,7 +118,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         };
 
     fn readVariableRecursive(register: BytecodeRegister, block: Block): Inst {
-        let value: Inst = if !self.sealedBlocks.contains(block.id.toInt64()) {
+        let value: Inst = if !self.sealedBlocks.contains(block.id().toInt64()) {
             // While all blocks are created with predecessors and successors before
             // this pass in the BlockBuilder already, we still need to handle unsealed blocks.
             // E.g. Register is accessed in while header and updated in the while body.
@@ -113,7 +151,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     fn addPhiOperands(register: BytecodeRegister, phi: Inst): Inst {
-        for pred in phi.block.getOrPanic().predecessors {
+        for pred in phi.getBlock().predecessors {
             let inst = self.readVariable(register, pred.source);
             phi.addInput(inst);
         }
@@ -124,8 +162,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     fn tryRemoveTrivialPhi(phi: Inst): Inst {
         var same = None[Inst];
 
-        for inp in phi.inputs {
-            let op = inp.value;
+        for inp in phi.getInputs() {
+            let op = inp.getValue();
 
             if (same.isSome() && same.getOrPanic() === op) || op === phi {
                 continue;
@@ -147,7 +185,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
         phi.replaceWith(same.getOrPanic());
         phi.remove();
 
-        for i in range(0i32, users.size().toInt32()) {
+        for i in std::range(0i32, users.size().toInt32()) {
             let user = users(i.toInt64());
 
             if user === phi {
@@ -464,18 +502,18 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     fn fillBlock(block: Block) {
-        assert(!self.filledBlocks.contains(block.id.toInt64()));
-        self.filledBlocks.insert(block.id.toInt64());
+        assert(!self.filledBlocks.contains(block.id().toInt64()));
+        self.filledBlocks.insert(block.id().toInt64());
     }
 
     fn trySealBlock(block: Block) {
-        if self.sealedBlocks.contains(block.id.toInt64()) {
+        if self.sealedBlocks.contains(block.id().toInt64()) {
             return;
         }
 
         // all predecessors need to be filled
         for edge in block.predecessors {
-            if !self.filledBlocks.contains(edge.source.id.toInt64()) {
+            if !self.filledBlocks.contains(edge.source.id().toInt64()) {
                 return;
             }
         }
@@ -484,8 +522,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
     }
 
     fn sealBlock(block: Block) {
-        assert(!self.sealedBlocks.contains(block.id.toInt64()));
-        self.sealedBlocks.insert(block.id.toInt64());
+        assert(!self.sealedBlocks.contains(block.id().toInt64()));
+        self.sealedBlocks.insert(block.id().toInt64());
 
         let map = self.incompletePhis(block);
         if map.isNone() { return; }

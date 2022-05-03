@@ -156,6 +156,12 @@ impl SymTable {
     pub fn get_global(&self, name: Name) -> Option<GlobalDefinitionId> {
         self.get(name).and_then(|n| n.to_global())
     }
+
+    pub fn dump(&self, sa: &SemAnalysis) {
+        for (key, value) in &self.table {
+            println!("{} -> {:?}", sa.interner.str(*key), value);
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

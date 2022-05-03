@@ -1,12 +1,18 @@
+use package::assembler::x64::AssemblerX64;
+use package::assembler::x64::RBP;
+use package::assembler::x64::RSP;
+use package::interface::CompilationInfo;
+use package::interface::Architecture;
+
 @pub class CodeGenX64(let info: CompilationInfo) {
     let asm: AssemblerX64 = AssemblerX64();
 
-    fn prolog() {
+    @pub fn prolog() {
         self.asm.pushqr(RBP);
         self.asm.movqrr(RBP, RSP);
     }
 
-    fn epilog() {
+    @pub fn epilog() {
         self.asm.movqrr(RSP, RBP);
         self.asm.popqr(RBP);
         self.asm.retq();

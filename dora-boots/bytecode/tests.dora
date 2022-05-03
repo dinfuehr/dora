@@ -1,3 +1,9 @@
+use package::bytecode::reader::decodeBytecode;
+use package::bytecode::builder::BytecodeBuilder;
+use package::bytecode::data::BytecodeRegister;
+use package::bytecode::instruction::BytecodeInstruction;
+use package::bytecode::data::ConstPoolId;
+
 @Test
 fn testBytecodeRetVoid() {
     let writer = BytecodeBuilder();

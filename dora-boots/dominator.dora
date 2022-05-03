@@ -1,4 +1,10 @@
-fn buildDominatorTree(graph: Graph) {
+use std::BitSet;
+
+use package::graph::Graph;
+use package::graph::Block;
+use package::graph::LoopData;
+
+@pub fn buildDominatorTree(graph: Graph) {
     let visited = findBackEdges(graph);
     removeUnreachableBlocks(graph, visited);
     computePostOrder(graph);
@@ -20,29 +26,29 @@ fn findBackEdges(graph: Graph): BitSet {
     let visiting = BitSet(graph.blockCount().toInt64());
 
     worklist.push(graph.getEntryBlock());
-    visiting.insert(graph.getEntryBlock().id.toInt64());
+    visiting.insert(graph.getEntryBlock().id().toInt64());
 
     while !worklist.isEmpty() {
         let block = worklist.last().getOrPanic();
-        let successorIndex = successorsVisited(block.id.toInt64());
+        let successorIndex = successorsVisited(block.id().toInt64());
 
         if successorIndex == block.successors.size() {
             worklist.pop();
-            visiting.remove(block.id.toInt64());
-            visited.insert(block.id.toInt64());
+            visiting.remove(block.id().toInt64());
+            visited.insert(block.id().toInt64());
         } else {
-            successorsVisited(block.id.toInt64()) = successorIndex + 1i64;
+            successorsVisited(block.id().toInt64()) = successorIndex + 1i64;
             let successorEdge = block.successors(successorIndex);
             let successor = successorEdge.target;
 
-            if visiting.contains(successor.id.toInt64()) {
+            if visiting.contains(successor.id().toInt64()) {
                 successorEdge.markAsBackwardEdge();
                 successor.addBackEdge(block);
-            } else if visited.contains(successor.id.toInt64()) {
+            } else if visited.contains(successor.id().toInt64()) {
                 // already visited
             } else {
                 worklist.push(successor);
-                visiting.insert(successor.id.toInt64());
+                visiting.insert(successor.id().toInt64());
             }
         }
     }
@@ -53,7 +59,7 @@ fn findBackEdges(graph: Graph): BitSet {
 fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
     // Remove instructions as user from other instructions
     for block in graph.insertionOrderIterator() {
-        if visited.contains(block.id.toInt64()) {
+        if visited.contains(block.id().toInt64()) {
             continue;
         }
 
@@ -68,7 +74,7 @@ fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
 
     // Now remove unreachable blocks from graph
     for block in graph.insertionOrderIterator() {
-        if visited.contains(block.id.toInt64()) {
+        if visited.contains(block.id().toInt64()) {
             continue;
         }
 
@@ -77,7 +83,7 @@ fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
             successor.predecessors.removeItem(edge);
         }
 
-        graph.blocks(block.id.toInt64()) = None[Block];
+        graph.blocks(block.id().toInt64()) = None[Block];
         block.graph = None;
     }
 }
@@ -99,20 +105,20 @@ fn computePostOrder(graph: Graph) {
 
     while !worklist.isEmpty() {
         let block = worklist.last().getOrPanic();
-        let successorIndex = successorsVisited(block.id.toInt64());
+        let successorIndex = successorsVisited(block.id().toInt64());
 
         if successorIndex == block.successors.size() {
             worklist.pop();
             postOrder.push(block);
         } else {
-            successorsVisited(block.id.toInt64()) = successorIndex + 1i64;
+            successorsVisited(block.id().toInt64()) = successorIndex + 1i64;
             let successor = block.successors(successorIndex).target;
 
-            if visited.contains(successor.id.toInt64()) {
+            if visited.contains(successor.id().toInt64()) {
                 // block either already visited or back edge
             } else {
                 worklist.push(successor);
-                visited.insert(successor.id.toInt64());
+                visited.insert(successor.id().toInt64());
             }
         }
     }

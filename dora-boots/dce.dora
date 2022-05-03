@@ -1,4 +1,11 @@
-fn deadCodeElimination(graph: Graph) {
+use package::graph::Graph;
+use package::graph::builder::GraphBuilder;
+use package::graph::dump::assertGraph;
+use package::graph::verifier::verifyGraph;
+use package::graph::ty::Type;
+use package::dominator::buildDominatorTree;
+
+@pub fn deadCodeElimination(graph: Graph) {
     removeDeadInstructions(graph)
 }
 

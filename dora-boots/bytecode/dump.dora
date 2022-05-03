@@ -1,4 +1,11 @@
-fn bytecodeDump(bc: BytecodeFunction) {
+use package::bytecode::data::BytecodeFunction;
+use package::bytecode::data::BytecodeRegister;
+use package::bytecode::data::ConstPoolId;
+use package::bytecode::data::GlobalId;
+use package::bytecode::instruction::BytecodeInstruction;
+use package::bytecode::reader::BytecodeIterator;
+
+@pub fn bytecodeDump(bc: BytecodeFunction) {
     let dumper = BytecodeDumper(bc);
 
     for instInfo in BytecodeIterator(bc.code) {

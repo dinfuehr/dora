@@ -1,4 +1,13 @@
-fn createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
+use std::BitSet;
+use std::HashMap;
+
+use package::bytecode::data::BytecodeFunction;
+use package::bytecode::instruction::BytecodeInstruction;
+use package::bytecode::reader::BytecodeIterator;
+use package::graph::Graph;
+use package::graph::Block;
+
+@pub fn createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
     let blockMap = BlockMap(bc);
 
     // The first pass creates blocks
@@ -10,18 +19,18 @@ fn createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockM
     blockMap
 }
 
-class BlockMap(let bc: BytecodeFunction) {
+@pub class BlockMap(let bc: BytecodeFunction) {
     let blocks: HashMap[Int64, Block] = HashMap();
 
-    fn insert(offset: Int64, block: Block) {
+    @pub fn insert(offset: Int64, block: Block) {
         self.blocks.insert(offset, block);
     }
 
-    fn blockAt(offset: Int64): Option[Block] {
+    @pub fn blockAt(offset: Int64): Option[Block] {
         self.blocks(offset)
     }
 
-    fn nextBlockAt(offset: Int64): Option[Block] {
+    @pub fn nextBlockAt(offset: Int64): Option[Block] {
         var offset = offset;
 
         while offset < self.bc.code.size() {

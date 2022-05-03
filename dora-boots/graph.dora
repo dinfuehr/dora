@@ -1,29 +1,44 @@
-class Graph {
+use std::Hash;
+use std::Equals;
+use std::BitVec;
+
+use package::graph::ty::Type;
+use package::bytecode::data::GlobalId;
+use package::dominator::buildDominatorTree;
+
+@pub mod builder;
+@pub mod dump;
+@pub mod reader;
+@pub mod tests;
+@pub mod ty;
+@pub mod verifier;
+
+@pub class Graph {
     var entryBlock: Option[Block] = None;
 
-    var blocks: Vec[Option[Block]] = Vec();
+    @pub var blocks: Vec[Option[Block]] = Vec();
     var postOrder: Vec[Block] = Vec();
 
     var nextBlockIdValue: Int32 = 0i32;
     var nextInstIdValue: Int32 = 0i32;
 
-    fn addBlock(block: Block) {
-        assert(block.graph.isNone() && block.id == -1i32);
+    @pub fn addBlock(block: Block) {
+        assert(block.graph.isNone() && block._id.isNone());
 
         block.graph = Some(self);
-        block.id = self.nextBlockId().value;
+        block._id = Some(self.nextBlockId().value);
         self.blocks.push(Some[Block](block));
     }
 
-    fn getBlockWithId(id: Int32): Block {
+    @pub fn getBlockWithId(id: Int32): Block {
         self.blocks(id.toInt64()).getOrPanic()
     }
 
-    fn setEntryBlock(block: Block) {
+    @pub fn setEntryBlock(block: Block) {
         self.entryBlock = Some(block);
     }
 
-    fn getEntryBlock(): Block {
+    @pub fn getEntryBlock(): Block {
         self.entryBlock.getOrPanic()
     }
 
@@ -41,11 +56,11 @@ class Graph {
         BlockId(id)
     }
 
-    fn blockCount(): Int32 {
+    @pub fn blockCount(): Int32 {
         self.nextBlockIdValue
     }
 
-    fn setPostOrder(postOrder: Vec[Block]) {
+    @pub fn setPostOrder(postOrder: Vec[Block]) {
         self.postOrder = postOrder;
 
         for (idx, block) in self.postOrder.enumerate() {
@@ -53,24 +68,24 @@ class Graph {
         }
     }
 
-    fn rebuildDominatorTree() {
+    @pub fn rebuildDominatorTree() {
         // TODO: clear data of dominance and loop analysis
         self.buildDominatorTree();
     }
 
-    fn buildDominatorTree() {
+    @pub fn buildDominatorTree() {
         buildDominatorTree(self);
     }
 
-    fn insertionOrderIterator(): InsertionOrderIterator {
+    @pub fn insertionOrderIterator(): InsertionOrderIterator {
         InsertionOrderIterator(self.blocks.toArray())
     }
 
-    fn postOrderIterator(): PostOrderIterator {
+    @pub fn postOrderIterator(): PostOrderIterator {
         PostOrderIterator(self.postOrder.toArray())
     }
 
-    fn reversePostOrderIterator(): ReversePostOrderIterator {
+    @pub fn reversePostOrderIterator(): ReversePostOrderIterator {
         ReversePostOrderIterator(self.postOrder.toArray())
     }
 }
@@ -133,8 +148,8 @@ class ReversePostOrderIterator(let postOrder: Array[Block]) {
 
 struct BlockId(value: Int32)
 
-class Block() {
-    var id: Int32 = -1i32;
+@pub class Block {
+    var _id: Option[Int32] = None;
 
     var phis: InstLinkedList = InstLinkedList();
     var instructions: InstLinkedList = InstLinkedList();
@@ -144,27 +159,35 @@ class Block() {
     var dominator: Option[Block] = None;
     var dominatedBlocks: Vec[Block] = Vec();
 
-    var predecessors: Vec[Edge] = Vec();
-    var successors: Vec[Edge] = Vec();
+    @pub var predecessors: Vec[Edge] = Vec();
+    @pub var successors: Vec[Edge] = Vec();
 
     var loopData: Option[LoopData] = None;
 
-    var postOrderIdx: Int32 = -1i32;
+    @pub var postOrderIdx: Int32 = -1i32;
 
-    fn getDominator(): Option[Block] = self.dominator;
+    @pub fn id(): Int32 {
+        self._id.getOrPanic()
+    }
 
-    fn setDominator(block: Block) {
+    @pub fn getGraph(): Graph {
+        self.graph.getOrPanic()
+    }
+
+    @pub fn getDominator(): Option[Block] = self.dominator;
+
+    @pub fn setDominator(block: Block) {
         self.dominator = Some(block);
     }
 
-    fn dominates(other: Block): Bool =
+    @pub fn dominates(other: Block): Bool =
         if self == other {
             true
         } else {
             self.strictlyDominates(other)
         };
 
-    fn strictlyDominates(other: Block): Bool {
+    @pub fn strictlyDominates(other: Block): Bool {
         var current = other.getDominator();
 
         while current.isSome() {
@@ -175,24 +198,24 @@ class Block() {
         false
     }
 
-    fn getDominatedBlocks(): Vec[Block] = self.dominatedBlocks;
+    @pub fn getDominatedBlocks(): Vec[Block] = self.dominatedBlocks;
 
-    fn addDominatedBlock(block: Block) {
+    @pub fn addDominatedBlock(block: Block) {
         self.dominatedBlocks.push(block);
     }
 
-    fn addSuccessor(block: Block): Edge {
+    @pub fn addSuccessor(block: Block): Edge {
         let edge = Edge(self, block);
         self.successors.push(edge);
         block.predecessors.push(edge);
         edge
     }
 
-    fn appendPhi(phi: Inst): Inst {
-        assert(phi.block.isNone() && phi.id == -1i32);
+    @pub fn appendPhi(phi: Inst): Inst {
+        assert(phi.block.isNone() && phi._id.isNone());
 
         phi.block = Some(self);
-        phi.id = self.graph.getOrPanic().nextInstId();
+        phi._id = Some(self.graph.getOrPanic().nextInstId());
 
         self.phis.appendInst(phi);
         phi.registerUses();
@@ -200,11 +223,11 @@ class Block() {
         phi
     }
 
-    fn appendInst(inst: Inst): Inst {
-        assert(inst.block.isNone() && inst.id == -1i32);
+    @pub fn appendInst(inst: Inst): Inst {
+        assert(inst.block.isNone() && inst._id.isNone());
 
         inst.block = Some(self);
-        inst.id = self.graph.getOrPanic().nextInstId();
+        inst._id = Some(self.graph.getOrPanic().nextInstId());
 
         self.instructions.appendInst(inst);
         inst.registerUses();
@@ -212,103 +235,113 @@ class Block() {
         inst
     }
 
-    fn addBackEdge(block: Block) {
+    @pub fn addBackEdge(block: Block) {
         if self.loopData.isNone() {
             self.loopData = Some(LoopData(self));
         }
         self.loopData.getOrPanic().addBackEdge(block);
     }
 
-    fn isLoopHeader(): Bool {
+    @pub fn isLoopHeader(): Bool {
         self.loopData.isSome() && self.loopData.getOrPanic().header === self
     }
 
-    fn getLoopData(): Option[LoopData] {
+    @pub fn getLoopData(): Option[LoopData] {
         self.loopData
     }
 
-    fn setLoopData(loop: LoopData) {
+    @pub fn setLoopData(loop: LoopData) {
         self.loopData = Some(loop);
     }
 
-    fn clearLoopData() {
+    @pub fn clearLoopData() {
         self.loopData = None;
     }
 
-    fn isEntryBlock(): Bool {
+    @pub fn isEntryBlock(): Bool {
         self.graph.getOrPanic().getEntryBlock() === self
     }
 
-    fn instructionsIterator(): InstIterator {
+    @pub fn instructionsIterator(): InstIterator {
         InstIterator(self)
     }
 
-    fn reverseInstructionsIterator(): BackwardInstIterator {
+    @pub fn reverseInstructionsIterator(): BackwardInstIterator {
         BackwardInstIterator(self)
     }
 
-    fn phisIterator(): PhiInstIterator {
+    @pub fn phisIterator(): PhiInstIterator {
         PhiInstIterator(self)
     }
 
-    fn firstInst(): Inst {
+    @pub fn firstInst(): Inst {
         self.instructions.firstInst()
     }
 
-    fn lastInst(): Inst {
+    @pub fn lastInst(): Inst {
         self.instructions.lastInst()
     }
 
-    fn removePhi(inst: Inst) {
+    @pub fn removePhi(inst: Inst) {
         unimplemented();
     }
 }
 
 impl Hash for Block {
-  fn hash(): Int32 = self.id.hash();
+  fn hash(): Int32 = self.id().hash();
 }
 
 impl Equals for Block {
   fn equals(other: Block): Bool = self === other;
 }
 
-use std::BitVec;
-
-class LoopData(let header: Block) {
-    var backEdges: Vec[Block] = Vec();
+@pub class LoopData(let header: Block) {
+    @pub var backEdges: Vec[Block] = Vec();
     let blocks: BitVec = BitVec();
 
-    fn getHeader(): Block {
+    @pub fn getHeader(): Block {
         self.header
     }
 
-    fn addBackEdge(block: Block) {
+    @pub fn addBackEdge(block: Block) {
         self.backEdges.push(block);
     }
 
-    fn numberBackEdges(): Int32 {
+    @pub fn numberBackEdges(): Int32 {
         self.backEdges.size().toInt32()
     }
 
-    fn addBlock(block: Block) {
-        self.blocks.insert(block.id.toInt64());
+    @pub fn addBlock(block: Block) {
+        self.blocks.insert(block.id().toInt64());
     }
 
-    fn containsBlock(block: Block): Bool {
-        self.blocks.contains(block.id.toInt64())
+    @pub fn containsBlock(block: Block): Bool {
+        self.blocks.contains(block.id().toInt64())
     }
 
-    fn containsLoop(other: LoopData): Bool {
+    @pub fn containsLoop(other: LoopData): Bool {
         self.containsBlock(other.header)
     }
 }
 
-class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
+@pub class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     var previousUse: Option[Input] = None;
     var nextUse: Option[Input] = None;
+
+    @pub fn getIdx(): Int32 {
+        self.idx
+    }
+
+    @pub fn getValue(): Inst {
+        self.value
+    }
+
+    @pub fn getUsedBy(): Inst {
+        self.usedBy
+    }
 }
 
-enum Op {
+@pub enum Op {
     NullConst,
     
     Int32Const,
@@ -406,11 +439,11 @@ fn opName(op: Op): String {
     }
 }
 
-class Inst {
-    var id: Int32 = -1i32;
+@pub class Inst {
+    var _id: Option[Int32] = None;
     var block: Option[Block] = None;
 
-    var op: Option[Op] = None;
+    var _op: Option[Op] = None;
 
     var aux: Int64 = 0;
 
@@ -426,20 +459,36 @@ class Inst {
     var block1: Option[Block] = None;
     var block2: Option[Block] = None;
 
-    fn isPhi(): Bool {
-        self.op.getOrPanic() == Op::Phi
+    @pub fn id(): Int32 {
+        self._id.getOrPanic()
     }
 
-    fn getType(): Type {
+    @pub fn op(): Op {
+        self._op.getOrPanic()
+    }
+
+    @pub fn getBlock(): Block {
+        self.block.getOrPanic()
+    }
+
+    @pub fn getInputs(): Vec[Input] {
+        self.inputs
+    }
+
+    @pub fn isPhi(): Bool {
+        self.op() == Op::Phi
+    }
+
+    @pub fn getType(): Type {
         return self.ty;
     }
 
-    fn addInput(inst: Inst) {
+    @pub fn addInput(inst: Inst) {
         let input = Input(self.inputs.size().toInt32(), inst, self);
         self.inputs.push(input);
     }
 
-    fn addUse(input: Input) {
+    @pub fn addUse(input: Input) {
         assert(input.value === self);
 
         if self.useListHead.isNone() {
@@ -462,7 +511,7 @@ class Inst {
         }
     }
 
-    fn remove() {
+    @pub fn remove() {
         assert(!self.hasUses());
         assert(self.block.isSome());
 
@@ -478,32 +527,32 @@ class Inst {
         self.block = None;
     }
 
-    fn registerUses() {
+    @pub fn registerUses() {
         for input in self.inputs {
             input.value.addUse(input);
         }
     }
 
-    fn removeAsUser() {
+    @pub fn removeAsUser() {
         for input in self.inputs {
             removeUse(input);
         }
     }
 
-    fn hasUses(): Bool {
+    @pub fn hasUses(): Bool {
         let result = self.useListHead.isSome();
         assert(result == self.useListTail.isSome());
         result
     }
 
-    fn replaceWith(replacement: Inst) {
+    @pub fn replaceWith(replacement: Inst) {
         while self.useListHead.isSome() {
             let input = self.useListHead.getOrPanic();
             input.usedBy.replaceInput(replacement, input.idx);
         }
     }
 
-    fn replaceInput(replacement: Inst, idx: Int32) {
+    @pub fn replaceInput(replacement: Inst, idx: Int32) {
         let input = self.inputs(idx.toInt64());
 
         if input.value === replacement {
@@ -515,7 +564,7 @@ class Inst {
         replacement.addUse(input);
     }
 
-    fn users(): Array[Inst] {
+    @pub fn users(): Array[Inst] {
         let data = Vec[Inst]();
         var current = self.useListHead;
 
@@ -528,11 +577,11 @@ class Inst {
         data.toArray()
     }
 
-    fn uses(): UseIterator {
+    @pub fn uses(): UseIterator {
         UseIterator(self)
     }
 
-    fn dominates(other: Inst): Bool {
+    @pub fn dominates(other: Inst): Bool {
         let sblock = self.block.getOrPanic();
         let oblock = other.block.getOrPanic();
 
@@ -555,8 +604,8 @@ class Inst {
         }
     }
 
-    fn isTerminator(): Bool {
-        match self.op.getOrPanic() {
+    @pub fn isTerminator(): Bool {
+        match self.op() {
             Op::Goto => true,
             Op::If => true,
             Op::Return => true,
@@ -564,8 +613,8 @@ class Inst {
         }
     }
 
-    fn auxAsInt32(): Int32 {
-        let op = self.op.getOrPanic();
+    @pub fn auxAsInt32(): Int32 {
+        let op = self.op();
 
         assert(
             op == Op::Int32Const ||
@@ -576,23 +625,38 @@ class Inst {
         self.aux.toInt32()
     }
 
-    fn auxAsInt64(): Int64 {
-        assert(self.op.getOrPanic() == Op::Int64Const);
+    @pub fn auxAsInt64(): Int64 {
+        assert(self.op() == Op::Int64Const);
         self.aux
     }
 
-    fn auxAsFloat32(): Float32 {
-        assert(self.op.getOrPanic() == Op::Float32Const);
+    @pub fn auxAsFloat32(): Float32 {
+        assert(self.op() == Op::Float32Const);
         self.aux.toInt32().asFloat32()
     }
 
-    fn auxAsFloat64(): Float64 {
-        assert(self.op.getOrPanic() == Op::Float64Const);
+    @pub fn auxAsFloat64(): Float64 {
+        assert(self.op() == Op::Float64Const);
         self.aux.asFloat64()
     }
 
-    fn hasSideEffects(): Bool {
-        match self.op.getOrPanic() {
+    @pub fn getTargetBlock(): Block {
+        assert(self.op() == Op::Goto);
+        self.block1.getOrPanic()
+    }
+
+    @pub fn getTrueBlock(): Block {
+        assert(self.op() == Op::If);
+        self.block1.getOrPanic()
+    }
+
+    @pub fn getFalseBlock(): Block {
+        assert(self.op() == Op::If);
+        self.block2.getOrPanic()
+    }
+
+    @pub fn hasSideEffects(): Bool {
+        match self.op() {
             Op::NullConst => false,
             Op::Int32Const => false,
             Op::Int64Const => false,
@@ -672,51 +736,51 @@ fn removeUse(input: Input) {
     input.nextUse = None;
 }
 
-fn createNullConst(value: UInt8): Inst {
+@pub fn createNullConst(value: UInt8): Inst {
     let inst = Inst();
-    inst.op = Some(Op::NullConst);
+    inst._op = Some(Op::NullConst);
     inst
 }
 
-fn createInt32Const(value: Int32): Inst {
+@pub fn createInt32Const(value: Int32): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Int32Const);
+    inst._op = Some(Op::Int32Const);
     inst.aux = value.toInt64();
     inst
 }
 
-fn createInt64Const(value: Int64): Inst {
+@pub fn createInt64Const(value: Int64): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Int64Const);
+    inst._op = Some(Op::Int64Const);
     inst.aux = value;
     inst
 }
 
-fn createFloat32Const(value: Float32): Inst {
+@pub fn createFloat32Const(value: Float32): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Float32Const);
+    inst._op = Some(Op::Float32Const);
     inst.aux = value.asInt32().toInt64();
     inst
 }
 
-fn createFloat64Const(value: Float64): Inst {
+@pub fn createFloat64Const(value: Float64): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Float64Const);
+    inst._op = Some(Op::Float64Const);
     inst.aux = value.asInt64();
     inst
 }
 
-fn createLoadGlobalInst(ty: Type, global: GlobalId): Inst {
+@pub fn createLoadGlobalInst(ty: Type, global: GlobalId): Inst {
     let inst = Inst();
-    inst.op = Some(Op::LoadGlobal);
+    inst._op = Some(Op::LoadGlobal);
     inst.ty = ty;
     inst.aux = global.value.toInt64();
     inst
 }
 
-fn createStoreGlobalInst(ty: Type, global: GlobalId, value: Inst): Inst {
+@pub fn createStoreGlobalInst(ty: Type, global: GlobalId, value: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(Op::StoreGlobal);
+    inst._op = Some(Op::StoreGlobal);
     inst.aux = global.value.toInt64();
     inst.addInput(value);
     inst.ty = ty;
@@ -724,137 +788,137 @@ fn createStoreGlobalInst(ty: Type, global: GlobalId, value: Inst): Inst {
 }
 
 
-fn createUnaryInst(op: Op, ty: Type, opnd: Inst): Inst {
+@pub fn createUnaryInst(op: Op, ty: Type, opnd: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(op);
+    inst._op = Some(op);
     inst.addInput(opnd);
     inst.ty = ty;
     inst
 }
 
-fn createBinaryInst(op: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
+@pub fn createBinaryInst(op: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(op);
+    inst._op = Some(op);
     inst.addInput(lhs);
     inst.addInput(rhs);
     inst.ty = ty;
     inst
 }
 
-fn createTestInst(opcode: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
+@pub fn createTestInst(opcode: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(opcode);
+    inst._op = Some(opcode);
     inst.addInput(lhs);
     inst.addInput(rhs);
     inst.ty = ty;
     inst
 }
 
-fn createUndefInst(): Inst {
+@pub fn createUndefInst(): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Undef);
+    inst._op = Some(Op::Undef);
     inst
 }
 
-fn createPhiInst(): Inst {
+@pub fn createPhiInst(): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Phi);
+    inst._op = Some(Op::Phi);
     inst
 }
 
-fn createBoundsCheck(index: Inst, length: Inst): Inst {
+@pub fn createBoundsCheck(index: Inst, length: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(Op::BoundsCheck);
+    inst._op = Some(Op::BoundsCheck);
     inst.addInput(index);
     inst.addInput(length);
     inst
 }
 
-fn createDivZeroCheck(value: Inst): Inst {
+@pub fn createDivZeroCheck(value: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(Op::DivZeroCheck);
+    inst._op = Some(Op::DivZeroCheck);
     inst.addInput(value);
     inst
 }
 
-fn createArrayGet(array: Inst, index: Inst, ty: Type): Inst {
+@pub fn createArrayGet(array: Inst, index: Inst, ty: Type): Inst {
     let inst = Inst();
-    inst.op = Some(Op::ArrayGet);
+    inst._op = Some(Op::ArrayGet);
     inst.ty = ty;
     inst.addInput(array);
     inst.addInput(index);
     inst
 }
 
-fn createArraySet(array: Inst, index: Inst, value: Inst): Inst {
+@pub fn createArraySet(array: Inst, index: Inst, value: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(Op::ArraySet);
+    inst._op = Some(Op::ArraySet);
     inst.addInput(array);
     inst.addInput(index);
     inst.addInput(value);
     inst
 }
 
-fn createArrayLength(array: Inst): Inst {
+@pub fn createArrayLength(array: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(Op::ArrayLength);
+    inst._op = Some(Op::ArrayLength);
     inst.addInput(array);
     inst
 }
 
 class FieldInfo(let offset: Int32, let volatile: Bool)
 
-fn createFieldGet(obj: Inst, field: FieldInfo, ty: Type): Inst {
+@pub fn createFieldGet(obj: Inst, field: FieldInfo, ty: Type): Inst {
     let inst = Inst();
-    inst.op = Some(Op::FieldGet);
+    inst._op = Some(Op::FieldGet);
     inst.ty = ty;
     inst.addInput(obj);
     inst
 }
 
-fn createFieldSet(obj: Inst, field: FieldInfo, value: Inst): Inst {
+@pub fn createFieldSet(obj: Inst, field: FieldInfo, value: Inst): Inst {
     let inst = Inst();
-    inst.op = Some(Op::FieldSet);
+    inst._op = Some(Op::FieldSet);
     inst.addInput(obj);
     inst.addInput(value);
     inst
 }
 
-fn createArgInst(index: Int32, ty: Type): Inst {
+@pub fn createArgInst(index: Int32, ty: Type): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Arg);
+    inst._op = Some(Op::Arg);
     inst.ty = ty;
     inst.aux = index.toInt64();
     inst
 }
 
-fn createReturnInst(value: Inst, ty: Type): Inst {
+@pub fn createReturnInst(value: Inst, ty: Type): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Return);
+    inst._op = Some(Op::Return);
     inst.ty = ty;
     inst.addInput(value);
     inst
 }
 
-fn createReturnVoidInst(): Inst {
+@pub fn createReturnVoidInst(): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Return);
+    inst._op = Some(Op::Return);
     inst.ty = Type::Unit;
     inst
 }
 
-fn createIfInst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
+@pub fn createIfInst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
     let inst = Inst();
-    inst.op = Some(Op::If);
+    inst._op = Some(Op::If);
     inst.block1 = Some(thenBlock);
     inst.block2 = Some(elseBlock);
     inst.addInput(cond);
     inst
 }
 
-fn createGotoInst(block: Block): Inst {
+@pub fn createGotoInst(block: Block): Inst {
     let inst = Inst();
-    inst.op = Some(Op::Goto);
+    inst._op = Some(Op::Goto);
     inst.block1 = Some(block);
     inst
 }
@@ -951,10 +1015,12 @@ class BackwardInstIterator(block: Block) {
     }
 }
 
-class Edge(let source: Block, let target: Block) {
+@pub class Edge(source: Block, target: Block) {
+    @pub let source: Block = source;
+    @pub let target: Block = target;
     var backward: Bool = false;
 
-    fn markAsBackwardEdge() {
+    @pub fn markAsBackwardEdge() {
         assert(!self.backward);
         self.backward = true;
     }

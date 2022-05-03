@@ -123,18 +123,15 @@ impl<'a> TypeCheck<'a> {
             self.analysis.map_vars.insert(param.id, var_id);
 
             // params are only allowed to replace functions, vars cannot be replaced
-            let sym = self.symtable.get(param.name);
-            match sym {
-                Some(Sym::Fct(_)) | None => {
-                    self.symtable.insert(param.name, Sym::Var(var_id));
-                }
-                Some(conflict_sym) => report_sym_shadow(
+            let replaced_sym = self.symtable.insert(param.name, Sym::Var(var_id));
+            if let Some(replaced_sym) = replaced_sym {
+                report_sym_shadow(
                     self.sa,
                     param.name,
                     self.fct.file_id,
                     param.pos,
-                    conflict_sym,
-                ),
+                    replaced_sym,
+                )
             }
         }
     }

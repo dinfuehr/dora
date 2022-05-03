@@ -655,7 +655,11 @@ impl<'a> AstBytecodeGen<'a> {
                 self.emit_new_enum(enum_id, type_params, variant_idx, expr.pos, dest)
             }
 
-            _ => unreachable!(),
+            IdentType::Const(const_id) => self.visit_expr_ident_const(const_id, dest),
+
+            _ => {
+                panic!("ident_type = {:?}", ident_type);
+            }
         }
     }
 

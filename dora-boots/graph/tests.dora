@@ -1,3 +1,11 @@
+use package::graph::Graph;
+use package::graph::Block;
+use package::graph::Op;
+use package::graph::createReturnVoidInst;
+use package::graph::createBinaryInst;
+use package::graph::createInt32Const;
+use package::graph::ty::Type;
+
 @Test
 fn simpleGraph() {
     let graph = Graph();

@@ -2835,11 +2835,20 @@ fn shadow_type_with_function() {
 }
 
 #[test]
-fn shadow_type_with_param() {
+fn define_param_name_twice() {
     err(
-        "fn test(Bool: String) {}",
-        pos(1, 9),
-        SemError::ShadowStruct("Bool".into()),
+        "fn test(x: String, x: Int32) {}",
+        pos(1, 20),
+        SemError::ShadowParam("x".into()),
+    );
+}
+
+#[test]
+fn show_type_param_with_name() {
+    err(
+        "fn test[T](T: Int32) {}",
+        pos(1, 12),
+        SemError::ShadowTypeParam("T".into()),
     );
 }
 

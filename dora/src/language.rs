@@ -235,6 +235,7 @@ pub fn report_sym_shadow(
         Sym::Const(_) => SemError::ShadowConst(name),
         Sym::Var(_) => SemError::ShadowParam(name),
         Sym::Module(_) => SemError::ShadowModule(name),
+        Sym::TypeParam(_) => SemError::ShadowTypeParam(name),
         _ => unreachable!(),
     };
 

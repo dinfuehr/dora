@@ -1,9 +1,22 @@
-class GraphBuilder {
+use package::graph::Graph;
+use package::graph::Block;
+use package::graph::Inst;
+use package::graph::Op;
+use package::graph::ty::Type;
+use package::bytecode::data::BytecodeFunction;
+use package::graph::createBinaryInst;
+use package::graph::createInt32Const;
+use package::graph::createReturnInst;
+use package::graph::createReturnVoidInst;
+use package::graph::createGotoInst;
+use package::graph::dump::assertGraph;
+
+@pub class GraphBuilder {
     let graph: Graph = Graph();
     var insertion: Option[Block] = None;
     var entryBlock: Option[Block] = None;
 
-    fn addBlock(): Block {
+    @pub fn addBlock(): Block {
         let block = Block();
 
         if self.entryBlock.isNone() {
@@ -16,27 +29,27 @@ class GraphBuilder {
         block
     }
 
-    fn createInt32Const(value: Int32): Inst {
+    @pub fn createInt32Const(value: Int32): Inst {
         let inst = createInt32Const(value);
         self.appendInst(inst)
     }
 
-    fn createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
+    @pub fn createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
         let inst = createBinaryInst(Op::Add, ty, lhs, rhs);
         self.appendInst(inst)
     }
 
-    fn createReturn(inst: Inst, ty: Type): Inst {
+    @pub fn createReturn(inst: Inst, ty: Type): Inst {
         let inst = createReturnInst(inst, ty);
         self.appendInst(inst)
     }
 
-    fn createReturnVoid(): Inst {
+    @pub fn createReturnVoid(): Inst {
         let inst = createReturnVoidInst();
         self.appendInst(inst)
     }
 
-    fn createGoto(block: Block): Inst {
+    @pub fn createGoto(block: Block): Inst {
         let inst = createGotoInst(block);
         self.appendInst(inst)
     }
@@ -52,7 +65,7 @@ class GraphBuilder {
         inst
     }
 
-    fn build(): Graph {
+    @pub fn build(): Graph {
         assert(self.entryBlock.isSome());
 
         self.graph

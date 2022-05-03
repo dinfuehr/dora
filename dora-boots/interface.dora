@@ -1,18 +1,26 @@
-fn compile(encoded: Array[UInt8]): Array[UInt8] {
+use package::bytecode::data::BytecodeFunction;
+use package::bytecode::data::SourceType;
+use package::deserializer::decodeBytecodeFunction;
+use package::deserializer::decodeCompilationInfo;
+use package::deserializer::ByteReader;
+use package::codegen::x64::CodeGenX64;
+use package::codegen::arm64::CodeGenArm64;
+
+@pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader(encoded);
     let ci = decodeCompilationInfo(reader);
     assert(!reader.moreBytes());
     // bytecodeDump(info.bc);
 
     match ci.arch {
-        Architecture::X64 => x64::CodeGenX64(ci).generate(),
-        Architecture::Arm64 => arm64::CodeGenArm64(ci).generate(),
+        Architecture::X64 => CodeGenX64(ci).generate(),
+        Architecture::Arm64 => CodeGenArm64(ci).generate(),
     }
 }
 
-@internal fn getEncodedBytecodeFunctionByName(fct: String): Array[UInt8];
+@pub @internal fn getEncodedBytecodeFunctionByName(fct: String): Array[UInt8];
 
-fn getBytecodeFunctionByName(fct: String): BytecodeFunction {
+@pub fn getBytecodeFunctionByName(fct: String): BytecodeFunction {
     let encoded = getEncodedBytecodeFunctionByName(fct);
     let reader = ByteReader(encoded);
     let bc = decodeBytecodeFunction(reader);
@@ -21,9 +29,9 @@ fn getBytecodeFunctionByName(fct: String): BytecodeFunction {
     bc
 }
 
-class CompilationInfo(let bc: BytecodeFunction, let typeParams: Array[SourceType], let arch: Architecture)
+@pub class CompilationInfo(let bc: BytecodeFunction, let typeParams: Array[SourceType], let arch: Architecture)
 
-enum Architecture {
+@pub enum Architecture {
     X64,
     Arm64,
 }

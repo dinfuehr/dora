@@ -1,3 +1,10 @@
+use package::assembler::AssemblerBuffer;
+use package::assembler::Label;
+use package::assembler::MachineCode;
+use package::assembler::Register;
+use package::assembler::assertAsm32;
+use package::assembler::assertAsmEnd;
+
 let R0: Register = Register(0i32);
 let R1: Register = Register(1i32);
 let R2: Register = Register(2i32);
@@ -106,38 +113,38 @@ enum CondCode {
     LE, // signed less than or equal
 }
 
-class AssemblerArm64 {
+@pub class AssemblerArm64 {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
-    fn ret() {
+    @pub fn ret() {
         let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    fn retReg(rn: Register) {
+    @pub fn retReg(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    fn b(label: Label) {
+    @pub fn b(label: Label) {
         unreachable[()]();
     }
 
-    fn bl(label: Label) {
+    @pub fn bl(label: Label) {
         unreachable[()]();
     }
 
-    fn blr(rn: Register) {
+    @pub fn blr(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    fn br(rn: Register) {
+    @pub fn br(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    fn finalize(): Array[UInt8] {
+    @pub fn finalize(): Array[UInt8] {
         while self.buffer.size() % 16 != 0 {
             self.ret();
         }
@@ -189,7 +196,7 @@ impl Register {
 }
 
 mod clsx {
-    use package::Register;
+    use package::assembler::Register;
 
     @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1i32));

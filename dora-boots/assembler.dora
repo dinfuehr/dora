@@ -1,3 +1,6 @@
+@pub mod arm64;
+@pub mod x64;
+
 class AssemblerBuffer {
     let buffer: Vec[UInt8] = Vec();
     var pos: Int64 = 0i64;
@@ -65,7 +68,7 @@ class AssemblerBuffer {
     }
 }
 
-class Label {
+@pub class Label {
     var offset: Int64 = -1i64;
 
     fn bindTo(pos: Int64) {
@@ -98,7 +101,7 @@ fn testAssemblerBufferEmitInt() {
     assert(buffer.size() == 4i64);
 }
 
-class Register(let value: Int32) {
+@pub class Register(let value: Int32) {
     fn equals(rhs: Register): Bool {
         self.value == rhs.value
     }

@@ -1,4 +1,12 @@
-fn dumpGraph(graph: Graph): String {
+use std::CodepointIterator;
+use std::StringBuffer;
+
+use package::graph::Graph;
+use package::graph::Block;
+use package::graph::Inst;
+use package::graph::Op;
+
+@pub fn dumpGraph(graph: Graph): String {
     GraphDumper(graph).dump()
 }
 
@@ -14,7 +22,7 @@ class GraphDumper(let graph: Graph) {
     }
 
     fn dumpBlock(block: Block) {
-        self.buffer.append("@${block.id}:");
+        self.buffer.append("@${block.id()}:");
 
         if !block.predecessors.isEmpty() {
             self.buffer.append(" pred = [");
@@ -22,9 +30,9 @@ class GraphDumper(let graph: Graph) {
 
             for pred in block.predecessors {
                 if first {
-                    self.buffer.append("@${pred.source.id}");
+                    self.buffer.append("@${pred.source.id()}");
                 } else {
-                    self.buffer.append(", @${pred.source.id}");
+                    self.buffer.append(", @${pred.source.id()}");
                 }
 
                 first = false;
@@ -39,9 +47,9 @@ class GraphDumper(let graph: Graph) {
 
             for succ in block.successors {
                 if first {
-                    self.buffer.append("@${succ.target.id}");
+                    self.buffer.append("@${succ.target.id()}");
                 } else {
-                    self.buffer.append(", @${succ.target.id}");
+                    self.buffer.append(", @${succ.target.id()}");
                 }
 
                 first = false;
@@ -62,16 +70,16 @@ class GraphDumper(let graph: Graph) {
     }
 
     fn dumpInst(inst: Inst) {
-        self.buffer.append("  %${inst.id}: ${dumpInstName(inst)}");
+        self.buffer.append("  %${inst.id()}: ${dumpInstName(inst)}");
 
-        if !inst.inputs.isEmpty() {
+        if !inst.getInputs().isEmpty() {
             var first = true;
 
-            for inp in inst.inputs {
+            for inp in inst.getInputs() {
                 if first {
-                    self.buffer.append(" %${inp.value.id}");
+                    self.buffer.append(" %${inp.value.id()}");
                 } else {
-                    self.buffer.append(", %${inp.value.id}");
+                    self.buffer.append(", %${inp.value.id()}");
                 }
 
                 first = false;
@@ -79,21 +87,16 @@ class GraphDumper(let graph: Graph) {
         }
 
         if inst.hasUses() {
-            var current = inst.useListHead;
-
             self.buffer.append(" [");
             var first = true;
 
-            while current.isSome() {
-                let c = current.getOrPanic();
-
+            for input in inst.uses() {
                 if first {
-                    self.buffer.append("%${c.usedBy.id}");
+                    self.buffer.append("%${input.usedBy.id()}");
                 } else {
-                    self.buffer.append(", %${c.usedBy.id}");
+                    self.buffer.append(", %${input.usedBy.id()}");
                 }
 
-                current = c.nextUse;
                 first = false;
             }
 
@@ -105,83 +108,83 @@ class GraphDumper(let graph: Graph) {
 }
 
 fn dumpInstName(inst: Inst): String {
-    let op = inst.op.getOrPanic();
+    let op = inst.op();
     match op {
         Op::NullConst => "Const.Null",
         Op::Int32Const => "Const.Int32(#${inst.auxAsInt32()})",
         Op::Int64Const => "Const.Int64(#${inst.auxAsInt64()})",
         Op::Float32Const => "Const.Float32(#${inst.auxAsFloat32()})",
         Op::Float64Const => "Const.Float64(#${inst.auxAsFloat64()})",
-        Op::LoadGlobal => "LoadGlobal.${inst.ty}(${inst.auxAsInt32()})",
-        Op::StoreGlobal => "StoreGlobal.${inst.ty}(${inst.auxAsInt32()})",
+        Op::LoadGlobal => "LoadGlobal.${inst.getType()}(${inst.auxAsInt32()})",
+        Op::StoreGlobal => "StoreGlobal.${inst.getType()}(${inst.auxAsInt32()})",
         Op::Undef => "Undef",
         Op::BoundsCheck => "BoundsCheck",
         Op::Goto => {
-            "Goto(@${inst.block1.getOrPanic().id})"
+            "Goto(@${inst.getTargetBlock().id()})"
         },
         Op::If => {
-            "If(@${inst.block1.getOrPanic().id}, @${inst.block2.getOrPanic().id})"
+            "If(@${inst.getTrueBlock().id()}, @${inst.getFalseBlock().id()})"
         },
         Op::Return => {
-            if inst.ty.isUnit() {
+            if inst.getType().isUnit() {
                 "Ret.Void"
             } else {
-                "Ret.${inst.ty}"
+                "Ret.${inst.getType()}"
             }
         },
-        Op::Neg => "Neg.${inst.ty}",
-        Op::Not => "Not.${inst.ty}",
-        Op::Add => "Add.${inst.ty}",
-        Op::Sub => "Sub.${inst.ty}",
-        Op::Mul => "Mul.${inst.ty}",
-        Op::Div => "Div.${inst.ty}",
-        Op::Mod => "Mod.${inst.ty}",
-        Op::And => "And.${inst.ty}",
-        Op::Or => "Or.${inst.ty}",
-        Op::Xor => "Xor.${inst.ty}",
-        Op::Shl => "Shl.${inst.ty}",
-        Op::Shr => "Shr.${inst.ty}",
-        Op::Sar => "Sar.${inst.ty}",
-        Op::TestIdentity => "TestIdentity.${inst.ty}",
-        Op::Equal => "Equal.${inst.ty}",
-        Op::NotEqual => "NotEqual.${inst.ty}",
-        Op::Greater => "Greater.${inst.ty}",
-        Op::GreaterOrEqual => "GreaterOrEqual.${inst.ty}",
-        Op::Less => "Less.${inst.ty}",
-        Op::LessOrEqual => "LessOrEqual.${inst.ty}",
+        Op::Neg => "Neg.${inst.getType()}",
+        Op::Not => "Not.${inst.getType()}",
+        Op::Add => "Add.${inst.getType()}",
+        Op::Sub => "Sub.${inst.getType()}",
+        Op::Mul => "Mul.${inst.getType()}",
+        Op::Div => "Div.${inst.getType()}",
+        Op::Mod => "Mod.${inst.getType()}",
+        Op::And => "And.${inst.getType()}",
+        Op::Or => "Or.${inst.getType()}",
+        Op::Xor => "Xor.${inst.getType()}",
+        Op::Shl => "Shl.${inst.getType()}",
+        Op::Shr => "Shr.${inst.getType()}",
+        Op::Sar => "Sar.${inst.getType()}",
+        Op::TestIdentity => "TestIdentity.${inst.getType()}",
+        Op::Equal => "Equal.${inst.getType()}",
+        Op::NotEqual => "NotEqual.${inst.getType()}",
+        Op::Greater => "Greater.${inst.getType()}",
+        Op::GreaterOrEqual => "GreaterOrEqual.${inst.getType()}",
+        Op::Less => "Less.${inst.getType()}",
+        Op::LessOrEqual => "LessOrEqual.${inst.getType()}",
         Op::Phi => "Phi",
         Op::DivZeroCheck => "DivZeroCheck",
-        Op::ArrayGet => "ArrayGet.${inst.ty}",
+        Op::ArrayGet => "ArrayGet.${inst.getType()}",
         Op::ArraySet => "ArraySet",
         Op::ArrayLength => "ArrayLength",
-        Op::FieldGet => "FieldGet.${inst.ty}",
+        Op::FieldGet => "FieldGet.${inst.getType()}",
         Op::FieldSet => "FieldSet",
-        Op::Arg => "Arg.${inst.ty}(${inst.auxAsInt32()})",
+        Op::Arg => "Arg.${inst.getType()}(${inst.auxAsInt32()})",
     }
 }
 
-fn assertGraph(graph: Graph, output: String) {
+@pub fn assertGraph(graph: Graph, output: String) {
     let graphOutput = dumpGraph(graph);
 
     if !compareStrings(graphOutput, output) {
         println("got: \"${graphOutput}\"");
         println("expected: \"${output}\"");
 
-        for idx in range(0i32, graphOutput.size().toInt32()) {
+        for idx in std::range(0i32, graphOutput.size().toInt32()) {
             let value = graphOutput.getByte(idx.toInt64());
             print("${value.toInt32().toStringHex()} ");
         }
 
         println("");
 
-        for idx in range(0i32, output.size().toInt32()) {
+        for idx in std::range(0i32, output.size().toInt32()) {
             let value = output.getByte(idx.toInt64());
             print("${value.toInt32().toStringHex()} ");
         }
 
         println("");
 
-        fatalError("output does not match");
+        std::fatalError("output does not match");
     }
 }
 

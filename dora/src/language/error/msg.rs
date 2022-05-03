@@ -38,6 +38,7 @@ pub enum SemError {
     ShadowModule(String),
     ShadowEnum(String),
     ShadowEnumValue(String),
+    ShadowTypeParam(String),
     InvalidLhsAssignment,
     NoEnumValue,
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
@@ -156,6 +157,7 @@ pub enum SemError {
     IllegalTupleIndex(u64, String),
     UninitializedVar,
     DirectoryNotFound(PathBuf),
+    FileForModuleNotFound,
     FileNoAccess(PathBuf),
 }
 
@@ -247,6 +249,7 @@ impl SemError {
             SemError::ShadowConst(ref name) => format!("can not shadow const `{}`.", name),
             SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
             SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
+            SemError::ShadowTypeParam(ref name) => format!("can not shadow type param `{}`.", name),
             SemError::NoEnumValue => "enum needs at least one value.".into(),
             SemError::EnumArgsIncompatible(ref enum_, ref name, ref def, ref expr) => {
                 let def = def.join(", ");
@@ -513,7 +516,7 @@ impl SemError {
                 format!("struct `{}` does not have field named `{}`.", struc, field)
             }
             SemError::UnknownIdentifierInModule(ref module, ref element) => format!(
-                "module `{}` does not have field named `{}`.",
+                "module `{}` does not contain identifier `{}`.",
                 module, element
             ),
             SemError::StructFieldNotInitialized(ref struc, ref field) => {
@@ -541,6 +544,7 @@ impl SemError {
             }
             SemError::UninitializedVar => "cannot read uninitialized variable.".into(),
             SemError::DirectoryNotFound(ref path) => format!("directory `{:?}` not found.", path),
+            SemError::FileForModuleNotFound => "file for module not found.".into(),
             SemError::FileNoAccess(ref path) => format!("cannot access file `{:?}`", path),
         }
     }

@@ -1,3 +1,11 @@
+use package::bytecode::builder::BytecodeBuilder;
+use package::bytecode::data::BytecodeFunction;
+use package::bytecode::data::BytecodeType;
+use package::ssagen::createGraph;
+use package::interface::getBytecodeFunctionByName;
+use package::graph::Block;
+use package::graph::dump::dumpGraph;
+
 fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
@@ -12,12 +20,12 @@ fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 
         if dominator.isNone() {
             println("block ${idx}: missing dominator, expected ${expectedDominatorId}");
-        } else if dominator.getOrPanic().id != expectedDominatorId {
-            println("block ${idx}: idom is ${dominator.getOrPanic().id}, expected ${expectedDominatorId}");
+        } else if dominator.getOrPanic().id() != expectedDominatorId {
+            println("block ${idx}: idom is ${dominator.getOrPanic().id()}, expected ${expectedDominatorId}");
             println(dumpGraph(graph));
         }
 
-        assert(dominator.getOrPanic().id == expectedDominatorId);
+        assert(dominator.getOrPanic().id() == expectedDominatorId);
     }
 }
 

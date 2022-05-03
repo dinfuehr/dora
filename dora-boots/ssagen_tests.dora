@@ -1,3 +1,12 @@
+use package::bytecode::data::BytecodeRegister;
+use package::bytecode::data::BytecodeFunction;
+use package::bytecode::data::BytecodeType;
+use package::bytecode::data::ConstPoolEntry;
+use package::bytecode::builder::BytecodeBuilder;
+use package::ssagen::createGraph;
+use package::graph::dump::assertGraph;
+use package::interface::getBytecodeFunctionByName;
+
 @Test
 fn testSsaGenRetVoid() {
     let b = BytecodeBuilder();
@@ -196,8 +205,6 @@ fn testSsaGenMulIntArguments() {
 ");
 }
 
-fn bcSsaGenMulIntArguments(a: Int32, b: Int32): Int32 = a * b;
-
 @Test
 fn testSsaGenSimpleIf() {
     let b = BytecodeBuilder();
@@ -247,7 +254,7 @@ fn testSsaGenIfReturnInBothBranches() {
 ");
 }
 
-fn bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
+@pub fn bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
     if a { return 1; } else { return 2; }
 }
 
@@ -272,7 +279,7 @@ fn testSsaGenIfWithConditionalAssignment() {
 ");
 }
 
-fn bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
+@pub fn bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
     var x = 1i32;
     var y = 27i32;
     if a { x = 4i32; }
@@ -302,7 +309,7 @@ fn testSsaGenWhileCountDown() {
 ");
 }
 
-fn bcSsaGenWhileCountDown(x: Int32): Int32 {
+@pub fn bcSsaGenWhileCountDown(x: Int32): Int32 {
     var x = x;
     while x > 0i32 { x = x - 1i32; }
     x
@@ -334,7 +341,7 @@ fn testSsaGenWhileCountDownWithSum() {
 ");
 }
 
-fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
+@pub fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
     var x = x;
     var sum = 0i32;
     while x > 0i32 {
@@ -346,7 +353,13 @@ fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
 
 @Test
 fn testSsaGenLoadArrayElementInt32() {
-    let fct = getBytecodeFunctionByName("bcSsaGenLoadArrayElementInt32");
+    let b = BytecodeBuilder();
+    b.setArguments(2i32);
+    b.addRegisters(BytecodeType::Ptr, BytecodeType::Int64, BytecodeType::Int32);
+    b.emitLoadArray(r(2), r(0), r(1));
+    b.emitRet(r(2));
+    let fct = b.generate();
+
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -358,10 +371,6 @@ fn testSsaGenLoadArrayElementInt32() {
   %4: ArrayGet.Int32 %0, %1 [%5]
   %5: Ret.Int32 %4
 ");
-}
-
-fn bcSsaGenLoadArrayElementInt32(x: Array[Int32], idx: Int64): Int32 {
-    x(idx)
 }
 
 @Test
@@ -385,10 +394,6 @@ fn testSsaGenStoreArrayElementInt32() {
   %5: ArraySet %0, %1, %2
   %6: Ret.Void
 ");
-}
-
-fn bcSsaGenStoreArrayElementInt32(x: Array[Int32], idx: Int64, value: Int32) {
-    x(idx) = value;
 }
 
 @Test

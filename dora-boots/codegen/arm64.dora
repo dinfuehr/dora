@@ -1,3 +1,8 @@
+use package::interface::CompilationInfo;
+use package::interface::Architecture;
+use package::assembler::arm64::AssemblerArm64;
+use package::assembler::Label;
+
 @pub class CodeGenArm64(let info: CompilationInfo) {
     let asm: AssemblerArm64 = AssemblerArm64();
 

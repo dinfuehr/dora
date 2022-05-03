@@ -1,4 +1,8 @@
-fn verifyGraph(graph: Graph) {
+use package::graph::Graph;
+use package::graph::Block;
+use package::graph::Inst;
+
+@pub fn verifyGraph(graph: Graph) {
     GraphVerifier(graph).run()
 }
 
@@ -15,10 +19,10 @@ class GraphVerifier(let graph: Graph) {
         self.currentBlock = block;
 
         // block needs to belong to current graph
-        assert(block.graph.getOrPanic() === self.graph);
+        assert(block.getGraph() === self.graph);
 
         for phi in block.phisIterator() {
-            assert(phi.inputs.size() == block.predecessors.size());
+            assert(phi.getInputs().size() == block.predecessors.size());
         }
 
         for inst in block.instructionsIterator() {
@@ -33,7 +37,7 @@ class GraphVerifier(let graph: Graph) {
     }
 
     fn verifyInst(inst: Inst) {
-        assert(inst.block.getOrPanic() === self.currentBlock);
+        assert(inst.getBlock() === self.currentBlock);
 
         for user in inst.uses() {
             assert(inst.dominates(user.usedBy));

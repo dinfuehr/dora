@@ -26,8 +26,8 @@ pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
 
 #[derive(Copy, Clone)]
 enum FileLookup {
-    Disallowed,
     Directory,
+    File,
     Stdlib,
 }
 
@@ -50,7 +50,7 @@ fn prepare_bundle(files: &[(&'static str, &'static str)]) -> PreparedBundle {
 
 struct ProgramParser<'a> {
     sa: &'a mut SemAnalysis,
-    files_to_parse: VecDeque<(SourceFileId, FileLookup)>,
+    files_to_parse: VecDeque<(SourceFileId, FileLookup, Option<PathBuf>)>,
     stdlib: PreparedBundle,
 }
 
@@ -66,8 +66,8 @@ impl<'a> ProgramParser<'a> {
     fn parse_all(&mut self) -> Result<(), i32> {
         self.add_initial_files()?;
 
-        while let Some((file_id, file_lookup)) = self.files_to_parse.pop_front() {
-            self.parse_file(file_id, file_lookup)?;
+        while let Some((file_id, file_lookup, module_path)) = self.files_to_parse.pop_front() {
+            self.parse_file(file_id, file_lookup, module_path)?;
         }
 
         Ok(())
@@ -110,17 +110,19 @@ impl<'a> ProgramParser<'a> {
     ) -> Result<(), i32> {
         let files = self.stdlib.remove(&path).expect("missing directory");
         for (path, content) in files {
-            self.add_file_from_string(path, content, module_id, FileLookup::Stdlib);
+            self.add_file_from_string(path, content, module_id, None, FileLookup::Stdlib);
         }
 
         Ok(())
     }
 
     fn add_boots_files(&mut self) -> Result<(), i32> {
-        let boots_dir = self.sa.args.flag_boots.clone();
+        let boots_path = self.sa.args.flag_boots.clone();
 
-        if let Some(boots) = boots_dir {
-            self.add_files_in_directory(PathBuf::from(boots), self.sa.boots_module_id, None)?;
+        if let Some(boots_path) = boots_path {
+            let file_path = PathBuf::from(boots_path);
+            let module_path = PathBuf::from(file_path.parent().expect("missing parent"));
+            self.add_file(file_path, self.sa.boots_module_id, Some(module_path), None)?;
         }
 
         Ok(())
@@ -132,11 +134,16 @@ impl<'a> ProgramParser<'a> {
             let path = PathBuf::from(&arg_file);
 
             if path.is_file() {
-                self.add_file(PathBuf::from(path), self.sa.program_module_id, None)?;
-            } else if path.is_dir() {
-                self.add_files_in_directory(path, self.sa.program_module_id, None)?;
+                let file_path = PathBuf::from(path);
+                let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
+                self.add_file(
+                    file_path,
+                    self.sa.program_module_id,
+                    Some(module_path),
+                    None,
+                )?;
             } else {
-                println!("file or directory `{}` does not exist.", &arg_file);
+                println!("file `{}` does not exist.", &arg_file);
                 return Err(1);
             }
         }
@@ -150,7 +157,8 @@ impl<'a> ProgramParser<'a> {
                 PathBuf::from("<<code>>"),
                 content.to_string(),
                 self.sa.program_module_id,
-                FileLookup::Disallowed,
+                None,
+                FileLookup::File,
             );
         }
 
@@ -162,6 +170,7 @@ impl<'a> ProgramParser<'a> {
         file_id: SourceFileId,
         file_path: PathBuf,
         module_id: ModuleDefinitionId,
+        module_path: Option<PathBuf>,
         file_lookup: FileLookup,
         ast: &ast::File,
     ) -> Result<(), i32> {
@@ -175,11 +184,13 @@ impl<'a> ProgramParser<'a> {
         gdef.visit_file(ast);
 
         if !gdef.unresolved_modules.is_empty() {
-            let mut directory = file_path;
-            directory.pop();
-
-            for id in gdef.unresolved_modules {
-                self.add_module_files(directory.clone(), id, file_lookup)?;
+            for unresolved_module_id in gdef.unresolved_modules {
+                self.add_module_files(
+                    file_path.clone(),
+                    unresolved_module_id,
+                    module_path.clone(),
+                    file_lookup,
+                )?;
             }
         }
 
@@ -188,26 +199,67 @@ impl<'a> ProgramParser<'a> {
 
     fn add_module_files(
         &mut self,
-        directory: PathBuf,
-        id: ModuleDefinitionId,
+        including_file_path: PathBuf,
+        module_id: ModuleDefinitionId,
+        module_path: Option<PathBuf>,
         file_lookup: FileLookup,
     ) -> Result<(), i32> {
-        let module = self.sa.modules[id].clone();
+        let module = self.sa.modules[module_id].clone();
         let module = module.read();
         let node = module.ast.clone().unwrap();
         let file_id = module.file_id.expect("missing file_id");
 
-        let mut module_directory = directory;
         let name = self.sa.interner.str(node.name).to_string();
-        module_directory.push(&name);
 
         match file_lookup {
             FileLookup::Directory => {
-                self.add_files_in_directory(module_directory, id, Some((file_id, node.pos)))
+                let mut module_directory =
+                    PathBuf::from(including_file_path.parent().expect("parent missing"));
+                module_directory.push(&name);
+
+                self.add_files_in_directory(module_directory, module_id, Some((file_id, node.pos)))
             }
 
-            FileLookup::Disallowed => panic!("cannot include other files here."),
-            FileLookup::Stdlib => self.add_bundled_directory(module_directory, id),
+            FileLookup::File => {
+                let module_directory = module_path.expect("missing module_path");
+
+                let mut file_path1 = module_directory.clone();
+                file_path1.push(format!("{}.dora", name));
+
+                let mut file_path2 = module_directory.clone();
+                file_path2.push(&name);
+                file_path2.push("mod.dora");
+
+                if file_path1.exists() || file_path2.exists() {
+                    let file_path = if file_path1.exists() {
+                        file_path1
+                    } else {
+                        file_path2
+                    };
+                    let mut module_path = module_directory.clone();
+                    module_path.push(&name);
+                    self.add_file(
+                        file_path,
+                        module_id,
+                        Some(module_path),
+                        Some((file_id, node.pos)),
+                    )?;
+                } else {
+                    self.sa
+                        .diag
+                        .lock()
+                        .report(file_id, node.pos, SemError::FileForModuleNotFound);
+                }
+
+                Ok(())
+            }
+
+            FileLookup::Stdlib => {
+                let mut module_directory =
+                    PathBuf::from(including_file_path.parent().expect("parent missing"));
+                module_directory.push(&name);
+                self.add_bundled_directory(module_directory, module_id)
+            }
         }
     }
 
@@ -222,7 +274,7 @@ impl<'a> ProgramParser<'a> {
                 let path = entry.unwrap().path();
 
                 if should_file_be_parsed(&path) {
-                    self.add_file(path.clone(), module_id, error_location)?;
+                    self.add_file(path.clone(), module_id, None, error_location)?;
                 }
             }
 
@@ -245,13 +297,14 @@ impl<'a> ProgramParser<'a> {
         &mut self,
         path: PathBuf,
         module_id: ModuleDefinitionId,
+        module_path: Option<PathBuf>,
         error_location: Option<(SourceFileId, Position)>,
     ) -> Result<(), i32> {
         let result = file_as_string(&path);
 
         match result {
             Ok(content) => {
-                self.add_file_from_string(path, content, module_id, FileLookup::Directory);
+                self.add_file_from_string(path, content, module_id, module_path, FileLookup::File);
                 Ok(())
             }
 
@@ -272,16 +325,25 @@ impl<'a> ProgramParser<'a> {
 
     fn add_file_from_string(
         &mut self,
-        path: PathBuf,
+        file_path: PathBuf,
         content: String,
         module_id: ModuleDefinitionId,
+        module_path: Option<PathBuf>,
         file_lookup: FileLookup,
     ) {
-        let file_id = self.sa.add_source_file(path, Arc::new(content), module_id);
-        self.files_to_parse.push_back((file_id, file_lookup));
+        let file_id = self
+            .sa
+            .add_source_file(file_path, Arc::new(content), module_id);
+        self.files_to_parse
+            .push_back((file_id, file_lookup, module_path));
     }
 
-    fn parse_file(&mut self, file_id: SourceFileId, file_lookup: FileLookup) -> Result<(), i32> {
+    fn parse_file(
+        &mut self,
+        file_id: SourceFileId,
+        file_lookup: FileLookup,
+        module_path: Option<PathBuf>,
+    ) -> Result<(), i32> {
         let module_id;
         let content;
         let path;
@@ -298,7 +360,7 @@ impl<'a> ProgramParser<'a> {
 
         match parser.parse() {
             Ok(ast) => {
-                self.scan_file(file_id, path, module_id, file_lookup, &ast)?;
+                self.scan_file(file_id, path, module_id, module_path, file_lookup, &ast)?;
                 Ok(())
             }
 

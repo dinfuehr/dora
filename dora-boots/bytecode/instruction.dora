@@ -1,4 +1,8 @@
-enum BytecodeInstruction {
+use package::bytecode::data::BytecodeRegister;
+use package::bytecode::data::ConstPoolId;
+use package::bytecode::data::GlobalId;
+
+@pub enum BytecodeInstruction {
     Add(BytecodeRegister, BytecodeRegister, BytecodeRegister),
     Sub(BytecodeRegister, BytecodeRegister, BytecodeRegister),
     Neg(BytecodeRegister, BytecodeRegister),
