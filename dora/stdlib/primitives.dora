@@ -1,0 +1,670 @@
+@pub @internal struct Bool
+
+impl Bool {
+  @pub @internal fn toInt32(): Int32;
+  @pub @internal fn toInt64(): Int64;
+
+  @pub fn hash(): Int32 = self.toInt32();
+
+  @pub fn toString(): String = if self { "true" } else { "false" };
+  @pub fn toStringBinary(): String = if self { "1" } else { "0" };
+  @pub fn toStringHex(): String = if self { "1" } else { "0" };
+
+  @pub @internal fn equals(rhs: Bool): Bool;
+  @pub @internal fn not(): Bool;
+}
+
+@pub @internal struct Int32
+
+impl Int32 {
+  @pub @internal fn toUInt8(): UInt8;
+  @pub fn toChar(): Option[Char] {
+    if self >= 0i32 && self <= 0x10FFFFi32 && (self < 0xD800i32 || self > 0xDFFFi32) {
+      Option[Char]::Some(self.toCharUnchecked())
+    } else {
+      Option[Char]::None
+    }
+  }
+  @pub @internal fn toCharUnchecked(): Char;
+  @pub @internal fn toInt64(): Int64;
+  @pub @internal fn toString(): String;
+
+  @pub fn toStringBinary(): String = String::binary(self.toInt64() & 0xFFFFFFFFi64);
+  @pub fn toStringHex(): String = String::hex(self.toInt64() & 0xFFFFFFFFi64);
+
+  @pub @internal fn toFloat32(): Float32;
+  @pub @internal fn toFloat64(): Float64;
+
+  @pub @internal fn asFloat32(): Float32;
+
+  @pub @internal fn equals(rhs: Int32): Bool;
+  @pub @internal fn compareTo(rhs: Int32): Int32;
+
+  @pub @internal fn plus(rhs: Int32): Int32;
+  @pub @internal fn minus(rhs: Int32): Int32;
+  @pub @internal fn times(rhs: Int32): Int32;
+  @pub @internal fn div(rhs: Int32): Int32;
+  @pub @internal fn modulo(rhs: Int32): Int32;
+
+  @pub @internal fn wrappingAdd(rhs: Int32): Int32;
+  @pub @internal fn wrappingSub(rhs: Int32): Int32;
+  @pub @internal fn wrappingMul(rhs: Int32): Int32;
+
+  @pub @internal fn bitwiseOr(rhs: Int32): Int32;
+  @pub @internal fn bitwiseAnd(rhs: Int32): Int32;
+  @pub @internal fn bitwiseXor(rhs: Int32): Int32;
+
+  @pub @internal fn shiftLeft(by: Int32): Int32;
+  @pub @internal fn shiftRightSigned(by: Int32): Int32;
+  @pub @internal fn shiftRight(by: Int32): Int32;
+
+  @pub @internal fn rotateLeft(by: Int32): Int32;
+  @pub @internal fn rotateRight(by: Int32): Int32;
+
+  @pub @internal fn unaryPlus(): Int32;
+  @pub @internal fn unaryMinus(): Int32;
+  @pub @internal fn not(): Int32;
+  @pub fn abs(): Int32 {
+    let s = self.shiftRightSigned(31i32);
+    return self.bitwiseXor(s).wrappingSub(s);
+  }
+
+  @pub @internal fn countZeroBits(): Int32 = self.not().countOneBits();
+  @pub @internal fn countOneBits(): Int32 {
+    var x = self;
+    var c = 0i32;
+    while (x != 0i32) {
+      c = c + 1i32;
+      x = x.bitwiseAnd(x - 1i32);
+    }
+    return c;
+  }
+  @pub @internal fn countZeroBitsLeading(): Int32 {
+    if self == 0i32 {
+      return Int32::bits();
+    }
+    var t = 1i32.shiftLeft(Int32::bits() - 1i32);
+    var r = 0i32;
+    while self.bitwiseAnd(t) == 0i32 {
+      t = t.shiftRight(1i32);
+      r = r + 1i32;
+    }
+    return r;
+  }
+  @pub @internal fn countOneBitsLeading(): Int32 = self.not().countZeroBitsLeading();
+  @pub @internal fn countZeroBitsTrailing(): Int32 {
+    if self == 0i32 {
+      return Int32::bits();
+    }
+    var t = 1i32;
+    var r = 0i32;
+    while self.bitwiseAnd(t) == 0i32 {
+      t = t.shiftLeft(1i32);
+      r = r + 1i32;
+    }
+    return r;
+  }
+  @pub @internal fn countOneBitsTrailing(): Int32 = self.not().countZeroBitsTrailing();
+
+  @pub fn hash(): Int32 = self;
+
+  @pub @static fn bits(): Int32 = 32i32;
+  @pub @static fn bytes(): Int32 = 4i32;
+
+  @pub @static fn maxValue(): Int32 = 2147483647i32;
+  @pub @static fn minValue(): Int32 = -2147483648i32;
+
+  @pub @static fn min(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { lhs } else { rhs };
+  @pub @static fn max(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { rhs } else { lhs };
+}
+
+@pub class Int32Range(let lower: Int32, let upper: Int32) {
+  @pub fn makeIterator(): Int32RangeIter {
+    return Int32RangeIter(self);
+  }
+}
+
+@pub fn range(lower: Int32, upper: Int32): Int32Range = Int32Range(lower, upper);
+
+class Int32RangeIter(let range: Int32Range) {
+  var value: Int32 = range.lower;
+}
+
+impl Iterator for Int32RangeIter {
+  fn next(): Option[Int32] {
+    if self.value < self.range.upper {
+      let cur = self.value;
+      self.value = cur + 1i32;
+      Some[Int32](cur)
+    } else {
+      None[Int32]
+    }
+  }
+}
+
+@pub @internal struct Char
+
+impl Char {
+  @pub @internal fn toInt32(): Int32;
+  @pub @internal fn toInt64(): Int64;
+  @pub @internal fn toString(): String;
+
+  @pub @internal fn equals(rhs: Char): Bool;
+  @pub @internal fn compareTo(rhs: Char): Int32;
+
+  @pub fn hash(): Int32 = self.toInt32();
+
+  @pub fn encodeUtf8(bytes: Array[UInt8], offset: Int64) {
+    let val = self.toInt32();
+
+    if val < 0x80i32 {
+      bytes.set(offset, val.toUInt8());
+    } else if val < 0x800i32 {
+      bytes.set(offset, (0xC0i32 | ((val >> 6i32) & 0x1Fi32)).toUInt8());
+      bytes.set(offset+1i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
+    } else if val < 0x10000i32 {
+      bytes.set(offset, (0xE0i32 | ((val >> 12i32) & 0x0Fi32)).toUInt8());
+      bytes.set(offset+1i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).toUInt8());
+      bytes.set(offset+2i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
+    } else {
+      bytes.set(offset, (0xF0i32 | ((val >> 18i32) & 0x07i32)).toUInt8());
+      bytes.set(offset+1i64, (0x80i32 | ((val >> 12i32) & 0x3Fi32)).toUInt8());
+      bytes.set(offset+2i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).toUInt8());
+      bytes.set(offset+3i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
+    }
+  }
+
+  @pub fn lenUtf8(): Int32 {
+    let val = self.toInt32();
+
+    if val < 0x80i32 {
+      return 1i32;
+    } else if val < 0x800i32 {
+      return 2i32;
+    } else if val < 0x10000i32 {
+      return 3i32;
+    } else {
+      return 4i32;
+    }
+  }
+}
+
+@pub @internal struct Int64
+
+impl Int64 {
+  @pub @internal fn toUInt8(): UInt8;
+  @pub fn toChar(): Option[Char] {
+    if self >= 0i64 && self <= 0x10FFFFi64 && (self < 0xD800i64 || self > 0xDFFFi64) {
+      Option[Char]::Some(self.toCharUnchecked())
+    } else {
+      Option[Char]::None
+    }
+  }
+  @pub @internal fn toCharUnchecked(): Char;
+  @pub @internal fn toInt32(): Int32;
+  @pub @internal fn toString(): String;
+  @pub fn toStringHex(): String { String::hex(self) }
+
+  @pub fn toStringBinary(): String = String::binary(self);
+
+  @pub @internal fn toFloat32(): Float32;
+  @pub @internal fn toFloat64(): Float64;
+
+  @pub @internal fn asFloat64(): Float64;
+
+  @pub @internal fn equals(rhs: Int64): Bool;
+  @pub @internal fn compareTo(rhs: Int64): Int32;
+
+  @pub @internal fn plus(rhs: Int64): Int64;
+  @pub @internal fn minus(rhs: Int64): Int64;
+  @pub @internal fn times(rhs: Int64): Int64;
+  @pub @internal fn div(rhs: Int64): Int64;
+  @pub @internal fn modulo(rhs: Int64): Int64;
+
+  @pub @internal fn wrappingAdd(rhs: Int64): Int64;
+  @pub @internal fn wrappingSub(rhs: Int64): Int64;
+  @pub @internal fn wrappingMul(rhs: Int64): Int64;
+
+  @pub @internal fn bitwiseOr(rhs: Int64): Int64;
+  @pub @internal fn bitwiseAnd(rhs: Int64): Int64;
+  @pub @internal fn bitwiseXor(rhs: Int64): Int64;
+
+  @pub @internal fn shiftLeft(by: Int32): Int64;
+  @pub @internal fn shiftRightSigned(by: Int32): Int64;
+  @pub @internal fn shiftRight(by: Int32): Int64;
+
+  @pub @internal fn rotateLeft(by: Int32): Int64;
+  @pub @internal fn rotateRight(by: Int32): Int64;
+
+  @pub @internal fn unaryPlus(): Int64;
+  @pub @internal fn unaryMinus(): Int64;
+  @pub @internal fn not(): Int64;
+  @pub fn abs(): Int64 {
+    let s = self.shiftRightSigned(63i32);
+    return self.bitwiseXor(s).wrappingSub(s);
+  }
+
+  @pub @internal fn countZeroBits(): Int32 = self.not().countOneBits();
+  @pub @internal fn countOneBits(): Int32 {
+    var x = self;
+    var c = 0i32;
+    while (x != 0i64) {
+      c = c + 1i32;
+      x = x.bitwiseAnd(x - 1i64);
+    }
+    return c;
+  }
+  @pub @internal fn countZeroBitsLeading(): Int32 {
+    if self == 0i64 {
+      return Int64::bits();
+    }
+    var t = 1i64.shiftLeft(Int64::bits() - 1i32);
+    var r = 0i32;
+    while (self.bitwiseAnd(t)) == 0i64 {
+      t = t.shiftRight(1i32);
+      r = r + 1i32;
+    }
+    return r;
+  }
+  @pub @internal fn countOneBitsLeading(): Int32 = self.not().countZeroBitsLeading();
+  @pub @internal fn countZeroBitsTrailing(): Int32 {
+    if self == 0i64 {
+      return Int64::bits();
+    }
+    var t = 1i64;
+    var r = 0i32;
+    while (self.bitwiseAnd(t)) == 0i64 {
+      t = t.shiftLeft(1i32);
+      r = r + 1i32
+    }
+    return r;
+  }
+  @pub @internal fn countOneBitsTrailing(): Int32 = self.not().countZeroBitsTrailing();
+
+  @pub fn hash(): Int32 = self.toInt32();
+
+  @pub @static fn bits(): Int32 = 64i32;
+  @pub @static fn bytes(): Int32 = 8i32;
+
+  @pub @static fn maxValue(): Int64 = 9223372036854775807i64;
+  @pub @static fn minValue(): Int64 = -9223372036854775808i64;
+
+  @pub @static fn min(lhs: Int64, rhs: Int64): Int64 = if lhs < rhs { lhs } else { rhs };
+  @pub @static fn max(lhs: Int64, rhs: Int64): Int64 = if lhs < rhs { rhs } else { lhs };
+}
+
+@pub @internal struct Float32
+
+impl Float32 {
+  @pub @internal fn toInt32(): Int32;
+  @pub @internal fn toInt64(): Int64;
+  @pub @internal fn toFloat64(): Float64;
+  @pub @internal fn toString(): String;
+
+  @pub @internal fn asInt32(): Int32;
+
+  @pub @internal fn equals(rhs: Float32): Bool;
+  @pub @internal fn compareTo(rhs: Float32): Int32;
+  @pub fn sortsAs(rhs: Float32): Int32 {
+    var ix = self.asInt32();
+    var iy = rhs.asInt32();
+
+    let sx = ix.shiftRightSigned(31i32).shiftRight(1i32);
+    let sy = iy.shiftRightSigned(31i32).shiftRight(1i32);
+
+    ix = ix.bitwiseXor(sx);
+    iy = iy.bitwiseXor(sy);
+
+    if ix < iy { return -1i32; }
+    if ix == iy { return 0i32; }
+    return 1i32;
+  }
+
+  @pub @internal fn plus(rhs: Float32): Float32;
+  @pub @internal fn minus(rhs: Float32): Float32;
+  @pub @internal fn times(rhs: Float32): Float32;
+  @pub @internal fn div(rhs: Float32): Float32;
+
+  @pub @internal fn unaryPlus(): Float32;
+  @pub @internal fn unaryMinus(): Float32;
+  @pub @internal fn abs(): Float32;
+
+  @pub @internal fn roundToZero(): Float32;
+  @pub @internal fn roundUp(): Float32;
+  @pub @internal fn roundDown(): Float32;
+  @pub @internal fn roundHalfEven(): Float32;
+
+  @pub @internal fn isNan(): Bool;
+  @pub @internal fn sqrt(): Float32;
+
+  @pub fn hash(): Int32 = self.asInt32();
+
+  // should be lets, not funs
+  @pub @static fn bits(): Int32 = 32i32;
+  @pub @static fn bytes(): Int32 = 4i32;
+  @pub @static fn infinityPositive(): Float32 = 0x7f800000i32.asFloat32();
+  @pub @static fn infinityNegative(): Float32 = 0xff800000i32.asFloat32();
+  @pub @static fn notANumber(): Float32 = 0x7fC00000i32.asFloat32();
+}
+
+@pub @internal struct Float64
+
+impl Float64 {
+  @pub @internal fn toInt32(): Int32;
+  @pub @internal fn toInt64(): Int64;
+  @pub @internal fn toFloat32(): Float32;
+  @pub @internal fn toString(): String;
+
+  @pub @internal fn asInt64(): Int64;
+
+  @pub @internal fn equals(rhs: Float64): Bool;
+  @pub @internal fn compareTo(rhs: Float64): Int32;
+  @pub fn sortsAs(rhs: Float64): Int32 {
+    var ix = self.asInt64();
+    var iy = rhs.asInt64();
+
+    let sx = ix.shiftRightSigned(63i32).shiftRight(1i32);
+    let sy = iy.shiftRightSigned(63i32).shiftRight(1i32);
+
+    ix = ix.bitwiseXor(sx);
+    iy = iy.bitwiseXor(sy);
+
+    if ix < iy { return -1i32; }
+    if ix == iy { return 0i32; }
+    return 1i32;
+  }
+
+  @pub @internal fn plus(rhs: Float64): Float64;
+  @pub @internal fn minus(rhs: Float64): Float64;
+  @pub @internal fn times(rhs: Float64): Float64;
+  @pub @internal fn div(rhs: Float64): Float64;
+
+  @pub @internal fn unaryPlus(): Float64;
+  @pub @internal fn unaryMinus(): Float64;
+  @pub @internal fn abs(): Float64;
+
+  @pub @internal fn roundToZero(): Float64;
+  @pub @internal fn roundUp(): Float64;
+  @pub @internal fn roundDown(): Float64;
+  @pub @internal fn roundHalfEven(): Float64;
+
+  @pub @internal fn isNan(): Bool;
+  @pub @internal fn sqrt(): Float64;
+
+  @pub fn hash(): Int32 = self.asInt64().toInt32();
+
+  // should be lets, not funs
+  @pub @static fn bits(): Int32 = 64i32;
+  @pub @static fn bytes(): Int32 = 8i32;
+  @pub @static fn infinityPositive(): Float64 = 0x7ff0000000000000i64.asFloat64();
+  @pub @static fn infinityNegative(): Float64 = 0xfff0000000000000i64.asFloat64();
+  @pub @static fn notANumber(): Float64 = 0x7ff8000000000000i64.asFloat64();
+}
+
+@pub @internal struct UInt8
+
+impl UInt8 {
+  @pub @internal fn toChar(): Char;
+  @pub @internal fn toInt32(): Int32;
+  @pub @internal fn toInt64(): Int64;
+  @pub @internal fn toString(): String;
+
+  @pub fn toStringBinary(): String = String::binary(self.toInt64());
+  @pub fn toStringHex(): String = String::hex(self.toInt64());
+
+  @pub @internal fn equals(rhs: UInt8): Bool;
+  @pub @internal fn compareTo(rhs: UInt8): Int32;
+
+  @pub fn hash(): Int32 = self.toInt32();
+
+  @pub @static fn bits(): Int32 = 8;
+  @pub @static fn bytes(): Int32 = 1;
+
+  @pub @static fn maxValue(): UInt8 = 255u8;
+  @pub @static fn minValue(): UInt8 = 0u8;
+}
+
+@pub enum Option[T] {
+  Some(T),
+  None,
+}
+
+use Option::Some;
+use Option::None;
+
+impl[T] Option[T] {
+  @pub fn isNone(): Bool {
+    match self {
+      Some(_) => false,
+      None => true,
+    }
+  }
+
+  @pub fn isSome(): Bool {
+    match self {
+      Some(_) => true,
+      None => false,
+    }
+  }
+
+  @pub fn getOrPanic(): T {
+    match self {
+      Some(value) => value,
+      None => {
+        fatalError("cannot unwrap None.");
+        unreachable[T]()
+      }
+    }
+  }
+
+  @pub fn unwrapNone() {
+    match self {
+      Some(_) => {
+        fatalError("cannot unwrap Some.");
+      },
+      None => (),
+    }
+  }
+
+  @pub fn unwrapOr(alt: T): T {
+    match self {
+      Some(value) => value,
+      None => alt,
+    }
+  }
+
+  @pub fn has(val: T): Bool {
+    match self {
+      Some(actual) => actual === val,
+      None => false,
+    }
+  }
+
+  @pub fn or(alt: Option[T]): Option[T] {
+    if self.isSome() {
+      return self;
+    } else {
+      return alt;
+    }
+  }
+}
+
+impl[T: Default] Option[T] {
+  @pub fn getOrDefault(): T {
+    match self {
+      Some(actual) => actual,
+      None => T::default(),
+    }
+  }
+}
+
+impl[T: Zero] Option[T] {
+  @pub fn getOrZero(): T {
+    match self {
+      Some(actual) => actual,
+      None => T::zero(),
+    }
+  }
+}
+
+impl[T: Equals] Option[T] {
+  @pub fn contains(rhs: T): Bool {
+    if self.isSome() {
+      let lhs = self.getOrPanic();
+      lhs.equals(rhs)
+    } else {
+      false
+    }
+  }
+
+  @pub fn equals(rhs: Option[T]): Bool {
+    if self.isSome() {
+      if rhs.isSome() {
+        let lhs = self.getOrPanic();
+        let rhs = rhs.getOrPanic();
+        lhs.equals(rhs)
+      } else {
+        false
+      }
+    } else {
+      rhs.isNone()
+    }
+  }
+}
+
+impl[T: Stringable] Option[T] {
+  @pub fn toString(): String {
+    match self {
+      Some(value) => "Some(${value})",
+      None => "None",
+    }
+  }
+}
+
+@pub enum Result[V, E] {
+  Ok(V),
+  Err(E),
+}
+
+use Result::Ok;
+use Result::Err;
+
+impl[V, E] Result[V, E] {
+  @pub fn isOk(): Bool {
+    match self {
+      Ok(_) => true,
+      Err(_) => false,
+    }
+  }
+
+  @pub fn isErr(): Bool {
+    match self {
+      Ok(_) => false,
+      Err(_) => true,
+    }
+  }
+
+  @pub fn getOrPanic(): V {
+    match self {
+      Ok(value) => value,
+      Err(_) => {
+        fatalError("cannot unwrap Err.");
+        unreachable[V]()
+      }
+    }
+  }
+
+  @pub fn getErrOrPanic(): E {
+    match self {
+      Ok(_) => {
+        fatalError("cannot unwrap Ok.");
+        unreachable[E]()
+      },
+      Err(value) => value,
+    }
+  }
+
+  @pub fn has(val: V): Bool {
+    match self {
+      Ok(actual) => actual === val,
+      Err(_) => false,
+    }
+  }
+
+  @pub fn or(alt: Result[V, E]): Result[V, E] {
+    if self.isOk() {
+      return self;
+    } else {
+      return alt;
+    }
+  }
+}
+
+impl[V: Equals, E] Result[V, E] {
+  @pub fn contains(rhs: V): Bool {
+    if self.isOk() {
+      let lhs = self.getOrPanic();
+      lhs.equals(rhs)
+    } else {
+      false
+    }
+  }
+}
+
+impl[V: Equals, E: Equals] Result[V, E] {
+  @pub fn equals(rhs: Result[V, E]): Bool {
+    if self.isOk() {
+      if rhs.isOk() {
+        let lhs = self.getOrPanic();
+        let rhs = rhs.getOrPanic();
+        lhs.equals(rhs)
+      } else {
+        false
+      }
+    } else {
+      if rhs.isErr() {
+        let lhs = self.getErrOrPanic();
+        let rhs = rhs.getErrOrPanic();
+        lhs.equals(rhs)
+      } else {
+        false
+      }
+    }
+  }
+}
+
+impl[V: Default, E] Result[V, E] {
+  @pub fn getOrDefault(): V {
+    match self {
+      Ok(actual) => actual,
+      Err(_) => V::default(),
+    }
+  }
+}
+
+impl[V: Zero, E] Result[V, E] {
+  @pub fn getOrZero(): V {
+    match self {
+      Ok(actual) => actual,
+      Err(_) => V::zero(),
+    }
+  }
+}
+
+impl[V, E: Default] Result[V, E] {
+  @pub fn getErrOrDefault(): E {
+    match self {
+      Ok(_) => E::default(),
+      Err(actual) => actual,
+    }
+  }
+}
+
+impl[V, E: Zero] Result[V, E] {
+  @pub fn getErrOrZero(): E {
+    match self {
+      Ok(_) => E::zero(),
+      Err(actual) => actual,
+    }
+  }
+}

@@ -1,7 +1,0 @@
-@pub class AtomicInt64(let value: Int64) {
-    @pub @internal fn get(): Int64;
-    @pub @internal fn set(value: Int64);
-    @pub @internal fn exchange(value: Int64): Int64;
-    @pub @internal fn compareExchange(expected: Int64, value: Int64): Int64;
-    @pub @internal fn fetchAdd(value: Int64): Int64;
-}

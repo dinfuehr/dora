@@ -122,7 +122,13 @@ impl<'a> ProgramParser<'a> {
         if let Some(boots_path) = boots_path {
             let file_path = PathBuf::from(boots_path);
             let module_path = PathBuf::from(file_path.parent().expect("missing parent"));
-            self.add_file(file_path, self.sa.boots_module_id, Some(module_path), None)?;
+            self.add_file(
+                file_path,
+                self.sa.boots_module_id,
+                Some(module_path),
+                None,
+                FileLookup::File,
+            )?;
         }
 
         Ok(())
@@ -141,6 +147,7 @@ impl<'a> ProgramParser<'a> {
                     self.sa.program_module_id,
                     Some(module_path),
                     None,
+                    FileLookup::File,
                 )?;
             } else {
                 println!("file `{}` does not exist.", &arg_file);
@@ -243,6 +250,7 @@ impl<'a> ProgramParser<'a> {
                         module_id,
                         Some(module_path),
                         Some((file_id, node.pos)),
+                        FileLookup::File,
                     )?;
                 } else {
                     self.sa
@@ -274,7 +282,13 @@ impl<'a> ProgramParser<'a> {
                 let path = entry.unwrap().path();
 
                 if should_file_be_parsed(&path) {
-                    self.add_file(path.clone(), module_id, None, error_location)?;
+                    self.add_file(
+                        path.clone(),
+                        module_id,
+                        None,
+                        error_location,
+                        FileLookup::Directory,
+                    )?;
                 }
             }
 
@@ -299,12 +313,13 @@ impl<'a> ProgramParser<'a> {
         module_id: ModuleDefinitionId,
         module_path: Option<PathBuf>,
         error_location: Option<(SourceFileId, Position)>,
+        file_lookup: FileLookup,
     ) -> Result<(), i32> {
         let result = file_as_string(&path);
 
         match result {
             Ok(content) => {
-                self.add_file_from_string(path, content, module_id, module_path, FileLookup::File);
+                self.add_file_from_string(path, content, module_id, module_path, file_lookup);
                 Ok(())
             }
 

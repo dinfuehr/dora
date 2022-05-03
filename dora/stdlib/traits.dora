@@ -1,0 +1,252 @@
+/* total order */
+trait Sortable {
+  fn sortsAs(other: Self): Int32;
+  // ideally we would be able to provide a default implementation for the next 3 methods based on `sortsAs`
+  fn sortsBefore(other: Self): Bool;
+  fn sortsAfter(other: Self): Bool;
+  fn sortsSame(other: Self): Bool;
+}
+
+impl Sortable for Bool {
+  fn sortsAs(other: Bool): Int32 = self.compareTo(other);
+  fn sortsBefore(other: Bool): Bool = self < other;
+  fn sortsAfter(other: Bool): Bool = self > other;
+  fn sortsSame(other: Bool): Bool = self == other;
+}
+
+impl Sortable for UInt8 {
+  fn sortsAs(other: UInt8): Int32 = self.compareTo(other);
+  fn sortsBefore(other: UInt8): Bool = self < other;
+  fn sortsAfter(other: UInt8): Bool = self > other;
+  fn sortsSame(other: UInt8): Bool = self == other;
+}
+
+impl Sortable for Int32 {
+  fn sortsAs(other: Int32): Int32 = self.compareTo(other);
+  fn sortsBefore(other: Int32): Bool = self < other;
+  fn sortsAfter(other: Int32): Bool = self > other;
+  fn sortsSame(other: Int32): Bool = self == other;
+}
+
+impl Sortable for Int64 {
+  fn sortsAs(other: Int64): Int32 = self.compareTo(other);
+  fn sortsBefore(other: Int64): Bool = self < other;
+  fn sortsAfter(other: Int64): Bool = self > other;
+  fn sortsSame(other: Int64): Bool = self == other;
+}
+
+impl Sortable for Float32 {
+  fn sortsAs(other: Float32): Int32 = self.sortsAs(other);
+  fn sortsBefore(other: Float32): Bool = self.sortsAs(other) < 0i32;
+  fn sortsAfter(other: Float32): Bool = self.sortsAs(other) > 0i32;
+  fn sortsSame(other: Float32): Bool = self.sortsAs(other) == 0i32;
+}
+
+impl Sortable for Float64 {
+  fn sortsAs(other: Float64): Int32 = self.sortsAs(other);
+  fn sortsBefore(other: Float64): Bool = self.sortsAs(other) < 0i32;
+  fn sortsAfter(other: Float64): Bool = self.sortsAs(other) > 0i32;
+  fn sortsSame(other: Float64): Bool = self.sortsAs(other) == 0i32;
+}
+
+impl Sortable for String {
+  fn sortsAs(other: String): Int32 = self.compareTo(other);
+  fn sortsBefore(other: String): Bool = self < other;
+  fn sortsAfter(other: String): Bool = self > other;
+  fn sortsSame(other: String): Bool = self == other;
+}
+
+trait Default {
+  @static fn default(): Self;
+}
+
+impl Default for Bool {
+  @static fn default(): Bool = false;
+}
+
+impl Default for UInt8 {
+  @static fn default(): UInt8 = 0u8;
+}
+
+impl Default for Char {
+  @static fn default(): Char = '\0';
+}
+
+impl Default for Int32 {
+  @static fn default(): Int32 = 0;
+}
+
+impl Default for Int64 {
+  @static fn default(): Int64 = 0i64;
+}
+
+impl Default for Float32 {
+  @static fn default(): Float32 = 0.0f32;
+}
+
+impl Default for Float64 {
+  @static fn default(): Float64 = 0.0;
+}
+
+impl Default for String {
+  @static fn default(): String = "";
+}
+
+@pub trait Hash {
+  fn hash(): Int32;
+  // fn hashTo(hasher: Hasher);
+}
+
+impl Hash for Bool {
+  fn hash(): Int32 = self.hash();
+}
+
+impl Hash for UInt8 {
+  fn hash(): Int32 = self.hash();
+}
+
+impl Hash for Int32 {
+  fn hash(): Int32 = self.hash();
+}
+
+impl Hash for Int64 {
+  fn hash(): Int32 = self.hash();
+}
+
+impl Hash for Float32 {
+  fn hash(): Int32 = self.hash();
+}
+
+impl Hash for Float64 {
+  fn hash(): Int32 = self.hash();
+}
+
+trait Identity {
+  fn identicalTo(other: Self): Bool;
+}
+
+impl Identity for Bool {
+  fn identicalTo(other: Bool): Bool = self === other;
+}
+
+impl Identity for UInt8 {
+  fn identicalTo(other: UInt8): Bool = self === other;
+}
+
+impl Identity for Int32 {
+  fn identicalTo(other: Int32): Bool = self === other;
+}
+
+impl Identity for Int64 {
+  fn identicalTo(other: Int64): Bool = self === other;
+}
+
+impl Identity for Float32 {
+  fn identicalTo(other: Float32): Bool = self === other;
+}
+
+impl Identity for Float64 {
+  fn identicalTo(other: Float64): Bool = self === other;
+}
+
+impl Identity for String {
+  fn identicalTo(other: String): Bool = self === other;
+}
+
+// Implementations of the `Zero` trait indicate that zero-initialized memory of the appropriate size can be allocated to
+// represent a valid value of that type.¹
+//
+//   let numbers: Array[Int] = Array.ofZero[Int](4)
+//   assert(numbers == Array(0, 0, 0, 0)
+//
+//   let strings: Array[Option[String]] = Array.ofZero[Option[String]](2)
+//   assert(strings == Array(None, None)
+//
+// `Zero` is a special trait whose implementations are automatically derived for qualifying types.
+// It cannot be implemented manually.
+// A type qualifies if it is either `Option`, or obeys all of the following rules ...
+// - The type is a struct.
+// - The type does not contain any reference-types directly or transitively.
+//
+// ¹ This means that implementations of `Zero` may make full use of the operating system's optimization of `calloc`
+//   (lazy allocation, lazy zeroing, copy on write, etc.), unlike implementations of the `Default` trait –
+//   which invoke an user-defined function to initialize each individual element (malloc & loop with function calls).
+
+
+// @restricted / @internal
+@pub trait Zero {
+  @static fn zero(): Self; // should be `let` instead of `fn`
+}
+
+/* partial order */
+@pub trait Comparable {
+  fn compareTo(other: Self): Int32;
+  // fn <  (other: Self): Int32;
+  // fn <= (other: Self): Int32;
+  // fn >  (other: Self): Int32;
+  // fn >= (other: Self): Int32;
+}
+
+impl Comparable for Bool {
+  fn compareTo(other: Bool): Int32 = self.compareTo(other);
+}
+
+impl Comparable for UInt8 {
+  fn compareTo(other: UInt8): Int32 = self.compareTo(other);
+}
+
+impl Comparable for Int32 {
+  fn compareTo(other: Int32): Int32 = self.compareTo(other);
+}
+
+impl Comparable for Int64 {
+  fn compareTo(other: Int64): Int32 = self.compareTo(other);
+}
+
+impl Comparable for Float32 {
+  fn compareTo(other: Float32): Int32 = self.compareTo(other);
+}
+
+impl Comparable for Float64 {
+  fn compareTo(other: Float64): Int32 = self.compareTo(other);
+}
+
+impl Comparable for String {
+  fn compareTo(other: String): Int32 = self.compareTo(other);
+}
+
+@pub trait Equals {
+  fn equals(other: Self): Bool;
+}
+
+impl Equals for Bool {
+  fn equals(other: Bool): Bool = self == other;
+}
+
+impl Equals for UInt8 {
+  fn equals(other: UInt8): Bool = self == other;
+}
+
+impl Equals for Int32 {
+  fn equals(other: Int32): Bool = self == other;
+}
+
+impl Equals for Int64 {
+  fn equals(other: Int64): Bool = self == other;
+}
+
+impl Equals for Float32 {
+  fn equals(other: Float32): Bool = self == other;
+}
+
+impl Equals for Float64 {
+  fn equals(other: Float64): Bool = self == other;
+}
+
+impl Equals for String {
+  fn equals(other: String): Bool = self == other;
+}
+
+@pub trait Iterator {
+  fn next(): Option[Int32]; // this should be made generic
+}

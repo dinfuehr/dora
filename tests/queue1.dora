@@ -1,4 +1,4 @@
-use std::collections::Queue;
+use std::Queue;
 
 fn main() {
     let q = Queue[Int32]();

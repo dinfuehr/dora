@@ -1,3 +1,0 @@
-@pub trait Iterator {
-  fn next(): Option[Int32]; // this should be made generic
-}

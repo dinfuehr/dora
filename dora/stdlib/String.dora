@@ -204,3 +204,215 @@
     return String::fromBytesPart(array, at, array.size() - at + 1i64).getOrPanic();
   }
 }
+
+@pub trait Stringable {
+  fn toString(): String;
+}
+
+impl Stringable for Bool {
+  fn toString(): String = self.toString();
+}
+
+impl Stringable for UInt8 {
+  fn toString(): String = self.toString();
+}
+
+impl Stringable for Int32 {
+  fn toString(): String = self.toString();
+}
+
+impl Stringable for Int64 {
+  fn toString(): String = self.toString();
+}
+
+impl Stringable for Float32 {
+  fn toString(): String = self.toString();
+}
+
+impl Stringable for Float64 {
+  fn toString(): String = self.toString();
+}
+
+impl Stringable for String {
+  fn toString(): String = self.toString();
+}
+
+impl Stringable for Char {
+  fn toString(): String = self.toString();
+}
+
+@pub class StringBuffer() {
+  var buf: Array[UInt8] = Array[UInt8]::empty();
+  var len: Int64 = 0i64;
+
+  @pub fn size(): Int64 {
+    return self.len;
+  }
+
+  @pub fn capacity(): Int64 {
+    return self.buf.size();
+  }
+
+  // reserve `elements` bytes
+  // (capacity - length >= elements)
+  @pub fn reserve(elements: Int64) {
+    if self.capacity() - self.size() >= elements {
+      return;
+    }
+
+    let newcap = self.newCapacity(elements);
+    let newbuf = Array[UInt8]::zero(newcap);
+    var i = 0i64;
+
+    while i < self.buf.size() {
+      newbuf.set(i, self.buf.get(i));
+      i = i + 1i64;
+    }
+
+    self.buf = newbuf;
+  }
+
+  @pub fn newCapacity(reserve: Int64): Int64 {
+    var len = self.len;
+
+    if len == 0i64 {
+      len = 4i64;
+    }
+
+    let c1 = (len + reserve + 7i64) & !7i64;
+    let c2 = len * 2i64;
+
+    if c1 > c2 {
+      c1
+    } else if c2 - c1 > 32i64 {
+      c1
+    } else {
+      c2
+    }
+  }
+
+  @pub fn appendChar(ch: Char): StringBuffer {
+    let chLen = ch.lenUtf8();
+    self.reserve(chLen.toInt64());
+    ch.encodeUtf8(self.buf, self.len);
+    self.len = self.len + chLen.toInt64();
+    self
+  }
+
+  @pub fn append(value: String): StringBuffer {
+    self.reserve(value.size());
+    var i = 0i64;
+
+    while i < value.size() {
+      self.buf.set(self.len + i, value.getByte(i));
+      i = i + 1i64;
+    }
+
+    self.len = self.len + value.size();
+    self
+  }
+
+  @pub fn appendNewline(): StringBuffer {
+    self.appendChar('\n')
+  }
+
+  @pub fn toString(): String = String::fromBytesPart(self.buf, 0i64, self.size()).getOrPanic();
+
+  @pub @static fn empty(): StringBuffer = StringBuffer();
+}
+
+@pub class CodepointIterator(let value: String, var start: Int64) {
+    @pub fn next(): Option[Char] {
+        if self.start < self.value.size() {
+            Some[Char](self.readChar())
+        } else {
+            None[Char]
+        }
+    }
+
+    fn readChar(): Char {
+        var ch = self.value.getByte(self.start);
+
+        if ch <= 0x7Fu8 {
+            self.start = self.start + 1i64;
+            return ch.toInt32().toCharUnchecked();
+        }
+
+        if ch <= 0xBFu8 {
+            fatalError("unexpected continuation byte");
+        }
+
+        if ch <= 0xDFu8 {
+            let cp = (ch.toInt32() & 0x1Fi32) << 6i32 | (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32);
+            self.start = self.start + 2i64;
+            return cp.toCharUnchecked();
+        }
+
+        if ch <= 0xEFu8 {
+            let cp = (ch.toInt32() & 0xFi32) << 12i32 |
+                 (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32) << 6i32 |
+                 (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32);
+            self.start = self.start + 3i64;
+            return cp.toCharUnchecked();
+        }
+
+        if ch <= 0xF7u8 {
+            let cp = (ch.toInt32() & 0x03i32) << 18i32 |
+                 (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32) << 12i32 |
+                 (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32) << 6i32 |
+                 (self.value.getByte(self.start + 3i64).toInt32() & 0x3Fi32);
+            self.start = self.start + 4i64;
+            return cp.toCharUnchecked();
+        }
+
+        fatalError("invalid utf8: " + ch.toInt32().toString());
+        unreachable[Char]()
+    }
+
+    @pub fn peek(): Char {
+        var ch = self.value.getByte(self.start);
+
+        if ch <= 0x7Fu8 {
+            return ch.toInt32().toCharUnchecked();
+        }
+
+        if ch <= 0xBFu8 {
+            fatalError("unexpected continuation byte");
+        }
+
+        if ch <= 0xDFu8 {
+            let cp = (ch.toInt32() & 0x1Fi32) << 6i32 | (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32);
+            return cp.toCharUnchecked();
+        }
+
+        if ch <= 0xEFu8 {
+            let cp = (ch.toInt32() & 0xFi32) << 12i32 |
+                 (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32) << 6i32 |
+                 (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32);
+            return cp.toCharUnchecked();
+        }
+
+        if ch <= 0xF7u8 {
+            let cp = (ch.toInt32() & 0x03i32) << 18i32 |
+                 (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32) << 12i32 |
+                 (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32) << 6i32 |
+                 (self.value.getByte(self.start + 3i64).toInt32() & 0x3Fi32);
+            return cp.toCharUnchecked();
+        }
+
+        fatalError("invalid utf8: " + ch.toInt32().toString());
+        return '\0';
+    }
+
+    @pub fn size(): Int64 {
+        var i = 0;
+
+        while self.next().isSome() {
+            i = i + 1;
+        }
+
+        return i;
+    }
+
+    @pub fn toString(): String = String::fromStringPart(self.value, self.start, self.value.size() - self.start).getOrPanic();
+}

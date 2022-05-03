@@ -1,2 +1,0 @@
-/** Marks classes that can be sub-classed and functions that can be overridden. **/
-annotation open

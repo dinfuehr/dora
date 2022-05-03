@@ -1,0 +1,995 @@
+@pub @internal class Array[T](values: T...) {
+  @pub @internal fn size(): Int64;
+  @pub @internal fn get(idx: Int64): T;
+  @pub @internal fn set(idx: Int64, val: T);
+
+  @pub fn isEmpty(): Bool = self.size() == 0i64;
+
+  @pub fn makeIterator(): ArrayIter[T] {
+    ArrayIter[T](self)
+  }
+
+  @pub fn enumerate(): ArrayEnumerator[T] {
+    ArrayEnumerator[T](self)
+  }
+
+  @pub @static fn empty(): Array[T] {
+    Array[T]::unsafeNew(0i64)
+  }
+
+  @static @internal fn unsafeNew(size: Int64): Array[T];
+
+  @pub @static fn fill(len: Int64, value: T): Array[T] {
+    let array = Array[T]::unsafeNew(len);
+    var i = 0i64;
+
+    while i < len {
+      array(i) = value;
+      i = i + 1i64;
+    }
+
+    return array;
+  }
+
+  @pub @static fn copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
+    var i = 0i64;
+
+    while i < len {
+      dest.set(destPos+i, src.get(srcPos+i));
+      i = i + 1i64;
+    }
+  }
+}
+
+impl[T: Default] Array[T] {
+  @pub @static fn new(len: Int64): Array[T] {
+    let array = Array[T]::unsafeNew(len);
+    var i = 0i64;
+    let value = T::default();
+
+    while i < len {
+      array.set(i, value);
+      i = i + 1i64;
+    }
+
+    return array;
+  }
+}
+
+impl[T: Zero] Array[T] {
+  @pub @static fn zero(len: Int64): Array[T] {
+    Array[T]::unsafeNew(len)
+  }
+}
+
+@pub class ArrayIter[T](let array: Array[T]) {
+  var idx: Int64 = 0;
+
+  @pub fn next(): Option[T] {
+    if self.idx < self.array.size() {
+      let current = self.array(self.idx);
+      self.idx = self.idx + 1;
+      Some[T](current)
+    } else {
+      None[T]
+    }
+  }
+}
+
+@pub class ArrayEnumerator[T](let array: Array[T]) {
+  var idx: Int64 = 0;
+
+  @pub fn next(): Option[(Int64, T)] {
+    if self.idx < self.array.size() {
+      let current_idx = self.idx;
+      self.idx = self.idx + 1i64;
+      Some[(Int64, T)]((current_idx, self.array(current_idx)))
+    } else {
+      None[(Int64, T)]
+    }
+  }
+}
+
+impl[T: Sortable] Array[T] {
+  // a stable in-place sort, currently implemented by insertion sort
+  @pub @static
+  fn sortStable(array: Array[T]) {
+    var i = 1i64;
+    while i < array.size() {
+      var temp: T = array.get(i);
+      var j = i;
+      while j > 0i64 && array(j - 1i64).sortsAfter(temp) {
+        array(j) = array(j - 1i64);
+        j = j - 1i64;
+      }
+      array(j) = temp;
+      i = i + 1i64;
+    }
+  }
+}
+
+impl[T: Equals] Array[T] {
+  @pub fn equals(other: Array[T]): Bool {
+    if self.size() != other.size() {
+      return false;
+    }
+    var i = 0i64;
+    while i < self.size() {
+      if self(i).equals(other(i)).not() {
+        return false;
+      }
+      i = i + 1i64;
+    }
+    return true;
+  }
+
+  @pub fn contains(value: T): Bool {
+    var i = 0i64;
+
+    while i < self.size() {
+      let x = self.get(i);
+      if x.equals(value) {
+        return true;
+      }
+      i = i + 1i64;
+    }
+
+    return false;
+  }
+
+  @pub @static fn compare(a: Array[T], aPos: Int64, b: Array[T], bPos: Int64, len: Int64): Bool {
+    let aSize = a.size() - aPos;
+    let bSize = b.size() - bPos;
+    if aSize < len || bSize < len {
+      fatalError("len ${len} exceeds size of array");
+    }
+    if aSize < 0i64 || bSize < 0i64 {
+      return false;
+    }
+
+    var i = 0i64;
+
+    while i < len {
+      if a(aPos+i).equals(b(bPos+i)).not() {
+        return false;
+      }
+      i = i + 1i64;
+    }
+
+    return true;
+  }
+}
+
+impl[T: Identity] Array[T] {
+  @pub fn has(value: T): Bool {
+    var i = 0i64;
+
+    while i < self.size() {
+      if self.get(i).identicalTo(value) {
+        return true;
+      }
+      i = i + 1i64;
+    }
+
+    return false;
+  }
+}
+
+impl[T: Stringable] Array[T] {
+  @pub fn toString(): String {
+    let sb = StringBuffer();
+    sb.append("Array(");
+    let size = self.size();
+    if size != 0i64 {
+      var i = 0i64;
+      while i < size - 1i64 {
+        sb.append(self.get(i).toString());
+        sb.append(", ");
+        i = i + 1i64;
+      }
+      sb.append(self.get(i).toString());
+    }
+    sb.append(")");
+    return sb.toString();
+  }
+}
+
+@pub class BitSet(capacity: Int64) {
+    var data: Array[Int32] = Array[Int32]::empty();
+    var capacity: Int64 = 0i64;
+
+    if capacity > 0i64 {
+        let entries = (capacity + 31i64) / 32i64;
+        self.data = Array[Int32]::zero(entries);
+        self.capacity = capacity;
+    }
+
+    @pub fn size(): Int64 {
+        self.capacity
+    }
+
+    @pub fn contains(idx: Int64): Bool {
+        if idx < 0i64 || idx >= self.capacity {
+            fatalError("index out of bounds");
+        }
+
+        let entry_idx = idx / 32i64;
+        let value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        return value & (1i32 << value_idx.toInt32()) != 0i32;
+    }
+
+    @pub fn insert(idx: Int64) {
+        if idx < 0i64 || idx >= self.capacity {
+            fatalError("index out of bounds");
+        }
+
+        let entry_idx = idx / 32i64;
+        var value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        value = value | (1i32 << value_idx.toInt32());
+
+        self.data.set(entry_idx, value);
+    }
+
+    @pub fn remove(idx: Int64) {
+        if idx < 0i64 || idx >= self.capacity {
+            fatalError("index out of bounds");
+        }
+
+        let entry_idx = idx / 32i64;
+        var value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        value = value & !(1i32 << value_idx.toInt32());
+
+        self.data.set(entry_idx, value);
+    }
+}
+
+@pub class BitVec {
+    var data: Array[Int32] = Array[Int32]::empty();
+
+    @pub fn contains(idx: Int64): Bool {
+        if idx < 0i64 {
+            fatalError("index out of bounds");
+        }
+
+        if idx >= self.data.size() * 32i64 {
+            return false;
+        }
+
+        let entry_idx = idx / 32i64;
+        let value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        return value & (1i32 << value_idx.toInt32()) != 0i32;
+    }
+
+    @pub fn insert(idx: Int64) {
+        if idx < 0i64 {
+            fatalError("index out of bounds");
+        }
+
+        self.ensureCapacity(idx+1i64);
+
+        let entry_idx = idx / 32i64;
+        var value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        value = value | (1i32 << value_idx.toInt32());
+
+        self.data.set(entry_idx, value);
+    }
+
+    @pub fn remove(idx: Int64) {
+        if idx < 0i64 {
+            fatalError("index out of bounds");
+        }
+
+        if idx >= self.data.size() * 32i64 {
+            return;
+        }
+
+        let entry_idx = idx / 32i64;
+        var value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        value = value & !(1i32 << value_idx.toInt32());
+
+        self.data.set(entry_idx, value);
+    }
+
+    @pub fn ensureCapacity(newcap: Int64) {
+        if newcap < self.data.size() * 32i64 || newcap == 0i64 {
+            return;
+        }
+
+        let newcap = (newcap + 31i64) / 32i64;
+
+        let newarray = Array[Int32]::zero(newcap);
+        Array[Int32]::copy(self.data, 0i64, newarray, 0i64, self.data.size());
+        self.data = newarray;
+    }
+
+    @pub fn capacity(): Int64 {
+        self.data.size() * 32i64
+    }
+}
+
+@pub class Queue[T] {
+  var elements: Array[T] = Array[T]::unsafeNew(4i64);
+  var front: Int64 = 0i64;
+  var count: Int64 = 0i64;
+
+  @pub fn enqueue(value: T) {
+    if self.count == self.elements.size() {
+      // copy into larger array
+      let newelements = Array[T]::unsafeNew(self.elements.size() * 2i64);
+      let len = self.elements.size() - self.front;
+      Array[T]::copy(self.elements, self.front, newelements, 0i64, len);
+
+      if len < self.count {
+        Array[T]::copy(self.elements, 0i64, newelements, len, self.count - len);
+      }
+
+      self.front = 0i64;
+      // self.count stays the same
+      self.elements = newelements;
+    }
+
+    let end = self.getEnd();
+    self.elements.set(end, value);
+    self.count = self.count + 1i64;
+  }
+
+  @pub fn dequeue(): T {
+    assert(self.count > 0i64);
+
+    let value = self.elements.get(self.front);
+    std::unsafeKillRefs[T](self.elements, self.front);
+
+    self.moveFront();
+    self.count = self.count - 1i64;
+
+    return value;
+  }
+
+  fn moveFront(): Int64 {
+    self.front = self.front + 1i64;
+
+    if self.front == self.elements.size() {
+      self.front = 0i64;
+    }
+
+    return self.front;
+  }
+
+  fn getEnd(): Int64 {
+    let end = self.front + self.count;
+
+    if end < self.elements.size() {
+      return end;
+    } else {
+      return end - self.elements.size();
+    }
+  }
+
+  @pub fn size(): Int64 {
+    return self.count;
+  }
+
+  @pub fn isEmpty(): Bool {
+    return self.count == 0i64;
+  }
+}
+
+@pub class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
+    // BitSet.size == capacity * 2
+    // [bit 0: inserted; bit 1: deleted] * capacity
+    var inserted_and_deleted: BitSet = BitSet(0i64);
+    var keys: Array[K] = Array[K]::empty();
+    var values: Array[V] = Array[V]::empty();
+    var entries: Int64 = 0i64;
+    var cap: Int64 = 0i64;
+    for entry in entries {
+        self.insert(entry.0, entry.1);
+    }
+
+    @pub fn insert(key: K, value: V): Option[V] {
+        self.ensureCapacity(1i64);
+        assert(self.entries < self.cap);
+
+        var hash = key.hash();
+        var idx = hash.toInt64() & (self.cap - 1i64);
+        var insert_idx = None[Int64];
+
+        while true {
+            if self.isLive(idx) {
+                let current_key = self.keys.get(idx);
+
+                if current_key.hash() == hash && current_key.equals(key) {
+                    let old_value = self.values.get(idx);
+                    self.values.set(idx, value);
+                    return Some[V](old_value);
+                }
+
+            } else if self.isDeleted(idx) {
+                // There might be live entries after a deleted one.
+
+                if insert_idx.isNone() {
+                    insert_idx = Some[Int64](idx);
+                }
+
+            } else {
+                let insert_idx = insert_idx.unwrapOr(idx);
+
+                self.inserted_and_deleted.insert(2i64 * insert_idx);
+                self.inserted_and_deleted.remove(2i64 * insert_idx + 1i64);
+
+                self.keys.set(insert_idx, key);
+                self.values.set(insert_idx, value);
+
+                self.entries = self.entries + 1i64;
+                return None[V];
+            }
+
+            idx = (idx + 1i64) & (self.cap - 1i64);
+        }
+
+        unreachable[Option[V]]()
+    }
+
+    @pub fn contains(key: K): Bool {
+        assert(self.entries <= self.cap);
+
+        if self.entries == 0i64 {
+            return false;
+        }
+
+        var hash = key.hash();
+        var idx = hash.toInt64() & (self.cap - 1i64);
+
+        while true {
+            if self.isLive(idx) {
+                let current_key = self.keys.get(idx);
+
+                if current_key.hash() == hash && current_key.equals(key) {
+                    return true;
+                }
+            } else if self.isDeleted(idx) {
+                // There might be live entries after a deleted one.
+            } else {
+                break;
+            }
+
+            idx = (idx + 1i64) & (self.cap - 1i64);
+        }
+
+        false
+    }
+
+    @pub fn get(key: K): Option[V] {
+        assert(self.entries <= self.cap);
+
+        if self.entries == 0i64 {
+            return Option[V]::None;
+        }
+
+        var hash = key.hash();
+        var idx = hash.toInt64() & (self.cap - 1i64);
+
+        while true {
+            if self.isLive(idx) {
+                let current_key = self.keys.get(idx);
+
+                if current_key.hash() == hash && current_key.equals(key) {
+                    return Option[V]::Some(self.values.get(idx));
+                }
+            } else if self.isDeleted(idx) {
+                // There might be live entries after a deleted one.
+            } else {
+                break;
+            }
+
+            idx = (idx + 1i64) & (self.cap - 1i64);
+        }
+
+        Option[V]::None
+    }
+
+    @pub fn remove(key: K): Option[V] {
+        self.shrink();
+
+        var hash = key.hash();
+        var idx = hash.toInt64() & (self.cap - 1i64);
+
+        while true {
+            if self.isLive(idx) {
+                let current_key = self.keys.get(idx);
+
+                if current_key.hash() == hash && current_key.equals(key) {
+                    let value = self.values.get(idx);
+                    self.inserted_and_deleted.insert(2i64 * idx + 1i64);
+
+                    unsafeKillRefs[K](self.keys, idx);
+                    unsafeKillRefs[V](self.values, idx);
+
+                    self.entries = self.entries - 1i64;
+                    return Option[V]::Some(value);
+                }
+            } else if self.isDeleted(idx) {
+                // There might be live entries after a deleted one.
+            } else {
+                break;
+            }
+
+            idx = (idx + 1i64) & (self.cap - 1i64);
+        }
+
+        Option[V]::None
+    }
+
+    fn ensureCapacity(elements_to_add: Int64) {
+        if self.entries + elements_to_add < self.cap {
+            if self.entries <= (self.cap - (self.cap / 4i64)) {
+                return;
+            }
+        }
+
+        var new_capacity = 4i64;
+        let old_capacity = self.cap;
+
+        if old_capacity > 0i64 {
+            new_capacity = old_capacity * 2i64;
+        }
+
+        assert(self.entries + elements_to_add < new_capacity);
+
+        self.rehash(new_capacity);
+    }
+
+    fn shrink() {
+        if self.entries > (self.cap / 4i64) {
+            return;
+        }
+
+        let new_capacity = self.cap / 2i64;
+
+        if new_capacity < 4i64 {
+            return;
+        }
+
+        assert(self.entries < new_capacity);
+
+        self.rehash(new_capacity);
+    }
+
+    fn rehash(new_capacity: Int64) {
+        let old_capacity = self.cap;
+
+        let new_map = HashMap[K, V]();
+        new_map.inserted_and_deleted = BitSet(2i64 * new_capacity);
+        new_map.keys = Array[K]::unsafeNew(new_capacity);
+        new_map.values = Array[V]::unsafeNew(new_capacity);
+        new_map.entries = 0i64;
+        new_map.cap = new_capacity;
+
+        var idx = 0i64;
+
+        while idx < old_capacity {
+            if self.isLive(idx) {
+                let key = self.keys.get(idx);
+                let value = self.values.get(idx);
+
+                new_map.insert(key, value);
+            }
+
+            idx = idx + 1i64;
+        }
+
+        self.inserted_and_deleted = new_map.inserted_and_deleted;
+        self.keys = new_map.keys;
+        self.values = new_map.values;
+        self.entries = new_map.entries;
+        self.cap = new_capacity;
+    }
+
+    fn isLive(idx: Int64): Bool {
+        return self.inserted_and_deleted.contains(2i64 * idx) &&
+               !self.inserted_and_deleted.contains(2i64 * idx + 1i64);
+    }
+
+    fn isDeleted(idx: Int64): Bool {
+        self.inserted_and_deleted.contains(2i64 * idx + 1i64)
+    }
+
+    @pub fn size(): Int64 {
+        return self.entries;
+    }
+
+    @pub fn isEmpty(): Bool {
+        return self.entries == 0i64;
+    }
+
+    @pub fn capacity(): Int64 {
+        return self.cap;
+    }
+
+    @pub fn makeIterator(): HashMapIter[K, V] {
+        HashMapIter[K, V](self)
+    }
+}
+
+@pub class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
+    var idx: Int64 = 0i64;
+
+    @pub fn next(): Option[(K, V)] {
+        while self.idx < self.map.capacity() {
+            if self.map.isLive(self.idx) {
+                let key = self.map.keys.get(self.idx);
+                let value = self.map.values.get(self.idx);
+                self.idx = self.idx + 1i64;
+                return Some[(K, V)]((key, value));
+            }
+
+            self.idx = self.idx + 1i64;
+        }
+
+        None[(K, V)]
+    }
+}
+
+@pub class HashSet[K: Hash + Equals](keys: K...) {
+    let map: HashMap[K, ()] = HashMap[K, ()]();
+    for key in keys {
+        self.insert(key);
+    }
+
+    @pub fn insert(key: K) {
+        self.map.insert(key, ());
+    }
+
+    @pub fn contains(key: K): Bool {
+        self.map.contains(key)
+    }
+
+    @pub fn remove(key: K): Bool = self.map.remove(key).isSome();
+
+    @pub fn size(): Int64 {
+        self.map.size()
+    }
+
+    @pub fn isEmpty(): Bool {
+        self.map.isEmpty()
+    }
+
+    @pub fn capacity(): Int64 {
+        self.map.capacity()
+    }
+}
+
+@pub class Vec[T](values: T...) {
+  var array: Array[T] = values;
+  var len: Int64 = values.size();
+
+  @pub fn get(idx: Int64): T {
+    if idx < 0i64 || idx >= self.len {
+      fatalError("index out of bounds for vector");
+    }
+
+    return self.array(idx);
+  }
+
+  @pub fn set(idx: Int64, val: T) {
+    if idx < 0i64 || idx >= self.len {
+      fatalError("index out of bounds for vector");
+    }
+
+    self.array.set(idx, val);
+  }
+
+  @pub fn reserve(newcap: Int64) {
+    assert(newcap >= 0i64);
+
+    if self.capacity() >= newcap {
+      return;
+    }
+
+    let newarray = Array[T]::unsafeNew(newcap);
+    Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
+    self.array = newarray;
+  }
+
+  @pub fn push(val: T) {
+    let currentCapacity = self.capacity();
+
+    if self.len == currentCapacity {
+      let newCapacity = self.newCapacity(currentCapacity);
+
+      let newArray = Array[T]::unsafeNew(newCapacity);
+      Array[T]::copy(self.array, 0i64, newArray, 0i64, self.len);
+      self.array = newArray;
+    }
+
+    self.array.set(self.len, val);
+    self.len = self.len + 1i64;
+  }
+
+  @pub fn insertAt(idx: Int64, val: T) {
+    assert(idx <= self.len);
+    if idx == self.len {
+      self.push(val);
+      return;
+    }
+    let currentCapacity = self.capacity();
+    let targetArray = if self.len == currentCapacity {
+      Array[T]::unsafeNew(self.newCapacity(currentCapacity))
+    } else {
+      self.array
+    };
+
+    if idx != 0i64 && self.array !== targetArray {
+      Array[T]::copy(self.array, 0i64, targetArray, 0i64, idx);
+    }
+
+    // not Array::copy as source and target could be aliased
+    var i = self.len - 1i64;
+    while idx <= i {
+      targetArray.set(i + 1i64, self.array.get(i));
+      i = i - 1i64;
+    }
+
+    targetArray.set(idx, val);
+    self.array = targetArray;
+    self.len = self.len + 1i64;
+  }
+
+  fn newCapacity(currentCapacity: Int64): Int64 {
+    if currentCapacity == 0i64 {
+      4i64
+    } else {
+      currentCapacity * 2i64
+    }
+  }
+
+  @pub fn toArray(): Array[T] {
+    let newarray = Array[T]::unsafeNew(self.len);
+    Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
+    newarray
+  }
+
+  @pub fn pop(): T {
+    if self.len == 0i64 {
+      fatalError("no element left to pop");
+    }
+
+    let newlength = self.len - 1i64;
+    let temp = self.array(newlength);
+
+    // set popped element to nil so that GC can collect object
+    // not necessary for primitive types
+    unsafeKillRefs[T](self.array, newlength);
+
+    self.len = newlength;
+    temp
+  }
+
+  @pub fn trimToLen() {
+    if self.len != self.capacity() {
+      if self.len == 0i64 {
+        self.array = Array[T]::empty();
+      } else {
+        let newarray = Array[T]::unsafeNew(self.len);
+        Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
+        self.array = newarray;
+      }
+    }
+  }
+
+  @pub fn removeItem(value: T) {
+    let len = self.len;
+    var destIdx = 0i64;
+    var srcIdx = 0i64;
+
+    while srcIdx < len {
+      let current = self.array(srcIdx);
+
+      if current !== value {
+        self.array(destIdx) = current;
+        destIdx = destIdx + 1i64;
+      }
+
+      srcIdx = srcIdx + 1i64;
+    }
+
+    self.len = destIdx;
+
+    while destIdx < srcIdx {
+      unsafeKillRefs[T](self.array, destIdx);
+      destIdx = destIdx + 1i64;
+    }
+  }
+
+  @pub fn removeAt(ind: Int64): T {
+    var ind = ind;
+    assert(ind < self.len);
+    let temp = self.get(ind);
+    let len = self.len;
+
+    while ind < len - 1i64 {
+      self.set(ind, self.get(ind+1i64));
+      ind = ind + 1i64;
+    }
+
+    unsafeKillRefs[T](self.array, ind);
+    self.len = ind;
+
+    temp
+  }
+
+  @pub fn size(): Int64 {
+    return self.len;
+  }
+
+  @pub fn isEmpty(): Bool {
+    self.len == 0
+  }
+
+  @pub fn capacity(): Int64 {
+    self.array.size()
+  }
+
+  @pub fn first(): Option[T] {
+    if self.len == 0 {
+      Option[T]::None
+    } else {
+      Option[T]::Some(self.array(0))
+    }
+  }
+
+  @pub fn last(): Option[T] {
+    if self.len == 0 {
+      Option[T]::None
+    } else {
+      Option[T]::Some(self.array(self.len - 1i64))
+    }
+  }
+
+  @pub fn clear() {
+    self.len = 0;
+    self.array = Array[T]::empty();
+  }
+
+  @pub fn makeIterator(): VecIter[T] {
+    VecIter[T](self)
+  }
+
+  @pub fn makeReverseIterator(): ReverseVecIter[T] {
+    ReverseVecIter[T](self)
+  }
+
+  @pub fn enumerate(): VecEnumerator[T] {
+    VecEnumerator[T](self)
+  }
+}
+
+@pub class VecEnumerator[T](let data: Vec[T]) {
+  var idx: Int64 = 0;
+
+  @pub fn next(): Option[(Int64, T)] {
+    if self.idx < self.data.size() {
+      let current_idx = self.idx;
+      self.idx = self.idx + 1i64;
+      Some[(Int64, T)]((current_idx, self.data(current_idx)))
+    } else {
+      None[(Int64, T)]
+    }
+  }
+}
+
+@pub class VecIter[T](let data: Vec[T]) {
+  var idx: Int64 = 0;
+
+  @pub fn next(): Option[T] {
+    if self.idx < self.data.size() {
+      let result = self.data(self.idx);
+      self.idx = self.idx + 1i64;
+      Some[T](result)
+    } else {
+      None[T]
+    }
+  }
+}
+
+@pub class ReverseVecIter[T](let data: Vec[T]) {
+  var idx: Int64 = data.size() - 1;
+
+  @pub fn next(): Option[T] {
+    if self.idx != -1 {
+      let result = self.data(self.idx);
+      self.idx = self.idx - 1i64;
+      Some[T](result)
+    } else {
+      None[T]
+    }
+  }
+}
+
+impl[T: Equals] Vec[T] {
+  @pub fn equals(other: Vec[T]): Bool {
+    if self.size() != other.size() {
+      return false;
+    }
+    var i = 0i64;
+    while i < self.size() {
+      if self(i).equals(other(i)).not() {
+        return false;
+      }
+      i = i + 1i64;
+    }
+    return true;
+  }
+
+  @pub fn contains(value: T): Bool {
+    var i = 0i64;
+
+    while i < self.size() {
+      let x = self.get(i);
+      if x.equals(value) {
+        return true;
+      }
+      i = i + 1i64;
+    }
+
+    return false;
+  }
+
+  @pub fn removeEquals(elem: T) {
+    var i = 0i64;
+
+    while i < self.size() {
+      if self(i).equals(elem) {
+        self.removeAt(i);
+      } else {
+        i = i + 1i64;
+      }
+    }
+  }
+}
+
+impl[T: Identity] Vec[T] {
+  @pub fn has(value: T): Bool {
+    var i = 0i64;
+
+    while i < self.size() {
+      if self.get(i).identicalTo(value) {
+        return true;
+      }
+      i = i + 1i64;
+    }
+
+    return false;
+  }
+}
+
+impl[T: Stringable] Vec[T] {
+  @pub fn toString(): String {
+    let sb = StringBuffer();
+    sb.append("Vec(");
+    let size = self.len;
+    if size != 0i64 {
+      var i = 0i64;
+      while i < size - 1i64 {
+        sb.append(self.array(i).toString());
+        sb.append(", ");
+        i = i + 1i64;
+      }
+      sb.append(self.array(i).toString());
+    }
+    sb.append(")");
+    return sb.toString();
+  }
+}

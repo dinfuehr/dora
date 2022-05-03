@@ -1,5 +1,4 @@
 //= error
-//= stderr "fatal error: cannot unwrap None.\n    std::fatalError (stdlib/prelude.dora:1)\n    std::Option#getOrPanic (stdlib/Option.dora:28)\n    main (tests/enum/enum-option3.dora:5)\n"
 
 fn main() {
     Option[String]::None.getOrPanic();

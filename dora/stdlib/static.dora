@@ -1,2 +1,0 @@
-/** Marks a function that is invoked on the class itself, not on an instance of that class. **/
-annotation static

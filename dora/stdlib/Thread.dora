@@ -6,3 +6,106 @@
 
   @pub @abstract fn run();
 }
+
+@pub class AtomicInt32(let value: Int32) {
+    @pub @internal fn get(): Int32;
+    @pub @internal fn set(value: Int32);
+    @pub @internal fn exchange(value: Int32): Int32;
+    @pub @internal fn compareExchange(expected: Int32, value: Int32): Int32;
+    @pub @internal fn fetchAdd(value: Int32): Int32;
+}
+
+@pub class AtomicInt64(let value: Int64) {
+    @pub @internal fn get(): Int64;
+    @pub @internal fn set(value: Int64);
+    @pub @internal fn exchange(value: Int64): Int64;
+    @pub @internal fn compareExchange(expected: Int64, value: Int64): Int64;
+    @pub @internal fn fetchAdd(value: Int64): Int64;
+}
+
+const UNLOCKED: Int32 = 0i32;
+const LOCKED: Int32 = 1i32;
+const SLEEPING: Int32 = 2i32;
+
+@pub class Mutex {
+    let data: AtomicInt32 = AtomicInt32(0i32);
+
+    @pub fn lock() {
+        let previous = self.data.compareExchange(UNLOCKED, LOCKED);
+
+        if previous != UNLOCKED {
+            self.lockSlow(previous);
+        }
+    }
+
+    fn lockSlow(previous: Int32) {
+        var previous = previous;
+        var lockSuccess = false;
+
+        while !lockSuccess {
+            assert(previous == LOCKED || previous == SLEEPING);
+
+            if self.transitionToSleepingState(previous) {
+                self.wait(SLEEPING);
+            }
+
+            previous = self.data.compareExchange(UNLOCKED, SLEEPING);
+            lockSuccess = previous == UNLOCKED;
+        }
+    }
+
+    fn transitionToSleepingState(previous: Int32): Bool {
+        if previous == SLEEPING { return true; }
+        self.data.compareExchange(LOCKED, SLEEPING) != UNLOCKED
+    }
+
+    @pub fn unlock() {
+        let previous = self.data.exchange(UNLOCKED);
+
+        if previous != LOCKED {
+            self.unlockSlow(previous);
+        }
+    }
+
+    fn unlockSlow(previous: Int32) {
+        assert(previous == SLEEPING);
+        self.notify();
+    }
+
+    @internal fn wait(status: Int32);
+    @internal fn notify();
+}
+
+@pub class Condition {
+    let waiters: AtomicInt32 = AtomicInt32(0i32);
+
+    @pub fn wait(mtx: Mutex) {
+        self.enqueue();
+        mtx.unlock();
+        self.block();
+        mtx.lock();
+    }
+
+    @pub fn notifyOne() {
+        if self.waiters.get() == 0i32 {
+            return;
+        }
+
+        self.wakeupOne();
+    }
+
+    @pub fn notifyAll() {
+        if self.waiters.get() == 0i32 {
+            return;
+        }
+
+        self.waiters.set(0i32);
+        self.wakeupAll();
+    }
+
+    @internal fn enqueue();
+    @internal fn block();
+
+    @internal fn wakeupOne();
+    @internal fn wakeupAll();
+}
