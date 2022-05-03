@@ -3461,7 +3461,7 @@ fn mod_use_errors() {
         use foo::bar::baz;
         mod foo { @pub mod bar {} }
     ",
-        pos(2, 9),
+        pos(2, 23),
         SemError::UnknownIdentifierInModule("foo::bar".into(), "baz".into()),
     );
 

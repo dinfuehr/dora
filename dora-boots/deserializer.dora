@@ -3,7 +3,7 @@ use package::bytecode::data::SourceType;
 use package::bytecode::data::ConstPoolEntry;
 use package::bytecode::data::BytecodeType;
 use package::bytecode::data::BytecodeFunction;
-use package::bytecode;
+use package::bytecode::opcode as opc;
 use package::interface::Architecture;
 
 @pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
@@ -46,30 +46,30 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
 fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     let opcode = reader.readUInt8().toInt32();
 
-    if opcode == bytecode::opcode::BC_TYPE_BOOL {
+    if opcode == opc::BC_TYPE_BOOL {
         BytecodeType::Bool
-    } else if opcode == bytecode::opcode::BC_TYPE_U_INT8 {
+    } else if opcode == opc::BC_TYPE_U_INT8 {
         BytecodeType::UInt8
-    } else if opcode == bytecode::opcode::BC_TYPE_CHAR {
+    } else if opcode == opc::BC_TYPE_CHAR {
         BytecodeType::Char
-    } else if opcode == bytecode::opcode::BC_TYPE_INT32 {
+    } else if opcode == opc::BC_TYPE_INT32 {
         BytecodeType::Int32
-    } else if opcode == bytecode::opcode::BC_TYPE_INT64 {
+    } else if opcode == opc::BC_TYPE_INT64 {
         BytecodeType::Int64
-    } else if opcode == bytecode::opcode::BC_TYPE_FLOAT32 {
+    } else if opcode == opc::BC_TYPE_FLOAT32 {
         BytecodeType::Float32
-    } else if opcode == bytecode::opcode::BC_TYPE_FLOAT64 {
+    } else if opcode == opc::BC_TYPE_FLOAT64 {
         BytecodeType::Float64
-    } else if opcode == bytecode::opcode::BC_TYPE_PTR {
+    } else if opcode == opc::BC_TYPE_PTR {
         BytecodeType::Ptr
-    } else if opcode == bytecode::opcode::BC_TYPE_STRUCT {
+    } else if opcode == opc::BC_TYPE_STRUCT {
         let structId = reader.readId();
         let typeParams = decodeSourceTypeArray(reader);
         BytecodeType::Struct(structId, typeParams)
-    } else if opcode == bytecode::opcode::BC_TYPE_TUPLE {
+    } else if opcode == opc::BC_TYPE_TUPLE {
         let typeParams = decodeSourceTypeArray(reader);
         BytecodeType::Tuple(typeParams)
-    } else if opcode == bytecode::opcode::BC_TYPE_TYPE_PARAM {
+    } else if opcode == opc::BC_TYPE_TYPE_PARAM {
         let idx = reader.readId();
         BytecodeType::TypeParam(idx)
     } else {
@@ -95,22 +95,22 @@ fn decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
 fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     let opcode = reader.readUInt8().toInt32();
 
-    if opcode == bytecode::opcode::CONSTPOOL_OPCODE_INT32 {
+    if opcode == opc::CONSTPOOL_OPCODE_INT32 {
         let value = reader.readInt32();
         ConstPoolEntry::Int32(value)
-    } else if opcode == bytecode::opcode::CONSTPOOL_OPCODE_INT64 {
+    } else if opcode == opc::CONSTPOOL_OPCODE_INT64 {
         let value = reader.readInt64();
         ConstPoolEntry::Int64(value)
-    } else if opcode == bytecode::opcode::CONSTPOOL_OPCODE_FLOAT32 {
+    } else if opcode == opc::CONSTPOOL_OPCODE_FLOAT32 {
         let value = reader.readInt32().asFloat32();
         ConstPoolEntry::Float32(value)
-    } else if opcode == bytecode::opcode::CONSTPOOL_OPCODE_FLOAT64 {
+    } else if opcode == opc::CONSTPOOL_OPCODE_FLOAT64 {
         let value = reader.readInt64().asFloat64();
         ConstPoolEntry::Float64(value)
-    } else if opcode == bytecode::opcode::CONSTPOOL_OPCODE_CHAR {
+    } else if opcode == opc::CONSTPOOL_OPCODE_CHAR {
         let value = reader.readInt32().toCharUnchecked();
         ConstPoolEntry::Char(value)
-    } else if opcode == bytecode::opcode::CONSTPOOL_OPCODE_STRING {
+    } else if opcode == opc::CONSTPOOL_OPCODE_STRING {
         let length = reader.readInt32().toInt64();
         let value = reader.readStringContent(length);
 
@@ -123,9 +123,9 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
 
 fn decodeArchitecture(reader: ByteReader): Architecture {
     let value = reader.readUInt8().toInt32();
-    if value == bytecode::opcode::INSTRUCTION_SET_X64 {
+    if value == opc::INSTRUCTION_SET_X64 {
         Architecture::X64
-    } else if value == bytecode::opcode::INSTRUCTION_SET_ARM64 {
+    } else if value == opc::INSTRUCTION_SET_ARM64 {
         Architecture::Arm64
     } else {
             println("unknown architecture = ${value}");
@@ -150,38 +150,38 @@ fn decodeSourceTypeArray(reader: ByteReader): Array[SourceType] {
 fn decodeSourceType(reader: ByteReader): SourceType {
     let opcode = reader.readUInt8().toInt32();
 
-    if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_UNIT {
+    if opcode == opc::SOURCE_TYPE_OPCODE_UNIT {
         SourceType::Unit
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_BOOL {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_BOOL {
         SourceType::Bool
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_CHAR {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_CHAR {
         SourceType::Char
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_U_INT8 {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_U_INT8 {
         SourceType::UInt8
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_INT32 {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_INT32 {
         SourceType::Int32
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_INT64 {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_INT64 {
         SourceType::Int64
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_FLOAT32 {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_FLOAT32 {
         SourceType::Float32
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_FLOAT64 {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_FLOAT64 {
         SourceType::Float64
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_CLASS {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_CLASS {
         let clsId = reader.readId();
         let typeParams = decodeSourceTypeArray(reader);
         SourceType::Class(clsId, typeParams)
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_STRUCT {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_STRUCT {
         let structId = reader.readId();
         let typeParams = decodeSourceTypeArray(reader);
         SourceType::Struct(structId, typeParams)
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_TRAIT {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_TRAIT {
         let traitId = reader.readId();
         let typeParams = decodeSourceTypeArray(reader);
         SourceType::Trait(traitId, typeParams)
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_TUPLE {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_TUPLE {
         let typeParams = decodeSourceTypeArray(reader);
         SourceType::Tuple(typeParams)
-    } else if opcode == bytecode::opcode::SOURCE_TYPE_OPCODE_TYPE_PARAM {
+    } else if opcode == opc::SOURCE_TYPE_OPCODE_TYPE_PARAM {
         let idx = reader.readId();
         SourceType::TypeParam(idx)
     } else {

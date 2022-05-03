@@ -264,6 +264,13 @@ impl Token {
         self.kind == TokenKind::End
     }
 
+    pub fn is_identifier(&self) -> bool {
+        match self.kind {
+            TokenKind::Identifier(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is(&self, kind: TokenKind) -> bool {
         self.kind == kind
     }

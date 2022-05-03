@@ -11,8 +11,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 
-use dora_parser::ast::UseContext;
-use dora_parser::interner::Name;
+use dora_parser::ast::{self, UseContext};
 
 pub fn check<'a>(sa: &SemAnalysis) {
     for use_def in &sa.uses {
@@ -43,11 +42,10 @@ fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
 
     let symtable = NestedSymTable::new(sa, module_id);
 
-    let element_name = use_def.ast.element_name;
-    let target_name = use_def.ast.target_name.unwrap_or(element_name);
-
     if use_def.ast.path.is_empty() {
-        use_module(sa, use_def, &table, module_id, element_name, target_name);
+        for mapping in &use_def.ast.mappings {
+            use_module(sa, use_def, &table, module_id, mapping);
+        }
     } else {
         let sym = match read_path(sa, use_def, &symtable) {
             Ok(sym) => sym,
@@ -65,11 +63,15 @@ fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
                     return;
                 }
 
-                use_module(sa, use_def, &table, module_id, element_name, target_name)
+                for mapping in &use_def.ast.mappings {
+                    use_module(sa, use_def, &table, module_id, mapping);
+                }
             }
 
             Some(Sym::Enum(enum_id)) => {
-                use_enum(sa, use_def, &table, enum_id, element_name, target_name)
+                for mapping in &use_def.ast.mappings {
+                    use_enum(sa, use_def, &table, enum_id, mapping);
+                }
             }
 
             _ => {
@@ -137,9 +139,11 @@ fn use_module(
     use_def: &UseDefinition,
     table: &RwLock<SymTable>,
     module_id: ModuleDefinitionId,
-    element_name: Name,
-    target_name: Name,
+    mapping: &ast::UseMapping,
 ) {
+    let element_name = mapping.element_name;
+    let target_name = mapping.target_name.unwrap_or(element_name);
+
     let module = &sa.modules[module_id].read();
     let sym = module.table.read().get(element_name);
 
@@ -149,12 +153,12 @@ fn use_module(
                 let fct = &sa.fcts.idx(fct_id);
                 let fct = fct.read();
                 let msg = SemError::NotAccessible(fct.display_name(sa));
-                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
             }
 
             let new_sym = Sym::Fct(fct_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
             }
         }
 
@@ -162,12 +166,12 @@ fn use_module(
             if !module_accessible_from(sa, module_id, use_def.module_id) {
                 let module = &sa.modules[module_id].read();
                 let msg = SemError::NotAccessible(module.name(sa));
-                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
             }
 
             let new_sym = Sym::Module(module_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
             }
         }
 
@@ -176,12 +180,12 @@ fn use_module(
                 let global = &sa.globals.idx(global_id);
                 let global = global.read();
                 let msg = SemError::NotAccessible(global.name(sa));
-                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
             }
 
             let new_sym = Sym::Global(global_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
             }
         }
 
@@ -190,12 +194,12 @@ fn use_module(
                 let const_ = &sa.consts.idx(const_id);
                 let const_ = const_.read();
                 let msg = SemError::NotAccessible(const_.name(sa));
-                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
             }
 
             let new_sym = Sym::Const(const_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
             }
         }
 
@@ -204,13 +208,13 @@ fn use_module(
                 let cls = &sa.classes.idx(cls_id);
                 let cls = cls.read();
                 let msg = SemError::NotAccessible(cls.name(sa));
-                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
             }
 
             let new_sym = Sym::Class(cls_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
             }
         }
 
@@ -223,7 +227,7 @@ fn use_module(
 
             let new_sym = Sym::Enum(enum_id);
             if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
             }
         }
 
@@ -232,13 +236,13 @@ fn use_module(
                 let xstruct = sa.structs.idx(struct_id);
                 let xstruct = xstruct.read();
                 let msg = SemError::NotAccessible(xstruct.name(sa));
-                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
             }
 
             let new_sym = Sym::Struct(struct_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
             }
         }
 
@@ -246,13 +250,13 @@ fn use_module(
             if !trait_accessible_from(sa, trait_id, use_def.module_id) {
                 let trait_ = sa.traits[trait_id].read();
                 let msg = SemError::NotAccessible(trait_.name(sa));
-                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
+                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
             }
 
             let new_sym = Sym::Trait(trait_id);
             let old_sym = table.write().insert(target_name, new_sym);
             if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, use_def.file_id, use_def.ast.pos, old_sym);
+                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
             }
         }
 
@@ -261,17 +265,15 @@ fn use_module(
             let module_name = module.name(sa);
             sa.diag.lock().report(
                 use_def.file_id.into(),
-                use_def.ast.pos,
+                mapping.pos,
                 SemError::UnknownIdentifierInModule(module_name, name),
             );
         }
 
         _ => {
-            sa.diag.lock().report(
-                use_def.file_id.into(),
-                use_def.ast.pos,
-                SemError::ExpectedPath,
-            );
+            sa.diag
+                .lock()
+                .report(use_def.file_id.into(), mapping.pos, SemError::ExpectedPath);
         }
     }
 }
@@ -281,9 +283,11 @@ fn use_enum(
     use_def: &UseDefinition,
     table: &RwLock<SymTable>,
     enum_id: EnumDefinitionId,
-    element_name: Name,
-    target_name: Name,
+    mapping: &ast::UseMapping,
 ) {
+    let element_name = mapping.element_name;
+    let target_name = mapping.target_name.unwrap_or(element_name);
+
     let enum_ = sa.enums[enum_id].read();
 
     if !enum_accessible_from(sa, enum_id, use_def.module_id) {
@@ -294,19 +298,13 @@ fn use_enum(
     if let Some(&variant_idx) = enum_.name_to_value.get(&element_name) {
         let sym = Sym::EnumValue(enum_id, variant_idx as usize);
         if let Some(sym) = table.write().insert(target_name, sym) {
-            report_sym_shadow(
-                sa,
-                target_name,
-                use_def.file_id.into(),
-                use_def.ast.pos,
-                sym,
-            );
+            report_sym_shadow(sa, target_name, use_def.file_id.into(), mapping.pos, sym);
         }
     } else {
         let name = sa.interner.str(element_name).to_string();
         sa.diag.lock().report(
             use_def.file_id.into(),
-            use_def.ast.pos,
+            mapping.pos,
             SemError::UnknownEnumValue(name),
         );
     }
@@ -364,7 +362,7 @@ mod tests {
                 }
             }
         ",
-            pos(2, 13),
+            pos(2, 27),
             SemError::NotAccessible("foo::bar::Foo".into()),
         );
     }
@@ -378,7 +376,7 @@ mod tests {
                 fn bar() {}
             }
         ",
-            pos(2, 13),
+            pos(2, 22),
             SemError::NotAccessible("foo::bar".into()),
         );
     }
@@ -392,7 +390,7 @@ mod tests {
                 var bar: Int32 = 12;
             }
         ",
-            pos(2, 13),
+            pos(2, 22),
             SemError::NotAccessible("foo::bar".into()),
         );
     }
@@ -406,7 +404,7 @@ mod tests {
                 const bar: Int32 = 12;
             }
         ",
-            pos(2, 13),
+            pos(2, 22),
             SemError::NotAccessible("foo::bar".into()),
         );
     }
@@ -437,6 +435,13 @@ mod tests {
             pos(2, 13),
             SemError::NotAccessible("foo::Bar".into()),
         );
+
+        ok("
+            use foo::Bar::{A, B, C};
+            mod foo {
+                @pub enum Bar { A, B, C }
+            }
+        ");
     }
 
     #[test]
@@ -448,7 +453,7 @@ mod tests {
                 trait Bar {}
             }
         ",
-            pos(2, 13),
+            pos(2, 22),
             SemError::NotAccessible("foo::Bar".into()),
         );
     }
@@ -469,7 +474,7 @@ mod tests {
                 struct Bar { f: Int32 }
             }
         ",
-            pos(2, 13),
+            pos(2, 22),
             SemError::NotAccessible("foo::Bar".into()),
         );
     }

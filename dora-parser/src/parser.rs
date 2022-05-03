@@ -214,14 +214,36 @@ impl<'a> Parser<'a> {
             UseContext::This
         };
 
-        self.expect_token(TokenKind::ColonColon)?;
+        let mut mapping_pos;
+        let mut mapping_start;
 
         loop {
+            self.expect_token(TokenKind::ColonColon)?;
+
+            if self.token.is(TokenKind::LBrace) {
+                let mappings = self.parse_use_mappings()?;
+
+                self.expect_semicolon()?;
+                let span = self.span_from(start);
+
+                return Ok(Use {
+                    id: self.generate_id(),
+                    pos,
+                    span,
+                    path,
+                    context,
+                    mappings,
+                });
+            }
+
+            mapping_pos = self.token.position;
+            mapping_start = self.token.span.start();
+
             let name = self.expect_identifier()?;
             path.push(name);
 
             if self.token.is(TokenKind::ColonColon) {
-                self.advance_token()?;
+                continue;
             } else {
                 break;
             }
@@ -231,10 +253,13 @@ impl<'a> Parser<'a> {
 
         let target_name = if self.token.is(TokenKind::As) {
             self.advance_token()?;
+            mapping_pos = self.token.position;
             Some(self.expect_identifier()?)
         } else {
             None
         };
+
+        let mapping_span = self.span_from(mapping_start);
 
         self.expect_semicolon()?;
         let span = self.span_from(start);
@@ -245,6 +270,43 @@ impl<'a> Parser<'a> {
             span,
             path,
             context,
+            mappings: vec![UseMapping {
+                pos: mapping_pos,
+                span: mapping_span,
+                element_name,
+                target_name,
+            }],
+        })
+    }
+
+    fn parse_use_mappings(&mut self) -> Result<Vec<UseMapping>, ParseErrorAndPos> {
+        self.expect_token(TokenKind::LBrace)?;
+
+        let mappings = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+            p.parse_use_mapping()
+        })?;
+
+        Ok(mappings)
+    }
+
+    fn parse_use_mapping(&mut self) -> Result<UseMapping, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let mut pos = self.token.position;
+        let element_name = self.expect_identifier()?;
+
+        let target_name = if self.token.is(TokenKind::As) {
+            self.advance_token()?;
+            pos = self.token.position;
+            Some(self.expect_identifier()?)
+        } else {
+            None
+        };
+
+        let span = self.span_from(start);
+
+        Ok(UseMapping {
+            pos,
+            span,
             element_name,
             target_name,
         })

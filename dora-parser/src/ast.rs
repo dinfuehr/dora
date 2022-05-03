@@ -239,6 +239,13 @@ pub struct Use {
     pub span: Span,
     pub path: Vec<Name>,
     pub context: UseContext,
+    pub mappings: Vec<UseMapping>,
+}
+
+#[derive(Clone, Debug)]
+pub struct UseMapping {
+    pub pos: Position,
+    pub span: Span,
     pub element_name: Name,
     pub target_name: Option<Name>,
 }

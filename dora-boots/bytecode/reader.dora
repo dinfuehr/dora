@@ -2,7 +2,7 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::data::BytecodeRegister;
 use package::bytecode::data::GlobalId;
 use package::bytecode::data::ConstPoolId;
-use package::bytecode;
+use package::bytecode::opcode as opc;
 
 @pub fn decodeBytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {
     let result = Vec[BytecodeInstructionInfo]();
@@ -30,288 +30,288 @@ use package::bytecode;
         let start = self.pos;
         let (wide, opcode) = self.readOpcode();
 
-        let inst = if opcode == bytecode::opcode::BC_WIDE {
+        let inst = if opcode == opc::BC_WIDE {
             std::fatalError("unexpected WIDE");
             unreachable[BytecodeInstruction]()
 
-        } else if opcode == bytecode::opcode::BC_ADD {
+        } else if opcode == opc::BC_ADD {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Add(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_SUB {
+        } else if opcode == opc::BC_SUB {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Sub(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_NEG {
+        } else if opcode == opc::BC_NEG {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             BytecodeInstruction::Neg(dest, src)
 
-        } else if opcode == bytecode::opcode::BC_MUL {
+        } else if opcode == opc::BC_MUL {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Mul(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_DIV {
+        } else if opcode == opc::BC_DIV {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Div(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_MOD {
+        } else if opcode == opc::BC_MOD {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Mod(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_AND {
+        } else if opcode == opc::BC_AND {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::And(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_OR {
+        } else if opcode == opc::BC_OR {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Or(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_XOR {
+        } else if opcode == opc::BC_XOR {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Xor(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_NOT {
+        } else if opcode == opc::BC_NOT {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             BytecodeInstruction::Not(dest, src)
 
-        } else if opcode == bytecode::opcode::BC_SHL {
+        } else if opcode == opc::BC_SHL {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Shl(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_SHR {
+        } else if opcode == opc::BC_SHR {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Shr(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_SAR {
+        } else if opcode == opc::BC_SAR {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Sar(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_INSTANCE_OF {
+        } else if opcode == opc::BC_INSTANCE_OF {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::InstanceOf(dest, src, idx)
 
-        } else if opcode == bytecode::opcode::BC_CHECKED_CAST {
+        } else if opcode == opc::BC_CHECKED_CAST {
             let src = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::CheckedCast(src, idx)
 
-        } else if opcode == bytecode::opcode::BC_MOV {
+        } else if opcode == opc::BC_MOV {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             BytecodeInstruction::Mov(dest, src)
 
-        } else if opcode == bytecode::opcode::BC_LOAD_FIELD {
+        } else if opcode == opc::BC_LOAD_FIELD {
             let dest = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::LoadField(dest, obj, idx)
-        } else if opcode == bytecode::opcode::BC_STORE_FIELD {
+        } else if opcode == opc::BC_STORE_FIELD {
             let src = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::StoreField(src, obj, idx)
 
-        } else if opcode == bytecode::opcode::BC_LOAD_GLOBAL {
+        } else if opcode == opc::BC_LOAD_GLOBAL {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             BytecodeInstruction::LoadGlobal(dest, glob)
-        } else if opcode == bytecode::opcode::BC_STORE_GLOBAL {
+        } else if opcode == opc::BC_STORE_GLOBAL {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             BytecodeInstruction::StoreGlobal(src, glob)
 
-        } else if opcode == bytecode::opcode::BC_PUSH_REGISTER {
+        } else if opcode == opc::BC_PUSH_REGISTER {
             let src = self.readRegister(wide);
             BytecodeInstruction::PushRegister(src)
 
-        } else if opcode == bytecode::opcode::BC_CONST_TRUE {
+        } else if opcode == opc::BC_CONST_TRUE {
             let dest = self.readRegister(wide);
             BytecodeInstruction::ConstTrue(dest)
-        } else if opcode == bytecode::opcode::BC_CONST_FALSE {
+        } else if opcode == opc::BC_CONST_FALSE {
             let dest = self.readRegister(wide);
             BytecodeInstruction::ConstFalse(dest)
-        } else if opcode == bytecode::opcode::BC_CONST_UINT8 {
+        } else if opcode == opc::BC_CONST_UINT8 {
             let dest = self.readRegister(wide);
             let value = self.readByte().toUInt8();
             BytecodeInstruction::ConstUInt8(dest, value)
-        } else if opcode == bytecode::opcode::BC_CONST_CHAR {
+        } else if opcode == opc::BC_CONST_CHAR {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::ConstChar(dest, idx)
-        } else if opcode == bytecode::opcode::BC_CONST_INT32 {
+        } else if opcode == opc::BC_CONST_INT32 {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::ConstInt32(dest, idx)
-        } else if opcode == bytecode::opcode::BC_CONST_INT64 {
+        } else if opcode == opc::BC_CONST_INT64 {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::ConstInt64(dest, idx)
-        } else if opcode == bytecode::opcode::BC_CONST_FLOAT32{
+        } else if opcode == opc::BC_CONST_FLOAT32{
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::ConstFloat32(dest, idx)
-        } else if opcode == bytecode::opcode::BC_CONST_FLOAT64 {
+        } else if opcode == opc::BC_CONST_FLOAT64 {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::ConstFloat64(dest, idx)
-        } else if opcode == bytecode::opcode::BC_CONST_STRING {
+        } else if opcode == opc::BC_CONST_STRING {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::ConstString(dest, idx)
 
-        } else if opcode == bytecode::opcode::BC_TEST_EQ {
+        } else if opcode == opc::BC_TEST_EQ {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::TestEq(dest, lhs, rhs)
-        } else if opcode == bytecode::opcode::BC_TEST_NE {
+        } else if opcode == opc::BC_TEST_NE {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::TestNe(dest, lhs, rhs)
-        } else if opcode == bytecode::opcode::BC_TEST_GT {
+        } else if opcode == opc::BC_TEST_GT {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::TestGt(dest, lhs, rhs)
-        } else if opcode == bytecode::opcode::BC_TEST_GE {
+        } else if opcode == opc::BC_TEST_GE {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::TestGe(dest, lhs, rhs)
-        } else if opcode == bytecode::opcode::BC_TEST_LT {
+        } else if opcode == opc::BC_TEST_LT {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::TestLt(dest, lhs, rhs)
-        } else if opcode == bytecode::opcode::BC_TEST_LE {
+        } else if opcode == opc::BC_TEST_LE {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             BytecodeInstruction::TestLe(dest, lhs, rhs)
 
-        } else if opcode == bytecode::opcode::BC_LOOP_START {
+        } else if opcode == opc::BC_LOOP_START {
             BytecodeInstruction::LoopStart
 
-        } else if opcode == bytecode::opcode::BC_JUMP_LOOP {
+        } else if opcode == opc::BC_JUMP_LOOP {
             let offset = self.readOffset(wide);
             BytecodeInstruction::JumpLoop(offset)
 
-        } else if opcode == bytecode::opcode::BC_JUMP_IF_FALSE {
+        } else if opcode == opc::BC_JUMP_IF_FALSE {
             let opnd = self.readRegister(wide);
             let offset = self.readOffset(wide);
             BytecodeInstruction::JumpIfFalse(opnd, offset)
-        } else if opcode == bytecode::opcode::BC_JUMP_IF_FALSE_CONST {
+        } else if opcode == opc::BC_JUMP_IF_FALSE_CONST {
             let opnd = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::JumpIfFalseConst(opnd, idx)
-        } else if opcode == bytecode::opcode::BC_JUMP_IF_TRUE {
+        } else if opcode == opc::BC_JUMP_IF_TRUE {
             let opnd = self.readRegister(wide);
             let offset = self.readOffset(wide);
             BytecodeInstruction::JumpIfTrue(opnd, offset)
-        } else if opcode == bytecode::opcode::BC_JUMP_IF_TRUE_CONST {
+        } else if opcode == opc::BC_JUMP_IF_TRUE_CONST {
             let opnd = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::JumpIfTrueConst(opnd, idx)
-        } else if opcode == bytecode::opcode::BC_JUMP {
+        } else if opcode == opc::BC_JUMP {
             let offset = self.readOffset(wide);
             BytecodeInstruction::Jump(offset)
-        } else if opcode == bytecode::opcode::BC_JUMP_CONST {
+        } else if opcode == opc::BC_JUMP_CONST {
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::JumpConst(idx)
 
-        } else if opcode == bytecode::opcode::BC_INVOKE_DIRECT_VOID {
+        } else if opcode == opc::BC_INVOKE_DIRECT_VOID {
             let fct = self.readConstPoolId(wide);
             BytecodeInstruction::InvokeDirectVoid(fct)
-        } else if opcode == bytecode::opcode::BC_INVOKE_DIRECT {
+        } else if opcode == opc::BC_INVOKE_DIRECT {
             let dest = self.readRegister(wide);
             let fct = self.readConstPoolId(wide);
             BytecodeInstruction::InvokeDirect(dest, fct)
 
-        } else if opcode == bytecode::opcode::BC_INVOKE_VIRTUAL_VOID {
+        } else if opcode == opc::BC_INVOKE_VIRTUAL_VOID {
             let fct = self.readConstPoolId(wide);
             BytecodeInstruction::InvokeVirtualVoid(fct)
-        } else if opcode == bytecode::opcode::BC_INVOKE_VIRTUAL {
+        } else if opcode == opc::BC_INVOKE_VIRTUAL {
             let dest = self.readRegister(wide);
             let fct = self.readConstPoolId(wide);
             BytecodeInstruction::InvokeVirtual(dest, fct)
 
-        } else if opcode == bytecode::opcode::BC_INVOKE_STATIC_VOID {
+        } else if opcode == opc::BC_INVOKE_STATIC_VOID {
             let fct = self.readConstPoolId(wide);
             BytecodeInstruction::InvokeStaticVoid(fct)
-        } else if opcode == bytecode::opcode::BC_INVOKE_STATIC {
+        } else if opcode == opc::BC_INVOKE_STATIC {
             let dest = self.readRegister(wide);
             let fct = self.readConstPoolId(wide);
             BytecodeInstruction::InvokeStatic(dest, fct)
 
-        } else if opcode == bytecode::opcode::BC_NEW_OBJECT {
+        } else if opcode == opc::BC_NEW_OBJECT {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::NewObject(dest, idx)
-        } else if opcode == bytecode::opcode::BC_NEW_ARRAY {
+        } else if opcode == opc::BC_NEW_ARRAY {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             let length = self.readRegister(wide);
             BytecodeInstruction::NewArray(dest, idx, length)
 
-        } else if opcode == bytecode::opcode::BC_NIL_CHECK {
+        } else if opcode == opc::BC_NIL_CHECK {
             let obj = self.readRegister(wide);
             BytecodeInstruction::NilCheck(obj)
-        } else if opcode == bytecode::opcode::BC_ARRAY_BOUND_CHECK {
+        } else if opcode == opc::BC_ARRAY_BOUND_CHECK {
             let arr = self.readRegister(wide);
             let idx = self.readRegister(wide);
             BytecodeInstruction::ArrayBoundCheck(arr, idx)
-        } else if opcode == bytecode::opcode::BC_ARRAY_LENGTH {
+        } else if opcode == opc::BC_ARRAY_LENGTH {
             let dest = self.readRegister(wide);
             let arr = self.readRegister(wide);
             BytecodeInstruction::ArrayLength(dest, arr)
 
-        } else if opcode == bytecode::opcode::BC_LOAD_ARRAY {
+        } else if opcode == opc::BC_LOAD_ARRAY {
             let dest = self.readRegister(wide);
             let arr = self.readRegister(wide);
             let idx = self.readRegister(wide);
             BytecodeInstruction::LoadArray(dest, arr, idx)
 
-        } else if opcode == bytecode::opcode::BC_STORE_ARRAY {
+        } else if opcode == opc::BC_STORE_ARRAY {
             let src = self.readRegister(wide);
             let arr = self.readRegister(wide);
             let idx = self.readRegister(wide);
             BytecodeInstruction::StoreArray(src, arr, idx)
 
-        } else if opcode == bytecode::opcode::BC_RET_VOID {
+        } else if opcode == opc::BC_RET_VOID {
             BytecodeInstruction::RetVoid
-        } else if opcode == bytecode::opcode::BC_RET {
+        } else if opcode == opc::BC_RET {
             let opnd = self.readRegister(wide);
             BytecodeInstruction::Ret(opnd)
 
         } else {
-            std::fatalError("unkown opcode ${opcode} ${bytecode::opcode::bytecodeName(opcode)}");
+            std::fatalError("unkown opcode ${opcode} ${opc::bytecodeName(opcode)}");
             unreachable[BytecodeInstruction]()
         };
 
@@ -326,7 +326,7 @@ use package::bytecode;
     fn readOpcode(): (Bool, Int32) {
         let opcode = self.readByte();
 
-        if opcode == bytecode::opcode::BC_WIDE {
+        if opcode == opc::BC_WIDE {
             let opcode = self.readByte();
             (true, opcode)
         } else {
