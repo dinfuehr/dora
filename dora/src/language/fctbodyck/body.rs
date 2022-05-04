@@ -578,7 +578,10 @@ impl<'a> TypeCheck<'a> {
         for case in &node.cases {
             self.symtable.push_level();
 
-            match case.pattern.data {
+            debug_assert_eq!(case.patterns.len(), 1);
+            let pattern = case.patterns.first().expect("no pattern");
+
+            match pattern.data {
                 ast::MatchPatternData::Underscore => {
                     let mut negated_used_variants = used_variants.clone();
                     negated_used_variants.toggle_range(..);
@@ -606,7 +609,7 @@ impl<'a> TypeCheck<'a> {
 
                                 used_variants.insert(variant_idx);
                                 self.analysis.map_idents.insert(
-                                    case.pattern.id,
+                                    pattern.id,
                                     IdentType::EnumValue(
                                         enum_id,
                                         expr_type_params.clone(),

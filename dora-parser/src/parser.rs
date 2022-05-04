@@ -1548,7 +1548,13 @@ impl<'a> Parser<'a> {
     fn parse_match_case(&mut self) -> Result<MatchCaseType, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
-        let pattern = self.parse_match_pattern()?;
+        let mut patterns = Vec::new();
+        patterns.push(self.parse_match_pattern()?);
+
+        while self.token.is(TokenKind::Or) {
+            self.advance_token()?;
+            patterns.push(self.parse_match_pattern()?);
+        }
 
         self.expect_token(TokenKind::DoubleArrow)?;
 
@@ -1559,7 +1565,7 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             pos,
             span,
-            pattern,
+            patterns,
             value,
         })
     }
@@ -4117,5 +4123,6 @@ mod tests {
     fn parse_match() {
         parse_expr("match x { }");
         parse_expr("match x { A(x, b) => 1, B => 2 }");
+        parse_expr("match x { A(x, b) => 1, B | C => 2 }");
     }
 }

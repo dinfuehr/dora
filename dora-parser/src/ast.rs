@@ -2183,7 +2183,7 @@ pub struct MatchCaseType {
     pub pos: Position,
     pub span: Span,
 
-    pub pattern: MatchPattern,
+    pub patterns: Vec<MatchPattern>,
     pub value: Box<Expr>,
 }
 

@@ -747,7 +747,9 @@ impl<'a> AstBytecodeGen<'a> {
         let mut next_lbl = self.builder.create_label();
 
         for (idx, case) in node.cases.iter().enumerate() {
-            match case.pattern.data {
+            debug_assert_eq!(case.patterns.len(), 1);
+            let pattern = case.patterns.first().expect("pattern missing");
+            match pattern.data {
                 MatchPatternData::Underscore => {
                     self.builder.bind_label(next_lbl);
 
@@ -762,7 +764,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 MatchPatternData::Ident(ref ident) => {
                     let variant_idx: i32 = {
-                        let ident_type = self.src.map_idents.get(case.pattern.id).unwrap();
+                        let ident_type = self.src.map_idents.get(pattern.id).unwrap();
 
                         match ident_type {
                             IdentType::EnumValue(_, _, variant_idx) => {
