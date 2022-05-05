@@ -9,94 +9,130 @@ use crate::language::ty::SourceType;
 
 use crate::stack;
 use crate::stdlib;
+
 use dora_parser::ast::Modifier;
+use dora_parser::interner::Name;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
     sa.known.annotations.abstract_ = Some(internal_annotation(
         sa,
         stdlib,
-        "abstract",
+        "annotations::abstract",
         Modifier::Abstract,
     ));
-    sa.known.annotations.final_ = Some(internal_annotation(sa, stdlib, "final", Modifier::Final));
+    sa.known.annotations.final_ = Some(internal_annotation(
+        sa,
+        stdlib,
+        "annotations::final",
+        Modifier::Final,
+    ));
     sa.known.annotations.internal = Some(internal_annotation(
         sa,
         stdlib,
-        "internal",
+        "annotations::internal",
         Modifier::Internal,
     ));
-    sa.known.annotations.open = Some(internal_annotation(sa, stdlib, "open", Modifier::Open));
+    sa.known.annotations.open = Some(internal_annotation(
+        sa,
+        stdlib,
+        "annotations::open",
+        Modifier::Open,
+    ));
     sa.known.annotations.override_ = Some(internal_annotation(
         sa,
         stdlib,
-        "override",
+        "annotations::override",
         Modifier::Override,
     ));
-    sa.known.annotations.pub_ = Some(internal_annotation(sa, stdlib, "pub", Modifier::Pub));
-    sa.known.annotations.static_ =
-        Some(internal_annotation(sa, stdlib, "static", Modifier::Static));
+    sa.known.annotations.pub_ = Some(internal_annotation(
+        sa,
+        stdlib,
+        "annotations::pub",
+        Modifier::Pub,
+    ));
+    sa.known.annotations.static_ = Some(internal_annotation(
+        sa,
+        stdlib,
+        "annotations::static",
+        Modifier::Static,
+    ));
 
-    sa.known.annotations.test = Some(internal_annotation(sa, stdlib, "Test", Modifier::Test));
+    sa.known.annotations.test = Some(internal_annotation(
+        sa,
+        stdlib,
+        "annotations::Test",
+        Modifier::Test,
+    ));
 
     sa.known.annotations.optimize_immediately = Some(internal_annotation(
         sa,
         stdlib,
-        "optimizeImmediately",
+        "annotations::optimizeImmediately",
         Modifier::OptimizeImmediately,
     ));
 }
 
 pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
-    sa.known.structs.bool = Some(internal_struct(sa, stdlib, "Bool", Some(SourceType::Bool)));
+    sa.known.structs.bool = Some(internal_struct(
+        sa,
+        stdlib,
+        "primitives::Bool",
+        Some(SourceType::Bool),
+    ));
 
     sa.known.structs.uint8 = Some(internal_struct(
         sa,
         stdlib,
-        "UInt8",
+        "primitives::UInt8",
         Some(SourceType::UInt8),
     ));
-    sa.known.structs.char = Some(internal_struct(sa, stdlib, "Char", Some(SourceType::Char)));
+    sa.known.structs.char = Some(internal_struct(
+        sa,
+        stdlib,
+        "primitives::Char",
+        Some(SourceType::Char),
+    ));
     sa.known.structs.int32 = Some(internal_struct(
         sa,
         stdlib,
-        "Int32",
+        "primitives::Int32",
         Some(SourceType::Int32),
     ));
     sa.known.structs.int64 = Some(internal_struct(
         sa,
         stdlib,
-        "Int64",
+        "primitives::Int64",
         Some(SourceType::Int64),
     ));
 
     sa.known.structs.float32 = Some(internal_struct(
         sa,
         stdlib,
-        "Float32",
+        "primitives::Float32",
         Some(SourceType::Float32),
     ));
     sa.known.structs.float64 = Some(internal_struct(
         sa,
         stdlib,
-        "Float64",
+        "primitives::Float64",
         Some(SourceType::Float64),
     ));
 
     sa.known.classes.object = Some(find_class(sa, stdlib, "Object"));
-    sa.known.classes.string = Some(internal_class(sa, stdlib, "String"));
+    sa.known.classes.string = Some(internal_class(sa, stdlib, "string::String"));
 
-    sa.known.classes.string_buffer = Some(find_class(sa, stdlib, "StringBuffer"));
+    sa.known.classes.string_buffer = Some(find_class(sa, stdlib, "string::StringBuffer"));
 
-    sa.known.classes.atomic_int32 = Some(find_class(sa, stdlib, "AtomicInt32"));
-    sa.known.classes.atomic_int64 = Some(find_class(sa, stdlib, "AtomicInt64"));
+    sa.known.classes.atomic_int32 = Some(find_class(sa, stdlib, "thread::AtomicInt32"));
+    sa.known.classes.atomic_int64 = Some(find_class(sa, stdlib, "thread::AtomicInt64"));
 
     let cls = sa.classes.idx(sa.known.classes.string());
     let mut cls = cls.write();
     cls.is_str = true;
 
-    sa.known.classes.array = Some(internal_class(sa, stdlib, "Array"));
+    sa.known.classes.array = Some(internal_class(sa, stdlib, "collections::Array"));
 
     let cls = sa.classes.idx(sa.known.classes.array());
     let mut cls = cls.write();
@@ -105,44 +141,40 @@ pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     sa.known.classes.stacktrace = Some(find_class(sa, stdlib, "Stacktrace"));
     sa.known.classes.stacktrace_element = Some(find_class(sa, stdlib, "StacktraceElement"));
 
-    sa.known.traits.stringable = Some(find_trait(sa, stdlib, "Stringable"));
-    sa.known.traits.zero = Some(find_trait(sa, stdlib, "Zero"));
-    sa.known.traits.iterator = Some(find_trait(sa, stdlib, "Iterator"));
+    sa.known.traits.stringable = Some(find_trait(sa, stdlib, "string::Stringable"));
+    sa.known.traits.zero = Some(find_trait(sa, stdlib, "traits::Zero"));
+    sa.known.traits.iterator = Some(find_trait(sa, stdlib, "traits::Iterator"));
 
-    sa.known.enums.option = Some(find_enum(sa, stdlib, "Option"));
+    sa.known.enums.option = Some(find_enum(sa, stdlib, "primitives::Option"));
 }
 
 pub fn fill_prelude(sa: &mut SemAnalysis) {
     let symbols = [
-        "Bool",
-        "UInt8",
-        "Char",
-        "Int32",
-        "Int64",
-        "Float32",
-        "Float64",
-        "Object",
-        "String",
-        "Array",
-        "Vec",
+        "primitives::Bool",
+        "primitives::UInt8",
+        "primitives::Char",
+        "primitives::Int32",
+        "primitives::Int64",
+        "primitives::Float32",
+        "primitives::Float64",
+        "string::String",
+        "collections::Array",
+        "collections::Vec",
         "print",
         "println",
-        "Option",
+        "primitives::Option",
         "unimplemented",
         "unreachable",
         "assert",
-        "Result",
+        "primitives::Result",
     ];
-
-    let stdlib = sa.stdlib_module();
-    let stdlib = stdlib.read();
 
     let prelude = sa.prelude_module();
     let mut prelude = prelude.write();
 
     for name in &symbols {
         let sym = resolve_name(sa, name, sa.stdlib_module_id);
-        let name = sa.interner.intern(name);
+        let name = final_path_name(sa, name);
         let old_sym = prelude.insert(name, sym);
         assert!(old_sym.is_none());
     }
@@ -152,54 +184,47 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
 
     {
         // include None and Some from Option
-        let option_name = sa.interner.intern("Option");
-        let option_id = stdlib.get(option_name);
+        let enum_id = resolve_name(sa, "primitives::Option", sa.stdlib_module_id)
+            .to_enum()
+            .expect("enum expected");
 
-        match option_id {
-            Some(Sym::Enum(enum_id)) => {
-                let enum_ = &sa.enums[enum_id];
-                let enum_ = enum_.read();
+        let enum_ = &sa.enums[enum_id];
+        let enum_ = enum_.read();
 
-                for variant in &enum_.variants {
-                    let old_sym =
-                        prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
-                    assert!(old_sym.is_none());
-                }
-            }
-
-            _ => unreachable!(),
+        for variant in &enum_.variants {
+            let old_sym = prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
+            assert!(old_sym.is_none());
         }
     }
 
     {
         // include Ok and Err from Result
-        let option_name = sa.interner.intern("Result");
-        let option_id = stdlib.get(option_name);
+        let enum_id = resolve_name(sa, "primitives::Result", sa.stdlib_module_id)
+            .to_enum()
+            .expect("enum expected");
 
-        match option_id {
-            Some(Sym::Enum(enum_id)) => {
-                let enum_ = &sa.enums[enum_id];
-                let enum_ = enum_.read();
+        let enum_ = &sa.enums[enum_id];
+        let enum_ = enum_.read();
 
-                for variant in &enum_.variants {
-                    let old_sym =
-                        prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
-                    assert!(old_sym.is_none());
-                }
-            }
-
-            _ => unreachable!(),
+        for variant in &enum_.variants {
+            let old_sym = prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
+            assert!(old_sym.is_none());
         }
     }
+}
+
+fn final_path_name(sa: &mut SemAnalysis, path: &str) -> Name {
+    let name = path.split("::").last().expect("name missing");
+    sa.interner.intern(name)
 }
 
 pub fn discover_known_methods(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
     sa.known.functions.string_buffer_empty = Some(find_static(sa, stdlib, "StringBuffer", "empty"));
     sa.known.functions.string_buffer_append =
-        Some(find_method(sa, stdlib, "StringBuffer", "append"));
+        Some(find_method(sa, stdlib, "string::StringBuffer", "append"));
     sa.known.functions.string_buffer_to_string =
-        Some(find_method(sa, stdlib, "StringBuffer", "toString"));
+        Some(find_method(sa, stdlib, "string::StringBuffer", "toString"));
 }
 
 fn find_class(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
@@ -247,6 +272,18 @@ fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> 
 
     let path = name.split("::");
     let mut sym = Sym::Module(module_id);
+
+    // Until stdlib switches to new module mechanism, still perform a direct lookup of name in
+    // the std module without the given path.
+    if sa.stdlib_module_id == module_id {
+        let last_name = path.clone().last().expect("no name");
+        let interned_name = sa.interner.intern(last_name);
+        let symtable = NestedSymTable::new(sa, module_id);
+
+        if let Some(sym) = symtable.get(interned_name) {
+            return sym;
+        }
+    }
 
     for name in path {
         let module_id = sym.to_module().expect("module expected");

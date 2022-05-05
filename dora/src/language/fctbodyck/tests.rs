@@ -2251,13 +2251,14 @@ fn test_methods_with_generics() {
 fn test_is_types() {
     err(
         "
+        class Object
         trait SomeTrait {}
         class Foo[A: SomeTrait] {}
         fn test(f: Object): Bool {
             return f is Foo[Int32];
         }
     ",
-        pos(5, 25),
+        pos(6, 25),
         SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
     );
 }

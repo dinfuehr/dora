@@ -196,21 +196,21 @@ fn gen_id_int() {
 
 #[test]
 fn gen_id_ptr() {
-    let result = code("fn f(a: Object): Object { return a; }");
+    let result = code("class Object fn f(a: Object): Object { return a; }");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_ptr_is() {
-    let result = code("fn f(a: Object, b: Object): Bool { return a === b; }");
+    let result = code("class Object fn f(a: Object, b: Object): Bool { return a === b; }");
     let expected = vec![TestIdentity(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_ptr_is_not() {
-    let result = code("fn f(a: Object, b: Object): Bool { return a !== b; }");
+    let result = code("class Object fn f(a: Object, b: Object): Bool { return a !== b; }");
     let expected = vec![TestIdentity(r(2), r(0), r(1)), Not(r(2), r(2)), Ret(r(2))];
     assert_eq!(expected, result);
 }
@@ -2744,31 +2744,34 @@ fn gen_new_enum() {
 
 #[test]
 fn gen_new_object() {
-    gen_fct("fn f(): Object { return Object(); }", |sa, code, fct| {
-        let cls_id = sa.cls_by_name("Object");
-        let ctor_id = sa.ctor_by_name("Object");
-        let expected = vec![
-            NewObject(r(0), ConstPoolIdx(1)),
-            PushRegister(r(0)),
-            InvokeDirectVoid(ConstPoolIdx(0)),
-            Ret(r(0)),
-        ];
-        assert_eq!(expected, code);
-        assert_eq!(
-            fct.const_pool(ConstPoolIdx(0)),
-            &ConstPoolEntry::Fct(ctor_id, SourceTypeArray::empty())
-        );
-        assert_eq!(
-            fct.const_pool(ConstPoolIdx(1)),
-            &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
-        );
-    });
+    gen_fct(
+        "class Object fn f(): Object { return Object(); }",
+        |sa, code, fct| {
+            let cls_id = sa.cls_by_name("Object");
+            let ctor_id = sa.ctor_by_name("Object");
+            let expected = vec![
+                NewObject(r(0), ConstPoolIdx(1)),
+                PushRegister(r(0)),
+                InvokeDirectVoid(ConstPoolIdx(0)),
+                Ret(r(0)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(ctor_id, SourceTypeArray::empty())
+            );
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
+            );
+        },
+    );
 }
 
 #[test]
 fn gen_new_object_assign_to_var() {
     gen_fct(
-        "fn f(): Object { let obj = Object(); return obj; }",
+        "class Object fn f(): Object { let obj = Object(); return obj; }",
         |sa, code, fct| {
             let cls_id = sa.cls_by_name("Object");
             let ctor_id = sa.ctor_by_name("Object");
@@ -2794,8 +2797,8 @@ fn gen_new_object_assign_to_var() {
 
 #[test]
 fn gen_position_new_object() {
-    let result = position("fn f(): Object { return Object(); }");
-    let expected = vec![(0, p(1, 31))];
+    let result = position("class Object fn f(): Object { return Object(); }");
+    let expected = vec![(0, p(1, 44))];
     assert_eq!(expected, result);
 }
 
@@ -2908,7 +2911,7 @@ fn gen_load_array_float64() {
 
 #[test]
 fn gen_load_array_ptr() {
-    let result = code("fn f(a: Array[Object], idx: Int64): Object { return a(idx); }");
+    let result = code("class Object fn f(a: Array[Object], idx: Int64): Object { return a(idx); }");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
@@ -2957,8 +2960,8 @@ fn gen_position_load_array_float64() {
 
 #[test]
 fn gen_position_load_array_ptr() {
-    let result = position("fn f(a: Array[Object]): Object { return a(0); }");
-    let expected = vec![(3, p(1, 42))];
+    let result = position("class Object fn f(a: Array[Object]): Object { return a(0); }");
+    let expected = vec![(3, p(1, 55))];
     assert_eq!(expected, result);
 }
 
@@ -3041,7 +3044,7 @@ fn gen_store_array_float64() {
 
 #[test]
 fn gen_store_array_ptr() {
-    let result = code("fn f(a: Array[Object], b: Object) { a(0) = b; }");
+    let result = code("class Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
@@ -3094,8 +3097,8 @@ fn gen_position_store_array_float64() {
 
 #[test]
 fn gen_position_store_array_ptr() {
-    let result = position("fn f(a: Array[Object], b: Object) { a(0) = b; }");
-    let expected = vec![(3, p(1, 42))];
+    let result = position("class Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
+    let expected = vec![(3, p(1, 55))];
     assert_eq!(expected, result);
 }
 

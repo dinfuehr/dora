@@ -1,4 +1,5 @@
-class Foo[A]
+@open class Object
+class Foo[A]: Object
 
 fn is_foo_int(f: Object): Bool {
     return f is Foo[Int32];

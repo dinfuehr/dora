@@ -1,12 +1,9 @@
 fn main() {
-    t(A());
     t(B());
-    t(C());
-    t("abc");
+    t(C() as B);
 }
 
-fn t(o: Object) {}
+fn t(o: B) {}
 
-class A
 @open class B
 class C: B
