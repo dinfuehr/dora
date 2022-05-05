@@ -4,7 +4,7 @@ use crate::language::sem_analysis::{
     FctDefinitionId, Intrinsic, ModuleDefinitionId, SemAnalysis, StructDefinitionId,
     TraitDefinitionId,
 };
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 
 use crate::stack;
@@ -244,7 +244,7 @@ fn internal_struct(
 }
 
 fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> Sym {
-    let symtable = NestedSymTable::new(sa, module_id);
+    let symtable = crate::language::sym::NestedSymTable::new(sa, module_id);
     let interned_name = sa.interner.intern(name);
 
     if let Some(sym) = symtable.get(interned_name) {
