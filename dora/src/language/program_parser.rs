@@ -90,11 +90,31 @@ impl<'a> ProgramParser<'a> {
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
         let module_id = self.sa.stdlib_module_id;
 
-        if let Some(stdlib) = stdlib_dir {
-            self.add_files_in_directory(PathBuf::from(stdlib), module_id, None)?;
+        let use_old_mechanism = true;
+
+        if use_old_mechanism {
+            if let Some(stdlib) = stdlib_dir {
+                self.add_files_in_directory(PathBuf::from(stdlib), module_id, None)?;
+            } else {
+                self.stdlib = prepare_bundle(STDLIB);
+                self.add_bundled_stdlib(module_id)?;
+            }
         } else {
-            self.stdlib = prepare_bundle(STDLIB);
-            self.add_bundled_stdlib(module_id)?;
+            if let Some(stdlib) = stdlib_dir {
+                let file_path = PathBuf::from(stdlib);
+                let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
+                self.add_file(
+                    file_path,
+                    module_id,
+                    Some(module_path),
+                    None,
+                    FileLookup::FileSystem,
+                )?;
+            } else {
+                let file_path = PathBuf::from("stdlib/stdlib.dora");
+                let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
+                self.add_bundled_file(file_path, module_id, module_path)?;
+            }
         }
 
         Ok(())
