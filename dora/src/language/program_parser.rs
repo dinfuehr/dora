@@ -26,9 +26,11 @@ pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
 
 #[derive(Copy, Clone)]
 enum FileLookup {
-    Directory,
-    File,
-    Stdlib,
+    FileSystem,
+    Bundle,
+
+    FileSystemOld,
+    BundleOld,
 }
 
 type PreparedBundle = HashMap<PathBuf, Vec<(PathBuf, String)>>;
@@ -110,10 +112,41 @@ impl<'a> ProgramParser<'a> {
     ) -> Result<(), i32> {
         let files = self.stdlib.remove(&path).expect("missing directory");
         for (path, content) in files {
-            self.add_file_from_string(path, content, module_id, None, FileLookup::Stdlib);
+            self.add_file_from_string(path, content, module_id, None, FileLookup::BundleOld);
         }
 
         Ok(())
+    }
+
+    fn add_bundled_file(
+        &mut self,
+        file_path: PathBuf,
+        module_id: ModuleDefinitionId,
+        module_path: PathBuf,
+    ) -> Result<(), i32> {
+        let content = self.get_bundled_file(&file_path);
+        self.add_file_from_string(
+            file_path,
+            content.into(),
+            module_id,
+            Some(module_path),
+            FileLookup::Bundle,
+        );
+
+        Ok(())
+    }
+
+    fn get_bundled_file(&self, path: &Path) -> &'static str {
+        let bundle = crate::driver::STDLIB;
+
+        for (name, content) in bundle {
+            if *name == path.to_string_lossy() {
+                return *content;
+            }
+        }
+
+        eprintln!("bundled_files: {:?}", bundle);
+        panic!("can't find file {} in bundle.", path.display())
     }
 
     fn add_boots_files(&mut self) -> Result<(), i32> {
@@ -127,7 +160,7 @@ impl<'a> ProgramParser<'a> {
                 self.sa.boots_module_id,
                 Some(module_path),
                 None,
-                FileLookup::File,
+                FileLookup::FileSystem,
             )?;
         }
 
@@ -147,7 +180,7 @@ impl<'a> ProgramParser<'a> {
                     self.sa.program_module_id,
                     Some(module_path),
                     None,
-                    FileLookup::File,
+                    FileLookup::FileSystem,
                 )?;
             } else {
                 println!("file `{}` does not exist.", &arg_file);
@@ -165,7 +198,7 @@ impl<'a> ProgramParser<'a> {
                 content.to_string(),
                 self.sa.program_module_id,
                 None,
-                FileLookup::File,
+                FileLookup::FileSystem,
             );
         }
 
@@ -219,7 +252,7 @@ impl<'a> ProgramParser<'a> {
         let name = self.sa.interner.str(node.name).to_string();
 
         match file_lookup {
-            FileLookup::Directory => {
+            FileLookup::FileSystemOld => {
                 let mut module_directory =
                     PathBuf::from(including_file_path.parent().expect("parent missing"));
                 module_directory.push(&name);
@@ -227,7 +260,7 @@ impl<'a> ProgramParser<'a> {
                 self.add_files_in_directory(module_directory, module_id, Some((file_id, node.pos)))
             }
 
-            FileLookup::File => {
+            FileLookup::FileSystem => {
                 let module_path = module_path.expect("missing module_path");
 
                 let mut file_path = module_path.clone();
@@ -241,17 +274,31 @@ impl<'a> ProgramParser<'a> {
                     module_id,
                     Some(module_path),
                     Some((file_id, node.pos)),
-                    FileLookup::File,
+                    FileLookup::FileSystem,
                 )?;
 
                 Ok(())
             }
 
-            FileLookup::Stdlib => {
+            FileLookup::BundleOld => {
                 let mut module_directory =
                     PathBuf::from(including_file_path.parent().expect("parent missing"));
                 module_directory.push(&name);
                 self.add_bundled_directory(module_directory, module_id)
+            }
+
+            FileLookup::Bundle => {
+                let module_path = module_path.expect("missing module_path");
+
+                let mut file_path = module_path.clone();
+                file_path.push(format!("{}.dora", name));
+
+                let mut module_path = module_path;
+                module_path.push(&name);
+
+                self.add_bundled_file(file_path, module_id, module_path)?;
+
+                Ok(())
             }
         }
     }
@@ -272,7 +319,7 @@ impl<'a> ProgramParser<'a> {
                         module_id,
                         None,
                         error_location,
-                        FileLookup::Directory,
+                        FileLookup::FileSystemOld,
                     )?;
                 }
             }

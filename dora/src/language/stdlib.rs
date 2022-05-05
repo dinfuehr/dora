@@ -140,11 +140,10 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
     let prelude = sa.prelude_module();
     let mut prelude = prelude.write();
 
-    for sym in &symbols {
-        let name = sa.interner.intern(sym);
-        let sym = stdlib.get(name);
-
-        let old_sym = prelude.insert(name, sym.expect("missing sym"));
+    for name in &symbols {
+        let sym = resolve_name(sa, name, sa.stdlib_module_id);
+        let name = sa.interner.intern(name);
+        let old_sym = prelude.insert(name, sym);
         assert!(old_sym.is_none());
     }
 
