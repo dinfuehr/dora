@@ -314,4 +314,18 @@ impl Sym {
             _ => None,
         }
     }
+
+    pub fn is_module(&self) -> bool {
+        match *self {
+            Module(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_module(&self) -> Option<ModuleDefinitionId> {
+        match *self {
+            Module(id) => Some(id),
+            _ => None,
+        }
+    }
 }

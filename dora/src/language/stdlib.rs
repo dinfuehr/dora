@@ -244,14 +244,27 @@ fn internal_struct(
 }
 
 fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> Sym {
-    let symtable = crate::language::sym::NestedSymTable::new(sa, module_id);
-    let interned_name = sa.interner.intern(name);
+    use crate::language::sym::NestedSymTable;
 
-    if let Some(sym) = symtable.get(interned_name) {
-        sym
-    } else {
-        panic!("{} not found.", name)
+    let path = name.split("::");
+    let mut sym = Sym::Module(module_id);
+
+    for name in path {
+        let module_id = sym.to_module().expect("module expected");
+        let symtable = NestedSymTable::new(sa, module_id);
+
+        let interned_name = sa.interner.intern(name);
+
+        if let Some(current_sym) = symtable.get(interned_name) {
+            sym = current_sym;
+        } else {
+            let module = sa.modules.idx(module_id);
+            let module = module.read();
+            panic!("{} not found in module {}.", name, module.name(sa));
+        }
     }
+
+    sym
 }
 
 fn internal_annotation(
