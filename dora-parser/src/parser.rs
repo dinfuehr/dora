@@ -182,7 +182,7 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Use => {
-                self.ban_modifiers(&modifiers)?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 let use_stmt = self.parse_use()?;
                 Ok(Elem::Use(Arc::new(use_stmt)))
             }
