@@ -162,7 +162,8 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
                 let enum_ = enum_.read();
 
                 for variant in &enum_.variants {
-                    let old_sym = prelude.insert(variant.name, Sym::EnumValue(enum_id, variant.id));
+                    let old_sym =
+                        prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
                     assert!(old_sym.is_none());
                 }
             }
@@ -182,7 +183,8 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
                 let enum_ = enum_.read();
 
                 for variant in &enum_.variants {
-                    let old_sym = prelude.insert(variant.name, Sym::EnumValue(enum_id, variant.id));
+                    let old_sym =
+                        prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
                     assert!(old_sym.is_none());
                 }
             }

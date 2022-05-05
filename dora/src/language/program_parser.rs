@@ -185,16 +185,16 @@ impl<'a> ProgramParser<'a> {
             sa: self.sa,
             file_id,
             module_id,
-            unresolved_modules: Vec::new(),
+            external_modules: Vec::new(),
         };
 
         gdef.visit_file(ast);
 
-        if !gdef.unresolved_modules.is_empty() {
-            for unresolved_module_id in gdef.unresolved_modules {
+        if !gdef.external_modules.is_empty() {
+            for external_module_id in gdef.external_modules {
                 self.add_module_files(
                     file_path.clone(),
-                    unresolved_module_id,
+                    external_module_id,
                     module_path.clone(),
                     file_lookup,
                 )?;
@@ -228,36 +228,21 @@ impl<'a> ProgramParser<'a> {
             }
 
             FileLookup::File => {
-                let module_directory = module_path.expect("missing module_path");
+                let module_path = module_path.expect("missing module_path");
 
-                let mut file_path1 = module_directory.clone();
-                file_path1.push(format!("{}.dora", name));
+                let mut file_path = module_path.clone();
+                file_path.push(format!("{}.dora", name));
 
-                let mut file_path2 = module_directory.clone();
-                file_path2.push(&name);
-                file_path2.push("mod.dora");
+                let mut module_path = module_path;
+                module_path.push(&name);
 
-                if file_path1.exists() || file_path2.exists() {
-                    let file_path = if file_path1.exists() {
-                        file_path1
-                    } else {
-                        file_path2
-                    };
-                    let mut module_path = module_directory.clone();
-                    module_path.push(&name);
-                    self.add_file(
-                        file_path,
-                        module_id,
-                        Some(module_path),
-                        Some((file_id, node.pos)),
-                        FileLookup::File,
-                    )?;
-                } else {
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(file_id, node.pos, SemError::FileForModuleNotFound);
-                }
+                self.add_file(
+                    file_path,
+                    module_id,
+                    Some(module_path),
+                    Some((file_id, node.pos)),
+                    FileLookup::File,
+                )?;
 
                 Ok(())
             }
@@ -405,7 +390,7 @@ struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
     file_id: SourceFileId,
     module_id: ModuleDefinitionId,
-    unresolved_modules: Vec<ModuleDefinitionId>,
+    external_modules: Vec<ModuleDefinitionId>,
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
@@ -419,7 +404,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
 
         if node.elements.is_none() {
-            self.unresolved_modules.push(id);
+            self.external_modules.push(id);
         } else {
             let saved_module_id = self.module_id;
             self.module_id = id;

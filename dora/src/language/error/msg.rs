@@ -13,7 +13,7 @@ pub enum SemError {
     UnknownFunction(String),
     UnknownField(String, String),
     UnknownMethod(String, String, Vec<String>),
-    UnknownEnumValue(String),
+    UnknownEnumVariant(String),
     MultipleCandidatesForMethod(String, String, Vec<String>),
     VariadicParameterNeedsToBeLast,
     UnknownMethodForTypeParam(String, String, Vec<String>),
@@ -37,10 +37,10 @@ pub enum SemError {
     ShadowConst(String),
     ShadowModule(String),
     ShadowEnum(String),
-    ShadowEnumValue(String),
+    ShadowEnumVariant(String),
     ShadowTypeParam(String),
     InvalidLhsAssignment,
-    NoEnumValue,
+    NoEnumVariant,
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
     StructArgsIncompatible(String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
@@ -177,8 +177,8 @@ impl SemError {
                     name, args, cls
                 )
             }
-            SemError::UnknownEnumValue(ref name) => {
-                format!("no value with name `{}` in enumeration.", name)
+            SemError::UnknownEnumVariant(ref name) => {
+                format!("no variant with name `{}` in enumeration.", name)
             }
             SemError::MultipleCandidatesForMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
@@ -248,9 +248,11 @@ impl SemError {
             SemError::ShadowModule(ref name) => format!("can not shadow mod `{}`.", name),
             SemError::ShadowConst(ref name) => format!("can not shadow const `{}`.", name),
             SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
-            SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
+            SemError::ShadowEnumVariant(ref name) => {
+                format!("can not shadow enum variant `{}`.", name)
+            }
             SemError::ShadowTypeParam(ref name) => format!("can not shadow type param `{}`.", name),
-            SemError::NoEnumValue => "enum needs at least one value.".into(),
+            SemError::NoEnumVariant => "enum needs at least one variant.".into(),
             SemError::EnumArgsIncompatible(ref enum_, ref name, ref def, ref expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");

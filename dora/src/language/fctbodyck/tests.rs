@@ -1820,7 +1820,7 @@ fn test_enum() {
     err(
         "enum A { V1, V2 } fn f(): A { A::V3 }",
         pos(1, 32),
-        SemError::UnknownEnumValue("V3".into()),
+        SemError::UnknownEnumVariant("V3".into()),
     );
 
     err(

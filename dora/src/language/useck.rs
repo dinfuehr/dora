@@ -296,7 +296,7 @@ fn use_enum(
     }
 
     if let Some(&variant_idx) = enum_.name_to_value.get(&element_name) {
-        let sym = Sym::EnumValue(enum_id, variant_idx as usize);
+        let sym = Sym::EnumVariant(enum_id, variant_idx as usize);
         if let Some(sym) = table.write().insert(target_name, sym) {
             report_sym_shadow(sa, target_name, use_def.file_id.into(), mapping.pos, sym);
         }
@@ -305,7 +305,7 @@ fn use_enum(
         sa.diag.lock().report(
             use_def.file_id.into(),
             mapping.pos,
-            SemError::UnknownEnumValue(name),
+            SemError::UnknownEnumVariant(name),
         );
     }
 }

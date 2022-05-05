@@ -186,7 +186,7 @@ impl<'x> EnumCheckVariants<'x> {
                 self.sa.diag.lock().report(
                     self.enum_.file_id,
                     value.pos,
-                    SemError::ShadowEnumValue(name),
+                    SemError::ShadowEnumVariant(name),
                 );
             }
 
@@ -197,7 +197,7 @@ impl<'x> EnumCheckVariants<'x> {
             self.sa
                 .diag
                 .lock()
-                .report(self.enum_.file_id, self.ast.pos, SemError::NoEnumValue);
+                .report(self.enum_.file_id, self.ast.pos, SemError::NoEnumVariant);
         }
     }
 }
@@ -209,12 +209,12 @@ mod tests {
 
     #[test]
     fn enum_definitions() {
-        err("enum Foo {}", pos(1, 1), SemError::NoEnumValue);
+        err("enum Foo {}", pos(1, 1), SemError::NoEnumVariant);
         ok("enum Foo { A, B, C }");
         err(
             "enum Foo { A, A }",
             pos(1, 15),
-            SemError::ShadowEnumValue("A".into()),
+            SemError::ShadowEnumVariant("A".into()),
         );
     }
 
